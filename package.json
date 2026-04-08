@@ -1,0 +1,30 @@
+{
+  "name": "homeo-x",
+  "private": true,
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "dev:api": "turbo run dev --filter=@mmc/api",
+    "dev:web": "turbo run dev --filter=@mmc/web",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "test:unit": "turbo run test:unit",
+    "test:integration": "turbo run test:integration",
+    "typecheck": "turbo run typecheck",
+    "db:generate": "turbo run db:generate --filter=@mmc/database",
+    "db:migrate": "turbo run db:migrate --filter=@mmc/database",
+    "db:seed": "turbo run db:seed --filter=@mmc/database",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "format": "prettier --write \"**/*.{ts,tsx,json,md}\""
+  },
+  "devDependencies": {
+    "turbo": "^2.4.0",
+    "prettier": "^3.4.0",
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.15.0"
+}
