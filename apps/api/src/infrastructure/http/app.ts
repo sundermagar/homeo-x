@@ -4,9 +4,14 @@ import { Server as SocketServer } from 'socket.io';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
-import { errorHandler } from './middleware/error-handler';
+import rateLimit from 'express-rate-limit';
+import { correlationIdMiddleware } from './middleware/correlation-id';
 import { requestLogger } from './middleware/request-logger';
+import { errorHandler } from './middleware/error-handler';
 import { tenantMiddleware } from './middleware/tenant';
+import { auditMiddleware } from './middleware/audit';
+import { appConfig } from '../../shared/config/app-config';
+import { aiConfig } from '../../shared/config/ai-config';
 import { createLogger } from '../../shared/logger';
 import { healthRouter } from './routes/health';
 
@@ -18,37 +23,51 @@ export async function createApp() {
 
   // Socket.io
   const io = new SocketServer(server, {
-    cors: {
-      origin: (process.env.CORS_ORIGINS || 'http://localhost:5173').split(','),
-      credentials: true,
-    },
+    cors: { origin: appConfig.cors.origins, credentials: true },
   });
 
-  // Global middleware
+  // ─── Security ───
   app.set('trust proxy', 1);
   app.use(helmet({ contentSecurityPolicy: false }));
-  app.use(cors({
-    origin: (process.env.CORS_ORIGINS || 'http://localhost:5173').split(','),
-    credentials: true,
+  app.use(cors({ origin: appConfig.cors.origins, credentials: true }));
+
+  // ─── Rate Limiting ───
+  app.use('/api/', rateLimit({
+    windowMs: appConfig.rateLimit.windowMs,
+    max: appConfig.rateLimit.max,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, error: 'Too many requests', code: 'RATE_LIMITED' },
   }));
+
+  app.use('/api/auth/login', rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: appConfig.rateLimit.authMax,
+    message: { success: false, error: 'Too many login attempts', code: 'RATE_LIMITED' },
+  }));
+
+  // ─── Request Processing ───
   app.use(compression());
   app.use(express.json({ limit: '10mb' }));
+
+  // ─── Observability ───
+  app.use(correlationIdMiddleware);
   app.use(requestLogger);
 
-  // Tenant resolution (attaches db client to req)
+  // ─── Tenant Resolution ───
   app.use('/api', tenantMiddleware);
 
-  // Routes
+  // ─── Audit Trail ───
+  app.use(auditMiddleware);
+
+  // ─── Routes ───
   app.use('/api/health', healthRouter);
 
   // TODO: Register domain routers here as migration progresses
-  // app.use('/api/auth', authRouter);
-  // app.use('/api/patients', patientRouter);
-  // ...
 
-  // Error handling (must be last)
+  // ─── Error Handling (must be last) ───
   app.use(errorHandler);
 
-  logger.info('Express app configured');
+  logger.info('Express app configured with enterprise middleware stack');
   return { app, server, io };
 }

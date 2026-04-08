@@ -20,6 +20,60 @@ Migrate ManageMyClinic (MMC-javascript) to HomeoX — an enterprise-grade, modul
 | Validation | Zod (shared package) | Same schemas on frontend + backend |
 | Testing | Domain unit tests + API contract tests | 0 → 500 tests |
 
+## Enterprise Infrastructure (Cross-Cutting)
+
+These capabilities are built into the architecture foundation and apply to ALL phases:
+
+### 1. Centralized AI Configuration (`shared/config/ai-config.ts`)
+- **Singleton service** validates all AI provider keys on startup
+- Supports **multi-key rotation** (comma-separated GEMINI_API_KEY=key1,key2,key3)
+- **Health check** exposes per-provider status at GET /api/health
+- **Hot-reload** via `aiConfig.reload()` — change keys without restart
+- Provider priority chain: Gemini → Groq → Azure (failover order)
+- Per-provider rate limit tracking (15 req/min/key for Gemini, 30 for Groq)
+- Startup validation logs warnings for missing providers (non-blocking)
+
+### 2. Global Error & Exception Handling
+- **Error hierarchy**: `AppError` → `NotFoundError`, `UnauthorizedError`, `ForbiddenError`, `ValidationError`, `ConflictError`
+- **Async handler wrapper**: `asyncHandler()` catches async/await errors in Express routes
+- **Zod integration**: ZodError automatically returns 400 with field-level details
+- **Process handlers**: `uncaughtException` → log fatal + exit; `unhandledRejection` → log error + continue
+- **Correlation ID**: Every request gets a UUID (from X-Request-ID or generated), included in all error responses
+- **Production safety**: Stack traces hidden in production, exposed in development
+
+### 3. Structured Logging & Observability
+- **Pino logger** with child contexts (e.g., `createLogger('ai-pipeline')`)
+- **Request logger** captures: correlationId, method, path, status, duration, tenant, userId, IP
+- **Log levels by status**: 5xx → error, 4xx → warn, 2xx → info
+- **Structured JSON** in production for log aggregation (Datadog, CloudWatch, etc.)
+- **Pretty-print** in development for readability
+
+### 4. Audit Trail (`shared/audit/audit-logger.ts`)
+- **Dual-write**: structured log (stdout) + database persistence (fire-and-forget)
+- **Auto-audit middleware**: matches HTTP method + path to AuditAction enum
+- **22 audit actions** covering: auth, patient, case, consultation, prescription, billing, appointment, settings
+- **Immutable records**: audit_logs table with JSONB for old_data/new_data diffs
+- **AI-specific audit**: ai_audit_logs table tracks provider, model, tokens, latency, confidence per AI call
+- **Queryable**: filter by tenant, user, resource, date range
+- **HIPAA-aligned**: who changed what, when, from what IP
+
+### 5. Rate Limiting
+- **Global**: 200 requests/min per IP
+- **Auth**: 5 login attempts per 15 minutes
+- Standard headers (RateLimit-Limit, RateLimit-Remaining, RateLimit-Reset)
+
+### 6. Circuit Breaker Pattern (`shared/resilience/circuit-breaker.ts`)
+- **Per-service breakers**: Gemini, Groq, Deepgram, SMS, WhatsApp, Razorpay
+- **States**: CLOSED → OPEN (after N failures) → HALF_OPEN (test) → CLOSED (recovered)
+- **Configurable thresholds**: AI providers (5 failures, 60s reset), external services (3 failures, 120s reset)
+- **Health endpoint** reports circuit breaker state per service
+- **Prevents cascade failures**: if Gemini is down, requests fail fast instead of hanging
+
+### 7. Centralized Application Config (`shared/config/app-config.ts`)
+- **Single source** for all environment variables (JWT, DB, Redis, CORS, rate limits)
+- **Startup validation**: missing critical vars (JWT_SECRET, DATABASE_URL) logged as errors; production throws
+- **Type-safe**: `appConfig.jwt.secret` instead of `process.env.JWT_SECRET` scattered across codebase
+
 ## Migration Phases
 
 ### Phase 0: Foundation (Week 1)

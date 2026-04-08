@@ -6,3 +6,4 @@ export * from './users';
 export * from './billing';
 export * from './consultation';
 export * from './inventory';
+export * from './audit';
