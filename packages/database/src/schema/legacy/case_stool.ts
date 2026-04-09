@@ -1,0 +1,26 @@
+import { pgTable, integer, text, timestamp } from "drizzle-orm/pg-core";
+
+export const caseStoolLegacy = pgTable("case_stool", {
+  id: integer("id").notNull(),
+  randId: integer("rand_id"),
+  regid: integer("regid"),
+  dateval: text("dateval"),
+  color: text("color"),
+  consistency: text("consistency"),
+  mucus: text("mucus"),
+  frankBlood: text("frank_blood"),
+  adultWorm: text("adult_worm"),
+  reaction: text("reaction"),
+  pusCells: text("pus_cells"),
+  occultBlood: text("occult_blood"),
+  macrophages: text("macrophages"),
+  rbc: text("rbc"),
+  ova: text("ova"),
+  cysts: text("cysts"),
+  protozoa: text("protozoa"),
+  yeastCell: text("yeast_cell"),
+  otherFindings: text("other_findings"),
+  createdAt: timestamp("created_at"),
+  updatedAt: timestamp("updated_at"),
+  deletedAt: text("deleted_at"),
+});

@@ -1,0 +1,28 @@
+import { pgTable, integer, text, timestamp } from "drizzle-orm/pg-core";
+
+export const homeoDetailsLegacy = pgTable("homeo_details", {
+  id: integer("id").notNull(),
+  regid: integer("regid"),
+  homeoDate: text("homeo_date"),
+  disease: text("disease"),
+  diagnosis: text("diagnosis"),
+  constitutional: text("constitutional"),
+  complaintIntesity: text("complaint_intesity"),
+  acute: text("acute"),
+  intercurrent: text("intercurrent"),
+  thermal: text("thermal"),
+  medicationTaking: text("medication_taking"),
+  medicineTime: text("medicine_time"),
+  medicineFor: text("medicine_for"),
+  medicinePrice: text("medicine_price"),
+  prognosis: text("prognosis"),
+  defineCriteria1: text("define_criteria1"),
+  investigation: text("investigation"),
+  defineCriteria2: text("define_criteria2"),
+  caseTaken: text("case_taken"),
+  criteria: text("criteria"),
+  totalCharges: integer("total_charges").notNull(),
+  deletedAt: timestamp("deleted_at"),
+  updatedAt: timestamp("updated_at"),
+  createdAt: timestamp("created_at"),
+});

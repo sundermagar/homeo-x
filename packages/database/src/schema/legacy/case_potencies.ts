@@ -1,0 +1,27 @@
+import { pgTable, integer, text, date, timestamp } from "drizzle-orm/pg-core";
+
+export const casePotenciesLegacy = pgTable("case_potencies", {
+  id: integer("id").notNull(),
+  regid: integer("regid"),
+  randId: text("rand_id"),
+  dateval: text("dateval"),
+  todate: date("todate"),
+  sdate: date("sdate"),
+  createdAt: timestamp("created_at"),
+  searchDate: date("search_date"),
+  rxdays: text("rxdays"),
+  rxfrequency: text("rxfrequency"),
+  rxremedy: text("rxremedy"),
+  rxpotency: text("rxpotency"),
+  rxprescription: text("rxprescription"),
+  charges: text("charges"),
+  additionalName: text("additional_name"),
+  additionalPrice: integer("additional_price"),
+  receivedPrice: integer("received_price"),
+  receivedDate: text("received_date"),
+  callStatus: text("call_status"),
+  callDate: text("call_date"),
+  lastval: text("lastval"),
+  deletedAt: text("deleted_at"),
+  updatedAt: timestamp("updated_at"),
+});

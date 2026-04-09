@@ -1,8 +1,9 @@
 import { Router } from 'express';
+import type { Router as ExpressRouter } from 'express';
 import { aiConfig } from '../../../shared/config/ai-config';
 import { aiGeminiBreaker, aiGroqBreaker, deepgramBreaker } from '../../../shared/resilience/circuit-breaker';
 
-export const healthRouter = Router();
+export const healthRouter: ExpressRouter = Router();
 
 healthRouter.get('/', (_req, res) => {
   const aiHealth = aiConfig.getHealthStatus();

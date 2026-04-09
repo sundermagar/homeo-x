@@ -1,0 +1,27 @@
+import { pgTable, integer, text, timestamp } from "drizzle-orm/pg-core";
+
+export const caseCbcLegacy = pgTable("case_cbc", {
+  id: integer("id").notNull(),
+  randId: integer("rand_id"),
+  regid: integer("regid"),
+  dateval: text("dateval"),
+  hb: text("hb"),
+  rbc: text("rbc"),
+  wbc: text("wbc"),
+  platelets: text("platelets"),
+  vitaminb: text("vitaminb"),
+  vitamind: text("vitamind"),
+  neutrophils: text("neutrophils"),
+  lymphocytes: text("lymphocytes"),
+  eosinophils: text("eosinophils"),
+  monocytes: text("monocytes"),
+  basophils: text("basophils"),
+  bandCells: text("band_cells"),
+  abnorRbc: text("abnor_rbc"),
+  abnorWbc: text("abnor_wbc"),
+  parasites: text("parasites"),
+  esr: text("esr"),
+  createdAt: timestamp("created_at"),
+  updatedAt: timestamp("updated_at"),
+  deletedAt: text("deleted_at"),
+});

@@ -1,0 +1,26 @@
+import { pgTable, integer, text, timestamp } from "drizzle-orm/pg-core";
+
+export const recordsLegacy = pgTable("records", {
+  id: integer("id").notNull(),
+  clinicId: integer("clinic_id"),
+  regid: text("regid"),
+  comment: text("comment"),
+  name: text("name"),
+  doctorname: text("doctorname"),
+  mobile: text("mobile"),
+  recordtype: text("recordtype"),
+  altAddress: text("alt_address"),
+  address: text("address"),
+  pin: text("pin"),
+  balance: text("balance"),
+  duedate: text("duedate"),
+  recorddate: text("recorddate"),
+  mobile2: text("mobile2"),
+  packageexpiry: text("packageexpiry"),
+  instructions: text("instructions"),
+  calltime: text("calltime"),
+  done: text("done"),
+  createdAt: text("created_at"),
+  updatedAt: timestamp("updated_at"),
+  deletedAt: timestamp("deleted_at"),
+});

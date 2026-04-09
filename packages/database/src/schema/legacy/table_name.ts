@@ -1,0 +1,27 @@
+import { pgTable, real, text } from "drizzle-orm/pg-core";
+
+export const tableNameLegacy = pgTable("table_name", {
+  ID: real("ID"),
+  RegID: real("RegID"),
+  TitleID: real("TitleID"),
+  Name: text("Name"),
+  Surname: text("Surname"),
+  Middlename: text("Middlename"),
+  DateOfBirth: text("DateOfBirth"),
+  Gender: text("Gender"),
+  StatusID: real("StatusID"),
+  Address: text("Address"),
+  Disease: text("Disease"),
+  Constitutional: text("Constitutional"),
+  Thermal: text("Thermal"),
+  DateOfEntry: text("DateOfEntry"),
+  EndDate: text("EndDate"),
+  Mobile1: real("Mobile1"),
+  Area: text("Area"),
+  City: text("City"),
+  State: text("State"),
+  PIN: real("PIN"),
+  RefBy: real("RefBy"),
+  AssistantDoctorID: real("AssistantDoctorID"),
+  Road: text("Road"),
+});

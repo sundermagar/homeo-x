@@ -1,0 +1,28 @@
+import { pgTable, integer, text, timestamp } from "drizzle-orm/pg-core";
+
+export const caseEndocrineLegacy = pgTable("case_endocrine", {
+  id: integer("id").notNull(),
+  randId: integer("rand_id"),
+  regid: integer("regid"),
+  dateval: text("dateval"),
+  t3: text("t3"),
+  t4: text("t4"),
+  tsh: text("tsh"),
+  ft3: text("ft3"),
+  ft4: text("ft4"),
+  antiTpo: text("anti_tpo"),
+  antibody: text("antibody"),
+  prolactin: text("prolactin"),
+  fsh: text("fsh"),
+  lsh: text("lsh"),
+  progesterone3: text("progesterone_3"),
+  progesterone: text("progesterone"),
+  dhea: text("dhea"),
+  testosterone: text("testosterone"),
+  ama: text("ama"),
+  insulin: text("insulin"),
+  glucose: text("glucose"),
+  createdAt: timestamp("created_at"),
+  updatedAt: timestamp("updated_at"),
+  deletedAt: text("deleted_at"),
+});

@@ -1,6 +1,9 @@
 import express from 'express';
 import { createServer } from 'http';
 import { Server as SocketServer } from 'socket.io';
+import type { Express } from 'express';
+import type { Server as HttpServer } from 'node:http';
+import type { Server as SocketIOServer } from 'socket.io';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -17,12 +20,12 @@ import { healthRouter } from './routes/health';
 
 const logger = createLogger('http');
 
-export async function createApp() {
-  const app = express();
-  const server = createServer(app);
+export async function createApp(): Promise<{ app: Express; server: HttpServer; io: SocketIOServer }> {
+  const app: Express = express();
+  const server: HttpServer = createServer(app);
 
   // Socket.io
-  const io = new SocketServer(server, {
+  const io: SocketIOServer = new SocketServer(server, {
     cors: { origin: appConfig.cors.origins, credentials: true },
   });
 

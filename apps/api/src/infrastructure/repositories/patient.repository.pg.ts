@@ -1,4 +1,4 @@
-import { eq, like, or, sql, desc, asc, isNull } from 'drizzle-orm';
+import { and, eq, like, or, sql, desc, asc, isNull } from 'drizzle-orm';
 import { patients } from '@mmc/database/schema';
 import type { DbClient } from '@mmc/database';
 import type { Patient, PatientSummary } from '@mmc/types';
@@ -32,35 +32,38 @@ export class PatientRepositoryPg implements PatientRepository {
     const { page, limit, search, sortBy = 'id', sortOrder = 'desc' } = params;
     const offset = (page - 1) * limit;
 
-    let query = this.db.select().from(patients).where(isNull(patients.deletedAt));
-
-    if (search) {
-      query = query.where(
-        or(
+    const searchCondition = search
+      ? or(
           like(patients.firstName, `%${search}%`),
           like(patients.surname, `%${search}%`),
           like(patients.phone, `%${search}%`),
-        )!,
-      ) as typeof query;
-    }
+        )
+      : undefined;
 
-    const [data, [{ count }]] = await Promise.all([
+    const whereClause = searchCondition
+      ? and(isNull(patients.deletedAt), searchCondition)
+      : isNull(patients.deletedAt);
+
+    const query = this.db.select().from(patients).where(whereClause);
+
+    const [data, countRows] = await Promise.all([
       query.limit(limit).offset(offset),
-      this.db.select({ count: sql<number>`count(*)` }).from(patients).where(isNull(patients.deletedAt)),
+      this.db.select({ count: sql<number>`count(*)` }).from(patients).where(whereClause),
     ]);
+    const total = Number(countRows[0]?.count ?? 0);
 
     return {
       data: data.map(this.toSummary),
-      total: Number(count),
+      total,
     };
   }
 
   async create(input: CreatePatientInput): Promise<Patient> {
     // Generate next regid
-    const [{ maxRegid }] = await this.db
+    const maxRegidRows = await this.db
       .select({ maxRegid: sql<number>`coalesce(max(regid), 1000000)` })
       .from(patients);
-    const nextRegid = Number(maxRegid) + 1;
+    const nextRegid = Number(maxRegidRows[0]?.maxRegid ?? 1000000) + 1;
 
     const [row] = await this.db
       .insert(patients)

@@ -17,7 +17,7 @@ export function createDbClient(databaseUrl: string, tenantSchema?: string): DbCl
     return clients.get(cacheKey)!;
   }
 
-  const connectionOptions: postgres.Options<Record<string, unknown>> = {
+  const connectionOptions: any = {
     max: 10,
     idle_timeout: 20,
     connect_timeout: 10,

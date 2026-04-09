@@ -1,0 +1,25 @@
+import { pgTable, integer, text, timestamp, real } from "drizzle-orm/pg-core";
+
+export const paymentsLegacy = pgTable("payments", {
+  id: integer("id").notNull(),
+  caseId: integer("case_id"),
+  patientName: text("patient_name"),
+  doctorId: text("doctor_id"),
+  consultationFee: integer("consultation_fee"),
+  medicinePrice: integer("medicine_price"),
+  receivedPrice: integer("received_price"),
+  paymentMode: text("payment_mode"),
+  receivedDate: text("received_date"),
+  paymentDate: text("payment_date"),
+  createdAt: timestamp("created_at"),
+  updatedAt: timestamp("updated_at"),
+  deletedAt: text("deleted_at"),
+  regid: text("regid"),
+  billId: integer("bill_id"),
+  orderId: text("order_id"),
+  paymentId: text("payment_id"),
+  signature: text("signature"),
+  amount: real("amount"),
+  currency: text("currency"),
+  status: text("status"),
+});
