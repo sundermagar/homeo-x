@@ -1,33 +1,59 @@
 import { NavLink } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Users, 
-  CalendarClock, 
+import {
+  LayoutDashboard,
+  Users,
+  CalendarClock,
   Calendar,
   Ticket,
-  Stethoscope, 
-  CreditCard, 
-  Settings, 
+  Stethoscope,
+  Receipt,
+  Banknote,
+  Building2,
+  UserCog,
+  Settings,
   LogOut,
   Infinity,
   X,
   Package,
-  CalendarCheck
+  CalendarCheck,
 } from 'lucide-react';
 import { useAuthStore } from '../stores/auth-store';
 import '../styles/sidebar.css';
 
-const NAV_ITEMS = [
-  { path: '/',                    label: 'Dashboard',    icon: LayoutDashboard },
-  { path: '/appointments',        label: 'Appointments', icon: CalendarClock },
-  { path: '/appointments/calendar', label: 'Calendar',  icon: Calendar },
-  { path: '/appointments/queue',  label: 'Token Queue',  icon: Ticket },
-  { path: '/patients',            label: 'Patients',     icon: Users },
-  { path: '/medical-cases',       label: 'Medical Cases', icon: Stethoscope },
-  { path: '/packages',            label: 'Packages',     icon: Package },
-  { path: '/packages/tracking',   label: 'Pkg Tracking', icon: CalendarCheck },
-  { path: '/billing',             label: 'Billing',      icon: CreditCard },
-  { path: '/settings',            label: 'Settings',     icon: Settings },
+const NAV_SECTIONS = [
+  {
+    label: 'Clinical',
+    items: [
+      { path: '/',                     label: 'Dashboard',     icon: LayoutDashboard },
+      { path: '/appointments',         label: 'Appointments',  icon: CalendarClock },
+      { path: '/appointments/calendar',label: 'Calendar',      icon: Calendar },
+      { path: '/appointments/queue',   label: 'Token Queue',   icon: Ticket },
+      { path: '/patients',             label: 'Patients',      icon: Users },
+      { path: '/medical-cases',        label: 'Medical Cases', icon: Stethoscope },
+      { path: '/packages',             label: 'Packages',      icon: Package },
+      { path: '/packages/tracking',    label: 'Pkg Tracking',  icon: CalendarCheck },
+    ],
+  },
+  {
+    label: 'Finance',
+    items: [
+      { path: '/billing',   label: 'Billing & Finance', icon: Receipt },
+      { path: '/payments',  label: 'Payment Ledger',    icon: Banknote },
+    ],
+  },
+  {
+    label: 'Platform',
+    items: [
+      { path: '/platform/clinics',   label: 'Clinics',   icon: Building2 },
+      { path: '/platform/accounts',  label: 'Accounts',  icon: UserCog },
+    ],
+  },
+  {
+    label: '',
+    items: [
+      { path: '/settings', label: 'Settings', icon: Settings },
+    ],
+  },
 ];
 
 interface SidebarProps {
@@ -40,11 +66,11 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   return (
     <>
-      <div 
-        className={`sidebar-overlay ${isOpen ? 'active' : ''}`} 
+      <div
+        className={`sidebar-overlay ${isOpen ? 'active' : ''}`}
         onClick={onClose}
       />
-      
+
       <aside className={`sidebar ${isOpen ? 'is-open' : ''}`}>
         <div className="sidebar-header">
           <div className="sidebar-logo-group">
@@ -59,19 +85,26 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         </div>
 
         <nav className="sidebar-nav">
-          {NAV_ITEMS.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) => `sidebar-item ${isActive ? 'active' : ''}`}
-              onClick={() => {
-                // Auto-close on mobile when a link is clicked
-                if (window.innerWidth < 1024) onClose();
-              }}
-            >
-              <item.icon className="sidebar-item-icon" strokeWidth={2} />
-              <span>{item.label}</span>
-            </NavLink>
+          {NAV_SECTIONS.map((section) => (
+            <div key={section.label} className="sidebar-section">
+              {section.label && (
+                <div className="sidebar-section-label">{section.label}</div>
+              )}
+              {section.items.map((item) => (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  end={item.path === '/'}
+                  className={({ isActive }) => `sidebar-item ${isActive ? 'active' : ''}`}
+                  onClick={() => {
+                    if (window.innerWidth < 1024) onClose();
+                  }}
+                >
+                  <item.icon className="sidebar-item-icon" strokeWidth={2} />
+                  <span>{item.label}</span>
+                </NavLink>
+              ))}
+            </div>
           ))}
         </nav>
 

@@ -4,23 +4,32 @@ import { ProtectedRoute } from '@/shared/components/protected-route';
 import { AppLayout } from '@/shared/layouts/app-layout';
 
 // ─── Lazy-loaded feature pages ───
-const LoginPage           = lazy(() => import('@/features/auth/pages/login-page'));
-const DashboardPage       = lazy(() => import('@/features/dashboard/pages/dashboard-page'));
-const PatientListPage     = lazy(() => import('@/features/patients/pages/patient-list-page'));
-const ConsultationPage    = lazy(() => import('@/features/consultation/pages/consultation-page'));
 
-// ─── Appointments ───
-const AppointmentListPage = lazy(() => import('@/features/appointments/pages/appointment-list-page'));
-const CalendarPage        = lazy(() => import('@/features/appointments/pages/calendar-page'));
-const TokenQueuePage      = lazy(() => import('@/features/appointments/pages/token-queue-page'));
+// ─── Friend's modules ───
+const LoginPage            = lazy(() => import('@/features/auth/pages/login-page'));
+const DashboardPage        = lazy(() => import('@/features/dashboard/pages/dashboard-page'));
+const PatientListPage      = lazy(() => import('@/features/patients/pages/patient-list-page'));
+const ConsultationPage     = lazy(() => import('@/features/consultation/pages/consultation-page'));
 
-// ─── Medical Cases ───
-const MedicalCaseListPage = lazy(() => import('@/features/medical-case/pages/case-list-page'));
+// ─── Appointments (friend's module) ───
+const AppointmentListPage  = lazy(() => import('@/features/appointments/pages/appointment-list-page'));
+const CalendarPage         = lazy(() => import('@/features/appointments/pages/calendar-page'));
+const TokenQueuePage       = lazy(() => import('@/features/appointments/pages/token-queue-page'));
+
+// ─── Medical Cases (friend's module) ───
+const MedicalCaseListPage  = lazy(() => import('@/features/medical-case/pages/case-list-page'));
 const MedicalCaseDetailPage = lazy(() => import('@/features/medical-case/pages/case-detail-page'));
 
-// ─── Packages & Memberships ───
-const PackagePlansPage    = lazy(() => import('@/features/packages/pages/package-plans-page'));
-const PackageTrackingPage = lazy(() => import('@/features/packages/pages/package-tracking-page'));
+// ─── Packages & Memberships (friend's module) ───
+const PackagePlansPage     = lazy(() => import('@/features/packages/pages/package-plans-page'));
+const PackageTrackingPage  = lazy(() => import('@/features/packages/pages/package-tracking-page'));
+
+// ─── Our modules — Billing & Platform ───
+const BillingListPage      = lazy(() => import('@/features/billing/pages/BillingListPage'));
+const BillingFormPage      = lazy(() => import('@/features/billing/pages/BillingFormPage'));
+const PaymentsPage         = lazy(() => import('@/features/billing/pages/PaymentsPage'));
+const ClinicsPage          = lazy(() => import('@/features/platform/pages/ClinicsPage'));
+const AccountsPage         = lazy(() => import('@/features/platform/pages/AccountsPage'));
 
 const Loading = () => <div style={{ padding: 40, textAlign: 'center', opacity: 0.5 }}>Loading...</div>;
 
@@ -37,20 +46,27 @@ export function AppRouter() {
             <Route path="/" element={<DashboardPage />} />
             <Route path="/patients" element={<PatientListPage />} />
 
-            {/* ─── Appointments ─── */}
+            {/* ─── Appointments (friend's module) ─── */}
             <Route path="/appointments"          element={<AppointmentListPage />} />
             <Route path="/appointments/calendar" element={<CalendarPage />} />
             <Route path="/appointments/queue"    element={<TokenQueuePage />} />
 
-            {/* ─── Medical Cases ─── */}
+            {/* ─── Medical Cases (friend's module) ─── */}
             <Route path="/medical-cases"        element={<MedicalCaseListPage />} />
             <Route path="/medical-cases/:regid" element={<MedicalCaseDetailPage />} />
 
-            {/* ─── Packages & Memberships ─── */}
-            <Route path="/packages"           element={<PackagePlansPage />} />
-            <Route path="/packages/tracking"  element={<PackageTrackingPage />} />
+            {/* ─── Packages & Memberships (friend's module) ─── */}
+            <Route path="/packages"          element={<PackagePlansPage />} />
+            <Route path="/packages/tracking" element={<PackageTrackingPage />} />
 
-            {/* Add feature routes as they're migrated */}
+            {/* ─── Billing & Payments (our module) ─── */}
+            <Route path="/billing"        element={<BillingListPage />} />
+            <Route path="/billing/create" element={<BillingFormPage />} />
+            <Route path="/payments"       element={<PaymentsPage />} />
+
+            {/* ─── Platform & Multi-tenancy (our module) ─── */}
+            <Route path="/platform/clinics"   element={<ClinicsPage />} />
+            <Route path="/platform/accounts"  element={<AccountsPage />} />
           </Route>
 
           {/* Full-screen (no layout shell) */}

@@ -12,16 +12,23 @@ import { correlationIdMiddleware } from './middleware/correlation-id';
 import { requestLogger } from './middleware/request-logger';
 import { errorHandler } from './middleware/error-handler';
 import { tenantMiddleware } from './middleware/tenant';
+import { authMiddleware } from './middleware/auth';
 import { auditMiddleware } from './middleware/audit';
 import { appConfig } from '../../shared/config/app-config';
 import { aiConfig } from '../../shared/config/ai-config';
 import { createLogger } from '../../shared/logger';
 import { healthRouter } from './routes/health';
+// ─── Friend's modules ───
 import { authRouter } from './routes/auth';
 import { appointmentsRouter } from './routes/appointments';
 import { medicalCasesRouter } from './routes/medical-cases';
 import { doctorsRouter } from './routes/doctors';
 import { packagesRouter } from './routes/packages';
+// ─── Our modules (Billing & Platform) ───
+import { createBillingRouter } from './routes/billing.router';
+import { createPaymentRouter } from './routes/payment.router';
+import { createOrganizationRouter } from './routes/organization.router';
+import { createAccountRouter } from './routes/account.router';
 
 const logger = createLogger('http');
 
@@ -70,13 +77,21 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
 
   // ─── Routes ───
   app.use('/api/health', healthRouter);
+
+  // Friend's modules
   app.use('/api/auth', authRouter);
   app.use('/api/appointments', appointmentsRouter);
   app.use('/api/medical-cases', medicalCasesRouter);
   app.use('/api/doctors', doctorsRouter);
   app.use('/api/packages', packagesRouter);
 
-  // TODO: Register domain routers here as migration progresses
+  // Our modules — Billing & Finance
+  app.use('/api/billing', createBillingRouter());
+  app.use('/api/payments', createPaymentRouter());
+
+  // Our modules — Platform (JWT required)
+  app.use('/api/organizations', authMiddleware, createOrganizationRouter());
+  app.use('/api/accounts',      authMiddleware, createAccountRouter());
 
   // ─── Error Handling (must be last) ───
   app.use(errorHandler);

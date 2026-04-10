@@ -36,6 +36,7 @@
     "@mmc/types": "workspace:*",
     "@types/bcryptjs": "^2.4.0",
     "@types/node": "^25.5.2",
+    "dotenv": "^16.4.0",
     "drizzle-kit": "^0.30.0",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0"

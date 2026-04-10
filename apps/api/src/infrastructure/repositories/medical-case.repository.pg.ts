@@ -42,7 +42,15 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
     const { search, page = 1, limit = 50 } = filters;
     const offset = (page - 1) * limit;
 
-    const query = this.db
+    const conditions = [];
+
+    if (search) {
+      // Basic search logic for name/phone
+      const searchTerms = `%${search}%`;
+      conditions.push(sql`(${schema.patients.firstName} ILIKE ${searchTerms} OR ${schema.patients.surname} ILIKE ${searchTerms} OR ${schema.patients.phone} ILIKE ${searchTerms})`);
+    }
+
+    const rows = await this.db
       .select({
         id: schema.medicalCases.id,
         regid: schema.medicalCases.regid,
@@ -58,15 +66,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
       })
       .from(schema.medicalCases)
       .leftJoin(schema.patients, eq(schema.medicalCases.regid, schema.patients.regid))
-      .where(sql`1=1`); // TODO: Add search conditions if provided
-
-    if (search) {
-      // Basic search logic for name/phone
-      const searchTerms = `%${search}%`;
-      query.where(sql`(${schema.patients.firstName} ILIKE ${searchTerms} OR ${schema.patients.surname} ILIKE ${searchTerms} OR ${schema.patients.phone} ILIKE ${searchTerms})`);
-    }
-
-    const rows = await query
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(desc(schema.medicalCases.createdAt))
       .limit(limit)
       .offset(offset);
@@ -280,7 +280,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
       picture: data.picture!,
       description: data.description,
     }).returning({ id: schema.caseImages.id });
-    return row.id;
+    return row?.id ?? 0;
   }
 
   async deleteImage(id: number): Promise<void> {

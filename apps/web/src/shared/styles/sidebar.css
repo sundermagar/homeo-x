@@ -154,6 +154,17 @@
   overflow-y: auto;
 }
 
+.sidebar-section { margin-bottom: 4px; }
+
+.sidebar-section-label {
+  padding: 10px 14px 4px;
+  font-size: 0.6rem;
+  font-weight: 800;
+  color: var(--text-placeholder);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
 .sidebar-item {
   display: flex;
   align-items: center;

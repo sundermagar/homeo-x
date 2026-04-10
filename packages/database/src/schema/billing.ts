@@ -1,17 +1,40 @@
-import { pgTable, serial, integer, varchar, real, timestamp, text } from 'drizzle-orm/pg-core';
+import { pgTable, serial, varchar, integer, real, timestamp, text, date } from 'drizzle-orm/pg-core';
+import { patients } from './patients';
 
-export const bills = pgTable('bill', {
+export const bills = pgTable('bills', {
   id: serial('id').primaryKey(),
-  regid: integer('regid').notNull(),
-  billNo: varchar('bill_no', { length: 50 }).notNull(),
-  billDate: varchar('bill_date', { length: 20 }),
-  totalAmount: real('total_amount').default(0),
-  receivedAmount: real('received_amount').default(0),
-  balanceAmount: real('balance_amount').default(0),
+  regid: integer('regid').references(() => patients.regid, { onDelete: 'set null' }),
+  billNo: integer('bill_no'),
+  billDate: date('bill_date'),
+  charges: real('charges').default(0).notNull(),
+  received: real('received').default(0).notNull(),
+  balance: real('balance').default(0).notNull(),
   paymentMode: varchar('payment_mode', { length: 50 }),
+  treatment: varchar('treatment', { length: 255 }),
+  disease: varchar('disease', { length: 255 }),
+  fromDate: date('from_date'),
+  toDate: date('to_date'),
+  chargeId: integer('charge_id'),
+  doctorId: integer('doctor_id'),
   notes: text('notes'),
-  status: varchar('status', { length: 20 }).default('Pending'),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  deletedAt: timestamp('deleted_at'),
+});
+
+export const payments = pgTable('payments', {
+  id: serial('id').primaryKey(),
+  regid: integer('regid').references(() => patients.regid, { onDelete: 'set null' }),
+  billId: integer('bill_id').references(() => bills.id, { onDelete: 'set null' }),
+  orderId: varchar('order_id', { length: 255 }),
+  paymentId: varchar('payment_id', { length: 255 }),
+  signature: text('signature'),
+  amount: real('amount').notNull(),
+  currency: varchar('currency', { length: 10 }).default('INR').notNull(),
+  status: varchar('status', { length: 50 }).notNull(),
+  paymentMode: varchar('payment_mode', { length: 50 }).notNull(),
+  paymentDate: timestamp('payment_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
   deletedAt: timestamp('deleted_at'),
 });

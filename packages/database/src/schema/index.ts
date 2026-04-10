@@ -9,6 +9,4 @@ export * from './rbac';
 export * from './inventory';
 export * from './audit';
 export * from './packages';
-export * from './legacy-public-manifest';
-export * from './tenant-demo-legacy-schema';
-export * from './legacy/index';
+export * from './platform';
