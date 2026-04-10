@@ -1,0 +1,252 @@
+/* ─── App Shell & Sidebar — Mobile First Refactor ────────────────────────── */
+
+.app-container {
+  display: flex;
+  flex-direction: column; /* Stack on mobile */
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background: var(--bg-main);
+}
+
+/* ─── Desktop Layout ─── */
+@media (min-width: 1024px) {
+  .app-container {
+    flex-direction: row; /* Side-by-side on desktop */
+  }
+}
+
+/* ─── Mobile Header ─── */
+.mobile-header {
+  height: 56px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-main);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  flex-shrink: 0;
+  z-index: 50;
+}
+
+@media (min-width: 1024px) {
+  .mobile-header {
+    display: none; /* Hide on desktop */
+  }
+}
+
+.mh-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mh-menu-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-main);
+  padding: 8px;
+  border-radius: var(--radius-btn);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mh-menu-btn:hover {
+  background: var(--bg-surface-2);
+}
+
+/* ─── Sidebar ─── */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 280px;
+  height: 100%;
+  background: var(--bg-card);
+  border-right: 1px solid var(--border-main);
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+  transform: translateX(-100%); /* Hidden on mobile by default */
+  transition: transform var(--transition-normal);
+  box-shadow: 20px 0 50px rgba(0,0,0,0.1);
+}
+
+.sidebar.is-open {
+  transform: translateX(0);
+}
+
+/* Desktop Sidebar Reset */
+@media (min-width: 1024px) {
+  .sidebar {
+    position: static;
+    transform: none;
+    box-shadow: none;
+    width: 260px;
+    flex-shrink: 0;
+  }
+}
+
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(2px);
+  z-index: 90;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-normal);
+}
+
+.sidebar-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (min-width: 1024px) {
+  .sidebar-overlay {
+    display: none;
+  }
+}
+
+.sidebar-header {
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@media (min-width: 1024px) {
+  .sidebar-header-close {
+    display: none;
+  }
+}
+
+.sidebar-logo-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sidebar-logo {
+  width: 32px;
+  height: 32px;
+  background: var(--primary);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+.sidebar-brand {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: -0.02em;
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 12px;
+  overflow-y: auto;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius-btn);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 4px;
+  transition: all var(--transition-fast);
+}
+
+.sidebar-item:hover {
+  background: var(--bg-surface-2);
+  color: var(--text-main);
+}
+
+.sidebar-item.active {
+  background: var(--primary-tint);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.sidebar-item-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.sidebar-footer {
+  padding: 16px;
+  border-top: 1px solid var(--border-main);
+  background: var(--bg-surface-2);
+}
+
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  border-radius: var(--radius-btn);
+}
+
+.user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--border-main);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+
+.user-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-role {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.logout-btn {
+  padding: 6px;
+  color: var(--text-muted);
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logout-btn:hover {
+  color: var(--danger);
+  background: var(--danger-bg);
+}
+
+.app-main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+  position: relative;
+  background: var(--bg-main);
+}

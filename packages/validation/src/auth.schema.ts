@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const loginSchema = z.object({
+export const LoginRequestSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(1, 'Password is required'),
 });
@@ -10,5 +10,5 @@ export const changePasswordSchema = z.object({
   newPassword: z.string().min(8, 'Password must be at least 8 characters'),
 });
 
-export type LoginInput = z.infer<typeof loginSchema>;
+export type LoginInput = z.infer<typeof LoginRequestSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;

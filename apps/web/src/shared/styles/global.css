@@ -1,0 +1,115 @@
+:root {
+  /* ─── Paperplane official color system ─── */
+  --primary: #2563EB;
+  --primary-hover: #1D4ED8;
+  --primary-tint: #EFF6FF;
+  --primary-border: #BFDBFE;
+  
+  --success: #16A34A;
+  --success-bg: #F0FDF4;
+  --danger: #DC2626;
+  --danger-bg: #FEF2F2;
+  --warning: #D97706;
+  --warning-bg: #FFFBEB;
+  --info: #2563EB;
+  --info-bg: #EFF6FF;
+  
+  --bg-main: #FAFAF8; /* Warm 1 */
+  --bg-card: #FFFFFF;
+  --bg-surface-2: #F4F3F1; /* Warm 2 */
+  --bg-glass: rgba(255, 255, 255, 0.7);
+  
+  --text-main: #0F0F0E; /* Ink Primary */
+  --text-secondary: #4A4A47; /* Text 2 */
+  --text-muted: #888786; /* Text 3 */
+  --text-placeholder: #CECDCA; /* Text 4 */
+  
+  --border-main: #E3E2DF; /* Warm 4 */
+  --border-focus: #2563EB;
+  
+  /* ─── Aesthetics (Brand Kit Specs) ─── */
+  --radius-btn: 6px;
+  --radius-card: 8px;
+  --radius-pill: 20px;
+  
+  --font-family: 'Geist', system-ui, sans-serif;
+  --font-mono: 'Geist Mono', monospace;
+  
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ─── Responsive Breakpoints ─── */
+  --bp-sm: 640px;
+  --bp-md: 768px;
+  --bp-lg: 1024px;
+  --bp-xl: 1280px;
+}
+
+.dark {
+  --bg-main: #0f172a;
+  --bg-card: #1e293b;
+  --bg-glass: rgba(30, 41, 59, 0.7);
+  
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  
+  --border-main: #334155;
+}
+
+/* ─── Base Styles ─── */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-family);
+  background: var(--bg-main);
+  color: var(--text-main);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+a {
+  color: var(--primary);
+  text-decoration: none;
+  transition: var(--transition-fast);
+}
+
+a:hover {
+  color: var(--primary-hover);
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+input, select, textarea {
+  font-family: inherit;
+  font-size: 1rem;
+}
+
+/* ─── Utilities ─── */
+.glass {
+  background: var(--bg-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.fade-in {
+  animation: fadeIn var(--transition-normal);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}

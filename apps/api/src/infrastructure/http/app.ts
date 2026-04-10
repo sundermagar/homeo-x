@@ -17,6 +17,11 @@ import { appConfig } from '../../shared/config/app-config';
 import { aiConfig } from '../../shared/config/ai-config';
 import { createLogger } from '../../shared/logger';
 import { healthRouter } from './routes/health';
+import { authRouter } from './routes/auth';
+import { appointmentsRouter } from './routes/appointments';
+import { medicalCasesRouter } from './routes/medical-cases';
+import { doctorsRouter } from './routes/doctors';
+import { packagesRouter } from './routes/packages';
 
 const logger = createLogger('http');
 
@@ -65,6 +70,11 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
 
   // ─── Routes ───
   app.use('/api/health', healthRouter);
+  app.use('/api/auth', authRouter);
+  app.use('/api/appointments', appointmentsRouter);
+  app.use('/api/medical-cases', medicalCasesRouter);
+  app.use('/api/doctors', doctorsRouter);
+  app.use('/api/packages', packagesRouter);
 
   // TODO: Register domain routers here as migration progresses
 

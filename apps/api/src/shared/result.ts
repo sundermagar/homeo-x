@@ -13,3 +13,15 @@ export function ok<T>(data: T): Result<T, never> {
 export function fail<E = string>(error: E, code?: string): Result<never, E> {
   return { success: false, error, code };
 }
+
+/**
+ * Standard HTTP response shape
+ */
+export interface ApiResponse<T = any> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  code?: string;
+  message?: string;
+  correlationId?: string;
+}

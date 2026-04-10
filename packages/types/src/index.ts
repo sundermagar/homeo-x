@@ -1,19 +1,20 @@
 // ─── Domain Entities ───
-export * from './domains/patient';
-export * from './domains/medical-case';
-export * from './domains/appointment';
-export * from './domains/consultation';
-export * from './domains/prescription';
-export * from './domains/billing';
-export * from './domains/user';
+export * from './domains/patient.js';
+export * from './domains/medical-case.js';
+export * from './domains/appointment.js';
+export * from './domains/consultation.js';
+export * from './domains/prescription.js';
+export * from './domains/billing.js';
+export * from './domains/user.js';
+export * from './domains/package.js';
 
 // ─── API Contracts ───
-export * from './api/requests';
-export * from './api/responses';
+export * from './api/requests.js';
+export * from './api/responses.js';
 
 // ─── Real-time Events ───
-export * from './events/consultation-events';
-export * from './events/transcription-events';
+export * from './events/consultation-events.js';
+export * from './events/transcription-events.js';
 
 // ─── Shared Enums ───
-export * from './enums';
+export * from './enums.js';

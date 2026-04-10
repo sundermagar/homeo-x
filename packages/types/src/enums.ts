@@ -7,6 +7,7 @@ export enum Role {
   Account = 'Account',
   Dispensary = 'Dispensary',
   Employee = 'Employee',
+  Patient = 'Patient',
 }
 
 export enum CaseStatus {
@@ -17,13 +18,29 @@ export enum CaseStatus {
 }
 
 export enum AppointmentStatus {
-  Scheduled = 'Scheduled',
-  Confirmed = 'Confirmed',
-  CheckedIn = 'CheckedIn',
-  InProgress = 'InProgress',
-  Completed = 'Completed',
-  Cancelled = 'Cancelled',
-  NoShow = 'NoShow',
+  Pending      = 'Pending',
+  Confirmed    = 'Confirmed',
+  Consultation = 'Consultation',
+  Done         = 'Done',
+  Visited      = 'Visited',
+  Absent       = 'Absent',
+  Cancelled    = 'Cancelled',
+  Rescheduled  = 'Rescheduled',
+  Waitlist     = 'Waitlist',
+  Arrived      = 'Arrived',
+  InProgress   = 'InProgress',
+  Completed    = 'Completed',
+}
+
+export enum VisitType {
+  New      = 'New',
+  FollowUp = 'FollowUp',
+}
+
+export enum TokenStatus {
+  Queued = 'queued',
+  Called = 'called',
+  Done   = 'done',
 }
 
 export enum ConsultationStage {

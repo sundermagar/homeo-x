@@ -2,7 +2,7 @@ import axios from 'axios';
 import { useAuthStore } from '@/shared/stores/auth-store';
 
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  baseURL: (import.meta as any).env['VITE_API_URL'] || '/api',
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -21,7 +21,18 @@ apiClient.interceptors.request.use((config) => {
 
 // Handle 401 → redirect to login
 apiClient.interceptors.response.use(
-  (res) => res,
+  (res) => {
+    // Automatically unwrap high-level "data" key if it exists
+    if (res.data && res.data.success && res.data.data !== undefined) {
+      // Keep the original properties like message or total if they exist alongside data
+      return {
+        ...res,
+        data: res.data.data,
+        _original: res.data // For cases where we might need success/message etc.
+      };
+    }
+    return res;
+  },
   (error) => {
     if (error.response?.status === 401) {
       useAuthStore.getState().logout();

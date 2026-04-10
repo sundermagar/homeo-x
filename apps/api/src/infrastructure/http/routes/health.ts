@@ -2,6 +2,7 @@ import { Router } from 'express';
 import type { Router as ExpressRouter } from 'express';
 import { aiConfig } from '../../../shared/config/ai-config';
 import { aiGeminiBreaker, aiGroqBreaker, deepgramBreaker } from '../../../shared/resilience/circuit-breaker';
+import { sendSuccess } from '../../../shared/response-formatter';
 
 export const healthRouter: ExpressRouter = Router();
 
@@ -15,12 +16,13 @@ healthRouter.get('/', (_req, res) => {
 
   const allProvidersDown = !aiHealth.gemini?.available && !aiHealth.groq?.available;
 
-  res.status(allProvidersDown ? 503 : 200).json({
-    success: !allProvidersDown,
+  const payload = {
     status: allProvidersDown ? 'degraded' : 'healthy',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     ai: aiHealth,
     circuitBreakers: breakers,
-  });
+  };
+
+  sendSuccess(res, payload, undefined, allProvidersDown ? 503 : 200);
 });
