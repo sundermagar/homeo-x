@@ -4,23 +4,28 @@ import {
   ArrowLeft, FileText, Activity, Search, Edit,
   History, Camera, Zap, CreditCard, Clock,
   Phone, Calendar, MapPin, CheckCircle2, AlertCircle,
-  Sparkles, MoreHorizontal, ChevronRight, Plus, Package
+  Sparkles, MoreHorizontal, ChevronRight, Plus, Package,
+  MessageSquare, Send
 } from 'lucide-react';
 import { useFullMedicalCase, useManageClinicalRecords } from '../hooks/use-medical-cases';
 import { AssignPackageModal } from '../../packages/components/assign-package-modal';
+import { useSendSms } from '../../communications/hooks/use-communications';
+import { useQuery } from '@tanstack/react-query';
+import { apiClient } from '@/infrastructure/api-client';
 import '../styles/medical-case.css';
 
 const TABS = [
-  { id: 'summary',      label: 'Summary',     icon: History },
-  { id: 'vitals',       label: 'Vitals',       icon: Activity },
-  { id: 'soap',         label: 'SOAP',         icon: Edit },
-  { id: 'prescription', label: 'Prescription', icon: FileText },
-  { id: 'examination',  label: 'Examination',  icon: Search },
-  { id: 'labs',         label: 'Labs',         icon: Zap },
-  { id: 'images',       label: 'Media',        icon: Camera },
-  { id: 'billing',      label: 'Billing',      icon: CreditCard },
-  { id: 'followup',     label: 'Follow-up',    icon: Clock },
-  { id: 'ai',           label: 'Clinical AI',  icon: Sparkles },
+  { id: 'summary',       label: 'Summary',       icon: History },
+  { id: 'vitals',        label: 'Vitals',        icon: Activity },
+  { id: 'soap',          label: 'SOAP',          icon: Edit },
+  { id: 'prescription',  label: 'Prescription',  icon: FileText },
+  { id: 'examination',   label: 'Examination',   icon: Search },
+  { id: 'labs',          label: 'Labs',           icon: Zap },
+  { id: 'images',        label: 'Media',          icon: Camera },
+  { id: 'billing',       label: 'Billing',        icon: CreditCard },
+  { id: 'followup',      label: 'Follow-up',      icon: Clock },
+  { id: 'ai',            label: 'Clinical AI',    icon: Sparkles },
+  { id: 'communication', label: 'Communication',  icon: MessageSquare },
 ];
 
 export default function MedicalCaseDetailPage() {
@@ -79,13 +84,11 @@ export default function MedicalCaseDetailPage() {
 
       {/* Package Assignment Modal */}
       {showAssignModal && (
-        <AssignPackageModal 
+        <AssignPackageModal
           regid={Number(regid)}
           patientId={medicalCase.patientId || 0}
           onClose={() => setShowAssignModal(false)}
-          onSuccess={() => {
-            // Optionally show toast or refresh patient data
-          }}
+          onSuccess={() => {}}
         />
       )}
 
@@ -110,9 +113,9 @@ export default function MedicalCaseDetailPage() {
 
             <div className="mc-snapshot-items">
               <SnapshotItem icon={Phone}    label="Mobile"   value={medicalCase.phone || '—'} />
-              <SnapshotItem icon={Calendar} label="DOB"      value="12 Jun 1989" />
-              <SnapshotItem icon={Clock}    label="Wait"     value="12 min" />
-              <SnapshotItem icon={MapPin}   label="Location" value="Mumbai, IN" />
+              <SnapshotItem icon={Calendar} label="DOB"      value={(medicalCase as any).dateOfBirth || '—'} />
+              <SnapshotItem icon={Clock}    label="Wait"     value="—" />
+              <SnapshotItem icon={MapPin}   label="Location" value={(medicalCase as any).city || '—'} />
             </div>
 
             <button className="mc-snapshot-edit-btn">Edit Profile</button>
@@ -152,8 +155,9 @@ export default function MedicalCaseDetailPage() {
             {activeTab === 'vitals'       && <VitalsView vitals={vitals} />}
             {activeTab === 'soap'         && <SoapView soap={soap} />}
             {activeTab === 'prescription' && <PrescriptionView prescriptions={prescriptions} />}
+            {activeTab === 'communication' && <CommunicationView regid={Number(regid)} phone={(medicalCase as any).phone || ''} name={(medicalCase as any).patientName || ''} />}
 
-            {!['summary', 'vitals', 'soap', 'prescription'].includes(activeTab) && (
+            {!['summary', 'vitals', 'soap', 'prescription', 'communication'].includes(activeTab) && (
               <div className="mc-wip">
                 <Zap size={40} strokeWidth={1.6} style={{ color: 'var(--border-main)' }} />
                 <div className="mc-wip-title">Module pending</div>
@@ -289,6 +293,90 @@ function PrescriptionView({ prescriptions }: any) {
         </div>
       ))}
       <button className="mc-add-rx-btn">+ Add to prescription</button>
+    </div>
+  );
+}
+
+/* ─── Communication Tab ──────────────────────────────────────────── */
+function CommunicationView({ regid, phone, name }: { regid: number; phone: string; name: string }) {
+  const { data: templates = [] } = useQuery({
+    queryKey: ['communications', 'templates'],
+    queryFn: () => apiClient.get('/communications/templates').then(r => r.data as any[]),
+  });
+  const sendSms = useSendSms();
+  const [message, setMessage] = useState('');
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState('');
+
+  const applyTemplate = (tpl: any) => setMessage(tpl.message);
+
+  const handleSend = async () => {
+    if (!message.trim()) return;
+    setError(''); setSent(false);
+    try {
+      await sendSms.mutateAsync({ phone, message, smsType: 'General', regid });
+      setSent(true);
+      setTimeout(() => setSent(false), 3000);
+    } catch (err: any) {
+      setError(err.response?.data?.error ?? 'Failed to send');
+    }
+  };
+
+  return (
+    <div style={{ padding: '0 4px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+        {/* Contact Info */}
+        <div>
+          <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#888786', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>
+            Patient Contact
+          </div>
+          <div style={{ background: '#FAFAF8', border: '1px solid #E3E2DF', borderRadius: 8, padding: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <Phone size={14} strokeWidth={1.6} style={{ color: '#2563EB' }} />
+              <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{phone || 'No phone'}</span>
+            </div>
+            <div style={{ fontSize: '0.82rem', color: '#4A4A47' }}>
+              RegID: <strong>PT-{regid}</strong>
+            </div>
+            {name && <div style={{ fontSize: '0.82rem', color: '#4A4A47' }}>Name: {name}</div>}
+          </div>
+        </div>
+
+        {/* SMS Composer */}
+        <div>
+          <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#888786', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>
+            Send SMS
+          </div>
+          <div style={{ background: '#fff', border: '1px solid #E3E2DF', borderRadius: 8, padding: 16 }}>
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: '0.72rem', color: '#888786', marginBottom: 6 }}>Templates</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {templates.slice(0, 6).map((t: any) => (
+                  <button key={t.id} style={{ padding: '3px 10px', borderRadius: 20, border: '1px solid #E3E2DF', fontSize: '0.72rem', cursor: 'pointer', background: '#fff' }}
+                    onClick={() => applyTemplate(t)}>
+                    {t.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <textarea
+              placeholder="Type message or select a template…"
+              value={message}
+              onChange={e => setMessage(e.target.value)}
+              style={{ width: '100%', minHeight: 80, padding: '8px 10px', border: '1px solid #E3E2DF', borderRadius: 6, fontSize: '0.82rem', resize: 'vertical', fontFamily: 'inherit' }}
+            />
+            {sent && <div style={{ fontSize: '0.78rem', color: '#16A34A', marginTop: 6 }}>✓ SMS sent successfully</div>}
+            {error && <div style={{ fontSize: '0.78rem', color: '#DC2626', marginTop: 6 }}>{error}</div>}
+            <button
+              style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', background: '#2563EB', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600 }}
+              onClick={handleSend}
+              disabled={!phone || sendSms.isPending}
+            >
+              <Send size={13} /> Send SMS
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

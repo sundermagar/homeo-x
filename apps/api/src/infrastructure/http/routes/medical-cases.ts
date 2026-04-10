@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import type { Router as ExpressRouter } from 'express';
 import { asyncHandler } from '../middleware/async-handler';
 import { sendSuccess } from '../../../shared/response-formatter';
 import { MedicalCaseRepositoryPg } from '../../repositories/medical-case.repository.pg';
@@ -38,6 +39,7 @@ const getApptRepo = (req: any) => {
 router.post('/', asyncHandler(async (req, res) => {
   const useCase = new CreateMedicalCaseUseCase(getRepo(req));
   const result = await useCase.execute(req.body);
+  if (!result.success) throw new Error(result.error);
   sendSuccess(res, result.data, 'Medical case created successfully');
 }));
 
@@ -57,6 +59,7 @@ router.get('/', asyncHandler(async (req, res) => {
 router.get('/patient/:regid/full', asyncHandler(async (req, res) => {
   const useCase = new GetFullMedicalCaseUseCase(getRepo(req));
   const result = await useCase.execute(Number(req.params.regid));
+  if (!result.success) throw new Error(result.error);
   sendSuccess(res, result.data);
 }));
 
@@ -71,6 +74,7 @@ router.get('/:id', asyncHandler(async (req, res) => {
 router.get('/vitals/:visitId', asyncHandler(async (req, res) => {
   const useCase = new ManageVitalsUseCase(getRepo(req));
   const result = await useCase.get(Number(req.params.visitId));
+  if (!result.success) throw new Error(result.error);
   sendSuccess(res, result.data);
 }));
 
@@ -83,6 +87,7 @@ router.post('/vitals', asyncHandler(async (req, res) => {
 router.get('/soap/:visitId', asyncHandler(async (req, res) => {
   const useCase = new ManageSoapNotesUseCase(getRepo(req));
   const result = await useCase.get(Number(req.params.visitId));
+  if (!result.success) throw new Error(result.error);
   sendSuccess(res, result.data);
 }));
 
@@ -127,6 +132,7 @@ router.post('/records/investigations', asyncHandler(async (req, res) => {
 router.post('/records/images', asyncHandler(async (req, res) => {
   const useCase = new ManageClinicalRecordsUseCase(getRepo(req));
   const result = await useCase.saveImage(req.body);
+  if (!result.success) throw new Error(result.error);
   sendSuccess(res, result.data, 'Image uploaded');
 }));
 
@@ -146,4 +152,4 @@ router.post('/:regid/finalize', asyncHandler(async (req, res) => {
   sendSuccess(res, null, 'Consultation finalized successfully');
 }));
 
-export const medicalCasesRouter = router;
+export const medicalCasesRouter: ExpressRouter = router;

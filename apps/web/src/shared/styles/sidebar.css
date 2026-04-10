@@ -1,18 +1,17 @@
-/* ─── App Shell & Sidebar — Mobile First Refactor ────────────────────────── */
+/* ─── App Shell & Sidebar — Hierarchical Navigation ───────────────────────── */
 
 .app-container {
   display: flex;
-  flex-direction: column; /* Stack on mobile */
+  flex-direction: column;
   height: 100vh;
   width: 100vw;
   overflow: hidden;
   background: var(--bg-main);
 }
 
-/* ─── Desktop Layout ─── */
 @media (min-width: 1024px) {
   .app-container {
-    flex-direction: row; /* Side-by-side on desktop */
+    flex-direction: row;
   }
 }
 
@@ -30,9 +29,7 @@
 }
 
 @media (min-width: 1024px) {
-  .mobile-header {
-    display: none; /* Hide on desktop */
-  }
+  .mobile-header { display: none; }
 }
 
 .mh-left {
@@ -50,44 +47,45 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
 }
 
 .mh-menu-btn:hover {
   background: var(--bg-surface-2);
 }
 
-/* ─── Sidebar ─── */
+/* ─── Sidebar Shell ─── */
 .sidebar {
   position: fixed;
   top: 0;
   left: 0;
-  width: 280px;
+  width: 264px;
   height: 100%;
   background: var(--bg-card);
   border-right: 1px solid var(--border-main);
   display: flex;
   flex-direction: column;
   z-index: 100;
-  transform: translateX(-100%); /* Hidden on mobile by default */
+  transform: translateX(-100%);
   transition: transform var(--transition-normal);
-  box-shadow: 20px 0 50px rgba(0,0,0,0.1);
+  box-shadow: 20px 0 60px rgba(0, 0, 0, 0.08);
 }
 
 .sidebar.is-open {
   transform: translateX(0);
 }
 
-/* Desktop Sidebar Reset */
 @media (min-width: 1024px) {
   .sidebar {
     position: static;
     transform: none;
     box-shadow: none;
-    width: 260px;
+    width: 256px;
     flex-shrink: 0;
   }
 }
 
+/* ─── Overlay (mobile) ─── */
 .sidebar-overlay {
   position: fixed;
   inset: 0;
@@ -105,28 +103,26 @@
 }
 
 @media (min-width: 1024px) {
-  .sidebar-overlay {
-    display: none;
-  }
+  .sidebar-overlay { display: none; }
 }
 
+/* ─── Header ─── */
 .sidebar-header {
-  padding: 24px;
+  padding: 20px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  border-bottom: 1px solid var(--border-main);
 }
 
 @media (min-width: 1024px) {
-  .sidebar-header-close {
-    display: none;
-  }
+  .sidebar-header-close { display: none; }
 }
 
 .sidebar-logo-group {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .sidebar-logo {
@@ -138,33 +134,42 @@
   align-items: center;
   justify-content: center;
   color: white;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
 }
 
 .sidebar-brand {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 800;
   color: var(--text-main);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
 }
 
+/* ─── Navigation Area ─── */
 .sidebar-nav {
   flex: 1;
-  padding: 12px;
+  padding: 10px 10px;
   overflow-y: auto;
+  scrollbar-width: none;
 }
 
+.sidebar-nav::-webkit-scrollbar {
+  display: none;
+}
+
+/* ─── Top-level flat link ─── */
 .sidebar-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
-  border-radius: var(--radius-btn);
+  gap: 11px;
+  padding: 9px 12px;
+  border-radius: 8px;
   color: var(--text-secondary);
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   font-weight: 500;
-  margin-bottom: 4px;
-  transition: all var(--transition-fast);
+  margin-bottom: 2px;
+  transition: all 0.15s ease;
+  text-decoration: none;
+  cursor: pointer;
 }
 
 .sidebar-item:hover {
@@ -179,12 +184,160 @@
 }
 
 .sidebar-item-icon {
-  width: 18px;
-  height: 18px;
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
 }
 
+/* ─── Grouped Section ─── */
+.sidebar-group {
+  margin-bottom: 2px;
+}
+
+/* Group trigger button */
+.sidebar-group-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 12px;
+  border-radius: 8px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.sidebar-group-trigger:hover {
+  background: var(--bg-surface-2);
+  color: var(--text-main);
+}
+
+.sidebar-group-trigger.group-active {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.sidebar-group-trigger-left {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+/* Chevron rotation animation */
+.sidebar-chevron {
+  display: flex;
+  align-items: center;
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.sidebar-chevron.open {
+  transform: rotate(180deg);
+}
+
+/* ─── Collapsible children container ─── */
+.sidebar-group-children {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.22s ease;
+  overflow: hidden;
+}
+
+.sidebar-group-children.expanded {
+  grid-template-rows: 1fr;
+}
+
+.sidebar-group-children > * {
+  overflow: hidden;
+}
+
+/* Inner wrapper for correct animation */
+.sidebar-group-children {
+  padding-left: 14px;
+}
+
+/* ─── Child Item ─── */
+.sidebar-child-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 10px;
+  border-radius: 7px;
+  margin-bottom: 1px;
+  margin-top: 1px;
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.13s ease;
+  position: relative;
+}
+
+.sidebar-child-item:hover {
+  background: var(--bg-surface-2);
+  color: var(--text-main);
+}
+
+.sidebar-child-item.active {
+  background: var(--primary-tint);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+/* Left-border accent line when active */
+.sidebar-child-item.active::before {
+  content: '';
+  position: absolute;
+  left: -14px;
+  top: 20%;
+  height: 60%;
+  width: 2.5px;
+  border-radius: 2px;
+  background: var(--primary);
+}
+
+.sidebar-child-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--border-main);
+  flex-shrink: 0;
+  margin-left: 2px;
+  transition: background 0.13s ease;
+}
+
+.sidebar-child-item.active .sidebar-child-dot,
+.sidebar-child-item:hover .sidebar-child-dot {
+  background: currentColor;
+}
+
+.sidebar-child-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+/* ─── Section Divider Label ─── */
+.sidebar-section-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 14px 12px 4px;
+  user-select: none;
+}
+
+/* ─── Footer ─── */
 .sidebar-footer {
-  padding: 16px;
+  padding: 12px;
   border-top: 1px solid var(--border-main);
   background: var(--bg-surface-2);
 }
@@ -192,20 +345,26 @@
 .user-profile {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   padding: 8px;
-  border-radius: var(--radius-btn);
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+
+.user-profile:hover {
+  background: var(--bg-card);
 }
 
 .user-avatar {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
-  background: var(--border-main);
+  background: linear-gradient(135deg, var(--primary), #7C3AED);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-muted);
+  color: white;
+  flex-shrink: 0;
 }
 
 .user-info {
@@ -214,7 +373,7 @@
 }
 
 .user-name {
-  font-size: 0.85rem;
+  font-size: 0.84rem;
   font-weight: 600;
   color: var(--text-main);
   white-space: nowrap;
@@ -223,8 +382,9 @@
 }
 
 .user-role {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   color: var(--text-muted);
+  text-transform: capitalize;
 }
 
 .logout-btn {
@@ -232,10 +392,13 @@
   color: var(--text-muted);
   border: none;
   background: transparent;
-  border-radius: 4px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
+  transition: all 0.13s ease;
+  flex-shrink: 0;
 }
 
 .logout-btn:hover {
@@ -243,6 +406,7 @@
   background: var(--danger-bg);
 }
 
+/* ─── Main Content Area ─── */
 .app-main {
   flex: 1;
   overflow-y: auto;

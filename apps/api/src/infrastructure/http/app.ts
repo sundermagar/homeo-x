@@ -22,6 +22,8 @@ import { appointmentsRouter } from './routes/appointments';
 import { medicalCasesRouter } from './routes/medical-cases';
 import { doctorsRouter } from './routes/doctors';
 import { packagesRouter } from './routes/packages';
+import { communicationRouter } from './routes/communication';
+import { analyticsRouter } from './routes/analytics';
 
 const logger = createLogger('http');
 
@@ -75,8 +77,8 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   app.use('/api/medical-cases', medicalCasesRouter);
   app.use('/api/doctors', doctorsRouter);
   app.use('/api/packages', packagesRouter);
-
-  // TODO: Register domain routers here as migration progresses
+  app.use('/api/communications', communicationRouter);
+  app.use('/api/analytics', analyticsRouter);
 
   // ─── Error Handling (must be last) ───
   app.use(errorHandler);

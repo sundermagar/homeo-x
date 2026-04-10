@@ -22,6 +22,16 @@ const MedicalCaseDetailPage = lazy(() => import('@/features/medical-case/pages/c
 const PackagePlansPage    = lazy(() => import('@/features/packages/pages/package-plans-page'));
 const PackageTrackingPage = lazy(() => import('@/features/packages/pages/package-tracking-page'));
 
+// ─── Communications ───
+const SmsTemplatesPage = lazy(() => import('@/features/communications/pages/sms-templates-page'));
+const GroupSmsPage     = lazy(() => import('@/features/communications/pages/group-sms-page'));
+const SmsReportsPage    = lazy(() => import('@/features/communications/pages/sms-reports-page'));
+const WhatsAppPage      = lazy(() => import('@/features/communications/pages/whatsapp-page'));
+
+// ─── Analytics & Reports ───
+const DashboardAnalyticsPage = lazy(() => import('@/features/analytics/pages/dashboard-analytics-page').then(m => ({ default: m.DashboardAnalyticsPage })));
+const ReportsPage            = lazy(() => import('@/features/analytics/pages/reports-page').then(m => ({ default: m.ReportsPage })));
+
 const Loading = () => <div style={{ padding: 40, textAlign: 'center', opacity: 0.5 }}>Loading...</div>;
 
 export function AppRouter() {
@@ -50,7 +60,16 @@ export function AppRouter() {
             <Route path="/packages"           element={<PackagePlansPage />} />
             <Route path="/packages/tracking"  element={<PackageTrackingPage />} />
 
-            {/* Add feature routes as they're migrated */}
+            {/* ─── Communications ─── */}
+            <Route path="/communications/sms"         element={<GroupSmsPage />} />
+            <Route path="/communications/templates"   element={<SmsTemplatesPage />} />
+            <Route path="/communications/reports"     element={<SmsReportsPage />} />
+            <Route path="/communications/whatsapp"   element={<WhatsAppPage />} />
+            <Route path="/communications"             element={<GroupSmsPage />} />
+
+            {/* ─── Analytics ─── */}
+            <Route path="/analytics"         element={<DashboardAnalyticsPage />} />
+            <Route path="/analytics/reports" element={<ReportsPage />} />
           </Route>
 
           {/* Full-screen (no layout shell) */}

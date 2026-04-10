@@ -2,9 +2,8 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import type { AuthTokenPayload, Role } from '@mmc/types';
 import { appConfig } from '../../../shared/config/app-config';
-import { UnauthorizedError } from '../../../shared/errors';
 import type { UserRepository } from '../ports/user.repository';
-import { type Result, ok } from '../../../shared/result';
+import { type Result, ok, fail } from '../../../shared/result';
 
 export interface LoginResult {
   token: string;
@@ -43,17 +42,17 @@ export class LoginUseCase {
     // ─── Standard Database Authentication ───────────────────────────────────────
     const passwordHash = await this.userRepository.getUserPassword(email);
     if (!passwordHash) {
-      throw new UnauthorizedError('Invalid credentials');
+      return fail('Invalid credentials', 'UNAUTHORIZED');
     }
 
     const isMatch = await bcrypt.compare(password, passwordHash);
     if (!isMatch) {
-      throw new UnauthorizedError('Invalid credentials');
+      return fail('Invalid credentials', 'UNAUTHORIZED');
     }
 
     const user = await this.userRepository.findByEmail(email);
     if (!user) {
-      throw new UnauthorizedError('User account not found');
+      return fail('User account not found', 'UNAUTHORIZED');
     }
 
     const permissions = await this.userRepository.getUserPermissions(user.roleId);

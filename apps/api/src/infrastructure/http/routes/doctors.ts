@@ -1,8 +1,9 @@
 import { Router } from 'express';
+import type { Router as ExpressRouter } from 'express';
 import { sendSuccess } from '../../../shared/response-formatter';
 import { authMiddleware } from '../middleware/auth';
 
-export const doctorsRouter = Router();
+export const doctorsRouter: ExpressRouter = Router();
 
 doctorsRouter.get('/', authMiddleware, (req, res) => {
   // Simple mock for practitioners

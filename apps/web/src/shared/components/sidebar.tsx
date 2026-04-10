@@ -1,51 +1,184 @@
-import { NavLink } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Users, 
-  CalendarClock, 
+import { useState } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
+import {
+  LayoutDashboard,
+  Users,
+  CalendarClock,
   Calendar,
   Ticket,
-  Stethoscope, 
-  CreditCard, 
-  Settings, 
+  Stethoscope,
+  CreditCard,
+  Settings,
   LogOut,
   Infinity,
   X,
   Package,
-  CalendarCheck
+  CalendarCheck,
+  MessageSquare,
+  Send,
+  BarChart2,
+  ChevronDown,
+  ChevronRight,
+  type LucideIcon,
+  Layers,
+  MessageCircle,
+  PieChart,
 } from 'lucide-react';
 import { useAuthStore } from '../stores/auth-store';
 import '../styles/sidebar.css';
 
-const NAV_ITEMS = [
-  { path: '/',                    label: 'Dashboard',    icon: LayoutDashboard },
-  { path: '/appointments',        label: 'Appointments', icon: CalendarClock },
-  { path: '/appointments/calendar', label: 'Calendar',  icon: Calendar },
-  { path: '/appointments/queue',  label: 'Token Queue',  icon: Ticket },
-  { path: '/patients',            label: 'Patients',     icon: Users },
-  { path: '/medical-cases',       label: 'Medical Cases', icon: Stethoscope },
-  { path: '/packages',            label: 'Packages',     icon: Package },
-  { path: '/packages/tracking',   label: 'Pkg Tracking', icon: CalendarCheck },
-  { path: '/billing',             label: 'Billing',      icon: CreditCard },
-  { path: '/settings',            label: 'Settings',     icon: Settings },
+// ─── Navigation Structure ────────────────────────────────────────────────────
+
+interface NavChild {
+  path: string;
+  label: string;
+  icon: LucideIcon;
+}
+
+interface NavGroup {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  children: NavChild[];
+}
+
+type NavItem = { type: 'link'; path: string; label: string; icon: LucideIcon }
+             | { type: 'group'; group: NavGroup };
+
+const NAV_STRUCTURE: NavItem[] = [
+  {
+    type: 'link',
+    path: '/',
+    label: 'Dashboard',
+    icon: LayoutDashboard,
+  },
+  {
+    type: 'link',
+    path: '/patients',
+    label: 'Patients',
+    icon: Users,
+  },
+  {
+    type: 'group',
+    group: {
+      id: 'appointments',
+      label: 'Appointments',
+      icon: CalendarClock,
+      children: [
+        { path: '/appointments',          label: 'List View',    icon: CalendarClock },
+        { path: '/appointments/calendar', label: 'Calendar',     icon: Calendar },
+        { path: '/appointments/queue',    label: 'Token Queue',  icon: Ticket },
+      ],
+    },
+  },
+  {
+    type: 'group',
+    group: {
+      id: 'clinical',
+      label: 'Clinical',
+      icon: Stethoscope,
+      children: [
+        { path: '/medical-cases', label: 'Medical Cases', icon: Stethoscope },
+      ],
+    },
+  },
+  {
+    type: 'group',
+    group: {
+      id: 'memberships',
+      label: 'Memberships',
+      icon: Package,
+      children: [
+        { path: '/packages',          label: 'Package Plans', icon: Layers },
+        { path: '/packages/tracking', label: 'Tracking',      icon: CalendarCheck },
+      ],
+    },
+  },
+  {
+    type: 'group',
+    group: {
+      id: 'communications',
+      label: 'Communications',
+      icon: MessageSquare,
+      children: [
+        { path: '/communications/sms',       label: 'Send SMS',      icon: Send },
+        { path: '/communications/templates', label: 'Templates',     icon: MessageCircle },
+        { path: '/communications/reports',   label: 'SMS Reports',   icon: BarChart2 },
+        { path: '/communications/whatsapp',  label: 'WhatsApp',     icon: MessageSquare },
+      ],
+    },
+  },
+  {
+    type: 'group',
+    group: {
+      id: 'analytics',
+      label: 'Analytics',
+      icon: PieChart,
+      children: [
+        { path: '/analytics',         label: 'Dashboard', icon: BarChart2 },
+        { path: '/analytics/reports', label: 'Reports',   icon: PieChart },
+      ],
+    },
+  },
+  {
+    type: 'link',
+    path: '/billing',
+    label: 'Billing',
+    icon: CreditCard,
+  },
+  {
+    type: 'link',
+    path: '/settings',
+    label: 'Settings',
+    icon: Settings,
+  },
 ];
+
+// ─── Component Logic ─────────────────────────────────────────────────────────
 
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
+function isGroupActive(group: NavGroup, pathname: string): boolean {
+  return group.children.some(c => {
+    if (c.path === '/') return pathname === '/';
+    return pathname.startsWith(c.path);
+  });
+}
+
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { user, logout } = useAuthStore();
+  const location = useLocation();
+
+  // Auto-expand the active group by default
+  const defaultOpen = NAV_STRUCTURE
+    .filter((item): item is { type: 'group'; group: NavGroup } => item.type === 'group')
+    .filter(item => isGroupActive(item.group, location.pathname))
+    .map(item => item.group.id);
+
+  const [openGroups, setOpenGroups] = useState<string[]>(defaultOpen);
+
+  const toggleGroup = (id: string) => {
+    setOpenGroups(prev =>
+      prev.includes(id) ? prev.filter(g => g !== id) : [...prev, id]
+    );
+  };
+
+  const handleNavClick = () => {
+    if (window.innerWidth < 1024) onClose();
+  };
 
   return (
     <>
-      <div 
-        className={`sidebar-overlay ${isOpen ? 'active' : ''}`} 
+      <div
+        className={`sidebar-overlay ${isOpen ? 'active' : ''}`}
         onClick={onClose}
       />
-      
+
       <aside className={`sidebar ${isOpen ? 'is-open' : ''}`}>
+        {/* ── Logo ── */}
         <div className="sidebar-header">
           <div className="sidebar-logo-group">
             <div className="sidebar-logo">
@@ -58,23 +191,74 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           </button>
         </div>
 
+        {/* ── Navigation ── */}
         <nav className="sidebar-nav">
-          {NAV_ITEMS.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) => `sidebar-item ${isActive ? 'active' : ''}`}
-              onClick={() => {
-                // Auto-close on mobile when a link is clicked
-                if (window.innerWidth < 1024) onClose();
-              }}
-            >
-              <item.icon className="sidebar-item-icon" strokeWidth={2} />
-              <span>{item.label}</span>
-            </NavLink>
-          ))}
+          {NAV_STRUCTURE.map((item, idx) => {
+            if (item.type === 'link') {
+              const Icon = item.icon;
+              return (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  end={item.path === '/'}
+                  className={({ isActive }) => `sidebar-item ${isActive ? 'active' : ''}`}
+                  onClick={handleNavClick}
+                >
+                  <Icon className="sidebar-item-icon" strokeWidth={1.8} />
+                  <span>{item.label}</span>
+                </NavLink>
+              );
+            }
+
+            // Grouped section
+            const { group } = item;
+            const isOpen_ = openGroups.includes(group.id);
+            const groupActive = isGroupActive(group, location.pathname);
+            const GroupIcon = group.icon;
+
+            return (
+              <div key={group.id} className="sidebar-group">
+                <button
+                  className={`sidebar-group-trigger ${groupActive ? 'group-active' : ''}`}
+                  onClick={() => toggleGroup(group.id)}
+                >
+                  <div className="sidebar-group-trigger-left">
+                    <GroupIcon className="sidebar-item-icon" strokeWidth={1.8} />
+                    <span>{group.label}</span>
+                  </div>
+                  <span className={`sidebar-chevron ${isOpen_ ? 'open' : ''}`}>
+                    <ChevronDown size={14} strokeWidth={2} />
+                  </span>
+                </button>
+
+                <div className={`sidebar-group-children ${isOpen_ ? 'expanded' : ''}`}>
+                  <div className="sidebar-group-children-inner">
+                    {group.children.map(child => {
+                      const ChildIcon = child.icon;
+                      return (
+                        <NavLink
+                          key={child.path}
+                          to={child.path}
+                          end
+                          className={({ isActive }) =>
+                            `sidebar-child-item ${isActive ? 'active' : ''}`
+                          }
+                          onClick={handleNavClick}
+                        >
+                          <span className="sidebar-child-dot" />
+                          <ChildIcon className="sidebar-child-icon" strokeWidth={1.8} />
+                          <span>{child.label}</span>
+                        </NavLink>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </nav>
 
+        {/* ── Footer ── */}
         <div className="sidebar-footer">
           <div className="user-profile">
             <div className="user-avatar">

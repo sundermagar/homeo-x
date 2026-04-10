@@ -1,29 +1,19 @@
 import type { PackageRepository } from '../ports/package.repository';
 import type { AssignPackageDto } from '@mmc/types';
-import { ok, type Result } from '../../../shared/result';
-import { NotFoundError, BadRequestError } from '../../../shared/errors';
+import { ok, type Result, fail } from '../../../shared/result';
 
 export class AssignPackageUseCase {
   constructor(private readonly repo: PackageRepository) {}
 
-  /**
-   * Assigns a package plan to a patient:
-   * 1. Validates patient & plan exist
-   * 2. Calculates expiry based on duration_days
-   * 3. Stores the subscription record
-   * 4. Returns the new subscription ID + computed expiry
-   */
   async execute(dto: AssignPackageDto & { patientId: number }): Promise<Result<{ subscriptionId: number; expiryDate: string }>> {
     const { regid, packageId, startDate, patientId, notes } = dto;
 
-    if (!patientId) throw new BadRequestError('patientId is required');
+    if (!patientId) return fail('patientId is required', 'VALIDATION');
 
-    // Validate package plan exists
     const plan = await this.repo.findPlanById(packageId);
-    if (!plan) throw new NotFoundError(`Package plan #${packageId} not found`);
-    if (!plan.isActive) throw new BadRequestError('This package plan is no longer active');
+    if (!plan) return fail(`Package plan #${packageId} not found`, 'NOT_FOUND');
+    if (!plan.isActive) return fail('This package plan is no longer active', 'VALIDATION');
 
-    // Calculate expiry date
     const start = startDate ? new Date(startDate) : new Date();
     const expiry = new Date(start);
     expiry.setDate(expiry.getDate() + plan.durationDays);
@@ -32,7 +22,6 @@ export class AssignPackageUseCase {
     const startDateStr  = fmt(start);
     const expiryDateStr = fmt(expiry);
 
-    // Create the subscription record
     const subscriptionId = await this.repo.assignPackage({
       regid,
       packageId,

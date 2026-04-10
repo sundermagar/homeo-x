@@ -8,3 +8,8 @@ dist/
 .DS_Store
 coverage/
 *.tsbuildinfo
+
+# Scratch/Legacy
+MMC-javascript/
+test_*.js
+server_log.txt
