@@ -1,0 +1,363 @@
+/Users/instep/Documents/GitHub/homeo-x/apps/api/src/infrastructure/http/routes/staff.router.ts:3
+import { createStaffSchema, updateStaffSchema } from '@mmc/validation';
+         ^
+SyntaxError: The requested module '@mmc/validation' does not provide an export named 'createStaffSchema'
+    at #asyncInstantiate (node:internal/modules/esm/module_job:302:21)
+    at async ModuleJob.run (node:internal/modules/esm/module_job:405:5)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:660:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.12.0
+11:17:05 AM [tsx] change in ./apps/api/src/infrastructure/http/app.ts Rerunning...
+c[11:17:07.900] [32mINFO[39m (6480): [36mAI providers ready: Google Gemini (2 keys), Groq (2 keys)[39m
+    [35mcontext[39m: "ai-config"
+[11:17:07.900] [33mWARN[39m (6480): [36mDeepgram not configured — cloud transcription unavailable (Web Speech API still works)[39m
+    [35mcontext[39m: "ai-config"
+[11:17:07.900] [33mWARN[39m (6480): [36mLiveKit not configured — video calls unavailable[39m
+    [35mcontext[39m: "ai-config"
+[11:17:07.900] [32mINFO[39m (6480): [36mTotal AI keys loaded: 4[39m
+    [35mcontext[39m: "ai-config"
+[11:17:07.908] [32mINFO[39m (6480): [36mEnvironment: development[39m
+    [35mcontext[39m: "main"
+[11:17:07.908] [32mINFO[39m (6480): [36mCORS origins: http://localhost:5173[39m
+    [35mcontext[39m: "main"
+[11:17:07.908] [32mINFO[39m (6480): [36mAI health: {"gemini":{"available":true,"keyCount":2,"models":["gemini-2.0-flash","gemini-1.5-flash"]},"groq":{"available":true,"keyCount":2,"models":["llama-3.3-70b-versatile","mixtral-8x7b-32768"]},"azure":{"available":false,"keyCount":0,"models":["gpt-4o-mini"]},"deepgram":{"available":false,"keyCount":0,"models":["nova-3-medical"]},"livekit":{"available":false,"keyCount":0,"models":[]}}[39m
+    [35mcontext[39m: "main"
+[11:17:07.916] [32mINFO[39m (6480): [36mExpress app configured with enterprise middleware stack[39m
+    [35mcontext[39m: "http"
+[11:17:07.918] [32mINFO[39m (6480): [36mAPI server running on port 3000[39m
+    [35mcontext[39m: "main"
+[11:22:53.608] [32mINFO[39m (6480): [36mGET / 304 55ms[39m
+    [35mcontext[39m: "http"
+    [35mcorrelationId[39m: "208caac2-4e21-443e-860d-d349075e377d"
+    [35mmethod[39m: "GET"
+    [35mpath[39m: "/"
+    [35mstatus[39m: 304
+    [35mduration[39m: 55
+    [35mtenant[39m: "demo"
+    [35muserId[39m: null
+    [35mip[39m: "::ffff:127.0.0.1"
+    [35muserAgent[39m: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0."
+[11:23:10.619] [32mINFO[39m (6480): [36mGET /meta/form 304 30ms[39m
+    [35mcontext[39m: "http"
+    [35mcorrelationId[39m: "6bf7b9f3-2fe8-4b74-bf0a-adc1c80c6238"
+    [35mmethod[39m: "GET"
+    [35mpath[39m: "/meta/form"
+    [35mstatus[39m: 304
+    [35mduration[39m: 30
+    [35mtenant[39m: "demo"
+    [35muserId[39m: null
+    [35mip[39m: "::ffff:127.0.0.1"
+    [35muserAgent[39m: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0."
+[11:23:10.620] [32mINFO[39m (6480): [36mGET /1004 304 26ms[39m
+    [35mcontext[39m: "http"
+    [35mcorrelationId[39m: "daf43f42-8c12-46ca-9f53-c24dce175f86"
+    [35mmethod[39m: "GET"
+    [35mpath[39m: "/1004"
+    [35mstatus[39m: 304
+    [35mduration[39m: 26
+    [35mtenant[39m: "demo"
+    [35muserId[39m: null
+    [35mip[39m: "::ffff:127.0.0.1"
+    [35muserAgent[39m: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0."
+[11:23:14.895] [32mINFO[39m (6480): [36mGET /1004/family 304 19ms[39m
+    [35mcontext[39m: "http"
+    [35mcorrelationId[39m: "2235c622-daed-4dd0-a678-9b0b55cee9c5"
+    [35mmethod[39m: "GET"
+    [35mpath[39m: "/1004/family"
+    [35mstatus[39m: 304
+    [35mduration[39m: 19
+    [35mtenant[39m: "demo"
+    [35muserId[39m: null
+    [35mip[39m: "::ffff:127.0.0.1"
+    [35muserAgent[39m: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0."
+[11:23:27.710] [32mINFO[39m (6480): [36mGET /lookup 304 5ms[39m
+    [35mcontext[39m: "http"
+    [35mcorrelationId[39m: "b361b48d-3573-4e1a-aeb1-21f391aaf460"
+    [35mmethod[39m: "GET"
+    [35mpath[39m: "/lookup"
+    [35mstatus[39m: 304
+    [35mduration[39m: 5
+    [35mtenant[39m: "demo"
+    [35muserId[39m: null
+    [35mip[39m: "::ffff:127.0.0.1"
+    [35muserAgent[39m: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0."
+[11:23:28.166] [32mINFO[39m (6480): [36mGET /lookup 304 3ms[39m
+    [35mcontext[39m: "http"
+    [35mcorrelationId[39m: "f37d9970-ee11-419c-a903-839e637fcecf"
+    [35mmethod[39m: "GET"
+    [35mpath[39m: "/lookup"
+    [35mstatus[39m: 304
+    [35mduration[39m: 3
+    [35mtenant[39m: "demo"
+    [35muserId[39m: null
+    [35mip[39m: "::ffff:127.0.0.1"
+    [35muserAgent[39m: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0."
+[11:23:28.426] [32mINFO[39m (6480): [36mGET /lookup 304 4ms[39m
+    [35mcontext[39m: "http"
+    [35mcorrelationId[39m: "6b969da3-07da-4e1e-a9bb-838e03c69b93"
+    [35mmethod[39m: "GET"
+    [35mpath[39m: "/lookup"
+    [35mstatus[39m: 304
+    [35mduration[39m: 4
+    [35mtenant[39m: "demo"
+    [35muserId[39m: null
+    [35mip[39m: "::ffff:127.0.0.1"
+    [35muserAgent[39m: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0."
+[11:23:31.638] [32mINFO[39m (6480): [36mGET /lookup 304 3ms[39m
+    [35mcontext[39m: "http"
+    [35mcorrelationId[39m: "4b96da8b-c8a1-4360-878a-6d0bcf3478f4"
+    [35mmethod[39m: "GET"
+    [35mpath[39m: "/lookup"
+    [35mstatus[39m: 304
+    [35mduration[39m: 3
+    [35mtenant[39m: "demo"
+    [35muserId[39m: null
+    [35mip[39m: "::ffff:127.0.0.1"
+    [35muserAgent[39m: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0."
+[11:23:34.079] [32mINFO[39m (6480): [36mGET /lookup 304 3ms[39m
+    [35mcontext[39m: "http"
+    [35mcorrelationId[39m: "0ca523d6-9f21-4ddc-8f77-5996aed5e68e"
+    [35mmethod[39m: "GET"
+    [35mpath[39m: "/lookup"
+    [35mstatus[39m: 304
+    [35mduration[39m: 3
+    [35mtenant[39m: "demo"
+    [35muserId[39m: null
+    [35mip[39m: "::ffff:127.0.0.1"
+    [35muserAgent[39m: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0."
+[11:23:34.367] [32mINFO[39m (6480): [36mGET /lookup 200 5ms[39m
+    [35mcontext[39m: "http"
+    [35mcorrelationId[39m: "f2a0f1b9-7a43-4f96-827d-0bb8f6720391"
+    [35mmethod[39m: "GET"
+    [35mpath[39m: "/lookup"
+    [35mstatus[39m: 200
+    [35mduration[39m: 5
+    [35mtenant[39m: "demo"
+    [35muserId[39m: null
+    [35mip[39m: "::ffff:127.0.0.1"
+    [35muserAgent[39m: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0."
+[11:23:34.573] [32mINFO[39m (6480): [36mGET /lookup 200 4ms[39m
+    [35mcontext[39m: "http"
+    [35mcorrelationId[39m: "8a67284e-71d4-4a76-a683-1c5e6529824d"
+    [35mmethod[39m: "GET"
+    [35mpath[39m: "/lookup"
+    [35mstatus[39m: 200
+    [35mduration[39m: 4
+    [35mtenant[39m: "demo"
+    [35muserId[39m: null
+    [35mip[39m: "::ffff:127.0.0.1"
+    [35muserAgent[39m: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0."
+[11:23:38.679] [32mINFO[39m (6480): [36mGET /1004 304 5ms[39m
+    [35mcontext[39m: "http"
+    [35mcorrelationId[39m: "4100fd66-b2fd-4ad6-b35d-0e6e01161e2d"
+    [35mmethod[39m: "GET"
+    [35mpath[39m: "/1004"
+    [35mstatus[39m: 304
+    [35mduration[39m: 5
+    [35mtenant[39m: "demo"
+    [35muserId[39m: null
+    [35mip[39m: "::ffff:127.0.0.1"
+    [35muserAgent[39m: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0."
+[11:23:38.682] [32mINFO[39m (6480): [36mGET /1004/family 304 6ms[39m
+    [35mcontext[39m: "http"
+    [35mcorrelationId[39m: "28c4c0fd-20c2-461e-a537-115489dc4346"
+    [35mmethod[39m: "GET"
+    [35mpath[39m: "/1004/family"
+    [35mstatus[39m: 304
+    [35mduration[39m: 6
+    [35mtenant[39m: "demo"
+    [35muserId[39m: null
+    [35mip[39m: "::ffff:127.0.0.1"
+    [35muserAgent[39m: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0."
+[11:23:49.871] [32mINFO[39m (6480): [36mGET /lookup 304 3ms[39m
+    [35mcontext[39m: "http"
+    [35mcorrelationId[39m: "3e962481-d52f-43cf-8a7f-c69952365fd8"
+    [35mmethod[39m: "GET"
+    [35mpath[39m: "/lookup"
+    [35mstatus[39m: 304
+    [35mduration[39m: 3
+    [35mtenant[39m: "demo"
+    [35muserId[39m: null
+    [35mip[39m: "::ffff:127.0.0.1"
+    [35muserAgent[39m: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0."
+[11:23:50.187] [32mINFO[39m (6480): [36mGET /lookup 304 4ms[39m
+    [35mcontext[39m: "http"
+    [35mcorrelationId[39m: "82fe86ed-8a67-41e3-b428-4e029f1da021"
+    [35mmethod[39m: "GET"
+    [35mpath[39m: "/lookup"
+    [35mstatus[39m: 304
+    [35mduration[39m: 4
+    [35mtenant[39m: "demo"
+    [35muserId[39m: null
+    [35mip[39m: "::ffff:127.0.0.1"
+    [35muserAgent[39m: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0."
+[11:23:50.453] [32mINFO[39m (6480): [36mGET /lookup 304 3ms[39m
+    [35mcontext[39m: "http"
+    [35mcorrelationId[39m: "d7c90094-9f80-4a74-aaa8-3b3e4f7e4e35"
+    [35mmethod[39m: "GET"
+    [35mpath[39m: "/lookup"
+    [35mstatus[39m: 304
+    [35mduration[39m: 3
+    [35mtenant[39m: "demo"
+    [35muserId[39m: null
+    [35mip[39m: "::ffff:127.0.0.1"
+    [35muserAgent[39m: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0."
+[11:24:03.900] [32mINFO[39m (6480): [36mGET / 304 3ms[39m
+    [35mcontext[39m: "http"
+    [35mcorrelationId[39m: "9a8d18bf-df2d-469e-bfe4-a3100b1b95fe"
+    [35mmethod[39m: "GET"
+    [35mpath[39m: "/"
+    [35mstatus[39m: 304
+    [35mduration[39m: 3
+    [35mtenant[39m: "demo"
+    [35muserId[39m: null
+    [35mip[39m: "::ffff:127.0.0.1"
+    [35muserAgent[39m: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0."
+[11:24:13.905] [32mINFO[39m (6480): [36mGET /1001 304 6ms[39m
+    [35mcontext[39m: "http"
+    [35mcorrelationId[39m: "d79226b5-86b5-4c5f-9dfc-0e578f5326ab"
+    [35mmethod[39m: "GET"
+    [35mpath[39m: "/1001"
+    [35mstatus[39m: 304
+    [35mduration[39m: 6
+    [35mtenant[39m: "demo"
+    [35muserId[39m: null
+    [35mip[39m: "::ffff:127.0.0.1"
+    [35muserAgent[39m: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0."
+[11:24:13.906] [32mINFO[39m (6480): [36mGET /1001/family 304 6ms[39m
+    [35mcontext[39m: "http"
+    [35mcorrelationId[39m: "15f7a504-d8e4-41ab-a8f6-c372ae13ed16"
+    [35mmethod[39m: "GET"
+    [35mpath[39m: "/1001/family"
+    [35mstatus[39m: 304
+    [35mduration[39m: 6
+    [35mtenant[39m: "demo"
+    [35muserId[39m: null
+    [35mip[39m: "::ffff:127.0.0.1"
+    [35muserAgent[39m: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0."
+[11:24:25.299] [32mINFO[39m (6480): [36mGET /1002 304 4ms[39m
+    [35mcontext[39m: "http"
+    [35mcorrelationId[39m: "b4b3dfc7-2e2b-467a-a173-a9ded2923e8f"
+    [35mmethod[39m: "GET"
+    [35mpath[39m: "/1002"
+    [35mstatus[39m: 304
+    [35mduration[39m: 4
+    [35mtenant[39m: "demo"
+    [35muserId[39m: null
+    [35mip[39m: "::ffff:127.0.0.1"
+    [35muserAgent[39m: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0."
+[11:24:25.300] [32mINFO[39m (6480): [36mGET /1002/family 304 5ms[39m
+    [35mcontext[39m: "http"
+    [35mcorrelationId[39m: "6efd16cd-da81-4980-a7c7-acd6c15ce094"
+    [35mmethod[39m: "GET"
+    [35mpath[39m: "/1002/family"
+    [35mstatus[39m: 304
+    [35mduration[39m: 5
+    [35mtenant[39m: "demo"
+    [35muserId[39m: null
+    [35mip[39m: "::ffff:127.0.0.1"
+    [35muserAgent[39m: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0."
+[11:24:31.504] [32mINFO[39m (6480): [36mGET /1003 200 5ms[39m
+    [35mcontext[39m: "http"
+    [35mcorrelationId[39m: "fb077cb6-fd98-4535-8bf2-ebb657e13a28"
+    [35mmethod[39m: "GET"
+    [35mpath[39m: "/1003"
+    [35mstatus[39m: 200
+    [35mduration[39m: 5
+    [35mtenant[39m: "demo"
+    [35muserId[39m: null
+    [35mip[39m: "::ffff:127.0.0.1"
+    [35muserAgent[39m: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0."
+[11:24:31.505] [32mINFO[39m (6480): [36mGET /1003/family 200 6ms[39m
+    [35mcontext[39m: "http"
+    [35mcorrelationId[39m: "0ee3bc46-37cd-4750-ad1d-1eb9a722b8d9"
+    [35mmethod[39m: "GET"
+    [35mpath[39m: "/1003/family"
+    [35mstatus[39m: 200
+    [35mduration[39m: 6
+    [35mtenant[39m: "demo"
+    [35muserId[39m: null
+    [35mip[39m: "::ffff:127.0.0.1"
+    [35muserAgent[39m: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0."
+[11:24:42.909] [32mINFO[39m (6480): [36mGET /lookup 304 4ms[39m
+    [35mcontext[39m: "http"
+    [35mcorrelationId[39m: "c8d89eaa-a179-4eda-a1bd-d5e836de4ed7"
+    [35mmethod[39m: "GET"
+    [35mpath[39m: "/lookup"
+    [35mstatus[39m: 304
+    [35mduration[39m: 4
+    [35mtenant[39m: "demo"
+    [35muserId[39m: null
+    [35mip[39m: "::ffff:127.0.0.1"
+    [35muserAgent[39m: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0."
+[11:24:43.316] [32mINFO[39m (6480): [36mGET /lookup 304 2ms[39m
+    [35mcontext[39m: "http"
+    [35mcorrelationId[39m: "af664567-7f92-4da4-aa0d-148c433bb87e"
+    [35mmethod[39m: "GET"
+    [35mpath[39m: "/lookup"
+    [35mstatus[39m: 304
+    [35mduration[39m: 2
+    [35mtenant[39m: "demo"
+    [35muserId[39m: null
+    [35mip[39m: "::ffff:127.0.0.1"
+    [35muserAgent[39m: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0."
+[11:24:47.057] [32mINFO[39m (6480): [36mGET /lookup 304 2ms[39m
+    [35mcontext[39m: "http"
+    [35mcorrelationId[39m: "402a5848-5f97-47d5-b826-67d4e4f66f25"
+    [35mmethod[39m: "GET"
+    [35mpath[39m: "/lookup"
+    [35mstatus[39m: 304
+    [35mduration[39m: 2
+    [35mtenant[39m: "demo"
+    [35muserId[39m: null
+    [35mip[39m: "::ffff:127.0.0.1"
+    [35muserAgent[39m: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0."
+[11:24:55.807] [32mINFO[39m (6480): [36mPOST /1003/family 201 8ms[39m
+    [35mcontext[39m: "http"
+    [35mcorrelationId[39m: "bfb9c72a-285c-449f-9e4e-d4d671d6461b"
+    [35mmethod[39m: "POST"
+    [35mpath[39m: "/1003/family"
+    [35mstatus[39m: 201
+    [35mduration[39m: 8
+    [35mtenant[39m: "demo"
+    [35muserId[39m: null
+    [35mip[39m: "::ffff:127.0.0.1"
+    [35muserAgent[39m: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0."
+[11:24:55.813] [32mINFO[39m (6480): [36mGET /1003/family 200 1ms[39m
+    [35mcontext[39m: "http"
+    [35mcorrelationId[39m: "11b24aa0-2247-40aa-859d-d7284b944b47"
+    [35mmethod[39m: "GET"
+    [35mpath[39m: "/1003/family"
+    [35mstatus[39m: 200
+    [35mduration[39m: 1
+    [35mtenant[39m: "demo"
+    [35muserId[39m: null
+    [35mip[39m: "::ffff:127.0.0.1"
+    [35muserAgent[39m: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0."
+[11:25:00.187] [32mINFO[39m (6480): [36mGET /1003/family 304 4ms[39m
+    [35mcontext[39m: "http"
+    [35mcorrelationId[39m: "a1865623-d855-427c-918d-9626dc67b400"
+    [35mmethod[39m: "GET"
+    [35mpath[39m: "/1003/family"
+    [35mstatus[39m: 304
+    [35mduration[39m: 4
+    [35mtenant[39m: "demo"
+    [35muserId[39m: null
+    [35mip[39m: "::ffff:127.0.0.1"
+    [35muserAgent[39m: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0."
+[11:25:00.188] [32mINFO[39m (6480): [36mGET /1003 304 4ms[39m
+    [35mcontext[39m: "http"
+    [35mcorrelationId[39m: "fd9c59c7-e3a6-4001-968a-9dc5c889b532"
+    [35mmethod[39m: "GET"
+    [35mpath[39m: "/1003"
+    [35mstatus[39m: 304
+    [35mduration[39m: 4
+    [35mtenant[39m: "demo"
+    [35muserId[39m: null
+    [35mip[39m: "::ffff:127.0.0.1"
+    [35muserAgent[39m: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0."
+[11:32:58.278] [32mINFO[39m (6480): [36mReceived SIGTERM. Shutting down gracefully...[39m
+    [35mcontext[39m: "main"
+[11:32:58.279] [32mINFO[39m (6480): [36mHTTP server closed[39m
+    [35mcontext[39m: "main"

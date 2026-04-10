@@ -88,8 +88,6 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   app.use('/api/knowledge', knowledgeRouter);
   app.use('/api/records', recordsRouter);
 
-  // TODO: Register domain routers here as migration progresses
-
   // ─── Error Handling (must be last) ───
   app.use(errorHandler);
 
