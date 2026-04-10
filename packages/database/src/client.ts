@@ -25,8 +25,9 @@ export function createDbClient(databaseUrl: string, tenantSchema?: string): DbCl
 
   // Set search_path to tenant schema if provided
   if (tenantSchema) {
+    // Avoid spaces in search_path string for better driver compatibility
     connectionOptions.connection = {
-      search_path: tenantSchema,
+      search_path: `${tenantSchema},${tenantSchema}_legacy,public`,
     };
   }
 

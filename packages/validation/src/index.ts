@@ -4,3 +4,7 @@ export * from './appointment.schema.js';
 export * from './consultation.schema.js';
 export * from './billing.schema.js';
 export * from './common.schema.js';
+export * from './staff.schema.js';
+export * from './logistics.schema.js';
+export * from './crm.schema.js';
+export * from './knowledge.schema.js';

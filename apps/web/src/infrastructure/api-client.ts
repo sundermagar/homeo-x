@@ -19,7 +19,7 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
-// Handle 401 → redirect to login
+// Handle Response errors
 apiClient.interceptors.response.use(
   (res) => {
     // Automatically unwrap high-level "data" key if it exists
@@ -34,10 +34,7 @@ apiClient.interceptors.response.use(
     return res;
   },
   (error) => {
-    if (error.response?.status === 401) {
-      useAuthStore.getState().logout();
-      window.location.href = '/login';
-    }
+    // We've removed the /login redirect to bypass auth pages as requested.
     return Promise.reject(error);
   },
 );

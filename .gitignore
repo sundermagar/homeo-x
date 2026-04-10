@@ -8,3 +8,5 @@ dist/
 .DS_Store
 coverage/
 *.tsbuildinfo
+MMC-javascript 2/
+api_debug.log

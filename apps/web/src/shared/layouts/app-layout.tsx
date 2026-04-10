@@ -1,44 +1,22 @@
 import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import { Menu, Infinity } from 'lucide-react';
-import { Sidebar } from '../components/sidebar';
-import { useMobile } from '../hooks/use-mobile';
+import { Sidebar } from './components/sidebar';
+import { GlobalHeader } from './components/header';
 
 export function AppLayout() {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
-  const isMobile = useMobile();
 
   return (
-    <div className="app-container">
-      {/* Mobile Top Bar */}
-      {isMobile && (
-        <header className="mobile-header">
-          <div className="mh-left">
-            <button 
-              className="mh-menu-btn" 
-              onClick={() => setSidebarOpen(true)}
-              aria-label="Open menu"
-            >
-              <Menu size={24} strokeWidth={1.6} />
-            </button>
-            <div className="sidebar-logo-group">
-              <div className="sidebar-logo" style={{ width: 28, height: 28 }}>
-                <Infinity size={18} strokeWidth={2.5} />
-              </div>
-              <span className="sidebar-brand" style={{ fontSize: '1rem' }}>HomeoX</span>
-            </div>
-          </div>
-        </header>
-      )}
-
-      {/* Adaptive Sidebar */}
-      <Sidebar 
-        isOpen={isSidebarOpen} 
-        onClose={() => setSidebarOpen(false)} 
-      />
-
+    <div className="app-layout">
+      {/* Sidebar gets the open state and the close handler */}
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setSidebarOpen(false)} />
+      
+      {/* Main content area */}
       <main className="app-main">
-        <Outlet />
+        <GlobalHeader onMenuClick={() => setSidebarOpen(!isSidebarOpen)} />
+        <div className="content-area">
+          <Outlet />
+        </div>
       </main>
     </div>
   );

@@ -7,6 +7,10 @@ export * from './domains/prescription.js';
 export * from './domains/billing.js';
 export * from './domains/user.js';
 export * from './domains/package.js';
+export * from './domains/staff.js';
+export * from './domains/logistics.js';
+export * from './domains/crm.js';
+export * from './domains/knowledge.js';
 
 // ─── API Contracts ───
 export * from './api/requests.js';

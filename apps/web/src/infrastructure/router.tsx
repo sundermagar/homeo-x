@@ -1,13 +1,18 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
-import { ProtectedRoute } from '@/shared/components/protected-route';
 import { AppLayout } from '@/shared/layouts/app-layout';
+import { ProtectedRoute } from '@/shared/components/protected-route';
 
 // ─── Lazy-loaded feature pages ───
 const LoginPage           = lazy(() => import('@/features/auth/pages/login-page'));
 const DashboardPage       = lazy(() => import('@/features/dashboard/pages/dashboard-page'));
 const PatientListPage     = lazy(() => import('@/features/patients/pages/patient-list-page'));
+const PatientFormPage     = lazy(() => import('@/features/patients/pages/patient-form-page'));
+const PatientDetailPage   = lazy(() => import('@/features/patients/pages/patient-detail-page'));
+const FamilyGroupListPage = lazy(() => import('@/features/patients/pages/family-group-list-page'));
 const ConsultationPage    = lazy(() => import('@/features/consultation/pages/consultation-page'));
+const StaffListPage       = lazy(() => import('@/features/staff/pages/staff-list-page'));
+const StaffFormPage       = lazy(() => import('@/features/staff/pages/staff-form-page'));
 
 // ─── Appointments ───
 const AppointmentListPage = lazy(() => import('@/features/appointments/pages/appointment-list-page'));
@@ -22,6 +27,9 @@ const MedicalCaseDetailPage = lazy(() => import('@/features/medical-case/pages/c
 const PackagePlansPage    = lazy(() => import('@/features/packages/pages/package-plans-page'));
 const PackageTrackingPage = lazy(() => import('@/features/packages/pages/package-tracking-page'));
 
+// ─── Operations & CRM ───
+const OperationsDashboard = lazy(() => import('@/features/operations/pages/operations-dashboard'));
+
 const Loading = () => <div style={{ padding: 40, textAlign: 'center', opacity: 0.5 }}>Loading...</div>;
 
 export function AppRouter() {
@@ -35,25 +43,37 @@ export function AppRouter() {
         <Route element={<ProtectedRoute />}>
           <Route element={<AppLayout />}>
             <Route path="/" element={<DashboardPage />} />
+            
+            {/* Patients Module */}
             <Route path="/patients" element={<PatientListPage />} />
+            <Route path="/patients/add" element={<PatientFormPage />} />
+            <Route path="/patients/:regid" element={<PatientDetailPage />} />
+            <Route path="/patients/:regid/edit" element={<PatientFormPage />} />
+            <Route path="/family-groups" element={<FamilyGroupListPage />} />
+            
+            {/* Staff Module */}
+            <Route path="/staff" element={<StaffListPage />} />
+            <Route path="/staff/add" element={<StaffFormPage />} />
+            <Route path="/staff/:id/edit" element={<StaffFormPage />} />
 
-            {/* ─── Appointments ─── */}
+            {/* Appointments */}
             <Route path="/appointments"          element={<AppointmentListPage />} />
             <Route path="/appointments/calendar" element={<CalendarPage />} />
             <Route path="/appointments/queue"    element={<TokenQueuePage />} />
 
-            {/* ─── Medical Cases ─── */}
+            {/* Medical Cases */}
             <Route path="/medical-cases"        element={<MedicalCaseListPage />} />
             <Route path="/medical-cases/:regid" element={<MedicalCaseDetailPage />} />
 
-            {/* ─── Packages & Memberships ─── */}
+            {/* Packages & Memberships */}
             <Route path="/packages"           element={<PackagePlansPage />} />
             <Route path="/packages/tracking"  element={<PackageTrackingPage />} />
 
-            {/* Add feature routes as they're migrated */}
+            {/* Operations Hub */}
+            <Route path="/operations"         element={<OperationsDashboard />} />
           </Route>
 
-          {/* Full-screen (no layout shell) */}
+          {/* Full-screen (protected) */}
           <Route path="/consultation/:visitId" element={<ConsultationPage />} />
         </Route>
 

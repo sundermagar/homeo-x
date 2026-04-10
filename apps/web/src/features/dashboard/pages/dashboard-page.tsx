@@ -6,17 +6,23 @@ import {
   TrendingUp,
   Activity,
   Plus,
-  ArrowUpRight
+  ArrowUpRight,
+  UserPlus,
+  Calendar,
+  PlusCircle,
+  Search
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTodayAppointments, useWaitlist } from '../../appointments/hooks/use-appointments';
 import { useQuery } from '@tanstack/react-query';
 import { useApi } from '@/shared/hooks/use-api';
+import { useAuthStore } from '@/shared/stores/auth-store';
 import './dashboard.css';
 
 const TODAY = new Date().toISOString().split('T')[0]!;
 
 export default function DashboardPage() {
+  const user = useAuthStore((s) => s.user);
   const api = useApi();
   const { data: todayAppts = [] } = useTodayAppointments();
   const { data: waitlist = [] } = useWaitlist(TODAY);
@@ -36,11 +42,18 @@ export default function DashboardPage() {
     { label: 'Growth Rate', value: '24%', change: '+2.1%', icon: TrendingUp, color: '#8B5CF6', bg: '#F5F3FF' },
   ];
 
+  const quickActions = [
+    { label: 'Register Patient', icon: <UserPlus size={20} />, path: '/patients/add', color: '#6366f1' },
+    { label: 'New Appointment', icon: <Calendar size={20} />, path: '/appointments', color: '#8b5cf6' },
+    { label: 'Create Record', icon: <PlusCircle size={20} />, path: '/patients', color: '#10b981' },
+    { label: 'Global Search', icon: <Search size={20} />, path: '/patients', color: '#64748b' },
+  ];
+
   return (
-    <div className="dashboard-container">
+    <div className="dashboard-container fade-in">
       <header className="dashboard-header">
         <div>
-          <h1 className="dashboard-title">Clinical Overview</h1>
+          <h1 className="dashboard-title">Welcome back, {user?.name?.split(' ')[0] || 'Doctor'}</h1>
           <p className="dashboard-subtitle">Monitor your practice's real-time performance and patient flow.</p>
         </div>
         <div className="dashboard-actions">
@@ -70,56 +83,37 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      <div className="dashboard-grid">
-        {/* Main Content: Live Queue */}
-        <div className="dash-card">
-          <div className="dash-card-header">
-            <h3 className="dash-card-title">Live Waiting Room</h3>
-            <Link to="/appointments/queue" className="dash-link">View All</Link>
-          </div>
-          <div className="dash-card-body">
-            {waitlist.length === 0 ? (
-              <div className="dash-empty">
-                <Activity size={32} style={{ opacity: 0.1, marginBottom: 16 }} />
-                <p>No patients currently waiting</p>
-              </div>
-            ) : (
-              <div className="dash-queue-list">
-                {waitlist.slice(0, 5).map(w => (
-                  <div key={w.id} className="dash-queue-item">
-                    <div className="dash-token-badge">W{w.waitingNumber}</div>
-                    <div className="dash-queue-info">
-                      <div className="dash-pt-name">{w.patientName || 'Anonymous'}</div>
-                      <div className="dash-dr-name">{w.doctorName || 'General'}</div>
-                    </div>
-                    <div className={`dash-status-dot s-${w.status}`} title={w.status === 1 ? 'In Room' : 'Waiting'} />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Sidebar: Upcoming Appointments */}
-        <div className="dash-card">
-          <div className="dash-card-header">
-            <h3 className="dash-card-title">Upcoming Appointments</h3>
-            <Link to="/appointments/calendar" className="dash-link">Calendar</Link>
-          </div>
-          <div className="dash-card-body">
-            <div className="dash-appt-list">
-              {todayAppts.slice(0, 4).map(a => (
-                <div key={a.id} className="dash-appt-item">
-                  <div className="dash-appt-time">{a.bookingTime}</div>
-                  <div className="dash-appt-info">
-                    <div className="dash-pt-name">{a.patientName}</div>
-                    <div className="dash-pt-sub">{a.visitType}</div>
-                  </div>
-                </div>
-              ))}
+      {/* Quick Actions */}
+      <h3 style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-main)', marginTop: 32, marginBottom: 20 }}>Quick Operations</h3>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 20 }}>
+        {quickActions.map((a) => (
+          <Link key={a.label} to={a.path} className="card" style={{
+            padding: 24,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 16,
+            transition: 'transform 0.2s',
+            cursor: 'pointer'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
+          onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+          >
+            <div style={{
+              width: 40,
+              height: 40,
+              borderRadius: 10,
+              background: '#f8fafc',
+              border: `1px solid ${a.color}22`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: a.color
+            }}>
+              {a.icon}
             </div>
-          </div>
-        </div>
+            <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: 15 }}>{a.label}</div>
+          </Link>
+        ))}
       </div>
     </div>
   );
