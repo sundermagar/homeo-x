@@ -151,3 +151,21 @@ communicationRouter.post('/otp/verify', asyncHandler(async (req, res) => {
   if (result.success) sendSuccess(res, result);
   else throw new BadRequestError(result.message ?? 'Invalid OTP');
 }));
+
+// ─── Email (Nodemailer) ───────────────────────────────────────────────────────
+import { NodemailerServiceAdapter } from '../../communication/nodemailer.service.js';
+
+// POST /api/communications/email/send
+communicationRouter.post('/email/send', asyncHandler(async (req, res) => {
+  const { to, subject, text, html } = req.body;
+  if (!to || !subject) throw new BadRequestError('to and subject are required');
+  
+  const emailService = new NodemailerServiceAdapter();
+  const success = await emailService.sendEmail({ to, subject, text, html });
+  
+  if (success) {
+    sendSuccess(res, null, 'Email sent successfully via Nodemailer');
+  } else {
+    throw new BadRequestError('Failed to send email. Check SMTP logs configuration.');
+  }
+}));

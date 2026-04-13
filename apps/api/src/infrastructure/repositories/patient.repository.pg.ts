@@ -149,6 +149,7 @@ export class PatientRepositoryPg implements PatientRepository {
       gender: row.gender || '',
       age: row.age,
       phone: row.phone,
+      mobile1: row.mobile1,
       lastVisit: null,
       totalVisits: 0,
     };

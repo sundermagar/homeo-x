@@ -1,5 +1,6 @@
 import { pgTable, serial, varchar, integer, timestamp, text, jsonb, index } from 'drizzle-orm/pg-core';
 
+// ─── Application Audit Logs ───────────────────────────────────────────────────
 export const auditLogs = pgTable('audit_logs', {
   id: serial('id').primaryKey(),
   action: varchar('action', { length: 100 }).notNull(),
@@ -22,6 +23,7 @@ export const auditLogs = pgTable('audit_logs', {
   createdIdx: index('idx_audit_created').on(table.createdAt),
 }));
 
+// ─── AI Model Interaction Audit ───────────────────────────────────────────────
 export const aiAuditLogs = pgTable('ai_audit_logs', {
   id: serial('id').primaryKey(),
   tenantId: varchar('tenant_id', { length: 50 }).notNull(),
@@ -36,6 +38,7 @@ export const aiAuditLogs = pgTable('ai_audit_logs', {
   confidence: integer('confidence'),
   inputHash: varchar('input_hash', { length: 100 }),
   outputJson: jsonb('output_json'),
+  errorMessage: text('error_message'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => ({
   tenantIdx: index('idx_ai_audit_tenant').on(table.tenantId),

@@ -61,9 +61,10 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
       .$dynamic();
 
     if (search) {
-      // Basic search logic for name/phone
       const searchTerms = `%${search}%`;
-      query = query.where(sql`(${schema.patients.firstName} ILIKE ${searchTerms} OR ${schema.patients.surname} ILIKE ${searchTerms} OR ${schema.patients.phone} ILIKE ${searchTerms})`);
+      query = query.where(
+        sql`(${schema.patients.firstName} ILIKE ${searchTerms} OR ${schema.patients.surname} ILIKE ${searchTerms} OR ${schema.patients.phone} ILIKE ${searchTerms})`
+      );
     }
 
     const rows = await query

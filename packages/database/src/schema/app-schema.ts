@@ -10,3 +10,4 @@ export * from './medical-cases';
 export * from './billing';
 export * from './consultation';
 export * from './audit';
+export * from './platform';

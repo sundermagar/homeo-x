@@ -129,11 +129,30 @@ router.post('/records/investigations', asyncHandler(async (req, res) => {
   sendSuccess(res, null, 'Investigation recorded');
 }));
 
-router.post('/records/images', asyncHandler(async (req, res) => {
+import { upload } from '../middleware/upload';
+
+// ─── Continued route wrappers ───
+router.post('/records/images', upload.array('files', 5), asyncHandler(async (req, res) => {
   const useCase = new ManageClinicalRecordsUseCase(getRepo(req));
-  const result = await useCase.saveImage(req.body);
+  
+  // Basic implementation: grab the first file's path
+  const fileArray = req.files as Express.Multer.File[];
+  let picturePath = req.body.picture;
+  
+  // If Multer processed files, map the local path to the DTO
+  if (fileArray && fileArray.length > 0 && fileArray[0]) {
+    // Relative path served by the static assets handler
+    picturePath = `/uploads/${fileArray[0].filename}`;
+  }
+
+  const result = await useCase.saveImage({
+    regid: Number(req.body.regid),
+    description: req.body.description,
+    picture: picturePath,
+  });
+
   if (!result.success) throw new Error(result.error);
-  sendSuccess(res, result.data, 'Image uploaded');
+  sendSuccess(res, result.data, 'Image uploaded successfully');
 }));
 
 // ─── Consultation Workflow ───

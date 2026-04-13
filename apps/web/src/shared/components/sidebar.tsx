@@ -8,6 +8,10 @@ import {
   Ticket,
   Stethoscope,
   CreditCard,
+  Receipt,
+  Banknote,
+  Building2,
+  UserCog,
   Settings,
   LogOut,
   Infinity,
@@ -26,6 +30,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '../stores/auth-store';
 import '../styles/sidebar.css';
+
 
 // ─── Navigation Structure ────────────────────────────────────────────────────
 
@@ -121,10 +126,28 @@ const NAV_STRUCTURE: NavItem[] = [
     },
   },
   {
-    type: 'link',
-    path: '/billing',
-    label: 'Billing',
-    icon: CreditCard,
+    type: 'group',
+    group: {
+      id: 'finance',
+      label: 'Finance',
+      icon: Receipt,
+      children: [
+        { path: '/billing',   label: 'Billing & Finance', icon: Receipt },
+        { path: '/payments',  label: 'Payment Ledger',    icon: Banknote },
+      ],
+    },
+  },
+  {
+    type: 'group',
+    group: {
+      id: 'platform',
+      label: 'Platform',
+      icon: Building2,
+      children: [
+        { path: '/platform/clinics',   label: 'Clinics',   icon: Building2 },
+        { path: '/platform/accounts',  label: 'Accounts',  icon: UserCog },
+      ],
+    },
   },
   {
     type: 'link',
@@ -193,7 +216,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
         {/* ── Navigation ── */}
         <nav className="sidebar-nav">
-          {NAV_STRUCTURE.map((item, idx) => {
+          {NAV_STRUCTURE.map((item) => {
             if (item.type === 'link') {
               const Icon = item.icon;
               return (

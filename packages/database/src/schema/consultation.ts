@@ -53,3 +53,23 @@ export const labOrderItems = pgTable('lab_order_items', {
   aiSuggested: boolean('ai_suggested').default(false),
   resultAt: timestamp('result_at'),
 });
+
+// Legacy alias — consultations maps to soap_notes table
+export const consultations = pgTable('soap_notes_view', {
+  id: serial('id').primaryKey(),
+  visitId: integer('visit_id').notNull(),
+  subjective: text('subjective'),
+  objective: text('objective'),
+  assessment: text('assessment'),
+  plan: text('plan'),
+  advice: text('advice'),
+  followUp: text('follow_up'),
+  icdCodes: jsonb('icd_codes'),
+  aiGenerated: boolean('ai_generated'),
+  aiConfidence: real('ai_confidence'),
+  doctorApproved: boolean('doctor_approved'),
+  approvedAt: timestamp('approved_at'),
+  specialtyData: jsonb('specialty_data'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});

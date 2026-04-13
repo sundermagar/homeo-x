@@ -45,13 +45,14 @@ export const soapNotes = pgTable('soap_notes', {
   aiConfidence: real('ai_confidence'),
   doctorApproved: boolean('doctor_approved').default(false),
   approvedAt: timestamp('approved_at'),
+  specialtyData: jsonb('specialty_data'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
 
 export const homeoDetails = pgTable('homeo_details', {
   id: serial('id').primaryKey(),
-  regid: integer('regid').notNull().unique(), // One-to-one with patient
+  regid: integer('regid').notNull().unique(),
   thermal: varchar('thermal', { length: 50 }),
   constitutional: varchar('constitutional', { length: 100 }),
   miasm: varchar('miasm', { length: 50 }),
@@ -64,7 +65,7 @@ export const caseNotes = pgTable('case_notes', {
   id: serial('id').primaryKey(),
   regid: integer('regid').notNull(),
   notes: text('notes'),
-  notesType: varchar('notes_type', { length: 50 }).default('General'), // General, Mental, Physical, etc.
+  notesType: varchar('notes_type', { length: 50 }).default('General'),
   dateval: varchar('dateval', { length: 20 }),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
@@ -86,7 +87,7 @@ export const caseExamination = pgTable('case_examination', {
 export const caseImages = pgTable('case_images', {
   id: serial('id').primaryKey(),
   regid: integer('regid').notNull(),
-  picture: text('picture'), // Base64 or Path
+  picture: text('picture'),
   description: text('description'),
   createdAt: timestamp('created_at').defaultNow(),
   deletedAt: timestamp('deleted_at'),
@@ -96,8 +97,8 @@ export const investigations = pgTable('investigations', {
   id: serial('id').primaryKey(),
   regid: integer('regid').notNull(),
   visitId: integer('visit_id'),
-  type: varchar('type', { length: 50 }).notNull(), // CBC, Urine, Stool, etc.
-  data: jsonb('data').notNull(), // Unified JSON storage for any lab type
+  type: varchar('type', { length: 50 }).notNull(),
+  data: jsonb('data').notNull(),
   investDate: varchar('invest_date', { length: 20 }),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
@@ -109,7 +110,7 @@ export const prescriptions = pgTable('case_potencies', {
   regid: integer('regid').notNull(),
   visitId: integer('visit_id'),
   dateval: varchar('dateval', { length: 20 }),
-  medicineId: integer('medicine_id'), // Links to stocks.id
+  medicineId: integer('medicine_id'),
   potencyId: integer('potency_id'),
   frequencyId: integer('frequency_id'),
   days: integer('days'),

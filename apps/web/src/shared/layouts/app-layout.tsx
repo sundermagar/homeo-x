@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { Menu, Infinity } from 'lucide-react';
 import { Sidebar } from '../components/sidebar';
 import { useMobile } from '../hooks/use-mobile';
@@ -14,8 +14,8 @@ export function AppLayout() {
       {isMobile && (
         <header className="mobile-header">
           <div className="mh-left">
-            <button 
-              className="mh-menu-btn" 
+            <button
+              className="mh-menu-btn"
               onClick={() => setSidebarOpen(true)}
               aria-label="Open menu"
             >
@@ -32,9 +32,9 @@ export function AppLayout() {
       )}
 
       {/* Adaptive Sidebar */}
-      <Sidebar 
-        isOpen={isSidebarOpen} 
-        onClose={() => setSidebarOpen(false)} 
+      <Sidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setSidebarOpen(false)}
       />
 
       <main className="app-main">

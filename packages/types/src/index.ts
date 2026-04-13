@@ -9,6 +9,7 @@ export * from './domains/user.js';
 export * from './domains/package.js';
 export * from './domains/communication.js';
 export * from './domains/analytics.js';
+export * from './domains/platform.js';
 
 // ─── API Contracts ───
 export * from './api/requests.js';

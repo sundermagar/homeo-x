@@ -35,15 +35,14 @@ export class FinalizeConsultationUseCase {
     }
 
     // 2. Generate Automatic Bill
-    const billNo = await this.billingRepo.getNextBillNumber();
-    await this.billingRepo.createBill({
+    const billNo = await this.billingRepo.nextBillNo();
+    await this.billingRepo.create({
       regid: dto.regid,
       billNo,
-      billDate: new Date().toISOString().split('T')[0],
-      totalAmount: dto.consultationFee,
-      receivedAmount: 0,
-      paymentMode: dto.paymentMode || 'Cash',
-      status: 'Pending',
+      billDate: new Date().toISOString().split('T')[0] as string,
+      charges: dto.consultationFee,
+      received: 0,
+      paymentMode: (dto.paymentMode || 'Cash') as any,
     });
 
     // 3. Update Appointment Status to Done
