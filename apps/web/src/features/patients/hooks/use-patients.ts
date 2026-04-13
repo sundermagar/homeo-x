@@ -12,8 +12,11 @@ export function usePatients(params: { page?: number; limit?: number; search?: st
   return useQuery({
     queryKey: [PATIENTS_KEY, params],
     queryFn: async () => {
-      const { data } = await apiClient.get<{ success: boolean; data: PatientSummary[]; total: number }>('/patients', { params });
-      return { data: data.data, total: data.total };
+      const res = await apiClient.get('/patients', { params });
+      // Interceptor unwraps success responses: res.data is already the data array
+      // For list endpoints, the response shape varies based on interceptor match
+      const body = (res as any)._original ?? res.data;
+      return { data: body.data ?? res.data ?? [], total: body.total ?? res.data?.length ?? 0 };
     },
   });
 }
@@ -22,8 +25,9 @@ export function usePatient(regid: number) {
   return useQuery({
     queryKey: [PATIENTS_KEY, regid],
     queryFn: async () => {
-      const { data } = await apiClient.get<{ success: boolean; data: Patient }>(`/patients/${regid}`);
-      return data.data;
+      const res = await apiClient.get(`/patients/${regid}`);
+      // Interceptor unwraps: res.data is the patient object directly
+      return res.data ?? null;
     },
     enabled: !!regid,
   });
@@ -33,8 +37,8 @@ export function usePatientLookup(query: string) {
   return useQuery({
     queryKey: [PATIENTS_KEY, 'lookup', query],
     queryFn: async () => {
-      const { data } = await apiClient.get<{ success: boolean; data: PatientSummary[] }>('/patients/lookup', { params: { query } });
-      return data.data;
+      const res = await apiClient.get('/patients/lookup', { params: { query } });
+      return res.data ?? [];
     },
     enabled: query.length >= 2,
   });
@@ -94,8 +98,8 @@ export function useFamilyMembers(regid: number) {
   return useQuery({
     queryKey: [FAMILY_KEY, regid],
     queryFn: async () => {
-      const { data } = await apiClient.get<{ success: boolean; data: FamilyMember[] }>(`/patients/${regid}/family`);
-      return data.data;
+      const res = await apiClient.get(`/patients/${regid}/family`);
+      return res.data ?? [];
     },
     enabled: !!regid,
   });
@@ -105,8 +109,9 @@ export function useFamilyGroups(params: { page?: number; limit?: number; search?
   return useQuery({
     queryKey: ['family-groups', params],
     queryFn: async () => {
-      const { data } = await apiClient.get<{ success: boolean; data: any[]; total: number }>('/patients/family-groups', { params });
-      return { data: data.data, total: data.total };
+      const res = await apiClient.get('/patients/family-groups', { params });
+      const body = (res as any)._original ?? res.data;
+      return { data: body.data ?? res.data ?? [], total: body.total ?? 0 };
     },
   });
 }
