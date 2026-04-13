@@ -29,6 +29,7 @@ import { createBillingRouter } from './routes/billing.router';
 import { createPaymentRouter } from './routes/payment.router';
 import { createOrganizationRouter } from './routes/organization.router';
 import { createAccountRouter } from './routes/account.router';
+import { createSettingsRouter } from './routes/settings.router';
 
 const logger = createLogger('http');
 
@@ -92,6 +93,9 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   // Our modules — Platform (JWT required)
   app.use('/api/organizations', authMiddleware, createOrganizationRouter());
   app.use('/api/accounts',      authMiddleware, createAccountRouter());
+
+  // Our modules — Settings & Configuration
+  app.use('/api/settings', createSettingsRouter());
 
   // ─── Error Handling (must be last) ───
   app.use(errorHandler);

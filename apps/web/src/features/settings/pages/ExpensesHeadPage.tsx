@@ -1,0 +1,176 @@
+import React, { useState } from 'react';
+import { Wallet, Plus, X, RefreshCw, ArrowLeft, Trash2, Edit2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { useExpenseHeads, useCreateExpenseHead, useUpdateExpenseHead, useDeleteExpenseHead } from '../hooks/use-settings';
+import '../../platform/styles/platform.css';
+import '../styles/settings.css';
+
+const EMPTY_FORM = { name: '', description: '', isActive: true };
+
+export default function ExpensesHeadPage() {
+  const { data: heads = [], isLoading } = useExpenseHeads();
+  const createHead = useCreateExpenseHead();
+  const updateHead = useUpdateExpenseHead();
+  const deleteHead = useDeleteExpenseHead();
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [form, setForm] = useState(EMPTY_FORM);
+
+  const handleOpenCreate = () => {
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEdit = (head: any) => {
+    setEditingId(head.id);
+    setForm({ name: head.name, description: head.description || '', isActive: head.isActive ?? true });
+    setIsModalOpen(true);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingId) {
+      await updateHead.mutateAsync({ id: editingId, ...form });
+    } else {
+      await createHead.mutateAsync(form);
+    }
+    setIsModalOpen(false);
+  };
+
+  const handleDelete = async (id: number, name: string) => {
+    if (!confirm(`Delete expense category "${name}"?`)) return;
+    await deleteHead.mutateAsync(id);
+  };
+
+  return (
+    <div className="plat-page fade-in">
+      <Link to="/settings" className="settings-back-link">
+        <ArrowLeft size={14} />
+        Back to Settings
+      </Link>
+
+      <div className="plat-header">
+        <div>
+          <h1 className="plat-header-title">
+            <Wallet size={20} strokeWidth={1.6} style={{ color: 'var(--primary)' }} />
+            Expenses Head
+          </h1>
+          <p className="plat-header-sub">Manage categories for clinic accounting and expense tracking.</p>
+        </div>
+        <div className="plat-header-actions">
+          <button className="plat-btn plat-btn-primary" onClick={handleOpenCreate}>
+            <Plus size={14} strokeWidth={1.6} />
+            Add Expense Head
+          </button>
+        </div>
+      </div>
+
+      <div className="plat-card">
+        {isLoading ? (
+          <div className="plat-empty">
+            <RefreshCw size={22} style={{ animation: 'spin 1s linear infinite', opacity: 0.3 }} />
+          </div>
+        ) : heads.length === 0 ? (
+          <div className="plat-empty">
+            <Wallet size={28} className="plat-empty-icon" />
+            <p className="plat-empty-text">No expense categories defined.</p>
+          </div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table className="plat-table">
+              <thead>
+                <tr>
+                  <th style={{ width: '60px' }}>ID</th>
+                  <th>Category Name</th>
+                  <th>Description</th>
+                  <th style={{ width: '100px' }}>Status</th>
+                  <th style={{ width: '120px' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {heads.map((head: any) => (
+                  <tr key={head.id}>
+                    <td className="font-mono text-xs color-muted">{head.id}</td>
+                    <td className="font-semibold">{head.name}</td>
+                    <td>{head.description || '—'}</td>
+                    <td>
+                       <span className={`plat-badge ${head.isActive ? 'plat-badge-staff' : 'plat-badge-default'}`}>
+                         {head.isActive ? 'Active' : 'Inactive'}
+                       </span>
+                    </td>
+                    <td>
+                      <div className="flex gap-3">
+                        <button className="plat-btn plat-btn-sm plat-btn-icon" onClick={() => handleOpenEdit(head)}>
+                          <Edit2 size={13} />
+                        </button>
+                        <button className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" onClick={() => handleDelete(head.id, head.name)}>
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {isModalOpen && (
+        <div className="plat-modal-overlay fade-in" onClick={(e) => e.target === e.currentTarget && setIsModalOpen(false)}>
+          <div className="plat-modal" style={{ maxWidth: '450px' }}>
+            <div className="plat-modal-header">
+              <h2 className="plat-modal-title">{editingId ? 'Edit Category' : 'Add Expense Category'}</h2>
+              <button className="plat-btn plat-btn-icon" onClick={() => setIsModalOpen(false)}>
+                <X size={16} />
+              </button>
+            </div>
+            <form onSubmit={handleSubmit}>
+              <div className="plat-modal-body plat-form">
+              <div className="plat-form-group plat-form-full">
+                <label className="plat-form-label">Category Name <span className="plat-form-required">*</span></label>
+                <input 
+                  className="plat-form-input" 
+                  value={form.name} 
+                  onChange={e => setForm(f => ({...f, name: e.target.value}))}
+                  required 
+                  placeholder="e.g. Electricity, Maintenance, Rent"
+                />
+              </div>
+              <div className="plat-form-group plat-form-full">
+                <label className="plat-form-label">Description</label>
+                <textarea 
+                  className="plat-form-input" 
+                  style={{ minHeight: '80px' }}
+                  value={form.description} 
+                  onChange={e => setForm(f => ({...f, description: e.target.value}))}
+                  placeholder="Optional details about this category..."
+                />
+              </div>
+                <div className="plat-form-group plat-form-full plat-form-row">
+                  <input 
+                     type="checkbox" 
+                     className="plat-form-input"
+                     id="is_active"
+                     checked={form.isActive} 
+                     onChange={e => setForm(f => ({...f, isActive: e.target.checked}))}
+                  />
+                  <label htmlFor="is_active" className="plat-form-label cursor-pointer">Category is Active</label>
+               </div>
+
+              </div>
+              <div className="plat-modal-footer">
+                <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
+                <button type="submit" className="plat-btn plat-btn-primary" disabled={createHead.isPending || updateHead.isPending}>
+                  {editingId ? 'Save Changes' : 'Create Category'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

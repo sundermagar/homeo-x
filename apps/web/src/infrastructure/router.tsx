@@ -31,6 +31,26 @@ const PaymentsPage         = lazy(() => import('@/features/billing/pages/Payment
 const ClinicsPage          = lazy(() => import('@/features/platform/pages/ClinicsPage'));
 const AccountsPage         = lazy(() => import('@/features/platform/pages/AccountsPage'));
 
+// ─── Settings & Configuration ─────────────────────
+const DepartmentsPage      = lazy(() => import('@/features/settings/pages/DepartmentsPage'));
+const MedicinesPage        = lazy(() => import('@/features/settings/pages/MedicinesPage'));
+const DispensariesPage     = lazy(() => import('@/features/settings/pages/DispensariesPage'));
+const ReferralsPage        = lazy(() => import('@/features/settings/pages/ReferralSourcesPage'));
+const StickersPage         = lazy(() => import('@/features/settings/pages/StickersPage'));
+const CmsManagePage        = lazy(() => import('@/features/settings/pages/CmsManagePage'));
+const PdfSettingsPage      = lazy(() => import('@/features/settings/pages/PdfSettingsPage'));
+const DoctorsPage          = lazy(() => import('@/features/settings/pages/DoctorsPage'));
+const ExpensesHeadPage     = lazy(() => import('@/features/settings/pages/ExpensesHeadPage'));
+const MessageTemplatesPage = lazy(() => import('@/features/settings/pages/MessageTemplatesPage'));
+const StocksLogPage        = lazy(() => import('@/features/settings/pages/StocksLogPage'));
+const ExportDataPage       = lazy(() => import('@/features/settings/pages/ExportDataPage'));
+const PackagePlansSettingsPage = lazy(() => import('@/features/settings/pages/PackagePlansPage'));
+const PotenciesPage       = lazy(() => import('@/features/settings/pages/PotenciesPage'));
+const FrequenciesPage     = lazy(() => import('@/features/settings/pages/FrequenciesPage'));
+const CouriersPage         = lazy(() => import('@/features/settings/pages/CouriersPage'));
+const FaqsPage             = lazy(() => import('@/features/settings/pages/FaqsPage'));
+const StaffManagementPage  = lazy(() => import('@/features/settings/pages/StaffManagementPage'));
+
 const Loading = () => <div style={{ padding: 40, textAlign: 'center', opacity: 0.5 }}>Loading...</div>;
 
 export function AppRouter() {
@@ -67,6 +87,27 @@ export function AppRouter() {
             {/* ─── Platform & Multi-tenancy (our module) ─── */}
             <Route path="/platform/clinics"   element={<ClinicsPage />} />
             <Route path="/platform/accounts"  element={<AccountsPage />} />
+
+            {/* ─── Settings & Configuration (our module) ─── */}
+            <Route path="/settings"              element={<Navigate to="/settings/departments" replace />} />
+            <Route path="/settings/departments"  element={<DepartmentsPage />} />
+            <Route path="/settings/medicines"    element={<MedicinesPage />} />
+            <Route path="/settings/dispensaries" element={<DispensariesPage />} />
+            <Route path="/settings/referrals"    element={<ReferralsPage />} />
+            <Route path="/settings/stickers"     element={<StickersPage />} />
+            <Route path="/settings/cms"          element={<CmsManagePage />} />
+            <Route path="/settings/pdf"          element={<PdfSettingsPage />} />
+            <Route path="/settings/doctors"      element={<DoctorsPage />} />
+            <Route path="/settings/expenses"     element={<ExpensesHeadPage />} />
+            <Route path="/settings/messages"     element={<MessageTemplatesPage />} />
+            <Route path="/settings/stocks"       element={<StocksLogPage />} />
+            <Route path="/settings/export"       element={<ExportDataPage />} />
+            <Route path="/settings/packages"     element={<PackagePlansSettingsPage />} />
+            <Route path="/settings/potencies"     element={<PotenciesPage />} />
+            <Route path="/settings/frequencies"   element={<FrequenciesPage />} />
+            <Route path="/settings/couriers"     element={<CouriersPage />} />
+            <Route path="/settings/faqs"         element={<FaqsPage />} />
+            <Route path="/settings/staff"        element={<StaffManagementPage />} />
           </Route>
 
           {/* Full-screen (no layout shell) */}

@@ -11,12 +11,3 @@ export const stocks = pgTable('stocks', {
   deletedAt: timestamp('deleted_at'),
 });
 
-export const potencies = pgTable('potencies1', {
-  id: serial('id').primaryKey(),
-  name: varchar('name', { length: 50 }).notNull(),
-});
-
-export const frequencies = pgTable('case_frequency', {
-  id: serial('id').primaryKey(),
-  frequency: varchar('frequency', { length: 100 }).notNull(),
-});

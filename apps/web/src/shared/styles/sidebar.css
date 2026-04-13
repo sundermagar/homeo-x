@@ -156,14 +156,98 @@
 
 .sidebar-section { margin-bottom: 4px; }
 
-.sidebar-section-label {
-  padding: 10px 14px 4px;
-  font-size: 0.6rem;
-  font-weight: 800;
-  color: var(--text-placeholder);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+.sidebar-folder {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  border-radius: var(--radius-btn);
+  padding: 12px 14px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 4px;
+  transition: all var(--transition-fast);
 }
+
+.sidebar-folder:hover {
+  background: var(--bg-surface-2);
+  color: var(--text-main);
+}
+
+.sidebar-folder.active-folder {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.sidebar-folder-toggle {
+  display: flex;
+  align-items: center;
+  opacity: 0.6;
+}
+
+.sidebar-folder:hover .sidebar-folder-toggle {
+  opacity: 1;
+}
+
+.sidebar-folder-items {
+  overflow: hidden;
+  margin-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-folder-items.animate-expand {
+  animation: slideDownFade 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideDownFade {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.sidebar-child-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px 10px 32px; /* Indent */
+  border-radius: var(--radius-btn);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-bottom: 2px;
+  transition: all var(--transition-fast);
+}
+
+.sidebar-child-item:hover {
+  background: var(--bg-surface-2);
+  color: var(--text-main);
+}
+
+.sidebar-child-item.active {
+  background: var(--primary-tint);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.sidebar-bullet {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: var(--border-main);
+  transition: background-color var(--transition-fast);
+}
+
+.sidebar-child-item.active .sidebar-bullet {
+  background-color: var(--primary);
+  transform: scale(1.2);
+}
+
+.sidebar-child-icon {
+  width: 16px;
+  height: 16px;
+}
+
 
 .sidebar-item {
   display: flex;

@@ -20,6 +20,7 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:migrate:settings": "tsx src/migrate-settings.ts",
     "db:generate:legacy": "drizzle-kit generate --config=drizzle.legacy.config.ts",
     "db:migrate:legacy": "drizzle-kit migrate --config=drizzle.legacy.config.ts",
     "db:push": "drizzle-kit push",
