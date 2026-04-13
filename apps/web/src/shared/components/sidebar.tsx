@@ -58,10 +58,16 @@ const NAV_STRUCTURE: NavItem[] = [
     icon: LayoutDashboard,
   },
   {
-    type: 'link',
-    path: '/patients',
-    label: 'Patients',
-    icon: Users,
+    type: 'group',
+    group: {
+      id: 'patients-group',
+      label: 'Patients',
+      icon: Users,
+      children: [
+        { path: '/patients',       label: 'Patient List',   icon: Users },
+        { path: '/family-groups',  label: 'Family Groups', icon: Layers },
+      ],
+    },
   },
   {
     type: 'group',

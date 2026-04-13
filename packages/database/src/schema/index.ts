@@ -14,3 +14,13 @@ export * from './platform';
 export * from './legacy-public-manifest';
 export * from './tenant-demo-legacy-schema';
 export * from './legacy/index';
+
+// Aliases for legacy tables used in the merged Patient repository
+export { 
+  caseDatasLegacy as patientsLegacy,
+  familygroupsLegacy, 
+  doctorsLegacy, 
+  religionLegacy, 
+  occupationLegacy, 
+  refrencetypeLegacy 
+} from './legacy/index';
