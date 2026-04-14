@@ -29,7 +29,7 @@ export function BillingTable({ bills, isLoading }: BillingTableProps) {
 
   return (
     <div className="bill-card fade-in">
-      <div style={{ overflowX: 'auto' }}>
+      <div className="bill-table-container">
         <table className="bill-table">
           <thead>
             <tr>
@@ -46,28 +46,28 @@ export function BillingTable({ bills, isLoading }: BillingTableProps) {
           <tbody>
             {bills.map((bill) => (
               <tr key={bill.id}>
-                <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>#{bill.billNo}</td>
-                <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                <td data-label="Bill #" style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>#{bill.billNo}</td>
+                <td data-label="Date" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                   {bill.billDate ? format(new Date(bill.billDate), 'dd-MM-yyyy') : '—'}
                 </td>
-                <td style={{ fontWeight: 500 }}>{bill.patientName}</td>
-                <td>
+                <td data-label="Patient" style={{ fontWeight: 500 }}>{bill.patientName}</td>
+                <td data-label="Mode">
                   <span
                     className={`bill-badge ${bill.paymentMode === 'Online' ? 'bill-badge-primary' : 'bill-badge-default'}`}
                   >
                     {bill.paymentMode ?? '—'}
                   </span>
                 </td>
-                <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
+                <td data-label="Charges" style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
                   ₹{bill.charges.toLocaleString()}
                 </td>
-                <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--success)' }}>
+                <td data-label="Received" style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--success)' }}>
                   ₹{bill.received.toLocaleString()}
                 </td>
-                <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: bill.balance > 0 ? 'var(--danger)' : 'var(--text-muted)' }}>
+                <td data-label="Balance" style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: bill.balance > 0 ? 'var(--danger)' : 'var(--text-muted)' }}>
                   {bill.balance > 0 ? `₹${bill.balance.toLocaleString()}` : '—'}
                 </td>
-                <td style={{ textAlign: 'right' }}>
+                <td data-label="" style={{ textAlign: 'right' }}>
                   <button className="bill-btn bill-btn-sm" style={{ color: 'var(--primary)', border: 'none', background: 'none', fontWeight: 600 }}>
                     View
                   </button>

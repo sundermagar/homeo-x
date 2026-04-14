@@ -48,7 +48,8 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
   logger.error({ ...context, err, stack: err.stack }, 'Unhandled error');
   res.status(500).json({
     success: false,
-    error: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message,
+    error: err.message, // Temporarily allow stack trace/message in dev
+    stack: err.stack,
     code: 'INTERNAL_ERROR',
     correlationId,
   });

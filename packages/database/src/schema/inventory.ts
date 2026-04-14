@@ -10,4 +10,3 @@ export const stocks = pgTable('stocks', {
   updatedAt: timestamp('updated_at').defaultNow(),
   deletedAt: timestamp('deleted_at'),
 });
-

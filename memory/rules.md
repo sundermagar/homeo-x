@@ -42,6 +42,11 @@
   - when
   - tenant
 
+## Design & UI Rules
+- All pages must be fully responsive
+- Follow a mobile-first responsive design approach
+- Ensure interactive elements are touch-friendly
+
 ## Development Rules
 - Use pnpm workspace
 - Follow modular architecture

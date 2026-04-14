@@ -7,6 +7,7 @@ import {
   Calendar,
   Ticket,
   Stethoscope,
+  CreditCard,
   Receipt,
   Banknote,
   Building2,
@@ -38,121 +39,201 @@ import {
   ChevronDown,
   Sparkles,
   Clock,
+  Send,
+  BarChart2,
+  type LucideIcon,
+  MessageCircle,
+  PieChart,
 } from 'lucide-react';
 import { useAuthStore } from '../stores/auth-store';
 import '../styles/sidebar.css';
 
-type NavNode = {
-  label: string;
-  icon: any;
-  path?: string;
-  children?: { label: string; icon: any; path: string }[];
-};
+// ─── Navigation Structure ────────────────────────────────────────────────────
 
-const NAV_ITEMS: NavNode[] = [
-  { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
-  { label: 'Patients', icon: Users, path: '/patients' },
+interface NavChild {
+  path: string;
+  label: string;
+  icon: LucideIcon;
+}
+
+interface NavGroup {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  children: NavChild[];
+}
+
+type NavItem = { type: 'link'; path: string; label: string; icon: LucideIcon }
+             | { type: 'group'; group: NavGroup };
+
+const NAV_STRUCTURE: NavItem[] = [
   {
-    label: 'Appointments',
-    icon: CalendarClock,
-    children: [
-      { path: '/appointments',         label: 'Appointments',  icon: CalendarClock },
-      { path: '/appointments/calendar',label: 'Calendar',      icon: Calendar },
-      { path: '/appointments/queue',   label: 'Token Queue',   icon: Ticket },
-    ],
+    type: 'link',
+    path: '/',
+    label: 'Dashboard',
+    icon: LayoutDashboard,
   },
   {
-    label: 'Clinical',
-    icon: Stethoscope,
-    children: [
-      { path: '/medical-cases', label: 'Medical Cases', icon: Stethoscope },
-    ],
+    type: 'group',
+    group: {
+      id: 'patients-group',
+      label: 'Patients',
+      icon: Users,
+      children: [
+        { path: '/patients',       label: 'Patient List',   icon: Users },
+        { path: '/family-groups',  label: 'Family Groups', icon: Layers },
+      ],
+    },
   },
   {
-    label: 'Memberships',
-    icon: Package,
-    children: [
-      { path: '/packages',          label: 'Packages',     icon: Package },
-      { path: '/packages/tracking', label: 'Pkg Tracking', icon: CalendarCheck },
-    ]
+    type: 'group',
+    group: {
+      id: 'appointments',
+      label: 'Appointments',
+      icon: CalendarClock,
+      children: [
+        { path: '/appointments',          label: 'List View',    icon: CalendarClock },
+        { path: '/appointments/calendar', label: 'Calendar',     icon: Calendar },
+        { path: '/appointments/queue',    label: 'Token Queue',  icon: Ticket },
+      ],
+    },
   },
   {
-    label: 'Communications',
-    icon: MessageSquare,
-    children: [
-      { path: '/settings/messages', label: 'Msg Templates', icon: MessageSquare },
-    ]
+    type: 'group',
+    group: {
+      id: 'clinical',
+      label: 'Clinical',
+      icon: Stethoscope,
+      children: [
+        { path: '/medical-cases', label: 'Medical Cases', icon: Stethoscope },
+      ],
+    },
   },
   {
-    label: 'Analytics',
-    icon: FileJson,
-    children: [
-      { path: '/settings/export', label: 'Export Data',    icon: FileJson },
-      { path: '/settings/stocks', label: 'Inventory Logs', icon: Database },
-    ]
+    type: 'group',
+    group: {
+      id: 'memberships',
+      label: 'Memberships',
+      icon: Package,
+      children: [
+        { path: '/packages',          label: 'Package Plans', icon: Layers },
+        { path: '/packages/tracking', label: 'Tracking',      icon: CalendarCheck },
+      ],
+    },
   },
   {
-    label: 'Finance',
-    icon: Banknote,
-    children: [
-      { path: '/billing',           label: 'Billing & Finance', icon: Receipt },
-      { path: '/payments',          label: 'Payment Ledger',    icon: Banknote },
-      { path: '/settings/expenses', label: 'Expenses Head',     icon: Wallet },
-    ]
+    type: 'group',
+    group: {
+      id: 'communications',
+      label: 'Communications',
+      icon: MessageSquare,
+      children: [
+        { path: '/communications/sms',       label: 'Send SMS',      icon: Send },
+        { path: '/communications/templates', label: 'Templates',     icon: MessageCircle },
+        { path: '/communications/reports',   label: 'SMS Reports',   icon: BarChart2 },
+        { path: '/communications/whatsapp',  label: 'WhatsApp',     icon: MessageSquare },
+      ],
+    },
   },
   {
-    label: 'Platform',
-    icon: Building2,
-    children: [
-      { path: '/platform/clinics',  label: 'Clinics',  icon: Building2 },
-      { path: '/platform/accounts', label: 'Accounts', icon: UserCog },
-    ]
+    type: 'group',
+    group: {
+      id: 'analytics',
+      label: 'Analytics',
+      icon: PieChart,
+      children: [
+        { path: '/analytics',         label: 'Dashboard',   icon: BarChart2 },
+        { path: '/analytics/reports', label: 'Reports',     icon: PieChart },
+        { path: '/settings/export',   label: 'Export Data',  icon: FileJson },
+        { path: '/settings/stocks',   label: 'Inventory Logs', icon: Database },
+      ],
+    },
   },
   {
-    label: 'Settings',
-    icon: Settings,
-    children: [
-      { path: '/settings/departments', label: 'Departments',        icon: Layers },
-      { path: '/settings/medicines',   label: 'Medicine Catalog',   icon: Pill },
-      { path: '/settings/potencies',   label: 'Potencies',          icon: Sparkles },
-      { path: '/settings/frequencies', label: 'Dosage Frequencies', icon: Clock },
-      { path: '/settings/dispensaries',label: 'Dispensaries',       icon: Hospital },
-      { path: '/settings/packages',    label: 'Package Plans',      icon: Box },
-      { path: '/settings/couriers',    label: 'Courier Services',   icon: Truck },
-      { path: '/settings/referrals',   label: 'Referral Sources',   icon: UserPlus },
-      { path: '/settings/stickers',    label: 'Medicine Stickers',  icon: StickyNote },
-      { path: '/settings/doctors',     label: 'Doctors/Clinicians', icon: UserCircle },
-      { path: '/settings/staff',       label: 'Staff Management',   icon: UserCheck },
-      { path: '/settings/cms',         label: 'Content (CMS)',      icon: Globe },
-      { path: '/settings/pdf',         label: 'PDF & Reports',      icon: FileText },
-      { path: '/settings/faqs',        label: 'Help & FAQs',        icon: HelpCircle },
-    ]
-  }
+    type: 'group',
+    group: {
+      id: 'finance',
+      label: 'Finance',
+      icon: Receipt,
+      children: [
+        { path: '/billing',           label: 'Billing & Finance', icon: Receipt },
+        { path: '/payments',          label: 'Payment Ledger',    icon: Banknote },
+        { path: '/settings/expenses', label: 'Expenses Head',     icon: Wallet },
+      ],
+    },
+  },
+  {
+    type: 'group',
+    group: {
+      id: 'platform',
+      label: 'Platform',
+      icon: Building2,
+      children: [
+        { path: '/platform/clinics',   label: 'Clinics',   icon: Building2 },
+        { path: '/platform/accounts',  label: 'Accounts',  icon: UserCog },
+      ],
+    },
+  },
+  {
+    type: 'group',
+    group: {
+      id: 'settings',
+      label: 'Settings',
+      icon: Settings,
+      children: [
+        { path: '/settings/departments', label: 'Departments',        icon: Layers },
+        { path: '/settings/medicines',   label: 'Medicine Catalog',   icon: Pill },
+        { path: '/settings/potencies',   label: 'Potencies',          icon: Sparkles },
+        { path: '/settings/frequencies', label: 'Dosage Frequencies', icon: Clock },
+        { path: '/settings/dispensaries',label: 'Dispensaries',       icon: Hospital },
+        { path: '/settings/packages',    label: 'Package Plans',      icon: Box },
+        { path: '/settings/couriers',    label: 'Courier Services',   icon: Truck },
+        { path: '/settings/referrals',   label: 'Referral Sources',   icon: UserPlus },
+        { path: '/settings/stickers',    label: 'Medicine Stickers',  icon: StickyNote },
+        { path: '/settings/doctors',     label: 'Doctors/Clinicians', icon: UserCircle },
+        { path: '/settings/staff',       label: 'Staff Management',   icon: UserCheck },
+        { path: '/settings/cms',         label: 'Content (CMS)',      icon: Globe },
+        { path: '/settings/pdf',         label: 'PDF & Reports',      icon: FileText },
+        { path: '/settings/faqs',        label: 'Help & FAQs',        icon: HelpCircle },
+      ],
+    },
+  },
 ];
+
+// ─── Component Logic ─────────────────────────────────────────────────────────
 
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
+function isGroupActive(group: NavGroup, pathname: string): boolean {
+  return group.children.some(c => {
+    if (c.path === '/') return pathname === '/';
+    return pathname.startsWith(c.path);
+  });
+}
+
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { user, logout } = useAuthStore();
   const location = useLocation();
 
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() => {
-    const initial: Record<string, boolean> = {};
-    NAV_ITEMS.forEach(node => {
-      if (node.children) {
-        initial[node.label] = node.children.some(
-          child => location.pathname === child.path || location.pathname.startsWith(`${child.path}/`)
-        );
-      }
-    });
-    return initial;
-  });
+  // Auto-expand the active group by default
+  const defaultOpen = NAV_STRUCTURE
+    .filter((item): item is { type: 'group'; group: NavGroup } => item.type === 'group')
+    .filter(item => isGroupActive(item.group, location.pathname))
+    .map(item => item.group.id);
 
-  const toggleSection = (label: string) => {
-    setExpandedSections(prev => ({ ...prev, [label]: !prev[label] }));
+  const [openGroups, setOpenGroups] = useState<string[]>(defaultOpen);
+
+  const toggleGroup = (id: string) => {
+    setOpenGroups(prev =>
+      prev.includes(id) ? prev.filter(g => g !== id) : [...prev, id]
+    );
+  };
+
+  const handleNavClick = () => {
+    if (window.innerWidth < 1024) onClose();
   };
 
   return (
@@ -163,6 +244,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       />
 
       <aside className={`sidebar ${isOpen ? 'is-open' : ''}`}>
+        {/* ── Logo ── */}
         <div className="sidebar-header">
           <div className="sidebar-logo-group">
             <div className="sidebar-logo">
@@ -175,67 +257,74 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           </button>
         </div>
 
+        {/* ── Navigation ── */}
         <nav className="sidebar-nav">
-          {NAV_ITEMS.map((node) => {
-            if (!node.children) {
+          {NAV_STRUCTURE.map((item) => {
+            if (item.type === 'link') {
+              const Icon = item.icon;
               return (
                 <NavLink
-                  key={node.path}
-                  to={node.path!}
-                  end={node.path === '/'}
-                  className={({ isActive }) => `sidebar-item top-level ${isActive ? 'active' : ''}`}
-                  onClick={() => {
-                    if (window.innerWidth < 1024) onClose();
-                  }}
+                  key={item.path}
+                  to={item.path}
+                  end={item.path === '/'}
+                  className={({ isActive }) => `sidebar-item ${isActive ? 'active' : ''}`}
+                  onClick={handleNavClick}
                 >
-                  <node.icon className="sidebar-item-icon" strokeWidth={2} />
-                  <span>{node.label}</span>
+                  <Icon className="sidebar-item-icon" strokeWidth={1.8} />
+                  <span>{item.label}</span>
                 </NavLink>
               );
             }
 
-            const isExpanded = expandedSections[node.label];
-            const isChildActive = node.children.some(child => location.pathname === child.path || location.pathname.startsWith(`${child.path}/`));
-            
+            // Grouped section
+            const { group } = item;
+            const isOpen_ = openGroups.includes(group.id);
+            const groupActive = isGroupActive(group, location.pathname);
+            const GroupIcon = group.icon;
+
             return (
-              <div key={node.label} className="sidebar-section">
-                <div 
-                  className={`sidebar-item sidebar-folder ${isChildActive && !isExpanded ? 'active-folder' : ''}`}
-                  onClick={() => toggleSection(node.label)}
+              <div key={group.id} className="sidebar-group">
+                <button
+                  className={`sidebar-group-trigger ${groupActive ? 'group-active' : ''}`}
+                  onClick={() => toggleGroup(group.id)}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <node.icon className="sidebar-item-icon" strokeWidth={2} />
-                    <span>{node.label}</span>
+                  <div className="sidebar-group-trigger-left">
+                    <GroupIcon className="sidebar-item-icon" strokeWidth={1.8} />
+                    <span>{group.label}</span>
                   </div>
-                  <span className="sidebar-folder-toggle">
-                    {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                  <span className={`sidebar-chevron ${isOpen_ ? 'open' : ''}`}>
+                    <ChevronDown size={14} strokeWidth={2} />
                   </span>
-                </div>
-                
-                {isExpanded && (
-                  <div className="sidebar-folder-items animate-expand">
-                    {node.children.map((child) => (
-                      <NavLink
-                        key={child.path}
-                        to={child.path}
-                        end={child.path === '/'}
-                        className={({ isActive }) => `sidebar-child-item ${isActive ? 'active' : ''}`}
-                        onClick={() => {
-                          if (window.innerWidth < 1024) onClose();
-                        }}
-                      >
-                        <span className="sidebar-bullet" />
-                        <child.icon className="sidebar-child-icon" strokeWidth={2} />
-                        <span>{child.label}</span>
-                      </NavLink>
-                    ))}
+                </button>
+
+                <div className={`sidebar-group-children ${isOpen_ ? 'expanded' : ''}`}>
+                  <div className="sidebar-group-children-inner">
+                    {group.children.map(child => {
+                      const ChildIcon = child.icon;
+                      return (
+                        <NavLink
+                          key={child.path}
+                          to={child.path}
+                          end
+                          className={({ isActive }) =>
+                            `sidebar-child-item ${isActive ? 'active' : ''}`
+                          }
+                          onClick={handleNavClick}
+                        >
+                          <span className="sidebar-child-dot" />
+                          <ChildIcon className="sidebar-child-icon" strokeWidth={1.8} />
+                          <span>{child.label}</span>
+                        </NavLink>
+                      );
+                    })}
                   </div>
-                )}
+                </div>
               </div>
             );
           })}
         </nav>
 
+        {/* ── Footer ── */}
         <div className="sidebar-footer">
           <div className="user-profile">
             <div className="user-avatar">

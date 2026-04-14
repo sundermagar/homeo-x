@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import type { Router as ExpressRouter } from 'express';
 import { asyncHandler } from '../middleware/async-handler';
 import { sendSuccess } from '../../../shared/response-formatter';
 import { MedicalCaseRepositoryPg } from '../../repositories/medical-case.repository.pg';
@@ -38,6 +39,7 @@ const getApptRepo = (req: any) => {
 router.post('/', asyncHandler(async (req, res) => {
   const useCase = new CreateMedicalCaseUseCase(getRepo(req));
   const result = await useCase.execute(req.body);
+  if (!result.success) throw new Error(result.error);
   sendSuccess(res, result.data, 'Medical case created successfully');
 }));
 
@@ -57,6 +59,7 @@ router.get('/', asyncHandler(async (req, res) => {
 router.get('/patient/:regid/full', asyncHandler(async (req, res) => {
   const useCase = new GetFullMedicalCaseUseCase(getRepo(req));
   const result = await useCase.execute(Number(req.params.regid));
+  if (!result.success) throw new Error(result.error);
   sendSuccess(res, result.data);
 }));
 
@@ -71,6 +74,7 @@ router.get('/:id', asyncHandler(async (req, res) => {
 router.get('/vitals/:visitId', asyncHandler(async (req, res) => {
   const useCase = new ManageVitalsUseCase(getRepo(req));
   const result = await useCase.get(Number(req.params.visitId));
+  if (!result.success) throw new Error(result.error);
   sendSuccess(res, result.data);
 }));
 
@@ -83,6 +87,7 @@ router.post('/vitals', asyncHandler(async (req, res) => {
 router.get('/soap/:visitId', asyncHandler(async (req, res) => {
   const useCase = new ManageSoapNotesUseCase(getRepo(req));
   const result = await useCase.get(Number(req.params.visitId));
+  if (!result.success) throw new Error(result.error);
   sendSuccess(res, result.data);
 }));
 
@@ -124,10 +129,30 @@ router.post('/records/investigations', asyncHandler(async (req, res) => {
   sendSuccess(res, null, 'Investigation recorded');
 }));
 
-router.post('/records/images', asyncHandler(async (req, res) => {
+import { upload } from '../middleware/upload';
+
+// ─── Continued route wrappers ───
+router.post('/records/images', upload.array('files', 5), asyncHandler(async (req, res) => {
   const useCase = new ManageClinicalRecordsUseCase(getRepo(req));
-  const result = await useCase.saveImage(req.body);
-  sendSuccess(res, result.data, 'Image uploaded');
+  
+  // Basic implementation: grab the first file's path
+  const fileArray = req.files as Express.Multer.File[];
+  let picturePath = req.body.picture;
+  
+  // If Multer processed files, map the local path to the DTO
+  if (fileArray && fileArray.length > 0 && fileArray[0]) {
+    // Relative path served by the static assets handler
+    picturePath = `/uploads/${fileArray[0].filename}`;
+  }
+
+  const result = await useCase.saveImage({
+    regid: Number(req.body.regid),
+    description: req.body.description,
+    picture: picturePath,
+  });
+
+  if (!result.success) throw new Error(result.error);
+  sendSuccess(res, result.data, 'Image uploaded successfully');
 }));
 
 // ─── Consultation Workflow ───
@@ -146,4 +171,4 @@ router.post('/:regid/finalize', asyncHandler(async (req, res) => {
   sendSuccess(res, null, 'Consultation finalized successfully');
 }));
 
-export const medicalCasesRouter = router;
+export const medicalCasesRouter: ExpressRouter = router;

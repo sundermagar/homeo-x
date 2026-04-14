@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import type { AuthTokenPayload } from '@mmc/types';
+import { Role } from '@mmc/types';
 import { UnauthorizedError } from '../../../shared/errors';
 
 declare global {
@@ -21,7 +22,7 @@ export function authMiddleware(req: Request, _res: Response, next: NextFunction)
     
     // Demo bypass for local testing/prototype
     if (token === 'demo-token-123') {
-      req.user = { id: 101, email: 'doctor@homeox.com', name: 'Dr. Demo', type: 'Doctor', clinicId: 1 };
+      req.user = { id: 101, email: 'doctor@homeox.com', name: 'Dr. Demo', type: Role.Doctor, contextId: 1, roleId: 1, roleName: 'Doctor' };
       return next();
     }
 

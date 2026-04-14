@@ -79,7 +79,7 @@ export default function ClinicsPage() {
             <p className="plat-empty-text">No clinics registered. Add your first clinic.</p>
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
+          <div className="plat-table-container">
             <table className="plat-table">
               <thead>
                 <tr>
@@ -95,10 +95,10 @@ export default function ClinicsPage() {
               <tbody>
                 {orgs.map((org, index) => (
                   <tr key={org.id}>
-                    <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    <td data-label="ID" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                       {orgs.length - index}
                     </td>
-                    <td>
+                    <td data-label="Clinic Name">
                       <div style={{ fontWeight: 600 }}>{org.name}</div>
                       {org.description && (
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '1px' }}>
@@ -106,11 +106,11 @@ export default function ClinicsPage() {
                         </div>
                       )}
                     </td>
-                    <td style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{org.city || '—'}</td>
-                    <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                    <td data-label="City" style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{org.city || '—'}</td>
+                    <td data-label="Phone" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
                       {org.phone || '—'}
                     </td>
-                    <td style={{ fontSize: '0.75rem' }}>
+                    <td data-label="Website" style={{ fontSize: '0.75rem' }}>
                       {org.website ? (
                         <a href={org.website} target="_blank" rel="noreferrer"
                           style={{ color: 'var(--primary)', textDecoration: 'none' }}>
@@ -118,10 +118,10 @@ export default function ClinicsPage() {
                         </a>
                       ) : '—'}
                     </td>
-                    <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    <td data-label="Connected" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                       {org.connectSince || '—'}
                     </td>
-                    <td>
+                    <td data-label="Action">
                       <button
                         className="plat-btn plat-btn-sm plat-btn-danger"
                         onClick={() => handleDelete(org.id, org.name)}

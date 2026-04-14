@@ -1,5 +1,5 @@
 import { eq, and, sql, desc, isNull, gte, lt } from 'drizzle-orm';
-import { bills } from '@mmc/database/schema';
+import { bills, patients } from '@mmc/database/schema';
 import type { DbClient } from '@mmc/database';
 import type { Bill, BillWithPatient, DailyCollectionSummary, PatientBillSummary } from '@mmc/types';
 import type { BillingRepository } from '../../domains/billing/ports/billing.repository';
@@ -33,11 +33,11 @@ export class BillingRepositoryPg implements BillingRepository {
       this.db
         .select({
           bill: bills,
-          patientName: sql<string>`CONCAT(cd.first_name, ' ', cd.surname)`,
-          phone: sql<string>`cd.mobile1`,
+          patientName: sql<string>`CONCAT(${patients.firstName}, ' ', ${patients.surname})`,
+          phone: patients.mobile1,
         })
         .from(bills)
-        .leftJoin(sql`case_datas cd`, sql`cd.regid = ${bills.regid}`)
+        .leftJoin(patients, eq(patients.regid, bills.regid))
         .where(where)
         .orderBy(desc(bills.id))
         .limit(limit)
@@ -79,11 +79,11 @@ export class BillingRepositoryPg implements BillingRepository {
     const rows = await this.db
       .select({
         bill: bills,
-        patientName: sql<string>`CONCAT(cd.first_name, ' ', cd.surname)`,
-        phone: sql<string>`cd.mobile1`,
+        patientName: sql<string>`CONCAT(${patients.firstName}, ' ', ${patients.surname})`,
+        phone: patients.mobile1,
       })
       .from(bills)
-      .leftJoin(sql`case_datas cd`, sql`cd.regid = ${bills.regid}`)
+      .leftJoin(patients, eq(patients.regid, bills.regid))
       .where(where)
       .orderBy(desc(bills.id));
 

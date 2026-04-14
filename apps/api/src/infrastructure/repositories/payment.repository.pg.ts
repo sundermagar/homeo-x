@@ -1,5 +1,5 @@
 import { eq, and, sql, desc, isNull } from 'drizzle-orm';
-import { payments } from '@mmc/database/schema';
+import { payments, patients } from '@mmc/database/schema';
 import type { DbClient } from '@mmc/database';
 import type { Payment, PaymentWithPatient } from '@mmc/types';
 import type { PaymentRepository } from '../../domains/billing/ports/payment.repository';
@@ -12,11 +12,11 @@ export class PaymentRepositoryPg implements PaymentRepository {
     const [row] = await this.db
       .select({
         payment: payments,
-        patientName: sql<string>`CONCAT(cd.first_name, ' ', cd.surname)`,
-        phone: sql<string>`cd.mobile1`,
+        patientName: sql<string>`CONCAT(${patients.firstName}, ' ', ${patients.surname})`,
+        phone: patients.mobile1,
       })
       .from(payments)
-      .leftJoin(sql`case_datas cd`, sql`cd.regid = ${payments.regid}`)
+      .leftJoin(patients, eq(patients.regid, payments.regid))
       .where(and(eq(payments.id, id), isNull(payments.deletedAt)))
       .limit(1);
 
@@ -36,11 +36,11 @@ export class PaymentRepositoryPg implements PaymentRepository {
       this.db
         .select({
           payment: payments,
-          patientName: sql<string>`CONCAT(cd.first_name, ' ', cd.surname)`,
-          phone: sql<string>`cd.mobile1`,
+          patientName: sql<string>`CONCAT(${patients.firstName}, ' ', ${patients.surname})`,
+          phone: patients.mobile1,
         })
         .from(payments)
-        .leftJoin(sql`case_datas cd`, sql`cd.regid = ${payments.regid}`)
+        .leftJoin(patients, eq(patients.regid, payments.regid))
         .where(where)
         .orderBy(desc(payments.id))
         .limit(limit)

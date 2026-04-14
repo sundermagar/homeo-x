@@ -79,7 +79,7 @@ export default function AccountsPage() {
             <p className="plat-empty-text">No accounts found. Create the first account manager.</p>
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
+          <div className="plat-table-container">
             <table className="plat-table">
               <thead>
                 <tr>
@@ -95,30 +95,30 @@ export default function AccountsPage() {
               <tbody>
                 {accounts.map((account, index) => (
                   <tr key={account.id}>
-                    <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    <td data-label="ID" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                       {accounts.length - index}
                     </td>
-                    <td>
+                    <td data-label="Account Holder">
                       <div style={{ fontWeight: 600 }}>{account.name}</div>
                       <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '1px' }}>
                         {account.email || '—'}
                       </div>
                     </td>
-                    <td style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                    <td data-label="Linked Clinic" style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
                       {getClinicName(account.clinicId)}
                     </td>
-                    <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                    <td data-label="Mobile" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
                       {account.mobile || '—'}
                     </td>
-                    <td style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                    <td data-label="Designation" style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
                       {account.designation || '—'}
                     </td>
-                    <td>
+                    <td data-label="Gender">
                       <span className="plat-badge plat-badge-default">
                         {account.gender || '—'}
                       </span>
                     </td>
-                    <td>
+                    <td data-label="Actions">
                       <div style={{ display: 'flex', gap: '6px' }}>
                         <button className="plat-btn plat-btn-sm plat-btn-icon" title="Edit" onClick={() => openEdit(account)}>
                           <Edit2 size={13} strokeWidth={1.6} />

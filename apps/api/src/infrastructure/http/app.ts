@@ -24,7 +24,9 @@ import { appointmentsRouter } from './routes/appointments';
 import { medicalCasesRouter } from './routes/medical-cases';
 import { doctorsRouter } from './routes/doctors';
 import { packagesRouter } from './routes/packages';
-// ─── Our modules (Billing & Platform) ───
+import { communicationRouter } from './routes/communication';
+import { analyticsRouter } from './routes/analytics';
+import { patientRouter } from './routes/patient.router'; // From shiva
 import { createBillingRouter } from './routes/billing.router';
 import { createPaymentRouter } from './routes/payment.router';
 import { createOrganizationRouter } from './routes/organization.router';
@@ -85,6 +87,9 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   app.use('/api/medical-cases', medicalCasesRouter);
   app.use('/api/doctors', doctorsRouter);
   app.use('/api/packages', packagesRouter);
+  app.use('/api/communications', communicationRouter);
+  app.use('/api/analytics', analyticsRouter);
+  app.use('/api/patients', patientRouter); // Added patient from shiva
 
   // Our modules — Billing & Finance
   app.use('/api/billing', createBillingRouter());

@@ -42,15 +42,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
     const { search, page = 1, limit = 50 } = filters;
     const offset = (page - 1) * limit;
 
-    const conditions = [];
-
-    if (search) {
-      // Basic search logic for name/phone
-      const searchTerms = `%${search}%`;
-      conditions.push(sql`(${schema.patients.firstName} ILIKE ${searchTerms} OR ${schema.patients.surname} ILIKE ${searchTerms} OR ${schema.patients.phone} ILIKE ${searchTerms})`);
-    }
-
-    const rows = await this.db
+    let query = this.db
       .select({
         id: schema.medicalCases.id,
         regid: schema.medicalCases.regid,
@@ -66,7 +58,16 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
       })
       .from(schema.medicalCases)
       .leftJoin(schema.patients, eq(schema.medicalCases.regid, schema.patients.regid))
-      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .$dynamic();
+
+    if (search) {
+      const searchTerms = `%${search}%`;
+      query = query.where(
+        sql`(${schema.patients.firstName} ILIKE ${searchTerms} OR ${schema.patients.surname} ILIKE ${searchTerms} OR ${schema.patients.phone} ILIKE ${searchTerms})`
+      );
+    }
+
+    const rows = await query
       .orderBy(desc(schema.medicalCases.createdAt))
       .limit(limit)
       .offset(offset);

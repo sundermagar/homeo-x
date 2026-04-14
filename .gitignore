@@ -1,10 +1,33 @@
+# Dependencies
 node_modules/
+.pnpm-store/
+.pnpm-debug.log
+
+# Build
 dist/
-.turbo/
-*.local
-.env
-.env.*
-!.env.example
+.next/
+out/
 .DS_Store
 coverage/
 *.tsbuildinfo
+
+# Scratch/Legacy
+MMC-javascript/
+MMC-javascript 2/
+server_log.txt
+api_debug.log
+
+# Environment
+.env
+.env.local
+.env.production
+.env.test
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Drizzle
+drizzle/

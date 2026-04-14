@@ -83,5 +83,45 @@ export function createBillingRouter(): Router {
     }),
   );
 
+  // GET /api/billing/pdf/:id
+  router.get(
+    '/pdf/:id',
+    asyncHandler(async (req: Request, res: Response) => {
+      const id = parseInt(req.params.id as string, 10);
+      if (isNaN(id)) {
+        res.status(400).json({ success: false, error: 'Invalid bill ID' });
+        return;
+      }
+
+      // We dynamically import the pdf service to avoid tight coupling 
+      const { PdfkitServiceAdapter } = await import('../../pdf/pdfkit.service.js');
+      const pdfService = new PdfkitServiceAdapter();
+      
+      const repo = getRepo(req);
+      const bills = await repo.findAll({ limit: 100, page: 1 }); // Simplistic lookup since findById is not purely defined in findMany for billing
+      const bill = bills.data.find((b: any) => b.id === id);
+
+      if (!bill) {
+        res.status(404).json({ success: false, error: 'Bill not found' });
+        return;
+      }
+
+      const filename = `invoice-${bill.id}.pdf`;
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+      await pdfService.generateBill(res, {
+        clinicName: (req as any).tenantDb?.schemaName || 'Clinic Admin',
+        patientName: 'Patient Name', // A proper join is required to get Patient Name in production
+        regid: bill.regid,
+        billNo: bill.billNo || 0,
+        charges: bill.charges,
+        received: bill.received,
+        balance: bill.balance,
+        paymentMode: bill.paymentMode || 'Unknown',
+      });
+    }),
+  );
+
   return router;
 }

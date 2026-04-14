@@ -119,7 +119,15 @@
 @media (min-width: 768px) { .plat-card-header { padding: 16px 20px; } }
 
 /* ─── Table ─── */
-.plat-table { width: 100%; border-collapse: collapse; min-width: 600px; }
+.plat-table-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.plat-table { 
+  width: 100%; 
+  border-collapse: collapse; 
+}
 
 .plat-table th {
   text-align: left;
@@ -155,6 +163,62 @@
 
 .plat-table tr:hover td { background: var(--bg-surface-2); }
 .plat-table tr:last-child td { border-bottom: none; }
+
+/* ─── Mobile Table Cards ─── */
+@media (max-width: 767px) {
+  .plat-table-container {
+    overflow-x: hidden;
+  }
+
+  .plat-table, .plat-table tbody, .plat-table tr, .plat-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .plat-table thead {
+    display: none;
+  }
+
+  .plat-table tr {
+    border-bottom: 1px solid var(--border-main);
+    padding: 12px 14px;
+    background: var(--bg-card);
+  }
+
+  .plat-table tr:last-child {
+    border-bottom: none;
+  }
+
+  .plat-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: none;
+    font-size: 0.85rem;
+  }
+
+  .plat-table td::before {
+    content: attr(data-label);
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-right: 12px;
+  }
+
+  .plat-table td:last-child {
+    margin-top: 8px;
+    padding-top: 10px;
+    border-top: 1px solid var(--bg-surface-2);
+    justify-content: flex-end;
+  }
+
+  .plat-table td:last-child::before {
+    display: none;
+  }
+}
 
 /* ─── Buttons ─── */
 .plat-btn {

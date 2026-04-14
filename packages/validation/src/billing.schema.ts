@@ -11,6 +11,7 @@ export const createBillSchema = z.object({
   charges: z.number().min(0, 'Charges must be non-negative'),
   received: z.number().min(0).default(0),
   paymentMode: PaymentModeEnum.default('Cash'),
+  billDate: z.string().optional(),
   treatment: z.string().max(255).optional(),
   disease: z.string().max(255).optional(),
   fromDate: z.string().optional(),
