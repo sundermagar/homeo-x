@@ -1,5 +1,9 @@
 
 
+> @mmc/database@0.1.0 prebuild /Users/apple/Documents/worksarea/homeo-x/packages/database
+> rm -rf dist tsconfig.tsbuildinfo
+
+
 > @mmc/database@0.1.0 build /Users/apple/Documents/worksarea/homeo-x/packages/database
 > tsc
 

@@ -26,11 +26,19 @@ import { doctorsRouter } from './routes/doctors';
 import { packagesRouter } from './routes/packages';
 import { communicationRouter } from './routes/communication';
 import { analyticsRouter } from './routes/analytics';
+import { dashboardRouter } from './routes/dashboard.router';
 import { patientRouter } from './routes/patient.router'; // From shiva
 import { createBillingRouter } from './routes/billing.router';
 import { createPaymentRouter } from './routes/payment.router';
 import { createOrganizationRouter } from './routes/organization.router';
 import { createAccountRouter } from './routes/account.router';
+import { rolesRouter } from './routes/roles.router';
+import { permissionsRouter } from './routes/permissions.router';
+import { crmRouter } from './routes/crm.router';
+import { logisticsRouter } from './routes/logistics.router';
+import { knowledgeRouter } from './routes/knowledge.router';
+import { recordsRouter } from './routes/records.router';
+import { staffRouter } from './routes/staff.router';
 
 const logger = createLogger('http');
 
@@ -88,6 +96,7 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   app.use('/api/packages', packagesRouter);
   app.use('/api/communications', communicationRouter);
   app.use('/api/analytics', analyticsRouter);
+  app.use('/api/dashboard', dashboardRouter);
   app.use('/api/patients', patientRouter); // Added patient from shiva
 
   // Our modules — Billing & Finance
@@ -97,6 +106,17 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   // Our modules — Platform (JWT required)
   app.use('/api/organizations', authMiddleware, createOrganizationRouter());
   app.use('/api/accounts',      authMiddleware, createAccountRouter());
+
+  // ─── Operations & Logistics (JWT required) ───
+  app.use('/api/crm',        authMiddleware, crmRouter);
+  app.use('/api/logistics',  authMiddleware, logisticsRouter);
+  app.use('/api/knowledge',  authMiddleware, knowledgeRouter);
+  app.use('/api/records',    authMiddleware, recordsRouter);
+  app.use('/api/staff',      authMiddleware, staffRouter);
+
+  // Roles & Permissions
+  app.use('/api/roles',      authMiddleware, rolesRouter);
+  app.use('/api/permissions', authMiddleware, permissionsRouter);
 
   // ─── Error Handling (must be last) ───
   app.use(errorHandler);

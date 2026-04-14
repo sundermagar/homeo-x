@@ -8,16 +8,10 @@ import { GetSmsReportsUseCase } from '../../../domains/communication/use-cases/g
 import { SendSmsUseCase } from '../../../domains/communication/use-cases/send-sms.use-case.js';
 import { SendWhatsAppUseCase } from '../../../domains/communication/use-cases/send-whatsapp.use-case.js';
 import { CommunicationRepositoryPG } from '../../repositories/communication.repository.pg.js';
-import { MockCommunicationRepository } from '../../repositories/mocks/mock-communication.repository.js';
 
 export const communicationRouter: Router = Router();
 
-const getRepo = (req: any) => {
-  if ((req.user as any)?.id === 101 || (req.user as any)?.id === 102) {
-    return new MockCommunicationRepository();
-  }
-  return new CommunicationRepositoryPG(req.tenantDb);
-};
+const getRepo = (req: any) => new CommunicationRepositoryPG(req.tenantDb);
 
 // All routes require auth
 communicationRouter.use(authMiddleware);

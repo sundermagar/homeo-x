@@ -3,36 +3,25 @@ import type { Router as ExpressRouter } from 'express';
 import { asyncHandler } from '../middleware/async-handler';
 import { sendSuccess } from '../../../shared/response-formatter';
 import { MedicalCaseRepositoryPg } from '../../repositories/medical-case.repository.pg';
-import { MockMedicalCaseRepository } from '../../repositories/mocks/mock-medical-case.repository';
 import { InventoryRepositoryPg } from '../../repositories/inventory.repository.pg';
 import { BillingRepositoryPg } from '../../repositories/billing.repository.pg';
 import { AppointmentRepositoryPG } from '../../repositories/appointment.repository.pg';
-import { MockAppointmentRepository } from '../../repositories/mocks/mock-appointment.repository';
 import { authMiddleware } from '../middleware/auth';
 import { CreateMedicalCaseUseCase } from '../../../domains/medical-case/use-cases/create-medical-case.use-case';
 import { GetFullMedicalCaseUseCase } from '../../../domains/medical-case/use-cases/get-full-medical-case.use-case';
 import { FinalizeConsultationUseCase } from '../../../domains/medical-case/use-cases/finalize-consultation.use-case';
 import { ManageVitalsUseCase } from '../../../domains/medical-case/use-cases/manage-vitals.use-case';
+import { AnalyzeVitalsUseCase } from '../../../domains/medical-case/use-cases/analyze-vitals.use-case';
 import { ManageSoapNotesUseCase } from '../../../domains/medical-case/use-cases/manage-soap-notes.use-case';
 import { ManageClinicalRecordsUseCase } from '../../../domains/medical-case/use-cases/manage-clinical-records.use-case';
 
 const router = Router();
 router.use(authMiddleware);
 
-const getRepo = (req: any) => {
-  if (req.user?.id === 101 || req.user?.id === 102) {
-    return new MockMedicalCaseRepository();
-  }
-  return new MedicalCaseRepositoryPg(req.tenantDb);
-};
+const getRepo = (req: any) => new MedicalCaseRepositoryPg(req.tenantDb);
 const getInvRepo = (req: any) => new InventoryRepositoryPg(req.tenantDb);
 const getBillRepo = (req: any) => new BillingRepositoryPg(req.tenantDb);
-const getApptRepo = (req: any) => {
-  if (req.user?.id === 101 || req.user?.id === 102) {
-    return new MockAppointmentRepository();
-  }
-  return new AppointmentRepositoryPG(req.tenantDb);
-};
+const getApptRepo = (req: any) => new AppointmentRepositoryPG(req.tenantDb);
 
 // ─── Case Management ───
 
@@ -82,6 +71,12 @@ router.post('/vitals', asyncHandler(async (req, res) => {
   const useCase = new ManageVitalsUseCase(getRepo(req));
   await useCase.execute(req.body);
   sendSuccess(res, null, 'Vitals recorded successfully');
+}));
+
+router.post('/vitals/analyze', asyncHandler(async (req, res) => {
+  const useCase = new AnalyzeVitalsUseCase(req.tenantDb);
+  const result = await useCase.execute(req.body);
+  sendSuccess(res, result);
 }));
 
 router.get('/soap/:visitId', asyncHandler(async (req, res) => {

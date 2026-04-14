@@ -1,0 +1,677 @@
+/* ─── Vitals Check / Growth Analytics — Mobile-First Design System ─────── */
+
+.ghub-page-wrapper {
+  min-height: 100vh;
+  padding: 12px 12px 80px;
+  background: var(--bg-main);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+}
+
+/* ─── Header ─── */
+.ghub-content-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-main);
+  max-width: 1280px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.ghub-title-area {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ghub-main-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  letter-spacing: -0.02em;
+}
+
+.ghub-subtitle {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* ─── Main Container ─── */
+.ghub-main-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 1280px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ─── Cards ─── */
+.ghub-primary-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-card);
+  padding: 20px;
+  border: 1px solid var(--border-main);
+  display: flex;
+  flex-direction: column;
+}
+
+.ghub-secondary-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-card);
+  padding: 20px;
+  border: 1px solid var(--border-main);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+/* ─── Card Header ─── */
+.ghub-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-main);
+}
+
+.ghub-zap-icon { color: var(--primary); flex-shrink: 0; }
+
+.ghub-card-header h2 {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--text-secondary);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ─── Form Body ─── */
+.ghub-form-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+/* ─── Input Field ─── */
+.ghub-input-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ghub-input-label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.ghub-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.ghub-input-icon-left {
+  position: absolute;
+  left: 14px;
+  color: var(--text-muted);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.ghub-premium-input {
+  width: 100%;
+  background: var(--bg-card);
+  border: 1px solid var(--border-main);
+  padding: 12px 16px 12px 42px;
+  border-radius: var(--radius-btn);
+  font-size: 0.9rem;
+  color: var(--text-main);
+  outline: none;
+  transition: all var(--transition-fast);
+  font-family: inherit;
+}
+
+.ghub-premium-input::placeholder { color: var(--text-muted); }
+.ghub-premium-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-tint); }
+.ghub-premium-input:read-only { background: var(--bg-surface-2); cursor: not-allowed; }
+
+/* ─── Grids ─── */
+.ghub-grid-2 {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ghub-metrics-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ─── Gender Selector ─── */
+.ghub-gender-selector label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  display: block;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.ghub-toggle-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ghub-toggle-item {
+  flex: 1;
+  border: 1px solid var(--border-main);
+  padding: 14px;
+  border-radius: var(--radius-btn);
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  background: var(--bg-card);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-family: inherit;
+}
+
+.ghub-toggle-item:hover { border-color: var(--primary-border); }
+
+.active-male {
+  background: var(--primary-tint);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.active-female {
+  background: var(--danger-bg);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+/* ─── Metric Cards ─── */
+.ghub-metric-card {
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-main);
+  border-radius: var(--radius-card);
+  padding: 16px 16px 16px 20px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color var(--transition-fast);
+}
+
+.ghub-metric-card:focus-within { border-color: var(--primary); }
+
+.ghub-level-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+}
+
+.ghub-metric-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.ghub-metric-card input {
+  background: transparent;
+  border: none;
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--text-main);
+  width: 100%;
+  outline: none;
+  font-family: var(--font-mono);
+}
+
+.ghub-metric-card input::placeholder { color: var(--text-muted); font-size: 1.75rem; }
+
+/* ─── Action Button ─── */
+.ghub-action-button {
+  width: 100%;
+  background: var(--text-main);
+  color: white;
+  border: none;
+  padding: 16px;
+  border-radius: var(--radius-btn);
+  font-size: 0.9rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-family: inherit;
+  margin-top: 24px;
+}
+
+.ghub-action-button:hover:not(:disabled) { background: var(--primary); transform: translateY(-1px); }
+.ghub-action-button:active:not(:disabled) { transform: translateY(0); }
+.ghub-action-button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ─── Illustration ─── */
+.ghub-visual-area {
+  display: flex;
+  justify-content: center;
+}
+
+.ghub-illustration {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-card);
+  max-height: 180px;
+  object-fit: contain;
+}
+
+.ghub-content-area { width: 100%; }
+.ghub-content-area h3 {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 12px 0 6px;
+}
+.ghub-content-area p {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ─── Dropdown ─── */
+.ghub-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border-main);
+  border-radius: var(--radius-card);
+  z-index: 100;
+  box-shadow: var(--pp-shadow-lg);
+  overflow: hidden;
+}
+
+.ghub-drop-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  border-bottom: 1px solid var(--border-main);
+}
+
+.ghub-drop-item:last-child { border-bottom: none; }
+.ghub-drop-item:hover { background: var(--bg-surface-2); }
+
+/* ─── Error Banner ─── */
+.ghub-error-banner {
+  padding: 12px 16px;
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-btn);
+  background: var(--danger-bg);
+  color: var(--danger);
+  font-size: 0.78rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+/* ─── Results Wrapper ─── */
+.ghub-results-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.ghub-results-card {
+  padding: 20px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.ghub-results-header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.ghub-results-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.ghub-results-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ghub-patient-name { font-size: 0.85rem; font-weight: 700; color: var(--primary); }
+.ghub-separator { color: var(--border-main); }
+.ghub-age-display { font-size: 0.82rem; color: var(--text-muted); }
+
+.ghub-recalculate-btn {
+  height: 40px;
+  padding: 0 16px;
+  border-radius: var(--radius-btn);
+  border: 1px solid var(--border-main);
+  background: var(--bg-card);
+  font-size: 0.78rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+  font-family: inherit;
+  align-self: flex-start;
+}
+
+.ghub-recalculate-btn:hover {
+  background: var(--bg-surface-2);
+  border-color: var(--primary-border);
+  color: var(--primary);
+}
+
+/* ─── Results Grid ─── */
+.ghub-results-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.ghub-params-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ─── BMI Infographic ─── */
+.ghub-bmi-infographic {
+  border-radius: var(--radius-card);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border: 1px solid var(--border-main);
+  background: var(--bg-surface-2);
+  gap: 12px;
+}
+
+.ghub-bmi-img {
+  width: 80px;
+  height: auto;
+  margin-bottom: 4px;
+}
+
+.ghub-bmi-content { text-align: center; }
+
+.ghub-bmi-label {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+  letter-spacing: 0.06em;
+}
+
+.ghub-bmi-value {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--text-main);
+  line-height: 1;
+  font-family: var(--font-mono);
+}
+
+.ghub-bmi-status {
+  padding: 6px 14px;
+  border-radius: 100px;
+  background: var(--success-bg);
+  color: var(--success);
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(22, 163, 74, 0.15);
+  margin-top: 4px;
+}
+
+/* ─── History Footer ─── */
+.ghub-history-footer { display: flex; justify-content: center; padding: 8px 0; }
+
+.ghub-history-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-decoration: none;
+  padding: 10px 16px;
+  border-radius: var(--radius-btn);
+  transition: all var(--transition-fast);
+}
+
+.ghub-history-link:hover { color: var(--primary); background: var(--primary-tint); }
+
+/* ─── Parameter Card (Results) ─── */
+.param-card {
+  border: 1px solid var(--bg-surface-2);
+  border-radius: var(--radius-card);
+  padding: 20px;
+  background: var(--bg-card);
+  box-shadow: var(--pp-shadow-sm);
+}
+
+.param-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.param-card-label-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.param-card-label {
+  font-size: 0.65rem;
+  font-weight: 900;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.param-diff-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 5px 12px;
+  border-radius: 100px;
+  white-space: nowrap;
+}
+
+.param-diff-badge.deficit {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.param-diff-badge.premium {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.param-card-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.param-card-body-col { display: flex; flex-direction: column; gap: 4px; }
+
+.param-card-sublabel {
+  font-size: 0.6rem;
+  font-weight: 800;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.param-card-value {
+  font-size: 1.5rem;
+  font-weight: 950;
+  color: var(--text-main);
+  line-height: 1;
+}
+
+.param-card-unit {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.param-card-body-col.right {
+  border-left: 2px dashed var(--border-main);
+  padding-left: 24px;
+}
+
+.param-card-analysis {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--bg-surface-2);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.5;
+}
+
+.param-card-analysis-icon { color: var(--primary); flex-shrink: 0; margin-top: 1px; }
+
+/* ─── Spacing Utilities ─── */
+.mt-6 { margin-top: 24px; }
+
+/* ─── Responsive Breakpoints ─── */
+
+/* Tablet */
+@media (min-width: 768px) {
+  .ghub-page-wrapper { padding: 28px 32px; gap: 24px; }
+
+  .ghub-main-title { font-size: 1.375rem; }
+  .ghub-subtitle { margin-left: 36px; }
+
+  .ghub-grid-2 { flex-direction: row; }
+  .ghub-metrics-grid { flex-direction: row; }
+  .ghub-toggle-group { flex-direction: row; }
+
+  .ghub-primary-card { padding: 28px; }
+  .ghub-secondary-card { padding: 28px; }
+
+  .ghub-results-header { flex-direction: row; align-items: center; justify-content: space-between; }
+
+  .ghub-card-header h2 { font-size: 0.9rem; }
+  .ghub-metric-card input { font-size: 2rem; }
+
+  .param-card-body { gap: 32px; }
+  .param-card-value { font-size: 1.75rem; }
+}
+
+/* Desktop */
+@media (min-width: 1024px) {
+  .ghub-page-wrapper {
+    height: calc(100vh - 100px);
+    overflow: hidden;
+    padding: 24px 32px;
+  }
+
+  .ghub-main-container {
+    display: grid;
+    grid-template-columns: 1.2fr 0.8fr;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    gap: 24px;
+  }
+
+  .ghub-primary-card {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .ghub-secondary-card { justify-content: center; overflow-y: auto; }
+
+  .ghub-results-wrapper {
+    grid-column: span 2;
+    height: 100%;
+    overflow: hidden;
+    flex-direction: row;
+  }
+
+  .ghub-results-grid {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 20px;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .ghub-params-column { overflow-y: auto; }
+
+  .ghub-illustration { max-height: 240px; }
+  .ghub-metric-card input { font-size: 2.25rem; }
+}
+
+/* Large Desktop */
+@media (min-width: 1280px) {
+  .ghub-page-wrapper { padding: 32px; }
+  .ghub-card-header h2 { font-size: 1rem; }
+  .param-card { padding: 24px; }
+}

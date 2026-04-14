@@ -1,5 +1,6 @@
 import { createDbClient } from '../client';
 import { seedUsers } from './user-seed';
+import { seedTestData } from './test-data-seed';
 import { TenantRegistry } from '../tenant-registry';
 import fs from 'fs';
 import path from 'path';
@@ -27,9 +28,15 @@ async function main() {
   console.log(`[Seed] Found ${tenants.length} tenants to seed.`);
 
   for (const tenant of tenants) {
-    console.log(`[Seed] Seeding for tenant: ${tenant.displayName} (${tenant.schemaName})...`);
-    const db = createDbClient(dbUrl, tenant.schemaName);
-    await seedUsers(db);
+    try {
+      console.log(`[Seed] Seeding for tenant: ${tenant.displayName} (${tenant.schemaName})...`);
+      const db = createDbClient(dbUrl, tenant.schemaName);
+      await seedUsers(db);
+      await seedTestData(db);
+    } catch (err) {
+      console.error(`[Seed] Failed to seed tenant ${tenant.displayName}:`, err);
+      // Continue to next tenant
+    }
   }
   
   console.log('[Seed] All multi-tenant seeding completed.');

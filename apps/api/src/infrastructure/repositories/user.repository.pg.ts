@@ -98,4 +98,25 @@ export class UserRepositoryPG implements UserRepository {
 
     return rows.map(r => r.name || '').filter(Boolean);
   }
+
+  async findPractitioners(): Promise<User[]> {
+    const rows = await this.db
+      .select()
+      .from(schema.users)
+      .where(and(eq(schema.users.type, 'DOCTOR'), isNull(schema.users.deletedAt), eq(schema.users.isActive, true)));
+
+    return rows.map(row => ({
+      id: row.id,
+      email: row.email,
+      name: row.name || '',
+      type: this.mapLegacyRole(row.type || 'PATIENT'),
+      contextId: row.contextId ?? 0,
+      roleId: row.roleId ?? 0,
+      roleName: row.roleName ?? '',
+      phone: row.phone,
+      isActive: row.isActive ?? true,
+      createdAt: row.createdAt || new Date(),
+      updatedAt: row.updatedAt || new Date(),
+    }));
+  }
 }

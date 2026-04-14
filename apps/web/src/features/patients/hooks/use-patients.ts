@@ -73,7 +73,7 @@ export function useUpdatePatient() {
   return useMutation({
     mutationFn: async ({ regid, ...input }: UpdatePatientInput & { regid: number }) => {
       const { data } = await apiClient.put<{ success: boolean; data: Patient }>(`/patients/${regid}`, input);
-      return data.data;
+      return data;
     },
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: [PATIENTS_KEY] });
@@ -121,7 +121,7 @@ export function useAddFamilyMember() {
   return useMutation({
     mutationFn: async ({ regid, memberRegid, relation }: { regid: number; memberRegid: number; relation: string }) => {
       const { data } = await apiClient.post<{ success: boolean; data: FamilyMember }>(`/patients/${regid}/family`, { memberRegid, relation });
-      return data.data;
+      return data;
     },
     onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: [FAMILY_KEY, vars.regid] }),
   });

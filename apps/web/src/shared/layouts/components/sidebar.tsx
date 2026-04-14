@@ -1,6 +1,10 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { useState } from 'react';
-import { LayoutDashboard, Users, UsersRound, Calendar, FileText, LogOut, X, Briefcase, ChevronDown, ChevronRight, Circle } from 'lucide-react';
+import {
+  LayoutDashboard, Users, UsersRound, Calendar, FileText,
+  LogOut, X, Briefcase, ChevronDown, ChevronRight, Circle,
+  BarChart3, Stethoscope, Receipt, Settings
+} from 'lucide-react';
 import { useAuthStore } from '@/shared/stores/auth-store';
 
 interface SidebarProps {
@@ -8,8 +12,25 @@ interface SidebarProps {
   onClose?: () => void;
 }
 
+type UserRole = 'SuperAdmin' | 'Admin' | 'Clinicadmin' | 'Doctor' | 'Receptionist' | string;
+
+interface NavSubItem {
+  label: string;
+  path: string;
+}
+
+interface NavItem {
+  label: string;
+  icon: React.ReactNode;
+  path?: string;
+  subItems?: NavSubItem[];
+  /** Roles allowed to see this item. If undefined, visible to all. */
+  roles?: UserRole[];
+}
+
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const logout = useAuthStore((s) => s.logout);
+  const user = useAuthStore((s) => s.user);
   const location = useLocation();
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({
     'Operations Hub': location.pathname.includes('/operations')
@@ -19,16 +40,79 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     setExpandedFolders(prev => ({ ...prev, [label]: !prev[label] }));
   };
 
-  const menuItems = [
-    { label: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/' },
-    { label: 'Patients', icon: <Users size={20} />, path: '/patients' },
-    { label: 'Consultations', icon: <FileText size={20} />, path: '/consultation-history' },
-    { label: 'Appointments', icon: <Calendar size={20} />, path: '/appointments' },
-    { label: 'Staff & Admin', icon: <Briefcase size={20} />, path: '/staff' },
-    { label: 'Family Groups', icon: <UsersRound size={20} />, path: '/family-groups' },
-    { 
-      label: 'Operations Hub', 
+  // Normalize the user's role — demo tokens may use uppercase or camelCase
+  const rawRole: string = (user as any)?.type || (user as any)?.role || '';
+  const normalizedRole = (() => {
+    const r = rawRole.toLowerCase();
+    if (r === 'superadmin') return 'SuperAdmin';
+    if (r === 'admin') return 'Admin';
+    if (r === 'clinicadmin') return 'Clinicadmin';
+    if (r === 'doctor') return 'Doctor';
+    if (r === 'receptionist') return 'Receptionist';
+    return rawRole; // fall-through for unknown roles
+  })();
+
+  const ALL_ROLES: UserRole[] = ['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist'];
+  const ADMIN_ROLES: UserRole[] = ['SuperAdmin', 'Admin', 'Clinicadmin'];
+  const CLINICAL_ROLES: UserRole[] = ['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor'];
+
+  const menuItems: NavItem[] = [
+    {
+      label: 'Dashboard',
       icon: <LayoutDashboard size={20} />,
+      path: '/',
+      roles: ALL_ROLES,
+    },
+    {
+      label: 'Patients',
+      icon: <Users size={20} />,
+      path: '/patients',
+      roles: ALL_ROLES,
+    },
+    {
+      label: 'Clinical Hub',
+      icon: <Stethoscope size={20} />,
+      roles: CLINICAL_ROLES,
+      subItems: [
+        { label: 'Case History', path: '/consultation-history' },
+        { label: 'Height & Weight Check', path: '/vitals-check' },
+        { label: 'Medical Case List', path: '/medical-cases' },
+      ]
+    },
+    {
+      label: 'Appointments',
+      icon: <Calendar size={20} />,
+      path: '/appointments',
+      roles: ALL_ROLES,
+    },
+    {
+      label: 'Billing',
+      icon: <Receipt size={20} />,
+      path: '/billing',
+      roles: [...ADMIN_ROLES, 'Doctor'],
+    },
+    {
+      label: 'Family Groups',
+      icon: <UsersRound size={20} />,
+      path: '/family-groups',
+      roles: CLINICAL_ROLES,
+    },
+    {
+      label: 'Staff & Admin',
+      icon: <Briefcase size={20} />,
+      path: '/staff',
+      roles: ['SuperAdmin', 'Admin', 'Clinicadmin'],
+    },
+    {
+      label: 'Analytics',
+      icon: <BarChart3 size={20} />,
+      path: '/analytics',
+      roles: [...ADMIN_ROLES, 'Doctor'],
+    },
+    {
+      label: 'Operations Hub',
+      icon: <Settings size={20} />,
+      roles: ['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor'],
       subItems: [
         { label: 'Logistics & Couriers', path: '/operations?tab=logistics' },
         { label: 'Lead CRM & Promos', path: '/operations?tab=crm' },
@@ -38,127 +122,59 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     },
   ];
 
-  const activeStyle = {
-    background: '#eef2ff',
-    color: '#6366f1',
-    fontWeight: 700
-  };
+  // Filter items by role
+  const visibleItems = menuItems.filter(item =>
+    !item.roles || item.roles.includes(normalizedRole)
+  );
 
   return (
     <>
       {/* Mobile Backdrop */}
       {isOpen && (
-        <div 
-          onClick={onClose}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(15, 23, 42, 0.4)',
-            backdropFilter: 'blur(4px)',
-            zIndex: 40
-          }}
-          className="mobile-only"
-        />
+        <div className="sb-backdrop" onClick={onClose} />
       )}
 
-      <div style={{
-        width: 'var(--sidebar-width)',
-        background: 'var(--bg-sidebar)',
-        borderRight: '1px solid var(--border)',
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100vh',
-        position: 'fixed',
-        left: 0,
-        top: 0,
-        zIndex: 50,
-        transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        transform: isOpen ? 'translateX(0)' : 'translateX(-100%)'
-      }} className="sidebar-container">
+      <div className="sb-container" data-open={isOpen}>
         {/* Brand & Close Button (Mobile) */}
-        <div style={{
-          padding: '24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          borderBottom: '1px solid var(--border-light)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{
-              width: 32,
-              height: 32,
-              background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              fontWeight: 800,
-              fontSize: 14
-            }}>HX</div>
-            <span style={{ fontWeight: 800, fontSize: 18, color: '#0f172a', letterSpacing: '-0.02em' }}>HomeoX</span>
-          </div>
-          <button onClick={onClose} className="mobile-only" style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}>
+        <div className="sb-brand">
+          <div className="sb-logo">HX</div>
+          <span className="sb-brand-name">HomeoX</span>
+          <button onClick={onClose} className="sb-close-btn mobile-only" aria-label="Close menu">
             <X size={20} />
           </button>
         </div>
 
+        {/* Role Badge */}
+        {normalizedRole && (
+          <div className="sb-role-badge">
+            <span>{getRoleLabel(normalizedRole)}</span>
+          </div>
+        )}
+
         {/* Nav */}
-        <nav style={{ flex: 1, padding: '24px 16px', display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {menuItems.map((item) => (
+        <nav className="sb-nav">
+          {visibleItems.map((item) => (
             <div key={item.label}>
               {item.subItems ? (
                 <>
                   <button
                     onClick={() => toggleFolder(item.label)}
-                    className="nav-item-hover"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      width: '100%',
-                      padding: '10px 16px',
-                      borderRadius: 12,
-                      fontSize: 14,
-                      fontWeight: 500,
-                      color: '#64748b',
-                      background: 'transparent',
-                      border: 'none',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                    }}
+                    className="sb-folder-btn"
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div className="sb-nav-item-inner">
                       {item.icon}
-                      {item.label}
+                      <span>{item.label}</span>
                     </div>
                     {expandedFolders[item.label] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                   </button>
                   {expandedFolders[item.label] && (
-                    <div style={{ paddingLeft: 38, marginTop: 4, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <div className="sb-sub-nav">
                       {item.subItems.map(subItem => (
                         <NavLink
                           key={subItem.label}
                           to={subItem.path}
                           onClick={onClose}
-                          style={({ isActive }) => {
-                            // Check if current search param matches this path's param
-                            const isSearchActive = location.search === subItem.path.split('?')[1] ? '?' + location.search : false;
-                            const reallyActive = isActive && location.search.includes(subItem.path.split('=')[1]);
-                            return {
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 8,
-                              padding: '8px 12px',
-                              borderRadius: 8,
-                              fontSize: 13,
-                              fontWeight: reallyActive ? 600 : 400,
-                              color: reallyActive ? '#4f46e5' : '#64748b',
-                              background: reallyActive ? '#eef2ff' : 'transparent',
-                              transition: 'all 0.2s',
-                            };
-                          }}
-                          className={({ isActive }) => isActive && location.search.includes(subItem.path.split('=')[1]) ? '' : 'nav-subitem-hover'}
+                          className="sb-sub-item"
                         >
                           <Circle size={6} fill="currentColor" />
                           {subItem.label}
@@ -170,21 +186,11 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               ) : (
                 <NavLink
                   to={item.path!}
-                  end
+                  end={item.path === '/'}
                   onClick={onClose}
-                  style={({ isActive }) => ({
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    padding: '10px 16px',
-                    borderRadius: 12,
-                    fontSize: 14,
-                    fontWeight: isActive ? 600 : 500,
-                    color: isActive ? '#6366f1' : '#64748b',
-                    background: isActive ? '#eef2ff' : 'transparent',
-                    transition: 'all 0.2s',
-                  })}
-                  className={({ isActive }) => isActive ? '' : 'nav-item-hover'}
+                  className={({ isActive }) =>
+                    `sb-nav-link${isActive ? ' sb-nav-link--active' : ''}`
+                  }
                 >
                   {item.icon}
                   {item.label}
@@ -195,48 +201,24 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         </nav>
 
         {/* Footer */}
-        <div style={{ padding: 16, borderTop: '1px solid var(--border-light)' }}>
-          <button
-            onClick={logout}
-            style={{
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              padding: '10px 16px',
-              borderRadius: 12,
-              fontSize: 14,
-              fontWeight: 600,
-              color: '#ef4444',
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              transition: 'background 0.2s'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.background = '#fef2f2'}
-            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-          >
+        <div className="sb-footer">
+          <button onClick={logout} className="sb-logout-btn">
             <LogOut size={20} />
             Sign Out
           </button>
         </div>
-
-        <style>{`
-          .nav-item-hover:hover {
-            background: #f8fafc;
-            color: #0f172a;
-          }
-          .nav-subitem-hover:hover {
-            color: #0f172a !important;
-          }
-          @media (min-width: 1024px) {
-            .sidebar-container {
-              position: sticky !important;
-              transform: none !important;
-            }
-          }
-        `}</style>
       </div>
     </>
   );
+}
+
+function getRoleLabel(role: string): string {
+  const labels: Record<string, string> = {
+    SuperAdmin: '⚡ Super Admin',
+    Admin: '🛡 Admin',
+    Clinicadmin: '🏥 Clinic Admin',
+    Doctor: '🩺 Doctor',
+    Receptionist: '📋 Reception',
+  };
+  return labels[role] ?? role;
 }

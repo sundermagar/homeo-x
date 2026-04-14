@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useFullMedicalCase, useManageClinicalRecords } from '../hooks/use-medical-cases';
 import { AssignPackageModal } from '../../packages/components/assign-package-modal';
+import { VitalsFormModal } from '../components/vitals-form-modal';
 import { useSendSms } from '../../communications/hooks/use-communications';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/infrastructure/api-client';
@@ -33,6 +34,7 @@ export default function MedicalCaseDetailPage() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('summary');
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showVitalsModal, setShowVitalsModal] = useState(false);
 
   const { data: fullData, isLoading, error } = useFullMedicalCase(Number(regid));
   const { finalizeConsultation } = useManageClinicalRecords();
@@ -152,10 +154,18 @@ export default function MedicalCaseDetailPage() {
 
           <div className="mc-workspace-body">
             {activeTab === 'summary'      && <SummaryView data={fullData} />}
-            {activeTab === 'vitals'       && <VitalsView vitals={vitals} />}
+            {activeTab === 'vitals'       && <VitalsView vitals={vitals} onRecord={() => setShowVitalsModal(true)} />}
             {activeTab === 'soap'         && <SoapView soap={soap} />}
             {activeTab === 'prescription' && <PrescriptionView prescriptions={prescriptions} />}
             {activeTab === 'communication' && <CommunicationView regid={Number(regid)} phone={(medicalCase as any).phone || ''} name={(medicalCase as any).patientName || ''} />}
+
+            {showVitalsModal && (
+              <VitalsFormModal 
+                visitId={medicalCase.id}
+                regid={Number(regid)}
+                onClose={() => setShowVitalsModal(false)}
+              />
+            )}
 
             {!['summary', 'vitals', 'soap', 'prescription', 'communication'].includes(activeTab) && (
               <div className="mc-wip">
@@ -215,29 +225,73 @@ function SummaryView({ data }: any) {
   );
 }
 
-function VitalsView({ vitals }: any) {
+function VitalCard({ label, value, unit, date, status }: any) {
   return (
-    <div className="mc-vitals-grid">
-      {vitals?.slice(0, 3).map((v: any) => (
-        <div key={v.id} className="mc-vital-card">
-          <div className="mc-vital-header">
-            <span className="mc-vital-label">Blood Pressure</span>
-            <span className="mc-vital-date">
-              {new Date(v.recordedAt).toLocaleDateString()}
-            </span>
-          </div>
-          <div className="mc-vital-value">
-            {v.systolicBp}/{v.diastolicBp}{' '}
-            <span className="mc-vital-unit">mmHg</span>
-          </div>
-          <div className="mc-vital-footer">
-            <Activity size={10} strokeWidth={1.6} /> Stable
+    <div className="mc-vital-card">
+      <div className="mc-vital-header">
+        <span className="mc-vital-label">{label}</span>
+        {date && <span className="mc-vital-date">{new Date(date).toLocaleDateString()}</span>}
+      </div>
+      <div className="mc-vital-value">
+        {value || '--'}
+        {unit && <span className="mc-vital-unit">{unit}</span>}
+      </div>
+      <div className="mc-vital-footer">
+        <Activity size={10} strokeWidth={2} /> {status || 'Normal'}
+      </div>
+    </div>
+  );
+}
+
+function VitalsView({ vitals, onRecord }: { vitals: any[]; onRecord: () => void }) {
+  const latest = vitals?.[0];
+
+  return (
+    <div className="mc-vitals-workspace">
+      <div className="mc-vitals-grid">
+        <VitalCard label="Blood Pressure" value={latest ? `${latest.systolicBp}/${latest.diastolicBp}` : null} unit="mmHg" date={latest?.recordedAt} />
+        <VitalCard label="Pulse Rate" value={latest?.pulseRate} unit="bpm" date={latest?.recordedAt} />
+        <VitalCard label="Weight" value={latest?.weightKg} unit="kg" date={latest?.recordedAt} />
+        <VitalCard label="Height" value={latest?.heightCm} unit="cm" date={latest?.recordedAt} />
+        <VitalCard label="Body Mass Index" value={latest?.bmi} unit="" date={latest?.recordedAt} />
+        <VitalCard label="Temperature" value={latest?.temperatureF} unit="°F" date={latest?.recordedAt} />
+        <VitalCard label="Oxygen (SpO2)" value={latest?.oxygenSaturation} unit="%" date={latest?.recordedAt} />
+        <VitalCard label="Resp. Rate" value={latest?.respiratoryRate} unit="/min" date={latest?.recordedAt} />
+        
+        <button className="mc-add-reading-btn" onClick={onRecord}>
+          <Plus size={16} strokeWidth={2} /> Record New Reading
+        </button>
+      </div>
+
+      {vitals && vitals.length > 1 && (
+        <div style={{ marginTop: 32 }}>
+          <div className="mc-section-header">Historical Records</div>
+          <div className="mc-table-wrap" style={{ marginTop: 16 }}>
+            <table className="mc-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Weight</th>
+                  <th>BP</th>
+                  <th>Pulse</th>
+                  <th>BMI</th>
+                </tr>
+              </thead>
+              <tbody>
+                {vitals.slice(1).map(v => (
+                  <tr key={v.id}>
+                    <td className="mc-vital-date">{new Date(v.recordedAt).toLocaleDateString()}</td>
+                    <td style={{ fontWeight: 600 }}>{v.weightKg} kg</td>
+                    <td style={{ fontFamily: 'var(--font-mono)' }}>{v.systolicBp}/{v.diastolicBp}</td>
+                    <td>{v.pulseRate} bpm</td>
+                    <td>{v.bmi}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
-      ))}
-      <button className="mc-add-reading-btn">
-        <Plus size={16} strokeWidth={1.6} /> Record Reading
-      </button>
+      )}
     </div>
   );
 }

@@ -5,7 +5,7 @@ import { TenantRegistry } from './tenant-registry';
 
 dotenv.config({ path: path.join(process.cwd(), '../../.env') });
 
-const connectionString = process.env.DATABASE_URL;
+const connectionString = process.env['DATABASE_URL'];
 
 if (!connectionString) {
   console.error("No DATABASE_URL found.");
@@ -26,7 +26,7 @@ async function fixTenant(schemaName: string) {
       );
     `;
 
-    if (!tableExists || !tableExists.exists) {
+    if (!tableExists || !tableExists['exists']) {
       console.log(`payments table does not exist in ${schemaName}, skipping...`);
       return;
     }

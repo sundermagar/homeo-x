@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Clock, UserCheck, CheckCircle2, Users, RefreshCw, Plus, Ticket, ChevronRight, Stethoscope } from 'lucide-react';
 import { useWaitlist, useCallNext, useCompleteVisit, useTodayAppointments, useIssueToken, useAddToWaitlist } from '../hooks/use-appointments';
 import { apiClient } from '@/infrastructure/api-client';
+import { VitalsFormModal } from '../../medical-case/components/vitals-form-modal';
 import '../styles/appointments.css';
 
 const WAIT_STATUS = { 0: 'Waiting', 1: 'Called', 2: 'Done' } as Record<number, string>;
@@ -13,6 +14,7 @@ export default function TokenQueuePage() {
   const [tab, setTab] = useState<'queue' | 'tokens'>('queue');
   const [doctorFilter, setDoctorFilter] = useState('');
   const [doctors, setDoctors] = useState<any[]>([]);
+  const [activeVitals, setActiveVitals] = useState<{ visitId: number, regid: number } | null>(null);
 
   useEffect(() => {
     apiClient.get('/doctors').then(({ data }) => setDoctors(Array.isArray(data) ? data : [])).catch(() => {});
@@ -132,15 +134,22 @@ export default function TokenQueuePage() {
                     <div className="appt-token-patient">{w.patientName ?? `Patient #${w.patientId}`}</div>
                     {w.doctorName && <div style={{ fontSize: '0.72rem', color: '#888786', marginTop: 2 }}>{w.doctorName}</div>}
                     <div className="appt-token-actions">
-                      <button
-                        className="appt-btn appt-btn-sm"
-                        style={{ background: '#F0FDF4', color: '#16A34A', borderColor: '#BBF7D0' }}
-                        onClick={() => handleComplete(w.id)}
-                        disabled={completeVisit.isPending}
-                      >
-                        <CheckCircle2 size={13} strokeWidth={1.6} /> Done
-                      </button>
-                    </div>
+                        <button
+                          className="appt-btn appt-btn-sm"
+                          style={{ background: '#F0FDF4', color: '#16A34A', borderColor: '#BBF7D0' }}
+                          onClick={() => handleComplete(w.id)}
+                          disabled={completeVisit.isPending}
+                        >
+                          <CheckCircle2 size={13} strokeWidth={1.6} /> Done
+                        </button>
+                        <button
+                          className="appt-btn appt-btn-sm"
+                          style={{ background: '#F5F3FF', color: '#7C3AED', borderColor: '#DDD6FE' }}
+                          onClick={() => setActiveVitals({ visitId: w.appointmentId || w.id, regid: w.regid || w.patientId })}
+                        >
+                          <Activity size={13} strokeWidth={1.6} /> Vitals
+                        </button>
+                      </div>
                   </div>
                 ))}
               </div>
@@ -177,15 +186,22 @@ export default function TokenQueuePage() {
                           <div style={{ fontSize: '0.72rem', color: '#4A4A47', marginTop: 2 }}>₹{w.consultationFee}</div>
                         )}
                         <div className="appt-token-actions">
-                          <button
-                            className="appt-btn appt-btn-sm"
-                            style={{ background: '#EFF6FF', color: '#2563EB', borderColor: '#BFDBFE' }}
-                            onClick={() => handleCall(w.id)}
-                            disabled={callNext.isPending}
-                          >
-                            <ChevronRight size={13} strokeWidth={1.6} /> Call
-                          </button>
-                        </div>
+                            <button
+                              className="appt-btn appt-btn-sm"
+                              style={{ background: '#EFF6FF', color: '#2563EB', borderColor: '#BFDBFE' }}
+                              onClick={() => handleCall(w.id)}
+                              disabled={callNext.isPending}
+                            >
+                              <ChevronRight size={13} strokeWidth={1.6} /> Call
+                            </button>
+                            <button
+                              className="appt-btn appt-btn-sm"
+                              style={{ background: '#F5F3FF', color: '#7C3AED', borderColor: '#DDD6FE' }}
+                              onClick={() => setActiveVitals({ visitId: w.appointmentId || w.id, regid: w.regid || w.patientId })}
+                            >
+                              <Activity size={13} strokeWidth={1.6} /> Vitals
+                            </button>
+                          </div>
                       </div>
                     ))}
                   </div>
@@ -270,16 +286,23 @@ export default function TokenQueuePage() {
                             <Ticket size={12} strokeWidth={1.6} /> Issue Token
                           </button>
                         ) : (
+                            <button
+                              className="appt-btn appt-btn-sm"
+                              style={{ background: '#F0FDF4', color: '#16A34A', borderColor: '#BBF7D0' }}
+                              onClick={() => addToWaitlist.mutateAsync({ patientId: a.patientId!, appointmentId: a.id, doctorId: a.doctorId ?? undefined })}
+                              disabled={addToWaitlist.isPending}
+                            >
+                              <Plus size={12} strokeWidth={1.6} /> Check In
+                            </button>
+                          )}
                           <button
                             className="appt-btn appt-btn-sm"
-                            style={{ background: '#F0FDF4', color: '#16A34A', borderColor: '#BBF7D0' }}
-                            onClick={() => addToWaitlist.mutateAsync({ patientId: a.patientId!, appointmentId: a.id, doctorId: a.doctorId ?? undefined })}
-                            disabled={addToWaitlist.isPending}
+                            style={{ marginLeft: 6, background: '#F5F3FF', color: '#7C3AED', border: '1px solid #DDD6FE' }}
+                            onClick={() => setActiveVitals({ visitId: a.id, regid: a.regid || a.patientId })}
                           >
-                            <Plus size={12} strokeWidth={1.6} /> Check In
+                            <Activity size={12} strokeWidth={1.6} /> Vitals
                           </button>
-                        )}
-                      </td>
+                        </td>
                     </tr>
                   ))}
                 </tbody>
@@ -287,6 +310,15 @@ export default function TokenQueuePage() {
             </div>
           )}
         </div>
+      )}
+
+      {activeVitals && (
+        <VitalsFormModal 
+          visitId={activeVitals.visitId}
+          regid={activeVitals.regid}
+          onClose={() => setActiveVitals(null)}
+          onSuccess={() => { wRefetch(); aRefetch(); }}
+        />
       )}
 
       <style>{`@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }`}</style>

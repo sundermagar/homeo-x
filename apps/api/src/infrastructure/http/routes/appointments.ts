@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { AppointmentRepositoryPG } from '../../repositories/appointment.repository.pg';
-import { MockAppointmentRepository } from '../../repositories/mocks/mock-appointment.repository';
 import { ListAppointmentsUseCase } from '../../../domains/appointment/use-cases/list-appointments.use-case';
 import { GetAppointmentUseCase } from '../../../domains/appointment/use-cases/get-appointment.use-case';
 import { BookAppointmentUseCase } from '../../../domains/appointment/use-cases/book-appointment.use-case';
@@ -13,12 +12,7 @@ import { sendSuccess } from '../../../shared/response-formatter';
 
 export const appointmentsRouter: Router = Router();
 
-const getRepo = (req: any) => {
-  if (req.user?.id === 101 || req.user?.id === 102) {
-    return new MockAppointmentRepository();
-  }
-  return new AppointmentRepositoryPG(req.tenantDb);
-};
+const getRepo = (req: any) => new AppointmentRepositoryPG(req.tenantDb);
 
 // Apply auth to all routes
 appointmentsRouter.use(authMiddleware);

@@ -27,3 +27,30 @@ export function sendSuccess(
 
   return res.status(statusCode).json(response);
 }
+
+/**
+ * Standardizes error API responses.
+ */
+export function sendError(
+  res: Response,
+  message: string,
+  statusCode: number = 500,
+  code?: string
+) {
+  const response: ApiResponse = {
+    success: false,
+    error: message,
+  };
+
+  if (code) {
+    response.code = code;
+  }
+
+  // Get correlationId from request headers if added by middleware
+  const correlationId = res.getHeader('X-Correlation-ID');
+  if (correlationId) {
+    response.correlationId = correlationId.toString();
+  }
+
+  return res.status(statusCode).json(response);
+}

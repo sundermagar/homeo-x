@@ -2,12 +2,9 @@
 
 /* ─── Layout ─── */
 .appt-page {
-  padding: 16px;
-  max-width: 1400px;
-  margin: 0 auto;
+  padding: 0;
+  width: 100%;
 }
-
-@media (min-width: 768px) { .appt-page { padding: 24px; } }
 
 /* ─── Stats Bar ─── */
 .appt-stats-bar {

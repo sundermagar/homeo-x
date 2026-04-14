@@ -3,12 +3,12 @@
 
 /* ─── Page Layout ─── */
 .bill-page {
-  padding: 16px;
+  padding: 0;
   max-width: 1400px;
   margin: 0 auto;
 }
 
-@media (min-width: 768px) { .bill-page { padding: 24px; } }
+@media (min-width: 768px) { .bill-page { padding: 0; } }
 
 /* ─── Page Header ─── */
 .bill-header {

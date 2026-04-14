@@ -10,6 +10,8 @@ declare global {
       tenantDb: ReturnType<typeof createDbClient>;
       tenantSlug: string;
       publicDb: ReturnType<typeof createDbClient>;
+      db: ReturnType<typeof createDbClient>;
+      publicdb: ReturnType<typeof createDbClient>;
     }
   }
 }
@@ -21,6 +23,7 @@ export function tenantMiddleware(req: Request, res: Response, next: NextFunction
 
   // Always attach a public schema client (for organizations, accounts, etc.)
   req.publicDb = createDbClient(process.env.DATABASE_URL!);
+  req.publicdb = req.publicDb;
 
   if (!tenant) {
     // Fallback to demo for development
@@ -36,5 +39,6 @@ export function tenantMiddleware(req: Request, res: Response, next: NextFunction
     req.tenantDb = createDbClient(process.env.DATABASE_URL!, tenant.schemaName);
   }
 
+  req.db = req.tenantDb;
   next();
 }

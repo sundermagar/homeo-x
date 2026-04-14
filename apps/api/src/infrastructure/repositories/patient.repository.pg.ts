@@ -97,7 +97,7 @@ export class PatientRepositoryPg implements PatientRepository {
     const [row] = await this.db
       .insert(patients)
       .values({
-        id: nextRegid, // Legacy uses ID as primary key manually sometimes
+        id: nextRegid, // Legacy uses ID as primary key manually
         regid: nextRegid,
         title: input.title || '',
         firstName: input.firstName,
@@ -117,15 +117,16 @@ export class PatientRepositoryPg implements PatientRepository {
         altAddress: input.altAddress || '',
         religion: input.religion || '',
         occupation: input.occupation || '',
-        // Note: 'status' in table maps to 'maritalStatus' in domain
-        status: (input as any).maritalStatus || '', 
-        referenceType: input.referenceType || '',
-        // referredBy, assistantDoctor, etc. from input
-        referredBy: (input as any).referredBy || '',
-        assistantDoctor: (input as any).assistantDoctor || '',
+        // 'status' column = marital status in the legacy table
+        status: (input as any).maritalStatus || '',
+        // 'reference' = referenceType text (actual column name is 'reference', NOT 'reference_type')
+        reference: input.referenceType || '',
+        referedBy: (input as any).referredBy || '',
+        assitantDoctor: (input as any).assistantDoctor || '',
         consultationFee: (input as any).consultationFee || 0,
         courierOutstation: (input as any).courierOutstation ? '1' : '0',
-        dateOfBirth: input.dateOfBirth?.toISOString() || null,
+        coupon: '', // Required by legacy database
+        dateOfBirth: input.dateOfBirth ? String(input.dateOfBirth) : null,
         createdAt: new Date(),
         updatedAt: new Date(),
       } as any)
@@ -135,14 +136,37 @@ export class PatientRepositoryPg implements PatientRepository {
   }
 
   async update(regid: number, input: UpdatePatientInput): Promise<Patient | null> {
+    const updateData: Record<string, unknown> = {
+      updatedAt: new Date(),
+    };
+    if (input.firstName    !== undefined) updateData.firstName    = input.firstName;
+    if (input.middleName   !== undefined) updateData.middleName   = input.middleName;
+    if (input.surname      !== undefined) updateData.surname      = input.surname;
+    if (input.gender       !== undefined) updateData.gender       = input.gender;
+    if (input.title        !== undefined) updateData.title        = input.title;
+    if (input.phone        !== undefined) updateData.phone        = input.phone;
+    if (input.mobile1      !== undefined) updateData.mobile1      = input.mobile1;
+    if (input.mobile2      !== undefined) updateData.mobile2      = input.mobile2;
+    if (input.email        !== undefined) updateData.email        = input.email;
+    if (input.address      !== undefined) updateData.address      = input.address;
+    if (input.road         !== undefined) updateData.road         = input.road;
+    if (input.area         !== undefined) updateData.area         = input.area;
+    if (input.city         !== undefined) updateData.city         = input.city;
+    if (input.state        !== undefined) updateData.state        = input.state;
+    if (input.pin          !== undefined) updateData.pin          = input.pin;
+    if (input.altAddress   !== undefined) updateData.altAddress   = input.altAddress;
+    if (input.religion     !== undefined) updateData.religion     = input.religion;
+    if (input.occupation   !== undefined) updateData.occupation   = input.occupation;
+    if (input.dateOfBirth  !== undefined) updateData.dateOfBirth  = input.dateOfBirth ? String(input.dateOfBirth) : null;
+    if (input.referenceType !== undefined) updateData.reference   = input.referenceType; // actual col = 'reference'
+    if ((input as any).maritalStatus !== undefined) updateData.status   = (input as any).maritalStatus;
+    if ((input as any).referredBy    !== undefined) updateData.referedBy = (input as any).referredBy;
+    if ((input as any).assistantDoctor !== undefined) updateData.assitantDoctor = (input as any).assistantDoctor;
+    if ((input as any).consultationFee !== undefined) updateData.consultationFee = (input as any).consultationFee;
+
     const [row] = await this.db
       .update(patients)
-      .set({ 
-        ...input, 
-        updatedAt: new Date(),
-        // Map domain 'maritalStatus' back to DB 'status' if present
-        status: (input as any).maritalStatus 
-      } as any)
+      .set(updateData as any)
       .where(eq(patients.regid, regid))
       .returning();
     return row ? this.toDomain(row) : null;
@@ -312,13 +336,20 @@ export class PatientRepositoryPg implements PatientRepository {
       })
       .returning();
 
+    // Resolve member name and mobile for the returned object
+    const [p] = await this.db
+      .select({ firstName: patients.firstName, surname: patients.surname, phone: patients.phone })
+      .from(patients)
+      .where(eq(patients.regid, data.memberRegid))
+      .limit(1);
+
     return {
       id: row!.id,
       regid: row!.regid!,
       memberRegid: row!.memberRegid!,
       relation: row!.relation || '',
-      memberName: null,
-      memberMobile: null,
+      memberName: p ? `${p.firstName} ${p.surname}`.trim() : null,
+      memberMobile: p?.phone || null,
     };
   }
 
@@ -359,9 +390,10 @@ export class PatientRepositoryPg implements PatientRepository {
       occupation: row.occupation || null,
       maritalStatus: row.status || null,
       bloodGroup: row.bloodGroup || null,
-      referenceType: row.referenceType || row.reference || null,
+      // 'reference' is the actual DB column; domain calls it 'referenceType'
+      referenceType: row.reference || null,
       referredBy: row.referedBy || null,
-      assistantDoctor: row.assistantDoctor || row.assitantDoctor || null,
+      assistantDoctor: row.assitantDoctor || null,
       consultationFee: row.consultationFee ? Number(row.consultationFee) : null,
       courierOutstation: row.courierOutstation === '1',
       createdAt: row.createdAt || new Date(),

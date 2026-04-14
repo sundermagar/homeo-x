@@ -29,14 +29,23 @@ export default function LoginPage() {
   }, [isAuthenticated, navigate]);
 
   // ─── Instant 1-click demo login ───────────────────────────────────────────
+  const demoUsers = [
+    { email: 'doctor@homeox.com', name: 'Dr. Demo', type: 'Doctor', id: 101, role: '🩺 Doctor', icon: '🩺' },
+    { email: 'admin@homeox.com', name: 'Admin Demo', type: 'Admin', id: 102, role: '🛡 Admin', icon: '🛡' },
+    { email: 'reception@homeox.com', name: 'Reception Demo', type: 'Receptionist', id: 103, role: '📋 Reception', icon: '📋' },
+    { email: 'clinicadmin@homeox.com', name: 'Clinic Admin Demo', type: 'Clinicadmin', id: 104, role: '🏥 Clinic Admin', icon: '🏥' },
+  ];
+
   const loginAsDemo = (demoEmail: string) => {
-    const isDoctor = demoEmail === 'doctor@homeox.com';
+    const demo = demoUsers.find(d => d.email === demoEmail);
     setAuth('demo-token-123', {
-      id: isDoctor ? 101 : 102,
-      email: demoEmail,
-      name: isDoctor ? 'Dr. Demo' : 'Admin Demo',
-      type: isDoctor ? 'Doctor' : 'Admin',
-      clinicId: 1,
+      id: demo?.id ?? 101,
+      email: demo?.email ?? demoEmail,
+      name: demo?.name ?? 'Demo User',
+      type: demo?.type ?? 'Doctor',
+      roleId: demo?.id ?? 1,
+      roleName: demo?.type ?? 'Doctor',
+      contextId: 1,
     } as any);
     navigate('/', { replace: true });
   };
@@ -61,10 +70,7 @@ export default function LoginPage() {
     }
 
     // Demo bypass
-    if (
-      password === 'password123' &&
-      (email === 'doctor@homeox.com' || email === 'admin@homeox.com')
-    ) {
+    if (password === 'password123' && demoUsers.some(d => d.email === email)) {
       loginAsDemo(email);
       setIsLoading(false);
       return;
@@ -172,26 +178,19 @@ export default function LoginPage() {
             <span className="demo-badge">⚡ 1-Click Demo Access</span>
           </div>
           <div className="demo-options">
-            <button
-              className="demo-btn"
-              type="button"
-              onClick={() => loginAsDemo('doctor@homeox.com')}
-            >
-              <div className="demo-btn-info">
-                <span className="demo-btn-role">🩺 Doctor</span>
-                <span className="demo-btn-email">doctor@homeox.com</span>
-              </div>
-            </button>
-            <button
-              className="demo-btn"
-              type="button"
-              onClick={() => loginAsDemo('admin@homeox.com')}
-            >
-              <div className="demo-btn-info">
-                <span className="demo-btn-role">🛡 Admin</span>
-                <span className="demo-btn-email">admin@homeox.com</span>
-              </div>
-            </button>
+            {demoUsers.map(demo => (
+              <button
+                key={demo.email}
+                className="demo-btn"
+                type="button"
+                onClick={() => loginAsDemo(demo.email)}
+              >
+                <div className="demo-btn-info">
+                  <span className="demo-btn-role">{demo.icon} {demo.role}</span>
+                  <span className="demo-btn-email">{demo.email}</span>
+                </div>
+              </button>
+            ))}
           </div>
           <p style={{ textAlign: 'center', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
             Click a role above to log in instantly — no password required.

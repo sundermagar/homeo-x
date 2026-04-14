@@ -14,31 +14,6 @@ export class LoginUseCase {
   constructor(private readonly userRepository: UserRepository) {}
 
   async execute(email: string, password: string): Promise<Result<LoginResult>> {
-    // ─── Demo Bypass (No Database Connection Required) ──────────────────────────
-    if (email === 'doctor@homeox.com' && password === 'password123') {
-      const payload: AuthTokenPayload = {
-        id: 2, // Matches seeded user ID
-        email: 'doctor@homeox.com',
-        name: 'Demo Doctor (Offline Mode)',
-        type: 'Doctor' as any,
-        contextId: 1, 
-        roleId: 2, 
-        roleName: 'Doctor',
-      };
-
-      const token = jwt.sign(payload, appConfig.jwt.secret as jwt.Secret, {
-        expiresIn: '24h',
-      });
-
-      return ok({
-        token,
-        user: {
-          ...payload,
-          permissions: this.calculatePermissions('Doctor', []),
-        },
-      });
-    }
-
     // ─── Standard Database Authentication ───────────────────────────────────────
     const passwordHash = await this.userRepository.getUserPassword(email);
     if (!passwordHash) {

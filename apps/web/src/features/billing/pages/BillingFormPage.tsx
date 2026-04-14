@@ -91,7 +91,7 @@ export default function BillingFormPage() {
               </div>
               {search && patientsQuery.data?.data && (
                 <div className="bill-card" style={{ position: 'absolute', zIndex: 10, width: 'calc(100% - 40px)', maxHeight: '200px', overflowY: 'auto', boxShadow: '0 8px 24px rgba(0,0,0,0.1)' }}>
-                  {patientsQuery.data.data.map(p => (
+                  {patientsQuery.data.data.map((p: any) => (
                     <button
                       key={p.regid}
                       type="button"

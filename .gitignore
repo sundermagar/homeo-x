@@ -1,7 +1,10 @@
 # Dependencies
 node_modules/
 .pnpm-store/
-.pnpm-debug.log
+.pnpm-debug.log*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # Build
 dist/
@@ -10,12 +13,20 @@ out/
 .DS_Store
 coverage/
 *.tsbuildinfo
+.turbo/
+.cache/
+.parcel-cache/
+.contentlayer/
 
 # Scratch/Legacy
 MMC-javascript/
 MMC-javascript 2/
 server_log.txt
 api_debug.log
+*.log
+tmp/
+temp/
+!memory/
 
 # Environment
 .env
@@ -31,3 +42,11 @@ api_debug.log
 
 # Drizzle
 drizzle/
+
+# Testing
+test_auth.js
+test_hash.js
+test-results/
+playwright-report/
+blob-report/
+test-results/

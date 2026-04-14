@@ -6,7 +6,7 @@
   height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: var(--space-4, 16px);
+  padding: 0;
 }
 
 .analytics-page-header {
@@ -29,13 +29,13 @@
 }
 
 @media (min-width: 640px) {
-  .analytics-page { padding: var(--space-6, 24px); }
+  .analytics-page { padding: 0; }
   .analytics-page-title { font-size: 1.5rem; }
   .analytics-page-subtitle { font-size: 0.875rem; }
 }
 
 @media (min-width: 1024px) {
-  .analytics-page { padding: var(--space-8, 32px); }
+  .analytics-page { padding: 0; }
   .analytics-page-title { font-size: 1.75rem; }
 }
 
@@ -128,12 +128,12 @@
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: var(--space-4, 16px);
+  padding: 0;
   background: var(--bg-main);
 }
 
 @media (min-width: 640px) {
-  .analytics-tab-content { padding: var(--space-6, 24px); }
+  .analytics-tab-content { padding: 0; }
 }
 
 /* ─── Card ─── */
