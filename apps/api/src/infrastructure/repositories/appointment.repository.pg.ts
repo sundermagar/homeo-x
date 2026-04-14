@@ -308,7 +308,7 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
     if (row?.appointmentId) {
       await this.db
         .update(schema.appointments)
-        .set({ status: AppointmentStatus.Done, updatedAt: new Date() })
+        .set({ status: AppointmentStatus.Completed, updatedAt: new Date() })
         .where(eq(schema.appointments.id, row.appointmentId));
     }
   }

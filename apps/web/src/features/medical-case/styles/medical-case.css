@@ -3,14 +3,15 @@
 
 /* ─── 1. Shared Layout & Core ─── */
 .mc-page {
-  padding: 16px;
-  width: 100%;
+  padding: 0;
+  max-width: 1400px;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-@media (min-width: 768px) { .mc-page { padding: 24px; gap: 24px; } }
+@media (min-width: 768px) { .mc-page { padding: 0; gap: 24px; } }
 
 .mc-header {
   display: flex;
@@ -138,8 +139,8 @@
 .mc-visit-track { font-size: 0.72rem; color: var(--success); }
 
 /* ─── 3. Detail View: Responsive Layout ─── */
-.mc-detail-page { display: flex; flex-direction: column; gap: 16px; padding: 16px; }
-@media (min-width: 768px) { .mc-detail-page { padding: 24px; gap: 24px; } }
+.mc-detail-page { display: flex; flex-direction: column; gap: 16px; padding: 0; }
+@media (min-width: 768px) { .mc-detail-page { padding: 0; gap: 24px; } }
 
 .mc-detail-header { display: flex; flex-direction: column; gap: 16px; }
 @media (min-width: 768px) { .mc-detail-header { flex-direction: row; justify-content: space-between; align-items: center; } }
@@ -228,16 +229,54 @@
 @media (min-width: 640px) { .mc-vitals-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (min-width: 1280px) { .mc-vitals-grid { grid-template-columns: repeat(3, 1fr); } }
 
-.mc-vital-card { padding: 20px; border: 1.5px solid var(--bg-surface-2); border-radius: 14px; background: white; }
-.mc-vital-header { display: flex; justify-content: space-between; margin-bottom: 12px; }
-.mc-vital-label { font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
-.mc-vital-date { font-size: 0.68rem; color: var(--text-muted); }
-.mc-vital-value { font-size: 1.6rem; font-weight: 800; color: var(--text-main); font-family: var(--font-mono); margin: 4px 0; }
-.mc-vital-unit { font-size: 0.85rem; color: var(--text-muted); font-weight: 400; margin-left: 2px; }
-.mc-vital-footer { font-size: 0.68rem; font-weight: 700; color: var(--success); display: flex; align-items: center; gap: 4px; margin-top: 8px; }
+.mc-vital-card { padding: 18px; border: 1px solid var(--border-main); border-radius: 12px; background: white; transition: all 150ms; }
+.mc-vital-card:hover { border-color: var(--primary); box-shadow: 0 4px 12px rgba(0,0,0,0.04); }
+.mc-vital-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.mc-vital-label { font-size: 0.68rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.mc-vital-date { font-size: 0.65rem; color: var(--text-muted); }
+.mc-vital-value { font-size: 1.4rem; font-weight: 800; color: var(--text-main); font-family: var(--font-mono); line-height: 1; }
+.mc-vital-unit { font-size: 0.75rem; color: var(--text-muted); font-weight: 500; margin-left: 2px; }
+.mc-vital-footer { font-size: 0.65rem; font-weight: 700; color: var(--success); display: flex; align-items: center; gap: 4px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--bg-surface-2); }
 
-.mc-add-reading-btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 20px; border: 2px dashed var(--border-main); border-radius: 14px; background: transparent; color: var(--text-muted); font-weight: 600; font-size: 0.875rem; cursor: pointer; transition: all 150ms; }
+.mc-add-reading-btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 18px; border: 2px dashed var(--border-main); border-radius: 12px; background: transparent; color: var(--text-muted); font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: all 150ms; }
 .mc-add-reading-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-tint); }
+
+/* ─── 6. Modals ─── */
+.mc-modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(4px); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.mc-modal { background: white; border-radius: 20px; width: 100%; max-width: 600px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); overflow: hidden; display: flex; flex-direction: column; }
+.mc-modal-header { padding: 24px; border-bottom: 1px solid var(--border-main); display: flex; justify-content: space-between; align-items: flex-start; }
+.mc-modal-title-group { display: flex; gap: 16px; }
+.mc-modal-icon-bg { width: 44px; height: 44px; border-radius: 12px; background: var(--primary-tint); color: var(--primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.mc-modal-title { font-size: 1.15rem; font-weight: 800; color: var(--text-main); margin: 0; }
+.mc-modal-sub { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; }
+.mc-modal-close { background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; border-radius: 6px; }
+.mc-modal-close:hover { background: var(--bg-surface-2); color: var(--text-main); }
+
+.mc-modal-body { padding: 24px; max-height: 70vh; overflow-y: auto; }
+.mc-form-section { margin-bottom: 24px; }
+.mc-section-header { font-size: 0.72rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+.mc-section-header::after { content: ''; flex: 1; height: 1px; background: var(--bg-surface-2); }
+
+.mc-input-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.mc-input-group { display: flex; flex-direction: column; gap: 6px; }
+.mc-input-group label { font-size: 0.78rem; font-weight: 700; color: var(--text-secondary); }
+.mc-input-wrap { position: relative; display: flex; align-items: center; }
+.mc-input-icon { position: absolute; left: 12px; color: var(--text-muted); }
+.mc-input-wrap input, .mc-input-group textarea { width: 100%; padding: 10px 12px 10px 34px; border: 1px solid var(--border-main); border-radius: 8px; font-size: 0.9rem; font-family: inherit; transition: all 150ms; }
+.mc-input-group textarea { padding-left: 12px; }
+.mc-input-wrap input:focus, .mc-input-group textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+
+.mc-bmi-display { height: 42px; display: flex; align-items: center; justify-content: center; background: var(--bg-surface-2); border-radius: 8px; font-weight: 800; font-family: var(--font-mono); font-size: 1.25rem; color: var(--text-main); border: 1px solid var(--border-main); }
+.mc-bmi-display[data-status='warning'] { background: #FFF7ED; color: #EA580C; border-color: #FED7AA; }
+
+.mc-modal-footer { padding: 20px 24px; background: var(--bg-surface-2); border-top: 1px solid var(--border-main); display: flex; justify-content: flex-end; gap: 12px; }
+.mc-btn-secondary { background: white; border: 1px solid var(--border-main); padding: 10px 20px; border-radius: 8px; font-weight: 700; font-size: 0.875rem; color: var(--text-secondary); cursor: pointer; }
+.mc-btn-secondary:hover { background: var(--bg-surface-2); }
+
+.pulse-icon { animation: heartPulse 1.5s ease-in-out infinite; }
+@keyframes heartPulse { 0% { transform: scale(1); } 50% { transform: scale(1.15); } 100% { transform: scale(1); } }
+.fade-in { animation: modalFadeIn 300ms cubic-bezier(0.16, 1, 0.3, 1); }
+@keyframes modalFadeIn { from { opacity: 0; transform: translateY(10px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
 
 /* SOAP View */
 .mc-soap-wrap { display: flex; flex-direction: column; gap: 20px; }
@@ -267,6 +306,14 @@
 .mc-avatar { width: 40px; height: 40px; border-radius: 10px; background: var(--primary-tint); color: var(--primary); font-weight: 800; display: flex; align-items: center; justify-content: center; border: 1px solid var(--primary-border); font-size: 0.85rem; flex-shrink: 0; }
 .mc-status-dot { width: 8px; height: 8px; border-radius: 50%; background: #22C55E; box-shadow: 0 0 0 2px #DCFCE7; }
 .mc-status-dot.inactive { background: #94A3B8; box-shadow: 0 0 0 2px #F1F5F9; }
+
+.mc-row-arrow { background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: all 150ms; }
+.mc-row-arrow:hover { background: var(--bg-surface-2); color: var(--primary); }
+.mc-arrow-cell { text-align: right; }
+
+@media (max-width: 1023px) {
+  .mc-arrow-cell { display: none; }
+}
 
 /* WIP / Loading states */
 .mc-wip { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; text-align: center; }

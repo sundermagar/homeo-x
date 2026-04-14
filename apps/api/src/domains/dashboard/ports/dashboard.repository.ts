@@ -1,0 +1,18 @@
+import type { 
+  DashboardKpis, 
+  QueueItem, 
+  ActivityItem, 
+  SimpleReminder, 
+  BirthdayPatient,
+  RevenueSeries
+} from '@mmc/types';
+
+export interface IDashboardRepository {
+  getKpis(period: string, contextId: number, doctorId?: number): Promise<DashboardKpis>;
+  getTodayQueue(contextId: number, doctorId?: number): Promise<QueueItem[]>;
+  getRecentActivity(contextId: number, limit: number): Promise<ActivityItem[]>;
+  getPendingReminders(contextId: number, limit: number): Promise<SimpleReminder[]>;
+  getBirthdays(contextId: number): Promise<BirthdayPatient[]>;
+  getRevenueSeries(period: string, contextId: number): Promise<RevenueSeries[]>;
+  markReminderDone(id: number): Promise<void>;
+}

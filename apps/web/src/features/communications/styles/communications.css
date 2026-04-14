@@ -2,12 +2,14 @@
 
 /* ─── Page Layout ─── */
 .comm-page {
-  padding: 16px;
+  padding: 0;
+  max-width: 1280px;
+  margin: 0 auto;
   width: 100%;
 }
 
-@media (min-width: 640px) { .comm-page { padding: 20px; } }
-@media (min-width: 1024px) { .comm-page { padding: 24px; } }
+@media (min-width: 640px) { .comm-page { padding: 0; } }
+@media (min-width: 1024px) { .comm-page { padding: 0; } }
 
 /* ─── Header ─── */
 .comm-header {

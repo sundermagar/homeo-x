@@ -201,7 +201,12 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
                       key={t}
                       type="button"
                       className={`appt-type-btn ${form.visitType === t ? 'active' : ''}`}
-                      onClick={() => set('visitType', t)}
+                      onClick={() => {
+                        set('visitType', t);
+                        if (t === VisitType.New) {
+                          setForm(f => ({ ...f, patientId: '', patientName: '' }));
+                        }
+                      }}
                     >
                       {t === VisitType.New ? 'New Case' : 'Follow Up'}
                     </button>
@@ -247,36 +252,42 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
                 <User size={13} strokeWidth={1.6} style={{ display: 'inline', marginRight: 4 }} />
                 Patient
               </label>
-              <div className="appt-form-row appt-form-row-2">
-                <input
-                  className="appt-form-input"
-                  placeholder="Case ID / Reg No."
-                  value={form.patientId}
-                  onChange={e => set('patientId', e.target.value)}
-                  onBlur={e => handlePatientLookup(e.target.value, 'id')}
-                />
+              <div className="appt-form-row appt-form-row-2" style={{ alignItems: 'flex-start' }}>
+                {form.visitType === VisitType.FollowUp ? (
+                  <input
+                    className="appt-form-input"
+                    placeholder="Case ID / Reg No."
+                    value={form.patientId}
+                    onChange={e => set('patientId', e.target.value)}
+                    onBlur={e => handlePatientLookup(e.target.value, 'id')}
+                  />
+                ) : (
+                  <input
+                    className="appt-form-input"
+                    placeholder="Patient Name"
+                    value={form.patientName}
+                    onChange={e => set('patientName', e.target.value)}
+                    required
+                  />
+                )}
                 <input
                   className="appt-form-input"
                   placeholder="Mobile Number"
                   value={form.phone}
                   onChange={e => set('phone', e.target.value)}
-                  onBlur={e => handlePatientLookup(e.target.value, 'phone')}
+                  onBlur={e => form.visitType === VisitType.FollowUp && handlePatientLookup(e.target.value, 'phone')}
                 />
               </div>
+              
               {lookupLoading && <span style={{ fontSize: '0.75rem', color: '#888786' }}>Looking up patient…</span>}
-              {form.patientName && (
-                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#16A34A', marginTop: 4 }}>
-                  ✓ {form.patientName}
-                </span>
-              )}
-              {!form.patientId && (
-                <input
-                  className="appt-form-input"
-                  style={{ marginTop: 6 }}
-                  placeholder="Or enter patient name for new case"
-                  value={form.patientName}
-                  onChange={e => set('patientName', e.target.value)}
-                />
+              
+              {/* If follow-up, show the name only after successful lookup */}
+              {form.visitType === VisitType.FollowUp && form.patientName && (
+                <div style={{ marginTop: 8, padding: '8px 12px', background: '#F0FDF4', borderRadius: 8, border: '1px solid #DCFCE7' }}>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#16A34A' }}>
+                    ✓ Confirmed: {form.patientName} (ID: {form.patientId})
+                  </span>
+                </div>
               )}
             </div>
 

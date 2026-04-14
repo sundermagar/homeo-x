@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -18,35 +18,31 @@ import {
   X,
   Package,
   CalendarCheck,
-  Layers,
-  Pill,
-  Hospital,
-  UserPlus,
-  StickyNote,
-  Globe,
-  FileText,
-  UserCircle,
-  Wallet,
   MessageSquare,
-  Database,
-  Box,
-  Tags,
-  Truck,
-  HelpCircle,
-  FileJson,
-  UserCheck,
-  ChevronRight,
-  ChevronDown,
-  Sparkles,
-  Clock,
   Send,
   BarChart2,
+  ChevronDown,
+  ChevronRight,
   type LucideIcon,
+  Layers,
   MessageCircle,
   PieChart,
+  Briefcase,
+  Scale,
+  BookOpen,
 } from 'lucide-react';
 import { useAuthStore } from '../stores/auth-store';
 import '../styles/sidebar.css';
+
+
+// ─── Role Definitions ────────────────────────────────────────────────────────
+
+type UserRole = 'SuperAdmin' | 'Admin' | 'Clinicadmin' | 'Doctor' | 'Receptionist';
+
+const ALL: UserRole[] = ['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist'];
+const ADMIN: UserRole[] = ['SuperAdmin', 'Admin', 'Clinicadmin'];
+const CLINICAL: UserRole[] = ['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor'];
+
 
 // ─── Navigation Structure ────────────────────────────────────────────────────
 
@@ -61,10 +57,13 @@ interface NavGroup {
   label: string;
   icon: LucideIcon;
   children: NavChild[];
+  /** Roles allowed to see this group. Undefined = visible to all. */
+  roles?: UserRole[];
 }
 
-type NavItem = { type: 'link'; path: string; label: string; icon: LucideIcon }
-             | { type: 'group'; group: NavGroup };
+type NavItem =
+  | { type: 'link'; path: string; label: string; icon: LucideIcon; roles?: UserRole[] }
+  | { type: 'group'; group: NavGroup };
 
 const NAV_STRUCTURE: NavItem[] = [
   {
@@ -72,6 +71,7 @@ const NAV_STRUCTURE: NavItem[] = [
     path: '/',
     label: 'Dashboard',
     icon: LayoutDashboard,
+    roles: ALL,
   },
   {
     type: 'group',
@@ -79,9 +79,10 @@ const NAV_STRUCTURE: NavItem[] = [
       id: 'patients-group',
       label: 'Patients',
       icon: Users,
+      roles: ALL,
       children: [
-        { path: '/patients',       label: 'Patient List',   icon: Users },
-        { path: '/family-groups',  label: 'Family Groups', icon: Layers },
+        { path: '/patients',      label: 'Patient List',  icon: Users },
+        { path: '/family-groups', label: 'Family Groups', icon: Layers },
       ],
     },
   },
@@ -91,10 +92,11 @@ const NAV_STRUCTURE: NavItem[] = [
       id: 'appointments',
       label: 'Appointments',
       icon: CalendarClock,
+      roles: ALL,
       children: [
-        { path: '/appointments',          label: 'List View',    icon: CalendarClock },
-        { path: '/appointments/calendar', label: 'Calendar',     icon: Calendar },
-        { path: '/appointments/queue',    label: 'Token Queue',  icon: Ticket },
+        { path: '/appointments',          label: 'List View',   icon: CalendarClock },
+        { path: '/appointments/calendar', label: 'Calendar',    icon: Calendar },
+        { path: '/appointments/queue',    label: 'Token Queue', icon: Ticket },
       ],
     },
   },
@@ -102,10 +104,13 @@ const NAV_STRUCTURE: NavItem[] = [
     type: 'group',
     group: {
       id: 'clinical',
-      label: 'Clinical',
+      label: 'Clinical Hub',
       icon: Stethoscope,
+      roles: CLINICAL,
       children: [
-        { path: '/medical-cases', label: 'Medical Cases', icon: Stethoscope },
+        { path: '/consultation-history',   label: 'Case History',        icon: BarChart2 },
+        { path: '/vitals-check',           label: 'Height & Weight Check', icon: Scale },
+        { path: '/medical-cases',          label: 'Medical Cases',       icon: Stethoscope },
       ],
     },
   },
@@ -115,6 +120,7 @@ const NAV_STRUCTURE: NavItem[] = [
       id: 'memberships',
       label: 'Memberships',
       icon: Package,
+      roles: ADMIN,
       children: [
         { path: '/packages',          label: 'Package Plans', icon: Layers },
         { path: '/packages/tracking', label: 'Tracking',      icon: CalendarCheck },
@@ -127,11 +133,12 @@ const NAV_STRUCTURE: NavItem[] = [
       id: 'communications',
       label: 'Communications',
       icon: MessageSquare,
+      roles: ADMIN,
       children: [
-        { path: '/communications/sms',       label: 'Send SMS',      icon: Send },
-        { path: '/communications/templates', label: 'Templates',     icon: MessageCircle },
-        { path: '/communications/reports',   label: 'SMS Reports',   icon: BarChart2 },
-        { path: '/communications/whatsapp',  label: 'WhatsApp',     icon: MessageSquare },
+        { path: '/communications/sms',       label: 'Send SMS',    icon: Send },
+        { path: '/communications/templates', label: 'Templates',   icon: MessageCircle },
+        { path: '/communications/reports',   label: 'SMS Reports', icon: BarChart2 },
+        { path: '/communications/whatsapp',  label: 'WhatsApp',    icon: MessageSquare },
       ],
     },
   },
@@ -141,11 +148,10 @@ const NAV_STRUCTURE: NavItem[] = [
       id: 'analytics',
       label: 'Analytics',
       icon: PieChart,
+      roles: ADMIN,
       children: [
-        { path: '/analytics',         label: 'Dashboard',   icon: BarChart2 },
-        { path: '/analytics/reports', label: 'Reports',     icon: PieChart },
-        { path: '/settings/export',   label: 'Export Data',  icon: FileJson },
-        { path: '/settings/stocks',   label: 'Inventory Logs', icon: Database },
+        { path: '/analytics',         label: 'Dashboard', icon: BarChart2 },
+        { path: '/analytics/reports', label: 'Reports',   icon: PieChart },
       ],
     },
   },
@@ -155,10 +161,10 @@ const NAV_STRUCTURE: NavItem[] = [
       id: 'finance',
       label: 'Finance',
       icon: Receipt,
+      roles: ADMIN,
       children: [
-        { path: '/billing',           label: 'Billing & Finance', icon: Receipt },
-        { path: '/payments',          label: 'Payment Ledger',    icon: Banknote },
-        { path: '/settings/expenses', label: 'Expenses Head',     icon: Wallet },
+        { path: '/billing',  label: 'Billing & Finance', icon: Receipt },
+        { path: '/payments', label: 'Payment Ledger',    icon: Banknote },
       ],
     },
   },
@@ -166,41 +172,68 @@ const NAV_STRUCTURE: NavItem[] = [
     type: 'group',
     group: {
       id: 'platform',
-      label: 'Platform',
+      label: 'Staff & Platform',
       icon: Building2,
+      roles: ['SuperAdmin', 'Admin', 'Clinicadmin'],
       children: [
-        { path: '/platform/clinics',   label: 'Clinics',   icon: Building2 },
-        { path: '/platform/accounts',  label: 'Accounts',  icon: UserCog },
+        { path: '/staff',              label: 'Staff & Admin', icon: Briefcase },
+        { path: '/platform/clinics',   label: 'Clinics',       icon: Building2 },
+        { path: '/platform/accounts',  label: 'Accounts',      icon: UserCog },
       ],
     },
   },
   {
     type: 'group',
     group: {
-      id: 'settings',
-      label: 'Settings',
+      id: 'operations-hub',
+      label: 'Operations Hub',
       icon: Settings,
+      roles: ['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor'],
       children: [
-        { path: '/settings/departments', label: 'Departments',        icon: Layers },
-        { path: '/settings/medicines',   label: 'Medicine Catalog',   icon: Pill },
-        { path: '/settings/potencies',   label: 'Potencies',          icon: Sparkles },
-        { path: '/settings/frequencies', label: 'Dosage Frequencies', icon: Clock },
-        { path: '/settings/dispensaries',label: 'Dispensaries',       icon: Hospital },
-        { path: '/settings/packages',    label: 'Package Plans',      icon: Box },
-        { path: '/settings/couriers',    label: 'Courier Services',   icon: Truck },
-        { path: '/settings/referrals',   label: 'Referral Sources',   icon: UserPlus },
-        { path: '/settings/stickers',    label: 'Medicine Stickers',  icon: StickyNote },
-        { path: '/settings/doctors',     label: 'Doctors/Clinicians', icon: UserCircle },
-        { path: '/settings/staff',       label: 'Staff Management',   icon: UserCheck },
-        { path: '/settings/cms',         label: 'Content (CMS)',      icon: Globe },
-        { path: '/settings/pdf',         label: 'PDF & Reports',      icon: FileText },
-        { path: '/settings/faqs',        label: 'Help & FAQs',        icon: HelpCircle },
+        { path: '/operations?tab=logistics', label: 'Logistics & Couriers',   icon: Layers },
+        { path: '/operations?tab=crm',       label: 'Lead CRM & Promos',      icon: Users },
+        { path: '/operations?tab=knowledge', label: 'Medical Knowledge base', icon: BookOpen },
+        { path: '/operations?tab=tools',     label: 'Global Data Tools',      icon: Settings },
       ],
     },
   },
+  {
+    type: 'link',
+    path: '/settings',
+    label: 'Settings',
+    icon: Settings,
+    roles: ADMIN,
+  },
 ];
 
-// ─── Component Logic ─────────────────────────────────────────────────────────
+
+// ─── Role Normalizer ─────────────────────────────────────────────────────────
+
+function normalizeRole(raw: string | undefined | null): UserRole | null {
+  if (!raw) return null;
+  const r = raw.toLowerCase().replace(/\s/g, '');
+  if (r === 'superadmin') return 'SuperAdmin';
+  if (r === 'admin' || r === 'hmis_admin') return 'Admin';
+  if (r === 'clinicadmin') return 'Clinicadmin';
+  if (r === 'doctor' || r === 'hmis_doctor') return 'Doctor';
+  if (r === 'receptionist') return 'Receptionist';
+  return null;
+}
+
+function getRoleLabel(role: UserRole | null): string {
+  if (!role) return '';
+  const labels: Record<UserRole, string> = {
+    SuperAdmin:    '⚡ Super Admin',
+    Admin:         '🛡 Admin',
+    Clinicadmin:   '🏥 Clinic Admin',
+    Doctor:        '🩺 Doctor',
+    Receptionist:  '📋 Receptionist',
+  };
+  return labels[role];
+}
+
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 interface SidebarProps {
   isOpen: boolean;
@@ -214,12 +247,25 @@ function isGroupActive(group: NavGroup, pathname: string): boolean {
   });
 }
 
+
+// ─── Component ───────────────────────────────────────────────────────────────
+
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { user, logout } = useAuthStore();
   const location = useLocation();
 
+  const userRole = normalizeRole((user as any)?.type || (user as any)?.role);
+
+  // Filter nav items by role
+  const visibleNav = NAV_STRUCTURE.filter(item => {
+    if (item.type === 'link') {
+      return !item.roles || (userRole && item.roles.includes(userRole));
+    }
+    return !item.group.roles || (userRole && item.group.roles.includes(userRole));
+  });
+
   // Auto-expand the active group by default
-  const defaultOpen = NAV_STRUCTURE
+  const defaultOpen = visibleNav
     .filter((item): item is { type: 'group'; group: NavGroup } => item.type === 'group')
     .filter(item => isGroupActive(item.group, location.pathname))
     .map(item => item.group.id);
@@ -257,9 +303,16 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           </button>
         </div>
 
+        {/* ── Role Badge ── */}
+        {userRole && (
+          <div className="sidebar-role-badge">
+            {getRoleLabel(userRole)}
+          </div>
+        )}
+
         {/* ── Navigation ── */}
         <nav className="sidebar-nav">
-          {NAV_STRUCTURE.map((item) => {
+          {visibleNav.map((item) => {
             if (item.type === 'link') {
               const Icon = item.icon;
               return (
@@ -334,7 +387,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             </div>
             <div className="user-info">
               <div className="user-name">{user?.name || 'Practitioner'}</div>
-              <div className="user-role">{user?.type || 'Doctor'}</div>
+              <div className="user-role">{getRoleLabel(userRole) || (user as any)?.type || 'Doctor'}</div>
             </div>
             <button className="logout-btn" onClick={logout} title="Logout">
               <LogOut size={16} strokeWidth={2} />

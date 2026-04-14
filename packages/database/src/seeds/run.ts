@@ -9,6 +9,8 @@ import { seedStickers } from './sticker-seed';
 import { seedCms } from './cms-seed';
 import { seedFaqs } from './faq-seed';
 import { seedPdfSettings } from './pdf-seed';
+import { seedPlatform } from './platform-seed';
+import { seedTestData } from './test-data-seed';
 import { TenantRegistry } from '../tenant-registry';
 import fs from 'fs';
 import path from 'path';
@@ -32,6 +34,15 @@ async function main() {
     process.exit(1);
   }
 
+  // 1. Seed Global Platform (Public Schema)
+  try {
+    const publicDb = createDbClient(dbUrl); // default to public schema
+    await seedPlatform(publicDb);
+  } catch (err) {
+    console.error('[Seed] ❌ Failed to seed global platform data:', err);
+  }
+
+  // 2. Seed Individual Tenants
   const tenants = TenantRegistry.getAll();
   console.log(`[Seed] Found ${tenants.length} tenants to seed.`);
 
@@ -39,6 +50,7 @@ async function main() {
     try {
       console.log(`[Seed] Seeding for tenant: ${tenant.displayName} (${tenant.schemaName})...`);
       const db = createDbClient(dbUrl, tenant.schemaName);
+      
       await seedUsers(db);
       await seedCatalog(db);
       await seedDispensaries(db);
@@ -49,8 +61,10 @@ async function main() {
       await seedCms(db);
       await seedFaqs(db);
       await seedPdfSettings(db);
+      await seedTestData(db); // New combined test data from dev branch
+      
     } catch (err) {
-      console.error(`[Seed] ❌ Failed to seed tenant ${tenant.schemaName}:`, err);
+      console.error(`[Seed] ❌ Failed to seed tenant ${tenant.displayName} (${tenant.schemaName}):`, err);
     }
   }
   

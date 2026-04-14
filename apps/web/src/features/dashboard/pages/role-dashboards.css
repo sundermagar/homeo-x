@@ -1,0 +1,547 @@
+/* ─── Shared Dashboard Components (All Roles) ──────────────────────────────
+   This design system defines the "Clinical Light" dashboard aesthetic.
+   White cards, Slate-900 typography, subtle Slate-200 borders.
+────────────────────────────────────────────────────────────────────────────── */
+
+.dash-root {
+  padding: 0;
+  padding-top: var(--pp-space-6);
+  padding-bottom: var(--pp-space-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--pp-space-6);
+}
+
+/* 1. KPI Strip (Top Row) */
+.dash-kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--pp-space-4);
+}
+
+@media (min-width: 768px) {
+  .dash-kpi-strip {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.dash-kpi-item {
+  background: #ffffff;
+  padding: 24px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dash-kpi-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #64748b; /* Slate-500 */
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.dash-kpi-value-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.dash-kpi-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #0f172a; /* Slate-900 */
+}
+
+.dash-kpi-trend {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.trend-up { color: #16a34a; }
+.trend-down { color: #dc2626; }
+
+/* 2. Layout Grid */
+.dash-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--pp-space-6);
+}
+
+@media (min-width: 1024px) {
+  .dash-grid {
+    grid-template-columns: 2fr 1.2fr;
+  }
+}
+
+.dash-main-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pp-space-6);
+}
+
+.dash-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pp-space-6);
+}
+
+/* 3. Cards & Sections */
+.dash-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.dash-card-header {
+  padding: 12px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dash-card-body {
+  padding: 20px;
+}
+
+.dash-section-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: #0f172a;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* 4. Lists & Lists (Sidebar) */
+.dash-sidebar-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dash-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.dash-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f8fafc;
+}
+
+.dash-list-item:last-child {
+  border-bottom: none;
+}
+
+/* 5. Components: Queue/Schedule Row */
+.dash-row {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-3);
+  padding: 12px 4px;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.1s;
+}
+
+.dash-row:hover { background: #f8fafc; }
+
+.dash-avatar {
+  width: 32px;
+  height: 32px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: #475569;
+  flex-shrink: 0;
+}
+
+/* 6. Status & Badges */
+.dash-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.badge-success { background: #f0fdf4; color: #16a34a; }
+.badge-primary { background: #f1f7ff; color: #2563eb; }
+.badge-warning { background: #fffbeb; color: #d97706; }
+.badge-danger  { background: #fef2f2; color: #dc2626; }
+
+/* 7. Active Consultation HUD (Doctor) */
+.dd-active-head-up {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: var(--pp-space-6);
+  position: relative;
+}
+
+.dd-hud-header {
+  padding: 10px 24px;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dd-hud-body {
+  padding: 24px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 32px;
+}
+
+@media (min-width: 1024px) {
+  .dd-hud-body {
+    grid-template-columns: minmax(400px, 1.2fr) 1fr;
+  }
+}
+
+/* 8. Charts and Controls */
+.dash-chart-container {
+  height: 280px;
+  width: 100%;
+  margin-top: 16px;
+}
+
+.dash-tab-btn {
+  padding: 4px 0;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.dash-tab-btn.active {
+  color: #2563eb;
+  border-bottom-color: #2563eb;
+}
+
+/* 9. Icons and Dots */
+.dash-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dash-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #16a34a;
+  animation: pulse-dot 2s infinite;
+  flex-shrink: 0;
+}
+
+@keyframes pulse-dot {
+  0%   { transform: scale(1);    opacity: 1; }
+  50%  { transform: scale(1.2);   opacity: 0.6; }
+  100% { transform: scale(1);    opacity: 1; }
+}
+
+/* 10. Doctor Specific HUD (Refined) */
+.dd-patient-profile {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dd-token-pill {
+  width: fit-content;
+  padding: 4px 12px;
+  background: #f1f5f9;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #475569;
+  margin-bottom: 4px;
+}
+
+.dd-patient-name-big {
+  font-size: 28px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.dd-patient-meta {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.dd-vitals-strip {
+  display: flex;
+  gap: 32px;
+  margin: 20px 0;
+  padding: 20px 0;
+  border-top: 1px solid #f1f5f9;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.dd-vital-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dd-vital-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+}
+
+.dd-vital-value {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.dd-vital-unit {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  margin-left: 4px;
+}
+
+.dd-hud-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.btn-skip {
+  padding: 10px 24px;
+  background: white;
+  border: 1.5px solid #f97316; /* Orange-500 */
+  color: #f97316;
+  font-weight: 700;
+  font-size: 13px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-skip:hover {
+  background: #fff7ed;
+}
+
+.btn-more {
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-more:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.dd-clinical-notes {
+  background: #f1f5f9; /* Slightly darker shade per screenshot */
+  border-radius: 12px;
+  padding: 24px;
+  font-size: 14px;
+  color: #64748b;
+  line-height: 1.6;
+  font-weight: 500;
+  height: fit-content;
+}
+
+/* 11. Dropdown Menu Utility */
+.dash-dropdown-container {
+  position: relative;
+}
+
+.dash-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 180px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  padding: 8px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+}
+
+.dash-dropdown-item {
+  padding: 10px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  border: none;
+  background: transparent;
+  width: 100%;
+}
+
+.dash-dropdown-item:hover {
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.dash-dropdown-item.danger {
+  color: #dc2626;
+}
+
+.dash-dropdown-item.danger:hover {
+  background: #fef2f2;
+}
+
+/* ─── Modal Overlay ───────────────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  padding: 24px;
+}
+
+.modal-box {
+  background: white;
+  border-radius: 14px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.2);
+  animation: modalIn 200ms cubic-bezier(0, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: none; }
+}
+
+.modal-header {
+  padding: 18px 22px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+
+.modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: #f1f5f9;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #64748b;
+  transition: all 0.15s;
+}
+
+.modal-close:hover { background: #e2e8f0; color: #0f172a; }
+
+.modal-body { padding: 20px 22px; }
+
+.modal-footer {
+  padding: 16px 22px;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+/* ─── Buttons ─────────────────────────────────────────────────────────────── */
+.btn-primary {
+  padding: 10px 20px;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+  font-family: inherit;
+}
+
+.btn-primary:hover { background: #1d4ed8; }
+
+.btn-secondary {
+  padding: 10px 20px;
+  background: white;
+  color: #475569;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+
+.btn-secondary:hover { background: #f8fafc; }
+
+.btn-danger {
+  padding: 10px 20px;
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1.5px solid #fecaca;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+
+.btn-danger:hover { background: #fee2e2; }

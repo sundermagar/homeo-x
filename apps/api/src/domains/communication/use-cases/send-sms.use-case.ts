@@ -51,7 +51,7 @@ export class SendSmsUseCase {
         message: dto.message,
         smsType: dto.smsType ?? 'Normal',
         status: 'sent',
-        gatewayRef: `mock-${Date.now()}`,
+        gatewayRef: `tx-${Date.now()}`,
       });
 
       return ok({ success: true, sent: 1, failed: 0, gatewayRef: report.id.toString() });
@@ -95,7 +95,7 @@ export class SendSmsUseCase {
             message: personalizedMsg,
             smsType: dto.smsType ?? 'Group',
             status: 'sent',
-            gatewayRef: `mock-${Date.now()}-${patient.id}`,
+            gatewayRef: `tx-${Date.now()}-${patient.id}`,
           });
           sent++;
         } catch {

@@ -5,6 +5,10 @@ import type { Bill, BillWithPatient, DailyCollectionSummary, PatientBillSummary 
 import type { BillingRepository } from '../../domains/billing/ports/billing.repository';
 import type { CreateBillInput, ListBillsQuery } from '@mmc/validation';
 
+/**
+ * PostgreSQL adapter for BillingRepository port.
+ * Uses Drizzle ORM with schema-per-tenant (search_path set at connection level).
+ */
 export class BillingRepositoryPg implements BillingRepository {
   constructor(private readonly db: DbClient) {}
 
@@ -113,13 +117,13 @@ export class BillingRepositoryPg implements BillingRepository {
         received: data.received ?? 0,
         balance,
         paymentMode: data.paymentMode ?? 'Cash',
-        treatment: data.treatment,
-        disease: data.disease,
-        fromDate: data.fromDate,
-        toDate: data.toDate,
+        treatment: data.treatment || undefined,
+        disease: data.disease || undefined,
+        fromDate: data.fromDate === '' ? undefined : (data.fromDate || undefined),
+        toDate: data.toDate === '' ? undefined : (data.toDate || undefined),
         chargeId: data.chargeId,
         doctorId: data.doctorId,
-        notes: data.notes,
+        notes: data.notes || undefined,
         createdAt: new Date(),
         updatedAt: new Date(),
       })

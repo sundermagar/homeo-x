@@ -2,14 +2,15 @@
 
 /* ─── Page Layout ─── */
 .pkg-page {
-  padding: 16px;
-  width: 100%;
+  padding: 0;
+  max-width: 1400px;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
 
-@media (min-width: 768px) { .pkg-page { padding: 28px; } }
+@media (min-width: 768px) { .pkg-page { padding: 0; } }
 
 .pkg-header {
   display: flex;

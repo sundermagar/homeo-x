@@ -66,3 +66,67 @@ export interface ReferenceListResult {
   count: number;
   totalcollection: number;
 }
+
+export interface DashboardKpis {
+  newPatientsCount: number;
+  followUpsCount: number;
+  todaysCollection: number;
+  todaysExpenses: number;
+  revenueTrend: number | string;
+  patientTrend: number | string;
+  collectionRate: number;
+  avgWaitTime: number;
+}
+
+export interface QueueItem {
+  id: number;
+  patientId: number;
+  regid: number;
+  patientName: string;
+  doctorName: string;
+  bookingTime: string;
+  tokenNo: number | string;
+  status: string;
+  isUrgent: boolean;
+  vitals?: {
+    bp?: string;
+    pulse?: number;
+    weight?: number;
+    temp?: number;
+  };
+  notes?: string;
+  age?: number;
+  gender?: string;
+}
+
+export interface ActivityItem {
+  type: 'payment' | 'appointment' | 'record';
+  title: string;
+  subtitle: string;
+  createdAt: Date | string;
+}
+
+export interface SimpleReminder {
+  id: number;
+  patientId: number;
+  patientName: string;
+  heading: string;
+  comments: string;
+  startDate: Date | string;
+  status: 'pending' | 'done';
+}
+
+export interface RevenueSeries {
+  month: string;
+  revenue: number;
+}
+
+export interface UnifiedDashboardData {
+  kpis: DashboardKpis;
+  queue: QueueItem[];
+  activity: ActivityItem[];
+  reminders: SimpleReminder[];
+  birthdays: BirthdayPatient[];
+  revenueSeries: RevenueSeries[];
+  clinicName: string;
+}

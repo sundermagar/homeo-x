@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useApi } from '@/shared/hooks/use-api';
 import {
@@ -12,7 +12,7 @@ export default function MedicalCaseListPage() {
   const api = useApi();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
+  const [page] = useState(1);
 
   const { data: records, isLoading } = useQuery({
     queryKey: ['medical-cases', search, page],
@@ -85,7 +85,7 @@ export default function MedicalCaseListPage() {
                 key={record.id}
                 onClick={() => navigate(`/medical-cases/${record.regid}`)}
               >
-                <td>
+                <td data-label="Patient">
                   <div className="mc-patient-cell">
                     <div className="mc-avatar">
                       {record.first_name?.[0]}{record.surname?.[0]}
@@ -108,7 +108,7 @@ export default function MedicalCaseListPage() {
                     </div>
                   </div>
                 </td>
-                <td>
+                <td data-label="Contacts">
                   <div className="mc-contact-cell">
                     <div className="mc-contact-row">
                       <Phone size={13} strokeWidth={1.6} style={{ color: 'var(--text-muted)' }} />
@@ -120,7 +120,7 @@ export default function MedicalCaseListPage() {
                     </div>
                   </div>
                 </td>
-                <td>
+                <td data-label="Status">
                   <div className="mc-status-cell">
                     <div className="mc-status-row">
                       <span className={`mc-status-dot ${record.status !== 'Active' ? 'inactive' : ''}`} />
@@ -133,7 +133,7 @@ export default function MedicalCaseListPage() {
                     )}
                   </div>
                 </td>
-                <td>
+                <td data-label="Last Visit">
                   <div className="mc-visit-cell">
                     <div className="mc-visit-icon-box">
                       <Clock size={14} strokeWidth={1.6} />
@@ -144,7 +144,7 @@ export default function MedicalCaseListPage() {
                     </div>
                   </div>
                 </td>
-                <td>
+                <td data-label="" className="mc-arrow-cell">
                   <button className="mc-row-arrow">
                     <ChevronRight size={16} strokeWidth={1.6} />
                   </button>

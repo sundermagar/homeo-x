@@ -1,4 +1,14 @@
-import { pgTable, serial, integer, varchar, timestamp, text, boolean, real, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, serial, integer, varchar, timestamp, text, boolean, real, jsonb, decimal } from 'drizzle-orm/pg-core';
+
+export const growthReferences = pgTable('growth_references', {
+  id: serial('id').primaryKey(),
+  months: integer('months').notNull(),
+  gender: varchar('gender', { length: 1 }).notNull(), // 'M' or 'F'
+  idealHeightCm: decimal('ideal_height_cm', { precision: 5, scale: 2 }),
+  idealWeightKg: decimal('ideal_weight_kg', { precision: 5, scale: 2 }),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
 
 export const medicalCases = pgTable('medicalcases', {
   id: serial('id').primaryKey(),

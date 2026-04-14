@@ -2,12 +2,11 @@
 /* Follows exact same pattern as appointments.css for visual consistency      */
 
 /* ─── Page Layout ─── */
-.bill-page {
-  padding: 16px;
-  width: 100%;
-}
+  padding: 0;
+  max-width: var(--pp-container-width);
+  margin: 0 auto;
 
-@media (min-width: 768px) { .bill-page { padding: 24px; } }
+@media (min-width: 768px) { .bill-page { padding: 0; } }
 
 /* ─── Page Header ─── */
 .bill-header {
