@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MessageSquare, Plus, X, RefreshCw, ArrowLeft, Trash2, Edit2, Send } from 'lucide-react';
+import { MessageSquare, Plus, X, RefreshCw, ArrowLeft, Trash2, Edit2, Send, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useMessageTemplates, useCreateMessageTemplate, useUpdateMessageTemplate, useDeleteMessageTemplate } from '../hooks/use-settings';
 import '../../platform/styles/platform.css';
@@ -16,6 +16,7 @@ export default function MessageTemplatesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [search, setSearch] = useState('');
 
   const handleOpenCreate = () => {
     setEditingId(null);
@@ -49,6 +50,11 @@ export default function MessageTemplatesPage() {
     await deleteTpl.mutateAsync(id);
   };
 
+  const filtered = templates.filter((t: any) => 
+    t.name.toLowerCase().includes(search.toLowerCase()) ||
+    t.content.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
     <div className="plat-page fade-in">
       <Link to="/settings" className="settings-back-link">
@@ -59,31 +65,56 @@ export default function MessageTemplatesPage() {
       <div className="plat-header">
         <div>
           <h1 className="plat-header-title">
-            <MessageSquare size={20} strokeWidth={1.6} style={{ color: 'var(--primary)' }} />
+            <MessageSquare size={20} className="color-primary" />
             Message Templates
           </h1>
-          <p className="plat-header-sub">Configure pre-defined messages for SMS and WhatsApp communications.</p>
+          <p className="plat-header-sub">Configure pre-defined communication templates.</p>
         </div>
         <div className="plat-header-actions">
           <button className="plat-btn plat-btn-primary" onClick={handleOpenCreate}>
-            <Plus size={14} strokeWidth={1.6} />
+            <Plus size={14} />
             Add Template
           </button>
+        </div>
+      </div>
+
+      <div className="plat-stats-bar">
+        <div className="plat-stat-card">
+          <span className="plat-stat-label">Templates</span>
+          <span className="plat-stat-value">{templates.length}</span>
+        </div>
+        <div className="plat-stat-card">
+          <span className="plat-stat-label">Filtered</span>
+          <span className="plat-stat-value plat-stat-value-success">
+            {filtered.length}
+          </span>
+        </div>
+      </div>
+
+      <div className="plat-filters">
+        <div className="plat-search-wrap">
+          <Search size={16} className="plat-search-icon" />
+          <input 
+            className="plat-filter-input plat-search-input"
+            placeholder="Search templates..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
       </div>
 
       <div className="plat-card">
         {isLoading ? (
           <div className="plat-empty">
-            <RefreshCw size={22} style={{ animation: 'spin 1s linear infinite', opacity: 0.3 }} />
+            <RefreshCw size={22} className="animate-spin opacity-30" />
           </div>
-        ) : templates.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <div className="plat-empty">
-            <MessageSquare size={28} className="plat-empty-icon" />
-            <p className="plat-empty-text">No message templates found.</p>
+            <MessageSquare size={40} className="plat-empty-icon" />
+            <p className="plat-empty-text">No templates found.</p>
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
+          <div className="plat-table-container">
             <table className="plat-table">
               <thead>
                 <tr>
@@ -96,25 +127,25 @@ export default function MessageTemplatesPage() {
                 </tr>
               </thead>
               <tbody>
-                {templates.map((tpl: any) => (
-                  <tr key={tpl.id}>
-                    <td className="font-mono text-xs color-muted">{tpl.id}</td>
-                    <td className="font-semibold">{tpl.name}</td>
-                    <td>
+                {filtered.map((tpl: any) => (
+                  <tr key={tpl.id} className="plat-table-row">
+                    <td data-label="ID" className="plat-table-cell font-mono text-xs color-muted">{tpl.id}</td>
+                    <td data-label="Name" className="plat-table-cell font-semibold">{tpl.name}</td>
+                    <td data-label="Channel" className="plat-table-cell">
                        <span className={`plat-badge ${tpl.type === 'WhatsApp' ? 'plat-badge-admin' : 'plat-badge-default'}`}>
                          {tpl.type}
                        </span>
                     </td>
-                    <td style={{ maxWidth: '300px' }}>
-                       <div className="text-truncate" title={tpl.content}>{tpl.content}</div>
+                    <td data-label="Preview" className="plat-table-cell">
+                       <div className="truncate max-w-[280px] text-secondary text-sm" title={tpl.content}>{tpl.content}</div>
                     </td>
-                    <td>
+                    <td data-label="Status" className="plat-table-cell">
                        <span className={`plat-badge ${tpl.isActive ? 'plat-badge-staff' : 'plat-badge-default'}`}>
                          {tpl.isActive ? 'Active' : 'Inactive'}
                        </span>
                     </td>
-                    <td>
-                      <div className="flex gap-3">
+                    <td className="plat-table-cell">
+                      <div className="flex justify-end gap-3">
                         <button className="plat-btn plat-btn-sm plat-btn-icon" onClick={() => handleOpenEdit(tpl)}>
                           <Edit2 size={13} />
                         </button>

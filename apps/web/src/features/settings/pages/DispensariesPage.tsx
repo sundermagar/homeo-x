@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapPin, Plus, X, RefreshCw, ArrowLeft, Trash2, Edit2, Phone, Mail, User, Briefcase, Calendar, Info } from 'lucide-react';
+import { MapPin, Plus, X, RefreshCw, ArrowLeft, Trash2, Edit2, Phone, Mail, User, Briefcase, Calendar, Info, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useDispensaries, useCreateDispensary, useUpdateDispensary, useDeleteDispensary } from '../hooks/use-settings';
 import '../../platform/styles/platform.css';
@@ -32,6 +32,13 @@ export default function DispensariesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredItems = dispensaries.filter((d: any) => 
+    d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (d.email && d.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (d.city && d.city.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
 
   const handleOpenCreate = () => {
     setEditingId(null);
@@ -87,16 +94,41 @@ export default function DispensariesPage() {
       <div className="plat-header">
         <div>
           <h1 className="plat-header-title">
-            <MapPin size={20} strokeWidth={1.6} style={{ color: 'var(--primary)' }} />
+            <MapPin size={20} className="color-primary" />
             Dispensaries
           </h1>
           <p className="plat-header-sub">Manage pharmacy staff and dispensary account information.</p>
         </div>
         <div className="plat-header-actions">
           <button className="plat-btn plat-btn-primary" onClick={handleOpenCreate}>
-            <Plus size={14} strokeWidth={1.6} />
+            <Plus size={14} />
             Add Dispensary
           </button>
+        </div>
+      </div>
+
+      <div className="plat-stats-bar">
+        <div className="plat-stat-card">
+          <span className="plat-stat-label">Total Dispensaries</span>
+          <span className="plat-stat-value">{dispensaries.length}</span>
+        </div>
+        <div className="plat-stat-card">
+          <span className="plat-stat-label">Active Staff</span>
+          <span className="plat-stat-value plat-stat-value-success">
+            {dispensaries.filter((d: any) => d.isActive).length}
+          </span>
+        </div>
+      </div>
+
+      <div className="plat-filters">
+        <div className="plat-search-wrap">
+          <Search size={16} className="plat-search-icon" />
+          <input 
+            className="plat-filter-input plat-search-input"
+            placeholder="Search by name, email or city..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
       </div>
 
@@ -105,18 +137,18 @@ export default function DispensariesPage() {
           <div className="plat-empty">
             <RefreshCw size={22} style={{ animation: 'spin 1s linear infinite', opacity: 0.3 }} />
           </div>
-        ) : dispensaries.length === 0 ? (
+        ) : filteredItems.length === 0 ? (
           <div className="plat-empty">
-            <MapPin size={28} className="plat-empty-icon" />
-            <p className="plat-empty-text">No dispensaries configured.</p>
+            <MapPin size={40} className="plat-empty-icon" />
+            <p className="plat-empty-text">No dispensaries found matching search.</p>
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
+          <div className="plat-table-container">
             <table className="plat-table">
               <thead>
                 <tr>
                   <th style={{ width: '60px' }}>ID</th>
-                  <th>Name</th>
+                  <th>Staff Name</th>
                   <th>Contact Information</th>
                   <th>Professional Details</th>
                   <th style={{ width: '100px' }}>Status</th>
@@ -124,16 +156,16 @@ export default function DispensariesPage() {
                 </tr>
               </thead>
               <tbody>
-                {dispensaries.map((disp: any, index: number) => (
-                  <tr key={disp.id}>
-                    <td className="font-mono text-xs color-muted">{index + 1}</td>
-                    <td>
+                {filteredItems.map((disp: any, index: number) => (
+                  <tr key={disp.id} className="plat-table-row">
+                    <td data-label="ID" className="plat-table-cell font-mono text-xs color-muted">{index + 1}</td>
+                    <td data-label="Staff Name" className="plat-table-cell">
                       <div className="font-semibold">{disp.name}</div>
                       <div className="text-xs color-muted flex items-center gap-1">
                         <User size={10} /> {disp.gender}
                       </div>
                     </td>
-                    <td>
+                    <td data-label="Contact" className="plat-table-cell">
                       <div className="flex flex-col gap-1">
                         {disp.email && <div className="text-xs flex items-center gap-1.5"><Mail size={12} className="color-muted" /> {disp.email}</div>}
                         {(disp.mobile || disp.contactNumber) && (
@@ -144,26 +176,24 @@ export default function DispensariesPage() {
                         {disp.city && <div className="text-xs flex items-center gap-1.5 color-muted"><MapPin size={12} /> {disp.city}</div>}
                       </div>
                     </td>
-                    <td>
+                    <td data-label="Professional" className="plat-table-cell">
                       <div className="flex flex-col gap-1">
                         {disp.designation && <div className="text-xs font-medium">{disp.designation}</div>}
-                        {disp.dept && <div className="plat-badge plat-badge-default mt-1">{disp.dept}</div>}
+                        {disp.dept && <div className="text-[10px] color-muted font-bold uppercase tracking-wider">{disp.dept}</div>}
                       </div>
                     </td>
-                    <td>
-                      {disp.isActive ? (
-                        <span className="plat-badge plat-badge-staff">Active</span>
-                      ) : (
-                        <span className="plat-badge plat-badge-default">Inactive</span>
-                      )}
+                    <td data-label="Status" className="plat-table-cell">
+                       <span className={`plat-badge ${disp.isActive ? 'plat-badge-staff' : 'plat-badge-default'}`}>
+                         {disp.isActive ? 'Active' : 'Inactive'}
+                       </span>
                     </td>
-                    <td>
-                      <div className="flex gap-3">
-                        <button className="plat-btn plat-btn-sm plat-btn-icon" onClick={() => handleOpenEdit(disp)}>
-                          <Edit2 size={13} />
+                    <td className="plat-table-cell">
+                      <div className="flex justify-end gap-2">
+                        <button className="plat-btn plat-btn-icon" onClick={() => handleOpenEdit(disp)}>
+                          <Edit2 size={14} />
                         </button>
-                        <button className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" onClick={() => handleDelete(disp.id, disp.name)}>
-                          <Trash2 size={13} />
+                        <button className="plat-btn plat-btn-icon plat-btn-danger" onClick={() => handleDelete(disp.id, disp.name)}>
+                          <Trash2 size={14} />
                         </button>
                       </div>
                     </td>
@@ -177,16 +207,18 @@ export default function DispensariesPage() {
 
       {isModalOpen && (
         <div className="plat-modal-overlay fade-in" onClick={(e) => e.target === e.currentTarget && setIsModalOpen(false)}>
-          <div className="plat-modal plat-modal-lg">
+          <div className="plat-modal" style={{ maxWidth: '800px' }}>
             <div className="plat-modal-header">
-              <h2 className="plat-modal-title">{editingId ? 'Edit Dispensary' : 'Add Dispensary'}</h2>
+              <h2 className="plat-modal-title">
+                {editingId ? 'Edit Dispensary Details' : 'Add New Dispensary'}
+              </h2>
               <button className="plat-btn plat-btn-icon" onClick={() => setIsModalOpen(false)}>
                 <X size={16} />
               </button>
             </div>
             <form onSubmit={handleSubmit} className="plat-modal-form">
               <div className="plat-modal-body">
-                <div className="plat-form-grid">
+                <div className="plat-form">
                   <div className="plat-form-group plat-form-full">
                     <label className="plat-form-label">Full Name <span className="plat-form-required">*</span></label>
                     <div className="plat-input-wrapper">
@@ -346,22 +378,22 @@ export default function DispensariesPage() {
                     </div>
                   </div>
 
-                  <div className="plat-form-group plat-form-full plat-form-row">
+                  <div className="plat-form-group plat-form-row plat-form-full">
                     <input 
                       type="checkbox" 
                       className="plat-form-input"
-                      id="isActiveRef"
+                      id="disp-active"
                       checked={form.isActive} 
                       onChange={e => setForm(f => ({...f, isActive: e.target.checked}))}
                     />
-                    <label htmlFor="isActiveRef" className="plat-form-label">Account is active</label>
+                    <label htmlFor="disp-active" className="plat-form-label mb-0 cursor-pointer">Account is active and can login</label>
                   </div>
                 </div>
               </div>
               <div className="plat-modal-footer">
                 <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
                 <button type="submit" className="plat-btn plat-btn-primary" disabled={createDisp.isPending || updateDisp.isPending}>
-                  {editingId ? 'Save Changes' : 'Create Dispensary'}
+                  {editingId ? 'Update Information' : 'Create Account'}
                 </button>
               </div>
             </form>

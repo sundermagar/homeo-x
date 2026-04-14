@@ -6,7 +6,8 @@ import type {
   ISettingsRepository,
   Department, Dispensary, ReferralSource, Sticker,
   StaticPage, Faq, PdfSetting, Medicine, Potency, Frequency,
-  ExpenseHead, MessageTemplate, StockLog, PackagePlan, Courier
+  ExpenseHead, MessageTemplate, StockLog, PackagePlan, Courier,
+  User
 } from '../../domains/settings/ports/settings.repository.js';
 
 export class SettingsRepositoryPg implements ISettingsRepository {
@@ -169,7 +170,7 @@ export class SettingsRepositoryPg implements ISettingsRepository {
 
   // ─── Referral Sources ─────────────────────────────────────────────────────
   async listReferralSources(): Promise<ReferralSource[]> {
-    return this.q<ReferralSource>('SELECT * FROM referral_sources ORDER BY id ASC');
+    return this.q<ReferralSource>('SELECT * FROM referral_sources ORDER BY name ASC');
   }
   async getReferralSource(id: number): Promise<ReferralSource | undefined> {
     return this.q1('SELECT * FROM referral_sources WHERE id = $1', [id]);
@@ -193,22 +194,22 @@ export class SettingsRepositoryPg implements ISettingsRepository {
 
   // ─── Stickers ─────────────────────────────────────────────────────────────
   async listStickers(): Promise<Sticker[]> {
-    return this.q('SELECT * FROM stickers ORDER BY title ASC');
+    return this.q('SELECT * FROM stickers ORDER BY name ASC');
   }
   async getSticker(id: number): Promise<Sticker | undefined> {
     return this.q1('SELECT * FROM stickers WHERE id = $1', [id]);
   }
   async createSticker(data: Omit<Sticker, 'id'>): Promise<Sticker> {
     return this.q1(
-      `INSERT INTO stickers (title, content) VALUES ($1, $2) RETURNING *`,
-      [data.title, data.content]
+      `INSERT INTO stickers (name, detail) VALUES ($1, $2) RETURNING *`,
+      [data.name, data.detail]
     ) as Promise<Sticker>;
   }
   async updateSticker(id: number, data: Partial<Omit<Sticker, 'id'>>): Promise<Sticker> {
     return this.q1(
-      `UPDATE stickers SET title = COALESCE($1, title), content = COALESCE($2, content),
+      `UPDATE stickers SET name = COALESCE($1, name), detail = COALESCE($2, detail),
        updated_at = NOW() WHERE id = $3 RETURNING *`,
-      [data.title ?? null, data.content ?? null, id]
+      [data.name ?? null, data.detail ?? null, id]
     ) as Promise<Sticker>;
   }
   async deleteSticker(id: number): Promise<void> {
@@ -245,26 +246,41 @@ export class SettingsRepositoryPg implements ISettingsRepository {
 
   // ─── FAQs ─────────────────────────────────────────────────────────────────
   async listFaqs(): Promise<Faq[]> {
-    return this.q<Faq>('SELECT * FROM faqs ORDER BY id ASC');
+    return this.q<Faq>('SELECT * FROM faqs ORDER BY display_order ASC, id ASC');
   }
   async getFaq(id: number): Promise<Faq | undefined> {
     return this.q1('SELECT * FROM faqs WHERE id = $1', [id]);
   }
   async createFaq(data: Omit<Faq, 'id' | 'createdAt' | 'updatedAt'>): Promise<Faq> {
     return this.q1(
-      `INSERT INTO faqs (ques, ans, created_at, updated_at) VALUES ($1, $2, NOW(), NOW()) RETURNING *`,
-      [data.ques, data.ans]
+      `INSERT INTO faqs (name, detail, ques, ans, display_order, is_active, created_at, updated_at) 
+       VALUES ($1, $2, $1, $2, (SELECT COALESCE(MAX(display_order), 0) + 1 FROM faqs), $3, NOW(), NOW()) RETURNING *`,
+      [data.ques || data.name, data.ans || data.detail, data.isActive ?? true]
     ) as Promise<Faq>;
   }
   async updateFaq(id: number, data: Partial<Omit<Faq, 'id'>>): Promise<Faq> {
     return this.q1(
-      `UPDATE faqs SET ques = COALESCE($1, ques), ans = COALESCE($2, ans),
-       updated_at = NOW() WHERE id = $3 RETURNING *`,
-      [data.ques ?? null, data.ans ?? null, id]
+      `UPDATE faqs SET 
+        name = COALESCE($1, name), 
+        ques = COALESCE($1, ques),
+        detail = COALESCE($2, detail),
+        ans = COALESCE($2, ans),
+        is_active = COALESCE($3, is_active),
+        updated_at = NOW() 
+       WHERE id = $4 RETURNING *`,
+      [data.ques || data.name || null, data.ans || data.detail || null, data.isActive ?? null, id]
     ) as Promise<Faq>;
   }
   async deleteFaq(id: number): Promise<void> {
     await this.q('DELETE FROM faqs WHERE id = $1', [id]);
+    // Re-sequence after delete to keep it gapless
+    await this.q(`
+      WITH ranked AS (
+        SELECT id, row_number() OVER (ORDER BY display_order, id) as new_order 
+        FROM faqs
+      )
+      UPDATE faqs SET display_order = ranked.new_order FROM ranked WHERE faqs.id = ranked.id
+    `);
   }
 
   // ─── PDF Settings ─────────────────────────────────────────────────────────
@@ -302,41 +318,115 @@ export class SettingsRepositoryPg implements ISettingsRepository {
 
   // ─── Medicines ────────────────────────────────────────────────────────────
   async listMedicines(): Promise<Medicine[]> {
-    // this.q already calls mapRow which handles snake_case -> camelCase
-    // We just need to ensure the primary key "ID" is mapped to "id" if needed,
-    // though mapRow preserves "ID" as "ID".
-    const rows = await this.q<any>('SELECT * FROM medicines ORDER BY "ID" ASC');
-    return rows.map(r => ({ ...r, id: r.ID ?? r.id }));
+    const rows = await this.q<any>('SELECT * FROM medicines ORDER BY id ASC');
+    return rows.map(r => ({ ...r, id: r.id }));
   }
   async getMedicine(id: number): Promise<Medicine | undefined> {
-    const r = await this.q1<any>('SELECT * FROM medicines WHERE "ID" = $1', [id]);
+    const r = await this.q1<any>('SELECT * FROM medicines WHERE id = $1', [id]);
     if (!r) return undefined;
-    return { ...r, id: r.ID ?? r.id };
+    return { ...r, id: r.id };
   }
-  async createMedicine(data: any): Promise<Medicine> {
+  async createMedicine(data: Omit<Medicine, 'id'>): Promise<Medicine> {
+    console.log('[REPO] createMedicine called', data);
     const name = data.name || data.shortname;
     const disease = data.disease || data.description || data.detail;
-    const r = await this.q1<any>(
-      `INSERT INTO medicines (name, disease, created_at, updated_at) VALUES ($1, $2, NOW(), NOW()) RETURNING *`,
-      [name, disease ?? null]
-    );
-    return { ...r, id: r?.ID ?? r?.id };
+    const potencyId = data.potencyId || null;
+    const type = data.type || null;
+    const category = data.category || null;
+    const price = data.price || 0;
+    const stockLevel = data.stockLevel || 0;
+
+    try {
+      const r = await this.q1<any>(
+        `INSERT INTO medicines (name, disease, potency_id, type, category, price, stock_level, created_at, updated_at) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW()) RETURNING *`,
+        [name, disease ?? null, potencyId, type, category, price, stockLevel]
+      );
+      console.log('[REPO] createMedicine Success', r.id);
+
+      // Initial stock log
+      if (stockLevel > 0) {
+        await this.createStockLog({
+          medicineId: r.id,
+          changeType: 'Adjust',
+          quantity: stockLevel,
+          previousStock: 0,
+          newStock: stockLevel,
+          reason: 'Initial stock on creation'
+        });
+      }
+
+      return { ...r, id: r?.id };
+    } catch (err) {
+      console.error('[REPO] createMedicine Error', err);
+      throw err;
+    }
   }
-  async updateMedicine(id: number, data: any): Promise<Medicine> {
+  async updateMedicine(id: number, data: Partial<Omit<Medicine, 'id'>>): Promise<Medicine> {
+    console.log('[REPO] updateMedicine called', { id, data });
     const name = data.name || data.shortname;
-    const disease = data.disease || data.description || data.detail;
-    const r = await this.q1<any>(
-      `UPDATE medicines SET 
-        name = COALESCE($1, name), 
-        disease = COALESCE($2, disease), 
-        updated_at = NOW() 
-       WHERE "ID" = $3 RETURNING *`,
-      [name ?? null, disease ?? null, id]
-    );
-    return { ...r, id: r?.ID ?? r?.id };
+    const disease = data.disease !== undefined ? data.disease : undefined;
+    const potencyId = data.potencyId !== undefined ? data.potencyId : undefined;
+    const type = data.type !== undefined ? data.type : undefined;
+    const category = data.category !== undefined ? data.category : undefined;
+    const price = data.price !== undefined ? data.price : undefined;
+    const stockLevel = data.stockLevel !== undefined ? data.stockLevel : undefined;
+
+    // Fetch current for logging
+    const current = await this.getMedicine(id);
+    const oldStock = current?.stockLevel || 0;
+
+    try {
+      const r = await this.q1<any>(
+        `UPDATE medicines SET 
+          name = COALESCE($1, name), 
+          disease = CASE WHEN $2::text IS NOT NULL OR $9::boolean THEN $2 ELSE disease END,
+          potency_id = CASE WHEN $3::integer IS NOT NULL OR $10::boolean THEN $3 ELSE potency_id END,
+          type = CASE WHEN $4::text IS NOT NULL OR $11::boolean THEN $4 ELSE type END,
+          category = CASE WHEN $5::text IS NOT NULL OR $12::boolean THEN $5 ELSE category END,
+          price = CASE WHEN $6::real IS NOT NULL OR $13::boolean THEN $6 ELSE price END,
+          stock_level = CASE WHEN $7::integer IS NOT NULL OR $14::boolean THEN $7 ELSE stock_level END,
+          updated_at = NOW() 
+         WHERE id = $8 RETURNING *`,
+        [
+          name ?? null, 
+          disease ?? null, 
+          potencyId ?? null, 
+          type ?? null, 
+          category ?? null, 
+          price ?? null, 
+          stockLevel ?? null, 
+          id,
+          disease === null,
+          potencyId === null,
+          type === null,
+          category === null,
+          price === null,
+          stockLevel === null
+        ]
+      );
+      console.log('[REPO] updateMedicine Success', id);
+
+      // Stock change log
+      if (stockLevel !== undefined && stockLevel !== null && stockLevel !== oldStock) {
+        await this.createStockLog({
+          medicineId: id,
+          changeType: 'Adjust',
+          quantity: stockLevel - oldStock,
+          previousStock: oldStock,
+          newStock: stockLevel,
+          reason: 'Manual adjustment via catalog'
+        });
+      }
+
+      return { ...r, id: r?.id };
+    } catch (err) {
+      console.error('[REPO] updateMedicine Error', err);
+      throw err;
+    }
   }
   async deleteMedicine(id: number): Promise<void> {
-    await this.q('DELETE FROM medicines WHERE "ID" = $1', [id]);
+    await this.q('DELETE FROM medicines WHERE id = $1', [id]);
   }
 
   // ─── Potencies ────────────────────────────────────────────────────────────
@@ -507,5 +597,10 @@ export class SettingsRepositoryPg implements ISettingsRepository {
   }
   async deleteCourier(id: number): Promise<void> {
     await this.q('DELETE FROM courier_masters WHERE id = $1', [id]);
+  }
+
+  // ─── Practitioners (Doctors from users table) ──────────────────────────────
+  async listPractitioners(): Promise<User[]> {
+    return this.q<User>("SELECT * FROM users WHERE type = 'Doctor' AND is_active = true ORDER BY name ASC");
   }
 }

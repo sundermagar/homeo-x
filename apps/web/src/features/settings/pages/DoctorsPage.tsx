@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Stethoscope, Plus, Edit2, Trash2, RefreshCw, ArrowLeft, Mail, Phone, MapPin } from 'lucide-react';
+import { Stethoscope, Plus, Edit2, Trash2, RefreshCw, ArrowLeft, Mail, Phone, MapPin, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAccounts, useDeleteAccount } from '../../platform/hooks/use-accounts';
 import { useOrganizations } from '../../platform/hooks/use-organizations';
@@ -42,60 +42,75 @@ export default function DoctorsPage() {
       <div className="plat-header">
         <div>
           <h1 className="plat-header-title">
-            <Stethoscope size={20} strokeWidth={1.6} style={{ color: 'var(--primary)' }} />
+            <Stethoscope size={20} className="color-primary" />
             Doctors Directory
           </h1>
           <p className="plat-header-sub">Manage clinical staff, specializations, and clinic assignments.</p>
         </div>
         <div className="plat-header-actions">
           <button className="plat-btn plat-btn-primary" onClick={openCreate}>
-            <Plus size={14} strokeWidth={1.6} />
+            <Plus size={14} />
             Add New Doctor
           </button>
         </div>
       </div>
 
-      <div className="plat-card">
-        <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-main)' }}>
-          <input
-            className="plat-form-input"
-            style={{ maxWidth: '280px' }}
-            placeholder="Search doctors..."
+      <div className="plat-stats-bar">
+        <div className="plat-stat-card">
+          <span className="plat-stat-label">Total Doctors</span>
+          <span className="plat-stat-value">{doctors.length}</span>
+        </div>
+        <div className="plat-stat-card">
+          <span className="plat-stat-label">Active Listing</span>
+          <span className="plat-stat-value plat-stat-value-success">
+            {filteredDoctors.length}
+          </span>
+        </div>
+      </div>
+
+      <div className="plat-filters">
+        <div className="plat-search-wrap">
+          <Search size={16} className="plat-search-icon" />
+          <input 
+            className="plat-filter-input plat-search-input"
+            placeholder="Search doctors by name, email or specialty..."
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+      </div>
 
+      <div className="plat-card">
         {isLoading ? (
           <div className="plat-empty">
-            <RefreshCw size={22} style={{ animation: 'spin 1s linear infinite', opacity: 0.3 }} />
+            <RefreshCw size={22} className="animate-spin opacity-30" />
           </div>
         ) : filteredDoctors.length === 0 ? (
           <div className="plat-empty">
-            <Stethoscope size={28} className="plat-empty-icon" />
+            <Stethoscope size={40} className="plat-empty-icon" />
             <p className="plat-empty-text">No doctors found in the directory.</p>
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
+          <div className="plat-table-container">
             <table className="plat-table">
               <thead>
                 <tr>
                   <th style={{ width: '60px' }}>#</th>
-                  <th>Name</th>
+                  <th>Name & Designation</th>
                   <th>Contact Information</th>
-                  <th>Clinic</th>
+                  <th>Clinic Assignment</th>
                   <th style={{ width: '120px' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredDoctors.map((doc: any, idx: number) => (
-                  <tr key={doc.id}>
-                    <td className="font-mono text-xs color-muted">{idx + 1}</td>
-                    <td>
+                  <tr key={doc.id} className="plat-table-row">
+                    <td data-label="#" className="plat-table-cell font-mono text-xs color-muted">{idx + 1}</td>
+                    <td data-label="Doctor" className="plat-table-cell">
                       <div className="font-semibold">{doc.name}</div>
                       <div className="text-xs color-muted">{doc.designation || 'General Physician'}</div>
                     </td>
-                    <td>
+                    <td data-label="Contact" className="plat-table-cell">
                       <div className="flex flex-col gap-1">
                         {doc.email && <div className="text-xs flex items-center gap-1.5"><Mail size={12} className="color-muted" /> {doc.email}</div>}
                         {doc.mobile && (
@@ -105,11 +120,11 @@ export default function DoctorsPage() {
                         )}
                       </div>
                     </td>
-                    <td className="text-secondary">
+                    <td data-label="Clinic" className="plat-table-cell text-secondary">
                       {orgs.find((o: any) => o.id === doc.clinicId)?.name || 'Multi-clinic Access'}
                     </td>
-                    <td>
-                      <div className="flex gap-3">
+                    <td className="plat-table-cell">
+                      <div className="flex justify-end gap-3">
                         <button className="plat-btn plat-btn-sm plat-btn-icon" onClick={() => openEdit(doc)}>
                           <Edit2 size={13} />
                         </button>

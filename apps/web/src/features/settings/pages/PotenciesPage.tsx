@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, Plus, X, RefreshCw, ArrowLeft, Trash2, Edit2 } from 'lucide-react';
+import { Sparkles, Plus, X, RefreshCw, ArrowLeft, Trash2, Edit2, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { usePotencies, useCreatePotency, useUpdatePotency, useDeletePotency } from '../hooks/use-settings';
 import '../../platform/styles/platform.css';
@@ -79,32 +79,47 @@ export default function PotenciesPage() {
         </div>
       </div>
 
-      <div className="plat-card">
-        <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
-          <input
-            className="plat-form-input"
-            style={{ maxWidth: '280px' }}
+      <div className="plat-stats-bar">
+        <div className="plat-stat-card">
+          <span className="plat-stat-label">Total Potencies</span>
+          <span className="plat-stat-value">{potencies.length}</span>
+        </div>
+        <div className="plat-stat-card">
+          <span className="plat-stat-label">Filtered View</span>
+          <span className="plat-stat-value plat-stat-value-success">
+            {filtered.length}
+          </span>
+        </div>
+      </div>
+
+      <div className="plat-filters">
+        <div className="plat-search-wrap">
+          <Search size={16} className="plat-search-icon" />
+          <input 
+            className="plat-filter-input plat-search-input"
             placeholder="Search potencies..."
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+      </div>
 
+      <div className="plat-card">
         {isLoading ? (
           <div className="plat-empty">
-            <RefreshCw size={22} style={{ animation: 'spin 1s linear infinite', opacity: 0.3 }} />
+            <RefreshCw size={22} className="animate-spin opacity-30" />
           </div>
         ) : filtered.length === 0 ? (
           <div className="plat-empty">
-            <Sparkles size={28} className="plat-empty-icon" />
-            <p className="plat-empty-text">No potencies found. Add your first one.</p>
+            <Sparkles size={40} className="plat-empty-icon" />
+            <p className="plat-empty-text">No potencies found matching search.</p>
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
+          <div className="plat-table-container">
             <table className="plat-table">
               <thead>
                 <tr>
-                  <th style={{ width: '60px' }}>#</th>
+                  <th style={{ width: '60px' }}>ID</th>
                   <th>Potency Name</th>
                   <th>Description / Detail</th>
                   <th style={{ width: '120px' }}>Actions</th>
@@ -112,12 +127,12 @@ export default function PotenciesPage() {
               </thead>
               <tbody>
                 {filtered.map((pot: Potency, idx: number) => (
-                  <tr key={pot.id}>
-                    <td className="font-mono text-xs color-muted">{idx + 1}</td>
-                    <td className="font-semibold">{pot.name}</td>
-                    <td className="text-secondary">{pot.detail || '—'}</td>
-                    <td>
-                      <div className="flex gap-3">
+                  <tr key={pot.id} className="plat-table-row">
+                    <td data-label="ID" className="plat-table-cell font-mono text-xs color-muted">{idx + 1}</td>
+                    <td data-label="Potency Name" className="plat-table-cell font-semibold">{pot.name}</td>
+                    <td data-label="Detail" className="plat-table-cell text-secondary">{pot.detail || '—'}</td>
+                    <td className="plat-table-cell">
+                      <div className="flex justify-end gap-3">
                         <button className="plat-btn plat-btn-sm plat-btn-icon" onClick={() => handleOpenEdit(pot)}>
                           <Edit2 size={13} />
                         </button>

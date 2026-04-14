@@ -9,7 +9,7 @@ import fs from 'fs';
 // Load environment variables
 dotenv.config({ path: path.join(process.cwd(), '../../.env') });
 
-const dbUrl = process.env.DATABASE_URL;
+const dbUrl = process.env['DATABASE_URL'];
 if (!dbUrl) {
   console.error("❌ No DATABASE_URL found.");
   process.exit(1);

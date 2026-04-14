@@ -45,8 +45,8 @@ export type UpdateReferralSourceInput = z.infer<typeof updateReferralSourceSchem
 
 // ─── Sticker ──────────────────────────────────────────────────────────────────
 export const createStickerSchema = z.object({
-  title: z.string().min(1, 'Title is required').max(255),
-  content: z.string().min(1, 'Content is required'),
+  name: z.string().min(1, 'Name is required').max(255),
+  detail: z.string().min(1, 'Detail is required'),
 });
 export const updateStickerSchema = createStickerSchema.partial();
 export type CreateStickerInput = z.infer<typeof createStickerSchema>;
@@ -65,8 +65,11 @@ export type UpdateStaticPageInput = z.infer<typeof updateStaticPageSchema>;
 
 // ─── FAQ ──────────────────────────────────────────────────────────────────────
 export const createFaqSchema = z.object({
-  ques: z.string().min(1, 'Question is required'),
-  ans: z.string().min(1, 'Answer is required'),
+  name: z.string().min(1, 'Name (Question) is required'),
+  detail: z.string().min(1, 'Detail (Answer) is required'),
+  ques: z.string().optional(),
+  ans: z.string().optional(),
+  isActive: z.boolean().default(true),
 });
 export const updateFaqSchema = createFaqSchema.partial();
 export type CreateFaqInput = z.infer<typeof createFaqSchema>;

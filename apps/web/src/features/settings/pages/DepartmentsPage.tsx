@@ -74,35 +74,54 @@ export default function DepartmentsPage() {
         </div>
       </div>
 
+      <div className="plat-stats-bar">
+        <div className="plat-stat-card">
+          <span className="plat-stat-label">Total Departments</span>
+          <span className="plat-stat-value">{depts.length}</span>
+        </div>
+        <div className="plat-stat-card">
+          <span className="plat-stat-label">Active Units</span>
+          <span className="plat-stat-value plat-stat-value-success">
+            {depts.filter((d: any) => d.isActive).length}
+          </span>
+        </div>
+      </div>
+
       <div className="plat-card">
         {isLoading ? (
           <div className="plat-empty">
-            <RefreshCw size={22} style={{ animation: 'spin 1s linear infinite', opacity: 0.3 }} />
+            <RefreshCw size={22} className="animate-spin opacity-30" />
           </div>
         ) : depts.length === 0 ? (
           <div className="plat-empty">
-            <Layers size={28} className="plat-empty-icon" />
+            <Layers size={40} className="plat-empty-icon" />
             <p className="plat-empty-text">No departments found. Add your first one.</p>
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
+          <div className="plat-table-container">
             <table className="plat-table">
               <thead>
                 <tr>
-                  <th style={{ width: '60px' }}>#</th>
-                  <th>Name</th>
-                  <th>Detail</th>
+                  <th style={{ width: '60px' }}>ID</th>
+                  <th>Department Name</th>
+                  <th>Description / Detail</th>
+                  <th style={{ width: '100px' }}>Status</th>
                   <th style={{ width: '120px' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {depts.map((dept: Department, idx: number) => (
-                  <tr key={dept.id}>
-                    <td className="font-mono text-xs color-muted">{idx + 1}</td>
-                    <td className="font-semibold">{dept.name}</td>
-                    <td className="text-secondary">{dept.description || '—'}</td>
-                    <td>
-                      <div className="flex gap-3">
+                  <tr key={dept.id} className="plat-table-row">
+                    <td data-label="ID" className="plat-table-cell font-mono text-xs color-muted">{idx + 1}</td>
+                    <td data-label="Name" className="plat-table-cell font-semibold">{dept.name}</td>
+                    <td data-label="Detail" className="plat-table-cell text-secondary">{dept.description || '—'}</td>
+                    <td data-label="Status" className="plat-table-cell">
+                       <span className={`plat-badge ${dept.isActive ? 'plat-badge-staff' : 'plat-badge-default'}`}>
+                         {dept.isActive ? 'Active' : 'Inactive'}
+                       </span>
+                    </td>
+                    <td className="plat-table-cell">
+                      <div className="flex justify-end gap-3">
                         <button className="plat-btn plat-btn-sm plat-btn-icon" onClick={() => handleOpenEdit(dept)}>
                           <Edit2 size={13} />
                         </button>

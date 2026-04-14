@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Clock, Plus, X, RefreshCw, ArrowLeft, Trash2, Edit2 } from 'lucide-react';
+import { Clock, Plus, X, RefreshCw, ArrowLeft, Trash2, Edit2, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useFrequencies, useCreateFrequency, useUpdateFrequency, useDeleteFrequency } from '../hooks/use-settings';
 import '../../platform/styles/platform.css';
@@ -88,32 +88,47 @@ export default function FrequenciesPage() {
         </div>
       </div>
 
-      <div className="plat-card">
-        <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
-          <input
-            className="plat-form-input"
-            style={{ maxWidth: '280px' }}
+      <div className="plat-stats-bar">
+        <div className="plat-stat-card">
+          <span className="plat-stat-label">Total Frequencies</span>
+          <span className="plat-stat-value">{frequencies.length}</span>
+        </div>
+        <div className="plat-stat-card">
+          <span className="plat-stat-label">Filtered List</span>
+          <span className="plat-stat-value plat-stat-value-success">
+            {filtered.length}
+          </span>
+        </div>
+      </div>
+
+      <div className="plat-filters">
+        <div className="plat-search-wrap">
+          <Search size={16} className="plat-search-icon" />
+          <input 
+            className="plat-filter-input plat-search-input"
             placeholder="Search frequencies..."
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+      </div>
 
+      <div className="plat-card">
         {isLoading ? (
           <div className="plat-empty">
-            <RefreshCw size={22} style={{ animation: 'spin 1s linear infinite', opacity: 0.3 }} />
+            <RefreshCw size={22} className="animate-spin opacity-30" />
           </div>
         ) : filtered.length === 0 ? (
           <div className="plat-empty">
-            <Clock size={28} className="plat-empty-icon" />
-            <p className="plat-empty-text">No frequencies found. Add your first one.</p>
+            <Clock size={40} className="plat-empty-icon" />
+            <p className="plat-empty-text">No frequencies found matching search.</p>
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
+          <div className="plat-table-container">
             <table className="plat-table">
               <thead>
                 <tr>
-                  <th style={{ width: '60px' }}>#</th>
+                  <th style={{ width: '60px' }}>ID</th>
                   <th>Title</th>
                   <th>Freq. Description</th>
                   <th>Duration</th>
@@ -123,14 +138,14 @@ export default function FrequenciesPage() {
               </thead>
               <tbody>
                 {filtered.map((freq: Frequency, idx: number) => (
-                  <tr key={freq.id}>
-                    <td className="font-mono text-xs color-muted">{idx + 1}</td>
-                    <td className="font-semibold">{freq.title || '—'}</td>
-                    <td>{freq.frequency || '—'}</td>
-                    <td>{freq.duration || '—'}</td>
-                    <td>{freq.days !== undefined ? freq.days : '—'}</td>
-                    <td>
-                      <div className="flex gap-3">
+                  <tr key={freq.id} className="plat-table-row">
+                    <td data-label="ID" className="plat-table-cell font-mono text-xs color-muted">{idx + 1}</td>
+                    <td data-label="Title" className="plat-table-cell font-semibold">{freq.title || '—'}</td>
+                    <td data-label="Description" className="plat-table-cell">{freq.frequency || '—'}</td>
+                    <td data-label="Duration" className="plat-table-cell">{freq.duration || '—'}</td>
+                    <td data-label="Days" className="plat-table-cell">{freq.days !== undefined ? freq.days : '—'}</td>
+                    <td className="plat-table-cell">
+                      <div className="flex justify-end gap-3">
                         <button className="plat-btn plat-btn-sm plat-btn-icon" onClick={() => handleOpenEdit(freq)}>
                           <Edit2 size={13} />
                         </button>

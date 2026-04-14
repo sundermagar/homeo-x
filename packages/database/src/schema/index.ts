@@ -11,6 +11,7 @@ export * from './audit';
 export * from './packages';
 export * from './communication';
 export * from './platform';
+export * from './settings';
 export * from './legacy-public-manifest';
 export * from './tenant-demo-legacy-schema';
 export * from './legacy/index';

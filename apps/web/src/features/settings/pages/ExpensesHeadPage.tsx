@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Wallet, Plus, X, RefreshCw, ArrowLeft, Trash2, Edit2 } from 'lucide-react';
+import { Wallet, Plus, X, RefreshCw, ArrowLeft, Trash2, Edit2, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useExpenseHeads, useCreateExpenseHead, useUpdateExpenseHead, useDeleteExpenseHead } from '../hooks/use-settings';
 import '../../platform/styles/platform.css';
@@ -16,6 +16,7 @@ export default function ExpensesHeadPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [search, setSearch] = useState('');
 
   const handleOpenCreate = () => {
     setEditingId(null);
@@ -44,6 +45,11 @@ export default function ExpensesHeadPage() {
     await deleteHead.mutateAsync(id);
   };
 
+  const filtered = heads.filter((h: any) => 
+    h.name.toLowerCase().includes(search.toLowerCase()) ||
+    (h.description && h.description.toLowerCase().includes(search.toLowerCase()))
+  );
+
   return (
     <div className="plat-page fade-in">
       <Link to="/settings" className="settings-back-link">
@@ -54,31 +60,56 @@ export default function ExpensesHeadPage() {
       <div className="plat-header">
         <div>
           <h1 className="plat-header-title">
-            <Wallet size={20} strokeWidth={1.6} style={{ color: 'var(--primary)' }} />
+            <Wallet size={20} className="color-primary" />
             Expenses Head
           </h1>
           <p className="plat-header-sub">Manage categories for clinic accounting and expense tracking.</p>
         </div>
         <div className="plat-header-actions">
           <button className="plat-btn plat-btn-primary" onClick={handleOpenCreate}>
-            <Plus size={14} strokeWidth={1.6} />
+            <Plus size={14} />
             Add Expense Head
           </button>
+        </div>
+      </div>
+
+      <div className="plat-stats-bar">
+        <div className="plat-stat-card">
+          <span className="plat-stat-label">Expense Categories</span>
+          <span className="plat-stat-value">{heads.length}</span>
+        </div>
+        <div className="plat-stat-card">
+          <span className="plat-stat-label">Active Listing</span>
+          <span className="plat-stat-value plat-stat-value-success">
+            {filtered.length}
+          </span>
+        </div>
+      </div>
+
+      <div className="plat-filters">
+        <div className="plat-search-wrap">
+          <Search size={16} className="plat-search-icon" />
+          <input 
+            className="plat-filter-input plat-search-input"
+            placeholder="Search categories..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
       </div>
 
       <div className="plat-card">
         {isLoading ? (
           <div className="plat-empty">
-            <RefreshCw size={22} style={{ animation: 'spin 1s linear infinite', opacity: 0.3 }} />
+            <RefreshCw size={22} className="animate-spin opacity-30" />
           </div>
-        ) : heads.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <div className="plat-empty">
-            <Wallet size={28} className="plat-empty-icon" />
-            <p className="plat-empty-text">No expense categories defined.</p>
+            <Wallet size={40} className="plat-empty-icon" />
+            <p className="plat-empty-text">No expense categories found.</p>
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
+          <div className="plat-table-container">
             <table className="plat-table">
               <thead>
                 <tr>
@@ -90,18 +121,18 @@ export default function ExpensesHeadPage() {
                 </tr>
               </thead>
               <tbody>
-                {heads.map((head: any) => (
-                  <tr key={head.id}>
-                    <td className="font-mono text-xs color-muted">{head.id}</td>
-                    <td className="font-semibold">{head.name}</td>
-                    <td>{head.description || '—'}</td>
-                    <td>
+                {filtered.map((head: any) => (
+                  <tr key={head.id} className="plat-table-row">
+                    <td data-label="ID" className="plat-table-cell font-mono text-xs color-muted">{head.id}</td>
+                    <td data-label="Category" className="plat-table-cell font-semibold">{head.name}</td>
+                    <td data-label="Description" className="plat-table-cell text-secondary">{head.description || '—'}</td>
+                    <td data-label="Status" className="plat-table-cell">
                        <span className={`plat-badge ${head.isActive ? 'plat-badge-staff' : 'plat-badge-default'}`}>
-                         {head.isActive ? 'Active' : 'Inactive'}
+                          {head.isActive ? 'Active' : 'Inactive'}
                        </span>
                     </td>
-                    <td>
-                      <div className="flex gap-3">
+                    <td className="plat-table-cell">
+                      <div className="flex justify-end gap-3">
                         <button className="plat-btn plat-btn-sm plat-btn-icon" onClick={() => handleOpenEdit(head)}>
                           <Edit2 size={13} />
                         </button>

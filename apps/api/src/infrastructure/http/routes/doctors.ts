@@ -1,14 +1,13 @@
-import { Router } from 'express';
+import { Router, type Request, type Response } from 'express';
 import type { Router as ExpressRouter } from 'express';
-import { sendSuccess } from '../../../shared/response-formatter';
-import { authMiddleware } from '../middleware/auth';
+import { asyncHandler } from '../middleware/async-handler.js';
+import { authMiddleware } from '../middleware/auth.js';
+import { SettingsRepositoryPg } from '../../repositories/settings.repository.pg.js';
 
 export const doctorsRouter: ExpressRouter = Router();
 
-doctorsRouter.get('/', authMiddleware, (req, res) => {
-  // Simple mock for practitioners
-  sendSuccess(res, [
-    { id: 101, name: 'Dr. Demo', specialization: 'Homoeopathy' },
-    { id: 102, name: 'Dr. Specialist', specialization: 'Dermatology' },
-  ]);
-});
+doctorsRouter.get('/', authMiddleware, asyncHandler(async (req: Request, res: Response) => {
+  const repo = new SettingsRepositoryPg(req.tenantDb);
+  const data = await repo.listPractitioners();
+  res.json({ success: true, data });
+}));

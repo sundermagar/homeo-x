@@ -27,6 +27,11 @@ const createMedicineSchema = z.object({
   disease: z.string().optional().nullable(),
   description: z.string().optional().nullable(),
   detail: z.string().optional().nullable(),
+  potencyId: z.number().optional().nullable(),
+  type: z.string().optional().nullable(),
+  category: z.string().optional().nullable(),
+  price: z.number().optional(),
+  stockLevel: z.number().optional(),
 });
 const updateMedicineSchema = createMedicineSchema.partial();
 

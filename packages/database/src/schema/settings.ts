@@ -43,8 +43,8 @@ export const referralSources = pgTable('referral_sources', {
 
 export const stickers = pgTable('stickers', {
   id: serial('id').primaryKey(),
-  title: varchar('title', { length: 255 }).notNull(),
-  content: text('content').notNull(),
+  name: varchar('name', { length: 255 }).notNull(),
+  detail: text('detail').notNull(),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
@@ -61,12 +61,15 @@ export const staticPages = pgTable('static_pages', {
 
 export const faqs = pgTable('faqs', {
   id: serial('id').primaryKey(),
+  name: text('name'),
   ques: text('ques').notNull(),
+  detail: text('detail'),
   ans: text('ans').notNull(),
   displayOrder: integer('display_order').default(0),
   isActive: boolean('is_active').default(true),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
+  deletedAt: timestamp('deleted_at'),
 });
 
 export const pdfSettings = pgTable('pdf_settings', {
@@ -109,6 +112,17 @@ export const frequencies = pgTable('case_frequency', {
   days: integer('days'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const courierMasters = pgTable('courier_masters', {
+  id:            serial('id').primaryKey(),
+  name:          varchar('name',           { length: 255 }).notNull(),
+  contactPerson: varchar('contact_person', { length: 255 }),
+  phone:         varchar('phone',          { length: 50 }),
+  trackingUrl:   text('tracking_url'),
+  isActive:      boolean('is_active').default(true),
+  createdAt:     timestamp('created_at').defaultNow(),
+  updatedAt:     timestamp('updated_at').defaultNow(),
 });
 
 

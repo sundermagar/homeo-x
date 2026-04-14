@@ -42,8 +42,8 @@ export interface ReferralSource {
 
 export interface Sticker {
   id: number;
-  title: string;
-  content: string;
+  name: string;
+  detail: string;
 }
 
 export interface StaticPage {
@@ -56,10 +56,15 @@ export interface StaticPage {
 
 export interface Faq {
   id: number;
+  name: string;
   ques: string;
+  detail: string;
   ans: string;
+  displayOrder?: number | null;
+  isActive?: boolean | null;
   createdAt?: Date | null;
   updatedAt?: Date | null;
+  deletedAt?: Date | null;
 }
 
 export interface PdfSetting {
@@ -75,8 +80,16 @@ export interface Medicine {
   id: number;
   name: string;
   disease?: string | null;
+  potencyId?: number | null;
+  type?: string | null;
+  category?: string | null;
+  price?: number | null;
+  stockLevel?: number | null;
   createdAt?: Date | null;
   updatedAt?: Date | null;
+  shortname?: string | null;
+  description?: string | null;
+  detail?: string | null;
 }
 
 export interface Potency {
@@ -139,6 +152,16 @@ export interface Courier {
   contactPerson?: string | null;
   phone?: string | null;
   trackingUrl?: string | null;
+  isActive?: boolean | null;
+}
+
+export interface User {
+  id: number;
+  email: string;
+  name: string;
+  type?: string | null;
+  mobile?: string | null;
+  city?: string | null;
   isActive?: boolean | null;
 }
 
@@ -247,5 +270,8 @@ export interface ISettingsRepository {
   createCourier(data: Omit<Courier, 'id'>): Promise<Courier>;
   updateCourier(id: number, data: Partial<Omit<Courier, 'id'>>): Promise<Courier>;
   deleteCourier(id: number): Promise<void>;
+
+  // Practitioners
+  listPractitioners(): Promise<User[]>;
 }
 
