@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Clock, UserCheck, CheckCircle2, Users, RefreshCw, Plus, Ticket, ChevronRight, Stethoscope } from 'lucide-react';
 import { useWaitlist, useCallNext, useCompleteVisit, useTodayAppointments, useIssueToken, useAddToWaitlist } from '../hooks/use-appointments';
 import { apiClient } from '@/infrastructure/api-client';
@@ -29,6 +30,7 @@ export default function TokenQueuePage() {
   const completeVisit = useCompleteVisit();
   const issueToken   = useIssueToken();
   const addToWaitlist = useAddToWaitlist();
+  const navigate = useNavigate();
 
   const waiting    = waitlist.filter(w => w.status === 0);
   const inProgress = waitlist.filter(w => w.status === 1);
@@ -132,6 +134,13 @@ export default function TokenQueuePage() {
                     <div className="appt-token-patient">{w.patientName ?? `Patient #${w.patientId}`}</div>
                     {w.doctorName && <div style={{ fontSize: '0.72rem', color: '#888786', marginTop: 2 }}>{w.doctorName}</div>}
                     <div className="appt-token-actions">
+                      <button
+                        className="appt-btn appt-btn-sm"
+                        style={{ background: '#F5F3FF', color: '#7C3AED', borderColor: '#DDD6FE' }}
+                        onClick={() => navigate(`/consultation/${w.id}`)}
+                      >
+                        <Stethoscope size={13} strokeWidth={1.6} /> Consult
+                      </button>
                       <button
                         className="appt-btn appt-btn-sm"
                         style={{ background: '#F0FDF4', color: '#16A34A', borderColor: '#BBF7D0' }}

@@ -1,0 +1,100 @@
+/* ─── Consultation Bottom Bar ─── */
+
+.consult-bottom-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: var(--z-sticky);
+  border-top: 1px solid var(--border-default);
+  background: var(--bg-card);
+  padding: 0.625rem var(--space-4);
+}
+
+.consult-bottom-bar__inner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.consult-bottom-bar__spacer {
+  flex: 1;
+}
+
+.consult-bottom-bar__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Primary CTA — gradient */
+.consult-bottom-bar__cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  height: 2.5rem;
+  padding: 0 2rem;
+  font-size: var(--font-size-xs);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-radius: var(--radius-lg);
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: var(--shadow-md);
+  background: linear-gradient(135deg, var(--color-primary-600), var(--color-primary-700));
+  color: white;
+}
+
+.consult-bottom-bar__cta:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--color-primary-700), var(--color-primary-800));
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-1px);
+}
+
+.consult-bottom-bar__cta:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.consult-bottom-bar__cta:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Secondary outline button */
+.consult-bottom-bar__outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  height: 2.5rem;
+  padding: 0 1.5rem;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-primary-300);
+  background: transparent;
+  color: var(--color-primary-700);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.consult-bottom-bar__outline:hover {
+  background-color: var(--color-primary-50);
+}
+
+.consult-bottom-bar__outline:active {
+  transform: scale(0.97);
+}
+
+.consult-bottom-bar__chevron {
+  transition: transform var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.consult-bottom-bar__cta:hover .consult-bottom-bar__chevron {
+  transform: translateX(3px);
+}

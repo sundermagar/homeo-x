@@ -10,3 +10,7 @@ coverage/
 *.tsbuildinfo
 MMC-javascript 2/
 api_debug.log
+google-stt-credentials.json
+ts_errors.txt
+
+

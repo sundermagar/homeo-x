@@ -10,7 +10,7 @@ const PatientListPage     = lazy(() => import('@/features/patients/pages/patient
 const PatientFormPage     = lazy(() => import('@/features/patients/pages/patient-form-page'));
 const PatientDetailPage   = lazy(() => import('@/features/patients/pages/patient-detail-page'));
 const FamilyGroupListPage = lazy(() => import('@/features/patients/pages/family-group-list-page'));
-const ConsultationPage    = lazy(() => import('@/features/consultation/pages/consultation-page'));
+const ConsultationPage    = lazy(() => import('@/features/consultation/consultation-mode-page'));
 const StaffListPage       = lazy(() => import('@/features/staff/pages/staff-list-page'));
 const StaffFormPage       = lazy(() => import('@/features/staff/pages/staff-form-page'));
 

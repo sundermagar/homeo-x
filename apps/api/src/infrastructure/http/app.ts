@@ -28,6 +28,13 @@ import { logisticsRouter } from './routes/logistics.router';
 import { crmRouter } from './routes/crm.router';
 import { knowledgeRouter } from './routes/knowledge.router';
 import { recordsRouter } from './routes/records.router';
+import { aiRouter } from './routes/ai.router';
+import { scribingRouter } from './routes/scribing.router';
+import { videoCallRouter } from './routes/video-call.router';
+import { consultationsRouter } from './routes/consultations.router';
+import { setupTranscriptionGateway } from './gateways/transcription.gateway';
+import { TranslatorEngine } from '../../domains/consultation/engines/translator.engine';
+import { getAiProviderChain } from '../../infrastructure/ai/ai-provider-chain';
 
 const logger = createLogger('http');
 
@@ -39,6 +46,10 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   const io: SocketIOServer = new SocketServer(server, {
     cors: { origin: appConfig.cors.origins, credentials: true },
   });
+
+  // ─── Transcription WebSocket Gateway ───
+  const translator = new TranslatorEngine(getAiProviderChain());
+  setupTranscriptionGateway(io, translator);
 
   // ─── Security ───
   app.set('trust proxy', 1);
@@ -87,6 +98,10 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   app.use('/api/crm', crmRouter);
   app.use('/api/knowledge', knowledgeRouter);
   app.use('/api/records', recordsRouter);
+  app.use('/api/ai', aiRouter);
+  app.use('/api/scribing', scribingRouter);
+  app.use('/api/video-call', videoCallRouter);
+  app.use('/api/consultations', consultationsRouter);
 
   // TODO: Register domain routers here as migration progresses
 

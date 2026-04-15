@@ -15,6 +15,8 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.88.0",
+    "@google-cloud/speech": "^7.3.0",
     "@google/generative-ai": "^0.24.0",
     "@mmc/database": "workspace:*",
     "@mmc/types": "workspace:*",
@@ -27,9 +29,11 @@
     "drizzle-orm": "^0.38.0",
     "express": "^4.21.0",
     "express-rate-limit": "^8.3.0",
+    "groq-sdk": "^1.1.2",
     "helmet": "^8.1.0",
     "ioredis": "^5.10.0",
     "jsonwebtoken": "^9.0.0",
+    "livekit-server-sdk": "^2.15.1",
     "pino": "^9.6.0",
     "pino-pretty": "^13.0.0",
     "socket.io": "^4.8.0",
