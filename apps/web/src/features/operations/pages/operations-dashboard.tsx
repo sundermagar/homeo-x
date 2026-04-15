@@ -118,9 +118,9 @@ function PageHeader({ title, desc, actions }: { title: string; desc: string; act
   const navigate = useNavigate();
   return (
     <div className="ops-page-header">
-      <button className="ops-back-btn" onClick={() => navigate(-1)} aria-label="Go back">
+      {/* <button className="ops-back-btn" onClick={() => navigate(-1)} aria-label="Go back">
         <ArrowLeft size={18} />
-      </button>
+      </button> */}
       <div className="ops-page-header-text">
         <h1 className="ops-page-title">{title}</h1>
         <p className="ops-page-desc">{desc}</p>
@@ -160,16 +160,15 @@ export default function OperationsDashboard() {
     tools: { title: 'Global Data Tools', desc: 'Administer database exports and system-wide backups.' },
   };
 
-  const h = headers[activeTab];
-
-  // Tab switcher — shows as pills in the header on mobile
-  const tabList: GenericTab[] = ['logistics', 'crm', 'knowledge', 'tools'];
-  const tabLabels: Record<GenericTab, string> = {
-    logistics: 'Logistics',
-    crm: 'CRM',
-    knowledge: 'Knowledge',
-    tools: 'Tools',
+  const actionMap: Record<GenericTab, { label: string; type: 'courier' | 'lead' | 'dictionary' | 'export' | null }> = {
+    logistics: { label: '+ Assign Courier', type: 'courier' },
+    crm: { label: '+ Add Lead', type: 'lead' },
+    knowledge: { label: '+ Add Entry', type: 'dictionary' },
+    tools: { label: '+ New Export', type: 'export' },
   };
+
+  const h = headers[activeTab];
+  const activeAction = actionMap[activeTab];
 
   return (
     <div className="operations-dashboard fade-in">
@@ -178,24 +177,13 @@ export default function OperationsDashboard() {
         title={h.title}
         desc={h.desc}
         actions={
-          <button className="ops-btn ops-btn-ghost" onClick={() => setSearchParams({ tab: 'tools' })}>
-            Tools
-          </button>
+          activeAction.type ? (
+            <button className="ops-btn ops-btn-primary" onClick={() => setModalType(activeAction.type)}>
+              {activeAction.label}
+            </button>
+          ) : null
         }
       />
-
-      {/* ─── Tab Switcher Pills ─── */}
-      <div className="ops-tab-pills">
-        {tabList.map(tab => (
-          <button
-            key={tab}
-            className={`ops-tab-pill ${activeTab === tab ? 'active' : ''}`}
-            onClick={() => setSearchParams({ tab })}
-          >
-            {tabLabels[tab]}
-          </button>
-        ))}
-      </div>
 
       {/* ─── LOGISTICS TAB ─── */}
       {activeTab === 'logistics' && (
@@ -210,9 +198,6 @@ export default function OperationsDashboard() {
           <div className="ops-content card">
             <div className="ops-table-header">
               <h2 className="pane-title">Active Shipments</h2>
-              <button className="ops-btn ops-btn-primary" onClick={() => setModalType('courier')}>
-                + Assign Courier
-              </button>
             </div>
             <div className="ops-table-wrapper">
               <table className="ops-table">
@@ -253,9 +238,6 @@ export default function OperationsDashboard() {
           <div className="ops-content card" style={{ marginBottom: 16 }}>
             <div className="ops-table-header">
               <h2 className="pane-title">Lead Pipeline</h2>
-              <button className="ops-btn ops-btn-primary" onClick={() => setModalType('lead')}>
-                + Add Lead
-              </button>
             </div>
             <div className="ops-table-wrapper">
               <table className="ops-table">
@@ -344,9 +326,6 @@ export default function OperationsDashboard() {
           <div className="ops-content card" style={{ marginBottom: 16 }}>
             <div className="ops-table-header">
               <h2 className="pane-title">Medical Dictionary</h2>
-              <button className="ops-btn ops-btn-primary" onClick={() => setModalType('dictionary')}>
-                + Add Entry
-              </button>
             </div>
             <div className="ops-table-wrapper">
               <table className="ops-table">
@@ -404,9 +383,6 @@ export default function OperationsDashboard() {
           <div className="ops-content card">
             <div className="ops-table-header">
               <h2 className="pane-title">Export History</h2>
-              <button className="ops-btn ops-btn-primary" onClick={() => setModalType('export')}>
-                + New Export
-              </button>
             </div>
             <div className="ops-table-wrapper">
               <table className="ops-table">

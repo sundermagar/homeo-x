@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import type { Router as IRouter } from 'express';
 
 const router = Router();
 
@@ -295,4 +296,4 @@ router.delete('/reminders/:id', async (req: any, res, next) => {
   } catch (error) { next(error); }
 });
 
-export const crmRouter = router;
+export const crmRouter: IRouter = router;

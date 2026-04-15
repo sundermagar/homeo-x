@@ -1,5 +1,4 @@
-import type { DbClient } from '@mmc/database';
-import { growthReferences } from '../../../../packages/database/src/schema/medical-cases';
+import { type DbClient, growthReferences } from '@mmc/database';
 import { and, eq } from 'drizzle-orm';
 
 export class AnalyzeVitalsUseCase {
@@ -28,7 +27,7 @@ export class AnalyzeVitalsUseCase {
     const ageDisplay = `${ageYears} years ${ageMonths} months ${ageDays} days`;
 
     // Fetch ideal reference (matching legacy query)
-    const [reference] = await db
+    const [reference] = await this.db
       .select()
       .from(growthReferences)
       .where(and(eq(growthReferences.months, months), eq(growthReferences.gender, gender)))

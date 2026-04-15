@@ -69,8 +69,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     };
 
     const { start, end } = getDates(period);
-    const startDate = new Date(start);
-    const endDate = new Date(end);
+    const startDate = new Date(start as string);
+    const endDate = new Date(end as string);
     const diffMs = endDate.getTime() - startDate.getTime() + 86400000;
     const prevEnd = new Date(startDate.getTime() - 1);
     const prevStart = new Date(prevEnd.getTime() - diffMs + 86400000);

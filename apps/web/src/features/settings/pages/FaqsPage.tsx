@@ -148,12 +148,12 @@ export default function FaqsPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((faq: Faq) => (
+                {filtered.map((faq: Faq , index) => (
                   <tr key={faq.id} className="plat-table-row">
                     <td data-label="Order" className="plat-table-cell font-mono text-xs color-muted">
                       <div className="flex items-center gap-1.5">
                         <ListOrdered size={12} className="opacity-50" />
-                        {faq.displayOrder || 0}
+                        {index + 1}
                       </div>
                     </td>
                     <td data-label="FAQ" className="plat-table-cell">

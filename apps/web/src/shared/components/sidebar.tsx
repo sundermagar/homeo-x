@@ -7,7 +7,6 @@ import {
   Calendar,
   Ticket,
   Stethoscope,
-  CreditCard,
   Receipt,
   Banknote,
   Building2,
@@ -18,22 +17,39 @@ import {
   X,
   Package,
   CalendarCheck,
+  Layers,
+  Pill,
+  Hospital,
+  UserPlus,
+  StickyNote,
+  Globe,
+  FileText,
+  UserCircle,
+  Wallet,
   MessageSquare,
+  Database,
+  User,
+  Phone,
+  Shield,
+  Briefcase,
+  Box,
+  HelpCircle,
+  FileJson,
+  UserCheck,
+  ChevronDown,
+  Sparkles,
+  Clock,
   Send,
   BarChart2,
-  ChevronDown,
-  ChevronRight,
   type LucideIcon,
-  Layers,
   MessageCircle,
   PieChart,
-  Briefcase,
   Scale,
   BookOpen,
+  Truck,
 } from 'lucide-react';
 import { useAuthStore } from '../stores/auth-store';
 import '../styles/sidebar.css';
-
 
 // ─── Role Definitions ────────────────────────────────────────────────────────
 
@@ -42,7 +58,6 @@ type UserRole = 'SuperAdmin' | 'Admin' | 'Clinicadmin' | 'Doctor' | 'Receptionis
 const ALL: UserRole[] = ['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist'];
 const ADMIN: UserRole[] = ['SuperAdmin', 'Admin', 'Clinicadmin'];
 const CLINICAL: UserRole[] = ['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor'];
-
 
 // ─── Navigation Structure ────────────────────────────────────────────────────
 
@@ -150,8 +165,10 @@ const NAV_STRUCTURE: NavItem[] = [
       icon: PieChart,
       roles: ADMIN,
       children: [
-        { path: '/analytics',         label: 'Dashboard', icon: BarChart2 },
-        { path: '/analytics/reports', label: 'Reports',   icon: PieChart },
+        { path: '/analytics',         label: 'Dashboard',   icon: BarChart2 },
+        { path: '/analytics/reports', label: 'Reports',     icon: PieChart },
+        { path: '/settings/export',   label: 'Export Data',  icon: FileJson },
+        { path: '/settings/stocks',   label: 'Inventory Logs', icon: Database },
       ],
     },
   },
@@ -163,8 +180,9 @@ const NAV_STRUCTURE: NavItem[] = [
       icon: Receipt,
       roles: ADMIN,
       children: [
-        { path: '/billing',  label: 'Billing & Finance', icon: Receipt },
-        { path: '/payments', label: 'Payment Ledger',    icon: Banknote },
+        { path: '/billing',           label: 'Billing & Finance', icon: Receipt },
+        { path: '/payments',          label: 'Payment Ledger',    icon: Banknote },
+        { path: '/settings/expenses', label: 'Expenses Head',     icon: Wallet },
       ],
     },
   },
@@ -176,9 +194,14 @@ const NAV_STRUCTURE: NavItem[] = [
       icon: Building2,
       roles: ['SuperAdmin', 'Admin', 'Clinicadmin'],
       children: [
-        { path: '/staff',              label: 'Staff & Admin', icon: Briefcase },
-        { path: '/platform/clinics',   label: 'Clinics',       icon: Building2 },
-        { path: '/platform/accounts',  label: 'Accounts',      icon: UserCog },
+        { path: '/platform/doctors',          label: 'Doctors',         icon: Stethoscope },
+        { path: '/platform/employees',        label: 'Employees',       icon: User },
+        { path: '/platform/receptionists',    label: 'Receptionists',   icon: Phone },
+        { path: '/platform/clinicadmins',     label: 'Clinic Admins',   icon: Shield },
+        { path: '/platform/account-managers', label: 'Account Mgrs',    icon: Briefcase },
+        { path: '/platform/clinics',          label: 'Clinics',         icon: Building2 },
+        { path: '/platform/accounts',         label: 'Accounts',        icon: UserCog },
+        { path: '/settings/roles',            label: 'Roles & Access',  icon: UserCheck },
       ],
     },
   },
@@ -198,14 +221,27 @@ const NAV_STRUCTURE: NavItem[] = [
     },
   },
   {
-    type: 'link',
-    path: '/settings',
-    label: 'Settings',
-    icon: Settings,
-    roles: ADMIN,
+    type: 'group',
+    group: {
+      id: 'settings',
+      label: 'System Settings',
+      icon: Settings,
+      roles: ADMIN,
+      children: [
+        { path: '/settings/departments', label: 'Departments',        icon: Layers },
+        { path: '/settings/medicines',   label: 'Medicine Catalog',   icon: Pill },
+        { path: '/settings/potencies',   label: 'Potencies',          icon: Sparkles },
+        { path: '/settings/frequencies', label: 'Dosage Frequencies', icon: Clock },
+        { path: '/settings/dispensaries',label: 'Dispensaries',       icon: Hospital },
+        { path: '/settings/referrals',   label: 'Referral Sources',   icon: UserPlus },
+        { path: '/settings/stickers',    label: 'Medicine Stickers',  icon: StickyNote },
+        { path: '/settings/cms',         label: 'Content (CMS)',      icon: Globe },
+        { path: '/settings/pdf',         label: 'PDF & Reports',      icon: FileText },
+        { path: '/settings/faqs',        label: 'Help & FAQs',        icon: HelpCircle },
+      ],
+    },
   },
 ];
-
 
 // ─── Role Normalizer ─────────────────────────────────────────────────────────
 
@@ -232,7 +268,6 @@ function getRoleLabel(role: UserRole | null): string {
   return labels[role];
 }
 
-
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 interface SidebarProps {
@@ -240,13 +275,18 @@ interface SidebarProps {
   onClose: () => void;
 }
 
-function isGroupActive(group: NavGroup, pathname: string): boolean {
-  return group.children.some(c => {
-    if (c.path === '/') return pathname === '/';
-    return pathname.startsWith(c.path);
-  });
+function normalizeNavPath(path: string): { pathname: string; search: string } {
+  const [pathname, search = ''] = path.split('?');
+  return { pathname, search: search ? `?${search}` : '' };
 }
 
+function isGroupActive(group: NavGroup, currentLocation: string): boolean {
+  return group.children.some(c => {
+    const target = normalizeNavPath(c.path);
+    if (target.pathname === '/') return currentLocation === '/';
+    return currentLocation.startsWith(target.pathname + target.search);
+  });
+}
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -265,9 +305,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   });
 
   // Auto-expand the active group by default
+  const currentLocation = location.pathname + location.search;
   const defaultOpen = visibleNav
     .filter((item): item is { type: 'group'; group: NavGroup } => item.type === 'group')
-    .filter(item => isGroupActive(item.group, location.pathname))
+    .filter(item => isGroupActive(item.group, currentLocation))
     .map(item => item.group.id);
 
   const [openGroups, setOpenGroups] = useState<string[]>(defaultOpen);
@@ -352,16 +393,15 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
                 <div className={`sidebar-group-children ${isOpen_ ? 'expanded' : ''}`}>
                   <div className="sidebar-group-children-inner">
-                    {group.children.map(child => {
+                            {group.children.map(child => {
                       const ChildIcon = child.icon;
+                      const target = normalizeNavPath(child.path);
+                      const isActive = location.pathname === target.pathname && location.search === target.search;
                       return (
                         <NavLink
                           key={child.path}
                           to={child.path}
-                          end
-                          className={({ isActive }) =>
-                            `sidebar-child-item ${isActive ? 'active' : ''}`
-                          }
+                          className={`sidebar-child-item ${isActive ? 'active' : ''}`}
                           onClick={handleNavClick}
                         >
                           <span className="sidebar-child-dot" />

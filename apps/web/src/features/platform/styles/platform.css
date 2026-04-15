@@ -1,379 +1,340 @@
-/* ─── Platform & Multi-tenancy Module — Unified Design System v1.0 ─────────*/
-/* Follows exact same pattern as appointments.css for visual consistency       */
+/* 
+  PAPERPLANE PLATFORM DESIGN SYSTEM v2.0 (MODERNIZED)
+  Source: Paperplane Brand Kit v2.0
+  Philosophy: Clinical Precision & High-Density Efficiency
+*/
 
-/* ─── Page Layout ─── */
+/* ─── Layout & Page Surface ─── */
 .plat-page {
-  padding: 0;
-  max-width: 1400px;
+  padding: var(--pp-space-4);
+  max-width: var(--pp-container-width);
   margin: 0 auto;
+  min-height: 100vh;
+  background-color: var(--pp-warm-1);
+  color: var(--pp-ink);
+  font-family: var(--pp-font-sans);
 }
 
-@media (min-width: 768px) { .plat-page { padding: 0; } }
-
-/* ─── Page Header ─── */
 .plat-header {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: var(--pp-space-3);
+  margin-bottom: var(--pp-space-6);
 }
 
 @media (min-width: 768px) {
   .plat-header {
     flex-direction: row;
     justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 24px;
+    align-items: center;
   }
 }
 
 .plat-header-title {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--text-main);
-  margin: 0;
+  font-family: var(--pp-font-sans);
+  font-size: 17px; /* Brand Kit v2.0: Page Title */
+  font-weight: 600;
+  color: var(--pp-ink);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--pp-space-2);
+  letter-spacing: -0.01em;
 }
 
-@media (min-width: 768px) { .plat-header-title { font-size: 1.25rem; } }
-
-.plat-header-sub  { font-size: 0.78rem; color: var(--text-muted); margin: 4px 0 0; }
-
-.plat-header-actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-wrap: wrap;
+.plat-header-sub {
+  font-size: 13px;
+  color: var(--pp-text-3);
+  margin-top: 2px;
+  font-weight: 500;
 }
 
-/* ─── KPI Stats Bar ─── */
+/* ─── Statistics & Metrics ─── */
 .plat-stats-bar {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-@media (min-width: 768px) {
-  .plat-stats-bar {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 14px;
-    margin-bottom: 24px;
-  }
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--pp-space-4);
+  margin-bottom: var(--pp-space-6);
 }
 
 .plat-stat-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-main);
-  border-radius: var(--radius-card);
-  padding: 14px 16px;
+  background: white;
+  border: 1px solid var(--pp-warm-4);
+  border-radius: var(--pp-radius-card);
+  padding: 14px 16px; /* Brand Kit v2.0: KPI Card Padding */
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--pp-space-1);
+  box-shadow: var(--pp-shadow-sm);
+  transition: all var(--transition-normal);
+}
+
+.plat-stat-card:hover { 
+  transform: translateY(-1px); 
+  border-color: var(--pp-blue-border);
+  box-shadow: var(--pp-shadow-md);
 }
 
 .plat-stat-label {
-  font-size: 0.7rem;
+  font-size: 10px; /* Brand Kit v2.0: Section Labels */
   font-weight: 700;
-  color: var(--text-muted);
+  color: var(--pp-text-3);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
 }
 
 .plat-stat-value {
-  font-size: 1.6rem;
-  font-weight: 800;
-  color: var(--text-main);
-  font-family: var(--font-mono);
-  line-height: 1;
+  font-size: 22px; /* Brand Kit v2.0: KPI Values */
+  font-weight: 600;
+  font-family: var(--pp-font-sans);
+  color: var(--pp-ink);
 }
 
-.plat-stat-value-primary { color: var(--primary); }
-.plat-stat-value-success { color: var(--success); }
-.plat-stat-value-muted   { color: var(--text-muted); }
+.plat-stat-subvalue {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--pp-text-3);
+}
 
-/* ─── Cards ─── */
+/* ─── Search & Filters ─── */
+.plat-filters {
+  display: flex;
+  gap: var(--pp-space-3);
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: var(--pp-space-4);
+}
+
+.plat-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  max-width: 400px;
+}
+
+.plat-search-icon {
+  position: absolute;
+  left: 12px;
+  color: var(--pp-text-3);
+  pointer-events: none;
+}
+
+.plat-search-input { padding-left: 36px !important; }
+
+.plat-form-input, .plat-form-select {
+  height: 36px; /* Brand Kit Secondary Bar Standard */
+  padding: 0 12px;
+  border: 1px solid var(--pp-warm-4);
+  border-radius: var(--pp-radius-sm);
+  font-size: 13px;
+  background: white;
+  color: var(--pp-ink);
+  font-family: inherit;
+  outline: none;
+  transition: all var(--transition-fast);
+}
+
+.plat-form-input:focus, .plat-form-select:focus {
+  border-color: var(--pp-blue);
+  box-shadow: 0 0 0 3px var(--pp-blue-tint);
+}
+
+.plat-form-input::placeholder { color: var(--pp-text-4); }
+
+/* ─── Cards & Containers ─── */
 .plat-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-main);
-  border-radius: var(--radius-card);
+  background: white;
+  border: 1px solid var(--pp-warm-4);
+  border-radius: var(--pp-radius-card);
   overflow: hidden;
+  box-shadow: var(--pp-shadow-sm);
 }
 
 .plat-card-header {
   padding: 12px 16px;
-  border-bottom: 1px solid var(--border-main);
+  border-bottom: 1px solid var(--pp-warm-4);
+  background: var(--pp-warm-2);
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-@media (min-width: 768px) { .plat-card-header { padding: 16px 20px; } }
-
-/* ─── Table ─── */
-.plat-table-container {
-  width: 100%;
-  overflow-x: auto;
+.plat-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--pp-ink);
 }
 
-.plat-table { 
+/* ─── Modern Tables (High Density) ─── */
+.plat-table-container { 
   width: 100%; 
-  border-collapse: collapse; 
+  overflow-x: auto; 
+  border-radius: var(--pp-radius-card);
+  border: 1px solid var(--pp-warm-4);
+  background: white;
 }
+
+.plat-table { width: 100%; border-collapse: collapse; }
 
 .plat-table th {
   text-align: left;
-  font-size: 0.68rem;
+  font-size: 10px; /* Brand Kit Section Labels */
   font-weight: 700;
-  color: var(--text-muted);
+  color: var(--pp-text-3);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--border-main);
+  padding: 8px 14px;
+  background: var(--pp-warm-2);
+  border-bottom: 1px solid var(--pp-warm-4);
   white-space: nowrap;
 }
 
 .plat-table td {
-  padding: 11px 14px;
-  font-size: 0.83rem;
-  color: var(--text-main);
-  border-bottom: 1px solid var(--bg-surface-2);
+  padding: 6px 14px; /* Natural density */
+  height: 28px; /* Brand Kit Row Standard */
+  font-size: 12.5px; /* Brand Kit Table Data */
+  border-bottom: 1px solid var(--pp-warm-3);
   vertical-align: middle;
+  color: var(--pp-text-2);
 }
 
-.plat-table tr:hover td { background: var(--bg-surface-2); }
-.plat-table tr:last-child td { border-bottom: none; }
+.plat-table-row:hover td { background: var(--pp-warm-1); }
+.plat-table-row:last-child td { border-bottom: none; }
 
-/* ─── Mobile Table Cards ─── */
-@media (max-width: 767px) {
-  .plat-table-container {
-    overflow-x: hidden;
-  }
-
-  .plat-table, .plat-table tbody, .plat-table tr, .plat-table td {
-    display: block;
-    width: 100%;
-  }
-
-  .plat-table thead {
-    display: none;
-  }
-
-  .plat-table tr {
-    border-bottom: 1px solid var(--border-main);
-    padding: 12px 14px;
-    background: var(--bg-card);
-  }
-
-  .plat-table tr:last-child {
-    border-bottom: none;
-  }
-
-  .plat-table td {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 6px 0;
-    border-bottom: none;
-    font-size: 0.85rem;
-  }
-
-  .plat-table td::before {
-    content: attr(data-label);
-    font-size: 0.7rem;
-    font-weight: 700;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    margin-right: 12px;
-  }
-
-  .plat-table td:last-child {
-    margin-top: 8px;
-    padding-top: 10px;
-    border-top: 1px solid var(--bg-surface-2);
-    justify-content: flex-end;
-  }
-
-  .plat-table td:last-child::before {
-    display: none;
-  }
+.plat-mono-data {
+  font-family: var(--pp-font-mono);
+  font-size: 12px;
+  letter-spacing: -0.01em;
+  color: var(--pp-ink);
 }
 
-/* ─── Buttons ─── */
+/* ─── Buttons (Brand Kit v2.0) ─── */
 .plat-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 9px 14px;
-  border-radius: var(--radius-btn);
-  font-size: 0.85rem;
+  gap: var(--pp-space-2);
+  padding: 8px 16px;
+  border-radius: var(--pp-radius-btn); /* 6px */
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  border: 1px solid var(--border-main);
-  background: var(--bg-card);
-  color: var(--text-main);
-  transition: all 150ms cubic-bezier(0, 0, 0.2, 1);
+  border: 1px solid var(--pp-warm-4);
+  background: white;
+  color: var(--pp-ink);
+  transition: all var(--transition-normal);
   white-space: nowrap;
-  font-family: var(--font-family);
-}
-
-@media (min-width: 768px) { .plat-btn { padding: 8px 14px; } }
-
-.plat-btn:hover { background: var(--bg-surface-2); border-color: #ccc; }
-.plat-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-.plat-btn-primary { background: var(--primary); color: white; border-color: var(--primary); }
-.plat-btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
-
-.plat-btn-danger { background: var(--danger-bg); color: var(--danger); border-color: #FECACA; }
-.plat-btn-danger:hover { background: #FEE2E2; }
-
-.plat-btn-sm { padding: 5px 10px; font-size: 0.78rem; }
-.plat-btn-icon { padding: 7px; width: 32px; height: 32px; }
-
-/* ─── Filter Bar ─── */
-.plat-filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
-
-.plat-filter-input {
-  height: 40px;
-  padding: 0 10px;
-  border: 1px solid var(--border-main);
-  border-radius: var(--radius-btn);
-  font-size: 0.82rem;
   outline: none;
-  color: var(--text-main);
-  background: var(--bg-card);
-  font-family: var(--font-family);
-  transition: border-color 150ms;
 }
 
-@media (min-width: 768px) { .plat-filter-input { height: 34px; } }
-.plat-filter-input:focus { border-color: var(--primary); }
-
-.plat-search-wrap { position: relative; display: flex; align-items: center; }
-.plat-search-icon { position: absolute; left: 9px; color: var(--text-muted); pointer-events: none; }
-.plat-search-input { padding-left: 30px; }
-
-/* ─── Empty State ─── */
-.plat-empty {
-  text-align: center;
-  padding: 48px 20px;
-  color: var(--text-muted);
+.plat-btn:hover:not(:disabled) { 
+  background: var(--pp-warm-1);
+  border-color: var(--pp-warm-4);
+  box-shadow: var(--pp-shadow-sm);
 }
 
-.plat-empty-icon { margin-bottom: 10px; opacity: 0.25; }
-.plat-empty-text { font-size: 0.875rem; color: var(--text-muted); margin-top: 6px; }
+.plat-btn:focus-visible {
+  box-shadow: 0 0 0 2px white, 0 0 0 4px var(--pp-blue-border);
+}
 
-/* ─── Role Badges ─── */
+.plat-btn-primary {
+  background: var(--pp-blue);
+  color: white;
+  border-color: var(--pp-blue);
+}
+
+.plat-btn-primary:hover:not(:disabled) { 
+  background: var(--pp-blue-hover);
+  border-color: var(--pp-blue-hover);
+  color: white;
+}
+
+.plat-btn-ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--pp-text-3);
+}
+
+.plat-btn-ghost:hover:not(:disabled) {
+  background: var(--pp-warm-2);
+  color: var(--pp-ink);
+}
+
+.plat-btn-danger {
+  color: var(--pp-danger-fg);
+  border-color: var(--pp-warm-4);
+}
+
+.plat-btn-danger:hover:not(:disabled) {
+  background: var(--pp-danger-bg);
+  border-color: var(--pp-danger-fg);
+  color: var(--pp-danger-fg);
+}
+
+.plat-btn-sm {
+  padding: 4px 10px;
+  font-size: 11px;
+}
+
+.plat-btn-icon {
+  padding: 6px;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+}
+
+/* ─── Badges & Status (Brand Kit v2.0) ─── */
 .plat-badge {
   display: inline-flex;
   align-items: center;
-  padding: 2px 9px;
-  border-radius: var(--radius-pill);
-  font-size: 0.68rem;
-  font-weight: 700;
-  white-space: nowrap;
-  letter-spacing: 0.04em;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: capitalize;
 }
 
-.plat-badge-admin   { background: var(--primary-tint); color: var(--primary);  }
-.plat-badge-doctor  { background: #F5F3FF;              color: #7C3AED;         }
-.plat-badge-staff   { background: var(--success-bg);   color: var(--success);  }
-.plat-badge-default { background: var(--bg-surface-2); color: var(--text-muted); }
+.plat-badge-success { background: var(--pp-success-bg); color: var(--pp-success-fg); }
+.plat-badge-danger { background: var(--pp-danger-bg); color: var(--pp-danger-fg); }
+.plat-badge-warning { background: var(--pp-warning-bg); color: var(--pp-warning-fg); }
+.plat-badge-info { background: var(--pp-blue-tint); color: var(--pp-blue); }
 
-/* ─── Modal (Bottom Sheet on Mobile) ─── */
-.plat-modal-overlay {
+/* ─── Modals ─── */
+.plat-modal-backdrop {
   position: fixed;
   inset: 0;
   background: rgba(15, 23, 42, 0.45);
-  z-index: 1000;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
   backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 24px;
 }
 
-@media (min-width: 768px) {
-  .plat-modal-overlay { align-items: center; padding: 20px; }
-}
-
-.plat-modal {
-  background: var(--bg-card);
-  border-radius: 14px 14px 0 0;
+.plat-modal-content {
+  background: white;
+  border-radius: var(--pp-radius-card);
   width: 100%;
-  max-width: 540px;
-  max-height: 92vh;
-  overflow-y: auto;
-  box-shadow: 0 -8px 30px rgba(0,0,0,0.12);
-  animation: platSheetIn 280ms cubic-bezier(0, 0, 0.2, 1);
+  max-width: 500px;
+  box-shadow: var(--pp-shadow-lg);
+  animation: platModalIn var(--transition-normal);
 }
 
-@media (min-width: 768px) {
-  .plat-modal {
-    border-radius: var(--radius-card);
-    box-shadow: 0 25px 60px -12px rgba(0,0,0,0.2);
-    animation: platModalIn 200ms cubic-bezier(0, 0, 0.2, 1);
-  }
+@keyframes platModalIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .plat-modal-header {
   padding: 16px 20px;
-  border-bottom: 1px solid var(--border-main);
+  border-bottom: 1px solid var(--pp-warm-4);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  position: sticky;
-  top: 0;
-  background: var(--bg-card);
-  z-index: 1;
 }
 
-.plat-modal-title { font-size: 0.9375rem; font-weight: 700; color: var(--text-main); margin: 0; }
-.plat-modal-body  { padding: 20px; }
-
-.plat-modal-footer {
-  padding: 14px 20px;
-  border-top: 1px solid var(--border-main);
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-}
-
-/* ─── Form ─── */
-.plat-form     { display: grid; grid-template-columns: 1fr; gap: 16px; }
-
-@media (min-width: 640px) { .plat-form { grid-template-columns: 1fr 1fr; } }
-
-.plat-form-full { grid-column: 1 / -1; }
-
-.plat-form-group  { display: flex; flex-direction: column; gap: 6px; }
-.plat-form-label  { font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); }
-.plat-form-required { color: var(--danger); margin-left: 2px; }
-
-.plat-form-input,
-.plat-form-select {
-  padding: 10px 12px;
-  border: 1px solid var(--border-main);
-  border-radius: var(--radius-btn);
-  font-size: 0.875rem;
-  color: var(--text-main);
-  background: var(--bg-card);
-  outline: none;
-  width: 100%;
-  font-family: var(--font-family);
-  transition: border-color 150ms;
-}
-
-.plat-form-input:focus,
-.plat-form-select:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(37,99,235,0.08);
-}
-
-/* ─── Animations ─── */
-@keyframes platSheetIn { from { transform: translateY(100%); } to { transform: translateY(0); } }
-@keyframes platModalIn { from { opacity: 0; transform: scale(0.98) translateY(-4px); } to { opacity: 1; transform: none; } }
+.plat-modal-title { font-size: 14px; font-weight: 600; color: var(--pp-ink); }
+.plat-modal-body { padding: 20px; }
+.plat-modal-footer { padding: 16px 20px; border-top: 1px solid var(--pp-warm-4); display: flex; gap: 12px; justify-content: flex-end; }

@@ -51,15 +51,16 @@ export async function seedDoctorStaff(db: DbClient) {
   ];
 
   for (const doc of doctors) {
-    const existing = await db.select().from(doctorsLegacy).where(eq(doctorsLegacy.email, doc.email)).limit(1);
+    const existingEmail = await db.select().from(doctorsLegacy).where(eq(doctorsLegacy.email, doc.email)).limit(1);
+    const existingId = await db.select().from(doctorsLegacy).where(eq(doctorsLegacy.id, doc.id)).limit(1);
     
-    if (existing.length === 0) {
+    if (existingEmail.length === 0 && existingId.length === 0) {
       // For legacy tables with manual ID management, we need to handle NEXT ID
       // But for seeding, we can just use the provided IDs if the table is empty
       await db.insert(doctorsLegacy).values(doc as any);
       console.log(`[Seed] Created doctor: ${doc.name}`);
     } else {
-      console.log(`[Seed] Doctor already exists: ${doc.name}`);
+      console.log(`[Seed] Doctor already exists (ID or Email match): ${doc.name}`);
     }
   }
 

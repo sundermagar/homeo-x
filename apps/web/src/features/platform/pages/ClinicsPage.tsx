@@ -13,6 +13,8 @@ export default function ClinicsPage() {
   const createOrg = useCreateOrganization();
   const deleteOrg = useDeleteOrganization();
 
+  const sortedOrgs = [...orgs].sort((a, b) => a.id - b.id);
+
   const [isCreating, setIsCreating] = useState(false);
   const [form, setForm] = useState<CreateOrganizationInput>(EMPTY_FORM);
 
@@ -93,10 +95,10 @@ export default function ClinicsPage() {
                 </tr>
               </thead>
               <tbody>
-                {orgs.map((org, index) => (
-                  <tr key={org.id}>
+                {sortedOrgs.map((org,index) => (
+                  <tr key={index}>
                     <td data-label="ID" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      {orgs.length - index}
+                      {index + 1}
                     </td>
                     <td data-label="Clinic Name">
                       <div style={{ fontWeight: 600 }}>{org.name}</div>

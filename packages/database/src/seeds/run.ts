@@ -11,6 +11,9 @@ import { seedFaqs } from './faq-seed';
 import { seedPdfSettings } from './pdf-seed';
 import { seedPlatform } from './platform-seed';
 import { seedTestData } from './test-data-seed';
+import { seedDoctorStaff } from './doctor-staff-seed';
+import { seedStaffRegistry } from './staff-registry-seed';
+import { seedRbac } from './rbac-seed';
 import { TenantRegistry } from '../tenant-registry';
 import fs from 'fs';
 import path from 'path';
@@ -51,17 +54,28 @@ async function main() {
       console.log(`[Seed] Seeding for tenant: ${tenant.displayName} (${tenant.schemaName})...`);
       const db = createDbClient(dbUrl, tenant.schemaName);
       
-      await seedUsers(db);
-      await seedCatalog(db);
-      await seedDispensaries(db);
-      await seedPackages(db);
-      await seedCouriers(db);
-      await seedReferrals(db);
-      await seedStickers(db);
-      await seedCms(db);
-      await seedFaqs(db);
-      await seedPdfSettings(db);
-      await seedTestData(db); // New combined test data from dev branch
+      const runSeed = async (name: string, fn: (db: any) => Promise<void>) => {
+        try {
+          await fn(db);
+        } catch (err: any) {
+          console.error(`  [Seed: ${name}] ❌ Failed: ${err.message}`);
+        }
+      };
+
+      await runSeed('Users', seedUsers);
+      await runSeed('Catalog', seedCatalog);
+      await runSeed('Dispensaries', seedDispensaries);
+      await runSeed('Packages', seedPackages);
+      await runSeed('Couriers', seedCouriers);
+      await runSeed('Referrals', seedReferrals);
+      await runSeed('Stickers', seedStickers);
+      await runSeed('CMS', seedCms);
+      await runSeed('FAQs', seedFaqs);
+      await runSeed('PDF Settings', seedPdfSettings);
+      await runSeed('Doctor Staff', seedDoctorStaff);
+      await runSeed('Staff Registry', seedStaffRegistry);
+      await runSeed('RBAC', seedRbac);
+      await runSeed('Test Data', seedTestData);
       
     } catch (err) {
       console.error(`[Seed] ❌ Failed to seed tenant ${tenant.displayName} (${tenant.schemaName}):`, err);

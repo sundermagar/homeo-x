@@ -87,14 +87,6 @@ export const updatePdfSettingsSchema = createPdfSettingsSchema.partial();
 export type CreatePdfSettingsInput = z.infer<typeof createPdfSettingsSchema>;
 export type UpdatePdfSettingsInput = z.infer<typeof updatePdfSettingsSchema>;
 
-// ─── Medicine ─────────────────────────────────────────────────────────────────
-export const createMedicineSchema = z.object({
-  name: z.string().min(1, 'Name is required').max(255),
-  disease: z.string().optional(),
-});
-export const updateMedicineSchema = createMedicineSchema.partial();
-export type CreateMedicineInput = z.infer<typeof createMedicineSchema>;
-export type UpdateMedicineInput = z.infer<typeof updateMedicineSchema>;
 
 // ─── Role ─────────────────────────────────────────────────────────────────────
 export const createRoleSchema = z.object({
@@ -171,15 +163,5 @@ export const createPackagePlanSchema = z.object({
 
 export const updatePackagePlanSchema = createPackagePlanSchema.partial();
 
-// ─── Couriers ─────────────────────────────────────────────────────────────
-export const createCourierSchema = z.object({
-  name: z.string().min(1, "Courier name is required"),
-  contactPerson: z.string().optional(),
-  phone: z.string().optional(),
-  trackingUrl: z.string().optional(),
-  isActive: z.boolean().optional(),
-});
-
-export const updateCourierSchema = createCourierSchema.partial();
 export type CreateMessageTemplateInput = z.infer<typeof createMessageTemplateSchema>;
 export type UpdateMessageTemplateInput = z.infer<typeof updateMessageTemplateSchema>;

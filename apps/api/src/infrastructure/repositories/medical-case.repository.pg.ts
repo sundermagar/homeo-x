@@ -52,7 +52,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
         first_name: schema.patients.firstName,
         surname: schema.patients.surname,
         gender: schema.patients.gender,
-        age: schema.patients.age,
+        // age: schema.patients.age,
         phone: schema.patients.phone,
         city: schema.patients.city,
       })

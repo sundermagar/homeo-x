@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import type { Router as IRouter } from 'express';
 
 const router = Router();
 
@@ -60,4 +61,4 @@ router.delete('/dictionary/:id', async (req: any, res, next) => {
   } catch (error) { next(error); }
 });
 
-export const knowledgeRouter = router;
+export const knowledgeRouter: IRouter = router;

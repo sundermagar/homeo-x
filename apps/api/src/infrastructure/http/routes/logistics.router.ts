@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import type { Router as IRouter } from 'express';
 
 const router = Router();
 
@@ -183,4 +184,4 @@ router.delete('/couriermedicine/:id', async (req: any, res, next) => {
   } catch (error) { next(error); }
 });
 
-export const logisticsRouter = router;
+export const logisticsRouter: IRouter = router;
