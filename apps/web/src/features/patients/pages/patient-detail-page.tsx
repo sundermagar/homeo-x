@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { usePatient, useDeletePatient, useFamilyMembers, useAddFamilyMember, useRemoveFamilyMember, usePatientLookup } from '../hooks/use-patients';
-import { Edit2, Trash2, UserPlus, Users, X, MapPin, Phone, CheckCircle, Search } from 'lucide-react';
+import { usePatient, useDeletePatient, useFamilyMembers, useAddFamilyMember, useRemoveFamilyMember, usePatientLookup, usePatientClinicalRecord } from '../hooks/use-patients';
+import { Edit2, Trash2, UserPlus, Users, X, MapPin, Phone, CheckCircle, Search, TrendingUp, Activity } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import type { PatientSummary, FamilyMember } from '@mmc/types';
 
 export default function PatientDetailPage() {
@@ -116,6 +117,8 @@ export default function PatientDetailPage() {
           <InfoRow label="Marital Status" value={patient.maritalStatus} />
         </div>
       </div>
+
+      <ClinicalTrends regid={numRegid} />
 
       {/* Family Group Management */}
       <div className="pp-card" style={{ padding: 0, overflow: 'hidden' }}>
@@ -238,6 +241,69 @@ export default function PatientDetailPage() {
 
       <div style={{ marginTop: '24px' }}>
         <Link to="/patients" className="pp-link" style={{ fontSize: '13px', fontWeight: 600 }}>← Back to Patient Registry</Link>
+      </div>
+    </div>
+  );
+}
+
+function ClinicalTrends({ regid }: { regid: number }) {
+  const { data: record, isLoading } = usePatientClinicalRecord(regid);
+
+  if (isLoading || !record || !record.vitals || record.vitals.length === 0) return null;
+
+  // Prepare data (Sort by date)
+  const chartData = record.vitals
+    .map((v: any) => ({
+      date: new Date(v.recordedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+      weight: v.weightKg,
+      systolic: v.systolicBp,
+      diastolic: v.diastolicBp,
+      fullDate: new Date(v.recordedAt).toLocaleDateString(),
+    }))
+    .reverse(); // Newest first to Oldest last in table, but Oldest first in chart
+
+  return (
+    <div className="pp-detail-grid" style={{ marginBottom: '24px', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))' }}>
+      <div className="pp-card">
+        <h3 className="text-title" style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '15px' }}>
+          <TrendingUp size={16} color="var(--pp-blue)"/> Weight Trend (Kg)
+        </h3>
+        <div style={{ width: '100%', height: 260 }}>
+          <ResponsiveContainer>
+            <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--pp-warm-4)" />
+              <XAxis dataKey="date" fontSize={11} tick={{ fill: 'var(--pp-text-3)' }} axisLine={false} tickLine={false} />
+              <YAxis fontSize={11} tick={{ fill: 'var(--pp-text-3)' }} axisLine={false} tickLine={false} domain={['dataMin - 5', 'dataMax + 5']} />
+              <Tooltip 
+                contentStyle={{ borderRadius: '8px', border: '1px solid var(--pp-warm-4)', boxShadow: 'var(--pp-shadow-sm)' }}
+                labelStyle={{ fontWeight: 600, color: 'var(--pp-ink)' }}
+              />
+              <Line type="monotone" dataKey="weight" stroke="var(--pp-blue)" strokeWidth={3} dot={{ r: 4, fill: 'var(--pp-blue)' }} activeDot={{ r: 6 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div className="pp-card">
+        <h3 className="text-title" style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '15px' }}>
+          <Activity size={16} color="var(--pp-blue)"/> Blood Pressure Trend
+        </h3>
+        <div style={{ width: '100%', height: 260 }}>
+          <ResponsiveContainer>
+            <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--pp-warm-4)" />
+              <XAxis dataKey="date" fontSize={11} tick={{ fill: 'var(--pp-text-3)' }} axisLine={false} tickLine={false} />
+              <YAxis fontSize={11} tick={{ fill: 'var(--pp-text-3)' }} axisLine={false} tickLine={false} domain={['dataMin - 10', 'dataMax + 10']} />
+              <Tooltip 
+                contentStyle={{ borderRadius: '8px', border: '1px solid var(--pp-warm-4)', boxShadow: 'var(--pp-shadow-sm)' }}
+                labelStyle={{ fontWeight: 600, color: 'var(--pp-ink)' }}
+              />
+              <Legend verticalAlign="top" height={36} iconType="circle" />
+              <Line type="monotone" name="Systolic" dataKey="systolic" stroke="var(--pp-danger-fg)" strokeWidth={2} dot={{ r: 3 }} />
+              <Line type="monotone" name="Diastolic" dataKey="diastolic" stroke="var(--pp-success-fg)" strokeWidth={2} dot={{ r: 3 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
       </div>
     </div>
   );

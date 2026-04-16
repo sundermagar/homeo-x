@@ -14,9 +14,16 @@ import { ManageVitalsUseCase } from '../../../domains/medical-case/use-cases/man
 import { AnalyzeVitalsUseCase } from '../../../domains/medical-case/use-cases/analyze-vitals.use-case';
 import { ManageSoapNotesUseCase } from '../../../domains/medical-case/use-cases/manage-soap-notes.use-case';
 import { ManageClinicalRecordsUseCase } from '../../../domains/medical-case/use-cases/manage-clinical-records.use-case';
+import { aiAnalysisUseCase } from '../../../domains/medical-case/use-cases/ai-analysis.use-case';
 
 const router = Router();
 router.use(authMiddleware);
+
+// ─── AI Clinical Consultant ───
+router.post('/ai-analysis', asyncHandler(async (req, res) => {
+  const result = await aiAnalysisUseCase.execute(req.body);
+  sendSuccess(res, { analysis: result }, 'AI Analysis complete');
+}));
 
 const getRepo = (req: any) => new MedicalCaseRepositoryPg(req.tenantDb);
 const getInvRepo = (req: any) => new InventoryRepositoryPg(req.tenantDb);
@@ -164,6 +171,71 @@ router.post('/:regid/finalize', asyncHandler(async (req, res) => {
     ...req.body
   });
   sendSuccess(res, null, 'Consultation finalized successfully');
+}));
+
+import { RemedyChartUseCase } from '../../../domains/medical-case/use-cases/remedy-chart.use-case';
+
+// ─── Remedy Chart Session ────────────────────────────────────────────────────
+// Migrated from MMC legacy: remedychartAPI, addcasepotency, casepotencylisting, etc.
+
+const getRemedyChart = (req: any) => new RemedyChartUseCase(req.tenantDb);
+
+// GET /api/medical-cases/remedy-chart/lookups  — medicines + potencies + frequencies
+router.get('/remedy-chart/lookups', asyncHandler(async (req, res) => {
+  const uc = getRemedyChart(req);
+  const data = await uc.getRemedyLookups();
+  sendSuccess(res, data, 'Lookup tables loaded');
+}));
+
+// GET /api/medical-cases/remedy-chart/tree/alphabet  — A-Z grouped root nodes
+router.get('/remedy-chart/tree/alphabet', asyncHandler(async (req, res) => {
+  const uc = getRemedyChart(req);
+  const data = await uc.getTreeByAlphabet();
+  sendSuccess(res, data, 'Alphabet index loaded');
+}));
+
+// GET /api/medical-cases/remedy-chart/tree/filter?letter=A  — filter roots by letter
+router.get('/remedy-chart/tree/filter', asyncHandler(async (req, res) => {
+  const { letter } = req.query;
+  const uc = getRemedyChart(req);
+  const data = await uc.filterTreeByLetter(String(letter ?? 'A'));
+  sendSuccess(res, data, 'Filtered tree loaded');
+}));
+
+// GET /api/medical-cases/remedy-chart/tree?label=  — full tree (optionally filtered)
+router.get('/remedy-chart/tree', asyncHandler(async (req, res) => {
+  const { label } = req.query;
+  const uc = getRemedyChart(req);
+  const data = await uc.getRemedyTree(label as string | undefined);
+  sendSuccess(res, data, 'Remedy tree loaded');
+}));
+
+// GET /api/medical-cases/remedy-chart/alternatives/:treeNodeId
+router.get('/remedy-chart/alternatives/:treeNodeId', asyncHandler(async (req, res) => {
+  const uc = getRemedyChart(req);
+  const data = await uc.getAlternatives(Number(req.params.treeNodeId));
+  sendSuccess(res, data, 'Alternatives loaded');
+}));
+
+// GET /api/medical-cases/remedy-chart/:regid  — prescription history for patient
+router.get('/remedy-chart/:regid', asyncHandler(async (req, res) => {
+  const uc = getRemedyChart(req);
+  const data = await uc.getPrescriptionsForPatient(Number(req.params.regid));
+  sendSuccess(res, data, 'Prescription history loaded');
+}));
+
+// POST /api/medical-cases/remedy-chart  — upsert prescription row
+router.post('/remedy-chart', asyncHandler(async (req, res) => {
+  const uc = getRemedyChart(req);
+  const result = await uc.savePrescription(req.body);
+  sendSuccess(res, result, 'Prescription saved successfully');
+}));
+
+// DELETE /api/medical-cases/remedy-chart/:id  — soft-delete
+router.delete('/remedy-chart/:id', asyncHandler(async (req, res) => {
+  const uc = getRemedyChart(req);
+  await uc.deletePrescription(Number(req.params.id));
+  sendSuccess(res, null, 'Prescription removed');
 }));
 
 export const medicalCasesRouter: ExpressRouter = router;

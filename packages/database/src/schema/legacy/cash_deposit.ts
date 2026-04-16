@@ -1,7 +1,7 @@
-import { pgTable, integer, text, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, integer, text, timestamp } from "drizzle-orm/pg-core";
 
 export const cashDepositLegacy = pgTable("cash_deposit", {
-  id: integer("id").notNull(),
+  id: serial("id").primaryKey(),
   clinicId: integer("clinic_id"),
   depositDate: text("deposit_date").notNull(),
   dateval: text("dateval"),

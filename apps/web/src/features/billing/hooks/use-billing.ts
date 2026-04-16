@@ -16,6 +16,7 @@ export function useBills(query: ListBillsQuery) {
         '/billing',
         { params: query }
       );
+      // Return the full envelope because it contains 'total'
       return data;
     },
   });
@@ -42,7 +43,7 @@ export function useDailyCollection(date?: string) {
         '/billing/daily',
         { params: { date } }
       );
-      return data.data;
+      return data.data || null;
     },
   });
 }

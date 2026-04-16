@@ -21,19 +21,17 @@ apiClient.interceptors.request.use((config) => {
 
 // Handle Response errors
 apiClient.interceptors.response.use(
-  (res) => {
-    // Automatically unwrap high-level "data" key if it exists
-    if (res.data && res.data.success && res.data.data !== undefined) {
-      return {
-        ...res,
-        data: res.data.data,
-        _original: res.data
-      };
-    }
-    return res;
-  },
+  (res) => res,
   (error) => {
-    // We've removed the /login redirect to bypass auth pages as requested.
+    // 401 Unauthorized → token expired or invalid → force logout
+    if (error.response?.status === 401) {
+      const { logout } = useAuthStore.getState();
+      logout();
+      // Redirect to login (avoid circular import by using window.location)
+      if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+        window.location.href = '/login';
+      }
+    }
     return Promise.reject(error);
   },
 );

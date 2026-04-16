@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStaffList, useDeleteStaff } from '../hooks/use-staff';
+import { Grid, List } from 'lucide-react';
 import type { StaffCategory, StaffSummary } from '@mmc/types';
 
 const TABS: { key: StaffCategory; label: string; color: string; icon: string }[] = [
@@ -19,6 +20,7 @@ export default function StaffListPage() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   const { data, isLoading } = useStaffList(activeTab, { page, limit: PAGE_SIZE, search: debouncedSearch });
   const deleteMutation = useDeleteStaff();
@@ -63,18 +65,36 @@ export default function StaffListPage() {
           <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-main)', margin: '0 0 4px' }}>Staff & Administration</h1>
           <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>Manage clinical practitioners, support staff, and system administrators.</p>
         </div>
-        <button
-          onClick={() => navigate(`/staff/add?category=${activeTab}`)}
-          style={{
-            height: 38, padding: '0 20px', borderRadius: 10, border: 'none',
-            background: `linear-gradient(135deg, ${currentTabMeta.color} 0%, ${currentTabMeta.color}dd 100%)`,
-            color: 'white', fontWeight: 700, fontSize: 13, cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: 8,
-            boxShadow: `0 4px 12px ${currentTabMeta.color}30`
-          }}
-        >
-          + Add {currentTabMeta.label.replace(/s$/, '')}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ display: 'inline-flex', border: '1px solid #e2e8f0', borderRadius: 999, overflow: 'hidden', background: 'white' }}>
+            <button
+              type="button"
+              onClick={() => setViewMode('list')}
+              style={{ minWidth: 76, border: 'none', borderRadius: 0, padding: '10px 14px', background: viewMode === 'list' ? '#eff6ff' : 'transparent', color: viewMode === 'list' ? currentTabMeta.color : '#64748b', fontWeight: 700, cursor: 'pointer' }}
+            >
+              <List size={14} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('grid')}
+              style={{ minWidth: 76, border: 'none', borderRadius: 0, padding: '10px 14px', background: viewMode === 'grid' ? '#eff6ff' : 'transparent', color: viewMode === 'grid' ? currentTabMeta.color : '#64748b', fontWeight: 700, cursor: 'pointer' }}
+            >
+              <Grid size={14} />
+            </button>
+          </div>
+          <button
+            onClick={() => navigate(`/staff/add?category=${activeTab}`)}
+            style={{
+              height: 38, padding: '0 20px', borderRadius: 10, border: 'none',
+              background: `linear-gradient(135deg, ${currentTabMeta.color} 0%, ${currentTabMeta.color}dd 100%)`,
+              color: 'white', fontWeight: 700, fontSize: 13, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 8,
+              boxShadow: `0 4px 12px ${currentTabMeta.color}30`
+            }}
+          >
+            + Add {currentTabMeta.label.replace(/s$/, '')}
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -136,7 +156,7 @@ export default function StaffListPage() {
           <p style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>No {currentTabMeta.label.toLowerCase()} found</p>
           <p style={{ fontSize: 14 }}>Add your first {currentTabMeta.label.toLowerCase().replace(/s$/, '')} to get started.</p>
         </div>
-      ) : (
+      ) : viewMode === 'list' ? (
         <div className="table-responsive card" style={{ background: 'var(--bg-card)', overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700 }}>
             <thead>
@@ -212,6 +232,44 @@ export default function StaffListPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
+          {staff.map((s: StaffSummary) => (
+            <div key={s.id} style={{ padding: 20, borderRadius: 18, background: 'white', border: '1px solid #e2e8f0', boxShadow: '0 4px 18px rgba(15, 23, 42, 0.04)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-main)' }}>{s.name || 'Unknown'}</div>
+                  <div style={{ fontSize: 12, color: '#64748b' }}>{s.designation || '—'}</div>
+                </div>
+                <div style={{ width: 46, height: 46, borderRadius: 14, background: `linear-gradient(135deg, ${currentTabMeta.color}15, ${currentTabMeta.color}25)`, display: 'grid', placeItems: 'center', color: currentTabMeta.color, fontWeight: 800, fontSize: 16 }}>
+                  {s.name?.[0]?.toUpperCase() || '?'}
+                </div>
+              </div>
+              <div style={{ display: 'grid', gap: 10, margin: '18px 0' }}>
+                <div style={{ fontSize: 13, color: '#334155' }}><strong>Contact:</strong> {s.mobile || '—'}</div>
+                <div style={{ fontSize: 13, color: '#334155' }}><strong>Email:</strong> {s.email || '—'}</div>
+                {activeTab === 'doctor' && (
+                  <div style={{ fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}><strong>Qualification:</strong> <span style={{ color: currentTabMeta.color }}>{s.qualification || 'N/A'}</span></div>
+                )}
+                <div style={{ fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}><strong>Status:</strong> <span style={{ fontWeight: 700, color: s.isActive ? '#16a34a' : '#ef4444' }}>{s.isActive ? 'Active' : 'Inactive'}</span></div>
+              </div>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => navigate(`/staff/${s.id}/edit?category=${activeTab}`)}
+                  style={{ flex: 1, minWidth: 0, padding: '10px 14px', borderRadius: 10, border: '1px solid #e2e8f0', fontSize: 12, fontWeight: 700, color: '#0f172a', cursor: 'pointer', background: 'white' }}
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleDelete(s.id)}
+                  style={{ flex: 1, minWidth: 0, padding: '10px 14px', borderRadius: 10, border: '1px solid #fee2e2', fontSize: 12, fontWeight: 700, color: '#ef4444', cursor: 'pointer', background: '#fef2f2' }}
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 

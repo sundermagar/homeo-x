@@ -17,6 +17,11 @@ const AUDIT_ROUTES: Array<{ method: string; pattern: RegExp; action: AuditAction
   { method: 'POST', pattern: /^\/api\/medicalcases\/.*\/finalize$/, action: AuditAction.CASE_FINALIZE, resourceType: 'case' },
   { method: 'POST', pattern: /^\/api\/billing$/, action: AuditAction.BILL_CREATE, resourceType: 'billing' },
   { method: 'POST', pattern: /^\/api\/appointments$/, action: AuditAction.APPOINTMENT_CREATE, resourceType: 'appointment' },
+
+  // Settings & Configuration
+  { method: 'POST',   pattern: /^\/api\/settings\//, action: AuditAction.SETTINGS_CREATE, resourceType: 'settings' },
+  { method: 'PUT',    pattern: /^\/api\/settings\//, action: AuditAction.SETTINGS_UPDATE, resourceType: 'settings' },
+  { method: 'DELETE', pattern: /^\/api\/settings\//, action: AuditAction.SETTINGS_DELETE, resourceType: 'settings' },
 ];
 
 /**

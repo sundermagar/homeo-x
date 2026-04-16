@@ -19,6 +19,7 @@ export interface PatientRepository {
   update(regid: number, data: UpdatePatientInput): Promise<Patient | null>;
   softDelete(regid: number): Promise<boolean>;
   lookup(query: string, limit?: number): Promise<PatientSummary[]>;
+  findBirthdays(mmdd: string): Promise<PatientSummary[]>;
 
   // Form meta — dropdown data
   getFormMeta(): Promise<PatientFormMeta>;

@@ -15,6 +15,8 @@ export * from './crm';
 export * from './logistics';
 export * from './records';
 export * from './knowledge';
+export * from './settings';
+
 export * from './legacy-public-manifest';
 export * from './tenant-demo-legacy-schema';
 export * from './legacy/index';

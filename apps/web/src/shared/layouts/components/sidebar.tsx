@@ -174,7 +174,15 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                           key={subItem.label}
                           to={subItem.path}
                           onClick={onClose}
-                          className="sb-sub-item"
+                          className={({ isActive }) => {
+                            // For paths with query params (like /operations?tab=), 
+                            // we need a strict match of path + search.
+                            const currentFull = location.pathname + location.search;
+                            const isMatch = subItem.path.includes('?') 
+                              ? currentFull === subItem.path
+                              : isActive;
+                            return `sb-sub-item${isMatch ? ' active' : ''}`;
+                          }}
                         >
                           <Circle size={6} fill="currentColor" />
                           {subItem.label}

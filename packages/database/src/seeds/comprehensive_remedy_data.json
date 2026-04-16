@@ -1,0 +1,1560 @@
+{
+  "tree": [
+    {
+      "id": 76,
+      "label": " Anxiety and shock",
+      "parent_id": 0,
+      "description": "A person has emotional distress or sudden fright, their body releases adrenaline into the bloodstream, but this usually reverses itself in a healthy person. This is where the confusion in the term ‘shock’ sometimes occurs. This ‘non-medical shock’ is a response to anxiety or fear."
+    },
+    {
+      "id": 213,
+      "label": " Urtic cream",
+      "parent_id": 209,
+      "description": " અટશ્ય ક્રીમ"
+    },
+    {
+      "id": 3,
+      "label": "Abscess in mouth",
+      "parent_id": 1,
+      "description": "NULL"
+    },
+    {
+      "id": 1,
+      "label": "Abscesses and boils",
+      "parent_id": 0,
+      "description": "Boils are usually small areas (penny or nickel size) with a thin covering of skin, while abscesses are larger raised areas on the skin that are tender to touch and filled with pus in the deeper tissue.\\r\\nAbscesses and boils may drain when the skin over the infected area opens and lets the fluid or pus out.\\r\\nAn abscess under your skin is easy to see. It may appear red, raised and swollen. The skin over the centre of the abscess may be thin. It may look yellow or white because there’s pus underneath the surface of your skin. The abscess may feel tender and warm to the touch. Other symptoms of a skin abscess include pain, fever and chills."
+    },
+    {
+      "id": 202,
+      "label": "Acid phos",
+      "parent_id": 200,
+      "description": "એસિડ ફોલો"
+    },
+    {
+      "id": 206,
+      "label": "Acid phos",
+      "parent_id": 204,
+      "description": "એસિડ ફોલો"
+    },
+    {
+      "id": 24,
+      "label": "Acne",
+      "parent_id": 0,
+      "description": "Acne is a skin condition that occurs when your hair follicles become plugged with oil and dead skin cells. It causes whiteheads, blackheads or pimples"
+    },
+    {
+      "id": 27,
+      "label": "Acne rosacea",
+      "parent_id": 24,
+      "description": "NULL"
+    },
+    {
+      "id": 25,
+      "label": "Acne vulgaris",
+      "parent_id": 24,
+      "description": "NULL"
+    },
+    {
+      "id": 88,
+      "label": "Aconite",
+      "parent_id": 86,
+      "description": "NULL"
+    },
+    {
+      "id": 111,
+      "label": "Aconite",
+      "parent_id": 108,
+      "description": "NULL"
+    },
+    {
+      "id": 115,
+      "label": "Aconite",
+      "parent_id": 113,
+      "description": "NULL"
+    },
+    {
+      "id": 136,
+      "label": "Actaea rac",
+      "parent_id": 134,
+      "description": "NULL"
+    },
+    {
+      "id": 15,
+      "label": "Affected area purple/blue?",
+      "parent_id": 13,
+      "description": "NULL"
+    },
+    {
+      "id": 129,
+      "label": "After injury, overuse or with spasm?",
+      "parent_id": 127,
+      "description": "NULL"
+    },
+    {
+      "id": 150,
+      "label": "After midnight",
+      "parent_id": 147,
+      "description": "NULL"
+    },
+    {
+      "id": 66,
+      "label": "Allergies Seasonal",
+      "parent_id": 0,
+      "description": "An itch is an unpleasant tingly sensation that makes you want to scratch. If you’re allergic to poison ivy and you go hiking through a field of it, you’ll have a terrible itch all over your legs.\\r\\n\\r\\nMany people find relief with self-care measures such as moisturizing daily, using gentle cleansers and bathing with lukewarm water. Long-term relief requires identifying and treating the cause of itchy skin."
+    },
+    {
+      "id": 125,
+      "label": "Ant tart",
+      "parent_id": 123,
+      "description": "NULL"
+    },
+    {
+      "id": 78,
+      "label": "Anticipation of future events",
+      "parent_id": 76,
+      "description": "NULL"
+    },
+    {
+      "id": 165,
+      "label": "Anticipatory anxiety?",
+      "parent_id": 163,
+      "description": "NULL"
+    },
+    {
+      "id": 83,
+      "label": "Anxiety over event, e.g. flying, exam, wedding",
+      "parent_id": 78,
+      "description": "NULL"
+    },
+    {
+      "id": 22,
+      "label": "Apis",
+      "parent_id": 20,
+      "description": "NULL"
+    },
+    {
+      "id": 85,
+      "label": "Argent nit",
+      "parent_id": 83,
+      "description": "NULL"
+    },
+    {
+      "id": 98,
+      "label": "Argent nit",
+      "parent_id": 97,
+      "description": "NULL"
+    },
+    {
+      "id": 168,
+      "label": "Argent nit",
+      "parent_id": 166,
+      "description": "NULL"
+    },
+    {
+      "id": 89,
+      "label": "Arnica",
+      "parent_id": 2225,
+      "description": "NULL"
+    },
+    {
+      "id": 140,
+      "label": "Arnica",
+      "parent_id": 138,
+      "description": "NULL"
+    },
+    {
+      "id": 110,
+      "label": "Arsen alb",
+      "parent_id": 109,
+      "description": "NULL"
+    },
+    {
+      "id": 177,
+      "label": "Arsen alb",
+      "parent_id": 175,
+      "description": "NULL"
+    },
+    {
+      "id": 195,
+      "label": "Arsen alb",
+      "parent_id": 191,
+      "description": "આર્સેન એલ્બ"
+    },
+    {
+      "id": 116,
+      "label": "Backache",
+      "parent_id": 0,
+      "description": "Backache is one of the most common medical complaints, particularly among adults. Backache usually refers to pain in your muscles, intervertebral joints, spinal nerves, or sometimes bone-on-bone pain. The type of pain you are having can help your physician pinpoint the cause.\\r\\n\\r\\nBackache can be categorized as acute or chronic. Acute pain is often temporary and can improve on its own, frequently without treatment or with the assistance of a mild pain relieving medication. Acute backache usually lasts anywhere from a couple of days to several weeks. Chronic back pain is more long-term and can extend beyond several months. The pain can often be progressive, getting worse over time."
+    },
+    {
+      "id": 147,
+      "label": "Bedwetting",
+      "parent_id": 0,
+      "description": "Bed-Wetting is a phenomenon in which a child urinates, involuntarily, on bed when fast asleep at night.\\r\\n\\r\\nGenerally, bedwetting before age 7 isn’t a concern. At this age, your child may still be developing night time bladder control."
+    },
+    {
+      "id": 148,
+      "label": "Before midnight",
+      "parent_id": 147,
+      "description": "NULL"
+    },
+    {
+      "id": 23,
+      "label": "Belladonna",
+      "parent_id": 21,
+      "description": "NULL"
+    },
+    {
+      "id": 59,
+      "label": "Belladonna",
+      "parent_id": 55,
+      "description": "NULL"
+    },
+    {
+      "id": 164,
+      "label": "Belladonna",
+      "parent_id": 162,
+      "description": "NULL"
+    },
+    {
+      "id": 184,
+      "label": "Better for consolation?",
+      "parent_id": 178,
+      "description": "NULL"
+    },
+    {
+      "id": 19,
+      "label": "Better with cold application?",
+      "parent_id": 17,
+      "description": "NULL"
+    },
+    {
+      "id": 207,
+      "label": "Bites and stings",
+      "parent_id": 0,
+      "description": "ડંખ અને ડંખ"
+    },
+    {
+      "id": 201,
+      "label": "Blames self?",
+      "parent_id": 199,
+      "description": "સ્વ દોષ?"
+    },
+    {
+      "id": 146,
+      "label": "Bryonia",
+      "parent_id": 143,
+      "description": "NULL"
+    },
+    {
+      "id": 75,
+      "label": "Cat hair",
+      "parent_id": 70,
+      "description": "NULL"
+    },
+    {
+      "id": 155,
+      "label": "Causticum",
+      "parent_id": 153,
+      "description": "NULL"
+    },
+    {
+      "id": 4,
+      "label": "Chronic condition",
+      "parent_id": 1,
+      "description": "NULL"
+    },
+    {
+      "id": 28,
+      "label": "Discharge of much pus?",
+      "parent_id": 25,
+      "description": "NULL"
+    },
+    {
+      "id": 71,
+      "label": "Dog hair",
+      "parent_id": 70,
+      "description": "NULL"
+    },
+    {
+      "id": 149,
+      "label": "During pregnancy",
+      "parent_id": 147,
+      "description": "NULL"
+    },
+    {
+      "id": 2,
+      "label": "Early stages",
+      "parent_id": 1,
+      "description": "NULL"
+    },
+    {
+      "id": 158,
+      "label": "Equisetum",
+      "parent_id": 156,
+      "description": "NULL"
+    },
+    {
+      "id": 8,
+      "label": "Ferrum phos",
+      "parent_id": 6,
+      "description": "NULL"
+    },
+    {
+      "id": 60,
+      "label": "Flares up after washing?",
+      "parent_id": 56,
+      "description": "NULL"
+    },
+    {
+      "id": 52,
+      "label": "Flares with menstrual cycle?",
+      "parent_id": 50,
+      "description": "NULL"
+    },
+    {
+      "id": 53,
+      "label": "Flat rash of sore itching areas?",
+      "parent_id": 51,
+      "description": "NULL"
+    },
+    {
+      "id": 49,
+      "label": "Flushed red appearance, esp. face?",
+      "parent_id": 27,
+      "description": "NULL"
+    },
+    {
+      "id": 81,
+      "label": "Gelsemium",
+      "parent_id": 77,
+      "description": "NULL"
+    },
+    {
+      "id": 80,
+      "label": "General stress/anxiety",
+      "parent_id": 76,
+      "description": "NULL"
+    },
+    {
+      "id": 26,
+      "label": "General symptoms",
+      "parent_id": 24,
+      "description": "NULL"
+    },
+    {
+      "id": 178,
+      "label": "Grief",
+      "parent_id": 0,
+      "description": "Grief is the experience of losing someone important to us. It is characterised by grief, which is the process and the range of emotions we go through as we gradually adjust to the loss.\\r\\n\\r\\nLosing someone important to us can be emotionally devastating – whether that be a partner, family member, friend or pet. It is natural to go through a range of physical and emotional processes as we gradually come to terms with the loss.\\r\\n\\r\\n"
+    },
+    {
+      "id": 43,
+      "label": "Gunpowder",
+      "parent_id": 637,
+      "description": "NULL"
+    },
+    {
+      "id": 44,
+      "label": "Gunpowder",
+      "parent_id": 42,
+      "description": "NULL"
+    },
+    {
+      "id": 67,
+      "label": "Hay fever",
+      "parent_id": 6634343,
+      "description": "NULL"
+    },
+    {
+      "id": 9,
+      "label": "Hepar sulph",
+      "parent_id": 7,
+      "description": "NULL"
+    },
+    {
+      "id": 38,
+      "label": "Hepar sulph- Follow with Gun Powder",
+      "parent_id": 34,
+      "description": "NULL"
+    },
+    {
+      "id": 161,
+      "label": "High temperature?",
+      "parent_id": 150,
+      "description": "NULL"
+    },
+    {
+      "id": 32,
+      "label": "Hot red sore – flares up after washing?",
+      "parent_id": 30,
+      "description": "NULL"
+    },
+    {
+      "id": 73,
+      "label": "House dust mite",
+      "parent_id": 70,
+      "description": "NULL"
+    },
+    {
+      "id": 132,
+      "label": "Hypericum",
+      "parent_id": 130,
+      "description": "NULL"
+    },
+    {
+      "id": 211,
+      "label": "Hypericum and Calendula cream",
+      "parent_id": 209,
+      "description": "હાઈપરિકમ અને કેલેન્ડુલા ક્રીમ"
+    },
+    {
+      "id": 210,
+      "label": "Hypericum and Calendula mother tincture",
+      "parent_id": 209,
+      "description": "હાયપરિકમ અને કેલેન્ડુલા મધર ટિંકચર"
+    },
+    {
+      "id": 90,
+      "label": "Ignatia",
+      "parent_id": 87,
+      "description": "NULL"
+    },
+    {
+      "id": 94,
+      "label": "Ignatia",
+      "parent_id": 93,
+      "description": "NULL"
+    },
+    {
+      "id": 182,
+      "label": "Ignatia",
+      "parent_id": 179,
+      "description": "NULL"
+    },
+    {
+      "id": 179,
+      "label": "Immediate effects of loss",
+      "parent_id": 178,
+      "description": "NULL"
+    },
+    {
+      "id": 190,
+      "label": "Indifferent, detached?",
+      "parent_id": 187,
+      "description": "ઉદાસીન  અલગ?"
+    },
+    {
+      "id": 70,
+      "label": "Isopathic remedy",
+      "parent_id": 662343,
+      "description": "NULL"
+    },
+    {
+      "id": 40,
+      "label": "Kali brom",
+      "parent_id": 36,
+      "description": "NULL"
+    },
+    {
+      "id": 137,
+      "label": "Kali carb",
+      "parent_id": 135,
+      "description": "NULL"
+    },
+    {
+      "id": 18,
+      "label": "Lachesis",
+      "parent_id": 16,
+      "description": "NULL"
+    },
+    {
+      "id": 205,
+      "label": "Lachesis",
+      "parent_id": 203,
+      "description": "આવરણ"
+    },
+    {
+      "id": 151,
+      "label": "Large quantity of urine?",
+      "parent_id": 148,
+      "description": "NULL"
+    },
+    {
+      "id": 173,
+      "label": "Large quantity of urine?",
+      "parent_id": 170,
+      "description": "NULL"
+    },
+    {
+      "id": 212,
+      "label": "Ledum mother tincture",
+      "parent_id": 209,
+      "description": "મોડી ટિંકચર"
+    },
+    {
+      "id": 99,
+      "label": "Loud noises Thunder Fireworks",
+      "parent_id": 96,
+      "description": "NULL"
+    },
+    {
+      "id": 84,
+      "label": "Lycopodium",
+      "parent_id": 82,
+      "description": "NULL"
+    },
+    {
+      "id": 176,
+      "label": "Lycopodium",
+      "parent_id": 174,
+      "description": "NULL"
+    },
+    {
+      "id": 87,
+      "label": "Mental Shock",
+      "parent_id": 79,
+      "description": "NULL"
+    },
+    {
+      "id": 10,
+      "label": "Merc sol",
+      "parent_id": 3,
+      "description": "NULL"
+    },
+    {
+      "id": 6,
+      "label": "Mild",
+      "parent_id": 5,
+      "description": "NULL"
+    },
+    {
+      "id": 72,
+      "label": "Mixed grass pollens",
+      "parent_id": 70,
+      "description": "NULL"
+    },
+    {
+      "id": 74,
+      "label": "Mixed tree pollens",
+      "parent_id": 70,
+      "description": "NULL"
+    },
+    {
+      "id": 11,
+      "label": "Much pus?",
+      "parent_id": 4,
+      "description": "NULL"
+    },
+    {
+      "id": 142,
+      "label": "Muscles feel stretched?",
+      "parent_id": 139,
+      "description": "NULL"
+    },
+    {
+      "id": 114,
+      "label": "NAT MUR",
+      "parent_id": 112,
+      "description": "NULL"
+    },
+    {
+      "id": 181,
+      "label": "Nat mur",
+      "parent_id": 180,
+      "description": "NULL"
+    },
+    {
+      "id": 198,
+      "label": "Nat mur",
+      "parent_id": 194,
+      "description": "નાટ મુર"
+    },
+    {
+      "id": 186,
+      "label": "Neither",
+      "parent_id": 184,
+      "description": "NULL"
+    },
+    {
+      "id": 169,
+      "label": "Nightmares?",
+      "parent_id": 167,
+      "description": "NULL"
+    },
+    {
+      "id": 13,
+      "label": "No",
+      "parent_id": 11,
+      "description": "NULL"
+    },
+    {
+      "id": 17,
+      "label": "No",
+      "parent_id": 15,
+      "description": "NULL"
+    },
+    {
+      "id": 21,
+      "label": "No",
+      "parent_id": 19,
+      "description": "NULL"
+    },
+    {
+      "id": 30,
+      "label": "No",
+      "parent_id": 28,
+      "description": "NULL"
+    },
+    {
+      "id": 34,
+      "label": "No",
+      "parent_id": 31,
+      "description": "NULL"
+    },
+    {
+      "id": 36,
+      "label": "No",
+      "parent_id": 32,
+      "description": "NULL"
+    },
+    {
+      "id": 51,
+      "label": "No",
+      "parent_id": 49,
+      "description": "NULL"
+    },
+    {
+      "id": 55,
+      "label": "No",
+      "parent_id": 52,
+      "description": "NULL"
+    },
+    {
+      "id": 57,
+      "label": "No",
+      "parent_id": 53,
+      "description": "NULL"
+    },
+    {
+      "id": 63,
+      "label": "No",
+      "parent_id": 60,
+      "description": "NULL"
+    },
+    {
+      "id": 92,
+      "label": "No",
+      "parent_id": 91,
+      "description": "NULL"
+    },
+    {
+      "id": 96,
+      "label": "No",
+      "parent_id": 95,
+      "description": "NULL"
+    },
+    {
+      "id": 100,
+      "label": "No",
+      "parent_id": 99,
+      "description": "NULL"
+    },
+    {
+      "id": 104,
+      "label": "No",
+      "parent_id": 103,
+      "description": "NULL"
+    },
+    {
+      "id": 108,
+      "label": "No",
+      "parent_id": 106,
+      "description": "NULL"
+    },
+    {
+      "id": 112,
+      "label": "No",
+      "parent_id": 107,
+      "description": "NULL"
+    },
+    {
+      "id": 119,
+      "label": "No",
+      "parent_id": 117,
+      "description": "NULL"
+    },
+    {
+      "id": 123,
+      "label": "No",
+      "parent_id": 120,
+      "description": "NULL"
+    },
+    {
+      "id": 127,
+      "label": "No",
+      "parent_id": 121,
+      "description": "NULL"
+    },
+    {
+      "id": 131,
+      "label": "No",
+      "parent_id": 128,
+      "description": "NULL"
+    },
+    {
+      "id": 135,
+      "label": "No",
+      "parent_id": 133,
+      "description": "NULL"
+    },
+    {
+      "id": 139,
+      "label": "No",
+      "parent_id": 129,
+      "description": "NULL"
+    },
+    {
+      "id": 153,
+      "label": "No",
+      "parent_id": 151,
+      "description": "NULL"
+    },
+    {
+      "id": 157,
+      "label": "No",
+      "parent_id": 154,
+      "description": "NULL"
+    },
+    {
+      "id": 163,
+      "label": "No",
+      "parent_id": 161,
+      "description": "NULL"
+    },
+    {
+      "id": 167,
+      "label": "No",
+      "parent_id": 165,
+      "description": "NULL"
+    },
+    {
+      "id": 171,
+      "label": "No",
+      "parent_id": 169,
+      "description": "NULL"
+    },
+    {
+      "id": 175,
+      "label": "No",
+      "parent_id": 173,
+      "description": "NULL"
+    },
+    {
+      "id": 187,
+      "label": "No",
+      "parent_id": 184,
+      "description": "NULL"
+    },
+    {
+      "id": 192,
+      "label": "No",
+      "parent_id": 189,
+      "description": "કોઈ"
+    },
+    {
+      "id": 194,
+      "label": "No",
+      "parent_id": 190,
+      "description": "કોઈ"
+    },
+    {
+      "id": 200,
+      "label": "No",
+      "parent_id": 196,
+      "description": "કોઈ"
+    },
+    {
+      "id": 204,
+      "label": "No",
+      "parent_id": 201,
+      "description": "કોઈ"
+    },
+    {
+      "id": 183,
+      "label": "No effect",
+      "parent_id": 182434343,
+      "description": "NULL"
+    },
+    {
+      "id": 124,
+      "label": "Nux vom",
+      "parent_id": 122,
+      "description": "NULL"
+    },
+    {
+      "id": 46,
+      "label": "Oily skin, blackheads",
+      "parent_id": 26,
+      "description": "NULL"
+    },
+    {
+      "id": 208,
+      "label": "Oral",
+      "parent_id": 20723232,
+      "description": "મૌખિક"
+    },
+    {
+      "id": 5,
+      "label": "Pain",
+      "parent_id": 2,
+      "description": "NULL"
+    },
+    {
+      "id": 117,
+      "label": "Pain only in lower back?",
+      "parent_id": 116,
+      "description": "NULL"
+    },
+    {
+      "id": 107,
+      "label": "Panic attack",
+      "parent_id": 104,
+      "description": "NULL"
+    },
+    {
+      "id": 82,
+      "label": "Performance- related – fear of failure",
+      "parent_id": 78,
+      "description": "NULL"
+    },
+    {
+      "id": 102,
+      "label": "Phosphorus",
+      "parent_id": 101,
+      "description": "NULL"
+    },
+    {
+      "id": 159,
+      "label": "Plantago",
+      "parent_id": 157,
+      "description": "NULL"
+    },
+    {
+      "id": 172,
+      "label": "Plantago",
+      "parent_id": 171,
+      "description": "NULL"
+    },
+    {
+      "id": 47,
+      "label": "Psorinum",
+      "parent_id": 45,
+      "description": "NULL"
+    },
+    {
+      "id": 160,
+      "label": "Pulsatilla",
+      "parent_id": 149,
+      "description": "NULL"
+    },
+    {
+      "id": 188,
+      "label": "Pulsatilla",
+      "parent_id": 185,
+      "description": "ધબક"
+    },
+    {
+      "id": 45,
+      "label": "Recurrent infections",
+      "parent_id": 26,
+      "description": "NULL"
+    },
+    {
+      "id": 180,
+      "label": "Recurring grief on anniversary of loss",
+      "parent_id": 178,
+      "description": "NULL"
+    },
+    {
+      "id": 91,
+      "label": "Relationship problems or bereavement?",
+      "parent_id": 80,
+      "description": "NULL"
+    },
+    {
+      "id": 103,
+      "label": "Restless and fidgety?",
+      "parent_id": 100,
+      "description": "NULL"
+    },
+    {
+      "id": 189,
+      "label": "Restless, anxious?",
+      "parent_id": 186,
+      "description": "બેચેન  બેચેન?"
+    },
+    {
+      "id": 65,
+      "label": "Rhus tox",
+      "parent_id": 63,
+      "description": "NULL"
+    },
+    {
+      "id": 144,
+      "label": "Rhus tox",
+      "parent_id": 141,
+      "description": "NULL"
+    },
+    {
+      "id": 145,
+      "label": "Ruta grav",
+      "parent_id": 142,
+      "description": "NULL"
+    },
+    {
+      "id": 58,
+      "label": "Sanguinaria",
+      "parent_id": 54,
+      "description": "NULL"
+    },
+    {
+      "id": 48,
+      "label": "Selenium",
+      "parent_id": 46,
+      "description": "NULL"
+    },
+    {
+      "id": 106,
+      "label": "Self-conscious and insecure?",
+      "parent_id": 105,
+      "description": "NULL"
+    },
+    {
+      "id": 128,
+      "label": "Sensitive to touch – radiating nerve pain?",
+      "parent_id": 126,
+      "description": "NULL"
+    },
+    {
+      "id": 197,
+      "label": "Sepia",
+      "parent_id": 193,
+      "description": "તસવીર"
+    },
+    {
+      "id": 7,
+      "label": "Sharp stabbing",
+      "parent_id": 5,
+      "description": "NULL"
+    },
+    {
+      "id": 79,
+      "label": "Shock",
+      "parent_id": 76,
+      "description": "NULL"
+    },
+    {
+      "id": 121,
+      "label": "Shooting or burning pains?",
+      "parent_id": 119,
+      "description": "NULL"
+    },
+    {
+      "id": 133,
+      "label": "Shooting pains down thighs?",
+      "parent_id": 131,
+      "description": "NULL"
+    },
+    {
+      "id": 14,
+      "label": "Silica",
+      "parent_id": 12,
+      "description": "NULL"
+    },
+    {
+      "id": 37,
+      "label": "Silica - Follow with Gun Powder",
+      "parent_id": 33,
+      "description": "NULL"
+    },
+    {
+      "id": 77,
+      "label": "Stage fright",
+      "parent_id": 76,
+      "description": "NULL"
+    },
+    {
+      "id": 141,
+      "label": "Stiffness on rest, better on movements?",
+      "parent_id": 139,
+      "description": "NULL"
+    },
+    {
+      "id": 95,
+      "label": "Stomach churning",
+      "parent_id": 92,
+      "description": "NULL"
+    },
+    {
+      "id": 86,
+      "label": "Sudden Shock",
+      "parent_id": 79,
+      "description": "NULL"
+    },
+    {
+      "id": 39,
+      "label": "Sulphur",
+      "parent_id": 35,
+      "description": "NULL"
+    },
+    {
+      "id": 64,
+      "label": "Sulphur",
+      "parent_id": 62,
+      "description": "NULL"
+    },
+    {
+      "id": 61,
+      "label": "Sulphur iodatum",
+      "parent_id": 57,
+      "description": "NULL"
+    },
+    {
+      "id": 31,
+      "label": "Tendency to scar?",
+      "parent_id": 29,
+      "description": "NULL"
+    },
+    {
+      "id": 209,
+      "label": "Topical",
+      "parent_id": 2147483647,
+      "description": "સ્થિર"
+    },
+    {
+      "id": 68,
+      "label": "Urtica cream",
+      "parent_id": 662343,
+      "description": "NULL"
+    },
+    {
+      "id": 154,
+      "label": "Vivid dreams or nightmares?",
+      "parent_id": 152,
+      "description": "NULL"
+    },
+    {
+      "id": 196,
+      "label": "Wants to talk about deceased?",
+      "parent_id": 192,
+      "description": "મૃતક વિશે વાત કરવા માંગે છે?"
+    },
+    {
+      "id": 120,
+      "label": "Worse at night – unable to turn in bed?",
+      "parent_id": 118,
+      "description": "NULL"
+    },
+    {
+      "id": 143,
+      "label": "Worse on movement?",
+      "parent_id": 139,
+      "description": "NULL"
+    },
+    {
+      "id": 12,
+      "label": "Yes",
+      "parent_id": 11,
+      "description": "NULL"
+    },
+    {
+      "id": 16,
+      "label": "Yes",
+      "parent_id": 15,
+      "description": "NULL"
+    },
+    {
+      "id": 20,
+      "label": "Yes",
+      "parent_id": 19,
+      "description": "NULL"
+    },
+    {
+      "id": 29,
+      "label": "Yes",
+      "parent_id": 28,
+      "description": "NULL"
+    },
+    {
+      "id": 33,
+      "label": "Yes",
+      "parent_id": 31,
+      "description": "NULL"
+    },
+    {
+      "id": 35,
+      "label": "Yes",
+      "parent_id": 32,
+      "description": "NULL"
+    },
+    {
+      "id": 50,
+      "label": "Yes",
+      "parent_id": 49,
+      "description": "NULL"
+    },
+    {
+      "id": 54,
+      "label": "Yes",
+      "parent_id": 52,
+      "description": "NULL"
+    },
+    {
+      "id": 56,
+      "label": "Yes",
+      "parent_id": 53,
+      "description": "NULL"
+    },
+    {
+      "id": 62,
+      "label": "Yes",
+      "parent_id": 60,
+      "description": "NULL"
+    },
+    {
+      "id": 93,
+      "label": "Yes",
+      "parent_id": 91,
+      "description": "NULL"
+    },
+    {
+      "id": 97,
+      "label": "Yes",
+      "parent_id": 95,
+      "description": "NULL"
+    },
+    {
+      "id": 101,
+      "label": "Yes",
+      "parent_id": 99,
+      "description": "NULL"
+    },
+    {
+      "id": 105,
+      "label": "Yes",
+      "parent_id": 103,
+      "description": "NULL"
+    },
+    {
+      "id": 109,
+      "label": "Yes",
+      "parent_id": 106,
+      "description": "NULL"
+    },
+    {
+      "id": 113,
+      "label": "Yes",
+      "parent_id": 107,
+      "description": "NULL"
+    },
+    {
+      "id": 118,
+      "label": "Yes",
+      "parent_id": 117,
+      "description": "NULL"
+    },
+    {
+      "id": 122,
+      "label": "Yes",
+      "parent_id": 120,
+      "description": "NULL"
+    },
+    {
+      "id": 126,
+      "label": "Yes",
+      "parent_id": 121,
+      "description": "NULL"
+    },
+    {
+      "id": 130,
+      "label": "Yes",
+      "parent_id": 128,
+      "description": "NULL"
+    },
+    {
+      "id": 134,
+      "label": "Yes",
+      "parent_id": 133,
+      "description": "NULL"
+    },
+    {
+      "id": 138,
+      "label": "Yes",
+      "parent_id": 129,
+      "description": "NULL"
+    },
+    {
+      "id": 152,
+      "label": "Yes",
+      "parent_id": 151,
+      "description": "NULL"
+    },
+    {
+      "id": 156,
+      "label": "Yes",
+      "parent_id": 154,
+      "description": "NULL"
+    },
+    {
+      "id": 162,
+      "label": "Yes",
+      "parent_id": 161,
+      "description": "NULL"
+    },
+    {
+      "id": 166,
+      "label": "Yes",
+      "parent_id": 165,
+      "description": "NULL"
+    },
+    {
+      "id": 170,
+      "label": "Yes",
+      "parent_id": 169,
+      "description": "NULL"
+    },
+    {
+      "id": 174,
+      "label": "Yes",
+      "parent_id": 173,
+      "description": "NULL"
+    },
+    {
+      "id": 185,
+      "label": "Yes",
+      "parent_id": 184,
+      "description": "NULL"
+    },
+    {
+      "id": 191,
+      "label": "Yes",
+      "parent_id": 189,
+      "description": "હા"
+    },
+    {
+      "id": 193,
+      "label": "Yes",
+      "parent_id": 190,
+      "description": "હા"
+    },
+    {
+      "id": 199,
+      "label": "Yes",
+      "parent_id": 196,
+      "description": "હા"
+    },
+    {
+      "id": 203,
+      "label": "Yes",
+      "parent_id": 201,
+      "description": "હા"
+    }
+  ],
+  "alternatives": [
+    {
+      "tree_id": 24,
+      "remedy": "Belladona",
+      "symptoms": "Skin dry and hot",
+      "better": "Light covering",
+      "worse": "Touch"
+    },
+    {
+      "tree_id": 24,
+      "remedy": "Gunpowder",
+      "symptoms": "Bursting headache with acne\t",
+      "better": "Cool",
+      "worse": "Heat"
+    },
+    {
+      "tree_id": 24,
+      "remedy": "Hepar sulph",
+      "symptoms": "Papules prone to suppuration and\\r\\nbleeding. Excessive\\r\\nsweating. Cold sores.",
+      "better": "Warmth",
+      "worse": "Touch and cool air\\r\\n"
+    },
+    {
+      "tree_id": 24,
+      "remedy": "Kali brom\t",
+      "symptoms": "Pustules, itching , worse on chest, abdomen and face. Sleep restless\t",
+      "better": "After physical activities\t",
+      "worse": "Cold weather\\r\\n"
+    },
+    {
+      "tree_id": 24,
+      "remedy": "Psorinum",
+      "symptoms": "Dry skin. Eczema behind ears, crusty eruptions.\t",
+      "better": "Heat, warm clothing\t",
+      "worse": "Cold"
+    },
+    {
+      "tree_id": 24,
+      "remedy": "Rhus tox\t",
+      "symptoms": "Intense itching, red swollen skin\t",
+      "better": "Warm, dry weather",
+      "worse": "During wet weather and  at night\\r\\n"
+    },
+    {
+      "tree_id": 24,
+      "remedy": "Sanguinaria",
+      "symptoms": "Red,blotchy eruption\t",
+      "better": "Sleep",
+      "worse": "On the right side and touch. In the spring\\r\\n"
+    },
+    {
+      "tree_id": 24,
+      "remedy": "Selenium",
+      "symptoms": "Dry scaly eruptions\t",
+      "better": "In evening\t",
+      "worse": "In hot weather\\r\\n"
+    },
+    {
+      "tree_id": 24,
+      "remedy": "Silica",
+      "symptoms": "Pale waxy skin\t",
+      "better": "With warmth and in the summer",
+      "worse": "In cold air. After washing\\r\\n"
+    },
+    {
+      "tree_id": 24,
+      "remedy": "Sulphur",
+      "symptoms": "Dry scaly skin\t",
+      "better": "Dry, warm weather\t",
+      "worse": "Warmth after washing and in morning"
+    },
+    {
+      "tree_id": 24,
+      "remedy": "Sulphur iodatum\t",
+      "symptoms": "Itching, especially on ears and nose. Cold\\r\\nsores",
+      "better": "Cool air and in winter",
+      "worse": "After exertion and heat"
+    },
+    {
+      "tree_id": 76,
+      "remedy": "Aconite",
+      "symptoms": "Very restless, fear of the future and crowds",
+      "better": "In open air, in the evening and at night",
+      "worse": "Noise and light\\r\\n"
+    },
+    {
+      "tree_id": 76,
+      "remedy": "Argentum nit\t",
+      "symptoms": "Fearful and nervous, impulsive",
+      "better": "In fresh air",
+      "worse": "From warmth and at night"
+    },
+    {
+      "tree_id": 76,
+      "remedy": "Arnica",
+      "symptoms": "Nervous, does not like to be touched or comforted",
+      "better": "Lying down\t",
+      "worse": "Motion and cold\\r\\n"
+    },
+    {
+      "tree_id": 76,
+      "remedy": "Arsenic album\t",
+      "symptoms": "Great fear and despair, restless\t",
+      "better": "Heat and warm drinks",
+      "worse": "In wet weather and with food"
+    },
+    {
+      "tree_id": 76,
+      "remedy": "Gelsemium\t",
+      "symptoms": "Stage fright, desire to be quiet and left alone\t",
+      "better": "Open air\t",
+      "worse": "Excitement and bad news"
+    },
+    {
+      "tree_id": 76,
+      "remedy": "Ignatia",
+      "symptoms": "Sad and tearful\t",
+      "better": "Movement\t",
+      "worse": "In morning and after food"
+    },
+    {
+      "tree_id": 76,
+      "remedy": "Lycopodium",
+      "symptoms": "Melancholy, Loss of self-confidence, Skin problems",
+      "better": "With activity",
+      "worse": "Heat"
+    },
+    {
+      "tree_id": 76,
+      "remedy": "Phosphorus\t",
+      "symptoms": "Easily upset. Over-sensitive\t",
+      "better": "After sleep and after washing with cold water\t",
+      "worse": "After physical or mental exertion"
+    },
+    {
+      "tree_id": 116,
+      "remedy": "Actaea rac (Cimicifuga",
+      "symptoms": "",
+      "better": "",
+      "worse": ""
+    },
+    {
+      "tree_id": 116,
+      "remedy": "Ant tart\t",
+      "symptoms": "Violent pain in sacro-lumbar region",
+      "better": "Sitting up",
+      "worse": "Lying down and at night"
+    },
+    {
+      "tree_id": 116,
+      "remedy": "Arnica",
+      "symptoms": "Pain in limbs, difficulty sleeping",
+      "better": "Lying down\t",
+      "worse": "Motion"
+    },
+    {
+      "tree_id": 116,
+      "remedy": "Bryonia",
+      "symptoms": "Stiffness in small of back and neck region",
+      "better": "Cold application",
+      "worse": "Warmth, any motion"
+    },
+    {
+      "tree_id": 116,
+      "remedy": "Hypericum",
+      "symptoms": "Pain radiating up spine and down\\r\\nlimbs",
+      "better": "Rubbing",
+      "worse": "Cold"
+    },
+    {
+      "tree_id": 116,
+      "remedy": "Kali carb\t",
+      "symptoms": "General stiffness in back especially in\\r\\nkidney region",
+      "better": "Warm weather and gentle movement",
+      "worse": "Cold weather"
+    },
+    {
+      "tree_id": 116,
+      "remedy": "Nux vom",
+      "symptoms": "Pain in lumbar region. Difficulty turning in bed",
+      "better": "Evening",
+      "worse": "Morning and cold"
+    },
+    {
+      "tree_id": 116,
+      "remedy": "Rhus tox\t",
+      "symptoms": "Pain between shoulders",
+      "better": "Motion and lying on firm surface",
+      "worse": "Cold weather and at night"
+    },
+    {
+      "tree_id": 116,
+      "remedy": "Ruta grav\t",
+      "symptoms": "Lumbago, worse before rising",
+      "better": "Pressure and lying on back",
+      "worse": "Lying down and cold"
+    },
+    {
+      "tree_id": 147,
+      "remedy": "Arg nit\t",
+      "symptoms": "Bad dreams. Pain on urination",
+      "better": "Fresh air",
+      "worse": "Warmth and at night"
+    },
+    {
+      "tree_id": 147,
+      "remedy": "Arnica",
+      "symptoms": "Disturbed and restless sleep",
+      "better": "Warmth",
+      "worse": "NULL"
+    },
+    {
+      "tree_id": 147,
+      "remedy": "Belladona",
+      "symptoms": "Frequent and profuse urination. May shout in sleep.\t",
+      "better": "Cool",
+      "worse": "Hot weather. Mentally active child"
+    },
+    {
+      "tree_id": 147,
+      "remedy": "Causticum",
+      "symptoms": "Burning sensation in urethra",
+      "better": "Warmth of bed",
+      "worse": "Cold"
+    },
+    {
+      "tree_id": 147,
+      "remedy": "Equisetum",
+      "symptoms": "Pain and tenderness in bladder region",
+      "better": "Reassurance and support to patient",
+      "worse": "Cold"
+    },
+    {
+      "tree_id": 147,
+      "remedy": "Lycopodium",
+      "symptoms": "Pain in back before urination",
+      "better": "Uncovered in bed\t",
+      "worse": "Heat"
+    },
+    {
+      "tree_id": 147,
+      "remedy": "Plantago",
+      "symptoms": "Profuse flow of urine often with pain. Insomnia. Sharp pain in eyes",
+      "better": "In dark",
+      "worse": "Tobacco smoke"
+    },
+    {
+      "tree_id": 147,
+      "remedy": "Pulsatilla",
+      "symptoms": "Associated with coughing and passing wind",
+      "better": "In cool fresh room, uncovered in bed",
+      "worse": "In warm room. Lying down"
+    },
+    {
+      "tree_id": 207,
+      "remedy": "Apis mell\t",
+      "symptoms": "Sore and sensitive, swelling after bite",
+      "better": "Application of cold",
+      "worse": "Heat and pressure"
+    },
+    {
+      "tree_id": 207,
+      "remedy": "Cantharis",
+      "symptoms": "Burning pain\t",
+      "better": "Rubbing",
+      "worse": "Touch"
+    },
+    {
+      "tree_id": 207,
+      "remedy": "Hypericum",
+      "symptoms": "Also used for crush injuries",
+      "better": "With rubbing",
+      "worse": "In cold. Application of pressure"
+    },
+    {
+      "tree_id": 207,
+      "remedy": "Ledum",
+      "symptoms": "Puncture wounds\t",
+      "better": "Cold",
+      "worse": "At night and from heat"
+    },
+    {
+      "tree_id": 207,
+      "remedy": "Urtica",
+      "symptoms": "Itchy blotches",
+      "better": "With rubbing",
+      "worse": "Touch"
+    },
+    {
+      "tree_id": 231,
+      "remedy": "Acid nit\t",
+      "symptoms": "Headache; halitosis\t",
+      "better": "Steady pressure on breast",
+      "worse": "Evening and night and in hot weather"
+    }
+  ]
+}

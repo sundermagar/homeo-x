@@ -1,7 +1,7 @@
-import { db } from '../index';
+import type { DbClient } from '../client';
 import { growthReferences } from '../schema/medical-cases';
 
-export async function seedGrowthReferences() {
+export async function seedGrowthReferences(db: DbClient) {
   const data = [
     { months: 0, gender: 'M', idealHeightCm: '49.99', idealWeightKg: '3.53' },
     { months: 1, gender: 'M', idealHeightCm: '52.70', idealWeightKg: '4.00' },

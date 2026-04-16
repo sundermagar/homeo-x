@@ -1,298 +1,153 @@
 import { Router } from 'express';
+import { CrmRepositoryPg } from '../../repositories/crm.repository.pg';
+import { ManageLeadsUseCase } from '../../../domains/crm/use-cases/manage-leads.use-case';
+import { ManageRemindersUseCase } from '../../../domains/crm/use-cases/manage-reminders.use-case';
+import { ManageReferralsUseCase } from '../../../domains/crm/use-cases/manage-referrals.use-case';
+import { ConvertLeadToPatientUseCase } from '../../../domains/crm/use-cases/convert-lead-to-patient.use-case';
+import { PatientRepositoryPg } from '../../repositories/patient.repository.pg';
+import { asyncHandler } from '../middleware/async-handler';
+import { sendSuccess } from '../../../shared/response-formatter';
 
-const router = Router();
+export const crmRouter: Router = Router();
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// LEADS
-// ═══════════════════════════════════════════════════════════════════════════════
+const getRepo = (req: any) => new CrmRepositoryPg(req.tenantDb);
 
-// GET /api/crm/leads?search=&status=&page=&limit=
-router.get('/leads', async (req: any, res, next) => {
-  try {
-    const db = req.db;
-    const search = req.query.search as string;
-    const status = req.query.status as string;
-    const page = parseInt(req.query.page as string, 10) || 1;
-    const limit = parseInt(req.query.limit as string, 10) || 20;
-    const offset = (page - 1) * limit;
+// ── Leads ────────────────────────────────────────────────────────────────────
 
-    let query = 'SELECT * FROM leads WHERE deleted_at IS NULL';
-    const params: any[] = [];
+crmRouter.get('/leads', asyncHandler(async (req, res) => {
+  const { search, status, page, limit } = req.query as any;
+  const uc = new ManageLeadsUseCase(getRepo(req));
+  const result = await uc.search({
+    search, status,
+    page: parseInt(page) || 1,
+    limit: parseInt(limit) || 20
+  });
+  sendSuccess(res, result.data, undefined, 200, { total: result.data.total, page: parseInt(page) || 1, limit: parseInt(limit) || 20 });
+}));
 
-    if (search) {
-      query += ' AND (name LIKE ? OR mobile LIKE ? OR phone LIKE ? OR email LIKE ?)';
-      const like = `%${search}%`;
-      params.push(like, like, like, like);
-    }
-    if (status) {
-      query += ' AND status = ?';
-      params.push(status);
-    }
+crmRouter.get('/leads/:id', asyncHandler(async (req, res) => {
+  const uc = new ManageLeadsUseCase(getRepo(req));
+  const result = await uc.getById(Number(req.params.id));
+  if (result.success) sendSuccess(res, result.data);
+}));
 
-    const countQuery = query.replace('SELECT *', 'SELECT COUNT(*) AS total');
-    const [[{ total }]] = await db.execute(countQuery, params);
+crmRouter.post('/leads', asyncHandler(async (req, res) => {
+  const uc = new ManageLeadsUseCase(getRepo(req));
+  const result = await uc.create(req.body);
+  if (result.success) sendSuccess(res, { id: result.data }, 'Lead created', 201);
+}));
 
-    query += ' ORDER BY id DESC LIMIT ? OFFSET ?';
-    params.push(String(limit), String(offset));
-    const [rows] = await db.execute(query, params);
+crmRouter.put('/leads/:id', asyncHandler(async (req, res) => {
+  const uc = new ManageLeadsUseCase(getRepo(req));
+  const result = await uc.update(Number(req.params.id), req.body);
+  if (result.success) sendSuccess(res, undefined, 'Lead updated');
+}));
 
-    res.json({ success: true, data: rows, total, page, limit });
-  } catch (error) { next(error); }
-});
+crmRouter.delete('/leads/:id', asyncHandler(async (req, res) => {
+  const uc = new ManageLeadsUseCase(getRepo(req));
+  const result = await uc.delete(Number(req.params.id));
+  if (result.success) sendSuccess(res, undefined, 'Lead deleted');
+}));
 
-// PUT /api/crm/leads/followups/:fid  (must be before /:id)
-router.put('/leads/followups/:fid', async (req: any, res, next) => {
-  try {
-    const db = req.db;
-    const data = req.body;
-    await db.execute(
-      'UPDATE lead_followups SET name=?, task=?, taskstatus=?, updated_at=NOW() WHERE id=?',
-      [data.notes || data.name || '', data.task || data.followup_type || '', data.taskstatus || data.status || '', req.params.fid]
-    );
-    res.json({ success: true, message: 'Followup updated' });
-  } catch (error) { next(error); }
-});
+crmRouter.post('/leads/:id/convert', asyncHandler(async (req, res) => {
+  const crmRepo = getRepo(req);
+  const patientRepo = new PatientRepositoryPg(req.tenantDb);
+  const uc = new ConvertLeadToPatientUseCase(crmRepo, patientRepo);
+  const result = await uc.execute(Number(req.params.id));
+  if (result.success) sendSuccess(res, result.data, 'Lead converted to patient successfully');
+}));
 
-// DELETE /api/crm/leads/followups/:fid  (must be before /:id)
-router.delete('/leads/followups/:fid', async (req: any, res, next) => {
-  try {
-    const db = req.db;
-    await db.execute('UPDATE lead_followups SET deleted_at=NOW() WHERE id=?', [req.params.fid]);
-    res.json({ success: true, message: 'Followup deleted' });
-  } catch (error) { next(error); }
-});
+crmRouter.post('/leads/:id/followups', asyncHandler(async (req, res) => {
+  const uc = new ManageLeadsUseCase(getRepo(req));
+  const result = await uc.addFollowup(Number(req.params.id), req.body);
+  if (result.success) sendSuccess(res, { id: result.data }, 'Followup added', 201);
+}));
 
-// DELETE /api/crm/leads/:id/followups/:fid  (frontend pattern)
-router.delete('/leads/:id/followups/:fid', async (req: any, res, next) => {
-  try {
-    const db = req.db;
-    await db.execute('UPDATE lead_followups SET deleted_at=NOW() WHERE id=?', [req.params.fid]);
-    res.json({ success: true, message: 'Followup deleted' });
-  } catch (error) { next(error); }
-});
+crmRouter.put('/leads/followups/:fid', asyncHandler(async (req, res) => {
+  const uc = new ManageLeadsUseCase(getRepo(req));
+  const result = await uc.updateFollowup(Number(req.params.fid), req.body);
+  if (result.success) sendSuccess(res, undefined, 'Followup updated');
+}));
 
-// GET /api/crm/leads/:id — single lead with followups
-router.get('/leads/:id', async (req: any, res, next) => {
-  try {
-    const db = req.db;
-    const [[lead]] = await db.execute('SELECT * FROM leads WHERE id = ? AND deleted_at IS NULL LIMIT 1', [req.params.id]);
-    if (!lead) return res.status(404).json({ success: false, message: 'Lead not found' });
+crmRouter.delete('/leads/followups/:fid', asyncHandler(async (req, res) => {
+  const uc = new ManageLeadsUseCase(getRepo(req));
+  const result = await uc.deleteFollowup(Number(req.params.fid));
+  if (result.success) sendSuccess(res, undefined, 'Followup deleted');
+}));
 
-    const [followups] = await db.execute(
-      'SELECT * FROM lead_followups WHERE lead_id = ? AND deleted_at IS NULL ORDER BY created_at DESC',
-      [req.params.id]
-    );
-    (lead as any).followups = followups;
-    res.json({ success: true, data: lead });
-  } catch (error) { next(error); }
-});
+// Legacy frontend compatibility
+crmRouter.delete('/leads/:id/followups/:fid', asyncHandler(async (req, res) => {
+  const uc = new ManageLeadsUseCase(getRepo(req));
+  const result = await uc.deleteFollowup(Number(req.params.fid));
+  if (result.success) sendSuccess(res, undefined, 'Followup deleted');
+}));
 
-// POST /api/crm/leads
-router.post('/leads', async (req: any, res, next) => {
-  try {
-    const db = req.db;
-    const data = req.body;
-    const [result] = await db.execute(
-      `INSERT INTO leads (name, mobile, phone, email, address, source, status, notes, assigned_to, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-      [data.name, data.mobile || data.phone || '', data.phone || '', data.email || '', data.address || '', data.source || '', data.status || '', data.notes || '', data.assigned_to || null]
-    );
-    res.status(201).json({ success: true, id: result.insertId });
-  } catch (error) { next(error); }
-});
+// ── Referrals ────────────────────────────────────────────────────────────────
 
-// PUT /api/crm/leads/:id
-router.put('/leads/:id', async (req: any, res, next) => {
-  try {
-    const db = req.db;
-    const data = req.body;
-    await db.execute(
-      `UPDATE leads SET name=?, mobile=?, phone=?, email=?, address=?, source=?, status=?, notes=?, assigned_to=?, updated_at=NOW() WHERE id=?`,
-      [data.name, data.mobile || data.phone || '', data.phone || '', data.email || '', data.address || '', data.source || '', data.status || '', data.notes || '', data.assigned_to || null, req.params.id]
-    );
-    res.json({ success: true, message: 'Lead updated' });
-  } catch (error) { next(error); }
-});
+crmRouter.get('/referrals/summary', asyncHandler(async (req, res) => {
+  const uc = new ManageReferralsUseCase(getRepo(req));
+  const result = await uc.getSummary();
+  if (result.success) sendSuccess(res, result.data);
+}));
 
-// DELETE /api/crm/leads/:id
-router.delete('/leads/:id', async (req: any, res, next) => {
-  try {
-    const db = req.db;
-    await db.execute('UPDATE leads SET deleted_at=NOW() WHERE id=?', [req.params.id]);
-    res.json({ success: true, message: 'Lead deleted' });
-  } catch (error) { next(error); }
-});
+crmRouter.get('/referrals/details/:referralId', asyncHandler(async (req, res) => {
+  const uc = new ManageReferralsUseCase(getRepo(req));
+  const result = await uc.getDetails(Number(req.params.referralId));
+  if (result.success) sendSuccess(res, result.data);
+}));
 
-// GET /api/crm/leads/:id/followups
-router.get('/leads/:id/followups', async (req: any, res, next) => {
-  try {
-    const db = req.db;
-    const [rows] = await db.execute(
-      'SELECT * FROM lead_followups WHERE lead_id = ? AND deleted_at IS NULL ORDER BY created_at DESC',
-      [req.params.id]
-    );
-    res.json({ success: true, data: rows });
-  } catch (error) { next(error); }
-});
+crmRouter.post('/referrals', asyncHandler(async (req, res) => {
+  const uc = new ManageReferralsUseCase(getRepo(req));
+  const result = await uc.create(req.body);
+  if (result.success) sendSuccess(res, { id: result.data }, 'Referral created', 201);
+}));
 
-// POST /api/crm/leads/:id/followups
-router.post('/leads/:id/followups', async (req: any, res, next) => {
-  try {
-    const db = req.db;
-    const data = req.body;
-    const [result] = await db.execute(
-      `INSERT INTO lead_followups (lead_id, name, task, taskstatus, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())`,
-      [req.params.id, data.notes || data.name || '', data.task || data.followup_type || '', data.taskstatus || data.status || '']
-    );
-    res.status(201).json({ success: true, id: result.insertId });
-  } catch (error) { next(error); }
-});
+crmRouter.delete('/referrals/:id', asyncHandler(async (req, res) => {
+  const uc = new ManageReferralsUseCase(getRepo(req));
+  const result = await uc.delete(Number(req.params.id));
+  if (result.success) sendSuccess(res, undefined, 'Referral deleted');
+}));
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// REFERRALS
-// ═══════════════════════════════════════════════════════════════════════════════
+// ── Reminders ────────────────────────────────────────────────────────────────
 
-// GET /api/crm/referrals/summary
-router.get('/referrals/summary', async (req: any, res, next) => {
-  try {
-    const db = req.db;
-    const [rows] = await db.execute(`
-      SELECT 
-        SUM(CAST(NULLIF(r.total_amount, '') AS DECIMAL(10,2))) as total_amount, 
-        SUM(CAST(NULLIF(r.used_amount, '') AS DECIMAL(10,2))) as used_amount, 
-        r.referral_id, 
-        c.first_name, 
-        c.surname
-      FROM referral r
-      LEFT JOIN case_datas c ON c.regid = r.referral_id
-      WHERE r.deleted_at IS NULL
-      GROUP BY r.referral_id, c.first_name, c.surname
-    `);
-    res.json({ success: true, data: rows });
-  } catch (error) { next(error); }
-});
+crmRouter.get('/reminders', asyncHandler(async (req, res) => {
+  const { status, page, limit, date } = req.query as any;
+  const uc = new ManageRemindersUseCase(getRepo(req));
+  const result = await uc.list({
+    status,
+    page: parseInt(page) || 1,
+    limit: parseInt(limit) || 20,
+    date
+  });
+  sendSuccess(res, result.data, undefined, 200, { total: result.data.total, page: parseInt(page) || 1, limit: parseInt(limit) || 20 });
+}));
 
-// GET /api/crm/referrals/details/:referralId
-router.get('/referrals/details/:referralId', async (req: any, res, next) => {
-  try {
-    const db = req.db;
-    const [rows] = await db.execute(
-      'SELECT * FROM referral WHERE referral_id = ? AND deleted_at IS NULL ORDER BY created_at DESC',
-      [req.params.referralId]
-    );
-    res.json({ success: true, data: rows });
-  } catch (error) { next(error); }
-});
+crmRouter.get('/reminders/:id', asyncHandler(async (req, res) => {
+  const uc = new ManageRemindersUseCase(getRepo(req));
+  const result = await uc.getById(Number(req.params.id));
+  if (result.success) sendSuccess(res, result.data);
+}));
 
-// POST /api/crm/referrals
-router.post('/referrals', async (req: any, res, next) => {
-  try {
-    const db = req.db;
-    const { regid, referral_id, total_amount, used_amount } = req.body;
-    const [result] = await db.execute(
-      'INSERT INTO referral (regid, referral_id, total_amount, used_amount, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())',
-      [regid, referral_id, total_amount || 0, used_amount || 0]
-    );
-    res.status(201).json({ success: true, id: result.insertId });
-  } catch (error) { next(error); }
-});
+crmRouter.post('/reminders', asyncHandler(async (req, res) => {
+  const uc = new ManageRemindersUseCase(getRepo(req));
+  const result = await uc.create(req.body);
+  if (result.success) sendSuccess(res, { id: result.data }, 'Reminder created', 201);
+}));
 
-// DELETE /api/crm/referrals/:id
-router.delete('/referrals/:id', async (req: any, res, next) => {
-  try {
-    const db = req.db;
-    await db.execute('UPDATE referral SET deleted_at = NOW() WHERE id = ?', [req.params.id]);
-    res.json({ success: true, message: 'Referral deleted' });
-  } catch (error) { next(error); }
-});
+crmRouter.put('/reminders/:id', asyncHandler(async (req, res) => {
+  const uc = new ManageRemindersUseCase(getRepo(req));
+  const result = await uc.update(Number(req.params.id), req.body);
+  if (result.success) sendSuccess(res, undefined, 'Reminder updated');
+}));
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// REMINDERS
-// ═══════════════════════════════════════════════════════════════════════════════
+crmRouter.post('/reminders/:id/done', asyncHandler(async (req, res) => {
+  const uc = new ManageRemindersUseCase(getRepo(req));
+  const result = await uc.markDone(Number(req.params.id));
+  if (result.success) sendSuccess(res, undefined, 'Reminder marked as done');
+}));
 
-// GET /api/crm/reminders?status=&page=&limit=
-router.get('/reminders', async (req: any, res, next) => {
-  try {
-    const db = req.db;
-    const status = req.query.status as string;
-    const page = parseInt(req.query.page as string, 10) || 1;
-    const limit = parseInt(req.query.limit as string, 10) || 20;
-    const offset = (page - 1) * limit;
-
-    let where = 'cr.deleted_at IS NULL';
-    const params: any[] = [];
-    if (status) { where += ' AND cr.status = ?'; params.push(status); }
-
-    const [[{ total }]] = await db.execute(`SELECT COUNT(*) AS total FROM case_reminder cr WHERE ${where}`, [...params]);
-    const [rows] = await db.execute(
-      `SELECT cr.*, CONCAT(cd.first_name, ' ', cd.surname) AS patient_name, cd.mobile1 AS patient_mobile
-       FROM case_reminder cr
-       LEFT JOIN case_datas cd ON cr.patient_id = cd.id
-       WHERE ${where}
-       ORDER BY cr.id DESC LIMIT ? OFFSET ?`,
-      [...params, String(limit), String(offset)]
-    );
-    res.json({ success: true, data: rows, total, page, limit });
-  } catch (error) { next(error); }
-});
-
-// GET /api/crm/reminders/:id
-router.get('/reminders/:id', async (req: any, res, next) => {
-  try {
-    const db = req.db;
-    const [[row]] = await db.execute(
-      `SELECT cr.*, CONCAT(cd.first_name, ' ', cd.surname) AS patient_name, cd.mobile1 AS patient_mobile
-       FROM case_reminder cr LEFT JOIN case_datas cd ON cr.patient_id = cd.id
-       WHERE cr.id = ? AND cr.deleted_at IS NULL LIMIT 1`,
-      [req.params.id]
-    );
-    if (!row) return res.status(404).json({ success: false, message: 'Reminder not found' });
-    res.json({ success: true, data: row });
-  } catch (error) { next(error); }
-});
-
-// POST /api/crm/reminders
-router.post('/reminders', async (req: any, res, next) => {
-  try {
-    const db = req.db;
-    const data = req.body;
-    const [result] = await db.execute(
-      `INSERT INTO case_reminder (regid, start_date, remind_time, comments, heading, status, created_at, updated_at) VALUES (?,?,?,?,?,?,NOW(),NOW())`,
-      [data.regid, data.start_date || data.followup_date, data.remind_time || '09:00', data.comments || data.notes || '', data.heading || data.reminder_type || '', data.status || 'pending']
-    );
-    res.status(201).json({ success: true, id: result.insertId });
-  } catch (error) { next(error); }
-});
-
-// PUT /api/crm/reminders/:id
-router.put('/reminders/:id', async (req: any, res, next) => {
-  try {
-    const db = req.db;
-    const data = req.body;
-    await db.execute(
-      `UPDATE case_reminder SET regid=?, start_date=?, remind_time=?, comments=?, heading=?, status=?, updated_at=NOW() WHERE id=?`,
-      [data.regid, data.start_date || data.followup_date, data.remind_time || '09:00', data.comments || data.notes || '', data.heading || data.reminder_type || '', data.status || 'pending', req.params.id]
-    );
-    res.json({ success: true, message: 'Reminder updated' });
-  } catch (error) { next(error); }
-});
-
-// POST /api/crm/reminders/:id/done
-router.post('/reminders/:id/done', async (req: any, res, next) => {
-  try {
-    const db = req.db;
-    await db.execute("UPDATE case_reminder SET status='done', updated_at=NOW() WHERE id=?", [req.params.id]);
-    res.json({ success: true, message: 'Reminder marked as done' });
-  } catch (error) { next(error); }
-});
-
-// DELETE /api/crm/reminders/:id
-router.delete('/reminders/:id', async (req: any, res, next) => {
-  try {
-    const db = req.db;
-    await db.execute('UPDATE case_reminder SET deleted_at=NOW() WHERE id=?', [req.params.id]);
-    res.json({ success: true, message: 'Reminder deleted' });
-  } catch (error) { next(error); }
-});
-
-export const crmRouter = router;
+crmRouter.delete('/reminders/:id', asyncHandler(async (req, res) => {
+  const uc = new ManageRemindersUseCase(getRepo(req));
+  const result = await uc.delete(Number(req.params.id));
+  if (result.success) sendSuccess(res, undefined, 'Reminder deleted');
+}));

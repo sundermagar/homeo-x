@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFamilyGroups } from '../hooks/use-patients';
-import { Search, Settings } from 'lucide-react';
+import { Search, Settings, Grid, List as ListIcon } from 'lucide-react';
 
 const PAGE_SIZE = 30;
 
@@ -10,6 +10,7 @@ export default function FamilyGroupListPage() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   const { data, isLoading } = useFamilyGroups({ page, limit: PAGE_SIZE, search: debouncedSearch });
 
@@ -36,7 +37,7 @@ export default function FamilyGroupListPage() {
       </div>
 
       {/* Filter Bar */}
-      <div className="pp-card pp-filter-bar" style={{ marginBottom: '24px' }}>
+      <div className="pp-card pp-filter-bar" style={{ marginBottom: '24px', alignItems: 'center' }}>
         <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
           <Search size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--pp-text-3)' }} />
           <input
@@ -48,12 +49,30 @@ export default function FamilyGroupListPage() {
             style={{ paddingLeft: '36px' }}
           />
         </div>
-        <button 
-          onClick={() => { setSearch(''); setDebouncedSearch(''); setPage(1); }} 
-          className="btn-secondary"
-        >
-          Reset
-        </button>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div style={{ display: 'inline-flex', border: '1px solid var(--pp-warm-4)', borderRadius: 999, overflow: 'hidden', background: 'white' }}>
+            <button
+              type="button"
+              onClick={() => setViewMode('list')}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', border: 'none', background: viewMode === 'list' ? 'var(--pp-blue-tint)' : 'transparent', color: viewMode === 'list' ? 'var(--pp-blue)' : 'var(--pp-text-3)', cursor: 'pointer', fontSize: '12px' }}
+            >
+              <ListIcon size={14} /> List
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('grid')}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', border: 'none', background: viewMode === 'grid' ? 'var(--pp-blue-tint)' : 'transparent', color: viewMode === 'grid' ? 'var(--pp-blue)' : 'var(--pp-text-3)', cursor: 'pointer', fontSize: '12px' }}
+            >
+              <Grid size={14} /> Grid
+            </button>
+          </div>
+          <button 
+            onClick={() => { setSearch(''); setDebouncedSearch(''); setPage(1); }} 
+            className="btn-secondary"
+          >
+            Reset
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -72,7 +91,7 @@ export default function FamilyGroupListPage() {
           <p style={{ fontWeight: 600, color: 'var(--pp-ink)', marginBottom: '8px' }}>No family groups found</p>
           <p className="text-small">Try adjusting your search criteria</p>
         </div>
-      ) : (
+      ) : viewMode === 'list' ? (
         <div className="pp-card pp-table-scroll" style={{ padding: 0 }}>
           <table className="pp-table">
             <thead>
@@ -115,6 +134,31 @@ export default function FamilyGroupListPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
+          {families.map((f: any) => (
+            <div key={f.id} className="pp-card" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
+                <div>
+                  <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--pp-ink)' }}>{f.name} {f.surname}</div>
+                  <div className="text-small" style={{ marginTop: '4px' }}>Head RegID: {f.regid}</div>
+                </div>
+                <div style={{ width: 42, height: 42, borderRadius: 12, background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '16px' }}>
+                  {((f.name?.[0] || f.surname?.[0] || 'F')).toUpperCase()}
+                </div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', padding: '12px', background: 'var(--pp-warm-1)', borderRadius: 12 }}>
+                <div>
+                  <div className="text-small">Members</div>
+                  <div style={{ fontWeight: 700 }}>{f.totalMembers}</div>
+                </div>
+                <button onClick={() => navigate(`/patients/${f.regid}`)} className="btn-secondary" style={{ minWidth: 100 }}>
+                  Manage
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 

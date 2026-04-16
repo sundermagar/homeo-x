@@ -23,16 +23,19 @@ export function createDbClient(databaseUrl: string, tenantSchema?: string): DbCl
     connect_timeout: 10,
   };
 
-  // Set search_path to tenant schema if provided
+  // Set search_path to tenant schema with public as fallback
   if (tenantSchema) {
     // Avoid spaces in search_path string for better driver compatibility
     connectionOptions.connection = {
-      search_path: `${tenantSchema},${tenantSchema}_legacy,public`,
+      search_path: `${tenantSchema}, public`,
     };
   }
 
   const sql = postgres(databaseUrl, connectionOptions);
   const db = drizzle(sql, { schema });
+
+  // Attach raw postgres-js client as an escape hatch for raw string queries
+  (db as any).rawClient = sql;
 
   clients.set(cacheKey, db);
   return db;

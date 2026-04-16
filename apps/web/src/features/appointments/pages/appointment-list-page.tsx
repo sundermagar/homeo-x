@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  List, Plus, Search, Filter, Calendar, Clock, User,
+  List, Grid, Plus, Search, Filter, Calendar, Clock, User,
   ChevronRight, Trash2, Edit2, CheckCircle, XCircle, RefreshCw,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -30,6 +30,7 @@ export default function AppointmentListPage() {
   const [showForm,   setShowForm]   = useState(false);
   const [editAppt,   setEditAppt]   = useState<Appointment | null>(null);
   const [confirmDel, setConfirmDel] = useState<number | null>(null);
+  const [viewMode,   setViewMode]   = useState<'list' | 'grid'>('list');
 
   const todayQuery = useTodayAppointments();
   const listQuery  = useAppointments({
@@ -87,6 +88,24 @@ export default function AppointmentListPage() {
           <Link to="/appointments/queue" className="appt-btn">
             <Clock size={14} strokeWidth={1.6} /> Queue
           </Link>
+          <div style={{ display: 'inline-flex', border: '1px solid #e2e8f0', borderRadius: 999, overflow: 'hidden', background: 'white' }}>
+            <button
+              type="button"
+              className="appt-btn"
+              onClick={() => setViewMode('list')}
+              style={{ border: 'none', borderRadius: 0, background: viewMode === 'list' ? '#eff6ff' : 'transparent', color: viewMode === 'list' ? '#1d4ed8' : '#64748b', padding: '8px 12px' }}
+            >
+              <List size={14} strokeWidth={1.6} /> List
+            </button>
+            <button
+              type="button"
+              className="appt-btn"
+              onClick={() => setViewMode('grid')}
+              style={{ border: 'none', borderRadius: 0, background: viewMode === 'grid' ? '#eff6ff' : 'transparent', color: viewMode === 'grid' ? '#1d4ed8' : '#64748b', padding: '8px 12px' }}
+            >
+              <Grid size={14} strokeWidth={1.6} /> Grid
+            </button>
+          </div>
           <button className="appt-btn appt-btn-primary" onClick={() => { setEditAppt(null); setShowForm(true); }}>
             <Plus size={14} strokeWidth={1.6} /> New Booking
           </button>
@@ -142,7 +161,7 @@ export default function AppointmentListPage() {
               + New Booking
             </button>
           </div>
-        ) : (
+        ) : viewMode === 'list' ? (
           <div style={{ overflowX: 'auto' }}>
             <table className="appt-table">
               <thead>
@@ -183,7 +202,6 @@ export default function AppointmentListPage() {
                     </td>
                     <td>
                       <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
-                        {/* Quick status buttons */}
                         {quickStatuses
                           .filter(q => q.s !== a.status)
                           .slice(0, 2)
@@ -222,6 +240,33 @@ export default function AppointmentListPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
+            {data.map((a) => (
+              <div key={a.id} className="appt-card" style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
+                  <div>
+                    <div style={{ fontSize: 15, fontWeight: 700 }}>{a.patientNameFromCase ?? a.patientName ?? 'Unknown Patient'}</div>
+                    {a.phone && <div style={{ fontSize: 12, color: '#64748b' }}>{a.phone}</div>}
+                  </div>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#2563eb', background: '#eff6ff', borderRadius: 999, padding: '6px 10px' }}>{a.status}</span>
+                </div>
+                <div style={{ display: 'grid', gap: 8, color: '#475569', fontSize: 13 }}>
+                  <div><strong>Doctor:</strong> {a.doctorName ?? 'N/A'}</div>
+                  <div><strong>Date:</strong> {a.bookingDate ?? '—'} {a.bookingTime ? `at ${a.bookingTime}` : ''}</div>
+                  <div><strong>Type:</strong> {a.visitType ?? '—'}</div>
+                  <div><strong>Token:</strong> {a.tokenNo ? `T${a.tokenNo}` : '—'}</div>
+                </div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <button className="appt-btn appt-btn-sm" onClick={() => openEdit(a)}>Edit</button>
+                  <button className="appt-btn appt-btn-sm" onClick={() => setConfirmDel(a.id === confirmDel ? null : a.id)} style={{ background: '#fee2e2', borderColor: '#fecaca', color: '#dc2626' }}>Delete</button>
+                  {confirmDel === a.id && (
+                    <button className="appt-btn appt-btn-sm" onClick={() => handleDelete(a.id)} style={{ background: '#fde8e8', borderColor: '#fca5a5', color: '#b91c1c' }}>Confirm Delete</button>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         )}
 

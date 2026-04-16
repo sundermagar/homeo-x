@@ -5,6 +5,7 @@ export * from './domains/appointment.js';
 export * from './domains/consultation.js';
 export * from './domains/prescription.js';
 export * from './domains/billing.js';
+export * from './domains/billing-accounts.js';
 export * from './domains/user.js';
 export * from './domains/package.js';
 export * from './domains/communication.js';

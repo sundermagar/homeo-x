@@ -5,7 +5,7 @@ import {
   History, Camera, Zap, CreditCard, Clock,
   Phone, Calendar, MapPin, CheckCircle2, AlertCircle,
   Sparkles, MoreHorizontal, ChevronRight, Plus, Package,
-  MessageSquare, Send
+  MessageSquare, Send, BrainCircuit
 } from 'lucide-react';
 import { useFullMedicalCase, useManageClinicalRecords } from '../hooks/use-medical-cases';
 import { AssignPackageModal } from '../../packages/components/assign-package-modal';
@@ -13,6 +13,9 @@ import { VitalsFormModal } from '../components/vitals-form-modal';
 import { useSendSms } from '../../communications/hooks/use-communications';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/infrastructure/api-client';
+import { RemedyChartSession } from '../components/remedy-chart-session';
+import { AiRemedyView } from '../components/ai-remedy-view';
+import { AiConsultantView } from '../components/ai-consultant-view';
 import '../styles/medical-case.css';
 
 const TABS = [
@@ -25,7 +28,8 @@ const TABS = [
   { id: 'images',        label: 'Media',          icon: Camera },
   { id: 'billing',       label: 'Billing',        icon: CreditCard },
   { id: 'followup',      label: 'Follow-up',      icon: Clock },
-  { id: 'ai',            label: 'Clinical AI',    icon: Sparkles },
+  { id: 'ai',            label: 'Repertory',      icon: Sparkles },
+  { id: 'consultant',    label: 'AI Analysis',    icon: BrainCircuit },
   { id: 'communication', label: 'Communication',  icon: MessageSquare },
 ];
 
@@ -55,9 +59,9 @@ export default function MedicalCaseDetailPage() {
           </button>
           <div className="mc-divider-v" />
           <div>
-            <div className="mc-page-title">
-              Clinical Workspace
-              <span className="mc-active-badge">Visit Active</span>
+            <div className="mc-page-title pp-text-gradient" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              Clinical Hub
+              <span className="mc-active-badge">Active Case</span>
             </div>
             <p className="mc-page-sub">Patient PT-{regid} · Longitudinal record</p>
           </div>
@@ -130,7 +134,7 @@ export default function MedicalCaseDetailPage() {
             <p className="mc-ai-sub">
               Analyze patient trajectory based on clinical history and recent findings.
             </p>
-            <button className="mc-ai-btn">
+            <button className="mc-ai-btn" onClick={() => setActiveTab('consultant')}>
               Run Analysis <ChevronRight size={12} strokeWidth={1.6} />
             </button>
           </div>
@@ -152,11 +156,13 @@ export default function MedicalCaseDetailPage() {
             ))}
           </nav>
 
-          <div className="mc-workspace-body">
+            <div className="mc-workspace-body">
             {activeTab === 'summary'      && <SummaryView data={fullData} />}
             {activeTab === 'vitals'       && <VitalsView vitals={vitals} onRecord={() => setShowVitalsModal(true)} />}
             {activeTab === 'soap'         && <SoapView soap={soap} />}
-            {activeTab === 'prescription' && <PrescriptionView prescriptions={prescriptions} />}
+            {activeTab === 'prescription' && <RemedyChartSession regid={Number(regid)} />}
+            {activeTab === 'ai'           && <AiRemedyView regid={Number(regid)} />}
+            {activeTab === 'consultant'   && <AiConsultantView regid={Number(regid)} />}
             {activeTab === 'communication' && <CommunicationView regid={Number(regid)} phone={(medicalCase as any).phone || ''} name={(medicalCase as any).patientName || ''} />}
 
             {showVitalsModal && (
@@ -167,7 +173,7 @@ export default function MedicalCaseDetailPage() {
               />
             )}
 
-            {!['summary', 'vitals', 'soap', 'prescription', 'communication'].includes(activeTab) && (
+            {!['summary', 'vitals', 'soap', 'prescription', 'ai', 'consultant', 'communication'].includes(activeTab) && (
               <div className="mc-wip">
                 <Zap size={40} strokeWidth={1.6} style={{ color: 'var(--border-main)' }} />
                 <div className="mc-wip-title">Module pending</div>

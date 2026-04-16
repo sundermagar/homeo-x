@@ -4,28 +4,31 @@ import type { Account, CreateAccountInput, UpdateAccountInput } from '@mmc/types
 
 const QUERY_KEY = 'accounts';
 
-async function fetchAccounts(clinicId?: number): Promise<Account[]> {
-  const params = clinicId ? `?clinic_id=${clinicId}` : '';
-  const { data } = await apiClient.get(`/accounts${params}`);
-  return data;
+async function fetchAccounts(clinicId?: number, role?: string): Promise<Account[]> {
+  const params = new URLSearchParams();
+  if (clinicId) params.append('clinic_id', clinicId.toString());
+  if (role) params.append('role', role);
+  const q = params.toString() ? `?${params.toString()}` : '';
+  const { data } = await apiClient.get<{ success: boolean; data: Account[] }>(`/accounts${q}`);
+  return data.data;
 }
 
 async function createAccount(body: CreateAccountInput): Promise<Account> {
-  const { data } = await apiClient.post('/accounts', body);
-  return data;
+  const { data } = await apiClient.post<{ success: boolean; data: Account }>('/accounts', body);
+  return data.data;
 }
 
 async function updateAccount({ id, ...body }: UpdateAccountInput & { id: number }): Promise<Account> {
-  const { data } = await apiClient.put(`/accounts/${id}`, body);
-  return data;
+  const { data } = await apiClient.put<{ success: boolean; data: Account }>(`/accounts/${id}`, body);
+  return data.data;
 }
 
 async function deleteAccount(id: number): Promise<void> {
   await apiClient.delete(`/accounts/${id}`);
 }
 
-export function useAccounts(clinicId?: number) {
-  return useQuery({ queryKey: [QUERY_KEY, clinicId], queryFn: () => fetchAccounts(clinicId) });
+export function useAccounts(clinicId?: number, role?: string) {
+  return useQuery({ queryKey: [QUERY_KEY, clinicId, role], queryFn: () => fetchAccounts(clinicId, role) });
 }
 
 export function useCreateAccount() {

@@ -49,8 +49,8 @@ router.get('/monthwisedue', asyncHandler(async (req, res) => {
 
 router.get('/monthwisedue/details', asyncHandler(async (req, res) => {
   const year = Number(req.query.year);
-  const month = Number(req.query.month);
-  if (!year || !month) throw new Error('Year and month are required');
+  const month = req.query.month !== undefined ? Number(req.query.month) : NaN;
+  if (!year || isNaN(month)) throw new Error('Year and month are required');
   const useCases = getUseCases(req);
   const result = await useCases.getDueDetails(year, month);
   if (!result.success) throw new Error(result.error);

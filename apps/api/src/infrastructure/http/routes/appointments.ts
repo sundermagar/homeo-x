@@ -5,10 +5,17 @@ import { GetAppointmentUseCase } from '../../../domains/appointment/use-cases/ge
 import { BookAppointmentUseCase } from '../../../domains/appointment/use-cases/book-appointment.use-case';
 import { ManageAppointmentUseCase } from '../../../domains/appointment/use-cases/manage-appointment.use-case';
 import { QueueManagementUseCase } from '../../../domains/appointment/use-cases/queue-management.use-case';
+import { SendSmsUseCase } from '../../../domains/communication/use-cases/send-sms.use-case';
+import { CommunicationRepositoryPG } from '../../repositories/communication.repository.pg';
+import { createSmsGateway } from '../../communication/msg91-sms-gateway';
 import { asyncHandler } from '../middleware/async-handler';
 import { authMiddleware } from '../middleware/auth';
 import { BadRequestError } from '../../../shared/errors';
 import { sendSuccess } from '../../../shared/response-formatter';
+import { createLogger } from '../../../shared/logger';
+
+const logger = createLogger('appointments');
+const smsGateway = createSmsGateway();
 
 export const appointmentsRouter: Router = Router();
 
@@ -83,8 +90,11 @@ appointmentsRouter.get('/:id', asyncHandler(async (req, res) => {
 
 // POST /api/appointments
 appointmentsRouter.post('/', asyncHandler(async (req, res) => {
-  const bookAppt = new BookAppointmentUseCase(getRepo(req));
+  const commRepo = new CommunicationRepositoryPG(req.tenantDb);
+  const smsUc = new SendSmsUseCase(commRepo, smsGateway);
+  const bookAppt = new BookAppointmentUseCase(getRepo(req), smsUc);
   const result = await bookAppt.execute(req.body);
+
   if (result.success) {
     sendSuccess(res, result.data, undefined, 201);
   }

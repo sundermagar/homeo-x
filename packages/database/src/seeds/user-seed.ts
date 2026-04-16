@@ -31,7 +31,14 @@ export async function seedUsers(db: DbClient) {
     {
       email: 'doctor@homeox.com',
       password: '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07xdM0ttR9i0NcMsuG', // password123
-      name: 'Demo Doctor',
+      name: 'Dr. Aryan Sharma',
+      type: Role.Doctor,
+      isActive: true,
+    },
+    {
+      email: 'meera@homeox.com',
+      password: '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07xdM0ttR9i0NcMsuG', // password123
+      name: 'Dr. Meera Iyer',
       type: Role.Doctor,
       isActive: true,
     },

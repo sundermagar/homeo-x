@@ -108,7 +108,7 @@ export class AnalyticsRepositoryPg implements IAnalyticsRepository {
       }
 
       // Expenses
-      const [expenses] = await this.db.execute(sql`SELECT COALESCE(sum(amount), 0)::int as total FROM expenses WHERE exp_date::date BETWEEN ${firstDay} AND ${lastDay} AND (deleted_at IS NULL OR deleted_at = '')`);
+      const [expenses] = await this.db.execute(sql`SELECT COALESCE(sum(amount), 0)::int as total FROM expenses WHERE exp_date::date BETWEEN ${firstDay} AND ${lastDay} AND (deleted_at IS NULL OR deleted_at::text = '')`);
 
       results.push({
         date: `${m.year}-${String(m.month).padStart(2, '0')}`,
@@ -132,7 +132,9 @@ export class AnalyticsRepositoryPg implements IAnalyticsRepository {
     const dues = await this.db.execute(sql`
       SELECT extract(month from created_at)::int as month, count(DISTINCT regid)::int as count, sum("Balance")::int as total_due
       FROM bill
-      WHERE "Balance" > 0 AND (deleted_at IS NULL OR deleted_at::text = '') AND extract(year from created_at) = ${year}
+      WHERE "Balance" > 0 
+        AND (deleted_at IS NULL OR deleted_at::text = '') 
+        AND extract(year from created_at) = ${year}
       GROUP BY extract(month from created_at)
     `);
     return dues as any as MonthWiseDueSummary[];
@@ -146,7 +148,9 @@ export class AnalyticsRepositoryPg implements IAnalyticsRepository {
         max(b.created_at) as last_bill_date
       FROM bill b
       JOIN case_datas p ON b.regid = p.regid
-      WHERE b."Balance" > 0 AND (b.deleted_at IS NULL OR b.deleted_at::text = '') AND (p.deleted_at IS NULL OR p.deleted_at::text = '')
+      WHERE b."Balance" > 0 
+        AND (b.deleted_at IS NULL OR b.deleted_at::text = '') 
+        AND (p.deleted_at IS NULL OR p.deleted_at::text = '')
         AND extract(year from b.created_at) = ${year} AND extract(month from b.created_at) = ${month}
       GROUP BY p.regid, p.first_name, p.surname, p.mobile1, p.city
       ORDER BY total_due DESC

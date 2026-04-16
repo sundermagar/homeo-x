@@ -147,6 +147,8 @@
   font-family: inherit;
 }
 
+.ghub-no-icon { padding-left: 16px !important; }
+
 .ghub-premium-input::placeholder { color: var(--text-muted); }
 .ghub-premium-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-tint); }
 .ghub-premium-input:read-only { background: var(--bg-surface-2); cursor: not-allowed; }

@@ -47,7 +47,8 @@ export interface PatientSummary {
   gender: string;
   age: number | null;
   phone: string | null;
-  mobile1: string | null; // Kept from ours
+  mobile1: string | null;
+  dob: Date | string | null;
   city: string | null;
   lastVisit: Date | null;
   totalVisits: number;

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Receipt, Search, ChevronLeft, ChevronRight, FilePlus } from 'lucide-react';
+import { Receipt, Search, ChevronLeft, ChevronRight, FilePlus, Grid, List } from 'lucide-react';
 import { useBills, useDailyCollection } from '../hooks/use-billing';
 import { BillingTable } from '../components/BillingTable';
 import { DailyCollectionCard } from '../components/DailyCollectionCard';
@@ -10,8 +10,15 @@ export default function BillingListPage() {
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [page, setPage] = useState(1);
   const [regidFilter, setRegidFilter] = useState('');
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
-  const billsQuery      = useBills({ page, limit: 30, regid: regidFilter ? parseInt(regidFilter, 10) : undefined, date: date || undefined });
+  const parsedRegid = parseInt(regidFilter, 10);
+  const billsQuery      = useBills({ 
+    page, 
+    limit: 30, 
+    regid: (!isNaN(parsedRegid) && regidFilter) ? parsedRegid : undefined, 
+    date: date || undefined 
+  });
   const collectionQuery = useDailyCollection(date);
 
   const total     = billsQuery.data?.total     ?? 0;
@@ -85,20 +92,64 @@ export default function BillingListPage() {
           <p className="bill-section-sub">Showing {bills.length} of {total} records</p>
         </div>
 
-        <div className="bill-search-wrap">
-          <Search size={13} className="bill-search-icon" strokeWidth={2} />
-          <input
-            type="text"
-            className="bill-filter-input bill-search-input"
-            style={{ width: '180px', fontFamily: 'var(--font-mono)' }}
-            placeholder="Search Reg ID…"
-            value={regidFilter}
-            onChange={(e) => { setRegidFilter(e.target.value); setPage(1); }}
-          />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ display: 'inline-flex', border: '1px solid var(--border)', borderRadius: 999, overflow: 'hidden', background: 'white' }}>
+            <button
+              type="button"
+              onClick={() => setViewMode('list')}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', border: 'none', background: viewMode === 'list' ? 'var(--primary-tint)' : 'transparent', color: viewMode === 'list' ? 'var(--primary)' : 'var(--text-muted)', cursor: 'pointer', fontSize: '12px' }}
+            >
+              <List size={14} /> List
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('grid')}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', border: 'none', background: viewMode === 'grid' ? 'var(--primary-tint)' : 'transparent', color: viewMode === 'grid' ? 'var(--primary)' : 'var(--text-muted)', cursor: 'pointer', fontSize: '12px' }}
+            >
+              <Grid size={14} /> Grid
+            </button>
+          </div>
+          <div className="bill-search-wrap">
+            <Search size={13} className="bill-search-icon" strokeWidth={2} />
+            <input
+              type="text"
+              className="bill-filter-input bill-search-input"
+              style={{ width: '180px', fontFamily: 'var(--font-mono)' }}
+              placeholder="Search Reg ID…"
+              value={regidFilter}
+              onChange={(e) => { setRegidFilter(e.target.value); setPage(1); }}
+            />
+          </div>
         </div>
       </div>
 
-      <BillingTable bills={bills} isLoading={billsQuery.isLoading} />
+      {viewMode === 'list' ? (
+        <BillingTable bills={bills} isLoading={billsQuery.isLoading} />
+      ) : (
+        <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
+          {bills.map((bill) => (
+            <div key={bill.id} className="bill-card" style={{ padding: '18px', gap: '12px', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'flex-start' }}>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-main)' }}>Bill #{bill.billNo}</div>
+                  <div className="text-small" style={{ color: 'var(--text-muted)' }}>{bill.billDate ? format(new Date(bill.billDate), 'dd-MM-yyyy') : 'No date'}</div>
+                </div>
+                <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--primary-tint)', color: 'var(--primary)', display: 'grid', placeItems: 'center' }}>
+                  <Receipt size={18} />
+                </div>
+              </div>
+              <div style={{ display: 'grid', gap: 10, fontSize: '13px' }}>
+                <div><strong>Patient:</strong> {bill.patientName}</div>
+                <div><strong>Mode:</strong> <span className={`bill-badge ${bill.paymentMode === 'Online' ? 'bill-badge-primary' : 'bill-badge-default'}`}>{bill.paymentMode ?? '—'}</span></div>
+                <div><strong>Charges:</strong> ₹{bill.charges.toLocaleString()}</div>
+                <div><strong>Received:</strong> ₹{bill.received.toLocaleString()}</div>
+                <div><strong>Balance:</strong> {bill.balance > 0 ? `₹${bill.balance.toLocaleString()}` : '—'}</div>
+              </div>
+              <button className="bill-btn bill-btn-primary" style={{ width: '100%' }}>View Details</button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* ─── Pagination ─── */}
       <div className="bill-pagination">

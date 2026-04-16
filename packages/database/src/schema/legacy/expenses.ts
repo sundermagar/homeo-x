@@ -1,7 +1,7 @@
-import { pgTable, integer, text, date, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, integer, text, date, timestamp } from "drizzle-orm/pg-core";
 
 export const expensesLegacy = pgTable("expenses", {
-  id: integer("id").notNull(),
+  id: serial("id").primaryKey(),
   clinicId: integer("clinic_id"),
   dateval: text("dateval"),
   expDate: date("exp_date"),

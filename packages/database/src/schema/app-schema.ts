@@ -11,3 +11,4 @@ export * from './billing';
 export * from './consultation';
 export * from './audit';
 export * from './platform';
+export * from './settings';

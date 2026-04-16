@@ -8,6 +8,11 @@ import { GetSmsReportsUseCase } from '../../../domains/communication/use-cases/g
 import { SendSmsUseCase } from '../../../domains/communication/use-cases/send-sms.use-case.js';
 import { SendWhatsAppUseCase } from '../../../domains/communication/use-cases/send-whatsapp.use-case.js';
 import { CommunicationRepositoryPG } from '../../repositories/communication.repository.pg.js';
+import { NodemailerServiceAdapter } from '../../communication/nodemailer.service.js';
+import { createSmsGateway } from '../../communication/msg91-sms-gateway.js';
+
+// ─── Gateway singleton (one per process) ─────────────────────────────────────
+const smsGateway = createSmsGateway();
 
 export const communicationRouter: Router = Router();
 
@@ -64,15 +69,15 @@ communicationRouter.get('/reports', asyncHandler(async (req, res) => {
   const uc = new GetSmsReportsUseCase(getRepo(req));
   const { regid, sms_type, status, from_date, to_date, phone, search, page, limit } = req.query as Record<string, string>;
   const result = await uc.execute({
-    regid:     regid      ? Number(regid)      : undefined,
-    smsType:   sms_type   ? sms_type           : undefined,
-    status:    status     ? status             : undefined,
-    fromDate:  from_date  ? from_date          : undefined,
-    toDate:    to_date    ? to_date            : undefined,
-    phone:     phone      ? phone              : undefined,
-    search:    search     ? search             : undefined,
-    page:      page       ? Number(page)       : 1,
-    limit:     limit      ? Number(limit)      : 50,
+    regid:    regid      ? Number(regid)      : undefined,
+    smsType:  sms_type  ? sms_type           : undefined,
+    status:   status    ? status             : undefined,
+    fromDate: from_date  ? from_date          : undefined,
+    toDate:   to_date  ? to_date            : undefined,
+    phone:    phone   ? phone              : undefined,
+    search:   search  ? search             : undefined,
+    page:     page     ? Number(page)       : 1,
+    limit:    limit    ? Number(limit)      : 50,
   });
   if (result.success) sendSuccess(res, result.data);
 }));
@@ -81,7 +86,7 @@ communicationRouter.get('/reports', asyncHandler(async (req, res) => {
 
 // POST /api/communications/sms/send — single
 communicationRouter.post('/sms/send', asyncHandler(async (req, res) => {
-  const uc = new SendSmsUseCase(getRepo(req));
+  const uc = new SendSmsUseCase(getRepo(req), smsGateway);
   const { phone, message, smsType, regid } = req.body;
   const result = await uc.sendSingle({ phone, message, smsType, regid });
   if (result.success) sendSuccess(res, result.data, 'SMS sent');
@@ -90,11 +95,14 @@ communicationRouter.post('/sms/send', asyncHandler(async (req, res) => {
 
 // POST /api/communications/sms/broadcast
 communicationRouter.post('/sms/broadcast', asyncHandler(async (req, res) => {
-  const uc = new SendSmsUseCase(getRepo(req));
+  const uc = new SendSmsUseCase(getRepo(req), smsGateway);
   const { patientIds, doctorId, message, smsType } = req.body;
   const result = await uc.broadcast({ patientIds, doctorId, message, smsType });
-  if (result.success) sendSuccess(res, result.data, `Sent: ${result.data?.sent ?? 0}, Failed: ${result.data?.failed ?? 0}`);
-  else throw new BadRequestError(String(result.error));
+  if (result.success) {
+    sendSuccess(res, result.data, `Sent: ${result.data?.sent ?? 0}, Failed: ${result.data?.failed ?? 0}`);
+  } else {
+    throw new BadRequestError(String(result.error));
+  }
 }));
 
 // ─── WhatsApp ──────────────────────────────────────────────────────────────────
@@ -131,9 +139,17 @@ communicationRouter.post('/otp/send', asyncHandler(async (req, res) => {
   const { phone } = req.body;
   if (!phone) throw new BadRequestError('phone is required');
   const repo = getRepo(req);
-  const result = await repo.createOtp(phone);
-  // In production, send OTP via SMS gateway and never return the code
-  sendSuccess(res, { expiresAt: result.expiresAt }, 'OTP sent (check server logs in dev)');
+  const { otp, expiresAt } = await repo.createOtp(phone);
+
+  // Send OTP via real gateway (or mock log in dev)
+  const sms = new SendSmsUseCase(getRepo(req), smsGateway);
+  await sms.sendSingle({
+    phone,
+    message: `Your HomeoX OTP is: ${otp}. Valid for 10 minutes. Do not share.`,
+    smsType: 'OTP',
+  });
+
+  sendSuccess(res, { expiresAt }, 'OTP sent');
 }));
 
 // POST /api/communications/otp/verify
@@ -147,16 +163,15 @@ communicationRouter.post('/otp/verify', asyncHandler(async (req, res) => {
 }));
 
 // ─── Email (Nodemailer) ───────────────────────────────────────────────────────
-import { NodemailerServiceAdapter } from '../../communication/nodemailer.service.js';
 
 // POST /api/communications/email/send
 communicationRouter.post('/email/send', asyncHandler(async (req, res) => {
   const { to, subject, text, html } = req.body;
   if (!to || !subject) throw new BadRequestError('to and subject are required');
-  
+
   const emailService = new NodemailerServiceAdapter();
   const success = await emailService.sendEmail({ to, subject, text, html });
-  
+
   if (success) {
     sendSuccess(res, null, 'Email sent successfully via Nodemailer');
   } else {

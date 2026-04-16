@@ -3,9 +3,10 @@
   "compilerOptions": {
     "outDir": "./dist",
     "rootDir": "./src",
-    "types": ["node"]
+    "types": ["node"],
+    "resolveJsonModule": true
   },
-  "include": ["src"],
+  "include": ["src", "src/seeds/**/*.json"],
   "exclude": ["scripts", "dist", "node_modules"],
   "references": [{ "path": "../types" }]
 }

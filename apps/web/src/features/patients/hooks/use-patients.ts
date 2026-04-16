@@ -13,10 +13,10 @@ export function usePatients(params: { page?: number; limit?: number; search?: st
     queryKey: [PATIENTS_KEY, params],
     queryFn: async () => {
       const res = await apiClient.get('/patients', { params });
-      // Interceptor unwraps success responses: res.data is already the data array
-      // For list endpoints, the response shape varies based on interceptor match
-      const body = (res as any)._original ?? res.data;
-      return { data: body.data ?? res.data ?? [], total: body.total ?? res.data?.length ?? 0 };
+      return { 
+        data: res.data.data ?? [], 
+        total: res.data.total ?? 0 
+      };
     },
   });
 }
@@ -25,9 +25,19 @@ export function usePatient(regid: number) {
   return useQuery({
     queryKey: [PATIENTS_KEY, regid],
     queryFn: async () => {
-      const res = await apiClient.get(`/patients/${regid}`);
-      // Interceptor unwraps: res.data is the patient object directly
-      return res.data ?? null;
+      const res = await apiClient.get<{ success: boolean; data: Patient }>(`/patients/${regid}`);
+      return res.data.data ?? null;
+    },
+    enabled: !!regid,
+  });
+}
+
+export function usePatientClinicalRecord(regid: number) {
+  return useQuery({
+    queryKey: [PATIENTS_KEY, 'clinical-record', regid],
+    queryFn: async () => {
+      const res = await apiClient.get<{ success: boolean; data: any }>(`/medical-cases/patient/${regid}/full`);
+      return res.data.data ?? null;
     },
     enabled: !!regid,
   });
@@ -37,8 +47,8 @@ export function usePatientLookup(query: string) {
   return useQuery({
     queryKey: [PATIENTS_KEY, 'lookup', query],
     queryFn: async () => {
-      const res = await apiClient.get('/patients/lookup', { params: { query } });
-      return res.data ?? [];
+      const res = await apiClient.get<{ success: boolean; data: PatientSummary[] }>('/patients/lookup', { params: { query } });
+      return res.data.data ?? [];
     },
     enabled: query.length >= 2,
   });
@@ -48,8 +58,8 @@ export function usePatientFormMeta() {
   return useQuery({
     queryKey: [PATIENTS_KEY, 'meta'],
     queryFn: async () => {
-      const { data } = await apiClient.get<{ success: boolean } & PatientFormMeta>('/patients/meta/form');
-      return data;
+      const { data } = await apiClient.get<{ success: boolean; data: PatientFormMeta }>('/patients/meta/form');
+      return data.data;
     },
     staleTime: 5 * 60 * 1000,
   });
@@ -98,8 +108,8 @@ export function useFamilyMembers(regid: number) {
   return useQuery({
     queryKey: [FAMILY_KEY, regid],
     queryFn: async () => {
-      const res = await apiClient.get(`/patients/${regid}/family`);
-      return res.data ?? [];
+      const res = await apiClient.get<{ success: boolean; data: FamilyMember[] }>(`/patients/${regid}/family`);
+      return res.data.data ?? [];
     },
     enabled: !!regid,
   });
@@ -110,8 +120,10 @@ export function useFamilyGroups(params: { page?: number; limit?: number; search?
     queryKey: ['family-groups', params],
     queryFn: async () => {
       const res = await apiClient.get('/patients/family-groups', { params });
-      const body = (res as any)._original ?? res.data;
-      return { data: body.data ?? res.data ?? [], total: body.total ?? 0 };
+      return { 
+        data: res.data.data ?? [], 
+        total: res.data.total ?? 0 
+      };
     },
   });
 }

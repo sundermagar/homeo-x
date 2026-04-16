@@ -202,6 +202,19 @@ export class PatientRepositoryPg implements PatientRepository {
     return rows.map(row => this.toSummary(row));
   }
 
+  async findBirthdays(mmdd: string): Promise<PatientSummary[]> {
+    const rows = await this.db
+      .select()
+      .from(patients)
+      .where(
+        and(
+          isNull(patients.deletedAt),
+          sql`to_char(${patients.dob}::date, 'MM-DD') = ${mmdd}`
+        )
+      );
+    return rows.map(row => this.toSummary(row));
+  }
+
   async getFormMeta(): Promise<PatientFormMeta> {
     const [doctors, religions, occupations, references] = await Promise.all([
       this.db
@@ -410,6 +423,7 @@ export class PatientRepositoryPg implements PatientRepository {
       age: row.age || null,
       phone: row.mobile1 || row.phone || null,
       mobile1: row.mobile1 || null,
+      dob: row.dob || row.dateOfBirth || null,
       city: row.city || null,
       lastVisit: null,
       totalVisits: 0,

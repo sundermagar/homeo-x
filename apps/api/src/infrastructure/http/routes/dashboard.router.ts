@@ -17,8 +17,17 @@ const getUseCases = (req: any) => {
 router.get('/', asyncHandler(async (req, res) => {
   const useCases = getUseCases(req);
   const period = (req.query.period as string) || 'month';
-  const result = await useCases.getUnifiedDashboard(period, req.user.contextId, req.user);
-  
+  const result = await useCases.getUnifiedDashboard(period, req.user!.contextId, req.user!);
+
+  if (!result.success) throw new Error(result.error);
+  sendSuccess(res, result.data);
+}));
+
+router.get('/clinic-admin', asyncHandler(async (req, res) => {
+  const useCases = getUseCases(req);
+  const period = (req.query.period as string) || 'month';
+  const result = await useCases.getClinicAdminDashboard(period, req.user!.contextId);
+
   if (!result.success) throw new Error(result.error);
   sendSuccess(res, result.data);
 }));
@@ -26,7 +35,7 @@ router.get('/', asyncHandler(async (req, res) => {
 router.post('/reminder/:id/done', asyncHandler(async (req, res) => {
   const useCases = getUseCases(req);
   const result = await useCases.markReminderDone(Number(req.params.id));
-  
+
   if (!result.success) throw new Error(result.error);
   sendSuccess(res, result.data);
 }));

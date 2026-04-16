@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   Package, Clock, CheckCircle2, AlertCircle, Phone,
   UsersRound, BellRing, ExternalLink, ArrowLeft
 } from 'lucide-react';
+import { apiClient } from '@/infrastructure/api-client';
 import { OpsModal } from '../components/ops-modal';
 import './operations-dashboard.css';
 
@@ -17,33 +18,9 @@ type GenericTab = 'logistics' | 'crm' | 'knowledge' | 'tools';
 // MOCK DATA
 // ═══════════════════════════════════════════════════════════════════════════════
 
+// (Mock data kept for Logistics/Knowledge/Tools for now as they are not the primary CRM focus)
 const mockShipments = [
   { id: 1, regid: 1001, patient: 'Rahul Sharma', mobile: '9876543210', status: 'Dispatched', tracking: 'DLV-88712', courier: 'Delhivery Express', date: '2026-04-08' },
-  { id: 2, regid: 1044, patient: 'Priya Patel', mobile: '9812345678', status: 'Packed', tracking: 'FDX-44019', courier: 'FedEx Partner', date: '2026-04-09' },
-  { id: 3, regid: 1122, patient: 'Amit Kumar', mobile: '9988776655', status: 'Pending', tracking: '—', courier: 'BlueDart', date: '2026-04-10' },
-  { id: 4, regid: 1003, patient: 'Sunita Devi', mobile: '9123456789', status: 'Delivered', tracking: 'DLV-77234', courier: 'Delhivery Express', date: '2026-04-06' },
-  { id: 5, regid: 1089, patient: 'Vikram Singh', mobile: '9654321098', status: 'Dispatched', tracking: 'SPD-55102', courier: 'Speed Post', date: '2026-04-07' },
-];
-
-const mockLeads = [
-  { id: 1, name: 'Ananya Mishra', mobile: '9876501234', source: 'Instagram Ads', status: 'New', notes: 'Interested in skin treatment', date: '2026-04-10' },
-  { id: 2, name: 'Rohan Gupta', mobile: '9812309876', source: 'Google Search', status: 'Contacted', notes: 'Called once, follow-up needed', date: '2026-04-09' },
-  { id: 3, name: 'Meera Joshi', mobile: '9988112233', source: 'Walk-in Referral', status: 'Converted', notes: 'Registered as patient #1156', date: '2026-04-07' },
-  { id: 4, name: 'Deepak Verma', mobile: '9654987321', source: 'Facebook Ads', status: 'New', notes: 'Chronic migraine inquiry', date: '2026-04-10' },
-  { id: 5, name: 'Kavita Rao', mobile: '9321654987', source: 'Website Form', status: 'Lost', notes: 'Not responding to calls', date: '2026-04-05' },
-];
-
-const mockReferrals = [
-  { id: 1, referralId: 1001, name: 'Rahul Sharma', totalAmount: '5000', usedAmount: '2000', count: 3 },
-  { id: 2, referralId: 1044, name: 'Priya Patel', totalAmount: '3500', usedAmount: '3500', count: 2 },
-  { id: 3, referralId: 1003, name: 'Sunita Devi', totalAmount: '8000', usedAmount: '1000', count: 5 },
-];
-
-const mockReminders = [
-  { id: 1, regid: 1001, patient: 'Rahul Sharma', heading: 'Follow-up Visit', date: '2026-04-12', time: '10:00', status: 'pending' },
-  { id: 2, regid: 1044, patient: 'Priya Patel', heading: 'Blood Test Report', date: '2026-04-11', time: '09:00', status: 'pending' },
-  { id: 3, regid: 1122, patient: 'Amit Kumar', heading: 'Medicine Refill', date: '2026-04-09', time: '14:00', status: 'done' },
-  { id: 4, regid: 1003, patient: 'Sunita Devi', heading: 'X-ray Scheduling', date: '2026-04-13', time: '11:30', status: 'pending' },
 ];
 
 const mockDictionary = [
@@ -103,7 +80,7 @@ function StatCard({ icon: Icon, value, label, variant = 'default' }: {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const shipmentCols = ['Reg ID', 'Patient', 'Courier', 'Tracking', 'Status', 'Date'];
-const leadCols = ['#', 'Name', 'Source', 'Status', 'Notes', 'Date'];
+const leadCols = ['#', 'Name', 'Source', 'Status', 'Notes', 'Date', 'Action'];
 const referralCols = ['Patient', 'Referred', 'Total', 'Used'];
 const reminderCols = ['Patient', 'Heading', 'Date', 'Status'];
 const dictCols = ['Remedy', 'Description', 'Cross'];
@@ -139,18 +116,111 @@ export default function OperationsDashboard() {
   const activeTab = (searchParams.get('tab') as GenericTab) || 'logistics';
   const [modalType, setModalType] = useState<'courier' | 'lead' | 'dictionary' | 'export' | 'referral' | 'reminder' | 'book' | null>(null);
 
-  const closeModal = () => setModalType(null);
+  // ─── Real Data State ───
+  const [leads, setLeads] = useState<any[]>([]);
+  const [referrals, setReferrals] = useState<any[]>([]);
+  const [reminders, setReminders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const handleAction = (e: React.MouseEvent) => {
+  // ─── Form State ───
+  const [formData, setFormData] = useState({
+    name: '',
+    mobile: '',
+    source: 'Instagram Ads',
+    notes: '',
+    regid: '',
+    referral_id: '',
+    total_amount: '',
+    heading: '',
+    date: '',
+    time: '09:00'
+  });
+
+  const fetchData = async () => {
+    if (activeTab !== 'crm') return;
+    setLoading(true);
+    try {
+      const [leadsRes, refsRes, remsRes] = await Promise.all([
+        apiClient.get('/crm/leads'),
+        apiClient.get('/crm/referrals/summary'),
+        apiClient.get('/crm/reminders')
+      ]);
+      setLeads(leadsRes.data);
+      setReferrals(refsRes.data);
+      setReminders(remsRes.data);
+    } catch (err) {
+      console.error('Failed to fetch CRM data', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [activeTab]);
+
+  const closeModal = () => {
+    setModalType(null);
+    setFormData({
+      name: '', mobile: '', source: 'Instagram Ads', notes: '',
+      regid: '', referral_id: '', total_amount: '',
+      heading: '', date: '', time: '09:00'
+    });
+  };
+
+  const handleAction = async (e: React.MouseEvent) => {
     e.preventDefault();
     const btn = e.currentTarget as HTMLButtonElement;
+    const originalText = btn.textContent;
     btn.textContent = 'Processing...';
     btn.disabled = true;
-    setTimeout(() => {
+
+    try {
+      if (modalType === 'lead') {
+        await apiClient.post('/crm/leads', {
+          name: formData.name,
+          mobile: formData.mobile,
+          source: formData.source,
+          notes: formData.notes
+        });
+      } else if (modalType === 'referral') {
+        await apiClient.post('/crm/referrals', {
+          regid: formData.regid,
+          referral_id: formData.referral_id,
+          total_amount: formData.total_amount
+        });
+      } else if (modalType === 'reminder') {
+        await apiClient.post('/crm/reminders', {
+          regid: formData.regid,
+          heading: formData.heading,
+          followup_date: formData.date,
+          remind_time: formData.time,
+          notes: formData.notes
+        });
+      }
+
       btn.textContent = '✓ Success!';
-      (btn as HTMLElement).style.backgroundColor = 'var(--success)';
-      setTimeout(() => { closeModal(); }, 600);
-    }, 800);
+      (btn as HTMLElement).style.backgroundColor = 'var(--pp-success-fg)';
+      setTimeout(() => { 
+        closeModal(); 
+        fetchData();
+      }, 600);
+    }
+  };
+  
+  const handleConvertLead = async (id: number) => {
+    if (!window.confirm('Convert this lead to a formal patient registration?')) return;
+    try {
+      setLoading(true);
+      await apiClient.post(`/crm/leads/${id}/convert`);
+      fetchData();
+      alert('Lead successfully converted to patient!');
+    } catch (err) {
+      console.error('Conversion failed', err);
+      alert('Failed to convert lead.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const headers: Record<GenericTab, { title: string; desc: string }> = {
@@ -263,17 +333,34 @@ export default function OperationsDashboard() {
                   <tr>{leadCols.map(col => <th key={col}>{col}</th>)}</tr>
                 </thead>
                 <tbody>
-                  {mockLeads.map(l => (
+                  {loading ? (
+                    <tr><td colSpan={6} style={{ textAlign: 'center', padding: 40 }}>Loading leads...</td></tr>
+                  ) : leads.length === 0 ? (
+                    <tr><td colSpan={6} style={{ textAlign: 'center', padding: 40 }}>No leads found.</td></tr>
+                  ) : leads.map(l => (
                     <tr key={l.id}>
                       <td data-label="#">{l.id}</td>
                       <td data-label="Name">
                         <div className="cell-main">{l.name}</div>
-                        <div className="cell-sub"><Phone size={11} /> {l.mobile}</div>
+                        <div className="cell-sub"><Phone size={11} /> {l.mobile || l.phone}</div>
                       </td>
                       <td data-label="Source">{l.source}</td>
-                      <td data-label="Status"><StatusBadge status={l.status} /></td>
+                      <td data-label="Status"><StatusBadge status={l.status || 'New'} /></td>
                       <td data-label="Notes"><span className="cell-sub" style={{ maxWidth: 160 }}>{l.notes}</span></td>
-                      <td data-label="Date"><span className="cell-sub">{l.date}</span></td>
+                      <td data-label="Date"><span className="cell-sub">{new Date(l.created_at).toLocaleDateString()}</span></td>
+                      <td data-label="Action">
+                        {l.status?.toLowerCase() === 'converted' ? (
+                          <span className="ops-status-badge converted">Converted</span>
+                        ) : (
+                          <button 
+                            className="ops-btn ops-btn-xs ops-btn-success"
+                            onClick={() => handleConvertLead(l.id)}
+                            style={{ padding: '4px 8px', fontSize: '11px' }}
+                          >
+                            Convert
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -295,16 +382,19 @@ export default function OperationsDashboard() {
                     <tr>{referralCols.map(col => <th key={col}>{col}</th>)}</tr>
                   </thead>
                   <tbody>
-                    {mockReferrals.map(r => (
-                      <tr key={r.id}>
-                        <td data-label="Patient"><span className="cell-main">{r.name}</span></td>
-                        <td data-label="Referred">{r.count} patients</td>
+                    {referrals.map((r, idx) => (
+                      <tr key={idx}>
+                        <td data-label="Patient"><span className="cell-main">{r.first_name} {r.surname}</span></td>
+                        <td data-label="Referred"><span className="cell-sub">ID: {r.referral_id}</span></td>
                         <td data-label="Total">
-                          <span style={{ color: 'var(--success)', fontWeight: 600 }}>₹{r.totalAmount}</span>
+                          <span style={{ color: 'var(--pp-success-fg)', fontWeight: 600 }}>₹{r.total_amount}</span>
                         </td>
-                        <td data-label="Used">₹{r.usedAmount}</td>
+                        <td data-label="Used">₹{r.used_amount}</td>
                       </tr>
                     ))}
+                    {referrals.length === 0 && !loading && (
+                      <tr><td colSpan={4} style={{ textAlign: 'center', padding: 20 }}>No referrals found.</td></tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -322,14 +412,17 @@ export default function OperationsDashboard() {
                     <tr>{reminderCols.map(col => <th key={col}>{col}</th>)}</tr>
                   </thead>
                   <tbody>
-                    {mockReminders.map(r => (
+                    {reminders.map(r => (
                       <tr key={r.id}>
-                        <td data-label="Patient"><span className="cell-main">{r.patient}</span></td>
+                        <td data-label="Patient"><span className="cell-main">{r.patient_name || 'Patient #'+r.patient_id}</span></td>
                         <td data-label="Heading">{r.heading}</td>
-                        <td data-label="Date"><span className="cell-sub">{r.date} {r.time}</span></td>
+                        <td data-label="Date"><span className="cell-sub">{r.start_date} {r.remind_time}</span></td>
                         <td data-label="Status"><StatusBadge status={r.status} /></td>
                       </tr>
                     ))}
+                    {reminders.length === 0 && !loading && (
+                      <tr><td colSpan={4} style={{ textAlign: 'center', padding: 20 }}>No reminders found.</td></tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -441,29 +534,146 @@ export default function OperationsDashboard() {
       </OpsModal>
 
       <OpsModal isOpen={modalType === 'lead'} onClose={closeModal} title="Enter External CRM Lead">
-        <div className="ops-form-group"><label>Lead Full Name</label><input type="text" className="ops-input" placeholder="Enter name" /></div>
-        <div className="ops-form-group"><label>Mobile Number</label><input type="text" className="ops-input" placeholder="+91 98765 43210" /></div>
-        <div className="ops-form-group"><label>Source / Campaign</label>
-          <select className="ops-input"><option>Instagram Ads</option><option>Facebook Ads</option><option>Google Search</option><option>Walk-in Referral</option><option>Website Form</option></select>
+        <div className="ops-form-group">
+          <label>Lead Full Name</label>
+          <input 
+            type="text" 
+            className="ops-input" 
+            placeholder="Enter name" 
+            value={formData.name}
+            onChange={e => setFormData({ ...formData, name: e.target.value })}
+          />
         </div>
-        <div className="ops-form-group"><label>Notes</label><textarea className="ops-input" placeholder="Initial inquiry details..." style={{ minHeight: 60 }} /></div>
-        <div className="ops-modal-footer"><button className="ops-btn ops-btn-ghost" onClick={closeModal}>Cancel</button><button className="ops-btn ops-btn-primary" onClick={handleAction}>Save Lead</button></div>
+        <div className="ops-form-group">
+          <label>Mobile Number</label>
+          <input 
+            type="text" 
+            className="ops-input" 
+            placeholder="+91 98765 43210" 
+            value={formData.mobile}
+            onChange={e => setFormData({ ...formData, mobile: e.target.value })}
+          />
+        </div>
+        <div className="ops-form-group">
+          <label>Source / Campaign</label>
+          <select 
+            className="ops-input"
+            value={formData.source}
+            onChange={e => setFormData({ ...formData, source: e.target.value })}
+          >
+            <option>Instagram Ads</option>
+            <option>Facebook Ads</option>
+            <option>Google Search</option>
+            <option>Walk-in Referral</option>
+            <option>Website Form</option>
+          </select>
+        </div>
+        <div className="ops-form-group">
+          <label>Notes</label>
+          <textarea 
+            className="ops-input" 
+            placeholder="Initial inquiry details..." 
+            style={{ minHeight: 60 }} 
+            value={formData.notes}
+            onChange={e => setFormData({ ...formData, notes: e.target.value })}
+          />
+        </div>
+        <div className="ops-modal-footer">
+          <button className="ops-btn ops-btn-ghost" onClick={closeModal}>Cancel</button>
+          <button className="ops-btn ops-btn-primary" onClick={handleAction}>Save Lead</button>
+        </div>
       </OpsModal>
 
       <OpsModal isOpen={modalType === 'referral'} onClose={closeModal} title="Log Network Referral">
-        <div className="ops-form-group"><label>Patient Reg ID</label><input type="text" className="ops-input" placeholder="e.g. 1001" /></div>
-        <div className="ops-form-group"><label>Referral ID (Referring Patient)</label><input type="text" className="ops-input" placeholder="e.g. 1044" /></div>
-        <div className="ops-form-group"><label>Total Amount (₹)</label><input type="number" className="ops-input" placeholder="5000" /></div>
-        <div className="ops-modal-footer"><button className="ops-btn ops-btn-ghost" onClick={closeModal}>Cancel</button><button className="ops-btn ops-btn-primary" onClick={handleAction}>Submit Referral</button></div>
+        <div className="ops-form-group">
+          <label>Patient Reg ID</label>
+          <input 
+            type="text" 
+            className="ops-input" 
+            placeholder="e.g. 1001" 
+            value={formData.regid}
+            onChange={e => setFormData({ ...formData, regid: e.target.value })}
+          />
+        </div>
+        <div className="ops-form-group">
+          <label>Referral ID (Referring Patient)</label>
+          <input 
+            type="text" 
+            className="ops-input" 
+            placeholder="e.g. 1044" 
+            value={formData.referral_id}
+            onChange={e => setFormData({ ...formData, referral_id: e.target.value })}
+          />
+        </div>
+        <div className="ops-form-group">
+          <label>Total Amount (₹)</label>
+          <input 
+            type="number" 
+            className="ops-input" 
+            placeholder="5000" 
+            value={formData.total_amount}
+            onChange={e => setFormData({ ...formData, total_amount: e.target.value })}
+          />
+        </div>
+        <div className="ops-modal-footer">
+          <button className="ops-btn ops-btn-ghost" onClick={closeModal}>Cancel</button>
+          <button className="ops-btn ops-btn-primary" onClick={handleAction}>Submit Referral</button>
+        </div>
       </OpsModal>
 
       <OpsModal isOpen={modalType === 'reminder'} onClose={closeModal} title="Case Reminder">
-        <div className="ops-form-group"><label>Patient Reg ID</label><input type="text" className="ops-input" placeholder="e.g. 1202" /></div>
-        <div className="ops-form-group"><label>Heading</label><input type="text" className="ops-input" placeholder="e.g. Follow-up Visit" /></div>
-        <div className="ops-form-group"><label>Reminder Date</label><input type="date" className="ops-input" /></div>
-        <div className="ops-form-group"><label>Time</label><input type="time" className="ops-input" defaultValue="09:00" /></div>
-        <div className="ops-form-group"><label>Comments</label><textarea className="ops-input" placeholder="Notes..." style={{ minHeight: 60 }} /></div>
-        <div className="ops-modal-footer"><button className="ops-btn ops-btn-ghost" onClick={closeModal}>Cancel</button><button className="ops-btn ops-btn-primary" onClick={handleAction}>Schedule Reminder</button></div>
+        <div className="ops-form-group">
+          <label>Patient Reg ID</label>
+          <input 
+            type="text" 
+            className="ops-input" 
+            placeholder="e.g. 1202" 
+            value={formData.regid}
+            onChange={e => setFormData({ ...formData, regid: e.target.value })}
+          />
+        </div>
+        <div className="ops-form-group">
+          <label>Heading</label>
+          <input 
+            type="text" 
+            className="ops-input" 
+            placeholder="e.g. Follow-up Visit" 
+            value={formData.heading}
+            onChange={e => setFormData({ ...formData, heading: e.target.value })}
+          />
+        </div>
+        <div className="ops-form-group">
+          <label>Reminder Date</label>
+          <input 
+            type="date" 
+            className="ops-input" 
+            value={formData.date}
+            onChange={e => setFormData({ ...formData, date: e.target.value })}
+          />
+        </div>
+        <div className="ops-form-group">
+          <label>Time</label>
+          <input 
+            type="time" 
+            className="ops-input" 
+            value={formData.time}
+            onChange={e => setFormData({ ...formData, time: e.target.value })}
+          />
+        </div>
+        <div className="ops-form-group">
+          <label>Comments</label>
+          <textarea 
+            className="ops-input" 
+            placeholder="Notes..." 
+            style={{ minHeight: 60 }} 
+            value={formData.notes}
+            onChange={e => setFormData({ ...formData, notes: e.target.value })}
+          />
+        </div>
+        <div className="ops-modal-footer">
+          <button className="ops-btn ops-btn-ghost" onClick={closeModal}>Cancel</button>
+          <button className="ops-btn ops-btn-primary" onClick={handleAction}>Schedule Reminder</button>
+        </div>
       </OpsModal>
 
       <OpsModal isOpen={modalType === 'dictionary'} onClose={closeModal} title="Add Dictionary Entry">
