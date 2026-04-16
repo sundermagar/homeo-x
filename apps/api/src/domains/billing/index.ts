@@ -51,4 +51,10 @@ export {
   CreateExpenseUseCase,
   UpdateExpenseUseCase,
   DeleteExpenseUseCase,
+  ListExpenseHeadsUseCase,
+  GetExpenseHeadUseCase,
+  CreateExpenseHeadUseCase,
+  UpdateExpenseHeadUseCase,
+  DeleteExpenseHeadUseCase,
 } from './use-cases/expenses';
+

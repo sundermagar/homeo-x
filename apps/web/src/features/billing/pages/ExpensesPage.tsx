@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
 import { PlusCircle, X, RefreshCw, Trash2, Edit2, Search, DollarSign, Wallet } from 'lucide-react';
-import { useExpenses, useCreateExpense, useUpdateExpense, useDeleteExpense } from '../hooks/use-accounts';
-import { useExpenseHeads } from '@/features/settings/hooks/use-settings';
+import { 
+  useExpenses, 
+  useCreateExpense, 
+  useUpdateExpense, 
+  useDeleteExpense,
+  useExpenseHeads 
+} from '../hooks/use-accounts';
 import type { ExpenseWithHead } from '@mmc/types';
 import type { CreateExpenseInput, ListExpensesQuery } from '@mmc/validation';
 import '../../platform/styles/platform.css';

@@ -1,10 +1,58 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Plus, Search, Edit2, Trash2, X, ShieldCheck, Mail, Phone, MapPin, Users, UserCheck, Calendar, Briefcase, Info, BadgeIndianRupee, RefreshCw } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, X, ShieldCheck, Mail, Phone, MapPin, Users, UserCheck, Calendar, Briefcase, Info, BadgeIndianRupee, RefreshCw, Upload, FileText } from 'lucide-react';
 import { useStaffList, useDeleteStaff, useCreateStaff, useUpdateStaff, useStaffMember } from '@/features/staff/hooks/use-staff';
 import type { StaffSummary, StaffMember } from '@mmc/types';
 import type { CreateStaffInput, UpdateStaffInput } from '@mmc/validation';
 import { createStaffSchema, updateStaffSchema } from '@mmc/validation';
+import { apiClient } from '@/infrastructure/api-client';
 import '../styles/platform.css';
+
+function FileInputRow({ 
+  label, 
+  field, 
+  value, 
+  onChange, 
+  error, 
+  accept = "image/*,application/pdf",
+  className = "",
+  style = {}
+}: { 
+  label: string; 
+  field: string; 
+  value?: string; 
+  onChange: (f: string, e: React.ChangeEvent<HTMLInputElement>) => void; 
+  error?: string; 
+  accept?: string;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  return (
+    <div className={`plat-form-group ${className}`} style={style}>
+      <label className="plat-form-label">{label}</label>
+      <div className="plat-file-input-wrapper">
+        <div className="plat-file-trigger">
+          <Upload size={14} /> Upload {label}
+        </div>
+        <input 
+          type="file" 
+          accept={accept}
+          onChange={(e) => onChange(field, e)} 
+        />
+      </div>
+      {value && (
+        <div className="plat-file-preview">
+          <span className="plat-file-preview-name" title={value}>{value.split('/').pop() || 'Uploaded File'}</span>
+          {value.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
+            <img src={value} alt="Preview" className="plat-file-preview-image" />
+          ) : (
+            <FileText size={16} className="color-muted" />
+          )}
+        </div>
+      )}
+      {error && <span className="plat-form-error">{error}</span>}
+    </div>
+  );
+}
 
 const CATEGORY = 'clinicadmin' as const;
 const META = { label: 'Clinic Admins', description: 'Manage clinical administrators, facility directors, and operational heads.' };
@@ -81,7 +129,7 @@ function StaffModal({
   onSuccess: () => void;
 }) {
   const [form, setForm] = useState<CreateStaffInput | UpdateStaffInput>(getDefaultStaffForm());
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Record<string, string | undefined>>({});
 
   const createMutation = useCreateStaff();
   const updateMutation = useUpdateStaff();
@@ -162,12 +210,36 @@ function StaffModal({
     setForm((prev) => ({ ...prev, [field]: castValue }));
   };
 
+  const handleFileUpload = async (field: string, event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await apiClient.post('/staff/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      
+      const resData = (res as any)._original ?? res.data;
+      if (resData?.success && resData?.path) {
+         updateForm(field, resData.path);
+      } else {
+         setErrors((prev) => ({ ...prev, [field]: 'Upload failed' }));
+      }
+    } catch (err: any) {
+      setErrors((prev) => ({ ...prev, [field]: err.message || 'Upload failed' }));
+    }
+  };
+
   const isPending = createMutation.isPending || updateMutation.isPending;
   const isEdit = mode === 'edit';
 
   return (
     <div className="plat-modal-backdrop" onClick={onClose}>
-      <div className="plat-modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '800px' }}>
+      <div className="plat-modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="plat-modal-header">
           <h3 className="plat-modal-title">{isEdit ? 'Update Administrator Profile' : 'Register New Clinic Admin'}</h3>
           <button className="plat-btn plat-btn-icon plat-btn-ghost" onClick={onClose}>
@@ -178,101 +250,221 @@ function StaffModal({
         <form onSubmit={handleSubmit} className="plat-modal-body">
           {errors['general'] && <div className="plat-error-banner mb-4">{errors['general']}</div>}
 
-          <div className="plat-form-grid">
-            {/* Account Details */}
-            <div className="plat-form-group">
-              <label className="plat-form-label">Full Name *</label>
-              <input type="text" className="plat-form-input" value={form.name || ''} onChange={(e) => updateForm('name', e.target.value)} disabled={isLoading} placeholder="Full Legal Name" />
-              {errors['name'] && <span className="plat-form-error">{errors['name']}</span>}
-            </div>
-
-            <div className="plat-form-group">
-              <label className="plat-form-label">Email Address</label>
-              <input type="email" className="plat-form-input" value={form.email || ''} onChange={(e) => updateForm('email', e.target.value)} disabled={isLoading} placeholder="admin@mmc.com" />
-            </div>
-
-            <div className="plat-form-group">
-              <label className="plat-form-label">Primary Mobile *</label>
-              <input type="tel" className="plat-form-input" value={form.mobile || ''} onChange={(e) => updateForm('mobile', e.target.value)} disabled={isLoading} />
-              {errors['mobile'] && <span className="plat-form-error">{errors['mobile']}</span>}
-            </div>
-
-            <div className="plat-form-group">
-              <label className="plat-form-label">Secondary Mobile</label>
-              <input type="tel" className="plat-form-input" value={form.mobile2 || ''} onChange={(e) => updateForm('mobile2', e.target.value)} disabled={isLoading} />
-            </div>
-
-            {/* Personal Info */}
-            <div className="plat-form-group">
-              <label className="plat-form-label">Gender</label>
-              <select className="plat-form-select" value={form.gender || 'Male'} onChange={(e) => updateForm('gender', e.target.value)} disabled={isLoading}>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-
-            <div className="plat-form-group">
-              <label className="plat-form-label">Date of Birth</label>
-              <input type="date" className="plat-form-input" value={form.dateBirth || ''} onChange={(e) => updateForm('dateBirth', e.target.value)} disabled={isLoading} />
-            </div>
-
-            {/* Roles & Station */}
-            <div className="plat-form-group">
-              <label className="plat-form-label">Professional Rank</label>
-              <input type="text" className="plat-form-input" value={form.designation || ''} onChange={(e) => updateForm('designation', e.target.value)} disabled={isLoading} placeholder="e.g. Facility Director" />
-            </div>
-
-            <div className="plat-form-group">
-              <label className="plat-form-label">Department</label>
-              <select className="plat-form-select" value={form.dept || 4} onChange={(e) => updateForm('dept', e.target.value)} disabled={isLoading}>
-                <option value={1}>Administration</option>
-                <option value={2}>Operations</option>
-                <option value={3}>Human Resources</option>
-                <option value={4}>General Clinic Management</option>
-              </select>
-            </div>
-
-            <div className="plat-form-group">
-              <label className="plat-form-label">Basic Monthly Pay (₹)</label>
-              <input type="number" className="plat-form-input" value={form.salaryCur || ''} onChange={(e) => updateForm('salaryCur', e.target.value)} disabled={isLoading} />
-            </div>
-
-            <div className="plat-form-group">
-              <label className="plat-form-label">Jurisdiction / City</label>
-              <input type="text" className="plat-form-input" value={form.city || ''} onChange={(e) => updateForm('city', e.target.value)} disabled={isLoading} />
-            </div>
-
-            {/* Content Blocks */}
-            <div className="plat-form-group plat-form-full">
-              <label className="plat-form-label">Official Address</label>
-              <textarea className="plat-form-input" rows={2} value={form.address || ''} onChange={(e) => updateForm('address', e.target.value)} disabled={isLoading} />
-            </div>
-
-            <div className="plat-form-group plat-form-full">
-              <label className="plat-form-label">Executive Summmary / Admin Notes</label>
-              <textarea className="plat-form-input" rows={2} value={form.about || ''} onChange={(e) => updateForm('about', e.target.value)} disabled={isLoading} />
-            </div>
-
-            {mode === 'create' && (
-              <div className="plat-form-group">
-                <label className="plat-form-label">Credential: Set Password *</label>
-                <input type="password" className="plat-form-input" value={form.password || ''} onChange={(e) => updateForm('password', e.target.value)} disabled={isLoading} />
+          {/* Section 1: Personal & Contact */}
+          <div className="plat-form-section">
+            <h4 className="plat-form-section-title">Personal & Contact</h4>
+            <div className="plat-form-grid-multi">
+              <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
+                <label className="plat-form-label">Full Name *</label>
+                <input
+                  type="text"
+                  className="plat-form-input"
+                  value={form.name || ''}
+                  onChange={(e) => updateForm('name', e.target.value)}
+                  disabled={isLoading}
+                />
+                {errors['name'] && <span className="plat-form-error">{errors['name']}</span>}
               </div>
-            )}
 
-            {mode === 'edit' && (
               <div className="plat-form-group">
-                <label className="plat-form-label">Relieved From Duty (Date Left)</label>
-                <input type="date" className="plat-form-input" value={form.dateLeft || ''} onChange={(e) => updateForm('dateLeft', e.target.value)} disabled={isLoading} />
+                <label className="plat-form-label">Email Address</label>
+                <input
+                  type="email"
+                  className="plat-form-input"
+                  value={form.email || ''}
+                  onChange={(e) => updateForm('email', e.target.value)}
+                  disabled={isLoading}
+                />
+                {errors['email'] && <span className="plat-form-error">{errors['email']}</span>}
               </div>
-            )}
+
+              <div className="plat-form-group">
+                <label className="plat-form-label">Primary Mobile *</label>
+                <input
+                  type="tel"
+                  className="plat-form-input"
+                  value={form.mobile || ''}
+                  onChange={(e) => updateForm('mobile', e.target.value)}
+                  disabled={isLoading}
+                />
+                {errors['mobile'] && <span className="plat-form-error">{errors['mobile']}</span>}
+              </div>
+
+              <div className="plat-form-group">
+                <label className="plat-form-label">Secondary Mobile</label>
+                <input
+                  type="tel"
+                  className="plat-form-input"
+                  value={form.mobile2 || ''}
+                  onChange={(e) => updateForm('mobile2', e.target.value)}
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div className="plat-form-group">
+                <label className="plat-form-label">Gender</label>
+                <select
+                  className="plat-form-input"
+                  value={form.gender || 'Male'}
+                  onChange={(e) => updateForm('gender', e.target.value)}
+                  disabled={isLoading}
+                >
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div className="plat-form-group">
+                <label className="plat-form-label">Date of Birth</label>
+                <input
+                  type="date"
+                  className="plat-form-input"
+                  value={form.dateBirth?.split('T')[0] || ''}
+                  onChange={(e) => updateForm('dateBirth', e.target.value)}
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Section 2: Professional & Location */}
+          <div className="plat-form-section">
+            <h4 className="plat-form-section-title">Professional & Location</h4>
+            <div className="plat-form-grid-multi">
+              <div className="plat-form-group">
+                <label className="plat-form-label">Designation</label>
+                <input
+                  type="text"
+                  className="plat-form-input"
+                  value={form.designation || ''}
+                  onChange={(e) => updateForm('designation', e.target.value)}
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div className="plat-form-group">
+                <label className="plat-form-label">Department</label>
+                <select
+                  className="plat-form-input"
+                  value={form.dept || 4}
+                  onChange={(e) => updateForm('dept', e.target.value)}
+                  disabled={isLoading}
+                >
+                  <option value={1}>Finance</option>
+                  <option value={2}>Reception</option>
+                  <option value={3}>Logistics</option>
+                  <option value={4}>General Accounts</option>
+                </select>
+              </div>
+
+              <div className="plat-form-group">
+                <label className="plat-form-label">Monthly Retainer (₹)</label>
+                <input
+                  type="number"
+                  className="plat-form-input"
+                  value={form.salaryCur || ''}
+                  onChange={(e) => updateForm('salaryCur', e.target.value)}
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div className="plat-form-group">
+                <label className="plat-form-label">City Station</label>
+                <input
+                  type="text"
+                  className="plat-form-input"
+                  value={form.city || ''}
+                  onChange={(e) => updateForm('city', e.target.value)}
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
+                <label className="plat-form-label">Official Address</label>
+                <textarea
+                  className="plat-form-input"
+                  value={form.address || ''}
+                  onChange={(e) => updateForm('address', e.target.value)}
+                  disabled={isLoading}
+                  rows={2}
+                />
+              </div>
+
+              <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
+                <label className="plat-form-label">Administrator Bio</label>
+                <textarea
+                  className="plat-form-input"
+                  value={form.about || ''}
+                  onChange={(e) => updateForm('about', e.target.value)}
+                  disabled={isLoading}
+                  rows={2}
+                />
+              </div>
+
+              {mode === 'create' && (
+                <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
+                  <label className="plat-form-label">Initial Password *</label>
+                  <input
+                    type="password"
+                    className="plat-form-input"
+                    value={form.password || ''}
+                    onChange={(e) => updateForm('password', e.target.value)}
+                    disabled={isLoading}
+                  />
+                  {errors['password'] && <span className="plat-form-error">{errors['password']}</span>}
+                </div>
+              )}
+
+              {mode === 'edit' && (
+                <div className="plat-form-group">
+                  <label className="plat-form-label">End Date</label>
+                  <input
+                    type="date"
+                    className="plat-form-input"
+                    value={form.dateLeft?.split('T')[0] || ''}
+                    onChange={(e) => updateForm('dateLeft', e.target.value)}
+                    disabled={isLoading}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Section 4: Statutory Documents */}
+          <div className="plat-form-section">
+            <h4 className="plat-form-section-title">Statutory Documents</h4>
+            <div className="plat-form-grid-multi">
+              <div className="plat-form-group">
+                <label className="plat-form-label">Aadhar Number</label>
+                <input
+                  type="text"
+                  className="plat-form-input"
+                  value={form.aadharnumber || ''}
+                  onChange={(e) => updateForm('aadharnumber', e.target.value)}
+                  disabled={isLoading}
+                />
+              </div>
+              <FileInputRow label="Aadhar Card" field="aadharCard" value={form.aadharCard} onChange={handleFileUpload} error={errors['aadharCard']} />
+
+              <div className="plat-form-group">
+                <label className="plat-form-label">PAN Number</label>
+                <input
+                  type="text"
+                  className="plat-form-input"
+                  value={form.pannumber || ''}
+                  onChange={(e) => updateForm('pannumber', e.target.value)}
+                  disabled={isLoading}
+                />
+              </div>
+              <FileInputRow label="PAN Card" field="panCard" value={form.panCard} onChange={handleFileUpload} error={errors['panCard']} />
+            </div>
           </div>
 
           <div className="plat-modal-footer">
             <button type="button" className="plat-btn plat-btn-ghost" onClick={onClose}>Discard Changes</button>
             <button type="submit" className="plat-btn plat-btn-primary" disabled={isPending || isLoading}>
-              {isPending ? 'Synchronizing Registry…' : isEdit ? 'Update Admin Profile' : 'Register Administrator'}
+              {isPending ? 'Synchronizing…' : isEdit ? 'Update Admin' : 'Register Administrator'}
             </button>
           </div>
         </form>
@@ -356,9 +548,20 @@ export default function ClinicAdminsPage() {
 
       <div className="plat-card">
         {isLoading ? (
-          <div className="plat-empty" style={{ minHeight: 200 }}><RefreshCw size={24} className="animate-spin opacity-20" /></div>
+          <div className="plat-empty" style={{ minHeight: 400 }}><RefreshCw size={24} className="animate-spin opacity-20" /></div>
         ) : staff.length === 0 ? (
-          <div className="plat-empty"><ShieldCheck size={40} className="plat-empty-icon" /><p className="plat-empty-text">No clinical administrators found.</p></div>
+          <div className="plat-empty" style={{ minHeight: 400 }}>
+            <div className="plat-empty-icon-wrap mb-6">
+              <ShieldCheck size={48} className="text-blue-500 opacity-20" />
+            </div>
+            <h3 className="text-lg font-semibold text-slate-800 mb-2">No Clinic Admins Registered</h3>
+            <p className="text-sm text-slate-500 max-w-xs text-center mb-8">
+              Clinical operations require strong leadership. Add your first clinical administrator to begin managing your facility.
+            </p>
+            <button className="plat-btn plat-btn-primary" onClick={() => { setEditingId(null); setModalOpen(true); }}>
+              <Plus size={14} /> Register First Admin
+            </button>
+          </div>
         ) : (
           <div className="plat-table-container">
             <table className="plat-table">

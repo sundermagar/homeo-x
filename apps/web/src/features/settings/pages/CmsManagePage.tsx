@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Monitor, Plus, X, RefreshCw, Trash2, Edit2, Globe, Search, ArrowUpRight  } from 'lucide-react';
-
+import { Monitor, Plus, X, RefreshCw, ArrowLeft, Trash2, Edit2, Globe, Search, ArrowUpRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useStaticPages, useCreateStaticPage, useUpdateStaticPage, useDeleteStaticPage } from '../hooks/use-settings';
 import '../../platform/styles/platform.css';
 import '../styles/settings.css';
@@ -44,9 +44,8 @@ export default function CmsManagePage() {
   );
 
   return (
-    <div className="plat-page animate-fade-in">
+    <div className="plat-page fade-in">
       
-
       <div className="plat-header">
         <div>
           <h1 className="plat-header-title">
@@ -65,28 +64,28 @@ export default function CmsManagePage() {
 
       <div className="plat-stats-bar">
         <div className="plat-stat-card">
-          <span className="plat-stat-label">Total Pages</span>
-          <span className="plat-stat-value">{pages.length}</span>
+          <p className="plat-stat-label">Total Pages</p>
+          <p className="plat-stat-value plat-stat-value-primary">{pages.length}</p>
         </div>
         <div className="plat-stat-card">
-          <span className="plat-stat-label">Live Content</span>
-          <span className="plat-stat-value plat-stat-value-success">
+          <p className="plat-stat-label">Live Content</p>
+          <p className="plat-stat-value plat-stat-value-success">
             {pages.filter((p: any) => p.isActive).length}
-          </span>
+          </p>
         </div>
         <div className="plat-stat-card">
-          <span className="plat-stat-label">Drafts</span>
-          <span className="plat-stat-value text-muted">
+          <p className="plat-stat-label">Drafts</p>
+          <p className="plat-stat-value plat-stat-value-danger">
             {pages.filter((p: any) => !p.isActive).length}
-          </span>
+          </p>
         </div>
       </div>
 
       <div className="plat-filters">
         <div className="plat-search-wrap">
-          <Search size={16} className="plat-search-icon" />
+          <Search size={14} className="plat-search-icon" />
           <input 
-            className="plat-filter-input plat-search-input"
+            className="plat-form-input plat-search-input"
             placeholder="Search by title or slug..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -118,25 +117,25 @@ export default function CmsManagePage() {
               </thead>
               <tbody>
                 {filteredPages.map((page: any) => (
-                  <tr key={page.id}>
-                    <td data-label="ID">{page.id}</td>
-                    <td data-label="Title">
+                  <tr key={page.id} className="plat-table-row">
+                    <td data-label="ID" className="plat-table-cell font-mono text-xs color-muted">{page.id}</td>
+                    <td data-label="Title" className="plat-table-cell">
                       <div className="font-semibold">{page.title}</div>
                       <div className="text-xs color-muted mt-0.5">Last updated: {new Date().toLocaleDateString()}</div>
                     </td>
-                    <td data-label="Slug">
+                    <td data-label="Slug" className="plat-table-cell">
                       <div className="flex items-center gap-1.5 font-mono text-xs text-primary bg-faded px-2 py-0.5 rounded-md w-fit border border-main">
                         /{page.slug}
                         <ArrowUpRight size={10} className="opacity-50" />
                       </div>
                     </td>
-                    <td data-label="Status">
+                    <td data-label="Status" className="plat-table-cell">
                       {page.isActive ? 
                         <span className="plat-badge plat-badge-staff">Published</span> : 
                         <span className="plat-badge plat-badge-default">Draft Mode</span>
                       }
                     </td>
-                    <td>
+                    <td className="plat-table-cell">
                       <div className="flex justify-end gap-3">
                         <button className="plat-btn plat-btn-sm plat-btn-icon" onClick={() => handleEdit(page)} title="Edit Content">
                           <Edit2 size={13} />
@@ -160,9 +159,9 @@ export default function CmsManagePage() {
 
       {/* ─── Page Modal ─── */}
       {isModalOpen && (
-        <div className="plat-modal-overlay animate-fade-in" onClick={(e) => e.target === e.currentTarget && setIsModalOpen(false)}>
-          <div className="plat-modal" style={{ maxWidth: '850px' }}>
-            <div className="plat-modal-header border-none pb-0">
+        <div className="plat-modal-backdrop" onClick={() => setIsModalOpen(false)}>
+          <div className="plat-modal-content max-w-4xl" onClick={e => e.stopPropagation()}>
+            <div className="plat-modal-header">
               <div>
                 <h2 className="plat-modal-title">{editingId ? 'Update Page Content' : 'Create New Static Page'}</h2>
                 <p className="text-xs text-muted mt-1">Define titles, slugs and rich content for your platform pages.</p>
@@ -171,61 +170,65 @@ export default function CmsManagePage() {
             </div>
             
             <form onSubmit={handleSubmit}>
-              <div className="plat-modal-body plat-form">
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="plat-form-group">
-                    <label className="plat-form-label">Page Title <span className="plat-form-required">*</span></label>
-                    <input 
-                      className="plat-form-input" 
-                      placeholder="e.g. Terms of Service"
-                      value={form.title} 
-                      onChange={e => setForm(p => ({...p, title: e.target.value}))} 
-                      required 
-                    />
-                  </div>
-                  <div className="plat-form-group">
-                    <label className="plat-form-label">URL Slug <span className="plat-form-required">*</span></label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted font-mono">/</span>
+              <div className="plat-modal-body">
+                <div className="plat-form-section">
+                  <div className="plat-form-grid-multi" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                    <div className="plat-form-group">
+                      <label className="plat-form-label font-bold">Page Title *</label>
                       <input 
-                        className="plat-form-input pl-6" 
-                        style={{ fontFamily: 'monospace' }}
-                        value={form.slug} 
-                        onChange={e => setForm(p => ({...p, slug: e.target.value.toLowerCase().replace(/ /g, '-')}))} 
+                        className="plat-form-input" 
+                        placeholder="e.g. Terms of Service"
+                        value={form.title} 
+                        onChange={e => setForm(p => ({...p, title: e.target.value}))} 
                         required 
-                        placeholder="terms-and-conditions" 
                       />
                     </div>
+                    <div className="plat-form-group">
+                      <label className="plat-form-label font-bold">URL Slug *</label>
+                      <div className="plat-input-wrapper">
+                        <Globe size={14} className="plat-input-icon opacity-50" />
+                        <input 
+                          className="plat-form-input pl-8" 
+                          style={{ fontFamily: 'monospace' }}
+                          value={form.slug} 
+                          onChange={e => setForm(p => ({...p, slug: e.target.value.toLowerCase().replace(/ /g, '-')}))} 
+                          required 
+                          placeholder="terms-and-conditions" 
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div className="plat-form-group plat-form-full">
-                    <label className="plat-form-label flex justify-between">
+
+                  <div className="plat-form-group mt-4">
+                    <label className="plat-form-label font-bold flex justify-between">
                       Page Body (Markdown Supported)
-                      <span className="text-[10px] uppercase tracking-wider text-muted font-bold">Rich Text Editor</span>
+                      <span className="text-[10px] uppercase tracking-wider text-muted font-bold opacity-60">Rich Editor</span>
                     </label>
                     <textarea 
                       className="plat-form-input font-mono text-xs leading-relaxed" 
-                      style={{ minHeight: '380px', padding: '16px' }} 
+                      style={{ minHeight: '320px', padding: '16px' }} 
                       placeholder="## Introduction\n\nWrite your content here..."
                       value={form.content} 
                       onChange={e => setForm(p => ({...p, content: e.target.value}))} 
                     />
                   </div>
-                  <div className="plat-form-group plat-form-full plat-form-row bg-faded p-3 rounded-lg border border-main">
+
+                  <div className="flex items-center gap-2 py-4 mt-2">
                     <input 
                       type="checkbox" 
-                      className="plat-form-input w-4 h-4" 
-                      id="page_active" 
+                      className="w-4 h-4 accent-primary" 
+                      id="page_active_cms" 
                       checked={form.isActive} 
                       onChange={e => setForm(p => ({...p, isActive: e.target.checked}))} 
                     /> 
-                    <div className="ml-1">
-                      <label htmlFor="page_active" className="plat-form-label cursor-pointer mb-0 font-semibold">Publish this page</label>
-                      <p className="text-[11px] text-muted">When unchecked, the page will remain as a draft and hidden from public view.</p>
+                    <div>
+                      <label htmlFor="page_active_cms" className="plat-form-label cursor-pointer mb-0 font-bold">Publish this page</label>
+                      <p className="text-[10px] text-muted -mt-0.5">Visible to public/staff when checked.</p>
                     </div>
                   </div>
                 </div>
               </div>
-              <div className="plat-modal-footer bg-faded">
+              <div className="plat-modal-footer">
                  <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
                  <button type="submit" className="plat-btn plat-btn-primary px-8">
                    {editingId ? 'Save Changes' : 'Publish Page'}

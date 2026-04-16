@@ -19,10 +19,16 @@ export default function ClinicsPage() {
   const [form, setForm] = useState<CreateOrganizationInput>(EMPTY_FORM);
 
   const handleCreate = async (e: React.FormEvent) => {
+    console.log("!!! TRIGGERED !!!"); // This MUST show up
     e.preventDefault();
-    await createOrg.mutateAsync(form);
-    setIsCreating(false);
-    setForm(EMPTY_FORM);
+    try {
+      const result = await createOrg.mutateAsync(form);
+      console.log("Success:", result);
+      setIsCreating(false);
+      setForm(EMPTY_FORM);
+    } catch (err) {
+      console.error("Mutation Error:", err);
+    }
   };
 
   const handleDelete = async (id: number, name: string) => {
@@ -58,9 +64,9 @@ export default function ClinicsPage() {
       {/* ─── KPI Stats ─── */}
       <div className="plat-stats-bar">
         {[
-          { label: 'Total Clinics', value: orgs.length,                                   cls: 'plat-stat-value-primary' },
-          { label: 'Active',        value: orgs.filter(o => !o.deletedAt).length,          cls: 'plat-stat-value-success' },
-          { label: 'Cities',        value: activeCities,                                   cls: '' },
+          { label: 'Total Clinics', value: orgs.length, cls: 'plat-stat-value-primary' },
+          { label: 'Active', value: orgs.filter(o => !o.deletedAt).length, cls: 'plat-stat-value-success' },
+          { label: 'Cities', value: activeCities, cls: '' },
         ].map(stat => (
           <div key={stat.label} className="plat-stat-card">
             <p className="plat-stat-label">{stat.label}</p>
@@ -95,7 +101,7 @@ export default function ClinicsPage() {
                 </tr>
               </thead>
               <tbody>
-                {sortedOrgs.map((org,index) => (
+                {sortedOrgs.map((org, index) => (
                   <tr key={index}>
                     <td data-label="ID" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                       {index + 1}
@@ -142,50 +148,111 @@ export default function ClinicsPage() {
 
       {/* ─── Create Modal ─── */}
       {isCreating && (
-        <div className="plat-modal-overlay fade-in" onClick={(e) => { if (e.target === e.currentTarget) setIsCreating(false); }}>
-          <div className="plat-modal">
-
+        <div className="plat-modal-backdrop" onClick={() => setIsCreating(false)}>
+          <div className="plat-modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="plat-modal-header">
-              <h2 className="plat-modal-title">Register New Clinic</h2>
-              <button className="plat-btn plat-btn-icon" onClick={() => setIsCreating(false)} style={{ border: 'none' }}>
-                <X size={16} strokeWidth={2} />
+              <h3 className="plat-modal-title">Register New Clinic</h3>
+              <button className="plat-btn plat-btn-icon plat-btn-ghost" onClick={() => setIsCreating(false)}>
+                <X size={14} />
               </button>
             </div>
 
-            <form onSubmit={handleCreate} className="plat-form" style={{ padding: '20px' }}>
-              {[
-                { key: 'name',         label: 'Clinic Name',     required: true,  full: true,  type: 'text'  },
-                { key: 'city',         label: 'City',            required: false, full: false, type: 'text'  },
-                { key: 'phone',        label: 'Phone',           required: false, full: false, type: 'tel'   },
-                { key: 'email',        label: 'Email',           required: false, full: false, type: 'email' },
-                { key: 'website',      label: 'Website',         required: false, full: false, type: 'url'   },
-                { key: 'connectSince', label: 'Connected Since', required: false, full: false, type: 'text'  },
-                { key: 'description',  label: 'Description',     required: false, full: true,  type: 'text'  },
-              ].map(f => (
-                <div key={f.key} className={f.full ? 'plat-form-full plat-form-group' : 'plat-form-group'}>
-                  <label className="plat-form-label">
-                    {f.label}
-                    {f.required && <span className="plat-form-required">*</span>}
-                  </label>
-                  <input
-                    className="plat-form-input"
-                    type={f.type}
-                    required={f.required}
-                    value={(form as any)[f.key] ?? ''}
-                    onChange={e => set(f.key, e.target.value)}
-                    placeholder={f.label}
-                  />
-                </div>
-              ))}
+            <form onSubmit={handleCreate} className="plat-modal-body">
+              <div className="plat-form-section">
+                <h4 className="plat-form-section-title">Clinic Identity</h4>
+                <div className="plat-form-grid-multi">
+                  <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
+                    <label className="plat-form-label">Clinic Name *</label>
+                    <input
+                      className="plat-form-input"
+                      type="text"
+                      required
+                      value={form.name || ''}
+                      onChange={e => set('name', e.target.value)}
+                      placeholder="e.g. Hope Homeopathy Center"
+                    />
+                  </div>
 
-              <div className="plat-form-full" style={{ display: 'flex', gap: '10px', borderTop: '1px solid var(--border-main)', paddingTop: '16px', marginTop: '4px' }}>
-                <button type="button" className="plat-btn" style={{ flex: 1 }} onClick={() => setIsCreating(false)}>Cancel</button>
-                <button type="submit" className="plat-btn plat-btn-primary" style={{ flex: 1 }} disabled={createOrg.isPending}>
-                  {createOrg.isPending ? 'Creating…' : 'Create Clinic'}
+                  <div className="plat-form-group">
+                    <label className="plat-form-label">City Station</label>
+                    <input
+                      className="plat-form-input"
+                      type="text"
+                      value={form.city || ''}
+                      onChange={e => set('city', e.target.value)}
+                      placeholder="City"
+                    />
+                  </div>
+
+                  <div className="plat-form-group">
+                    <label className="plat-form-label">Connected Since</label>
+                    <input
+                      className="plat-form-input"
+                      type="text"
+                      value={form.connectSince || ''}
+                      onChange={e => set('connectSince', e.target.value)}
+                      placeholder="YYYY-MM-DD"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="plat-form-section">
+                <h4 className="plat-form-section-title">Contact & Presence</h4>
+                <div className="plat-form-grid-multi">
+                  <div className="plat-form-group">
+                    <label className="plat-form-label">Phone Number</label>
+                    <input
+                      className="plat-form-input"
+                      type="tel"
+                      value={form.phone || ''}
+                      onChange={e => set('phone', e.target.value)}
+                      placeholder="9876543210"
+                    />
+                  </div>
+
+                  <div className="plat-form-group">
+                    <label className="plat-form-label">Email Address</label>
+                    <input
+                      className="plat-form-input"
+                      type="email"
+                      value={form.email || ''}
+                      onChange={e => set('email', e.target.value)}
+                      placeholder="office@clinic.com"
+                    />
+                  </div>
+
+                  <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
+                    <label className="plat-form-label">Website URL</label>
+                    <input
+                      className="plat-form-input"
+                      type="url"
+                      value={form.website || ''}
+                      onChange={e => set('website', e.target.value)}
+                      placeholder="https://www.clinic.com"
+                    />
+                  </div>
+
+                  <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
+                    <label className="plat-form-label">About Clinic / Description</label>
+                    <textarea
+                      className="plat-form-input"
+                      value={form.description || ''}
+                      onChange={e => set('description', e.target.value)}
+                      rows={2}
+                      placeholder="Brief overview of the clinic..."
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="plat-modal-footer">
+                <button type="button" className="plat-btn plat-btn-ghost" onClick={() => setIsCreating(false)}>Discard</button>
+                <button type="submit" className="plat-btn plat-btn-primary" disabled={createOrg.isPending}>
+                  {createOrg.isPending ? 'Syncing...' : 'Create Clinic'}
                 </button>
               </div>
             </form>
-
           </div>
         </div>
       )}

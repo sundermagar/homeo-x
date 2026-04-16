@@ -255,9 +255,13 @@ export class PatientRepositoryPg implements PatientRepository {
     const distinctHeads = await this.db
       .selectDistinct({ regid: fg.regid })
       .from(fg)
-      .where(isNull(fg.deletedAt));
+      .where(isNull(fg.deletedAt))
+      .catch((err) => {
+        console.warn('[PatientRepositoryPg] Failed to fetch family groups (legacy table likely missing)', err.message);
+        return [];
+      });
 
-    if (distinctHeads.length === 0) return { data: [], total: 0 };
+    if (!distinctHeads || distinctHeads.length === 0) return { data: [], total: 0 };
 
     const headRegids = distinctHeads.map(h => h.regid);
     const results: FamilyGroupSummary[] = [];
@@ -312,7 +316,10 @@ export class PatientRepositoryPg implements PatientRepository {
         relation: fg.relation,
       })
       .from(fg)
-      .where(and(eq(fg.regid, regid), isNull(fg.deletedAt)));
+      .where(and(eq(fg.regid, regid), isNull(fg.deletedAt)))
+      .catch(() => []);
+
+    if (!rows || rows.length === 0) return [];
 
     return Promise.all(rows.map(async r => {
       const [p] = await this.db

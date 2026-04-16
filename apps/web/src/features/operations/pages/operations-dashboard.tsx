@@ -205,6 +205,13 @@ export default function OperationsDashboard() {
         closeModal(); 
         fetchData();
       }, 600);
+    } catch (err) {
+      console.error('Action failed', err);
+      alert('Action failed. Please try again.');
+      btn.textContent = originalText;
+      btn.disabled = false;
+    } finally {
+      // Cleanup if needed
     }
   };
   

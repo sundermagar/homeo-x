@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Download, FileText, Users, CreditCard, Calendar, Loader2, CheckCircle2  } from 'lucide-react';
-
+import { Download, FileText, Users, CreditCard, Calendar, ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import '../../platform/styles/platform.css';
 import '../styles/settings.css';
 
@@ -14,23 +14,23 @@ interface ExportCardProps {
 
 function ExportCard({ title, description, icon, onExport, isExporting }: ExportCardProps) {
   return (
-    <div className="plat-card p-6 flex flex-col gap-4">
+    <div className="export-card">
       <div className="flex items-center gap-4">
-        <div className="p-3 bg-faded rounded-lg text-primary">
+        <div className="export-icon-wrap">
           {icon}
         </div>
         <div>
-          <h3 className="font-bold text-lg">{title}</h3>
-          <p className="text-sm text-secondary">{description}</p>
+          <h3 className="export-nav-title">{title}</h3>
+          <p className="export-nav-desc">{description}</p>
         </div>
       </div>
-      <button 
-        className="plat-btn plat-btn-primary w-full mt-2" 
-        onClick={onExport} 
+      <button
+        className="export-btn"
+        onClick={onExport}
         disabled={isExporting}
       >
-        {isExporting ? <Loader2 size={16} className="animate-spin mr-2" /> : <Download size={16} className="mr-2" />}
-        {isExporting ? 'Preparing File...' : 'Export to CSV'}
+        {isExporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+        <span>{isExporting ? 'Generating Report...' : 'Export to CSV'}</span>
       </button>
     </div>
   );
@@ -41,66 +41,67 @@ export default function ExportDataPage() {
 
   const handleExport = async (type: string) => {
     setExporting(type);
-    // Simulate export latency
     await new Promise(r => setTimeout(r, 1500));
     alert(`${type} data export triggered. File will be downloaded shortly.`);
     setExporting(null);
   };
 
   return (
-    <div className="plat-page animate-fade-in">
-      
+    <div className="plat-page fade-in">
 
-      <div className="plat-header mb-8">
-        <div>
-          <h1 className="plat-header-title">
-            <Download size={20} strokeWidth={1.6} style={{ color: 'var(--primary)' }} />
-            Export Data
-          </h1>
-          <p className="plat-header-sub">Generate and download CSV reports for clinical and administrative data.</p>
-        </div>
+      <div className="settings-header">
+        <h1 className="settings-title">
+          <div className="export-icon-wrap" style={{ width: 36, height: 36, background: 'var(--pp-blue)', color: 'white' }}>
+            <Download size={20} />
+          </div>
+          Clinical Data Archival
+        </h1>
+        <p className="settings-subtitle">Generate porting-ready CSV archives for clinical and financial auditing.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <ExportCard 
-          title="Patients Directory"
-          description="Basic profile info, contact details, and registration dates."
+      <div className="export-grid">
+        <ExportCard
+          title="Patient Registry"
+          description="Demographics, contact info, and registration history."
           icon={<Users size={24} />}
           onExport={() => handleExport('Patients')}
           isExporting={exporting === 'Patients'}
         />
-        <ExportCard 
-          title="Medical Cases"
-          description="Summary of all consultations and visit history."
+        <ExportCard
+          title="Case History"
+          description="Full clinical logs, consultations, and diagnosis data."
           icon={<FileText size={24} />}
           onExport={() => handleExport('Medical Cases')}
           isExporting={exporting === 'Medical Cases'}
         />
-        <ExportCard 
-          title="Billing Records"
-          description="Transactions, invoice summaries, and payment status."
+        <ExportCard
+          title="Financial Ledger"
+          description="Revenue logs, transaction IDs, and settlement status."
           icon={<CreditCard size={24} />}
           onExport={() => handleExport('Billing')}
           isExporting={exporting === 'Billing'}
         />
-        <ExportCard 
-          title="Appointments"
-          description="Historical and future appointment logs."
+        <ExportCard
+          title="Scheduling Log"
+          description="Appointment sequences, cancellations, and visit maps."
           icon={<Calendar size={24} />}
           onExport={() => handleExport('Appointments')}
           isExporting={exporting === 'Appointments'}
         />
       </div>
 
-      <div className="mt-12 bg-faded p-6 rounded-xl border border-main border-dashed flex items-start gap-4">
-         <CheckCircle2 className="text-success mt-1" size={20} />
-         <div>
-            <h4 className="font-bold mb-1">Data Privacy Notice</h4>
-            <p className="text-sm text-secondary">
-               All exported data contains sensitive patient information. Please ensure that exported files 
-               are handled securely in compliance with clinic data protection policies.
-            </p>
-         </div>
+      <div className="security-box">
+        <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600 border border-emerald-100 flex-shrink-0">
+          <CheckCircle2 size={24} />
+        </div>
+        <div>
+          <h4 className="font-bold text-[14px] text-emerald-900">Data Privacy & Security</h4>
+          <p className="text-[12px] color-muted mt-0.5 leading-relaxed">
+            Exported files contain sensitive health information. Ensure you handle these
+            downloads according to your clinic's data protection policy.
+            All export actions are logged in the system audit trail.
+          </p>
+        </div>
       </div>
     </div>
   );

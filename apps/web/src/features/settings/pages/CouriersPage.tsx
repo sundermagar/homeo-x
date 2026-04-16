@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Truck, Plus, X, RefreshCw, Trash2, Edit2, Phone, User, Globe, Search  } from 'lucide-react';
-
+import { Truck, Plus, X, RefreshCw, ArrowLeft, Trash2, Edit2, Phone, User, Globe, Search } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useCouriers, useCreateCourier, useUpdateCourier, useDeleteCourier } from '../hooks/use-settings';
 import '../../platform/styles/platform.css';
 import '../styles/settings.css';
@@ -32,7 +32,7 @@ export default function CouriersPage() {
   const handleOpenEdit = (courier: any) => {
     setEditingId(courier.id);
     setForm({ 
-name: courier.name, 
+      name: courier.name, 
       contactPerson: courier.contactPerson || '', 
       phone: courier.phone || '',
       trackingUrl: courier.trackingUrl || '',
@@ -58,7 +58,7 @@ name: courier.name,
   };
 
   return (
-    <div className="plat-page animate-fade-in">
+    <div className="plat-page fade-in">
       
 
       <div className="plat-header">
@@ -79,22 +79,22 @@ name: courier.name,
 
       <div className="plat-stats-bar">
         <div className="plat-stat-card">
-          <span className="plat-stat-label">Courier Partners</span>
-          <span className="plat-stat-value">{couriers.length}</span>
+          <p className="plat-stat-label">Courier Partners</p>
+          <p className="plat-stat-value plat-stat-value-primary">{couriers.length}</p>
         </div>
         <div className="plat-stat-card">
-          <span className="plat-stat-label">Active Services</span>
-          <span className="plat-stat-value plat-stat-value-success">
+          <p className="plat-stat-label">Active Services</p>
+          <p className="plat-stat-value plat-stat-value-success">
             {couriers.filter((c: any) => c.isActive).length}
-          </span>
+          </p>
         </div>
       </div>
 
       <div className="plat-filters">
         <div className="plat-search-wrap">
-          <Search size={16} className="plat-search-icon" />
+          <Search size={14} className="plat-search-icon" />
           <input 
-            className="plat-filter-input plat-search-input"
+            className="plat-form-input plat-search-input"
             placeholder="Search providers..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -119,34 +119,34 @@ name: courier.name,
                 <tr>
                   <th>Courier Name</th>
                   <th>Contact Information</th>
-                  <th>Tracking </th>
+                  <th>Tracking Link</th>
                   <th style={{ width: '100px' }}>Status</th>
                   <th style={{ width: '120px' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredItems.map((c: any) => (
-                  <tr key={c.id}>
-                    <td data-label="Courier Name">{c.name}</td>
-                    <td data-label="Contact">
+                  <tr key={c.id} className="plat-table-row">
+                    <td data-label="Courier Name" className="plat-table-cell font-semibold">{c.name}</td>
+                    <td data-label="Contact" className="plat-table-cell">
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-2"><User size={12} className="color-muted" /> {c.contactPerson || '—'}</div>
                         <div className="flex items-center gap-2 font-mono"><Phone size={12} className="color-muted" /> {c.phone || '—'}</div>
                       </div>
                     </td>
-                    <td data-label="Tracking">
+                    <td data-label="Tracking" className="plat-table-cell">
                       {c.trackingUrl ? (
                          <a href={c.trackingUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 color-primary text-xs underline">
                             <Globe size={12} /> View Tracking Portal
                          </a>
                       ) : 'Manual Tracking Only'}
                     </td>
-                    <td data-label="Status">
+                    <td data-label="Status" className="plat-table-cell">
                        <span className={`plat-badge ${c.isActive ? 'plat-badge-staff' : 'plat-badge-default'}`}>
                          {c.isActive ? 'Active' : 'Inactive'}
                        </span>
                     </td>
-                    <td>
+                    <td className="plat-table-cell">
                       <div className="flex justify-end gap-2">
                         <button className="plat-btn plat-btn-icon" onClick={() => handleOpenEdit(c)}>
                           <Edit2 size={14} />
@@ -165,31 +165,31 @@ name: courier.name,
       </div>
 
       {isModalOpen && (
-        <div className="plat-modal-overlay animate-fade-in" onClick={(e) => e.target === e.currentTarget && setIsModalOpen(false)}>
-          <div className="plat-modal" style={{ maxWidth: '450px' }}>
+        <div className="plat-modal-backdrop" onClick={() => setIsModalOpen(false)}>
+          <div className="plat-modal-content max-w-lg" onClick={e => e.stopPropagation()}>
             <div className="plat-modal-header">
               <h2 className="plat-modal-title">{editingId ? 'Edit Courier' : 'Add Courier'}</h2>
               <button className="plat-btn plat-btn-icon" onClick={() => setIsModalOpen(false)}>
                 <X size={16} />
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="plat-modal-form">
+            <form onSubmit={handleSubmit}>
               <div className="plat-modal-body">
-                <div className="plat-form">
-                  <div className="plat-form-group plat-form-full">
-                    <label className="plat-form-label">Courier Name *</label>
-                    <div className="plat-input-wrapper">
-                      <Truck size={16} className="plat-input-icon" />
-                      <input 
-                        className="plat-form-input" 
-                        value={form.name} 
-                        onChange={e => setForm(f => ({...f, name: e.target.value}))}
-                        required 
-                        placeholder="e.g. BlueDart, DTDC, FedEx"
-                      />
+                <div className="plat-form-section">
+                  <div className="plat-form-grid-multi" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
+                    <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
+                      <label className="plat-form-label">Courier Name *</label>
+                      <div className="plat-input-wrapper">
+                        <Truck size={16} className="plat-input-icon" />
+                        <input 
+                          className="plat-form-input" 
+                          value={form.name} 
+                          onChange={e => setForm(f => ({...f, name: e.target.value}))}
+                          required 
+                          placeholder="e.g. BlueDart, DTDC, FedEx"
+                        />
+                      </div>
                     </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
                     <div className="plat-form-group">
                       <label className="plat-form-label">Contact Person</label>
                       <div className="plat-input-wrapper">
@@ -214,29 +214,29 @@ name: courier.name,
                         />
                       </div>
                     </div>
-                  </div>
-                  <div className="plat-form-group plat-form-full">
-                    <label className="plat-form-label">Tracking Base URL</label>
-                    <div className="plat-input-wrapper">
-                      <Globe size={16} className="plat-input-icon" />
-                      <input 
-                        className="plat-form-input" 
-                        value={form.trackingUrl} 
-                        onChange={e => setForm(f => ({...f, trackingUrl: e.target.value}))}
-                        placeholder="https://tracker.service.com/..."
-                      />
+                    <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
+                      <label className="plat-form-label">Tracking Base URL</label>
+                      <div className="plat-input-wrapper">
+                        <Globe size={16} className="plat-input-icon" />
+                        <input 
+                          className="plat-form-input" 
+                          value={form.trackingUrl} 
+                          onChange={e => setForm(f => ({...f, trackingUrl: e.target.value}))}
+                          placeholder="https://tracker.service.com/..."
+                        />
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="plat-form-group plat-form-full plat-form-row">
-                    <input 
-                       type="checkbox" 
-                       className="plat-form-input"
-                       id="is_active"
-                       checked={form.isActive} 
-                       onChange={e => setForm(f => ({...f, isActive: e.target.checked}))}
-                    />
-                    <label htmlFor="is_active" className="plat-form-label cursor-pointer">Courier is Active</label>
+                    <div className="flex items-center gap-2 py-2" style={{ gridColumn: 'span 2' }}>
+                      <input 
+                         type="checkbox" 
+                         className="w-4 h-4 accent-primary"
+                         id="is_active"
+                         checked={form.isActive} 
+                         onChange={e => setForm(f => ({...f, isActive: e.target.checked}))}
+                      />
+                      <label htmlFor="is_active" className="plat-form-label mb-0 cursor-pointer">Courier is Active</label>
+                    </div>
                   </div>
                 </div>
               </div>

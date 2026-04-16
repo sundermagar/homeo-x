@@ -1,26 +1,12 @@
-import type {
-  AdditionalCharge,
-  AdditionalChargeWithPatient,
-  DayCharge,
-  BankDeposit,
-  CashDeposit,
   Expense,
   ExpenseWithHead,
+  ExpenseHead,
 } from '@mmc/types';
-import type {
-  CreateAdditionalChargeInput,
-  UpdateAdditionalChargeInput,
-  ListAdditionalChargesQuery,
-  CreateDayChargeInput,
-  UpdateDayChargeInput,
-  CreateBankDepositInput,
-  UpdateBankDepositInput,
-  CreateCashDepositInput,
-  UpdateCashDepositInput,
-  ListDepositsQuery,
   CreateExpenseInput,
   UpdateExpenseInput,
   ListExpensesQuery,
+  CreateExpenseHeadInput,
+  UpdateExpenseHeadInput,
 } from '@mmc/validation';
 
 /**
@@ -76,4 +62,11 @@ export interface ExpenseRepository {
   create(data: CreateExpenseInput): Promise<Expense>;
   update(id: number, data: UpdateExpenseInput): Promise<Expense | null>;
   softDelete(id: number): Promise<boolean>;
+
+  // Expense Heads
+  listHeads(): Promise<ExpenseHead[]>;
+  findHeadById(id: number): Promise<ExpenseHead | null>;
+  createHead(data: CreateExpenseHeadInput): Promise<ExpenseHead>;
+  updateHead(id: number, data: UpdateExpenseHeadInput): Promise<ExpenseHead | null>;
+  deleteHead(id: number): Promise<boolean>;
 }

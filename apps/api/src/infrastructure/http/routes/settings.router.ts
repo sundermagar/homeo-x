@@ -16,7 +16,6 @@ import {
   // createMedicineSchema, updateMedicineSchema,
   createPotencySchema, updatePotencySchema,
   createFrequencySchema, updateFrequencySchema,
-  createExpenseHeadSchema, updateExpenseHeadSchema,
   createMessageTemplateSchema, updateMessageTemplateSchema,
   createPackagePlanSchema, updatePackagePlanSchema,
   createCourierSchema, updateCourierSchema,
@@ -318,26 +317,7 @@ export function createSettingsRouter(): Router {
     res.json({ success: true });
   }));
 
-  // ─── Expense Heads ────────────────────────────────────────────────────────
-  router.get('/expense-heads', asyncHandler(async (req: Request, res: Response) => {
-    const data = await getRepo(req).listExpenseHeads();
-    res.json({ success: true, data });
-  }));
 
-  router.post('/expense-heads', validate(createExpenseHeadSchema), asyncHandler(async (req: Request, res: Response) => {
-    const data = await getRepo(req).createExpenseHead(req.body);
-    res.status(201).json({ success: true, data });
-  }));
-
-  router.put('/expense-heads/:id', validate(updateExpenseHeadSchema), asyncHandler(async (req: Request, res: Response) => {
-    const data = await getRepo(req).updateExpenseHead(Number(req.params.id), req.body);
-    res.json({ success: true, data });
-  }));
-
-  router.delete('/expense-heads/:id', asyncHandler(async (req: Request, res: Response) => {
-    await getRepo(req).deleteExpenseHead(Number(req.params.id));
-    res.json({ success: true });
-  }));
 
   // ─── Message Templates ────────────────────────────────────────────────────
   router.get('/message-templates', asyncHandler(async (req: Request, res: Response) => {

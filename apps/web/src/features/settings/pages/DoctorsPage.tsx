@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Stethoscope, Plus, Edit2, Trash2, RefreshCw, Mail, Phone, MapPin, Search  } from 'lucide-react';
-
+import { Stethoscope, Plus, Edit2, Trash2, RefreshCw, ArrowLeft, Mail, Phone, MapPin, Search } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useAccounts, useDeleteAccount } from '../../platform/hooks/use-accounts';
 import { useOrganizations } from '../../platform/hooks/use-organizations';
 import { AccountModal } from '../../platform/components/AccountModal';
@@ -25,7 +25,7 @@ export default function DoctorsPage() {
   );
 
   const openCreate = () => { setEditing(undefined); setModalOpen(true); };
-  const openEdit   = (d: any) => { setEditing(d); setModalOpen(true); };
+  const openEdit = (d: any) => { setEditing(d); setModalOpen(true); };
 
   const handleDelete = async (id: number, name: string) => {
     if (!confirm(`Remove "${name}" from the Doctors Directory?`)) return;
@@ -33,8 +33,8 @@ export default function DoctorsPage() {
   };
 
   return (
-    <div className="plat-page animate-fade-in">
-      
+    <div className="plat-page fade-in">
+
 
       <div className="plat-header">
         <div>
@@ -54,22 +54,22 @@ export default function DoctorsPage() {
 
       <div className="plat-stats-bar">
         <div className="plat-stat-card">
-          <span className="plat-stat-label">Total Doctors</span>
-          <span className="plat-stat-value">{doctors.length}</span>
+          <p className="plat-stat-label">Total Doctors</p>
+          <p className="plat-stat-value plat-stat-value-primary">{doctors.length}</p>
         </div>
         <div className="plat-stat-card">
-          <span className="plat-stat-label">Active Listing</span>
-          <span className="plat-stat-value plat-stat-value-success">
+          <p className="plat-stat-label">Active Listing</p>
+          <p className="plat-stat-value plat-stat-value-success">
             {filteredDoctors.length}
-          </span>
+          </p>
         </div>
       </div>
 
       <div className="plat-filters">
         <div className="plat-search-wrap">
-          <Search size={16} className="plat-search-icon" />
-          <input 
-            className="plat-filter-input plat-search-input"
+          <Search size={14} className="plat-search-icon" />
+          <input
+            className="plat-form-input plat-search-input"
             placeholder="Search doctors by name, email or specialty..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -101,13 +101,13 @@ export default function DoctorsPage() {
               </thead>
               <tbody>
                 {filteredDoctors.map((doc: any, idx: number) => (
-                  <tr key={doc.id}>
-                    <td data-label="#">{idx + 1}</td>
-                    <td data-label="Doctor">
+                  <tr key={doc.id} className="plat-table-row">
+                    <td data-label="#" className="plat-table-cell font-mono text-xs color-muted">{idx + 1}</td>
+                    <td data-label="Doctor" className="plat-table-cell">
                       <div className="font-semibold">{doc.name}</div>
                       <div className="text-xs color-muted">{doc.designation || 'General Physician'}</div>
                     </td>
-                    <td data-label="Contact">
+                    <td data-label="Contact" className="plat-table-cell">
                       <div className="flex flex-col gap-1">
                         {doc.email && <div className="text-xs flex items-center gap-1.5"><Mail size={12} className="color-muted" /> {doc.email}</div>}
                         {doc.mobile && (
@@ -117,10 +117,10 @@ export default function DoctorsPage() {
                         )}
                       </div>
                     </td>
-                    <td data-label="Clinic">
+                    <td data-label="Clinic" className="plat-table-cell text-secondary">
                       {orgs.find((o: any) => o.id === doc.clinicId)?.name || 'Multi-clinic Access'}
                     </td>
-                    <td>
+                    <td className="plat-table-cell">
                       <div className="flex justify-end gap-3">
                         <button className="plat-btn plat-btn-sm plat-btn-icon" onClick={() => openEdit(doc)}>
                           <Edit2 size={13} />

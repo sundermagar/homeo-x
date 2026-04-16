@@ -1,13 +1,14 @@
 import React from 'react';
-import { Users, ShieldCheck, UserPlus } from 'lucide-react';
+import { Users, ShieldCheck, ArrowLeft, UserPlus } from 'lucide-react';
 import { Link } from 'react-router-dom';
-
 import '../../platform/styles/platform.css';
 import '../styles/settings.css';
 
 export default function StaffManagementPage() {
   return (
-    <div className="plat-page animate-fade-in">
+    <div className="plat-page fade-in">
+
+
       <div className="plat-header">
         <div>
           <h1 className="plat-header-title">
@@ -17,21 +18,21 @@ export default function StaffManagementPage() {
           <p className="plat-header-sub">Manage platform users, receptionists, and clinical assistants.</p>
         </div>
         <div className="plat-header-actions">
-           <Link to="/platform/accounts" className="plat-btn plat-btn-primary">
-              <UserPlus size={14} />
-              Manage Login Accounts
-           </Link>
+          <Link to="/platform/accounts" className="plat-btn plat-btn-primary">
+            <UserPlus size={14} />
+            Manage Login Accounts
+          </Link>
         </div>
       </div>
 
       <div className="plat-stats-bar">
         <div className="plat-stat-card">
-          <span className="plat-stat-label">System Access</span>
-          <span className="plat-stat-value">Identity Service</span>
+          <p className="plat-stat-label">System Access</p>
+          <p className="plat-stat-value plat-stat-value-primary">Identity Service</p>
         </div>
         <div className="plat-stat-card">
-          <span className="plat-stat-label">Security Role</span>
-          <span className="plat-stat-value plat-stat-value-success">Administrator</span>
+          <p className="plat-stat-label">Security Role</p>
+          <p className="plat-stat-value plat-stat-value-success">Administrator</p>
         </div>
       </div>
 
@@ -40,7 +41,7 @@ export default function StaffManagementPage() {
           <ShieldCheck size={48} className="plat-empty-icon mb-4" />
           <h3 className="text-lg font-semibold mb-2">Centralized Account Management</h3>
           <p className="plat-empty-text max-w-md mx-auto">
-            Staff roles, permissions, and login credentials are managed through the centralized 
+            Staff roles, permissions, and login credentials are managed through the centralized
             <strong> Platform Accounts</strong> module for enhanced security and multi-clinic synchronization.
           </p>
           <Link to="/platform/accounts" className="plat-btn plat-btn-primary mt-6">

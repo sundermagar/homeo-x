@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import React, { Pill, Plus, X, RefreshCw, ArrowLeft, Trash2, Edit2, Info, Package, IndianRupee, Search, AlertCircle, CheckCircle2, History } from 'lucide-react';
-import React, { Link } from 'react-router-dom';
-import React, { useMedicines, useCreateMedicine, useUpdateMedicine, useDeleteMedicine, usePotencies } from '../hooks/use-settings';
+import { Pill, Plus, X, RefreshCw, ArrowLeft, Trash2, Edit2, Info, Package, IndianRupee, Search, AlertCircle, CheckCircle2, History } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { useMedicines, useCreateMedicine, useUpdateMedicine, useDeleteMedicine, usePotencies } from '../hooks/use-settings';
 import '../../platform/styles/platform.css';
 import '../styles/settings.css';
 
@@ -16,8 +16,8 @@ interface Medicine {
   stockLevel?: number | null;
 }
 
-const EMPTY_FORM = { 
-  name: '', 
+const EMPTY_FORM = {
+  name: '',
   disease: '',
   potencyId: '',
   type: '',
@@ -29,7 +29,7 @@ const EMPTY_FORM = {
 export default function MedicinesPage() {
   const { data: medicines = [], isLoading } = useMedicines();
   const { data: potencies = [] } = usePotencies();
-  
+
   const createMed = useCreateMedicine();
   const updateMed = useUpdateMedicine();
   const deleteMed = useDeleteMedicine();
@@ -56,8 +56,8 @@ export default function MedicinesPage() {
 
   const handleOpenEdit = (med: Medicine) => {
     setEditingId(med.id);
-    setForm({ 
-      name: med.name, 
+    setForm({
+      name: med.name,
       disease: med.disease || '',
       potencyId: med.potencyId?.toString() || '',
       type: med.type || '',
@@ -96,14 +96,7 @@ export default function MedicinesPage() {
 
   return (
     <div className="plat-page fade-in">
-      <div className="flex justify-between items-center mb-1">
-        <Link to="/settings" className="settings-back-link">
-          <ArrowLeft size={14} /> Back to Settings
-        </Link>
-        <Link to="/settings/stocks-log" className="plat-btn plat-btn-sm" style={{ gap: 4 }}>
-          <History size={13} /> Stock Audit Log
-        </Link>
-      </div>
+
 
       <div className="plat-header">
         <div>
@@ -122,28 +115,28 @@ export default function MedicinesPage() {
 
       <div className="plat-stats-bar">
         <div className="plat-stat-card">
-          <span className="plat-stat-label">Total Catalog</span>
-          <span className="plat-stat-value plat-stat-value-primary">{medicines.length}</span>
+          <p className="plat-stat-label">Total Catalog</p>
+          <p className="plat-stat-value plat-stat-value-primary">{medicines.length}</p>
         </div>
         <div className="plat-stat-card">
-          <span className="plat-stat-label">Low Stock Alerts</span>
-          <span className={`plat-stat-value ${lowStockCount > 0 ? 'text-orange-500' : 'plat-stat-value-muted'}`}>
+          <p className="plat-stat-label">Low Stock Alerts</p>
+          <p className={`plat-stat-value ${lowStockCount > 0 ? 'plat-stat-value-warning' : ''}`}>
             {lowStockCount}
-          </span>
+          </p>
         </div>
         <div className="plat-stat-card">
-          <span className="plat-stat-label">Depleted Stock</span>
-          <span className={`plat-stat-value ${outOfStockCount > 0 ? 'text-red-600' : 'plat-stat-value-muted'}`}>
+          <p className="plat-stat-label">Depleted Stock</p>
+          <p className={`plat-stat-value ${outOfStockCount > 0 ? 'plat-stat-value-danger' : ''}`}>
             {outOfStockCount}
-          </span>
+          </p>
         </div>
       </div>
 
       <div className="plat-filters">
-        <div className="plat-search-wrap" style={{ flex: '1 1 400px' }}>
-          <Search size={16} className="plat-search-icon" />
-          <input 
-            className="plat-filter-input plat-search-input"
+        <div className="plat-search-wrap">
+          <Search size={14} className="plat-search-icon" />
+          <input
+            className="plat-form-input plat-search-input"
             placeholder="Search by name, disease indication, or category..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -176,12 +169,12 @@ export default function MedicinesPage() {
               </thead>
               <tbody>
                 {filtered.map((med: Medicine, idx: number) => {
-                   const potencyName = potencies.find((p: any) => p.id === Number(med.potencyId))?.name || '—';
-                   const stock = med.stockLevel || 0;
-                   const isOutOfStock = stock === 0;
-                   const isLowStock = stock > 0 && stock < 10;
+                  const potencyName = potencies.find((p: any) => p.id === Number(med.potencyId))?.name || '—';
+                  const stock = med.stockLevel || 0;
+                  const isOutOfStock = stock === 0;
+                  const isLowStock = stock > 0 && stock < 10;
 
-                   return (
+                  return (
                     <tr key={med.id} className="plat-table-row">
                       <td className="plat-table-cell color-muted font-mono text-xs">{idx + 1}</td>
                       <td className="plat-table-cell">
@@ -192,27 +185,27 @@ export default function MedicinesPage() {
                       </td>
                       <td className="plat-table-cell">
                         <div className="flex flex-wrap gap-1.5">
-                           {med.category && <span className="plat-badge plat-badge-primary text-[9px]">{med.category}</span>}
-                           {med.type && <span className="plat-badge plat-badge-default text-[9px]">{med.type}</span>}
-                           <span className="plat-badge bg-faded text-[9px] border border-main color-muted italic">{potencyName}</span>
+                          {med.category && <span className="plat-badge plat-badge-primary text-[9px]">{med.category}</span>}
+                          {med.type && <span className="plat-badge plat-badge-default text-[9px]">{med.type}</span>}
+                          <span className="plat-badge bg-faded text-[9px] border border-main color-muted italic">{potencyName}</span>
                         </div>
                       </td>
                       <td className="plat-table-cell">
-                         <div className="flex items-center gap-1.5 font-mono text-xs font-bold">
-                           <Package size={12} className="color-muted" />
-                           <span className={isOutOfStock ? 'text-red-600' : isLowStock ? 'text-orange-500' : 'text-emerald-600'}>
-                             {stock} Units
-                           </span>
-                         </div>
-                         <div className="mt-1">
-                           {isOutOfStock ? (
-                             <span className="text-[8px] font-black text-red-700 uppercase bg-red-50 px-1 border border-red-200 rounded">Depleted</span>
-                           ) : isLowStock ? (
-                             <span className="text-[8px] font-black text-orange-700 uppercase bg-orange-50 px-1 border border-orange-200 rounded">Critically Low</span>
-                           ) : (
-                             <span className="text-[8px] font-black text-emerald-700 uppercase bg-emerald-50 px-1 border border-emerald-200 rounded">In Stock</span>
-                           )}
-                         </div>
+                        <div className="flex items-center gap-1.5 font-mono text-xs font-bold">
+                          <Package size={12} className="color-muted" />
+                          <span className={isOutOfStock ? 'text-red-600' : isLowStock ? 'text-orange-500' : 'text-emerald-600'}>
+                            {stock} Units
+                          </span>
+                        </div>
+                        <div className="mt-1">
+                          {isOutOfStock ? (
+                            <span className="text-[8px] font-black text-red-700 uppercase bg-red-50 px-1 border border-red-200 rounded">Depleted</span>
+                          ) : isLowStock ? (
+                            <span className="text-[8px] font-black text-orange-700 uppercase bg-orange-50 px-1 border border-orange-200 rounded">Critically Low</span>
+                          ) : (
+                            <span className="text-[8px] font-black text-emerald-700 uppercase bg-emerald-50 px-1 border border-emerald-200 rounded">In Stock</span>
+                          )}
+                        </div>
                       </td>
                       <td className="plat-table-cell">
                         <div className="flex items-center gap-1 font-mono font-bold text-primary">
@@ -224,13 +217,13 @@ export default function MedicinesPage() {
                           <button className="plat-btn plat-btn-sm plat-btn-icon" onClick={() => handleOpenEdit(med)}>
                             <Edit2 size={13} />
                           </button>
-                          <button className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" onClick={() => handleDelete(med.id, med.name)} title="Delete">
+                          <button className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" onClick={() => handleDelete(med.id, med.name)}>
                             <Trash2 size={13} />
                           </button>
                         </div>
                       </td>
                     </tr>
-                   );
+                  );
                 })}
               </tbody>
             </table>
@@ -239,104 +232,113 @@ export default function MedicinesPage() {
       </div>
 
       {isModalOpen && (
-        <div className="plat-modal-overlay" onClick={() => setIsModalOpen(false)}>
-          <div className="plat-modal" style={{ maxWidth: '600px' }} onClick={e => e.stopPropagation()}>
-            <div className="plat-modal-header border-none pb-0">
-               <div>
-                 <h2 className="plat-modal-title">{editingId ? 'Update Medicine Catalog' : 'Register New Remedy'}</h2>
-                 <p className="text-xs text-muted mt-1">Configure stock levels and pricing tiers.</p>
-               </div>
-               <button className="plat-btn plat-btn-icon" onClick={() => setIsModalOpen(false)}>
-                 <X size={16} />
-               </button>
+        <div className="plat-modal-backdrop" onClick={() => setIsModalOpen(false)}>
+          <div className="plat-modal-content max-w-2xl" onClick={e => e.stopPropagation()}>
+            <div className="plat-modal-header">
+              <h2 className="plat-modal-title">
+                {editingId ? 'Update Medicine Catalog' : 'Register New Remedy'}
+              </h2>
+              <button className="plat-btn plat-btn-icon" onClick={() => setIsModalOpen(false)}>
+                <X size={16} />
+              </button>
             </div>
             <form onSubmit={handleSubmit}>
-              <div className="plat-modal-body plat-form">
-                <div className="plat-form-group plat-form-full">
-                  <label className="plat-form-label">Remedy Name *</label>
-                  <input
-                    className="plat-form-input"
-                    required
-                    value={form.name}
-                    onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                    placeholder="e.g. Aconite Napellus"
-                  />
-                </div>
+              <div className="plat-modal-body">
+                <div className="plat-form-section">
+                  <div className="plat-form-grid-multi" style={{ gridTemplateColumns: '1fr' }}>
+                    <div className="plat-form-group">
+                      <label className="plat-form-label">Remedy Name *</label>
+                      <input
+                        className="plat-form-input"
+                        required
+                        value={form.name}
+                        onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                        placeholder="e.g. Aconite Napellus"
+                      />
+                    </div>
 
-                <div className="plat-form-group plat-form-full">
-                  <label className="plat-form-label">Primary Indication (Disease)</label>
-                  <input
-                    className="plat-form-input"
-                    value={form.disease}
-                    onChange={e => setForm(f => ({ ...f, disease: e.target.value }))}
-                    placeholder="e.g. Fever, Anxiety, Acute Pain..."
-                  />
-                </div>
+                    <div className="plat-form-group">
+                      <label className="plat-form-label">Primary Indication (Disease)</label>
+                      <input
+                        className="plat-form-input"
+                        value={form.disease}
+                        onChange={e => setForm(f => ({ ...f, disease: e.target.value }))}
+                        placeholder="e.g. Fever, Anxiety, Acute Pain..."
+                      />
+                    </div>
+                  </div>
 
-                <div className="plat-form-grid">
-                  <div className="plat-form-group">
-                    <label className="plat-form-label">Potency</label>
-                    <select 
-                      className="plat-form-select"
-                      value={form.potencyId}
-                      onChange={e => setForm(f => ({ ...f, potencyId: e.target.value }))}
-                    >
-                      <option value="">Select Potency</option>
-                      {potencies.map((p: any) => (
-                        <option key={p.id} value={p.id}>{p.name}</option>
-                      ))}
-                    </select>
+                  <div className="plat-form-grid-multi mt-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+                    <div className="plat-form-group">
+                      <label className="plat-form-label">Potency</label>
+                      <select
+                        className="plat-form-input"
+                        value={form.potencyId}
+                        onChange={e => setForm(f => ({ ...f, potencyId: e.target.value }))}
+                      >
+                        <option value="">Select Potency</option>
+                        {potencies.map((p: any) => (
+                          <option key={p.id} value={p.id}>{p.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="plat-form-group">
+                      <label className="plat-form-label">Form/Type</label>
+                      <input
+                        className="plat-form-input"
+                        value={form.type}
+                        onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
+                        placeholder="e.g. Globules"
+                      />
+                    </div>
+                    <div className="plat-form-group">
+                      <label className="plat-form-label">Category</label>
+                      <select
+                        className="plat-form-input"
+                        value={form.category}
+                        onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
+                      >
+                        <option value="">Select Category</option>
+                        <option value="Dilution">Dilution</option>
+                        <option value="Trituration">Trituration</option>
+                        <option value="Bio-Chemic">Bio-Chemic</option>
+                        <option value="Generic">Generic</option>
+                        <option value="Speciality">Speciality</option>
+                      </select>
+                    </div>
+                    <div className="plat-form-group">
+                      <label className="plat-form-label">Unit Price (₹)</label>
+                      <div className="plat-input-wrapper">
+                        <IndianRupee size={14} className="plat-input-icon" />
+                        <input
+                          type="number"
+                          className="plat-form-input"
+                          value={form.price}
+                          onChange={e => setForm(f => ({ ...f, price: Number(e.target.value) }))}
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div className="plat-form-group">
-                    <label className="plat-form-label">Form/Type</label>
-                    <input 
-                      className="plat-form-input"
-                      value={form.type}
-                      onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
-                      placeholder="e.g. Globules"
-                    />
-                  </div>
-                  <div className="plat-form-group">
-                    <label className="plat-form-label">Category</label>
-                    <select 
-                      className="plat-form-select"
-                      value={form.category}
-                      onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                    >
-                      <option value="">Select Category</option>
-                      <option value="Dilution">Dilution</option>
-                      <option value="Trituration">Trituration</option>
-                      <option value="Bio-Chemic">Bio-Chemic</option>
-                      <option value="Generic">Generic</option>
-                      <option value="Speciality">Speciality</option>
-                    </select>
-                  </div>
-                  <div className="plat-form-group">
-                    <label className="plat-form-label">Unit Price (₹)</label>
-                    <input 
-                      type="number"
-                      className="plat-form-input"
-                      value={form.price}
-                      onChange={e => setForm(f => ({ ...f, price: Number(e.target.value) }))}
-                    />
-                  </div>
-                </div>
 
-                <div className="plat-form-group plat-form-full">
-                  <label className="plat-form-label">Opening Stock Tier</label>
-                  <input 
-                    type="number"
-                    className="plat-form-input"
-                    value={form.stockLevel}
-                    onChange={e => setForm(f => ({ ...f, stockLevel: Number(e.target.value) }))}
-                  />
-                  <p className="text-[10px] color-muted mt-2">Adjustments are captured in the stock audit trail.</p>
+                  <div className="plat-form-group mt-4">
+                    <label className="plat-form-label">Opening Stock Tier</label>
+                    <div className="plat-input-wrapper">
+                      <Package size={14} className="plat-input-icon" />
+                      <input
+                        type="number"
+                        className="plat-form-input"
+                        value={form.stockLevel}
+                        onChange={e => setForm(f => ({ ...f, stockLevel: Number(e.target.value) }))}
+                      />
+                    </div>
+                    <p className="text-[10px] color-muted mt-2">Adjustments are captured in the stock audit trail.</p>
+                  </div>
                 </div>
               </div>
 
-              <div className="plat-modal-footer bg-faded">
+              <div className="plat-modal-footer">
                 <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>Discard</button>
-                <button type="submit" className="plat-btn plat-btn-primary px-10" disabled={createMed.isPending || updateMed.isPending}>
+                <button type="submit" className="plat-btn plat-btn-primary" disabled={createMed.isPending || updateMed.isPending}>
                   {editingId ? 'Save Changes' : 'Register Medicine'}
                 </button>
               </div>

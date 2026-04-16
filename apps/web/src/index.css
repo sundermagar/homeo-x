@@ -957,11 +957,19 @@ a {
   }
 }
 
+/* ── Page Row Layout: stacks on mobile, side-by-side on desktop ── */
 .page-content-row {
   display: flex;
-  align-items: flex-start;
-  gap: var(--pp-space-4);
-  /* Ensure back button and title share same baseline */
+  flex-direction: column;
+  gap: 0;
+}
+
+@media (min-width: 768px) {
+  .page-content-row {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: var(--pp-space-4);
+  }
 }
 
 .page-content-main {
@@ -969,28 +977,48 @@ a {
   min-width: 0;
 }
 
+/* ── Back Button Area ── */
 .page-back-widget-area {
-  padding: 0;
   display: flex;
   align-items: center;
-  /* Reduced top margin to align with optical center of H1 titles */
-  margin-top: 0;
-  padding-top: 2px;
+  /* Mobile: render as a slim top bar above content */
+  padding: 6px 0 8px 0;
+  margin-bottom: 0;
+}
+
+@media (min-width: 768px) {
+  .page-back-widget-area {
+    /* Desktop: revert to side-column alignment */
+    padding: 0;
+    padding-top: 2px;
+    margin-bottom: 0;
+  }
 }
 
 .page-back-widget {
-  width: 40px;
-  height: 40px;
+  /* Mobile-first: compact, slim button */
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 12px;
+  border-radius: 8px;
   color: #64748b;
   cursor: pointer;
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+}
+
+@media (min-width: 768px) {
+  .page-back-widget {
+    /* Desktop: full-size widget */
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+  }
 }
 
 .page-back-widget:hover {

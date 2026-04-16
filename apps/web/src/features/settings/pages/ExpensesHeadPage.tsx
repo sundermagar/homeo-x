@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Wallet, Plus, X, RefreshCw, Trash2, Edit2, Search  } from 'lucide-react';
-
-import { useExpenseHeads, useCreateExpenseHead, useUpdateExpenseHead, useDeleteExpenseHead } from '../hooks/use-settings';
+import { Wallet, Plus, X, RefreshCw, ArrowLeft, Trash2, Edit2, Search } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { useExpenseHeads, useCreateExpenseHead, useUpdateExpenseHead, useDeleteExpenseHead } from '@/features/billing/hooks/use-accounts';
 import '../../platform/styles/platform.css';
 import '../styles/settings.css';
 
@@ -45,14 +45,14 @@ export default function ExpensesHeadPage() {
     await deleteHead.mutateAsync(id);
   };
 
-  const filtered = heads.filter((h: any) => 
+  const filtered = heads.filter((h: any) =>
     h.name.toLowerCase().includes(search.toLowerCase()) ||
     (h.description && h.description.toLowerCase().includes(search.toLowerCase()))
   );
 
   return (
-    <div className="plat-page animate-fade-in">
-      
+    <div className="plat-page fade-in">
+
 
       <div className="plat-header">
         <div>
@@ -72,22 +72,22 @@ export default function ExpensesHeadPage() {
 
       <div className="plat-stats-bar">
         <div className="plat-stat-card">
-          <span className="plat-stat-label">Expense Categories</span>
-          <span className="plat-stat-value">{heads.length}</span>
+          <p className="plat-stat-label">Expense Categories</p>
+          <p className="plat-stat-value plat-stat-value-primary">{heads.length}</p>
         </div>
         <div className="plat-stat-card">
-          <span className="plat-stat-label">Active Listing</span>
-          <span className="plat-stat-value plat-stat-value-success">
+          <p className="plat-stat-label">Active Listing</p>
+          <p className="plat-stat-value plat-stat-value-success">
             {filtered.length}
-          </span>
+          </p>
         </div>
       </div>
 
       <div className="plat-filters">
         <div className="plat-search-wrap">
-          <Search size={16} className="plat-search-icon" />
-          <input 
-            className="plat-filter-input plat-search-input"
+          <Search size={14} className="plat-search-icon" />
+          <input
+            className="plat-form-input plat-search-input"
             placeholder="Search categories..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -119,16 +119,16 @@ export default function ExpensesHeadPage() {
               </thead>
               <tbody>
                 {filtered.map((head: any) => (
-                  <tr key={head.id}>
-                    <td data-label="ID">{head.id}</td>
-                    <td data-label="Category">{head.name}</td>
-                    <td data-label="Description">{head.description || '—'}</td>
-                    <td data-label="Status">
-                       <span className={`plat-badge ${head.isActive ? 'plat-badge-staff' : 'plat-badge-default'}`}>
-                          {head.isActive ? 'Active' : 'Inactive'}
-                       </span>
+                  <tr key={head.id} className="plat-table-row">
+                    <td data-label="ID" className="plat-table-cell font-mono text-xs color-muted">{head.id}</td>
+                    <td data-label="Category" className="plat-table-cell font-semibold">{head.name}</td>
+                    <td data-label="Description" className="plat-table-cell text-secondary">{head.description || '—'}</td>
+                    <td data-label="Status" className="plat-table-cell">
+                      <span className={`plat-badge ${head.isActive ? 'plat-badge-staff' : 'plat-badge-default'}`}>
+                        {head.isActive ? 'Active' : 'Inactive'}
+                      </span>
                     </td>
-                    <td>
+                    <td className="plat-table-cell">
                       <div className="flex justify-end gap-3">
                         <button className="plat-btn plat-btn-sm plat-btn-icon" onClick={() => handleOpenEdit(head)}>
                           <Edit2 size={13} />
@@ -144,11 +144,9 @@ export default function ExpensesHeadPage() {
             </table>
           </div>
         )}
-      </div>
-
-      {isModalOpen && (
-        <div className="plat-modal-overlay animate-fade-in" onClick={(e) => e.target === e.currentTarget && setIsModalOpen(false)}>
-          <div className="plat-modal" style={{ maxWidth: '450px' }}>
+      </div>      {isModalOpen && (
+        <div className="plat-modal-backdrop" onClick={() => setIsModalOpen(false)}>
+          <div className="plat-modal-content max-w-lg" onClick={e => e.stopPropagation()}>
             <div className="plat-modal-header">
               <h2 className="plat-modal-title">{editingId ? 'Edit Category' : 'Add Expense Category'}</h2>
               <button className="plat-btn plat-btn-icon" onClick={() => setIsModalOpen(false)}>
@@ -156,38 +154,41 @@ export default function ExpensesHeadPage() {
               </button>
             </div>
             <form onSubmit={handleSubmit}>
-              <div className="plat-modal-body plat-form">
-              <div className="plat-form-group plat-form-full">
-                <label className="plat-form-label">Category Name <span className="plat-form-required">*</span></label>
-                <input 
-                  className="plat-form-input" 
-                  value={form.name} 
-                  onChange={e => setForm(f => ({...f, name: e.target.value}))}
-                  required 
-                  placeholder="e.g. Electricity, Maintenance, Rent"
-                />
-              </div>
-              <div className="plat-form-group plat-form-full">
-                <label className="plat-form-label">Description</label>
-                <textarea 
-                  className="plat-form-input" 
-                  style={{ minHeight: '80px' }}
-                  value={form.description} 
-                  onChange={e => setForm(f => ({...f, description: e.target.value}))}
-                  placeholder="Optional details about this category..."
-                />
-              </div>
-                <div className="plat-form-group plat-form-full plat-form-row">
-                  <input 
-                     type="checkbox" 
-                     className="plat-form-input"
-                     id="is_active"
-                     checked={form.isActive} 
-                     onChange={e => setForm(f => ({...f, isActive: e.target.checked}))}
-                  />
-                  <label htmlFor="is_active" className="plat-form-label cursor-pointer">Category is Active</label>
-               </div>
-
+              <div className="plat-modal-body">
+                <div className="plat-form-section">
+                  <div className="plat-form-grid-multi" style={{ gridTemplateColumns: '1fr' }}>
+                    <div className="plat-form-group">
+                      <label className="plat-form-label">Category Name *</label>
+                      <input
+                        className="plat-form-input"
+                        value={form.name}
+                        onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                        required
+                        placeholder="e.g. Electricity, Maintenance, Rent"
+                      />
+                    </div>
+                    <div className="plat-form-group">
+                      <label className="plat-form-label">Description</label>
+                      <textarea
+                        className="plat-form-input"
+                        style={{ minHeight: '80px' }}
+                        value={form.description}
+                        onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                        placeholder="Optional details about this category..."
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 py-2">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 accent-primary"
+                        id="is_active"
+                        checked={form.isActive}
+                        onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))}
+                      />
+                      <label htmlFor="is_active" className="plat-form-label mb-0 cursor-pointer">Category is Active</label>
+                    </div>
+                  </div>
+                </div>
               </div>
               <div className="plat-modal-footer">
                 <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>

@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { Layers, Plus, X, RefreshCw, Trash2, Edit2, CheckCircle2, XCircle  } from 'lucide-react';
-
+import { Layers, Plus, X, RefreshCw, ArrowLeft, Trash2, Edit2, CheckCircle2, XCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useDepartments, useCreateDepartment, useUpdateDepartment, useDeleteDepartment } from '../hooks/use-settings';
 import '../../platform/styles/platform.css'; // Reusing platform styles
 import '../styles/settings.css';
 
 interface Department {
   id: number;
-name: string;
+  name: string;
   description: string;
   isActive: boolean;
 }
@@ -52,8 +52,8 @@ export default function DepartmentsPage() {
   };
 
   return (
-    <div className="plat-page animate-fade-in">
-      
+    <div className="plat-page fade-in">
+
 
       <div className="plat-header">
         <div>
@@ -73,14 +73,14 @@ export default function DepartmentsPage() {
 
       <div className="plat-stats-bar">
         <div className="plat-stat-card">
-          <span className="plat-stat-label">Total Departments</span>
-          <span className="plat-stat-value">{depts.length}</span>
+          <p className="plat-stat-label">Total Departments</p>
+          <p className="plat-stat-value plat-stat-value-primary">{depts.length}</p>
         </div>
         <div className="plat-stat-card">
-          <span className="plat-stat-label">Active Units</span>
-          <span className="plat-stat-value plat-stat-value-success">
+          <p className="plat-stat-label">Active Units</p>
+          <p className="plat-stat-value plat-stat-value-success">
             {depts.filter((d: any) => d.isActive).length}
-          </span>
+          </p>
         </div>
       </div>
 
@@ -108,21 +108,21 @@ export default function DepartmentsPage() {
               </thead>
               <tbody>
                 {depts.map((dept: Department, idx: number) => (
-                  <tr key={dept.id}>
-                    <td data-label="ID">{idx + 1}</td>
-                    <td data-label="Name">{dept.name}</td>
-                    <td data-label="Detail">{dept.description || '—'}</td>
-                    <td data-label="Status">
-                       <span className={`plat-badge ${dept.isActive ? 'plat-badge-staff' : 'plat-badge-default'}`}>
-                         {dept.isActive ? 'Active' : 'Inactive'}
-                       </span>
+                  <tr key={dept.id} className="plat-table-row">
+                    <td data-label="ID" className="plat-table-cell font-mono text-xs color-muted">{idx + 1}</td>
+                    <td data-label="Name" className="plat-table-cell font-semibold">{dept.name}</td>
+                    <td data-label="Detail" className="plat-table-cell text-secondary">{dept.description || '—'}</td>
+                    <td data-label="Status" className="plat-table-cell">
+                      <span className={`plat-badge ${dept.isActive ? 'plat-badge-staff' : 'plat-badge-default'}`}>
+                        {dept.isActive ? 'Active' : 'Inactive'}
+                      </span>
                     </td>
-                    <td>
-                      <div className="plat-action-group">
-                        <button className="plat-btn plat-btn-sm plat-btn-icon" onClick={() => handleOpenEdit(dept)} title="Edit">
+                    <td className="plat-table-cell">
+                      <div className="flex justify-end gap-3">
+                        <button className="plat-btn plat-btn-sm plat-btn-icon" onClick={() => handleOpenEdit(dept)}>
                           <Edit2 size={13} />
                         </button>
-                        <button className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" onClick={() => handleDelete(dept.id, dept.name)} title="Delete">
+                        <button className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" onClick={() => handleDelete(dept.id, dept.name)}>
                           <Trash2 size={13} />
                         </button>
                       </div>
@@ -136,8 +136,8 @@ export default function DepartmentsPage() {
       </div>
 
       {isModalOpen && (
-        <div className="plat-modal-overlay animate-fade-in" onClick={(e) => e.target === e.currentTarget && setIsModalOpen(false)}>
-          <div className="plat-modal">
+        <div className="plat-modal-backdrop" onClick={() => setIsModalOpen(false)}>
+          <div className="plat-modal-content max-w-lg" onClick={e => e.stopPropagation()}>
             <div className="plat-modal-header">
               <h2 className="plat-modal-title">{editingId ? 'Edit Department' : 'Add Department'}</h2>
               <button className="plat-btn plat-btn-icon" onClick={() => setIsModalOpen(false)}>
@@ -145,36 +145,40 @@ export default function DepartmentsPage() {
               </button>
             </div>
             <form onSubmit={handleSubmit}>
-              <div className="plat-modal-body plat-form">
-                <div className="plat-form-group plat-form-full">
-                  <label className="plat-form-label">Department Name <span className="plat-form-required">*</span></label>
-                  <input 
-                    className="plat-form-input" 
-                    value={form.name} 
-                    onChange={e => setForm(f => ({...f, name: e.target.value}))}
-                    required 
-                    placeholder="e.g. Homeopathy, General Medicine"
-                  />
-                </div>
-                <div className="plat-form-group plat-form-full">
-                  <label className="plat-form-label">Detail</label>
-                  <textarea 
-                    className="plat-form-input" 
-                    style={{ minHeight: '80px' }}
-                    value={form.description} 
-                    onChange={e => setForm(f => ({...f, description: e.target.value}))}
-                    placeholder="Describe the department's focus..."
-                  />
-                </div>
-                <div className="plat-form-group plat-form-full plat-form-row">
-                  <input 
-                    type="checkbox" 
-                    className="plat-form-input"
-                    id="isActive"
-                    checked={form.isActive} 
-                    onChange={e => setForm(f => ({...f, isActive: e.target.checked}))}
-                  />
-                  <label htmlFor="isActive" className="plat-form-label">Department is active</label>
+              <div className="plat-modal-body">
+                <div className="plat-form-section">
+                  <div className="plat-form-grid-multi" style={{ gridTemplateColumns: '1fr' }}>
+                    <div className="plat-form-group">
+                      <label className="plat-form-label">Department Name *</label>
+                      <input
+                        className="plat-form-input"
+                        value={form.name}
+                        onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                        required
+                        placeholder="e.g. Homeopathy, General Medicine"
+                      />
+                    </div>
+                    <div className="plat-form-group">
+                      <label className="plat-form-label">Detail</label>
+                      <textarea
+                        className="plat-form-input"
+                        style={{ minHeight: '80px' }}
+                        value={form.description}
+                        onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                        placeholder="Describe the department's focus..."
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 py-2">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 accent-primary"
+                        id="isActive"
+                        checked={form.isActive}
+                        onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))}
+                      />
+                      <label htmlFor="isActive" className="plat-form-label mb-0">Department is active</label>
+                    </div>
+                  </div>
                 </div>
               </div>
               <div className="plat-modal-footer">

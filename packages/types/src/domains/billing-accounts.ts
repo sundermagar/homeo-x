@@ -83,3 +83,11 @@ export interface ExpenseWithHead extends Expense {
   headName: string | null;
   shortName: string | null;
 }
+
+export interface ExpenseHead {
+  id: number;
+  name: string;
+  description?: string | null;
+  isActive?: boolean | null;
+}
+

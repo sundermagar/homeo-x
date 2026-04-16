@@ -48,109 +48,146 @@ export function AccountModal({ mode, account, organizations, onClose }: AccountM
   };
 
   return (
-    <div
-      className="plat-modal-overlay fade-in"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div className="plat-modal">
-
-        {/* ─── Modal Header ─── */}
+    <div className="plat-modal-backdrop" onClick={onClose}>
+      <div className="plat-modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="plat-modal-header">
-          <h2 className="plat-modal-title">
-            {mode === 'create' ? 'New Account Manager' : 'Edit Account'}
-          </h2>
-          <button className="plat-btn plat-btn-icon" onClick={onClose} style={{ border: 'none' }}>
-            <X size={16} strokeWidth={2} />
+          <h3 className="plat-modal-title">
+            {mode === 'create' ? 'Register New Account Manager' : 'Update Manager Account'}
+          </h3>
+          <button className="plat-btn plat-btn-icon plat-btn-ghost" onClick={onClose}>
+            <X size={14} />
           </button>
         </div>
 
-        {/* ─── Form ─── */}
-        <form onSubmit={handleSubmit}>
-          <div className="plat-form plat-modal-body">
-
-            {/* Full Name — full width */}
-            <div className="plat-form-full plat-form-group">
-              <label className="plat-form-label">
-                Full Name <span className="plat-form-required">*</span>
-              </label>
-              <input className="plat-form-input" required
-                value={form.name} onChange={e => set('name', e.target.value)}
-                placeholder="Dr. Firstname Lastname" />
-            </div>
-
-            {/* Email */}
-            <div className="plat-form-group">
-              <label className="plat-form-label">Email</label>
-              <input className="plat-form-input" type="email"
-                value={form.email} onChange={e => set('email', e.target.value)}
-                placeholder="name@clinic.com" />
-            </div>
-
-            {/* Mobile */}
-            <div className="plat-form-group">
-              <label className="plat-form-label">Mobile</label>
-              <input className="plat-form-input" type="tel"
-                value={form.mobile} onChange={e => set('mobile', e.target.value)}
-                placeholder="+91 98765 43210" />
-            </div>
-
-            {/* Password — only on create, full width */}
-            {mode === 'create' && (
-              <div className="plat-form-full plat-form-group">
-                <label className="plat-form-label">
-                  Password <span className="plat-form-required">*</span>
-                </label>
-                <input className="plat-form-input" type="password" required
-                  value={form.password} onChange={e => set('password', e.target.value)}
-                  placeholder="Minimum 6 characters" />
+        <form onSubmit={handleSubmit} className="plat-modal-body">
+          {/* Section 1: Professional Identity */}
+          <div className="plat-form-section">
+            <h4 className="plat-form-section-title">Manager Identity</h4>
+            <div className="plat-form-grid-multi">
+              <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
+                <label className="plat-form-label">Full Name *</label>
+                <input
+                  className="plat-form-input"
+                  required
+                  value={form.name}
+                  onChange={(e) => set('name', e.target.value)}
+                  placeholder="e.g. John Doe"
+                />
               </div>
-            )}
 
-            {/* Gender */}
-            <div className="plat-form-group">
-              <label className="plat-form-label">Gender</label>
-              <select className="plat-form-select"
-                value={form.gender} onChange={e => set('gender', e.target.value)}>
-                <option>Male</option>
-                <option>Female</option>
-                <option>Other</option>
-              </select>
+              <div className="plat-form-group">
+                <label className="plat-form-label">Designation</label>
+                <input
+                  className="plat-form-input"
+                  value={form.designation}
+                  onChange={(e) => set('designation', e.target.value)}
+                  placeholder="e.g. Senior Manager"
+                />
+              </div>
+
+              <div className="plat-form-group">
+                <label className="plat-form-label">Gender</label>
+                <select
+                  className="plat-form-input"
+                  value={form.gender}
+                  onChange={(e) => set('gender', e.target.value)}
+                >
+                  <option>Male</option>
+                  <option>Female</option>
+                  <option>Other</option>
+                </select>
+              </div>
+
+              <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
+                <label className="plat-form-label">Linked Clinic Station</label>
+                <select
+                  className="plat-form-input"
+                  value={form.clinicId ?? ''}
+                  onChange={(e) => set('clinicId', e.target.value ? parseInt(e.target.value) : undefined)}
+                >
+                  <option value="">— No specific clinic —</option>
+                  {organizations.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-
-            {/* Designation */}
-            <div className="plat-form-group">
-              <label className="plat-form-label">Designation</label>
-              <input className="plat-form-input"
-                value={form.designation} onChange={e => set('designation', e.target.value)}
-                placeholder="e.g. Clinic Manager" />
-            </div>
-
-            {/* Linked Clinic — full width */}
-            <div className="plat-form-full plat-form-group">
-              <label className="plat-form-label">Linked Clinic</label>
-              <select className="plat-form-select"
-                value={form.clinicId ?? ''}
-                onChange={e => set('clinicId', e.target.value ? parseInt(e.target.value) : undefined)}>
-                <option value="">— No specific clinic —</option>
-                {organizations.map(o => (
-                  <option key={o.id} value={o.id}>{o.name}</option>
-                ))}
-              </select>
-            </div>
-
           </div>
 
-          {/* ─── Footer Actions ─── */}
+          {/* Section 2: Contact & Access */}
+          <div className="plat-form-section">
+            <h4 className="plat-form-section-title">Contact & Access</h4>
+            <div className="plat-form-grid-multi">
+              <div className="plat-form-group">
+                <label className="plat-form-label">Email Address</label>
+                <input
+                  className="plat-form-input"
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => set('email', e.target.value)}
+                  placeholder="manager@homeox.com"
+                />
+              </div>
+
+              <div className="plat-form-group">
+                <label className="plat-form-label">Mobile Number</label>
+                <input
+                  className="plat-form-input"
+                  type="tel"
+                  value={form.mobile}
+                  onChange={(e) => set('mobile', e.target.value)}
+                  placeholder="9876543210"
+                />
+              </div>
+
+              {mode === 'create' && (
+                <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
+                  <label className="plat-form-label">Initial Password *</label>
+                  <input
+                    className="plat-form-input"
+                    type="password"
+                    required
+                    value={form.password}
+                    onChange={(e) => set('password', e.target.value)}
+                    placeholder="Min. 6 characters"
+                  />
+                </div>
+              )}
+
+              <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
+                <label className="plat-form-label">Residential Address</label>
+                <input
+                  className="plat-form-input"
+                  value={form.address}
+                  onChange={(e) => set('address', e.target.value)}
+                  placeholder="Home address"
+                />
+              </div>
+
+              <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
+                <label className="plat-form-label">Internal Notes / About</label>
+                <textarea
+                  className="plat-form-input"
+                  value={form.about}
+                  onChange={(e) => set('about', e.target.value)}
+                  rows={2}
+                  placeholder="Additional profile notes..."
+                />
+              </div>
+            </div>
+          </div>
+
           <div className="plat-modal-footer">
-            <button type="button" className="plat-btn" style={{ flex: 1 }} onClick={onClose}>
-              Cancel
+            <button type="button" className="plat-btn plat-btn-ghost" onClick={onClose}>
+              Discard
             </button>
-            <button type="submit" className="plat-btn plat-btn-primary" style={{ flex: 1 }} disabled={isPending}>
-              {isPending ? 'Saving…' : mode === 'create' ? 'Create Account' : 'Save Changes'}
+            <button type="submit" className="plat-btn plat-btn-primary" disabled={isPending}>
+              {isPending ? 'Syncing...' : mode === 'create' ? 'Register Manager' : 'Update Manager'}
             </button>
           </div>
         </form>
-
       </div>
     </div>
   );

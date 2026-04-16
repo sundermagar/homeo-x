@@ -57,7 +57,7 @@ export const frequencyHooks  = makeSettingsHooks<any>('frequencies');
 export const faqHooks        = makeSettingsHooks<any>('cms/faqs');
 export const staticPageHooks = makeSettingsHooks<any>('cms/pages');
 export const pdfHooks        = makeSettingsHooks<any>('pdf');
-export const expenseHooks    = makeSettingsHooks<any>('expense-heads');
+
 export const messageHooks    = makeSettingsHooks<any>('message-templates');
 export const packageHooks    = makeSettingsHooks<any>('packages');
 export const courierHooks    = makeSettingsHooks<any>('couriers');
@@ -84,7 +84,7 @@ export const { useList: useFrequencies, useCreate: useCreateFrequency, useUpdate
 export const { useList: useFaqs, useCreate: useCreateFaq, useUpdate: useUpdateFaq, useRemove: useDeleteFaq } = faqHooks;
 export const { useList: useStaticPages, useCreate: useCreateStaticPage, useUpdate: useUpdateStaticPage, useRemove: useDeleteStaticPage } = staticPageHooks;
 export const { useList: usePdfSettings, useCreate: useCreatePdfSetting, useUpdate: useUpdatePdfSetting, useRemove: useDeletePdfSetting } = pdfHooks;
-export const { useList: useExpenseHeads, useCreate: useCreateExpenseHead, useUpdate: useUpdateExpenseHead, useRemove: useDeleteExpenseHead } = expenseHooks;
+
 export const { useList: useMessageTemplates, useCreate: useCreateMessageTemplate, useUpdate: useUpdateMessageTemplate, useRemove: useDeleteMessageTemplate } = messageHooks;
 export const { useList: usePackagePlans, useCreate: useCreatePackagePlan, useUpdate: useUpdatePackagePlan, useRemove: useDeletePackagePlan } = packageHooks;
 export const { useList: useCouriers, useCreate: useCreateCourier, useUpdate: useUpdateCourier, useRemove: useDeleteCourier } = courierHooks;

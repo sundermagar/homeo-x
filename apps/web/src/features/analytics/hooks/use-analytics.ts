@@ -6,13 +6,19 @@ import type {
   ReferenceListResult 
 } from '@mmc/types';
 
+// Helper: safely unwrap the nested API envelope { success, data }
+function unwrap<T>(res: any, fallback: T): T {
+  const inner = res?.data?.data;
+  return inner !== undefined && inner !== null ? inner : fallback;
+}
+
 export function useAnalyticsSummary() {
   const api = useApi();
   return useQuery({
     queryKey: ['analytics', 'summary'],
     queryFn: async () => {
-      const { data } = await api.get<AnalyticsSummary>('/analytics/summary');
-      return data ?? null;
+      const res = await api.get('/analytics/summary');
+      return unwrap<AnalyticsSummary | null>(res, null);
     },
     staleTime: 5 * 60 * 1000,
   });
@@ -26,8 +32,8 @@ export function usePatientTrends(from?: Date, to?: Date) {
       const params = new URLSearchParams();
       if (from) params.append('from', from.toISOString());
       if (to) params.append('to', to.toISOString());
-      const { data } = await api.get<PatientTrendResult>(`/analytics/patients?${params.toString()}`);
-      return data ?? null;
+      const res = await api.get(`/analytics/patients?${params.toString()}`);
+      return unwrap<PatientTrendResult | null>(res, null);
     },
     staleTime: 5 * 60 * 1000,
   });
@@ -38,8 +44,9 @@ export function useCaseMonthWise(fromYearMth: string, toYearMth: string) {
   return useQuery({
     queryKey: ['analytics', 'casemonthwise', fromYearMth, toYearMth],
     queryFn: async () => {
-      const { data } = await api.get<MonthWiseResult[]>(`/analytics/casemonthwise?from_date=${fromYearMth}&to_date=${toYearMth}`);
-      return data ?? [];
+      const res = await api.get(`/analytics/casemonthwise?from_date=${fromYearMth}&to_date=${toYearMth}`);
+      const inner = unwrap<any>(res, []);
+      return Array.isArray(inner) ? inner as MonthWiseResult[] : [];
     },
     staleTime: 5 * 60 * 1000,
   });
@@ -50,8 +57,9 @@ export function useMonthWiseDues(year: number) {
   return useQuery({
     queryKey: ['analytics', 'monthwisedue', year],
     queryFn: async () => {
-      const { data } = await api.get<MonthWiseDueSummary[]>(`/analytics/monthwisedue?year=${year}`);
-      return data ?? [];
+      const res = await api.get(`/analytics/monthwisedue?year=${year}`);
+      const inner = unwrap<any>(res, []);
+      return Array.isArray(inner) ? inner as MonthWiseDueSummary[] : [];
     },
   });
 }
@@ -61,8 +69,9 @@ export function useDueDetails(year: number, month: number) {
   return useQuery({
     queryKey: ['analytics', 'monthwisedue', 'details', year, month],
     queryFn: async () => {
-      const { data } = await api.get<MonthWiseDueDetail[]>(`/analytics/monthwisedue/details?year=${year}&month=${month}`);
-      return data ?? [];
+      const res = await api.get(`/analytics/monthwisedue/details?year=${year}&month=${month}`);
+      const inner = unwrap<any>(res, []);
+      return Array.isArray(inner) ? inner as MonthWiseDueDetail[] : [];
     },
     enabled: !!year && !!month,
   });
@@ -76,8 +85,11 @@ export function useBirthdayList(fromDate?: string, toDate?: string) {
       const params = new URLSearchParams();
       if (fromDate) params.append('from_date', fromDate);
       if (toDate) params.append('to_date', toDate);
-      const { data } = await api.get<{ patients: any[], smsSentIds: number[] }>(`/analytics/birthdaylist?${params.toString()}`);
-      return data ?? { patients: [], smsSentIds: [] };
+      const res = await api.get(`/analytics/birthdaylist?${params.toString()}`);
+      const inner = unwrap<any>(res, { patients: [], smsSentIds: [] });
+      return (inner && typeof inner === 'object' && !Array.isArray(inner))
+        ? inner as { patients: any[]; smsSentIds: number[] }
+        : { patients: [], smsSentIds: [] };
     },
   });
 }
@@ -90,10 +102,10 @@ export function useReferenceListing(from?: Date, to?: Date) {
       const params = new URLSearchParams();
       if (from) params.append('from_date', from.toISOString());
       if (to) params.append('to_date', to.toISOString());
-      const { data } = await api.get<ReferenceListResult[]>(`/analytics/referencelisting?${params.toString()}`);
-      return data ?? [];
+      const res = await api.get(`/analytics/referencelisting?${params.toString()}`);
+      const inner = unwrap<any>(res, []);
+      return Array.isArray(inner) ? inner as ReferenceListResult[] : [];
     },
   });
 }
-
 

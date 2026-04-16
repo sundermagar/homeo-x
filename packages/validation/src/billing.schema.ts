@@ -176,3 +176,17 @@ export const listExpensesQuerySchema = z.object({
 export type CreateExpenseInput = z.infer<typeof createExpenseSchema>;
 export type UpdateExpenseInput = z.infer<typeof updateExpenseSchema>;
 export type ListExpensesQuery = z.infer<typeof listExpensesQuerySchema>;
+
+// ─── Expense Head Schemas ──────────────────────────────────────────────────────
+
+export const createExpenseHeadSchema = z.object({
+  name: z.string().min(1, 'Name is required').max(255),
+  description: z.string().optional(),
+  isActive: z.boolean().default(true),
+});
+
+export const updateExpenseHeadSchema = createExpenseHeadSchema.partial();
+
+export type CreateExpenseHeadInput = z.infer<typeof createExpenseHeadSchema>;
+export type UpdateExpenseHeadInput = z.infer<typeof updateExpenseHeadSchema>;
+

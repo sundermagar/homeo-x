@@ -1,10 +1,58 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Plus, Search, Edit2, Trash2, X, Users, UserCheck } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, X, Users, UserCheck, Upload, FileText, MapPin } from 'lucide-react';
 import { useStaffList, useDeleteStaff, useCreateStaff, useUpdateStaff, useStaffMember } from '@/features/staff/hooks/use-staff';
 import type { StaffSummary, StaffMember } from '@mmc/types';
 import type { CreateStaffInput, UpdateStaffInput } from '@mmc/validation';
 import { createStaffSchema, updateStaffSchema } from '@mmc/validation';
+import { apiClient } from '@/infrastructure/api-client';
 import '../styles/platform.css';
+
+function FileInputRow({
+  label,
+  field,
+  value,
+  onChange,
+  error,
+  accept = "image/*,application/pdf",
+  className = "",
+  style = {}
+}: {
+  label: string;
+  field: string;
+  value?: string;
+  onChange: (f: string, e: React.ChangeEvent<HTMLInputElement>) => void;
+  error?: string;
+  accept?: string;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  return (
+    <div className={`plat-form-group ${className}`} style={style}>
+      <label className="plat-form-label">{label}</label>
+      <div className="plat-file-input-wrapper">
+        <div className="plat-file-trigger">
+          <Upload size={14} /> Upload {label}
+        </div>
+        <input
+          type="file"
+          accept={accept}
+          onChange={(e) => onChange(field, e)}
+        />
+      </div>
+      {value && (
+        <div className="plat-file-preview">
+          <span className="plat-file-preview-name" title={value}>{value.split('/').pop() || 'Uploaded File'}</span>
+          {value.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
+            <img src={value} alt="Preview" className="plat-file-preview-image" />
+          ) : (
+            <FileText size={16} className="color-muted" />
+          )}
+        </div>
+      )}
+      {error && <span className="plat-form-error">{error}</span>}
+    </div>
+  );
+}
 
 type StaffFormErrors = {
   general?: string;
@@ -143,32 +191,41 @@ function StaffModal({
     }
 
     const nameParts = form.name.trim().split(/\s+/);
-    const derivedFirstname = nameParts[0] || '';
-    const derivedSurname = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+    const derivedFirstname = nameParts[0] || 'Member';
+    const derivedSurname = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'Staff';
 
     const payload = {
+
+      ...getDefaultStaffForm(),
       ...form,
-      firstname: form.firstname || derivedFirstname,
-      surname: form.surname || derivedSurname,
+      firstname: (form as any).firstname || derivedFirstname,
+      surname: (form as any).surname || derivedSurname,
       salaryCur: Number(form.salaryCur) || 0,
       dept: Number(form.dept) || 4,
-      consultationFee: Number(form.consultationFee) || 0,
-      title: form.title || 'Mr/Ms'
+      consultationFee: Number((form as any).consultationFee) || 0,
+      title: (form as any).title || 'Mr', // Default title for schema
+      joiningdate: (form as any).joiningdate || new Date().toISOString().split('T')[0],
+      qualification: (form as any).qualification || 'Member',
+      registrationId: (form as any).registrationId || 'N/A'
     };
 
-    if (!payload.surname && (CATEGORY as string) === 'doctor') {
-      setErrors({ name: 'Please enter both first name and surname' });
-      return;
-    }
+    console.log("[EmployeesPage] Submitting Payload:", payload);
 
     const schema = mode === 'create' ? createStaffSchema : updateStaffSchema;
     const result = schema.safeParse(payload);
 
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
+      console.error("[EmployeesPage] Validation Errors:", result.error.flatten().fieldErrors);
+
       result.error.errors.forEach((err) => {
         const path = err.path[0] as string;
-        fieldErrors[path] = err.message;
+        // Map split name errors back to the Full Name field for visibility
+        if (path === 'firstname' || path === 'surname' || path === 'title') {
+          fieldErrors['name'] = fieldErrors['name'] || `Format issue: ${err.message}`;
+        } else {
+          fieldErrors[path] = err.message;
+        }
       });
       setErrors(fieldErrors);
       return;
@@ -189,6 +246,30 @@ function StaffModal({
     } catch (err: any) {
       const apiMsg = err.response?.data?.message || err.message || 'Server error';
       setErrors({ general: apiMsg });
+    }
+  };
+
+  const handleFileUpload = async (field: string, event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await apiClient.post('/staff/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      const resData = (res as any)._original ?? res.data;
+      if (resData?.success && resData?.path) {
+        updateForm(field, resData.path);
+      } else {
+        setErrors((prev) => ({ ...prev, [field]: 'Upload failed' }));
+      }
+    } catch (err: any) {
+      setErrors((prev) => ({ ...prev, [field]: err.message || 'Upload failed' }));
     }
   };
 
@@ -222,170 +303,177 @@ function StaffModal({
             </div>
           )}
 
-          <div className="plat-form-grid">
-            <div className="plat-form-group">
-              <label className="plat-form-label">Full Name *</label>
-              <input
-                type="text"
-                className="plat-form-input"
-                value={form.name || ''}
-                onChange={(e) => updateForm('name', e.target.value)}
-                disabled={isLoading}
-                placeholder="Full name as per ID"
-              />
-              {errors['name'] && <span className="plat-form-error">{errors['name']}</span>}
-            </div>
-
-            <div className="plat-form-group">
-              <label className="plat-form-label">Email Address</label>
-              <input
-                type="email"
-                className="plat-form-input"
-                value={form.email || ''}
-                onChange={(e) => updateForm('email', e.target.value)}
-                disabled={isLoading}
-                placeholder="employee@homeox.com"
-              />
-              {errors['email'] && <span className="plat-form-error">{errors['email']}</span>}
-            </div>
-
-            <div className="plat-form-group">
-              <label className="plat-form-label">Mobile Number *</label>
-              <input
-                type="tel"
-                className="plat-form-input"
-                value={form.mobile || ''}
-                onChange={(e) => updateForm('mobile', e.target.value)}
-                disabled={isLoading}
-                placeholder="9876543210"
-              />
-              {errors['mobile'] && <span className="plat-form-error">{errors['mobile']}</span>}
-            </div>
-
-            <div className="plat-form-group">
-              <label className="plat-form-label">Emergency Mobile</label>
-              <input
-                type="tel"
-                className="plat-form-input"
-                value={form.mobile2 || ''}
-                onChange={(e) => updateForm('mobile2', e.target.value)}
-                disabled={isLoading}
-                placeholder="Alternative number"
-              />
-            </div>
-
-            <div className="plat-form-group">
-              <label className="plat-form-label">Gender</label>
-              <select
-                className="plat-form-input"
-                value={form.gender || 'Male'}
-                onChange={(e) => updateForm('gender', e.target.value)}
-                disabled={isLoading}
-              >
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-
-            <div className="plat-form-group">
-              <label className="plat-form-label">Designation</label>
-              <input
-                type="text"
-                className="plat-form-input"
-                value={form.designation || ''}
-                onChange={(e) => updateForm('designation', e.target.value)}
-                disabled={isLoading}
-                placeholder="e.g. Receptionist, Admin"
-              />
-            </div>
-
-            <div className="plat-form-group">
-              <label className="plat-form-label">Primary Department</label>
-              <select
-                className="plat-form-input"
-                value={form.dept || 4}
-                onChange={(e) => updateForm('dept', Number(e.target.value))}
-                disabled={isLoading}
-              >
-                <option value={1}>General Medicine</option>
-                <option value={2}>Cardiology</option>
-                <option value={3}>Dermatology</option>
-                <option value={4}>Homeopathy</option>
-                <option value={5}>Ayurveda</option>
-              </select>
-            </div>
-
-            <div className="plat-form-group">
-              <label className="plat-form-label">City Station</label>
-              <input
-                type="text"
-                className="plat-form-input"
-                value={form.city || ''}
-                onChange={(e) => updateForm('city', e.target.value)}
-                disabled={isLoading}
-              />
-            </div>
-
-            <div className="plat-form-group">
-              <label className="plat-form-label">Residential Address</label>
-              <textarea
-                className="plat-form-input"
-                value={form.address || ''}
-                onChange={(e) => updateForm('address', e.target.value)}
-                disabled={isLoading}
-                rows={2}
-              />
-            </div>
-
-            <div className="plat-form-group">
-              <label className="plat-form-label">Employee Bio</label>
-              <textarea
-                className="plat-form-input"
-                value={form.about || ''}
-                onChange={(e) => updateForm('about', e.target.value)}
-                disabled={isLoading}
-                rows={2}
-              />
-            </div>
-
-            <div className="plat-form-group">
-              <label className="plat-form-label">Date of Birth</label>
-              <input
-                type="date"
-                className="plat-form-input"
-                value={form.dateBirth || ''}
-                onChange={(e) => updateForm('dateBirth', e.target.value)}
-                disabled={isLoading}
-              />
-            </div>
-
-            <div className="plat-form-group">
-              <label className="plat-form-label">Monthly Salary (₹)</label>
-              <input
-                type="number"
-                className="plat-form-input"
-                value={form.salaryCur || ''}
-                onChange={(e) => updateForm('salaryCur', e.target.value)}
-                disabled={isLoading}
-                placeholder="0"
-              />
-            </div>
-
-            {mode === 'create' && (
-              <div className="plat-form-group">
-                <label className="plat-form-label">Initial Password *</label>
+          {/* Section 1: Personal & Contact */}
+          <div className="plat-form-section">
+            <h4 className="plat-form-section-title">Personal & Contact</h4>
+            <div className="plat-form-grid-multi">
+              <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
+                <label className="plat-form-label">Full Name *</label>
                 <input
-                  type="password"
+                  type="text"
                   className="plat-form-input"
-                  value={form.password || ''}
-                  onChange={(e) => updateForm('password', e.target.value)}
+                  value={form.name || ''}
+                  onChange={(e) => updateForm('name', e.target.value)}
                   disabled={isLoading}
-                  placeholder="Set login password"
+                  placeholder="Full name as per ID"
                 />
-                {errors['password'] && <span className="plat-form-error">{errors['password']}</span>}
+                {errors['name'] && <span className="plat-form-error">{errors['name']}</span>}
               </div>
-            )}
+
+              <div className="plat-form-group">
+                <label className="plat-form-label">Email Address</label>
+                <input
+                  type="email"
+                  className="plat-form-input"
+                  value={form.email || ''}
+                  onChange={(e) => updateForm('email', e.target.value)}
+                  disabled={isLoading}
+                  placeholder="employee@homeox.com"
+                />
+                {errors['email'] && <span className="plat-form-error">{errors['email']}</span>}
+              </div>
+
+              <div className="plat-form-group">
+                <label className="plat-form-label">Mobile Number *</label>
+                <input
+                  type="tel"
+                  className="plat-form-input"
+                  value={form.mobile || ''}
+                  onChange={(e) => updateForm('mobile', e.target.value)}
+                  disabled={isLoading}
+                  placeholder="9876543210"
+                />
+                {errors['mobile'] && <span className="plat-form-error">{errors['mobile']}</span>}
+              </div>
+
+              <div className="plat-form-group">
+                <label className="plat-form-label">Emergency Mobile</label>
+                <input
+                  type="tel"
+                  className="plat-form-input"
+                  value={form.mobile2 || ''}
+                  onChange={(e) => updateForm('mobile2', e.target.value)}
+                  disabled={isLoading}
+                  placeholder="Alternative number"
+                />
+              </div>
+
+              <div className="plat-form-group">
+                <label className="plat-form-label">Gender</label>
+                <select
+                  className="plat-form-input"
+                  value={form.gender || 'Male'}
+                  onChange={(e) => updateForm('gender', e.target.value)}
+                  disabled={isLoading}
+                >
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div className="plat-form-group">
+                <label className="plat-form-label">Date of Birth</label>
+                <input
+                  type="date"
+                  className="plat-form-input"
+                  value={form.dateBirth?.split('T')[0] || ''}
+                  onChange={(e) => updateForm('dateBirth', e.target.value)}
+                  disabled={isLoading}
+                />
+              </div>
+
+            </div>
+          </div>
+
+          {/* Section 2: Professional & Location */}
+          <div className="plat-form-section">
+            <h4 className="plat-form-section-title">Professional & Location</h4>
+            <div className="plat-form-grid-multi">
+              <div className="plat-form-group">
+                <label className="plat-form-label">Designation</label>
+                <input
+                  type="text"
+                  className="plat-form-input"
+                  value={form.designation || ''}
+                  onChange={(e) => updateForm('designation', e.target.value)}
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div className="plat-form-group">
+                <label className="plat-form-label">Department</label>
+                <select
+                  className="plat-form-input"
+                  value={form.dept || 4}
+                  onChange={(e) => updateForm('dept', Number(e.target.value))}
+                  disabled={isLoading}
+                >
+                  <option value={1}>General Medicine</option>
+                  <option value={2}>Reception</option>
+                  <option value={3}>Logistics</option>
+                  <option value={4}>Homeopathy</option>
+                </select>
+              </div>
+
+              <div className="plat-form-group">
+                <label className="plat-form-label">Monthly Salary (₹)</label>
+                <input
+                  type="number"
+                  className="plat-form-input"
+                  value={form.salaryCur || ''}
+                  onChange={(e) => updateForm('salaryCur', e.target.value)}
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div className="plat-form-group">
+                <label className="plat-form-label">City Station</label>
+                <input
+                  type="text"
+                  className="plat-form-input"
+                  value={form.city || ''}
+                  onChange={(e) => updateForm('city', e.target.value)}
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
+                <label className="plat-form-label">Residential Address</label>
+                <textarea
+                  className="plat-form-input"
+                  value={form.address || ''}
+                  onChange={(e) => updateForm('address', e.target.value)}
+                  disabled={isLoading}
+                  rows={2}
+                />
+              </div>
+
+              <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
+                <label className="plat-form-label">Employee Bio</label>
+                <textarea
+                  className="plat-form-input"
+                  value={form.about || ''}
+                  onChange={(e) => updateForm('about', e.target.value)}
+                  disabled={isLoading}
+                  rows={2}
+                />
+              </div>
+
+              {mode === 'create' && (
+                <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
+                  <label className="plat-form-label">Initial Password *</label>
+                  <input
+                    type="password"
+                    className="plat-form-input"
+                    value={form.password || ''}
+                    onChange={(e) => updateForm('password', e.target.value)}
+                    disabled={isLoading}
+                  />
+                  {errors['password'] && <span className="plat-form-error">{errors['password']}</span>}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="plat-modal-footer">
@@ -393,7 +481,7 @@ function StaffModal({
               Discard
             </button>
             <button type="submit" className="plat-btn plat-btn-primary" disabled={isPending || isLoading}>
-              {isPending ? 'Processing…' : isEdit ? 'Update Details' : 'Register Employee'}
+              {isPending ? 'Processing…' : isEdit ? 'Save Changes' : 'Register Employee'}
             </button>
           </div>
         </form>
@@ -489,15 +577,22 @@ export default function EmployeesPage() {
 
       <div className="plat-card">
         {isLoading ? (
-          <div className="plat-empty" style={{ minHeight: 240 }}>
+          <div className="plat-empty" style={{ minHeight: 400 }}>
             <div className="animate-spin opacity-30 text-2xl mb-4">⟳</div>
             <p className="plat-empty-text">Loading employees...</p>
           </div>
         ) : staff.length === 0 ? (
-          <div className="plat-empty" style={{ minHeight: 240 }}>
-            <Users size={40} className="plat-empty-icon" />
-            <p className="plat-empty-text">No {META.label.toLowerCase()} found.</p>
-            <p className="text-xs color-muted mt-2">Use the "Add Employee" button to populate the registry.</p>
+          <div className="plat-empty" style={{ minHeight: 400 }}>
+            <div className="plat-empty-icon-wrap mb-6">
+              <Users size={48} className="text-blue-500 opacity-20" />
+            </div>
+            <h3 className="text-lg font-semibold text-slate-800 mb-2">No Employees Registered</h3>
+            <p className="text-sm text-slate-500 max-w-xs text-center mb-8">
+              Start building your clinical support force by registering your first employee record.
+            </p>
+            <button className="plat-btn plat-btn-primary" onClick={openCreate}>
+              <Plus size={14} /> Register First Employee
+            </button>
           </div>
         ) : (
           <div className="plat-table-container">
@@ -539,7 +634,7 @@ export default function EmployeesPage() {
                     <td>
                       <div className="flex justify-end gap-2">
                         <button className="plat-btn plat-btn-icon plat-btn-ghost" title="Edit" onClick={() => openEdit(s)}>
-                          <X size={13} className="rotate-45" /> {/* Using X as Edit alternative if Edit2 is too bulky */}
+
                           <Edit2 size={13} />
                         </button>
                         <button className="plat-btn plat-btn-icon plat-btn-danger" title="Delete" onClick={() => handleDelete(s.id)} disabled={deleteMutation.isPending}>
