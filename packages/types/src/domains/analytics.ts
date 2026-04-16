@@ -75,7 +75,9 @@ export interface DashboardKpis {
   revenueTrend: number | string;
   patientTrend: number | string;
   collectionRate: number;
+  collectionRateTrend: number | string;
   avgWaitTime: number;
+  avgWaitTimeTrend: number | string;
 }
 
 export interface QueueItem {
@@ -121,6 +123,11 @@ export interface RevenueSeries {
   revenue: number;
 }
 
+export interface PlatformStats {
+  totalClinics: number;
+  totalStaff: number;
+}
+
 export interface UnifiedDashboardData {
   kpis: DashboardKpis;
   queue: QueueItem[];
@@ -129,4 +136,61 @@ export interface UnifiedDashboardData {
   birthdays: BirthdayPatient[];
   revenueSeries: RevenueSeries[];
   clinicName: string;
+  platformStats?: PlatformStats;
+}
+
+// ─── Clinic Admin Dashboard ───────────────────────────────────────────────────
+
+export interface RevenueBreakdown {
+  physicalCurrency: number;
+  physicalCurrencyPct: number;
+  upiCard: number;
+  upiCardPct: number;
+  pending: number;
+  pendingCount: number;
+  perPatient: number;
+}
+
+export interface MonthlyTarget {
+  label: string;
+  current: number;
+  target: number;
+  unit: string;
+  status: 'success' | 'warning' | 'danger';
+}
+
+export interface TopBillingItem {
+  id: number;
+  patientName: string;
+  total: number;
+  status: 'Paid' | 'Pending' | 'Partial';
+}
+
+export interface ClinicAdminDashboardData {
+  // KPI strip
+  totalRevenue: number;
+  revenueTrend: number;
+  patientsApril: number;
+  patientsTrend: number;
+  collectionRate: number;
+  collectionRateTrend: number;
+  avgWaitTime: number;
+  avgWaitTimeTrend: number;
+  // Revenue breakdown
+  revenueBreakdown: RevenueBreakdown;
+  revenueSeries: RevenueSeries[];
+  cashSeries: RevenueSeries[];
+  upiSeries: RevenueSeries[];
+  // Monthly targets
+  targets: MonthlyTarget[];
+  // Top billing
+  topBilling: TopBillingItem[];
+  // Recent activity
+  recentActivity: ActivityItem[];
+  // Queue
+  queue: QueueItem[];
+  // Staff
+  staffOnDuty: { name: string; role: string; count?: number }[];
+  // Week info
+  weekLabel: string;
 }

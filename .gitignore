@@ -2,6 +2,10 @@
 node_modules/
 .pnpm-store/
 .pnpm-debug.log*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
 
 # Build & Cache
 dist/
@@ -18,6 +22,8 @@ out/
 **/.cache/
 .tsbuildinfo
 *.tsbuildinfo
+.parcel-cache/
+.contentlayer/
 coverage/
 **/coverage/
 .nyc_output/
@@ -29,6 +35,7 @@ coverage/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
 
 # Environment
 .env
@@ -55,11 +62,23 @@ drizzle/
 !packages/database/src/migrations/
 
 # Local Scratch & Legacy
+MMC-javascript/
+MMC-javascript 2/
 mmc-javascript/
 scratch/
 memory/
+!memory/
+server_log.txt
+api_debug.log
+tmp/
+temp/
 
-# Temporary Utility & Debug scripts
+# Testing & Artifacts
+test_auth.js
+test_hash.js
+test-results/
+playwright-report/
+blob-report/
 test_*.js
 test_*.ts
 test.js
@@ -68,4 +87,6 @@ debug_*.ts
 debug-*.ts
 check_*.ts
 verify_*.ts
+*.ours
 *.theirs
+

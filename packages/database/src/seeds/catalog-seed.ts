@@ -1,4 +1,4 @@
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import type { DbClient } from '../client';
 import { medicines, potencies, frequencies } from '../schema/settings';
 
@@ -19,15 +19,24 @@ export async function seedCatalog(db: DbClient) {
     { name: '0/1 (LM1)', detail: 'LM Scale' },
   ];
 
+  let potencyId = 1;
   for (const potency of initialPotencies) {
-    const existing = await db.select().from(potencies).where(eq(potencies.name, potency.name)).limit(1);
-    if (existing.length === 0) {
-      await db.insert(potencies).values(potency);
+    try {
+      // Manually providing ID because some schemas have broken serial defaults for this table
+      await db.execute(sql`INSERT INTO potencies (id, name, detail) VALUES (${potencyId++}, ${potency.name}, ${potency.detail}) ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, detail = EXCLUDED.detail`);
+    } catch (e) {
+      console.error(`[Seed] SQL Insert failed for potency ${potency.name}:`, e);
     }
   }
 
   // Fetch potencies for mapping
-  const dbPotencies = await db.select().from(potencies);
+  let dbPotencies: any[] = [];
+  try {
+    dbPotencies = await db.select().from(potencies);
+  } catch (e) {
+    console.warn('[Seed] Could not fetch potencies, continuing with empty mapping:', (e as Error).message);
+  }
+  
   const getPotencyId = (name: string) => dbPotencies.find(p => p.name === name)?.id || null;
 
   // --- 2. Seed Medicines ---

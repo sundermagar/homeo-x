@@ -190,7 +190,7 @@ export async function seedTestData(db: DbClient) {
         } else if (revTableName === 'bills') {
           const sets = [`regid = ${10001 + (i % 5)}`, `charges = '${amount}'`, `received = '${amount}'`, `created_at = '${date.toISOString()}'`, `bill_date = '${date.toISOString()}'`];
           if (revCols.includes('mode')) sets.push(`mode = 'Cash'`);
-          await db.execute(sql`INSERT INTO bills (regid, charges, received, created_at, bill_date ${sql.raw(revCols.includes('mode') ? ', mode' : '')}) VALUES (${10001 + (i % 5)}, ${amount}, ${amount}, ${date}, ${date} ${sql.raw(revCols.includes('mode') ? ", 'Cash'" : '')})`);
+          await db.execute(sql`INSERT INTO bills (regid, charges, received, created_at, bill_date ${sql.raw(revCols.includes('mode') ? ', mode' : '')}) VALUES (${10001 + (i % 5)}, ${amount}, ${amount}, ${date.toISOString()}, ${date.toISOString()} ${sql.raw(revCols.includes('mode') ? ", 'Cash'" : '')})`);
         }
       }
       console.log(`[Seed] Revenue seeded in ${revTableName}.`);

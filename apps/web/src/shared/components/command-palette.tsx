@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Calendar, FileText, UsersRound,
   Briefcase, CreditCard, BarChart2, MessageSquare, Package,
-  Settings, ChevronRight, Plus, Clock, ArrowRight
+  Settings, ChevronRight, Plus, Clock, ArrowRight, Brain, 
+  Stethoscope, Activity, ClipboardList, Wallet, Receipt, 
+  UserCog, Bell, Mail, ShieldCheck, Database, Pill, Truck
 } from 'lucide-react';
 
 // ─── Command / Navigation Item ────────────────────────────────────────────────
@@ -30,21 +32,35 @@ function buildCommands(navigate: ReturnType<typeof useNavigate>): CommandItem[] 
 
   return [
     // ── Navigation ──────────────────────────────────────────────────────────
-    nav('Dashboard', '/', <LayoutDashboard size={16} />, ['home']),
-    nav('Patients', '/patients', <Users size={16} />, ['patient', 'registry']),
-    nav('Family Groups', '/family-groups', <UsersRound size={16} />, ['family']),
-    nav('Appointments', '/appointments', <Calendar size={16} />, ['appointment', 'schedule']),
-    nav('Medical Cases', '/medical-cases', <FileText size={16} />, ['case', 'consultation']),
-    nav('Billing', '/billing', <CreditCard size={16} />, ['bill', 'invoice', 'payment']),
-    nav('Payments', '/payments', <CreditCard size={16} />, ['payment', 'transaction']),
-    nav('Packages', '/packages', <Package size={16} />, ['package', 'membership']),
-    nav('Analytics', '/analytics', <BarChart2 size={16} />, ['report', 'chart', 'stats']),
-    nav('SMS & Communications', '/communications', <MessageSquare size={16} />, ['sms', 'whatsapp', 'message']),
-    nav('SMS Templates', '/communications/templates', <MessageSquare size={16} />, ['sms', 'template']),
-    nav('SMS Reports', '/communications/reports', <MessageSquare size={16} />, ['sms', 'report']),
-    nav('WhatsApp', '/communications/whatsapp', <MessageSquare size={16} />, ['whatsapp', 'message']),
-    nav('Clinics', '/platform/clinics', <Settings size={16} />, ['clinic', 'organisation']),
-    nav('Accounts', '/platform/accounts', <Briefcase size={16} />, ['account', 'staff', 'admin']),
+    nav('Dashboard', '/', <LayoutDashboard size={16} />, ['home', 'overview', 'main']),
+    nav('Patients', '/patients', <Users size={16} />, ['patient', 'registry', 'people', 'contacts']),
+    nav('Family Groups', '/family-groups', <UsersRound size={16} />, ['family', 'group', 'members']),
+    nav('Appointments', '/appointments', <Calendar size={16} />, ['appointment', 'schedule', 'booking', 'visit']),
+    nav('Token Queue', '/appointments/queue', <ClipboardList size={16} />, ['token', 'queue', 'waitlist', 'running']),
+    nav('Medical Cases', '/medical-cases', <FileText size={16} />, ['case', 'consultation', 'history', 'folder']),
+    nav('Vitals Check', '/vitals-check', <Activity size={16} />, ['vital', 'bp', 'weight', 'pulse', 'checkup']),
+    nav('AI Remedy Chart', '/ai-remedy-chart', <Brain size={16} />, ['ai', 'remedy', 'chart', 'suggestion', 'drug', 'prescription']),
+    nav('AI Consultant', '/ai-consultant', <Stethoscope size={16} />, ['ai', 'consultant', 'advisor', 'bot', 'assistant']),
+    nav('Billing', '/billing', <CreditCard size={16} />, ['bill', 'invoice', 'payment', 'finance']),
+    nav('Payments', '/payments', <Wallet size={16} />, ['payment', 'transaction', 'collection', 'ledger']),
+    nav('Expenses', '/billing/expenses', <Receipt size={16} />, ['expense', 'outflow', 'cost', 'spend']),
+    nav('Deposits', '/billing/deposits', <Wallet size={16} />, ['deposit', 'advance', 'prepaid']),
+    nav('Packages', '/packages', <Package size={16} />, ['package', 'membership', 'subscription', 'plan']),
+    nav('Analytics', '/analytics', <BarChart2 size={16} />, ['report', 'chart', 'stats', 'analytics', 'performance']),
+    nav('Operations Hub', '/operations', <LayoutDashboard size={16} />, ['operation', 'crm', 'leads', 'task']),
+    nav('SMS & Communications', '/communications', <MessageSquare size={16} />, ['sms', 'whatsapp', 'message', 'broadcast']),
+    nav('SMS Templates', '/communications/templates', <Mail size={16} />, ['sms', 'template', 'canned']),
+    nav('Clinics', '/platform/clinics', <Settings size={16} />, ['clinic', 'organisation', 'branch']),
+    nav('Staff Base', '/staff', <UserCog size={16} />, ['staff', 'employee', 'user', 'team']),
+    
+    // ── Settings ────────────────────────────────────────────────────────────
+    nav('Settings: Medicines', '/settings/medicines', <Pill size={16} />, ['medicine', 'drug', 'drugstore', 'pharmacy']),
+    nav('Settings: Referrals (Leads)', '/settings/referrals', <Briefcase size={16} />, ['referral', 'lead', 'source', 'marketing']),
+    nav('Settings: Departments', '/settings/departments', <Settings size={16} />, ['department', 'unit']),
+    nav('Settings: Roles & Access', '/settings/roles', <ShieldCheck size={16} />, ['role', 'permission', 'security', 'access']),
+    nav('Settings: PDF & Branding', '/settings/pdf', <FileText size={16} />, ['pdf', 'print', 'header', 'brand']),
+    nav('Settings: Dispensaries', '/settings/dispensaries', <Database size={16} />, ['dispensary', 'inventory', 'stock']),
+    nav('Settings: Couriers', '/settings/couriers', <Truck size={16} />, ['courier', 'shipping', 'delivery']),
 
     // ── Quick Actions ───────────────────────────────────────────────────────
     {
@@ -73,6 +89,24 @@ function buildCommands(navigate: ReturnType<typeof useNavigate>): CommandItem[] 
       category: 'action',
       keywords: ['new', 'create', 'bill', 'invoice', 'billing'],
       onSelect: () => navigate('/billing/create'),
+    },
+    {
+      id: 'action-new-sms',
+      label: 'Send Group SMS',
+      sublabel: 'Broadcast a message to patients',
+      icon: <Bell size={16} />,
+      category: 'action',
+      keywords: ['sms', 'group', 'broadcast', 'send', 'message'],
+      onSelect: () => navigate('/communications/sms'),
+    },
+    {
+      id: 'action-add-staff',
+      label: 'Add Staff Member',
+      sublabel: 'Register a new employee',
+      icon: <Plus size={16} />,
+      category: 'action',
+      keywords: ['new', 'staff', 'add', 'employee', 'user'],
+      onSelect: () => navigate('/staff/add'),
     },
   ];
 }

@@ -1,7 +1,7 @@
-import { pgTable, integer, text, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, integer, text, timestamp } from "drizzle-orm/pg-core";
 
 export const additionalChargesLegacy = pgTable("additional_charges", {
-  id: integer("id").notNull(),
+  id: serial("id").primaryKey(),
   regid: integer("regid"),
   randId: text("rand_id"),
   dateval: text("dateval"),

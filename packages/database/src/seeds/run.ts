@@ -1,5 +1,9 @@
 import { createDbClient } from '../client';
 import { seedUsers } from './user-seed';
+<<<<<<< HEAD
+=======
+import { seedTestData } from './test-data-seed';
+>>>>>>> origin/dev-branch
 import { seedCatalog } from './catalog-seed';
 import { seedDispensaries } from './dispensary-seed';
 import { seedPackages } from './package-seed';
@@ -9,11 +13,17 @@ import { seedStickers } from './sticker-seed';
 import { seedCms } from './cms-seed';
 import { seedFaqs } from './faq-seed';
 import { seedPdfSettings } from './pdf-seed';
+<<<<<<< HEAD
 import { seedPlatform } from './platform-seed';
 import { seedTestData } from './test-data-seed';
 import { seedDoctorStaff } from './doctor-staff-seed';
 import { seedStaffRegistry } from './staff-registry-seed';
 import { seedRbac } from './rbac-seed';
+=======
+import { seedGrowthReferences } from './growth-references';
+import { seedRemedyChart } from './remedy-chart-seed';
+
+>>>>>>> origin/dev-branch
 import { TenantRegistry } from '../tenant-registry';
 import fs from 'fs';
 import path from 'path';
@@ -53,6 +63,7 @@ async function main() {
     try {
       console.log(`[Seed] Seeding for tenant: ${tenant.displayName} (${tenant.schemaName})...`);
       const db = createDbClient(dbUrl, tenant.schemaName);
+<<<<<<< HEAD
       
       const runSeed = async (name: string, fn: (db: any) => Promise<void>) => {
         try {
@@ -79,6 +90,24 @@ async function main() {
       
     } catch (err) {
       console.error(`[Seed] ❌ Failed to seed tenant ${tenant.displayName} (${tenant.schemaName}):`, err);
+=======
+      await seedUsers(db);
+      await seedTestData(db);
+      await seedCatalog(db);
+      await seedDispensaries(db);
+      await seedPackages(db);
+      await seedCouriers(db);
+      await seedReferrals(db);
+      await seedStickers(db);
+      await seedCms(db);
+      await seedFaqs(db);
+      await seedPdfSettings(db);
+      await seedGrowthReferences(db);
+      await seedRemedyChart(db);
+    } catch (err) {
+      console.error(`[Seed] ❌ Failed to seed tenant ${tenant.displayName} (${tenant.schemaName}):`, err);
+
+>>>>>>> origin/dev-branch
     }
   }
   

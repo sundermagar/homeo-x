@@ -38,6 +38,20 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
     return rows as MedicalCase[];
   }
 
+  private _calculateAge(dobValue: string | Date | null | undefined): number | undefined {
+    if (!dobValue) return undefined;
+    const dob = new Date(dobValue);
+    if (Number.isNaN(dob.getTime())) return undefined;
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const monthDiff = today.getMonth() - dob.getMonth();
+    const dayDiff = today.getDate() - dob.getDate();
+    if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+      age -= 1;
+    }
+    return age >= 0 ? age : undefined;
+  }
+
   async findMany(filters: { search?: string; page?: number; limit?: number }) {
     const { search, page = 1, limit = 50 } = filters;
     const offset = (page - 1) * limit;
@@ -52,7 +66,8 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
         first_name: schema.patients.firstName,
         surname: schema.patients.surname,
         gender: schema.patients.gender,
-        // age: schema.patients.age,
+        dob: schema.patients.dob,
+        date_of_birth: schema.patients.dateOfBirth,
         phone: schema.patients.phone,
         city: schema.patients.city,
       })
@@ -72,11 +87,16 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
       .limit(limit)
       .offset(offset);
 
+    const hydrated = (rows as any[]).map((row) => ({
+      ...row,
+      age: row.age ?? this._calculateAge(row.dob ?? row.date_of_birth),
+    }));
+
     const [countRes] = await this.db
       .select({ count: sql<number>`count(*)::int` })
       .from(schema.medicalCases);
 
-    return { data: rows, total: countRes?.count ?? 0 };
+    return { data: hydrated, total: countRes?.count ?? 0 };
   }
 
   async create(data: Partial<MedicalCase>): Promise<number> {

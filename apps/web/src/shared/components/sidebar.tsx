@@ -9,6 +9,7 @@ import {
   Stethoscope,
   Receipt,
   Banknote,
+  Building,
   Building2,
   UserCog,
   Settings,
@@ -41,16 +42,28 @@ import {
   Clock,
   Send,
   BarChart2,
-  type LucideIcon,
+  Activity,
+  Gift,
   MessageCircle,
   PieChart,
   Scale,
   BookOpen,
+<<<<<<< HEAD
   Truck,
+=======
+  DollarSign,
+  PlusCircle,
+  BrainCircuit,
+  type LucideIcon,
+>>>>>>> origin/dev-branch
 } from 'lucide-react';
 import { useAuthStore } from '../stores/auth-store';
 import '../styles/sidebar.css';
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> origin/dev-branch
 // ─── Role Definitions ────────────────────────────────────────────────────────
 
 type UserRole = 'SuperAdmin' | 'Admin' | 'Clinicadmin' | 'Doctor' | 'Receptionist';
@@ -59,12 +72,17 @@ const ALL: UserRole[] = ['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Recept
 const ADMIN: UserRole[] = ['SuperAdmin', 'Admin', 'Clinicadmin'];
 const CLINICAL: UserRole[] = ['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor'];
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> origin/dev-branch
 // ─── Navigation Structure ────────────────────────────────────────────────────
 
 interface NavChild {
   path: string;
   label: string;
   icon: LucideIcon;
+  children?: NavChild[];
 }
 
 interface NavGroup {
@@ -126,6 +144,8 @@ const NAV_STRUCTURE: NavItem[] = [
         { path: '/consultation-history',   label: 'Case History',        icon: BarChart2 },
         { path: '/vitals-check',           label: 'Height & Weight Check', icon: Scale },
         { path: '/medical-cases',          label: 'Medical Cases',       icon: Stethoscope },
+        { path: '/ai-remedy-chart',        label: 'Materia Medica',      icon: BookOpen },
+        { path: '/ai-consultant',          label: 'AI Analysis',         icon: BrainCircuit },
       ],
     },
   },
@@ -165,9 +185,19 @@ const NAV_STRUCTURE: NavItem[] = [
       icon: PieChart,
       roles: ADMIN,
       children: [
-        { path: '/analytics',         label: 'Dashboard',   icon: BarChart2 },
-        { path: '/analytics/reports', label: 'Reports',     icon: PieChart },
-        { path: '/settings/export',   label: 'Export Data',  icon: FileJson },
+        { path: '/analytics', label: 'Dashboard', icon: BarChart2 },
+        { 
+          path: '/analytics/reports', 
+          label: 'Reports', 
+          icon: PieChart,
+          children: [
+            { path: '/analytics/reports/financial',  label: 'Financial Grid',      icon: Activity },
+            { path: '/analytics/reports/dues',       label: 'Outstanding Dues',   icon: CreditCard },
+            { path: '/analytics/reports/birthdays',  label: 'Birthday List',      icon: Gift },
+            { path: '/analytics/reports/references', label: 'Referrals & Sources', icon: Users },
+          ]
+        },
+        { path: '/settings/export',   label: 'Export Data',    icon: FileJson },
         { path: '/settings/stocks',   label: 'Inventory Logs', icon: Database },
       ],
     },
@@ -180,9 +210,24 @@ const NAV_STRUCTURE: NavItem[] = [
       icon: Receipt,
       roles: ADMIN,
       children: [
+<<<<<<< HEAD
         { path: '/billing',           label: 'Billing & Finance', icon: Receipt },
         { path: '/payments',          label: 'Payment Ledger',    icon: Banknote },
         { path: '/settings/expenses', label: 'Expenses Head',     icon: Wallet },
+=======
+        { path: '/billing',           label: 'Billing',             icon: Receipt,
+          children: [
+            { path: '/billing',               label: 'Bill List',             icon: Receipt },
+            { path: '/billing/create',         label: 'Create Bill',           icon: FileText },
+            { path: '/billing/additional-charges', label: 'Additional Charges', icon: PlusCircle },
+            { path: '/billing/day-charges',     label: 'Day Charges',           icon: Calendar },
+            { path: '/billing/deposits',         label: 'Deposits',              icon: Building },
+            { path: '/billing/expenses',        label: 'Expenses',              icon: DollarSign },
+          ]
+        },
+        { path: '/payments',           label: 'Payment Ledger',     icon: Banknote },
+        { path: '/settings/expenses',  label: 'Expense Categories',  icon: Wallet },
+>>>>>>> origin/dev-branch
       ],
     },
   },
@@ -240,6 +285,10 @@ const NAV_STRUCTURE: NavItem[] = [
         { path: '/settings/faqs',        label: 'Help & FAQs',        icon: HelpCircle },
       ],
     },
+<<<<<<< HEAD
+=======
+
+>>>>>>> origin/dev-branch
   },
 ];
 
@@ -275,9 +324,21 @@ interface SidebarProps {
   onClose: () => void;
 }
 
+<<<<<<< HEAD
 function normalizeNavPath(path: string): { pathname: string; search: string } {
   const [pathname, search = ''] = path.split('?');
   return { pathname, search: search ? `?${search}` : '' };
+=======
+function isGroupActive(group: NavGroup, pathname: string): boolean {
+  return group.children.some(c => {
+    if (c.path === '/') return pathname === '/';
+    // Check main path
+    if (pathname.startsWith(c.path)) return true;
+    // Check nested children if any
+    if (c.children?.some(sc => pathname.startsWith(sc.path))) return true;
+    return false;
+  });
+>>>>>>> origin/dev-branch
 }
 
 function isGroupActive(group: NavGroup, currentLocation: string): boolean {
@@ -311,16 +372,85 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     .filter(item => isGroupActive(item.group, currentLocation))
     .map(item => item.group.id);
 
-  const [openGroups, setOpenGroups] = useState<string[]>(defaultOpen);
+  // Auto-expand any sub-group whose children match the current path
+  const defaultOpenSub = visibleNav
+    .filter((item): item is { type: 'group'; group: NavGroup } => item.type === 'group')
+    .flatMap(item => item.group.children)
+    .filter(child => child.children?.some(sc => location.pathname.startsWith(sc.path)))
+    .map(child => child.path);
 
-  const toggleGroup = (id: string) => {
-    setOpenGroups(prev =>
-      prev.includes(id) ? prev.filter(g => g !== id) : [...prev, id]
-    );
+  const [openGroups, setOpenGroups] = useState<string[]>(defaultOpen);
+  const [openSubGroups, setOpenSubGroups] = useState<string[]>(defaultOpenSub);
+
+  const toggleGroup = (id: string, isSubGroup = false) => {
+    if (isSubGroup) {
+      setOpenSubGroups(prev =>
+        prev.includes(id) ? prev.filter(g => g !== id) : [...prev, id]
+      );
+    } else {
+      setOpenGroups(prev =>
+        prev.includes(id) ? prev.filter(g => g !== id) : [...prev, id]
+      );
+    }
   };
 
   const handleNavClick = () => {
     if (window.innerWidth < 1024) onClose();
+  };
+
+  const renderNavChild = (child: NavChild, isSubItem = false) => {
+    const ChildIcon = child.icon;
+    const hasChildren = child.children && child.children.length > 0;
+    const isSubOpen = openSubGroups.includes(child.path);
+    const subActive = child.children?.some(sc => location.pathname.startsWith(sc.path));
+
+    if (hasChildren) {
+      return (
+        <div key={child.path} className="sidebar-subgroup">
+          <button
+            className={`sidebar-child-item ${subActive ? 'active' : ''}`}
+            onClick={() => toggleGroup(child.path, true)}
+            style={{ width: '100%', justifyContent: 'space-between' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
+              <span className="sidebar-child-dot" />
+              <ChildIcon className="sidebar-child-icon" strokeWidth={1.8} />
+              <span>{child.label}</span>
+            </div>
+            <ChevronRight 
+              size={12} 
+              className={`sidebar-chevron ${isSubOpen ? 'open' : ''}`} 
+              style={{ transform: isSubOpen ? 'rotate(90deg)' : 'none' }} 
+            />
+          </button>
+          
+          {isSubOpen && (
+            <div className="sidebar-sub-children" style={{ paddingLeft: '24px' }}>
+              {child.children?.map(subChild => renderNavChild(subChild, true))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <NavLink
+        key={child.path}
+        to={child.path}
+        className={({ isActive }) => {
+          const currentFull = location.pathname + location.search;
+          const isMatch = child.path.includes('?') 
+            ? currentFull === child.path
+            : isActive;
+          return `sidebar-child-item ${isMatch ? 'active' : ''} ${isSubItem ? 'sub-item' : ''}`;
+        }}
+        onClick={handleNavClick}
+      >
+        <span className="sidebar-child-dot" />
+        <ChildIcon className="sidebar-child-icon" strokeWidth={1.8} />
+        <span>{child.label}</span>
+      </NavLink>
+    );
   };
 
   return (
@@ -343,13 +473,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             <X size={20} strokeWidth={1.6} />
           </button>
         </div>
-
-        {/* ── Role Badge ── */}
-        {userRole && (
-          <div className="sidebar-role-badge">
-            {getRoleLabel(userRole)}
-          </div>
-        )}
 
         {/* ── Navigation ── */}
         <nav className="sidebar-nav">
@@ -393,6 +516,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
                 <div className={`sidebar-group-children ${isOpen_ ? 'expanded' : ''}`}>
                   <div className="sidebar-group-children-inner">
+<<<<<<< HEAD
                             {group.children.map(child => {
                       const ChildIcon = child.icon;
                       const target = normalizeNavPath(child.path);
@@ -410,6 +534,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                         </NavLink>
                       );
                     })}
+=======
+                    {group.children.map(child => renderNavChild(child))}
+>>>>>>> origin/dev-branch
                   </div>
                 </div>
               </div>

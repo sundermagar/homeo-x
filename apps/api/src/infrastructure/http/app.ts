@@ -30,16 +30,20 @@ import { dashboardRouter } from './routes/dashboard.router';
 import { patientRouter } from './routes/patient.router'; // From shiva
 import { createBillingRouter } from './routes/billing.router';
 import { createPaymentRouter } from './routes/payment.router';
+import { createAccountsRouter } from './routes/accounts.router';
+import { createDayChargesRouter } from './routes/day-charges.router';
+import { createDepositsRouter } from './routes/deposits.router';
+import { createExpensesRouter } from './routes/expenses.router';
 import { createOrganizationRouter } from './routes/organization.router';
 import { createAccountRouter } from './routes/account.router';
-import { createSettingsRouter } from './routes/settings.router';
 import { rolesRouter } from './routes/roles.router';
 import { permissionsRouter } from './routes/permissions.router';
 import { crmRouter } from './routes/crm.router';
 import { logisticsRouter } from './routes/logistics.router';
 import { knowledgeRouter } from './routes/knowledge.router';
 import { recordsRouter } from './routes/records.router';
-import { staffRouter } from './routes/staff.router';
+import { staffRouter } from './routes/staff.router.js';
+import { createSettingsRouter } from './routes/settings.router';
 
 const logger = createLogger('http');
 
@@ -103,13 +107,14 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   // Our modules — Billing & Finance
   app.use('/api/billing', createBillingRouter());
   app.use('/api/payments', createPaymentRouter());
+  app.use('/api/accounts', createAccountsRouter());
+  app.use('/api/day-charges', createDayChargesRouter());
+  app.use('/api/deposits', createDepositsRouter());
+  app.use('/api/expenses', createExpensesRouter());
 
   // Our modules — Platform (JWT required)
   app.use('/api/organizations', authMiddleware, createOrganizationRouter());
   app.use('/api/accounts',      authMiddleware, createAccountRouter());
-
-  // Our modules — Settings & Configuration
-  app.use('/api/settings', createSettingsRouter());
 
   // ─── Operations & Logistics (JWT required) ───
   app.use('/api/crm',        authMiddleware, crmRouter);
@@ -121,6 +126,9 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   // Roles & Permissions
   app.use('/api/roles',      authMiddleware, rolesRouter);
   app.use('/api/permissions', authMiddleware, permissionsRouter);
+
+  // Our modules — Settings & Configuration
+  app.use('/api/settings', authMiddleware, createSettingsRouter());
 
   // ─── Error Handling (must be last) ───
   app.use(errorHandler);

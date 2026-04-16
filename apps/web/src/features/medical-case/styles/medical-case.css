@@ -146,8 +146,8 @@
 @media (min-width: 768px) { .mc-detail-header { flex-direction: row; justify-content: space-between; align-items: center; } }
 
 .mc-back-group { display: flex; align-items: center; gap: 14px; }
-.mc-back-btn { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border-main); display: flex; align-items: center; justify-content: center; background: white; cursor: pointer; transition: all 150ms; }
-.mc-back-btn:hover { background: var(--bg-surface-2); border-color: var(--text-muted); }
+.mc-back-btn { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border-main); display: flex; align-items: center; justify-content: center; background: white; cursor: pointer; transition: all var(--transition-normal); box-shadow: var(--pp-premium-shadow); }
+.mc-back-btn:hover { background: var(--pp-warm-1); border-color: var(--pp-blue-border); color: var(--pp-blue); transform: translateX(-2px); }
 .mc-divider-v { width: 1px; height: 32px; background: var(--border-main); }
 .mc-page-title { font-size: 1.1rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 10px; }
 .mc-active-badge { font-size: 0.6rem; font-weight: 800; background: var(--success-bg); color: var(--success); text-transform: uppercase; padding: 3px 8px; border-radius: 20px; border: 1px solid rgba(22,163,74,0.1); }
@@ -199,10 +199,10 @@
 .mc-ai-btn:hover { background: rgba(255,255,255,0.15); }
 
 /* ─── 5. Clinical Workspace & Sub-Views ─── */
-.mc-workspace { background: white; border: 1px solid var(--border-main); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; min-height: 600px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+.mc-workspace { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.5); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; min-height: 600px; box-shadow: 0 8px 32px rgba(0,0,0,0.05); }
 
 /* Tab Ribbon (Scrollable on Mobile) */
-.mc-tab-nav { display: flex; padding: 0 4px; border-bottom: 1px solid var(--border-main); background: white; overflow-x: auto; scrollbar-width: none; }
+.mc-tab-nav { display: flex; padding: 0 4px; border-bottom: 1px solid var(--border-main); background: rgba(255, 255, 255, 0.5); overflow-x: auto; scrollbar-width: none; }
 .mc-tab-nav::-webkit-scrollbar { display: none; }
 .mc-tab-btn { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; padding: 14px 20px; font-size: 0.83rem; font-weight: 640; color: var(--text-muted); border: none; background: transparent; cursor: pointer; position: relative; transition: all 150ms; }
 .mc-tab-btn.active { color: var(--primary); }
@@ -325,3 +325,337 @@
 /* Keyframes */
 @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 .mc-workspace-body > * { animation: fadeIn 250ms ease-out; }
+
+/* ─── 7. AI Remedy Module Extensions ─── */
+.mc-remedy-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background: var(--bg-card);
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid var(--border-main);
+  min-height: 100%;
+}
+
+@media (min-width: 768px) {
+  .mc-remedy-container { padding: 24px; min-height: 600px; }
+}
+
+.mc-remedy-header {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+@media (min-width: 768px) {
+  .mc-remedy-header { flex-direction: row; justify-content: space-between; align-items: center; }
+}
+
+/* Three-Panel Session Adaptive Layout */
+.mc-remedy-session-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  height: 100%;
+}
+
+@media (min-width: 1024px) {
+  .mc-remedy-session-grid { flex-direction: row; gap: 0; min-height: 600px; }
+  .mc-remedy-panel-left { flex: 0 0 320px; border-right: 1px solid var(--border-main); padding-right: 24px; }
+  .mc-remedy-panel-center { flex: 1; padding: 0 24px; }
+  .mc-remedy-panel-right { flex: 0 0 300px; border-left: 1px solid var(--border-main); padding-left: 24px; }
+}
+
+/* Mobile-Specific Adaptations for Session Panels */
+@media (max-width: 1023px) {
+  .mc-remedy-panel-left, .mc-remedy-panel-center, .mc-remedy-panel-right {
+    padding: 20px;
+    background: var(--bg-card);
+    border-radius: var(--radius-card);
+    border: 1px solid var(--border-main);
+  }
+}
+
+.mc-alphabet-index {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.mc-alphabet-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: 1px solid var(--border-main);
+  background: var(--bg-surface-2);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 150ms;
+}
+
+@media (min-width: 768px) {
+  .mc-alphabet-btn { width: 24px; height: 24px; }
+}
+
+.mc-alphabet-btn.active {
+  background: var(--primary) !important;
+  color: white !important;
+  border-color: var(--primary) !important;
+  box-shadow: 0 2px 6px rgba(37,99,235,0.2);
+}
+
+.mc-alphabet-btn:hover:not(.active) {
+  background: white;
+  border-color: var(--text-muted);
+}
+
+/* ─── 8. AI Remedy View Polish ─── */
+.mc-remedy-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 100px;
+  background: white;
+  border: 1px solid var(--border-main);
+  color: var(--text-main);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+
+.mc-remedy-pill:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-tint);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+}
+
+.mc-highlight {
+  background: #FEF08A; /* var(--warning-tint) */
+  color: #854D0E;
+  padding: 0 2px;
+  border-radius: 2px;
+  font-weight: 700;
+}
+
+.mc-remedy-node-header {
+  user-select: none;
+}
+
+.mc-remedy-node-header.mc-remedy-leaf {
+  border-style: dashed !important;
+}
+
+.mc-remedy-node-header:hover {
+  filter: brightness(0.98);
+}
+
+.mc-loading-shimmer {
+  background: linear-gradient(90deg, var(--bg-surface-2) 0%, white 50%, var(--bg-surface-2) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ─── AI Clinical Consultant Styles ─── */
+.mc-ai-consultant {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg-card);
+  border: 1px solid var(--border-main);
+  border-radius: var(--pp-radius-card);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.mc-ai-theory-selector {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+  background: var(--bg-surface-2);
+  border-bottom: 1px solid var(--border-main);
+}
+
+.mc-ai-theory-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.mc-ai-theory-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.mc-theory-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: white;
+  border: 1px solid var(--border-main);
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mc-theory-pill:hover {
+  background: var(--bg-surface-2);
+  color: var(--text-main);
+}
+
+.mc-theory-pill.active {
+  background: var(--text-main);
+  color: white;
+  border-color: var(--text-main);
+}
+
+.mc-ai-chat-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  background: #fafafa;
+}
+
+.mc-ai-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.mc-ai-empty h3 {
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--text-main);
+}
+
+.mc-ai-report {
+  background: var(--bg-card);
+  border-radius: var(--pp-radius-card);
+  border: 1px solid var(--border-main);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.mc-ai-report-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--primary-tint);
+  border-bottom: 1px solid var(--primary-border);
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.mc-icon-spin {
+  animation: spin 3s linear infinite;
+}
+
+@keyframes spin {
+  100% { transform: rotate(360deg); }
+}
+
+.mc-ai-report-body {
+  padding: 24px;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--text-main);
+}
+
+.mc-typewriter-box strong {
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.mc-ai-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+  background: white;
+  border-top: 1px solid var(--border-main);
+}
+
+.mc-ai-attach-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.mc-ai-attach-btn:hover {
+  background: var(--bg-surface-2);
+  color: var(--text-primary);
+}
+
+.mc-ai-input {
+  flex: 1;
+  padding: 10px 16px;
+  height: 40px;
+  border: 1px solid var(--border-main);
+  border-radius: var(--radius-btn);
+  font-size: 0.95rem;
+  color: var(--text-main);
+  transition: all 0.2s;
+}
+
+.mc-ai-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-tint);
+}
+
+.mc-ai-submit-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 20px;
+  height: 40px;
+  background: var(--text-main);
+  color: white;
+  border: none;
+  border-radius: var(--radius-btn);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mc-ai-submit-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.mc-ai-submit-btn:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}

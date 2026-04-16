@@ -30,8 +30,8 @@ export function useAppointments(filters: {
       Object.entries(filters).forEach(([k, v]) => {
         if (v !== undefined && v !== '') params.set(k, String(v));
       });
-      const res = await apiClient.get(`/appointments?${params}`);
-      return res.data as { data: Appointment[]; total: number; success: boolean };
+      const res = await apiClient.get<{ success: boolean; data: { data: Appointment[]; total: number } }>(`/appointments?${params}`);
+      return res.data.data;
     },
     staleTime: 30_000,
   });
@@ -42,8 +42,8 @@ export function useTodayAppointments() {
   return useQuery({
     queryKey: apptKeys.today(),
     queryFn: async () => {
-      const res = await apiClient.get('/appointments/today');
-      return res.data as Appointment[];
+      const res = await apiClient.get<{ success: boolean; data: Appointment[] }>('/appointments/today');
+      return res.data.data ?? [];
     },
     refetchInterval: 60_000, // Auto-refresh every minute
   });
@@ -54,8 +54,8 @@ export function useAvailableSlots(doctorId: number | undefined, date: string | u
   return useQuery({
     queryKey: apptKeys.slots(doctorId!, date!),
     queryFn: async () => {
-      const res = await apiClient.get(`/appointments/availability?doctor_id=${doctorId}&date=${date}`);
-      return res.data as AvailabilitySlot[];
+      const res = await apiClient.get<{ success: boolean; data: AvailabilitySlot[] }>(`/appointments/availability?doctor_id=${doctorId}&date=${date}`);
+      return res.data.data;
     },
     enabled: !!doctorId && !!date,
   });
@@ -67,8 +67,8 @@ export function useWaitlist(date: string, doctorId?: number) {
     queryKey: [...apptKeys.waitlist(date), doctorId],
     queryFn: async () => {
       const url = `/appointments/waiting?date=${date}${doctorId ? `&doctor_id=${doctorId}` : ''}`;
-      const res = await apiClient.get(url);
-      return res.data as WaitlistEntry[];
+      const res = await apiClient.get<{ success: boolean; data: WaitlistEntry[] }>(url);
+      return res.data.data;
     },
     refetchInterval: 30_000,
   });

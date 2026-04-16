@@ -1,233 +1,236 @@
 import { useState } from 'react';
 import {
+  Building2,
   Users,
-  CreditCard,
+  TrendingUp,
+  TrendingDown,
   Activity,
-  Zap,
-  ArrowUpRight,
-  ArrowDownRight,
+  CreditCard,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  ArrowRight,
+  BarChart3,
 } from 'lucide-react';
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Legend
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
 } from 'recharts';
 import { useNavigate } from 'react-router-dom';
 import { useDashboard } from '../hooks/use-dashboard';
-import { ConfirmModal } from '@/shared/components/confirm-modal';
+import { useClinicAdminDashboard } from '../hooks/use-clinic-admin-dashboard';
 import './role-dashboards.css';
-
-
+import './admin-dashboard.css';
 
 export function AdminDashboard() {
   const navigate = useNavigate();
-  const { data: dashData, isLoading } = useDashboard('month');
-  const [purgeOpen, setPurgeOpen] = useState(false);
+  const period = 'month';
 
-  const todayAppts = dashData?.queue || [];
+  const { data: dashData, isLoading: dashLoading } = useDashboard(period);
+  const { data: clinicData, isLoading: clinicLoading } = useClinicAdminDashboard(period);
+
+  const isLoading = dashLoading && clinicLoading;
   const kpis = dashData?.kpis;
-  const revenueSeries = dashData?.revenueSeries || [];
-  const urgentAppts = todayAppts.filter((a: any) => a.isUrgent); // Real flag if exists, otherwise empty
+  const revenueSeries = clinicData?.revenueSeries || clinicData?.revenueSeries || dashData?.revenueSeries || [];
+  
+  const platformStats = dashData?.platformStats;
+  const clinicCount = platformStats?.totalClinics ?? 0;
+  const activeStaff = platformStats?.totalStaff ?? 0;
 
   if (isLoading) {
     return (
-      <div className="dash-root" style={{ padding: '64px', textAlign: 'center', color: '#94a3b8' }}>
-        <Activity className="animate-pulse" style={{ margin: '0 auto 16px', color: 'var(--primary)' }} />
-        <p className="text-small">Connecting to Executive Analytics...</p>
+      <div className="sa-root sa-loading">
+        <Activity size={28} style={{ color: 'var(--pp-blue)', animation: 'pulse 1.5s infinite' }} />
+        <p>Loading Executive Dashboard…</p>
       </div>
     );
   }
 
   return (
-    <div className="dash-root">
-      {/* 1. KPI Strip */}
-      <div className="dash-kpi-strip">
-        <ExecKPI label="Patient Growth" value={(kpis?.newPatientsCount || 0).toLocaleString()} trend={`${kpis?.patientTrend || 0}%`} up={Number(kpis?.patientTrend) > 0} color="#2563eb" />
-        <KPIItem label="Executive Revenue" value={`₹${(kpis?.todaysCollection || 0).toLocaleString()}`} trend={`${kpis?.revenueTrend || 0}% vs prev`} color={Number(kpis?.revenueTrend) > 0 ? '#16a34a' : '#dc2626'} />
-        <KPIItem label="Collection Rate" value={`${kpis?.collectionRate || 0}%`} trend="Target 95%" color="#16a34a" />
-        <ExecKPI label="System Status" value="Healthy" up={true} color="#16a34a" />
-      </div>
+    <div className="sa-root">
 
-      <div className="dash-grid">
-        {/* 2. Main Column — Large Charts */}
-        <div className="dash-main-col">
-          <div className="dash-card">
-            <div className="dash-card-header">
-              <div className="dash-section-title">Revenue Velocity Trend</div>
-              <span className="dash-badge badge-primary">FISCAL YEAR</span>
-            </div>
-            <div className="dash-card-body">
-              <div className="dash-chart-container">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={revenueSeries}>
-                    <defs>
-                      <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#2563eb" stopOpacity={0.1} />
-                        <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} dy={10} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} tickFormatter={(v) => `₹${v / 1000}k`} />
-                    <Tooltip contentStyle={{ background: 'white', borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 11, fontWeight: 700 }} />
-                    <Area type="monotone" dataKey="revenue" stroke="#2563eb" strokeWidth={3} fill="url(#revenueGrad)" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24 }}>
-            <div className="dash-card">
-              <div className="dash-card-header"><h3 className="dash-section-title">Specialty Distribution</h3></div>
-              <div className="dash-card-body">
-                <div style={{ height: 220 }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={revenueSeries.length > 0 ? revenueSeries.map((r: any, i: number) => ({ name: r.month || `M${i+1}`, value: r.revenue, fill: ['#2563eb','#0ea5e9','#16a34a','#d97706','#64748b'][i % 5] })) : []} dataKey="value" nameKey="name" innerRadius={60} outerRadius={85} paddingAngle={5}>
-                      </Pie>
-                      <Tooltip />
-                      <Legend verticalAlign="bottom" iconType="circle" wrapperStyle={{ fontSize: 10, fontWeight: 700, paddingTop: 20 }} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            </div>
-
-            <div className="dash-card">
-              <div className="dash-card-header"><h3 className="dash-section-title">Lead Intelligence</h3></div>
-              <div className="dash-card-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                <LeadItem label="Online Portals" value={42} color="#2563eb" />
-                <LeadItem label="Direct Referrals" value={28} color="#0ea5e9" />
-                <LeadItem label="Social Channels" value={18} color="#64748b" />
-                <LeadItem label="Walk-ins" value={12} color="#cbd5e1" />
-              </div>
-            </div>
-          </div>
+      {/* ── Header ─────────────────────────────────────────────────────── */}
+      <div className="sa-header">
+        <div>
+          <h1 className="sa-title">Executive Overview</h1>
+          <p className="sa-subtitle">Platform Performance · Monthly view</p>
         </div>
+      </div>
 
-        {/* 3. Sidebar — Terminal & Critical Stream */}
-        <aside className="dash-sidebar">
-          <div className="dash-sidebar-card">
-            <h3 className="dash-section-title">Global Terminal</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <TerminalBtn icon={<Users size={14} />} label="Users" onClick={() => navigate('/platform/accounts')} />
-              <TerminalBtn icon={<Activity size={14} />} label="Logs" onClick={() => navigate('/analytics/reports')} />
-              <TerminalBtn icon={<Zap size={14} />} label="Clinics" onClick={() => navigate('/platform/clinics')} />
-              <TerminalBtn icon={<CreditCard size={14} />} label="Purge" onClick={() => setPurgeOpen(true)} />
-            </div>
+      {/* ── Primary KPI Strip ─────────────────────────────────────────── */}
+      <div className="sa-kpi-primary">
+        <PrimaryKPICard
+          label="TOTAL REVENUE"
+          value={fmt(Number(clinicData?.totalRevenue ?? kpis?.todaysCollection ?? 0))}
+          trend={Number(clinicData?.revenueTrend ?? kpis?.revenueTrend ?? 0)}
+          icon={<CreditCard size={18} />}
+          color="#2563eb"
+        />
+        <PrimaryKPICard
+          label="TOTAL PATIENTS"
+          value={String(Number(clinicData?.patientsApril ?? kpis?.newPatientsCount ?? 0))}
+          trend={Number(clinicData?.patientsTrend ?? kpis?.patientTrend ?? 0)}
+          icon={<Users size={18} />}
+          color="#7c3aed"
+        />
+        <PrimaryKPICard
+          label="COLLECTION RATE"
+          value={`${clinicData?.collectionRate ?? kpis?.collectionRate ?? 0}%`}
+          trend={Number(clinicData?.collectionRateTrend ?? 0)}
+          icon={<CheckCircle2 size={18} />}
+          color="#16a34a"
+          invertTrend
+        />
+        <PrimaryKPICard
+          label="AVG WAIT TIME"
+          value={`${clinicData?.avgWaitTime ?? kpis?.avgWaitTime ?? 0}m`}
+          trend={Number(clinicData?.avgWaitTimeTrend ?? 0)}
+          icon={<Clock size={18} />}
+          color="#d97706"
+          invertTrend
+        />
+      </div>
+
+      {/* ── Secondary Stats Row ────────────────────────────────────────── */}
+      <div className="sa-stats-row">
+        <StatCard label="Active Clinics" value={String(clinicCount)} icon={<Building2 size={16} />} color="#2563eb" onClick={() => navigate('/platform/clinics')} />
+        <StatCard label="Active Staff" value={String(activeStaff)} icon={<Users size={16} />} color="#7c3aed" onClick={() => navigate('/staff')} />
+        <StatCard label="Revenue / Patient" value={fmt(clinicData?.revenueBreakdown?.perPatient || 0)} icon={<BarChart3 size={16} />} color="#16a34a" />
+        <StatCard label="Pending Dues" value={fmt(clinicData?.revenueBreakdown?.pending || 0)} icon={<AlertCircle size={16} />} color="#dc2626" onClick={() => navigate('/billing')} />
+      </div>
+
+      {/* ── Revenue Trend Chart ───────────────────────────────────────── */}
+      <div className="sa-chart-card">
+        <div className="sa-chart-header">
+          <div className="sa-chart-title">
+            <BarChart3 size={14} />
+            REVENUE TREND · 6 MONTHS
           </div>
-
-          <div className="dash-sidebar-card">
-            <div className="dash-card-header" style={{ padding: 0, border: 'none' }}>
-              <h3 className="dash-section-title">Critical Stream</h3>
-              <span className="dash-badge badge-danger">SYSTEM ALERT</span>
+          <span className="sa-badge sa-badge-primary">CURRENT YEAR</span>
+        </div>
+        <div className="sa-chart-body">
+          {revenueSeries.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={revenueSeries} margin={{ top: 10, right: 10, bottom: 0, left: -10 }}>
+                <defs>
+                  <linearGradient id="saRevGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#2563eb" stopOpacity={0.12} />
+                    <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 700 }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 700 }} tickFormatter={fmtNum} />
+                <Tooltip contentStyle={{ borderRadius: 10, border: '1px solid #e2e8f0', background: '#fff', fontSize: 12, fontWeight: 600 }} formatter={(v: any) => [fmt(Number(v)), 'Revenue']} />
+                <Area type="monotone" dataKey="revenue" stroke="#2563eb" strokeWidth={2.5} fill="url(#saRevGrad)" isAnimationActive={false} />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="sa-chart-empty">
+              <Activity size={24} style={{ opacity: 0.3 }} />
+              <span>No revenue data</span>
             </div>
-            <div className="dash-list">
-              {urgentAppts.map((a: any, i: number) => (
-                <div key={i} className="dash-list-item">
-                  <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                    <div className="dash-status-dot" style={{ background: '#dc2626', marginTop: 4 }} />
-                    <div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>{a.patientName}</div>
-                      <p className="text-label" style={{ fontSize: 10, marginTop: 2 }}>Unassigned critical follow-up required.</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {urgentAppts.length === 0 && (
-                <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>
-                  <Activity size={20} style={{ opacity: 0.5, marginBottom: 8 }} />
-                  <p className="text-small">Stream operational. No criticals.</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </aside>
-      </div>
-
-      <ConfirmModal
-        isOpen={purgeOpen}
-        title="Purge Data"
-        message="This will permanently delete archived records and old data. This action cannot be undone. Are you sure?"
-        confirmLabel="Purge Now"
-        cancelLabel="Cancel"
-        variant="danger"
-        onConfirm={() => {
-          // TODO: wire to API endpoint
-          setPurgeOpen(false);
-        }}
-        onCancel={() => setPurgeOpen(false)}
-      />
-    </div>
-  );
-}
-
-function KPIItem({ label, value, trend, color }: any) {
-  return (
-    <div className="dash-kpi-item">
-      <span className="dash-kpi-label">{label}</span>
-      <div className="dash-kpi-value-row">
-        <span className="dash-kpi-value">{value}</span>
-      </div>
-      <div className="dash-kpi-trend" style={{ color }}>
-        {trend}
-      </div>
-    </div>
-  );
-}
-
-function ExecKPI({ label, value, trend, up, color }: any) {
-  return (
-    <div className="dash-kpi-item">
-       <span className="dash-kpi-label">{label}</span>
-       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-          <div className="dash-kpi-value">{value}</div>
-          {trend && (
-             <div className={`dash-kpi-trend ${up ? 'trend-up' : 'trend-down'}`} style={{ color }}>
-                {up ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-                {trend}
-             </div>
           )}
-          {!trend && <div className="dash-pulse-dot" />}
-       </div>
+        </div>
+      </div>
+
+      {/* ── Quick Actions ─────────────────────────────────────────────── */}
+      <div className="sa-actions-grid">
+        <QuickAction icon={<Building2 size={18} />} label="Manage Clinics" sub="Add, edit or view clinics" onClick={() => navigate('/platform/clinics')} />
+        <QuickAction icon={<Users size={18} />} label="Staff Management" sub="Doctors, receptionists & roles" onClick={() => navigate('/staff')} />
+        <QuickAction icon={<CreditCard size={18} />} label="Billing & Payments" sub="Invoices, receipts & dues" onClick={() => navigate('/billing')} />
+        <QuickAction icon={<BarChart3 size={18} />} label="Analytics" sub="Reports & revenue insights" onClick={() => navigate('/analytics')} />
+      </div>
+
     </div>
   );
 }
 
-function LeadItem({ label, value, color }: any) {
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function fmt(n: number): string {
+  if (!n && n !== 0) return '₹0';
+  if (n >= 100000) return `₹${(n / 100000).toFixed(1)}L`;
+  if (n >= 1000) return `₹${(n / 1000).toFixed(1)}k`;
+  return `₹${n}`;
+}
+
+function fmtNum(n: number): string {
+  if (!n && n !== 0) return '0';
+  if (n >= 1000) return `${(n / 1000).toFixed(0)}k`;
+  return String(n);
+}
+
+// ── Sub-components ─────────────────────────────────────────────────────────────
+
+function PrimaryKPICard({
+  label, value, trend, icon, color, invertTrend
+}: {
+  label: string;
+  value: string;
+  trend: number;
+  icon: React.ReactNode;
+  color: string;
+  invertTrend?: boolean;
+}) {
+  const positive = invertTrend ? trend <= 0 : trend >= 0;
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
-        <span style={{ color: '#64748b' }}>{label}</span>
-        <span style={{ fontWeight: 700, color: '#0f172a' }}>{value}%</span>
-      </div>
-      <div style={{ height: 4, background: '#f1f5f9', borderRadius: 2, overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${value}%`, background: color }} />
+    <div className="sa-kpi-card">
+      <div className="sa-kpi-icon" style={{ background: `${color}15`, color }}>{icon}</div>
+      <div className="sa-kpi-body">
+        <div className="sa-kpi-label">{label}</div>
+        <div className="sa-kpi-value">{value}</div>
+        <div className={`sa-kpi-trend ${positive ? 'sa-trend-up' : 'sa-trend-down'}`}>
+          {positive ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+          {positive ? '+' : ''}{trend}% vs prev.
+        </div>
       </div>
     </div>
   );
 }
 
-function TerminalBtn({ icon, label, onClick }: any) {
+function StatCard({
+  label, value, icon, color, onClick
+}: {
+  label: string;
+  value: string;
+  icon: React.ReactNode;
+  color: string;
+  onClick?: () => void;
+}) {
   return (
-    <button
-      onClick={onClick}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        padding: '10px',
-        background: '#f8fafc',
-        border: '1px solid #f1f5f9',
-        borderRadius: '8px',
-        color: '#475569',
-        fontSize: 11,
-        fontWeight: 700,
-        cursor: 'pointer'
-      }}
-    >
-      <span style={{ color: '#2563eb' }}>{icon}</span>
-      {label}
+    <div className={`sa-stat-card ${onClick ? 'sa-stat-clickable' : ''}`} onClick={onClick}>
+      <div className="sa-stat-icon" style={{ color }}>{icon}</div>
+      <div className="sa-stat-body">
+        <div className="sa-stat-value">{value}</div>
+        <div className="sa-stat-label">{label}</div>
+      </div>
+      {onClick && <ArrowRight size={14} style={{ color: '#94a3b8', flexShrink: 0 }} />}
+    </div>
+  );
+}
+
+function QuickAction({
+  icon, label, sub, onClick
+}: {
+  icon: React.ReactNode;
+  label: string;
+  sub: string;
+  onClick?: () => void;
+}) {
+  return (
+    <button className="sa-action-card" onClick={onClick}>
+      <div className="sa-action-icon">{icon}</div>
+      <div className="sa-action-body">
+        <div className="sa-action-label">{label}</div>
+        <div className="sa-action-sub">{sub}</div>
+      </div>
+      <ArrowRight size={14} style={{ color: '#94a3b8', flexShrink: 0 }} />
     </button>
   );
 }

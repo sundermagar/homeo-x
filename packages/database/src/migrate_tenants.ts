@@ -22,15 +22,18 @@ async function migrateTenant(schemaName: string) {
   console.log(`🚀 Provisioning Schema: [${schemaName}]`);
   console.log(`===========================================`);
 
-  // Force postgres client isolation with search_path mapping
-  const connection = postgres(dbUrl as string, { max: 1 });
+  // Force postgres client isolation with search_path mapping in the connection options
+  const connection = postgres(dbUrl as string, { 
+    max: 1,
+    onnotice: () => {}, // suppress notices for clean logs
+    connection: {
+      search_path: schemaName
+    }
+  });
   
   // Create schema if it doesn't already exist prior to migrations
   await connection`CREATE SCHEMA IF NOT EXISTS ${connection(schemaName)}`;
   
-  // We must isolate the search path so that CREATE TABLE naturally lands here
-  await connection`SET search_path TO ${connection(schemaName)}`;
-
   const db = drizzle(connection);
 
   try {

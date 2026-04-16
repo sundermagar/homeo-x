@@ -5,23 +5,23 @@ import type { Organization, CreateOrganizationInput, UpdateOrganizationInput } f
 const QUERY_KEY = 'organizations';
 
 async function fetchOrganizations(): Promise<Organization[]> {
-  const { data } = await apiClient.get('/organizations');
-  return data;
+  const { data } = await apiClient.get<{ success: boolean; data: Organization[] }>('/organizations');
+  return data.data;
 }
 
 async function fetchOrganization(id: number): Promise<Organization> {
-  const { data } = await apiClient.get(`/organizations/${id}`);
-  return data;
+  const { data } = await apiClient.get<{ success: boolean; data: Organization }>(`/organizations/${id}`);
+  return data.data;
 }
 
 async function createOrganization(body: CreateOrganizationInput): Promise<Organization> {
-  const { data } = await apiClient.post('/organizations', body);
-  return data;
+  const { data } = await apiClient.post<{ success: boolean; data: Organization }>('/organizations', body);
+  return data.data;
 }
 
 async function updateOrganization({ id, ...body }: UpdateOrganizationInput & { id: number }): Promise<Organization> {
-  const { data } = await apiClient.put(`/organizations/${id}`, body);
-  return data;
+  const { data } = await apiClient.put<{ success: boolean; data: Organization }>(`/organizations/${id}`, body);
+  return data.data;
 }
 
 async function deleteOrganization(id: number): Promise<void> {

@@ -129,3 +129,29 @@ export const prescriptions = pgTable('case_potencies', {
   updatedAt: timestamp('updated_at').defaultNow(),
   deletedAt: timestamp('deleted_at'),
 });
+
+// ─── AI Remedy Chart Session ─────────────────────────────────────────────────
+// Migrated from legacy: managetreedatas → remedy_tree_nodes
+
+export const remedyTreeNodes = pgTable('remedy_tree_nodes', {
+  id:          serial('id').primaryKey(),
+  parentId:    integer('parent_id').default(0),
+  label:       varchar('label',       { length: 255 }).notNull(),
+  description: text('description'),
+  nodeType:    varchar('node_type',   { length: 50 }).default('RUBRIC'), // RUBRIC | REMEDY | CATEGORY
+  sortOrder:   integer('sort_order').default(0),
+  isActive:    boolean('is_active').default(true),
+  createdAt:   timestamp('created_at').defaultNow(),
+  updatedAt:   timestamp('updated_at').defaultNow(),
+});
+
+// Migrated from legacy: medicine_others → remedy_alternatives
+export const remedyAlternatives = pgTable('remedy_alternatives', {
+  id:        serial('id').primaryKey(),
+  treeId:    integer('tree_id').notNull(),       // FK → remedy_tree_nodes.id
+  remedy:    varchar('remedy',  { length: 255 }),
+  potency:   varchar('potency', { length: 100 }),
+  notes:     text('notes'),
+  sortOrder: integer('sort_order').default(0),
+  createdAt: timestamp('created_at').defaultNow(),
+});

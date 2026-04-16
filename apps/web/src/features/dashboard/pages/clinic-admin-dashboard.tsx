@@ -1,128 +1,490 @@
+import { useState } from 'react';
 import {
   TrendingUp,
   TrendingDown,
   Users,
   Activity,
   BarChart3,
+  Inbox,
+  ChevronRight,
 } from 'lucide-react';
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  Cell,
 } from 'recharts';
-import { useDashboard } from '../hooks/use-dashboard';
+import { useClinicAdminDashboard } from '../hooks/use-clinic-admin-dashboard';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import './role-dashboards.css';
+import './clinic-admin-dashboard.css';
+
+type Period = 'day' | 'week' | 'month' | 'year';
+type RevenueTab = 'Cash' | 'UPI/Card';
+
+function fmt(n: number): string {
+  if (n >= 100000) return `₹${(n / 100000).toFixed(2)}L`;
+  if (n >= 1000) return `₹${(n / 1000).toFixed(1)}k`;
+  return `₹${n}`;
+}
+
+function fmtNum(n: number): string {
+  if (n >= 100000) return `${(n / 100000).toFixed(2)}L`;
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+  return String(n);
+}
+
+function TrendBadge({ value }: { value: number }) {
+  const positive = value >= 0;
+  return (
+    <span className={`cad-trend-badge ${positive ? 'cad-trend-up' : 'cad-trend-down'}`}>
+      {positive ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+      {positive ? '+' : ''}{value}% vs prev.
+    </span>
+  );
+}
+
+function ProgressBar({ value, max, color }: { value: number; max: number; color: string }) {
+  const pct = Math.min(100, Math.round((value / max) * 100));
+  return (
+    <div className="cad-progress-track">
+      <div className="cad-progress-fill" style={{ width: `${pct}%`, background: color }} />
+    </div>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const cls = status === 'Paid' ? 'cad-badge-success' : status === 'Pending' ? 'cad-badge-danger' : 'cad-badge-warning';
+  return <span className={`cad-badge ${cls}`}>{status}</span>;
+}
 
 export function ClinicAdminDashboard() {
-  const user = useAuthStore((s) => s.user);
-  const { data: dashData, isLoading } = useDashboard('month');
-  
-  const todayAppts = dashData?.queue || [];
-  const kpis = dashData?.kpis;
-  const revenueSeries = dashData?.revenueSeries || [];
+  const [period, setPeriod] = useState<Period>('year');
+  const [revTab, setRevTab] = useState<RevenueTab>('Cash');
+  const [sidebarTab, setSidebarTab] = useState<'Queue' | 'Analytics' | 'Billing'>('Queue');
 
-  if (isLoading) {
+  const { data, isLoading } = useClinicAdminDashboard(period);
+  useAuthStore((s) => s.user); // ensures auth store is initialised
+
+  if (isLoading || !data) {
     return (
-      <div className="dash-root" style={{ padding: '64px', textAlign: 'center', color: '#94a3b8' }}>
-        <Activity className="animate-pulse" style={{ margin: '0 auto 16px', color: 'var(--primary)' }} />
-        <p className="text-small">Loading Clinic Analytics...</p>
+      <div className="cad-root cad-loading">
+        <Activity size={28} style={{ color: 'var(--pp-blue)', animation: 'pulse 1.5s infinite' }} />
+        <p>Loading Clinic Analytics…</p>
       </div>
     );
   }
 
+  const {
+    totalRevenue,
+    revenueTrend,
+    patientsApril: patients,
+    patientsTrend,
+    collectionRate,
+    collectionRateTrend,
+    avgWaitTime,
+    avgWaitTimeTrend,
+    revenueBreakdown,
+    revenueSeries,
+    cashSeries,
+    upiSeries,
+    targets,
+    topBilling,
+    recentActivity,
+    queue,
+    staffOnDuty,
+    weekLabel,
+  } = data;
+ 
+  // Select the chart series based on the active tab
+  const chartSeries = revTab === 'Cash' ? cashSeries : revTab === 'UPI/Card' ? upiSeries : revenueSeries;
+ 
+  // Total for the active tab
+  const tabTotal = revTab === 'Cash'
+    ? revenueBreakdown.physicalCurrency
+    : revTab === 'UPI/Card'
+    ? revenueBreakdown.upiCard
+    : totalRevenue;
+ 
+  const periodLabel = period.toUpperCase();
+  const sublabel = period === 'day' ? 'TODAY' : period === 'week' ? 'WTD' : period === 'month' ? 'MTD' : 'YTD';
+ 
   return (
-    <div className="dash-root">
-      {/* 1. KPI Strip */}
-      <div className="dash-kpi-strip">
-        <KPIItem label="Monthly Revenue" value={`₹${((Number(kpis?.todaysCollection || 0) * 30) / 1000).toFixed(0)}k`} trend={`${kpis?.revenueTrend || 0}% vs last month`} color={Number(kpis?.revenueTrend) > 0 ? '#16a34a' : '#dc2626'} />
-        <KPIItem label="Patient Growth" value={(Number(kpis?.newPatientsCount || 0) * 30).toLocaleString()} trend={`${kpis?.patientTrend || 0}% vs last month`} color={Number(kpis?.patientTrend) > 0 ? '#16a34a' : '#dc2626'} />
-        <KPIItem label="Collection Rate" value={`${kpis?.collectionRate || 0}%`} trend="Target 95%" color="#16a34a" />
-        <KPIItem label="Wait Time" value={`${kpis?.avgWaitTime || 0}m`} trend="Clinic Avg" color="#2563eb" />
+    <div className="cad-root">
+      {/* ── Header ─────────────────────────────────────────────────────── */}
+      <div className="cad-header">
+        <div>
+          <h1 className="cad-title">Overview</h1>
+          <p className="cad-subtitle">{weekLabel}</p>
+        </div>
+        <div className="cad-period-tabs">
+          {(['day', 'week', 'month', 'year'] as Period[]).map(p => (
+            <button
+              key={p}
+              className={`cad-period-tab ${period === p ? 'active' : ''}`}
+              onClick={() => setPeriod(p)}
+            >
+              {p.charAt(0).toUpperCase() + p.slice(1)}
+            </button>
+          ))}
+        </div>
+      </div>
+ 
+      {/* ── KPI Strip ───────────────────────────────────────────────────── */}
+      <div className="cad-kpi-strip">
+        <KPICard
+          label="REVENUE"
+          sublabel={sublabel}
+          value={fmt(totalRevenue)}
+          trend={revenueTrend}
+        />
+        <KPICard
+          label="PATIENTS"
+          sublabel={sublabel}
+          value={patients > 0 ? String(patients) : '--'}
+          trend={patientsTrend}
+        />
+        <KPICard
+          label="COLLECTION RATE"
+          sublabel=""
+          value={`${collectionRate}%`}
+          trend={collectionRateTrend}
+          invertTrend
+        />
+        <KPICard
+          label="AVG WAIT TIME"
+          sublabel=""
+          value={`${avgWaitTime}m`}
+          trend={avgWaitTimeTrend}
+          invertTrend
+        />
       </div>
 
-      <div className="dash-grid">
-        {/* 2. Main Content — Analytics */}
-        <div className="dash-main-col">
-          {/* Revenue Perfomance Chart */}
-          <div className="dash-card">
-            <div className="dash-card-header">
-              <div className="dash-section-title">
-                <BarChart3 size={15} style={{ marginRight: 8, color: '#2563eb' }} /> Revenue Performance
+      {/* ── Main Grid ───────────────────────────────────────────────────── */}
+      <div className="cad-grid">
+        <div className="cad-main-col">
+
+          {/* Revenue Breakdown Card */}
+          <div className="cad-card">
+            <div className="cad-card-header">
+              <div>
+                <div className="cad-card-title">
+                  <BarChart3 size={14} />
+                  REVENUE BREAKDOWN · TREND
+                </div>
               </div>
-              <span className="dash-badge badge-primary">30 DAY TREND</span>
+              <div className="cad-rev-tabs">
+                <button
+                  className={`cad-rev-tab ${revTab === 'Cash' ? 'active' : ''}`}
+                  onClick={() => setRevTab('Cash')}
+                >Cash</button>
+                <button
+                  className={`cad-rev-tab ${revTab === 'UPI/Card' ? 'active' : ''}`}
+                  onClick={() => setRevTab('UPI/Card')}
+                >UPI/Card</button>
+              </div>
             </div>
-            <div className="dash-card-body">
-              <div style={{ marginBottom: 16 }}>
-                 <div style={{ fontSize: 20, fontWeight: 800, color: '#0f172a' }}>₹{(kpis?.todaysCollection || 0).toLocaleString()}</div>
-                 <div className="text-label" style={{ fontSize: 11 }}>Cumulative revenue for current period</div>
+            <div className="cad-card-body">
+              <div className="cad-rev-main-stat">
+                <span className="cad-rev-main-value">{fmt(tabTotal)}</span>
+                <TrendBadge value={revenueTrend} />
+                <span className="cad-rev-mode-note">
+                  {revTab}
+                </span>
               </div>
-              
-              <div className="dash-chart-container">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={revenueSeries} margin={{ top: 10, right: 10, bottom: 0, left: -10 }}>
-                    <defs>
-                      <linearGradient id="clinicRevGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#2563eb" stopOpacity={0.1} />
-                        <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 700 }} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 700 }} tickFormatter={(v) => `₹${v / 1000}k`} />
-                    <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', background: 'white', fontSize: 11, fontWeight: 700 }} />
-                    <Area type="monotone" dataKey="revenue" stroke="#2563eb" strokeWidth={3} fill="url(#clinicRevGrad)" isAnimationActive={false} />
-                  </AreaChart>
-                </ResponsiveContainer>
+              <div className="cad-chart-area">
+                {chartSeries.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={chartSeries} margin={{ top: 10, right: 10, bottom: 0, left: -10 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 700 }} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 700 }} tickFormatter={fmtNum} />
+                      <Tooltip 
+                        contentStyle={{ borderRadius: 10, border: '1px solid #e2e8f0', background: '#fff', fontSize: 12, fontWeight: 600 }} 
+                        formatter={(v) => [fmt(Number(v)), 'Revenue']} 
+                        cursor={{ fill: '#f8fafc' }}
+                      />
+                      <Bar 
+                        dataKey="revenue" 
+                        radius={[4, 4, 0, 0]} 
+                        barSize={32}
+                        isAnimationActive={false}
+                      >
+                        {chartSeries.map((entry: any, index: number) => (
+                          <Cell 
+                            key={`cell-${index}`} 
+                            fill={index === chartSeries.length - 1 ? 'var(--pp-blue)' : '#cbd5e1'} 
+                          />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="cad-chart-empty">
+                    <Activity size={24} style={{ opacity: 0.3 }} />
+                    <span>No revenue data yet</span>
+                  </div>
+                )}
+              </div>
+              <div className="cad-rev-footer">
+                <div className="cad-rev-footer-item">
+                  <span className="cad-rev-footer-label">PHYSICAL CURRENCY</span>
+                  <span className="cad-rev-footer-value">{fmt(revenueBreakdown.physicalCurrency)} <em>({revenueBreakdown.physicalCurrencyPct}%)</em></span>
+                </div>
+                <div className="cad-rev-footer-sep" />
+                <div className="cad-rev-footer-item">
+                  <span className="cad-rev-footer-label">UPI / CARD</span>
+                  <span className="cad-rev-footer-value">{fmt(revenueBreakdown.upiCard)} <em>({revenueBreakdown.upiCardPct}%)</em></span>
+                </div>
+                <div className="cad-rev-footer-sep" />
+                <div className="cad-rev-footer-item">
+                  <span className="cad-rev-footer-label">PENDING</span>
+                  <span className="cad-rev-footer-value cad-rev-pending">{fmt(revenueBreakdown.pending)} <em>({revenueBreakdown.pendingCount} inv)</em></span>
+                </div>
+                <div className="cad-rev-footer-sep" />
+                <div className="cad-rev-footer-item">
+                  <span className="cad-rev-footer-label">PER PATIENT (AVG)</span>
+                  <span className="cad-rev-footer-value">{fmt(revenueBreakdown.perPatient)}</span>
+                </div>
               </div>
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24 }}>
-             <div className="dash-card">
-                <div className="dash-card-header"><h3 className="dash-section-title">Operational Targets</h3></div>
-                <div className="dash-card-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                   <TargetItem label="Revenue Goal" current={kpis?.todaysCollection ? Number(kpis.todaysCollection) * 30 : 0} target={1000000} color="#2563eb" suffix="₹" />
-                   <TargetItem label="Patient Intake" current={kpis?.newPatientsCount ? Number(kpis.newPatientsCount) * 30 : 0} target={500} color="#16a34a" />
-                   <TargetItem label="Wait Time Goal" current={kpis?.avgWaitTime || 0} target={15} color="#d97706" inverse />
+          {/* Bottom Row */}
+          <div className="cad-bottom-row">
+
+            {/* Top Billing */}
+            <div className="cad-card cad-card-sm">
+              <div className="cad-card-header">
+                <div>
+                  <div className="cad-card-title">TOP BILLING — {periodLabel}</div>
+                  <div className="cad-card-subtitle">By invoice value</div>
                 </div>
-             </div>
-             
-             <div className="dash-card">
-                <div className="dash-card-header"><h3 className="dash-section-title">Staff On Duty</h3></div>
-                <div className="dash-card-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                   <StaffRow name={user?.name || 'Dr. Sunder Magar'} role="Consultant" count={12} />
-                   <StaffRow name="Dr. Nanda" role="General" count={8} />
-                   <StaffRow name="Anjali K." role="Receptionist" />
+                <a className="cad-report-link" href="/billing" onClick={e => { e.preventDefault(); window.location.href = '/billing'; }}>
+                  Report <ChevronRight size={11} />
+                </a>
+              </div>
+              <div className="cad-card-body cad-table-body">
+                {topBilling.length > 0 ? (
+                  <table className="cad-table">
+                    <thead>
+                      <tr>
+                        <th>PATIENT</th>
+                        <th>TOTAL</th>
+                        <th>STATUS</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {topBilling.map((b: { id: number; patientName: string; total: number; status: string }) => (
+                        <tr key={b.id}>
+                          <td className="cad-patient-cell">
+                            <div className="cad-patient-avatar">{b.patientName.charAt(0)}</div>
+                            <span>{b.patientName}</span>
+                          </td>
+                          <td className="cad-total-cell">{fmt(b.total)}</td>
+                          <td><StatusBadge status={b.status} /></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <div className="cad-empty-state">
+                    <Inbox size={28} style={{ opacity: 0.25 }} />
+                    <p>No billing data</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Period Targets */}
+            <div className="cad-card cad-card-sm">
+              <div className="cad-card-header">
+                <div>
+                  <div className="cad-card-title">{periodLabel} TARGETS</div>
+                  <div className="cad-card-subtitle">{weekLabel}</div>
                 </div>
-             </div>
+              </div>
+              <div className="cad-card-body cad-targets-body">
+                {targets.map((t: { label: string; current: number; target: number; unit: string; status: 'success' | 'warning' | 'danger' }) => (
+                  <div key={t.label} className="cad-target-row">
+                    <div className="cad-target-label-row">
+                      <span className="cad-target-name">{t.label}</span>
+                      <span className="cad-target-value">
+                        {t.unit === '₹' ? fmt(t.current) : `${t.current}${t.unit}`}
+                        {' / '}
+                        {t.unit === '₹' ? fmt(t.target) : `${t.target}${t.unit}`}
+                      </span>
+                    </div>
+                    <ProgressBar
+                      value={t.current}
+                      max={t.target}
+                      color={t.status === 'success' ? '#16a34a' : t.status === 'warning' ? '#d97706' : '#dc2626'}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Recent Activity */}
+            <div className="cad-card cad-card-sm">
+              <div className="cad-card-header">
+                <div>
+                  <div className="cad-card-title">RECENT ACTIVITY</div>
+                  <div className="cad-card-subtitle">Last 24h events</div>
+                </div>
+              </div>
+              <div className="cad-card-body cad-activity-body">
+                {recentActivity.length > 0 ? (
+                  <div className="cad-activity-list">
+                    {recentActivity.map((a: { type: string; title: string; subtitle: string; createdAt: string | Date }, i: number) => (
+                      <div key={i} className="cad-activity-item">
+                        <div className={`cad-activity-dot ${a.type === 'payment' ? 'dot-green' : 'dot-blue'}`} />
+                        <div className="cad-activity-content">
+                          <div className="cad-activity-title">{a.title}</div>
+                          <div className="cad-activity-sub">{a.subtitle}</div>
+                        </div>
+                        <div className="cad-activity-time">
+                          {new Date(a.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="cad-empty-state">
+                    <Inbox size={28} style={{ opacity: 0.25 }} />
+                    <p>No recent activity</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
           </div>
         </div>
 
-        {/* 3. Right Column — Queue Intelligence */}
-        <aside className="dash-sidebar">
-          <div className="dash-sidebar-card">
-            <div className="dash-section-title">Live Queue Status</div>
-            <div className="dash-list">
-              {todayAppts.slice(0, 10).map((a: any, i: number) => (
-                <div key={i} className="dash-list-item">
-                  <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                    <div className="dash-avatar">{a.patientName?.charAt(0)}</div>
-                    <div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>{a.patientName}</div>
-                      <div className="text-label" style={{ fontSize: 10 }}>Token {a.tokenNo} · {a.bookingTime || 'N/A'}</div>
+        {/* ── Right Sidebar ────────────────────────────────────────────── */}
+        <aside className="cad-sidebar">
+          <div className="cad-sidebar-tabs">
+            {(['Queue', 'Analytics', 'Billing'] as const).map(tab => (
+              <button
+                key={tab}
+                className={`cad-sidebar-tab ${sidebarTab === tab ? 'active' : ''}`}
+                onClick={() => setSidebarTab(tab)}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+
+          {sidebarTab === 'Queue' && (
+            <div className="cad-sidebar-section">
+              <div className="cad-sidebar-section-title">TODAY'S QUEUE</div>
+              {queue.length > 0 ? (
+                <div className="cad-queue-list">
+                  {queue.slice(0, 10).map((q: { id: number; patientName: string; tokenNo: string | number | null; bookingTime: string | null; status: string }) => (
+                    <div key={q.id} className="cad-queue-item">
+                      <div className="cad-queue-avatar">{q.patientName.charAt(0)}</div>
+                      <div className="cad-queue-info">
+                        <div className="cad-queue-name">{q.patientName}</div>
+                        <div className="cad-queue-meta">
+                          {q.tokenNo ? `Token ${q.tokenNo} · ` : ''}{q.bookingTime || 'N/A'}
+                        </div>
+                      </div>
+                      <span className={`cad-badge ${q.status === 'Consultation' || q.status === 'COMPLETED' ? 'cad-badge-success' : 'cad-badge-primary'}`}>
+                        {q.status}
+                      </span>
                     </div>
-                  </div>
-                  <span className={`dash-badge badge-${a.status === 'Consultation' ? 'success' : 'primary'}`}>
-                    {a.status}
-                  </span>
+                  ))}
                 </div>
-              ))}
-              {todayAppts.length === 0 && (
-                <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>
-                  <Users size={20} style={{ opacity: 0.5, marginBottom: 8 }} />
-                  <p className="text-small">No patients in queue.</p>
+              ) : (
+                <div className="cad-sidebar-empty">
+                  <Users size={20} style={{ opacity: 0.3 }} />
+                  <p>No patients today</p>
                 </div>
               )}
             </div>
+          )}
+
+          {sidebarTab === 'Analytics' && (
+            <div className="cad-sidebar-section">
+              <div className="cad-sidebar-section-title">ANALYTICS</div>
+              <div className="cad-sidebar-analytics">
+                <div className="cad-analytics-item">
+                  <span className="cad-analytics-label">New Patients</span>
+                  <span className="cad-analytics-value">{patients}</span>
+                </div>
+                <div className="cad-analytics-item">
+                  <span className="cad-analytics-label">Revenue {sublabel}</span>
+                  <span className="cad-analytics-value">{fmt(totalRevenue)}</span>
+                </div>
+                <div className="cad-analytics-item">
+                  <span className="cad-analytics-label">Collection</span>
+                  <span className="cad-analytics-value">{collectionRate}%</span>
+                </div>
+                <div className="cad-analytics-item">
+                  <span className="cad-analytics-label">Avg Wait</span>
+                  <span className="cad-analytics-value">{avgWaitTime}m</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {sidebarTab === 'Billing' && (
+            <div className="cad-sidebar-section">
+              <div className="cad-sidebar-section-title">QUICK BILLING</div>
+              <div className="cad-sidebar-analytics">
+                <div className="cad-analytics-item">
+                  <span className="cad-analytics-label">Collected</span>
+                  <span className="cad-analytics-value">{fmt(tabTotal)}</span>
+                </div>
+                <div className="cad-analytics-item">
+                  <span className="cad-analytics-label">Pending</span>
+                  <span className="cad-analytics-value cad-rev-pending">{fmt(revenueBreakdown.pending)}</span>
+                </div>
+                <div className="cad-analytics-item">
+                  <span className="cad-analytics-label">Invoices</span>
+                  <span className="cad-analytics-value">{revenueBreakdown.pendingCount}</span>
+                </div>
+                <div className="cad-analytics-item">
+                  <span className="cad-analytics-label">Avg/Patient</span>
+                  <span className="cad-analytics-value">{fmt(revenueBreakdown.perPatient)}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Staff on Duty */}
+          <div className="cad-staff-section">
+            <div className="cad-sidebar-section-title">STAFF ON DUTY</div>
+            {staffOnDuty.length > 0 ? (
+              <div className="cad-staff-list">
+                {staffOnDuty.map((s: { name: string; role: string; count?: number }, i: number) => (
+                  <div key={i} className="cad-staff-row">
+                    <div className="cad-staff-avatar">{s.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}</div>
+                    <div className="cad-staff-info">
+                      <div className="cad-staff-name">{s.name}</div>
+                      <div className="cad-staff-role">{s.role}</div>
+                    </div>
+                    {s.count !== undefined && (
+                      <div className="cad-staff-count">
+                        <div className="cad-staff-count-num">{s.count}</div>
+                        <div className="cad-staff-count-label">Visits</div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="cad-sidebar-empty">
+                <Users size={20} style={{ opacity: 0.3 }} />
+                <p>No doctors found</p>
+              </div>
+            )}
           </div>
         </aside>
       </div>
@@ -130,54 +492,24 @@ export function ClinicAdminDashboard() {
   );
 }
 
-function KPIItem({ label, value, trend, color }: any) {
-  return (
-    <div className="dash-kpi-item">
-      <span className="dash-kpi-label">{label}</span>
-      <div className="dash-kpi-value-row">
-        <span className="dash-kpi-value">{value}</span>
-      </div>
-      <div className="dash-kpi-trend" style={{ color }}>
-        {trend}
-      </div>
-    </div>
-  );
-}
+// ── Sub-components ──────────────────────────────────────────────────────────
 
-function TargetItem({ label, current, target, color, suffix = '', inverse }: any) {
-  const pct = inverse 
-    ? Math.min(100, Math.round(((target - Math.max(0, current - target)) / target) * 100))
-    : Math.min(100, Math.round((current / target) * 100));
-    
+function KPICard({ label, sublabel, value, trend, invertTrend }: {
+  label: string;
+  sublabel: string;
+  value: string;
+  trend: number;
+  invertTrend?: boolean;
+}) {
+  const positive = invertTrend ? trend <= 0 : trend >= 0;
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: 11, fontWeight: 600, color: '#64748b' }}>{label}</span>
-        <span style={{ fontSize: 11, fontWeight: 700, fontFamily: 'var(--pp-font-mono)' }}>{current.toLocaleString()}{suffix} / {target.toLocaleString()}{suffix}</span>
+    <div className="cad-kpi-card">
+      <div className="cad-kpi-label">{sublabel ? `${label} — ${sublabel}` : label}</div>
+      <div className="cad-kpi-value">{value}</div>
+      <div className={`cad-trend-badge ${positive ? 'cad-trend-up' : 'cad-trend-down'}`}>
+        {positive ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+        {positive ? '+' : ''}{trend}% vs prev.
       </div>
-      <div style={{ height: 6, background: '#f1f5f9', borderRadius: 3, overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 3 }} />
-      </div>
-    </div>
-  );
-}
-
-function StaffRow({ name, role, count }: any) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', borderBottom: '1px solid #f8fafc' }}>
-      <div style={{ width: 32, height: 32, borderRadius: 16, background: '#f1f7ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyCenter: 'center', fontSize: 11, fontWeight: 800 }}>
-        {name.split(' ').map((n: any) => n[0]).join('')}
-      </div>
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>{name}</div>
-        <div className="text-label" style={{ fontSize: 10 }}>{role}</div>
-      </div>
-      {count && (
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 12, fontWeight: 800, color: '#2563eb' }}>{count}</div>
-          <div style={{ fontSize: 8, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Visits</div>
-        </div>
-      )}
     </div>
   );
 }

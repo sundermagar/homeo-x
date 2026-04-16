@@ -79,7 +79,7 @@ export default function VitalsCheckPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [suggestions, setSuggestions] = useState<any[]>([]);
-  const [selectedPatient] = useState<any>(null);
+  const [selectedPatient, setSelectedPatient] = useState<any>(null);
   const [results, setResults] = useState<any>(null);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
@@ -105,7 +105,8 @@ export default function VitalsCheckPage() {
     searchTimeout.current = setTimeout(async () => {
       try {
         const { data } = await apiClient.get(`/patients?search=${q}&limit=5`);
-        setSuggestions(data.data || []);
+        const payload = data?.data ?? data;
+        setSuggestions(Array.isArray(payload) ? payload : payload?.data ?? []);
       } catch (err) {
         console.error('Search failed', err);
       }
@@ -114,16 +115,17 @@ export default function VitalsCheckPage() {
 
   const selectPatient = (p: any) => {
     const gender = p.gender === 'Female' ? 'F' : 'M';
+    setSelectedPatient(p);
     setForm({
       ...form,
       regid: p.regid,
-      name: `${p.first_name} ${p.surname}`,
-      mobile: p.mobile1 || '',
+      name: p.fullName || '',
+      mobile: p.mobile1 || p.phone || '',
       dob: p.dob || '',
       gender
     });
     setSuggestions([]);
-    setSearch(`${p.first_name} ${p.surname} (${p.regid})`);
+    setSearch(`${p.fullName || ''} (PT-${p.regid})`);
   };
 
   const handleAnalyze = async (e: React.FormEvent) => {
@@ -145,13 +147,16 @@ export default function VitalsCheckPage() {
         mobile: form.mobile
       });
 
-      if (data.success) {
-        setResults(data.result);
+      const payload = data?.result ?? data?.data ?? data;
+      if (payload?.result) {
+        setResults(payload.result);
+      } else if (payload?.bmi || payload?.actualHeight) {
+        setResults(payload);
       } else {
-        setErrors([data.message]);
+        setErrors([payload?.message || 'No analytics data returned']);
       }
     } catch (err: any) {
-      setErrors([err.response?.data?.message || err.message]);
+      setErrors([err.response?.data?.error || err.response?.data?.message || err.message]);
     } finally {
       setSubmitting(false);
     }
@@ -159,6 +164,7 @@ export default function VitalsCheckPage() {
 
   const reset = () => {
     setResults(null);
+    setSelectedPatient(null);
     setForm({ regid: '', name: '', mobile: '', dob: '', gender: 'M', height: '', weight: '' });
     setSearch('');
     setErrors([]);
@@ -211,7 +217,7 @@ export default function VitalsCheckPage() {
                       <div className="ghub-dropdown">
                         {suggestions.map(p => (
                           <div key={p.regid} onClick={() => selectPatient(p)} className="ghub-drop-item">
-                            <span style={{ fontWeight: 700 }}>{p.first_name} {p.surname}</span>
+                            <span style={{ fontWeight: 700 }}>{p.fullName || 'Unknown'}</span>
                             <span style={{ fontSize: '0.72rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
                               PT-{p.regid}
                             </span>
@@ -231,8 +237,8 @@ export default function VitalsCheckPage() {
                       <input
                         type="text"
                         className="ghub-premium-input"
-                        readOnly
                         value={form.mobile}
+                        onChange={(e) => setForm({ ...form, mobile: e.target.value })}
                         placeholder="+91 ..."
                       />
                     </div>
@@ -240,14 +246,13 @@ export default function VitalsCheckPage() {
                   <div className="ghub-input-field">
                     <label className="ghub-input-label">Date of Birth</label>
                     <div className="ghub-input-container">
-                      <Calendar className="ghub-input-icon-left" size={16} />
                       <input
                         type="text"
                         onFocus={(e) => (e.target.type = 'date')}
                         onBlur={(e) => !e.target.value && (e.target.type = 'text')}
-                        className="ghub-premium-input"
-                        readOnly={!selectedPatient}
+                        className="ghub-premium-input ghub-no-icon"
                         value={form.dob}
+                        onChange={(e) => setForm({ ...form, dob: e.target.value })}
                         placeholder="dd / mm / yyyy"
                       />
                     </div>

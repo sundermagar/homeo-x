@@ -1,5 +1,7 @@
-import { type DbClient, growthReferences } from '@mmc/database';
+import type { DbClient } from '@mmc/database';
+import { growthReferences } from '@mmc/database';
 import { and, eq } from 'drizzle-orm';
+import { AppError } from '../../../shared/errors';
 
 export class AnalyzeVitalsUseCase {
   constructor(private readonly db: DbClient) { }
@@ -7,10 +9,29 @@ export class AnalyzeVitalsUseCase {
   async execute(input: { dob: string, gender: string, heightCm: number, weightKg: number }) {
     const { dob, gender, heightCm, weightKg } = input;
 
-    // Calculate age in months (matching legacy iterative logic)
+    if (!dob || typeof dob !== 'string') {
+      throw new AppError(400, 'Date of birth is required', 'INVALID_DOB');
+    }
+
     const birthDate = new Date(dob);
+    if (Number.isNaN(birthDate.getTime())) {
+      throw new AppError(400, 'Invalid date of birth format', 'INVALID_DOB');
+    }
+
+    if (!['M', 'F'].includes(gender)) {
+      throw new AppError(400, 'Gender must be M or F', 'INVALID_GENDER');
+    }
+
+    if (!Number.isFinite(heightCm) || heightCm <= 0) {
+      throw new AppError(400, 'Height must be a positive number', 'INVALID_HEIGHT');
+    }
+
+    if (!Number.isFinite(weightKg) || weightKg <= 0) {
+      throw new AppError(400, 'Weight must be a positive number', 'INVALID_WEIGHT');
+    }
+
+    // Calculate age in months (matching legacy iterative logic)
     const today = new Date();
-    
     let months = 0;
     let d = new Date(birthDate);
     while (true) {
@@ -31,10 +52,11 @@ export class AnalyzeVitalsUseCase {
       .select()
       .from(growthReferences)
       .where(and(eq(growthReferences.months, months), eq(growthReferences.gender, gender)))
-      .limit(1);
+      .limit(1)
+      .catch(() => []);
 
-    const actualHeight = parseFloat(heightCm.toString());
-    const actualWeight = parseFloat(weightKg.toString());
+    const actualHeight = heightCm;
+    const actualWeight = weightKg;
     const expectedHeight = reference?.idealHeightCm ? parseFloat(reference.idealHeightCm) : null;
     const expectedWeight = reference?.idealWeightKg ? parseFloat(reference.idealWeightKg) : null;
 
@@ -63,20 +85,20 @@ export class AnalyzeVitalsUseCase {
       }
     }
 
-    const bmi = actualWeight / Math.pow(actualHeight / 100, 2);
+    const bmi = actualHeight > 0 ? actualWeight / Math.pow(actualHeight / 100, 2) : 0;
 
     return {
       success: true,
       result: {
-        ageDisplay, 
+        ageDisplay,
         months,
-        actualHeight, 
+        actualHeight,
         actualWeight,
-        expectedHeight, 
+        expectedHeight,
         expectedWeight,
-        heightAnalysis, 
+        heightAnalysis,
         heightStatus,
-        weightAnalysis, 
+        weightAnalysis,
         weightStatus,
         bmi: parseFloat(bmi.toFixed(2)),
       }

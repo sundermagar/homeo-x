@@ -23,7 +23,7 @@ export const commKeys = {
 export function useSmsTemplates() {
   return useQuery({
     queryKey: commKeys.templates,
-    queryFn: () => apiClient.get('/communications/templates').then(r => r.data as SmsTemplate[]),
+    queryFn: () => apiClient.get<{ success: boolean; data: SmsTemplate[] }>('/communications/templates').then(r => r.data.data ?? []),
   });
 }
 
@@ -68,7 +68,7 @@ export function useSmsReports(filters: {
     queryFn: async () => {
       const params = new URLSearchParams();
       Object.entries(filters).forEach(([k, v]) => { if (v !== undefined && v !== '') params.set(k, String(v)); });
-      return apiClient.get(`/communications/reports?${params}`).then(r => r.data as { data: SmsReport[]; total: number });
+      return apiClient.get<{ success: boolean; data: { data: SmsReport[]; total: number } }>(`/communications/reports?${params}`).then(r => r.data.data);
     },
     staleTime: 30_000,
   });
@@ -111,7 +111,7 @@ export function useBroadcastWhatsApp() {
 export function useWhatsAppLogs() {
   return useQuery({
     queryKey: commKeys.whatsappLogs,
-    queryFn: () => apiClient.get('/communications/whatsapp/logs').then(r => r.data as WhatsAppLog[]),
+    queryFn: () => apiClient.get<{ success: boolean; data: WhatsAppLog[] }>('/communications/whatsapp/logs').then(r => r.data.data ?? []),
     staleTime: 60_000,
   });
 }

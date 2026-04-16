@@ -1,6 +1,6 @@
 import { eq, ilike, and, gte, lte, sql, desc, isNull } from 'drizzle-orm';
 import type { DbClient } from '@mmc/database';
-import * as schema from '../../../../../packages/database/src/schema/index';
+import * as schema from '@mmc/database';
 import type { ICommunicationRepository } from '../../domains/communication/ports/communication.repository.js';
 import type {
   SmsTemplate, CreateSmsTemplateDto, UpdateSmsTemplateDto,
