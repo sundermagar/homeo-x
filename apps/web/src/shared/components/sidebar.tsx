@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
-import {
+import React, { useState } from 'react';
+import React, { NavLink, useLocation } from 'react-router-dom';
+import React, {
   LayoutDashboard,
   Users,
   CalendarClock,
@@ -48,22 +48,16 @@ import {
   PieChart,
   Scale,
   BookOpen,
-<<<<<<< HEAD
-  Truck,
-=======
   DollarSign,
   PlusCircle,
   BrainCircuit,
   type LucideIcon,
->>>>>>> origin/dev-branch
+  Truck,
+  CreditCard,
 } from 'lucide-react';
-import { useAuthStore } from '../stores/auth-store';
+import React, { useAuthStore } from '../stores/auth-store';
 import '../styles/sidebar.css';
 
-<<<<<<< HEAD
-=======
-
->>>>>>> origin/dev-branch
 // ─── Role Definitions ────────────────────────────────────────────────────────
 
 type UserRole = 'SuperAdmin' | 'Admin' | 'Clinicadmin' | 'Doctor' | 'Receptionist';
@@ -72,10 +66,6 @@ const ALL: UserRole[] = ['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Recept
 const ADMIN: UserRole[] = ['SuperAdmin', 'Admin', 'Clinicadmin'];
 const CLINICAL: UserRole[] = ['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor'];
 
-<<<<<<< HEAD
-=======
-
->>>>>>> origin/dev-branch
 // ─── Navigation Structure ────────────────────────────────────────────────────
 
 interface NavChild {
@@ -210,11 +200,6 @@ const NAV_STRUCTURE: NavItem[] = [
       icon: Receipt,
       roles: ADMIN,
       children: [
-<<<<<<< HEAD
-        { path: '/billing',           label: 'Billing & Finance', icon: Receipt },
-        { path: '/payments',          label: 'Payment Ledger',    icon: Banknote },
-        { path: '/settings/expenses', label: 'Expenses Head',     icon: Wallet },
-=======
         { path: '/billing',           label: 'Billing',             icon: Receipt,
           children: [
             { path: '/billing',               label: 'Bill List',             icon: Receipt },
@@ -227,7 +212,6 @@ const NAV_STRUCTURE: NavItem[] = [
         },
         { path: '/payments',           label: 'Payment Ledger',     icon: Banknote },
         { path: '/settings/expenses',  label: 'Expense Categories',  icon: Wallet },
->>>>>>> origin/dev-branch
       ],
     },
   },
@@ -285,10 +269,6 @@ const NAV_STRUCTURE: NavItem[] = [
         { path: '/settings/faqs',        label: 'Help & FAQs',        icon: HelpCircle },
       ],
     },
-<<<<<<< HEAD
-=======
-
->>>>>>> origin/dev-branch
   },
 ];
 
@@ -324,21 +304,9 @@ interface SidebarProps {
   onClose: () => void;
 }
 
-<<<<<<< HEAD
 function normalizeNavPath(path: string): { pathname: string; search: string } {
   const [pathname, search = ''] = path.split('?');
   return { pathname, search: search ? `?${search}` : '' };
-=======
-function isGroupActive(group: NavGroup, pathname: string): boolean {
-  return group.children.some(c => {
-    if (c.path === '/') return pathname === '/';
-    // Check main path
-    if (pathname.startsWith(c.path)) return true;
-    // Check nested children if any
-    if (c.children?.some(sc => pathname.startsWith(sc.path))) return true;
-    return false;
-  });
->>>>>>> origin/dev-branch
 }
 
 function isGroupActive(group: NavGroup, currentLocation: string): boolean {
@@ -417,11 +385,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               <ChildIcon className="sidebar-child-icon" strokeWidth={1.8} />
               <span>{child.label}</span>
             </div>
-            <ChevronRight 
-              size={12} 
-              className={`sidebar-chevron ${isSubOpen ? 'open' : ''}`} 
-              style={{ transform: isSubOpen ? 'rotate(90deg)' : 'none' }} 
-            />
           </button>
           
           {isSubOpen && (
@@ -516,27 +479,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
                 <div className={`sidebar-group-children ${isOpen_ ? 'expanded' : ''}`}>
                   <div className="sidebar-group-children-inner">
-<<<<<<< HEAD
-                            {group.children.map(child => {
-                      const ChildIcon = child.icon;
-                      const target = normalizeNavPath(child.path);
-                      const isActive = location.pathname === target.pathname && location.search === target.search;
-                      return (
-                        <NavLink
-                          key={child.path}
-                          to={child.path}
-                          className={`sidebar-child-item ${isActive ? 'active' : ''}`}
-                          onClick={handleNavClick}
-                        >
-                          <span className="sidebar-child-dot" />
-                          <ChildIcon className="sidebar-child-icon" strokeWidth={1.8} />
-                          <span>{child.label}</span>
-                        </NavLink>
-                      );
-                    })}
-=======
                     {group.children.map(child => renderNavChild(child))}
->>>>>>> origin/dev-branch
                   </div>
                 </div>
               </div>
