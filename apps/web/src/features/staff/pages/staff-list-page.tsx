@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useStaffList, useDeleteStaff } from '../hooks/use-staff';
 import { Grid, List } from 'lucide-react';
 import type { StaffCategory, StaffSummary } from '@mmc/types';
@@ -14,13 +14,21 @@ const TABS: { key: StaffCategory; label: string; color: string; icon: string }[]
 
 const PAGE_SIZE = 30;
 
-export default function StaffListPage() {
+export default function StaffListPage({ defaultTab }: { defaultTab?: StaffCategory } = {}) {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<StaffCategory>('doctor');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<StaffCategory>(() =>
+    (searchParams.get('tab') as StaffCategory) || defaultTab || 'doctor'
+  );
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+
+  useEffect(() => {
+    const tab = (searchParams.get('tab') as StaffCategory) || defaultTab || 'doctor';
+    setActiveTab(tab);
+  }, [searchParams, defaultTab]);
 
   const { data, isLoading } = useStaffList(activeTab, { page, limit: PAGE_SIZE, search: debouncedSearch });
   const deleteMutation = useDeleteStaff();
@@ -33,7 +41,7 @@ export default function StaffListPage() {
   };
 
   const handleTabChange = (tab: StaffCategory) => {
-    setActiveTab(tab);
+    setSearchParams({ tab });
     setSearch('');
     setDebouncedSearch('');
     setPage(1);
@@ -95,28 +103,6 @@ export default function StaffListPage() {
             + Add {currentTabMeta.label.replace(/s$/, '')}
           </button>
         </div>
-      </div>
-
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 24, overflowX: 'auto', paddingBottom: 4 }}>
-        {TABS.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => handleTabChange(tab.key)}
-            className="staff-tab"
-            style={{
-              padding: '10px 18px', borderRadius: 12,
-              fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
-              transition: 'all 0.2s ease',
-              background: activeTab === tab.key ? (tab.key === 'doctor' ? 'var(--primary)' : tab.color) : 'var(--bg-card)',
-              color: activeTab === tab.key ? 'white' : 'var(--text-muted)',
-              boxShadow: activeTab === tab.key ? `0 4px 12px ${tab.color}30` : 'var(--shadow-sm)',
-              border: activeTab === tab.key ? 'none' : '1px solid var(--border)',
-            }}
-          >
-            {tab.icon} {tab.label}
-          </button>
-        ))}
       </div>
 
       {/* Search Bar */}

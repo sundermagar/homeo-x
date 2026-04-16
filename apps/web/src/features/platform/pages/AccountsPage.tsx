@@ -15,6 +15,8 @@ export default function AccountsPage() {
   const { data: orgs = [] }                = useOrganizations();
   const deleteAccount                      = useDeleteAccount();
 
+  const sortedAccounts = [...accounts].sort((a, b) => a.id - b.id);
+
   const openCreate = () => { setEditing(undefined); setModalOpen(true); };
   const openEdit   = (a: Account) => { setEditing(a); setModalOpen(true); };
 
@@ -93,10 +95,10 @@ export default function AccountsPage() {
                 </tr>
               </thead>
               <tbody>
-                {accounts.map((account, index) => (
+                {sortedAccounts.map((account) => (
                   <tr key={account.id}>
                     <td data-label="ID" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      {accounts.length - index}
+                      {account.id}
                     </td>
                     <td data-label="Account Holder">
                       <div style={{ fontWeight: 600 }}>{account.name}</div>

@@ -1,8 +1,8 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { lazy, Suspense } from 'react';
-import { ProtectedRoute } from '@/shared/components/protected-route';
-import { RoleGuard } from '@/shared/components/role-guard';
-import { AppLayout } from '@/shared/layouts/app-layout';
+import React, { Routes, Route, Navigate } from 'react-router-dom';
+import React, { lazy, Suspense } from 'react';
+import React, { ProtectedRoute } from '@/shared/components/protected-route';
+import React, { RoleGuard } from '@/shared/components/role-guard';
+import React, { AppLayout } from '@/shared/layouts/app-layout';
 
 const Loading = () => <div style={{ padding: 40, textAlign: 'center', opacity: 0.5 }}>Loading...</div>;
 
@@ -47,6 +47,12 @@ const ExpensesPage         = lazy(() => import('@/features/billing/pages/Expense
 // Platform & Multi-tenancy
 const ClinicsPage          = lazy(() => import('@/features/platform/pages/ClinicsPage'));
 const AccountsPage         = lazy(() => import('@/features/platform/pages/AccountsPage'));
+const DoctorsPage          = lazy(() => import('@/features/platform/pages/DoctorsPage'));
+const DoctorDetailPage     = lazy(() => import('@/features/platform/pages/DoctorDetailPage'));
+const EmployeesPage        = lazy(() => import('@/features/platform/pages/EmployeesPage'));
+const ReceptionistsPage    = lazy(() => import('@/features/platform/pages/ReceptionistsPage'));
+const ClinicAdminsPage     = lazy(() => import('@/features/platform/pages/ClinicAdminsPage'));
+const AccountManagersPage  = lazy(() => import('@/features/platform/pages/AccountManagersPage'));
 
 // ─── Settings & Configuration ─────────────────────
 const DepartmentsPage      = lazy(() => import('@/features/settings/pages/DepartmentsPage'));
@@ -56,7 +62,6 @@ const ReferralsPage        = lazy(() => import('@/features/settings/pages/Referr
 const StickersPage         = lazy(() => import('@/features/settings/pages/StickersPage'));
 const CmsManagePage        = lazy(() => import('@/features/settings/pages/CmsManagePage'));
 const PdfSettingsPage      = lazy(() => import('@/features/settings/pages/PdfSettingsPage'));
-const DoctorsPage          = lazy(() => import('@/features/settings/pages/DoctorsPage'));
 const ExpensesHeadPage     = lazy(() => import('@/features/settings/pages/ExpensesHeadPage'));
 const MessageTemplatesPage = lazy(() => import('@/features/settings/pages/MessageTemplatesPage'));
 const StocksLogPage        = lazy(() => import('@/features/settings/pages/StocksLogPage'));
@@ -151,8 +156,21 @@ export function AppRouter() {
             <Route path="/payments"       element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><PaymentsPage /></RoleGuard>} />
 
             {/* ─── Platform & Multi-tenancy ─── */}
-            <Route path="/platform/clinics"  element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><ClinicsPage /></RoleGuard>} />
-            <Route path="/platform/accounts" element={<RoleGuard allowed={['SuperAdmin', 'Admin']}><AccountsPage /></RoleGuard>} />
+            {/* ─── Platform & Multi-tenancy ─── */}
+            <Route path="/platform/staff" element={<Navigate to="/platform/doctors" replace />} />
+            <Route path="/platform/staff/doctor" element={<Navigate to="/platform/doctors" replace />} />
+            <Route path="/platform/staff/employee" element={<Navigate to="/platform/employees" replace />} />
+            <Route path="/platform/staff/receptionist" element={<Navigate to="/platform/receptionists" replace />} />
+            <Route path="/platform/staff/clinicadmin" element={<Navigate to="/platform/clinicadmins" replace />} />
+            <Route path="/platform/staff/account" element={<Navigate to="/platform/account-managers" replace />} />
+            <Route path="/platform/doctors"          element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><DoctorsPage /></RoleGuard>} />
+            <Route path="/platform/doctors/:id"      element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><DoctorDetailPage /></RoleGuard>} />
+            <Route path="/platform/employees"        element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><EmployeesPage /></RoleGuard>} />
+            <Route path="/platform/receptionists"    element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><ReceptionistsPage /></RoleGuard>} />
+            <Route path="/platform/clinicadmins"     element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><ClinicAdminsPage /></RoleGuard>} />
+            <Route path="/platform/account-managers" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><AccountManagersPage /></RoleGuard>} />
+            <Route path="/platform/clinics"          element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><ClinicsPage /></RoleGuard>} />
+            <Route path="/platform/accounts"         element={<RoleGuard allowed={['SuperAdmin', 'Admin']}><AccountsPage /></RoleGuard>} />
 
             {/* ─── Operations Hub ─── */}
             <Route
@@ -164,27 +182,26 @@ export function AppRouter() {
               }
             />
 
-            {/* ─── Settings & Configuration ─── */}
-            <Route path="/settings"              element={<RoleGuard allowed={['SuperAdmin', 'Admin']}><Navigate to="/settings/departments" replace /></RoleGuard>} />
-            <Route path="/settings/departments"  element={<RoleGuard allowed={['SuperAdmin', 'Admin']}><DepartmentsPage /></RoleGuard>} />
-            <Route path="/settings/medicines"    element={<RoleGuard allowed={['SuperAdmin', 'Admin']}><MedicinesPage /></RoleGuard>} />
-            <Route path="/settings/dispensaries" element={<RoleGuard allowed={['SuperAdmin', 'Admin']}><DispensariesPage /></RoleGuard>} />
-            <Route path="/settings/referrals"    element={<RoleGuard allowed={['SuperAdmin', 'Admin']}><ReferralsPage /></RoleGuard>} />
-            <Route path="/settings/stickers"     element={<RoleGuard allowed={['SuperAdmin', 'Admin']}><StickersPage /></RoleGuard>} />
-            <Route path="/settings/cms"          element={<RoleGuard allowed={['SuperAdmin', 'Admin']}><CmsManagePage /></RoleGuard>} />
-            <Route path="/settings/pdf"          element={<RoleGuard allowed={['SuperAdmin', 'Admin']}><PdfSettingsPage /></RoleGuard>} />
-            <Route path="/settings/doctors"      element={<RoleGuard allowed={['SuperAdmin', 'Admin']}><DoctorsPage /></RoleGuard>} />
-            <Route path="/settings/expenses"     element={<RoleGuard allowed={['SuperAdmin', 'Admin']}><ExpensesHeadPage /></RoleGuard>} />
-            <Route path="/settings/messages"     element={<RoleGuard allowed={['SuperAdmin', 'Admin']}><MessageTemplatesPage /></RoleGuard>} />
-            <Route path="/settings/stocks"       element={<RoleGuard allowed={['SuperAdmin', 'Admin']}><StocksLogPage /></RoleGuard>} />
-            <Route path="/settings/export"       element={<RoleGuard allowed={['SuperAdmin', 'Admin']}><ExportDataPage /></RoleGuard>} />
-            <Route path="/settings/packages"     element={<RoleGuard allowed={['SuperAdmin', 'Admin']}><PackagePlansSettingsPage /></RoleGuard>} />
-            <Route path="/settings/potencies"     element={<RoleGuard allowed={['SuperAdmin', 'Admin']}><PotenciesPage /></RoleGuard>} />
-            <Route path="/settings/frequencies"   element={<RoleGuard allowed={['SuperAdmin', 'Admin']}><FrequenciesPage /></RoleGuard>} />
-            <Route path="/settings/couriers"     element={<RoleGuard allowed={['SuperAdmin', 'Admin']}><CouriersPage /></RoleGuard>} />
-            <Route path="/settings/faqs"         element={<RoleGuard allowed={['SuperAdmin', 'Admin']}><FaqsPage /></RoleGuard>} />
-            <Route path="/settings/staff"        element={<RoleGuard allowed={['SuperAdmin', 'Admin']}><StaffManagementPage /></RoleGuard>} />
-            <Route path="/settings/roles"       element={<RoleGuard allowed={['SuperAdmin', 'Admin']}><RolesPermissionsPage /></RoleGuard>} />
+            {/* ─── Settings ─── */}
+            <Route path="/settings"              element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><Navigate to="/settings/departments" replace /></RoleGuard>} />
+            <Route path="/settings/departments"  element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><DepartmentsPage /></RoleGuard>} />
+            <Route path="/settings/medicines"    element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><MedicinesPage /></RoleGuard>} />
+            <Route path="/settings/dispensaries" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><DispensariesPage /></RoleGuard>} />
+            <Route path="/settings/referrals"    element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><ReferralsPage /></RoleGuard>} />
+            <Route path="/settings/stickers"     element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><StickersPage /></RoleGuard>} />
+            <Route path="/settings/cms"          element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><CmsManagePage /></RoleGuard>} />
+            <Route path="/settings/pdf"          element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><PdfSettingsPage /></RoleGuard>} />
+            <Route path="/settings/expenses"     element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><ExpensesHeadPage /></RoleGuard>} />
+            <Route path="/settings/messages"     element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><MessageTemplatesPage /></RoleGuard>} />
+            <Route path="/settings/stocks"       element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><StocksLogPage /></RoleGuard>} />
+            <Route path="/settings/export"       element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><ExportDataPage /></RoleGuard>} />
+            <Route path="/settings/packages"     element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><PackagePlansSettingsPage /></RoleGuard>} />
+            <Route path="/settings/potencies"     element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><PotenciesPage /></RoleGuard>} />
+            <Route path="/settings/frequencies"   element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><FrequenciesPage /></RoleGuard>} />
+            <Route path="/settings/couriers"     element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><CouriersPage /></RoleGuard>} />
+            <Route path="/settings/faqs"         element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><FaqsPage /></RoleGuard>} />
+            <Route path="/settings/staff"        element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><StaffManagementPage /></RoleGuard>} />
+            <Route path="/settings/roles"        element={<RoleGuard allowed={['SuperAdmin', 'Admin']}><RolesPermissionsPage /></RoleGuard>} />
           </Route>
 
           {/* Full-screen (no layout shell) */}

@@ -1,12 +1,30 @@
-import React, { useState } from 'react';
-import { MapPin, Plus, X, RefreshCw, Trash2, Edit2, Phone, Mail, User, Briefcase, Calendar, Info, Search  } from 'lucide-react';
-
-import { useDispensaries, useCreateDispensary, useUpdateDispensary, useDeleteDispensary } from '../hooks/use-settings';
+import React, { useMemo, useState } from 'react';
+import React, { MapPin, Plus, X, RefreshCw, ArrowLeft, Trash2, Edit2, Phone, Mail, User, Briefcase, Calendar, Info, Search, ShieldCheck } from 'lucide-react';
+import React, { Link } from 'react-router-dom';
+import React, { useDispensaries, useCreateDispensary, useUpdateDispensary, useDeleteDispensary } from '../hooks/use-settings';
 import '../../platform/styles/platform.css';
 import '../styles/settings.css';
 
+interface Dispensary {
+  id: number;
+  name: string;
+  email?: string;
+  gender?: string;
+  mobile?: string;
+  mobile2?: string;
+  location?: string;
+  city?: string;
+  address?: string;
+  about?: string;
+  designation?: string;
+  dept?: string;
+  dateBirth?: string;
+  contactNumber?: string;
+  isActive?: boolean;
+}
+
 const EMPTY_FORM = { 
-name: '', 
+  name: '', 
   email: '', 
   password: '', 
   gender: 'Male', 
@@ -34,11 +52,13 @@ export default function DispensariesPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredItems = dispensaries.filter((d: any) => 
+  const filteredItems = useMemo(() => dispensaries.filter((d: Dispensary) => 
     d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (d.email && d.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
     (d.city && d.city.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  ), [dispensaries, searchQuery]);
+
+  const activeStaffCount = useMemo(() => dispensaries.filter((d: Dispensary) => d.isActive).length, [dispensaries]);
 
   const handleOpenCreate = () => {
     setEditingId(null);
@@ -46,12 +66,12 @@ export default function DispensariesPage() {
     setIsModalOpen(true);
   };
 
-  const handleOpenEdit = (disp: any) => {
+  const handleOpenEdit = (disp: Dispensary) => {
     setEditingId(disp.id || null);
     setForm({ 
-name: disp.name || '', 
+      name: disp.name || '', 
       email: disp.email || '',
-      password: '', // sensitive
+      password: '', 
       gender: disp.gender || 'Male',
       mobile: disp.mobile || '',
       mobile2: disp.mobile2 || '',
@@ -61,68 +81,70 @@ name: disp.name || '',
       about: disp.about || '',
       designation: disp.designation || '',
       dept: disp.dept || '',
-      dateBirth: disp.dateBirth ? new Date(disp.dateBirth).toISOString().split('T')[0] || '' : '',
+      dateBirth: disp.dateBirth ? disp.dateBirth.substring(0, 10) : '',
       contactNumber: disp.contactNumber || '', 
       isActive: disp.isActive ?? true 
     });
     setIsModalOpen(true);
   };
 
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingId) {
-      await updateDisp.mutateAsync({ id: editingId, ...form });
-    } else {
-      await createDisp.mutateAsync(form);
+    try {
+      if (editingId) {
+        await updateDisp.mutateAsync({ id: editingId, ...form });
+      } else {
+        await createDisp.mutateAsync(form);
+      }
+      setIsModalOpen(false);
+    } catch (err) {
+      console.error('[DispensaryOrder] Submission Error', err);
     }
-    setIsModalOpen(false);
   };
 
   const handleDelete = async (id: number, name: string) => {
-    if (!confirm(`Are you sure you want to delete dispensary "${name}"?`)) return;
+    if (!confirm(`Permanently remove pharmacist "${name}"? Access will be revoked immediately.`)) return;
     await deleteDisp.mutateAsync(id);
   };
 
   return (
-    <div className="plat-page animate-fade-in">
-      
+    <div className="plat-page fade-in">
+      <Link to="/settings" className="settings-back-link">
+        <ArrowLeft size={14} /> Back to Settings
+      </Link>
 
       <div className="plat-header">
         <div>
           <h1 className="plat-header-title">
-            <MapPin size={20} className="color-primary" />
-            Dispensaries
+            <ShieldCheck size={20} className="color-primary" />
+            Pharmacy & Dispensary Registry
           </h1>
-          <p className="plat-header-sub">Manage pharmacy staff and dispensary account information.</p>
+          <p className="plat-header-sub">Manage pharmaceutical staff, access credentials, and station assignments.</p>
         </div>
         <div className="plat-header-actions">
           <button className="plat-btn plat-btn-primary" onClick={handleOpenCreate}>
-            <Plus size={14} />
-            Add Dispensary
+            <Plus size={14} /> Add Staff Account
           </button>
         </div>
       </div>
 
       <div className="plat-stats-bar">
         <div className="plat-stat-card">
-          <span className="plat-stat-label">Total Dispensaries</span>
-          <span className="plat-stat-value">{dispensaries.length}</span>
+          <span className="plat-stat-label">Total Staff</span>
+          <span className="plat-stat-value plat-stat-value-primary">{dispensaries.length}</span>
         </div>
         <div className="plat-stat-card">
-          <span className="plat-stat-label">Active Staff</span>
-          <span className="plat-stat-value plat-stat-value-success">
-            {dispensaries.filter((d: any) => d.isActive).length}
-          </span>
+          <span className="plat-stat-label">Active Presence</span>
+          <span className="plat-stat-value plat-stat-value-success">{activeStaffCount}</span>
         </div>
       </div>
 
       <div className="plat-filters">
-        <div className="plat-search-wrap">
+        <div className="plat-search-wrap" style={{ flex: '1 1 400px' }}>
           <Search size={16} className="plat-search-icon" />
           <input 
             className="plat-filter-input plat-search-input"
-            placeholder="Search by name, email or city..."
+            placeholder="Search by name, identity, or city station..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -131,66 +153,61 @@ name: disp.name || '',
 
       <div className="plat-card">
         {isLoading ? (
-          <div className="plat-empty">
-            <RefreshCw size={22} style={{ animation: 'spin 1s linear infinite', opacity: 0.3 }} />
+          <div className="plat-empty" style={{ minHeight: 200 }}>
+            <RefreshCw size={22} className="animate-spin opacity-30" />
           </div>
         ) : filteredItems.length === 0 ? (
-          <div className="plat-empty">
+          <div className="plat-empty" style={{ minHeight: 200 }}>
             <MapPin size={40} className="plat-empty-icon" />
-            <p className="plat-empty-text">No dispensaries found matching search.</p>
+            <p className="plat-empty-text">No registry entries found.</p>
           </div>
         ) : (
           <div className="plat-table-container">
             <table className="plat-table">
               <thead>
                 <tr>
-                  <th style={{ width: '60px' }}>ID</th>
-                  <th>Staff Name</th>
-                  <th>Contact Information</th>
-                  <th>Professional Details</th>
-                  <th style={{ width: '100px' }}>Status</th>
-                  <th style={{ width: '120px' }}>Actions</th>
+                  <th style={{ width: '40px' }}>#</th>
+                  <th>Identity Profile</th>
+                  <th>Contact Details</th>
+                  <th>Station & Role</th>
+                  <th style={{ width: '100px' }}>Access</th>
+                  <th style={{ width: '100px' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredItems.map((disp: any, index: number) => (
-                  <tr key={disp.id}>
-                    <td data-label="ID">{index + 1}</td>
-                    <td data-label="Staff Name">
-                      <div className="font-semibold">{disp.name}</div>
-                      <div className="text-xs color-muted flex items-center gap-1">
-                        <User size={10} /> {disp.gender}
+                {filteredItems.map((disp: Dispensary, index: number) => (
+                  <tr key={disp.id} className="plat-table-row">
+                    <td className="plat-table-cell color-muted font-mono text-xs">{index + 1}</td>
+                    <td className="plat-table-cell">
+                      <div className="font-bold text-[14px]">{disp.name}</div>
+                      <div className="text-[11px] color-muted flex items-center gap-1 italic">
+                        <User size={10} className="opacity-60" /> {disp.gender || 'Not Specified'}
                       </div>
                     </td>
-                    <td data-label="Contact">
+                    <td className="plat-table-cell">
                       <div className="flex flex-col gap-1">
-                        {disp.email && <div className="text-xs flex items-center gap-1.5"><Mail size={12} className="color-muted" /> {disp.email}</div>}
-                        {(disp.mobile || disp.contactNumber) && (
-                          <div className="text-xs flex items-center gap-1.5 font-mono">
-                            <Phone size={12} className="color-muted" /> {disp.mobile || disp.contactNumber}
-                          </div>
-                        )}
-                        {disp.city && <div className="text-xs flex items-center gap-1.5 color-muted"><MapPin size={12} /> {disp.city}</div>}
+                        {disp.email && <div className="text-[11px] font-mono flex items-center gap-1.5"><Mail size={12} className="color-muted" /> {disp.email}</div>}
+                        {disp.mobile && <div className="text-[11px] font-mono flex items-center gap-1.5"><Phone size={12} className="color-muted" /> {disp.mobile}</div>}
                       </div>
                     </td>
-                    <td data-label="Professional">
-                      <div className="flex flex-col gap-1">
-                        {disp.designation && <div className="text-xs font-medium">{disp.designation}</div>}
-                        {disp.dept && <div className="text-[10px] color-muted font-bold uppercase tracking-wider">{disp.dept}</div>}
+                    <td className="plat-table-cell">
+                      <div className="font-bold text-[12px]">{disp.designation || 'Staff'}</div>
+                      <div className="text-[10px] color-muted uppercase font-black flex items-center gap-1">
+                        <MapPin size={10} /> {disp.city || 'Station N/A'}
                       </div>
                     </td>
-                    <td data-label="Status">
-                       <span className={`plat-badge ${disp.isActive ? 'plat-badge-staff' : 'plat-badge-default'}`}>
-                         {disp.isActive ? 'Active' : 'Inactive'}
+                    <td className="plat-table-cell">
+                       <span className={`plat-badge ${disp.isActive ? 'plat-badge-primary' : 'plat-badge-default'}`}>
+                         {disp.isActive ? 'Authorized' : 'Suspended'}
                        </span>
                     </td>
-                    <td>
+                    <td className="plat-table-cell">
                       <div className="flex justify-end gap-2">
-                        <button className="plat-btn plat-btn-icon" onClick={() => handleOpenEdit(disp)}>
-                          <Edit2 size={14} />
+                        <button className="plat-btn plat-btn-sm plat-btn-icon" onClick={() => handleOpenEdit(disp)}>
+                          <Edit2 size={13} />
                         </button>
-                        <button className="plat-btn plat-btn-icon plat-btn-danger" onClick={() => handleDelete(disp.id, disp.name)}>
-                          <Trash2 size={14} />
+                        <button className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" onClick={() => handleDelete(disp.id, disp.name)}>
+                          <Trash2 size={13} />
                         </button>
                       </div>
                     </td>
@@ -203,58 +220,52 @@ name: disp.name || '',
       </div>
 
       {isModalOpen && (
-        <div className="plat-modal-overlay animate-fade-in" onClick={(e) => e.target === e.currentTarget && setIsModalOpen(false)}>
-          <div className="plat-modal" style={{ maxWidth: '800px' }}>
-            <div className="plat-modal-header">
-              <h2 className="plat-modal-title">
-                {editingId ? 'Edit Dispensary Details' : 'Add New Dispensary'}
-              </h2>
-              <button className="plat-btn plat-btn-icon" onClick={() => setIsModalOpen(false)}>
-                <X size={16} />
-              </button>
+        <div className="plat-modal-overlay" onClick={() => setIsModalOpen(false)}>
+          <div className="plat-modal" style={{ maxWidth: '700px' }} onClick={e => e.stopPropagation()}>
+            <div className="plat-modal-header border-none pb-0">
+               <div>
+                  <h2 className="plat-modal-title">{editingId ? 'Modify Access Credentials' : 'Register New Pharmacy Account'}</h2>
+                  <p className="text-xs text-muted mt-1">Assign station city and staff designations.</p>
+               </div>
+               <button className="plat-btn plat-btn-icon" onClick={() => setIsModalOpen(false)}>
+                 <X size={16} />
+               </button>
             </div>
-            <form onSubmit={handleSubmit} className="plat-modal-form">
-              <div className="plat-modal-body">
-                <div className="plat-form">
+            <form onSubmit={handleSubmit}>
+              <div className="plat-modal-body plat-form">
+                <div className="plat-form-grid">
                   <div className="plat-form-group plat-form-full">
-                    <label className="plat-form-label">Full Name <span className="plat-form-required">*</span></label>
-                    <div className="plat-input-wrapper">
-                      <User className="plat-input-icon" size={14} />
-                      <input 
-                        className="plat-form-input" 
-                        value={form.name} 
-                        onChange={e => setForm(f => ({...f, name: e.target.value}))}
-                        required 
-                        placeholder="e.g. John Doe"
-                      />
-                    </div>
+                    <label className="plat-form-label">Full Account Name *</label>
+                    <input 
+                      className="plat-form-input" 
+                      value={form.name} 
+                      onChange={e => setForm(f => ({...f, name: e.target.value}))}
+                      required 
+                      placeholder="e.g. Pharmacy Manager"
+                    />
                   </div>
 
                   <div className="plat-form-group">
-                    <label className="plat-form-label">Email Address</label>
-                    <div className="plat-input-wrapper">
-                      <Mail className="plat-input-icon" size={14} />
-                      <input 
-                        type="email"
-                        className="plat-form-input" 
-                        value={form.email} 
-                        onChange={e => setForm(f => ({...f, email: e.target.value}))}
-                        placeholder="e.g. john@example.com"
-                      />
-                    </div>
+                    <label className="plat-form-label">Official Email</label>
+                    <input 
+                      type="email"
+                      className="plat-form-input" 
+                      value={form.email} 
+                      onChange={e => setForm(f => ({...f, email: e.target.value}))}
+                      placeholder="email@clinic.com"
+                    />
                   </div>
 
                   {!editingId && (
                     <div className="plat-form-group">
-                      <label className="plat-form-label">Password <span className="plat-form-required">*</span></label>
+                      <label className="plat-form-label">Initial Password *</label>
                       <input 
                         type="password"
                         className="plat-form-input" 
                         value={form.password} 
                         onChange={e => setForm(f => ({...f, password: e.target.value}))}
                         required={!editingId}
-                        placeholder="Min. 6 characters"
-                        minLength={6}
+                        placeholder="Security credential"
                       />
                     </div>
                   )}
@@ -262,7 +273,7 @@ name: disp.name || '',
                   <div className="plat-form-group">
                     <label className="plat-form-label">Gender</label>
                     <select 
-                      className="plat-form-input" 
+                      className="plat-form-select" 
                       value={form.gender} 
                       onChange={e => setForm(f => ({...f, gender: e.target.value}))}
                     >
@@ -273,124 +284,52 @@ name: disp.name || '',
                   </div>
 
                   <div className="plat-form-group">
-                    <label className="plat-form-label">Date of Birth</label>
-                    <div className="plat-input-wrapper">
-                      <Calendar className="plat-input-icon" size={14} />
-                      <input 
-                        type="date"
-                        className="plat-form-input" 
-                        value={form.dateBirth} 
-                        onChange={e => setForm(f => ({...f, dateBirth: e.target.value}))}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="plat-form-group">
                     <label className="plat-form-label">Primary Mobile</label>
-                    <div className="plat-input-wrapper">
-                      <Phone className="plat-input-icon" size={14} />
-                      <input 
-                        className="plat-form-input" 
-                        value={form.mobile} 
-                        onChange={e => setForm(f => ({...f, mobile: e.target.value}))}
-                        placeholder="+91 9876543210"
-                      />
-                    </div>
+                    <input 
+                      className="plat-form-input" 
+                      value={form.mobile} 
+                      onChange={e => setForm(f => ({...f, mobile: e.target.value}))}
+                      placeholder="Contact number"
+                    />
                   </div>
 
                   <div className="plat-form-group">
-                    <label className="plat-form-label">Alternate Mobile</label>
-                    <div className="plat-input-wrapper">
-                      <Phone className="plat-input-icon" size={14} />
-                      <input 
-                        className="plat-form-input" 
-                        value={form.mobile2} 
-                        onChange={e => setForm(f => ({...f, mobile2: e.target.value}))}
-                        placeholder="+91 8888888888"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="plat-form-group">
-                    <label className="plat-form-label">City</label>
-                    <div className="plat-input-wrapper">
-                      <MapPin className="plat-input-icon" size={14} />
-                      <input 
-                        className="plat-form-input" 
-                        value={form.city} 
-                        onChange={e => setForm(f => ({...f, city: e.target.value}))}
-                        placeholder="e.g. Mumbai"
-                      />
-                    </div>
+                    <label className="plat-form-label">Station City</label>
+                    <input 
+                      className="plat-form-input" 
+                      value={form.city} 
+                      onChange={e => setForm(f => ({...f, city: e.target.value}))}
+                      placeholder="City assigned"
+                    />
                   </div>
 
                   <div className="plat-form-group">
                     <label className="plat-form-label">Designation</label>
-                    <div className="plat-input-wrapper">
-                      <Briefcase className="plat-input-icon" size={14} />
-                      <input 
-                        className="plat-form-input" 
-                        value={form.designation} 
-                        onChange={e => setForm(f => ({...f, designation: e.target.value}))}
-                        placeholder="e.g. Senior Pharmacist"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="plat-form-group">
-                    <label className="plat-form-label">Department</label>
-                    <div className="plat-input-wrapper">
-                      <Briefcase className="plat-input-icon" size={14} />
-                      <input 
-                        className="plat-form-input" 
-                        value={form.dept} 
-                        onChange={e => setForm(f => ({...f, dept: e.target.value}))}
-                        placeholder="e.g. Pharmacy"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="plat-form-group plat-form-full">
-                    <label className="plat-form-label">Full Address</label>
-                    <textarea 
-                      className="plat-form-input" 
-                      style={{ height: '60px' }}
-                      value={form.address} 
-                      onChange={e => setForm(f => ({...f, address: e.target.value}))}
-                      placeholder="Room, Street, Locality..."
-                    />
-                  </div>
-
-                  <div className="plat-form-group plat-form-full">
-                    <label className="plat-form-label">About / Bio</label>
-                    <div className="plat-input-wrapper">
-                      <Info className="plat-input-icon" size={14} style={{ top: '12px' }} />
-                      <textarea 
-                        className="plat-form-input" 
-                        style={{ height: '60px', paddingLeft: '32px' }}
-                        value={form.about} 
-                        onChange={e => setForm(f => ({...f, about: e.target.value}))}
-                        placeholder="Professional background, notes..."
-                      />
-                    </div>
-                  </div>
-
-                  <div className="plat-form-group plat-form-row plat-form-full">
                     <input 
-                      type="checkbox" 
-                      className="plat-form-input"
-                      id="disp-active"
-                      checked={form.isActive} 
-                      onChange={e => setForm(f => ({...f, isActive: e.target.checked}))}
+                      className="plat-form-input" 
+                      value={form.designation} 
+                      onChange={e => setForm(f => ({...f, designation: e.target.value}))}
+                      placeholder="e.g. Pharmacist In-Charge"
                     />
-                    <label htmlFor="disp-active" className="plat-form-label mb-0 cursor-pointer">Account is active and can login</label>
                   </div>
                 </div>
+
+                <div className="plat-form-group plat-form-full">
+                  <label className="plat-form-label">Access Status</label>
+                   <label className="flex items-center gap-2 cursor-pointer plat-badge border border-main p-2">
+                     <input 
+                       type="checkbox" 
+                       checked={form.isActive} 
+                       onChange={e => setForm(f => ({...f, isActive: e.target.checked}))}
+                     />
+                     <span className="text-[11px] font-bold">Authorized for System Access</span>
+                   </label>
+                </div>
               </div>
-              <div className="plat-modal-footer">
+              <div className="plat-modal-footer bg-faded">
                 <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                <button type="submit" className="plat-btn plat-btn-primary" disabled={createDisp.isPending || updateDisp.isPending}>
-                  {editingId ? 'Update Information' : 'Create Account'}
+                <button type="submit" className="plat-btn plat-btn-primary px-10" disabled={createDisp.isPending || updateDisp.isPending}>
+                  {editingId ? 'Save Profile' : 'Register Account'}
                 </button>
               </div>
             </form>
@@ -400,4 +339,3 @@ name: disp.name || '',
     </div>
   );
 }
-

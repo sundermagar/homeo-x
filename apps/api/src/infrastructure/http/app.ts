@@ -42,7 +42,7 @@ import { crmRouter } from './routes/crm.router';
 import { logisticsRouter } from './routes/logistics.router';
 import { knowledgeRouter } from './routes/knowledge.router';
 import { recordsRouter } from './routes/records.router';
-import { staffRouter } from './routes/staff.router.js';
+import { staffRouter } from './routes/staff.router';
 import { createSettingsRouter } from './routes/settings.router';
 
 const logger = createLogger('http');
@@ -116,6 +116,9 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   app.use('/api/organizations', authMiddleware, createOrganizationRouter());
   app.use('/api/accounts',      authMiddleware, createAccountRouter());
 
+  // Our modules — Settings & Configuration
+  app.use('/api/settings', authMiddleware, createSettingsRouter());
+
   // ─── Operations & Logistics (JWT required) ───
   app.use('/api/crm',        authMiddleware, crmRouter);
   app.use('/api/logistics',  authMiddleware, logisticsRouter);
@@ -126,9 +129,6 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   // Roles & Permissions
   app.use('/api/roles',      authMiddleware, rolesRouter);
   app.use('/api/permissions', authMiddleware, permissionsRouter);
-
-  // Our modules — Settings & Configuration
-  app.use('/api/settings', authMiddleware, createSettingsRouter());
 
   // ─── Error Handling (must be last) ───
   app.use(errorHandler);

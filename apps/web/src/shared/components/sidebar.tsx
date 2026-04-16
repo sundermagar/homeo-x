@@ -1,13 +1,12 @@
-import { useState, useEffect } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
-import {
+import React, { useState } from 'react';
+import React, { NavLink, useLocation } from 'react-router-dom';
+import React, {
   LayoutDashboard,
   Users,
   CalendarClock,
   Calendar,
   Ticket,
   Stethoscope,
-  CreditCard,
   Receipt,
   Banknote,
   Building,
@@ -30,13 +29,14 @@ import {
   Wallet,
   MessageSquare,
   Database,
+  User,
+  Phone,
+  Shield,
+  Briefcase,
   Box,
-  Tags,
-  Truck,
   HelpCircle,
   FileJson,
   UserCheck,
-  ChevronRight,
   ChevronDown,
   Sparkles,
   Clock,
@@ -46,17 +46,17 @@ import {
   Gift,
   MessageCircle,
   PieChart,
-  Briefcase,
   Scale,
   BookOpen,
   DollarSign,
   PlusCircle,
   BrainCircuit,
   type LucideIcon,
+  Truck,
+  CreditCard,
 } from 'lucide-react';
-import { useAuthStore } from '../stores/auth-store';
+import React, { useAuthStore } from '../stores/auth-store';
 import '../styles/sidebar.css';
-
 
 // ─── Role Definitions ────────────────────────────────────────────────────────
 
@@ -65,7 +65,6 @@ type UserRole = 'SuperAdmin' | 'Admin' | 'Clinicadmin' | 'Doctor' | 'Receptionis
 const ALL: UserRole[] = ['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist'];
 const ADMIN: UserRole[] = ['SuperAdmin', 'Admin', 'Clinicadmin'];
 const CLINICAL: UserRole[] = ['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor'];
-
 
 // ─── Navigation Structure ────────────────────────────────────────────────────
 
@@ -224,9 +223,14 @@ const NAV_STRUCTURE: NavItem[] = [
       icon: Building2,
       roles: ['SuperAdmin', 'Admin', 'Clinicadmin'],
       children: [
-        { path: '/staff',              label: 'Staff & Admin', icon: Briefcase },
-        { path: '/platform/clinics',   label: 'Clinics',       icon: Building2 },
-        { path: '/platform/accounts',  label: 'Accounts',      icon: UserCog },
+        { path: '/platform/doctors',          label: 'Doctors',         icon: Stethoscope },
+        { path: '/platform/employees',        label: 'Employees',       icon: User },
+        { path: '/platform/receptionists',    label: 'Receptionists',   icon: Phone },
+        { path: '/platform/clinicadmins',     label: 'Clinic Admins',   icon: Shield },
+        { path: '/platform/account-managers', label: 'Account Mgrs',    icon: Briefcase },
+        { path: '/platform/clinics',          label: 'Clinics',         icon: Building2 },
+        { path: '/platform/accounts',         label: 'Accounts',        icon: UserCog },
+        { path: '/settings/roles',            label: 'Roles & Access',  icon: UserCheck },
       ],
     },
   },
@@ -249,7 +253,7 @@ const NAV_STRUCTURE: NavItem[] = [
     type: 'group',
     group: {
       id: 'settings',
-      label: 'Settings',
+      label: 'System Settings',
       icon: Settings,
       roles: ADMIN,
       children: [
@@ -258,21 +262,15 @@ const NAV_STRUCTURE: NavItem[] = [
         { path: '/settings/potencies',   label: 'Potencies',          icon: Sparkles },
         { path: '/settings/frequencies', label: 'Dosage Frequencies', icon: Clock },
         { path: '/settings/dispensaries',label: 'Dispensaries',       icon: Hospital },
-        { path: '/settings/packages',    label: 'Package Plans',      icon: Box },
-        { path: '/settings/couriers',    label: 'Courier Services',   icon: Truck },
         { path: '/settings/referrals',   label: 'Referral Sources',   icon: UserPlus },
         { path: '/settings/stickers',    label: 'Medicine Stickers',  icon: StickyNote },
-        { path: '/settings/doctors',     label: 'Doctors/Clinicians', icon: UserCircle },
-        { path: '/settings/staff',       label: 'Staff Management',   icon: UserCheck },
         { path: '/settings/cms',         label: 'Content (CMS)',      icon: Globe },
         { path: '/settings/pdf',         label: 'PDF & Reports',      icon: FileText },
         { path: '/settings/faqs',        label: 'Help & FAQs',        icon: HelpCircle },
       ],
     },
-
   },
 ];
-
 
 // ─── Role Normalizer ─────────────────────────────────────────────────────────
 
@@ -299,7 +297,6 @@ function getRoleLabel(role: UserRole | null): string {
   return labels[role];
 }
 
-
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 interface SidebarProps {
@@ -307,17 +304,18 @@ interface SidebarProps {
   onClose: () => void;
 }
 
-function isGroupActive(group: NavGroup, pathname: string): boolean {
-  return group.children.some(c => {
-    if (c.path === '/') return pathname === '/';
-    // Check main path
-    if (pathname.startsWith(c.path)) return true;
-    // Check nested children if any
-    if (c.children?.some(sc => pathname.startsWith(sc.path))) return true;
-    return false;
-  });
+function normalizeNavPath(path: string): { pathname: string; search: string } {
+  const [pathname, search = ''] = path.split('?');
+  return { pathname, search: search ? `?${search}` : '' };
 }
 
+function isGroupActive(group: NavGroup, currentLocation: string): boolean {
+  return group.children.some(c => {
+    const target = normalizeNavPath(c.path);
+    if (target.pathname === '/') return currentLocation === '/';
+    return currentLocation.startsWith(target.pathname + target.search);
+  });
+}
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -336,9 +334,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   });
 
   // Auto-expand the active group by default
+  const currentLocation = location.pathname + location.search;
   const defaultOpen = visibleNav
     .filter((item): item is { type: 'group'; group: NavGroup } => item.type === 'group')
-    .filter(item => isGroupActive(item.group, location.pathname))
+    .filter(item => isGroupActive(item.group, currentLocation))
     .map(item => item.group.id);
 
   // Auto-expand any sub-group whose children match the current path
@@ -386,11 +385,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               <ChildIcon className="sidebar-child-icon" strokeWidth={1.8} />
               <span>{child.label}</span>
             </div>
-            <ChevronRight 
-              size={12} 
-              className={`sidebar-chevron ${isSubOpen ? 'open' : ''}`} 
-              style={{ transform: isSubOpen ? 'rotate(90deg)' : 'none' }} 
-            />
           </button>
           
           {isSubOpen && (

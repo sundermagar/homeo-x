@@ -103,7 +103,7 @@ export class UserRepositoryPG implements UserRepository {
     const rows = await this.db
       .select()
       .from(schema.users)
-      .where(and(eq(schema.users.type, 'DOCTOR'), isNull(schema.users.deletedAt), eq(schema.users.isActive, true)));
+      .where(and(eq(schema.users.type, 'DOCTOR' as any), isNull(schema.users.deletedAt), eq(schema.users.isActive, true)));
 
     return rows.map(row => ({
       id: row.id,

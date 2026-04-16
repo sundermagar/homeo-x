@@ -1,253 +1,174 @@
-import { useState, useEffect } from 'react';
-import {
+import React, { useState, useMemo } from 'react';
+import React, {
   Shield,
   Plus,
-  Edit3,
+  Edit2,
   Trash2,
-  RotateCw,
+  Lock,
+  Search,
+  CheckCircle2,
+  Info,
+  Layers,
+  LayoutGrid,
   X,
   ShieldCheck,
-  Lock,
+  RotateCw
 } from 'lucide-react';
-import { apiClient } from '@/infrastructure/api-client';
+import React, { 
+  useRoles, 
+  useRole, 
+  usePermissions, 
+  useAssignPermissions, 
+  useCreateRole, 
+  useUpdateRole, 
+  useDeleteRole,
+  Role,
+  Permission
+} from '../hooks/use-roles-permissions';
+import React, { apiClient } from '@/infrastructure/api-client';
 import '../../platform/styles/platform.css';
-
-interface Role {
-  id: number;
-  name: string;
-  displayName?: string;
-  description?: string;
-  permissions?: { id: number; name: string }[];
-}
-
-interface Permission {
-  id: number;
-  name: string;
-  module: string;
-  description?: string;
-}
+import './roles-permissions.css';
 
 export function RolesPermissionsPage() {
-  const [activeTab, setActiveTab] = useState<'Roles' | 'Permissions'>('Roles');
-  const [roles, setRoles] = useState<Role[]>([]);
-  const [rolesLoading, setRolesLoading] = useState(false);
-  const [permissions, setPermissions] = useState<Permission[]>([]);
-  const [permissionsLoading, setPermissionsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'matrix' | 'lab'>('matrix');
+  const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  // Role form
-  const [showRoleForm, setShowRoleForm] = useState(false);
-  const [editRoleId, setEditRoleId] = useState<number | null>(null);
-  const [roleForm, setRoleForm] = useState({ name: '', description: '' });
-  const [selectedRole, setSelectedRole] = useState<Role | null>(null);
-  const [rolePermissions, setRolePermissions] = useState<number[]>([]);
+  // Queries
+  const { data: roles = [], isLoading: loadingRoles } = useRoles();
+  const { data: selectedRole, isLoading: loadingSelectedRole } = useRole(selectedRoleId);
+  const { data: allPermissions = [], isLoading: loadingPerms } = usePermissions();
 
-  // Permission form
-  const [showPermForm, setShowPermForm] = useState(false);
-  const [editPermId, setEditPermId] = useState<number | null>(null);
-  const [permForm, setPermForm] = useState({ name: '', module: '', description: '' });
+  // Mutations
+  const assignPerms = useAssignPermissions();
+  const createRole = useCreateRole();
+  const updateRole = useUpdateRole();
+  const deleteRole = useDeleteRole();
 
-  useEffect(() => {
-    fetchRoles();
-    fetchPermissions();
-  }, []);
+  // Modal State
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editRole, setEditRole] = useState<Role | null>(null);
 
-  // ─── Fetch ──────────────────────────────────────────────────────────────────
-  const fetchRoles = async () => {
-    setRolesLoading(true);
-    try {
-      const { data } = await apiClient.get('/roles');
-      if (data.success) setRoles(Array.isArray(data.data) ? data.data : []);
-    } catch (err) {
-      console.error('[roles] fetch error:', err);
-    } finally {
-      setRolesLoading(false);
-    }
-  };
+  // Filtered Roles
+  const filteredRoles = useMemo(() => {
+    return roles.filter(r => 
+      r.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      (r.description || '').toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [roles, searchTerm]);
 
-  const fetchPermissions = async () => {
-    setPermissionsLoading(true);
-    try {
-      const { data } = await apiClient.get('/permissions');
-      if (data.success) setPermissions(Array.isArray(data.data) ? data.data : []);
-    } catch (err) {
-      console.error('[permissions] fetch error:', err);
-    } finally {
-      setPermissionsLoading(false);
-    }
-  };
-
-  // ─── Role Actions ────────────────────────────────────────────────────────────
-  const handleSelectRole = async (role: Role) => {
-    setSelectedRole(role);
-    try {
-      const { data } = await apiClient.get(`/roles/${role.id}`);
-      if (data.success) {
-        setRolePermissions((data.data.permissions || []).map((p: any) => p.id));
-      }
-    } catch (err) {
-      console.error('[roles] fetch role error:', err);
-      setRolePermissions([]);
-    }
-  };
+  // Grouped Permissions
+  const groupedPermissions = useMemo(() => {
+    const groups: Record<string, Permission[]> = {};
+    allPermissions.forEach(p => {
+      const mod = p.module || 'System';
+      if (!groups[mod]) groups[mod] = [];
+      groups[mod].push(p);
+    });
+    return groups;
+  }, [allPermissions]);
 
   const handleTogglePermission = async (permId: number) => {
-    if (!selectedRole) return;
-    const has = rolePermissions.includes(permId);
-    try {
-      if (has) {
-        await apiClient.delete(`/permissions/roles/${selectedRole.id}/permissions/${permId}`);
-        setRolePermissions(rolePermissions.filter(id => id !== permId));
-      } else {
-        await apiClient.post(`/permissions/roles/${selectedRole.id}/permissions`, { permissionId: permId });
-        setRolePermissions([...rolePermissions, permId]);
-      }
-    } catch (err) {
-      console.error('[roles] toggle permission error:', err);
-    }
-  };
+    if (!selectedRoleId || !selectedRole) return;
+    
+    const currentIds = selectedRole.permissions.map(p => p.id);
+    const newIds = currentIds.includes(permId)
+      ? currentIds.filter(id => id !== permId)
+      : [...currentIds, permId];
 
-  const handleRoleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      if (editRoleId) {
-        await apiClient.put(`/roles/${editRoleId}`, roleForm);
-      } else {
-        await apiClient.post('/roles', roleForm);
-      }
-      closeRoleForm();
-      fetchRoles();
-    } catch (err) {
-      console.error('[roles] save error:', err);
-    }
+    await assignPerms.mutateAsync({ roleId: selectedRoleId, permissionIds: newIds });
   };
 
   const handleDeleteRole = async (id: number) => {
-    if (!window.confirm('Delete this role permanently?')) return;
-    try {
-      await apiClient.delete(`/roles/${id}`);
-      if (selectedRole?.id === id) setSelectedRole(null);
-      fetchRoles();
-    } catch (err) {
-      console.error('[roles] delete error:', err);
+    if (window.confirm('Are you sure you want to delete this identity group? This action is permanent.')) {
+      await deleteRole.mutateAsync(id);
+      if (selectedRoleId === id) setSelectedRoleId(null);
     }
-  };
-
-  const openEditRole = (role: Role) => {
-    setRoleForm({ name: role.name || '', description: role.description || '' });
-    setEditRoleId(role.id);
-    setShowRoleForm(true);
-  };
-
-  const closeRoleForm = () => {
-    setShowRoleForm(false);
-    setEditRoleId(null);
-    setRoleForm({ name: '', description: '' });
-  };
-
-  // ─── Permission Actions ──────────────────────────────────────────────────────
-  const handlePermSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      if (editPermId) {
-        await apiClient.put(`/permissions/${editPermId}`, permForm);
-      } else {
-        await apiClient.post('/permissions', permForm);
-      }
-      closePermForm();
-      fetchPermissions();
-    } catch (err) {
-      console.error('[permissions] save error:', err);
-    }
-  };
-
-  const handleDeletePerm = async (id: number) => {
-    if (!window.confirm('Delete this permission permanently?')) return;
-    try {
-      await apiClient.delete(`/permissions/${id}`);
-      fetchPermissions();
-    } catch (err) {
-      console.error('[permissions] delete error:', err);
-    }
-  };
-
-  const openEditPerm = (perm: Permission) => {
-    setPermForm({ name: perm.name || '', module: perm.module || '', description: perm.description || '' });
-    setEditPermId(perm.id);
-    setShowPermForm(true);
-  };
-
-  const closePermForm = () => {
-    setShowPermForm(false);
-    setEditPermId(null);
-    setPermForm({ name: '', module: '', description: '' });
   };
 
   return (
     <div className="plat-page animate-fade-in">
       {/* ── Page Header ── */}
       <div className="plat-header">
-        <div>
-          <h1 className="plat-header-title">
-            <Shield size={22} className="color-primary" />
-            Capabilities & Access
-          </h1>
-          <p className="plat-header-sub">Configure user roles, module permissions, and security control matrices.</p>
+        <div className="plat-header-main flex items-center gap-4">
+          <div className="plat-header-icon color-primary">
+            <Shield size={24} />
+          </div>
+          <div className="plat-header-content">
+            <h1 className="plat-header-title">Identity & Access Control</h1>
+            <p className="plat-header-sub">Configure organizational roles and capability matrices</p>
+          </div>
         </div>
-        <div className="plat-header-actions">
-          <div className="flex bg-warm-2 p-1 rounded-lg gap-1 border border-main">
-            <button
-              className={`plat-btn plat-btn-sm ${activeTab === 'Roles' ? 'plat-btn-primary' : ''}`}
-              onClick={() => setActiveTab('Roles')}
+
+        <div className="plat-header-actions flex items-center gap-3 mt-4 md:mt-0">
+          <div className="plat-tab-group flex bg-warm-2 p-1 rounded-lg gap-1 border border-main">
+            <button 
+              className={`plat-btn plat-btn-sm ${activeTab === 'matrix' ? 'plat-btn-primary' : ''}`}
+              onClick={() => setActiveTab('matrix')}
             >
-              Role Groups
+              <LayoutGrid size={13} />
+              Identity Matrix
             </button>
-            <button
-              className={`plat-btn plat-btn-sm ${activeTab === 'Permissions' ? 'plat-btn-primary' : ''}`}
-              onClick={() => setActiveTab('Permissions')}
+            <button 
+              className={`plat-btn plat-btn-sm ${activeTab === 'lab' ? 'plat-btn-primary' : ''}`}
+              onClick={() => setActiveTab('lab')}
             >
-              Capability Map
+              <Layers size={13} />
+              Capability Lab
             </button>
           </div>
-          <button
-            className="plat-btn plat-btn-primary"
-            onClick={() => activeTab === 'Roles' ? setShowRoleForm(true) : setShowPermForm(true)}
-          >
-            <Plus size={15} />
-            Add {activeTab === 'Roles' ? 'Role' : 'Node'}
+          <button className="plat-btn plat-btn-primary" onClick={() => { setEditRole(null); setModalOpen(true); }}>
+            <Plus size={14} />
+            Create Role
           </button>
         </div>
       </div>
 
-      {/* ── Roles Tab ── */}
-      {activeTab === 'Roles' ? (
+      {activeTab === 'matrix' ? (
         <div className="plat-grid-sidebar">
-          {/* Left: Role list */}
-          <div className="plat-card">
-            <div className="plat-card-header">
-              <h3>System Identities</h3>
-              <span className="plat-badge plat-badge-admin">{roles.length} roles</span>
+          {/* ── Left: Identity List ── */}
+          <div className="flex flex-col gap-4">
+            <div className="plat-card p-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                <input 
+                  type="text" 
+                  className="plat-filter-input w-full pl-9 py-2 bg-slate-50 border-none" 
+                  placeholder="Search identities..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
             </div>
-            <div className="divide-y divide-main max-h-[600px] overflow-y-auto">
-              {rolesLoading ? (
-                <div className="plat-empty"><RotateCw size={24} className="animate-spin opacity-30" /></div>
-              ) : roles.length === 0 ? (
-                <div className="plat-empty"><p className="plat-empty-text">No roles defined yet.</p></div>
-              ) : roles.map(r => (
-                <div
-                  key={r.id}
-                  className={`p-4 flex items-start justify-between gap-3 cursor-pointer transition-colors hover:bg-warm-1 ${selectedRole?.id === r.id ? 'bg-faded border-l-4 border-primary' : ''}`}
-                  onClick={() => handleSelectRole(r)}
+
+            <div className="plat-role-list max-h-[600px] overflow-y-auto flex flex-col gap-2">
+              {loadingRoles ? (
+                <div className="plat-empty py-12"><RotateCw size={24} className="animate-spin opacity-30" /></div>
+              ) : filteredRoles.length === 0 ? (
+                <div className="plat-empty py-8 border-dashed border-2 rounded-xl">
+                  <p className="plat-empty-text">No roles found matching "{searchTerm}"</p>
+                </div>
+              ) : filteredRoles.map(role => (
+                <div 
+                  key={role.id}
+                  className={`plat-card flex items-center justify-between p-4 cursor-pointer transition-all hover:bg-warm-1 ${selectedRoleId === role.id ? 'border-primary bg-faded' : ''}`}
+                  onClick={() => setSelectedRoleId(role.id)}
                 >
-                  <div className="flex-1 min-width-0">
-                    <div className="font-bold text-sm color-ink">{r.name}</div>
-                    <div className="text-xs color-muted mt-1 leading-relaxed truncate">{r.description || 'Global system role identity.'}</div>
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-lg ${selectedRoleId === role.id ? 'bg-primary color-white' : 'bg-warm-2 color-primary'}`}>
+                      <Shield size={18} />
+                    </div>
+                    <div>
+                      <div className="font-bold text-sm color-ink">{role.name}</div>
+                      <div className="text-xs color-muted truncate max-w-[180px]">{role.description || 'System identity group.'}</div>
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    <button className="plat-btn plat-btn-sm plat-btn-icon" onClick={(e) => { e.stopPropagation(); openEditRole(r); }} title="Edit">
-                      <Edit3 size={13} />
+                  <div className="flex gap-1">
+                    <button className="plat-btn-icon" onClick={(e) => { e.stopPropagation(); setEditRole(role); setModalOpen(true); }}>
+                      <Edit2 size={12} />
                     </button>
-                    <button className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" onClick={(e) => { e.stopPropagation(); handleDeleteRole(r.id); }} title="Delete">
-                      <Trash2 size={13} />
+                    <button className="plat-btn-icon plat-btn-danger" onClick={(e) => { e.stopPropagation(); handleDeleteRole(role.id); }}>
+                    <Trash2 size={12} />
                     </button>
                   </div>
                 </div>
@@ -255,108 +176,113 @@ export function RolesPermissionsPage() {
             </div>
           </div>
 
-          {/* Right: Permission matrix */}
-          <div className="plat-card">
-            <div className="plat-card-header">
-              <div>
-                <h3>{selectedRole ? `Capabilities: ${selectedRole.name}` : 'Security Matrix'}</h3>
-                <p className="plat-header-sub mt-1">
-                  {selectedRole ? 'Toggle module-level permissions for this role' : 'Select a role group to manage access nodes'}
-                </p>
+          {/* ── Right: Matrix ── */}
+          <div className="plat-card overflow-hidden">
+            <div className="plat-card-header bg-warm-1 flex justify-between items-center p-4">
+              <div className="flex items-center gap-2">
+                <Lock size={16} className="color-primary" />
+                <h3 className="font-bold text-sm">{selectedRole ? `Capabilities: ${selectedRole.name}` : 'Security Matrix Overview'}</h3>
               </div>
-              {selectedRole && <Lock size={16} className="color-muted" />}
+              {selectedRole && (
+                <div className="flex items-center gap-2 text-[10px] font-bold color-muted uppercase tracking-widest">
+                  <CheckCircle2 size={12} className="text-success" />
+                  Live Sync Active
+                </div>
+              )}
             </div>
 
-            {selectedRole ? (
-              <div className="plat-table-container">
+            <div className="plat-table-container">
+              {loadingSelectedRole ? (
+                <div className="plat-empty py-20"><RotateCw size={24} className="animate-spin opacity-30" /></div>
+              ) : !selectedRole ? (
+                <div className="plat-empty py-32">
+                  <ShieldCheck size={48} className="plat-empty-icon mb-2" />
+                  <p className="plat-empty-text font-bold">Select an identity group to manage access nodes</p>
+                  <p className="text-[11px] color-muted max-w-[240px] mt-1 text-center">Assignments are synchronized in real-time across all active sessions.</p>
+                </div>
+              ) : (
                 <table className="plat-table">
                   <thead>
                     <tr>
-                      <th>CAPABILITY IDENTIFIER</th>
-                      <th style={{ width: 150 }}>MODULE</th>
-                      <th style={{ width: 100, textAlign: 'center' }}>ACCESS</th>
+                      <th>Capability Node</th>
+                      <th style={{ width: 120 }}>Scope</th>
+                      <th style={{ width: 80, textAlign: 'center' }}>Permit</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {permissions.map(p => (
-                      <tr key={p.id}>
-                        <td data-label="Capability">
-                          <div>
-                            <div className="font-bold text-sm">{p.name}</div>
-                            <div className="text-xs color-muted mt-0.5">{p.description || 'System-level access point.'}</div>
-                          </div>
-                        </td>
-                        <td data-label="Module">
-                          <span className="plat-badge plat-badge-default">{(p.module || 'CORE').toUpperCase()}</span>
-                        </td>
-                        <td data-label="Access">
-                          <input
-                            type="checkbox"
-                            className="w-4 h-4 accent-primary cursor-pointer"
-                            checked={rolePermissions.includes(p.id)}
-                            onChange={() => handleTogglePermission(p.id)}
-                          />
-                        </td>
-                      </tr>
+                    {Object.entries(groupedPermissions).map(([module, perms]) => (
+                      <div key={module} className="contents">
+                        <tr className="bg-warm-1">
+                          <td colSpan={3} className="py-2 px-6">
+                            <div className="flex items-center gap-2 text-[10px] font-black color-muted uppercase tracking-tighter">
+                              <Info size={10} />
+                              {module} Module Nodes
+                            </div>
+                          </td>
+                        </tr>
+                        {perms.map(perm => (
+                          <tr key={perm.id}>
+                            <td>
+                              <div className="font-bold text-sm color-ink">{perm.slug || perm.name}</div>
+                              <div className="text-xs color-muted mt-0.5">{perm.description || `Grants access to ${perm.name.toLowerCase()} functionality.`}</div>
+                            </td>
+                            <td><span className="plat-badge plat-badge-default">{module.toUpperCase()}</span></td>
+                            <td>
+                              <div className="flex justify-center">
+                                <input 
+                                  type="checkbox" 
+                                  className="w-4 h-4 accent-primary cursor-pointer"
+                                  checked={selectedRole.permissions.some(p => p.id === perm.id)}
+                                  onChange={() => handleTogglePermission(perm.id)}
+                                  disabled={assignPerms.isPending}
+                                />
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </div>
                     ))}
-                    {permissions.length === 0 && (
-                      <tr>
-                        <td colSpan={3} className="plat-empty">
-                          <p className="plat-empty-text">No capabilities found.</p>
-                        </td>
-                      </tr>
-                    )}
                   </tbody>
                 </table>
-              </div>
-            ) : (
-              <div className="plat-empty py-24">
-                <ShieldCheck size={48} className="plat-empty-icon" />
-                <p className="plat-empty-text">Select a role identity from the left to modify its system capabilities.</p>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       ) : (
-        /* ── Permissions Tab ── */
-        <div className="plat-card">
-          <div className="plat-card-header">
-             <h3>Capability Map</h3>
-             <p className="plat-header-sub">Universal system nodes used across all role definitions.</p>
+        /* ── Capability Lab (Tab 2) ── */
+        <div className="plat-card overflow-hidden">
+          <div className="plat-card-header bg-warm-1 p-4">
+            <div>
+              <h3 className="text-sm font-bold uppercase tracking-tight">Global Capability Dictionary</h3>
+              <p className="text-[11px] color-muted mt-1">Manage the available permission nodes accessible to the RBAC engine.</p>
+            </div>
           </div>
           <div className="plat-table-container">
             <table className="plat-table">
               <thead>
                 <tr>
-                  <th style={{ width: 280 }}>CAPABILITY NAME</th>
-                  <th style={{ width: 160 }}>MODULE</th>
-                  <th>DESCRIPTION</th>
-                  <th style={{ width: 100, textAlign: 'right' }}>ACTIONS</th>
+                  <th>Node Identity</th>
+                  <th>Identifier (Slug)</th>
+                  <th>Cluster</th>
+                  <th className="text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {permissionsLoading ? (
-                  <tr><td colSpan={4} className="plat-empty"><RotateCw size={24} className="animate-spin opacity-30" /></td></tr>
-                ) : permissions.map(p => (
-                  <tr key={p.id}>
-                    <td data-label="Name"><div className="font-bold">{p.name}</div></td>
-                    <td data-label="Module"><span className="plat-badge plat-badge-default">{(p.module || 'CORE').toUpperCase()}</span></td>
-                    <td data-label="Description"><div className="text-xs color-muted">{p.description || '—'}</div></td>
+                {loadingPerms ? (
+                  <tr><td colSpan={4} className="plat-empty py-12"><RotateCw size={24} className="animate-spin opacity-30" /></td></tr>
+                ) : allPermissions.map(perm => (
+                  <tr key={perm.id}>
                     <td>
-                      <div className="plat-action-group">
-                        <button className="plat-btn plat-btn-sm plat-btn-icon" onClick={() => openEditPerm(p)} title="Edit">
-                          <Edit3 size={14} />
-                        </button>
-                        <button className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" onClick={() => handleDeletePerm(p.id)} title="Delete">
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
+                       <div className="font-bold color-ink">{perm.name}</div>
+                       <div className="text-[11px] color-muted mt-0.5">{perm.description || 'No system descriptor.'}</div>
+                    </td>
+                    <td><code className="bg-warm-2 px-2 py-0.5 rounded text-xs font-mono">{perm.slug || perm.name}</code></td>
+                    <td><span className="plat-badge plat-badge-default">{(perm.module || 'System').toUpperCase()}</span></td>
+                    <td className="text-right">
+                       <button className="plat-btn-icon"><Edit2 size={13} /></button>
                     </td>
                   </tr>
                 ))}
-                {permissions.length === 0 && !permissionsLoading && (
-                  <tr><td colSpan={4} className="plat-empty">No capabilities defined.</td></tr>
-                )}
               </tbody>
             </table>
           </div>
@@ -364,91 +290,42 @@ export function RolesPermissionsPage() {
       )}
 
       {/* ── Role Modal ── */}
-      {showRoleForm && (
-        <div className="plat-modal-overlay animate-fade-in" onClick={closeRoleForm}>
-          <div className="plat-modal" onClick={e => e.stopPropagation()}>
-            <div className="plat-modal-header">
-              <h3 className="plat-modal-title">{editRoleId ? 'Refine Role Identity' : 'New System Role'}</h3>
-              <button className="plat-btn plat-btn-icon" onClick={closeRoleForm}><X size={16} /></button>
+      {modalOpen && (
+        <div className="plat-modal-overlay animate-fade-in" onClick={() => setModalOpen(false)}>
+          <div className="plat-modal max-w-md" onClick={e => e.stopPropagation()}>
+            <div className="plat-modal-header p-4 border-b">
+              <h3 className="plat-modal-title">{editRole ? 'Modify Identity' : 'Register New Role'}</h3>
+              <button className="plat-btn-icon" onClick={() => setModalOpen(false)}><X size={18} /></button>
             </div>
-            <form onSubmit={handleRoleSubmit}>
-              <div className="plat-modal-body plat-form">
-                <div className="plat-form-group plat-form-full">
-                  <label className="plat-form-label">Role Name</label>
-                  <input
-                    className="plat-form-input"
-                    required
-                    value={roleForm.name}
-                    onChange={e => setRoleForm({ ...roleForm, name: e.target.value })}
-                    placeholder="e.g. Clinical Administrator"
-                  />
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
+              const data = {
+                name: formData.get('name') as string,
+                description: formData.get('description') as string,
+                displayName: formData.get('name') as string,
+              };
+              if (editRole) {
+                await updateRole.mutateAsync({ id: editRole.id, ...data });
+              } else {
+                await createRole.mutateAsync(data);
+              }
+              setModalOpen(false);
+            }}>
+              <div className="plat-modal-body p-6 flex flex-col gap-4">
+                <div className="flex flex-col gap-2">
+                  <label className="plat-form-label uppercase text-[10px] font-bold color-muted">Role Identifier</label>
+                  <input name="name" defaultValue={editRole?.name} required className="plat-form-input" placeholder="e.g. Clinical Director" />
                 </div>
-                <div className="plat-form-group plat-form-full">
-                  <label className="plat-form-label">Scope Description</label>
-                  <textarea
-                    className="plat-form-input"
-                    style={{ minHeight: '100px' }}
-                    value={roleForm.description}
-                    onChange={e => setRoleForm({ ...roleForm, description: e.target.value })}
-                    placeholder="Define the primary responsibilities and access scope..."
-                  />
-                </div>
-              </div>
-              <div className="plat-modal-footer">
-                <button type="button" className="plat-btn" onClick={closeRoleForm}>Cancel Operation</button>
-                <button type="submit" className="plat-btn plat-btn-primary px-8">
-                  {editRoleId ? 'Commit Changes' : 'Register Role'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ── Permission Modal ── */}
-      {showPermForm && (
-        <div className="plat-modal-overlay animate-fade-in" onClick={closePermForm}>
-          <div className="plat-modal" onClick={e => e.stopPropagation()}>
-            <div className="plat-modal-header">
-              <h3 className="plat-modal-title">{editPermId ? 'Refine Capability Map' : 'Register Global Capability'}</h3>
-              <button className="plat-btn plat-btn-icon" onClick={closePermForm}><X size={16} /></button>
-            </div>
-            <form onSubmit={handlePermSubmit}>
-              <div className="plat-modal-body plat-form">
-                <div className="plat-form-group">
-                  <label className="plat-form-label">Capability Key</label>
-                  <input
-                    className="plat-form-input"
-                    required
-                    value={permForm.name}
-                    onChange={e => setPermForm({ ...permForm, name: e.target.value })}
-                    placeholder="e.g. INVOICE_VOID"
-                  />
-                </div>
-                <div className="plat-form-group">
-                  <label className="plat-form-label">Module Context</label>
-                  <input
-                    className="plat-form-input"
-                    value={permForm.module}
-                    onChange={e => setPermForm({ ...permForm, module: e.target.value })}
-                    placeholder="e.g. Accounts"
-                  />
-                </div>
-                <div className="plat-form-group plat-form-full">
-                  <label className="plat-form-label">Functional Description</label>
-                  <textarea
-                    className="plat-form-input"
-                    style={{ minHeight: '80px' }}
-                    value={permForm.description}
-                    onChange={e => setPermForm({ ...permForm, description: e.target.value })}
-                    placeholder="What does this capability allow a user to do?"
-                  />
+                <div className="flex flex-col gap-2">
+                  <label className="plat-form-label uppercase text-[10px] font-bold color-muted">Description</label>
+                  <textarea name="description" defaultValue={editRole?.description} className="plat-form-input min-h-[100px]" placeholder="Briefly describe the scope of this role..." />
                 </div>
               </div>
-              <div className="plat-modal-footer">
-                <button type="button" className="plat-btn" onClick={closePermForm}>Cancel Operation</button>
-                <button type="submit" className="plat-btn plat-btn-primary px-8">
-                  {editPermId ? 'Update Node' : 'Map Capability'}
+              <div className="plat-modal-footer p-4 bg-warm-1 flex justify-end gap-2 border-t">
+                <button type="button" className="plat-btn" onClick={() => setModalOpen(false)}>Cancel Operation</button>
+                <button type="submit" className="plat-btn plat-btn-primary px-6" disabled={createRole.isPending || updateRole.isPending}>
+                  {editRole ? 'Commit Changes' : 'Create Identity'}
                 </button>
               </div>
             </form>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { HelpCircle, Plus, X, RefreshCw, Trash2, Edit2, Search, MessageSquare, ListOrdered, CheckCircle2  } from 'lucide-react';
+import React, { HelpCircle, Plus, X, RefreshCw, Trash2, Edit2, Search, MessageSquare, ListOrdered, CheckCircle2  } from 'lucide-react';
 
-import { useFaqs, useCreateFaq, useUpdateFaq, useDeleteFaq } from '../hooks/use-settings';
+import React, { useFaqs, useCreateFaq, useUpdateFaq, useDeleteFaq } from '../hooks/use-settings';
 import '../../platform/styles/platform.css';
 import '../styles/settings.css';
 
@@ -145,12 +145,12 @@ name: faq.name,
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((faq: Faq) => (
-                  <tr key={faq.id}>
-                    <td data-label="Order">
+                {filtered.map((faq: Faq, index) => (
+                  <tr key={faq.id} className="plat-table-row">
+                    <td data-label="Order" className="plat-table-cell font-mono text-xs color-muted">
                       <div className="flex items-center gap-1.5">
                         <ListOrdered size={12} className="opacity-50" />
-                        {faq.displayOrder || 0}
+                        {index + 1}
                       </div>
                     </td>
                     <td data-label="FAQ">

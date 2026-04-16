@@ -34,8 +34,20 @@ export interface StaffMember {
   institute: string | null;
   passedOut: string | null;
   registrationId: string | null;
-  consultationFee: string | null;
+  consultationFee: number | null;
   permanentAddress: string | null;
+  aadharnumber: string | null;
+  pannumber: string | null;
+  joiningdate: string | null;
+  registrationCertificate: string | null;
+  aadharCard: string | null;
+  panCard: string | null;
+  appointmentLetter: string | null;
+  profilepic: string | null;
+  col10Document: string | null;
+  col12Document: string | null;
+  bhmsDocument: string | null;
+  mdDocument: string | null;
   clinicId: number | null;
 }
 
@@ -49,8 +61,9 @@ export interface StaffSummary {
   designation: string;
   isActive: boolean;
   createdAt: string | null;
+  city: string | null;
   // Doctor extras
   title: string | null;
   qualification: string | null;
-  consultationFee: string | null;
+  consultationFee: number | null;
 }

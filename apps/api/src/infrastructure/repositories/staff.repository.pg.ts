@@ -1,4 +1,4 @@
-import { eq, and, isNull, like, or, desc } from 'drizzle-orm';
+import { eq, and, isNull, like, or, desc, sql } from 'drizzle-orm';
 import { users, roles } from '@mmc/database';
 import type { DbClient } from '@mmc/database';
 import { Role } from '@mmc/types';
@@ -44,10 +44,12 @@ export class StaffRepositoryPg {
       .orderBy(desc(users.id));
 
     // Simple count (in production this would be a separate query or using window function)
-    const [{ total }] = await this.db
-      .select({ total: users.id })
+    const countResult = await this.db
+      .select({ total: sql<number>`count(*)::int` })
       .from(users)
       .where(and(...whereClause));
+
+    const total = countResult[0]?.total ?? 0;
 
     return {
       data: rows.map(r => ({
@@ -59,7 +61,7 @@ export class StaffRepositoryPg {
         isActive: r.isActive,
         createdAt: r.createdAt.toISOString()
       })),
-      total: rows.length > 0 ? 100 : 0 // Stub for now or do real count
+      total,
     };
   }
 
@@ -129,6 +131,5 @@ export class StaffRepositoryPg {
     await this.db
       .update(users)
       .set({ deletedAt: new Date() })
-      .where(and(eq(users.id, id), eq(users.type, role)));
   }
 }

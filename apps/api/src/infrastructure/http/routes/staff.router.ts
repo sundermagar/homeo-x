@@ -10,6 +10,9 @@ import {
   UpdateStaffUseCase,
   DeleteStaffUseCase,
 } from '../../../domains/staff';
+import { createLogger } from '../../../shared/logger';
+
+const logger = createLogger('staff-router');
 
 export const staffRouter: IRouter = Router();
 
@@ -77,18 +80,23 @@ staffRouter.post('/', async (req: Request, res: Response) => {
   try {
     const parsed = createStaffSchema.safeParse(req.body);
     if (!parsed.success) {
+      logger.error(`Validation failed for staff creation: ${JSON.stringify(parsed.error.flatten().fieldErrors)}`);
       res.status(400).json({ success: false, message: 'Validation failed', errors: parsed.error.flatten().fieldErrors });
       return;
     }
+    logger.info(`Creating new staff member: ${parsed.data.name} (Category: ${parsed.data.category})`);
     const repo = getRepo(req);
     const uc = new CreateStaffUseCase(repo);
     const result = await uc.execute(parsed.data);
     if (result.success) {
+      logger.info(`Successfully created staff member: ${result.data.id}`);
       res.status(201).json({ success: true, data: result.data });
     } else {
+      logger.error(`Failed to create staff member: ${result.error}`);
       res.status(400).json({ success: false, message: result.error });
     }
   } catch (err: any) {
+    logger.error(`Error in POST /api/staff: ${err.stack}`);
     res.status(500).json({ success: false, message: err.message });
   }
 });
@@ -105,18 +113,23 @@ staffRouter.put('/:id', async (req: Request, res: Response) => {
     if (isNaN(id)) { res.status(400).json({ success: false, message: 'Invalid id' }); return; }
     const parsed = updateStaffSchema.safeParse(req.body);
     if (!parsed.success) {
+      logger.error(`Validation failed for staff update ${id}: ${JSON.stringify(parsed.error.flatten().fieldErrors)}`);
       res.status(400).json({ success: false, message: 'Validation failed', errors: parsed.error.flatten().fieldErrors });
       return;
     }
+    logger.info(`Updating staff member: ${id} (Category: ${category})`);
     const repo = getRepo(req);
     const uc = new UpdateStaffUseCase(repo);
     const result = await uc.execute(category, id, parsed.data);
     if (result.success) {
+      logger.info(`Successfully updated staff member: ${id}`);
       res.json({ success: true, data: result.data });
     } else {
+      logger.error(`Failed to update staff member ${id}: ${result.error}`);
       res.status(404).json({ success: false, message: result.error });
     }
   } catch (err: any) {
+    logger.error(`Error in PUT /api/staff/${req.params.id}: ${err.stack}`);
     res.status(500).json({ success: false, message: err.message });
   }
 });

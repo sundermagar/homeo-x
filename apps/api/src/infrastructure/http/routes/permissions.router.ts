@@ -1,11 +1,12 @@
 import { Router } from 'express';
+import type { Router as IRouter } from 'express';
 import type { Request, Response } from 'express';
 import { eq, and, isNull } from 'drizzle-orm';
 import * as schema from '@mmc/database';
 import { sendSuccess, sendError } from '../../../shared/response-formatter';
 import { authMiddleware } from '../middleware/auth';
 
-export const permissionsRouter = Router();
+export const permissionsRouter: IRouter = Router();
 
 permissionsRouter.use(authMiddleware as any);
 

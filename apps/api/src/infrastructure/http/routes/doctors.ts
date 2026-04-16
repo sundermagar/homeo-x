@@ -1,4 +1,4 @@
-import { Router, type Request, type Response } from 'express';
+import { Router } from 'express';
 import type { Router as ExpressRouter } from 'express';
 import { asyncHandler } from '../middleware/async-handler.js';
 import { sendSuccess } from '../../../shared/response-formatter.js';

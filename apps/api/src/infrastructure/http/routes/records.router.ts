@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import type { Router as IRouter } from 'express';
 
 const router = Router();
 
@@ -55,4 +56,4 @@ router.delete('/:id', async (req: any, res, next) => {
   } catch (error) { next(error); }
 });
 
-export const recordsRouter = router;
+export const recordsRouter: IRouter = router;

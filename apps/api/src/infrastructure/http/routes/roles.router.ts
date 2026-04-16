@@ -1,11 +1,12 @@
 import { Router } from 'express';
+import type { Router as IRouter } from 'express';
 import type { Request, Response } from 'express';
 import { eq, and, isNull } from 'drizzle-orm';
 import * as schema from '@mmc/database';
 import { sendSuccess, sendError } from '../../../shared/response-formatter';
 import { authMiddleware } from '../middleware/auth';
 
-export const rolesRouter = Router();
+export const rolesRouter: IRouter = Router();
 
 rolesRouter.use(authMiddleware as any);
 
@@ -59,7 +60,7 @@ rolesRouter.post('/', async (req: Request, res: Response) => {
 
     // Auto-assign DASHBOARD_ACCESS + QUICK_ACCESS_VIEW to every new role
     const corePerms = await req.tenantDb
-      .select({ id: schema.permissions.id })
+      .select({ id: schema.permissions.id, name: schema.permissions.name })
       .from(schema.permissions)
       .where(
         and(
@@ -75,7 +76,7 @@ rolesRouter.post('/', async (req: Request, res: Response) => {
       if (p) {
         await req.tenantDb
           .insert(schema.permissionRole)
-          .values({ roleId: created.id, permissionId: p.id })
+          .values({ roleId: created!.id, permissionId: p.id })
           .onConflictDoNothing();
       }
     }
