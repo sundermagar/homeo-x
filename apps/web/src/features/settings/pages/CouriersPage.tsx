@@ -59,10 +59,7 @@ export default function CouriersPage() {
 
   return (
     <div className="plat-page fade-in">
-      <Link to="/settings" className="settings-back-link">
-        <ArrowLeft size={14} />
-        Back to Settings
-      </Link>
+      
 
       <div className="plat-header">
         <div>
@@ -82,22 +79,22 @@ export default function CouriersPage() {
 
       <div className="plat-stats-bar">
         <div className="plat-stat-card">
-          <span className="plat-stat-label">Courier Partners</span>
-          <span className="plat-stat-value">{couriers.length}</span>
+          <p className="plat-stat-label">Courier Partners</p>
+          <p className="plat-stat-value plat-stat-value-primary">{couriers.length}</p>
         </div>
         <div className="plat-stat-card">
-          <span className="plat-stat-label">Active Services</span>
-          <span className="plat-stat-value plat-stat-value-success">
+          <p className="plat-stat-label">Active Services</p>
+          <p className="plat-stat-value plat-stat-value-success">
             {couriers.filter((c: any) => c.isActive).length}
-          </span>
+          </p>
         </div>
       </div>
 
       <div className="plat-filters">
         <div className="plat-search-wrap">
-          <Search size={16} className="plat-search-icon" />
+          <Search size={14} className="plat-search-icon" />
           <input 
-            className="plat-filter-input plat-search-input"
+            className="plat-form-input plat-search-input"
             placeholder="Search providers..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -168,31 +165,31 @@ export default function CouriersPage() {
       </div>
 
       {isModalOpen && (
-        <div className="plat-modal-overlay fade-in" onClick={(e) => e.target === e.currentTarget && setIsModalOpen(false)}>
-          <div className="plat-modal" style={{ maxWidth: '450px' }}>
+        <div className="plat-modal-backdrop" onClick={() => setIsModalOpen(false)}>
+          <div className="plat-modal-content max-w-lg" onClick={e => e.stopPropagation()}>
             <div className="plat-modal-header">
               <h2 className="plat-modal-title">{editingId ? 'Edit Courier' : 'Add Courier'}</h2>
               <button className="plat-btn plat-btn-icon" onClick={() => setIsModalOpen(false)}>
                 <X size={16} />
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="plat-modal-form">
+            <form onSubmit={handleSubmit}>
               <div className="plat-modal-body">
-                <div className="plat-form">
-                  <div className="plat-form-group plat-form-full">
-                    <label className="plat-form-label">Courier Name *</label>
-                    <div className="plat-input-wrapper">
-                      <Truck size={16} className="plat-input-icon" />
-                      <input 
-                        className="plat-form-input" 
-                        value={form.name} 
-                        onChange={e => setForm(f => ({...f, name: e.target.value}))}
-                        required 
-                        placeholder="e.g. BlueDart, DTDC, FedEx"
-                      />
+                <div className="plat-form-section">
+                  <div className="plat-form-grid-multi" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
+                    <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
+                      <label className="plat-form-label">Courier Name *</label>
+                      <div className="plat-input-wrapper">
+                        <Truck size={16} className="plat-input-icon" />
+                        <input 
+                          className="plat-form-input" 
+                          value={form.name} 
+                          onChange={e => setForm(f => ({...f, name: e.target.value}))}
+                          required 
+                          placeholder="e.g. BlueDart, DTDC, FedEx"
+                        />
+                      </div>
                     </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
                     <div className="plat-form-group">
                       <label className="plat-form-label">Contact Person</label>
                       <div className="plat-input-wrapper">
@@ -217,29 +214,29 @@ export default function CouriersPage() {
                         />
                       </div>
                     </div>
-                  </div>
-                  <div className="plat-form-group plat-form-full">
-                    <label className="plat-form-label">Tracking Base URL</label>
-                    <div className="plat-input-wrapper">
-                      <Globe size={16} className="plat-input-icon" />
-                      <input 
-                        className="plat-form-input" 
-                        value={form.trackingUrl} 
-                        onChange={e => setForm(f => ({...f, trackingUrl: e.target.value}))}
-                        placeholder="https://tracker.service.com/..."
-                      />
+                    <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
+                      <label className="plat-form-label">Tracking Base URL</label>
+                      <div className="plat-input-wrapper">
+                        <Globe size={16} className="plat-input-icon" />
+                        <input 
+                          className="plat-form-input" 
+                          value={form.trackingUrl} 
+                          onChange={e => setForm(f => ({...f, trackingUrl: e.target.value}))}
+                          placeholder="https://tracker.service.com/..."
+                        />
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="plat-form-group plat-form-full plat-form-row">
-                    <input 
-                       type="checkbox" 
-                       className="plat-form-input"
-                       id="is_active"
-                       checked={form.isActive} 
-                       onChange={e => setForm(f => ({...f, isActive: e.target.checked}))}
-                    />
-                    <label htmlFor="is_active" className="plat-form-label cursor-pointer">Courier is Active</label>
+                    <div className="flex items-center gap-2 py-2" style={{ gridColumn: 'span 2' }}>
+                      <input 
+                         type="checkbox" 
+                         className="w-4 h-4 accent-primary"
+                         id="is_active"
+                         checked={form.isActive} 
+                         onChange={e => setForm(f => ({...f, isActive: e.target.checked}))}
+                      />
+                      <label htmlFor="is_active" className="plat-form-label mb-0 cursor-pointer">Courier is Active</label>
+                    </div>
                   </div>
                 </div>
               </div>

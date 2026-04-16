@@ -25,7 +25,7 @@ export default function DoctorsPage() {
   );
 
   const openCreate = () => { setEditing(undefined); setModalOpen(true); };
-  const openEdit   = (d: any) => { setEditing(d); setModalOpen(true); };
+  const openEdit = (d: any) => { setEditing(d); setModalOpen(true); };
 
   const handleDelete = async (id: number, name: string) => {
     if (!confirm(`Remove "${name}" from the Doctors Directory?`)) return;
@@ -34,10 +34,7 @@ export default function DoctorsPage() {
 
   return (
     <div className="plat-page fade-in">
-      <Link to="/settings" className="settings-back-link">
-        <ArrowLeft size={14} />
-        Back to Settings
-      </Link>
+
 
       <div className="plat-header">
         <div>
@@ -57,22 +54,22 @@ export default function DoctorsPage() {
 
       <div className="plat-stats-bar">
         <div className="plat-stat-card">
-          <span className="plat-stat-label">Total Doctors</span>
-          <span className="plat-stat-value">{doctors.length}</span>
+          <p className="plat-stat-label">Total Doctors</p>
+          <p className="plat-stat-value plat-stat-value-primary">{doctors.length}</p>
         </div>
         <div className="plat-stat-card">
-          <span className="plat-stat-label">Active Listing</span>
-          <span className="plat-stat-value plat-stat-value-success">
+          <p className="plat-stat-label">Active Listing</p>
+          <p className="plat-stat-value plat-stat-value-success">
             {filteredDoctors.length}
-          </span>
+          </p>
         </div>
       </div>
 
       <div className="plat-filters">
         <div className="plat-search-wrap">
-          <Search size={16} className="plat-search-icon" />
-          <input 
-            className="plat-filter-input plat-search-input"
+          <Search size={14} className="plat-search-icon" />
+          <input
+            className="plat-form-input plat-search-input"
             placeholder="Search doctors by name, email or specialty..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}

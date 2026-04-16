@@ -58,10 +58,7 @@ export default function PotenciesPage() {
 
   return (
     <div className="plat-page fade-in">
-      <Link to="/settings" className="settings-back-link">
-        <ArrowLeft size={14} />
-        Back to Settings
-      </Link>
+
 
       <div className="plat-header">
         <div>
@@ -81,22 +78,22 @@ export default function PotenciesPage() {
 
       <div className="plat-stats-bar">
         <div className="plat-stat-card">
-          <span className="plat-stat-label">Total Potencies</span>
-          <span className="plat-stat-value">{potencies.length}</span>
+          <p className="plat-stat-label">Total Potencies</p>
+          <p className="plat-stat-value plat-stat-value-primary">{potencies.length}</p>
         </div>
         <div className="plat-stat-card">
-          <span className="plat-stat-label">Filtered View</span>
-          <span className="plat-stat-value plat-stat-value-success">
+          <p className="plat-stat-label">Filtered View</p>
+          <p className="plat-stat-value plat-stat-value-success">
             {filtered.length}
-          </span>
+          </p>
         </div>
       </div>
 
       <div className="plat-filters">
         <div className="plat-search-wrap">
-          <Search size={16} className="plat-search-icon" />
+          <Search size={14} className="plat-search-icon" />
           <input 
-            className="plat-filter-input plat-search-input"
+            className="plat-form-input plat-search-input"
             placeholder="Search potencies..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -150,8 +147,8 @@ export default function PotenciesPage() {
       </div>
 
       {isModalOpen && (
-        <div className="plat-modal-overlay fade-in" onClick={(e) => e.target === e.currentTarget && setIsModalOpen(false)}>
-          <div className="plat-modal">
+        <div className="plat-modal-backdrop" onClick={() => setIsModalOpen(false)}>
+          <div className="plat-modal-content max-w-lg" onClick={e => e.stopPropagation()}>
             <div className="plat-modal-header">
               <h2 className="plat-modal-title">{editingId ? 'Edit Potency' : 'Add Potency'}</h2>
               <button className="plat-btn plat-btn-icon" onClick={() => setIsModalOpen(false)}>
@@ -159,27 +156,31 @@ export default function PotenciesPage() {
               </button>
             </div>
             <form onSubmit={handleSubmit}>
-              <div className="plat-modal-body plat-form">
-                <div className="plat-form-group plat-form-full">
-                  <label className="plat-form-label">Potency Name *</label>
-                  <input
-                    className="plat-form-input"
-                    required
-                    value={form.name}
-                    onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                    placeholder="e.g. 30C"
-                  />
-                </div>
-                <div className="plat-form-group plat-form-full">
-                  <label className="plat-form-label">Description / Detail</label>
-                  <textarea
-                    className="plat-form-input"
-                    rows={3}
-                    style={{ resize: 'none' }}
-                    value={form.detail}
-                    onChange={e => setForm(f => ({ ...f, detail: e.target.value }))}
-                    placeholder="Optional description..."
-                  />
+              <div className="plat-modal-body">
+                <div className="plat-form-section">
+                  <div className="plat-form-grid-multi" style={{ gridTemplateColumns: '1fr' }}>
+                    <div className="plat-form-group">
+                      <label className="plat-form-label">Potency Name *</label>
+                      <input
+                        className="plat-form-input"
+                        required
+                        value={form.name}
+                        onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                        placeholder="e.g. 30C"
+                      />
+                    </div>
+                    <div className="plat-form-group">
+                      <label className="plat-form-label">Description / Detail</label>
+                      <textarea
+                        className="plat-form-input"
+                        rows={3}
+                        style={{ resize: 'none', minHeight: '80px' }}
+                        value={form.detail}
+                        onChange={e => setForm(f => ({ ...f, detail: e.target.value }))}
+                        placeholder="Optional description..."
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
               <div className="plat-modal-footer">

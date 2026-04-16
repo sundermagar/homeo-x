@@ -12,10 +12,7 @@ export default function StocksLogPage() {
 
   return (
     <div className="plat-page fade-in">
-      <Link to="/settings" className="settings-back-link">
-        <ArrowLeft size={14} />
-        Back to Settings
-      </Link>
+
 
       <div className="plat-header">
         <div>
@@ -28,44 +25,43 @@ export default function StocksLogPage() {
       </div>
 
       <div className="plat-filters">
-        <div className="flex items-center gap-2">
-           <Filter size={14} className="text-muted" />
-           <span className="text-sm font-semibold">Filter by Medicine:</span>
-           <select 
-             className="plat-filter-input" 
-             style={{ minWidth: '200px' }}
-             value={selectedMedicine ?? ''}
-             onChange={e => setSelectedMedicine(e.target.value ? Number(e.target.value) : undefined)}
-           >
-             <option value="">All Medicines</option>
-             {medicines.map((m: any) => (
-               <option key={m.id} value={m.id}>{m.name}</option>
-             ))}
-           </select>
+        <div className="plat-search-wrap">
+          <Filter size={14} className="plat-search-icon" />
+          <select 
+            className="plat-form-input plat-search-input" 
+            style={{ width: '220px' }}
+            value={selectedMedicine ?? ''}
+            onChange={e => setSelectedMedicine(e.target.value ? Number(e.target.value) : undefined)}
+          >
+            <option value="">Full Inventory Trail</option>
+            {medicines.map((m: any) => (
+              <option key={m.id} value={m.id}>{m.name}</option>
+            ))}
+          </select>
         </div>
       </div>
 
       <div className="plat-card">
         {isLoading ? (
-          <div className="plat-empty">
-            <RefreshCw size={22} style={{ animation: 'spin 1s linear infinite', opacity: 0.3 }} />
+          <div className="plat-empty" style={{ minHeight: 200 }}>
+             <RefreshCw size={22} className="animate-spin opacity-30" />
           </div>
         ) : logs.length === 0 ? (
-          <div className="plat-empty">
-            <Package size={28} className="plat-empty-icon" />
-            <p className="plat-empty-text">No stock movement history found.</p>
+          <div className="plat-empty" style={{ minHeight: 200 }}>
+            <Package size={40} className="plat-empty-icon" />
+            <p className="plat-empty-text">No inventory movements recorded in the system audit.</p>
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
+          <div className="plat-table-container">
             <table className="plat-table">
               <thead>
                 <tr>
-                  <th>Date & Time</th>
-                  <th>Medicine</th>
-                  <th>Change Type</th>
-                  <th>Quantity</th>
-                  <th>Stock Path</th>
-                  <th>Reason/Reference</th>
+                  <th style={{ width: '180px' }}>Timestamp</th>
+                  <th>Clinical Item</th>
+                  <th style={{ width: '150px' }}>Adjustment</th>
+                  <th style={{ width: '100px' }}>Qty</th>
+                  <th style={{ width: '180px' }}>Inventory Shift</th>
+                  <th>Audit Reference</th>
                 </tr>
               </thead>
               <tbody>
@@ -74,26 +70,40 @@ export default function StocksLogPage() {
                   const isPositive = log.changeType === 'INVENTORY_ADD';
                   
                   return (
-                    <tr key={log.id}>
-                      <td className="text-sm">
-                        {new Date(log.createdAt).toLocaleString()}
+                    <tr key={log.id} className="plat-table-row">
+                      <td className="plat-table-cell font-mono text-[11px] color-muted">
+                        {new Date(log.createdAt).toLocaleString('en-GB', { 
+                          day: '2-digit', 
+                          month: 'short', 
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
                       </td>
-                      <td className="font-semibold">
-                        {medicine?.name || `Medicine #${log.medicineId}`}
+                      <td className="plat-table-cell">
+                        <div className="font-bold text-[14px]">
+                          {medicine?.name || `Remedy #${log.medicineId}`}
+                        </div>
+                        <div className="text-[10px] color-muted mt-0.5 uppercase tracking-tighter">Clinical Pharmacy Stock</div>
                       </td>
-                      <td>
-                        <span className={`plat-badge ${isPositive ? 'plat-badge-staff' : 'plat-badge-default'}`}>
-                           {log.changeType.replace('_', ' ')}
+                      <td className="plat-table-cell">
+                        <span className={`plat-badge ${isPositive ? 'plat-badge-staff' : 'bg-red-50 text-red-600 border-red-100'} flex items-center w-fit gap-1 text-[10px]`}>
+                           {log.changeType === 'INVENTORY_ADD' ? 'Stock Added' : 'Stock Consumed'}
                         </span>
                       </td>
-                      <td className={`font-mono text-center ${isPositive ? 'text-success' : 'text-danger'}`}>
+                      <td className={`plat-table-cell font-mono font-black ${isPositive ? 'text-emerald-600' : 'text-red-500'}`}>
                          {isPositive ? '+' : '-'}{log.quantity}
                       </td>
-                      <td className="font-mono text-xs">
-                        {log.previousStock} → <span className="font-bold">{log.newStock}</span>
+                      <td className="plat-table-cell">
+                        <div className="flex items-center gap-2 font-mono text-xs">
+                          <span className="color-muted">{log.previousStock}</span>
+                          <span className="opacity-30">→</span>
+                          <span className="font-bold text-main">{log.newStock}</span>
+                          <span className="text-[10px] color-muted ml-1 opacity-60">Units</span>
+                        </div>
                       </td>
-                      <td className="text-sm italic color-secondary">
-                        {log.reason || '—'}
+                      <td className="plat-table-cell text-xs italic color-muted">
+                        {log.reason || 'Sytem Auto-Adjustment'}
                       </td>
                     </tr>
                   );

@@ -18,7 +18,7 @@ export default function PackagePlansPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredItems = plans.filter((p: any) => 
+  const filteredItems = plans.filter((p: any) =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase()))
   );
@@ -31,13 +31,13 @@ export default function PackagePlansPage() {
 
   const handleOpenEdit = (plan: any) => {
     setEditingId(plan.id);
-    setForm({ 
-      name: plan.name, 
-      description: plan.description || '', 
+    setForm({
+      name: plan.name,
+      description: plan.description || '',
       price: Number(plan.price),
       durationDays: Number(plan.durationDays),
       colorCode: plan.colorCode || '#2563EB',
-      isActive: plan.isActive ?? true 
+      isActive: plan.isActive ?? true
     });
     setIsModalOpen(true);
   };
@@ -60,10 +60,6 @@ export default function PackagePlansPage() {
 
   return (
     <div className="plat-page fade-in">
-      <Link to="/settings" className="settings-back-link">
-        <ArrowLeft size={14} />
-        Back to Settings
-      </Link>
 
       <div className="plat-header">
         <div>
@@ -83,22 +79,22 @@ export default function PackagePlansPage() {
 
       <div className="plat-stats-bar">
         <div className="plat-stat-card">
-          <span className="plat-stat-label">Total Plans</span>
-          <span className="plat-stat-value">{plans.length}</span>
+          <p className="plat-stat-label">Total Plans</p>
+          <p className="plat-stat-value plat-stat-value-primary">{plans.length}</p>
         </div>
         <div className="plat-stat-card">
-          <span className="plat-stat-label">Active Bundles</span>
-          <span className="plat-stat-value plat-stat-value-success">
+          <p className="plat-stat-label">Active Bundles</p>
+          <p className="plat-stat-value plat-stat-value-success">
             {plans.filter((p: any) => p.isActive).length}
-          </span>
+          </p>
         </div>
       </div>
 
       <div className="plat-filters">
         <div className="plat-search-wrap">
-          <Search size={16} className="plat-search-icon" />
-          <input 
-            className="plat-filter-input plat-search-input"
+          <Search size={14} className="plat-search-icon" />
+          <input
+            className="plat-form-input plat-search-input"
             placeholder="Search packages..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -152,9 +148,9 @@ export default function PackagePlansPage() {
                       </div>
                     </td>
                     <td data-label="Status" className="plat-table-cell">
-                       <span className={`plat-badge ${plan.isActive ? 'plat-badge-staff' : 'plat-badge-default'}`}>
-                         {plan.isActive ? 'Active' : 'Inactive'}
-                       </span>
+                      <span className={`plat-badge ${plan.isActive ? 'plat-badge-staff' : 'plat-badge-default'}`}>
+                        {plan.isActive ? 'Active' : 'Inactive'}
+                      </span>
                     </td>
                     <td className="plat-table-cell">
                       <div className="flex justify-end gap-2">
@@ -175,80 +171,86 @@ export default function PackagePlansPage() {
       </div>
 
       {isModalOpen && (
-        <div className="plat-modal-overlay fade-in" onClick={(e) => e.target === e.currentTarget && setIsModalOpen(false)}>
-          <div className="plat-modal" style={{ maxWidth: '500px' }}>
+        <div className="plat-modal-backdrop" onClick={() => setIsModalOpen(false)}>
+          <div className="plat-modal-content max-w-xl" onClick={e => e.stopPropagation()}>
             <div className="plat-modal-header">
               <h2 className="plat-modal-title">{editingId ? 'Edit Package Plan' : 'Create Package Plan'}</h2>
               <button className="plat-btn plat-btn-icon" onClick={() => setIsModalOpen(false)}>
                 <X size={16} />
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="plat-modal-form">
+            <form onSubmit={handleSubmit}>
               <div className="plat-modal-body">
-                <div className="plat-form">
-                  <div className="plat-form-group plat-form-full">
-                    <label className="plat-form-label">Package Name *</label>
-                    <input 
-                      className="plat-form-input" 
-                      value={form.name} 
-                      onChange={e => setForm(f => ({...f, name: e.target.value}))}
-                      required 
-                      placeholder="e.g. 1 Month Treatment, Annual Gold Plan"
-                    />
-                  </div>
-                  <div className="plat-form-group">
-                    <label className="plat-form-label">Price (₹) *</label>
-                    <div className="plat-input-wrapper">
-                      <IndianRupee size={16} className="plat-input-icon" />
-                      <input 
-                        type="number"
-                        className="plat-form-input" 
-                        value={form.price} 
-                        onChange={e => setForm(f => ({...f, price: Number(e.target.value)}))}
-                        required 
-                      />
-                    </div>
-                  </div>
-                  <div className="plat-form-group">
-                    <label className="plat-form-label">Duration (Days) *</label>
-                    <div className="plat-input-wrapper">
-                      <Calendar size={16} className="plat-input-icon" />
-                      <input 
-                        type="number"
-                        className="plat-form-input" 
-                        value={form.durationDays} 
-                        onChange={e => setForm(f => ({...f, durationDays: Number(e.target.value)}))}
-                        required 
-                      />
-                    </div>
-                  </div>
-                  <div className="plat-form-group">
-                    <label className="plat-form-label">Theme Color</label>
-                    <input 
-                      type="color"
-                      className="plat-form-input" 
-                      style={{ height: '42px', padding: '4px' }}
-                      value={form.colorCode} 
-                      onChange={e => setForm(f => ({...f, colorCode: e.target.value}))}
-                    />
-                  </div>
-                  <div className="plat-form-group plat-form-row">
-                     <input 
-                        type="checkbox" 
+                <div className="plat-form-section">
+                  <div className="plat-form-grid-multi" style={{ gridTemplateColumns: '1fr' }}>
+                    <div className="plat-form-group">
+                      <label className="plat-form-label">Package Name *</label>
+                      <input
                         className="plat-form-input"
-                        id="is_active"
-                        checked={form.isActive} 
-                        onChange={e => setForm(f => ({...f, isActive: e.target.checked}))}
-                     />
-                     <label htmlFor="is_active" className="plat-form-label mb-0 cursor-pointer">Plan is Active</label>
+                        value={form.name}
+                        onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                        required
+                        placeholder="e.g. 1 Month Treatment, Annual Gold Plan"
+                      />
+                    </div>
                   </div>
-                  <div className="plat-form-group plat-form-full">
+
+                  <div className="plat-form-grid-multi mt-4" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
+                    <div className="plat-form-group">
+                      <label className="plat-form-label">Price (₹) *</label>
+                      <div className="plat-input-wrapper">
+                        <IndianRupee size={16} className="plat-input-icon" />
+                        <input
+                          type="number"
+                          className="plat-form-input"
+                          value={form.price}
+                          onChange={e => setForm(f => ({ ...f, price: Number(e.target.value) }))}
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="plat-form-group">
+                      <label className="plat-form-label">Duration (Days) *</label>
+                      <div className="plat-input-wrapper">
+                        <Calendar size={16} className="plat-input-icon" />
+                        <input
+                          type="number"
+                          className="plat-form-input"
+                          value={form.durationDays}
+                          onChange={e => setForm(f => ({ ...f, durationDays: Number(e.target.value) }))}
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="plat-form-group">
+                      <label className="plat-form-label">Theme Color</label>
+                      <input
+                        type="color"
+                        className="plat-form-input p-1"
+                        style={{ height: '42px' }}
+                        value={form.colorCode}
+                        onChange={e => setForm(f => ({ ...f, colorCode: e.target.value }))}
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 pt-8">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 accent-primary"
+                        id="is_active_plan"
+                        checked={form.isActive}
+                        onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))}
+                      />
+                      <label htmlFor="is_active_plan" className="plat-form-label mb-0 cursor-pointer">Plan is Active</label>
+                    </div>
+                  </div>
+
+                  <div className="plat-form-group mt-4">
                     <label className="plat-form-label">Package Description</label>
-                    <textarea 
-                      className="plat-form-input" 
+                    <textarea
+                      className="plat-form-input"
                       style={{ minHeight: '80px' }}
-                      value={form.description} 
-                      onChange={e => setForm(f => ({...f, description: e.target.value}))}
+                      value={form.description}
+                      onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                       placeholder="Optional details about this plan..."
                     />
                   </div>

@@ -1,12 +1,3 @@
-/* ─── Paperplane RBAC Core ───────────────────────────────────────────────── */
-
-.plat-rbac-container {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  animation: fadeIn 0.4s ease-out;
-}
-
 /* ── Identity Selection Pane (Left) ── */
 
 .plat-rbac-grid {
@@ -25,19 +16,19 @@
 .plat-role-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .plat-role-item {
-  padding: 14px 18px;
+  padding: 16px 20px;
   background: white;
   border: 1px solid var(--border-main);
   border-radius: 12px;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   position: relative;
 }
 
@@ -65,8 +56,8 @@
 }
 
 .plat-role-icon {
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   border-radius: 10px;
   background: var(--bg-surface-2);
   display: flex;
@@ -74,11 +65,13 @@
   justify-content: center;
   color: var(--text-muted);
   transition: all 0.2s;
+  flex-shrink: 0;
 }
 
 .plat-role-item.active .plat-role-icon {
   background: white;
   color: var(--primary);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
 }
 
 .plat-role-info {
@@ -88,8 +81,9 @@
 
 .plat-role-name {
   font-size: 0.875rem;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--text-main);
+  letter-spacing: -0.01em;
 }
 
 .plat-role-desc {
@@ -109,11 +103,13 @@
   border-radius: 16px;
   overflow: hidden;
   box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
 }
 
 .plat-matrix-header {
-  padding: 20px 24px;
-  background: linear-gradient(to right, #f8fafc, white);
+  padding: 18px 24px;
+  background: var(--bg-surface-1);
   border-bottom: 1px solid var(--border-main);
   display: flex;
   justify-content: space-between;
@@ -121,16 +117,17 @@
 }
 
 .plat-matrix-title {
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 800;
   color: var(--text-main);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .plat-matrix-table-wrap {
-  max-height: 700px;
+  flex: 1;
+  max-height: 800px;
   overflow-y: auto;
 }
 
@@ -145,23 +142,23 @@
   z-index: 10;
   background: var(--bg-surface-2);
   padding: 12px 24px;
-  font-size: 0.65rem;
+  font-size: 0.68rem;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
   color: var(--text-muted);
   text-align: left;
   border-bottom: 1px solid var(--border-main);
 }
 
 .plat-matrix-table td {
-  padding: 16px 24px;
-  border-bottom: 1px solid #f1f5f9;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border-light, #f1f5f9);
   transition: background 0.1s;
 }
 
 .plat-matrix-table tr:hover td {
-  background: #f8fafc;
+  background: var(--bg-surface-1);
 }
 
 .plat-cap-key {
@@ -169,24 +166,14 @@
   font-size: 0.8rem;
   font-weight: 700;
   color: var(--text-main);
+  letter-spacing: -0.02em;
 }
 
 .plat-cap-desc {
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   color: var(--text-muted);
-  margin-top: 2px;
-}
-
-.plat-module-badge {
-  display: inline-flex;
-  padding: 3px 10px;
-  background: var(--bg-surface-2);
-  border: 1px solid var(--border-main);
-  border-radius: 6px;
-  font-size: 0.6rem;
-  font-weight: 900;
-  color: var(--text-muted);
-  text-transform: uppercase;
+  margin-top: 3px;
+  line-height: 1.4;
 }
 
 /* ── Modern Switch ── */
@@ -211,8 +198,8 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #cbd5e1;
-  transition: .4s;
+  background-color: #e2e8f0;
+  transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
   border-radius: 34px;
 }
 
@@ -224,44 +211,36 @@
   left: 3px;
   bottom: 3px;
   background-color: white;
-  transition: .4s;
+  transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
   border-radius: 50%;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 input:checked + .plat-slider {
   background-color: var(--primary);
 }
 
-input:focus + .plat-slider {
-  box-shadow: 0 0 1px var(--primary);
-}
-
 input:checked + .plat-slider:before {
   transform: translateX(20px);
 }
 
-/* ── Empty State ── */
+/* ── Matrix Empty State ── */
 
 .plat-matrix-empty {
-  padding: 100px 40px;
+  padding: 120px 40px;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 16px;
-  background: rgba(255, 255, 255, 0.5);
-  backdrop-filter: blur(8px);
+  gap: 20px;
+  background: var(--bg-surface-1);
 }
 
-.plat-matrix-empty-text {
-  font-size: 0.875rem;
-  color: var(--text-muted);
-  font-weight: 600;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+.plat-matrix-empty .plat-empty-icon {
+  width: 64px;
+  height: 64px;
+  color: var(--primary);
+  opacity: 0.15;
+  margin-bottom: 10px;
 }

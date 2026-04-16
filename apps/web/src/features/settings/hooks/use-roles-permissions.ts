@@ -110,3 +110,44 @@ export function useAssignPermissions() {
     },
   });
 }
+
+export function useCreatePermission() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (permission: Omit<Permission, 'id' | 'slug'>) => {
+      const { data } = await apiClient.post('/permissions', permission);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['permissions'] });
+    },
+  });
+}
+
+export function useUpdatePermission() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...permission }: Permission) => {
+      const { data } = await apiClient.put(`/permissions/${id}`, permission);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['permissions'] });
+      queryClient.invalidateQueries({ queryKey: ['roles'] }); // Invalidate roles since they might contain updated permission info
+    },
+  });
+}
+
+export function useDeletePermission() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const { data } = await apiClient.delete(`/permissions/${id}`);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['permissions'] });
+      queryClient.invalidateQueries({ queryKey: ['roles'] });
+    },
+  });
+}

@@ -346,8 +346,8 @@ export default function StaffCategoryPage({ category }: { category: StaffCategor
 
       <div className="plat-filters">
         <div className="plat-search-wrap" style={{ flex: '1 1 300px' }}>
-          <Search className="plat-search-icon" size={16} />
-          <input className="plat-filter-input plat-search-input" placeholder="Search registry..." value={search} onChange={(e) => handleSearchChange(e.target.value)} />
+          <Search className="plat-search-icon" size={14} />
+          <input className="plat-form-input plat-search-input" placeholder="Search registry..." value={search} onChange={(e) => handleSearchChange(e.target.value)} />
         </div>
       </div>
 

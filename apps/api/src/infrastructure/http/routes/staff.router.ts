@@ -11,6 +11,7 @@ import {
   DeleteStaffUseCase,
 } from '../../../domains/staff';
 import { createLogger } from '../../../shared/logger';
+import { upload } from '../middleware/upload';
 
 const logger = createLogger('staff-router');
 
@@ -71,6 +72,21 @@ staffRouter.get('/:id', async (req: Request, res: Response) => {
       res.status(404).json({ success: false, message: result.error });
     }
   } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/staff/upload
+staffRouter.post('/upload', upload.single('file'), (req: Request, res: Response) => {
+  try {
+    if (!req.file) {
+      res.status(400).json({ success: false, message: 'No file uploaded' });
+      return;
+    }
+    logger.info(`File uploaded successfully: ${req.file.filename}`);
+    res.json({ success: true, path: `/uploads/${req.file.filename}` });
+  } catch (err: any) {
+    logger.error(`Error in file upload: ${err.stack}`);
     res.status(500).json({ success: false, message: err.message });
   }
 });

@@ -50,23 +50,27 @@ export default function AccountsPage() {
         </div>
       </div>
 
-      {/* ─── Filter Bar ─── */}
+      {/* ─── Filter & Search ─── */}
       <div className="plat-filters">
-        <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-          Filter by Clinic
-        </span>
-        <select
-          className="plat-filter-input"
-          style={{ minWidth: '200px' }}
-          value={clinicFilter ?? ''}
-          onChange={e => setClinicFilter(e.target.value ? parseInt(e.target.value) : undefined)}
-        >
-          <option value="">All Clinics</option>
-          {orgs.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
-        </select>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--text-muted)', marginLeft: 'auto', whiteSpace: 'nowrap' }}>
-          {accounts.length} records
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+            Station Filter
+          </span>
+          <select
+            className="plat-form-input"
+            style={{ width: '220px', height: '36px' }}
+            value={clinicFilter ?? ''}
+            onChange={e => setClinicFilter(e.target.value ? parseInt(e.target.value) : undefined)}
+          >
+            <option value="">All Registered Clinics</option>
+            {orgs.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
+          </select>
+        </div>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div className="plat-badge plat-badge-default" style={{ padding: '4px 10px', fontSize: '0.72rem' }}>
+            {accounts.length} Total Accounts
+          </div>
+        </div>
       </div>
 
       {/* ─── Table ─── */}

@@ -65,10 +65,7 @@ export default function StickersPage() {
 
   return (
     <div className="plat-page fade-in">
-      <Link to="/settings" className="settings-back-link">
-        <ArrowLeft size={14} />
-        Back to Settings
-      </Link>
+
 
       <div className="plat-header">
         <div>
@@ -88,22 +85,22 @@ export default function StickersPage() {
 
       <div className="plat-stats-bar">
         <div className="plat-stat-card">
-          <span className="plat-stat-label">Sticker Templates</span>
-          <span className="plat-stat-value">{stickers.length}</span>
+          <p className="plat-stat-label">Sticker Templates</p>
+          <p className="plat-stat-value plat-stat-value-primary">{stickers.length}</p>
         </div>
         <div className="plat-stat-card">
-          <span className="plat-stat-label">Filtered</span>
-          <span className="plat-stat-value plat-stat-value-success">
+          <p className="plat-stat-label">Filtered</p>
+          <p className="plat-stat-value plat-stat-value-success">
             {filteredStickers.length}
-          </span>
+          </p>
         </div>
       </div>
 
       <div className="plat-filters">
         <div className="plat-search-wrap">
-          <Search size={16} className="plat-search-icon" />
+          <Search size={14} className="plat-search-icon" />
           <input 
-            className="plat-filter-input plat-search-input"
+            className="plat-form-input plat-search-input"
             placeholder="Search sticker templates..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -161,8 +158,8 @@ export default function StickersPage() {
       </div>
 
       {isModalOpen && (
-        <div className="plat-modal-overlay fade-in" onClick={(e) => e.target === e.currentTarget && setIsModalOpen(false)}>
-          <div className="plat-modal" style={{ maxWidth: '500px' }}>
+        <div className="plat-modal-backdrop" onClick={() => setIsModalOpen(false)}>
+          <div className="plat-modal-content max-w-lg" onClick={e => e.stopPropagation()}>
             <div className="plat-modal-header">
               <h2 className="plat-modal-title">{editingId ? 'Edit Template' : 'Add Sticker Template'}</h2>
               <button className="plat-btn plat-btn-icon" onClick={() => setIsModalOpen(false)}>
@@ -170,33 +167,37 @@ export default function StickersPage() {
               </button>
             </div>
             <form onSubmit={handleSubmit}>
-              <div className="plat-modal-body plat-form">
-                {error && (
-                  <div className="plat-alert plat-alert-danger" style={{ marginBottom: '1rem', fontSize: '13px' }}>
-                    {error}
+              <div className="plat-modal-body">
+                <div className="plat-form-section">
+                  <div className="plat-form-grid-multi" style={{ gridTemplateColumns: '1fr' }}>
+                    {error && (
+                      <div className="plat-alert plat-alert-danger" style={{ marginBottom: '1rem', fontSize: '13px' }}>
+                        {error}
+                      </div>
+                    )}
+                    <div className="plat-form-group">
+                      <label className="plat-form-label">Template Name *</label>
+                      <input 
+                        className="plat-form-input" 
+                        value={form.name} 
+                        onChange={e => setForm(f => ({...f, name: e.target.value}))}
+                        required 
+                        placeholder="e.g. 5 drops 3 times a day"
+                      />
+                    </div>
+                    <div className="plat-form-group">
+                      <label className="plat-form-label">Default Content *</label>
+                      <textarea 
+                        className="plat-form-input" 
+                        style={{ minHeight: '120px' }}
+                        value={form.detail} 
+                        onChange={e => setForm(f => ({...f, detail: e.target.value}))}
+                        required
+                        placeholder="The text that will appear on the sticker..."
+                      />
+                    </div>
                   </div>
-                )}
-                <div className="plat-form-group plat-form-full">
-                <label className="plat-form-label">Template Name <span className="plat-form-required">*</span></label>
-                <input 
-                  className="plat-form-input" 
-                  value={form.name} 
-                  onChange={e => setForm(f => ({...f, name: e.target.value}))}
-                  required 
-                  placeholder="e.g. 5 drops 3 times a day"
-                />
-              </div>
-              <div className="plat-form-group plat-form-full">
-                <label className="plat-form-label">Default Content <span className="plat-form-required">*</span></label>
-                <textarea 
-                  className="plat-form-input" 
-                  style={{ minHeight: '120px' }}
-                  value={form.detail} 
-                  onChange={e => setForm(f => ({...f, detail: e.target.value}))}
-                  required
-                  placeholder="The text that will appear on the sticker..."
-                />
-              </div>
+                </div>
               </div>
               <div className="plat-modal-footer">
                 <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>

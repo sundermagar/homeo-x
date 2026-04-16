@@ -18,7 +18,7 @@ export default function ReferralSourcesPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredItems = referrals.filter((r: any) => 
+  const filteredItems = referrals.filter((r: any) =>
     r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (r.type && r.type.toLowerCase().includes(searchQuery.toLowerCase()))
   );
@@ -31,10 +31,10 @@ export default function ReferralSourcesPage() {
 
   const handleOpenEdit = (ref: any) => {
     setEditingId(ref.id);
-    setForm({ 
-      name: ref.name, 
-      type: ref.type || '', 
-      isActive: ref.isActive 
+    setForm({
+      name: ref.name,
+      type: ref.type || '',
+      isActive: ref.isActive
     });
     setIsModalOpen(true);
   };
@@ -57,10 +57,7 @@ export default function ReferralSourcesPage() {
 
   return (
     <div className="plat-page fade-in">
-      <Link to="/settings" className="settings-back-link">
-        <ArrowLeft size={14} />
-        Back to Settings
-      </Link>
+
 
       <div className="plat-header">
         <div>
@@ -80,22 +77,22 @@ export default function ReferralSourcesPage() {
 
       <div className="plat-stats-bar">
         <div className="plat-stat-card">
-          <span className="plat-stat-label">Total Sources</span>
-          <span className="plat-stat-value">{referrals.length}</span>
+          <p className="plat-stat-label">Total Sources</p>
+          <p className="plat-stat-value plat-stat-value-primary">{referrals.length}</p>
         </div>
         <div className="plat-stat-card">
-          <span className="plat-stat-label">Active Channels</span>
-          <span className="plat-stat-value plat-stat-value-success">
+          <p className="plat-stat-label">Active Channels</p>
+          <p className="plat-stat-value plat-stat-value-success">
             {referrals.filter((r: any) => r.isActive).length}
-          </span>
+          </p>
         </div>
       </div>
 
       <div className="plat-filters">
         <div className="plat-search-wrap">
-          <Search size={16} className="plat-search-icon" />
-          <input 
-            className="plat-filter-input plat-search-input"
+          <Search size={14} className="plat-search-icon" />
+          <input
+            className="plat-form-input plat-search-input"
             placeholder="Search sources..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -137,9 +134,9 @@ export default function ReferralSourcesPage() {
                       </span>
                     </td>
                     <td data-label="Status" className="plat-table-cell">
-                       <span className={`plat-badge ${ref.isActive ? 'plat-badge-staff' : 'plat-badge-default'}`}>
-                         {ref.isActive ? 'Active' : 'Inactive'}
-                       </span>
+                      <span className={`plat-badge ${ref.isActive ? 'plat-badge-staff' : 'plat-badge-default'}`}>
+                        {ref.isActive ? 'Active' : 'Inactive'}
+                      </span>
                     </td>
                     <td className="plat-table-cell">
                       <div className="flex justify-end gap-2">
@@ -160,8 +157,8 @@ export default function ReferralSourcesPage() {
       </div>
 
       {isModalOpen && (
-        <div className="plat-modal-overlay fade-in" onClick={(e) => e.target === e.currentTarget && setIsModalOpen(false)}>
-          <div className="plat-modal" style={{ maxWidth: '450px' }}>
+        <div className="plat-modal-backdrop" onClick={() => setIsModalOpen(false)}>
+          <div className="plat-modal-content max-w-lg" onClick={e => e.stopPropagation()}>
             <div className="plat-modal-header">
               <h2 className="plat-modal-title">
                 {editingId ? 'Edit Referral Source' : 'Add New Source'}
@@ -170,45 +167,47 @@ export default function ReferralSourcesPage() {
                 <X size={16} />
               </button>
             </div>
-            
-            <form onSubmit={handleSubmit} className="plat-modal-form">
+
+            <form onSubmit={handleSubmit}>
               <div className="plat-modal-body">
-                <div className="plat-form">
-                  <div className="plat-form-group plat-form-full">
-                    <label className="plat-form-label">Source Name *</label>
-                    <input 
-                      className="plat-form-input" 
-                      value={form.name} 
-                      onChange={e => setForm(f => ({...f, name: e.target.value}))}
-                      required 
-                      placeholder="e.g. Dr. Sharma, Facebook, Magazine"
-                    />
-                  </div>
-                  <div className="plat-form-group plat-form-full">
-                    <label className="plat-form-label">Classification</label>
-                    <div className="plat-input-wrapper">
-                      <Tag size={16} className="plat-input-icon" />
-                      <input 
-                        className="plat-form-input" 
-                        value={form.type} 
-                        onChange={e => setForm(f => ({...f, type: e.target.value}))}
-                        placeholder="e.g. Professional / Advertisement"
+                <div className="plat-form-section">
+                  <div className="plat-form-grid-multi" style={{ gridTemplateColumns: '1fr' }}>
+                    <div className="plat-form-group">
+                      <label className="plat-form-label">Source Name *</label>
+                      <input
+                        className="plat-form-input"
+                        value={form.name}
+                        onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                        required
+                        placeholder="e.g. Dr. Sharma, Facebook, Magazine"
                       />
                     </div>
-                  </div>
-                  <div className="plat-form-group plat-form-row">
-                    <input 
-                      type="checkbox" 
-                      className="plat-form-input"
-                      id="isActiveRef"
-                      checked={form.isActive} 
-                      onChange={e => setForm(f => ({...f, isActive: e.target.checked}))}
-                    />
-                    <label htmlFor="isActiveRef" className="plat-form-label mb-0 cursor-pointer">Source is actively used</label>
+                    <div className="plat-form-group">
+                      <label className="plat-form-label">Classification</label>
+                      <div className="plat-input-wrapper">
+                        <Tag size={16} className="plat-input-icon" />
+                        <input
+                          className="plat-form-input"
+                          value={form.type}
+                          onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
+                          placeholder="e.g. Professional / Advertisement"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 py-2">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 accent-primary"
+                        id="isActiveRef"
+                        checked={form.isActive}
+                        onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))}
+                      />
+                      <label htmlFor="isActiveRef" className="plat-form-label mb-0 cursor-pointer">Source is actively used</label>
+                    </div>
                   </div>
                 </div>
               </div>
-              
+
               <div className="plat-modal-footer">
                 <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
                 <button type="submit" className="plat-btn plat-btn-primary" disabled={createRef.isPending || updateRef.isPending}>
