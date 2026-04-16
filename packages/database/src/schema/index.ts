@@ -11,19 +11,11 @@ export * from './audit';
 export * from './packages';
 export * from './communication';
 export * from './platform';
-<<<<<<< HEAD
 export * from './settings';
-=======
->>>>>>> origin/dev-branch
 export * from './crm';
 export * from './logistics';
 export * from './records';
 export * from './knowledge';
-<<<<<<< HEAD
-=======
-export * from './settings';
-
->>>>>>> origin/dev-branch
 export * from './legacy-public-manifest';
 export * from './tenant-demo-legacy-schema';
 export * from './legacy/index';

@@ -1,9 +1,5 @@
 {
-<<<<<<< HEAD
-  "id": "50084e04-e8c7-4d7c-8970-2808527fcc9c",
-=======
   "id": "fbea97ee-3bbf-4ff2-babd-4c12e9ba4301",
->>>>>>> origin/dev-branch
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -339,8 +335,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-<<<<<<< HEAD
-=======
     "public.stocks": {
       "name": "stocks",
       "schema": "",
@@ -405,7 +399,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
->>>>>>> origin/dev-branch
     "public.appointments": {
       "name": "appointments",
       "schema": "",
@@ -3370,8 +3363,6 @@
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
-<<<<<<< HEAD
-=======
     },
     "public.courier_masters": {
       "name": "courier_masters",
@@ -4102,7 +4093,6 @@
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
->>>>>>> origin/dev-branch
     }
   },
   "enums": {},
