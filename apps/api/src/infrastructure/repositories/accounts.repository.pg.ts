@@ -9,7 +9,7 @@ import {
   patients,
 } from '@mmc/database/schema';
 import type { DbClient } from '@mmc/database';
-  ExpenseWithHead,
+ExpenseWithHead,
   ExpenseHead,
 } from '@mmc/types';
 import type {
@@ -40,7 +40,7 @@ import type {
  * PostgreSQL adapter for AdditionalChargeRepository.
  */
 export class AdditionalChargeRepositoryPg implements AdditionalChargeRepository {
-  constructor(private readonly db: DbClient) {}
+  constructor(private readonly db: DbClient) { }
 
   async findById(id: number): Promise<AdditionalChargeWithPatient | null> {
     const [row] = await this.db
@@ -166,7 +166,7 @@ export class AdditionalChargeRepositoryPg implements AdditionalChargeRepository 
  * PostgreSQL adapter for DayChargeRepository.
  */
 export class DayChargeRepositoryPg implements DayChargeRepository {
-  constructor(private readonly db: DbClient) {}
+  constructor(private readonly db: DbClient) { }
 
   async findById(id: number): Promise<DayCharge | null> {
     const [row] = await this.db
@@ -241,7 +241,7 @@ export class DayChargeRepositoryPg implements DayChargeRepository {
  * PostgreSQL adapter for DepositRepository (Bank + Cash).
  */
 export class DepositRepositoryPg implements DepositRepository {
-  constructor(private readonly db: DbClient) {}
+  constructor(private readonly db: DbClient) { }
 
   async findById(id: number, type: 'Bank' | 'Cash'): Promise<BankDeposit | CashDeposit | null> {
     const table = type === 'Bank' ? bankDepositLegacy : cashDepositLegacy;
@@ -391,7 +391,7 @@ export class DepositRepositoryPg implements DepositRepository {
  * PostgreSQL adapter for ExpenseRepository.
  */
 export class ExpenseRepositoryPg implements ExpenseRepository {
-  constructor(private readonly db: DbClient) {}
+  constructor(private readonly db: DbClient) { }
 
   async findById(id: number): Promise<ExpenseWithHead | null> {
     const [row] = await this.db
@@ -464,10 +464,10 @@ export class ExpenseRepositoryPg implements ExpenseRepository {
 
     const headRow = row.head
       ? await this.db
-          .select({ headName: expensesheadLegacy.expenseshead, shortName: expensesheadLegacy.shortName })
-          .from(expensesheadLegacy)
-          .where(eq(expensesheadLegacy.id, row.head))
-          .limit(1)
+        .select({ headName: expensesheadLegacy.expenseshead, shortName: expensesheadLegacy.shortName })
+        .from(expensesheadLegacy)
+        .where(eq(expensesheadLegacy.id, row.head))
+        .limit(1)
       : null;
 
     return {
@@ -495,10 +495,10 @@ export class ExpenseRepositoryPg implements ExpenseRepository {
 
     const headRow = row.head
       ? await this.db
-          .select({ headName: expensesheadLegacy.expenseshead, shortName: expensesheadLegacy.shortName })
-          .from(expensesheadLegacy)
-          .where(eq(expensesheadLegacy.id, row.head))
-          .limit(1)
+        .select({ headName: expensesheadLegacy.expenseshead, shortName: expensesheadLegacy.shortName })
+        .from(expensesheadLegacy)
+        .where(eq(expensesheadLegacy.id, row.head))
+        .limit(1)
       : null;
 
     return {

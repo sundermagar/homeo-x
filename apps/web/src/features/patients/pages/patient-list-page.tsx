@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { usePatients, useDeletePatient } from '../hooks/use-patients';
 import { Search, Plus, List as ListIcon, Grid, Eye, Edit2, Phone, MapPin, Calendar } from 'lucide-react';
 import type { PatientSummary } from '@mmc/types';
+import '../../appointments/styles/appointments.css';
+import '../styles/patients.css';
 
 const PAGE_SIZE = 30;
 
@@ -41,16 +43,18 @@ export default function PatientListPage() {
           <p className="text-subtitle">Access and manage comprehensive patient health records.</p>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
-          <div style={{ display: 'flex', background: 'white', border: '1px solid var(--pp-warm-4)', borderRadius: 'var(--pp-radius-btn)', overflow: 'hidden' }}>
-            <button 
-              onClick={() => setViewMode('list')} 
-              style={{ background: viewMode === 'list' ? 'var(--pp-blue-tint)' : 'transparent', color: viewMode === 'list' ? 'var(--pp-blue)' : 'var(--pp-text-3)', padding: '6px 12px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px' }}
+          <div className="appt-view-toggle">
+            <button
+              type="button"
+              className={`appt-view-btn${viewMode === 'list' ? ' is-active' : ''}`}
+              onClick={() => setViewMode('list')}
             >
               <ListIcon size={14} /> List
             </button>
-            <button 
-              onClick={() => setViewMode('grid')} 
-              style={{ background: viewMode === 'grid' ? 'var(--pp-blue-tint)' : 'transparent', color: viewMode === 'grid' ? 'var(--pp-blue)' : 'var(--pp-text-3)', padding: '6px 12px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', borderLeft: '1px solid var(--pp-warm-4)' }}
+            <button
+              type="button"
+              className={`appt-view-btn${viewMode === 'grid' ? ' is-active' : ''}`}
+              onClick={() => setViewMode('grid')}
             >
               <Grid size={14} /> Grid
             </button>
@@ -62,22 +66,21 @@ export default function PatientListPage() {
       </div>
 
       <div className="pp-card pp-filter-bar" style={{ marginBottom: '24px' }}>
-        <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
-          <Search size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--pp-text-3)' }} />
+        <div className="pat-search-wrap">
+          <Search size={14} className="pat-search-icon" />
           <input
-            className="pp-input"
+            className="pp-input pat-search-input"
             type="text"
             placeholder="Search patients by name or phone..."
             value={search}
             onChange={(e) => handleSearchChange(e.target.value)}
-            style={{ paddingLeft: '36px' }}
           />
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <span className="text-label">Sort By:</span>
-          <select 
-            className="pp-select" 
-            value={sortBy} 
+          <select
+            className="pp-select"
+            value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
             style={{ minWidth: '140px' }}
           >
@@ -88,18 +91,18 @@ export default function PatientListPage() {
         </div>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+      <div className="pat-stats-row">
         <span className="text-label">Registry Entries</span>
         <span className="text-small">Showing {patients.length} of {data?.total || 0}</span>
       </div>
 
       {isLoading ? (
-        <div className="pp-card" style={{ padding: '60px', textAlign: 'center', color: 'var(--pp-text-3)' }}>
+        <div className="pp-card pat-loading-state">
           <p>Loading patient records...</p>
         </div>
       ) : patients.length === 0 ? (
-        <div className="pp-card" style={{ padding: '60px', textAlign: 'center', color: 'var(--pp-text-3)' }}>
-          <p style={{ fontWeight: 600, color: 'var(--pp-ink)', marginBottom: '8px' }}>No patients found</p>
+        <div className="pp-card pat-empty-state">
+          <p className="pat-empty-state-title">No patients found</p>
           <p className="text-small">Try adjusting your search filters</p>
         </div>
       ) : viewMode === 'list' ? (
@@ -119,12 +122,12 @@ export default function PatientListPage() {
               {patients.map((p: PatientSummary) => (
                 <tr key={p.regid} className="hover-row">
                   <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '600', flexShrink: 0 }}>
+                    <div className="pat-member-row">
+                      <div className="pat-avatar">
                         {(p.fullName?.[0] || '?').toUpperCase()}
                       </div>
                       <div>
-                        <div style={{ fontWeight: 500, color: 'var(--pp-ink)' }}>{p.fullName || 'Unknown'}</div>
+                        <div className="pat-member-name">{p.fullName || 'Unknown'}</div>
                         <div className="text-small">{p.gender === 'M' ? 'Male' : p.gender === 'F' ? 'Female' : p.gender}</div>
                       </div>
                     </div>
@@ -155,32 +158,32 @@ export default function PatientListPage() {
       ) : (
         <div className="pp-patient-grid">
           {patients.map((p: PatientSummary) => (
-            <div key={p.regid} className="pp-card" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '600', fontSize: '16px' }}>
+            <div key={p.regid} className="pp-card pat-grid-card">
+              <div className="pat-grid-card-header">
+                <div className="pat-avatar pat-avatar--md">
                   {(p.fullName?.[0] || '?').toUpperCase()}
                 </div>
                 <div>
-                  <div style={{ fontWeight: 600, color: 'var(--pp-ink)' }}>{p.fullName}</div>
-                  <div className="pp-mono" style={{ fontSize: '12px', color: 'var(--pp-text-3)' }}>RegID: {p.regid}</div>
+                  <div className="pat-grid-card-name">{p.fullName}</div>
+                  <div className="pat-grid-card-regid">RegID: {p.regid}</div>
                 </div>
               </div>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: 'var(--pp-warm-1)', padding: '12px', borderRadius: '8px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span className="text-small" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Phone size={12}/> Phone</span>
-                  <span className="text-body" style={{ fontSize: '13px' }}>{p.phone || '—'}</span>
+
+              <div className="pat-grid-card-detail">
+                <div className="pat-grid-card-detail-row">
+                  <span className="pat-grid-card-detail-label"><Phone size={12}/> Phone</span>
+                  <span className="pat-grid-card-detail-value">{p.phone || '—'}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span className="text-small" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><MapPin size={12}/> City</span>
-                  <span className="text-body" style={{ fontSize: '13px' }}>{p.city || '—'}</span>
+                <div className="pat-grid-card-detail-row">
+                  <span className="pat-grid-card-detail-label"><MapPin size={12}/> City</span>
+                  <span className="pat-grid-card-detail-value">{p.city || '—'}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span className="text-small" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Calendar size={12}/> Date</span>
-                  <span className="text-body" style={{ fontSize: '13px' }}>{p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-GB') : '—'}</span>
+                <div className="pat-grid-card-detail-row">
+                  <span className="pat-grid-card-detail-label"><Calendar size={12}/> Date</span>
+                  <span className="pat-grid-card-detail-value">{p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-GB') : '—'}</span>
                 </div>
               </div>
-              
+
               <Link to={`/patients/${p.regid}`} className="btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>
                 View Details
               </Link>
@@ -190,19 +193,19 @@ export default function PatientListPage() {
       )}
 
       {totalPages > 1 && (
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '32px', alignItems: 'center' }}>
-          <button 
-            disabled={page <= 1} 
-            onClick={() => setPage(p => p - 1)} 
+        <div className="pat-pagination">
+          <button
+            disabled={page <= 1}
+            onClick={() => setPage(p => p - 1)}
             className="btn-secondary"
             style={{ opacity: page <= 1 ? 0.5 : 1 }}
           >
             Previous
           </button>
           <span className="text-small">Page {page} of {totalPages}</span>
-          <button 
-            disabled={page >= totalPages} 
-            onClick={() => setPage(p => p + 1)} 
+          <button
+            disabled={page >= totalPages}
+            onClick={() => setPage(p => p + 1)}
             className="btn-secondary"
             style={{ opacity: page >= totalPages ? 0.5 : 1 }}
           >

@@ -127,8 +127,8 @@ export default function ExpensesPage() {
           <option value="">All Categories</option>
           {heads.map((h: any) => <option key={h.id} value={h.id}>{h.name}</option>)}
         </select>
-        <input type="date" className="plat-filter-input" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem' }} value={fromDate} onChange={e => setFromDate(e.target.value)} placeholder="From" />
-        <input type="date" className="plat-filter-input" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem' }} value={toDate} onChange={e => setToDate(e.target.value)} placeholder="To" />
+        <input type="date" className="plat-filter-input" style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.82rem' }} value={fromDate} onChange={e => setFromDate(e.target.value)} placeholder="From" />
+        <input type="date" className="plat-filter-input" style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.82rem' }} value={toDate} onChange={e => setToDate(e.target.value)} placeholder="To" />
       </div>
 
       <div className="plat-card">
@@ -155,13 +155,13 @@ export default function ExpensesPage() {
               <tbody>
                 {filtered.map(e => (
                   <tr key={e.id}>
-                    <td data-label="ID" style={{ fontFamily: 'var(--font-mono)' }}>#{e.id}</td>
-                    <td data-label="Date" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem' }}>{e.expDate || '—'}</td>
+                    <td data-label="ID" style={{ fontFamily: 'var(--pp-font-mono)' }}>#{e.id}</td>
+                    <td data-label="Date" style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.78rem' }}>{e.expDate || '—'}</td>
                     <td data-label="Category">
                       <span className="plat-badge plat-badge-staff">{e.headName || `Head #${e.head}`}</span>
                     </td>
                     <td data-label="Description">{e.detail || '—'}</td>
-                    <td data-label="Amount" style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--danger)' }}>
+                    <td data-label="Amount" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 600, color: 'var(--pp-danger-fg)' }}>
                       ₹{(e.amount ?? 0).toLocaleString()}
                     </td>
                     <td>

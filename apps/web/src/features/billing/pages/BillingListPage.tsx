@@ -32,7 +32,7 @@ export default function BillingListPage() {
       <div className="bill-header">
         <div>
           <h1 className="bill-header-title">
-            <Receipt size={20} strokeWidth={1.6} style={{ color: 'var(--primary)' }} />
+            <Receipt size={20} strokeWidth={1.6} style={{ color: 'var(--pp-blue)' }} />
             Billing &amp; Finance
           </h1>
           <p className="bill-header-sub">Manage clinic invoices, daily collections, and patient accounts.</p>
@@ -43,7 +43,6 @@ export default function BillingListPage() {
             value={date}
             onChange={(e) => setDate(e.target.value)}
             className="bill-filter-input"
-            style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem' }}
           />
           <button className="bill-btn bill-btn-primary" onClick={() => (window.location.href = '/billing/create')}>
             <FilePlus size={14} strokeWidth={1.6} />
@@ -93,18 +92,18 @@ export default function BillingListPage() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <div style={{ display: 'inline-flex', border: '1px solid var(--border)', borderRadius: 999, overflow: 'hidden', background: 'white' }}>
+          <div className="bill-view-toggle-group">
             <button
               type="button"
               onClick={() => setViewMode('list')}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', border: 'none', background: viewMode === 'list' ? 'var(--primary-tint)' : 'transparent', color: viewMode === 'list' ? 'var(--primary)' : 'var(--text-muted)', cursor: 'pointer', fontSize: '12px' }}
+              className={`bill-view-toggle-btn${viewMode === 'list' ? ' is-active' : ''}`}
             >
               <List size={14} /> List
             </button>
             <button
               type="button"
               onClick={() => setViewMode('grid')}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', border: 'none', background: viewMode === 'grid' ? 'var(--primary-tint)' : 'transparent', color: viewMode === 'grid' ? 'var(--primary)' : 'var(--text-muted)', cursor: 'pointer', fontSize: '12px' }}
+              className={`bill-view-toggle-btn${viewMode === 'grid' ? ' is-active' : ''}`}
             >
               <Grid size={14} /> Grid
             </button>
@@ -114,7 +113,7 @@ export default function BillingListPage() {
             <input
               type="text"
               className="bill-filter-input bill-search-input"
-              style={{ width: '180px', fontFamily: 'var(--font-mono)' }}
+              style={{ width: '180px', fontFamily: 'var(--pp-font-mono)' }}
               placeholder="Search Reg ID…"
               value={regidFilter}
               onChange={(e) => { setRegidFilter(e.target.value); setPage(1); }}
@@ -126,15 +125,15 @@ export default function BillingListPage() {
       {viewMode === 'list' ? (
         <BillingTable bills={bills} isLoading={billsQuery.isLoading} />
       ) : (
-        <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
+        <div className="bill-card-grid">
           {bills.map((bill) => (
-            <div key={bill.id} className="bill-card" style={{ padding: '18px', gap: '12px', display: 'flex', flexDirection: 'column' }}>
+            <div key={bill.id} className="bill-card bill-grid-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'flex-start' }}>
                 <div>
-                  <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-main)' }}>Bill #{bill.billNo}</div>
-                  <div className="text-small" style={{ color: 'var(--text-muted)' }}>{bill.billDate ? format(new Date(bill.billDate), 'dd-MM-yyyy') : 'No date'}</div>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--pp-ink)' }}>Bill #{bill.billNo}</div>
+                  <div className="text-small" style={{ color: 'var(--pp-text-3)' }}>{bill.billDate ? format(new Date(bill.billDate), 'dd-MM-yyyy') : 'No date'}</div>
                 </div>
-                <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--primary-tint)', color: 'var(--primary)', display: 'grid', placeItems: 'center' }}>
+                <div className="bill-grid-card-icon">
                   <Receipt size={18} />
                 </div>
               </div>
@@ -145,7 +144,9 @@ export default function BillingListPage() {
                 <div><strong>Received:</strong> ₹{bill.received.toLocaleString()}</div>
                 <div><strong>Balance:</strong> {bill.balance > 0 ? `₹${bill.balance.toLocaleString()}` : '—'}</div>
               </div>
-              <button className="bill-btn bill-btn-primary" style={{ width: '100%' }}>View Details</button>
+              <div className="bill-grid-card-footer">
+                <button className="bill-btn bill-btn-primary" style={{ width: '100%' }}>View Details</button>
+              </div>
             </div>
           ))}
         </div>

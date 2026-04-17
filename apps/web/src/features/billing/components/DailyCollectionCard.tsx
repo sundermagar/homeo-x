@@ -15,11 +15,11 @@ export function DailyCollectionCard({ label, amount, count, type = 'default', ic
   }[type];
 
   return (
-    <div className="bill-stat-card fade-in">
+    <div className="bill-stat-card fade-in" data-type={type}>
       <div className="bill-stat-card-top">
         <span className={`bill-stat-icon ${iconClass}`}>{icon}</span>
         {count !== undefined && (
-          <span className="bill-stat-count">{count} bills</span>
+          <span className="bill-stat-count">{count} records</span>
         )}
       </div>
       <div>

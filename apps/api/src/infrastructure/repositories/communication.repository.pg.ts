@@ -10,7 +10,7 @@ import type {
 } from '@mmc/types';
 
 export class CommunicationRepositoryPG implements ICommunicationRepository {
-  constructor(private readonly db: DbClient) {}
+  constructor(private readonly db: DbClient) { }
 
   // ─── SMS Templates ─────────────────────────────────────────────────────────
 
@@ -36,10 +36,10 @@ export class CommunicationRepositoryPG implements ICommunicationRepository {
     const [row] = await this.db
       .insert(schema.smsTemplates)
       .values({
-        name:      dto.name,
-        message:   dto.message,
-        smsType:   dto.smsType ?? 'General',
-        isActive:  dto.isActive ?? true,
+        name: dto.name,
+        message: dto.message,
+        smsType: dto.smsType ?? 'General',
+        isActive: dto.isActive ?? true,
       })
       .returning();
     return row as SmsTemplate;
@@ -47,10 +47,10 @@ export class CommunicationRepositoryPG implements ICommunicationRepository {
 
   async updateTemplate(id: number, dto: UpdateSmsTemplateDto): Promise<SmsTemplate> {
     const fields: Record<string, any> = { updatedAt: new Date() };
-    if (dto.name !== undefined)       fields.name     = dto.name;
-    if (dto.message !== undefined)    fields.message  = dto.message;
-    if (dto.smsType !== undefined)    fields.smsType  = dto.smsType;
-    if (dto.isActive !== undefined)   fields.isActive = dto.isActive;
+    if (dto.name !== undefined) fields.name = dto.name;
+    if (dto.message !== undefined) fields.message = dto.message;
+    if (dto.smsType !== undefined) fields.smsType = dto.smsType;
+    if (dto.isActive !== undefined) fields.isActive = dto.isActive;
 
     const [row] = await this.db
       .update(schema.smsTemplates)
@@ -72,17 +72,17 @@ export class CommunicationRepositoryPG implements ICommunicationRepository {
   async listReports(filters: SmsReportFilters): Promise<{ data: SmsReport[]; total: number }> {
     const conditions: any[] = [];
 
-    if (filters.regid)     conditions.push(eq(schema.smsReports.regid, filters.regid));
-    if (filters.smsType)  conditions.push(eq(schema.smsReports.smsType, filters.smsType));
-    if (filters.status)   conditions.push(eq(schema.smsReports.status, filters.status));
-    if (filters.phone)    conditions.push(ilike(schema.smsReports.phone, `%${filters.phone}%`));
+    if (filters.regid) conditions.push(eq(schema.smsReports.regid, filters.regid));
+    if (filters.smsType) conditions.push(eq(schema.smsReports.smsType, filters.smsType));
+    if (filters.status) conditions.push(eq(schema.smsReports.status, filters.status));
+    if (filters.phone) conditions.push(ilike(schema.smsReports.phone, `%${filters.phone}%`));
     if (filters.fromDate) conditions.push(gte(schema.smsReports.sendDate, filters.fromDate));
-    if (filters.toDate)   conditions.push(lte(schema.smsReports.sendDate, filters.toDate));
+    if (filters.toDate) conditions.push(lte(schema.smsReports.sendDate, filters.toDate));
 
-    const page   = filters.page ?? 1;
-    const limit  = filters.limit ?? 50;
+    const page = filters.page ?? 1;
+    const limit = filters.limit ?? 50;
     const offset = (page - 1) * limit;
-    const where  = conditions.length > 0 ? and(...conditions) : undefined;
+    const where = conditions.length > 0 ? and(...conditions) : undefined;
     const baseWhere = where
       ? and(where, isNull(schema.smsReports.deletedAt))
       : isNull(schema.smsReports.deletedAt);
@@ -110,12 +110,12 @@ export class CommunicationRepositoryPG implements ICommunicationRepository {
     const [row] = await this.db
       .insert(schema.smsReports)
       .values({
-        regid:     params.regid,
-        phone:     params.phone,
-        message:   params.message,
-        smsType:   params.smsType,
-        sendDate:  new Date().toISOString(),
-        status:    params.status ?? 'sent',
+        regid: params.regid,
+        phone: params.phone,
+        message: params.message,
+        smsType: params.smsType,
+        sendDate: new Date().toISOString(),
+        status: params.status ?? 'sent',
         gatewayRef: params.gatewayRef ?? null,
       })
       .returning();
@@ -130,11 +130,11 @@ export class CommunicationRepositoryPG implements ICommunicationRepository {
     const [row] = await this.db
       .insert(schema.whatsappLogs)
       .values({
-        regid:    params.regid ?? null,
-        phone:    params.phone,
-        message:  params.message,
+        regid: params.regid ?? null,
+        phone: params.phone,
+        message: params.message,
         deepLink: params.deepLink,
-        status:   params.status ?? 'sent',
+        status: params.status ?? 'sent',
         sendDate: new Date().toISOString(),
       })
       .returning();

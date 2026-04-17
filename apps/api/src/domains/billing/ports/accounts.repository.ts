@@ -1,8 +1,8 @@
-  Expense,
+Expense,
   ExpenseWithHead,
   ExpenseHead,
 } from '@mmc/types';
-  CreateExpenseInput,
+CreateExpenseInput,
   UpdateExpenseInput,
   ListExpensesQuery,
   CreateExpenseHeadInput,

@@ -2,13 +2,9 @@
 node_modules/
 .pnpm-store/
 .pnpm-debug.log*
-<<<<<<< HEAD
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-
-=======
->>>>>>> origin/vis
 
 # Build & Cache
 dist/
@@ -25,11 +21,8 @@ out/
 **/.cache/
 .tsbuildinfo
 *.tsbuildinfo
-<<<<<<< HEAD
 .parcel-cache/
 .contentlayer/
-=======
->>>>>>> origin/vis
 coverage/
 **/coverage/
 .nyc_output/
@@ -41,10 +34,6 @@ coverage/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-<<<<<<< HEAD
-
-=======
->>>>>>> origin/vis
 
 # Environment
 .env
@@ -81,6 +70,8 @@ server_log.txt
 api_debug.log
 tmp/
 temp/
+managemyclicnicnew/
+apps/api/uploads/
 
 # Testing & Artifacts
 test_auth.js
@@ -98,7 +89,3 @@ check_*.ts
 verify_*.ts
 *.ours
 *.theirs
-<<<<<<< HEAD
-
-=======
->>>>>>> origin/vis
