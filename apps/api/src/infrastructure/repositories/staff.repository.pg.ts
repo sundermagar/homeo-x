@@ -218,7 +218,7 @@ export class StaffRepositoryPg implements StaffRepository {
     return this.toDomain(updated as any, category);
   }
 
-  async softDelete(category: StaffCategory, id: number): Promise<boolean> {
+  async delete(category: StaffCategory, id: number): Promise<boolean> {
     const table = getTable(category);
     const [row] = await this.db.select().from(table).where(eq(table.id, id)).limit(1);
     if (!row) return false;

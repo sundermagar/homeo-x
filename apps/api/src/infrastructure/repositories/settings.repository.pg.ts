@@ -6,7 +6,7 @@ import type {
   ISettingsRepository,
   Department, Dispensary, ReferralSource, Sticker,
   StaticPage, Faq, PdfSetting, Medicine, Potency, Frequency,
-  ExpenseHead, MessageTemplate, StockLog, PackagePlan, Courier,
+  MessageTemplate, StockLog, PackagePlan, Courier,
   User
 } from '../../domains/settings/ports/settings.repository.js';
 

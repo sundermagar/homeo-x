@@ -43,7 +43,7 @@ export class JobScheduler {
       // Assuming findMany is available on repo. 
       // For now, let's use the execute method pattern if available.
       // We'll peek at the appointments for tomorrow.
-      const res = await this.appointmentRepo.findAll({
+      const res = await this.appointmentRepo.findMany({
         date: dateStr,
         page: 1,
         limit: 100,
@@ -55,7 +55,7 @@ export class JobScheduler {
           await this.smsUseCase.sendAppointmentReminder({
             phone: appt.phone,
             patientName: appt.patientName,
-            date: dateStr,
+            date: dateStr || '',
             time: appt.bookingTime || '',
             clinicName: 'HomeoX Clinic'
           });
@@ -70,7 +70,7 @@ export class JobScheduler {
   private async runBirthdayGreetings() {
     try {
       const today = new Date();
-      const todayStr = today.toISOString().split('T')[0];
+      const todayStr = today.toISOString().split('T')[0] || '';
       const mmdd = todayStr.substring(5, 10); // "MM-DD"
       const currentHour = today.getHours();
 
@@ -92,7 +92,9 @@ export class JobScheduler {
         }
       }
 
-      this.lastBirthdayRunDate = todayStr;
+      if (todayStr) {
+        this.lastBirthdayRunDate = todayStr;
+      }
       logger.info(`[Job] Birthday Greetings job completed for ${patients.length} patients.`);
     } catch (err: any) {
       logger.error(`[Job] Birthday Greeting error: ${err.message}`);

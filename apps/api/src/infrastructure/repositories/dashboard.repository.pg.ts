@@ -47,7 +47,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
 
   private getPeriodDates(p: string) {
     const now = new Date();
-    const today = now.toISOString().split('T')[0];
+    const today = now.toISOString().split('T')[0] || '';
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     
@@ -60,9 +60,9 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       case 'week': {
         const d = new Date(now);
         d.setDate(d.getDate() - d.getDay());
-        const s = d.toISOString().split('T')[0];
+        const s = d.toISOString().split('T')[0] || '';
         d.setDate(d.getDate() + 6);
-        range = { start: s, end: d.toISOString().split('T')[0] };
+        range = { start: s, end: d.toISOString().split('T')[0] || '' };
         break;
       }
       case 'year': 
@@ -71,7 +71,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       default: // month
         range = { 
           start: `${year}-${month}-01`, 
-          end: new Date(year, now.getMonth() + 1, 0).toISOString().split('T')[0] 
+          end: new Date(year, now.getMonth() + 1, 0).toISOString().split('T')[0] || ''
         };
     }
 
@@ -103,8 +103,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       collCurrRes, collPrevRes,
       waitCurrRes, waitPrevRes
     ] = await Promise.all([
-      this.db.select({ count: sql<number>`count(*)::int` }).from(schema.caseDatas).where(sql`created_at::date BETWEEN ${start} AND ${end} AND (deleted_at IS NULL OR deleted_at::text = '')`),
-      this.db.select({ count: sql<number>`count(*)::int` }).from(schema.caseDatas).where(sql`created_at::date BETWEEN ${prevStDate} AND ${prevEndDate} AND (deleted_at IS NULL OR deleted_at::text = '')`),
+      this.db.select({ count: sql<number>`count(*)::int` }).from(schema.patients).where(sql`created_at::date BETWEEN ${start} AND ${end} AND (deleted_at IS NULL OR deleted_at::text = '')`),
+      this.db.select({ count: sql<number>`count(*)::int` }).from(schema.patients).where(sql`created_at::date BETWEEN ${prevStDate} AND ${prevEndDate} AND (deleted_at IS NULL OR deleted_at::text = '')`),
       this.db.select({ total: sql<number>`COALESCE(sum(amount), 0)::int` }).from(schema.expensesLegacy).where(sql`exp_date::date BETWEEN ${start} AND ${end} AND (deleted_at IS NULL OR deleted_at::text = '')`),
       this.db.execute(sql`
         SELECT 
@@ -134,7 +134,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     const waitPrev = (waitPrevRes as any[])[0] || { avg_wait: 0 };
 
     // Detect revenue tables
-    const [[revCons], [revConsPrev]] = await Promise.all([
+    const revResults = await Promise.all([
       this.db.execute(sql`
         SELECT (
           COALESCE((SELECT sum(received) FROM bills WHERE bill_date::date BETWEEN ${start} AND ${end} AND (deleted_at IS NULL OR deleted_at::text = '')), 0) +
@@ -147,10 +147,13 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           COALESCE((SELECT sum(CAST(NULLIF(amount::text, '') AS numeric)) FROM receipt WHERE created_at::date BETWEEN ${prevStDate} AND ${prevEndDate} AND (deleted_at IS NULL OR deleted_at::text = '')), 0)
         ) as total
       `)
-    ]) as any[][];
+    ]) as any[];
 
-    currE = Number(revCons?.total) || 0;
-    prevE = Number(revConsPrev?.total) || 0;
+    const revCons = (revResults[0] as any[])?.[0];
+    const revConsPrev = (revResults[1] as any[])?.[0];
+
+    const currE = Number(revCons?.total) || 0;
+    const prevE = Number(revConsPrev?.total) || 0;
 
     const currP = currPatients?.count || 0;
     const prevP = prevPatients?.count || 0;
@@ -200,7 +203,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           v.weight_kg as weight,
           v.temperature_f as temp
         FROM appointments a
-        JOIN case_datas p ON a.patient_id = p.id
+        JOIN patients p ON a.patient_id = p.id
         LEFT JOIN tokens t ON t.patient_id = a.patient_id AND t.date::date = a.booking_date::date
         LEFT JOIN doctors d ON d.id = a.${sql.identifier(docCol)}
         LEFT JOIN vitals v ON v.visit_id = a.id
@@ -258,7 +261,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     // Always query appointments
     queries.push(this.db.execute(sql`
       SELECT 'appointment' as type, 'Appointment - ' || p.first_name as title, a.booking_date::text as subtitle, a.created_at
-      FROM appointments a JOIN case_datas p ON a.patient_id = p.id
+      FROM appointments a JOIN patients p ON a.patient_id = p.id
       WHERE (a.deleted_at IS NULL OR a.deleted_at::text = '')
       ORDER BY a.id DESC LIMIT ${limit}
     `));
@@ -267,7 +270,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     if (revInfo) {
       queries.push(this.db.execute(sql`
         SELECT 'payment' as type, 'Invoice paid - ' || p.first_name as title, 'Rs.' || r.${sql.identifier(revInfo.amountCol)} as subtitle, r.created_at
-        FROM ${sql.identifier(revInfo.name)} r JOIN case_datas p ON r.regid = p.regid
+        FROM ${sql.identifier(revInfo.name)} r JOIN patients p ON r.regid = p.regid
         WHERE (r.deleted_at IS NULL OR r.deleted_at::text = '')
         ORDER BY r.id DESC LIMIT ${limit}
       `));
@@ -292,7 +295,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       SELECT cr.id, cr.patient_id, p.first_name || ' ' || p.surname as patient_name,
              cr.heading, cr.comments, cr.start_date, cr.status
       FROM case_reminder cr
-      JOIN case_datas p ON cr.patient_id = p.id
+      JOIN patients p ON cr.patient_id = p.id
       WHERE cr.status = 'pending'
       ORDER BY cr.id DESC LIMIT ${limit}
     `);
@@ -306,7 +309,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     
     const results = await this.db.execute(sql`
       SELECT id, regid, first_name, surname, phone, mobile1, dob
-      FROM case_datas
+      FROM patients
       WHERE to_char(dob, 'MM-DD') = ${mmdd}
         AND (deleted_at IS NULL OR deleted_at::text = '')
     `);
@@ -373,7 +376,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     const amountCol = revInfo.amountCol;
 
     // Consolidated Cash vs UPI/Card
-    const [cashRes, upiCardRes] = await Promise.all([
+    const results = await Promise.all([
       this.db.execute(sql`
         SELECT (
           COALESCE((SELECT sum(received) FROM bills WHERE bill_date::date BETWEEN ${start} AND ${end} AND LOWER(COALESCE(payment_mode, '')) = 'cash' AND (deleted_at IS NULL OR deleted_at::text = '')), 0) +
@@ -386,7 +389,10 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           COALESCE((SELECT sum(CAST(NULLIF(amount::text, '') AS numeric)) FROM receipt WHERE created_at::date BETWEEN ${start} AND ${end} AND LOWER(COALESCE(mode, '')) IN ('upi', 'card', 'online') AND (deleted_at IS NULL OR deleted_at::text = '')), 0)
         ) as total
       `)
-    ]) as any[][];
+    ]);
+
+    const cashRes = (results[0] as any[]) || [];
+    const upiCardRes = (results[1] as any[]) || [];
 
     const pendingRes = await this.db.execute(sql`
       SELECT
@@ -398,8 +404,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         AND (deleted_at IS NULL OR deleted_at::text = '')
     `) as any[];
 
-    const cashTotal = (cashRes[0] as any)?.total || 0;
-    const upiCardTotal = (upiCardRes[0] as any)?.total || 0;
+    const cashTotal = Number(cashRes?.[0]?.total || 0);
+    const upiCardTotal = Number(upiCardRes?.[0]?.total || 0);
     const pendingCharges = (pendingRes[0] as any)?.total_charges || 0;
     const pendingReceived = (pendingRes[0] as any)?.total_received || 0;
     const pendingCount = (pendingRes[0] as any)?.invoice_count || 0;
@@ -409,7 +415,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
 
     // Per-patient avg
     const patCountRes = await this.db.execute(sql`
-      SELECT count(*)::int as cnt FROM case_datas
+      SELECT count(*)::int as cnt FROM patients
       WHERE created_at::date BETWEEN ${start} AND ${end}
         AND (deleted_at IS NULL OR deleted_at::text = '')
     `) as any[];
@@ -439,7 +445,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
                ELSE 'Pending'
              END as status
       FROM bills b
-      LEFT JOIN case_datas p ON b.regid = p.regid
+      LEFT JOIN patients p ON b.regid = p.regid
       WHERE b.bill_date::date BETWEEN ${start} AND ${end}
         AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
       ORDER BY b.charges DESC NULLS LAST
@@ -469,7 +475,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           AND (deleted_at IS NULL OR deleted_at::text = '')
       `) : Promise.resolve([{ total: 0 }]),
       this.db.execute(sql`
-        SELECT count(*)::int as cnt FROM case_datas
+        SELECT count(*)::int as cnt FROM patients
         WHERE created_at::date BETWEEN ${start} AND ${monthEnd}
           AND (deleted_at IS NULL OR deleted_at::text = '')
       `),

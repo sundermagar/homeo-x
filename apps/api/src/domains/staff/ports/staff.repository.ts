@@ -18,5 +18,5 @@ export interface StaffRepository {
 
   update(category: StaffCategory, id: number, data: UpdateStaffInput): Promise<StaffMember | null>;
 
-  softDelete(category: StaffCategory, id: number): Promise<boolean>;
+  delete(category: StaffCategory, id: number): Promise<boolean>;
 }

@@ -47,7 +47,9 @@ import { createSettingsRouter } from './routes/settings.router';
 
 const logger = createLogger('http');
 
-export async function createApp(): Promise<{ app: Express; server: HttpServer; io: SocketIOServer }> {
+import { createDbClient, TenantRegistry } from '@mmc/database';
+
+export async function createApp(): Promise<{ app: Express; server: HttpServer; io: SocketIOServer; tenantDb: any }> {
   const app: Express = express();
   const server: HttpServer = createServer(app);
 
@@ -133,6 +135,10 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   // ─── Error Handling (must be last) ───
   app.use(errorHandler);
 
+  // For background jobs and system tasks, we provide a default tenant DB (demo)
+  const defaultTenant = TenantRegistry.resolve('demo') || { schemaName: 'public' };
+  const tenantDb = createDbClient(process.env.DATABASE_URL!, (defaultTenant as any).schemaName);
+
   logger.info('Express app configured with enterprise middleware stack');
-  return { app, server, io };
+  return { app, server, io, tenantDb };
 }
