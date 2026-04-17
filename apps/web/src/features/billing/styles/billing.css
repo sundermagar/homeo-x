@@ -2,17 +2,11 @@
 /* Follows exact same pattern as appointments.css for visual consistency      */
 
 /* ─── Page Layout ─── */
-<<<<<<< HEAD
-  padding: 0;
-  max-width: var(--pp-container-width);
-  margin: 0 auto;
-=======
 .bill-page {
   padding: 0;
   max-width: var(--pp-container-width);
   margin: 0 auto;
 }
->>>>>>> origin/dev-branch
 
 /* ─── Page Header ─── */
 .bill-header {
@@ -88,6 +82,7 @@
   box-shadow: var(--pp-shadow-md);
   background: #ffffff !important;
   border-color: var(--pp-blue-border);
+  transition: all var(--transition-normal);
 }
 
 .bill-stat-card-top {
@@ -120,11 +115,16 @@
 .bill-stat-value {
   font-size: 1.6rem;
   font-weight: 800;
-  color: var(--pp-blue-deep);
   font-family: var(--pp-font-mono);
   line-height: 1;
   letter-spacing: -0.04em;
+  color: var(--pp-blue-deep);
 }
+
+.bill-stat-card[data-type="success"] .bill-stat-value { color: var(--pp-success-fg); }
+.bill-stat-card[data-type="danger"]  .bill-stat-value { color: var(--pp-danger-fg); }
+.bill-stat-card[data-type="warning"] .bill-stat-value { color: var(--pp-warning-fg); }
+.bill-stat-card[data-type="default"] .bill-stat-value { color: var(--pp-blue-deep); }
 
 /* ─── Cards ─── */
 .bill-card {
@@ -276,8 +276,8 @@
   box-shadow: 0 6px 16px rgba(37, 99, 235, 0.2); 
 }
 
-.bill-btn-danger { background: var(--pp-danger-bg); color: var(--pp-danger-fg); border-color: var(--pp-danger-border, #FECACA); }
-.bill-btn-danger:hover { background: #fee2e2; }
+.bill-btn-danger { background: var(--pp-danger-bg); color: var(--pp-danger-fg); border-color: var(--pp-danger-border); }
+.bill-btn-danger:hover { background: var(--pp-danger-bg); border-color: var(--pp-danger-fg); }
 
 .bill-btn-sm { padding: 5px 10px; font-size: 0.75rem; }
 .bill-btn-icon { padding: 9px; width: 38px; height: 38px; }
@@ -302,6 +302,11 @@
 .bill-badge-warning  { background: var(--pp-warning-bg);  color: var(--pp-warning-fg); }
 .bill-badge-default  { background: var(--pp-warm-2); color: var(--pp-text-3); }
 .bill-badge-primary  { background: var(--pp-blue-tint); color: var(--pp-blue); }
+
+/* ─── Brand Token Overrides ─── */
+:root {
+  --pp-danger-border: #FECACA;
+}
 
 /* ─── Filter Bar ─── */
 .bill-filters { display: flex; gap: var(--pp-space-3); flex-wrap: wrap; align-items: center; margin-bottom: var(--pp-space-4); }
@@ -419,6 +424,13 @@
 .bill-form-group  { display: flex; flex-direction: column; gap: 6px; }
 .bill-form-label  { font-size: 0.72rem; font-weight: 800; color: var(--pp-text-3); text-transform: uppercase; letter-spacing: 0.05em; }
 
+.bill-form-row {
+  display: grid;
+  gap: var(--pp-space-4);
+}
+.bill-form-row-2 { grid-template-columns: 1fr 1fr; }
+@media (max-width: 600px) { .bill-form-row-2 { grid-template-columns: 1fr; } }
+
 .bill-form-input,
 .bill-form-select,
 .bill-form-textarea {
@@ -440,6 +452,141 @@
   border-color: var(--pp-blue);
   box-shadow: 0 0 0 4px var(--pp-blue-tint);
 }
+
+/* ─── View Toggle (List / Grid) ─── */
+.bill-view-toggle-group {
+  display: inline-flex;
+  border: 1px solid var(--pp-warm-4);
+  border-radius: 999px;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.bill-view-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--pp-text-3);
+  cursor: pointer;
+  font-size: 12px;
+  font-family: var(--pp-font-sans);
+  transition: all var(--transition-normal);
+  white-space: nowrap;
+}
+.bill-view-toggle-btn.is-active { background: var(--pp-blue-tint); color: var(--pp-blue); font-weight: 700; }
+.bill-view-toggle-btn:hover:not(.is-active) { background: var(--pp-warm-2); }
+
+/* ─── Grid Card View ─── */
+.bill-card-grid {
+  display: grid;
+  gap: var(--pp-space-4);
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.bill-grid-card { padding: var(--pp-space-4); gap: var(--pp-space-3); display: flex; flex-direction: column; }
+.bill-grid-card-icon {
+  width: 40px; height: 40px;
+  border-radius: var(--pp-radius-card);
+  background: var(--pp-blue-tint);
+  color: var(--pp-blue);
+  display: grid;
+  place-items: center;
+}
+.bill-grid-card-footer { margin-top: auto; }
+
+/* ─── Patient Selection ─── */
+.bill-patient-chip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--pp-space-3) var(--pp-space-4);
+  background: var(--pp-blue-tint);
+  border: 1px solid var(--pp-blue-border);
+  border-radius: var(--pp-radius-btn);
+}
+
+.bill-patient-chip-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--pp-blue);
+  margin-bottom: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.bill-patient-chip-name {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--pp-ink);
+}
+
+.bill-patient-chip-id {
+  font-family: var(--pp-font-mono);
+  font-size: 0.75rem;
+  color: var(--pp-text-3);
+}
+
+/* ─── Patient Search Dropdown ─── */
+.bill-dropdown-overlay {
+  position: absolute;
+  z-index: 10;
+  width: calc(100% - 40px);
+  max-height: 200px;
+  overflow-y: auto;
+  box-shadow: var(--pp-shadow-md);
+  border-radius: var(--pp-radius-btn);
+  border: 1px solid var(--pp-warm-4);
+  background: #ffffff;
+}
+
+.bill-dropdown-item {
+  width: 100%;
+  text-align: left;
+  padding: var(--pp-space-3) var(--pp-space-4);
+  border: none;
+  border-bottom: 1px solid var(--pp-warm-3);
+  background: none;
+  cursor: pointer;
+  transition: background var(--transition-normal);
+}
+.bill-dropdown-item:last-child { border-bottom: none; }
+.bill-dropdown-item:hover { background: var(--pp-warm-2); }
+
+.bill-dropdown-item-name { font-weight: 600; font-size: 0.875rem; color: var(--pp-ink); }
+.bill-dropdown-item-meta { font-size: 0.72rem; color: var(--pp-text-3); font-family: var(--pp-font-mono); }
+
+/* ─── Form Section ─── */
+.bill-form-section {
+  padding: var(--pp-space-4) var(--pp-space-5);
+  border-bottom: 1px solid var(--pp-warm-3);
+}
+.bill-form-section:last-child { border-bottom: none; }
+
+/* ─── Form Card Body ─── */
+.bill-form-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* ─── Balance Display ─── */
+.bill-balance-row {
+  padding: var(--pp-space-3) var(--pp-space-4);
+  background: var(--pp-warm-2);
+  border-radius: var(--pp-radius-btn);
+  border: 1px solid var(--pp-warm-4);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.bill-balance-label { font-size: 0.72rem; font-weight: 800; color: var(--pp-text-3); text-transform: uppercase; letter-spacing: 0.05em; }
+.bill-balance-value { font-family: var(--pp-font-mono); font-size: 1.1rem; font-weight: 700; }
+
+/* ─── Modal / Overlay ─── */
+.bill-search-relative { position: relative; display: flex; flex-direction: column; gap: var(--pp-space-2); }
 
 /* ─── Animations ─── */
 @keyframes billModalIn { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: none; } }

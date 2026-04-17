@@ -110,12 +110,7 @@ export interface Frequency {
   updatedAt?: Date | null;
 }
 
-export interface ExpenseHead {
-  id: number;
-  name: string;
-  description?: string | null;
-  isActive?: boolean | null;
-}
+
 
 export interface MessageTemplate {
   id: number;
@@ -239,12 +234,7 @@ export interface ISettingsRepository {
   updateFrequency(id: number, data: Partial<Omit<Frequency, 'id'>>): Promise<Frequency>;
   deleteFrequency(id: number): Promise<void>;
 
-  // Expense Heads
-  listExpenseHeads(): Promise<ExpenseHead[]>;
-  getExpenseHead(id: number): Promise<ExpenseHead | undefined>;
-  createExpenseHead(data: Omit<ExpenseHead, 'id'>): Promise<ExpenseHead>;
-  updateExpenseHead(id: number, data: Partial<Omit<ExpenseHead, 'id'>>): Promise<ExpenseHead>;
-  deleteExpenseHead(id: number): Promise<void>;
+
 
   // Message Templates
   listMessageTemplates(): Promise<MessageTemplate[]>;

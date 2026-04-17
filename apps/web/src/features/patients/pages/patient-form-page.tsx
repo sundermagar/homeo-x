@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { usePatient, useCreatePatient, useUpdatePatient, usePatientFormMeta } from '../hooks/use-patients';
+import '../styles/patients.css';
 
 const INDIAN_STATES = [
   'Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhattisgarh','Goa','Gujarat',
@@ -32,39 +33,37 @@ export default function PatientFormPage() {
   const createMutation = useCreatePatient();
   const updateMutation = useUpdatePatient();
 
-  useEffect(() => {
-    if (isEdit && patient) {
-      setForm({
-        title: patient.title || '',
-        firstName: patient.firstName || '',
-        middleName: patient.middleName || '',
-        surname: patient.surname || '',
-        gender: (patient.gender || 'M') as 'M' | 'F' | 'Other',
-        phone: patient.phone || '',
-        mobile1: patient.mobile1 || '',
-        mobile2: patient.mobile2 || '',
-        email: patient.email || '',
-        pin: patient.pin || '',
-        address: patient.address || '',
-        road: patient.road || '',
-        area: patient.area || '',
-        city: patient.city || '',
-        state: patient.state || 'Punjab',
-        country: patient.country || 'India',
-        altAddress: patient.altAddress || '',
-        religion: patient.religion || '',
-        occupation: patient.occupation || '',
-        maritalStatus: patient.maritalStatus || '',
-        bloodGroup: patient.bloodGroup || '',
-        referenceType: patient.referenceType || '',
-        referredBy: patient.referredBy || '',
-        assistantDoctor: patient.assistantDoctor || '',
-        consultationFee: patient.consultationFee || 500,
-        courierOutstation: patient.courierOutstation || false,
-        dateOfBirth: patient.dateOfBirth ? (new Date(String(patient.dateOfBirth)).toISOString().split('T')[0] ?? '') : '',
-      });
-    }
-  }, [isEdit, patient, meta]);
+  if (isEdit && patient) {
+    setForm({
+      title: patient.title || '',
+      firstName: patient.firstName || '',
+      middleName: patient.middleName || '',
+      surname: patient.surname || '',
+      gender: (patient.gender || 'M') as 'M' | 'F' | 'Other',
+      phone: patient.phone || '',
+      mobile1: patient.mobile1 || '',
+      mobile2: patient.mobile2 || '',
+      email: patient.email || '',
+      pin: patient.pin || '',
+      address: patient.address || '',
+      road: patient.road || '',
+      area: patient.area || '',
+      city: patient.city || '',
+      state: patient.state || 'Punjab',
+      country: patient.country || 'India',
+      altAddress: patient.altAddress || '',
+      religion: patient.religion || '',
+      occupation: patient.occupation || '',
+      maritalStatus: patient.maritalStatus || '',
+      bloodGroup: patient.bloodGroup || '',
+      referenceType: patient.referenceType || '',
+      referredBy: patient.referredBy || '',
+      assistantDoctor: patient.assistantDoctor || '',
+      consultationFee: patient.consultationFee || 500,
+      courierOutstation: patient.courierOutstation || false,
+      dateOfBirth: patient.dateOfBirth ? (new Date(String(patient.dateOfBirth)).toISOString().split('T')[0] ?? '') : '',
+    });
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -128,9 +127,9 @@ export default function PatientFormPage() {
         </div>
 
         {errors.length > 0 && (
-          <div style={{ background: 'var(--pp-danger-bg)', border: '1px solid #fecaca', padding: '12px 16px', margin: '16px 20px 0', borderRadius: 'var(--pp-radius-card)', color: 'var(--pp-danger-fg)' }}>
-            <ul style={{ margin: 0, paddingLeft: '20px' }}>
-              {errors.map((e, i) => <li key={i} className="text-small" style={{ fontWeight: 600, color: 'var(--pp-danger-fg)' }}>{e}</li>)}
+          <div className="pat-error-banner">
+            <ul className="pat-error-list">
+              {errors.map((e, i) => <li key={i} className="pat-error-item">{e}</li>)}
             </ul>
           </div>
         )}
@@ -291,7 +290,7 @@ export default function PatientFormPage() {
           </div>
 
           {/* Submit */}
-          <div style={{ marginTop: '32px', display: 'flex', gap: '12px', borderTop: '1px solid var(--pp-warm-4)', paddingTop: '20px' }}>
+          <div className="pat-submit-bar">
             <button className="btn-primary" type="submit" disabled={isSubmitting} style={{ cursor: isSubmitting ? 'wait' : 'pointer' }}>
               {isSubmitting ? 'Saving...' : (isEdit ? 'Update Patient' : 'Save Patient')}
             </button>

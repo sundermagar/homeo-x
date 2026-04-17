@@ -6,6 +6,7 @@ import type {
   BankDeposit,
   CashDeposit,
   ExpenseWithHead,
+  ExpenseHead,
 } from '@mmc/types';
 import type {
   CreateAdditionalChargeInput,
@@ -21,7 +22,10 @@ import type {
   CreateExpenseInput,
   UpdateExpenseInput,
   ListExpensesQuery,
+  CreateExpenseHeadInput,
+  UpdateExpenseHeadInput,
 } from '@mmc/validation';
+
 
 // ─── Additional Charges Hooks ──────────────────────────────────────────────────
 
@@ -282,5 +286,70 @@ export function useDeleteExpense() {
       await apiClient.delete(`/expenses/${id}`);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['expenses'] }),
+  });
+}
+
+// ─── Expense Heads Hooks ───────────────────────────────────────────────────────
+
+export function useExpenseHeads() {
+  return useQuery({
+    queryKey: ['expense-heads'],
+    queryFn: async () => {
+      const { data } = await apiClient.get<{ success: boolean; data: ExpenseHead[] }>(
+        '/accounts/expense-heads'
+      );
+      return data.data ?? [];
+    },
+  });
+}
+
+export function useExpenseHead(id: number) {
+  return useQuery({
+    queryKey: ['expense-heads', id],
+    queryFn: async () => {
+      const { data } = await apiClient.get<{ success: boolean; data: ExpenseHead }>(
+        `/accounts/expense-heads/${id}`
+      );
+      return data.data;
+    },
+    enabled: !!id && id > 0,
+  });
+}
+
+export function useCreateExpenseHead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: CreateExpenseHeadInput) => {
+      const { data } = await apiClient.post<{ success: boolean; data: ExpenseHead }>(
+        '/accounts/expense-heads',
+        input
+      );
+      return data.data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['expense-heads'] }),
+  });
+}
+
+export function useUpdateExpenseHead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...input }: UpdateExpenseHeadInput & { id: number }) => {
+      const { data } = await apiClient.put<{ success: boolean; data: ExpenseHead }>(
+        `/accounts/expense-heads/${id}`,
+        input
+      );
+      return data.data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['expense-heads'] }),
+  });
+}
+
+export function useDeleteExpenseHead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      await apiClient.delete(`/accounts/expense-heads/${id}`);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['expense-heads'] }),
   });
 }

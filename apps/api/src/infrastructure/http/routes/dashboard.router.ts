@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import type { Router as ExpressRouter } from 'express';
+import type { Request, Response, Router as ExpressRouter } from 'express';
 import { asyncHandler } from '../middleware/async-handler';
 import { sendSuccess } from '../../../shared/response-formatter';
 import { DashboardRepositoryPg } from '../../repositories/dashboard.repository.pg';
@@ -14,11 +14,12 @@ const getUseCases = (req: any) => {
   return new DashboardUseCases(repo);
 };
 
-router.get('/', asyncHandler(async (req, res) => {
+router.get('/', asyncHandler(async (req: Request, res: Response) => {
   const useCases = getUseCases(req);
   const period = (req.query.period as string) || 'month';
-  const result = await useCases.getUnifiedDashboard(period, req.user!.contextId, req.user!);
-
+  if (!req.user) throw new Error('Unauthorized');
+  
+  const result = await useCases.getUnifiedDashboard(period, req.user.contextId, req.user as any);
   if (!result.success) throw new Error(result.error);
   sendSuccess(res, result.data);
 }));
@@ -26,8 +27,9 @@ router.get('/', asyncHandler(async (req, res) => {
 router.get('/clinic-admin', asyncHandler(async (req, res) => {
   const useCases = getUseCases(req);
   const period = (req.query.period as string) || 'month';
-  const result = await useCases.getClinicAdminDashboard(period, req.user!.contextId);
+  if (!req.user) throw new Error('Unauthorized');
 
+  const result = await useCases.getClinicAdminDashboard(period, req.user.contextId);
   if (!result.success) throw new Error(result.error);
   sendSuccess(res, result.data);
 }));

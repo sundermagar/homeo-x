@@ -26,7 +26,7 @@ export default function PaymentsPage() {
       <div className="bill-header">
         <div>
           <h1 className="bill-header-title">
-            <Banknote size={20} strokeWidth={1.6} style={{ color: 'var(--primary)' }} />
+            <Banknote size={20} strokeWidth={1.6} style={{ color: 'var(--pp-blue)' }} />
             Payment Ledger
           </h1>
           <p className="bill-header-sub">Transaction history and electronic payment processing records.</p>
@@ -51,7 +51,7 @@ export default function PaymentsPage() {
           <input
             type="text"
             className="bill-filter-input bill-search-input"
-            style={{ width: '180px', fontFamily: 'var(--font-mono)' }}
+            style={{ width: '180px', fontFamily: 'var(--pp-font-mono)' }}
             placeholder="Search Reg ID…"
             value={regidFilter}
             onChange={(e) => { setRegidFilter(e.target.value); setPage(1); }}
@@ -109,13 +109,13 @@ function ManualPaymentModal({ onClose }: { onClose: () => void }) {
 
         <form onSubmit={handleSubmit} className="bill-modal-body">
           <div className="bill-form-group">
-            <label className="bill-form-label">Patient ID (Regid) <span style={{ color: 'var(--danger)' }}>*</span></label>
-            <input type="number" required className="bill-form-input" style={{ fontFamily: 'var(--font-mono)' }} value={regid} onChange={e => setRegid(e.target.value)} placeholder="e.g. 1042" />
+            <label className="bill-form-label">Patient ID (Regid) <span style={{ color: 'var(--pp-danger-fg)' }}>*</span></label>
+            <input type="number" required className="bill-form-input" style={{ fontFamily: 'var(--pp-font-mono)' }} value={regid} onChange={e => setRegid(e.target.value)} placeholder="e.g. 1042" />
           </div>
 
           <div className="bill-form-group">
-            <label className="bill-form-label">Amount (₹) <span style={{ color: 'var(--danger)' }}>*</span></label>
-            <input type="number" required className="bill-form-input" style={{ fontFamily: 'var(--font-mono)', fontSize: '1.2rem', fontWeight: 700 }} value={amount} onChange={e => setAmount(parseFloat(e.target.value))} />
+            <label className="bill-form-label">Amount (₹) <span style={{ color: 'var(--pp-danger-fg)' }}>*</span></label>
+            <input type="number" required className="bill-form-input" style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '1.2rem', fontWeight: 700 }} value={amount} onChange={e => setAmount(parseFloat(e.target.value))} />
           </div>
 
           <div className="bill-form-group">

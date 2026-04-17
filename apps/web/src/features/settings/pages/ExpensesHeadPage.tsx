@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Wallet, Plus, X, RefreshCw, ArrowLeft, Trash2, Edit2, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useExpenseHeads, useCreateExpenseHead, useUpdateExpenseHead, useDeleteExpenseHead } from '../hooks/use-settings';
+import { useExpenseHeads, useCreateExpenseHead, useUpdateExpenseHead, useDeleteExpenseHead } from '@/features/billing/hooks/use-accounts';
 import '../../platform/styles/platform.css';
 import '../styles/settings.css';
 

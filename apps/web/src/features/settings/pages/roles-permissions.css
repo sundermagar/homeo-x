@@ -1,77 +1,96 @@
-/* ── Identity Selection Pane (Left) ── */
+/* 
+  IDENTITY & RBAC MODULE UI v2.0
+  Mobile-First Responsive Styles
+*/
 
+/* ─── Layout Grid (Mobile Default) ─── */
 .plat-rbac-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pp-space-4);
+  width: 100%;
 }
 
 @media (min-width: 1024px) {
   .plat-rbac-grid {
+    display: grid;
     grid-template-columns: 320px 1fr;
     align-items: flex-start;
+    gap: var(--pp-space-6);
   }
 }
 
+/* ─── Identity Selection Pane ─── */
 .plat-role-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--pp-space-2);
+}
+
+@media (max-width: 1023px) {
+  .plat-role-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--pp-space-3);
+  }
 }
 
 .plat-role-item {
-  padding: 16px 20px;
+  padding: 14px 16px;
   background: white;
-  border: 1px solid var(--border-main);
-  border-radius: 12px;
+  border: 1px solid var(--pp-warm-4);
+  border-radius: var(--pp-radius-card);
   cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all var(--transition-normal);
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: var(--pp-space-3);
   position: relative;
 }
 
 .plat-role-item:hover {
-  border-color: var(--primary);
-  background: var(--bg-surface-2);
-  transform: translateX(4px);
+  border-color: var(--pp-blue-border);
+  background: var(--pp-warm-1);
+  transform: translateY(-1px);
 }
 
 .plat-role-item.active {
-  background: var(--primary-tint);
-  border-color: var(--primary);
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
+  background: var(--pp-blue-tint);
+  border-color: var(--pp-blue);
+  box-shadow: var(--pp-shadow-sm);
 }
 
-.plat-role-item.active::after {
-  content: '';
-  position: absolute;
-  right: -12px;
-  top: 50%;
-  transform: translateY(-50%);
-  border-left: 6px solid var(--primary);
-  border-top: 6px solid transparent;
-  border-bottom: 6px solid transparent;
+/* Pointer for active state (Only on Desktop) */
+@media (min-width: 1024px) {
+  .plat-role-item.active::after {
+    content: '';
+    position: absolute;
+    right: -10px;
+    top: 50%;
+    transform: translateY(-50%);
+    border-left: 6px solid var(--pp-blue);
+    border-top: 6px solid transparent;
+    border-bottom: 6px solid transparent;
+  }
 }
 
 .plat-role-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 10px;
-  background: var(--bg-surface-2);
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  background: var(--pp-warm-2);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-muted);
-  transition: all 0.2s;
+  color: var(--pp-text-3);
   flex-shrink: 0;
+  transition: all var(--transition-fast);
 }
 
 .plat-role-item.active .plat-role-icon {
   background: white;
-  color: var(--primary);
-  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  color: var(--pp-blue);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
 .plat-role-info {
@@ -80,109 +99,108 @@
 }
 
 .plat-role-name {
-  font-size: 0.875rem;
-  font-weight: 700;
-  color: var(--text-main);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--pp-ink);
   letter-spacing: -0.01em;
 }
 
 .plat-role-desc {
-  font-size: 0.7rem;
-  color: var(--text-muted);
-  margin-top: 2px;
+  font-size: 11px;
+  color: var(--pp-text-3);
+  margin-top: 1px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-/* ── Capability Matrix (Right) ── */
-
+/* ─── Capability Matrix Table (Right) ─── */
 .plat-matrix-card {
   background: white;
-  border: 1px solid var(--border-main);
-  border-radius: 16px;
+  border: 1px solid var(--pp-warm-4);
+  border-radius: var(--pp-radius-card);
   overflow: hidden;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--pp-shadow-sm);
   display: flex;
   flex-direction: column;
 }
 
 .plat-matrix-header {
-  padding: 18px 24px;
-  background: var(--bg-surface-1);
-  border-bottom: 1px solid var(--border-main);
+  padding: 14px 20px;
+  background: var(--pp-warm-2);
+  border-bottom: 1px solid var(--pp-warm-4);
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
 .plat-matrix-title {
-  font-size: 0.95rem;
-  font-weight: 800;
-  color: var(--text-main);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--pp-ink);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .plat-matrix-table-wrap {
   flex: 1;
-  max-height: 800px;
+  max-height: 70vh; /* Better than fixed pixel on small screens */
+  overflow-x: auto;
   overflow-y: auto;
 }
 
 .plat-matrix-table {
   width: 100%;
   border-collapse: collapse;
+  min-width: 600px; /* Ensure table doesn't collapse too much on mobile */
 }
 
 .plat-matrix-table th {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: var(--bg-surface-2);
-  padding: 12px 24px;
-  font-size: 0.68rem;
-  font-weight: 800;
+  background: var(--pp-warm-2);
+  padding: 10px 16px;
+  font-size: 10px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  color: var(--pp-text-3);
   text-align: left;
-  border-bottom: 1px solid var(--border-main);
+  border-bottom: 1px solid var(--pp-warm-4);
 }
 
 .plat-matrix-table td {
-  padding: 18px 24px;
-  border-bottom: 1px solid var(--border-light, #f1f5f9);
-  transition: background 0.1s;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--pp-warm-3);
+  vertical-align: middle;
 }
 
 .plat-matrix-table tr:hover td {
-  background: var(--bg-surface-1);
+  background: var(--pp-warm-1);
 }
 
 .plat-cap-key {
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--text-main);
-  letter-spacing: -0.02em;
+  font-family: var(--pp-font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pp-ink);
 }
 
 .plat-cap-desc {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  margin-top: 3px;
+  font-size: 11px;
+  color: var(--pp-text-3);
+  margin-top: 2px;
   line-height: 1.4;
 }
 
-/* ── Modern Switch ── */
-
+/* ─── Modern Matrix Switch ─── */
 .plat-switch {
   position: relative;
   display: inline-block;
-  width: 44px;
-  height: 24px;
+  width: 36px;
+  height: 20px;
 }
 
 .plat-switch input {
@@ -194,53 +212,54 @@
 .plat-slider {
   position: absolute;
   cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #e2e8f0;
-  transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
-  border-radius: 34px;
+  inset: 0;
+  background-color: var(--pp-warm-4);
+  transition: all var(--transition-normal);
+  border-radius: 20px;
 }
 
 .plat-slider:before {
   position: absolute;
   content: "";
-  height: 18px;
-  width: 18px;
+  height: 14px;
+  width: 14px;
   left: 3px;
   bottom: 3px;
   background-color: white;
-  transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all var(--transition-normal);
   border-radius: 50%;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
 input:checked + .plat-slider {
-  background-color: var(--primary);
+  background-color: var(--pp-blue);
 }
 
 input:checked + .plat-slider:before {
-  transform: translateX(20px);
+  transform: translateX(16px);
 }
 
-/* ── Matrix Empty State ── */
-
+/* ─── Matrix Interaction Empty States ─── */
 .plat-matrix-empty {
-  padding: 120px 40px;
+  padding: 60px 24px;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 20px;
-  background: var(--bg-surface-1);
+  gap: 16px;
+  background: white;
+}
+
+@media (min-width: 768px) {
+  .plat-matrix-empty {
+    padding: 100px 40px;
+  }
 }
 
 .plat-matrix-empty .plat-empty-icon {
-  width: 64px;
-  height: 64px;
-  color: var(--primary);
+  width: 54px;
+  height: 54px;
+  color: var(--pp-blue);
   opacity: 0.15;
-  margin-bottom: 10px;
 }

@@ -178,6 +178,95 @@
   background: var(--pp-blue-tint);
 }
 
+/* ─── Export Data Page Styles ─── */
+.export-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .export-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (min-width: 1024px) {
+  .export-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+.export-card {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--pp-warm-4);
+  border-radius: 16px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.export-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--pp-blue-border);
+  box-shadow: 0 20px 25px -5px rgba(37, 99, 235, 0.1), 0 10px 10px -5px rgba(37, 99, 235, 0.04);
+}
+
+.export-icon-wrap {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: var(--pp-blue-tint);
+  color: var(--pp-blue);
+  border: 1px solid var(--pp-blue-border);
+  transition: all 0.3s ease;
+}
+
+.export-card:hover .export-icon-wrap {
+  background: var(--pp-blue);
+  color: white;
+  transform: rotate(-3deg) scale(1.05);
+}
+
+.export-btn {
+  background: linear-gradient(135deg, var(--pp-blue) 0%, #1e40af 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13px;
+  transition: all 0.3s;
+}
+
+.export-btn:hover:not(:disabled) {
+  opacity: 0.95;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+.export-btn:disabled {
+  background: var(--pp-warm-4);
+  cursor: not-allowed;
+}
+
+.security-box {
+  margin-top: 3rem;
+  background: white;
+  border: 1px dashed var(--pp-warm-4);
+  border-radius: 16px;
+  padding: 1.5rem;
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
 /* ─── Shared Utilities ─── */
 .flex-row-center { display: flex; align-items: center; }
 .badge {

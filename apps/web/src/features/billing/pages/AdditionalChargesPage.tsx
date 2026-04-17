@@ -111,7 +111,7 @@ export default function AdditionalChargesPage() {
         <input
           type="text"
           className="plat-filter-input"
-          style={{ width: 140, fontFamily: 'var(--font-mono)', fontSize: '0.82rem' }}
+          style={{ width: 140, fontFamily: 'var(--pp-font-mono)', fontSize: '0.82rem' }}
           placeholder="Filter by Reg ID..."
           value={regidFilter}
           onChange={e => { setRegidFilter(e.target.value); setPage(1); }}
@@ -143,12 +143,12 @@ export default function AdditionalChargesPage() {
               <tbody>
                 {filtered.map(c => (
                   <tr key={c.id}>
-                    <td data-label="ID" style={{ fontFamily: 'var(--font-mono)' }}>#{c.id}</td>
+                    <td data-label="ID" style={{ fontFamily: 'var(--pp-font-mono)' }}>#{c.id}</td>
                     <td data-label="Patient" style={{ fontWeight: 500 }}>{c.patientName || '—'}</td>
                     <td data-label="Name">{c.additionalName}</td>
-                    <td data-label="Qty" style={{ fontFamily: 'var(--font-mono)' }}>{c.additionalQuantity}</td>
-                    <td data-label="Price" style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>₹{c.additionalPrice.toLocaleString()}</td>
-                    <td data-label="Received" style={{ fontFamily: 'var(--font-mono)', color: 'var(--success)' }}>₹{c.receivedPrice.toLocaleString()}</td>
+                    <td data-label="Qty" style={{ fontFamily: 'var(--pp-font-mono)' }}>{c.additionalQuantity}</td>
+                    <td data-label="Price" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 600 }}>₹{c.additionalPrice.toLocaleString()}</td>
+                    <td data-label="Received" style={{ fontFamily: 'var(--pp-font-mono)', color: 'var(--pp-success-fg)' }}>₹{c.receivedPrice.toLocaleString()}</td>
                     <td>
                       <div className="flex justify-end gap-3">
                         <button className="plat-btn plat-btn-sm plat-btn-icon" onClick={() => handleOpenEdit(c)}>

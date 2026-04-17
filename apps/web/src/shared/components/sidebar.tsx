@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import React, { NavLink, useLocation } from 'react-router-dom';
-import React, {
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import {
   LayoutDashboard,
   Users,
   CalendarClock,
@@ -55,7 +55,7 @@ import React, {
   Truck,
   CreditCard,
 } from 'lucide-react';
-import React, { useAuthStore } from '../stores/auth-store';
+import { useAuthStore } from '../stores/auth-store';
 import '../styles/sidebar.css';
 
 // ─── Role Definitions ────────────────────────────────────────────────────────
@@ -82,6 +82,8 @@ interface NavGroup {
   children: NavChild[];
   /** Roles allowed to see this group. Undefined = visible to all. */
   roles?: UserRole[];
+  /** If set, clicking the group header also navigates to this path */
+  defaultPath?: string;
 }
 
 type NavItem =
@@ -174,6 +176,7 @@ const NAV_STRUCTURE: NavItem[] = [
       label: 'Analytics',
       icon: PieChart,
       roles: ADMIN,
+      defaultPath: '/analytics',
       children: [
         { path: '/analytics', label: 'Dashboard', icon: BarChart2 },
         { 
@@ -187,8 +190,8 @@ const NAV_STRUCTURE: NavItem[] = [
             { path: '/analytics/reports/references', label: 'Referrals & Sources', icon: Users },
           ]
         },
-        { path: '/settings/export',   label: 'Export Data',    icon: FileJson },
-        { path: '/settings/stocks',   label: 'Inventory Logs', icon: Database },
+        { path: '/analytics/export',   label: 'Export Data',    icon: FileJson },
+        { path: '/analytics/stocks',   label: 'Inventory Logs', icon: Database },
       ],
     },
   },
@@ -321,6 +324,7 @@ function isGroupActive(group: NavGroup, currentLocation: string): boolean {
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { user, logout } = useAuthStore();
+  const navigate = useNavigate();
   const location = useLocation();
 
   const userRole = normalizeRole((user as any)?.type || (user as any)?.role);
@@ -466,7 +470,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               <div key={group.id} className="sidebar-group">
                 <button
                   className={`sidebar-group-trigger ${groupActive ? 'group-active' : ''}`}
-                  onClick={() => toggleGroup(group.id)}
+                  onClick={() => {
+                    toggleGroup(group.id);
+                    if (group.defaultPath) navigate(group.defaultPath);
+                  }}
                 >
                   <div className="sidebar-group-trigger-left">
                     <GroupIcon className="sidebar-item-icon" strokeWidth={1.8} />

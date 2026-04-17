@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { usePatient, useDeletePatient, useFamilyMembers, useAddFamilyMember, useRemoveFamilyMember, usePatientLookup, usePatientClinicalRecord } from '../hooks/use-patients';
 import { Edit2, Trash2, UserPlus, Users, X, MapPin, Phone, CheckCircle, Search, TrendingUp, Activity } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import type { PatientSummary, FamilyMember } from '@mmc/types';
+import '../styles/patients.css';
 
 export default function PatientDetailPage() {
   const { regid } = useParams();
@@ -53,38 +54,34 @@ export default function PatientDetailPage() {
   }
 
   const InfoRow = ({ label, value }: { label: string; value: string | null | undefined }) => (
-    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--pp-warm-4)' }}>
-      <span className="text-small" style={{ fontWeight: 600 }}>{label}</span>
-      <span className="text-body" style={{ fontWeight: 500, color: 'var(--pp-ink)' }}>{value || '—'}</span>
+    <div className="pat-info-row">
+      <span className="pat-info-label">{label}</span>
+      <span className="pat-info-value">{value || '—'}</span>
     </div>
   );
 
   return (
     <div className="pp-page-container animate-fade-in">
       {/* Header */}
-      <div className="pp-page-header" style={{ marginBottom: '24px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-          <div style={{ width: '64px', height: '64px', borderRadius: '12px', background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 600 }}>
-            {(patient.firstName?.[0] || '?').toUpperCase()}
-          </div>
-          <div>
-            <h1 className="text-title" style={{ fontSize: '24px', marginBottom: '8px' }}>
-              {patient.title} {patient.firstName} {patient.middleName} {patient.surname}
-            </h1>
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-              <span className="pp-mono" style={{ fontSize: '13px', color: 'var(--pp-blue)', background: 'var(--pp-blue-tint)', padding: '2px 8px', borderRadius: '4px', border: '1px solid var(--pp-blue-border)' }}>
-                RegID: {patient.regid}
-              </span>
-              <span className="text-small">{patient.gender === 'M' ? 'Male' : patient.gender === 'F' ? 'Female' : patient.gender}</span>
-              {patient.dateOfBirth && <span className="text-small">DOB: {new Date(patient.dateOfBirth).toLocaleDateString('en-GB')}</span>}
-            </div>
+      <div className="pat-header">
+        <div className="pat-avatar pat-avatar--lg">
+          {(patient.firstName?.[0] || '?').toUpperCase()}
+        </div>
+        <div className="pat-header-info">
+          <h1 className="pat-header-name">
+            {patient.title} {patient.firstName} {patient.middleName} {patient.surname}
+          </h1>
+          <div className="pat-header-meta">
+            <span className="pat-reg-badge">RegID: {patient.regid}</span>
+            <span className="text-small">{patient.gender === 'M' ? 'Male' : patient.gender === 'F' ? 'Female' : patient.gender}</span>
+            {patient.dateOfBirth && <span className="text-small">DOB: {new Date(patient.dateOfBirth).toLocaleDateString('en-GB')}</span>}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '12px' }}>
+        <div className="pat-header-actions">
           <Link to={`/patients/${regid}/edit`} className="btn-secondary" style={{ display: 'flex', alignItems: 'center' }}>
             <Edit2 size={14} /> Edit
           </Link>
-          <button onClick={handleDelete} className="btn-secondary" style={{ color: 'var(--pp-danger-fg)', borderColor: '#fecaca', background: 'var(--pp-danger-bg)' }}>
+          <button onClick={handleDelete} className="btn-secondary pat-btn-danger">
             <Trash2 size={14} /> Delete
           </button>
         </div>
@@ -93,8 +90,8 @@ export default function PatientDetailPage() {
       <div className="pp-detail-grid" style={{ marginBottom: '24px' }}>
         {/* Contact Info */}
         <div className="pp-card">
-          <h3 className="text-title" style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '15px' }}>
-            <Phone size={16} color="var(--pp-blue)"/> Contact Information
+          <h3 className="pat-chart-title">
+            <Phone size={16} className="pat-chart-title-icon"/> Contact Information
           </h3>
           <InfoRow label="Mobile" value={patient.phone} />
           <InfoRow label="Mobile 2" value={patient.mobile1} />
@@ -105,8 +102,8 @@ export default function PatientDetailPage() {
 
         {/* Address Info */}
         <div className="pp-card">
-          <h3 className="text-title" style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '15px' }}>
-            <MapPin size={16} color="var(--pp-blue)"/> Address & Personal
+          <h3 className="pat-chart-title">
+            <MapPin size={16} className="pat-chart-title-icon"/> Address & Personal
           </h3>
           <InfoRow label="Address" value={[patient.address, patient.road, patient.area].filter(Boolean).join(', ')} />
           <InfoRow label="City" value={patient.city} />
@@ -122,14 +119,14 @@ export default function PatientDetailPage() {
 
       {/* Family Group Management */}
       <div className="pp-card" style={{ padding: 0, overflow: 'hidden' }}>
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--pp-warm-4)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--pp-warm-1)' }}>
-          <h3 className="text-title" style={{ margin: 0, fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Users size={16} color="var(--pp-blue)"/> Family Group
+        <div className="pat-section-header">
+          <h3 className="pat-section-title">
+            <Users size={16} className="pat-section-title-icon"/> Family Group
           </h3>
-          <button 
-            onClick={() => setShowFamilyForm(!showFamilyForm)} 
-            className="btn-secondary"
-            style={{ padding: '6px 12px', fontSize: '12px', borderColor: showFamilyForm ? '#fecaca' : undefined, color: showFamilyForm ? 'var(--pp-danger-fg)' : undefined, background: showFamilyForm ? 'var(--pp-danger-bg)' : undefined }}
+          <button
+            onClick={() => setShowFamilyForm(!showFamilyForm)}
+            className={`btn-secondary${showFamilyForm ? ' pat-btn-danger' : ''}`}
+            style={{ padding: '6px 12px', fontSize: '12px' }}
           >
             {showFamilyForm ? <><X size={14}/> Cancel</> : <><UserPlus size={14}/> Link Member</>}
           </button>
@@ -142,34 +139,33 @@ export default function PatientDetailPage() {
                 <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>SEARCH PATIENT</label>
                 <div style={{ position: 'relative' }}>
                   <Search size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--pp-text-3)' }} />
-                  <input 
+                  <input
                     className="pp-input"
-                    value={searchQuery} 
-                    onChange={e => setSearchQuery(e.target.value)} 
-                    placeholder="Search by name or mobile..." 
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    placeholder="Search by name or mobile..."
                     style={{ paddingLeft: '36px' }}
                   />
                 </div>
-                
+
                 {searchQuery.length >= 2 && lookupResults.length > 0 && !familyForm.memberRegid && (
-                  <div className="pp-card" style={{ position: 'absolute', top: '100%', left: 0, right: 0, padding: 0, marginTop: '4px', zIndex: 10, maxHeight: '200px', overflowY: 'auto', boxShadow: 'var(--pp-shadow-md)' }}>
+                  <div className="pp-card pat-lookup-dropdown">
                     {lookupResults.filter((p: PatientSummary) => p.regid !== numRegid).map((p: PatientSummary) => (
-                      <div 
-                        key={p.regid} 
-                        onClick={() => { setFamilyForm(f => ({ ...f, memberRegid: String(p.regid) })); setSearchQuery(p.fullName); }} 
-                        className="hover-row"
-                        style={{ padding: '12px 16px', cursor: 'pointer', borderBottom: '1px solid var(--pp-warm-4)' }}
+                      <div
+                        key={p.regid}
+                        onClick={() => { setFamilyForm(f => ({ ...f, memberRegid: String(p.regid) })); setSearchQuery(p.fullName); }}
+                        className="hover-row pat-lookup-item"
                       >
-                        <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--pp-ink)' }}>{p.fullName}</div>
-                        <div className="text-small">RegID: {p.regid} • {p.phone}</div>
+                        <div className="pat-lookup-name">{p.fullName}</div>
+                        <div className="pat-lookup-sub">RegID: {p.regid} • {p.phone}</div>
                       </div>
                     ))}
                   </div>
                 )}
 
                 {familyForm.memberRegid && (
-                  <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span className="text-small" style={{ color: 'var(--pp-success-fg)', display: 'flex', alignItems: 'center', gap: '4px' }}><CheckCircle size={12}/> Selected: {searchQuery}</span>
+                  <div className="pat-lookup-selected">
+                    <span className="pat-lookup-check"><CheckCircle size={12}/> Selected: {searchQuery}</span>
                     <button type="button" onClick={() => { setFamilyForm(f => ({ ...f, memberRegid: '' })); setSearchQuery(''); }} style={{ border: 'none', background: 'transparent', color: 'var(--pp-danger-fg)', fontSize: '11px', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}>Change</button>
                   </div>
                 )}
@@ -189,10 +185,10 @@ export default function PatientDetailPage() {
 
         <div className="pp-table-scroll">
           {familyLoading ? (
-            <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--pp-text-3)' }}>Loading family members...</div>
+            <div className="pat-loading-state">Loading family members...</div>
           ) : familyMembers.length === 0 ? (
-            <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--pp-text-3)' }}>
-              <p style={{ fontWeight: 600, color: 'var(--pp-ink)', marginBottom: '8px' }}>No family members linked</p>
+            <div className="pat-empty-state">
+              <p className="pat-empty-state-title">No family members linked</p>
               <p className="text-small">Click "Link Member" to connect related patients</p>
             </div>
           ) : (
@@ -210,20 +206,18 @@ export default function PatientDetailPage() {
                 {familyMembers.map((m: FamilyMember) => (
                   <tr key={m.id} className="hover-row">
                     <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--pp-warm-3)', color: 'var(--pp-text-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 600 }}>
+                      <div className="pat-member-row">
+                        <div className="pat-avatar pat-avatar--sm pat-avatar--warm">
                           {(m.memberName?.[0] || '?').toUpperCase()}
                         </div>
-                        <span style={{ fontWeight: 500, color: 'var(--pp-ink)' }}>{m.memberName || 'Unknown'}</span>
+                        <span className="pat-member-name">{m.memberName || 'Unknown'}</span>
                       </div>
                     </td>
                     <td>
                       <Link to={`/patients/${m.memberRegid}`} className="pp-link pp-mono" style={{ fontSize: '13px', fontWeight: 600 }}>{m.memberRegid}</Link>
                     </td>
                     <td>
-                      <span className="text-label" style={{ display: 'inline-block', padding: '4px 10px', background: 'var(--pp-warm-2)', borderRadius: '12px', border: '1px solid var(--pp-warm-4)', fontSize: '10px' }}>
-                        {m.relation}
-                      </span>
+                      <span className="pat-relation-badge">{m.relation}</span>
                     </td>
                     <td className="text-body" style={{ fontSize: '13px' }}>{m.memberMobile || '—'}</td>
                     <td style={{ textAlign: 'right' }}>
@@ -239,7 +233,7 @@ export default function PatientDetailPage() {
         </div>
       </div>
 
-      <div style={{ marginTop: '24px' }}>
+      <div className="pat-back-link">
         <Link to="/patients" className="pp-link" style={{ fontSize: '13px', fontWeight: 600 }}>← Back to Patient Registry</Link>
       </div>
     </div>
@@ -251,7 +245,6 @@ function ClinicalTrends({ regid }: { regid: number }) {
 
   if (isLoading || !record || !record.vitals || record.vitals.length === 0) return null;
 
-  // Prepare data (Sort by date)
   const chartData = record.vitals
     .map((v: any) => ({
       date: new Date(v.recordedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
@@ -260,21 +253,21 @@ function ClinicalTrends({ regid }: { regid: number }) {
       diastolic: v.diastolicBp,
       fullDate: new Date(v.recordedAt).toLocaleDateString(),
     }))
-    .reverse(); // Newest first to Oldest last in table, but Oldest first in chart
+    .reverse();
 
   return (
     <div className="pp-detail-grid" style={{ marginBottom: '24px', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))' }}>
       <div className="pp-card">
-        <h3 className="text-title" style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '15px' }}>
-          <TrendingUp size={16} color="var(--pp-blue)"/> Weight Trend (Kg)
+        <h3 className="pat-chart-title">
+          <TrendingUp size={16} className="pat-chart-title-icon"/> Weight Trend (Kg)
         </h3>
-        <div style={{ width: '100%', height: 260 }}>
+        <div className="pat-chart-wrap">
           <ResponsiveContainer>
             <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--pp-warm-4)" />
               <XAxis dataKey="date" fontSize={11} tick={{ fill: 'var(--pp-text-3)' }} axisLine={false} tickLine={false} />
               <YAxis fontSize={11} tick={{ fill: 'var(--pp-text-3)' }} axisLine={false} tickLine={false} domain={['dataMin - 5', 'dataMax + 5']} />
-              <Tooltip 
+              <Tooltip
                 contentStyle={{ borderRadius: '8px', border: '1px solid var(--pp-warm-4)', boxShadow: 'var(--pp-shadow-sm)' }}
                 labelStyle={{ fontWeight: 600, color: 'var(--pp-ink)' }}
               />
@@ -285,16 +278,16 @@ function ClinicalTrends({ regid }: { regid: number }) {
       </div>
 
       <div className="pp-card">
-        <h3 className="text-title" style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '15px' }}>
-          <Activity size={16} color="var(--pp-blue)"/> Blood Pressure Trend
+        <h3 className="pat-chart-title">
+          <Activity size={16} className="pat-chart-title-icon"/> Blood Pressure Trend
         </h3>
-        <div style={{ width: '100%', height: 260 }}>
+        <div className="pat-chart-wrap">
           <ResponsiveContainer>
             <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--pp-warm-4)" />
               <XAxis dataKey="date" fontSize={11} tick={{ fill: 'var(--pp-text-3)' }} axisLine={false} tickLine={false} />
               <YAxis fontSize={11} tick={{ fill: 'var(--pp-text-3)' }} axisLine={false} tickLine={false} domain={['dataMin - 10', 'dataMax + 10']} />
-              <Tooltip 
+              <Tooltip
                 contentStyle={{ borderRadius: '8px', border: '1px solid var(--pp-warm-4)', boxShadow: 'var(--pp-shadow-sm)' }}
                 labelStyle={{ fontWeight: 600, color: 'var(--pp-ink)' }}
               />

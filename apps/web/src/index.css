@@ -48,36 +48,25 @@
   --primary: var(--pp-blue);
   --primary-hover: var(--pp-blue-hover);
   --primary-faded: var(--pp-blue-tint);
+  --primary-border: var(--pp-blue-border);
+  --primary-tint: var(--pp-blue-tint);
   --bg-main: var(--pp-warm-1);
   --bg-card: #ffffff;
+  --bg-surface-2: var(--pp-warm-2);
   --border-main: var(--pp-warm-4);
   --text-main: var(--pp-ink);
   --text-secondary: var(--pp-text-2);
   --text-muted: var(--pp-text-3);
-
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-main: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-
-  /* ─── Layout Compatibility Aliases ─── */
-  --primary: #2563EB;
-  --primary-hover: #1D4ED8;
-  --primary-tint: #EFF6FF;
-  --bg-main: #F4F3F1;
-  --bg-card: #ffffff;
-  --bg-surface-2: #FAFAF8;
-  --border-main: #E3E2DF;
-  --text-main: #0F0F0E;
-  --text-secondary: #4A4A47;
-  --text-muted: #888786;
-  --danger: #DC2626;
-  --danger-bg: #FEF2F2;
-  --success: #16A34A;
-  --warning: #D97706;
-  --warning-bg: #FFFBEB;
-  --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  --primary-border: #BFDBFE;
-  --radius-btn: 6px;
-  --radius-card: 10px;
+  --danger: var(--pp-danger-fg);
+  --danger-bg: var(--pp-danger-bg);
+  --success: var(--pp-success-fg);
+  --warning: var(--pp-warning-fg);
+  --warning-bg: var(--pp-warning-bg);
+  --font-mono: var(--pp-font-mono);
+  --font-family: var(--pp-font-sans);
+  --radius-btn: var(--pp-radius-btn);
+  --radius-card: var(--pp-radius-card);
+  --radius-pill: 999px;
   --transition-normal: 0.2s ease;
   --transition-fast: 80ms cubic-bezier(0, 0, 0.2, 1);
 
@@ -957,11 +946,19 @@ a {
   }
 }
 
+/* ── Page Row Layout: stacks on mobile, side-by-side on desktop ── */
 .page-content-row {
   display: flex;
-  align-items: flex-start;
-  gap: var(--pp-space-4);
-  /* Ensure back button and title share same baseline */
+  flex-direction: column;
+  gap: 0;
+}
+
+@media (min-width: 768px) {
+  .page-content-row {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: var(--pp-space-4);
+  }
 }
 
 .page-content-main {
@@ -969,28 +966,48 @@ a {
   min-width: 0;
 }
 
+/* ── Back Button Area ── */
 .page-back-widget-area {
-  padding: 0;
   display: flex;
   align-items: center;
-  /* Reduced top margin to align with optical center of H1 titles */
-  margin-top: 0;
-  padding-top: 2px;
+  /* Mobile: render as a slim top bar above content */
+  padding: 6px 0 8px 0;
+  margin-bottom: 0;
+}
+
+@media (min-width: 768px) {
+  .page-back-widget-area {
+    /* Desktop: revert to side-column alignment */
+    padding: 0;
+    padding-top: 2px;
+    margin-bottom: 0;
+  }
 }
 
 .page-back-widget {
-  width: 40px;
-  height: 40px;
+  /* Mobile-first: compact, slim button */
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 12px;
+  border-radius: 8px;
   color: #64748b;
   cursor: pointer;
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+}
+
+@media (min-width: 768px) {
+  .page-back-widget {
+    /* Desktop: full-size widget */
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+  }
 }
 
 .page-back-widget:hover {

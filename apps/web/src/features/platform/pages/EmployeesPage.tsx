@@ -7,21 +7,21 @@ import { createStaffSchema, updateStaffSchema } from '@mmc/validation';
 import { apiClient } from '@/infrastructure/api-client';
 import '../styles/platform.css';
 
-function FileInputRow({ 
-  label, 
-  field, 
-  value, 
-  onChange, 
-  error, 
+function FileInputRow({
+  label,
+  field,
+  value,
+  onChange,
+  error,
   accept = "image/*,application/pdf",
   className = "",
   style = {}
-}: { 
-  label: string; 
-  field: string; 
-  value?: string; 
-  onChange: (f: string, e: React.ChangeEvent<HTMLInputElement>) => void; 
-  error?: string; 
+}: {
+  label: string;
+  field: string;
+  value?: string;
+  onChange: (f: string, e: React.ChangeEvent<HTMLInputElement>) => void;
+  error?: string;
   accept?: string;
   className?: string;
   style?: React.CSSProperties;
@@ -33,10 +33,10 @@ function FileInputRow({
         <div className="plat-file-trigger">
           <Upload size={14} /> Upload {label}
         </div>
-        <input 
-          type="file" 
+        <input
+          type="file"
           accept={accept}
-          onChange={(e) => onChange(field, e)} 
+          onChange={(e) => onChange(field, e)}
         />
       </div>
       {value && (
@@ -195,7 +195,7 @@ function StaffModal({
     const derivedSurname = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'Staff';
 
     const payload = {
-      
+
       ...getDefaultStaffForm(),
       ...form,
       firstname: (form as any).firstname || derivedFirstname,
@@ -217,7 +217,7 @@ function StaffModal({
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
       console.error("[EmployeesPage] Validation Errors:", result.error.flatten().fieldErrors);
-      
+
       result.error.errors.forEach((err) => {
         const path = err.path[0] as string;
         // Map split name errors back to the Full Name field for visibility
@@ -261,12 +261,12 @@ function StaffModal({
       const res = await apiClient.post('/staff/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      
+
       const resData = (res as any)._original ?? res.data;
       if (resData?.success && resData?.path) {
-         updateForm(field, resData.path);
+        updateForm(field, resData.path);
       } else {
-         setErrors((prev) => ({ ...prev, [field]: 'Upload failed' }));
+        setErrors((prev) => ({ ...prev, [field]: 'Upload failed' }));
       }
     } catch (err: any) {
       setErrors((prev) => ({ ...prev, [field]: err.message || 'Upload failed' }));
@@ -634,7 +634,7 @@ export default function EmployeesPage() {
                     <td>
                       <div className="flex justify-end gap-2">
                         <button className="plat-btn plat-btn-icon plat-btn-ghost" title="Edit" onClick={() => openEdit(s)}>
-                          <X size={13} className="rotate-45" /> {/* Using X as Edit alternative if Edit2 is too bulky */}
+
                           <Edit2 size={13} />
                         </button>
                         <button className="plat-btn plat-btn-icon plat-btn-danger" title="Delete" onClick={() => handleDelete(s.id)} disabled={deleteMutation.isPending}>

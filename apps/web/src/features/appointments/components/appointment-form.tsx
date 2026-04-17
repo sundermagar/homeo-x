@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, User, Phone, Calendar, Clock, Stethoscope, DollarSign, Loader2 } from 'lucide-react';
+import { X, User, Calendar, Clock, Stethoscope, DollarSign, Loader2 } from 'lucide-react';
 import { VisitType } from '@mmc/types';
 import type { Appointment, CreateAppointmentDto } from '@mmc/types';
 import { useCreateAppointment, useUpdateAppointment, useAvailableSlots } from '../hooks/use-appointments';
@@ -134,7 +134,7 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
           <h2 className="appt-modal-title">
             {editAppointment ? 'Edit Appointment' : 'Book Appointment'}
           </h2>
-          <button onClick={onClose} className="appt-btn appt-btn-icon" style={{ border: 'none', color: '#888786' }}>
+          <button onClick={onClose} className="appt-btn appt-btn-icon appt-modal-close">
             <X size={18} strokeWidth={1.6} />
           </button>
         </div>
@@ -151,7 +151,7 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
             <div className="appt-form-row appt-form-row-2">
               <div className="appt-form-group">
                 <label className="appt-form-label">
-                  <Stethoscope size={13} strokeWidth={1.6} style={{ display: 'inline', marginRight: 4 }} />
+                  <Stethoscope size={13} strokeWidth={1.6} />
                   Practitioner
                 </label>
                 <select
@@ -165,7 +165,7 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
               </div>
               <div className="appt-form-group">
                 <label className="appt-form-label">
-                  <DollarSign size={13} strokeWidth={1.6} style={{ display: 'inline', marginRight: 4 }} />
+                  <DollarSign size={13} strokeWidth={1.6} />
                   Fee (₹)
                 </label>
                 <input
@@ -182,7 +182,7 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
             <div className="appt-form-row appt-form-row-2">
               <div className="appt-form-group">
                 <label className="appt-form-label">
-                  <Calendar size={13} strokeWidth={1.6} style={{ display: 'inline', marginRight: 4 }} />
+                  <Calendar size={13} strokeWidth={1.6} />
                   Booking Date
                 </label>
                 <input
@@ -218,11 +218,11 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
             {/* Time Slot Picker */}
             <div className="appt-form-group">
               <label className="appt-form-label">
-                <Clock size={13} strokeWidth={1.6} style={{ display: 'inline', marginRight: 4 }} />
+                <Clock size={13} strokeWidth={1.6} />
                 Time Slot
               </label>
               {slots.length === 0 ? (
-                <div style={{ fontSize: '0.8rem', color: '#888786', padding: '12px 0' }}>
+                <div className="appt-slots-hint">
                   Select doctor and date to see available slots
                 </div>
               ) : (
@@ -249,10 +249,10 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
             {/* Patient Lookup */}
             <div className="appt-form-group">
               <label className="appt-form-label">
-                <User size={13} strokeWidth={1.6} style={{ display: 'inline', marginRight: 4 }} />
+                <User size={13} strokeWidth={1.6} />
                 Patient
               </label>
-              <div className="appt-form-row appt-form-row-2" style={{ alignItems: 'flex-start' }}>
+              <div className="appt-form-row appt-form-row-2 appt-form-row-start">
                 {form.visitType === VisitType.FollowUp ? (
                   <input
                     className="appt-form-input"
@@ -279,12 +279,12 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
                 />
               </div>
               
-              {lookupLoading && <span style={{ fontSize: '0.75rem', color: '#888786' }}>Looking up patient…</span>}
+              {lookupLoading && <span className="appt-lookup-loading">Looking up patient…</span>}
               
               {/* If follow-up, show the name only after successful lookup */}
               {form.visitType === VisitType.FollowUp && form.patientName && (
-                <div style={{ marginTop: 8, padding: '8px 12px', background: '#F0FDF4', borderRadius: 8, border: '1px solid #DCFCE7' }}>
-                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#16A34A' }}>
+                <div className="appt-followup-confirmed">
+                  <span className="appt-followup-check">
                     ✓ Confirmed: {form.patientName} (ID: {form.patientId})
                   </span>
                 </div>
@@ -295,8 +295,7 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
             <div className="appt-form-group">
               <label className="appt-form-label">Notes (optional)</label>
               <textarea
-                className="appt-form-input"
-                style={{ resize: 'vertical', minHeight: 64 }}
+                className="appt-form-input appt-form-textarea"
                 placeholder="Additional remarks…"
                 value={form.notes}
                 onChange={e => set('notes', e.target.value)}
@@ -304,11 +303,11 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
             </div>
 
             {/* Actions */}
-            <div style={{ display: 'flex', gap: 10, paddingTop: 4 }}>
-              <button type="button" className="appt-btn" style={{ flex: 1 }} onClick={onClose}>
+            <div className="appt-form-actions">
+              <button type="button" className="appt-btn appt-form-cancel" onClick={onClose}>
                 Cancel
               </button>
-              <button type="submit" className="appt-btn appt-btn-primary" style={{ flex: 2 }} disabled={isLoading}>
+              <button type="submit" className="appt-btn appt-btn-primary appt-form-submit" disabled={isLoading}>
                 {isLoading ? <><Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> Saving…</> :
                   editAppointment ? 'Save Changes' : 'Confirm Booking'}
               </button>

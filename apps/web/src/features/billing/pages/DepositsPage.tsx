@@ -176,7 +176,7 @@ export default function DepositsPage() {
           <Search size={16} className="plat-search-icon" />
           <input className="plat-filter-input plat-search-input" placeholder="Search remarks..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
-        <input type="date" className="plat-filter-input" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem' }} value={dateFilter} onChange={e => setDateFilter(e.target.value)} />
+        <input type="date" className="plat-filter-input" style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.82rem' }} value={dateFilter} onChange={e => setDateFilter(e.target.value)} />
       </div>
 
       <div className="plat-card">
@@ -204,9 +204,9 @@ export default function DepositsPage() {
               <tbody>
                 {filtered.map(d => (
                   <tr key={d.id}>
-                    <td data-label="ID" style={{ fontFamily: 'var(--font-mono)' }}>#{d.id}</td>
-                    <td data-label="Date" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem' }}>{d.depositDate}</td>
-                    <td data-label="Amount" style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>₹{(parseFloat(d.amount ?? '0') || 0).toLocaleString()}</td>
+                    <td data-label="ID" style={{ fontFamily: 'var(--pp-font-mono)' }}>#{d.id}</td>
+                    <td data-label="Date" style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.78rem' }}>{d.depositDate}</td>
+                    <td data-label="Amount" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 600 }}>₹{(parseFloat(d.amount ?? '0') || 0).toLocaleString()}</td>
                     <td data-label="Bank">{d.bankdeposit || '—'}</td>
                     <td data-label="Remark">{d.remark || '—'}</td>
                     <td data-label="Status">

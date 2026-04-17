@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFamilyGroups } from '../hooks/use-patients';
 import { Search, Settings, Grid, List as ListIcon } from 'lucide-react';
+import '../styles/patients.css';
 
 const PAGE_SIZE = 30;
 
@@ -14,7 +15,6 @@ export default function FamilyGroupListPage() {
 
   const { data, isLoading } = useFamilyGroups({ page, limit: PAGE_SIZE, search: debouncedSearch });
 
-  // Debounce search
   const handleSearchChange = (val: string) => {
     setSearch(val);
     setPage(1);
@@ -38,36 +38,35 @@ export default function FamilyGroupListPage() {
 
       {/* Filter Bar */}
       <div className="pp-card pp-filter-bar" style={{ marginBottom: '24px', alignItems: 'center' }}>
-        <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
-          <Search size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--pp-text-3)' }} />
+        <div className="pat-search-wrap">
+          <Search size={14} className="pat-search-icon" />
           <input
-            className="pp-input"
+            className="pp-input pat-search-input"
             type="text"
             placeholder="Search family by head name or RegID..."
             value={search}
             onChange={(e) => handleSearchChange(e.target.value)}
-            style={{ paddingLeft: '36px' }}
           />
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <div style={{ display: 'inline-flex', border: '1px solid var(--pp-warm-4)', borderRadius: 999, overflow: 'hidden', background: 'white' }}>
+          <div className="appt-view-toggle">
             <button
               type="button"
+              className={`appt-view-btn${viewMode === 'list' ? ' is-active' : ''}`}
               onClick={() => setViewMode('list')}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', border: 'none', background: viewMode === 'list' ? 'var(--pp-blue-tint)' : 'transparent', color: viewMode === 'list' ? 'var(--pp-blue)' : 'var(--pp-text-3)', cursor: 'pointer', fontSize: '12px' }}
             >
               <ListIcon size={14} /> List
             </button>
             <button
               type="button"
+              className={`appt-view-btn${viewMode === 'grid' ? ' is-active' : ''}`}
               onClick={() => setViewMode('grid')}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', border: 'none', background: viewMode === 'grid' ? 'var(--pp-blue-tint)' : 'transparent', color: viewMode === 'grid' ? 'var(--pp-blue)' : 'var(--pp-text-3)', cursor: 'pointer', fontSize: '12px' }}
             >
               <Grid size={14} /> Grid
             </button>
           </div>
-          <button 
-            onClick={() => { setSearch(''); setDebouncedSearch(''); setPage(1); }} 
+          <button
+            onClick={() => { setSearch(''); setDebouncedSearch(''); setPage(1); }}
             className="btn-secondary"
           >
             Reset
@@ -76,19 +75,19 @@ export default function FamilyGroupListPage() {
       </div>
 
       {/* Stats */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+      <div className="pat-stats-row">
         <span className="text-label">Family Units</span>
         <span className="text-small">Showing {families.length} groups of {total}</span>
       </div>
 
       {/* Content */}
       {isLoading ? (
-        <div className="pp-card" style={{ textAlign: 'center', padding: '60px', color: 'var(--pp-text-3)' }}>
+        <div className="pp-card pat-loading-state">
           <p style={{ fontWeight: 600 }}>Loading family groups...</p>
         </div>
       ) : families.length === 0 ? (
-        <div className="pp-card" style={{ textAlign: 'center', padding: '60px', color: 'var(--pp-text-3)' }}>
-          <p style={{ fontWeight: 600, color: 'var(--pp-ink)', marginBottom: '8px' }}>No family groups found</p>
+        <div className="pp-card pat-empty-state">
+          <p className="pat-empty-state-title">No family groups found</p>
           <p className="text-small">Try adjusting your search criteria</p>
         </div>
       ) : viewMode === 'list' ? (
@@ -106,19 +105,15 @@ export default function FamilyGroupListPage() {
               {families.map((f: any) => (
                 <tr key={f.id} className="hover-row">
                   <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 600, flexShrink: 0 }}>
+                    <div className="pat-member-row">
+                      <div className="pat-avatar">
                         {((f.name?.[0] || f.surname?.[0] || 'F')).toUpperCase()}
                       </div>
-                      <div>
-                        <div style={{ fontWeight: 600, color: 'var(--pp-ink)' }}>{f.name} {f.surname}</div>
-                      </div>
+                      <span className="pat-member-name">{f.name} {f.surname}</span>
                     </div>
                   </td>
                   <td>
-                    <span className="pp-mono" style={{ fontSize: '12px', fontWeight: 600, color: 'var(--pp-blue)', background: 'var(--pp-blue-tint)', padding: '2px 8px', borderRadius: '4px', border: '1px solid var(--pp-blue-border)' }}>
-                      {f.regid}
-                    </span>
+                    <span className="pat-reg-badge">{f.regid}</span>
                   </td>
                   <td>
                     <span className="text-body" style={{ fontWeight: 600 }}>
@@ -136,15 +131,15 @@ export default function FamilyGroupListPage() {
           </table>
         </div>
       ) : (
-        <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
+        <div className="pp-patient-grid">
           {families.map((f: any) => (
-            <div key={f.id} className="pp-card" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div key={f.id} className="pp-card pat-grid-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
                 <div>
-                  <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--pp-ink)' }}>{f.name} {f.surname}</div>
+                  <div className="pat-grid-card-name" style={{ fontSize: '16px', fontWeight: 700 }}>{f.name} {f.surname}</div>
                   <div className="text-small" style={{ marginTop: '4px' }}>Head RegID: {f.regid}</div>
                 </div>
-                <div style={{ width: 42, height: 42, borderRadius: 12, background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '16px' }}>
+                <div className="pat-avatar pat-avatar--md">
                   {((f.name?.[0] || f.surname?.[0] || 'F')).toUpperCase()}
                 </div>
               </div>
@@ -164,19 +159,19 @@ export default function FamilyGroupListPage() {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '32px', alignItems: 'center' }}>
-          <button 
-            disabled={page <= 1} 
-            onClick={() => setPage(p => p - 1)} 
+        <div className="pat-pagination">
+          <button
+            disabled={page <= 1}
+            onClick={() => setPage(p => p - 1)}
             className="btn-secondary"
             style={{ opacity: page <= 1 ? 0.5 : 1 }}
           >
             Previous
           </button>
           <span className="text-small">Page {page} of {totalPages}</span>
-          <button 
-            disabled={page >= totalPages} 
-            onClick={() => setPage(p => p + 1)} 
+          <button
+            disabled={page >= totalPages}
+            onClick={() => setPage(p => p + 1)}
             className="btn-secondary"
             style={{ opacity: page >= totalPages ? 0.5 : 1 }}
           >

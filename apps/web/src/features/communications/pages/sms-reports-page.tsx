@@ -10,29 +10,29 @@ const STATUS_FILTER = ['', 'sent', 'delivered', 'failed', 'pending'];
 function getStatusClass(status: string) {
   const map: Record<string, string> = {
     delivered: 'delivered',
-    sent:      'sent',
-    failed:    'failed',
-    pending:   'pending',
+    sent: 'sent',
+    failed: 'failed',
+    pending: 'pending',
   };
   return `comm-status-badge ${map[status] ?? ''}`;
 }
 
 export default function SmsReportsPage() {
   const [filters, setFilters] = useState({
-    sms_type:  '',
-    status:    '',
-    from_date:  '',
-    to_date:    '',
-    phone:      '',
-    page:       1,
-    limit:      40,
+    sms_type: '',
+    status: '',
+    from_date: '',
+    to_date: '',
+    phone: '',
+    page: 1,
+    limit: 40,
   });
 
   const { data, isLoading, refetch } = useSmsReports(filters);
   const reports = data?.data ?? [];
-  const total   = data?.total ?? 0;
-  const page    = filters.page ?? 1;
-  const limit   = filters.limit ?? 40;
+  const total = data?.total ?? 0;
+  const page = filters.page ?? 1;
+  const limit = filters.limit ?? 40;
   const totalPages = Math.ceil(total / limit);
 
   const set = (k: string, v: string) => setFilters(f => ({ ...f, [k]: v, page: 1 }));
@@ -60,10 +60,10 @@ export default function SmsReportsPage() {
       {/* Stats */}
       <div className="comm-stats">
         {[
-          { label: 'Total Sent',   value: reports.length,                                       color: '#2563EB', bg: '#EFF6FF' },
-          { label: 'Delivered',    value: reports.filter(r => r.status === 'delivered').length,   color: '#16A34A', bg: '#F0FDF4' },
-          { label: 'Pending',      value: reports.filter(r => r.status === 'pending').length,     color: '#D97706', bg: '#FFFBEB' },
-          { label: 'Failed',       value: reports.filter(r => r.status === 'failed').length,     color: '#DC2626', bg: '#FEF2F2' },
+          { label: 'Total Sent', value: reports.length, color: '#2563EB', bg: '#EFF6FF' },
+          { label: 'Delivered', value: reports.filter(r => r.status === 'delivered').length, color: '#16A34A', bg: '#F0FDF4' },
+          { label: 'Pending', value: reports.filter(r => r.status === 'pending').length, color: '#D97706', bg: '#FFFBEB' },
+          { label: 'Failed', value: reports.filter(r => r.status === 'failed').length, color: '#DC2626', bg: '#FEF2F2' },
         ].map(s => (
           <div key={s.label} className="comm-stat-card">
             <div className="comm-stat-icon" style={{ background: s.bg, color: s.color }}>{s.label[0]}</div>
@@ -92,7 +92,7 @@ export default function SmsReportsPage() {
           {STATUS_FILTER.filter(Boolean).map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
         </select>
         <input className="comm-filter-input" type="date" value={filters.from_date} onChange={e => set('from_date', e.target.value)} title="From" />
-        <input className="comm-filter-input" type="date" value={filters.to_date}   onChange={e => set('to_date',   e.target.value)} title="To" />
+        <input className="comm-filter-input" type="date" value={filters.to_date} onChange={e => set('to_date', e.target.value)} title="To" />
         {(filters.sms_type || filters.status || filters.from_date || filters.phone) && (
           <button className="comm-btn comm-btn-sm"
             onClick={() => setFilters({ sms_type: '', status: '', from_date: '', to_date: '', phone: '', page: 1, limit: 40 })}>

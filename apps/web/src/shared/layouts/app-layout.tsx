@@ -67,7 +67,7 @@ export function AppLayout() {
                   onClick={() => navigate(-1)}
                   aria-label="Go back"
                 >
-                  <ArrowLeft size={18} strokeWidth={2.5} />
+                  <ArrowLeft size={16} strokeWidth={2.5} />
                 </button>
               </div>
             )}

@@ -132,15 +132,7 @@ export const updateFrequencySchema = createFrequencySchema.partial();
 export type CreateFrequencyInput = z.infer<typeof createFrequencySchema>;
 export type UpdateFrequencyInput = z.infer<typeof updateFrequencySchema>;
 
-// ─── Expense Head ────────────────────────────────────────────────────────────
-export const createExpenseHeadSchema = z.object({
-  name: z.string().min(1, 'Name is required').max(255),
-  description: z.string().optional(),
-  isActive: z.boolean().default(true),
-});
-export const updateExpenseHeadSchema = createExpenseHeadSchema.partial();
-export type CreateExpenseHeadInput = z.infer<typeof createExpenseHeadSchema>;
-export type UpdateExpenseHeadInput = z.infer<typeof updateExpenseHeadSchema>;
+
 
 // ─── Message Template ────────────────────────────────────────────────────────
 export const createMessageTemplateSchema = z.object({

@@ -9,13 +9,8 @@ import {
   patients,
 } from '@mmc/database/schema';
 import type { DbClient } from '@mmc/database';
-import type {
-  AdditionalCharge,
-  AdditionalChargeWithPatient,
-  DayCharge,
-  BankDeposit,
-  CashDeposit,
-  ExpenseWithHead,
+ExpenseWithHead,
+  ExpenseHead,
 } from '@mmc/types';
 import type {
   AdditionalChargeRepository,
@@ -37,13 +32,15 @@ import type {
   CreateExpenseInput,
   UpdateExpenseInput,
   ListExpensesQuery,
+  CreateExpenseHeadInput,
+  UpdateExpenseHeadInput,
 } from '@mmc/validation';
 
 /**
  * PostgreSQL adapter for AdditionalChargeRepository.
  */
 export class AdditionalChargeRepositoryPg implements AdditionalChargeRepository {
-  constructor(private readonly db: DbClient) {}
+  constructor(private readonly db: DbClient) { }
 
   async findById(id: number): Promise<AdditionalChargeWithPatient | null> {
     const [row] = await this.db
@@ -65,39 +62,44 @@ export class AdditionalChargeRepositoryPg implements AdditionalChargeRepository 
     data: AdditionalChargeWithPatient[];
     total: number;
   }> {
-    const { page, limit, regid, date } = params;
-    const offset = (page - 1) * limit;
-    const conditions = [isNull(additionalChargesLegacy.deletedAt)];
-    if (regid) conditions.push(eq(additionalChargesLegacy.regid, regid));
-    if (date) {
-      conditions.push(eq(additionalChargesLegacy.dateval, date));
+    try {
+      const { page, limit, regid, date } = params;
+      const offset = (page - 1) * limit;
+      const conditions = [isNull(additionalChargesLegacy.deletedAt)];
+      if (regid) conditions.push(eq(additionalChargesLegacy.regid, regid));
+      if (date) {
+        conditions.push(eq(additionalChargesLegacy.dateval, date));
+      }
+      const where = and(...conditions);
+
+      const [rows, countRows] = await Promise.all([
+        this.db
+          .select({
+            charge: additionalChargesLegacy,
+            patientName: sql<string>`CONCAT(${patients.firstName}, ' ', ${patients.surname})`,
+            phone: patients.mobile1,
+          })
+          .from(additionalChargesLegacy)
+          .leftJoin(patients, eq(patients.regid, additionalChargesLegacy.regid))
+          .where(where)
+          .orderBy(desc(additionalChargesLegacy.id))
+          .limit(limit)
+          .offset(offset),
+        this.db
+          .select({ count: sql<number>`count(*)` })
+          .from(additionalChargesLegacy)
+          .where(where),
+      ]);
+
+      const total = Number(countRows[0]?.count ?? 0);
+      return {
+        data: rows.map(r => ({ ...this.toDomain(r.charge), patientName: r.patientName ?? '', phone: r.phone ?? null })),
+        total,
+      };
+    } catch (err) {
+      console.warn('[ACCOUNTS_REPO] additional_charges table missing or query failed:', err);
+      return { data: [], total: 0 };
     }
-    const where = and(...conditions);
-
-    const [rows, countRows] = await Promise.all([
-      this.db
-        .select({
-          charge: additionalChargesLegacy,
-          patientName: sql<string>`CONCAT(${patients.firstName}, ' ', ${patients.surname})`,
-          phone: patients.mobile1,
-        })
-        .from(additionalChargesLegacy)
-        .leftJoin(patients, eq(patients.regid, additionalChargesLegacy.regid))
-        .where(where)
-        .orderBy(desc(additionalChargesLegacy.id))
-        .limit(limit)
-        .offset(offset),
-      this.db
-        .select({ count: sql<number>`count(*)` })
-        .from(additionalChargesLegacy)
-        .where(where),
-    ]);
-
-    const total = Number(countRows[0]?.count ?? 0);
-    return {
-      data: rows.map(r => ({ ...this.toDomain(r.charge), patientName: r.patientName ?? '', phone: r.phone ?? null })),
-      total,
-    };
   }
 
   async create(data: CreateAdditionalChargeInput): Promise<AdditionalCharge> {
@@ -164,7 +166,7 @@ export class AdditionalChargeRepositoryPg implements AdditionalChargeRepository 
  * PostgreSQL adapter for DayChargeRepository.
  */
 export class DayChargeRepositoryPg implements DayChargeRepository {
-  constructor(private readonly db: DbClient) {}
+  constructor(private readonly db: DbClient) { }
 
   async findById(id: number): Promise<DayCharge | null> {
     const [row] = await this.db
@@ -176,12 +178,16 @@ export class DayChargeRepositoryPg implements DayChargeRepository {
   }
 
   async findAll(): Promise<DayCharge[]> {
-    const rows = await this.db
-      .select()
-      .from(daychargesLegacy)
-      .where(isNull(daychargesLegacy.deletedAt))
-      .orderBy(daychargesLegacy.id);
-    return rows.map(this.toDomain.bind(this));
+    try {
+      const rows = await this.db
+        .select()
+        .from(daychargesLegacy)
+        .where(isNull(daychargesLegacy.deletedAt))
+        .orderBy(daychargesLegacy.id);
+      return rows.map(this.toDomain.bind(this));
+    } catch {
+      return [];
+    }
   }
 
   async create(data: CreateDayChargeInput): Promise<DayCharge> {
@@ -235,7 +241,7 @@ export class DayChargeRepositoryPg implements DayChargeRepository {
  * PostgreSQL adapter for DepositRepository (Bank + Cash).
  */
 export class DepositRepositoryPg implements DepositRepository {
-  constructor(private readonly db: DbClient) {}
+  constructor(private readonly db: DbClient) { }
 
   async findById(id: number, type: 'Bank' | 'Cash'): Promise<BankDeposit | CashDeposit | null> {
     const table = type === 'Bank' ? bankDepositLegacy : cashDepositLegacy;
@@ -251,32 +257,36 @@ export class DepositRepositoryPg implements DepositRepository {
     type: 'Bank' | 'Cash',
     params: ListDepositsQuery,
   ): Promise<{ data: (BankDeposit | CashDeposit)[]; total: number }> {
-    const { page, limit, date } = params;
-    const offset = (page - 1) * limit;
-    const table = type === 'Bank' ? bankDepositLegacy : cashDepositLegacy;
-    const conditions = [isNull((table as any).deletedAt)];
-    if (date) conditions.push(eq((table as any).depositDate, date));
-    const where = and(...conditions);
+    try {
+      const { page, limit, date } = params;
+      const offset = (page - 1) * limit;
+      const table = type === 'Bank' ? bankDepositLegacy : cashDepositLegacy;
+      const conditions = [isNull((table as any).deletedAt)];
+      if (date) conditions.push(eq((table as any).depositDate, date));
+      const where = and(...conditions);
 
-    const [rows, countRows] = await Promise.all([
-      this.db
-        .select()
-        .from(table as any)
-        .where(where)
-        .orderBy(desc((table as any).id))
-        .limit(limit)
-        .offset(offset),
-      this.db
-        .select({ count: sql<number>`count(*)` })
-        .from(table as any)
-        .where(where),
-    ]);
+      const [rows, countRows] = await Promise.all([
+        this.db
+          .select()
+          .from(table as any)
+          .where(where)
+          .orderBy(desc((table as any).id))
+          .limit(limit)
+          .offset(offset),
+        this.db
+          .select({ count: sql<number>`count(*)` })
+          .from(table as any)
+          .where(where),
+      ]);
 
-    const total = Number(countRows[0]?.count ?? 0);
-    return {
-      data: rows.map(r => this.toDomain(r, type) as BankDeposit | CashDeposit),
-      total,
-    };
+      const total = Number(countRows[0]?.count ?? 0);
+      return {
+        data: rows.map(r => this.toDomain(r, type) as BankDeposit | CashDeposit),
+        total,
+      };
+    } catch {
+      return { data: [], total: 0 };
+    }
   }
 
   async createBankDeposit(data: CreateBankDepositInput): Promise<BankDeposit> {
@@ -381,7 +391,7 @@ export class DepositRepositoryPg implements DepositRepository {
  * PostgreSQL adapter for ExpenseRepository.
  */
 export class ExpenseRepositoryPg implements ExpenseRepository {
-  constructor(private readonly db: DbClient) {}
+  constructor(private readonly db: DbClient) { }
 
   async findById(id: number): Promise<ExpenseWithHead | null> {
     const [row] = await this.db
@@ -400,38 +410,42 @@ export class ExpenseRepositoryPg implements ExpenseRepository {
   }
 
   async findAll(params: ListExpensesQuery): Promise<{ data: ExpenseWithHead[]; total: number }> {
-    const { page, limit, head, fromDate, toDate } = params;
-    const offset = (page - 1) * limit;
-    const conditions = [isNull(expensesLegacy.deletedAt)];
-    if (head) conditions.push(eq(expensesLegacy.head, head));
-    if (fromDate) conditions.push(gte(expensesLegacy.expDate, fromDate));
-    if (toDate) conditions.push(lte(expensesLegacy.expDate, toDate));
-    const where = and(...conditions);
+    try {
+      const { page, limit, head, fromDate, toDate } = params;
+      const offset = (page - 1) * limit;
+      const conditions = [isNull(expensesLegacy.deletedAt)];
+      if (head) conditions.push(eq(expensesLegacy.head, head));
+      if (fromDate) conditions.push(gte(expensesLegacy.expDate, fromDate));
+      if (toDate) conditions.push(lte(expensesLegacy.expDate, toDate));
+      const where = and(...conditions);
 
-    const [rows, countRows] = await Promise.all([
-      this.db
-        .select({
-          expense: expensesLegacy,
-          headName: expensesheadLegacy.expenseshead,
-          shortName: expensesheadLegacy.shortName,
-        })
-        .from(expensesLegacy)
-        .leftJoin(expensesheadLegacy, eq(expensesheadLegacy.id, expensesLegacy.head))
-        .where(where)
-        .orderBy(desc(expensesLegacy.id))
-        .limit(limit)
-        .offset(offset),
-      this.db
-        .select({ count: sql<number>`count(*)` })
-        .from(expensesLegacy)
-        .where(where),
-    ]);
+      const [rows, countRows] = await Promise.all([
+        this.db
+          .select({
+            expense: expensesLegacy,
+            headName: expensesheadLegacy.expenseshead,
+            shortName: expensesheadLegacy.shortName,
+          })
+          .from(expensesLegacy)
+          .leftJoin(expensesheadLegacy, eq(expensesheadLegacy.id, expensesLegacy.head))
+          .where(where)
+          .orderBy(desc(expensesLegacy.id))
+          .limit(limit)
+          .offset(offset),
+        this.db
+          .select({ count: sql<number>`count(*)` })
+          .from(expensesLegacy)
+          .where(where),
+      ]);
 
-    const total = Number(countRows[0]?.count ?? 0);
-    return {
-      data: rows.map(r => ({ ...this.toDomain(r.expense), headName: r.headName ?? null, shortName: r.shortName ?? null })),
-      total,
-    };
+      const total = Number(countRows[0]?.count ?? 0);
+      return {
+        data: rows.map(r => ({ ...this.toDomain(r.expense), headName: r.headName ?? null, shortName: r.shortName ?? null })),
+        total,
+      };
+    } catch {
+      return { data: [], total: 0 };
+    }
   }
 
   async create(data: CreateExpenseInput): Promise<ExpenseWithHead> {
@@ -450,10 +464,10 @@ export class ExpenseRepositoryPg implements ExpenseRepository {
 
     const headRow = row.head
       ? await this.db
-          .select({ headName: expensesheadLegacy.expenseshead, shortName: expensesheadLegacy.shortName })
-          .from(expensesheadLegacy)
-          .where(eq(expensesheadLegacy.id, row.head))
-          .limit(1)
+        .select({ headName: expensesheadLegacy.expenseshead, shortName: expensesheadLegacy.shortName })
+        .from(expensesheadLegacy)
+        .where(eq(expensesheadLegacy.id, row.head))
+        .limit(1)
       : null;
 
     return {
@@ -481,10 +495,10 @@ export class ExpenseRepositoryPg implements ExpenseRepository {
 
     const headRow = row.head
       ? await this.db
-          .select({ headName: expensesheadLegacy.expenseshead, shortName: expensesheadLegacy.shortName })
-          .from(expensesheadLegacy)
-          .where(eq(expensesheadLegacy.id, row.head))
-          .limit(1)
+        .select({ headName: expensesheadLegacy.expenseshead, shortName: expensesheadLegacy.shortName })
+        .from(expensesheadLegacy)
+        .where(eq(expensesheadLegacy.id, row.head))
+        .limit(1)
       : null;
 
     return {
@@ -501,6 +515,74 @@ export class ExpenseRepositoryPg implements ExpenseRepository {
       .where(eq(expensesLegacy.id, id))
       .returning();
     return !!row;
+  }
+
+  // ─── Expense Head Methods ──────────────────────────────────────────────────
+
+  async listHeads(): Promise<ExpenseHead[]> {
+    try {
+      const rows = await this.db
+        .select()
+        .from(expensesheadLegacy)
+        .orderBy(desc(expensesheadLegacy.id));
+      return rows.map(r => this.headToDomain(r));
+    } catch (err) {
+      console.warn('[ACCOUNTS_REPO] expenseshead table missing or query failed:', err);
+      return [];
+    }
+  }
+
+  async findHeadById(id: number): Promise<ExpenseHead | null> {
+    try {
+      const [row] = await this.db
+        .select()
+        .from(expensesheadLegacy)
+        .where(eq(expensesheadLegacy.id, id))
+        .limit(1);
+      return row ? this.headToDomain(row) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  async createHead(data: CreateExpenseHeadInput): Promise<ExpenseHead> {
+    const [row] = await this.db
+      .insert(expensesheadLegacy)
+      .values({
+        expenseshead: data.name,
+        shortName: data.description || '',
+      })
+      .returning();
+    return this.headToDomain(row!);
+  }
+
+  async updateHead(id: number, data: UpdateExpenseHeadInput): Promise<ExpenseHead | null> {
+    const [row] = await this.db
+      .update(expensesheadLegacy)
+      .set({
+        ...(data.name !== undefined && { expenseshead: data.name }),
+        ...(data.description !== undefined && { shortName: data.description }),
+      })
+      .where(eq(expensesheadLegacy.id, id))
+      .returning();
+    return row ? this.headToDomain(row) : null;
+  }
+
+  async deleteHead(id: number): Promise<boolean> {
+    const [row] = await this.db
+      .delete(expensesheadLegacy)
+      .where(eq(expensesheadLegacy.id, id))
+      .returning();
+    return !!row;
+  }
+
+  private headToDomain(row: typeof expensesheadLegacy.$inferSelect): ExpenseHead {
+    return {
+      id: row.id,
+      name: row.expenseshead || '',
+      description: row.shortName || null,
+      isActive: true, // Legacy table doesn't have isActive, assuming true
+    };
   }
 
   private toDomain(row: typeof expensesLegacy.$inferSelect): ExpenseWithHead {

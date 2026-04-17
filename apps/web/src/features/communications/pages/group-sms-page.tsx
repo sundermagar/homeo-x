@@ -14,14 +14,14 @@ export default function GroupSmsPage() {
   const sendSingle = useSendSms();
   const broadcast = useBroadcastSms();
 
-  const [mode, setMode]         = useState<'single' | 'broadcast'>('single');
+  const [mode, setMode] = useState<'single' | 'broadcast'>('single');
   const [recipientType, setRecipientType] = useState('manual');
-  const [phone, setPhone]       = useState('');
+  const [phone, setPhone] = useState('');
   const [patientIds, setPatientIds] = useState('');
-  const [message, setMessage]   = useState('');
-  const [smsType, setSmsType]  = useState('General');
-  const [result, setResult]     = useState<{ sent: number; failed: number } | null>(null);
-  const [error, setError]       = useState('');
+  const [message, setMessage] = useState('');
+  const [smsType, setSmsType] = useState('General');
+  const [result, setResult] = useState<{ sent: number; failed: number } | null>(null);
+  const [error, setError] = useState('');
 
   const charCount = message.length;
 

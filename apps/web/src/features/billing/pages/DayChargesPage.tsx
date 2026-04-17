@@ -103,9 +103,9 @@ export default function DayChargesPage() {
               <tbody>
                 {filtered.map(c => (
                   <tr key={c.id}>
-                    <td data-label="ID" style={{ fontFamily: 'var(--font-mono)' }}>#{c.id}</td>
+                    <td data-label="ID" style={{ fontFamily: 'var(--pp-font-mono)' }}>#{c.id}</td>
                     <td data-label="Days" style={{ fontWeight: 500 }}>{c.days}</td>
-                    <td data-label="Charges" style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>₹{(c.regularCharges ?? 0).toLocaleString()}</td>
+                    <td data-label="Charges" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 600 }}>₹{(c.regularCharges ?? 0).toLocaleString()}</td>
                     <td>
                       <div className="flex justify-end gap-3">
                         <button className="plat-btn plat-btn-sm plat-btn-icon" onClick={() => handleOpenEdit(c)}>

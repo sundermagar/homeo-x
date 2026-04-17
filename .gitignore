@@ -6,7 +6,6 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-
 # Build & Cache
 dist/
 **/dist/
@@ -35,7 +34,6 @@ coverage/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-
 
 # Environment
 .env
@@ -72,6 +70,8 @@ server_log.txt
 api_debug.log
 tmp/
 temp/
+managemyclicnicnew/
+apps/api/uploads/
 
 # Testing & Artifacts
 test_auth.js
@@ -89,4 +89,3 @@ check_*.ts
 verify_*.ts
 *.ours
 *.theirs
-

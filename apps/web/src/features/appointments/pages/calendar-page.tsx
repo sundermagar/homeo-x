@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Calendar, ChevronLeft, ChevronRight, Plus, List,
   Stethoscope, CalendarDays, Users, RefreshCw,
@@ -52,7 +52,6 @@ export default function CalendarPage() {
 
   useEffect(() => {
     apiClient.get('/doctors').then(({ data: d }) => {
-      // Interceptor now returns the payload directly
       setDoctors(Array.isArray(d) ? d : []);
     }).catch(() => {});
   }, []);
@@ -60,13 +59,12 @@ export default function CalendarPage() {
   const prevMonth = () => { if (month === 0) { setYear(y => y - 1); setMonth(11); } else setMonth(m => m - 1); setSelectedDay(null); };
   const nextMonth = () => { if (month === 11) { setYear(y => y + 1); setMonth(0); } else setMonth(m => m + 1); setSelectedDay(null); };
 
-  // Calendar cells
   const cells: (string | null)[] = [];
   for (let i = 0; i < startDow; i++) cells.push(null);
   for (let d = 1; d <= daysInMonth; d++) cells.push(fmtDate(year, month, d));
 
   const selectedAppts = selectedDay ? (apptMap[selectedDay] ?? []) : [];
-  const totalAppts    = data?.total ?? 0;
+  const totalAppts   = data?.total ?? 0;
 
   return (
     <div className="appt-page">
@@ -74,7 +72,7 @@ export default function CalendarPage() {
       <div className="appt-header">
         <div>
           <h1 className="appt-header-title">
-            <Calendar size={20} strokeWidth={1.6} style={{ color: '#2563EB' }} />
+            <Calendar size={20} strokeWidth={1.6} className="appt-panel-title-icon" />
             Appointment Calendar
           </h1>
           <p className="appt-header-sub">Manage practitioner schedules and availability</p>
@@ -110,11 +108,9 @@ export default function CalendarPage() {
         <div className="appt-card">
           {/* Nav */}
           <div className="appt-card-header">
-            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+            <div className="appt-cal-nav">
               <button className="appt-btn appt-btn-icon" onClick={prevMonth}><ChevronLeft size={15} strokeWidth={1.6} /></button>
-              <span style={{ fontWeight:700, fontSize:'0.95rem', color:'#0F0F0E', minWidth:140, textAlign:'center' }}>
-                {MONTHS[month]} {year}
-              </span>
+              <span className="appt-cal-month-label">{MONTHS[month]} {year}</span>
               <button className="appt-btn appt-btn-icon" onClick={nextMonth}><ChevronRight size={15} strokeWidth={1.6} /></button>
             </div>
             <button
@@ -125,7 +121,7 @@ export default function CalendarPage() {
             </button>
           </div>
 
-          <div style={{ padding:'16px 20px' }}>
+          <div className="appt-cal-body">
             {/* Day headers */}
             <div className="appt-cal-grid-header">
               {DAYS.map(d => <div key={d} className="appt-cal-dow">{d}</div>)}
@@ -133,7 +129,7 @@ export default function CalendarPage() {
 
             {/* Cells */}
             {isLoading ? (
-              <div className="appt-empty"><RefreshCw size={22} className="appt-empty-icon" style={{ animation:'spin 1s linear infinite' }} /></div>
+              <div className="appt-empty"><RefreshCw size={22} className="appt-empty-icon" style={{ animation: 'spin 1s linear infinite' }} /></div>
             ) : (
               <div className="appt-cal-cells">
                 {cells.map((iso, idx) => {
@@ -146,21 +142,21 @@ export default function CalendarPage() {
                   return (
                     <div
                       key={iso}
-                      className={`appt-cal-cell ${isToday ? 'today' : ''} ${isSel ? 'selected' : ''}`}
+                      className={`appt-cal-cell${isToday ? ' today' : ''}${isSel ? ' selected' : ''}`}
                       onClick={() => setSelectedDay(isSel ? null : iso)}
                     >
-                      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:3 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
                         <span
-                          className={isToday ? 'appt-cal-day-today' : ''}
-                          style={{ fontSize:'0.82rem', fontWeight: isToday ? 800 : 600, color: isToday ? '#2563EB' : '#0F0F0E' }}
+                          className={isToday ? 'appt-cal-day-num appt-cal-day-today' : 'appt-cal-day-num'}
+                          style={{ fontSize: '0.82rem', fontWeight: isToday ? 800 : 600, color: isToday ? 'var(--pp-blue)' : 'var(--pp-ink)' }}
                         >
                           {dNum}
                         </span>
                         {isToday && <div className="appt-cal-dot" />}
                       </div>
                       <div className="appt-cal-bars">
-                        {dayAppts.slice(0,3).map((a, i) => (
-                          <div key={i} className="appt-cal-bar" style={{ background: STATUS_COLOR[a.status] ?? '#E3E2DF' }} />
+                        {dayAppts.slice(0, 3).map((a, i) => (
+                          <div key={i} className="appt-cal-bar" style={{ background: STATUS_COLOR[a.status] ?? 'var(--pp-warm-4)' }} />
                         ))}
                       </div>
                       {dayAppts.length > 0 && (
@@ -173,11 +169,11 @@ export default function CalendarPage() {
             )}
 
             {/* Legend */}
-            <div style={{ display:'flex', flexWrap:'wrap', gap:10, marginTop:16, paddingTop:16, borderTop:'1px solid #E3E2DF' }}>
+            <div className="appt-legend">
               {Object.entries(STATUS_COLOR).map(([label, color]) => (
-                <div key={label} style={{ display:'flex', alignItems:'center', gap:4 }}>
-                  <div style={{ width:8, height:8, borderRadius:2, background:color }} />
-                  <span style={{ fontSize:'0.68rem', fontWeight:600, color:'#888786' }}>{label}</span>
+                <div key={label} className="appt-legend-item">
+                  <div className="appt-legend-swatch" style={{ background: color }} />
+                  <span className="appt-legend-label">{label}</span>
                 </div>
               ))}
             </div>
@@ -185,13 +181,15 @@ export default function CalendarPage() {
         </div>
 
         {/* Side panel */}
-        <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+        <div className="appt-side-panel">
           {/* Schedule panel */}
           <div className="appt-card">
             <div className="appt-card-header">
-              <h3 className="appt-card-title" style={{ display:'flex', alignItems:'center', gap:6 }}>
-                <CalendarDays size={14} strokeWidth={1.6} style={{ color:'#2563EB' }} />
-                {selectedDay ? new Date(selectedDay + 'T12:00').toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short' }) : 'Schedule'}
+              <h3 className="appt-card-title">
+                <CalendarDays size={14} strokeWidth={1.6} className="appt-panel-title-icon" />
+                {selectedDay
+                  ? new Date(selectedDay + 'T12:00').toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short' })
+                  : 'Schedule'}
               </h3>
             </div>
             <div className="appt-card-body">
@@ -203,26 +201,24 @@ export default function CalendarPage() {
               ) : selectedAppts.length === 0 ? (
                 <div className="appt-empty">
                   <p className="appt-empty-text">No appointments</p>
-                  <button className="appt-btn appt-btn-sm" style={{ marginTop:10 }}
+                  <button className="appt-btn appt-btn-sm appt-btn-primary" style={{ marginTop: 10 }}
                     onClick={() => { setFormDate(selectedDay); setShowForm(true); }}>
                     + Add Slot
                   </button>
                 </div>
               ) : (
-                <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                <div className="appt-slot-list">
                   {selectedAppts.map(a => (
-                    <div key={a.id} style={{ padding:'10px 12px', border:'1px solid #E3E2DF', borderRadius:8, display:'flex', gap:8, alignItems:'center' }}>
-                      <div style={{ fontSize:'0.75rem', fontWeight:700, color:'#888786', minWidth:52 }}>{a.bookingTime ?? '—'}</div>
-                      <div style={{ flex:1, overflow:'hidden' }}>
-                        <div style={{ fontSize:'0.82rem', fontWeight:600, color:'#0F0F0E', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                          {a.patientNameFromCase ?? a.patientName ?? '—'}
-                        </div>
-                        {a.doctorName && <div style={{ fontSize:'0.72rem', color:'#888786' }}>{a.doctorName}</div>}
+                    <div key={a.id} className="appt-slot-item">
+                      <div className="appt-slot-time">{a.bookingTime ?? '—'}</div>
+                      <div className="appt-slot-name">
+                        <div className="appt-slot-patient">{a.patientNameFromCase ?? a.patientName ?? '—'}</div>
+                        {a.doctorName && <div className="appt-slot-doctor">{a.doctorName}</div>}
                       </div>
                       <StatusBadge status={a.status} size="sm" />
                     </div>
                   ))}
-                  <button className="appt-btn appt-btn-sm" style={{ width:'100%', marginTop:4 }}
+                  <button className="appt-btn appt-btn-sm appt-btn-primary" style={{ width: '100%', marginTop: 4 }}
                     onClick={() => { setFormDate(selectedDay); setShowForm(true); }}>
                     + Add Slot
                   </button>
@@ -234,25 +230,27 @@ export default function CalendarPage() {
           {/* Insights */}
           <div className="appt-card">
             <div className="appt-card-header">
-              <h3 className="appt-card-title" style={{ display:'flex', alignItems:'center', gap:6 }}>
-                <Stethoscope size={14} strokeWidth={1.6} style={{ color:'#2563EB' }} /> Insights
+              <h3 className="appt-card-title">
+                <Stethoscope size={14} strokeWidth={1.6} className="appt-panel-title-icon" /> Insights
               </h3>
             </div>
-            <div className="appt-card-body" style={{ display:'flex', flexDirection:'column', gap:14 }}>
-              {[
-                { label:'Total This Month', value: totalAppts, icon: <CalendarDays size={15} strokeWidth={1.6} />, color:'#EFF6FF', ic:'#2563EB' },
-                { label:'Avg Daily Load', value: `${daysInMonth > 0 ? Math.round((totalAppts / daysInMonth) * 10) / 10 : 0} / day`, icon: <Users size={15} strokeWidth={1.6} />, color:'#F0FDF4', ic:'#16A34A' },
-              ].map(item => (
-                <div key={item.label} style={{ display:'flex', alignItems:'center', gap:12 }}>
-                  <div style={{ width:32, height:32, borderRadius:6, background:item.color, color:item.ic, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                    {item.icon}
+            <div className="appt-card-body">
+              <div className="appt-insights-grid">
+                {([
+                  { label: 'Total This Month', value: totalAppts, icon: <CalendarDays size={15} strokeWidth={1.6} />, bg: 'var(--pp-blue-tint)', ic: 'var(--pp-blue)' },
+                  { label: 'Avg Daily Load', value: `${daysInMonth > 0 ? Math.round((totalAppts / daysInMonth) * 10) / 10 : 0} / day`, icon: <Users size={15} strokeWidth={1.6} />, bg: 'var(--pp-success-bg)', ic: 'var(--pp-success-fg)' },
+                ] as const).map(item => (
+                  <div key={item.label} className="appt-insight-item">
+                    <div className="appt-insight-icon-wrap" style={{ background: item.bg, color: item.ic }}>
+                      {item.icon}
+                    </div>
+                    <div>
+                      <div className="appt-insight-label">{item.label}</div>
+                      <div className="appt-insight-value">{item.value}</div>
+                    </div>
                   </div>
-                  <div>
-                    <div style={{ fontSize:'0.68rem', fontWeight:700, color:'#888786', textTransform:'uppercase', letterSpacing:'0.05em' }}>{item.label}</div>
-                    <div style={{ fontSize:'1rem', fontWeight:800, color:'#0F0F0E' }}>{item.value}</div>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
         </div>

@@ -482,29 +482,7 @@ export class SettingsRepositoryPg implements ISettingsRepository {
     await this.q('DELETE FROM case_frequency WHERE id = $1', [id]);
   }
 
-  // ─── Expense Heads ────────────────────────────────────────────────────────
-  async listExpenseHeads(): Promise<ExpenseHead[]> {
-    return this.q('SELECT * FROM expense_heads ORDER BY id ASC');
-  }
-  async getExpenseHead(id: number): Promise<ExpenseHead | undefined> {
-    return this.q1('SELECT * FROM expense_heads WHERE id = $1', [id]);
-  }
-  async createExpenseHead(data: Omit<ExpenseHead, 'id'>): Promise<ExpenseHead> {
-    return this.q1(
-      `INSERT INTO expense_heads (name, description, is_active) VALUES ($1, $2, $3) RETURNING *`,
-      [data.name, data.description ?? null, data.isActive ?? true]
-    ) as Promise<ExpenseHead>;
-  }
-  async updateExpenseHead(id: number, data: Partial<Omit<ExpenseHead, 'id'>>): Promise<ExpenseHead> {
-    return this.q1(
-      `UPDATE expense_heads SET name = COALESCE($1, name), description = COALESCE($2, description),
-       is_active = COALESCE($3, is_active), updated_at = NOW() WHERE id = $4 RETURNING *`,
-      [data.name ?? null, data.description ?? null, data.isActive ?? null, id]
-    ) as Promise<ExpenseHead>;
-  }
-  async deleteExpenseHead(id: number): Promise<void> {
-    await this.q('DELETE FROM expense_heads WHERE id = $1', [id]);
-  }
+
 
   // ─── Message Templates ────────────────────────────────────────────────────
   async listMessageTemplates(): Promise<MessageTemplate[]> {
@@ -533,10 +511,15 @@ export class SettingsRepositoryPg implements ISettingsRepository {
 
   // ─── Stock Logs ───────────────────────────────────────────────────────────
   async listStockLogs(medicineId?: number): Promise<StockLog[]> {
-    if (medicineId) {
-      return this.q('SELECT * FROM stock_logs WHERE medicine_id = $1 ORDER BY created_at DESC', [medicineId]);
+    try {
+      if (medicineId) {
+        return await this.q('SELECT * FROM stock_logs WHERE medicine_id = $1 ORDER BY created_at DESC', [medicineId]);
+      }
+      return await this.q('SELECT * FROM stock_logs ORDER BY created_at DESC LIMIT 100');
+    } catch (err) {
+      this.logger.warn({ err }, 'stock_logs table not found or query failed, returning empty list');
+      return [];
     }
-    return this.q('SELECT * FROM stock_logs ORDER BY created_at DESC LIMIT 100');
   }
   async createStockLog(data: Omit<StockLog, 'id' | 'createdAt'>): Promise<StockLog> {
     return this.q1(

@@ -22,6 +22,7 @@ crmRouter.get('/leads', asyncHandler(async (req, res) => {
     page: parseInt(page) || 1,
     limit: parseInt(limit) || 20
   });
+  if (!result.success) { sendError(res, result.error, 400); return; }
   sendSuccess(res, result.data, undefined, 200, { total: result.data.total, page: parseInt(page) || 1, limit: parseInt(limit) || 20 });
 }));
 
@@ -119,6 +120,7 @@ crmRouter.get('/reminders', asyncHandler(async (req, res) => {
     limit: parseInt(limit) || 20,
     date
   });
+  if (!result.success) { sendError(res, result.error, 400); return; }
   sendSuccess(res, result.data, undefined, 200, { total: result.data.total, page: parseInt(page) || 1, limit: parseInt(limit) || 20 });
 }));
 
