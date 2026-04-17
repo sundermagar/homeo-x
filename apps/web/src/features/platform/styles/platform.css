@@ -766,3 +766,189 @@
     font-size: 13px;
   }
 }
+/* ─── Practitioner Profile System (High-Density) ─── */
+
+.plat-profile-page {
+  min-height: 100vh;
+  background-color: var(--pp-warm-1);
+}
+
+.plat-profile-header {
+  min-height: 60px;
+  height: auto;
+  background: white;
+  border-bottom: 1px solid var(--pp-warm-4);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.plat-profile-container {
+  max-width: var(--pp-container-width);
+  margin: 0 auto;
+  padding: 0 var(--pp-space-4);
+  width: 100%;
+}
+
+.plat-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--pp-space-4);
+  padding: var(--pp-space-4) 0;
+}
+
+@media (min-width: 768px) {
+  .plat-grid {
+    gap: var(--pp-space-6);
+    padding: var(--pp-space-6) 0;
+  }
+}
+
+@media (min-width: 1024px) {
+  .plat-grid {
+    grid-template-columns: 320px 1fr;
+    align-items: start;
+  }
+}
+
+.plat-profile-card {
+  background: white;
+  border: 1px solid var(--pp-warm-4);
+  border-radius: var(--pp-radius-card);
+  padding: var(--pp-space-4);
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--pp-shadow-sm);
+}
+
+@media (min-width: 640px) {
+  .plat-profile-card {
+    padding: var(--pp-space-6);
+  }
+}
+
+.plat-profile-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--pp-ink);
+  letter-spacing: -0.02em;
+}
+
+@media (min-width: 640px) {
+  .plat-profile-title {
+    font-size: 20px;
+  }
+}
+
+.plat-profile-section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-3);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--pp-ink);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--pp-space-4);
+}
+
+@media (min-width: 640px) {
+  .plat-profile-section-title {
+    font-size: 13px;
+    margin-bottom: var(--pp-space-6);
+  }
+}
+
+.plat-profile-label {
+  font-size: 8px;
+  font-weight: 700;
+  color: var(--pp-text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: block;
+  margin-bottom: 2px;
+}
+
+@media (min-width: 640px) {
+  .plat-profile-label {
+    font-size: 10px;
+    margin-bottom: 4px;
+  }
+}
+
+.plat-profile-value {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--pp-ink);
+}
+
+@media (min-width: 640px) {
+  .plat-profile-value {
+    font-size: 13px;
+  }
+}
+
+.plat-profile-mono {
+  font-family: var(--pp-font-mono);
+  letter-spacing: -0.01em;
+}
+
+.plat-doc-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background: var(--pp-warm-2);
+  border: 1px solid white;
+  border-radius: var(--pp-radius-lg);
+  transition: all var(--transition-fast);
+}
+
+@media (min-width: 640px) {
+  .plat-doc-item {
+    padding: 10px 12px;
+  }
+}
+
+.plat-doc-item:hover {
+  background: white;
+  border-color: var(--pp-blue-border);
+  box-shadow: var(--pp-shadow-sm);
+}
+
+.plat-doc-icon {
+  width: 24px;
+  height: 24px;
+  background: white;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--pp-text-3);
+  box-shadow: inset 0 0 0 1px var(--pp-warm-4);
+}
+
+@media (min-width: 640px) {
+  .plat-doc-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+  }
+}
+
+/* ─── Specialty Utilities ─── */
+.plat-capitalize {
+  text-transform: capitalize;
+}
+
+.animate-fade-in {
+  animation: plat-fadeIn 0.3s ease-out forwards;
+}
+
+@keyframes plat-fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}

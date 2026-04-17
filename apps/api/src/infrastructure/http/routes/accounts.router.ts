@@ -3,7 +3,8 @@ import { asyncHandler } from '../middleware/async-handler';
 import { authMiddleware } from '../middleware/auth';
 import { validate, validateQuery } from '../middleware/validate';
 import { AdditionalChargeRepositoryPg, ExpenseRepositoryPg } from '../../repositories/accounts.repository.pg';
-ListAdditionalChargesUseCase,
+import {
+  ListAdditionalChargesUseCase,
   GetAdditionalChargeUseCase,
   CreateAdditionalChargeUseCase,
   UpdateAdditionalChargeUseCase,
@@ -14,7 +15,8 @@ ListAdditionalChargesUseCase,
   UpdateExpenseHeadUseCase,
   DeleteExpenseHeadUseCase,
 } from '../../../domains/billing';
-createAdditionalChargeSchema,
+import {
+  createAdditionalChargeSchema,
   updateAdditionalChargeSchema,
   listAdditionalChargesQuerySchema,
   createExpenseHeadSchema,

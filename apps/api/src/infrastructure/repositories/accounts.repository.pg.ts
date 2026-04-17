@@ -9,7 +9,8 @@ import {
   patients,
 } from '@mmc/database/schema';
 import type { DbClient } from '@mmc/database';
-ExpenseWithHead,
+import type {
+  ExpenseWithHead,
   ExpenseHead,
 } from '@mmc/types';
 import type {

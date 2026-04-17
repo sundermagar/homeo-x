@@ -15,6 +15,13 @@
       "when": 1776313958335,
       "tag": "0001_remedy_chart_trees",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1776407479573,
+      "tag": "0002_sloppy_mongoose",
+      "breakpoints": true
     }
   ]
 }

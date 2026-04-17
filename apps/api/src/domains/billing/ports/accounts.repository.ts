@@ -1,8 +1,10 @@
-Expense,
+import type {
+  Expense,
   ExpenseWithHead,
   ExpenseHead,
 } from '@mmc/types';
-CreateExpenseInput,
+import type {
+  CreateExpenseInput,
   UpdateExpenseInput,
   ListExpensesQuery,
   CreateExpenseHeadInput,

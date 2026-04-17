@@ -125,7 +125,7 @@ export default function TokenQueuePage() {
                       <button className="appt-btn appt-btn-sm appt-btn-success" onClick={() => handleComplete(w.id)} disabled={completeVisit.isPending}>
                         <CheckCircle2 size={13} strokeWidth={1.6} /> Done
                       </button>
-                      <button className="appt-btn appt-btn-sm appt-btn-purple" onClick={() => setActiveVitals({ visitId: w.appointmentId || w.id, regid: w.regid || w.patientId })}>
+                      <button className="appt-btn appt-btn-sm appt-btn-purple" onClick={() => setActiveVitals({ visitId: w.appointmentId || w.id, regid: w.patientId })}>
                         <Activity size={13} strokeWidth={1.6} /> Vitals
                       </button>
                     </div>
@@ -160,7 +160,7 @@ export default function TokenQueuePage() {
                           <button className="appt-btn appt-btn-sm appt-btn-primary" onClick={() => handleCall(w.id)} disabled={callNext.isPending}>
                             <ChevronRight size={13} strokeWidth={1.6} /> Call
                           </button>
-                          <button className="appt-btn appt-btn-sm appt-btn-purple" onClick={() => setActiveVitals({ visitId: w.appointmentId || w.id, regid: w.regid || w.patientId })}>
+                          <button className="appt-btn appt-btn-sm appt-btn-purple" onClick={() => setActiveVitals({ visitId: w.appointmentId || w.id, regid: w.patientId })}>
                             <Activity size={13} strokeWidth={1.6} /> Vitals
                           </button>
                         </div>
