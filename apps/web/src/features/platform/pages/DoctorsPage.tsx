@@ -398,6 +398,19 @@ function StaffModal({
               </div>
 
               <div className="plat-form-group">
+                <label className="plat-form-label">Login Password {isEdit && '(leave blank to keep current)'}</label>
+                <input
+                  type="password"
+                  className="plat-form-input"
+                  value={form.password || ''}
+                  onChange={(e) => updateForm('password', e.target.value)}
+                  disabled={isLoading}
+                  placeholder={isEdit ? '••••••••' : 'Setup password'}
+                />
+                {errors['password'] && <span className="plat-form-error">{errors['password']}</span>}
+              </div>
+
+              <div className="plat-form-group">
                 <label className="plat-form-label">City</label>
                 <input
                   type="text"

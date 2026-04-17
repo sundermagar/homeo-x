@@ -467,7 +467,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     const revInfo = await this.getRevenueTableInfo();
     const amountCol = revInfo?.amountCol || 'charges';
  
-    const [revRes, patRes, collRes] = await Promise.all([
+    const [revRes, patRes, collRes, waitRes] = await Promise.all([
       revInfo ? this.db.execute(sql`
         SELECT COALESCE(sum(CAST(NULLIF(${sql.identifier(amountCol)}::text, '') AS numeric)), 0)::int as total
         FROM ${sql.identifier(revInfo.name)}
@@ -487,12 +487,17 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         WHERE bill_date::date BETWEEN ${start} AND ${monthEnd}
           AND (deleted_at IS NULL OR deleted_at::text = '')
       `),
+      this.db.execute(sql`
+        SELECT COALESCE(avg(extract(epoch from (called_at - checked_in_at))/60), 0)::int as avg_wait 
+        FROM waitlist WHERE date::date BETWEEN ${start} AND ${monthEnd} AND called_at IS NOT NULL AND checked_in_at IS NOT NULL AND (deleted_at IS NULL OR deleted_at::text = '')
+      `),
     ]);
 
     const revenue = ((revRes as any[])[0] as any)?.total || 0;
     const patients = ((patRes as any[])[0] as any)?.cnt || 0;
     const totalCharges = ((collRes as any[])[0] as any)?.total_charges || 0;
     const totalReceived = ((collRes as any[])[0] as any)?.total_received || 0;
+    const avgWaitTime = ((waitRes as any[])[0] as any)?.avg_wait || 0;
     const collectionRate = totalCharges > 0 ? Math.round((totalReceived / totalCharges) * 100) : 0;
 
     // Hardcoded targets for now (could be made configurable)
@@ -525,10 +530,10 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       },
       {
         label: 'Avg wait time',
-        current: 18, // hardcoded for now
+        current: avgWaitTime,
         target: waitTimeTarget,
         unit: 'm',
-        status: 18 <= waitTimeTarget ? 'success' : 'danger',
+        status: avgWaitTime <= waitTimeTarget ? 'success' : 'danger',
       },
     ];
   }
@@ -550,10 +555,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     `) as any[];
 
     if ((results as any[]).length === 0) {
-      // Return some default staff if none found
-      return [
-        { name: 'Dr. Sunder Magar', role: 'Consultant', count: 0 },
-      ];
+      return [];
     }
 
     return (results as any[]).map(r => ({
@@ -570,7 +572,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     `) as any[];
     
     const [userCount] = await this.db.execute(sql`
-      SELECT count(*)::int as count FROM public.users WHERE deleted_at IS NULL
+      SELECT count(*)::int as count FROM users WHERE (deleted_at IS NULL OR deleted_at::text = '') AND is_active = true
     `) as any[];
 
     return {

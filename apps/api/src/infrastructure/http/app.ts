@@ -116,20 +116,20 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
 
   // Our modules — Platform (JWT required)
   app.use('/api/organizations', authMiddleware, createOrganizationRouter());
-  app.use('/api/accounts',      authMiddleware, createAccountRouter());
+  app.use('/api/accounts', authMiddleware, createAccountRouter());
 
   // Our modules — Settings & Configuration
   app.use('/api/settings', authMiddleware, createSettingsRouter());
 
   // ─── Operations & Logistics (JWT required) ───
-  app.use('/api/crm',        authMiddleware, crmRouter);
-  app.use('/api/logistics',  authMiddleware, logisticsRouter);
-  app.use('/api/knowledge',  authMiddleware, knowledgeRouter);
-  app.use('/api/records',    authMiddleware, recordsRouter);
-  app.use('/api/staff',      authMiddleware, staffRouter);
+  app.use('/api/crm', authMiddleware, crmRouter);
+  app.use('/api/logistics', authMiddleware, logisticsRouter);
+  app.use('/api/knowledge', authMiddleware, knowledgeRouter);
+  app.use('/api/records', authMiddleware, recordsRouter);
+  app.use('/api/staff', authMiddleware, staffRouter);
 
   // Roles & Permissions
-  app.use('/api/roles',      authMiddleware, rolesRouter);
+  app.use('/api/roles', authMiddleware, rolesRouter);
   app.use('/api/permissions', authMiddleware, permissionsRouter);
 
   // ─── Error Handling (must be last) ───

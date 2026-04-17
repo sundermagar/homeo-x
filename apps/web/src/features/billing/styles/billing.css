@@ -183,6 +183,7 @@
 }
 
 .bill-table tr:hover td { background: var(--pp-warm-1); }
+.bill-table-row:hover td { background: var(--pp-warm-1); }
 .bill-table tr:last-child td { border-bottom: none; }
 
 /* ─── Mobile Table Cards ─── */
@@ -302,6 +303,8 @@
 .bill-badge-warning  { background: var(--pp-warning-bg);  color: var(--pp-warning-fg); }
 .bill-badge-default  { background: var(--pp-warm-2); color: var(--pp-text-3); }
 .bill-badge-primary  { background: var(--pp-blue-tint); color: var(--pp-blue); }
+.bill-badge-staff    { background: var(--pp-purple-tint); color: var(--pp-purple); }
+.bill-badge-info     { background: var(--pp-cyan-tint); color: var(--pp-cyan); }
 
 /* ─── Brand Token Overrides ─── */
 :root {
@@ -423,6 +426,7 @@
 .bill-form  { display: flex; flex-direction: column; gap: var(--pp-space-4); }
 .bill-form-group  { display: flex; flex-direction: column; gap: 6px; }
 .bill-form-label  { font-size: 0.72rem; font-weight: 800; color: var(--pp-text-3); text-transform: uppercase; letter-spacing: 0.05em; }
+.bill-form-required { color: var(--pp-danger-fg); margin-left: 2px; }
 
 .bill-form-row {
   display: grid;

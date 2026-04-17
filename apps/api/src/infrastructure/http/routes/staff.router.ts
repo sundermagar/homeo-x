@@ -12,12 +12,34 @@ import {
 } from '../../../domains/staff';
 import { createLogger } from '../../../shared/logger';
 import { upload } from '../middleware/upload';
+import { Role } from '@mmc/types';
+import { eq } from 'drizzle-orm';
+import { accounts, users } from '@mmc/database/schema';
 
 const logger = createLogger('staff-router');
 
 export const staffRouter: IRouter = Router();
 
-function getRepo(req: Request) {
+async function getRepo(req: Request) {
+  let clinicId: number | undefined;
+
+  // Try to resolve the ClinicId of the current user — gracefully degrade if
+  // the users/accounts table schema is behind on migrations.
+  try {
+    if (req.user) {
+      if (req.user.type === Role.Clinicadmin && req.user.contextId) {
+        const [acc] = await req.publicDb.select().from(accounts).where(eq(accounts.id, req.user.contextId)).limit(1);
+        clinicId = (acc as any)?.clinicId ?? undefined;
+      } else if (req.user.id) {
+        const [u] = await req.publicDb.select().from(users).where(eq(users.id, req.user.id)).limit(1);
+        clinicId = (u as any)?.clinicId ?? undefined;
+      }
+    }
+  } catch {
+    // Column may not exist yet (e.g. clinic_id migration pending) — continue without clinicId filter
+    clinicId = undefined;
+  }
+
   return new StaffRepositoryPg(req.tenantDb);
 }
 
@@ -35,7 +57,7 @@ staffRouter.get('/', async (req: Request, res: Response) => {
       return;
     }
     const { search, page = '1', limit = '30' } = req.query;
-    const repo = getRepo(req);
+    const repo = await getRepo(req);
     const uc = new ListStaffUseCase(repo);
     const result = await uc.execute({
       category,
@@ -63,7 +85,7 @@ staffRouter.get('/:id', async (req: Request, res: Response) => {
     }
     const id = Number(req.params.id);
     if (isNaN(id)) { res.status(400).json({ success: false, message: 'Invalid id' }); return; }
-    const repo = getRepo(req);
+    const repo = await getRepo(req);
     const uc = new GetStaffUseCase(repo);
     const result = await uc.execute(category, id);
     if (result.success) {
@@ -101,7 +123,7 @@ staffRouter.post('/', async (req: Request, res: Response) => {
       return;
     }
     logger.info(`Creating new staff member: ${parsed.data.name} (Category: ${parsed.data.category})`);
-    const repo = getRepo(req);
+    const repo = await getRepo(req);
     const uc = new CreateStaffUseCase(repo);
     const result = await uc.execute(parsed.data);
     if (result.success) {
@@ -134,7 +156,7 @@ staffRouter.put('/:id', async (req: Request, res: Response) => {
       return;
     }
     logger.info(`Updating staff member: ${id} (Category: ${category})`);
-    const repo = getRepo(req);
+    const repo = await getRepo(req);
     const uc = new UpdateStaffUseCase(repo);
     const result = await uc.execute(category, id, parsed.data);
     if (result.success) {
@@ -160,7 +182,7 @@ staffRouter.delete('/:id', async (req: Request, res: Response) => {
     }
     const id = Number(req.params.id);
     if (isNaN(id)) { res.status(400).json({ success: false, message: 'Invalid id' }); return; }
-    const repo = getRepo(req);
+    const repo = await getRepo(req);
     const uc = new DeleteStaffUseCase(repo);
     const result = await uc.execute(category, id);
     if (result.success) {

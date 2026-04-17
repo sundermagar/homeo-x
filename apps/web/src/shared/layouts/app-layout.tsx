@@ -4,6 +4,7 @@ import { Menu, Infinity, ArrowLeft, Search } from 'lucide-react';
 import { Sidebar } from '../components/sidebar';
 import { DashboardHeader } from '../components/dashboard-header';
 import { CommandPalette } from '../components/command-palette';
+import { ScrollToTop } from '../components/scroll-to-top';
 import { useMobile } from '../hooks/use-mobile';
 import { useCallback, useEffect } from 'react';
 
@@ -29,6 +30,7 @@ export function AppLayout() {
 
   return (
     <div className="app-container">
+      <ScrollToTop />
       {/* Mobile Top Bar */}
       {isMobile && (
         <header className="mobile-header">

@@ -118,7 +118,7 @@ export default function LoginPage() {
             <Stethoscope size={28} strokeWidth={1.8} />
           </div>
           <h1 className="login-title">
-            Homeo<span style={{ color: 'var(--primary)' }}>X</span>
+            Homeo<span className="login-title-brand">X</span>
           </h1>
           <p className="login-subtitle">Secure clinical portal · Sign in to continue</p>
         </div>
@@ -214,7 +214,7 @@ export default function LoginPage() {
               </button>
             ))}
           </div>
-          <p style={{ textAlign: 'center', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+          <p className="demo-credentials-footer">
             Click a role above to explore without credentials.
           </p>
         </div>

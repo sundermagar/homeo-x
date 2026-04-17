@@ -402,21 +402,20 @@ function StaffModal({
                 />
               </div>
 
-              {mode === 'create' && (
-                <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
-                  <label className="plat-form-label">Initial Password *</label>
-                  <input
-                    type="password"
-                    className="plat-form-input"
-                    value={form.password || ''}
-                    onChange={(e) => updateForm('password', e.target.value)}
-                    disabled={isLoading}
-                  />
-                  {errors['password'] && <span className="plat-form-error">{errors['password']}</span>}
-                </div>
-              )}
+              <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
+                <label className="plat-form-label">Initial Password {isEdit && '(leave blank to keep current)'}</label>
+                <input
+                  type="password"
+                  className="plat-form-input"
+                  value={form.password || ''}
+                  onChange={(e) => updateForm('password', e.target.value)}
+                  disabled={isLoading}
+                  placeholder={isEdit ? '••••••••' : 'Setup password'}
+                />
+                {errors['password'] && <span className="plat-form-error">{errors['password']}</span>}
+              </div>
 
-              {mode === 'edit' && (
+              {isEdit && (
                 <div className="plat-form-group">
                   <label className="plat-form-label">End Date</label>
                   <input

@@ -5,7 +5,8 @@ import {
   doctorsLegacy, 
   religionLegacy, 
   occupationLegacy, 
-  refrencetypeLegacy 
+  refrencetypeLegacy,
+  users
 } from '@mmc/database/schema';
 import type { DbClient } from '@mmc/database';
 import type { 
@@ -218,9 +219,9 @@ export class PatientRepositoryPg implements PatientRepository {
   async getFormMeta(): Promise<PatientFormMeta> {
     const [doctors, religions, occupations, references] = await Promise.all([
       this.db
-        .select({ id: doctorsLegacy.id, name: doctorsLegacy.name, consultationFee: doctorsLegacy.consultationFee })
-        .from(doctorsLegacy)
-        .where(isNull(doctorsLegacy.deletedAt))
+        .select({ id: users.id, name: users.name, consultationFee: users.consultationFee })
+        .from(users)
+        .where(and(isNull(users.deletedAt), eq(users.isActive, true), sql`LOWER(${users.type}) = 'doctor'`))
         .catch(() => []),
       this.db.select().from(religionLegacy).catch(() => []),
       this.db.select().from(occupationLegacy).catch(() => []),

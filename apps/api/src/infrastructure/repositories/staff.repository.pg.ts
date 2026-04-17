@@ -29,7 +29,7 @@ function getTable(category: StaffCategory) {
  * Queries the correct legacy table based on the staff category.
  */
 export class StaffRepositoryPg implements StaffRepository {
-  constructor(private readonly db: DbClient) {}
+  constructor(private readonly db: DbClient) { }
 
   async findAll(params: {
     category: StaffCategory;

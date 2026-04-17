@@ -9,7 +9,7 @@ import {
 } from '../hooks/use-accounts';
 import type { ExpenseWithHead } from '@mmc/types';
 import type { CreateExpenseInput, ListExpensesQuery } from '@mmc/validation';
-import '../../platform/styles/platform.css';
+import '../styles/billing.css';
 
 const EMPTY_FORM = {
   dateval: '',
@@ -90,58 +90,78 @@ export default function ExpensesPage() {
   };
 
   return (
-    <div className="plat-page animate-fade-in">
-      <div className="plat-header">
+    <div className="bill-page fade-in">
+      {/* ─── Header ─── */}
+      <div className="bill-header">
         <div>
-          <h1 className="plat-header-title">
-            <DollarSign size={20} className="color-primary" />
-            Expenses
+          <h1 className="bill-header-title">
+            <DollarSign size={20} strokeWidth={1.6} style={{ color: 'var(--pp-blue)' }} />
+            Clinic Expenses
           </h1>
-          <p className="plat-header-sub">Record and track clinic expenses by category.</p>
+          <p className="bill-header-sub">Record and track clinic expenses by category.</p>
         </div>
-        <div className="plat-header-actions">
-          <button className="plat-btn plat-btn-primary" onClick={handleOpenCreate}>
-            <PlusCircle size={14} />
+        <div className="bill-header-actions">
+          <button className="bill-btn bill-btn-primary" onClick={handleOpenCreate}>
+            <PlusCircle size={14} strokeWidth={2} />
             Add Expense
           </button>
         </div>
       </div>
 
-      <div className="plat-stats-bar">
-        <div className="plat-stat-card">
-          <span className="plat-stat-label">Total Entries</span>
-          <span className="plat-stat-value">{total}</span>
+      {/* ─── Stats Bar ─── */}
+      <div className="bill-stats-bar">
+        <div className="bill-stat-card">
+          <span className="bill-stat-label">Total Entries</span>
+          <span className="bill-stat-value">{total}</span>
         </div>
-        <div className="plat-stat-card">
-          <span className="plat-stat-label">Total Amount</span>
-          <span className="plat-stat-value">₹{totalAmount.toLocaleString()}</span>
+        <div className="bill-stat-card">
+          <span className="bill-stat-label">Total Amount</span>
+          <span className="bill-stat-value">₹{totalAmount.toLocaleString()}</span>
         </div>
       </div>
 
-      <div className="plat-filters">
-        <div className="plat-search-wrap">
-          <Search size={16} className="plat-search-icon" />
-          <input className="plat-filter-input plat-search-input" placeholder="Search expenses..." value={search} onChange={e => setSearch(e.target.value)} />
+      {/* ─── Filter Bar ─── */}
+      <div className="bill-filters">
+        <div className="bill-search-wrap">
+          <Search size={14} className="bill-search-icon" strokeWidth={2} />
+          <input 
+            className="bill-filter-input bill-search-input" 
+            placeholder="Search expenses..." 
+            value={search} 
+            onChange={e => setSearch(e.target.value)} 
+          />
         </div>
-        <select className="plat-filter-input" style={{ width: 160 }} value={headFilter} onChange={e => setHeadFilter(e.target.value)}>
+        <select className="bill-filter-input" style={{ width: 160 }} value={headFilter} onChange={e => setHeadFilter(e.target.value)}>
           <option value="">All Categories</option>
           {heads.map((h: any) => <option key={h.id} value={h.id}>{h.name}</option>)}
         </select>
-        <input type="date" className="plat-filter-input" style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.82rem' }} value={fromDate} onChange={e => setFromDate(e.target.value)} placeholder="From" />
-        <input type="date" className="plat-filter-input" style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.82rem' }} value={toDate} onChange={e => setToDate(e.target.value)} placeholder="To" />
+        <input 
+          type="date" 
+          className="bill-filter-input" 
+          style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.82rem' }} 
+          value={fromDate} 
+          onChange={e => setFromDate(e.target.value)} 
+        />
+        <input 
+          type="date" 
+          className="bill-filter-input" 
+          style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.82rem' }} 
+          value={toDate} 
+          onChange={e => setToDate(e.target.value)} 
+        />
       </div>
 
-      <div className="plat-card">
+      <div className="bill-card">
         {isLoading ? (
-          <div className="plat-empty"><RefreshCw size={22} className="animate-spin opacity-30" /></div>
+          <div className="bill-empty"><RefreshCw size={22} className="animate-spin opacity-30" /></div>
         ) : filtered.length === 0 ? (
-          <div className="plat-empty">
-            <Wallet size={40} className="plat-empty-icon" />
-            <p className="plat-empty-text">No expenses recorded yet.</p>
+          <div className="bill-empty">
+            <Wallet size={40} className="bill-empty-icon" />
+            <p className="bill-empty-text">No expenses recorded yet.</p>
           </div>
         ) : (
-          <div className="plat-table-container">
-            <table className="plat-table">
+          <div className="bill-table-container">
+            <table className="bill-table">
               <thead>
                 <tr>
                   <th style={{ width: 60 }}>ID</th>
@@ -158,19 +178,19 @@ export default function ExpensesPage() {
                     <td data-label="ID" style={{ fontFamily: 'var(--pp-font-mono)' }}>#{e.id}</td>
                     <td data-label="Date" style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.78rem' }}>{e.expDate || '—'}</td>
                     <td data-label="Category">
-                      <span className="plat-badge plat-badge-staff">{e.headName || `Head #${e.head}`}</span>
+                      <span className="bill-badge bill-badge-staff">{e.headName || `Head #${e.head}`}</span>
                     </td>
                     <td data-label="Description">{e.detail || '—'}</td>
-                    <td data-label="Amount" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 600, color: 'var(--pp-danger-fg)' }}>
+                    <td data-label="Amount" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 700, color: 'var(--pp-danger-fg)' }}>
                       ₹{(e.amount ?? 0).toLocaleString()}
                     </td>
                     <td>
-                      <div className="flex justify-end gap-3">
-                        <button className="plat-btn plat-btn-sm plat-btn-icon" onClick={() => handleOpenEdit(e)}>
-                          <Edit2 size={13} />
+                      <div className="bill-header-actions" style={{ justifyContent: 'flex-end', margin: 0 }}>
+                        <button className="bill-btn bill-btn-sm bill-btn-icon" onClick={() => handleOpenEdit(e)}>
+                          <Edit2 size={13} strokeWidth={2} />
                         </button>
-                        <button className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" onClick={() => handleDelete(e.id)}>
-                          <Trash2 size={13} />
+                        <button className="bill-btn bill-btn-sm bill-btn-icon bill-btn-danger" onClick={() => handleDelete(e.id)}>
+                          <Trash2 size={13} strokeWidth={2} />
                         </button>
                       </div>
                     </td>
@@ -183,37 +203,39 @@ export default function ExpensesPage() {
       </div>
 
       {isModalOpen && (
-        <div className="plat-modal-overlay animate-fade-in" onClick={e => e.target === e.currentTarget && setIsModalOpen(false)}>
-          <div className="plat-modal" style={{ maxWidth: 500 }}>
-            <div className="plat-modal-header">
-              <h2 className="plat-modal-title">{editingId ? 'Edit Expense' : 'Add Expense'}</h2>
-              <button className="plat-btn plat-btn-icon" onClick={() => setIsModalOpen(false)}><X size={16} /></button>
+        <div className="bill-modal-overlay fade-in" onClick={e => e.target === e.currentTarget && setIsModalOpen(false)}>
+          <div className="bill-modal" style={{ maxWidth: 500 }}>
+            <div className="bill-modal-header">
+              <h2 className="bill-modal-title">{editingId ? 'Edit Expense' : 'Add Expense Entry'}</h2>
+              <button className="bill-btn bill-btn-icon" onClick={() => setIsModalOpen(false)} style={{ border: 'none' }}><X size={16} /></button>
             </div>
             <form onSubmit={handleSubmit}>
-              <div className="plat-modal-body plat-form">
-                <div className="plat-form-group plat-form-full">
-                  <label className="plat-form-label">Expense Head <span className="plat-form-required">*</span></label>
-                  <select className="plat-form-input" value={form.head ?? ''} onChange={e => setForm(f => ({ ...f, head: e.target.value ? parseInt(e.target.value) : undefined }))} required>
+              <div className="bill-modal-body bill-form">
+                <div className="bill-form-group">
+                  <label className="bill-form-label">Expense Head <span className="bill-form-required">*</span></label>
+                  <select className="bill-form-select" value={form.head ?? ''} onChange={e => setForm(f => ({ ...f, head: e.target.value ? parseInt(e.target.value) : undefined }))} required>
                     <option value="">Select category...</option>
                     {heads.map((h: any) => <option key={h.id} value={h.id}>{h.name}</option>)}
                   </select>
                 </div>
-                <div className="plat-form-group">
-                  <label className="plat-form-label">Date</label>
-                  <input className="plat-form-input" type="date" value={form.expDate} onChange={e => setForm(f => ({ ...f, expDate: e.target.value }))} />
+                <div className="bill-form-row bill-form-row-2">
+                  <div className="bill-form-group">
+                    <label className="bill-form-label">Date</label>
+                    <input className="bill-form-input" type="date" value={form.expDate} onChange={e => setForm(f => ({ ...f, expDate: e.target.value }))} />
+                  </div>
+                  <div className="bill-form-group">
+                    <label className="bill-form-label">Amount (₹) <span className="bill-form-required">*</span></label>
+                    <input className="bill-form-input" type="number" min={0} value={form.amount} onChange={e => setForm(f => ({ ...f, amount: Number(e.target.value) }))} required />
+                  </div>
                 </div>
-                <div className="plat-form-group">
-                  <label className="plat-form-label">Amount (₹) <span className="plat-form-required">*</span></label>
-                  <input className="plat-form-input" type="number" min={0} value={form.amount} onChange={e => setForm(f => ({ ...f, amount: Number(e.target.value) }))} required />
-                </div>
-                <div className="plat-form-group plat-form-full">
-                  <label className="plat-form-label">Description / Detail</label>
-                  <textarea className="plat-form-input" rows={3} value={form.detail} onChange={e => setForm(f => ({ ...f, detail: e.target.value }))} placeholder="e.g. Electricity bill for March 2026" />
+                <div className="bill-form-group">
+                  <label className="bill-form-label">Description / Detail</label>
+                  <textarea className="bill-form-textarea" rows={3} value={form.detail} onChange={e => setForm(f => ({ ...f, detail: e.target.value }))} placeholder="e.g. Electricity bill for March 2026" />
                 </div>
               </div>
-              <div className="plat-modal-footer">
-                <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                <button type="submit" className="plat-btn plat-btn-primary" disabled={createExpense.isPending || updateExpense.isPending}>
+              <div className="bill-modal-footer">
+                <button type="button" className="bill-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
+                <button type="submit" className="bill-btn bill-btn-primary" disabled={createExpense.isPending || updateExpense.isPending} style={{ minWidth: '120px' }}>
                   {editingId ? 'Save Changes' : 'Add Expense'}
                 </button>
               </div>

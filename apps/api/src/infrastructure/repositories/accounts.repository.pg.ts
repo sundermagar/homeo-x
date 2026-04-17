@@ -238,7 +238,7 @@ export class DayChargeRepositoryPg implements DayChargeRepository {
       regularCharges: row.regularCharges ?? null,
       createdAt: row.createdAt ?? null,
       updatedAt: row.updatedAt ?? null,
-      deletedAt: row.deletedAt ?? null,
+      deletedAt: row.deletedAt ? (row.deletedAt as any).toISOString() : null,
     };
   }
 }
@@ -477,7 +477,7 @@ export class ExpenseRepositoryPg implements ExpenseRepository {
       : null;
 
     return {
-      ...this.toDomain(row),
+      ...this.toDomain(row!),
       headName: headRow?.[0]?.headName ?? null,
       shortName: headRow?.[0]?.shortName ?? null,
     };
@@ -508,7 +508,7 @@ export class ExpenseRepositoryPg implements ExpenseRepository {
       : null;
 
     return {
-      ...this.toDomain(row),
+      ...this.toDomain(row!),
       headName: headRow?.[0]?.headName ?? null,
       shortName: headRow?.[0]?.shortName ?? null,
     };

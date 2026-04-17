@@ -23,6 +23,8 @@ authRouter.post('/login', asyncHandler(async (req, res) => {
   const result = await loginUseCase.execute(email, password);
   if (result.success) {
     sendSuccess(res, result.data);
+  } else {
+    throw new UnauthorizedError(result.error as string || 'Invalid credentials');
   }
 }));
 
