@@ -11,10 +11,13 @@ export function useStaffList(category: StaffCategory, params: { page?: number; l
   return useQuery({
     queryKey: [STAFF_KEY, category, params],
     queryFn: async () => {
-      const { data } = await apiClient.get<{ success: boolean; data: StaffSummary[]; total: number }>('/staff', {
+      const res = await apiClient.get<{ success: boolean; data: StaffSummary[]; total: number }>('/staff', {
         params: { category, ...params },
       });
-      return { data: data.data, total: data.total };
+      // Interceptor unwraps: res.data is already the array or the success object
+      // For list endpoints, body shape might vary
+      const body = (res as any)._original ?? res.data;
+      return { data: body.data ?? res.data ?? [], total: body.total ?? res.data?.length ?? 0 };
     },
   });
 }
@@ -23,10 +26,10 @@ export function useStaffMember(category: StaffCategory, id: number) {
   return useQuery({
     queryKey: [STAFF_KEY, category, id],
     queryFn: async () => {
-      const { data } = await apiClient.get<{ success: boolean; data: StaffMember }>(`/staff/${id}`, {
+      const res = await apiClient.get<{ success: boolean; data: StaffMember }>(`/staff/${id}`, {
         params: { category },
       });
-      return data.data;
+      return res.data ?? null;
     },
     enabled: !!id && !!category,
   });
@@ -38,8 +41,8 @@ export function useCreateStaff() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: CreateStaffInput) => {
-      const { data } = await apiClient.post<{ success: boolean; data: StaffMember }>('/staff', input);
-      return data.data;
+      const res = await apiClient.post<{ success: boolean; data: StaffMember }>('/staff', input);
+      return res.data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: [STAFF_KEY] }),
   });
@@ -49,10 +52,10 @@ export function useUpdateStaff() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ category, id, ...input }: UpdateStaffInput & { category: StaffCategory; id: number }) => {
-      const { data } = await apiClient.put<{ success: boolean; data: StaffMember }>(`/staff/${id}`, input, {
+      const res = await apiClient.put<{ success: boolean; data: StaffMember }>(`/staff/${id}`, input, {
         params: { category },
       });
-      return data.data;
+      return res.data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: [STAFF_KEY] }),
   });

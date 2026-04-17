@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import { AppLayout } from '@/shared/layouts/app-layout';
 import { ProtectedRoute } from '@/shared/components/protected-route';
+import { PublicLayout } from '@/shared/layouts/public-layout';
 
 // ─── Lazy-loaded feature pages ───
 const LoginPage           = lazy(() => import('@/features/auth/pages/login-page'));
@@ -30,6 +31,13 @@ const PackageTrackingPage = lazy(() => import('@/features/packages/pages/package
 // ─── Operations & CRM ───
 const OperationsDashboard = lazy(() => import('@/features/operations/pages/operations-dashboard'));
 
+// ─── Public Pages ───
+const SelfJoinForm = lazy(() => import('@/features/public/pages/self-join-form'));
+const OtpVerifyPage = lazy(() => import('@/features/public/pages/otp-verify'));
+const FaqPage = lazy(() => import('@/features/public/pages/faq-page').then(m => ({ default: m.FaqPage })));
+const StaticPageView = lazy(() => import('@/features/public/pages/static-page-view').then(m => ({ default: m.StaticPageView })));
+const PublicClinicalShell = lazy(() => import('@/features/public/pages/public-clinical-shell').then(m => ({ default: m.PublicClinicalShell })));
+
 const Loading = () => <div style={{ padding: 40, textAlign: 'center', opacity: 0.5 }}>Loading...</div>;
 
 export function AppRouter() {
@@ -38,6 +46,15 @@ export function AppRouter() {
       <Routes>
         {/* Public */}
         <Route path="/login" element={<LoginPage />} />
+
+        {/* Public / Unauthenticated Routes */}
+        <Route element={<PublicLayout />}>
+          <Route path="/join" element={<SelfJoinForm />} />
+          <Route path="/verify-otp" element={<OtpVerifyPage />} />
+          <Route path="/faqs" element={<FaqPage />} />
+          <Route path="/p/:slug" element={<StaticPageView />} />
+          <Route path="/public/clinical/:phone" element={<PublicClinicalShell />} />
+        </Route>
 
         {/* Protected */}
         <Route element={<ProtectedRoute />}>

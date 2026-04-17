@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, Loader2, ShieldCheck, AlertCircle } from 'lucide-react';
 import { z } from 'zod';
 import { apiClient } from '@/infrastructure/api-client';
@@ -198,8 +198,13 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <div className="login-footer">
+        <div className="login-footer" style={{ display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'center', marginTop: '16px' }}>
           <p>Protected by enterprise-grade encryption</p>
+          <div style={{ display: 'flex', gap: '20px', fontSize: '0.9rem', borderTop: '1px solid var(--border-color)', paddingTop: '16px', width: '100%', justifyContent: 'center' }}>
+            <Link to="/join" style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px' }}>Join Clinic</Link>
+            <Link to="/verify-otp" style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px' }}>Patient Portal</Link>
+            <Link to="/faqs" style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px' }}>FAQs</Link>
+          </div>
         </div>
       </div>
     </div>

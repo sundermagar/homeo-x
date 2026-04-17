@@ -28,10 +28,12 @@ import { logisticsRouter } from './routes/logistics.router';
 import { crmRouter } from './routes/crm.router';
 import { knowledgeRouter } from './routes/knowledge.router';
 import { recordsRouter } from './routes/records.router';
+import { publicRouter } from './routes/public.router';
 
 const logger = createLogger('http');
 
 export async function createApp(): Promise<{ app: Express; server: HttpServer; io: SocketIOServer }> {
+
   const app: Express = express();
   const server: HttpServer = createServer(app);
 
@@ -87,6 +89,9 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   app.use('/api/crm', crmRouter);
   app.use('/api/knowledge', knowledgeRouter);
   app.use('/api/records', recordsRouter);
+
+  // ─── Public Unauthenticated Routes ───
+  app.use('/api/public', publicRouter);
 
   // ─── Error Handling (must be last) ───
   app.use(errorHandler);

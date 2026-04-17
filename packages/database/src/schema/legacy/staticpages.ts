@@ -1,7 +1,7 @@
-import { pgTable, integer, text, date, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, integer, text, date, timestamp } from "drizzle-orm/pg-core";
 
 export const staticpagesLegacy = pgTable("staticpages", {
-  id: integer("id").notNull(),
+  id: integer("id").primaryKey(),
   name: text("name").notNull(),
   url: text("url"),
   content: text("content"),
