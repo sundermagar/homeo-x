@@ -12,6 +12,7 @@ import {
   Scale,
   Thermometer,
   Heart,
+  Settings,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -240,15 +241,22 @@ export function DoctorDashboard() {
         <aside className="dash-sidebar">
           {/* Intelligence Hub */}
           <div className="dash-sidebar-card">
-            <div className="dash-section-title">
-              Intelligence Hub
-              <button className="pp-link" style={{ fontSize: 10, textTransform: 'none' }} onClick={() => navigate('/analytics')}>Settings</button>
+            <div className="dash-section-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <span>Intelligence Hub</span>
+              <button 
+                className="pp-icon-btn" 
+                title="Intelligence Settings"
+                style={{ width: 24, height: 24, padding: 0 }}
+                onClick={() => navigate('/settings')}
+              >
+                <Settings size={14} />
+              </button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {dashData?.reminders.length ? dashData.reminders.slice(0, 3).map((r: any) => (
-                <IntelligenceItem key={r.id} color="#d97706" text={<>{r.heading}: <strong>{r.comments}</strong></>} />
+              {dashData?.intelligenceInsights?.length ? dashData.intelligenceInsights.map((insight: any, idx: number) => (
+                <IntelligenceItem key={idx} color={insight.color} text={insight.text} />
               )) : (
-                <IntelligenceItem color="#22c55e" text="Clinic is running smoothly. 8% revenue growth observed this week." />
+                <IntelligenceItem color="#22c55e" text="Clinic is running smoothly. Monitoring vital metrics..." />
               )}
             </div>
           </div>
@@ -257,9 +265,21 @@ export function DoctorDashboard() {
           <div className="dash-sidebar-card">
             <div className="dash-section-title">Recent transactions</div>
             <div className="dash-list">
-              <BillingItem patient="Arun Kapoor" id="INV-2025-847" amount="2,400" status="paid" />
-              <BillingItem patient="Priya Sharma" id="INV-2025-846" amount="1,800" status="due" />
-              <BillingItem patient="Rajesh Kumar" id="INV-2025-845" amount="3,500" status="partial" />
+              {dashData?.recentTransactions?.length ? (
+                dashData.recentTransactions.map((tx: any) => (
+                  <BillingItem 
+                    key={tx.id} 
+                    patient={tx.patientName} 
+                    id={tx.invoiceNo} 
+                    amount={tx.amount.toLocaleString()} 
+                    status={tx.status} 
+                  />
+                ))
+              ) : (
+                <div style={{ padding: '24px 0', textAlign: 'center', color: '#94a3b8' }}>
+                  <p className="text-small">No recent transactions.</p>
+                </div>
+              )}
             </div>
           </div>
         </aside>

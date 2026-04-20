@@ -25,8 +25,9 @@ export class ConvertLeadToPatientUseCase {
       email: lead.email || '',
       address: lead.address || '',
       referenceType: lead.source || 'Lead Conversion',
-      title: 'Mr.', // Default
-      gender: 'M',  // Default
+      title: 'Mr.',
+      gender: 'M',
+      courierOutstation: false,
     });
 
     // Update lead status

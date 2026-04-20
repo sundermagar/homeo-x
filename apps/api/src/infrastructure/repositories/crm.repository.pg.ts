@@ -33,7 +33,11 @@ export class CrmRepositoryPg implements ILeadRepository {
   }
 
   async createLead(dto: any): Promise<number> {
+    const res = await this.db.execute(sql`SELECT COALESCE(MAX(id), 0) + 1 AS "maxId" FROM leads`);
+    const nextId = (res[0] as any)?.maxId ?? 1;
+
     const [row] = await this.db.insert(schema.leads).values({
+      id: nextId,
       name: dto.name,
       mobile: dto.mobile || dto.phone || '',
       phone: dto.phone || '',
@@ -70,7 +74,11 @@ export class CrmRepositoryPg implements ILeadRepository {
   }
 
   async createFollowup(leadId: number, dto: any): Promise<number> {
+    const res = await this.db.execute(sql`SELECT COALESCE(MAX(id), 0) + 1 AS "maxId" FROM lead_followups`);
+    const nextId = (res[0] as any)?.maxId ?? 1;
+
     const [row] = await this.db.insert(schema.leadFollowups).values({
+      id: nextId,
       leadId,
       name: dto.notes || dto.name || '',
       task: dto.task || dto.followup_type || '',
@@ -105,7 +113,7 @@ export class CrmRepositoryPg implements ILeadRepository {
         c.first_name, 
         c.surname
       FROM referral r
-      LEFT JOIN case_datas c ON c.regid = r.referral_id
+      LEFT JOIN case_datas c ON c.regid::text = r.referral_id
       WHERE r.deleted_at IS NULL
       GROUP BY r.referral_id, c.first_name, c.surname
     `);
@@ -119,14 +127,18 @@ export class CrmRepositoryPg implements ILeadRepository {
   }
 
   async createReferral(dto: any): Promise<number> {
+    const res = await this.db.execute(sql`SELECT COALESCE(MAX(id), 0) + 1 AS "maxId" FROM referral`);
+    const nextId = (res[0] as any)?.maxId ?? 1;
+
     const [row] = await this.db.insert(schema.referrals).values({
+      id: nextId,
       regid: dto.regid,
       referralId: dto.referral_id,
       totalAmount: String(dto.total_amount || 0) as any,
       usedAmount: String(dto.used_amount || 0) as any,
       createdAt: new Date(),
       updatedAt: new Date(),
-    }).returning({ id: schema.referrals.id });
+    } as any).returning({ id: schema.referrals.id });
     return row!.id;
   }
 
@@ -169,18 +181,33 @@ export class CrmRepositoryPg implements ILeadRepository {
   }
 
   async createReminder(dto: any): Promise<number> {
-    const [row] = await this.db.insert(schema.caseReminders).values({
-      regid: dto.regid,
-      patientId: dto.patient_id,
-      startDate: dto.start_date || dto.followup_date,
-      remindTime: dto.remind_time || '09:00',
-      heading: dto.heading || dto.reminder_type || '',
-      comments: dto.comments || dto.notes || '',
-      status: dto.status || 'pending',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    } as any).returning({ id: schema.caseReminders.id });
-    return row!.id;
+    const res = await this.db.execute(sql`SELECT COALESCE(MAX(id), 0) + 1 AS "maxId" FROM case_reminder`);
+    const nextId = (res[0] as any)?.maxId ?? 1;
+
+    const patientRes = await this.db.execute(sql`SELECT first_name, surname FROM case_datas WHERE regid = ${dto.regid || 0}`);
+    const p = patientRes[0] as any;
+    const pName = p ? `${p.first_name} ${p.surname || ''}`.trim() : `Patient ${dto.regid}`;
+
+    const startDate = dto.start_date || dto.followup_date || new Date().toISOString().split('T')[0];
+    const remindTime = dto.remind_time || '09:00';
+    const heading = dto.heading || dto.reminder_type || '';
+    const comments = dto.comments || dto.notes || '';
+    const status = dto.status || 'pending';
+    const patientId = dto.patient_id || parseInt(dto.regid || '0', 10);
+
+    await this.db.execute(sql`
+      INSERT INTO case_reminder (
+        id, patient_id, patient_name, start_date, end_date, 
+        remind_time, remind_after, heading, comments, status, 
+        created_at, updated_at
+      ) VALUES (
+        ${nextId}, ${patientId},${pName}, ${startDate}, ${startDate}, 
+        ${remindTime}, '1 day', ${heading}, ${comments}, ${status}, 
+        NOW(), NOW()
+      )
+    `);
+
+    return nextId;
   }
 
   async updateReminder(id: number, dto: any): Promise<void> {
@@ -195,6 +222,6 @@ export class CrmRepositoryPg implements ILeadRepository {
   }
 
   async deleteReminder(id: number): Promise<void> {
-    await this.db.update(schema.caseReminders).set({ deletedAt: new Date() }).where(eq(schema.caseReminders.id, id));
+    await this.db.update(schema.caseReminders).set({ deletedAt: new Date().toISOString() as any }).where(eq(schema.caseReminders.id, id));
   }
 }

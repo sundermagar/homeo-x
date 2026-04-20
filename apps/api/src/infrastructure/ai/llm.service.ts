@@ -35,8 +35,8 @@ export class LLMService {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
+        const errorData = await response.json().catch(() => ({})) as { error?: { message?: string } };
+        throw new Error(errorData?.error?.message || `HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json() as any;

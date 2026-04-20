@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom';
 import '../../platform/styles/platform.css';
 import '../styles/settings.css';
 
+import { useAuthStore } from '@/shared/stores/auth-store';
+
 interface ExportCardProps {
   title: string;
   description: string;
@@ -38,12 +40,27 @@ function ExportCard({ title, description, icon, onExport, isExporting }: ExportC
 
 export default function ExportDataPage() {
   const [exporting, setExporting] = useState<string | null>(null);
+  const { token } = useAuthStore();
 
-  const handleExport = async (type: string) => {
+  const handleExport = async (type: string, endpoint: string) => {
+    if (!token) {
+      alert('Authentication session expired. Please log in again.');
+      return;
+    }
+
     setExporting(type);
-    await new Promise(r => setTimeout(r, 1500));
-    alert(`${type} data export triggered. File will be downloaded shortly.`);
-    setExporting(null);
+    try {
+      // Pass the token as a query parameter since window.location.href doesn't send headers
+      window.location.href = `/api/export/${endpoint}?token=${token}`;
+      
+      // We wait a bit to clear the loading state as the browser handles the download
+      await new Promise(r => setTimeout(r, 2000));
+    } catch (err) {
+      console.error('Export failed:', err);
+      alert('Failed to generate export. Please try again.');
+    } finally {
+      setExporting(null);
+    }
   };
 
   return (
@@ -64,28 +81,28 @@ export default function ExportDataPage() {
           title="Patient Registry"
           description="Demographics, contact info, and registration history."
           icon={<Users size={24} />}
-          onExport={() => handleExport('Patients')}
+          onExport={() => handleExport('Patients', 'patients')}
           isExporting={exporting === 'Patients'}
         />
         <ExportCard
           title="Case History"
           description="Full clinical logs, consultations, and diagnosis data."
           icon={<FileText size={24} />}
-          onExport={() => handleExport('Medical Cases')}
+          onExport={() => handleExport('Medical Cases', 'cases')}
           isExporting={exporting === 'Medical Cases'}
         />
         <ExportCard
           title="Financial Ledger"
           description="Revenue logs, transaction IDs, and settlement status."
           icon={<CreditCard size={24} />}
-          onExport={() => handleExport('Billing')}
+          onExport={() => handleExport('Billing', 'billing')}
           isExporting={exporting === 'Billing'}
         />
         <ExportCard
           title="Scheduling Log"
           description="Appointment sequences, cancellations, and visit maps."
           icon={<Calendar size={24} />}
-          onExport={() => handleExport('Appointments')}
+          onExport={() => handleExport('Appointments', 'appointments')}
           isExporting={exporting === 'Appointments'}
         />
       </div>

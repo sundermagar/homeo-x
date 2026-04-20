@@ -128,6 +128,19 @@ export interface PlatformStats {
   totalStaff: number;
 }
 
+export interface IntelligenceInsight {
+  color: string;
+  text: string;
+}
+
+export interface RecentTransaction {
+  id: number;
+  patientName: string;
+  invoiceNo: string;
+  amount: number;
+  status: 'paid' | 'due' | 'partial' | string;
+}
+
 export interface UnifiedDashboardData {
   kpis: DashboardKpis;
   queue: QueueItem[];
@@ -137,6 +150,8 @@ export interface UnifiedDashboardData {
   revenueSeries: RevenueSeries[];
   clinicName: string;
   platformStats?: PlatformStats;
+  recentTransactions?: RecentTransaction[];
+  intelligenceInsights?: IntelligenceInsight[];
 }
 
 // ─── Clinic Admin Dashboard ───────────────────────────────────────────────────

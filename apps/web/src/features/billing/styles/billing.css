@@ -333,8 +333,8 @@
 }
 
 .bill-search-wrap { position: relative; display: flex; align-items: center; }
-.bill-search-icon { position: absolute; left: 10px; color: var(--pp-text-3); pointer-events: none; }
-.bill-search-input { padding-left: 32px; min-width: 240px; }
+.bill-search-icon { position: absolute; left: 12px; color: var(--pp-text-3); pointer-events: none; }
+.bill-search-input { padding-left: 36px !important; min-width: 240px; }
 
 /* ─── Section Label / Sub-header ─── */
 .bill-section-header {
@@ -350,6 +350,13 @@
   color: var(--pp-text-3);
   text-transform: uppercase;
   letter-spacing: 0.1em;
+}
+
+.bill-section-sub {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--pp-text-3);
+  margin-top: 4px;
 }
 
 /* ─── Pagination ─── */

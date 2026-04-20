@@ -44,6 +44,7 @@ import { knowledgeRouter } from './routes/knowledge.router';
 import { recordsRouter } from './routes/records.router';
 import { staffRouter } from './routes/staff.router';
 import { createSettingsRouter } from './routes/settings.router';
+import { exportRouter } from './routes/export.router';
 
 const logger = createLogger('http');
 
@@ -131,6 +132,9 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   // Roles & Permissions
   app.use('/api/roles', authMiddleware, rolesRouter);
   app.use('/api/permissions', authMiddleware, permissionsRouter);
+
+  // Data Export
+  app.use('/api/export', authMiddleware, exportRouter);
 
   // ─── Error Handling (must be last) ───
   app.use(errorHandler);

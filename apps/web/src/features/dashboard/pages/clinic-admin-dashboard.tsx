@@ -281,8 +281,8 @@ export function ClinicAdminDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {topBilling.map((b: { id: number; patientName: string; total: number; status: string }) => (
-                        <tr key={b.id}>
+                      {topBilling.map((b: { id: number; regid: number; patientName: string; total: number; status: string }) => (
+                        <tr key={b.id} onClick={() => navigate(`/patients/${b.regid}`)} style={{ cursor: 'pointer' }}>
                           <td className="cad-patient-cell">
                             <div className="cad-patient-avatar">{b.patientName.charAt(0)}</div>
                             <span>{b.patientName}</span>
@@ -342,8 +342,13 @@ export function ClinicAdminDashboard() {
               <div className="cad-card-body cad-activity-body">
                 {recentActivity.length > 0 ? (
                   <div className="cad-activity-list">
-                    {recentActivity.map((a: { type: string; title: string; subtitle: string; createdAt: string | Date }, i: number) => (
-                      <div key={i} className="cad-activity-item">
+                    {recentActivity.map((a: { type: string; title: string; subtitle: string; createdAt: string | Date; regid?: number }, i: number) => (
+                      <div 
+                        key={i} 
+                        className="cad-activity-item" 
+                        onClick={() => a.regid && navigate(`/patients/${a.regid}`)}
+                        style={{ cursor: a.regid ? 'pointer' : 'default' }}
+                      >
                         <div className={`cad-activity-dot ${a.type === 'payment' ? 'dot-green' : 'dot-blue'}`} />
                         <div className="cad-activity-content">
                           <div className="cad-activity-title">{a.title}</div>
@@ -386,8 +391,13 @@ export function ClinicAdminDashboard() {
               <div className="cad-sidebar-section-title">TODAY'S QUEUE</div>
               {queue.length > 0 ? (
                 <div className="cad-queue-list">
-                  {queue.slice(0, 10).map((q: { id: number; patientName: string; tokenNo: string | number | null; bookingTime: string | null; status: string }) => (
-                    <div key={q.id} className="cad-queue-item">
+                  {queue.slice(0, 10).map((q: { id: number; regid: number; patientName: string; tokenNo: string | number | null; bookingTime: string | null; status: string }) => (
+                    <div 
+                      key={q.id} 
+                      className="cad-queue-item" 
+                      onClick={() => navigate(`/patients/${q.regid}`)}
+                      style={{ cursor: 'pointer' }}
+                    >
                       <div className="cad-queue-avatar">{q.patientName.charAt(0)}</div>
                       <div className="cad-queue-info">
                         <div className="cad-queue-name">{q.patientName}</div>

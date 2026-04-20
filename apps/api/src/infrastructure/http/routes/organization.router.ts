@@ -3,8 +3,9 @@ import { asyncHandler } from '../middleware/async-handler';
 import { validate } from '../middleware/validate';
 import { createOrganizationSchema, updateOrganizationSchema } from '@mmc/validation';
 import { OrganizationRepositoryPg } from '../../repositories/organization.repository.pg';
-import {
-  ListOrganizationsUseCase,
+import { createLogger } from '../../../shared/logger';
+const logger = createLogger('organization-router');
+import {  ListOrganizationsUseCase,
   CreateOrganizationUseCase,
   UpdateOrganizationUseCase,
   DeleteOrganizationUseCase,
@@ -36,6 +37,35 @@ export function createOrganizationRouter(): Router {
   router.post('/', validate(createOrganizationSchema), asyncHandler(async (req: Request, res: Response) => {
     const repo = new OrganizationRepositoryPg(req.publicDb);
     const result = await new CreateOrganizationUseCase(repo).execute(req.body);
+
+    const dbUrl = process.env.DATABASE_URL;
+    if (dbUrl) {
+      try {
+        const { provisionTenant, TenantRegistry } = await import('@mmc/database');
+        const slug = result.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const schemaName = `tenant_${slug}`;
+        
+        let shouldProvision = true;
+        const allTenants = TenantRegistry.getAll();
+        if (allTenants.find(t => t.slug === slug || t.schemaName === schemaName)) {
+           shouldProvision = false;
+        }
+        
+        if (shouldProvision) {
+          await provisionTenant(dbUrl, schemaName);
+          TenantRegistry.register({
+            slug,
+            schemaName,
+            displayName: result.name,
+            isActive: true
+          });
+          logger.info({ organizationName: result.name, slug, schemaName }, 'Successfully provisioned new tenant database schema');
+        }
+      } catch (err: any) {
+        logger.error({ err, organizationName: result.name }, 'Failed to provision tenant DB');
+      }
+    }
+
     res.status(201).json({ success: true, data: result });
   }));
 

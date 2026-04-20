@@ -145,9 +145,10 @@ export default function OperationsDashboard() {
         apiClient.get('/crm/referrals/summary'),
         apiClient.get('/crm/reminders')
       ]);
-      setLeads(leadsRes.data);
-      setReferrals(refsRes.data);
-      setReminders(remsRes.data);
+      // Standardize data unwrapping for CRM endpoints
+      setLeads(leadsRes.data.data?.data || []);
+      setReferrals(refsRes.data.data || []);
+      setReminders(remsRes.data.data?.data || []);
     } catch (err) {
       console.error('Failed to fetch CRM data', err);
     } finally {
@@ -306,15 +307,15 @@ export default function OperationsDashboard() {
       {activeTab === 'crm' && (
         <div className="slide-up">
           <div className="ops-stats-row">
-            <StatCard icon={UsersRound} value={5} label="Total Leads" variant="default" />
-            <StatCard icon={AlertCircle} value={2} label="New" variant="info" />
-            <StatCard icon={CheckCircle2} value={1} label="Converted" variant="success" />
-            <StatCard icon={BellRing} value={4} label="Reminders" variant="warn" />
+            <StatCard icon={UsersRound} value={leads.length} label="Total Leads" variant="default" />
+            <StatCard icon={AlertCircle} value={leads.filter(l => !l.status || l.status.toLowerCase() === 'new').length} label="New" variant="info" />
+            <StatCard icon={CheckCircle2} value={leads.filter(l => l.status?.toLowerCase() === 'converted').length} label="Converted" variant="success" />
+            <StatCard icon={BellRing} value={reminders.length} label="Reminders" variant="warn" />
           </div>
 
           <div className="ops-content card" style={{ marginBottom: 16 }}>
             <div className="ops-table-header">
-              <h2 className="pane-title">Lead Pipeline</h2>
+              <h2 className="pane-title">Lead Pipeline ({leads.length})</h2>
             </div>
             <div className="ops-table-wrapper">
               <table className="ops-table">
@@ -336,7 +337,7 @@ export default function OperationsDashboard() {
                       <td data-label="Source">{l.source}</td>
                       <td data-label="Status"><StatusBadge status={l.status || 'New'} /></td>
                       <td data-label="Notes"><span className="cell-sub" style={{ maxWidth: 160 }}>{l.notes}</span></td>
-                      <td data-label="Date"><span className="cell-sub">{new Date(l.created_at).toLocaleDateString()}</span></td>
+                      <td data-label="Date"><span className="cell-sub">{l.created_at ? new Date(l.created_at).toLocaleDateString() : '-'}</span></td>
                       <td data-label="Action">
                         {l.status?.toLowerCase() === 'converted' ? (
                           <span className="ops-status-badge converted">Converted</span>
@@ -360,7 +361,7 @@ export default function OperationsDashboard() {
           <div className="ops-grid">
             <div className="ops-content card">
               <div className="ops-table-header">
-                <h2 className="pane-title">Referral Summary</h2>
+                <h2 className="pane-title">Referral Summary ({referrals.length})</h2>
                 <button className="ops-btn ops-btn-ghost" onClick={() => setModalType('referral')}>
                   + Log Referral
                 </button>
@@ -390,7 +391,7 @@ export default function OperationsDashboard() {
             </div>
             <div className="ops-content card">
               <div className="ops-table-header">
-                <h2 className="pane-title">Case Reminders</h2>
+                <h2 className="pane-title">Case Reminders ({reminders.length})</h2>
                 <button className="ops-btn ops-btn-ghost" onClick={() => setModalType('reminder')}>
                   + Create
                 </button>

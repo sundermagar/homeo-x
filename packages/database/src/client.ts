@@ -17,16 +17,16 @@ export function createDbClient(databaseUrl: string, tenantSchema?: string): DbCl
     return clients.get(cacheKey)!;
   }
 
-  const connectionOptions: any = {
-    max: 10,
-    idle_timeout: 20,
-    connect_timeout: 10,
+  const connectionOptions: Record<string, any> = {
+    max: Number(process.env['DB_MAX_CONNECTIONS'] || 10),
+    idle_timeout: Number(process.env['DB_IDLE_TIMEOUT'] || 20),
+    connect_timeout: Number(process.env['DB_CONNECT_TIMEOUT'] || 10),
   };
 
   // Set search_path to tenant schema with public as fallback
   if (tenantSchema) {
     // Avoid spaces in search_path string for better driver compatibility
-    connectionOptions.connection = {
+    connectionOptions['connection'] = {
       search_path: `${tenantSchema}, public`,
     };
   }

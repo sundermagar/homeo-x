@@ -68,7 +68,11 @@ export function BillingTable({ bills, isLoading }: BillingTableProps) {
                   {bill.balance > 0 ? `₹${bill.balance.toLocaleString()}` : '—'}
                 </td>
                 <td data-label="" style={{ textAlign: 'right' }}>
-                  <button className="bill-btn bill-btn-sm" style={{ color: 'var(--pp-blue)', border: 'none', background: 'none', fontWeight: 600 }}>
+                  <button 
+                    className="bill-btn bill-btn-sm" 
+                    style={{ color: 'var(--pp-blue)', border: 'none', background: 'none', fontWeight: 600, cursor: 'pointer' }}
+                    onClick={() => window.location.href = `/patients/${bill.regid}`}
+                  >
                     View
                   </button>
                 </td>

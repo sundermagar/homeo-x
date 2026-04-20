@@ -107,12 +107,19 @@ function staffMemberToForm(staff: StaffMember): CreateStaffInput {
     ...getDefaultStaffForm(),
     ...staff,
     category: CATEGORY,
-    gender,
+    name: staff.name || '',
+    email: staff.email || '',
+    mobile: staff.mobile || '',
     mobile2: staff.mobile2 || '',
+    gender,
     dateBirth: staff.dateBirth ?? '',
+    designation: staff.designation || '',
+    city: staff.city || '',
+    address: staff.address || '',
+    about: staff.about || '',
     consultationFee: Number(staff.consultationFee) || 0,
-    salaryCur: staff.salary, // Field name mapping for salary
-    dept: staff.department, // Field name mapping for department
+    salaryCur: staff.salary || 0,
+    dept: staff.department || 4,
     password: '',
   } as CreateStaffInput;
 }
@@ -190,9 +197,9 @@ function StaffModal({
         await createMutation.mutateAsync(payload as CreateStaffInput);
       } else {
         await updateMutation.mutateAsync({
+          ...payload,
           category: CATEGORY,
-          id: (staff as StaffMember).id,
-          ...(payload as UpdateStaffInput)
+          id: (staff as StaffMember).id
         });
       }
       onSuccess();

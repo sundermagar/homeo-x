@@ -194,7 +194,7 @@ a {
 .-page {
   padding: 16px;
   width: 100%;
-  min-width: 32plat0px;
+  min-width: 320px;
 }
 
 .app-container {
@@ -251,30 +251,25 @@ a {
   .pp-filter-bar {
     flex-direction: row;
     align-items: center;
+    justify-content: space-between;
     flex-wrap: wrap;
   }
 }
 
 /* ──────────────────────────────────────────────────────────────────────────── */
-/* FORM GRID — Mobile: single column → Desktop: 2 columns                       */
+/* FORM GRID — Mobile: single column → Desktop: auto layout                     */
 /* ──────────────────────────────────────────────────────────────────────────── */
 
 .pp-form-grid {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: var(--pp-space-4);
 }
 
-@media (min-width: 640px) {
-  .pp-form-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (min-width: 1024px) {
-  .pp-form-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
+.pp-form-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--pp-space-4);
 }
 
 /* ──────────────────────────────────────────────────────────────────────────── */
@@ -363,12 +358,27 @@ a {
   display: block;
 }
 
-.pp-input:focus {
+.pp-textarea {
+  width: 100%;
+  min-height: 80px;
+  border: 1px solid var(--pp-warm-4);
+  border-radius: var(--pp-radius-btn);
+  padding: var(--pp-space-2) var(--pp-space-3);
+  font-size: 13px;
+  color: var(--pp-ink);
+  background: white;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+  display: block;
+  resize: vertical;
+}
+
+.pp-input:focus, .pp-textarea:focus {
   border-color: var(--pp-blue);
   box-shadow: 0 0 0 3px var(--pp-blue-tint);
 }
 
-.pp-input::placeholder {
+.pp-input::placeholder, .pp-textarea::placeholder {
   color: var(--pp-text-4);
 }
 

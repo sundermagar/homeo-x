@@ -10,10 +10,10 @@ import '../styles/login-page.css';
 type LoginFields = z.infer<typeof LoginRequestSchema>;
 
 const DEMO_USERS = [
-  { email: 'doctor@homeox.com',      name: 'Dr. Demo',       type: 'Doctor',       role: '🩺 Doctor',       id: 101 },
-  { email: 'admin@homeox.com',       name: 'Admin Demo',     type: 'Admin',        role: '🛡 Admin',        id: 102 },
-  { email: 'reception@homeox.com',   name: 'Reception Demo', type: 'Receptionist', role: '📋 Reception',    id: 103 },
-  { email: 'clinicadmin@homeox.com', name: 'Clinic Admin',   type: 'Clinicadmin',  role: '🏥 Clinic Admin', id: 104 },
+  { email: 'doctor@kreed.health',      name: 'Dr. Demo',       type: 'Doctor',       role: '🩺 Doctor',       id: 101 },
+  { email: 'admin@kreed.health',       name: 'Admin Demo',     type: 'Admin',        role: '🛡 Admin',        id: 102 },
+  { email: 'reception@kreed.health',   name: 'Reception Demo', type: 'Receptionist', role: '📋 Reception',    id: 103 },
+  { email: 'clinicadmin@kreed.health', name: 'Clinic Admin',   type: 'Clinicadmin',  role: '🏥 Clinic Admin', id: 104 },
 ];
 
 export default function LoginPage() {
@@ -88,12 +88,12 @@ export default function LoginPage() {
       // POST /api/auth/login → { success: true, token, user: { ...payload, permissions } }
       const { data } = await apiClient.post('/auth/login', { email, password });
 
-      if (data.success && data.token) {
+      if (data.success && data.data?.token) {
         // Store token + user (with permissions) in Zustand persisted store
-        setAuth(data.token, data.user);
+        setAuth(data.data.token, data.data.user);
         navigate('/', { replace: true });
       } else {
-        setError('Invalid credentials. Please try again.');
+        setError(data.error || 'Invalid credentials. Please try again.');
       }
     } catch (err: any) {
       // Handle rate-limit (mirrors MMC's authLimiter 429 response)
@@ -118,7 +118,7 @@ export default function LoginPage() {
             <Stethoscope size={28} strokeWidth={1.8} />
           </div>
           <h1 className="login-title">
-            Homeo<span className="login-title-brand">X</span>
+            Kreed<span className="login-title-brand">.health</span>
           </h1>
           <p className="login-subtitle">Secure clinical portal · Sign in to continue</p>
         </div>
@@ -141,7 +141,7 @@ export default function LoginPage() {
                 id="login-email"
                 type="email"
                 className={`login-input${fieldErrors.email ? ' error' : ''}`}
-                placeholder="doctor@homeox.com"
+                placeholder="admin@kreed.health"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 autoComplete="email"
@@ -220,7 +220,7 @@ export default function LoginPage() {
         </div>
 
         <div className="login-footer">
-          <p>Protected by enterprise-grade encryption · HomeoX Clinical Portal</p>
+          <p>Protected by enterprise-grade encryption · Kreed.health Clinical Portal</p>
         </div>
 
       </div>

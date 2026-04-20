@@ -142,7 +142,7 @@ appointmentsRouter.post('/:id/issue-token', asyncHandler(async (req, res) => {
 // POST /api/appointments/waiting
 appointmentsRouter.post('/waiting', asyncHandler(async (req, res) => {
   const { patientId, appointmentId, doctorId, consultationFee } = req.body;
-  if (!patientId) throw new BadRequestError('patientId is required');
+  if (!patientId && !appointmentId) throw new BadRequestError('Either patientId or appointmentId is required');
   const queueMgmt = new QueueManagementUseCase(getRepo(req));
   const result = await queueMgmt.addToWaitlist({ patientId, appointmentId, doctorId, consultationFee });
   if (result.success) {

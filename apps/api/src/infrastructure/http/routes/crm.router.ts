@@ -6,7 +6,7 @@ import { ManageReferralsUseCase } from '../../../domains/crm/use-cases/manage-re
 import { ConvertLeadToPatientUseCase } from '../../../domains/crm/use-cases/convert-lead-to-patient.use-case';
 import { PatientRepositoryPg } from '../../repositories/patient.repository.pg';
 import { asyncHandler } from '../middleware/async-handler';
-import { sendSuccess } from '../../../shared/response-formatter';
+import { sendSuccess, sendError } from '../../../shared/response-formatter';
 
 export const crmRouter: Router = Router();
 
@@ -22,7 +22,7 @@ crmRouter.get('/leads', asyncHandler(async (req, res) => {
     page: parseInt(page) || 1,
     limit: parseInt(limit) || 20
   });
-  if (!result.success) { sendError(res, result.error, 400); return; }
+  if (!result.success) { sendError(res, result.error || 'Failed', 400); return; }
   sendSuccess(res, result.data, undefined, 200, { total: result.data.total, page: parseInt(page) || 1, limit: parseInt(limit) || 20 });
 }));
 
@@ -30,24 +30,28 @@ crmRouter.get('/leads/:id', asyncHandler(async (req, res) => {
   const uc = new ManageLeadsUseCase(getRepo(req));
   const result = await uc.getById(Number(req.params.id));
   if (result.success) sendSuccess(res, result.data);
+  else sendError(res, result.error || 'Failed', 400);
 }));
 
 crmRouter.post('/leads', asyncHandler(async (req, res) => {
   const uc = new ManageLeadsUseCase(getRepo(req));
   const result = await uc.create(req.body);
   if (result.success) sendSuccess(res, { id: result.data }, 'Lead created', 201);
+  else sendError(res, result.error || 'Failed', 400);
 }));
 
 crmRouter.put('/leads/:id', asyncHandler(async (req, res) => {
   const uc = new ManageLeadsUseCase(getRepo(req));
   const result = await uc.update(Number(req.params.id), req.body);
   if (result.success) sendSuccess(res, undefined, 'Lead updated');
+  else sendError(res, result.error || 'Failed', 400);
 }));
 
 crmRouter.delete('/leads/:id', asyncHandler(async (req, res) => {
   const uc = new ManageLeadsUseCase(getRepo(req));
   const result = await uc.delete(Number(req.params.id));
   if (result.success) sendSuccess(res, undefined, 'Lead deleted');
+  else sendError(res, result.error || 'Failed', 400);
 }));
 
 crmRouter.post('/leads/:id/convert', asyncHandler(async (req, res) => {
@@ -56,24 +60,28 @@ crmRouter.post('/leads/:id/convert', asyncHandler(async (req, res) => {
   const uc = new ConvertLeadToPatientUseCase(crmRepo, patientRepo);
   const result = await uc.execute(Number(req.params.id));
   if (result.success) sendSuccess(res, result.data, 'Lead converted to patient successfully');
+  else sendError(res, result.error || 'Failed', 400);
 }));
 
 crmRouter.post('/leads/:id/followups', asyncHandler(async (req, res) => {
   const uc = new ManageLeadsUseCase(getRepo(req));
   const result = await uc.addFollowup(Number(req.params.id), req.body);
   if (result.success) sendSuccess(res, { id: result.data }, 'Followup added', 201);
+  else sendError(res, result.error || 'Failed', 400);
 }));
 
 crmRouter.put('/leads/followups/:fid', asyncHandler(async (req, res) => {
   const uc = new ManageLeadsUseCase(getRepo(req));
   const result = await uc.updateFollowup(Number(req.params.fid), req.body);
   if (result.success) sendSuccess(res, undefined, 'Followup updated');
+  else sendError(res, result.error || 'Failed', 400);
 }));
 
 crmRouter.delete('/leads/followups/:fid', asyncHandler(async (req, res) => {
   const uc = new ManageLeadsUseCase(getRepo(req));
   const result = await uc.deleteFollowup(Number(req.params.fid));
   if (result.success) sendSuccess(res, undefined, 'Followup deleted');
+  else sendError(res, result.error || 'Failed', 400);
 }));
 
 // Legacy frontend compatibility
@@ -81,6 +89,7 @@ crmRouter.delete('/leads/:id/followups/:fid', asyncHandler(async (req, res) => {
   const uc = new ManageLeadsUseCase(getRepo(req));
   const result = await uc.deleteFollowup(Number(req.params.fid));
   if (result.success) sendSuccess(res, undefined, 'Followup deleted');
+  else sendError(res, result.error || 'Failed', 400);
 }));
 
 // ── Referrals ────────────────────────────────────────────────────────────────
@@ -89,24 +98,28 @@ crmRouter.get('/referrals/summary', asyncHandler(async (req, res) => {
   const uc = new ManageReferralsUseCase(getRepo(req));
   const result = await uc.getSummary();
   if (result.success) sendSuccess(res, result.data);
+  else sendError(res, result.error || 'Failed', 400);
 }));
 
 crmRouter.get('/referrals/details/:referralId', asyncHandler(async (req, res) => {
   const uc = new ManageReferralsUseCase(getRepo(req));
   const result = await uc.getDetails(Number(req.params.referralId));
   if (result.success) sendSuccess(res, result.data);
+  else sendError(res, result.error || 'Failed', 400);
 }));
 
 crmRouter.post('/referrals', asyncHandler(async (req, res) => {
   const uc = new ManageReferralsUseCase(getRepo(req));
   const result = await uc.create(req.body);
   if (result.success) sendSuccess(res, { id: result.data }, 'Referral created', 201);
+  else sendError(res, result.error || 'Failed', 400);
 }));
 
 crmRouter.delete('/referrals/:id', asyncHandler(async (req, res) => {
   const uc = new ManageReferralsUseCase(getRepo(req));
   const result = await uc.delete(Number(req.params.id));
   if (result.success) sendSuccess(res, undefined, 'Referral deleted');
+  else sendError(res, result.error || 'Failed', 400);
 }));
 
 // ── Reminders ────────────────────────────────────────────────────────────────
@@ -128,28 +141,33 @@ crmRouter.get('/reminders/:id', asyncHandler(async (req, res) => {
   const uc = new ManageRemindersUseCase(getRepo(req));
   const result = await uc.getById(Number(req.params.id));
   if (result.success) sendSuccess(res, result.data);
+  else sendError(res, result.error || 'Failed', 400);
 }));
 
 crmRouter.post('/reminders', asyncHandler(async (req, res) => {
   const uc = new ManageRemindersUseCase(getRepo(req));
   const result = await uc.create(req.body);
   if (result.success) sendSuccess(res, { id: result.data }, 'Reminder created', 201);
+  else sendError(res, result.error || 'Failed', 400);
 }));
 
 crmRouter.put('/reminders/:id', asyncHandler(async (req, res) => {
   const uc = new ManageRemindersUseCase(getRepo(req));
   const result = await uc.update(Number(req.params.id), req.body);
   if (result.success) sendSuccess(res, undefined, 'Reminder updated');
+  else sendError(res, result.error || 'Failed', 400);
 }));
 
 crmRouter.post('/reminders/:id/done', asyncHandler(async (req, res) => {
   const uc = new ManageRemindersUseCase(getRepo(req));
   const result = await uc.markDone(Number(req.params.id));
   if (result.success) sendSuccess(res, undefined, 'Reminder marked as done');
+  else sendError(res, result.error || 'Failed', 400);
 }));
 
 crmRouter.delete('/reminders/:id', asyncHandler(async (req, res) => {
   const uc = new ManageRemindersUseCase(getRepo(req));
   const result = await uc.delete(Number(req.params.id));
   if (result.success) sendSuccess(res, undefined, 'Reminder deleted');
+  else sendError(res, result.error || 'Failed', 400);
 }));

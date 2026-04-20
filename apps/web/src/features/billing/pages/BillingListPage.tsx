@@ -145,7 +145,13 @@ export default function BillingListPage() {
                 <div><strong>Balance:</strong> {bill.balance > 0 ? `₹${bill.balance.toLocaleString()}` : '—'}</div>
               </div>
               <div className="bill-grid-card-footer">
-                <button className="bill-btn bill-btn-primary" style={{ width: '100%' }}>View Details</button>
+                <button 
+                  className="bill-btn bill-btn-primary" 
+                  style={{ width: '100%' }}
+                  onClick={() => window.location.href = `/patients/${bill.regid}`}
+                >
+                  View Details
+                </button>
               </div>
             </div>
           ))}

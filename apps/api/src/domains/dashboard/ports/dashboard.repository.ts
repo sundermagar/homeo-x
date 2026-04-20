@@ -9,6 +9,8 @@ import type {
   TopBillingItem,
   MonthlyTarget,
   PlatformStats,
+  RecentTransaction,
+  IntelligenceInsight,
 } from '@mmc/types';
 
 export interface IDashboardRepository {
@@ -19,6 +21,8 @@ export interface IDashboardRepository {
   getBirthdays(contextId: number): Promise<BirthdayPatient[]>;
   getRevenueSeries(period: string, contextId: number, paymentMode?: string): Promise<RevenueSeries[]>;
   markReminderDone(id: number): Promise<void>;
+  getRecentTransactions(limit: number): Promise<RecentTransaction[]>;
+  getIntelligenceInsights(kpis: DashboardKpis): Promise<IntelligenceInsight[]>;
   // Clinic Admin specific
   getRevenueBreakdown(period: string, contextId: number): Promise<RevenueBreakdown>;
   getTopBilling(period: string, limit: number, contextId: number): Promise<TopBillingItem[]>;

@@ -60,7 +60,7 @@ patientRouter.get('/meta/form', async (req: Request, res: Response) => {
   try {
     const repo = getRepo(req);
     const meta = await repo.getFormMeta();
-    res.json({ success: true, ...meta });
+    res.json({ success: true, data: meta });
   } catch (err: any) {
     console.error('CRITICAL PatientRouter Error:', err);
     res.status(500).json({ success: false, message: err.message, stack: err.stack });

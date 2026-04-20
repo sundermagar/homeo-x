@@ -1,25 +1,3 @@
-CREATE TABLE "remedy_alternatives" (
-	"id" serial PRIMARY KEY NOT NULL,
-	"tree_id" integer NOT NULL,
-	"remedy" varchar(255),
-	"potency" varchar(100),
-	"notes" text,
-	"sort_order" integer DEFAULT 0,
-	"created_at" timestamp DEFAULT now()
-);
---> statement-breakpoint
-CREATE TABLE "remedy_tree_nodes" (
-	"id" serial PRIMARY KEY NOT NULL,
-	"parent_id" integer DEFAULT 0,
-	"label" varchar(255) NOT NULL,
-	"description" text,
-	"node_type" varchar(50) DEFAULT 'RUBRIC',
-	"sort_order" integer DEFAULT 0,
-	"is_active" boolean DEFAULT true,
-	"created_at" timestamp DEFAULT now(),
-	"updated_at" timestamp DEFAULT now()
-);
---> statement-breakpoint
 ALTER TABLE "users" ADD COLUMN "clinic_id" integer;--> statement-breakpoint
 ALTER TABLE "users" ADD COLUMN "title" text;--> statement-breakpoint
 ALTER TABLE "users" ADD COLUMN "firstname" text;--> statement-breakpoint

@@ -34,7 +34,8 @@ export class DashboardUseCases {
         reminders,
         birthdays,
         revenueSeries,
-        platformStats
+        platformStats,
+        recentTransactions,
       ] = await Promise.all([
         safe(this.repository.getKpis.bind(this.repository, period, contextId, doctorId), {
           newPatientsCount: 0,
@@ -56,7 +57,13 @@ export class DashboardUseCases {
         (['superadmin', 'admin'].includes(user.type.toLowerCase()))
           ? safe(this.repository.getPlatformStats.bind(this.repository), undefined)
           : Promise.resolve(undefined),
+        safe(this.repository.getRecentTransactions.bind(this.repository, 5), []),
       ]);
+
+      const intelligenceInsights = await safe(
+        this.repository.getIntelligenceInsights.bind(this.repository, kpis),
+        [{ color: '#22c55e', text: 'Clinic is running smoothly.' }]
+      );
  
       return {
         success: true,
@@ -68,7 +75,9 @@ export class DashboardUseCases {
           birthdays,
           revenueSeries,
           clinicName: 'Clinical Dashboard',
-          platformStats
+          platformStats,
+          recentTransactions,
+          intelligenceInsights,
         }
       };
     } catch (err: any) {

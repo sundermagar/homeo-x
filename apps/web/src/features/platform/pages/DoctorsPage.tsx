@@ -210,7 +210,8 @@ function StaffModal({
       onSuccess();
       onClose();
     } catch (err: any) {
-      setErrors({ general: err.message || 'An error occurred during submission' });
+      const serverMsg = err.response?.data?.message || err.response?.data?.errors || err.message;
+      setErrors({ general: typeof serverMsg === 'object' ? JSON.stringify(serverMsg) : (serverMsg || 'An error occurred during submission') });
     }
   };
 
