@@ -57,6 +57,20 @@
       "when": 1776680000000,
       "tag": "0007_fix_departments_logistics",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1776690000000,
+      "tag": "0008_fix_payment_regid_type",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1776700000000,
+      "tag": "0009_seed_expense_heads",
+      "breakpoints": true
     }
   ]
 }

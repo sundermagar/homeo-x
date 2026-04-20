@@ -281,7 +281,7 @@ export class SettingsRepositoryPg implements ISettingsRepository {
 
   // ─── FAQs ─────────────────────────────────────────────────────────────────
   async listFaqs(): Promise<Faq[]> {
-    return this.q<Faq>('SELECT * FROM faqs ORDER BY display_order ASC, id ASC');
+    return this.q<Faq>('SELECT * FROM faqs ORDER BY id ASC');
   }
   async getFaq(id: number): Promise<Faq | undefined> {
     return this.q1('SELECT * FROM faqs WHERE id = $1', [id]);
