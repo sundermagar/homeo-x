@@ -21,7 +21,7 @@ const TABLES: Array<{ name: string; ddl: string }> = [
   {
     name: 'accounts',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."accounts" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "clinic_id" text,
   "name" text NOT NULL,
   "password" text,
@@ -45,7 +45,7 @@ const TABLES: Array<{ name: string; ddl: string }> = [
   {
     name: 'add_reminders',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."add_reminders" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "regid" integer NOT NULL,
   "remind_on" timestamp NOT NULL,
   "timepick" text,
@@ -75,7 +75,7 @@ const TABLES: Array<{ name: string; ddl: string }> = [
   {
     name: 'ai_audit_logs',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."ai_audit_logs" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "tenant_id" integer,
   "visit_id" integer,
   "action_type" text,
@@ -100,7 +100,7 @@ const TABLES: Array<{ name: string; ddl: string }> = [
   {
     name: 'ai_prompts',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."ai_prompts" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "name" text,
   "specialty" text,
   "version" integer,
@@ -115,7 +115,7 @@ const TABLES: Array<{ name: string; ddl: string }> = [
   {
     name: 'appointment_case',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."appointment_case" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "patient_id" text NOT NULL,
   "doctor_id" text NOT NULL,
   "appointment_id" integer NOT NULL,
@@ -127,7 +127,7 @@ const TABLES: Array<{ name: string; ddl: string }> = [
   {
     name: 'appointments',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."appointments" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "clinic_id" integer,
   "booking_date" text,
   "booking_time" text,
@@ -159,7 +159,7 @@ const TABLES: Array<{ name: string; ddl: string }> = [
   {
     name: 'ask_ques',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."ask_ques" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "regid" integer,
   "quesid" integer,
   "ansid" integer,
@@ -172,7 +172,7 @@ const TABLES: Array<{ name: string; ddl: string }> = [
   {
     name: 'backups',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."backups" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "name" text NOT NULL,
   "file_name" text NOT NULL,
   "backup_size" text NOT NULL,
@@ -202,7 +202,7 @@ const TABLES: Array<{ name: string; ddl: string }> = [
     name: 'basic_details',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."basic_details" (
   "regid" integer NOT NULL,
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "current_date" timestamp NOT NULL,
   "title" text,
   "first_name" text,
@@ -237,7 +237,7 @@ const TABLES: Array<{ name: string; ddl: string }> = [
   {
     name: 'bill',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."bill" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "regid" integer,
   "rand_id" text,
   "Treatment" text,
@@ -268,7 +268,7 @@ const TABLES: Array<{ name: string; ddl: string }> = [
   {
     name: 'books',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."books" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "title" text,
   "file" text,
   "created_at" timestamp,
@@ -279,7 +279,7 @@ const TABLES: Array<{ name: string; ddl: string }> = [
   {
     name: 'case_arthritis',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."case_arthritis" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "rand_id" integer,
   "regid" integer,
   "dateval" text,
@@ -302,7 +302,7 @@ const TABLES: Array<{ name: string; ddl: string }> = [
   {
     name: 'case_cardiac',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."case_cardiac" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "rand_id" integer,
   "regid" integer,
   "dateval" text,
@@ -316,7 +316,7 @@ const TABLES: Array<{ name: string; ddl: string }> = [
   {
     name: 'case_cbc',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."case_cbc" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "rand_id" integer,
   "regid" integer,
   "dateval" text,
@@ -344,7 +344,7 @@ const TABLES: Array<{ name: string; ddl: string }> = [
   {
     name: 'case_datas',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."case_datas" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "regid" integer,
   "patientid" integer,
   "title" text,
@@ -399,7 +399,7 @@ END $$`,
   {
     name: 'case_diabetes',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."case_diabetes" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "rand_id" integer,
   "regid" integer,
   "dateval" text,
@@ -419,7 +419,7 @@ END $$`,
   {
     name: 'case_endocrine',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."case_endocrine" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "rand_id" integer,
   "regid" integer,
   "dateval" text,
@@ -448,7 +448,7 @@ END $$`,
   {
     name: 'case_examination',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."case_examination" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "regid" integer NOT NULL,
   "dateval" text,
   "examination_date" text,
@@ -463,7 +463,7 @@ END $$`,
   {
     name: 'case_frequency',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."case_frequency" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "title" text,
   "frequency" text,
   "duration" text,
@@ -475,7 +475,7 @@ END $$`,
   {
     name: 'case_heights',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."case_heights" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "regid" integer NOT NULL,
   "rand_id" integer,
   "dob" date,
@@ -494,7 +494,7 @@ END $$`,
   {
     name: 'case_images',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."case_images" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "regid" integer NOT NULL,
   "picture" text,
   "description" text,
@@ -505,7 +505,7 @@ END $$`,
   {
     name: 'case_immunology',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."case_immunology" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "rand_id" integer,
   "regid" integer,
   "dateval" text,
@@ -522,7 +522,7 @@ END $$`,
   {
     name: 'case_investigation',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."case_investigation" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "regid" integer NOT NULL,
   "rand_id" text,
   "invest_date" date,
@@ -540,7 +540,7 @@ END $$`,
   {
     name: 'case_lipid_profile',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."case_lipid_profile" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "rand_id" integer,
   "regid" integer,
   "dateval" text,
@@ -562,7 +562,7 @@ END $$`,
   {
     name: 'case_liver_profile',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."case_liver_profile" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "rand_id" integer,
   "regid" integer,
   "dateval" text,
@@ -586,7 +586,7 @@ END $$`,
   {
     name: 'case_notes',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."case_notes" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "regid" integer NOT NULL,
   "notes" text,
   "notes_type" text,
@@ -599,7 +599,7 @@ END $$`,
   {
     name: 'case_potencies',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."case_potencies" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "regid" integer,
   "rand_id" text,
   "dateval" text,
@@ -633,7 +633,7 @@ END $$`,
   {
     name: 'case_potencies1',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."case_potencies1" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "regid" integer,
   "rand_id" text,
   "dateval" text,
@@ -658,7 +658,7 @@ END $$`,
   {
     name: 'case_reminder',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."case_reminder" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "clinic_id" integer,
   "patient_id" integer,
   "patient_name" text NOT NULL,
@@ -678,7 +678,7 @@ END $$`,
   {
     name: 'case_renal_profile',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."case_renal_profile" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "rand_id" integer,
   "regid" integer,
   "dateval" text,
@@ -699,7 +699,7 @@ END $$`,
   {
     name: 'case_semenanalysis',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."case_semenanalysis" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "rand_id" integer,
   "regid" integer,
   "dateval" text,
@@ -712,7 +712,7 @@ END $$`,
   {
     name: 'case_serological_reports',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."case_serological_reports" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "rand_id" integer,
   "regid" integer,
   "dateval" text,
@@ -725,7 +725,7 @@ END $$`,
   {
     name: 'case_specific',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."case_specific" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "rand_id" integer,
   "regid" integer,
   "dateval" text,
@@ -742,7 +742,7 @@ END $$`,
   {
     name: 'case_stool',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."case_stool" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "rand_id" integer,
   "regid" integer,
   "dateval" text,
@@ -769,7 +769,7 @@ END $$`,
   {
     name: 'case_urine',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."case_urine" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "rand_id" integer,
   "regid" integer,
   "dateval" text,
@@ -796,7 +796,7 @@ END $$`,
   {
     name: 'case_usgfemale',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."case_usgfemale" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "rand_id" integer,
   "regid" integer,
   "dateval" text,
@@ -818,7 +818,7 @@ END $$`,
   {
     name: 'case_usgmale',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."case_usgmale" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "rand_id" integer,
   "regid" integer,
   "dateval" text,
@@ -834,7 +834,7 @@ END $$`,
   {
     name: 'case_vaccins',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."case_vaccins" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "reg_id" integer,
   "vaccinee_id" integer,
   "created_at" timestamp,
@@ -845,7 +845,7 @@ END $$`,
   {
     name: 'case_xray',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."case_xray" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "rand_id" integer,
   "regid" integer,
   "dateval" text,
@@ -875,7 +875,7 @@ END $$`,
   {
     name: 'charges',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."charges" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "charges" text,
   "amount" integer,
   "quantity" integer,
@@ -888,7 +888,7 @@ END $$`,
   {
     name: 'chats',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."chats" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "userid" integer NOT NULL,
   "username" text NOT NULL,
   "message" text NOT NULL,
@@ -902,7 +902,7 @@ END $$`,
   {
     name: 'clinicadmins',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."clinicadmins" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "name" text NOT NULL,
   "password" text,
   "designation" text NOT NULL,
@@ -925,7 +925,7 @@ END $$`,
   {
     name: 'communication_details',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."communication_details" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "regid" integer NOT NULL,
   "rand_id" integer,
   "currentdate" text NOT NULL,
@@ -940,7 +940,7 @@ END $$`,
   {
     name: 'coupon',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."coupon" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "regid" integer,
   "coupon_title" text NOT NULL,
   "coupon_amount" text NOT NULL,
@@ -954,7 +954,7 @@ END $$`,
   {
     name: 'courier_medicine',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."courier_medicine" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "case_id" integer NOT NULL,
   "regid" integer,
   "rand_id" text NOT NULL,
@@ -977,7 +977,7 @@ END $$`,
   {
     name: 'courier_package_list',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."courier_package_list" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "package_id" integer NOT NULL,
   "name" text NOT NULL,
   "quantity" integer NOT NULL,
@@ -990,7 +990,7 @@ END $$`,
   {
     name: 'couriermedicines',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."couriermedicines" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "courier_id" integer NOT NULL,
   "regid" integer NOT NULL,
   "medicine_ids" jsonb,
@@ -1006,7 +1006,7 @@ END $$`,
   {
     name: 'couriers',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."couriers" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "package_id" integer NOT NULL,
   "total_no_package" integer NOT NULL,
   "created_at" timestamp,
@@ -1017,7 +1017,7 @@ END $$`,
   {
     name: 'daily_target',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."daily_target" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "cases" text NOT NULL,
   "collection" text NOT NULL,
   "dateval" text NOT NULL,
@@ -1040,7 +1040,7 @@ END $$`,
   {
     name: 'departments',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."departments" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "name" text NOT NULL,
   "detail" text,
   "tags" text NOT NULL,
@@ -1053,7 +1053,7 @@ END $$`,
   {
     name: 'dictionary',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."dictionary" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "title" text,
   "text" text,
   "comments" text,
@@ -1066,14 +1066,14 @@ END $$`,
   {
     name: 'diseases',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."diseases" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "diseases" text
 )`,
   },
   {
     name: 'dispensaries',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."dispensaries" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "clinic_id" integer,
   "name" text NOT NULL,
   "password" text,
@@ -1097,7 +1097,7 @@ END $$`,
   {
     name: 'doctor_availability',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."doctor_availability" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "doctor_id" integer NOT NULL,
   "day_of_week" integer NOT NULL,
   "start_time" text NOT NULL,
@@ -1111,7 +1111,7 @@ END $$`,
   {
     name: 'doctors',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."doctors" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "clinic_id" integer,
   "name" text NOT NULL,
   "password" text,
@@ -1157,7 +1157,7 @@ END $$`,
   {
     name: 'employees',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."employees" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "clinic_id" integer,
   "name" text NOT NULL,
   "password" text,
@@ -1207,7 +1207,7 @@ END $$`,
   {
     name: 'familygroup',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."familygroup" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "regid" integer,
   "family_regid" integer,
   "name" text,
@@ -1220,7 +1220,7 @@ END $$`,
   {
     name: 'familygroups',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."familygroups" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "regid" integer NOT NULL,
   "member_regid" integer NOT NULL,
   "relation" text,
@@ -1232,7 +1232,7 @@ END $$`,
   {
     name: 'faqs',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."faqs" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "ques" text,
   "ans" text,
   "file" text,
@@ -1244,7 +1244,7 @@ END $$`,
   {
     name: 'height_weights',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."height_weights" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "regid" integer NOT NULL,
   "rand_id" integer,
   "dob" timestamp NOT NULL,
@@ -1270,7 +1270,7 @@ END $$`,
   {
     name: 'homeo_details',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."homeo_details" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "regid" integer,
   "homeo_date" text,
   "disease" text,
@@ -1299,7 +1299,7 @@ END $$`,
   {
     name: 'knex_migrations',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."knex_migrations" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "name" text,
   "batch" integer,
   "migration_time" timestamp
@@ -1315,7 +1315,7 @@ END $$`,
   {
     name: 'la_configs',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."la_configs" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "key" text NOT NULL,
   "section" text NOT NULL,
   "value" text NOT NULL,
@@ -1326,7 +1326,7 @@ END $$`,
   {
     name: 'la_menus',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."la_menus" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "name" text NOT NULL,
   "url" text NOT NULL,
   "icon" text NOT NULL,
@@ -1340,7 +1340,7 @@ END $$`,
   {
     name: 'lab_order_items',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."lab_order_items" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "lab_order_id" integer NOT NULL,
   "test_name" text NOT NULL,
   "test_code" text,
@@ -1362,7 +1362,7 @@ END $$`,
   {
     name: 'lab_orders',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."lab_orders" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "tenant_id" integer,
   "visit_id" integer NOT NULL,
   "patient_id" integer NOT NULL,
@@ -1377,7 +1377,7 @@ END $$`,
   {
     name: 'lead',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."lead" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "assigned_to" integer,
   "default_date" date,
   "name" text,
@@ -1401,7 +1401,7 @@ END $$`,
   {
     name: 'lead_followups',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."lead_followups" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "lead_id" integer NOT NULL,
   "name" text,
   "attachments" text,
@@ -1415,7 +1415,7 @@ END $$`,
   {
     name: 'leads',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."leads" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "name" text NOT NULL,
   "mobile" text,
   "phone" text,
@@ -1434,7 +1434,7 @@ END $$`,
   {
     name: 'managetreedatas',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."managetreedatas" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "label" text,
   "parent_id" integer,
   "hindi_label" text,
@@ -1455,7 +1455,7 @@ END $$`,
   {
     name: 'medicalcases',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."medicalcases" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "clinic_id" integer,
   "regid" integer,
   "dob" text,
@@ -1540,7 +1540,7 @@ END $$`,
   {
     name: 'mk_terms',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."mk_terms" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "term_id" bigint NOT NULL,
   "user_id" bigint,
   "name" text NOT NULL,
@@ -1559,7 +1559,7 @@ END $$`,
   {
     name: 'mmc_medicines',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."mmc_medicines" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "name" text,
   "detail" text,
   "medicine_name" text,
@@ -1572,7 +1572,7 @@ END $$`,
   {
     name: 'module_field_types',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."module_field_types" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "name" text NOT NULL,
   "created_at" timestamp,
   "updated_at" timestamp
@@ -1581,7 +1581,7 @@ END $$`,
   {
     name: 'module_fields',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."module_fields" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "colname" text NOT NULL,
   "label" text NOT NULL,
   "module" integer NOT NULL,
@@ -1600,7 +1600,7 @@ END $$`,
   {
     name: 'modules',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."modules" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "name" text NOT NULL,
   "label" text NOT NULL,
   "name_db" text NOT NULL,
@@ -1616,7 +1616,7 @@ END $$`,
   {
     name: 'notes',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."notes" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "regid" integer,
   "rand_id" integer,
   "dateval" text,
@@ -1630,14 +1630,14 @@ END $$`,
   {
     name: 'occupation',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."occupation" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "occupation" text
 )`,
   },
   {
     name: 'organizations',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."organizations" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "name" text NOT NULL,
   "email" text NOT NULL,
   "phone" text NOT NULL,
@@ -1657,7 +1657,7 @@ END $$`,
   {
     name: 'packagehistory',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."packagehistory" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "packagedate" text,
   "regid" integer,
   "fromdate" text,
@@ -1672,7 +1672,7 @@ END $$`,
   {
     name: 'packages',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."packages" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "name" text,
   "tags" text,
   "color" text,
@@ -1693,7 +1693,7 @@ END $$`,
   {
     name: 'payments',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."payments" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "case_id" integer,
   "patient_name" text,
   "doctor_id" text,
@@ -1719,7 +1719,7 @@ END $$`,
   {
     name: 'pdf_content',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."pdf_content" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "name" text,
   "tag_line" text,
   "tag_line1" text,
@@ -1733,7 +1733,7 @@ END $$`,
   {
     name: 'pending_appointments',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."pending_appointments" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "regid" integer,
   "rand_id" integer,
   "last_date" text,
@@ -1757,7 +1757,7 @@ END $$`,
   {
     name: 'permissions',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."permissions" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "name" text NOT NULL,
   "slug" text,
   "module" text,
@@ -1771,7 +1771,7 @@ END $$`,
   {
     name: 'potencies',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."potencies" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "name" text,
   "detail" text,
   "created_at" timestamp,
@@ -1782,7 +1782,7 @@ END $$`,
   {
     name: 'potencies1',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."potencies1" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "name" text,
   "created_at" timestamp,
   "updated_at" timestamp,
@@ -1812,7 +1812,7 @@ END $$`,
   {
     name: 'receipt',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."receipt" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "receiptdate" text,
   "dateval" text,
   "regid" integer,
@@ -1826,7 +1826,7 @@ END $$`,
   {
     name: 'receptionists',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."receptionists" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "clinic_id" text,
   "name" text NOT NULL,
   "password" text,
@@ -1850,7 +1850,7 @@ END $$`,
   {
     name: 'records',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."records" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "clinic_id" integer,
   "regid" text,
   "comment" text,
@@ -1877,7 +1877,7 @@ END $$`,
   {
     name: 'referral',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."referral" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "regid" integer,
   "referral_id" text,
   "total_amount" text,
@@ -1890,7 +1890,7 @@ END $$`,
   {
     name: 'refrencetype',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."refrencetype" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "referencetype" text,
   "created_at" timestamp,
   "updated_at" timestamp,
@@ -1900,14 +1900,14 @@ END $$`,
   {
     name: 'religion',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."religion" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "religion" text
 )`,
   },
   {
     name: 'role_module',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."role_module" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "role_id" integer NOT NULL,
   "module_id" integer NOT NULL,
   "acc_view" boolean NOT NULL,
@@ -1921,7 +1921,7 @@ END $$`,
   {
     name: 'role_module_fields',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."role_module_fields" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "role_id" integer NOT NULL,
   "field_id" integer NOT NULL,
   "access" text NOT NULL,
@@ -1932,7 +1932,7 @@ END $$`,
   {
     name: 'role_user',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."role_user" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "role_id" integer NOT NULL,
   "user_id" integer NOT NULL,
   "created_at" timestamp,
@@ -1942,7 +1942,7 @@ END $$`,
   {
     name: 'roles',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."roles" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "name" text NOT NULL,
   "display_name" text NOT NULL,
   "description" text NOT NULL,
@@ -1956,7 +1956,7 @@ END $$`,
   {
     name: 'rubric_remedy_map',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."rubric_remedy_map" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "rubric_id" integer,
   "remedy_id" integer,
   "weight" integer
@@ -1965,7 +1965,7 @@ END $$`,
   {
     name: 'rubric_remid_mapping',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."rubric_remid_mapping" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "regid" integer,
   "remid" integer,
   "weight" integer,
@@ -1975,7 +1975,7 @@ END $$`,
   {
     name: 'rubrics',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."rubrics" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "category" text,
   "description" text,
   "chapter" text,
@@ -1985,7 +1985,7 @@ END $$`,
   {
     name: 'scribing_sessions',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."scribing_sessions" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "tenant_id" integer,
   "visit_id" integer NOT NULL,
   "user_id" integer,
@@ -2002,7 +2002,7 @@ END $$`,
   {
     name: 'settargets',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."settargets" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "doctor_id" integer,
   "target_amount" real,
   "target_month" integer,
@@ -2018,7 +2018,7 @@ END $$`,
   {
     name: 'smsreport',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."smsreport" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "regid" integer NOT NULL,
   "send_date" text NOT NULL,
   "sms_type" text NOT NULL,
@@ -2032,7 +2032,7 @@ END $$`,
   {
     name: 'smstemplate',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."smstemplate" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "templatename" text NOT NULL,
   "message" text,
   "smstype" text,
@@ -2044,7 +2044,7 @@ END $$`,
   {
     name: 'soap_notes',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."soap_notes" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "visit_id" integer NOT NULL,
   "subjective" text,
   "objective" text,
@@ -2065,7 +2065,7 @@ END $$`,
   {
     name: 'staticpages',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."staticpages" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "name" text NOT NULL,
   "url" text,
   "content" text,
@@ -2086,14 +2086,14 @@ END $$`,
   {
     name: 'status',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."status" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "status" text
 )`,
   },
   {
     name: 'stocks',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."stocks" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "name" text,
   "description" text,
   "deleted_at" text,
@@ -2107,7 +2107,7 @@ END $$`,
   {
     name: 'subdomains',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."subdomains" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "name" text,
   "start_date" text,
   "end_date" text,
@@ -2607,7 +2607,7 @@ END $$`,
   {
     name: 'token',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."token" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "clinic_id" integer,
   "regid" integer,
   "dateval" text,
@@ -2622,7 +2622,7 @@ END $$`,
   {
     name: 'transcript_segments',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."transcript_segments" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "session_id" integer NOT NULL,
   "sequence_number" integer NOT NULL,
   "text" text NOT NULL,
@@ -2639,7 +2639,7 @@ END $$`,
   {
     name: 'trial',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."trial" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "name" text NOT NULL,
   "phone" text NOT NULL,
   "verify_phone" text,
@@ -2655,7 +2655,7 @@ END $$`,
   {
     name: 'upload_picture',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."upload_picture" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "regid" integer NOT NULL,
   "rand_id" integer NOT NULL,
   "picture" text,
@@ -2667,7 +2667,7 @@ END $$`,
   {
     name: 'uploads',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."uploads" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "name" text NOT NULL,
   "path" text NOT NULL,
   "extension" text NOT NULL,
@@ -2700,7 +2700,7 @@ END $$`,
   {
     name: 'users',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."users" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "name" text NOT NULL,
   "context_id" integer NOT NULL,
   "email" text NOT NULL,
@@ -2723,7 +2723,7 @@ END $$`,
   {
     name: 'users_helloter',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."users_helloter" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "name" text NOT NULL,
   "email" text NOT NULL,
   "password" text NOT NULL,
@@ -2738,7 +2738,7 @@ END $$`,
   {
     name: 'vaccinedatas',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."vaccinedatas" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "label" text,
   "parent_id" integer,
   "created_at" timestamp,
@@ -2749,7 +2749,7 @@ END $$`,
   {
     name: 'vitals',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."vitals" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "visit_id" integer NOT NULL,
   "height_cm" real,
   "weight_kg" real,
@@ -2770,7 +2770,7 @@ END $$`,
   {
     name: 'waitingstatus',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."waitingstatus" (
-  "id" integer NOT NULL,
+  "id" serial PRIMARY KEY,
   "regid" integer,
   "appointment_id" integer,
   "waiting_number" integer,
