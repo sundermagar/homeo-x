@@ -54,6 +54,9 @@ async function migrateTenant(schemaName: string) {
   } catch (error: any) {
     console.error(`❌ Process failed for [${schemaName}]:`);
     console.error(error);
+    if (error.query) {
+      console.error(`❌ FAILING QUERY WAS:`, error.query);
+    }
     process.exit(1);
   }
 }
