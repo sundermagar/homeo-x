@@ -204,7 +204,7 @@ router.post('/couriermedicine/:id/notify', async (req: Request, res: Response, n
     if (!record) return res.status(404).json({ success: false, message: 'Record not found' });
     if (!record.patient_mobile) return res.status(400).json({ success: false, message: 'Patient phone not available' });
 
-    const message = `Dear ${record.patient_name || 'Patient'}, your medicine has been dispatched. Tracking No: ${record.tracking_no || 'N/A'}. Status: ${record.status || 'Dispatched'}. - HomeoX`;
+    const message = `Dear ${record.patient_name || 'Patient'}, your medicine has been dispatched. Tracking No: ${record.tracking_no || 'N/A'}. Status: ${record.status || 'Dispatched'}. - Kreed.health`;
 
     await pgQuery(db, `
       INSERT INTO smsreport (message, phone, regid, send_date, sms_type, created_at, updated_at) 

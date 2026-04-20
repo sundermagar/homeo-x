@@ -1,4 +1,4 @@
-# HomeoX — Comprehensive Product Plan
+# Kreed.health — Comprehensive Product Plan
 
 ## Execution Strategy
 
@@ -303,7 +303,7 @@ Foundation → Auth → Patients → Medical Cases → Appointments → Consulta
 | 11.7 | MySQL→PG full data migration validation (22 tenants, row count checks) | migration | All migrations | 6h |
 | 11.8 | Performance testing: 22 schemas, concurrent requests, P95 < 200ms | testing | 11.7 | 4h |
 | 11.9 | Production Railway deployment (API + Web + PostgreSQL + Redis) | ci/cd | All modules | 6h |
-| 11.10 | Parallel run validation: old MMC + new HomeoX, 1 week read-only sync | infra | 11.9 | 8h |
+| 11.10 | Parallel run validation: old MMC + new Kreed.health, 1 week read-only sync | infra | 11.9 | 8h |
 
 **Deliverable**: 500+ tests passing, production deployed, validated against live data.
 

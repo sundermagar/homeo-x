@@ -8,42 +8,42 @@ export async function seedUsers(db: DbClient) {
 
   const demoUsers = [
     {
-      email: 'superadmin@homeox.com',
+      email: 'superadmin@kreedhealth.com',
       password: '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07xdM0ttR9i0NcMsuG', // password123
       name: 'Super Admin Test',
       type: 'SuperAdmin' as Role,
       isActive: true,
     },
     {
-      email: 'admin@homeox.com',
+      email: 'admin@kreedhealth.com',
       password: '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07xdM0ttR9i0NcMsuG', // password123
       name: 'System Admin',
       type: Role.Admin,
       isActive: true,
     },
     {
-      email: 'clinicadmin@homeox.com',
+      email: 'clinicadmin@kreedhealth.com',
       password: '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07xdM0ttR9i0NcMsuG', // password123
       name: 'Clinic Manager',
       type: 'Clinicadmin' as Role, // Using the exact string if Role enum doesn't map directly
       isActive: true,
     },
     {
-      email: 'doctor@homeox.com',
+      email: 'doctor@kreedhealth.com',
       password: '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07xdM0ttR9i0NcMsuG', // password123
       name: 'Dr. Aryan Sharma',
       type: Role.Doctor,
       isActive: true,
     },
     {
-      email: 'meera@homeox.com',
+      email: 'meera@kreedhealth.com',
       password: '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07xdM0ttR9i0NcMsuG', // password123
       name: 'Dr. Meera Iyer',
       type: Role.Doctor,
       isActive: true,
     },
     {
-      email: 'receptionist@homeox.com',
+      email: 'receptionist@kreedhealth.com',
       password: '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07xdM0ttR9i0NcMsuG', // password123
       name: 'Front Desk',
       type: 'Receptionist' as Role,

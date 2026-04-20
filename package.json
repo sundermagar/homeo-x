@@ -1,5 +1,5 @@
 {
-  "name": "homeo-x",
+  "name": "kreed-health",
   "private": true,
   "scripts": {
     "build": "turbo run build",

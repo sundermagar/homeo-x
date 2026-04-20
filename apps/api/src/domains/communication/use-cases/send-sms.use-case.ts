@@ -26,7 +26,7 @@ export class SendSmsUseCase {
     return message
       .replace(/{#name#}/gi,    vars.name    ?? 'Patient')
       .replace(/{#date#}/gi,     vars.date     ?? new Date().toLocaleDateString('en-IN'))
-      .replace(/{#clinic#}/gi,   vars.clinic   ?? 'HomeoX Clinic')
+      .replace(/{#clinic#}/gi,   vars.clinic   ?? 'Kreed.health Clinic')
       .replace(/{#time#}/gi,     vars.time     ?? '')
       .replace(/{#doctor#}/gi,   vars.doctor   ?? '')
       .replace(/{#fee#}/gi,      vars.fee      ?? '');
@@ -135,7 +135,7 @@ export class SendSmsUseCase {
     doctorName?: string;
     clinicName?: string;
   }): Promise<Result<SendSmsResult>> {
-    const template = `Dear {#name#}, your appointment at {#clinic#} is confirmed for {#date#} at {#time#}. Kindly arrive 10 minutes early. Regards, HomeoX Clinic.`;
+    const template = `Dear {#name#}, your appointment at {#clinic#} is confirmed for {#date#} at {#time#}. Kindly arrive 10 minutes early. Regards, Kreed.health Clinic.`;
     const message = this.replacePlaceholders(template, {
       name:   params.patientName,
       date:   params.date,
@@ -158,7 +158,7 @@ export class SendSmsUseCase {
     doctorName?: string;
     clinicName?: string;
   }): Promise<Result<SendSmsResult>> {
-    const template = `Dear {#name#}, a friendly reminder: your appointment at {#clinic#} is tomorrow ({#date#}) at {#time#}. Wishing you good health! - HomeoX Clinic`;
+    const template = `Dear {#name#}, a friendly reminder: your appointment at {#clinic#} is tomorrow ({#date#}) at {#time#}. Wishing you good health! - Kreed.health Clinic`;
     const message = this.replacePlaceholders(template, {
       name:   params.patientName,
       date:   params.date,
@@ -176,7 +176,7 @@ export class SendSmsUseCase {
     phone: string;
     patientName: string;
   }): Promise<Result<SendSmsResult>> {
-    const template = `Happy Birthday, {#name#}! Wishing you a year filled with health, happiness, and peace. - HomeoX Clinic`;
+    const template = `Happy Birthday, {#name#}! Wishing you a year filled with health, happiness, and peace. - Kreed.health Clinic`;
     const message = this.replacePlaceholders(template, { name: params.patientName });
     return this.sendSingle({ phone: params.phone, message, smsType: 'Birthday' });
   }
@@ -189,7 +189,7 @@ export class SendSmsUseCase {
     patientName: string;
     lastVisitDate: string;
   }): Promise<Result<SendSmsResult>> {
-    const template = `Dear {#name#}, it's been a while since your last visit on {#date#}. We'd love to see you again for a follow-up. Please book an appointment at your convenience. - HomeoX Clinic`;
+    const template = `Dear {#name#}, it's been a while since your last visit on {#date#}. We'd love to see you again for a follow-up. Please book an appointment at your convenience. - Kreed.health Clinic`;
     const message = this.replacePlaceholders(template, {
       name: params.patientName,
       date: params.lastVisitDate,
