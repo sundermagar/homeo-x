@@ -10,10 +10,14 @@ import fs from 'fs';
 dotenv.config({ path: path.join(process.cwd(), '../../.env') });
 
 const dbUrl = process.env['DATABASE_URL'];
+
 if (!dbUrl) {
-  console.error("❌ No DATABASE_URL found.");
+  console.error("❌ No DATABASE_URL found in environment variables.");
   process.exit(1);
 }
+
+const safeUrl = dbUrl.replace(/:[^:@]*@/, ':***@');
+console.log(`[DEBUG] Received DB URL: ${safeUrl}`);
 
 const migrationsFolder = path.join(process.cwd(), 'src', 'migrations');
 
