@@ -8,7 +8,8 @@ export function sendSuccess(
   res: Response,
   data: any = {},
   message?: string,
-  statusCode: number = 200
+  statusCode: number = 200,
+  meta?: { total?: number; page?: number; limit?: number }
 ) {
   const response: ApiResponse = {
     success: true,
@@ -17,6 +18,10 @@ export function sendSuccess(
 
   if (message) {
     response.message = message;
+  }
+
+  if (meta) {
+    response.meta = meta;
   }
 
   // Get correlationId from request headers if added by middleware

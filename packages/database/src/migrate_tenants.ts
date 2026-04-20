@@ -17,39 +17,39 @@ if (!dbUrl) {
 
 const migrationsFolder = path.join(process.cwd(), 'src', 'migrations');
 
+import { provisionTenant } from './provision-tenant';
+
 async function migrateTenant(schemaName: string) {
   console.log(`\n===========================================`);
-  console.log(`🚀 Provisioning Schema: [${schemaName}]`);
+  console.log(`🚀 Provisioning & Migrating Schema: [${schemaName}]`);
   console.log(`===========================================`);
 
-  // Force postgres client isolation with search_path mapping in the connection options
-  const connection = postgres(dbUrl as string, { 
-    max: 1,
-    onnotice: () => {}, // suppress notices for clean logs
-    connection: {
-      search_path: schemaName
-    }
-  });
-  
-  // Create schema if it doesn't already exist prior to migrations
-  await connection`CREATE SCHEMA IF NOT EXISTS ${connection(schemaName)}`;
-  
-  const db = drizzle(connection);
-
   try {
-    // Execute Drizzle Migrator passing the schema name so that the migrations 
-    // metadata log (__drizzle_migrations) is stored INSIDE the tenant schema!
+    // 1. Provision Baseline Tables (Legacy Parity)
+    // This ensures all 150+ tables from tenant_demo are present
+    await provisionTenant(dbUrl as string, schemaName);
+    
+    // 2. Run Modern Migrations
+    const connection = postgres(dbUrl as string, { 
+      max: 1,
+      onnotice: () => {}, 
+      connection: {
+        search_path: schemaName
+      }
+    });
+    
+    const db = drizzle(connection);
     await migrate(db, { 
       migrationsFolder, 
       migrationsSchema: schemaName 
     });
+    
+    await connection.end();
     console.log(`✅ Schema [${schemaName}] synchronized successfully.`);
   } catch (error: any) {
-    console.error(`❌ Migration failed for [${schemaName}]:`);
+    console.error(`❌ Process failed for [${schemaName}]:`);
     console.error(error);
-  } finally {
-    // Release the underlying socket pool securely
-    await connection.end();
+    process.exit(1);
   }
 }
 

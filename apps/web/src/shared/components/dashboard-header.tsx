@@ -50,11 +50,11 @@ function useFormattedDate(): string {
 export function DashboardHeader({ onOpenPalette }: DashboardHeaderProps) {
   const location     = useLocation();
   const navigate     = useNavigate();
-  useAuthStore();
+  const { user }   = useAuthStore();
   const formattedDate = useFormattedDate();
 
   const pageTitle  = getPageTitle(location.pathname);
-  const clinicName = 'MMC – Heart & Diabetes Clinic';
+  const clinicName = user?.clinicName || 'HomeoX Clinic';
 
   return (
     <>

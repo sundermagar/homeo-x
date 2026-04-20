@@ -52,3 +52,70 @@ export interface CaseReminder {
   patient_name?: string;
   patient_mobile?: string;
 }
+
+// ─── DTOs ─────────────────────────────────────────────────────────────────────
+export interface CreateLeadDto {
+  name: string;
+  mobile?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  source?: string;
+  status?: string;
+  notes?: string;
+  assignedTo?: number;
+}
+
+export interface UpdateLeadDto {
+  name?: string;
+  mobile?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  source?: string;
+  status?: string;
+  notes?: string;
+  assignedTo?: number;
+}
+
+export interface CreateFollowupDto {
+  leadId: number;
+  name?: string;
+  task?: string;
+  taskstatus?: string;
+}
+
+export interface UpdateFollowupDto {
+  name?: string;
+  task?: string;
+  taskstatus?: string;
+}
+
+export interface CreateReferralDto {
+  name: string;
+  mobile?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  source?: string;
+  status?: string;
+  notes?: string;
+  assignedTo?: number;
+}
+
+export interface CreateReminderDto {
+  patientId: number;
+  startDate: string;
+  remindTime: string;
+  heading: string;
+  comments?: string;
+  status?: string;
+}
+
+export interface UpdateReminderDto {
+  startDate?: string;
+  remindTime?: string;
+  heading?: string;
+  comments?: string;
+  status?: string;
+}

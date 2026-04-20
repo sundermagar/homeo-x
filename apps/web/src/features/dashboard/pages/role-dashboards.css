@@ -128,6 +128,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  min-height: 24px;
 }
 
 /* 4. Lists & Lists (Sidebar) */
@@ -288,7 +289,49 @@
   100% { transform: scale(1);    opacity: 1; }
 }
 
-/* 10. Doctor Specific HUD (Refined) */
+/* 10. Intelligence Hub Specifics */
+.dash-intel-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  background: var(--pp-warm-1);
+  border-radius: 12px;
+  border: 1px solid transparent;
+  transition: all var(--transition-normal);
+}
+
+.dash-intel-item:hover {
+  background: white;
+  border-color: var(--pp-warm-4);
+  box-shadow: var(--pp-shadow-sm);
+}
+
+.dash-intel-content {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pp-ink);
+  line-height: 1.5;
+}
+
+.pp-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--pp-warm-4);
+  border-radius: 6px;
+  color: var(--pp-text-3);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.pp-icon-btn:hover {
+  background: var(--pp-warm-2);
+  color: var(--pp-ink);
+  border-color: var(--pp-warm-5);
+}
+
+/* 11. Doctor Specific HUD (Refined) */
 .dd-patient-profile {
   display: flex;
   flex-direction: column;

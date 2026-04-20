@@ -1,4 +1,5 @@
 import type { ExpenseWithHead, ExpenseHead } from '@mmc/types';
+import type { ExpenseRepository } from '../ports/accounts.repository';
 import type {
   CreateExpenseInput,
   UpdateExpenseInput,
@@ -67,7 +68,7 @@ export class CreateExpenseUseCase {
 
     try {
       const expense = await this.repo.create(input);
-      return { success: true, data: expense };
+      return { success: true, data: expense as ExpenseWithHead };
     } catch (err) {
       return { success: false, error: (err as Error).message };
     }
@@ -81,7 +82,7 @@ export class UpdateExpenseUseCase {
     try {
       const updated = await this.repo.update(id, input);
       if (!updated) return { success: false, error: 'Expense not found or already deleted' };
-      return { success: true, data: updated };
+      return { success: true, data: updated as ExpenseWithHead };
     } catch (err) {
       return { success: false, error: (err as Error).message };
     }

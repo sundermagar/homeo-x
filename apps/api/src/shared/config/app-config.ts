@@ -37,7 +37,7 @@ function loadConfig(): AppConfig {
     rateLimit: {
       windowMs: 60_000,
       max: 200,
-      authMax: 5,
+      authMax: process.env.NODE_ENV === 'production' ? 10 : 100,
     },
     razorpay: {
       keyId: process.env.RAZORPAY_KEY_ID || null,

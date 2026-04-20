@@ -128,44 +128,53 @@
   position: relative;
   display: flex;
   align-items: center;
-  /* flex: 1; */
-  max-width: 400px;
 }
 
 .plat-search-icon {
   position: absolute;
-  left: 12px;
+  left: 11px;
   color: var(--pp-text-3);
   pointer-events: none;
+  z-index: 1;
 }
 
 .plat-search-input {
-  padding-left: 36px !important;
+  padding-left: 34px !important;
 }
 
 .plat-form-input,
-.plat-form-select {
+.plat-form-select,
+.plat-filter-input {
   height: 36px;
-  /* Brand Kit Secondary Bar Standard */
   padding: 0 12px;
   border: 1px solid var(--pp-warm-4);
-  border-radius: var(--pp-radius-sm);
+  border-radius: var(--pp-radius-btn);
   font-size: 13px;
   background: white;
   color: var(--pp-ink);
   font-family: inherit;
   outline: none;
-  transition: all var(--transition-fast);
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.plat-form-input:hover,
+.plat-form-select:hover,
+.plat-filter-input:hover {
+  border-color: var(--pp-blue-border);
 }
 
 .plat-form-input:focus,
-.plat-form-select:focus {
+.plat-form-select:focus,
+.plat-filter-input:focus {
   border-color: var(--pp-blue);
   box-shadow: 0 0 0 3px var(--pp-blue-tint);
 }
 
-.plat-form-input::placeholder {
+.plat-form-input::placeholder,
+.plat-filter-input::placeholder {
   color: var(--pp-text-4);
+  font-size: 12.5px;
 }
 
 /* ─── Cards & Containers ─── */
@@ -421,7 +430,8 @@
 }
 
 /* ─── Modals ─── */
-.plat-modal-backdrop {
+.plat-modal-backdrop,
+.plat-modal-overlay {
   position: fixed;
   inset: 0;
   background: rgba(15, 23, 42, 0.45);
@@ -433,7 +443,8 @@
   padding: 24px;
 }
 
-.plat-modal-content {
+.plat-modal-content,
+.plat-modal {
   background: white;
   border-radius: var(--pp-radius-card);
   width: 100%;
@@ -639,13 +650,15 @@
 /* ─── Mobile Responsiveness & Optimization (Brand Kit v2.0 Mobile) ─── */
 
 @media (max-width: 640px) {
-  .plat-modal-backdrop {
+  .plat-modal-backdrop,
+  .plat-modal-overlay {
     padding: 12px;
     align-items: flex-end;
     /* Push to bottom on mobile for better thumb reach */
   }
 
-  .plat-modal-content {
+  .plat-modal-content,
+  .plat-modal {
     max-height: 95vh;
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
@@ -951,4 +964,30 @@
 @keyframes plat-fadeIn {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Empty States ─── */
+.plat-empty {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--pp-text-3);
+  min-height: 200px;
+  width: 100%;
+}
+
+.plat-empty-icon {
+  margin-bottom: 16px;
+  color: var(--pp-text-4);
+  opacity: 0.6;
+}
+
+.plat-empty-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--pp-text-3);
+  margin: 0;
 }

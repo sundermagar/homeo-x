@@ -125,42 +125,48 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
   }
 
   async getUnifiedCaseData(regid: number): Promise<FullCaseData | null> {
-    const medicalCases = await this.findByRegId(regid);
-    const activeCase = medicalCases.find(c => c.status === 'Active') || medicalCases[0];
+    try {
+      const medicalCases = await this.findByRegId(regid);
+      const activeCase = medicalCases.find(c => c.status === 'Active') || medicalCases[0];
 
-    if (!activeCase) return null;
+      // If no medical case exists, we still want to return patient-level data (notes, images, homeo)
+      // but soap/vitals will be empty since they depend on visitId (activeCase.id).
+      
+      const [
+        vitals,
+        soap,
+        homeo,
+        notes,
+        examination,
+        images,
+        investigations,
+        prescriptions
+      ] = await Promise.all([
+        activeCase ? this.db.select().from(schema.vitals).where(eq(schema.vitals.visitId, activeCase.id)) : Promise.resolve([]),
+        activeCase ? this.db.select().from(schema.soapNotes).where(eq(schema.soapNotes.visitId, activeCase.id)) : Promise.resolve([]),
+        this.getHomeoDetails(regid),
+        this.db.select().from(schema.caseNotes).where(eq(schema.caseNotes.regid, regid)).orderBy(desc(schema.caseNotes.createdAt)),
+        this.db.select().from(schema.caseExamination).where(eq(schema.caseExamination.regid, regid)),
+        this.db.select().from(schema.caseImages).where(eq(schema.caseImages.regid, regid)),
+        this.db.select().from(schema.investigations).where(eq(schema.investigations.regid, regid)),
+        this.db.select().from(schema.prescriptions).where(eq(schema.prescriptions.regid, regid)),
+      ]);
 
-    const [
-      vitals,
-      soap,
-      homeo,
-      notes,
-      examination,
-      images,
-      investigations,
-      prescriptions
-    ] = await Promise.all([
-      this.db.select().from(schema.vitals).where(eq(schema.vitals.visitId, activeCase.id)), // Should be visitId or regid? Usually visitId in MMC
-      this.db.select().from(schema.soapNotes).where(eq(schema.soapNotes.visitId, activeCase.id)),
-      this.getHomeoDetails(regid),
-      this.db.select().from(schema.caseNotes).where(eq(schema.caseNotes.regid, regid)).orderBy(desc(schema.caseNotes.createdAt)),
-      this.db.select().from(schema.caseExamination).where(eq(schema.caseExamination.regid, regid)),
-      this.db.select().from(schema.caseImages).where(eq(schema.caseImages.regid, regid)),
-      this.db.select().from(schema.investigations).where(eq(schema.investigations.regid, regid)),
-      this.db.select().from(schema.prescriptions).where(eq(schema.prescriptions.regid, regid)),
-    ]);
-
-    return {
-      medicalCase: activeCase,
-      vitals: vitals as Vitals[],
-      soap: soap as SoapNotes[],
-      homeo,
-      notes: notes as CaseNote[],
-      examination: examination as CaseExamination[],
-      images: images as CaseImage[],
-      investigations: investigations as Investigation[],
-      prescriptions: prescriptions as Prescription[],
-    };
+      return {
+        medicalCase: activeCase || { id: 0, regid, status: 'None' }, // Fallback for UI
+        vitals: vitals as Vitals[],
+        soap: soap as SoapNotes[],
+        homeo,
+        notes: notes as CaseNote[],
+        examination: examination as CaseExamination[],
+        images: images as CaseImage[],
+        investigations: investigations as Investigation[],
+        prescriptions: prescriptions as Prescription[],
+      };
+    } catch (err: any) {
+      console.error(`💥 [MedicalCaseRepositoryPg] Error in getUnifiedCaseData for regid ${regid}:`, err);
+      throw err; // Re-throw to be caught by Express error handler
+    }
   }
 
   async saveVitals(data: Partial<Vitals>): Promise<void> {

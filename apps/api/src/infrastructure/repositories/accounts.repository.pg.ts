@@ -468,16 +468,21 @@ export class ExpenseRepositoryPg implements ExpenseRepository {
       })
       .returning();
 
-    const headRow = row.head
+    if (!row) {
+      throw new Error('Failed to create expense');
+    }
+
+    const headId = row.head as number | null;
+    const headRow = headId != null
       ? await this.db
         .select({ headName: expensesheadLegacy.expenseshead, shortName: expensesheadLegacy.shortName })
         .from(expensesheadLegacy)
-        .where(eq(expensesheadLegacy.id, row.head))
+        .where(eq(expensesheadLegacy.id, headId))
         .limit(1)
       : null;
 
     return {
-      ...this.toDomain(row!),
+      ...this.toDomain(row),
       headName: headRow?.[0]?.headName ?? null,
       shortName: headRow?.[0]?.shortName ?? null,
     };

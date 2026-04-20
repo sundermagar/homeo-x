@@ -13,12 +13,22 @@ declare global {
 }
 
 export function authMiddleware(req: Request, _res: Response, next: NextFunction) {
+  let token: string | undefined;
+
+  // 1. Check Authorization header
   const header = req.headers.authorization;
-  if (!header?.startsWith('Bearer ')) {
-    throw new UnauthorizedError('Missing authentication token');
+  if (header?.startsWith('Bearer ')) {
+    token = header.slice(7);
   }
 
-  const token = header.slice(7);
+  // 2. Fallback to query parameter (supporting direct file downloads)
+  if (!token && req.query.token) {
+    token = req.query.token as string;
+  }
+
+  if (!token) {
+    throw new UnauthorizedError('Missing authentication token');
+  }
 
   // Demo bypass for local testing/prototype
   const DEMO_USERS: Record<string, Partial<AuthTokenPayload>> = {

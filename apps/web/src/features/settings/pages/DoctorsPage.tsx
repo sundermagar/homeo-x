@@ -17,7 +17,8 @@ export default function DoctorsPage() {
   const { data: orgs = [] } = useOrganizations();
   const deleteAccount = useDeleteAccount();
 
-  const filteredDoctors = doctors.filter((doc: any) =>
+  const safeDoctors = Array.isArray(doctors) ? doctors : [];
+  const filteredDoctors = safeDoctors.filter((doc: any) =>
     doc.name?.toLowerCase().includes(search.toLowerCase()) ||
     doc.email?.toLowerCase().includes(search.toLowerCase()) ||
     doc.mobile?.toLowerCase().includes(search.toLowerCase()) ||

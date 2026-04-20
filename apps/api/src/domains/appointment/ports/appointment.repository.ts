@@ -31,7 +31,7 @@ export interface AppointmentRepository {
 
   // Waitlist
   getWaitlist(date: string, doctorId?: number): Promise<WaitlistEntry[]>;
-  addToWaitlist(dto: { patientId: number; appointmentId?: number; doctorId?: number; consultationFee?: number }): Promise<number>;
+  addToWaitlist(dto: { patientId?: number; appointmentId?: number; doctorId?: number; consultationFee?: number }): Promise<number>;
   callNextInWaitlist(waitlistId: number): Promise<void>;
   completeWaitlistEntry(waitlistId: number): Promise<void>;
 

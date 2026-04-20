@@ -210,7 +210,8 @@ function StaffModal({
       onSuccess();
       onClose();
     } catch (err: any) {
-      setErrors({ general: err.message || 'An error occurred during submission' });
+      const serverMsg = err.response?.data?.message || err.response?.data?.errors || err.message;
+      setErrors({ general: typeof serverMsg === 'object' ? JSON.stringify(serverMsg) : (serverMsg || 'An error occurred during submission') });
     }
   };
 
@@ -634,9 +635,10 @@ export default function DoctorsPage() {
   const deleteMutation = useDeleteStaff();
   const { data: editingStaff, isLoading: isLoadingStaff } = useStaffMember(CATEGORY, editingId ?? 0);
 
-  const staff = data?.data || [];
+  const staffArray = Array.isArray(data?.data) ? data.data : [];
+  const staff = staffArray;
   const totalPages = Math.ceil((data?.total || 0) / PAGE_SIZE);
-  const activeCount = useMemo(() => (staff as StaffSummary[]).filter((s: StaffSummary) => s.isActive).length, [staff]);
+  const activeCount = useMemo(() => staffArray.filter((s: StaffSummary) => s.isActive).length, [staffArray]);
 
   const openCreate = () => {
     setModalMode('create');

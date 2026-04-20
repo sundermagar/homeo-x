@@ -243,29 +243,26 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
     if (doctorId) conditions.push(eq(schema.waitlist.doctorId, doctorId));
 
     const rows = await this.db
-      .select()
+      .select({
+        waitlist: schema.waitlist,
+        appointment: schema.appointments,
+        doctor: schema.users, // doctor name is in users/doctors
+      })
       .from(schema.waitlist)
+      .leftJoin(schema.appointments, eq(schema.waitlist.appointmentId, schema.appointments.id))
+      .leftJoin(schema.users, eq(schema.waitlist.doctorId, schema.users.id))
       .where(and(...conditions))
       .orderBy(asc(schema.waitlist.waitingNumber));
 
     return rows.map(r => ({
-      id:              r.id,
-      patientId:       r.patientId,
-      appointmentId:   r.appointmentId,
-      doctorId:        r.doctorId,
-      waitingNumber:   r.waitingNumber,
-      date:            r.date,
-      status:          r.status,
-      consultationFee: r.consultationFee,
-      checkedInAt:     r.checkedInAt,
-      calledAt:        r.calledAt,
-      completedAt:     r.completedAt,
-      createdAt:       r.createdAt,
-      updatedAt:       r.updatedAt,
+      ...r.waitlist,
+      patientName: r.appointment?.patientName || undefined,
+      doctorName:  r.doctor?.name || undefined,
+      consultationFee: r.waitlist.consultationFee?.toString() || null, 
     }));
   }
 
-  async addToWaitlist(dto: { patientId: number; appointmentId?: number; doctorId?: number; consultationFee?: number }): Promise<number> {
+  async addToWaitlist(dto: { patientId?: number; appointmentId?: number; doctorId?: number; consultationFee?: number }): Promise<number> {
     const today = new Date().toISOString().split('T')[0] as string;
     const [result] = await this.db
       .select({ maxNum: sql<number>`coalesce(max(waiting_number), 0)` })

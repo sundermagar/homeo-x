@@ -40,7 +40,7 @@ export const tokens = pgTable('tokens', {
 // ─── Live Waiting Room ─────────────────────────────────────────────────────────
 export const waitlist = pgTable('waitlist', {
   id:              serial('id').primaryKey(),
-  patientId:       integer('patient_id').notNull(),
+  patientId:       integer('patient_id'),
   appointmentId:   integer('appointment_id'),
   doctorId:        integer('doctor_id'),
   waitingNumber:   integer('waiting_number').notNull(),

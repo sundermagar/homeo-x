@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { usePatient, useCreatePatient, useUpdatePatient, usePatientFormMeta } from '../hooks/use-patients';
 import '../styles/patients.css';
@@ -33,37 +33,39 @@ export default function PatientFormPage() {
   const createMutation = useCreatePatient();
   const updateMutation = useUpdatePatient();
 
-  if (isEdit && patient) {
-    setForm({
-      title: patient.title || '',
-      firstName: patient.firstName || '',
-      middleName: patient.middleName || '',
-      surname: patient.surname || '',
-      gender: (patient.gender || 'M') as 'M' | 'F' | 'Other',
-      phone: patient.phone || '',
-      mobile1: patient.mobile1 || '',
-      mobile2: patient.mobile2 || '',
-      email: patient.email || '',
-      pin: patient.pin || '',
-      address: patient.address || '',
-      road: patient.road || '',
-      area: patient.area || '',
-      city: patient.city || '',
-      state: patient.state || 'Punjab',
-      country: patient.country || 'India',
-      altAddress: patient.altAddress || '',
-      religion: patient.religion || '',
-      occupation: patient.occupation || '',
-      maritalStatus: patient.maritalStatus || '',
-      bloodGroup: patient.bloodGroup || '',
-      referenceType: patient.referenceType || '',
-      referredBy: patient.referredBy || '',
-      assistantDoctor: patient.assistantDoctor || '',
-      consultationFee: patient.consultationFee || 500,
-      courierOutstation: patient.courierOutstation || false,
-      dateOfBirth: patient.dateOfBirth ? (new Date(String(patient.dateOfBirth)).toISOString().split('T')[0] ?? '') : '',
-    });
-  }
+  useEffect(() => {
+    if (isEdit && patient) {
+      setForm({
+        title: patient.title || '',
+        firstName: patient.firstName || '',
+        middleName: patient.middleName || '',
+        surname: patient.surname || '',
+        gender: (patient.gender || 'M') as 'M' | 'F' | 'Other',
+        phone: patient.phone || '',
+        mobile1: patient.mobile1 || '',
+        mobile2: patient.mobile2 || '',
+        email: patient.email || '',
+        pin: patient.pin || '',
+        address: patient.address || '',
+        road: patient.road || '',
+        area: patient.area || '',
+        city: patient.city || '',
+        state: patient.state || 'Punjab',
+        country: patient.country || 'India',
+        altAddress: patient.altAddress || '',
+        religion: patient.religion || '',
+        occupation: patient.occupation || '',
+        maritalStatus: patient.maritalStatus || '',
+        bloodGroup: patient.bloodGroup || '',
+        referenceType: patient.referenceType || '',
+        referredBy: patient.referredBy || '',
+        assistantDoctor: patient.assistantDoctor || '',
+        consultationFee: patient.consultationFee || 500,
+        courierOutstation: patient.courierOutstation || false,
+        dateOfBirth: patient.dateOfBirth ? (new Date(String(patient.dateOfBirth)).toISOString().split('T')[0] ?? '') : '',
+      });
+    }
+  }, [isEdit, patient]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -71,9 +73,13 @@ export default function PatientFormPage() {
     const val = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
     setForm(f => ({ ...f, [name]: val }));
 
-    if (name === 'assistantDoctor' && meta?.doctors) {
-      const doc = meta.doctors.find(d => String(d.id) === value);
-      if (doc?.consultationFee) setForm(f => ({ ...f, assistantDoctor: value, consultationFee: doc.consultationFee! }));
+    if (name === 'assistantDoctor') {
+      const doc = meta?.doctors?.find(d => String(d.id) === value);
+      setForm(f => ({ 
+        ...f, 
+        assistantDoctor: value, 
+        consultationFee: doc ? (Number(doc.consultationFee) || 0) : 0 
+      }));
     }
   };
 
@@ -177,115 +183,110 @@ export default function PatientFormPage() {
             </div>
           </div>
 
-          {/* Two-column layout */}
-          <div className="pp-form-cols" style={{ marginTop: '24px' }}>
-            {/* Left Column */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div className="pp-form-grid">
-                <div>
-                  <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Gender</label>
-                  <select className="pp-select" name="gender" value={form.gender} onChange={handleChange}>
-                    <option value="M">Male</option>
-                    <option value="F">Female</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Mobile <span style={{ color: 'var(--pp-danger-fg)' }}>*</span></label>
-                  <input className="pp-input" name="phone" value={form.phone} onChange={handleChange} onKeyDown={handleNumericKey} placeholder="Primary Mobile" type="tel" inputMode="numeric" />
-                </div>
-              </div>
-              <div>
-                <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>PIN Code</label>
-                <input className="pp-input" name="pin" value={form.pin} onChange={handleChange} placeholder="PIN Code" />
-              </div>
-              <div>
-                <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Address</label>
-                <input className="pp-input" name="address" value={form.address} onChange={handleChange} placeholder="Flat / Building" />
-              </div>
-              <div>
-                <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Road / Region</label>
-                <input className="pp-input" name="road" value={form.road} onChange={handleChange} placeholder="Road / Region" />
-              </div>
-              <div className="pp-form-grid">
-                <div>
-                  <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Area / Sector</label>
-                  <input className="pp-input" name="area" value={form.area} onChange={handleChange} placeholder="Area" />
-                </div>
-                <div>
-                  <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>City</label>
-                  <input className="pp-input" name="city" value={form.city} onChange={handleChange} placeholder="City" />
-                </div>
-              </div>
-              <div className="pp-form-grid">
-                <div>
-                  <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>State</label>
-                  <select className="pp-select" name="state" value={form.state} onChange={handleChange}>
-                    <option value="">Select State</option>
-                    {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Email</label>
-                  <input className="pp-input" name="email" value={form.email} onChange={handleChange} placeholder="Email" type="email" />
-                </div>
-              </div>
-              <div>
-                <label className="text-body" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px' }}>
-                  <input type="checkbox" name="courierOutstation" checked={form.courierOutstation} onChange={handleChange} style={{ width: '16px', height: '16px' }} />
-                  Courier Outstation
-                </label>
-              </div>
+          {/* Unified Form Details */}
+          <div className="pp-form-grid" style={{ marginTop: '24px' }}>
+            <div>
+              <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Gender</label>
+              <select className="pp-select" name="gender" value={form.gender} onChange={handleChange}>
+                <option value="M">Male</option>
+                <option value="F">Female</option>
+                <option value="Other">Other</option>
+              </select>
             </div>
+            <div>
+              <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Mobile <span style={{ color: 'var(--pp-danger-fg)' }}>*</span></label>
+              <input className="pp-input" name="phone" value={form.phone} onChange={handleChange} onKeyDown={handleNumericKey} placeholder="Primary Mobile" type="tel" inputMode="numeric" />
+            </div>
+            <div>
+              <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Mobile 2</label>
+              <input className="pp-input" name="mobile1" value={form.mobile1} onChange={handleChange} onKeyDown={handleNumericKey} placeholder="Alternate Mobile" type="tel" inputMode="numeric" />
+            </div>
+            <div>
+              <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Landline</label>
+              <input className="pp-input" name="mobile2" value={form.mobile2} onChange={handleChange} placeholder="Landline" type="tel" />
+            </div>
+            <div>
+              <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Email</label>
+              <input className="pp-input" name="email" value={form.email} onChange={handleChange} placeholder="Email" type="email" />
+            </div>
+            <div>
+              <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Date of Birth</label>
+              <input className="pp-input" name="dateOfBirth" type="date" value={form.dateOfBirth} onChange={handleChange} />
+            </div>
+          </div>
 
-            {/* Right Column */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div>
-                <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Religion</label>
-                <select className="pp-select" name="religion" value={form.religion} onChange={handleChange}>
-                  <option value="">Select</option>
-                  {(meta?.religions?.length ? meta.religions : ['Hindu', 'Muslim', 'Christian', 'Sikh', 'Buddhist', 'Jain', 'Other']).map(r => <option key={r} value={r}>{r}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Alternative Address</label>
-                <textarea className="pp-input" name="altAddress" value={form.altAddress} onChange={handleChange} placeholder="Alternative Address" rows={3} style={{ height: 'auto', resize: 'vertical' }} />
-              </div>
-              <div>
-                <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Marital Status</label>
-                <select className="pp-select" name="maritalStatus" value={form.maritalStatus} onChange={handleChange}>
-                  <option value="">Select</option>
-                  {(meta?.statuses || ['Single', 'Married', 'Divorced', 'Widowed']).map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Occupation</label>
-                <select className="pp-select" name="occupation" value={form.occupation} onChange={handleChange}>
-                  <option value="">Select</option>
-                  {(meta?.occupations?.length ? meta.occupations : ['Business', 'Service', 'Student', 'Housewife', 'Retired', 'Self-Employed', 'Other']).map(o => <option key={o} value={o}>{o}</option>)}
-                </select>
-              </div>
-              <div className="pp-form-grid">
-                <div>
-                  <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Mobile 2</label>
-                  <input className="pp-input" name="mobile1" value={form.mobile1} onChange={handleChange} onKeyDown={handleNumericKey} placeholder="Alternate Mobile" type="tel" inputMode="numeric" />
-                </div>
-                <div>
-                  <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Landline</label>
-                  <input className="pp-input" name="mobile2" value={form.mobile2} onChange={handleChange} placeholder="Landline" type="tel" />
-                </div>
-              </div>
-              <div>
-                <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Referred By (Patient ID)</label>
-                <input className="pp-input" name="referredBy" value={form.referredBy} onChange={handleChange} placeholder="Patient ID" />
-              </div>
-              <div>
-                <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Blood Group</label>
-                <select className="pp-select" name="bloodGroup" value={form.bloodGroup} onChange={handleChange}>
-                  <option value="">Select</option>
-                  {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(b => <option key={b} value={b}>{b}</option>)}
-                </select>
-              </div>
+          <div className="pp-form-grid" style={{ marginTop: '16px' }}>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Address</label>
+              <input className="pp-input" name="address" value={form.address} onChange={handleChange} placeholder="Flat / Building" />
+            </div>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Alternative Address</label>
+              <textarea className="pp-textarea" name="altAddress" value={form.altAddress} onChange={handleChange} placeholder="Alternative Address" rows={2} />
+            </div>
+            <div>
+              <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Road / Region</label>
+              <input className="pp-input" name="road" value={form.road} onChange={handleChange} placeholder="Road / Region" />
+            </div>
+             <div>
+              <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Area / Sector</label>
+              <input className="pp-input" name="area" value={form.area} onChange={handleChange} placeholder="Area" />
+            </div>
+            <div>
+              <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>City</label>
+              <input className="pp-input" name="city" value={form.city} onChange={handleChange} placeholder="City" />
+            </div>
+            <div>
+              <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>State</label>
+              <select className="pp-select" name="state" value={form.state} onChange={handleChange}>
+                <option value="">Select State</option>
+                {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>PIN Code</label>
+              <input className="pp-input" name="pin" value={form.pin} onChange={handleChange} placeholder="PIN Code" />
+            </div>
+          </div>
+
+          <div className="pp-form-grid" style={{ marginTop: '16px', paddingBottom: '24px', borderBottom: '1px solid var(--pp-warm-4)' }}>
+            <div>
+              <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Religion</label>
+              <select className="pp-select" name="religion" value={form.religion} onChange={handleChange}>
+                <option value="">Select</option>
+                {(meta?.religions?.length ? meta.religions : ['Hindu', 'Muslim', 'Christian', 'Sikh', 'Buddhist', 'Jain', 'Other']).map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Marital Status</label>
+              <select className="pp-select" name="maritalStatus" value={form.maritalStatus} onChange={handleChange}>
+                <option value="">Select</option>
+                {(meta?.statuses || ['Single', 'Married', 'Divorced', 'Widowed']).map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Occupation</label>
+              <select className="pp-select" name="occupation" value={form.occupation} onChange={handleChange}>
+                <option value="">Select</option>
+                {(meta?.occupations?.length ? meta.occupations : ['Business', 'Service', 'Student', 'Housewife', 'Retired', 'Self-Employed', 'Other']).map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Blood Group</label>
+              <select className="pp-select" name="bloodGroup" value={form.bloodGroup} onChange={handleChange}>
+                <option value="">Select</option>
+                {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(b => <option key={b} value={b}>{b}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Referred By (Patient ID)</label>
+              <input className="pp-input" name="referredBy" value={form.referredBy} onChange={handleChange} placeholder="Patient ID" />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '8px' }}>
+              <label className="text-body" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px' }}>
+                <input type="checkbox" name="courierOutstation" checked={form.courierOutstation} onChange={handleChange} style={{ width: '16px', height: '16px' }} />
+                Courier Outstation
+              </label>
             </div>
           </div>
 

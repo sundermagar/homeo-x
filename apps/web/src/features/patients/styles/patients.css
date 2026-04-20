@@ -71,6 +71,28 @@
   text-align: right;
 }
 
+/* ─── Search Wrap ──────────────────────────────────────────────────────────── */
+
+.pat-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  max-width: 400px;
+}
+
+.pat-search-icon {
+  position: absolute;
+  left: 12px;
+  color: var(--pp-text-3);
+  pointer-events: none;
+}
+
+.pat-search-input {
+  padding-left: 36px !important;
+  width: 100% !important;
+}
+
 /* ─── Section Header ──────────────────────────────────────────────────────── */
 
 .pat-section-header {

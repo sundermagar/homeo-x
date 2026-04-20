@@ -206,7 +206,6 @@ const NAV_STRUCTURE: NavItem[] = [
         { path: '/billing',           label: 'Billing',             icon: Receipt,
           children: [
             { path: '/billing',               label: 'Bill List',             icon: Receipt },
-            { path: '/billing/create',         label: 'Create Bill',           icon: FileText },
             { path: '/billing/additional-charges', label: 'Additional Charges', icon: PlusCircle },
             { path: '/billing/day-charges',     label: 'Day Charges',           icon: Calendar },
             { path: '/billing/deposits',         label: 'Deposits',              icon: Building },

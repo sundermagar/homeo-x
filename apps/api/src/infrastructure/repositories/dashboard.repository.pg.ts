@@ -12,11 +12,13 @@ import type {
   TopBillingItem,
   MonthlyTarget,
   PlatformStats,
+  RecentTransaction,
+  IntelligenceInsight,
 } from '@mmc/types';
 import type { IDashboardRepository } from '../../domains/dashboard/ports/dashboard.repository';
 
 export class DashboardRepositoryPg implements IDashboardRepository {
-  constructor(private readonly db: DbClient) {}
+  constructor(private readonly db: DbClient) { }
 
   private async getRevenueTableInfo(): Promise<{ name: string; amountCol: string; hasMode: boolean } | null> {
     const res = await this.db.execute(sql`
@@ -26,14 +28,14 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     `);
     if (!res[0]) return null;
     const name = (res[0] as any).table_name;
-    
+
     // Check if mode column exists
     const modeRes = await this.db.execute(sql`
       SELECT column_name FROM information_schema.columns 
       WHERE table_name = ${name} AND column_name = 'mode' AND table_schema = CURRENT_SCHEMA() 
       LIMIT 1
     `);
-    
+
     return { name, amountCol: name === 'receipt' ? 'amount' : 'charges', hasMode: !!modeRes[0] };
   }
   private async getDoctorColumn(): Promise<string> {
@@ -50,11 +52,11 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     const today = now.toISOString().split('T')[0] || '';
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
-    
+
     let range: { start: string; end: string };
-    
+
     switch (p) {
-      case 'day': 
+      case 'day':
         range = { start: today, end: today };
         break;
       case 'week': {
@@ -65,12 +67,12 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         range = { start: s, end: d.toISOString().split('T')[0] || '' };
         break;
       }
-      case 'year': 
+      case 'year':
         range = { start: `${year}-01-01`, end: `${year}-12-31` };
         break;
       default: // month
-        range = { 
-          start: `${year}-${month}-01`, 
+        range = {
+          start: `${year}-${month}-01`,
           end: new Date(year, now.getMonth() + 1, 0).toISOString().split('T')[0] || ''
         };
     }
@@ -171,7 +173,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
 
     return {
       newPatientsCount: currP,
-      followUpsCount: 0, 
+      followUpsCount: 0,
       todaysCollection: currE,
       todaysExpenses: expenses?.total || 0,
       revenueTrend: revTrend,
@@ -186,7 +188,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
   async getTodayQueue(contextId: number, doctorId?: number): Promise<QueueItem[]> {
     const today = new Date().toISOString().split('T')[0];
     const docCol = await this.getDoctorColumn();
-    
+
     // Subquery deduplicates rows from the token JOIN (DISTINCT ON requires id first in ORDER BY),
     // then outer query re-orders by clinical priority so CONSULTATION is first, WAITING by token, etc.
     const results = await this.db.execute(sql`
@@ -255,9 +257,9 @@ export class DashboardRepositoryPg implements IDashboardRepository {
 
   async getRecentActivity(contextId: number, limit: number): Promise<ActivityItem[]> {
     const revInfo = await this.getRevenueTableInfo();
-    
+
     const queries: any[] = [];
-    
+
     // Always query appointments
     queries.push(this.db.execute(sql`
       SELECT 'appointment' as type, 'Appointment - ' || p.first_name as title, a.booking_date::text as subtitle, a.created_at
@@ -269,7 +271,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     // Conditionally query revenue table
     if (revInfo) {
       queries.push(this.db.execute(sql`
-        SELECT 'payment' as type, 'Invoice paid - ' || p.first_name as title, 'Rs.' || r.${sql.identifier(revInfo.amountCol)} as subtitle, r.created_at
+        SELECT 'payment' as type, 'Invoice paid - ' || p.first_name as title, 'Rs.' || r.${sql.identifier(revInfo.amountCol)} as subtitle, r.created_at, p.regid
         FROM ${sql.identifier(revInfo.name)} r JOIN patients p ON r.regid = p.regid
         WHERE (r.deleted_at IS NULL OR r.deleted_at::text = '')
         ORDER BY r.id DESC LIMIT ${limit}
@@ -278,7 +280,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
 
     const results = await Promise.all(queries);
     const combined = results.flatMap(res => res as any[]);
-    
+
     // Sort combined results by created_at desc
     combined.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
@@ -286,7 +288,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       type: a.type,
       title: a.title,
       subtitle: a.subtitle,
-      createdAt: a.created_at
+      createdAt: a.created_at,
+      regid: a.regid
     }));
   }
 
@@ -299,21 +302,21 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       WHERE cr.status = 'pending'
       ORDER BY cr.id DESC LIMIT ${limit}
     `);
-    
+
     return results as any as SimpleReminder[];
   }
 
   async getBirthdays(contextId: number): Promise<BirthdayPatient[]> {
     const today = new Date();
     const mmdd = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-    
+
     const results = await this.db.execute(sql`
       SELECT id, regid, first_name, surname, phone, mobile1, dob
       FROM patients
       WHERE to_char(dob, 'MM-DD') = ${mmdd}
         AND (deleted_at IS NULL OR deleted_at::text = '')
     `);
-    
+
     return results as any as BirthdayPatient[];
   }
 
@@ -345,7 +348,13 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         GROUP BY 1
       )
       SELECT to_char(months.m, 'Mon') as month, 
-             COALESCE((SELECT sum(amt) FROM (SELECT amt FROM rev_bills b WHERE b.m = months.m UNION ALL SELECT amt FROM rev_receipts r WHERE r.m = months.m) t), 0)::int as revenue
+             COALESCE((
+               SELECT sum(amt) FROM (
+                 SELECT amt FROM rev_bills b WHERE b.m = months.m 
+                 UNION ALL 
+                 SELECT amt FROM rev_receipts r WHERE r.m = months.m
+               ) t
+             ), 0)::int as revenue
       FROM months
       ORDER BY months.m ASC
     `);
@@ -361,6 +370,78 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       .set({ status: 'done', updatedAt: new Date() })
       .where(eq(schema.caseReminders.id, id));
   }
+
+  async getRecentTransactions(limit: number): Promise<RecentTransaction[]> {
+    try {
+      const results = await this.db.execute(sql`
+        SELECT 
+          b.id,
+          COALESCE(p.first_name || ' ' || p.surname, 'Unknown') AS patient_name,
+          COALESCE(b.bill_no::text, 'INV-' || b.id::text) AS invoice_no,
+          COALESCE(CAST(NULLIF(b.charges::text, '') AS numeric), 0)::int AS amount,
+          CASE
+            WHEN COALESCE(CAST(NULLIF(b.balance::text, '') AS numeric), 0) <= 0 THEN 'paid'
+            WHEN COALESCE(CAST(NULLIF(b.received::text, '') AS numeric), 0) > 0 THEN 'partial'
+            ELSE 'due'
+          END AS status
+        FROM bills b
+        LEFT JOIN patients p ON b.regid = p.regid
+        WHERE (b.deleted_at IS NULL OR b.deleted_at::text = '')
+        ORDER BY b.id DESC
+        LIMIT ${limit}
+      `);
+      return (results as any[]).map(r => ({
+        id: r.id,
+        patientName: r.patient_name || 'Unknown',
+        invoiceNo: r.invoice_no || `INV-${r.id}`,
+        amount: Number(r.amount) || 0,
+        status: r.status || 'due',
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+  async getIntelligenceInsights(kpis: DashboardKpis): Promise<IntelligenceInsight[]> {
+    const insights: IntelligenceInsight[] = [];
+
+    const revTrend = Number(kpis?.revenueTrend || 0);
+    const patTrend = Number(kpis?.patientTrend || 0);
+    const collRate = Number(kpis?.collectionRate || 0);
+    const avgWait = Number(kpis?.avgWaitTime || 0);
+    const collection = Number(kpis?.todaysCollection || 0);
+
+    if (revTrend > 0) {
+      insights.push({ color: '#22c55e', text: `Revenue is up ${revTrend}% vs yesterday — clinic is performing well.` });
+    } else if (revTrend < -10) {
+      insights.push({ color: '#ef4444', text: `Revenue dropped ${Math.abs(revTrend)}% vs yesterday. Review billing pipeline.` });
+    } else {
+      insights.push({ color: '#22c55e', text: 'Clinic is running smoothly. Revenue on track with yesterday.' });
+    }
+
+    if (collRate > 0 && collRate < 90) {
+      insights.push({ color: '#f59e0b', text: `Collection rate at ${collRate}% — follow up on pending dues to improve cash flow.` });
+    } else if (collRate >= 95) {
+      insights.push({ color: '#22c55e', text: `Excellent collection rate of ${collRate}%. Keep it up!` });
+    }
+
+    if (avgWait > 20) {
+      insights.push({ color: '#f59e0b', text: `Average wait time is ${avgWait} min — consider calling extra staff or adjusting scheduling.` });
+    } else if (avgWait > 0) {
+      insights.push({ color: '#22c55e', text: `Average wait time of ${avgWait} min is within target range.` });
+    }
+
+    if (patTrend > 0) {
+      insights.push({ color: '#3b82f6', text: `Patient visits up ${patTrend}% today — ensure adequate staffing.` });
+    }
+
+    if (collection === 0) {
+      insights.push({ color: '#94a3b8', text: 'No collections recorded yet today. Start seeing patients to track revenue.' });
+    }
+
+    return insights.slice(0, 3);
+  }
+
 
   // ─── Clinic Admin Dashboard ──────────────────────────────────────────────────
 
@@ -379,14 +460,14 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     const results = await Promise.all([
       this.db.execute(sql`
         SELECT (
-          COALESCE((SELECT sum(received) FROM bills WHERE bill_date::date BETWEEN ${start} AND ${end} AND LOWER(COALESCE(payment_mode, '')) = 'cash' AND (deleted_at IS NULL OR deleted_at::text = '')), 0) +
-          COALESCE((SELECT sum(CAST(NULLIF(amount::text, '') AS numeric)) FROM receipt WHERE created_at::date BETWEEN ${start} AND ${end} AND LOWER(COALESCE(mode, '')) = 'cash' AND (deleted_at IS NULL OR deleted_at::text = '')), 0)
+          COALESCE((SELECT sum(received) FROM bills WHERE bill_date::date BETWEEN ${start} AND ${end} AND (LOWER(COALESCE(payment_mode, '')) = 'cash' OR payment_mode IS NULL OR payment_mode = '') AND (deleted_at IS NULL OR deleted_at::text = '')), 0) +
+          COALESCE((SELECT sum(CAST(NULLIF(amount::text, '') AS numeric)) FROM receipt WHERE created_at::date BETWEEN ${start} AND ${end} AND (LOWER(COALESCE(mode, '')) = 'cash' OR mode IS NULL OR mode = '') AND (deleted_at IS NULL OR deleted_at::text = '')), 0)
         ) as total
       `),
       this.db.execute(sql`
         SELECT (
-          COALESCE((SELECT sum(received) FROM bills WHERE bill_date::date BETWEEN ${start} AND ${end} AND LOWER(COALESCE(payment_mode, '')) IN ('upi', 'card', 'online') AND (deleted_at IS NULL OR deleted_at::text = '')), 0) +
-          COALESCE((SELECT sum(CAST(NULLIF(amount::text, '') AS numeric)) FROM receipt WHERE created_at::date BETWEEN ${start} AND ${end} AND LOWER(COALESCE(mode, '')) IN ('upi', 'card', 'online') AND (deleted_at IS NULL OR deleted_at::text = '')), 0)
+          COALESCE((SELECT sum(received) FROM bills WHERE bill_date::date BETWEEN ${start} AND ${end} AND LOWER(COALESCE(payment_mode, '')) IN ('upi', 'card', 'online', 'bank', 'gpay', 'phonepe', 'paytm') AND (deleted_at IS NULL OR deleted_at::text = '')), 0) +
+          COALESCE((SELECT sum(CAST(NULLIF(amount::text, '') AS numeric)) FROM receipt WHERE created_at::date BETWEEN ${start} AND ${end} AND LOWER(COALESCE(mode, '')) IN ('upi', 'card', 'online', 'bank', 'gpay', 'phonepe', 'paytm') AND (deleted_at IS NULL OR deleted_at::text = '')), 0)
         ) as total
       `)
     ]);
@@ -435,9 +516,10 @@ export class DashboardRepositoryPg implements IDashboardRepository {
 
   async getTopBilling(period: string, limit: number, contextId: number): Promise<TopBillingItem[]> {
     const { start, end } = this.getPeriodDates(period);
- 
+
     const results = await this.db.execute(sql`
       SELECT b.id, p.first_name || ' ' || p.surname as patient_name,
+             p.regid,
              b.charges as total,
              CASE
                WHEN b.balance <= 0 THEN 'Paid'
@@ -455,6 +537,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     return (results as any[]).map(r => ({
       id: r.id,
       patientName: r.patient_name || 'Unknown',
+      regid: r.regid,
       total: r.total || 0,
       status: r.status,
     }));
@@ -462,18 +545,18 @@ export class DashboardRepositoryPg implements IDashboardRepository {
 
   async getMonthlyTargets(period: string, contextId: number): Promise<MonthlyTarget[]> {
     const { start, end: monthEnd } = this.getPeriodDates(period);
- 
+
     // Current month actuals
     const revInfo = await this.getRevenueTableInfo();
     const amountCol = revInfo?.amountCol || 'charges';
- 
+
     const [revRes, patRes, collRes, waitRes] = await Promise.all([
-      revInfo ? this.db.execute(sql`
-        SELECT COALESCE(sum(CAST(NULLIF(${sql.identifier(amountCol)}::text, '') AS numeric)), 0)::int as total
-        FROM ${sql.identifier(revInfo.name)}
-        WHERE created_at::date BETWEEN ${start} AND ${monthEnd}
-          AND (deleted_at IS NULL OR deleted_at::text = '')
-      `) : Promise.resolve([{ total: 0 }]),
+      this.db.execute(sql`
+        SELECT (
+          COALESCE((SELECT sum(received) FROM bills WHERE bill_date::date BETWEEN ${start} AND ${monthEnd} AND (deleted_at IS NULL OR deleted_at::text = '')), 0) +
+          COALESCE((SELECT sum(CAST(NULLIF(amount::text, '') AS numeric)) FROM receipt WHERE created_at::date BETWEEN ${start} AND ${monthEnd} AND (deleted_at IS NULL OR deleted_at::text = '')), 0)
+        ) as total
+      `),
       this.db.execute(sql`
         SELECT count(*)::int as cnt FROM patients
         WHERE created_at::date BETWEEN ${start} AND ${monthEnd}
@@ -570,7 +653,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     const [orgCount] = await this.db.execute(sql`
       SELECT count(*)::int as count FROM public.organizations WHERE deleted_at IS NULL
     `) as any[];
-    
+
     const [userCount] = await this.db.execute(sql`
       SELECT count(*)::int as count FROM users WHERE (deleted_at IS NULL OR deleted_at::text = '') AND is_active = true
     `) as any[];

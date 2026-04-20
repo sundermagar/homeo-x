@@ -61,6 +61,9 @@ export function useUpdateStaff() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ category, id, ...input }: UpdateStaffInput & { category: StaffCategory; id: number }) => {
+      if (!id || isNaN(id)) {
+        throw new Error('Invalid staff member ID');
+      }
       const res = await apiClient.put<any>(`/staff/${id}`, input, {
         params: { category },
       });

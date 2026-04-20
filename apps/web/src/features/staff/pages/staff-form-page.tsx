@@ -128,7 +128,11 @@ export default function StaffFormPage() {
           delete payload.password;
         }
 
-        await updateMutation.mutateAsync({ category, id: staffId, ...payload });
+        if (!staffId || isNaN(staffId)) {
+          throw new Error('Could not identify the staff member to update.');
+        }
+
+        await updateMutation.mutateAsync({ ...payload, category, id: staffId });
       } else {
         const payload = createStaffSchema.parse(formData);
         await createMutation.mutateAsync(payload as CreateStaffInput);

@@ -82,15 +82,6 @@ function buildCommands(navigate: ReturnType<typeof useNavigate>): CommandItem[] 
       onSelect: () => navigate('/appointments'),
     },
     {
-      id: 'action-new-billing',
-      label: 'Create Billing Record',
-      sublabel: 'Add a new bill or invoice',
-      icon: <Plus size={16} />,
-      category: 'action',
-      keywords: ['new', 'create', 'bill', 'invoice', 'billing'],
-      onSelect: () => navigate('/billing/create'),
-    },
-    {
       id: 'action-new-sms',
       label: 'Send Group SMS',
       sublabel: 'Broadcast a message to patients',

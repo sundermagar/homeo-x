@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import type { Request, Response, Router as IRouter } from 'express';
+import { sql } from 'drizzle-orm';
 import { createStaffSchema, updateStaffSchema, staffCategoryEnum } from '@mmc/validation';
 import type { StaffCategory } from '@mmc/types';
 import { StaffRepositoryPg } from '../../repositories/staff.repository.pg';
@@ -15,32 +16,66 @@ import { upload } from '../middleware/upload';
 import { Role } from '@mmc/types';
 import { eq } from 'drizzle-orm';
 import { accounts, users } from '@mmc/database/schema';
+import type { DbClient } from '@mmc/database';
 
 const logger = createLogger('staff-router');
 
 export const staffRouter: IRouter = Router();
 
 async function getRepo(req: Request) {
-  let clinicId: number | undefined;
-
-  // Try to resolve the ClinicId of the current user — gracefully degrade if
-  // the users/accounts table schema is behind on migrations.
-  try {
-    if (req.user) {
-      if (req.user.type === Role.Clinicadmin && req.user.contextId) {
-        const [acc] = await req.publicDb.select().from(accounts).where(eq(accounts.id, req.user.contextId)).limit(1);
-        clinicId = (acc as any)?.clinicId ?? undefined;
-      } else if (req.user.id) {
-        const [u] = await req.publicDb.select().from(users).where(eq(users.id, req.user.id)).limit(1);
-        clinicId = (u as any)?.clinicId ?? undefined;
-      }
-    }
-  } catch {
-    // Column may not exist yet (e.g. clinic_id migration pending) — continue without clinicId filter
-    clinicId = undefined;
-  }
-
   return new StaffRepositoryPg(req.tenantDb);
+}
+
+const USER_COLUMNS: { col: string; type: string }[] = [
+  { col: 'title',                  type: 'text' },
+  { col: 'firstname',              type: 'text' },
+  { col: 'middlename',             type: 'text' },
+  { col: 'surname',                type: 'text' },
+  { col: 'gender',                 type: 'text' },
+  { col: 'mobile',                 type: 'text' },
+  { col: 'mobile2',                type: 'text' },
+  { col: 'city',                   type: 'text' },
+  { col: 'address',                type: 'text' },
+  { col: 'permanent_address',      type: 'text' },
+  { col: 'about',                  type: 'text' },
+  { col: 'date_birth',             type: 'date' },
+  { col: 'date_left',              type: 'date' },
+  { col: 'joiningdate',            type: 'date' },
+  { col: 'designation',            type: 'text' },
+  { col: 'dept',                   type: 'integer' },
+  { col: 'qualification',          type: 'text' },
+  { col: 'institute',              type: 'text' },
+  { col: 'passed_out',             type: 'text' },
+  { col: 'registration_id',        type: 'text' },
+  { col: 'consultation_fee',       type: 'real' },
+  { col: 'salary_cur',             type: 'real' },
+  { col: 'aadharnumber',           type: 'text' },
+  { col: 'pannumber',              type: 'text' },
+  { col: 'profilepic',             type: 'text' },
+  { col: 'registration_certificate', type: 'text' },
+  { col: 'aadhar_card',            type: 'text' },
+  { col: 'pan_card',               type: 'text' },
+  { col: 'appointment_letter',     type: 'text' },
+  { col: '10_document',            type: 'text' },
+  { col: '12_document',            type: 'text' },
+  { col: 'bhms_document',          type: 'text' },
+  { col: 'md_document',            type: 'text' },
+];
+
+/**
+ * Ensures the users table has all columns needed for staff auth mirroring.
+ * Uses raw SQL with template literals — safe against SQL injection (col names are static).
+ */
+async function ensureUsersColumns(db: DbClient): Promise<void> {
+  for (const { col, type } of USER_COLUMNS) {
+    try {
+      const typeClause = type === 'integer' ? 'integer' : type === 'real' ? 'real' : 'text';
+      const defaultClause = type === 'real' ? ' DEFAULT 0' : type === 'integer' ? ' DEFAULT 0' : '';
+      await db.execute(sql.raw(`ALTER TABLE users ADD COLUMN IF NOT EXISTS "${col}" ${typeClause}${defaultClause}`));
+    } catch {
+      // column already exists or other issue — skip
+    }
+  }
 }
 
 function parseCategory(raw: unknown): StaffCategory | null {
@@ -118,11 +153,16 @@ staffRouter.post('/', async (req: Request, res: Response) => {
   try {
     const parsed = createStaffSchema.safeParse(req.body);
     if (!parsed.success) {
-      logger.error(`Validation failed for staff creation: ${JSON.stringify(parsed.error.flatten().fieldErrors)}`);
-      res.status(400).json({ success: false, message: 'Validation failed', errors: parsed.error.flatten().fieldErrors });
+      const fieldErrors = parsed.error.flatten().fieldErrors;
+      console.error(`[StaffRouter] VALIDATION FAILED for category: ${req.body.category}`, JSON.stringify(fieldErrors, null, 2));
+      res.status(400).json({ success: false, message: 'Validation failed', errors: fieldErrors });
       return;
     }
     logger.info(`Creating new staff member: ${parsed.data.name} (Category: ${parsed.data.category})`);
+
+    // Ensure users table has all required columns before mirroring
+    await ensureUsersColumns(req.tenantDb);
+
     const repo = await getRepo(req);
     const uc = new CreateStaffUseCase(repo);
     const result = await uc.execute(parsed.data);

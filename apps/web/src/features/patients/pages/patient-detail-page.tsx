@@ -245,14 +245,19 @@ function ClinicalTrends({ regid }: { regid: number }) {
 
   if (isLoading || !record || !record.vitals || record.vitals.length === 0) return null;
 
-  const chartData = record.vitals
-    .map((v: any) => ({
-      date: new Date(v.recordedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
-      weight: v.weightKg,
-      systolic: v.systolicBp,
-      diastolic: v.diastolicBp,
-      fullDate: new Date(v.recordedAt).toLocaleDateString(),
-    }))
+  const chartData = (record.vitals || [])
+    .map((v: any) => {
+      const dateObj = new Date(v.recordedAt || v.recorded_at);
+      const isInvalid = isNaN(dateObj.getTime());
+      
+      return {
+        date: isInvalid ? 'N/A' : dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+        weight: v.weightKg || v.weight_kg || 0,
+        systolic: v.systolicBp || v.systolic_bp || 0,
+        diastolic: v.diastolicBp || v.diastolic_bp || 0,
+        fullDate: isInvalid ? 'Unknown Date' : dateObj.toLocaleDateString(),
+      };
+    })
     .reverse();
 
   return (

@@ -10,7 +10,7 @@ export class QueueManagementUseCase {
     return ok(list);
   }
 
-  async addToWaitlist(dto: { patientId: number; appointmentId?: number; doctorId?: number; consultationFee?: number }): Promise<Result<{ waitingNumber: number }>> {
+  async addToWaitlist(dto: { patientId?: number; appointmentId?: number; doctorId?: number; consultationFee?: number }): Promise<Result<{ waitingNumber: number }>> {
     const waitingNumber = await this.repo.addToWaitlist(dto);
     return ok({ waitingNumber });
   }

@@ -47,6 +47,13 @@ export class SettingsRepositoryPg implements ISettingsRepository {
       mapped[camelKey] = row[key];
     }
     // Specific legacy mappings
+    if (row.ID !== undefined && mapped.id === undefined) mapped.id = row.ID;
+    if (row.shortname !== undefined && mapped.name === undefined) mapped.name = row.shortname;
+    if (row.remedy !== undefined && (mapped.name === undefined || mapped.name === null)) mapped.name = row.remedy;
+    if (row.message !== undefined && mapped.content === undefined) mapped.content = row.message;
+    if (row.related_diseases !== undefined && mapped.disease === undefined) mapped.disease = row.related_diseases;
+    if (row.medicine_name !== undefined && mapped.name === undefined) mapped.name = row.medicine_name;
+    
     if (row.potency_name) mapped.name = row.potency_name;
     if (row.case_frequency) mapped.frequency = row.case_frequency;
     if (row.detail !== undefined && mapped.description === undefined) mapped.description = row.detail;
@@ -62,9 +69,9 @@ export class SettingsRepositoryPg implements ISettingsRepository {
   }
   async createDepartment(data: Omit<Department, 'id' | 'createdAt' | 'updatedAt'>): Promise<Department> {
     return this.q1(
-      `INSERT INTO departments (name, detail, is_active, created_at, updated_at)
-       VALUES ($1, $2, $3, NOW(), NOW()) RETURNING *`,
-      [data.name, data.description ?? null, data.isActive ?? true]
+      `INSERT INTO departments (id, name, detail, created_at, updated_at) 
+       VALUES ((SELECT COALESCE(MAX(id), 0) + 1 FROM departments), $1, $2, NOW(), NOW()) RETURNING *`,
+      [data.name, data.description ?? null]
     ) as Promise<Department>;
   }
   async updateDepartment(id: number, data: Partial<Omit<Department, 'id'>>): Promise<Department> {
@@ -90,14 +97,18 @@ export class SettingsRepositoryPg implements ISettingsRepository {
     this.logger.info({ dispensaryName: data.name }, 'Creating new dispensary staff account');
     this.logger.debug({ payload: sanitizedData }, 'Dispensary creation payload');
 
+    const nextIdResult = await this.q<{ next_id: number }>('SELECT COALESCE(MAX(id), 0) + 1 as next_id FROM dispensaries');
+    const nextId = (nextIdResult[0] as { next_id: number } | undefined)?.next_id ?? 1;
+
     const r = await this.q1<any>(
       `INSERT INTO dispensaries (
-        name, email, password, gender, mobile, mobile2, 
+        id, name, email, password, gender, mobile, mobile2, 
         location, city, address, about, designation, 
-        dept, date_birth, contact_number, is_active
+        dept, date_birth, contact_number, is_active, created_at, updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING *`,
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW(), NOW()) RETURNING *`,
       [
+        nextId,
         data.name, 
         data.email || null, 
         data.password || null, 
@@ -228,7 +239,8 @@ export class SettingsRepositoryPg implements ISettingsRepository {
   }
   async createStaticPage(data: Omit<StaticPage, 'id'>): Promise<StaticPage> {
     return this.q1(
-      `INSERT INTO static_pages (slug, title, content, is_active) VALUES ($1, $2, $3, $4) RETURNING *`,
+      `INSERT INTO static_pages (id, slug, title, content, is_active) 
+       VALUES ((SELECT COALESCE(MAX(id), 0) + 1 FROM static_pages), $1, $2, $3, $4) RETURNING *`,
       [data.slug, data.title, data.content ?? null, data.isActive ?? true]
     ) as Promise<StaticPage>;
   }
@@ -253,8 +265,8 @@ export class SettingsRepositoryPg implements ISettingsRepository {
   }
   async createFaq(data: Omit<Faq, 'id' | 'createdAt' | 'updatedAt'>): Promise<Faq> {
     return this.q1(
-      `INSERT INTO faqs (name, detail, ques, ans, display_order, is_active, created_at, updated_at) 
-       VALUES ($1, $2, $1, $2, (SELECT COALESCE(MAX(display_order), 0) + 1 FROM faqs), $3, NOW(), NOW()) RETURNING *`,
+      `INSERT INTO faqs (id, name, detail, ques, ans, display_order, is_active, created_at, updated_at) 
+       VALUES ((SELECT COALESCE(MAX(id), 0) + 1 FROM faqs), $1, $2, $1, $2, (SELECT COALESCE(MAX(display_order), 0) + 1 FROM faqs), $3, NOW(), NOW()) RETURNING *`,
       [data.ques || data.name, data.ans || data.detail, data.isActive ?? true]
     ) as Promise<Faq>;
   }
@@ -318,8 +330,13 @@ export class SettingsRepositoryPg implements ISettingsRepository {
 
   // ─── Medicines ────────────────────────────────────────────────────────────
   async listMedicines(): Promise<Medicine[]> {
-    const rows = await this.q<any>('SELECT * FROM medicines ORDER BY id ASC');
-    return rows.map(r => ({ ...r, id: r.id }));
+    // Legacy check for ID vs id
+    try {
+      return await this.q<Medicine>('SELECT * FROM medicines ORDER BY id ASC');
+    } catch (err) {
+      this.logger.debug('Retrying medicines query with uppercase ID');
+      return await this.q<Medicine>('SELECT * FROM medicines ORDER BY "ID" ASC');
+    }
   }
   async getMedicine(id: number): Promise<Medicine | undefined> {
     const r = await this.q1<any>('SELECT * FROM medicines WHERE id = $1', [id]);
@@ -327,7 +344,7 @@ export class SettingsRepositoryPg implements ISettingsRepository {
     return { ...r, id: r.id };
   }
   async createMedicine(data: Omit<Medicine, 'id'>): Promise<Medicine> {
-    console.log('[REPO] createMedicine called', data);
+    this.logger.debug({ data }, 'Creating medicine');
     const name = data.name || data.shortname;
     const disease = data.disease || data.description || data.detail;
     const potencyId = data.potencyId || null;
@@ -337,33 +354,30 @@ export class SettingsRepositoryPg implements ISettingsRepository {
     const stockLevel = data.stockLevel || 0;
 
     try {
-      const r = await this.q1<any>(
+      // Try modern insertion
+      return await this.q1<any>(
         `INSERT INTO medicines (name, disease, potency_id, type, category, price, stock_level, created_at, updated_at) 
          VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW()) RETURNING *`,
         [name, disease ?? null, potencyId, type, category, price, stockLevel]
-      );
-      console.log('[REPO] createMedicine Success', r.id);
-
-      // Initial stock log
-      if (stockLevel > 0) {
-        await this.createStockLog({
-          medicineId: r.id,
-          changeType: 'Adjust',
-          quantity: stockLevel,
-          previousStock: 0,
-          newStock: stockLevel,
-          reason: 'Initial stock on creation'
-        });
-      }
-
-      return { ...r, id: r?.id };
+      ) as Medicine;
     } catch (err) {
-      console.error('[REPO] createMedicine Error', err);
-      throw err;
+      this.logger.warn({ err }, 'Modern medicine insertion failed, trying legacy');
+      // Try legacy insertion (medicines or mmc_medicines)
+      try {
+        const r = await this.q1<any>(
+          `INSERT INTO medicines (id, shortname, remedy) 
+           VALUES ((SELECT COALESCE(MAX("ID"), 0) + 1 FROM medicines), $1, $2) RETURNING *`,
+          [name, name]
+        );
+        return r;
+      } catch (err2) {
+        this.logger.error({ err2 }, 'Legacy medicine insertion failed');
+        throw err2;
+      }
     }
   }
   async updateMedicine(id: number, data: Partial<Omit<Medicine, 'id'>>): Promise<Medicine> {
-    console.log('[REPO] updateMedicine called', { id, data });
+    this.logger.debug({ id, data }, 'Updating medicine');
     const name = data.name || data.shortname;
     const disease = data.disease !== undefined ? data.disease : undefined;
     const potencyId = data.potencyId !== undefined ? data.potencyId : undefined;
@@ -405,7 +419,7 @@ export class SettingsRepositoryPg implements ISettingsRepository {
           stockLevel === null
         ]
       );
-      console.log('[REPO] updateMedicine Success', id);
+      this.logger.info({ medicineId: id }, 'Medicine updated successfully');
 
       // Stock change log
       if (stockLevel !== undefined && stockLevel !== null && stockLevel !== oldStock) {
@@ -421,7 +435,7 @@ export class SettingsRepositoryPg implements ISettingsRepository {
 
       return { ...r, id: r?.id };
     } catch (err) {
-      console.error('[REPO] updateMedicine Error', err);
+      this.logger.error({ err, medicineId: id }, 'Failed to update medicine');
       throw err;
     }
   }
@@ -438,7 +452,8 @@ export class SettingsRepositoryPg implements ISettingsRepository {
   }
   async createPotency(data: Omit<Potency, 'id' | 'createdAt' | 'updatedAt'>): Promise<Potency> {
     return this.q1(
-      `INSERT INTO potencies (name, detail, created_at, updated_at) VALUES ($1, $2, NOW(), NOW()) RETURNING *`,
+      `INSERT INTO potencies (id, name, detail, created_at, updated_at) 
+       VALUES ((SELECT COALESCE(MAX(id), 0) + 1 FROM potencies), $1, $2, NOW(), NOW()) RETURNING *`,
       [data.name, data.detail ?? null]
     ) as Promise<Potency>;
   }
@@ -461,8 +476,8 @@ export class SettingsRepositoryPg implements ISettingsRepository {
   }
   async createFrequency(data: Omit<Frequency, 'id' | 'createdAt' | 'updatedAt'>): Promise<Frequency> {
     return this.q1(
-      `INSERT INTO case_frequency (title, frequency, duration, days, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, NOW(), NOW()) RETURNING *`,
+      `INSERT INTO case_frequency (id, title, frequency, duration, days, created_at, updated_at) 
+       VALUES ((SELECT COALESCE(MAX(id), 0) + 1 FROM case_frequency), $1, $2, $3, $4, NOW(), NOW()) RETURNING *`,
       [data.title ?? null, data.frequency ?? null, data.duration ?? null, data.days ?? null]
     ) as Promise<Frequency>;
   }
@@ -493,13 +508,14 @@ export class SettingsRepositoryPg implements ISettingsRepository {
   }
   async createMessageTemplate(data: Omit<MessageTemplate, 'id'>): Promise<MessageTemplate> {
     return this.q1(
-      `INSERT INTO message_templates (name, content, type, is_active) VALUES ($1, $2, $3, $4) RETURNING *`,
+      `INSERT INTO message_templates (name, content, message, type, is_active) VALUES ($1, $2, $2, $3, $4) RETURNING *`,
       [data.name, data.content, data.type ?? 'SMS', data.isActive ?? true]
     ) as Promise<MessageTemplate>;
   }
   async updateMessageTemplate(id: number, data: Partial<Omit<MessageTemplate, 'id'>>): Promise<MessageTemplate> {
     return this.q1(
       `UPDATE message_templates SET name = COALESCE($1, name), content = COALESCE($2, content),
+       message = COALESCE($2, message),
        type = COALESCE($3, type), is_active = COALESCE($4, is_active), updated_at = NOW()
        WHERE id = $5 RETURNING *`,
       [data.name ?? null, data.content ?? null, data.type ?? null, data.isActive ?? null, id]
@@ -538,8 +554,8 @@ export class SettingsRepositoryPg implements ISettingsRepository {
   }
   async createPackagePlan(data: Omit<PackagePlan, 'id'>): Promise<PackagePlan> {
     return this.q1(
-      `INSERT INTO package_plans (name, description, price, duration_days, color_code, is_active)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      `INSERT INTO package_plans (id, name, description, price, duration_days, color_code, is_active, created_at, updated_at)
+       VALUES ((SELECT COALESCE(MAX(id), 0) + 1 FROM package_plans), $1, $2, $3, $4, $5, $6, NOW(), NOW()) RETURNING *`,
       [data.name, data.description ?? null, data.price, data.durationDays, data.colorCode ?? '#2563EB', data.isActive ?? true]
     ) as Promise<PackagePlan>;
   }
