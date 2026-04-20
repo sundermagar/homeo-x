@@ -85,6 +85,7 @@ async function main() {
   }
   
   console.log('[Seed] All multi-tenant seeding completed.');
+  process.exit(0);
 }
 
 main().catch((err) => {
