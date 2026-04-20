@@ -1,4 +1,4 @@
-CREATE TABLE "users" (
+CREATE TABLE IF NOT EXISTS "users" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"email" text NOT NULL,
 	"password" text NOT NULL,
@@ -16,14 +16,14 @@ CREATE TABLE "users" (
 	CONSTRAINT "users_email_unique" UNIQUE("email")
 );
 --> statement-breakpoint
-CREATE TABLE "permission_role" (
+CREATE TABLE IF NOT EXISTS "permission_role" (
 	"permission_id" integer NOT NULL,
 	"role_id" integer NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "permission_role_permission_id_role_id_pk" PRIMARY KEY("permission_id","role_id")
 );
 --> statement-breakpoint
-CREATE TABLE "permissions" (
+CREATE TABLE IF NOT EXISTS "permissions" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"name" text NOT NULL,
 	"slug" text NOT NULL,
@@ -36,14 +36,14 @@ CREATE TABLE "permissions" (
 	CONSTRAINT "permissions_slug_unique" UNIQUE("slug")
 );
 --> statement-breakpoint
-CREATE TABLE "role_user" (
+CREATE TABLE IF NOT EXISTS "role_user" (
 	"user_id" integer NOT NULL,
 	"role_id" integer NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "role_user_user_id_role_id_pk" PRIMARY KEY("user_id","role_id")
 );
 --> statement-breakpoint
-CREATE TABLE "roles" (
+CREATE TABLE IF NOT EXISTS "roles" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"name" text NOT NULL,
 	"display_name" text,
@@ -54,7 +54,7 @@ CREATE TABLE "roles" (
 	CONSTRAINT "roles_name_unique" UNIQUE("name")
 );
 --> statement-breakpoint
-CREATE TABLE "stocks" (
+CREATE TABLE IF NOT EXISTS "stocks" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"name" varchar(200) NOT NULL,
 	"category" varchar(100),
@@ -65,7 +65,7 @@ CREATE TABLE "stocks" (
 	"deleted_at" timestamp
 );
 --> statement-breakpoint
-CREATE TABLE "appointments" (
+CREATE TABLE IF NOT EXISTS "appointments" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"patient_id" integer,
 	"doctor_id" integer,
@@ -84,7 +84,7 @@ CREATE TABLE "appointments" (
 	"deleted_at" timestamp
 );
 --> statement-breakpoint
-CREATE TABLE "doctor_availability" (
+CREATE TABLE IF NOT EXISTS "doctor_availability" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"doctor_id" integer NOT NULL,
 	"day_of_week" integer NOT NULL,
@@ -96,7 +96,7 @@ CREATE TABLE "doctor_availability" (
 	"deleted_at" timestamp
 );
 --> statement-breakpoint
-CREATE TABLE "tokens" (
+CREATE TABLE IF NOT EXISTS "tokens" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"patient_id" integer,
 	"doctor_id" integer,
@@ -108,7 +108,7 @@ CREATE TABLE "tokens" (
 	"deleted_at" timestamp
 );
 --> statement-breakpoint
-CREATE TABLE "waitlist" (
+CREATE TABLE IF NOT EXISTS "waitlist" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"patient_id" integer NOT NULL,
 	"appointment_id" integer,
@@ -125,7 +125,7 @@ CREATE TABLE "waitlist" (
 	"deleted_at" timestamp
 );
 --> statement-breakpoint
-CREATE TABLE "package_plans" (
+CREATE TABLE IF NOT EXISTS "package_plans" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"name" varchar(150) NOT NULL,
 	"description" text,
@@ -138,7 +138,7 @@ CREATE TABLE "package_plans" (
 	"deleted_at" timestamp
 );
 --> statement-breakpoint
-CREATE TABLE "patient_packages" (
+CREATE TABLE IF NOT EXISTS "patient_packages" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"patient_id" integer NOT NULL,
 	"regid" integer NOT NULL,
@@ -154,7 +154,7 @@ CREATE TABLE "patient_packages" (
 	"deleted_at" timestamp
 );
 --> statement-breakpoint
-CREATE TABLE "otps" (
+CREATE TABLE IF NOT EXISTS "otps" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"phone" varchar(20) NOT NULL,
 	"otp" varchar(10) NOT NULL,
@@ -165,7 +165,7 @@ CREATE TABLE "otps" (
 	"deleted_at" timestamp
 );
 --> statement-breakpoint
-CREATE TABLE "sms_reports" (
+CREATE TABLE IF NOT EXISTS "sms_reports" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"regid" integer NOT NULL,
 	"phone" varchar(20),
@@ -179,7 +179,7 @@ CREATE TABLE "sms_reports" (
 	"deleted_at" timestamp
 );
 --> statement-breakpoint
-CREATE TABLE "sms_templates" (
+CREATE TABLE IF NOT EXISTS "sms_templates" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"name" varchar(200) NOT NULL,
 	"message" text NOT NULL,
@@ -190,7 +190,7 @@ CREATE TABLE "sms_templates" (
 	"deleted_at" timestamp
 );
 --> statement-breakpoint
-CREATE TABLE "whatsapp_logs" (
+CREATE TABLE IF NOT EXISTS "whatsapp_logs" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"regid" integer,
 	"phone" varchar(20) NOT NULL,
@@ -203,7 +203,7 @@ CREATE TABLE "whatsapp_logs" (
 	"deleted_at" timestamp
 );
 --> statement-breakpoint
-CREATE TABLE "case_datas" (
+CREATE TABLE IF NOT EXISTS "case_datas" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"regid" integer NOT NULL,
 	"patientid" integer,
@@ -229,7 +229,7 @@ CREATE TABLE "case_datas" (
 	CONSTRAINT "case_datas_regid_unique" UNIQUE("regid")
 );
 --> statement-breakpoint
-CREATE TABLE "case_examination" (
+CREATE TABLE IF NOT EXISTS "case_examination" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"regid" integer NOT NULL,
 	"examination_date" varchar(20),
@@ -241,7 +241,7 @@ CREATE TABLE "case_examination" (
 	"deleted_at" timestamp
 );
 --> statement-breakpoint
-CREATE TABLE "case_images" (
+CREATE TABLE IF NOT EXISTS "case_images" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"regid" integer NOT NULL,
 	"picture" text,
@@ -250,7 +250,7 @@ CREATE TABLE "case_images" (
 	"deleted_at" timestamp
 );
 --> statement-breakpoint
-CREATE TABLE "case_notes" (
+CREATE TABLE IF NOT EXISTS "case_notes" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"regid" integer NOT NULL,
 	"notes" text,
@@ -261,7 +261,7 @@ CREATE TABLE "case_notes" (
 	"deleted_at" timestamp
 );
 --> statement-breakpoint
-CREATE TABLE "growth_references" (
+CREATE TABLE IF NOT EXISTS "growth_references" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"months" integer NOT NULL,
 	"gender" varchar(1) NOT NULL,
@@ -270,7 +270,7 @@ CREATE TABLE "growth_references" (
 	"created_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE "homeo_details" (
+CREATE TABLE IF NOT EXISTS "homeo_details" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"regid" integer NOT NULL,
 	"thermal" varchar(50),
@@ -282,7 +282,7 @@ CREATE TABLE "homeo_details" (
 	CONSTRAINT "homeo_details_regid_unique" UNIQUE("regid")
 );
 --> statement-breakpoint
-CREATE TABLE "investigations" (
+CREATE TABLE IF NOT EXISTS "investigations" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"regid" integer NOT NULL,
 	"visit_id" integer,
@@ -294,7 +294,7 @@ CREATE TABLE "investigations" (
 	"deleted_at" timestamp
 );
 --> statement-breakpoint
-CREATE TABLE "medicalcases" (
+CREATE TABLE IF NOT EXISTS "medicalcases" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"regid" integer NOT NULL,
 	"clinic_id" integer,
@@ -306,7 +306,7 @@ CREATE TABLE "medicalcases" (
 	"deleted_at" timestamp
 );
 --> statement-breakpoint
-CREATE TABLE "case_potencies" (
+CREATE TABLE IF NOT EXISTS "case_potencies" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"regid" integer NOT NULL,
 	"visit_id" integer,
@@ -321,7 +321,7 @@ CREATE TABLE "case_potencies" (
 	"deleted_at" timestamp
 );
 --> statement-breakpoint
-CREATE TABLE "soap_notes" (
+CREATE TABLE IF NOT EXISTS "soap_notes" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"visit_id" integer NOT NULL,
 	"subjective" text,
@@ -341,7 +341,7 @@ CREATE TABLE "soap_notes" (
 	CONSTRAINT "soap_notes_visit_id_unique" UNIQUE("visit_id")
 );
 --> statement-breakpoint
-CREATE TABLE "vitals" (
+CREATE TABLE IF NOT EXISTS "vitals" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"visit_id" integer NOT NULL,
 	"height_cm" real,
@@ -361,7 +361,7 @@ CREATE TABLE "vitals" (
 	CONSTRAINT "vitals_visit_id_unique" UNIQUE("visit_id")
 );
 --> statement-breakpoint
-CREATE TABLE "bills" (
+CREATE TABLE IF NOT EXISTS "bills" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"regid" integer,
 	"bill_no" integer,
@@ -382,7 +382,7 @@ CREATE TABLE "bills" (
 	"deleted_at" timestamp
 );
 --> statement-breakpoint
-CREATE TABLE "payments" (
+CREATE TABLE IF NOT EXISTS "payments" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"regid" integer,
 	"bill_id" integer,
@@ -399,7 +399,7 @@ CREATE TABLE "payments" (
 	"deleted_at" timestamp
 );
 --> statement-breakpoint
-CREATE TABLE "soap_notes_view" (
+CREATE TABLE IF NOT EXISTS "soap_notes_view" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"visit_id" integer NOT NULL,
 	"subjective" text,
@@ -418,7 +418,7 @@ CREATE TABLE "soap_notes_view" (
 	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE "lab_order_items" (
+CREATE TABLE IF NOT EXISTS "lab_order_items" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"lab_order_id" integer NOT NULL,
 	"test_name" varchar(200) NOT NULL,
@@ -434,7 +434,7 @@ CREATE TABLE "lab_order_items" (
 	"result_at" timestamp
 );
 --> statement-breakpoint
-CREATE TABLE "lab_orders" (
+CREATE TABLE IF NOT EXISTS "lab_orders" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"tenant_id" varchar(50),
 	"visit_id" integer NOT NULL,
@@ -445,7 +445,7 @@ CREATE TABLE "lab_orders" (
 	"ordered_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE "scribing_sessions" (
+CREATE TABLE IF NOT EXISTS "scribing_sessions" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"tenant_id" varchar(50),
 	"visit_id" varchar(50) NOT NULL,
@@ -458,7 +458,7 @@ CREATE TABLE "scribing_sessions" (
 	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE "transcript_segments" (
+CREATE TABLE IF NOT EXISTS "transcript_segments" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"session_id" integer NOT NULL,
 	"sequence_number" integer NOT NULL,
@@ -472,7 +472,7 @@ CREATE TABLE "transcript_segments" (
 	"created_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE "ai_audit_logs" (
+CREATE TABLE IF NOT EXISTS "ai_audit_logs" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"tenant_id" varchar(50) NOT NULL,
 	"user_id" integer,
@@ -490,7 +490,7 @@ CREATE TABLE "ai_audit_logs" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "audit_logs" (
+CREATE TABLE IF NOT EXISTS "audit_logs" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"action" varchar(100) NOT NULL,
 	"tenant_id" varchar(50) NOT NULL,
@@ -506,7 +506,7 @@ CREATE TABLE "audit_logs" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "accounts" (
+CREATE TABLE IF NOT EXISTS "accounts" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"name" text NOT NULL,
 	"email" text DEFAULT '',
@@ -524,7 +524,7 @@ CREATE TABLE "accounts" (
 	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE "organizations" (
+CREATE TABLE IF NOT EXISTS "organizations" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"name" text NOT NULL,
 	"email" text DEFAULT '',
@@ -541,7 +541,7 @@ CREATE TABLE "organizations" (
 	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE "courier_masters" (
+CREATE TABLE IF NOT EXISTS "courier_masters" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"name" varchar(255) NOT NULL,
 	"contact_person" varchar(255),
@@ -552,7 +552,7 @@ CREATE TABLE "courier_masters" (
 	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE "departments" (
+CREATE TABLE IF NOT EXISTS "departments" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"name" varchar(255) NOT NULL,
 	"detail" text,
@@ -561,7 +561,7 @@ CREATE TABLE "departments" (
 	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE "dispensaries" (
+CREATE TABLE IF NOT EXISTS "dispensaries" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"name" varchar(255) NOT NULL,
 	"email" varchar(255),
@@ -583,7 +583,7 @@ CREATE TABLE "dispensaries" (
 	"deleted_at" timestamp
 );
 --> statement-breakpoint
-CREATE TABLE "faqs" (
+CREATE TABLE IF NOT EXISTS "faqs" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"name" text,
 	"ques" text NOT NULL,
@@ -596,7 +596,7 @@ CREATE TABLE "faqs" (
 	"deleted_at" timestamp
 );
 --> statement-breakpoint
-CREATE TABLE "case_frequency" (
+CREATE TABLE IF NOT EXISTS "case_frequency" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"title" varchar(255),
 	"frequency" text,
@@ -606,7 +606,7 @@ CREATE TABLE "case_frequency" (
 	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE "medicines" (
+CREATE TABLE IF NOT EXISTS "medicines" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"name" varchar(255) NOT NULL,
 	"disease" text,
@@ -619,7 +619,7 @@ CREATE TABLE "medicines" (
 	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE "pdf_settings" (
+CREATE TABLE IF NOT EXISTS "pdf_settings" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"template_name" varchar(255) NOT NULL,
 	"header_html" text,
@@ -630,7 +630,7 @@ CREATE TABLE "pdf_settings" (
 	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE "potencies" (
+CREATE TABLE IF NOT EXISTS "potencies" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"name" varchar(255) NOT NULL,
 	"detail" text,
@@ -638,7 +638,7 @@ CREATE TABLE "potencies" (
 	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE "referral_sources" (
+CREATE TABLE IF NOT EXISTS "referral_sources" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"name" varchar(255) NOT NULL,
 	"type" varchar(100),
@@ -647,7 +647,7 @@ CREATE TABLE "referral_sources" (
 	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE "static_pages" (
+CREATE TABLE IF NOT EXISTS "static_pages" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"slug" varchar(255) NOT NULL,
 	"title" varchar(255) NOT NULL,
@@ -658,7 +658,7 @@ CREATE TABLE "static_pages" (
 	CONSTRAINT "static_pages_slug_unique" UNIQUE("slug")
 );
 --> statement-breakpoint
-CREATE TABLE "stickers" (
+CREATE TABLE IF NOT EXISTS "stickers" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"name" varchar(255) NOT NULL,
 	"detail" text NOT NULL,

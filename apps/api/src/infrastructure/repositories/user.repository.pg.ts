@@ -52,7 +52,7 @@ export class UserRepositoryPG implements UserRepository {
 
   async findById(id: number): Promise<User | null> {
     const rows = await this.db.execute(
-      sql`SELECT id, email, name, type, context_id, role_id, role_name, phone, mobile, is_active, created_at, updated_at
+      sql`SELECT id, email, name, type, context_id, mobile, created_at, updated_at
           FROM users WHERE id = ${id} AND deleted_at IS NULL LIMIT 1`
     );
     const row = (rows as any[])[0];
@@ -101,7 +101,7 @@ export class UserRepositoryPG implements UserRepository {
 
   async findPractitioners(): Promise<User[]> {
     const rows = await this.db.execute(
-      sql`SELECT id, email, name, type, context_id, role_id, role_name, phone, mobile, is_active, created_at, updated_at
+      sql`SELECT id, email, name, type, context_id, mobile, created_at, updated_at
           FROM users WHERE type = 'Doctor' AND deleted_at IS NULL`
     );
     return (rows as any[]).map(row => this.rowToUser(row));

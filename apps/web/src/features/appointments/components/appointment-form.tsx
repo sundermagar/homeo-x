@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { X, User, Calendar, Clock, Stethoscope, DollarSign, Loader2 } from 'lucide-react';
-import { VisitType } from '@mmc/types';
+import { VisitType, Role } from '@mmc/types';
 import type { Appointment, CreateAppointmentDto } from '@mmc/types';
 import { useCreateAppointment, useUpdateAppointment, useAvailableSlots } from '../hooks/use-appointments';
 import { apiClient } from '@/infrastructure/api-client';
+import { useAuthStore } from '@/shared/stores/auth-store';
 import '../styles/appointments.css';
 
 interface Doctor { id: number; name: string; consultation_fee?: number; }
@@ -41,13 +42,28 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
     form.bookingDate || undefined,
   );
 
+  const user = useAuthStore(s => s.user);
+
   // Fetch doctors list
   useEffect(() => {
     apiClient.get('/doctors').then(({ data }) => {
       // Interceptor now returns the payload directly
-      setDoctors(Array.isArray(data) ? data : []);
+      const docList = Array.isArray(data) ? data : [];
+      setDoctors(docList);
+
+      // Auto-select if logged in as a doctor and not editing
+      if (!editAppointment && user?.type === Role.Doctor) {
+        const myDoc = docList.find((d: Doctor) => d.id === user.id);
+        if (myDoc) {
+          setForm(f => ({
+            ...f,
+            doctorId: String(myDoc.id),
+            consultationFee: myDoc.consultation_fee ? String(myDoc.consultation_fee) : f.consultationFee
+          }));
+        }
+      }
     }).catch(() => {});
-  }, []);
+  }, [user, editAppointment]);
 
   // Populate form if editing
   useEffect(() => {

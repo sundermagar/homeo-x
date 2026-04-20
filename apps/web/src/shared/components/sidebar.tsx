@@ -433,7 +433,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             <div className="sidebar-logo">
               <Infinity size={20} strokeWidth={2.5} />
             </div>
-            <span className="sidebar-brand">HomeoX</span>
+            <span className="sidebar-brand">Kreed</span>
           </div>
           <button className="mh-menu-btn sidebar-header-close" onClick={onClose}>
             <X size={20} strokeWidth={1.6} />
