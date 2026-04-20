@@ -11,8 +11,9 @@ dotenv.config({ path: path.join(process.cwd(), '../../.env') });
 
 const dbUrl = process.env['DATABASE_URL'];
 
-if (!dbUrl) {
-  console.error("❌ No DATABASE_URL found in environment variables.");
+if (!dbUrl || !dbUrl.includes('@postgres.railway.internal')) {
+  console.error(`❌ INVALID DATABASE_URL DETECTED IN RAILWAY: [${dbUrl}]`);
+  console.error("The deployment is reading this as empty, or the URL contains invalid invisible spaces/newlines that break the connection string.");
   process.exit(1);
 }
 
