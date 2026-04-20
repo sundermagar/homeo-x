@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "build": "turbo run build",
-    "start:api": "pnpm --filter=@mmc/database run migrate:tenants && pnpm --filter=@mmc/database run db:seed && pnpm --filter=@mmc/api start",
+    "start:api": "pnpm --filter=@mmc/database run migrate:tenants && pnpm --filter=@mmc/database run db:migrate:settings && pnpm --filter=@mmc/database run db:seed && pnpm --filter=@mmc/api start",
     "start:web": "npx serve -s apps/web/dist -p $PORT",
     "dev": "turbo run dev",
     "dev:api": "turbo run dev --filter=@mmc/api",

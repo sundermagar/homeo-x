@@ -70,6 +70,18 @@ async function main() {
   const tenants = TenantRegistry.getAll();
   console.log(`Starting migration strategy for ${tenants.length} tenants...`);
 
+  // 1. Provision public schema with base tables
+  console.log('\n===========================================');
+  console.log('🚀 Provisioning PUBLIC schema (base tables)...');
+  console.log('===========================================');
+  try {
+    await provisionTenant(dbUrl as string, 'public');
+    console.log('✅ Public schema base tables ready.');
+  } catch (e: any) {
+    console.error('❌ Public schema provisioning failed:', e.message);
+    throw e;
+  }
+
   // Optional: Force wipe schemas once to fix the primary key serial issue
   if (process.env['FORCE_RESET_SCHEMAS'] === 'true') {
     console.log('⚠️ FORCE_RESET_SCHEMAS DETECTED! Wiping all tenant schemas...');
