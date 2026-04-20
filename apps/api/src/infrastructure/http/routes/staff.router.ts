@@ -59,6 +59,10 @@ const USER_COLUMNS: { col: string; type: string }[] = [
   { col: '10_document',            type: 'text' },
   { col: '12_document',            type: 'text' },
   { col: 'bhms_document',          type: 'text' },
+  { col: 'role_id',               type: 'integer' },
+  { col: 'role_name',             type: 'text' },
+  { col: 'is_active',             type: 'boolean' },
+  { col: 'phone',                 type: 'text' },
   { col: 'md_document',            type: 'text' },
 ];
 
