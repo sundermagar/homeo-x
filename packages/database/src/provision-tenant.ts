@@ -385,6 +385,18 @@ const TABLES: Array<{ name: string; ddl: string }> = [
 )`,
   },
   {
+    name: 'case_datas_regid_unique',
+    ddl: `DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'case_datas_regid_unique'
+      AND conrelid = '"{{SCHEMA}}"."case_datas"'::regclass
+  ) THEN
+    ALTER TABLE "{{SCHEMA}}"."case_datas" ADD CONSTRAINT "case_datas_regid_unique" UNIQUE("regid");
+  END IF;
+END $$`,
+  },
+  {
     name: 'case_diabetes',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."case_diabetes" (
   "id" integer NOT NULL,
@@ -2793,7 +2805,10 @@ const TABLES: Array<{ name: string; ddl: string }> = [
 export async function provisionTenant(dbUrl: string, schemaName: string): Promise<void> {
   log.info(`🏗️  Provisioning tenant database schema: [${schemaName}]`);
 
-  const sql = postgres(dbUrl, { max: 1 });
+  const sql = postgres(dbUrl, { 
+    max: 1,
+    onnotice: () => {} // Silence notice logs so Railway doesn't rate-limit us
+  });
 
   try {
     await sql.unsafe(`CREATE SCHEMA IF NOT EXISTS "${schemaName}"`);
@@ -2803,18 +2818,15 @@ export async function provisionTenant(dbUrl: string, schemaName: string): Promis
     throw err;
   }
 
-  let successCount = 0;
-  for (const table of TABLES) {
-    try {
-      const ddl = table.ddl.replace(/\{\{SCHEMA\}\}/g, schemaName);
-      await sql.unsafe(ddl);
-      successCount++;
-    } catch (err: any) {
-      log.error(`  ❌ Failed to create ${table.name}: ${err.message}`);
-      throw err;
-    }
+  try {
+    // Highly optimized bulk execution: concatenate all 150 tables into a single block
+    const allDdls = TABLES.map(table => table.ddl.replace(/\{\{SCHEMA\}\}/g, schemaName)).join(';\n');
+    await sql.unsafe(allDdls);
+    log.info(`  🎉 Done! All 150+ legacy tables fast-provisioned in [${schemaName}]`);
+  } catch (err: any) {
+    log.error(`  ❌ Failed during bulk provisioning for ${schemaName}: ${err.message}`);
+    throw err;
   }
 
-  log.info(`🎉 Done! ${successCount}/${TABLES.length} tables created in [${schemaName}]`);
   await sql.end();
 }

@@ -666,9 +666,10 @@ CREATE TABLE IF NOT EXISTS "stickers" (
 	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-ALTER TABLE "bills" ADD CONSTRAINT "bills_regid_case_datas_regid_fk" FOREIGN KEY ("regid") REFERENCES "case_datas"("regid") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "payments" ADD CONSTRAINT "payments_regid_case_datas_regid_fk" FOREIGN KEY ("regid") REFERENCES "case_datas"("regid") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "payments" ADD CONSTRAINT "payments_bill_id_bills_id_fk" FOREIGN KEY ("bill_id") REFERENCES "bills"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+-- FK constraints removed: case_datas has duplicate regid values and type mismatches
+-- ALTER TABLE "bills" ADD CONSTRAINT "bills_regid_case_datas_regid_fk" FOREIGN KEY ("regid") REFERENCES "case_datas"("regid") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+-- ALTER TABLE "payments" ADD CONSTRAINT "payments_regid_case_datas_regid_fk" FOREIGN KEY ("regid") REFERENCES "case_datas"("regid") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+-- ALTER TABLE "payments" ADD CONSTRAINT "payments_bill_id_bills_id_fk" FOREIGN KEY ("bill_id") REFERENCES "bills"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "idx_ai_audit_tenant" ON "ai_audit_logs" USING btree ("tenant_id");--> statement-breakpoint
 CREATE INDEX "idx_ai_audit_visit" ON "ai_audit_logs" USING btree ("visit_id");--> statement-breakpoint
 CREATE INDEX "idx_audit_action" ON "audit_logs" USING btree ("action");--> statement-breakpoint
