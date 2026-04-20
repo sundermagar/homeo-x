@@ -44,3 +44,25 @@ ALTER TABLE "stickers" ADD COLUMN IF NOT EXISTS "is_active" boolean DEFAULT true
 
 -- ── departments table ─────────────────────────────────────────
 ALTER TABLE "departments" ADD COLUMN IF NOT EXISTS "is_active" boolean DEFAULT true;
+
+-- ── Fix constraints for existing tables ────────────────────
+ALTER TABLE "users" ALTER COLUMN "context_id" DROP NOT NULL;
+ALTER TABLE "users" ALTER COLUMN "type" DROP NOT NULL;
+ALTER TABLE "dispensaries" ALTER COLUMN "designation" DROP NOT NULL;
+ALTER TABLE "dispensaries" ALTER COLUMN "gender" DROP NOT NULL;
+ALTER TABLE "dispensaries" ALTER COLUMN "mobile" DROP NOT NULL;
+ALTER TABLE "dispensaries" ALTER COLUMN "mobile2" DROP NOT NULL;
+ALTER TABLE "dispensaries" ALTER COLUMN "dept" DROP NOT NULL;
+ALTER TABLE "dispensaries" ALTER COLUMN "city" DROP NOT NULL;
+ALTER TABLE "dispensaries" ALTER COLUMN "address" DROP NOT NULL;
+ALTER TABLE "dispensaries" ALTER COLUMN "about" DROP NOT NULL;
+ALTER TABLE "dispensaries" ALTER COLUMN "date_birth" DROP NOT NULL;
+ALTER TABLE "dispensaries" ALTER COLUMN "date_left" DROP NOT NULL;
+ALTER TABLE "dispensaries" ALTER COLUMN "salary_cur" DROP NOT NULL;
+
+-- ── Add packages to all staff tables ──────────────────────────
+ALTER TABLE "employees" ADD COLUMN IF NOT EXISTS "packages" text;
+ALTER TABLE "clinicadmins" ADD COLUMN IF NOT EXISTS "packages" text;
+ALTER TABLE "receptionists" ADD COLUMN IF NOT EXISTS "packages" text;
+ALTER TABLE "accounts" ADD COLUMN IF NOT EXISTS "packages" text;
+
