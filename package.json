@@ -3,6 +3,8 @@
   "private": true,
   "scripts": {
     "build": "turbo run build",
+    "start:api": "pnpm db:migrate && pnpm --filter=@mmc/api start",
+    "start:web": "npx serve -s apps/web/dist -p $PORT",
     "dev": "turbo run dev",
     "dev:api": "turbo run dev --filter=@mmc/api",
     "dev:web": "turbo run dev --filter=@mmc/web",
