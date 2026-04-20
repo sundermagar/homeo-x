@@ -61,7 +61,11 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
 
   // ─── Security ───
   app.set('trust proxy', 1);
-  app.use(helmet({ contentSecurityPolicy: false }));
+  app.use(helmet({
+    contentSecurityPolicy: false,
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    crossOriginEmbedderPolicy: false,
+  }));
   app.use(cors({ origin: appConfig.cors.origins, credentials: true }));
 
   // ─── Rate Limiting ───
