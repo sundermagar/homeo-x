@@ -50,6 +50,13 @@
       "when": 1776673600000,
       "tag": "0006_patch_seed_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1776680000000,
+      "tag": "0007_fix_departments_logistics",
+      "breakpoints": true
     }
   ]
 }
