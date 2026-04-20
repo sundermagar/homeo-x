@@ -70,6 +70,18 @@ async function main() {
   const tenants = TenantRegistry.getAll();
   console.log(`Starting migration strategy for ${tenants.length} tenants...`);
 
+  // Optional: Force wipe schemas once to fix the primary key serial issue
+  if (process.env.FORCE_RESET_SCHEMAS === 'true') {
+    console.log('⚠️ FORCE_RESET_SCHEMAS DETECTED! Wiping all tenant schemas...');
+    const dropSql = postgres(dbUrl as string);
+    for (const tenant of tenants) {
+      console.log(`Killing ${tenant.schemaName}...`);
+      await dropSql.unsafe(`DROP SCHEMA IF EXISTS "${tenant.schemaName}" CASCADE`);
+    }
+    await dropSql.end();
+    console.log('✅ Wiped. Now regenerating correctly...');
+  }
+
   // Process sequentially to avoid aggressive connection pooling bottlenecks
   for (const tenant of tenants) {
     await migrateTenant(tenant.schemaName);
