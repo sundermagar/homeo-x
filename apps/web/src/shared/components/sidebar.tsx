@@ -106,7 +106,7 @@ const NAV_STRUCTURE: NavItem[] = [
       icon: Users,
       roles: ALL,
       children: [
-        { path: '/patients',      label: 'Patient List',  icon: Users },
+        { path: '/patients', label: 'Patient List', icon: Users },
         { path: '/family-groups', label: 'Family Groups', icon: Layers },
       ],
     },
@@ -119,9 +119,9 @@ const NAV_STRUCTURE: NavItem[] = [
       icon: CalendarClock,
       roles: ALL,
       children: [
-        { path: '/appointments',          label: 'List View',   icon: CalendarClock },
-        { path: '/appointments/calendar', label: 'Calendar',    icon: Calendar },
-        { path: '/appointments/queue',    label: 'Token Queue', icon: Ticket },
+        { path: '/appointments', label: 'List View', icon: CalendarClock },
+        { path: '/appointments/calendar', label: 'Calendar', icon: Calendar },
+        { path: '/appointments/queue', label: 'Token Queue', icon: Ticket },
       ],
     },
   },
@@ -133,11 +133,11 @@ const NAV_STRUCTURE: NavItem[] = [
       icon: Stethoscope,
       roles: CLINICAL,
       children: [
-        { path: '/consultation-history',   label: 'Case History',        icon: BarChart2 },
-        { path: '/vitals-check',           label: 'Height & Weight Check', icon: Scale },
-        { path: '/medical-cases',          label: 'Medical Cases',       icon: Stethoscope },
-        { path: '/ai-remedy-chart',        label: 'Materia Medica',      icon: BookOpen },
-        { path: '/ai-consultant',          label: 'AI Analysis',         icon: BrainCircuit },
+        { path: '/consultation-history', label: 'Case History', icon: BarChart2 },
+        { path: '/vitals-check', label: 'Height & Weight Check', icon: Scale },
+        { path: '/medical-cases', label: 'Medical Cases', icon: Stethoscope },
+        { path: '/ai-remedy-chart', label: 'Materia Medica', icon: BookOpen },
+        { path: '/ai-consultant', label: 'AI Analysis', icon: BrainCircuit },
       ],
     },
   },
@@ -149,8 +149,8 @@ const NAV_STRUCTURE: NavItem[] = [
       icon: Package,
       roles: ADMIN,
       children: [
-        { path: '/packages',          label: 'Package Plans', icon: Layers },
-        { path: '/packages/tracking', label: 'Tracking',      icon: CalendarCheck },
+        { path: '/packages', label: 'Package Plans', icon: Layers },
+        { path: '/packages/tracking', label: 'Tracking', icon: CalendarCheck },
       ],
     },
   },
@@ -162,10 +162,10 @@ const NAV_STRUCTURE: NavItem[] = [
       icon: MessageSquare,
       roles: ADMIN,
       children: [
-        { path: '/communications/sms',       label: 'Send SMS',    icon: Send },
-        { path: '/communications/templates', label: 'Templates',   icon: MessageCircle },
-        { path: '/communications/reports',   label: 'SMS Reports', icon: BarChart2 },
-        { path: '/communications/whatsapp',  label: 'WhatsApp',    icon: MessageSquare },
+        { path: '/communications/sms', label: 'Send SMS', icon: Send },
+        { path: '/communications/templates', label: 'Templates', icon: MessageCircle },
+        { path: '/communications/reports', label: 'SMS Reports', icon: BarChart2 },
+        { path: '/communications/whatsapp', label: 'WhatsApp', icon: MessageSquare },
       ],
     },
   },
@@ -179,19 +179,19 @@ const NAV_STRUCTURE: NavItem[] = [
       defaultPath: '/analytics',
       children: [
         { path: '/analytics', label: 'Dashboard', icon: BarChart2 },
-        { 
-          path: '/analytics/reports', 
-          label: 'Reports', 
+        {
+          path: '/analytics/reports',
+          label: 'Reports',
           icon: PieChart,
           children: [
-            { path: '/analytics/reports/financial',  label: 'Financial Grid',      icon: Activity },
-            { path: '/analytics/reports/dues',       label: 'Outstanding Dues',   icon: CreditCard },
-            { path: '/analytics/reports/birthdays',  label: 'Birthday List',      icon: Gift },
+            { path: '/analytics/reports/financial', label: 'Financial Grid', icon: Activity },
+            { path: '/analytics/reports/dues', label: 'Outstanding Dues', icon: CreditCard },
+            { path: '/analytics/reports/birthdays', label: 'Birthday List', icon: Gift },
             { path: '/analytics/reports/references', label: 'Referrals & Sources', icon: Users },
           ]
         },
-        { path: '/analytics/export',   label: 'Export Data',    icon: FileJson },
-        { path: '/analytics/stocks',   label: 'Inventory Logs', icon: Database },
+        { path: '/analytics/export', label: 'Export Data', icon: FileJson },
+        { path: '/analytics/stocks', label: 'Inventory Logs', icon: Database },
       ],
     },
   },
@@ -203,17 +203,18 @@ const NAV_STRUCTURE: NavItem[] = [
       icon: Receipt,
       roles: ADMIN,
       children: [
-        { path: '/billing',           label: 'Billing',             icon: Receipt,
+        {
+          path: '/billing', label: 'Billing', icon: Receipt,
           children: [
-            { path: '/billing',               label: 'Bill List',             icon: Receipt },
+            { path: '/billing', label: 'Bill List', icon: Receipt },
             { path: '/billing/additional-charges', label: 'Additional Charges', icon: PlusCircle },
-            { path: '/billing/day-charges',     label: 'Day Charges',           icon: Calendar },
-            { path: '/billing/deposits',         label: 'Deposits',              icon: Building },
-            { path: '/billing/expenses',        label: 'Expenses',              icon: DollarSign },
+            { path: '/billing/day-charges', label: 'Day Charges', icon: Calendar },
+            { path: '/billing/deposits', label: 'Deposits', icon: Building },
+            { path: '/billing/expenses', label: 'Expenses', icon: DollarSign },
           ]
         },
-        { path: '/payments',           label: 'Payment Ledger',     icon: Banknote },
-        { path: '/settings/expenses',  label: 'Expense Categories',  icon: Wallet },
+        { path: '/payments', label: 'Payment Ledger', icon: Banknote },
+        { path: '/settings/expenses', label: 'Expense Categories', icon: Wallet },
       ],
     },
   },
@@ -225,14 +226,14 @@ const NAV_STRUCTURE: NavItem[] = [
       icon: Building2,
       roles: ['SuperAdmin', 'Admin', 'Clinicadmin'],
       children: [
-        { path: '/platform/doctors',          label: 'Doctors',         icon: Stethoscope },
-        { path: '/platform/employees',        label: 'Employees',       icon: User },
-        { path: '/platform/receptionists',    label: 'Receptionists',   icon: Phone },
-        { path: '/platform/clinicadmins',     label: 'Clinic Admins',   icon: Shield },
-        { path: '/platform/account-managers', label: 'Account Mgrs',    icon: Briefcase },
-        { path: '/platform/clinics',          label: 'Clinics',         icon: Building2 },
-        { path: '/platform/accounts',         label: 'Accounts',        icon: UserCog },
-        { path: '/settings/roles',            label: 'Roles & Access',  icon: UserCheck },
+        { path: '/platform/doctors', label: 'Doctors', icon: Stethoscope },
+        { path: '/platform/employees', label: 'Employees', icon: User },
+        { path: '/platform/receptionists', label: 'Receptionists', icon: Phone },
+        { path: '/platform/clinicadmins', label: 'Clinic Admins', icon: Shield },
+        { path: '/platform/account-managers', label: 'Account Mgrs', icon: Briefcase },
+        { path: '/platform/clinics', label: 'Clinics', icon: Building2 },
+        { path: '/platform/accounts', label: 'Accounts', icon: UserCog },
+        { path: '/settings/roles', label: 'Roles & Access', icon: UserCheck },
       ],
     },
   },
@@ -244,10 +245,10 @@ const NAV_STRUCTURE: NavItem[] = [
       icon: Settings,
       roles: ['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor'],
       children: [
-        { path: '/operations?tab=logistics', label: 'Logistics & Couriers',   icon: Layers },
-        { path: '/operations?tab=crm',       label: 'Lead CRM & Promos',      icon: Users },
+        { path: '/operations?tab=logistics', label: 'Logistics & Couriers', icon: Layers },
+        { path: '/operations?tab=crm', label: 'Lead CRM & Promos', icon: Users },
         { path: '/operations?tab=knowledge', label: 'Medical Knowledge base', icon: BookOpen },
-        { path: '/operations?tab=tools',     label: 'Global Data Tools',      icon: Settings },
+        { path: '/operations?tab=tools', label: 'Global Data Tools', icon: Settings },
       ],
     },
   },
@@ -259,16 +260,16 @@ const NAV_STRUCTURE: NavItem[] = [
       icon: Settings,
       roles: ADMIN,
       children: [
-        { path: '/settings/departments', label: 'Departments',        icon: Layers },
-        { path: '/settings/medicines',   label: 'Medicine Catalog',   icon: Pill },
-        { path: '/settings/potencies',   label: 'Potencies',          icon: Sparkles },
+        { path: '/settings/departments', label: 'Departments', icon: Layers },
+        { path: '/settings/medicines', label: 'Medicine Catalog', icon: Pill },
+        { path: '/settings/potencies', label: 'Potencies', icon: Sparkles },
         { path: '/settings/frequencies', label: 'Dosage Frequencies', icon: Clock },
-        { path: '/settings/dispensaries',label: 'Dispensaries',       icon: Hospital },
-        { path: '/settings/referrals',   label: 'Referral Sources',   icon: UserPlus },
-        { path: '/settings/stickers',    label: 'Medicine Stickers',  icon: StickyNote },
-        { path: '/settings/cms',         label: 'Content (CMS)',      icon: Globe },
-        { path: '/settings/pdf',         label: 'PDF & Reports',      icon: FileText },
-        { path: '/settings/faqs',        label: 'Help & FAQs',        icon: HelpCircle },
+        { path: '/settings/dispensaries', label: 'Dispensaries', icon: Hospital },
+        { path: '/settings/referrals', label: 'Referral Sources', icon: UserPlus },
+        { path: '/settings/stickers', label: 'Medicine Stickers', icon: StickyNote },
+        { path: '/settings/cms', label: 'Content (CMS)', icon: Globe },
+        { path: '/settings/pdf', label: 'PDF & Reports', icon: FileText },
+        { path: '/settings/faqs', label: 'Help & FAQs', icon: HelpCircle },
       ],
     },
   },
@@ -290,11 +291,11 @@ function normalizeRole(raw: string | undefined | null): UserRole | null {
 function getRoleLabel(role: UserRole | null): string {
   if (!role) return '';
   const labels: Record<UserRole, string> = {
-    SuperAdmin:    '⚡ Super Admin',
-    Admin:         '🛡 Admin',
-    Clinicadmin:   '🏥 Clinic Admin',
-    Doctor:        '🩺 Doctor',
-    Receptionist:  '📋 Receptionist',
+    SuperAdmin: '⚡ Super Admin',
+    Admin: '🛡 Admin',
+    Clinicadmin: '🏥 Clinic Admin',
+    Doctor: '🩺 Doctor',
+    Receptionist: '📋 Receptionist',
   };
   return labels[role];
 }
@@ -389,7 +390,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               <span>{child.label}</span>
             </div>
           </button>
-          
+
           {isSubOpen && (
             <div className="sidebar-sub-children" style={{ paddingLeft: '24px' }}>
               {child.children?.map(subChild => renderNavChild(subChild, true))}
@@ -405,7 +406,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         to={child.path}
         className={({ isActive }) => {
           const currentFull = location.pathname + location.search;
-          const isMatch = child.path.includes('?') 
+          const isMatch = child.path.includes('?')
             ? currentFull === child.path
             : isActive;
           return `sidebar-child-item ${isMatch ? 'active' : ''} ${isSubItem ? 'sub-item' : ''}`;
@@ -433,7 +434,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             <div className="sidebar-logo">
               <Infinity size={20} strokeWidth={2.5} />
             </div>
-            <span className="sidebar-brand">HomeoX</span>
+            <span className="sidebar-brand">Kreed.health</span>
           </div>
           <button className="mh-menu-btn sidebar-header-close" onClick={onClose}>
             <X size={20} strokeWidth={1.6} />
