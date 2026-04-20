@@ -4,6 +4,8 @@ export const departments = pgTable('departments', {
   id: serial('id').primaryKey(),
   name: varchar('name', { length: 255 }).notNull(),
   description: text('detail'), // keeping for legacy
+  tags: text('tags').default(''),
+  color: varchar('color', { length: 50 }).default('#2563EB'),
   isActive: boolean('is_active').default(true),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),

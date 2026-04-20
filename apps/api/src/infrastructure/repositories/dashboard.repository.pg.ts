@@ -193,28 +193,29 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     // then outer query re-orders by clinical priority so CONSULTATION is first, WAITING by token, etc.
     const results = await this.db.execute(sql`
       SELECT * FROM (
-        SELECT DISTINCT ON (a.patient_id)
+        SELECT DISTINCT ON (a.id)
           a.id, a.patient_id, a.booking_time, a.status, 
-          p.first_name || ' ' || p.surname as patient_name,
+          COALESCE(p.first_name || ' ' || p.surname, a.patient_name) as patient_name,
           p.regid, p.gender, 
           extract(year from age(p.dob))::int as age,
-          t.token_no,
+          a.token_no,
           d.name as doctor_name,
           v.systolic_bp || '/' || v.diastolic_bp as bp,
           v.pulse_rate as pulse,
           v.weight_kg as weight,
           v.temperature_f as temp
         FROM appointments a
-        JOIN patients p ON a.patient_id = p.id
+        LEFT JOIN patients p ON a.patient_id = p.id
         LEFT JOIN tokens t ON t.patient_id = a.patient_id AND t.date::date = a.booking_date::date
         LEFT JOIN doctors d ON d.id = a.${sql.identifier(docCol)}
         LEFT JOIN vitals v ON v.visit_id = a.id
         WHERE a.booking_date::date = ${today}
           AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
           ${doctorId ? sql`AND a.${sql.identifier(docCol)} = ${doctorId}` : sql``}
-        ORDER BY a.patient_id, 
+        ORDER BY a.id, 
           CASE UPPER(a.status)
             WHEN 'CONSULTATION' THEN 1
+            WHEN 'CONFIRMED'    THEN 2
             WHEN 'WAITLIST'     THEN 2
             WHEN 'PENDING'      THEN 3
             ELSE 4
@@ -224,6 +225,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       ORDER BY
         CASE 
           WHEN UPPER(q.status) = 'CONSULTATION' THEN 1
+          WHEN UPPER(q.status) = 'CONFIRMED'    THEN 2
           WHEN UPPER(q.status) = 'WAITLIST'     THEN 2
           WHEN UPPER(q.status) = 'WAITING'      THEN 2
           WHEN UPPER(q.status) = 'PENDING'      THEN 3

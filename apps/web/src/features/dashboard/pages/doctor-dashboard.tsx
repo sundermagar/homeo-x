@@ -13,6 +13,7 @@ import {
   Thermometer,
   Heart,
   Settings,
+  X,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -34,10 +35,11 @@ export function DoctorDashboard() {
   const [consultDuration, setConsultDuration] = useState('00:00');
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [showVitalsModal, setShowVitalsModal] = useState(false);
+  const [isInsightsCleared, setIsInsightsCleared] = useState(false);
 
   const todayAppts = dashData?.queue || [];
   const activeConsultation = todayAppts.find((a: any) => a.status === 'Consultation');
-  const kpis = dashData?.kpis || {};
+  const kpis = dashData?.kpis;
 
   // Skip: move current patient back to Waitlist, auto-promote next Waitlist patient
   const handleSkip = async (currentId: number) => {
@@ -94,7 +96,7 @@ export function DoctorDashboard() {
       return;
     }
     // Guard against invalid/missing timestamps to prevent NaN:NaN
-    const rawTs = activeConsultation.updatedAt || activeConsultation.createdAt;
+    const rawTs = activeConsultation ? (activeConsultation.updatedAt || activeConsultation.createdAt) : null;
     const parsed = rawTs ? new Date(rawTs).getTime() : NaN;
     const start = isNaN(parsed) ? Date.now() : parsed;
 
@@ -165,7 +167,7 @@ export function DoctorDashboard() {
                         Complete
                       </button>
                       <button className="btn-skip" onClick={() => handleSkip(activeConsultation.id)}>Skip</button>
-                      
+
                       <div className="dash-dropdown-container">
                         <button className="btn-more" onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}>
                           <MoreHorizontal size={18} />
@@ -206,12 +208,12 @@ export function DoctorDashboard() {
           {/* Patient Queue Tabs */}
           <div className="dash-card">
             <div className="dash-card-header">
-               <h3 className="dash-section-title">Patient queue</h3>
-               <div style={{ display: 'flex', gap: 20 }}>
-                 <button className={`dash-tab-btn ${queueFilter === 'ALL' ? 'active' : ''}`} onClick={() => setQueueFilter('ALL')}>All</button>
-                 <button className={`dash-tab-btn ${queueFilter === 'WAITING' ? 'active' : ''}`} onClick={() => setQueueFilter('WAITING')}>Waiting</button>
-                 <button className={`dash-tab-btn ${queueFilter === 'DONE' ? 'active' : ''}`} onClick={() => setQueueFilter('DONE')}>Done</button>
-               </div>
+              <h3 className="dash-section-title">Patient queue</h3>
+              <div style={{ display: 'flex', gap: 20 }}>
+                <button className={`dash-tab-btn ${queueFilter === 'ALL' ? 'active' : ''}`} onClick={() => setQueueFilter('ALL')}>All</button>
+                <button className={`dash-tab-btn ${queueFilter === 'WAITING' ? 'active' : ''}`} onClick={() => setQueueFilter('WAITING')}>Waiting</button>
+                <button className={`dash-tab-btn ${queueFilter === 'DONE' ? 'active' : ''}`} onClick={() => setQueueFilter('DONE')}>Done</button>
+              </div>
             </div>
             <div className="dash-card-body" style={{ padding: '0 8px' }}>
               {filteredAppts.length > 0 ? (
@@ -243,17 +245,18 @@ export function DoctorDashboard() {
           <div className="dash-sidebar-card">
             <div className="dash-section-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
               <span>Intelligence Hub</span>
-              <button 
-                className="pp-icon-btn" 
-                title="Intelligence Settings"
-                style={{ width: 24, height: 24, padding: 0 }}
-                onClick={() => navigate('/settings')}
+              <button
+                className="pp-icon-btn"
+                title="Clear Insights"
+                style={{ width: 24, height: 24, padding: 0, opacity: (dashData?.intelligenceInsights?.length && !isInsightsCleared) ? 1 : 0.3 }}
+                onClick={() => setIsInsightsCleared(true)}
               >
-                <Settings size={14} />
+                {/* <Settings size={14} /> */}
+                <X size={20} strokeWidth={1.6} />
               </button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {dashData?.intelligenceInsights?.length ? dashData.intelligenceInsights.map((insight: any, idx: number) => (
+              {(!isInsightsCleared && dashData?.intelligenceInsights?.length) ? dashData.intelligenceInsights.map((insight: any, idx: number) => (
                 <IntelligenceItem key={idx} color={insight.color} text={insight.text} />
               )) : (
                 <IntelligenceItem color="#22c55e" text="Clinic is running smoothly. Monitoring vital metrics..." />
@@ -267,12 +270,12 @@ export function DoctorDashboard() {
             <div className="dash-list">
               {dashData?.recentTransactions?.length ? (
                 dashData.recentTransactions.map((tx: any) => (
-                  <BillingItem 
-                    key={tx.id} 
-                    patient={tx.patientName} 
-                    id={tx.invoiceNo} 
-                    amount={tx.amount.toLocaleString()} 
-                    status={tx.status} 
+                  <BillingItem
+                    key={tx.id}
+                    patient={tx.patientName}
+                    id={tx.invoiceNo}
+                    amount={tx.amount.toLocaleString()}
+                    status={tx.status}
                   />
                 ))
               ) : (
@@ -286,7 +289,7 @@ export function DoctorDashboard() {
       </div>
 
       {showVitalsModal && activeConsultation && (
-        <VitalsFormModal 
+        <VitalsFormModal
           visitId={activeConsultation.id}
           regid={activeConsultation.regid || activeConsultation.patientId}
           initialData={activeConsultation.vitals}

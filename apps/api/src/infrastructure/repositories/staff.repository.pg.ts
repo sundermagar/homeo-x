@@ -161,104 +161,67 @@ export class StaffRepositoryPg implements StaffRepository {
     const roleName = roleEnum;
 
     let nextId: number;
-    let roleAssignId: number;  // the users.id to use for role_user assignment
+    let roleAssignId: number;
 
-    if (isAccount) {
-        // ─── UNIFIED ID STRATEGY: Insert into Users first to get a global serial ID ───
-        const userRes = await this.db.execute(sql`
-          INSERT INTO users (
-            id, name, email, password, type, context_id, role_id, role_name,
-            gender, mobile, mobile2, city, address, about, designation, dept,
-            title, firstname, middlename, surname,
-            date_birth, salary_cur, is_active, created_at, updated_at
-          ) VALUES (
-            (SELECT COALESCE(MAX(id), 0) + 1 FROM users),
-            ${name}, ${data.email || ''}, ${hashedPassword}, ${roleEnum}, 1, ${roleId}, ${roleName},
-            ${data.gender || 'Male'}, ${data.mobile || ''}, ${data.mobile2 || ''},
-            ${data.city || ''}, ${data.address || ''}, ${data.about || ''},
-            ${data.designation || ''}, ${data.dept || 4},
-            ${data.title || ''}, ${data.firstname || ''}, ${data.middlename || ''}, ${data.surname || ''},
-            ${data.dateBirth || '1990-01-01'}, ${data.salaryCur || 0}, true, NOW(), NOW()
-          ) RETURNING id
-        `) as any[];
-        nextId = userRes[0].id;
+    // ─── MODERN IDENTITY STRATEGY ───
+    // We insert into the specific staff table first, allowing IDENTITY to handle IDs
+    const staffCols = [
+      'name', 'email', 'mobile', 'mobile2', 'gender', 'designation', 'dept', 'city', 'address', 'about', 
+      'date_birth', 'date_left', 'salary_cur', 'password'
+    ];
+    const staffVals = [
+      name, data.email || '', data.mobile || '', data.mobile2 || '', data.gender || 'Male', 
+      data.designation || '', data.dept || 4, data.city || '', data.address || '', data.about || '', 
+      data.dateBirth || null, data.dateLeft || null, data.salaryCur || 0, hashedPassword
+    ];
 
-        // Now insert into accounts with the guaranteed unique ID
-        const staffCols = ['id', 'name', 'email', 'mobile', 'mobile2', 'gender', 'designation', 'city', 'address', 'about', 'password', 'created_at', 'updated_at'];
-        const staffVals = [nextId, name, data.email || '', data.mobile || '', data.mobile2 || '', data.gender || 'Male', data.designation || '', data.city || '', data.address || '', data.about || '', hashedPassword];
-        
-        await this.db.execute(sql`
-          INSERT INTO ${sql.identifier(table)} (${sql.join(staffCols.map(c => sql.identifier(c)), sql`, `)})
-          VALUES (${sql.join(staffVals.map(v => sql`${v}`), sql`, `)}, NOW(), NOW())
-          ON CONFLICT (id) DO NOTHING
-        `);
-        roleAssignId = nextId;  // for account, users.id == nextId
-    } else {
-        // ─── LEGACY STRATEGY: Manual ID mapping for older tables ───
-        const maxIdResult = await this.db.execute(sql`SELECT COALESCE(MAX(id), 0) + 1 as next_id FROM ${sql.identifier(table)}`);
-        const staffId = (maxIdResult as any[])[0]?.next_id ?? 1;  // ID in specific staff table (e.g. clinicadmins)
-
-        const staffCols = [
-          'id', 'name', 'email', 'mobile', 'mobile2', 'gender', 'designation', 'dept', 'city', 'address', 'about', 
-          'date_birth', 'date_left', 'salary_cur', 'password'
-        ];
-        const staffVals = [
-          staffId, name, data.email || '', data.mobile || '', data.mobile2 || '', data.gender || 'Male', 
-          data.designation || '', data.dept || 4, data.city || '', data.address || '', data.about || '', 
-          data.dateBirth || '1990-01-01', data.dateLeft || '1990-01-01', data.salaryCur || 0, hashedPassword
-        ];
-
-        // Add doctor-specific columns if applicable
-        if (category === 'doctor') {
-          staffCols.push(
-            'title', 'firstname', 'middlename', 'surname', 'qualification', 'instutitue', 'passedout', 
-            'joiningdate', '"registrationId"', 'consultation_fee', 'permanentaddress', 'profilepic', 
-            '"10_document"', '"12_document"', 'bhms_document', 'md_document', 'registration_certificate', 
-            'aadhar_card', 'pan_card', 'appointment_letter', 'aadharnumber', 'pannumber'
-          );
-          staffVals.push(
-             data.title || 'Dr', data.firstname || '', data.middlename || '', data.surname || '', 
-             data.qualification || '', data.institute || '', data.passedOut || '', 
-             data.joiningdate || null, data.registrationId || '', String(data.consultationFee || 0), 
-             data.permanentAddress || '', data.profilepic || '', data.col10Document || '', 
-             data.col12Document || '', data.bhmsDocument || '', data.mdDocument || '', 
-             data.registrationCertificate || '', data.aadharCard || '', data.panCard || '', 
-             data.appointmentLetter || '', data.aadharnumber || '', data.pannumber || ''
-          );
-        }
-
-        await this.db.execute(sql`
-          INSERT INTO ${sql.identifier(table)} (${sql.join(staffCols.map(c => sql.raw(c)), sql`, `)}, created_at, updated_at)
-          VALUES (${sql.join(staffVals.map(v => sql`${v}`), sql`, `)}, NOW(), NOW())
-          ON CONFLICT (id) DO NOTHING
-        `);
-
-        // Mirror to users — use a fresh unique ID from users table to avoid collisions
-        // (staff-table ID and users table ID can diverge, causing ON CONFLICT DO NOTHING to skip)
-        const userMirrorResult = await this.db.execute(sql`
-          INSERT INTO users (
-            id, name, email, password, type, context_id, role_id, role_name,
-            gender, mobile, mobile2, city, address, about, designation, dept,
-            title, firstname, middlename, surname,
-            date_birth, salary_cur, is_active, created_at, updated_at
-          ) VALUES (
-            (SELECT COALESCE(MAX(id), 0) + 1 FROM users),
-            ${name}, ${data.email || ''}, ${hashedPassword}, ${roleEnum},
-            1, ${roleId}, ${roleName},
-            ${data.gender || 'Male'}, ${data.mobile || ''}, ${data.mobile2 || ''},
-            ${data.city || ''}, ${data.address || ''}, ${data.about || ''},
-            ${data.designation || ''}, ${data.dept || 4},
-            ${data.title || ''}, ${data.firstname || ''}, ${data.middlename || ''}, ${data.surname || ''},
-            ${data.dateBirth || '1990-01-01'}, ${data.salaryCur || 0}, true, NOW(), NOW()
-          ) RETURNING id
-        `) as any[];
-
-        // userId = the row id in users table (for role_user)
-        // staffId = the row id in the specific table (for findById)
-        const userId = userMirrorResult?.[0]?.id ?? staffId;
-        roleAssignId = userId;
-        nextId = staffId;  // findById uses the staff-table id
+    // Add doctor-specific columns if applicable
+    if (category === 'doctor') {
+      staffCols.push(
+        'title', 'firstname', 'middlename', 'surname', 'qualification', 'instutitue', 'passedout', 
+        'joiningdate', '"registrationId"', 'consultation_fee', 'permanentaddress', 'profilepic', 
+        '"10_document"', '"12_document"', 'bhms_document', 'md_document', 'registration_certificate', 
+        'aadhar_card', 'pan_card', 'appointment_letter', 'aadharnumber', 'pannumber'
+      );
+      staffVals.push(
+          data.title || 'Dr', data.firstname || '', data.middlename || '', data.surname || '', 
+          data.qualification || '', data.institute || '', data.passedOut || '', 
+          data.joiningdate || null, data.registrationId || '', String(data.consultationFee || 0), 
+          data.permanentAddress || '', data.profilepic || '', data.col10Document || '', 
+          data.col12Document || '', data.bhmsDocument || '', data.mdDocument || '', 
+          data.registrationCertificate || '', data.aadharCard || '', data.panCard || '', 
+          data.appointmentLetter || '', data.aadharnumber || '', data.pannumber || ''
+      );
     }
+
+    const staffRes = await this.db.execute(sql`
+      INSERT INTO ${sql.identifier(table)} (${sql.join(staffCols.map(c => sql.raw(c)), sql`, `)}, created_at, updated_at)
+      VALUES (${sql.join(staffVals.map(v => sql`${v}`), sql`, `)}, NOW(), NOW())
+      RETURNING id
+    `) as any[];
+    
+    nextId = staffRes[0].id;
+
+    // Mirror to users — use a fresh unique ID from users table to avoid collisions
+    const userMirrorResult = await this.db.execute(sql`
+      INSERT INTO users (
+        name, email, password, type, context_id, role_id, role_name,
+        gender, mobile, mobile2, city, address, about, designation, dept,
+        title, firstname, middlename, surname,
+        date_birth, salary_cur, is_active, created_at, updated_at
+      ) VALUES (
+        ${name}, ${data.email || ''}, ${hashedPassword}, ${roleEnum},
+        1, ${roleId}, ${roleName},
+        ${data.gender || 'Male'}, ${data.mobile || ''}, ${data.mobile2 || ''},
+        ${data.city || ''}, ${data.address || ''}, ${data.about || ''},
+        ${data.designation || ''}, ${data.dept || 4},
+        ${data.title || ''}, ${data.firstname || ''}, ${data.middlename || ''}, ${data.surname || ''},
+        ${data.dateBirth || null}, ${data.salaryCur || 0}, true, NOW(), NOW()
+      ) RETURNING id
+    `) as any[];
+
+    const userId = userMirrorResult[0].id;
+    roleAssignId = userId;
 
     // ─── 3. Assign Role ───
     await this.db.execute(sql`

@@ -99,6 +99,8 @@ export interface QueueItem {
   notes?: string;
   age?: number;
   gender?: string;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
 }
 
 export interface ActivityItem {

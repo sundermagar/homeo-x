@@ -44,8 +44,9 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
   // Fetch doctors list
   useEffect(() => {
     apiClient.get('/doctors').then(({ data }) => {
-      // Interceptor now returns the payload directly
-      setDoctors(Array.isArray(data) ? data : []);
+      // The API response is wrapped in { success: true, data: [...] }
+      const payload = data.data ?? data;
+      setDoctors(Array.isArray(payload) ? payload : []);
     }).catch(() => {});
   }, []);
 
