@@ -133,7 +133,7 @@ const NAV_STRUCTURE: NavItem[] = [
       icon: Stethoscope,
       roles: CLINICAL,
       children: [
-        { path: '/consultation-history', label: 'Case History', icon: BarChart2 },
+        // { path: '/consultation-history', label: 'Case History', icon: BarChart2 },
         { path: '/vitals-check', label: 'Height & Weight Check', icon: Scale },
         { path: '/medical-cases', label: 'Medical Cases', icon: Stethoscope },
         { path: '/ai-remedy-chart', label: 'Materia Medica', icon: BookOpen },

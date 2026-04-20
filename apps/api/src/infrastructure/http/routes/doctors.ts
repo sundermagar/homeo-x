@@ -33,9 +33,9 @@ doctorsRouter.get('/', authMiddleware, async (req: Request, res: Response, next:
     let rows: any[] = [];
     try {
       rows = await pgQuery(db, `
-        SELECT 
+        SELECT
           id,
-          COALESCE(name, CONCAT(first_name, ' ', COALESCE(last_name, ''))) AS name,
+          COALESCE(name, CONCAT(firstname, ' ', COALESCE(lastname, ''))) AS name,
           email,
           mobile,
           specialization,

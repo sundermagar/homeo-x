@@ -10,6 +10,7 @@ export interface Organization {
   phone:        string;
   address:      string;
   website:      string;
+  assignedTo:   number;
   connectSince: string;
   city:         string;
   description:  string;
@@ -42,6 +43,7 @@ export interface CreateOrganizationInput {
   phone?:       string;
   address?:     string;
   website?:     string;
+  assignedTo?:  number;
   connectSince?: string;
   city?:        string;
   description?: string;
@@ -55,6 +57,7 @@ export interface CreateAccountInput {
   password:    string;
   gender?:     string;
   mobile?:     string;
+  mobile2?:    string;
   city?:       string;
   address?:    string;
   about?:      string;
