@@ -44,6 +44,8 @@ ALTER TABLE "stickers" ADD COLUMN IF NOT EXISTS "is_active" boolean DEFAULT true
 
 -- ── departments table ─────────────────────────────────────────
 ALTER TABLE "departments" ADD COLUMN IF NOT EXISTS "is_active" boolean DEFAULT true;
+ALTER TABLE "departments" ALTER COLUMN "tags" DROP NOT NULL;
+ALTER TABLE "departments" ALTER COLUMN "color" DROP NOT NULL;
 
 -- ── Fix constraints for existing tables ────────────────────
 ALTER TABLE "users" ALTER COLUMN "context_id" DROP NOT NULL;
@@ -65,4 +67,3 @@ ALTER TABLE "employees" ADD COLUMN IF NOT EXISTS "packages" text;
 ALTER TABLE "clinicadmins" ADD COLUMN IF NOT EXISTS "packages" text;
 ALTER TABLE "receptionists" ADD COLUMN IF NOT EXISTS "packages" text;
 ALTER TABLE "accounts" ADD COLUMN IF NOT EXISTS "packages" text;
-

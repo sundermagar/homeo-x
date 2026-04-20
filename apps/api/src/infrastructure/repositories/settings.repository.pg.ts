@@ -69,7 +69,7 @@ export class SettingsRepositoryPg implements ISettingsRepository {
   }
   async createDepartment(data: Omit<Department, 'id' | 'createdAt' | 'updatedAt'>): Promise<Department> {
     return this.q1(
-      `INSERT INTO departments (name, description, is_active, created_at, updated_at) 
+      `INSERT INTO departments (name, detail, is_active, created_at, updated_at) 
        VALUES ($1, $2, $3, NOW(), NOW()) RETURNING *`,
       [data.name, data.description ?? null, data.isActive ?? true]
     ) as Promise<Department>;
