@@ -6,6 +6,8 @@ export interface Department {
   id: number;
   name: string;
   description?: string | null;
+  tags?: string | null;
+  color?: string | null;
   isActive?: boolean | null;
   createdAt?: Date | null;
   updatedAt?: Date | null;
@@ -202,7 +204,7 @@ export interface ISettingsRepository {
   // FAQs
   listFaqs(): Promise<Faq[]>;
   getFaq(id: number): Promise<Faq | undefined>;
-  createFaq(data: Omit<Faq, 'id'>): Promise<Faq>;
+  createFaq(data: Omit<Faq, 'id' | 'createdAt' | 'updatedAt'>): Promise<Faq>;
   updateFaq(id: number, data: Partial<Omit<Faq, 'id'>>): Promise<Faq>;
   deleteFaq(id: number): Promise<void>;
 
