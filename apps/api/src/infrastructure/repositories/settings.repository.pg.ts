@@ -68,18 +68,42 @@ export class SettingsRepositoryPg implements ISettingsRepository {
     return this.q1('SELECT * FROM departments WHERE id = $1', [id]);
   }
   async createDepartment(data: Omit<Department, 'id' | 'createdAt' | 'updatedAt'>): Promise<Department> {
-    return this.q1(
-      `INSERT INTO departments (name, detail, is_active, created_at, updated_at) 
-       VALUES ($1, $2, $3, NOW(), NOW()) RETURNING *`,
-      [data.name, data.description ?? null, data.isActive ?? true]
-    ) as Promise<Department>;
+    this.logger.debug({ name: data.name }, 'Creating department');
+    try {
+      return await this.q1(
+        `INSERT INTO departments (name, detail, is_active, tags, color, created_at, updated_at) 
+         VALUES ($1, $2, $3, $4, $5, NOW(), NOW()) RETURNING *`,
+        [data.name, data.description ?? null, data.isActive ?? true, '', '']
+      ) as Department;
+    } catch (err: any) {
+      if (err.message?.includes('column "is_active" does not exist')) {
+        this.logger.warn('is_active column missing, retrying without it');
+        return await this.q1(
+          `INSERT INTO departments (name, detail, tags, color, created_at, updated_at) 
+           VALUES ($1, $2, $3, $4, NOW(), NOW()) RETURNING *`,
+          [data.name, data.description ?? null, '', '']
+        ) as Department;
+      }
+      throw err;
+    }
   }
   async updateDepartment(id: number, data: Partial<Omit<Department, 'id'>>): Promise<Department> {
-    return this.q1(
-      `UPDATE departments SET name = COALESCE($1, name), detail = COALESCE($2, detail),
-       is_active = COALESCE($3, is_active), updated_at = NOW() WHERE id = $4 RETURNING *`,
-      [data.name ?? null, data.description ?? null, data.isActive ?? null, id]
-    ) as Promise<Department>;
+    try {
+      return await this.q1(
+        `UPDATE departments SET name = COALESCE($1, name), detail = COALESCE($2, detail),
+         is_active = COALESCE($3, is_active), updated_at = NOW() WHERE id = $4 RETURNING *`,
+        [data.name ?? null, data.description ?? null, data.isActive ?? null, id]
+      ) as Department;
+    } catch (err: any) {
+      if (err.message?.includes('column "is_active" does not exist')) {
+        return await this.q1(
+          `UPDATE departments SET name = COALESCE($1, name), detail = COALESCE($2, detail),
+           updated_at = NOW() WHERE id = $3 RETURNING *`,
+          [data.name ?? null, data.description ?? null, id]
+        ) as Department;
+      }
+      throw err;
+    }
   }
   async deleteDepartment(id: number): Promise<void> {
     await this.q('DELETE FROM departments WHERE id = $1', [id]);
@@ -92,79 +116,85 @@ export class SettingsRepositoryPg implements ISettingsRepository {
   async getDispensary(id: number): Promise<Dispensary | undefined> {
     return this.q1('SELECT * FROM dispensaries WHERE id = $1', [id]);
   }
-  async createDispensary(data: Omit<Dispensary, 'id'>): Promise<Dispensary> {
-    this.logger.info({ dispensaryName: data.name }, 'Creating new dispensary staff account');
+  async createDispensary(data: any): Promise<Dispensary> {
+    this.logger.debug({ name: data.name }, 'Creating dispensary staff');
+    const { 
+      name, email, password, gender, mobile, mobile2, 
+      location, city, address, about, designation, 
+      dept, dateBirth, contactNumber, isActive 
+    } = data;
 
-    const r = await this.q1<any>(
-      `INSERT INTO dispensaries (
-        name, email, password, gender, mobile, mobile2, 
-        location, city, address, about, designation, 
-        dept, date_birth, contact_number, is_active, created_at, updated_at
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW(), NOW()) RETURNING *`,
-      [
-        data.name, 
-        data.email || null, 
-        data.password || null, 
-        data.gender || 'Male', 
-        data.mobile || null, 
-        data.mobile2 || null, 
-        data.location || null, 
-        data.city || null, 
-        data.address || null, 
-        data.about || null, 
-        data.designation || null, 
-        data.dept || null, 
-        (data.dateBirth && data.dateBirth !== '') ? data.dateBirth : null, 
-        data.contactNumber || null, 
-        data.isActive ?? true
-      ]
-    );
-
-    this.logger.info({ dispensaryId: r?.id }, 'Dispensary created successfully');
-    return r;
+    try {
+      return await this.q1<any>(
+        `INSERT INTO dispensaries (
+          name, email, password, gender, mobile, mobile2, 
+          location, city, address, about, designation, 
+          dept, date_birth, contact_number, is_active, created_at, updated_at
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW(), NOW()) RETURNING *`,
+        [
+          name, email ?? null, password ?? null, gender ?? 'Male', 
+          mobile ?? null, mobile2 ?? null, location ?? null, 
+          city ?? null, address ?? null, about ?? null, 
+          designation ?? null, dept ?? null, dateBirth ?? null, 
+          contactNumber ?? null, isActive ?? true
+        ]
+      ) as Dispensary;
+    } catch (err: any) {
+      if (err.message?.includes('column "location" does not exist') || err.message?.includes('column "is_active" does not exist')) {
+        this.logger.warn('Modern columns missing in dispensaries, retrying legacy insert');
+        return await this.q1<any>(
+          `INSERT INTO dispensaries (name, email, password, gender, mobile, mobile2, city, address, designation, dept, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW()) RETURNING *`,
+          [name, email ?? null, password ?? null, gender ?? 'Male', mobile ?? null, mobile2 ?? null, city ?? null, address ?? null, designation ?? null, dept ?? null]
+        ) as Dispensary;
+      }
+      throw err;
+    }
   }
 
   async updateDispensary(id: number, data: Partial<Omit<Dispensary, 'id'>>): Promise<Dispensary> {
-    const r = await this.q1<any>(
-      `UPDATE dispensaries SET 
-        name = COALESCE($1, name), 
-        email = COALESCE($2, email),
-        password = COALESCE($3, password),
-        gender = COALESCE($4, gender),
-        mobile = COALESCE($5, mobile),
-        mobile2 = COALESCE($6, mobile2),
-        location = COALESCE($7, location),
-        city = COALESCE($8, city),
-        address = COALESCE($9, address),
-        about = COALESCE($10, about),
-        designation = COALESCE($11, designation),
-        dept = COALESCE($12, dept),
-        date_birth = COALESCE($13, date_birth),
-        contact_number = COALESCE($14, contact_number),
-        is_active = COALESCE($15, is_active),
-        updated_at = NOW() 
-       WHERE id = $16 RETURNING *`,
-      [
-        data.name || null, 
-        data.email || null, 
-        data.password || null, 
-        data.gender || null,
-        data.mobile || null, 
-        data.mobile2 || null, 
-        data.location || null,
-        data.city || null, 
-        data.address || null, 
-        data.about || null,
-        data.designation || null, 
-        data.dept || null, 
-        (data.dateBirth && data.dateBirth !== '') ? data.dateBirth : null,
-        data.contactNumber || null, 
-        data.isActive ?? null,
-        id
-      ]
-    );
-    return { ...r, id: r?.ID ?? r?.id };
+    try {
+      const r = await this.q1<any>(
+        `UPDATE dispensaries SET 
+          name = COALESCE($1, name), 
+          email = COALESCE($2, email),
+          password = COALESCE($3, password),
+          gender = COALESCE($4, gender),
+          mobile = COALESCE($5, mobile),
+          mobile2 = COALESCE($6, mobile2),
+          location = COALESCE($7, location),
+          city = COALESCE($8, city),
+          address = COALESCE($9, address),
+          about = COALESCE($10, about),
+          designation = COALESCE($11, designation),
+          dept = COALESCE($12, dept),
+          date_birth = COALESCE($13, date_birth),
+          contact_number = COALESCE($14, contact_number),
+          is_active = COALESCE($15, is_active),
+          updated_at = NOW() 
+         WHERE id = $16 RETURNING *`,
+        [
+          data.name ?? null, data.email ?? null, data.password ?? null, data.gender ?? null,
+          data.mobile ?? null, data.mobile2 ?? null, data.location ?? null,
+          data.city ?? null, data.address ?? null, data.about ?? null,
+          data.designation ?? null, data.dept ?? null, data.dateBirth ?? null,
+          data.contactNumber ?? null, data.isActive ?? null, id
+        ]
+      );
+      return r;
+    } catch (err: any) {
+      if (err.message?.includes('column "location" does not exist') || err.message?.includes('column "is_active" does not exist')) {
+        const r = await this.q1<any>(
+          `UPDATE dispensaries SET name = COALESCE($1, name), email = COALESCE($2, email), password = COALESCE($3, password),
+           city = COALESCE($4, city), address = COALESCE($5, address), designation = COALESCE($6, designation),
+           updated_at = NOW() WHERE id = $7 RETURNING *`,
+          [data.name ?? null, data.email ?? null, data.password ?? null, data.city ?? null, data.address ?? null, data.designation ?? null, id]
+        );
+        return r;
+      }
+      throw err;
+    }
   }
 
 
