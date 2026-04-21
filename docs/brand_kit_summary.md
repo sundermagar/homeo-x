@@ -1,6 +1,6 @@
 # Paperplane Brand Kit v2.0 Summary
 
-This document captures the design system and brand identity guidelines for Paperplane (rebranded HomeoX).
+This document captures the design system and brand identity guidelines for Paperplane (rebranded Kreed.health).
 
 ## 🎨 Colour System
 

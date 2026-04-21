@@ -43,7 +43,7 @@ export class NodemailerServiceAdapter implements EmailService {
 
     try {
       const info = await this.transporter.sendMail({
-        from: process.env.SMTP_FROM || '"HomeoX System" <noreply@managemyclinic.in>',
+        from: process.env.SMTP_FROM || '"Kreed.health System" <noreply@managemyclinic.in>',
         to: data.to,
         subject: data.subject,
         text: data.text,

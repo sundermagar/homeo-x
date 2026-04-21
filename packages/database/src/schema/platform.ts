@@ -11,6 +11,7 @@ export const organizations = pgTable('organizations', {
   phone:        text('phone').default(''),
   address:      text('address').default(''),
   website:      text('website').default(''),
+  assignedTo:   integer('assigned_to').default(1),
   connectSince: date('connect_since').default('1990-01-01'),
   city:         text('city').default(''),
   description:  text('description').default(''),

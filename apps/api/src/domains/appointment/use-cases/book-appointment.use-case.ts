@@ -20,7 +20,7 @@ export class BookAppointmentUseCase {
         patientName: dto.patientName,
         date: dto.bookingDate,
         time: dto.bookingTime ?? '',
-        clinicName: 'HomeoX Clinic' // Fixed for now, can be dynamic
+        clinicName: 'Kreed.health Clinic' // Fixed for now, can be dynamic
       }).catch(() => {
         // Log error but don't fail the whole booking result
       });

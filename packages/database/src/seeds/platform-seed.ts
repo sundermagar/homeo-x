@@ -57,12 +57,13 @@ export async function seedPlatform(db: DbClient) {
   const hashedPassword = '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07xdM0ttR9i0NcMsuG';
 
   for (const clinicData of demoClinics) {
-    // Check if clinic exists
+    // Check if clinic exists (use raw any to bypass type issues with legacy columns)
+    const seedData = { ...clinicData, assignedTo: 1 };
     let clinic = await db.select().from(organizations).where(eq(organizations.name, clinicData.name)).limit(1);
     let clinicId: number;
 
     if (clinic.length === 0) {
-      const inserted = await db.insert(organizations).values(clinicData).returning({ id: organizations.id });
+      const inserted = await db.insert(organizations).values(seedData as any).returning({ id: organizations.id });
       clinicId = inserted[0]!.id;
       console.log(`[Seed] Created clinic: ${clinicData.name}`);
     } else {

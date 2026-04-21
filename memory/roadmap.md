@@ -1,4 +1,4 @@
-# HomeoX Product Roadmap (Memory)
+# Kreed.health Product Roadmap (Memory)
 
 ## Execution Strategy
 - **Vertical Slices**: Backend → Frontend → Migration → Tests per module.

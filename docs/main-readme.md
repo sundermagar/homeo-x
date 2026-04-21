@@ -1,11 +1,11 @@
-# HomeoX
+# Kreed.health
 
 Enterprise-grade Homeopathic Clinic Management Platform with AI-powered consultation, real-time transcription, and multi-tenant architecture.
 
 ## Architecture
 
 ```
-homeo-x/
+kreed-health/
 ├── packages/
 │   ├── types/          @mmc/types       Shared domain entities, API contracts, events
 │   ├── database/       @mmc/database    Drizzle ORM schemas, PostgreSQL, tenant registry
@@ -57,8 +57,8 @@ homeo-x/
 
 ```bash
 # Clone
-git clone https://github.com/sundermagar/homeo-x.git
-cd homeo-x
+git clone https://github.com/sundermagar/kreed-health.git
+cd kreed-health
 
 # Install dependencies
 pnpm install

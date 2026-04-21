@@ -13,7 +13,7 @@ export async function seedFaqs(db: DbClient) {
     },
     { 
       name: 'Multi-location clinical management', 
-      detail: 'HomeoX supports concurrent management of multiple clinic locations using a secure tenant schema isolation architecture.',
+      detail: 'Kreed.health supports concurrent management of multiple clinic locations using a secure tenant schema isolation architecture.',
       displayOrder: 2
     },
     { 
@@ -63,7 +63,7 @@ export async function seedFaqs(db: DbClient) {
     },
     {
       name: 'Mobile and tablet device compatibility',
-      detail: 'The HomeoX platform is responsive and optimized for secondary devices, including tablets and smartphones, to support mobile clinical management.',
+      detail: 'The Kreed.health platform is responsive and optimized for secondary devices, including tablets and smartphones, to support mobile clinical management.',
       displayOrder: 12
     },
     {

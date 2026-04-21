@@ -1,10 +1,10 @@
-# 🚀 Railway Deployment Guide: HomeoX Platform
+# 🚀 Railway Deployment Guide: Kreed.health Platform
 
-This guide provides a comprehensive, step-by-step walkthrough for deploying the HomeoX monorepo to [Railway](https://railway.app). The project follows a modern monorepo architecture using **pnpm**, **Turborepo**, and **TypeScript**.
+This guide provides a comprehensive, step-by-step walkthrough for deploying the Kreed.health monorepo to [Railway](https://railway.app). The project follows a modern monorepo architecture using **pnpm**, **Turborepo**, and **TypeScript**.
 
 ## 🏗️ Architecture Overview
 
-The HomeoX platform consists of:
+The Kreed.health platform consists of:
 - **Backend API (`apps/api`)**: Node.js/Express server.
 - **Frontend Web (`apps/web`)**: React/Vite application.
 - **Shared Packages (`packages/*`)**: Database schema, Types, and Validation logic.
@@ -25,7 +25,7 @@ The HomeoX platform consists of:
 
 1.  Log in to [Railway](https://railway.app).
 2.  Click **"New Project"** -> **"Deploy from GitHub repo"**.
-3.  Select your `homeo-x` repository.
+3.  Select your `kreed-health` repository.
 4.  **Do not deploy yet!** We need to configure the services first.
 
 ### Add Managed Databases
@@ -54,8 +54,8 @@ Create a new Service in your project for the API:
     - `NODE_ENV`: `production`
     - `PORT`: `3001`
     - `JWT_SECRET`: Generate a strong secret (`openssl rand -base64 32`)
-    - `CORS_ORIGINS`: Your frontend URL (e.g., `https://homeo-x-web.up.railway.app`)
-    - `APP_URL`: Your API URL (e.g., `https://homeo-x-api.up.railway.app`)
+    - `CORS_ORIGINS`: Your frontend URL (e.g., `https://kreed-health-web.up.railway.app`)
+    - `APP_URL`: Your API URL (e.g., `https://kreed-health-api.up.railway.app`)
 
 ---
 
@@ -75,7 +75,7 @@ Create another Service for the Frontend:
     npx serve -s apps/web/dist -p $PORT
     ```
 5.  **Environment Variables**:
-    - `VITE_API_URL`: The URL of your API service (e.g., `https://homeo-x-api.up.railway.app`)
+    - `VITE_API_URL`: The URL of your API service (e.g., `https://kreed-health-api.up.railway.app`)
     - `NODE_ENV`: `production`
 
 ---

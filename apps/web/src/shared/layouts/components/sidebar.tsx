@@ -137,8 +137,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       <div className="sb-container" data-open={isOpen}>
         {/* Brand & Close Button (Mobile) */}
         <div className="sb-brand">
-          <div className="sb-logo">HX</div>
-          <span className="sb-brand-name">HomeoX</span>
+          <div className="sb-logo">KH</div>
+          <span className="sb-brand-name">Kreed.health</span>
           <button onClick={onClose} className="sb-close-btn mobile-only" aria-label="Close menu">
             <X size={20} />
           </button>

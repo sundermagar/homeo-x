@@ -145,7 +145,7 @@ communicationRouter.post('/otp/send', asyncHandler(async (req, res) => {
   const sms = new SendSmsUseCase(getRepo(req), smsGateway);
   await sms.sendSingle({
     phone,
-    message: `Your HomeoX OTP is: ${otp}. Valid for 10 minutes. Do not share.`,
+    message: `Your Kreed.health OTP is: ${otp}. Valid for 10 minutes. Do not share.`,
     smsType: 'OTP',
   });
 

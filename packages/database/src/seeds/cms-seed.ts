@@ -7,7 +7,7 @@ export async function seedCms(db: DbClient) {
 
   // 1. Static Pages
   const pages = [
-    { slug: 'about-us', title: 'About HomeoX', content: 'HomeoX is a comprehensive clinical management platform specialized for homeopathy.' },
+    { slug: 'about-us', title: 'About Kreed.health', content: 'Kreed.health is a comprehensive clinical management platform specialized for homeopathy.' },
     { slug: 'privacy-policy', title: 'Privacy Policy', content: 'We value your privacy and data security.' },
     { slug: 'terms-of-service', title: 'Terms of Service', content: 'Standard terms of service for clinical management.' }
   ];

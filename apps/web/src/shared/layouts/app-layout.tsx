@@ -46,7 +46,7 @@ export function AppLayout() {
               <div className="sidebar-logo" style={{ width: 28, height: 28 }}>
                 <Infinity size={18} strokeWidth={2.5} />
               </div>
-              <span className="sidebar-brand" style={{ fontSize: '1rem' }}>Kreed</span>
+              <span className="sidebar-brand" style={{ fontSize: '1rem' }}>Kreed.health</span>
             </div>
           </div>
         </header>

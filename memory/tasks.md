@@ -1,4 +1,4 @@
-# Tasks - HomeoX Agent Instructions
+# Tasks - Kreed.health Agent Instructions
 
 ## General Instructions
 

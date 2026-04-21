@@ -57,7 +57,7 @@ export class JobScheduler {
             patientName: appt.patientName,
             date: dateStr || '',
             time: appt.bookingTime || '',
-            clinicName: 'HomeoX Clinic'
+            clinicName: 'Kreed.health Clinic'
           });
           logger.info(`[Job] Reminder sent to ${appt.patientName} (${appt.phone})`);
         }

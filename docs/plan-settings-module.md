@@ -17,7 +17,7 @@ This plan outlines the architecture and execution strategy for migrating and imp
 
 We will introduce a new `settings.ts` schema and update existing ones to support the configuration entities.
 
-#### [NEW] [settings.ts](file:///c:/Users/inset/Desktop/Github/homeo-x/packages/database/src/schema/settings.ts)
+#### [NEW] [settings.ts](file:///c:/Users/inset/Desktop/Github/kreed-health/packages/database/src/schema/settings.ts)
 Contains schema definitions for:
 - `departments` (id, name, status)
 - `dispensaries` (id, name, location)
@@ -27,13 +27,13 @@ Contains schema definitions for:
 - `faqs` (id, question, answer, order)
 - `pdf_settings` (id, template_name, header, footer)
 
-#### [MODIFY] [inventory.ts](file:///c:/Users/inset/Desktop/Github/homeo-x/packages/database/src/schema/inventory.ts)
+#### [MODIFY] [inventory.ts](file:///c:/Users/inset/Desktop/Github/kreed-health/packages/database/src/schema/inventory.ts)
 - Add `medicines` table (id, name, potency, type, etc) to complement the `stocks` table.
 
-#### [MODIFY] [platform.ts](file:///c:/Users/inset/Desktop/Github/homeo-x/packages/database/src/schema/platform.ts)
+#### [MODIFY] [platform.ts](file:///c:/Users/inset/Desktop/Github/kreed-health/packages/database/src/schema/platform.ts)
 - Already contains `organizations` and `accounts`. We will ensure tenant-specific organization settings capability if needed.
 
-#### [MODIFY] [app-schema.ts](file:///c:/Users/inset/Desktop/Github/homeo-x/packages/database/src/schema/app-schema.ts)
+#### [MODIFY] [app-schema.ts](file:///c:/Users/inset/Desktop/Github/kreed-health/packages/database/src/schema/app-schema.ts)
 - Export the newly created `settings.ts`.
 
 ---
@@ -42,10 +42,10 @@ Contains schema definitions for:
 
 Create Zod schemas to ensure frontend and backend type-safety.
 
-#### [NEW] [settings.ts](file:///c:/Users/inset/Desktop/Github/homeo-x/packages/validation/src/settings.ts)
+#### [NEW] [settings.ts](file:///c:/Users/inset/Desktop/Github/kreed-health/packages/validation/src/settings.ts)
 - Zod schemas for all new tables (`createDepartmentSchema`, `updateDepartmentSchema`, `faqSchema`, etc.).
 
-#### [MODIFY] [inventory.ts](file:///c:/Users/inset/Desktop/Github/homeo-x/packages/validation/src/inventory.ts)
+#### [MODIFY] [inventory.ts](file:///c:/Users/inset/Desktop/Github/kreed-health/packages/validation/src/inventory.ts)
 - Add Zod schemas for `medicines`, `potencies`, `frequencies`.
 
 ---
@@ -54,16 +54,16 @@ Create Zod schemas to ensure frontend and backend type-safety.
 
 Build the domain logic following Hexagonal Architecture (Ports and Adapters).
 
-#### [NEW] [apps/api/src/domains/settings/ports/settings.repository.ts](file:///c:/Users/inset/Desktop/Github/homeo-x/apps/api/src/domains/settings/ports/settings.repository.ts)
+#### [NEW] [apps/api/src/domains/settings/ports/settings.repository.ts](file:///c:/Users/inset/Desktop/Github/kreed-health/apps/api/src/domains/settings/ports/settings.repository.ts)
 - Define standard interfaces for fetching/updating settings metadata (Departments, Dispensaries, Referral Sources, etc.).
 
-#### [NEW] [apps/api/src/domains/settings/use-cases/*](file:///c:/Users/inset/Desktop/Github/homeo-x/apps/api/src/domains/settings/use-cases/)
+#### [NEW] [apps/api/src/domains/settings/use-cases/*](file:///c:/Users/inset/Desktop/Github/kreed-health/apps/api/src/domains/settings/use-cases/)
 - Scaffold `manage-departments.ts`, `manage-cms.ts`, `manage-dispensaries.ts` etc.
 
-#### [NEW] [apps/api/src/infrastructure/repositories/settings.repository.pg.ts](file:///c:/Users/inset/Desktop/Github/homeo-x/apps/api/src/infrastructure/repositories/settings.repository.pg.ts)
+#### [NEW] [apps/api/src/infrastructure/repositories/settings.repository.pg.ts](file:///c:/Users/inset/Desktop/Github/kreed-health/apps/api/src/infrastructure/repositories/settings.repository.pg.ts)
 - Drizzle ORM implementation of the settings repository.
 
-#### [NEW] [apps/api/src/infrastructure/http/routes/settings.ts](file:///c:/Users/inset/Desktop/Github/homeo-x/apps/api/src/infrastructure/http/routes/settings.ts)
+#### [NEW] [apps/api/src/infrastructure/http/routes/settings.ts](file:///c:/Users/inset/Desktop/Github/kreed-health/apps/api/src/infrastructure/http/routes/settings.ts)
 - Express router defining the sub-routes (`/settings/departments`, `/settings/cms/faqs`, `/settings/stickers`).
 - Will also add `/inventory/medicines` inside existing inventory routes.
 
@@ -73,7 +73,7 @@ Build the domain logic following Hexagonal Architecture (Ports and Adapters).
 
 Build out the UI for administrators to manage configurations.
 
-#### [NEW] [apps/web/src/features/settings/pages/*](file:///c:/Users/inset/Desktop/Github/homeo-x/apps/web/src/features/settings/pages)
+#### [NEW] [apps/web/src/features/settings/pages/*](file:///c:/Users/inset/Desktop/Github/kreed-health/apps/web/src/features/settings/pages)
 Create standard grid/list + form pages for each module:
 1. `DepartmentsPage`
 2. `MedicinesPage` (Under Inventory feature)
@@ -85,7 +85,7 @@ Create standard grid/list + form pages for each module:
 8. `RolesPermissionsPage`
 9. `OrganizationSettingsPage`
 
-#### [MODIFY] [apps/web/src/infrastructure/router.tsx](file:///c:/Users/inset/Desktop/Github/homeo-x/apps/web/src/infrastructure/router.tsx)
+#### [MODIFY] [apps/web/src/infrastructure/router.tsx](file:///c:/Users/inset/Desktop/Github/kreed-health/apps/web/src/infrastructure/router.tsx)
 - Mount the new routes under `/settings/*`.
 
 ## Verification Plan

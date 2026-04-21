@@ -54,6 +54,7 @@ export class AccountRepositoryPg implements AccountRepository {
         email:       data.email       ?? '',
         password:    hashedPassword,
         mobile:      data.mobile      ?? '',
+        mobile2:     data.mobile2     ?? '',
         gender:      data.gender      ?? 'Male',
         city:        data.city        ?? '',
         address:     data.address     ?? '',

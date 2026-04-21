@@ -54,7 +54,7 @@ export function DashboardHeader({ onOpenPalette }: DashboardHeaderProps) {
   const formattedDate = useFormattedDate();
 
   const pageTitle  = getPageTitle(location.pathname);
-  const clinicName = user?.clinicName || 'HomeoX Clinic';
+  const clinicName = user?.clinicName || 'Kreed.health Clinic';
 
   return (
     <>
