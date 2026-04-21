@@ -6,6 +6,7 @@ import '../styles/platform.css';
 
 const EMPTY_FORM: CreateOrganizationInput = {
   name: '', email: '', phone: '', city: '', website: '', description: '', connectSince: '',
+  adminEmail: '', adminPassword: '',
 };
 
 export default function ClinicsPage() {
@@ -241,6 +242,34 @@ export default function ClinicsPage() {
                       onChange={e => set('description', e.target.value)}
                       rows={2}
                       placeholder="Brief overview of the clinic..."
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="plat-form-section">
+                <h4 className="plat-form-section-title">Initial Administrator</h4>
+                <div className="plat-form-grid-multi">
+                  <div className="plat-form-group">
+                    <label className="plat-form-label">Admin Email *</label>
+                    <input
+                      className="plat-form-input"
+                      type="email"
+                      required
+                      value={form.adminEmail || ''}
+                      onChange={e => set('adminEmail', e.target.value)}
+                      placeholder="admin@newclinic.com"
+                    />
+                  </div>
+                  <div className="plat-form-group">
+                    <label className="plat-form-label">Admin Password *</label>
+                    <input
+                      className="plat-form-input"
+                      type="password"
+                      required
+                      value={form.adminPassword || ''}
+                      onChange={e => set('adminPassword', e.target.value)}
+                      placeholder="Min 6 characters"
                     />
                   </div>
                 </div>

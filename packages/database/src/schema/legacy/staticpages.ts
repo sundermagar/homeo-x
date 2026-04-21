@@ -12,8 +12,6 @@ export const staticpagesLegacy = pgTable("staticpages", {
   address: text("address").notNull(),
   city: text("city").notNull(),
   description: text("description").notNull(),
-  profileImage: integer("profile_image").notNull(),
-  profile: integer("profile").notNull(),
   deletedAt: timestamp("deleted_at"),
   createdAt: timestamp("created_at"),
   updatedAt: timestamp("updated_at"),
