@@ -80,7 +80,11 @@ export async function seedPlatform(db: DbClient) {
         mobile: clinicData.phone,
         clinicId: clinicId,
         designation: 'Clinic Manager',
-        about: 'Responsible for overall clinic operations and staff management.'
+        about: 'Responsible for overall clinic operations and staff management.',
+        dateBirth: '1990-01-01',
+        dateLeft: '1990-01-01',
+        salaryCur: 0,
+        packages: ''
       },
       {
         name: `Lead Doctor - ${clinicData.name}`,
@@ -89,7 +93,11 @@ export async function seedPlatform(db: DbClient) {
         mobile: clinicData.phone,
         clinicId: clinicId,
         designation: 'Chief Consultant',
-        about: 'Expert physician with over 15 years of experience.'
+        about: 'Expert physician with over 15 years of experience.',
+        dateBirth: '1990-01-01',
+        dateLeft: '1990-01-01',
+        salaryCur: 0,
+        packages: ''
       }
     ];
 

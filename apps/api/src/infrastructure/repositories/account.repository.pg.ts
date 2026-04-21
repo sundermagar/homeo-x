@@ -62,6 +62,11 @@ export class AccountRepositoryPg implements AccountRepository {
         designation: data.designation ?? '',
         dept:        data.dept        ?? 1,
         clinicId:    data.clinicId    ?? null,
+        // Legacy column fallbacks
+        dateBirth:   '1990-01-01',
+        dateLeft:    '1990-01-01',
+        salaryCur:   0,
+        packages:    '',
       }).returning();
 
       // 2. Mirror to users table (type='Account', context_id=accountId)
