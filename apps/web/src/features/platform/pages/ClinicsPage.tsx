@@ -261,14 +261,12 @@ export default function ClinicsPage() {
                       placeholder="admin@newclinic.com"
                     />
                   </div>
-
                   <div className="plat-form-group">
                     <label className="plat-form-label">Admin Password *</label>
                     <input
                       className="plat-form-input"
                       type="password"
                       required
-                      min={6}
                       value={form.adminPassword || ''}
                       onChange={e => set('adminPassword', e.target.value)}
                       placeholder="Min 6 characters"

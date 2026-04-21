@@ -126,7 +126,7 @@ export async function seedRemedyChart(db: any) {
       currTid = pnode.parentId;
       depth++;
     }
-    if (depth >= 30) currTid = 0;
+    if (currTid === 0 || !keptIds.has(currTid)) continue;
 
     const remedy = (alt.remedy || '').trim().substring(0, 255);
     const notes = [

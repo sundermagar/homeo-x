@@ -44,6 +44,8 @@ export class OrganizationRepositoryPg implements OrganizationRepository {
         connectSince,
         city:         data.city         ?? '',
         description:  data.description  ?? '',
+        adminEmail:   data.adminEmail   ?? '',
+        adminPassword: data.adminPassword ?? '',
       })
       .returning();
     return this.toDomain(row!);
@@ -79,7 +81,8 @@ export class OrganizationRepositoryPg implements OrganizationRepository {
       connectSince: row.connectSince ?? '',
       city:         row.city         ?? '',
       description:  row.description  ?? '',
-      profileImage: row.profileImage ?? 0,
+      adminEmail:   row.adminEmail   ?? '',
+      adminPassword: row.adminPassword ?? '',
       deletedAt:    row.deletedAt?.toISOString() ?? null,
       createdAt:    row.createdAt?.toISOString() ?? new Date().toISOString(),
       updatedAt:    row.updatedAt?.toISOString() ?? new Date().toISOString(),

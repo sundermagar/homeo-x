@@ -1632,8 +1632,8 @@ const TABLES: Array<{ name: string; ddl: string }> = [
   "address" text NOT NULL,
   "city" text NOT NULL,
   "description" text NOT NULL,
-  "profile_image" integer NOT NULL,
-  "profile" integer NOT NULL,
+  "admin_email" text NOT NULL,
+  "admin_password" text NOT NULL,
   "deleted_at" timestamp,
   "created_at" timestamp,
   "updated_at" timestamp
