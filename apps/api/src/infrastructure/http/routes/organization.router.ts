@@ -61,28 +61,62 @@ export function createOrganizationRouter(): Router {
           const tenantDb = createDbClient(dbUrl, schemaName);
           const staffRepo = new StaffRepositoryPg(tenantDb);
           
+          // Setup default fields to satisfy the strict Staff schema
+          const adminDefaults = {
+            title: 'Mr',
+            firstname: '',
+            middlename: '',
+            surname: 'Admin',
+            designation: 'Clinic Administrator',
+            gender: 'Male' as const,
+            dept: 1,
+            address: '',
+            city: '',
+            mobile2: '',
+            about: '',
+            qualification: 'Management',
+            consultationFee: 0,
+            joiningdate: new Date().toISOString().split('T')[0],
+            registrationId: 'N/A',
+            salaryCur: 0,
+            mobile: '',
+            dateBirth: '',
+            dateLeft: '',
+            institute: '',
+            passedOut: '',
+            permanentAddress: '',
+            registrationCertificate: '',
+            aadharCard: '',
+            panCard: '',
+            appointmentLetter: '',
+            profilepic: '',
+            col10Document: '',
+            col12Document: '',
+            bhmsDocument: '',
+            mdDocument: '',
+            aadharnumber: '',
+            pannumber: ''
+          };
+
           await staffRepo.create({
-            category: 'clinicadmin',
+            ...adminDefaults,
+            category: 'clinicadmin' as any,
             name: `${result.name} Admin`,
             email: req.body.adminEmail,
             password: req.body.adminPassword,
-            designation: 'Clinic Administrator',
-            gender: 'Male',
-            dept: 1 // General / Root
-          });
+            clinicId: result.id
+          } as any);
 
           // MIRROR: Also create in the public schema for the Platform Dashboard global view
           const publicStaffRepo = new StaffRepositoryPg(req.publicDb);
           await publicStaffRepo.create({
-            category: 'clinicadmin',
+            ...adminDefaults,
+            category: 'clinicadmin' as any,
             name: `${result.name} Admin`,
             email: req.body.adminEmail,
             password: req.body.adminPassword,
-            designation: 'Clinic Administrator',
-            gender: 'Male',
-            dept: 1, // General / Root,
-            clinicId: result.id // Link to organization
-          });
+            clinicId: result.id
+          } as any);
 
           TenantRegistry.register({
             slug,

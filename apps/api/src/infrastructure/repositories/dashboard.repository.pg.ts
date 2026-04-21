@@ -204,7 +204,9 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           v.systolic_bp || '/' || v.diastolic_bp as bp,
           v.pulse_rate as pulse,
           v.weight_kg as weight,
-          v.temperature_f as temp
+          v.temperature_f as temp,
+          a.created_at,
+          a.updated_at
         FROM appointments a
         LEFT JOIN patients p ON a.patient_id = p.id
         LEFT JOIN tokens t ON t.patient_id = a.patient_id AND t.date::date = a.booking_date::date
@@ -249,6 +251,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       isUrgent: false,
       age: r.age,
       gender: r.gender,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
       vitals: r.bp ? {
         bp: r.bp,
         pulse: r.pulse,
