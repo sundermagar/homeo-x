@@ -1232,12 +1232,15 @@ END $$`,
     name: 'faqs',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."faqs" (
   "id" serial PRIMARY KEY,
-  "ques" text,
-  "ans" text,
-  "file" text,
-  "created_at" timestamp NOT NULL,
-  "updated_at" timestamp NOT NULL,
-  "deleted_at" timestamp NOT NULL
+  "name" text,
+  "ques" text NOT NULL,
+  "detail" text,
+  "ans" text NOT NULL,
+  "display_order" integer DEFAULT 0,
+  "is_active" boolean DEFAULT true,
+  "created_at" timestamp DEFAULT now(),
+  "updated_at" timestamp DEFAULT now(),
+  "deleted_at" timestamp
 )`,
   },
   {

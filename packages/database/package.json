@@ -28,6 +28,7 @@
     "migrate:tenants": "tsx src/migrate_tenants.ts",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx src/seeds/run.ts",
+    "db:seed:faq": "tsx src/seeds/run-faq.ts",
     "clean": ""
   },
   "dependencies": {
