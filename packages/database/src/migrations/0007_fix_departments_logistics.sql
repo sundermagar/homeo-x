@@ -55,8 +55,14 @@ CREATE TABLE IF NOT EXISTS "package_plans" (
 );
 
 -- Patch couriermedicines for modern usage
-ALTER TABLE "couriermedicines" ADD COLUMN IF NOT EXISTS "medicine_ids" text;
-ALTER TABLE "couriermedicines" ADD COLUMN IF NOT EXISTS "tracking_no" varchar(255);
-ALTER TABLE "couriermedicines" ADD COLUMN IF NOT EXISTS "status" varchar(50) DEFAULT 'Pending';
-ALTER TABLE "couriermedicines" ADD COLUMN IF NOT EXISTS "notified" integer DEFAULT 0;
-ALTER TABLE "couriermedicines" ADD COLUMN IF NOT EXISTS "deleted_at" timestamp;
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'couriermedicines') THEN
+        ALTER TABLE "couriermedicines" ADD COLUMN IF NOT EXISTS "medicine_ids" text;
+        ALTER TABLE "couriermedicines" ADD COLUMN IF NOT EXISTS "tracking_no" varchar(255);
+        ALTER TABLE "couriermedicines" ADD COLUMN IF NOT EXISTS "status" varchar(50) DEFAULT 'Pending';
+        ALTER TABLE "couriermedicines" ADD COLUMN IF NOT EXISTS "notified" integer DEFAULT 0;
+        ALTER TABLE "couriermedicines" ADD COLUMN IF NOT EXISTS "deleted_at" timestamp;
+    END IF;
+END $$;
+

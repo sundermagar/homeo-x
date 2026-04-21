@@ -1,1 +1,1 @@
-ALTER TABLE "users" DROP COLUMN "clinic_id";
+ALTER TABLE "users" DROP COLUMN IF EXISTS "clinic_id";

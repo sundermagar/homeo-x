@@ -670,10 +670,10 @@ CREATE TABLE IF NOT EXISTS "stickers" (
 -- ALTER TABLE "bills" ADD CONSTRAINT "bills_regid_case_datas_regid_fk" FOREIGN KEY ("regid") REFERENCES "case_datas"("regid") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 -- ALTER TABLE "payments" ADD CONSTRAINT "payments_regid_case_datas_regid_fk" FOREIGN KEY ("regid") REFERENCES "case_datas"("regid") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 -- ALTER TABLE "payments" ADD CONSTRAINT "payments_bill_id_bills_id_fk" FOREIGN KEY ("bill_id") REFERENCES "bills"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-CREATE INDEX "idx_ai_audit_tenant" ON "ai_audit_logs" USING btree ("tenant_id");--> statement-breakpoint
-CREATE INDEX "idx_ai_audit_visit" ON "ai_audit_logs" USING btree ("visit_id");--> statement-breakpoint
-CREATE INDEX "idx_audit_action" ON "audit_logs" USING btree ("action");--> statement-breakpoint
-CREATE INDEX "idx_audit_tenant" ON "audit_logs" USING btree ("tenant_id");--> statement-breakpoint
-CREATE INDEX "idx_audit_resource" ON "audit_logs" USING btree ("resource_type","resource_id");--> statement-breakpoint
-CREATE INDEX "idx_audit_user" ON "audit_logs" USING btree ("user_id");--> statement-breakpoint
-CREATE INDEX "idx_audit_created" ON "audit_logs" USING btree ("created_at");
+CREATE INDEX IF NOT EXISTS "idx_ai_audit_tenant" ON "ai_audit_logs" USING btree ("tenant_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_ai_audit_visit" ON "ai_audit_logs" USING btree ("visit_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_audit_action" ON "audit_logs" USING btree ("action");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_audit_tenant" ON "audit_logs" USING btree ("tenant_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_audit_resource" ON "audit_logs" USING btree ("resource_type","resource_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_audit_user" ON "audit_logs" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_audit_created" ON "audit_logs" USING btree ("created_at");
