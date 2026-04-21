@@ -71,13 +71,26 @@ export function createOrganizationRouter(): Router {
             dept: 1 // General / Root
           });
 
+          // MIRROR: Also create in the public schema for the Platform Dashboard global view
+          const publicStaffRepo = new StaffRepositoryPg(req.publicDb);
+          await publicStaffRepo.create({
+            category: 'clinicadmin',
+            name: `${result.name} Admin`,
+            email: req.body.adminEmail,
+            password: req.body.adminPassword,
+            designation: 'Clinic Administrator',
+            gender: 'Male',
+            dept: 1, // General / Root,
+            clinicId: result.id // Link to organization
+          });
+
           TenantRegistry.register({
             slug,
             schemaName,
             displayName: result.name,
             isActive: true
           });
-          logger.info({ organizationName: result.name, slug, schemaName }, 'Successfully provisioned new tenant and initial administrator');
+          logger.info({ organizationName: result.name, slug, schemaName }, 'Successfully provisioned new tenant and global administrator record');
         }
       } catch (err: any) {
         logger.error({ err, organizationName: result.name }, 'Failed to provision tenant DB');

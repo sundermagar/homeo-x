@@ -46,7 +46,37 @@ export const accounts = pgTable('accounts', {
   updatedAt:   timestamp('updated_at').defaultNow(),
 });
 
+/**
+ * clinicadmins — Professional profiles of clinic administrators.
+ * This table enables the Platform Dashboard to show a consolidated list
+ * of administrators across all clinics.
+ */
+export const clinicadmins = pgTable('clinicadmins', {
+  id:           serial('id').primaryKey(),
+  name:         text('name').notNull(),
+  password:     text('password'),
+  designation:  text('designation').default('Clinic Administrator'),
+  gender:       text('gender').default('Male'),
+  mobile:       text('mobile').default(''),
+  mobile2:      text('mobile2').default(''),
+  email:        text('email').notNull(),
+  dept:         integer('dept').default(4),
+  city:         text('city').default(''),
+  address:      text('address').default(''),
+  about:        text('about').default(''),
+  dateBirth:    date('date_birth'),
+  dateLeft:     date('date_left'),
+  salaryCur:    integer('salary_cur').default(0),
+  packages:     text('packages'),
+  clinicId:     integer('clinic_id'), // Reference to organization
+  deletedAt:    timestamp('deleted_at'),
+  createdAt:    timestamp('created_at').defaultNow(),
+  updatedAt:    timestamp('updated_at').defaultNow(),
+});
+
 export type Organization    = typeof organizations.$inferSelect;
 export type NewOrganization = typeof organizations.$inferInsert;
 export type Account         = typeof accounts.$inferSelect;
 export type NewAccount      = typeof accounts.$inferInsert;
+export type ClinicAdmin     = typeof clinicadmins.$inferSelect;
+export type NewClinicAdmin  = typeof clinicadmins.$inferInsert;
