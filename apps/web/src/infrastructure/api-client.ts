@@ -12,9 +12,10 @@ apiClient.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
-  // Multi-tenant: spoof host header for local development
-  if (import.meta.env.DEV) {
-    config.headers['x-forwarded-host'] = 'demo.managemyclinic.in';
+  // Multi-tenant: use current window host in local development if needed, 
+  // but preferably let the Vite proxy (changeOrigin: false) handle it.
+  if (import.meta.env.DEV && typeof window !== 'undefined') {
+    config.headers['x-forwarded-host'] = window.location.host;
   }
   return config;
 });

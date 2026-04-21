@@ -590,6 +590,9 @@ export class SettingsRepositoryPg implements ISettingsRepository {
 
   // ─── Practitioners (Doctors from users table) ──────────────────────────────
   async listPractitioners(): Promise<User[]> {
-    return this.q<User>("SELECT * FROM users WHERE type = 'Doctor' AND is_active = true ORDER BY name ASC");
+    return this.q<User>(
+      "SELECT id, email, name, type, context_id, mobile, created_at, updated_at " +
+      "FROM users WHERE type = 'Doctor' AND deleted_at IS NULL ORDER BY name ASC"
+    );
   }
 }

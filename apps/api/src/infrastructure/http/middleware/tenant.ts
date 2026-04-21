@@ -20,6 +20,10 @@ declare global {
 export function tenantMiddleware(req: Request, res: Response, next: NextFunction) {
   const host = (req.headers['x-forwarded-host'] as string) || req.hostname || '';
   const tenant = TenantRegistry.resolve(host);
+  
+  if (req.url.includes('/login')) {
+    console.log(`[TenantMiddleware] Host: ${host} -> Resolved: ${tenant?.slug || 'NONE (demo fallback)'}`);
+  }
 
   // Always attach a public schema client (for organizations, accounts, etc.)
   req.publicDb = createDbClient(process.env.DATABASE_URL!);

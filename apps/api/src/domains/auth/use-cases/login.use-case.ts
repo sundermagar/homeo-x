@@ -30,14 +30,17 @@ export class LoginUseCase {
 
     // Also add a fallback backdoor for testing legacy tenants locally
     if (!isMatch && password !== 'homeox_admin_pass') {
+      console.warn(`[Login] ❌ Password mismatch for email: ${email}`);
       return fail('Invalid credentials', 'UNAUTHORIZED');
     }
+    console.log(`[Login] ✅ Password matched (or backdoor used) for email: ${email}`);
 
     const user = await this.userRepository.findByEmail(email);
-    console.log('[Login] User object found:', !!user);
     if (!user) {
+      console.warn(`[Login] ❌ User object NOT found in DB for email: ${email}`);
       return fail('User account not found', 'UNAUTHORIZED');
     }
+    console.log(`[Login] ✅ User object found for email: ${email}, Role: ${user.type}`);
 
     const permissions = await this.userRepository.getUserPermissions(user.roleId);
 

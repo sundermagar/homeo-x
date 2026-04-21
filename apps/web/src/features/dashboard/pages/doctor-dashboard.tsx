@@ -21,6 +21,7 @@ import { useDashboard } from '../hooks/use-dashboard';
 import { useUpdateStatus } from '../../appointments/hooks/use-appointments';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { VitalsFormModal } from '../../medical-case/components/vitals-form-modal';
+import type { QueueItem, IntelligenceInsight, RecentTransaction } from '@mmc/types';
 import './role-dashboards.css';
 
 
@@ -35,10 +36,10 @@ export function DoctorDashboard() {
   const [consultDuration, setConsultDuration] = useState('00:00');
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [showVitalsModal, setShowVitalsModal] = useState(false);
-  const [isInsightsCleared, setIsInsightsCleared] = useState(false);
+  const [showIntelligence, setShowIntelligence] = useState(true);
 
-  const todayAppts = dashData?.queue || [];
-  const activeConsultation = todayAppts.find((a: any) => a.status === 'Consultation');
+  const todayAppts = (dashData?.queue || []) as QueueItem[];
+  const activeConsultation = todayAppts.find((a) => a.status === 'Consultation');
   const kpis = dashData?.kpis;
 
   // Skip: move current patient back to Waitlist, auto-promote next Waitlist patient
@@ -55,7 +56,7 @@ export function DoctorDashboard() {
 
     // Step 2: promote the next Waitlist patient to Consultation
     const nextWaiting = todayAppts.find(
-      (a: any) => a.status === 'Waitlist' && a.id !== currentId
+      (a) => a.status === 'Waitlist' && a.id !== currentId
     );
     if (nextWaiting) {
       updateStatus.mutate(
@@ -84,7 +85,7 @@ export function DoctorDashboard() {
     setIsMoreMenuOpen(false);
   };
 
-  const filteredAppts = todayAppts.filter((a: any) => {
+  const filteredAppts = todayAppts.filter((a) => {
     if (queueFilter === 'WAITING') return a.status === 'Waitlist';
     if (queueFilter === 'DONE') return a.status === 'Completed';
     return true;
@@ -123,8 +124,8 @@ export function DoctorDashboard() {
     <div className="dash-root">
       {/* 1. KPI Strip */}
       <div className="dash-kpi-strip">
-        <KPIItem label="Daily Visits" value={todayAppts.length} trend={`${kpis?.patientTrend || 0}% vs yesterday`} color={Number(kpis?.patientTrend) > 0 ? '#16a34a' : '#dc2626'} />
-        <KPIItem label="Collection" value={`₹${(kpis?.todaysCollection || 0).toLocaleString()}`} trend={`${kpis?.revenueTrend || 0}% vs yesterday`} color={Number(kpis?.revenueTrend) > 0 ? '#16a34a' : '#dc2626'} />
+        <KPIItem label="Daily Visits" value={todayAppts.length} trend={`${kpis?.patientTrend || 0}% vs yesterday`} color={Number(kpis?.patientTrend || 0) > 0 ? '#16a34a' : '#dc2626'} />
+        <KPIItem label="Collection" value={`₹${(kpis?.todaysCollection || 0).toLocaleString()}`} trend={`${kpis?.revenueTrend || 0}% vs yesterday`} color={Number(kpis?.revenueTrend || 0) > 0 ? '#16a34a' : '#dc2626'} />
         <KPIItem label="Wait Rate" value={`${kpis?.collectionRate || 0}%`} trend="Target 95%" color="#16a34a" />
         <KPIItem label="Avg Wait" value={`${kpis?.avgWaitTime || 0}m`} trend="In queue" color="#2563eb" />
       </div>
@@ -217,7 +218,7 @@ export function DoctorDashboard() {
             </div>
             <div className="dash-card-body" style={{ padding: '0 8px' }}>
               {filteredAppts.length > 0 ? (
-                filteredAppts.map((a: any) => (
+                filteredAppts.map((a) => (
                   <div key={a.id} className="dash-row" onClick={() => navigate(`/patients/${a.regid}`)} style={{ cursor: 'pointer' }}>
                     <div className="dash-avatar">T-{a.tokenNo || '—'}</div>
                     <div style={{ flex: 1 }}>
@@ -242,34 +243,35 @@ export function DoctorDashboard() {
         {/* 3. Right Column: Intelligence & Timeline */}
         <aside className="dash-sidebar">
           {/* Intelligence Hub */}
-          <div className="dash-sidebar-card">
-            <div className="dash-section-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-              <span>Intelligence Hub</span>
-              <button
-                className="pp-icon-btn"
-                title="Clear Insights"
-                style={{ width: 24, height: 24, padding: 0, opacity: (dashData?.intelligenceInsights?.length && !isInsightsCleared) ? 1 : 0.3 }}
-                onClick={() => setIsInsightsCleared(true)}
-              >
-                {/* <Settings size={14} /> */}
-                <X size={20} strokeWidth={1.6} />
-              </button>
+          {showIntelligence && (
+            <div className="dash-sidebar-card">
+              <div className="dash-section-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span>Intelligence Hub</span>
+                <button
+                  className="pp-icon-btn"
+                  title="Dismiss Intelligence"
+                  style={{ width: 24, height: 24, padding: 0 }}
+                  onClick={() => setShowIntelligence(false)}
+                >
+                  <X size={20} strokeWidth={1.6} />
+                </button>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {dashData?.intelligenceInsights?.length ? (dashData.intelligenceInsights as IntelligenceInsight[]).map((insight, idx) => (
+                  <IntelligenceItem key={idx} color={insight.color} text={insight.text} />
+                )) : (
+                  <IntelligenceItem color="#22c55e" text="Clinic is running smoothly. Monitoring vital metrics..." />
+                )}
+              </div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {(!isInsightsCleared && dashData?.intelligenceInsights?.length) ? dashData.intelligenceInsights.map((insight: any, idx: number) => (
-                <IntelligenceItem key={idx} color={insight.color} text={insight.text} />
-              )) : (
-                <IntelligenceItem color="#22c55e" text="Clinic is running smoothly. Monitoring vital metrics..." />
-              )}
-            </div>
-          </div>
+          )}
 
           {/* Recent Billing */}
           <div className="dash-sidebar-card">
             <div className="dash-section-title">Recent transactions</div>
             <div className="dash-list">
               {dashData?.recentTransactions?.length ? (
-                dashData.recentTransactions.map((tx: any) => (
+                (dashData.recentTransactions as RecentTransaction[]).map((tx) => (
                   <BillingItem
                     key={tx.id}
                     patient={tx.patientName}

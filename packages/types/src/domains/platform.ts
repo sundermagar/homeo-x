@@ -37,14 +37,16 @@ export interface Account {
 }
 
 export interface CreateOrganizationInput {
-  name:         string;
-  email?:       string;
-  phone?:       string;
-  address?:     string;
-  website?:     string;
+  name:          string;
+  email?:        string;
+  phone?:        string;
+  address?:      string;
+  website?:      string;
   connectSince?: string;
-  city?:        string;
-  description?: string;
+  city?:         string;
+  description?:  string;
+  adminEmail:    string;
+  adminPassword: string;
 }
 
 export type UpdateOrganizationInput = Partial<CreateOrganizationInput>;

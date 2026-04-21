@@ -33,22 +33,22 @@ async function migrateTenant(schemaName: string) {
     // 1. Provision Baseline Tables (Legacy Parity)
     // This ensures all 150+ tables from tenant_demo are present
     await provisionTenant(dbUrl as string, schemaName);
-    
+
     // 2. Run Modern Migrations
-    const connection = postgres(dbUrl as string, { 
+    const connection = postgres(dbUrl as string, {
       max: 1,
-      onnotice: () => {}, 
+      onnotice: () => { },
       connection: {
         search_path: schemaName
       }
     });
-    
+
     const db = drizzle(connection);
-    await migrate(db, { 
-      migrationsFolder, 
-      migrationsSchema: schemaName 
+    await migrate(db, {
+      migrationsFolder,
+      migrationsSchema: schemaName
     });
-    
+
     await connection.end();
     console.log(`✅ Schema [${schemaName}] synchronized successfully.`);
   } catch (error: any) {

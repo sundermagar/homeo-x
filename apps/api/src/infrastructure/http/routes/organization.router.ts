@@ -10,6 +10,8 @@ import {  ListOrganizationsUseCase,
   UpdateOrganizationUseCase,
   DeleteOrganizationUseCase,
 } from '../../../domains/platform';
+import bcrypt from 'bcryptjs';
+import { StaffRepositoryPg } from '../../repositories/staff.repository.pg';
 
 export function createOrganizationRouter(): Router {
   const router = Router();
@@ -53,13 +55,29 @@ export function createOrganizationRouter(): Router {
         
         if (shouldProvision) {
           await provisionTenant(dbUrl, schemaName);
+          
+          // CRITICAL: Create the initial administrator user in the new schema
+          const { createDbClient } = await import('@mmc/database');
+          const tenantDb = createDbClient(dbUrl, schemaName);
+          const staffRepo = new StaffRepositoryPg(tenantDb);
+          
+          await staffRepo.create({
+            category: 'clinicadmin',
+            name: `${result.name} Admin`,
+            email: req.body.adminEmail,
+            password: req.body.adminPassword,
+            designation: 'Clinic Administrator',
+            gender: 'Male',
+            dept: 1 // General / Root
+          });
+
           TenantRegistry.register({
             slug,
             schemaName,
             displayName: result.name,
             isActive: true
           });
-          logger.info({ organizationName: result.name, slug, schemaName }, 'Successfully provisioned new tenant database schema');
+          logger.info({ organizationName: result.name, slug, schemaName }, 'Successfully provisioned new tenant and initial administrator');
         }
       } catch (err: any) {
         logger.error({ err, organizationName: result.name }, 'Failed to provision tenant DB');

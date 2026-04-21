@@ -143,6 +143,10 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   // ─── Error Handling (must be last) ───
   app.use(errorHandler);
 
+  // Initialize TenantRegistry from database to ensure persistence
+  const publicDb = createDbClient(process.env.DATABASE_URL!);
+  await TenantRegistry.initialize(publicDb);
+
   // For background jobs and system tasks, we provide a default tenant DB (demo)
   const defaultTenant = TenantRegistry.resolve('demo') || { schemaName: 'public' };
   const tenantDb = createDbClient(process.env.DATABASE_URL!, (defaultTenant as any).schemaName);

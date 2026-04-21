@@ -202,21 +202,14 @@ export class StaffRepositoryPg implements StaffRepository {
     
     nextId = staffRes[0].id;
 
-    // Mirror to users — use a fresh unique ID from users table to avoid collisions
+    // Mirror to users — use a subset of columns compatible with legacy schemas
     const userMirrorResult = await this.db.execute(sql`
       INSERT INTO users (
-        name, email, password, type, context_id, role_id, role_name,
-        gender, mobile, mobile2, city, address, about, designation, dept,
-        title, firstname, middlename, surname,
-        date_birth, salary_cur, is_active, created_at, updated_at
+        name, email, password, type, context_id,
+        created_at, updated_at
       ) VALUES (
         ${name}, ${data.email || ''}, ${hashedPassword}, ${roleEnum},
-        1, ${roleId}, ${roleName},
-        ${data.gender || 'Male'}, ${data.mobile || ''}, ${data.mobile2 || ''},
-        ${data.city || ''}, ${data.address || ''}, ${data.about || ''},
-        ${data.designation || ''}, ${data.dept || 4},
-        ${data.title || ''}, ${data.firstname || ''}, ${data.middlename || ''}, ${data.surname || ''},
-        ${data.dateBirth || null}, ${data.salaryCur || 0}, true, NOW(), NOW()
+        1, NOW(), NOW()
       ) RETURNING id
     `) as any[];
 
