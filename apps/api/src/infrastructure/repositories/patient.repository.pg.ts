@@ -217,29 +217,54 @@ export class PatientRepositoryPg implements PatientRepository {
   }
 
   async getFormMeta(): Promise<PatientFormMeta> {
-    const [doctors, religions, occupations, references] = await Promise.all([
-      this.db
-        .select({ id: users.id, name: users.name, consultationFee: users.consultationFee })
-        .from(users)
-        .where(and(isNull(users.deletedAt), eq(users.isActive, true), sql`LOWER(${users.type}) = 'doctor'`))
-        .catch(() => []),
-      this.db.select().from(religionLegacy).catch(() => []),
-      this.db.select().from(occupationLegacy).catch(() => []),
-      this.db.select().from(refrencetypeLegacy).catch(() => []),
-    ]);
+    try {
+      const [doctors, religions, occupations, references] = await Promise.all([
+        this.db
+          .select({ id: users.id, name: users.name, consultationFee: users.consultationFee })
+          .from(users)
+          .where(and(isNull(users.deletedAt), eq(users.isActive, true), sql`LOWER(${users.type}) = 'doctor'`))
+          .catch((err) => {
+            console.error('[PatientRepo] Failed to fetch doctors from users table:', err.message);
+            return [];
+          }),
+        this.db.select().from(religionLegacy).catch((err) => {
+            console.error('[PatientRepo] Failed to fetch religions:', err.message);
+            return [];
+        }),
+        this.db.select().from(occupationLegacy).catch((err) => {
+            console.error('[PatientRepo] Failed to fetch occupations:', err.message);
+            return [];
+        }),
+        this.db.select().from(refrencetypeLegacy).catch((err) => {
+            console.error('[PatientRepo] Failed to fetch references:', err.message);
+            return [];
+        }),
+      ]);
 
-    return {
-      doctors: doctors.map(d => ({ 
-        id: d.id, 
-        name: d.name, 
-        consultationFee: d.consultationFee ? Number(d.consultationFee) : null 
-      })),
-      religions: religions.map((r: any) => r.religion).filter(Boolean),
-      occupations: occupations.map((o: any) => o.occupation).filter(Boolean),
-      references: references.map((r: any) => r.referencetype).filter(Boolean),
-      statuses: ['Single', 'Married', 'Divorced', 'Widowed'],
-      titles: ['Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Prof.', 'Master', 'Baby'],
-    };
+      return {
+        doctors: doctors.map(d => ({ 
+          id: d.id, 
+          name: d.name, 
+          consultationFee: d.consultationFee ? Number(d.consultationFee) : null 
+        })),
+        religions: religions.map((r: any) => r.religion).filter(Boolean),
+        occupations: occupations.map((o: any) => o.occupation).filter(Boolean),
+        references: references.map((r: any) => r.referencetype).filter(Boolean),
+        statuses: ['Single', 'Married', 'Divorced', 'Widowed'],
+        titles: ['Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Prof.', 'Master', 'Baby'],
+      };
+    } catch (err: any) {
+      console.error('[PatientRepo] CRITICAL error in getFormMeta:', err);
+      // Return a minimal valid object instead of throwing
+      return {
+        doctors: [],
+        religions: [],
+        occupations: [],
+        references: [],
+        statuses: ['Single', 'Married', 'Divorced', 'Widowed'],
+        titles: ['Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Prof.', 'Master', 'Baby'],
+      };
+    }
   }
 
   // ─── Family Group ───

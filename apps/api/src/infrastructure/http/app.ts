@@ -145,7 +145,13 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
 
   // Initialize TenantRegistry from database to ensure persistence
   const publicDb = createDbClient(process.env.DATABASE_URL!);
-  await TenantRegistry.initialize(publicDb);
+  
+  if (typeof (TenantRegistry as any).initialize === 'function') {
+    logger.info('Initializing TenantRegistry from database...');
+    await (TenantRegistry as any).initialize(publicDb);
+  } else {
+    logger.warn('TenantRegistry.initialize is not a function! Check if @mmc/database is built and up to date.');
+  }
 
   // For background jobs and system tasks, we provide a default tenant DB (demo)
   const defaultTenant = TenantRegistry.resolve('demo') || { schemaName: 'public' };

@@ -163,14 +163,30 @@ export class StaffRepositoryPg implements StaffRepository {
     let nextId: number;
     let roleAssignId: number;
 
-    // ─── MODERN IDENTITY STRATEGY ───
-    // We insert into the specific staff table first, allowing IDENTITY to handle IDs
+    // ─── 0. Mirror to users FIRST ───
+    // This allows us to get a unique ID that we then force into the staff table.
+    // This ensures consistency across the platform.
+    const userMirrorResult = await this.db.execute(sql`
+      INSERT INTO users (
+        name, email, password, type, context_id,
+        created_at, updated_at
+      ) VALUES (
+        ${name}, ${data.email || ''}, ${hashedPassword}, ${roleEnum},
+        1, NOW(), NOW()
+      ) RETURNING id
+    `) as any[];
+
+    const userId = userMirrorResult[0].id;
+    nextId = userId; // Force staff ID to match user ID
+    roleAssignId = userId;
+
+    // ─── 1. Insert into specific Staff table ───
     const staffCols = [
-      'name', 'email', 'mobile', 'mobile2', 'gender', 'designation', 'dept', 'city', 'address', 'about', 
+      'id', 'name', 'email', 'mobile', 'mobile2', 'gender', 'designation', 'dept', 'city', 'address', 'about', 
       'date_birth', 'date_left', 'salary_cur', 'password'
     ];
     const staffVals = [
-      name, data.email || '', data.mobile || '', data.mobile2 || '', data.gender || 'Male', 
+      nextId, name, data.email || '', data.mobile || '', data.mobile2 || '', data.gender || 'Male', 
       data.designation || '', data.dept || 4, data.city || '', data.address || '', data.about || '', 
       data.dateBirth || null, data.dateLeft || null, data.salaryCur || 0, hashedPassword
     ];
@@ -194,29 +210,12 @@ export class StaffRepositoryPg implements StaffRepository {
       );
     }
 
-    const staffRes = await this.db.execute(sql`
+    await this.db.execute(sql`
       INSERT INTO ${sql.identifier(table)} (${sql.join(staffCols.map(c => sql.raw(c)), sql`, `)}, created_at, updated_at)
       VALUES (${sql.join(staffVals.map(v => sql`${v}`), sql`, `)}, NOW(), NOW())
-      RETURNING id
-    `) as any[];
-    
-    nextId = staffRes[0].id;
+    `);
 
-    // Mirror to users — use a subset of columns compatible with legacy schemas
-    const userMirrorResult = await this.db.execute(sql`
-      INSERT INTO users (
-        name, email, password, type, context_id,
-        created_at, updated_at
-      ) VALUES (
-        ${name}, ${data.email || ''}, ${hashedPassword}, ${roleEnum},
-        1, NOW(), NOW()
-      ) RETURNING id
-    `) as any[];
-
-    const userId = userMirrorResult[0].id;
-    roleAssignId = userId;
-
-    // ─── 3. Assign Role ───
+    // ─── 2. Assign Role ───
     await this.db.execute(sql`
       INSERT INTO role_user (id, user_id, role_id, created_at)
       VALUES ((SELECT COALESCE(MAX(id), 0) + 1 FROM role_user), ${roleAssignId}, ${roleId}, NOW())

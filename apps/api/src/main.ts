@@ -12,7 +12,7 @@ import { createSmsGateway } from './infrastructure/communication/msg91-sms-gatew
 import { JobScheduler } from './infrastructure/scheduler/job-scheduler';
 
 const logger = createLogger('main');
-logger.info('Reloading API...');
+logger.info('Reloading API server...');
 
 async function listenWithFallback(
   server: Server,
@@ -37,6 +37,9 @@ async function listenWithFallback(
         server.once('listening', onListening);
         server.listen(port);
       });
+      if (port !== startPort) {
+        logger.warn(`API bound to fallback port ${port}. Frontend proxy targeting ${startPort} (like Vite) will fail with ECONNREFUSED.`);
+      }
       return port;
     } catch (err) {
       const e = err as NodeJS.ErrnoException;
