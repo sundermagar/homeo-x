@@ -5,6 +5,7 @@ import type { Appointment, CreateAppointmentDto } from '@mmc/types';
 import { useCreateAppointment, useUpdateAppointment, useAvailableSlots } from '../hooks/use-appointments';
 import { apiClient } from '@/infrastructure/api-client';
 import { useAuthStore } from '@/shared/stores/auth-store';
+import { NumericInput } from '@/shared/components/NumericInput';
 import '../styles/appointments.css';
 
 interface Doctor { id: number; name: string; consultation_fee?: number; }
@@ -184,9 +185,8 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
                   <DollarSign size={13} strokeWidth={1.6} />
                   Fee (₹)
                 </label>
-                <input
+                <NumericInput
                   className="appt-form-input"
-                  type="number"
                   placeholder="0.00"
                   value={form.consultationFee}
                   onChange={e => set('consultationFee', e.target.value)}
@@ -286,13 +286,13 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
                     required
                   />
                 )}
-                <input
-                  className="appt-form-input"
-                  placeholder="Mobile Number"
-                  value={form.phone}
-                  onChange={e => set('phone', e.target.value)}
-                  onBlur={e => form.visitType === VisitType.FollowUp && handlePatientLookup(e.target.value, 'phone')}
-                />
+              <NumericInput
+                className="appt-form-input"
+                placeholder="Mobile Number"
+                value={form.phone}
+                onChange={e => set('phone', e.target.value)}
+                onBlur={e => form.visitType === VisitType.FollowUp && handlePatientLookup(e.target.value, 'phone')}
+              />
               </div>
               
               {lookupLoading && <span className="appt-lookup-loading">Looking up patient…</span>}

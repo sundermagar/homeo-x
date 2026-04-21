@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { usePatient, useCreatePatient, useUpdatePatient, usePatientFormMeta } from '../hooks/use-patients';
+import { NumericInput } from '@/shared/components/NumericInput';
 import '../styles/patients.css';
+
 
 const INDIAN_STATES = [
   'Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhattisgarh','Goa','Gujarat',
@@ -83,12 +85,6 @@ export default function PatientFormPage() {
     }
   };
 
-  // Prevent non-numeric keys on phone/PIN fields (allows backspace, delete, arrows)
-  const handleNumericKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!/^[0-9]$/.test(e.key) && !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.key)) {
-      e.preventDefault();
-    }
-  };
 
   const validate = () => {
     const errs: string[] = [];
@@ -152,7 +148,7 @@ export default function PatientFormPage() {
             </div>
             <div>
               <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Consultation Fee (₹)</label>
-              <input className="pp-input" name="consultationFee" type="number" value={form.consultationFee} onChange={handleChange} />
+              <NumericInput className="pp-input" name="consultationFee" value={form.consultationFee} onChange={handleChange} />
             </div>
             <div>
               <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Date of Birth</label>
@@ -195,15 +191,15 @@ export default function PatientFormPage() {
             </div>
             <div>
               <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Mobile <span style={{ color: 'var(--pp-danger-fg)' }}>*</span></label>
-              <input className="pp-input" name="phone" value={form.phone} onChange={handleChange} onKeyDown={handleNumericKey} placeholder="Primary Mobile" type="tel" inputMode="numeric" />
+              <NumericInput className="pp-input" name="phone" value={form.phone} onChange={handleChange} placeholder="Primary Mobile" />
             </div>
             <div>
               <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Mobile 2</label>
-              <input className="pp-input" name="mobile1" value={form.mobile1} onChange={handleChange} onKeyDown={handleNumericKey} placeholder="Alternate Mobile" type="tel" inputMode="numeric" />
+              <NumericInput className="pp-input" name="mobile1" value={form.mobile1} onChange={handleChange} placeholder="Alternate Mobile" />
             </div>
             <div>
               <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Landline</label>
-              <input className="pp-input" name="mobile2" value={form.mobile2} onChange={handleChange} placeholder="Landline" type="tel" />
+              <NumericInput className="pp-input" name="mobile2" value={form.mobile2} onChange={handleChange} placeholder="Landline" />
             </div>
             <div>
               <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Email</label>
@@ -245,7 +241,7 @@ export default function PatientFormPage() {
             </div>
             <div>
               <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>PIN Code</label>
-              <input className="pp-input" name="pin" value={form.pin} onChange={handleChange} placeholder="PIN Code" />
+              <NumericInput className="pp-input" name="pin" value={form.pin} onChange={handleChange} placeholder="PIN Code" />
             </div>
           </div>
 

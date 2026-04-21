@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
+import { NumericInput } from '@/shared/components/NumericInput';
 import type { Account, Organization } from '@mmc/types';
 import { useCreateAccount, useUpdateAccount } from '../hooks/use-accounts';
 import '../styles/platform.css';
@@ -133,9 +134,8 @@ export function AccountModal({ mode, account, organizations, onClose }: AccountM
 
               <div className="plat-form-group">
                 <label className="plat-form-label">Mobile Number</label>
-                <input
+                <NumericInput
                   className="plat-form-input"
-                  type="tel"
                   value={form.mobile}
                   onChange={(e) => set('mobile', e.target.value)}
                   placeholder="9876543210"

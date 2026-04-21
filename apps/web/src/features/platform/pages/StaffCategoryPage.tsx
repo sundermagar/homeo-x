@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
 import { Plus, Search, Edit2, Trash2, X, Users, UserCheck, Stethoscope, ClipboardList, ShieldCheck, UserCog } from 'lucide-react';
+import { NumericInput } from '@/shared/components/NumericInput';
 import { useStaffList, useDeleteStaff, useCreateStaff, useUpdateStaff, useStaffMember } from '@/features/staff/hooks/use-staff';
 import type { StaffCategory, StaffSummary, StaffMember } from '@mmc/types';
 import type { CreateStaffInput, UpdateStaffInput } from '@mmc/validation';
@@ -225,11 +225,10 @@ function StaffModal({
 
             <div className="plat-form-group">
               <label className="plat-form-label">Mobile Number *</label>
-              <input
-                type="tel"
+              <NumericInput
                 className="plat-form-input"
                 value={form.mobile || ''}
-                onChange={(e) => updateForm('mobile', e.target.value)}
+                onChange={(e: any) => updateForm('mobile', e.target.value)}
                 disabled={isLoading}
               />
               {errors['mobile'] && <span className="plat-form-error">{errors['mobile']}</span>}
@@ -249,11 +248,10 @@ function StaffModal({
             {category === 'doctor' && (
               <div className="plat-form-group">
                 <label className="plat-form-label">Consultation Fee (₹)</label>
-                <input
-                  type="number"
+                <NumericInput
                   className="plat-form-input"
                   value={form.consultationFee || ''}
-                  onChange={(e) => updateForm('consultationFee', e.target.value)}
+                  onChange={(e: any) => updateForm('consultationFee', e.target.value)}
                   disabled={isLoading}
                 />
               </div>

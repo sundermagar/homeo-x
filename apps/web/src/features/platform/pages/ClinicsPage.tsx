@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Building2, Plus, X, RefreshCw } from 'lucide-react';
 import { useOrganizations, useCreateOrganization, useDeleteOrganization } from '../hooks/use-organizations';
 import type { CreateOrganizationInput } from '@mmc/types';
+import { NumericInput } from '@/shared/components/NumericInput';
 import '../styles/platform.css';
 
 const EMPTY_FORM: any = {
@@ -34,7 +35,12 @@ export default function ClinicsPage() {
 
   const handleDelete = async (id: number, name: string) => {
     if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
-    await deleteOrg.mutateAsync(id);
+    try {
+      await deleteOrg.mutateAsync(id);
+    } catch (err: any) {
+      console.error("Delete Error:", err);
+      alert(`Failed to delete clinic: ${err.message || 'Unknown error'}`);
+    }
   };
 
   const set = (key: string, val: string) =>
@@ -203,9 +209,8 @@ export default function ClinicsPage() {
                 <div className="plat-form-grid-multi">
                   <div className="plat-form-group">
                     <label className="plat-form-label">Phone Number</label>
-                    <input
+                    <NumericInput
                       className="plat-form-input"
-                      type="tel"
                       value={form.phone || ''}
                       onChange={e => set('phone', e.target.value)}
                       placeholder="9876543210"

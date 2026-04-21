@@ -33,9 +33,11 @@ export interface Account {
   address:     string;
   about:       string;
   designation: string;
+  dept:        number;
   clinicId:    number | null;
   deletedAt?:  string | null;
   createdAt:   string;
+  updatedAt:   string;
 }
 
 export interface CreateOrganizationInput {
@@ -65,6 +67,7 @@ export interface CreateAccountInput {
   address?:    string;
   about?:      string;
   designation?: string;
+  dept?:       number;
   clinicId?:   number;
 }
 

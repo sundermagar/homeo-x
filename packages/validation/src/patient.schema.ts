@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { phoneSchema, numericStringSchema } from './common.schema';
 
 export const createPatientSchema = z.object({
   // Name
@@ -9,12 +10,13 @@ export const createPatientSchema = z.object({
   gender: z.enum(['M', 'F', 'Other']).default('M'),
   dateOfBirth: z.string().optional(),
   // Contact
-  phone: z.string().max(20).optional(),
-  mobile1: z.string().max(20).optional(),
-  mobile2: z.string().max(20).optional(),
+  phone: phoneSchema,
+  mobile1: phoneSchema,
+  mobile2: phoneSchema,
   email: z.string().email().optional().or(z.literal('')),
   // Address
-  pin: z.string().max(10).optional(),
+  pin: numericStringSchema.max(10).optional(),
+
   address: z.string().optional(),
   road: z.string().optional(),
   area: z.string().optional(),

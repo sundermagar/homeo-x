@@ -27,22 +27,22 @@ export class StaffRepositoryPg implements StaffRepository {
 
   // Mirrors MMC's TYPE_TO_ROLE — maps category string → Role enum
   private static readonly CATEGORY_ROLE_MAP: Record<StaffCategory, Role> = {
-    doctor:        Role.Doctor,
-    receptionist:  Role.Receptionist,
-    employee:      Role.Employee,
-    clinicadmin:   Role.Clinicadmin,
-    account:       Role.Account,
+    doctor: Role.Doctor,
+    receptionist: Role.Receptionist,
+    employee: Role.Employee,
+    clinicadmin: Role.Clinicadmin,
+    account: Role.Account,
   };
 
   // Hard-coded role IDs — must match roles table seeded data
   private static readonly ROLE_ID_MAP: Partial<Record<Role, number>> = {
-    [Role.Admin]:        1,
-    [Role.Clinicadmin]:  2,
-    [Role.Doctor]:       3,
+    [Role.Admin]: 1,
+    [Role.Clinicadmin]: 2,
+    [Role.Doctor]: 3,
     [Role.Receptionist]: 4,
-    [Role.Employee]:     5,
-    [Role.Dispensary]:   6,
-    [Role.Account]:      7,
+    [Role.Employee]: 5,
+    [Role.Dispensary]: 6,
+    [Role.Account]: 7,
   };
 
   /** Look up role_id by name from the roles table (case-insensitive). */
@@ -93,16 +93,16 @@ export class StaffRepositoryPg implements StaffRepository {
 
     // Base columns shared by all staff tables (employees, receptionists, accounts, doctors)
     const baseColumns = [
-      'id', 'name', 'email', 'mobile', 'mobile2', 'gender', 'designation', 'dept', 
-      'city', 'address', 'about', 'date_birth', 'date_left', 'salary_cur', 
+      'id', 'name', 'email', 'mobile', 'mobile2', 'gender', 'designation', 'dept',
+      'city', 'address', 'about', 'date_birth', 'date_left', 'salary_cur',
       'created_at', 'updated_at', 'deleted_at'
     ];
 
     // Doctor specific columns (only in doctors table)
     const doctorColumns = [
-      'title', 'firstname', 'middlename', 'surname', 'qualification', 
-      'instutitue', 'passedout', 'joiningdate', '"registrationId"', 
-      'consultation_fee', 'aadharnumber', 'pannumber', 'permanentaddress', 
+      'title', 'firstname', 'middlename', 'surname', 'qualification',
+      'instutitue', 'passedout', 'joiningdate', '"registrationId"',
+      'consultation_fee', 'aadharnumber', 'pannumber', 'permanentaddress',
       'aadhar_card', 'pan_card', 'appointment_letter', 'registration_certificate',
       'profilepic', '"10_document"', '"12_document"', 'bhms_document', 'md_document'
     ];
@@ -113,22 +113,22 @@ export class StaffRepositoryPg implements StaffRepository {
     const colFragment = sql.join(selectColumns.map(c => sql.raw(c)), sql`, `);
 
     try {
-        const rows = await this.db.execute(sql`
+      const rows = await this.db.execute(sql`
           SELECT ${colFragment}
           FROM ${sql.identifier(table)}
           WHERE id = ${id} AND (deleted_at IS NULL OR deleted_at::text = '')
           LIMIT 1
         `);
-        
-        const row = (rows as any[])[0];
-        if (!row) return null;
-        return this.toDomain(row, category);
+
+      const row = (rows as any[])[0];
+      if (!row) return null;
+      return this.toDomain(row, category);
     } catch (err: any) {
-        // Log to a file we can read from the toolkit
-        const logMsg = `[${new Date().toISOString()}] findById FAILED for ${category}/${id}.\nError: ${err.message}\nSQL: SELECT ${selectColumns.join(', ')} FROM ${table}\n\n`;
-        require('fs').appendFileSync('repo_error.log', logMsg);
-        console.error(`[StaffRepo] findById FAILED for ${category}/${id}:`, err.message);
-        return null;
+      // Log to a file we can read from the toolkit
+      const logMsg = `[${new Date().toISOString()}] findById FAILED for ${category}/${id}.\nError: ${err.message}\nSQL: SELECT ${selectColumns.join(', ')} FROM ${table}\n\n`;
+      require('fs').appendFileSync('repo_error.log', logMsg);
+      console.error(`[StaffRepo] findById FAILED for ${category}/${id}:`, err.message);
+      return null;
     }
   }
 
@@ -153,8 +153,8 @@ export class StaffRepositoryPg implements StaffRepository {
     }
 
     const name = category === 'doctor'
-        ? (data.firstname ? `${data.title || 'Dr'} ${data.firstname} ${data.surname || ''}`.trim() : data.name)
-        : data.name;
+      ? (data.firstname ? `${data.title || 'Dr'} ${data.firstname} ${data.surname || ''}`.trim() : data.name)
+      : data.name;
 
     const roleEnum = StaffRepositoryPg.CATEGORY_ROLE_MAP[category] ?? Role.Receptionist;
     const roleId = StaffRepositoryPg.ROLE_ID_MAP[roleEnum] ?? 4;
@@ -166,13 +166,15 @@ export class StaffRepositoryPg implements StaffRepository {
     // ─── 0. Mirror to users FIRST ───
     // This allows us to get a unique ID that we then force into the staff table.
     // This ensures consistency across the platform.
+    // context_id is set to clinicId so login can resolve the correct tenant
+    const contextId = (data as any).clinicId || 1;
     const userMirrorResult = await this.db.execute(sql`
       INSERT INTO users (
         name, email, password, type, context_id,
         created_at, updated_at
       ) VALUES (
         ${name}, ${data.email || ''}, ${hashedPassword}, ${roleEnum},
-        1, NOW(), NOW()
+        ${contextId}, NOW(), NOW()
       ) RETURNING id
     `) as any[];
 
@@ -182,31 +184,37 @@ export class StaffRepositoryPg implements StaffRepository {
 
     // ─── 1. Insert into specific Staff table ───
     const staffCols = [
-      'id', 'name', 'email', 'mobile', 'mobile2', 'gender', 'designation', 'dept', 'city', 'address', 'about', 
+      'id', 'name', 'email', 'mobile', 'mobile2', 'gender', 'designation', 'dept', 'city', 'address', 'about',
       'date_birth', 'date_left', 'salary_cur', 'password'
     ];
-    const staffVals = [
-      nextId, name, data.email || '', data.mobile || '', data.mobile2 || '', data.gender || 'Male', 
-      data.designation || '', data.dept || 4, data.city || '', data.address || '', data.about || '', 
+    const staffVals: any[] = [
+      nextId, name, data.email || '', data.mobile || '', data.mobile2 || '', data.gender || 'Male',
+      data.designation || '', data.dept || 4, data.city || '', data.address || '', data.about || '',
       data.dateBirth || null, data.dateLeft || null, data.salaryCur || 0, hashedPassword
     ];
+
+    // Add clinic_id for clinic admins — ties the admin to their organization
+    if (category === 'clinicadmin' && (data as any).clinicId) {
+      staffCols.push('clinic_id');
+      staffVals.push((data as any).clinicId);
+    }
 
     // Add doctor-specific columns if applicable
     if (category === 'doctor') {
       staffCols.push(
-        'title', 'firstname', 'middlename', 'surname', 'qualification', 'instutitue', 'passedout', 
-        'joiningdate', '"registrationId"', 'consultation_fee', 'permanentaddress', 'profilepic', 
-        '"10_document"', '"12_document"', 'bhms_document', 'md_document', 'registration_certificate', 
+        'title', 'firstname', 'middlename', 'surname', 'qualification', 'instutitue', 'passedout',
+        'joiningdate', '"registrationId"', 'consultation_fee', 'permanentaddress', 'profilepic',
+        '"10_document"', '"12_document"', 'bhms_document', 'md_document', 'registration_certificate',
         'aadhar_card', 'pan_card', 'appointment_letter', 'aadharnumber', 'pannumber'
       );
       staffVals.push(
-          data.title || 'Dr', data.firstname || '', data.middlename || '', data.surname || '', 
-          data.qualification || '', data.institute || '', data.passedOut || '', 
-          data.joiningdate || null, data.registrationId || '', String(data.consultationFee || 0), 
-          data.permanentAddress || '', data.profilepic || '', data.col10Document || '', 
-          data.col12Document || '', data.bhmsDocument || '', data.mdDocument || '', 
-          data.registrationCertificate || '', data.aadharCard || '', data.panCard || '', 
-          data.appointmentLetter || '', data.aadharnumber || '', data.pannumber || ''
+        data.title || 'Dr', data.firstname || '', data.middlename || '', data.surname || '',
+        data.qualification || '', data.institute || '', data.passedOut || '',
+        data.joiningdate || null, data.registrationId || '', String(data.consultationFee || 0),
+        data.permanentAddress || '', data.profilepic || '', data.col10Document || '',
+        data.col12Document || '', data.bhmsDocument || '', data.mdDocument || '',
+        data.registrationCertificate || '', data.aadharCard || '', data.panCard || '',
+        data.appointmentLetter || '', data.aadharnumber || '', data.pannumber || ''
       );
     }
 
@@ -254,8 +262,8 @@ export class StaffRepositoryPg implements StaffRepository {
     ];
 
     if (!isAccount) {
-        updates.push(sql`dept = ${data.dept ?? existing.department}`);
-        updates.push(sql`salary_cur = ${data.salaryCur ?? existing.salary}`);
+      updates.push(sql`dept = ${data.dept ?? existing.department}`);
+      updates.push(sql`salary_cur = ${data.salaryCur ?? existing.salary}`);
     }
 
     if (data.password) {
@@ -346,7 +354,7 @@ export class StaffRepositoryPg implements StaffRepository {
       isActive: !row.deleted_at,
       createdAt: row.created_at ? new Date(row.created_at).toISOString() : null,
       updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : null,
-      
+
       // Doctor-specific fields mapping (Legacy snake_case names)
       title: row.title ?? null,
       firstname: row.firstname ?? null,

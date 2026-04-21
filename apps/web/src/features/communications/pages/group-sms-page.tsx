@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Send, MessageSquare, Users, RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react';
+import { NumericInput } from '@/shared/components/NumericInput';
 import { useSmsTemplates, useSendSms, useBroadcastSms } from '../hooks/use-communications';
 import '../styles/communications.css';
 
@@ -125,7 +126,7 @@ export default function GroupSmsPage() {
               {mode === 'single' ? (
                 <div className="comm-form-group">
                   <label className="comm-form-label">Phone Number *</label>
-                  <input className="comm-form-input" type="tel" placeholder="e.g. 9876543210"
+                  <NumericInput className="comm-form-input" placeholder="e.g. 9876543210"
                     value={phone} onChange={e => setPhone(e.target.value)} />
                 </div>
               ) : (

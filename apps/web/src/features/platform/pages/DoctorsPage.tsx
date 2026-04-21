@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Plus, Search, Edit2, Trash2, X, GraduationCap, Building2, Stethoscope, Mail, Phone, MapPin, Users, UserCheck, LayoutGrid, Award, Landmark, Upload, Image as ImageIcon, FileText } from 'lucide-react';
+import { NumericInput } from '@/shared/components/NumericInput';
 import { useStaffList, useDeleteStaff, useCreateStaff, useUpdateStaff, useStaffMember } from '@/features/staff/hooks/use-staff';
 import type { StaffSummary, StaffMember } from '@mmc/types';
 import type { CreateStaffInput, UpdateStaffInput } from '@mmc/validation';
@@ -365,11 +366,10 @@ function StaffModal({
             <div className="plat-form-grid-multi">
               <div className="plat-form-group">
                 <label className="plat-form-label">Primary Mobile *</label>
-                <input
-                  type="tel"
+                <NumericInput
                   className="plat-form-input"
                   value={form.mobile || ''}
-                  onChange={(e) => updateForm('mobile', e.target.value)}
+                  onChange={(e: any) => updateForm('mobile', e.target.value)}
                   disabled={isLoading}
                 />
                 {errors['mobile'] && <span className="plat-form-error">{errors['mobile']}</span>}
@@ -377,11 +377,10 @@ function StaffModal({
 
               <div className="plat-form-group">
                 <label className="plat-form-label">Alt Mobile</label>
-                <input
-                  type="tel"
+                <NumericInput
                   className="plat-form-input"
                   value={form.mobile2 || ''}
-                  onChange={(e) => updateForm('mobile2', e.target.value)}
+                  onChange={(e: any) => updateForm('mobile2', e.target.value)}
                   disabled={isLoading}
                 />
               </div>
@@ -511,11 +510,10 @@ function StaffModal({
 
               <div className="plat-form-group">
                 <label className="plat-form-label">Consultation Fee (₹)</label>
-                <input
-                  type="number"
+                <NumericInput
                   className="plat-form-input"
                   value={form.consultationFee || ''}
-                  onChange={(e) => updateForm('consultationFee', e.target.value)}
+                  onChange={(e: any) => updateForm('consultationFee', e.target.value)}
                   disabled={isLoading}
                 />
               </div>

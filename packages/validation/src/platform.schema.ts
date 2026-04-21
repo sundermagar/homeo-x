@@ -1,11 +1,13 @@
 import { z } from 'zod';
+import { phoneSchema } from './common.schema';
 
 // ─── Organization Schemas ─────────────────────────────────────────────────────
 
 export const createOrganizationSchema = z.object({
   name:          z.string().min(2, 'Name must be at least 2 characters'),
   email:         z.string().email('Invalid email').optional().or(z.literal('')),
-  phone:         z.string().optional().default(''),
+  phone:         phoneSchema.default(''),
+
   address:       z.string().optional().default(''),
   website:       z.string().optional().default(''),
   connectSince:  z.string().optional().default('1990-01-01'),
@@ -28,11 +30,12 @@ export const createAccountSchema = z.object({
   email:       z.string().email('Invalid email').optional().or(z.literal('')),
   password:    z.string().min(6, 'Password must be at least 6 characters'),
   gender:      z.enum(['Male', 'Female', 'Other']).optional().default('Male'),
-  mobile:      z.string().optional().default(''),
+  mobile:      phoneSchema.default(''),
   city:        z.string().optional().default(''),
   address:     z.string().optional().default(''),
   about:       z.string().optional().default(''),
   designation: z.string().optional().default(''),
+  dept:        z.number().int().optional().default(1),
   clinicId:    z.number().int().positive().optional().nullable(),
 });
 

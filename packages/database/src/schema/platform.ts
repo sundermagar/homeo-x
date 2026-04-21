@@ -40,6 +40,7 @@ export const accounts = pgTable('accounts', {
   address:     text('address').default(''),
   about:       text('about').default(''),
   designation: text('designation').default(''),
+  dept:        integer('dept').default(1), // Finance/Accounts dept
   clinicId:    integer('clinic_id'),   // references organizations(id)
   deletedAt:   timestamp('deleted_at'),
   createdAt:   timestamp('created_at').defaultNow(),

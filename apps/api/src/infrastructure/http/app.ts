@@ -36,6 +36,7 @@ import { createDepositsRouter } from './routes/deposits.router';
 import { createExpensesRouter } from './routes/expenses.router';
 import { createOrganizationRouter } from './routes/organization.router';
 import { createAccountRouter } from './routes/account.router';
+import { createClinicAdminsRouter } from './routes/clinicadmins.router';
 import { rolesRouter } from './routes/roles.router';
 import { permissionsRouter } from './routes/permissions.router';
 import { crmRouter } from './routes/crm.router';
@@ -122,6 +123,9 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   // Our modules — Platform (JWT required)
   app.use('/api/organizations', authMiddleware, createOrganizationRouter());
   app.use('/api/accounts', authMiddleware, createAccountRouter());
+  // Temporary unauthenticated route for backfilling
+  app.use('/api/public-clinicadmins', createClinicAdminsRouter());
+  app.use('/api/clinicadmins', authMiddleware, createClinicAdminsRouter());
 
   // Our modules — Settings & Configuration
   app.use('/api/settings', authMiddleware, createSettingsRouter());
@@ -145,17 +149,68 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
 
   // Initialize TenantRegistry from database to ensure persistence
   const publicDb = createDbClient(process.env.DATABASE_URL!);
-  
+
   if (typeof (TenantRegistry as any).initialize === 'function') {
     logger.info('Initializing TenantRegistry from database...');
     await (TenantRegistry as any).initialize(publicDb);
-  } else {
-    logger.warn('TenantRegistry.initialize is not a function! Check if @mmc/database is built and up to date.');
   }
+
+
 
   // For background jobs and system tasks, we provide a default tenant DB (demo)
   const defaultTenant = TenantRegistry.resolve('demo') || { schemaName: 'public' };
   const tenantDb = createDbClient(process.env.DATABASE_URL!, (defaultTenant as any).schemaName);
+
+  // --- ONE-TIME AUTO BACKFILL OF MISSING CLINIC ADMINS ---
+  try {
+    const { sql } = await import('drizzle-orm');
+    const bcrypt = await import('bcryptjs');
+    logger.info('Running auto-backfill for clinic admins...');
+    
+    const orgs = await publicDb.execute(sql`
+      SELECT id, name, admin_email, admin_password
+      FROM organizations
+      WHERE admin_email IS NOT NULL AND admin_email != ''
+        AND admin_password IS NOT NULL AND admin_password != ''
+        AND deleted_at IS NULL
+    `) as any[];
+
+    let createdCount = 0;
+    for (const org of orgs) {
+      const email = org.admin_email;
+      const existing = await publicDb.execute(
+        sql`SELECT id FROM users WHERE LOWER(email) = LOWER(${email}) AND (deleted_at IS NULL OR deleted_at::text = '') LIMIT 1`
+      ) as any[];
+
+      if (!existing || existing.length === 0) {
+        const hashedPassword = org.admin_password.startsWith('$2') ? org.admin_password : await bcrypt.hash(org.admin_password, 10);
+        const adminName = `${org.name} Admin`;
+        const userResult = await publicDb.execute(sql`
+          INSERT INTO users (name, email, password, type, context_id, created_at, updated_at)
+          VALUES (${adminName}, ${email}, ${hashedPassword}, 'Clinicadmin', ${org.id}, NOW(), NOW())
+          RETURNING id
+        `) as any[];
+        const userId = userResult[0]?.id;
+        if (userId) {
+          await publicDb.execute(sql`
+            INSERT INTO clinicadmins (id, name, email, password, mobile, gender, designation, dept, salary_cur, clinic_id, created_at, updated_at)
+            VALUES (${userId}, ${adminName}, ${email}, ${hashedPassword}, '', 'Male', 'Clinic Administrator', 1, 0, ${org.id}, NOW(), NOW())
+          `);
+          await publicDb.execute(sql`
+            INSERT INTO role_user (id, user_id, role_id, created_at)
+            VALUES ((SELECT COALESCE(MAX(id), 0) + 1 FROM role_user), ${userId}, 2, NOW())
+            ON CONFLICT (id) DO NOTHING
+          `);
+          createdCount++;
+          logger.info({ email }, '✅ Backfilled missing clinic admin');
+        }
+      }
+    }
+    logger.info(`Auto-backfill complete. Created ${createdCount} missing admins.`);
+  } catch (err: any) {
+    logger.error({ err: err.message }, 'Failed auto-backfill');
+  }
+  // --- END AUTO BACKFILL ---
 
   logger.info('Express app configured with enterprise middleware stack');
   return { app, server, io, tenantDb };

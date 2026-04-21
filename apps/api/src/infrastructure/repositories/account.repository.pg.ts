@@ -60,6 +60,7 @@ export class AccountRepositoryPg implements AccountRepository {
         address:     data.address     ?? '',
         about:       data.about       ?? '',
         designation: data.designation ?? '',
+        dept:        data.dept        ?? 1,
         clinicId:    data.clinicId    ?? null,
       }).returning();
 
@@ -70,6 +71,7 @@ export class AccountRepositoryPg implements AccountRepository {
         password:  hashedPassword,
         contextId: account!.id,
         type:      Role.Account,
+        dept:      data.dept ?? 1,
       });
 
       return this.toDomain(account!);
@@ -135,9 +137,11 @@ export class AccountRepositoryPg implements AccountRepository {
       address:     row.address      ?? '',
       about:       row.about        ?? '',
       designation: row.designation  ?? '',
+      dept:        row.dept         ?? 1,
       clinicId:    row.clinicId     ?? null,
       deletedAt:   row.deletedAt?.toISOString() ?? null,
       createdAt:   row.createdAt?.toISOString() ?? new Date().toISOString(),
+      updatedAt:   row.updatedAt?.toISOString() ?? new Date().toISOString(),
     };
   }
 }

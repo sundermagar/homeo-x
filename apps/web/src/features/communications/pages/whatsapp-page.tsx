@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { MessageCircle, Send, RefreshCw, ExternalLink, CheckCircle2, AlertCircle, Clock } from 'lucide-react';
+import { NumericInput } from '@/shared/components/NumericInput';
 import { useSendWhatsApp, useBroadcastWhatsApp, useWhatsAppLogs, useSmsTemplates } from '../hooks/use-communications';
 import type { WhatsAppLog } from '@mmc/types';
 import '../styles/communications.css';
@@ -105,7 +106,7 @@ export default function WhatsAppPage() {
             {/* Phone */}
             <div className="comm-form-group">
               <label className="comm-form-label">Phone Number *</label>
-              <input className="comm-form-input" type="tel" placeholder="e.g. 9876543210"
+              <NumericInput className="comm-form-input" placeholder="e.g. 9876543210"
                 value={phone} onChange={e => setPhone(e.target.value)} />
             </div>
 

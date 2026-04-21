@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { phoneSchema, numericStringSchema } from './common.schema';
 
 /**
  * Staff validation schemas — unified create/update for all staff categories.
@@ -10,8 +11,9 @@ export const createStaffSchema = z.object({
   category: staffCategoryEnum,
   name: z.string().optional().default(''),
   email: z.string().email().or(z.literal('')).optional().nullable().default(''),
-  mobile: z.string().optional().nullable().default(''),
-  mobile2: z.string().optional().default(''),
+  mobile: phoneSchema.nullable().default(''),
+  mobile2: phoneSchema.default(''),
+
   gender: z.enum(['Male', 'Female', 'Other']).default('Male'),
   designation: z.string().optional().default(''),
   dept: z.number().int().optional().default(4),

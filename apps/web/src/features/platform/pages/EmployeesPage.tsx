@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Plus, Search, Edit2, Trash2, X, Users, UserCheck, Upload, FileText, MapPin } from 'lucide-react';
+import { NumericInput } from '@/shared/components/NumericInput';
 import { useStaffList, useDeleteStaff, useCreateStaff, useUpdateStaff, useStaffMember } from '@/features/staff/hooks/use-staff';
 import type { StaffSummary, StaffMember } from '@mmc/types';
 import type { CreateStaffInput, UpdateStaffInput } from '@mmc/validation';
@@ -335,11 +336,10 @@ function StaffModal({
 
               <div className="plat-form-group">
                 <label className="plat-form-label">Mobile Number *</label>
-                <input
-                  type="tel"
+                <NumericInput
                   className="plat-form-input"
                   value={form.mobile || ''}
-                  onChange={(e) => updateForm('mobile', e.target.value)}
+                  onChange={(e: any) => updateForm('mobile', e.target.value)}
                   disabled={isLoading}
                   placeholder="9876543210"
                 />
@@ -348,11 +348,10 @@ function StaffModal({
 
               <div className="plat-form-group">
                 <label className="plat-form-label">Emergency Mobile</label>
-                <input
-                  type="tel"
+                <NumericInput
                   className="plat-form-input"
                   value={form.mobile2 || ''}
-                  onChange={(e) => updateForm('mobile2', e.target.value)}
+                  onChange={(e: any) => updateForm('mobile2', e.target.value)}
                   disabled={isLoading}
                   placeholder="Alternative number"
                 />
@@ -418,11 +417,10 @@ function StaffModal({
 
               <div className="plat-form-group">
                 <label className="plat-form-label">Monthly Salary (₹)</label>
-                <input
-                  type="number"
+                <NumericInput
                   className="plat-form-input"
                   value={form.salaryCur || ''}
-                  onChange={(e) => updateForm('salaryCur', e.target.value)}
+                  onChange={(e: any) => updateForm('salaryCur', e.target.value)}
                   disabled={isLoading}
                 />
               </div>

@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Plus, Search, Edit2, Trash2, X, ClipboardList, Mail, Phone, MapPin, Users, UserCheck, Calendar, Briefcase, Info, BadgeIndianRupee, RefreshCw, Upload, FileText } from 'lucide-react';
+import { NumericInput } from '@/shared/components/NumericInput';
 import { useStaffList, useDeleteStaff, useCreateStaff, useUpdateStaff, useStaffMember } from '@/features/staff/hooks/use-staff';
 import type { StaffSummary, StaffMember } from '@mmc/types';
 import type { CreateStaffInput, UpdateStaffInput } from '@mmc/validation';
@@ -7,21 +8,21 @@ import { createStaffSchema, updateStaffSchema } from '@mmc/validation';
 import { apiClient } from '@/infrastructure/api-client';
 import '../styles/platform.css';
 
-function FileInputRow({ 
-  label, 
-  field, 
-  value, 
-  onChange, 
-  error, 
+function FileInputRow({
+  label,
+  field,
+  value,
+  onChange,
+  error,
   accept = "image/*,application/pdf",
   className = "",
   style = {}
-}: { 
-  label: string; 
-  field: string; 
-  value?: string; 
-  onChange: (f: string, e: React.ChangeEvent<HTMLInputElement>) => void; 
-  error?: string; 
+}: {
+  label: string;
+  field: string;
+  value?: string;
+  onChange: (f: string, e: React.ChangeEvent<HTMLInputElement>) => void;
+  error?: string;
   accept?: string;
   className?: string;
   style?: React.CSSProperties;
@@ -33,10 +34,10 @@ function FileInputRow({
         <div className="plat-file-trigger">
           <Upload size={14} /> Upload {label}
         </div>
-        <input 
-          type="file" 
+        <input
+          type="file"
           accept={accept}
-          onChange={(e) => onChange(field, e)} 
+          onChange={(e) => onChange(field, e)}
         />
       </div>
       {value && (
@@ -226,12 +227,12 @@ function StaffModal({
       const res = await apiClient.post('/staff/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      
+
       const resData = (res as any)._original ?? res.data;
       if (resData?.success && resData?.path) {
-         updateForm(field, resData.path);
+        updateForm(field, resData.path);
       } else {
-         setErrors((prev) => ({ ...prev, [field]: 'Upload failed' }));
+        setErrors((prev) => ({ ...prev, [field]: 'Upload failed' }));
       }
     } catch (err: any) {
       setErrors((prev) => ({ ...prev, [field]: err.message || 'Upload failed' }));
@@ -284,11 +285,10 @@ function StaffModal({
 
               <div className="plat-form-group">
                 <label className="plat-form-label">Mobile Number *</label>
-                <input
-                  type="tel"
+                <NumericInput
                   className="plat-form-input"
                   value={form.mobile || ''}
-                  onChange={(e) => updateForm('mobile', e.target.value)}
+                  onChange={(e: any) => updateForm('mobile', e.target.value)}
                   disabled={isLoading}
                 />
                 {errors['mobile'] && <span className="plat-form-error">{errors['mobile']}</span>}
@@ -296,11 +296,10 @@ function StaffModal({
 
               <div className="plat-form-group">
                 <label className="plat-form-label">Secondary Mobile</label>
-                <input
-                  type="tel"
+                <NumericInput
                   className="plat-form-input"
                   value={form.mobile2 || ''}
-                  onChange={(e) => updateForm('mobile2', e.target.value)}
+                  onChange={(e: any) => updateForm('mobile2', e.target.value)}
                   disabled={isLoading}
                 />
               </div>
@@ -364,11 +363,10 @@ function StaffModal({
 
               <div className="plat-form-group">
                 <label className="plat-form-label">Monthly Salary (₹)</label>
-                <input
-                  type="number"
+                <NumericInput
                   className="plat-form-input"
                   value={form.salaryCur || ''}
-                  onChange={(e) => updateForm('salaryCur', e.target.value)}
+                  onChange={(e: any) => updateForm('salaryCur', e.target.value)}
                   disabled={isLoading}
                 />
               </div>
@@ -514,14 +512,14 @@ export default function ReceptionistsPage() {
       <div className="plat-header">
         <div>
           <h1 className="plat-header-title">
-            <ClipboardList size={16} className="color-primary" /> 
+            <ClipboardList size={16} className="color-primary" />
             {META.label}
           </h1>
           <p className="plat-header-sub">{META.description}</p>
         </div>
         <div className="plat-header-actions">
           <button className="plat-btn plat-btn-primary" onClick={() => { setEditingId(null); setModalOpen(true); }}>
-            <Plus size={14} /> 
+            <Plus size={14} />
             Add Receptionist
           </button>
         </div>
@@ -541,11 +539,11 @@ export default function ReceptionistsPage() {
       <div className="plat-filters">
         <div className="plat-search-wrap">
           <Search className="plat-search-icon" size={14} />
-          <input 
-            className="plat-form-input plat-search-input" 
-            placeholder="Search by name or identity..." 
-            value={search} 
-            onChange={(e) => handleSearchChange(e.target.value)} 
+          <input
+            className="plat-form-input plat-search-input"
+            placeholder="Search by name or identity..."
+            value={search}
+            onChange={(e) => handleSearchChange(e.target.value)}
           />
         </div>
       </div>
