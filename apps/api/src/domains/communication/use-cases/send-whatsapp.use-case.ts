@@ -1,6 +1,7 @@
 import { Result, ok, fail } from '../../../shared/result.js';
 import type { ICommunicationRepository } from '../ports/communication.repository.js';
 import type { PatientRepository } from '../../patient/ports/patient.repository.js';
+import type { WhatsAppGateway } from '../ports/whatsapp-gateway.js';
 import type {
   SendWhatsAppDto, BroadcastWhatsAppDto, SendWhatsAppResult
 } from '@mmc/types';
@@ -12,6 +13,7 @@ function errMsg(e: unknown) {
 export class SendWhatsAppUseCase {
   constructor(
     private commRepo: ICommunicationRepository,
+    private whatsappGateway?: WhatsAppGateway,
     private patientRepo?: PatientRepository,
   ) {}
 
@@ -70,14 +72,27 @@ export class SendWhatsAppUseCase {
       for (const phone of [...new Set(phones)]) {
         try {
           const deepLink = this.buildDeepLink(phone, dto.message);
+          let status: 'sent' | 'failed' = 'sent';
+          
+          // Try automated send if gateway exists
+          if (this.whatsappGateway) {
+            const apiResult = await this.whatsappGateway.send({ phone, message: dto.message });
+            status = apiResult.success ? 'sent' : 'failed';
+          }
+
           await this.commRepo.logWhatsApp({
             phone: `91${phone}`,
             message: dto.message,
             deepLink,
-            status: 'sent',
+            status,
           });
-          details.push({ phone: `91${phone}`, deepLink });
-          sent++;
+
+          if (status === 'sent') {
+            details.push({ phone: `91${phone}`, deepLink });
+            sent++;
+          } else {
+            failed++;
+          }
         } catch {
           failed++;
         }

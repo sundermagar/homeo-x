@@ -228,6 +228,8 @@
   cursor: pointer;
   transition: all 0.15s ease;
   text-align: left;
+  outline: none;
+  border: none;
 }
 
 .sidebar-group-trigger:hover {
@@ -277,7 +279,7 @@
 
 /* Inner wrapper for correct animation */
 .sidebar-group-children {
-  padding-left: 14px;
+  padding-left: 10px;
 }
 
 .sidebar-subgroup {
@@ -285,9 +287,9 @@
 }
 
 .sidebar-sub-children {
-  border-left: 1.5px solid var(--pp-warm-4);
-  margin-left: 14px;
-  padding-left: 4px;
+  border-left: 1px solid var(--pp-warm-4);
+  margin-left: 17px;
+  padding-left: 0;
   display: flex;
   flex-direction: column;
   gap: 1px;
@@ -310,6 +312,8 @@
   text-decoration: none;
   transition: all 0.13s ease;
   position: relative;
+  outline: none;
+  border: none;
 }
 
 .sidebar-child-item:hover {
@@ -332,12 +336,13 @@
 .sidebar-child-item.active::before {
   content: '';
   position: absolute;
-  left: -14px;
-  top: 20%;
-  height: 60%;
+  left: -17px;
+  top: 15%;
+  height: 70%;
   width: 2.5px;
-  border-radius: 2px;
+  border-radius: 0 2px 2px 0;
   background: var(--primary);
+  z-index: 2;
 }
 
 .sidebar-child-dot {
@@ -352,7 +357,11 @@
 
 .sidebar-child-item.active .sidebar-child-dot,
 .sidebar-child-item:hover .sidebar-child-dot {
-  background: currentColor;
+  background: var(--primary);
+}
+
+.sidebar-sub-children .sidebar-child-dot {
+  display: none;
 }
 
 .sidebar-child-icon {

@@ -10,6 +10,7 @@
 
 import type { SmsGateway, SmsPayload, SmsGatewayResult } from '../../domains/communication/ports/sms-gateway';
 import { createLogger } from '../../shared/logger';
+import { BulkSmsPrimeGateway } from './bulk-sms-prime-gateway';
 
 const logger = createLogger('msg91-gateway');
 
@@ -111,9 +112,19 @@ export class MockSmsGateway implements SmsGateway {
 
 /** Factory — picks the right gateway based on env */
 export function createSmsGateway(): SmsGateway {
-  if (process.env.SMS_GATEWAY === 'mock' || !process.env.MSG91_API_KEY) {
-    logger.warn('SMS gateway running in MOCK mode. Set MSG91_API_KEY to send real SMS.');
-    return new MockSmsGateway();
+  // 1. Check for Bulk SMS Prime (highest priority if credentials exist)
+  if (process.env.SMS_API_USER && process.env.SMS_API_PASSWORD) {
+    logger.info('SMS gateway initialized with BulkSmsPrime');
+    return new BulkSmsPrimeGateway();
   }
-  return new Msg91SmsGateway();
+
+  // 2. Check for MSG91
+  if (process.env.MSG91_API_KEY) {
+    logger.info('SMS gateway initialized with MSG91');
+    return new Msg91SmsGateway();
+  }
+
+  // Fallback to Mock
+  logger.warn('SMS gateway running in MOCK mode. Set SMS_API_USER or MSG91_API_KEY to send real SMS.');
+  return new MockSmsGateway();
 }

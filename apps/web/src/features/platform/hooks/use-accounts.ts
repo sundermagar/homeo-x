@@ -9,22 +9,22 @@ async function fetchAccounts(clinicId?: number, role?: string): Promise<Account[
   if (clinicId) params.append('clinic_id', clinicId.toString());
   if (role) params.append('role', role);
   const q = params.toString() ? `?${params.toString()}` : '';
-  const { data } = await apiClient.get<{ success: boolean; data: Account[] }>(`/accounts${q}`);
+  const { data } = await apiClient.get<{ success: boolean; data: Account[] }>(`/platform-accounts${q}`);
   return data.data;
 }
 
 async function createAccount(body: CreateAccountInput): Promise<Account> {
-  const { data } = await apiClient.post<{ success: boolean; data: Account }>('/accounts', body);
+  const { data } = await apiClient.post<{ success: boolean; data: Account }>('/platform-accounts', body);
   return data.data;
 }
 
 async function updateAccount({ id, ...body }: UpdateAccountInput & { id: number }): Promise<Account> {
-  const { data } = await apiClient.put<{ success: boolean; data: Account }>(`/accounts/${id}`, body);
+  const { data } = await apiClient.put<{ success: boolean; data: Account }>(`/platform-accounts/${id}`, body);
   return data.data;
 }
 
 async function deleteAccount(id: number): Promise<void> {
-  await apiClient.delete(`/accounts/${id}`);
+  await apiClient.delete(`/platform-accounts/${id}`);
 }
 
 export function useAccounts(clinicId?: number, role?: string) {

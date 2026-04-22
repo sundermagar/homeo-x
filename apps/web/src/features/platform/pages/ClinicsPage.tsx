@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Building2, Plus, X, RefreshCw } from 'lucide-react';
-import { useOrganizations, useCreateOrganization, useDeleteOrganization } from '../hooks/use-organizations';
+import { Building2, Plus, X, RefreshCw, Edit2, Trash2 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useOrganizations, useCreateOrganization, useDeleteOrganization, useUpdateOrganization } from '../hooks/use-organizations';
 import type { CreateOrganizationInput } from '@mmc/types';
 import { NumericInput } from '@/shared/components/NumericInput';
 import '../styles/platform.css';
@@ -11,35 +12,69 @@ const EMPTY_FORM: any = {
 };
 
 export default function ClinicsPage() {
-  const { data: orgs = [], isLoading } = useOrganizations();
+  const qc = useQueryClient();
+  const { data: orgs = [], isLoading, refetch } = useOrganizations();
   const createOrg = useCreateOrganization();
   const deleteOrg = useDeleteOrganization();
+  const updateOrg = useUpdateOrganization();
 
   const sortedOrgs = [...orgs].sort((a, b) => a.id - b.id);
 
   const [isCreating, setIsCreating] = useState(false);
+  const [editingOrg, setEditingOrg] = useState<any>(null);
   const [form, setForm] = useState<CreateOrganizationInput>(EMPTY_FORM);
 
   const handleCreate = async (e: React.FormEvent) => {
-    console.log("!!! TRIGGERED !!!"); // This MUST show up
     e.preventDefault();
     try {
-      const result = await createOrg.mutateAsync(form);
-      console.log("Success:", result);
+      if (editingOrg) {
+        console.log(`[Update] Updating clinic ${editingOrg.id}:`, form);
+        await updateOrg.mutateAsync({ id: editingOrg.id, ...form });
+        console.log(`[Update] Success`);
+      } else {
+        console.log(`[Create] Creating clinic:`, form);
+        await createOrg.mutateAsync(form);
+        console.log(`[Create] Success`);
+      }
+      qc.invalidateQueries({ queryKey: ['organizations'] });
       setIsCreating(false);
+      setEditingOrg(null);
       setForm(EMPTY_FORM);
-    } catch (err) {
-      console.error("Mutation Error:", err);
+      await refetch();
+    } catch (err: any) {
+      console.error("[Create/Update] Error:", err?.response || err);
+      alert(`Failed: ${err?.response?.data?.error || err.message || 'Unknown error'}`);
     }
   };
 
+  const handleEdit = (org: any) => {
+    setEditingOrg(org);
+    setForm({
+      name: org.name || '',
+      email: org.email || '',
+      phone: org.phone || '',
+      city: org.city || '',
+      website: org.website || '',
+      description: org.description || '',
+      connectSince: org.connectSince || '',
+      adminEmail: org.adminEmail || '',
+      adminPassword: '',
+    });
+    setIsCreating(true);
+  };
+
   const handleDelete = async (id: number, name: string) => {
-    if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+    if (!window.confirm(`Delete "${name}"? This cannot be undone.`)) return;
+    console.log(`[Delete] Attempting to delete clinic: ${id} - ${name}`);
     try {
-      await deleteOrg.mutateAsync(id);
+      const result = await deleteOrg.mutateAsync(id);
+      console.log(`[Delete] Success, result:`, result);
+      // Force immediate refetch after mutation success
+      qc.invalidateQueries({ queryKey: ['organizations'] });
+      await refetch();
     } catch (err: any) {
-      console.error("Delete Error:", err);
-      alert(`Failed to delete clinic: ${err.message || 'Unknown error'}`);
+      console.error("[Delete] Error:", err?.response || err);
+      alert(`Failed to delete clinic: ${err?.response?.data?.error || err.message || 'Unknown error'}`);
     }
   };
 
@@ -61,7 +96,10 @@ export default function ClinicsPage() {
           <p className="plat-header-sub">Manage all {orgs.length} registered clinic organisations.</p>
         </div>
         <div className="plat-header-actions">
-          <button className="plat-btn plat-btn-primary" onClick={() => setIsCreating(true)}>
+          <button className="plat-btn plat-btn-ghost" onClick={() => refetch()} title="Refresh">
+            <RefreshCw size={14} />
+          </button>
+          <button className="plat-btn plat-btn-primary" onClick={() => { setEditingOrg(null); setIsCreating(true); setForm(EMPTY_FORM); }}>
             <Plus size={14} strokeWidth={1.6} />
             Add Clinic
           </button>
@@ -137,13 +175,18 @@ export default function ClinicsPage() {
                       {org.connectSince || '—'}
                     </td>
                     <td data-label="Action">
-                      <button
-                        className="plat-btn plat-btn-sm plat-btn-danger"
-                        onClick={() => handleDelete(org.id, org.name)}
-                        disabled={deleteOrg.isPending}
-                      >
-                        Delete
-                      </button>
+                      <div className="flex justify-center gap-2">
+                        <button className="plat-btn plat-btn-icon plat-btn-ghost" onClick={() => handleEdit(org)} title="Edit">
+                          <Edit2 size={13} />
+                        </button>
+                        <button
+                          className="plat-btn plat-btn-icon plat-btn-danger"
+                          onClick={() => handleDelete(org.id, org.name)}
+                          title="Delete"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -153,13 +196,13 @@ export default function ClinicsPage() {
         )}
       </div>
 
-      {/* ─── Create Modal ─── */}
+      {/* ─── Create/Edit Modal ─── */}
       {isCreating && (
-        <div className="plat-modal-backdrop" onClick={() => setIsCreating(false)}>
+        <div className="plat-modal-backdrop" onClick={() => { setIsCreating(false); setEditingOrg(null); setForm(EMPTY_FORM); }}>
           <div className="plat-modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="plat-modal-header">
-              <h3 className="plat-modal-title">Register New Clinic</h3>
-              <button className="plat-btn plat-btn-icon plat-btn-ghost" onClick={() => setIsCreating(false)}>
+              <h3 className="plat-modal-title">{editingOrg ? 'Edit Clinic' : 'Register New Clinic'}</h3>
+              <button className="plat-btn plat-btn-icon plat-btn-ghost" onClick={() => { setIsCreating(false); setEditingOrg(null); setForm(EMPTY_FORM); }}>
                 <X size={14} />
               </button>
             </div>
@@ -281,9 +324,9 @@ export default function ClinicsPage() {
               </div>
 
               <div className="plat-modal-footer">
-                <button type="button" className="plat-btn plat-btn-ghost" onClick={() => setIsCreating(false)}>Discard</button>
-                <button type="submit" className="plat-btn plat-btn-primary" disabled={createOrg.isPending}>
-                  {createOrg.isPending ? 'Syncing...' : 'Create Clinic'}
+                <button type="button" className="plat-btn plat-btn-ghost" onClick={() => { setIsCreating(false); setEditingOrg(null); setForm(EMPTY_FORM); }}>Discard</button>
+                <button type="submit" className="plat-btn plat-btn-primary" disabled={createOrg.isPending || updateOrg.isPending}>
+                  {createOrg.isPending || updateOrg.isPending ? 'Syncing...' : editingOrg ? 'Update Clinic' : 'Create Clinic'}
                 </button>
               </div>
             </form>

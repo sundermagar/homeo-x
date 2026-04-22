@@ -122,7 +122,7 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
 
   // Our modules — Platform (JWT required)
   app.use('/api/organizations', authMiddleware, createOrganizationRouter());
-  app.use('/api/accounts', authMiddleware, createAccountRouter());
+  app.use('/api/platform-accounts', authMiddleware, createAccountRouter());
   // Temporary unauthenticated route for backfilling
   app.use('/api/public-clinicadmins', createClinicAdminsRouter());
   app.use('/api/clinicadmins', authMiddleware, createClinicAdminsRouter());

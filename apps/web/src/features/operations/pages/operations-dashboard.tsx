@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import {
   Package, Clock, CheckCircle2, AlertCircle, Phone,
-  UsersRound, BellRing, ExternalLink, ArrowLeft
+  UsersRound, BellRing, ExternalLink
 } from 'lucide-react';
 import { apiClient } from '@/infrastructure/api-client';
 import { OpsModal } from '../components/ops-modal';
@@ -18,29 +18,8 @@ type GenericTab = 'logistics' | 'crm' | 'knowledge' | 'tools';
 // MOCK DATA
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// (Mock data kept for Logistics/Knowledge/Tools for now as they are not the primary CRM focus)
 const mockShipments = [
   { id: 1, regid: 1001, patient: 'Rahul Sharma', mobile: '9876543210', status: 'Dispatched', tracking: 'DLV-88712', courier: 'Delhivery Express', date: '2026-04-08' },
-];
-
-const mockDictionary = [
-  { id: 1, title: 'Bryonia Alba', text: 'A remedy for dry, stitching pains worse by motion. Key for pleurisy, headaches with bursting sensation.', crossRef: 'Rhus Tox' },
-  { id: 2, title: 'Nux Vomica', text: 'Primary remedy for irritability, over-stimulation, digestive complaints. Chilly, sensitive to noise.', crossRef: 'Sulphur' },
-  { id: 3, title: 'Pulsatilla', text: 'Changeable symptoms, weepy disposition, thirstless. Worse in warm rooms, better open air.', crossRef: 'Silicea' },
-  { id: 4, title: 'Arsenicum Album', text: 'Restlessness, anxiety, burning pains relieved by warmth. Fastidious personality, fear of death.', crossRef: 'Phosphorus' },
-  { id: 5, title: 'Lycopodium', text: 'Right-sided complaints, bloating at 4pm, anticipatory anxiety. Craves sweets, warm drinks.', crossRef: 'Calcarea Carb' },
-];
-
-const mockBooks = [
-  { id: 1, title: 'Materia Medica Pura', author: 'Samuel Hahnemann', type: 'Book', url: '#' },
-  { id: 2, title: 'Organon of Medicine (6th Ed.)', author: 'Samuel Hahnemann', type: 'PDF', url: '#' },
-  { id: 3, title: 'Kent Repertory Reference', author: 'James Tyler Kent', type: 'Link', url: '#' },
-];
-
-const mockExports = [
-  { id: 1, dataset: 'All Patients CSV', records: 1247, date: '2026-04-08 14:30', status: 'Completed', size: '2.4 MB' },
-  { id: 2, dataset: 'Medicines Inventory', records: 856, date: '2026-04-05 09:15', status: 'Completed', size: '1.1 MB' },
-  { id: 3, dataset: 'Full Backup (.sql)', records: 15420, date: '2026-04-01 22:00', status: 'Completed', size: '48.7 MB' },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -85,19 +64,14 @@ const referralCols = ['Patient', 'Referred', 'Total', 'Used'];
 const reminderCols = ['Patient', 'Heading', 'Date', 'Status'];
 const dictCols = ['Remedy', 'Description', 'Cross'];
 const bookCols = ['Title', 'Author', 'Type', 'Link'];
-const exportCols = ['Dataset', 'Records', 'Date', 'Size', 'Status'];
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // PAGE HEADER — back + title on same row, action buttons top-right
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function PageHeader({ title, desc, actions }: { title: string; desc: string; actions?: React.ReactNode }) {
-  const navigate = useNavigate();
   return (
     <div className="ops-page-header">
-      {/* <button className="ops-back-btn" onClick={() => navigate(-1)} aria-label="Go back">
-        <ArrowLeft size={18} />
-      </button> */}
       <div className="ops-page-header-text">
         <h1 className="ops-page-title">{title}</h1>
         <p className="ops-page-desc">{desc}</p>
@@ -112,7 +86,7 @@ function PageHeader({ title, desc, actions }: { title: string; desc: string; act
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export default function OperationsDashboard() {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as GenericTab) || 'logistics';
   const [modalType, setModalType] = useState<'courier' | 'lead' | 'dictionary' | 'export' | 'referral' | 'reminder' | 'book' | null>(null);
 
@@ -121,6 +95,10 @@ export default function OperationsDashboard() {
   const [referrals, setReferrals] = useState<any[]>([]);
   const [reminders, setReminders] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // ─── Knowledge Tab State ───
+  const [dictionary, setDictionary] = useState<any[]>([]);
+  const [books, setBooks] = useState<any[]>([]);
 
   // ─── Form State ───
   const [formData, setFormData] = useState({
@@ -136,21 +114,44 @@ export default function OperationsDashboard() {
     time: '09:00'
   });
 
+  // ─── Knowledge Form State ───
+  const [dictForm, setDictForm] = useState({ title: '', text: '', cross_ref: '' });
+  const [bookForm, setBookForm] = useState({ title: '', author: '', resource_type: 'Book', url: '', description: '' });
+
+  // ─── Tools Tab State ───
+  const [exports, setExports] = useState<any[]>([]);
+  const [exporting, setExporting] = useState(false);
+  const [selectedExport, setSelectedExport] = useState('');
+
   const fetchData = async () => {
-    if (activeTab !== 'crm') return;
     setLoading(true);
     try {
-      const [leadsRes, refsRes, remsRes] = await Promise.all([
-        apiClient.get('/crm/leads'),
-        apiClient.get('/crm/referrals/summary'),
-        apiClient.get('/crm/reminders')
-      ]);
-      // Standardize data unwrapping for CRM endpoints
-      setLeads(leadsRes.data.data?.data || []);
-      setReferrals(refsRes.data.data || []);
-      setReminders(remsRes.data.data?.data || []);
+      if (activeTab === 'crm') {
+        const [leadsRes, refsRes, remsRes] = await Promise.all([
+          apiClient.get('/crm/leads'),
+          apiClient.get('/crm/referrals/summary'),
+          apiClient.get('/crm/reminders')
+        ]);
+        setLeads(leadsRes.data.data?.data || []);
+        setReferrals(refsRes.data.data || []);
+        setReminders(remsRes.data.data?.data || []);
+      } else if (activeTab === 'knowledge') {
+        const [dictRes, booksRes] = await Promise.all([
+          apiClient.get('/knowledge/dictionary'),
+          apiClient.get('/knowledge/books')
+        ]);
+        setDictionary(dictRes.data.data || []);
+        setBooks(booksRes.data.data || []);
+      } else if (activeTab === 'tools') {
+        setExports([
+          { id: 'patients', label: 'All Patients via CSV', records: '~' },
+          { id: 'cases', label: 'Case History Export', records: '~' },
+          { id: 'billing', label: 'Financial Ledger (Excel)', records: '~' },
+          { id: 'appointments', label: 'Scheduling Log', records: '~' },
+        ]);
+      }
     } catch (err) {
-      console.error('Failed to fetch CRM data', err);
+      console.error('Failed to fetch data', err);
     } finally {
       setLoading(false);
     }
@@ -167,6 +168,8 @@ export default function OperationsDashboard() {
       regid: '', referral_id: '', total_amount: '',
       heading: '', date: '', time: '09:00'
     });
+    setDictForm({ title: '', text: '', cross_ref: '' });
+    setBookForm({ title: '', author: '', resource_type: 'Book', url: '', description: '' });
   };
 
   const handleAction = async (e: React.MouseEvent) => {
@@ -198,12 +201,26 @@ export default function OperationsDashboard() {
           remind_time: formData.time,
           notes: formData.notes
         });
+      } else if (modalType === 'dictionary') {
+        await apiClient.post('/knowledge/dictionary', {
+          title: dictForm.title,
+          text: dictForm.text,
+          cross_ref: dictForm.cross_ref
+        });
+      } else if (modalType === 'book') {
+        await apiClient.post('/knowledge/books', {
+          title: bookForm.title,
+          author: bookForm.author,
+          resource_type: bookForm.resource_type,
+          url: bookForm.url,
+          description: bookForm.description
+        });
       }
 
       btn.textContent = '✓ Success!';
       (btn as HTMLElement).style.backgroundColor = 'var(--pp-success-fg)';
-      setTimeout(() => { 
-        closeModal(); 
+      setTimeout(() => {
+        closeModal();
         fetchData();
       }, 600);
     } catch (err) {
@@ -434,11 +451,15 @@ export default function OperationsDashboard() {
                   <tr>{dictCols.map(col => <th key={col}>{col}</th>)}</tr>
                 </thead>
                 <tbody>
-                  {mockDictionary.map(d => (
+                  {loading ? (
+                    <tr><td colSpan={3} style={{ textAlign: 'center', padding: 40 }}>Loading...</td></tr>
+                  ) : dictionary.length === 0 ? (
+                    <tr><td colSpan={3} style={{ textAlign: 'center', padding: 40 }}>No dictionary entries found.</td></tr>
+                  ) : dictionary.map(d => (
                     <tr key={d.id}>
                       <td data-label="Remedy"><span className="cell-main" style={{ fontWeight: 700 }}>{d.title}</span></td>
                       <td data-label="Description"><span className="cell-sub" style={{ maxWidth: 300 }}>{d.text}</span></td>
-                      <td data-label="Cross"><span className="ops-cross-ref">{d.crossRef}</span></td>
+                      <td data-label="Cross"><span className="ops-cross-ref">{d.cross_ref || d.crossRef}</span></td>
                     </tr>
                   ))}
                 </tbody>
@@ -459,11 +480,15 @@ export default function OperationsDashboard() {
                   <tr>{bookCols.map(col => <th key={col}>{col}</th>)}</tr>
                 </thead>
                 <tbody>
-                  {mockBooks.map(b => (
+                  {loading ? (
+                    <tr><td colSpan={4} style={{ textAlign: 'center', padding: 40 }}>Loading...</td></tr>
+                  ) : books.length === 0 ? (
+                    <tr><td colSpan={4} style={{ textAlign: 'center', padding: 40 }}>No library resources found.</td></tr>
+                  ) : books.map(b => (
                     <tr key={b.id}>
                       <td data-label="Title"><span className="cell-main">{b.title}</span></td>
-                      <td data-label="Author">{b.author}</td>
-                      <td data-label="Type"><StatusBadge status={b.type} /></td>
+                      <td data-label="Author">{b.author || 'Unknown'}</td>
+                      <td data-label="Type"><StatusBadge status={b.resource_type || 'Book'} /></td>
                       <td data-label="Link">
                         <button className="ops-icon-btn" aria-label="Open link">
                           <ExternalLink size={14} style={{ color: 'var(--primary)' }} />
@@ -481,23 +506,98 @@ export default function OperationsDashboard() {
       {/* ─── TOOLS TAB ─── */}
       {activeTab === 'tools' && (
         <div className="slide-up">
+          <div className="ops-content card" style={{ marginBottom: 16 }}>
+            <div className="ops-table-header">
+              <h2 className="pane-title">Data Export</h2>
+            </div>
+            <div style={{ padding: 16 }}>
+              <div className="ops-form-group">
+                <label>Select Dataset</label>
+                <select className="ops-input" value={selectedExport} onChange={e => setSelectedExport(e.target.value)}>
+                  <option value="">-- Choose export type --</option>
+                  <option value="patients">All Patients (CSV)</option>
+                  <option value="cases">Case History (CSV)</option>
+                  <option value="billing">Financial Ledger (CSV)</option>
+                  <option value="appointments">Scheduling Log (CSV)</option>
+                </select>
+              </div>
+              <div className="ops-modal-footer">
+                <button
+                  className="ops-btn ops-btn-primary"
+                  disabled={!selectedExport || exporting}
+                  onClick={async () => {
+                    if (!selectedExport) return;
+                    setExporting(true);
+                    try {
+                      const response = await fetch(`/api/export/${selectedExport}`, {
+                        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                      });
+                      if (!response.ok) throw new Error('Export failed');
+                      const blob = await response.blob();
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = response.headers.get('Content-Disposition')?.split('filename=')[1]?.replace(/"/g, '') || 'export.csv';
+                      a.click();
+                      URL.revokeObjectURL(url);
+                      alert('Export downloaded successfully!');
+                    } catch (err) {
+                      console.error('Export failed', err);
+                      alert('Export failed. Please try again.');
+                    } finally {
+                      setExporting(false);
+                    }
+                  }}
+                >
+                  {exporting ? 'Exporting...' : 'Download CSV'}
+                </button>
+              </div>
+            </div>
+          </div>
+
           <div className="ops-content card">
             <div className="ops-table-header">
-              <h2 className="pane-title">Export History</h2>
+              <h2 className="pane-title">Available Exports</h2>
             </div>
             <div className="ops-table-wrapper">
               <table className="ops-table">
                 <thead>
-                  <tr>{exportCols.map(col => <th key={col}>{col}</th>)}</tr>
+                  <tr>{['Dataset', 'Description', 'Action'].map(col => <th key={col}>{col}</th>)}</tr>
                 </thead>
                 <tbody>
-                  {mockExports.map(e => (
+                  {exports.map(e => (
                     <tr key={e.id}>
-                      <td data-label="Dataset"><span className="cell-main">{e.dataset}</span></td>
-                      <td data-label="Records">{e.records.toLocaleString()}</td>
-                      <td data-label="Date"><span className="cell-sub">{e.date}</span></td>
-                      <td data-label="Size">{e.size}</td>
-                      <td data-label="Status"><StatusBadge status={e.status} /></td>
+                      <td data-label="Dataset"><span className="cell-main">{e.label}</span></td>
+                      <td data-label="Description"><span className="cell-sub">Click to download CSV</span></td>
+                      <td data-label="Action">
+                        <button
+                          className="ops-btn ops-btn-xs ops-btn-primary"
+                          onClick={async () => {
+                            setSelectedExport(e.id);
+                            setExporting(true);
+                            try {
+                              const response = await fetch(`/api/export/${e.id}`, {
+                                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                              });
+                              if (!response.ok) throw new Error('Export failed');
+                              const blob = await response.blob();
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = 'export.csv';
+                              a.click();
+                              URL.revokeObjectURL(url);
+                            } catch (err) {
+                              console.error('Export failed', err);
+                              alert('Export failed. Please try again.');
+                            } finally {
+                              setExporting(false);
+                            }
+                          }}
+                        >
+                          Download
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -661,17 +761,36 @@ export default function OperationsDashboard() {
       </OpsModal>
 
       <OpsModal isOpen={modalType === 'dictionary'} onClose={closeModal} title="Add Dictionary Entry">
-        <div className="ops-form-group"><label>Title / Remedy Name</label><input type="text" className="ops-input" placeholder="e.g. Belladonna" /></div>
-        <div className="ops-form-group"><label>Description</label><textarea className="ops-input" placeholder="Key symptoms, modalities..." style={{ minHeight: 80 }} /></div>
-        <div className="ops-form-group"><label>Cross Reference</label><input type="text" className="ops-input" placeholder="e.g. Aconitum" /></div>
+        <div className="ops-form-group"><label>Title / Remedy Name</label>
+          <input type="text" className="ops-input" placeholder="e.g. Belladonna" value={dictForm.title} onChange={e => setDictForm({ ...dictForm, title: e.target.value })} />
+        </div>
+        <div className="ops-form-group"><label>Description</label>
+          <textarea className="ops-input" placeholder="Key symptoms, modalities..." style={{ minHeight: 80 }} value={dictForm.text} onChange={e => setDictForm({ ...dictForm, text: e.target.value })} />
+        </div>
+        <div className="ops-form-group"><label>Cross Reference</label>
+          <input type="text" className="ops-input" placeholder="e.g. Aconitum" value={dictForm.cross_ref} onChange={e => setDictForm({ ...dictForm, cross_ref: e.target.value })} />
+        </div>
         <div className="ops-modal-footer"><button className="ops-btn ops-btn-ghost" onClick={closeModal}>Cancel</button><button className="ops-btn ops-btn-primary" onClick={handleAction}>Save Entry</button></div>
       </OpsModal>
 
       <OpsModal isOpen={modalType === 'book'} onClose={closeModal} title="Upload Library Resource">
-        <div className="ops-form-group"><label>Resource Title</label><input type="text" className="ops-input" placeholder="e.g. Materia Medica Vol 1" /></div>
-        <div className="ops-form-group"><label>Author</label><input type="text" className="ops-input" placeholder="e.g. Samuel Hahnemann" /></div>
-        <div className="ops-form-group"><label>Type</label><select className="ops-input"><option>Book</option><option>PDF</option><option>Link</option></select></div>
-        <div className="ops-form-group"><label>URL</label><input type="url" className="ops-input" placeholder="https://" /></div>
+        <div className="ops-form-group"><label>Resource Title</label>
+          <input type="text" className="ops-input" placeholder="e.g. Materia Medica Vol 1" value={bookForm.title} onChange={e => setBookForm({ ...bookForm, title: e.target.value })} />
+        </div>
+        <div className="ops-form-group"><label>Author</label>
+          <input type="text" className="ops-input" placeholder="e.g. Samuel Hahnemann" value={bookForm.author} onChange={e => setBookForm({ ...bookForm, author: e.target.value })} />
+        </div>
+        <div className="ops-form-group"><label>Type</label>
+          <select className="ops-input" value={bookForm.resource_type} onChange={e => setBookForm({ ...bookForm, resource_type: e.target.value })}>
+            <option value="Book">Book</option><option value="PDF">PDF</option><option value="Link">Link</option>
+          </select>
+        </div>
+        <div className="ops-form-group"><label>URL</label>
+          <input type="url" className="ops-input" placeholder="https://" value={bookForm.url} onChange={e => setBookForm({ ...bookForm, url: e.target.value })} />
+        </div>
+        <div className="ops-form-group"><label>Description</label>
+          <textarea className="ops-input" placeholder="Description..." style={{ minHeight: 60 }} value={bookForm.description} onChange={e => setBookForm({ ...bookForm, description: e.target.value })} />
+        </div>
         <div className="ops-modal-footer"><button className="ops-btn ops-btn-ghost" onClick={closeModal}>Cancel</button><button className="ops-btn ops-btn-primary" onClick={handleAction}>Save Resource</button></div>
       </OpsModal>
 

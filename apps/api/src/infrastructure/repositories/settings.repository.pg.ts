@@ -56,7 +56,12 @@ export class SettingsRepositoryPg implements ISettingsRepository {
     
     if (row.potency_name) mapped.name = row.potency_name;
     if (row.case_frequency) mapped.frequency = row.case_frequency;
+    
+    // FAQ Mappings: Bridge the gap between ques/ans and name/detail
+    if (row.ques !== undefined && (mapped.name === undefined || mapped.name === null || mapped.name === '')) mapped.name = row.ques;
+    if (row.ans !== undefined && (mapped.detail === undefined || mapped.detail === null || mapped.detail === '')) mapped.detail = row.ans;
     if (row.detail !== undefined && mapped.description === undefined) mapped.description = row.detail;
+    
     return mapped;
   }
 
@@ -287,11 +292,36 @@ export class SettingsRepositoryPg implements ISettingsRepository {
     return this.q1('SELECT * FROM faqs WHERE id = $1', [id]);
   }
   async createFaq(data: Omit<Faq, 'id' | 'createdAt' | 'updatedAt'>): Promise<Faq> {
-    return this.q1(
-      `INSERT INTO faqs (ques, ans, display_order, is_active, created_at, updated_at) 
-       VALUES ($1, $2, (SELECT COALESCE(MAX(display_order), 0) + 1 FROM faqs), $3, NOW(), NOW()) RETURNING *`,
-      [data.ques || data.name, data.ans || data.detail, data.isActive ?? true]
-    ) as Promise<Faq>;
+    try {
+      const ques = data.ques || data.name;
+      const ans = data.ans || data.detail;
+      const name = data.name || data.ques;
+      const detail = data.detail || data.ans;
+
+      return await this.q1(
+        `INSERT INTO faqs (ques, ans, name, detail, display_order, is_active, created_at, updated_at) 
+         VALUES ($1, $2, $3, $4, (SELECT COALESCE(MAX(display_order), 0) + 1 FROM faqs), $5, NOW(), NOW()) RETURNING *`,
+        [ques, ans, name, detail, data.isActive ?? true]
+      ) as Faq;
+    } catch (err: any) {
+      // Auto-repair: Drop NOT NULL constraint if it blocks creation
+      if (err.message?.includes('not-null constraint') && err.message?.includes('deleted_at')) {
+        this.logger.warn('detected legacy NOT NULL constraint on deleted_at, patching table...');
+        await this.db.execute(sql`ALTER TABLE faqs ALTER COLUMN deleted_at DROP NOT NULL`);
+        
+        const ques = data.ques || data.name;
+        const ans = data.ans || data.detail;
+        const name = data.name || data.ques;
+        const detail = data.detail || data.ans;
+
+        return await this.q1(
+          `INSERT INTO faqs (ques, ans, name, detail, display_order, is_active, created_at, updated_at) 
+           VALUES ($1, $2, $3, $4, (SELECT COALESCE(MAX(display_order), 0) + 1 FROM faqs), $5, NOW(), NOW()) RETURNING *`,
+          [ques, ans, name, detail, data.isActive ?? true]
+        ) as Faq;
+      }
+      throw err;
+    }
   }
   async updateFaq(id: number, data: Partial<Omit<Faq, 'id'>>): Promise<Faq> {
     return this.q1(

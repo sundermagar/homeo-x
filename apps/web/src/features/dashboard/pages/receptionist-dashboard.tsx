@@ -106,7 +106,7 @@ export function ReceptionistDashboard() {
               <OpLink icon={<Search size={15} />} label="Registry Lookup" path="/patients" />
               <OpLink icon={<Phone size={15} />} label="Confirm Appointments" path="/appointments" />
               <OpLink icon={<CreditCard size={15} />} label="Process Payments" path="/billing" />
-              <OpLink icon={<UserPlus size={15} />} label="Add New Patient" path="/patients/new" />
+              <OpLink icon={<UserPlus size={15} />} label="Add New Patient" path="/patients/add" />
             </div>
           </div>
 

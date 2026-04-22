@@ -72,6 +72,7 @@ interface NavChild {
   path: string;
   label: string;
   icon: LucideIcon;
+  roles?: UserRole[];
   children?: NavChild[];
 }
 
@@ -135,7 +136,7 @@ const NAV_STRUCTURE: NavItem[] = [
       children: [
         // { path: '/consultation-history', label: 'Case History', icon: BarChart2 },
         { path: '/vitals-check', label: 'Height & Weight Check', icon: Scale },
-        { path: '/medical-cases', label: 'Medical Cases', icon: Stethoscope },
+        // { path: '/medical-cases', label: 'Medical Cases', icon: Stethoscope },
         { path: '/ai-remedy-chart', label: 'Materia Medica', icon: BookOpen },
         { path: '/ai-consultant', label: 'AI Analysis', icon: BrainCircuit },
       ],
@@ -201,7 +202,7 @@ const NAV_STRUCTURE: NavItem[] = [
       id: 'finance',
       label: 'Finance',
       icon: Receipt,
-      roles: ADMIN,
+      roles: ['SuperAdmin', 'Admin', 'Clinicadmin', 'Receptionist'],
       children: [
         {
           path: '/billing', label: 'Billing', icon: Receipt,
@@ -231,9 +232,9 @@ const NAV_STRUCTURE: NavItem[] = [
         { path: '/platform/receptionists', label: 'Receptionists', icon: Phone },
         { path: '/platform/clinicadmins', label: 'Clinic Admins', icon: Shield },
         { path: '/platform/account-managers', label: 'Account Mgrs', icon: Briefcase },
-        { path: '/platform/clinics', label: 'Clinics', icon: Building2 },
+        { path: '/platform/clinics', label: 'Clinics', icon: Building2, roles: ['SuperAdmin', 'Admin'] },
         { path: '/platform/accounts', label: 'Accounts', icon: UserCog },
-        { path: '/settings/roles', label: 'Roles & Access', icon: UserCheck },
+        { path: '/settings/roles', label: 'Roles & Access', icon: UserCheck, roles: ['SuperAdmin', 'Admin'] },
       ],
     },
   },
@@ -354,6 +355,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const [openGroups, setOpenGroups] = useState<string[]>(defaultOpen);
   const [openSubGroups, setOpenSubGroups] = useState<string[]>(defaultOpenSub);
 
+  const isChildVisible = (child: NavChild) => {
+    return !child.roles || (userRole && child.roles.includes(userRole));
+  };
+
   const toggleGroup = (id: string, isSubGroup = false) => {
     if (isSubGroup) {
       setOpenSubGroups(prev =>
@@ -371,6 +376,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   };
 
   const renderNavChild = (child: NavChild, isSubItem = false) => {
+    if (!isChildVisible(child)) return null;
+
     const ChildIcon = child.icon;
     const hasChildren = child.children && child.children.length > 0;
     const isSubOpen = openSubGroups.includes(child.path);
@@ -404,6 +411,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       <NavLink
         key={child.path}
         to={child.path}
+        end={child.path === '/analytics' || child.path === '/billing' || child.path === '/patients' || child.path === '/'}
         className={({ isActive }) => {
           const currentFull = location.pathname + location.search;
           const isMatch = child.path.includes('?')

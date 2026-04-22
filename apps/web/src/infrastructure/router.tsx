@@ -149,13 +149,13 @@ export function AppRouter() {
             <Route path="/analytics/stocks" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><StocksLogPage /></RoleGuard>} />
 
             {/* ─── Billing & Payments ─── */}
-            <Route path="/billing" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><BillingListPage /></RoleGuard>} />
-            <Route path="/billing/create" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><BillingFormPage /></RoleGuard>} />
-            <Route path="/billing/additional-charges" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><AdditionalChargesPage /></RoleGuard>} />
-            <Route path="/billing/day-charges" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><DayChargesPage /></RoleGuard>} />
-            <Route path="/billing/deposits" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><DepositsPage /></RoleGuard>} />
-            <Route path="/billing/expenses" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><ExpensesPage /></RoleGuard>} />
-            <Route path="/payments" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><PaymentsPage /></RoleGuard>} />
+            <Route path="/billing" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist']}><BillingListPage /></RoleGuard>} />
+            <Route path="/billing/create" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist']}><BillingFormPage /></RoleGuard>} />
+            <Route path="/billing/additional-charges" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Receptionist']}><AdditionalChargesPage /></RoleGuard>} />
+            <Route path="/billing/day-charges" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Receptionist']}><DayChargesPage /></RoleGuard>} />
+            <Route path="/billing/deposits" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Receptionist']}><DepositsPage /></RoleGuard>} />
+            <Route path="/billing/expenses" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Receptionist']}><ExpensesPage /></RoleGuard>} />
+            <Route path="/payments" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist']}><PaymentsPage /></RoleGuard>} />
 
             {/* ─── Platform & Multi-tenancy ─── */}
             {/* ─── Platform & Multi-tenancy ─── */}
@@ -171,7 +171,7 @@ export function AppRouter() {
             <Route path="/platform/receptionists" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><ReceptionistsPage /></RoleGuard>} />
             <Route path="/platform/clinicadmins" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><ClinicAdminsPage /></RoleGuard>} />
             <Route path="/platform/account-managers" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><AccountManagersPage /></RoleGuard>} />
-            <Route path="/platform/clinics" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><ClinicsPage /></RoleGuard>} />
+            <Route path="/platform/clinics" element={<RoleGuard allowed={['SuperAdmin', 'Admin']}><ClinicsPage /></RoleGuard>} />
             <Route path="/platform/accounts" element={<RoleGuard allowed={['SuperAdmin', 'Admin']}><AccountsPage /></RoleGuard>} />
 
             {/* ─── Operations Hub ─── */}

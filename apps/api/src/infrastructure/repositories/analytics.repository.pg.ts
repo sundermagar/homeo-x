@@ -88,78 +88,112 @@ export class AnalyticsRepositoryPg implements IAnalyticsRepository {
   }
 
   async getMonthWiseBreakdown(fromYearMth: string, toYearMth: string): Promise<MonthWiseResult[]> {
-    const start = new Date(`${fromYearMth}-01`);
-    const end = new Date(`${toYearMth}-01`);
+    const firstDay = `${fromYearMth}-01`;
+    const lastDayDate = new Date(`${toYearMth}-01`);
+    lastDayDate.setMonth(lastDayDate.getMonth() + 1);
+    lastDayDate.setDate(0);
+    const lastDay = lastDayDate.toISOString().split('T')[0];
 
-    // We'll iterate through the months in memory and fire grouped queries to match the PHP/legacy logic.
-    const months: { year: number; month: number }[] = [];
-    for (let d = start; d <= end; d.setMonth(d.getMonth() + 1)) {
-      months.push({ year: d.getFullYear(), month: d.getMonth() + 1 });
-    }
+    // Single aggregated query to eliminate N+1 performance issues
+    const query = sql`
+      WITH months AS (
+        SELECT 
+          to_char(m, 'YYYY-MM') as month_key,
+          to_char(m, 'Mon-YYYY') as display_date
+        FROM generate_series(
+          ${firstDay}::date, 
+          ${lastDay}::date, 
+          '1 month'::interval
+        ) m
+      ),
+      new_cases AS (
+        SELECT to_char(created_at, 'YYYY-MM') as month_key, count(*)::int as cnt
+        FROM medicalcases
+        WHERE (deleted_at IS NULL OR deleted_at::text = '')
+          AND created_at::date BETWEEN ${firstDay} AND ${lastDay}
+        GROUP BY 1
+      ),
+      followups AS (
+        SELECT to_char(dateval::date, 'YYYY-MM') as month_key, count(*)::int as cnt
+        FROM case_potencies
+        WHERE (deleted_at IS NULL OR deleted_at::text = '')
+          AND dateval::date BETWEEN ${firstDay} AND ${lastDay}
+        GROUP BY 1
+      ),
+      receipts AS (
+        SELECT 
+          to_char(created_at, 'YYYY-MM') as month_key,
+          sum(CASE 
+            WHEN upper(mode) IN ('C', 'CASH') THEN CAST(NULLIF(amount, '') AS numeric) 
+            ELSE 0 
+          END)::int as cash,
+          sum(CASE 
+            WHEN upper(mode) IN ('B', 'CH', 'CHEQUE') THEN CAST(NULLIF(amount, '') AS numeric) 
+            ELSE 0 
+          END)::int as cheque,
+          sum(CASE 
+            WHEN upper(mode) IN ('O', 'ONLINE', 'NEFT', 'UPI') THEN CAST(NULLIF(amount, '') AS numeric) 
+            ELSE 0 
+          END)::int as online,
+          sum(CASE 
+            WHEN upper(mode) IN ('S', 'CR', 'CARD') THEN CAST(NULLIF(amount, '') AS numeric) 
+            ELSE 0 
+          END)::int as card,
+          sum(CAST(NULLIF(amount, '') AS numeric))::int as total
+        FROM receipt
+        WHERE (deleted_at IS NULL OR deleted_at::text = '')
+          AND mode != 'RB'
+          AND created_at::date BETWEEN ${firstDay} AND ${lastDay}
+        GROUP BY 1
+      ),
+      exp AS (
+        SELECT to_char(exp_date::date, 'YYYY-MM') as month_key, sum(amount)::int as total
+        FROM expenses
+        WHERE (deleted_at IS NULL OR deleted_at::text = '')
+          AND exp_date::date BETWEEN ${firstDay} AND ${lastDay}
+        GROUP BY 1
+      )
+      SELECT 
+        m.month_key as date,
+        m.display_date as displaydate,
+        COALESCE(nc.cnt, 0)::int as new_cases,
+        COALESCE(f.cnt, 0)::int as followups,
+        COALESCE(r.total, 0)::int as collection,
+        COALESCE(r.cash, 0)::int as cash,
+        COALESCE(r.cheque, 0)::int as cheque,
+        COALESCE(r.online, 0)::int as online,
+        COALESCE(r.card, 0)::int as card,
+        COALESCE(ex.total, 0)::int as expenses
+      FROM months m
+      LEFT JOIN new_cases nc ON m.month_key = nc.month_key
+      LEFT JOIN followups f ON m.month_key = f.month_key
+      LEFT JOIN receipts r ON m.month_key = r.month_key
+      LEFT JOIN exp ex ON m.month_key = ex.month_key
+      ORDER BY m.month_key ASC
+    `;
 
-    const results: MonthWiseResult[] = [];
-
-    for (const m of months) {
-      const firstDay = `${m.year}-${String(m.month).padStart(2, '0')}-01`;
-      const lastDayDate = new Date(m.year, m.month, 0);
-      const lastDay = lastDayDate.toISOString().split('T')[0];
-      const displaydate = lastDayDate.toLocaleString('default', { month: 'short' }) + '-' + m.year;
-
-      let [newCasesRow]: any[] = [null];
-      try {
-        [newCasesRow] = await this.db.execute(sql`SELECT count(*)::int as cnt FROM medicalcases WHERE created_at::date BETWEEN ${firstDay} AND ${lastDay} AND (deleted_at IS NULL OR deleted_at::text = '')`) as any[];
-      } catch { newCasesRow = { cnt: 0 }; }
-
-      let [followupsRow]: any[] = [null];
-      try {
-        [followupsRow] = await this.db.execute(sql`SELECT count(*)::int as cnt FROM case_potencies WHERE dateval::date BETWEEN ${firstDay} AND ${lastDay} AND (deleted_at IS NULL OR deleted_at::text = '')`) as any[];
-      } catch { followupsRow = { cnt: 0 }; }
-
-      let receipts: any[] = [];
-      try {
-        receipts = await this.db.execute(sql`
-          SELECT mode, sum(CAST(NULLIF(amount, '') AS numeric))::int as total 
-          FROM receipt 
-          WHERE (deleted_at IS NULL OR deleted_at::text = '') AND mode != 'RB'
-            AND extract(month from created_at) = ${m.month} AND extract(year from created_at) = ${m.year}
-          GROUP BY mode
-        `) as any[];
-      } catch { receipts = []; }
-
-      let cash = 0, cheque = 0, online = 0, card = 0, payments = 0;
-      for (const r of receipts) {
-        const amt = Number(r.total) || 0;
-        payments += amt;
-        const mode = (r.mode || '').toUpperCase();
-        if (mode === 'C' || mode === 'CASH') cash += amt;
-        else if (mode === 'B' || mode === 'CH' || mode === 'CHEQUE') cheque += amt;
-        else if (mode === 'O' || mode === 'ONLINE' || mode === 'NEFT' || mode === 'UPI') online += amt;
-        else if (mode === 'S' || mode === 'CR' || mode === 'CARD') card += amt;
-        else cash += amt; // default
-      }
-
-      // Expenses
-      let expensesRow: any = { total: 0 };
-      try {
-        [expensesRow] = await this.db.execute(sql`SELECT COALESCE(sum(amount), 0)::int as total FROM expenses WHERE exp_date::date BETWEEN ${firstDay} AND ${lastDay} AND (deleted_at IS NULL OR deleted_at::text = '')`) as any[];
-      } catch { expensesRow = { total: 0 }; }
-
-      results.push({
-        date: `${m.year}-${String(m.month).padStart(2, '0')}`,
-        displaydate,
-        new_cases: Number(newCasesRow?.cnt) || 0,
-        followups: Number(followupsRow?.cnt) || 0,
-        collection: payments,
-        cash, cheque, online, card,
-        product_charges: 0, // Legacy feature rarely used
-        expenses: Number(expensesRow?.total) || 0,
+    try {
+      const rows = await this.db.execute(query) as any[];
+      return rows.map(r => ({
+        date: r.date,
+        displaydate: r.displaydate,
+        new_cases: r.new_cases,
+        followups: r.followups,
+        collection: r.collection,
+        cash: r.cash,
+        cheque: r.cheque,
+        online: r.online,
+        card: r.card,
+        expenses: r.expenses,
+        product_charges: 0,
         cash_deposit: 0,
         bank_deposit: 0,
         cash_in_hand: 0,
-      });
+      }));
+    } catch (err) {
+      console.error("[MonthWiseBreakdown] Error executing optimized query:", err);
+      return [];
     }
-
-    return results;
   }
 
   async getMonthWiseDues(year: number): Promise<MonthWiseDueSummary[]> {
@@ -203,8 +237,17 @@ export class AnalyticsRepositoryPg implements IAnalyticsRepository {
       const res = await this.db.execute(sql`
         SELECT id, regid, first_name, surname, phone, mobile1, dob as date_birth, dob
         FROM case_datas
-        WHERE dob IS NOT NULL AND (deleted_at IS NULL OR deleted_at::text = '')
-          AND to_char(dob::date, 'MM-DD') BETWEEN ${fromMonthDay} AND ${toMonthDay}
+        WHERE (deleted_at IS NULL OR deleted_at::text = '')
+          AND (
+            (dob IS NOT NULL AND to_char(dob::date, 'MM-DD') = ${fromMonthDay})
+            OR
+            (date_of_birth IS NOT NULL AND date_of_birth != '' AND 
+             CASE 
+               WHEN date_of_birth ~ '^\d{4}-\d{2}-\d{2}$' THEN substring(date_of_birth from 6 for 5) = ${fromMonthDay}
+               ELSE FALSE
+             END
+            )
+          )
       `);
       return res as any as BirthdayPatient[];
     } catch {

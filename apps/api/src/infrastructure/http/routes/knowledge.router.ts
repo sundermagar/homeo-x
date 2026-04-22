@@ -86,27 +86,27 @@ router.delete('/dictionary/:id', async (req: Request, res: Response, next: NextF
 
 router.get('/books', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const rows = await pgQuery(req.tenantDb, 'SELECT * FROM books WHERE deleted_at IS NULL ORDER BY title ASC');
+    const rows = await pgQuery(req.tenantDb, 'SELECT * FROM library_resources WHERE deleted_at IS NULL ORDER BY title ASC');
     res.json({ success: true, data: rows });
   } catch (error) { next(error); }
 });
 
 router.get('/books/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const row = await pgQueryOne(req.tenantDb, 'SELECT * FROM books WHERE id = $1 AND deleted_at IS NULL LIMIT 1', [req.params.id]);
-    if (!row) return res.status(404).json({ success: false, message: 'Book not found' });
+    const row = await pgQueryOne(req.tenantDb, 'SELECT * FROM library_resources WHERE id = $1 AND deleted_at IS NULL LIMIT 1', [req.params.id]);
+    if (!row) return res.status(404).json({ success: false, message: 'Resource not found' });
     res.json({ success: true, data: row });
   } catch (error) { next(error); }
 });
 
 router.post('/books', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { title, author, description, category, published_year } = req.body;
+    const { title, author, resource_type, category, url, description } = req.body;
     if (!title) return res.status(400).json({ success: false, message: 'Title is required' });
     const row = await pgQueryOne(req.tenantDb,
-      `INSERT INTO books (title, author, description, category, published_year, created_at, updated_at)
+      `INSERT INTO library_resources (title, author, resource_type, url, description, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, NOW(), NOW()) RETURNING *`,
-      [title, author ?? null, description ?? null, category ?? null, published_year ?? null]
+      [title, author ?? null, resource_type ?? category ?? 'Book', url ?? null, description ?? null]
     );
     res.status(201).json({ success: true, data: row, id: row?.id });
   } catch (error) { next(error); }
@@ -114,13 +114,13 @@ router.post('/books', async (req: Request, res: Response, next: NextFunction) =>
 
 router.put('/books/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { title, author, description, category, published_year } = req.body;
+    const { title, author, resource_type, category, url, description } = req.body;
     const row = await pgQueryOne(req.tenantDb,
-      `UPDATE books SET title = COALESCE($1, title), author = COALESCE($2, author),
-       description = COALESCE($3, description), category = COALESCE($4, category),
-       published_year = COALESCE($5, published_year), updated_at = NOW()
+      `UPDATE library_resources SET title = COALESCE($1, title), author = COALESCE($2, author),
+       resource_type = COALESCE($3, resource_type), url = COALESCE($4, url),
+       description = COALESCE($5, description), updated_at = NOW()
        WHERE id = $6 AND deleted_at IS NULL RETURNING *`,
-      [title ?? null, author ?? null, description ?? null, category ?? null, published_year ?? null, req.params.id]
+      [title ?? null, author ?? null, resource_type ?? category ?? null, url ?? null, description ?? null, req.params.id]
     );
     res.json({ success: true, data: row });
   } catch (error) { next(error); }
@@ -128,8 +128,8 @@ router.put('/books/:id', async (req: Request, res: Response, next: NextFunction)
 
 router.delete('/books/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    await pgQuery(req.tenantDb, 'UPDATE books SET deleted_at = NOW() WHERE id = $1', [req.params.id]);
-    res.json({ success: true, message: 'Book deleted' });
+    await pgQuery(req.tenantDb, 'UPDATE library_resources SET deleted_at = NOW() WHERE id = $1', [req.params.id]);
+    res.json({ success: true, message: 'Resource deleted' });
   } catch (error) { next(error); }
 });
 

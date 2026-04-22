@@ -38,6 +38,22 @@ async function main() {
       console.log(`[Seed:FAQ] Seeding FAQs for tenant: ${tenant.displayName} (${tenant.schemaName})...`);
       const db = createDbClient(dbUrl, tenant.schemaName);
       
+      // 🛠️ Auto-patch legacy schemas: Ensure modern columns exist before seeding
+      const { sql } = await import('drizzle-orm');
+      try {
+        await db.execute(sql`ALTER TABLE faqs ADD COLUMN IF NOT EXISTS name text`);
+        await db.execute(sql`ALTER TABLE faqs ADD COLUMN IF NOT EXISTS detail text`);
+        await db.execute(sql`ALTER TABLE faqs ADD COLUMN IF NOT EXISTS display_order integer DEFAULT 0`);
+        await db.execute(sql`ALTER TABLE faqs ADD COLUMN IF NOT EXISTS is_active boolean DEFAULT true`);
+        await db.execute(sql`ALTER TABLE faqs ADD COLUMN IF NOT EXISTS deleted_at timestamp`);
+        await db.execute(sql`ALTER TABLE faqs ALTER COLUMN deleted_at DROP NOT NULL`);
+        await db.execute(sql`ALTER TABLE faqs ALTER COLUMN created_at SET DEFAULT CURRENT_TIMESTAMP`);
+        await db.execute(sql`ALTER TABLE faqs ALTER COLUMN updated_at SET DEFAULT CURRENT_TIMESTAMP`);
+      } catch (patchErr) {
+        // Table might not even exist yet (rare but possible if never provisioned correctly)
+        console.warn(`  [Seed:FAQ] Warning: Could not patch "faqs" table for ${tenant.slug}`);
+      }
+
       await seedFaqs(db);
       
       console.log(`  [Seed:FAQ] ✓ Success for ${tenant.slug}`);

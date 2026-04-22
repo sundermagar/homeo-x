@@ -134,16 +134,40 @@ export async function seedFaqs(db: DbClient) {
   ];
 
   for (const faq of faqList) {
-    const existing = await db.select().from(faqs).where(eq(faqs.name, faq.name)).limit(1);
-    if (existing.length === 0) {
-      await db.insert(faqs).values({
-        ...faq,
-        ques: faq.name,
-        ans: faq.detail
-      });
-      console.log(`[Seed] Created FAQ: ${faq.name.substring(0, 40)}...`);
-    } else {
-      console.log(`[Seed] FAQ already exists: ${faq.name.substring(0, 20)}...`);
+    try {
+      // 🕵️ Check if 'name' column exists to avoid errors on legacy schemas
+      const existing = await db.select().from(faqs).where(eq(faqs.ques, faq.name)).limit(1);
+      
+      if (existing.length === 0) {
+        await db.insert(faqs).values({
+          ques: faq.name,
+          ans: faq.detail,
+          name: faq.name, 
+          detail: faq.detail,
+          displayOrder: faq.displayOrder,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+        console.log(`[Seed] Created FAQ: ${faq.name.substring(0, 40)}...`);
+      } else {
+        console.log(`[Seed] FAQ already exists: ${faq.name.substring(0, 20)}...`);
+      }
+    } catch (err: any) {
+      // If 'name' column still causes issues, try a safer insert without it
+      if (err.message.includes('column "name" does not exist')) {
+        console.log(`[Seed] Retrying FAQ insert without "name" column for compatibility...`);
+        const existing = await db.select({ id: faqs.id }).from(faqs).where(eq(faqs.ques, faq.name)).limit(1);
+        if (existing.length === 0) {
+          await db.insert(faqs).values({
+            ques: faq.name,
+            ans: faq.detail,
+            detail: faq.detail,
+            displayOrder: faq.displayOrder
+          });
+        }
+      } else {
+        throw err;
+      }
     }
   }
 

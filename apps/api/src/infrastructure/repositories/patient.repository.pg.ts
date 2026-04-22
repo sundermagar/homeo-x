@@ -128,6 +128,7 @@ export class PatientRepositoryPg implements PatientRepository {
         courierOutstation: (input as any).courierOutstation ? '1' : '0',
         coupon: '', // Required by legacy database
         dateOfBirth: input.dateOfBirth ? String(input.dateOfBirth) : null,
+        dob: input.dateOfBirth ? new Date(input.dateOfBirth) : null,
         createdAt: new Date(),
         updatedAt: new Date(),
       } as any)
@@ -158,7 +159,10 @@ export class PatientRepositoryPg implements PatientRepository {
     if (input.altAddress   !== undefined) updateData.altAddress   = input.altAddress;
     if (input.religion     !== undefined) updateData.religion     = input.religion;
     if (input.occupation   !== undefined) updateData.occupation   = input.occupation;
-    if (input.dateOfBirth  !== undefined) updateData.dateOfBirth  = input.dateOfBirth ? String(input.dateOfBirth) : null;
+    if (input.dateOfBirth  !== undefined) {
+      updateData.dateOfBirth  = input.dateOfBirth ? String(input.dateOfBirth) : null;
+      updateData.dob = input.dateOfBirth ? new Date(input.dateOfBirth) : null;
+    }
     if (input.referenceType !== undefined) updateData.reference   = input.referenceType; // actual col = 'reference'
     if ((input as any).maritalStatus !== undefined) updateData.status   = (input as any).maritalStatus;
     if ((input as any).referredBy    !== undefined) updateData.referedBy = (input as any).referredBy;

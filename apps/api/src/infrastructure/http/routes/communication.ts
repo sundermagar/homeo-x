@@ -10,9 +10,11 @@ import { SendWhatsAppUseCase } from '../../../domains/communication/use-cases/se
 import { CommunicationRepositoryPG } from '../../repositories/communication.repository.pg.js';
 import { NodemailerServiceAdapter } from '../../communication/nodemailer.service.js';
 import { createSmsGateway } from '../../communication/msg91-sms-gateway.js';
+import { createWhatsAppGateway } from '../../communication/bulk-shooters-whatsapp-gateway.js';
 
-// ─── Gateway singleton (one per process) ─────────────────────────────────────
+// ─── Gateway singletons (one per process) ─────────────────────────────────────
 const smsGateway = createSmsGateway();
+const whatsappGateway = createWhatsAppGateway();
 
 export const communicationRouter: Router = Router();
 
@@ -109,7 +111,7 @@ communicationRouter.post('/sms/broadcast', asyncHandler(async (req, res) => {
 
 // POST /api/communications/whatsapp/send — single
 communicationRouter.post('/whatsapp/send', asyncHandler(async (req, res) => {
-  const uc = new SendWhatsAppUseCase(getRepo(req));
+  const uc = new SendWhatsAppUseCase(getRepo(req), whatsappGateway);
   const { phone, message, regid } = req.body;
   const result = await uc.sendSingle({ phone, message, regid });
   if (result.success) sendSuccess(res, result.data, 'WhatsApp link generated');
@@ -118,7 +120,7 @@ communicationRouter.post('/whatsapp/send', asyncHandler(async (req, res) => {
 
 // POST /api/communications/whatsapp/broadcast
 communicationRouter.post('/whatsapp/broadcast', asyncHandler(async (req, res) => {
-  const uc = new SendWhatsAppUseCase(getRepo(req));
+  const uc = new SendWhatsAppUseCase(getRepo(req), whatsappGateway);
   const { patientIds, phone, message } = req.body;
   const result = await uc.broadcast({ patientIds, phone, message });
   if (result.success) sendSuccess(res, result.data, `WhatsApp: ${result.data?.sent ?? 0} sent`);

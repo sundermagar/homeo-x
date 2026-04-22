@@ -1377,6 +1377,20 @@ END $$`,
 )`,
   },
   {
+    name: 'library_resources',
+    ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."library_resources" (
+  "id" serial PRIMARY KEY,
+  "title" text NOT NULL,
+  "author" text DEFAULT '',
+  "resource_type" text DEFAULT 'Book',
+  "url" text DEFAULT '',
+  "description" text DEFAULT '',
+  "created_at" timestamp DEFAULT now() NOT NULL,
+  "updated_at" timestamp DEFAULT now() NOT NULL,
+  "deleted_at" timestamp
+)`,
+  },
+  {
     name: 'lead',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."lead" (
   "id" serial PRIMARY KEY,
