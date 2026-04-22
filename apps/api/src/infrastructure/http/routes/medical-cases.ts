@@ -19,10 +19,19 @@ import { aiAnalysisUseCase } from '../../../domains/medical-case/use-cases/ai-an
 const router = Router();
 router.use(authMiddleware);
 
+import { streamToSSE } from '../../../shared/sse';
+
 // ─── AI Clinical Consultant ───
 router.post('/ai-analysis', asyncHandler(async (req, res) => {
-  const result = await aiAnalysisUseCase.execute(req.body);
-  sendSuccess(res, { analysis: result }, 'AI Analysis complete');
+  const params = req.body; // Validation schema skipped (Task A2 not executed)
+  if (params.stream) {
+    const gen = aiAnalysisUseCase.stream(params, req.tenantDb);
+    await streamToSSE(req, res, gen, params.sessionId || '');
+  } else {
+    const result = await aiAnalysisUseCase.execute(params, req.tenantDb);
+    res.locals.aiProvider = result.provider;
+    sendSuccess(res, result, 'AI Analysis complete');
+  }
 }));
 
 const getRepo = (req: any) => new MedicalCaseRepositoryPg(req.tenantDb);

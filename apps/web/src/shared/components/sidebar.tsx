@@ -138,7 +138,7 @@ const NAV_STRUCTURE: NavItem[] = [
         { path: '/vitals-check', label: 'Height & Weight Check', icon: Scale },
         // { path: '/medical-cases', label: 'Medical Cases', icon: Stethoscope },
         { path: '/ai-remedy-chart', label: 'Materia Medica', icon: BookOpen },
-        { path: '/ai-consultant', label: 'AI Analysis', icon: BrainCircuit },
+        { path: '/ai-analysis', label: 'AI Analysis', icon: BrainCircuit },
       ],
     },
   },
@@ -309,7 +309,7 @@ interface SidebarProps {
 }
 
 function normalizeNavPath(path: string): { pathname: string; search: string } {
-  const [pathname, search = ''] = path.split('?');
+  const [pathname = '', search = ''] = path.split('?');
   return { pathname, search: search ? `?${search}` : '' };
 }
 

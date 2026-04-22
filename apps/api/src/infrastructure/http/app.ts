@@ -86,7 +86,7 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
 
   // ─── Request Processing ───
   app.use(compression());
-  app.use(express.json({ limit: '10mb' }));
+  app.use(express.json({ limit: '50mb' }));
 
   // ─── Observability ───
   app.use(correlationIdMiddleware);

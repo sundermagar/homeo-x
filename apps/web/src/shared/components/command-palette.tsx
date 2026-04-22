@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Users, Calendar, FileText, UsersRound,
   Briefcase, CreditCard, BarChart2, MessageSquare, Package,
   Settings, ChevronRight, Plus, Clock, ArrowRight, Brain, 
-  Stethoscope, Activity, ClipboardList, Wallet, Receipt, 
+  BrainCircuit, Activity, ClipboardList, Wallet, Receipt, 
   UserCog, Bell, Mail, ShieldCheck, Database, Pill, Truck
 } from 'lucide-react';
 
@@ -40,7 +40,7 @@ function buildCommands(navigate: ReturnType<typeof useNavigate>): CommandItem[] 
     nav('Medical Cases', '/medical-cases', <FileText size={16} />, ['case', 'consultation', 'history', 'folder']),
     nav('Vitals Check', '/vitals-check', <Activity size={16} />, ['vital', 'bp', 'weight', 'pulse', 'checkup']),
     nav('AI Remedy Chart', '/ai-remedy-chart', <Brain size={16} />, ['ai', 'remedy', 'chart', 'suggestion', 'drug', 'prescription']),
-    nav('AI Consultant', '/ai-consultant', <Stethoscope size={16} />, ['ai', 'consultant', 'advisor', 'bot', 'assistant']),
+    nav('AI Analysis', '/ai-analysis', <BrainCircuit size={16} />, ['ai', 'consultant', 'advisor', 'bot', 'assistant', 'analysis']),
     nav('Billing', '/billing', <CreditCard size={16} />, ['bill', 'invoice', 'payment', 'finance']),
     nav('Payments', '/payments', <Wallet size={16} />, ['payment', 'transaction', 'collection', 'ledger']),
     nav('Expenses', '/billing/expenses', <Receipt size={16} />, ['expense', 'outflow', 'cost', 'spend']),
@@ -131,7 +131,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const listRef = useRef<HTMLDivElement>(null);
 
   const filtered = commands.filter((c) => matches(query, c));
-  const grouped: Record<string, CommandItem[]> = {
+  const grouped: { navigation: CommandItem[]; action: CommandItem[] } = {
     navigation: filtered.filter((c) => c.category === 'navigation'),
     action: filtered.filter((c) => c.category === 'action'),
   };
