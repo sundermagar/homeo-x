@@ -40,11 +40,12 @@ export function useAppointments(filters: {
 }
 
 // ─── Today's List ─────────────────────────────────────────────────────────────
-export function useTodayAppointments() {
+export function useTodayAppointments(doctorId?: number) {
   return useQuery({
-    queryKey: apptKeys.today(),
+    queryKey: [...apptKeys.today(), doctorId],
     queryFn: async () => {
-      const res = await apiClient.get<{ success: boolean; data: Appointment[] }>('/appointments/today');
+      const url = `/appointments/today${doctorId ? `?doctor_id=${doctorId}` : ''}`;
+      const res = await apiClient.get<{ success: boolean; data: Appointment[] }>(url);
       return res.data.data ?? [];
     },
     refetchInterval: 60_000, // Auto-refresh every minute

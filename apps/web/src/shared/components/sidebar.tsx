@@ -411,7 +411,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       <NavLink
         key={child.path}
         to={child.path}
-        end={child.path === '/analytics' || child.path === '/billing' || child.path === '/patients' || child.path === '/'}
+        end={['/', '/analytics', '/billing', '/patients', '/appointments'].includes(child.path)}
         className={({ isActive }) => {
           const currentFull = location.pathname + location.search;
           const isMatch = child.path.includes('?')
