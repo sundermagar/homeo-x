@@ -18,7 +18,7 @@ const INIT_FORM = {
   phone: '', mobile1: '', mobile2: '', email: '',
   pin: '', address: '', road: '', area: '', city: '', state: 'Punjab', country: 'India', altAddress: '',
   religion: '', occupation: '', maritalStatus: '', bloodGroup: '',
-  referenceType: '', referredBy: '', assistantDoctor: '', consultationFee: 500,
+  referenceType: '', referredBy: '', assistantDoctor: '', consultationFee: undefined as number | undefined,
   courierOutstation: false, dateOfBirth: '',
 };
 
@@ -79,9 +79,13 @@ export default function PatientFormPage() {
       
       // Auto-update consultation fee when doctor is selected
       if (name === 'assistantDoctor') {
-        const doc = meta?.doctors?.find(d => String(d.id) === value);
-        if (doc) {
-          next.consultationFee = Number(doc.consultationFee) || 0;
+        if (!value) {
+          next.consultationFee = undefined;
+        } else {
+          const doc = meta?.doctors?.find(d => String(d.id) === value);
+          if (doc) {
+            next.consultationFee = Number(doc.consultationFee) || 0;
+          }
         }
       }
       
