@@ -66,10 +66,10 @@ appointmentsRouter.get('/', asyncHandler(async (req, res) => {
 
 // GET /api/appointments/today
 appointmentsRouter.get('/today', asyncHandler(async (req, res) => {
+  const { doctor_id } = req.query as Record<string, string>;
   const getAppts = new GetAppointmentUseCase(getRepo(req));
-  const user = req.user as any;
-  const doctorId = undefined; // user?.type === 'Doctor' ? Number(user.contextId) : undefined;
-  const result = await getAppts.getToday(doctorId);
+  const effectiveDoctorId = doctor_id ? Number(doctor_id) : undefined;
+  const result = await getAppts.getToday(effectiveDoctorId);
   if (result.success) sendSuccess(res, result.data);
 }));
 

@@ -259,6 +259,7 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
                   className="appt-form-input"
                   type="date"
                   value={form.bookingDate}
+                  min={new Date().toISOString().split('T')[0]}
                   onChange={e => set('bookingDate', e.target.value)}
                   required
                 />

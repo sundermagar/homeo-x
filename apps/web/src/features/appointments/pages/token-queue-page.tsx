@@ -32,29 +32,15 @@ export default function TokenQueuePage() {
 
   useEffect(() => {
     if (!isDoctor) {
-      apiClient.get('/doctors').then(({ data }) => setDoctors(Array.isArray(data) ? data : [])).catch(() => {});
+      apiClient.get('/doctors').then(({ data }) => {
+        const list = Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
+        setDoctors(list);
+      }).catch(() => {});
     }
   }, [isDoctor]);
 
   const { data: waitlist = [], isLoading: wLoading, refetch: wRefetch } = useWaitlist(today, doctorFilter ? Number(doctorFilter) : undefined);
-  const { data: todayAppts = [], isLoading: aLoading, refetch: aRefetch } = useTodayAppointments();
-
-  // Filter appointments: for doctors, filter strictly by their ID or name match
-  const filteredAppts = (() => {
-    if (!doctorFilter) return todayAppts;
-    const filterNum = Number(doctorFilter);
-    const doctorUserName = ((user as any)?.name || '').toLowerCase().trim();
-    return todayAppts.filter(a => {
-      // Direct ID match
-      if (a.doctorId === filterNum) return true;
-      // Name-based fallback for legacy data
-      if (isDoctor && doctorUserName && a.doctorName) {
-        const aName = (a.doctorName || '').toLowerCase().trim();
-        if (aName === doctorUserName || aName.includes(doctorUserName) || doctorUserName.includes(aName)) return true;
-      }
-      return false;
-    });
-  })();
+  const { data: todayAppts = [], isLoading: aLoading, refetch: aRefetch } = useTodayAppointments(doctorFilter ? Number(doctorFilter) : undefined);
 
   const callNext      = useCallNext();
   const completeVisit = useCompleteVisit();
@@ -65,8 +51,8 @@ export default function TokenQueuePage() {
   const inProgress = waitlist.filter(w => w.status === 1);
   const done       = waitlist.filter(w => w.status === 2);
 
-  const withToken     = filteredAppts.filter(a => a.tokenNo);
-  const withoutToken  = filteredAppts.filter(a => !a.tokenNo);
+  const withToken     = todayAppts.filter(a => a.tokenNo);
+  const withoutToken  = todayAppts.filter(a => !a.tokenNo);
 
   const handleCall      = async (id: number) => { await callNext.mutateAsync(id); wRefetch(); };
   const handleComplete  = async (id: number) => { await completeVisit.mutateAsync(id); wRefetch(); aRefetch(); };
@@ -134,7 +120,7 @@ export default function TokenQueuePage() {
           Live Queue ({waiting.length + inProgress.length})
         </button>
         <button className={`appt-tab ${tab === 'tokens' ? 'active' : ''}`} onClick={() => setTab('tokens')}>
-          Token Management ({filteredAppts.length})
+          Token Management ({todayAppts.length})
         </button>
       </div>
 
@@ -229,7 +215,7 @@ export default function TokenQueuePage() {
         <div>
           {aLoading ? (
             <div className="appt-empty"><RefreshCw size={22} style={{ animation: 'spin 1s linear infinite', opacity: 0.3 }} /></div>
-          ) : filteredAppts.length === 0 ? (
+          ) : todayAppts.length === 0 ? (
             <div className="appt-empty">
               <Ticket size={28} className="appt-empty-icon" />
               <p className="appt-empty-text">No appointments found {doctorFilter ? 'for this doctor' : 'today'}</p>
@@ -249,7 +235,7 @@ export default function TokenQueuePage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredAppts.map(a => (
+                    {todayAppts.map(a => (
                       <tr key={a.id}>
                         <td>
                           {a.tokenNo ? (
