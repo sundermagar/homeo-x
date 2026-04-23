@@ -2,14 +2,31 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
 
+import fs from 'node:fs';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// apps/api/src/shared/config -> apps/api -> repo root
-const apiDir = path.resolve(__dirname, '../../../..');
-const repoRoot = path.resolve(apiDir, '..');
+// Potential locations for .env
+const searchPaths = [
+  path.join(process.cwd(), '.env'),
+  path.join(__dirname, '../../../.env'),
+  path.join(__dirname, '../../../../.env'),
+  path.resolve('/app/.env'),
+];
 
-// Priority: API-local env, then repo root env.
-dotenv.config({ path: path.join(apiDir, '.env') });
-dotenv.config({ path: path.join(repoRoot, '.env') });
+console.log(`[Env] Searching for .env files in ${searchPaths.length} locations...`);
+
+for (const p of searchPaths) {
+  if (fs.existsSync(p)) {
+    console.log(`[Env] Found .env at: ${p}`);
+    dotenv.config({ path: p });
+  } else {
+    console.log(`[Env] No .env at: ${p}`);
+  }
+}
+
+if (!process.env.JWT_SECRET) {
+  console.warn('[Env] WARNING: JWT_SECRET still not found after searching common paths.');
+}
 
