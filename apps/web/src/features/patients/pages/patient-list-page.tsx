@@ -7,7 +7,7 @@ import { Role, type PatientSummary } from '@mmc/types';
 import '../../appointments/styles/appointments.css';
 import '../styles/patients.css';
 
-const PAGE_SIZE = 30;
+const PAGE_SIZE = 10;
 
 export default function PatientListPage() {
   const navigate = useNavigate();
@@ -39,7 +39,25 @@ export default function PatientListPage() {
   const patients = useMemo(() => {
     const list = data?.data || [];
     if (sortBy === 'name') return [...list].sort((a, b) => a.fullName.localeCompare(b.fullName));
-    if (sortBy === 'oldest') return [...list].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    
+    if (sortBy === 'oldest') {
+      return [...list].sort((a, b) => {
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
+        if (dateA !== dateB) return dateA - dateB;
+        return a.regid - b.regid; // Fallback to regid
+      });
+    }
+
+    if (sortBy === 'newest') {
+      return [...list].sort((a, b) => {
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
+        if (dateA !== dateB) return dateB - dateA;
+        return b.regid - a.regid; // Fallback to regid
+      });
+    }
+
     return list;
   }, [data?.data, sortBy]);
 

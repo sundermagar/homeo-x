@@ -397,3 +397,14 @@
   text-align: center;
   color: var(--pp-text-3);
 }
+
+/* ─── Pagination ──────────────────────────────────────────────────────────── */
+
+.pat-pagination {
+  margin-top: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 12px 0;
+}
