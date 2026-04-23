@@ -52,7 +52,7 @@ export class AdditionalChargeRepositoryPg implements AdditionalChargeRepository 
     const [row] = await this.db
       .select({
         charge: additionalChargesLegacy,
-        patientName: sql<string>`CONCAT(${patients.firstName}, ' ', ${patients.surname})`,
+        patientName: sql<string>`COALESCE(NULLIF(CONCAT_WS(' ', ${patients.firstName}, ${patients.surname}), ''), 'Reg ID: ' || ${additionalChargesLegacy.regid})`,
         phone: patients.mobile1,
       })
       .from(additionalChargesLegacy)
@@ -82,7 +82,7 @@ export class AdditionalChargeRepositoryPg implements AdditionalChargeRepository 
         this.db
           .select({
             charge: additionalChargesLegacy,
-            patientName: sql<string>`CONCAT(${patients.firstName}, ' ', ${patients.surname})`,
+            patientName: sql<string>`COALESCE(NULLIF(CONCAT_WS(' ', ${patients.firstName}, ${patients.surname}), ''), 'Reg ID: ' || ${additionalChargesLegacy.regid})`,
             phone: patients.mobile1,
           })
           .from(additionalChargesLegacy)
@@ -144,8 +144,7 @@ export class AdditionalChargeRepositoryPg implements AdditionalChargeRepository 
 
   async softDelete(id: number): Promise<boolean> {
     const [row] = await this.db
-      .update(additionalChargesLegacy)
-      .set({ deletedAt: new Date().toISOString() })
+      .delete(additionalChargesLegacy)
       .where(eq(additionalChargesLegacy.id, id))
       .returning();
     return !!row;
@@ -224,8 +223,7 @@ export class DayChargeRepositoryPg implements DayChargeRepository {
 
   async softDelete(id: number): Promise<boolean> {
     const [row] = await this.db
-      .update(daychargesLegacy)
-      .set({ deletedAt: new Date() })
+      .delete(daychargesLegacy)
       .where(eq(daychargesLegacy.id, id))
       .returning();
     return !!row;
@@ -368,8 +366,7 @@ export class DepositRepositoryPg implements DepositRepository {
   async softDelete(id: number, type: 'Bank' | 'Cash'): Promise<boolean> {
     const table = type === 'Bank' ? bankDepositLegacy : cashDepositLegacy;
     const [row] = await this.db
-      .update(table as any)
-      .set({ deletedAt: new Date() })
+      .delete(table as any)
       .where(eq((table as any).id, id))
       .returning();
     return !!row;
@@ -521,8 +518,7 @@ export class ExpenseRepositoryPg implements ExpenseRepository {
 
   async softDelete(id: number): Promise<boolean> {
     const [row] = await this.db
-      .update(expensesLegacy)
-      .set({ deletedAt: new Date().toISOString() })
+      .delete(expensesLegacy)
       .where(eq(expensesLegacy.id, id))
       .returning();
     return !!row;

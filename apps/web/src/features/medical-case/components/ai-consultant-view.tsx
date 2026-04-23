@@ -164,13 +164,13 @@ export function AiConsultantView({ regid }: { regid?: number }) {
                 </div>
               </div>
             ) : (
-              <div className={`mc-ai-report ${msg.isError ? 'error' : ''}`} style={msg.isError ? { border: '1px solid #fecaca', backgroundColor: '#fef2f2' } : {}}>
-                <div className="mc-ai-report-header" style={msg.isError ? { backgroundColor: '#fee2e2', color: '#991b1b', borderBottomColor: '#fecaca' } : {}}>
+              <div className={`mc-ai-report ${msg.isError ? 'error' : ''}`}>
+                <div className="mc-ai-report-header">
                   {msg.isError ? <AlertTriangle size={16} /> : <Sparkles size={16} />}
                   <span>{msg.isError ? 'Analysis Failed' : 'AI Clinical Analysis Report'} {msg.provider && <span style={{ opacity: 0.6, fontSize: '0.85em', marginLeft: 4 }}>({msg.provider})</span>}</span>
                 </div>
                 <div className="mc-ai-report-body">
-                  <div className="mc-typewriter-box" style={msg.isError ? { color: '#991b1b' } : {}} dangerouslySetInnerHTML={{ __html: msg.content.replace(/\n/g, '<br/>') }} />
+                  <div className="mc-typewriter-box" dangerouslySetInnerHTML={{ __html: msg.content.replace(/\n/g, '<br/>') }} />
                 </div>
               </div>
             )}
@@ -218,14 +218,14 @@ export function AiConsultantView({ regid }: { regid?: number }) {
         }
       }}>
         {attachment && (
-          <div style={{ display: 'flex', alignItems: 'center', backgroundColor: '#e2e8f0', borderRadius: '4px', padding: '4px 8px', fontSize: '12px', color: '#334155', width: 'fit-content' }}>
+          <div className="mc-ai-attachment-pill">
             <span style={{ marginRight: '8px', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '200px', whiteSpace: 'nowrap' }}>{attachment.name}</span>
             <button 
               type="button" 
               onClick={() => setAttachment(null)}
-              style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', color: '#64748b' }}
+              style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-muted)' }}
             >
-               <Square size={12} fill="currentColor" />
+               <X size={14} />
             </button>
           </div>
         )}

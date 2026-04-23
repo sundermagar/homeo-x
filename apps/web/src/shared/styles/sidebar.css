@@ -114,8 +114,8 @@
   align-items: center;
   justify-content: space-between;
   height: 57px; /* Matches DashboardHeader 56px + border */
-  background-color: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
+  background-color: var(--bg-card);
+  border-bottom: 1px solid var(--border-main);
 }
 
 @media (min-width: 1024px) {
@@ -142,7 +142,7 @@
 .sidebar-brand {
   font-size: 1rem;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-main);
   letter-spacing: -0.01em;
 }
 
@@ -314,6 +314,7 @@
   position: relative;
   outline: none;
   border: none;
+  background: transparent;
 }
 
 .sidebar-child-item:hover {
@@ -448,9 +449,33 @@
   flex-shrink: 0;
 }
 
+.theme-toggle-btn {
+  padding: 6px;
+  color: var(--text-muted);
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.13s ease;
+  flex-shrink: 0;
+}
+
 .logout-btn:hover {
   color: var(--danger);
   background: var(--danger-bg);
+}
+
+.theme-toggle-btn:hover {
+  color: var(--primary);
+  background: var(--primary-tint);
+}
+
+/* ─── Global Transitions for Theme ─── */
+body, .sidebar, .sidebar-footer, .sidebar-header, .app-main, .dh-bar, .card, .pp-card, .pp-input, .pp-select, .pp-textarea {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 
 /* ─── Main Content Area ─── */

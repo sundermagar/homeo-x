@@ -125,7 +125,7 @@
   gap: 12px;
   transition: all var(--transition-normal);
   min-height: 72px;
-  background: rgba(255, 255, 255, 0.8) !important;
+  background: var(--bg-glass) !important;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   box-shadow: var(--pp-premium-shadow);
@@ -185,7 +185,7 @@
 
 /* ─── Content Card ─── */
   min-height: 160px;
-  background: #ffffff;
+  background: var(--bg-card);
   border: 1px solid var(--pp-warm-4);
   border-radius: var(--pp-radius-card);
   box-shadow: var(--pp-premium-shadow);

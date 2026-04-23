@@ -91,7 +91,7 @@
 
 /* ─── Cards ─── */
 .appt-card {
-  background: #ffffff;
+  background: var(--bg-card);
   border: 1px solid var(--pp-warm-4);
   border-radius: var(--pp-radius-card);
   overflow: hidden;
@@ -116,7 +116,7 @@
   font-size: 0.85rem; font-weight: 700;
   cursor: pointer;
   border: 1px solid var(--pp-warm-4);
-  background: #ffffff; color: var(--pp-text-2);
+  background: var(--bg-card); color: var(--pp-text-2);
   transition: all var(--transition-normal);
   white-space: nowrap;
   font-family: var(--pp-font-sans);
@@ -211,7 +211,7 @@
 .appt-cal-cell {
   min-height: 52px; border-radius: var(--pp-radius-btn);
   border: 1.5px solid var(--pp-warm-4);
-  background: #ffffff; padding: 6px;
+  background: var(--bg-card); padding: 6px;
   cursor: pointer; transition: all var(--transition-normal);
 }
 @media (min-width: 768px) { .appt-cal-cell { min-height: 76px; padding: var(--pp-space-3); } }
@@ -318,7 +318,7 @@
   width: 32px; height: 32px;
   border-radius: var(--pp-radius-btn);
   border: 1px solid var(--pp-warm-4);
-  background: #ffffff; color: var(--pp-text-2);
+  background: var(--bg-card); color: var(--pp-text-2);
   cursor: pointer; font-size: 1.1rem; font-weight: 800;
   letter-spacing: 0.04em;
   transition: all var(--transition-normal);
@@ -329,7 +329,7 @@
 
 .appt-kebab-menu {
   /* position & coords are set inline by the portal — do NOT add position/top/right here */
-  background: #ffffff;
+  background: var(--bg-card);
   border: 1px solid var(--pp-warm-4);
   border-radius: var(--pp-radius-card);
   box-shadow: 0 8px 24px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.07);
@@ -388,7 +388,7 @@
 /* ─── View Toggle ─── */
 .appt-view-toggle {
   display: inline-flex;
-  background: white;
+  background: var(--bg-card);
   border: 1px solid var(--pp-warm-4);
   border-radius: var(--pp-radius-btn);
   overflow: hidden;
@@ -436,7 +436,7 @@
   border: 1px solid var(--pp-warm-4);
   border-radius: var(--pp-radius-btn);
   font-size: 0.875rem; color: var(--pp-ink);
-  background: #ffffff; outline: none; width: 100%;
+  background: var(--bg-card); outline: none; width: 100%;
   font-family: var(--pp-font-sans);
   transition: border-color var(--transition-normal);
 }
@@ -467,7 +467,7 @@
   padding: 8px 4px;
   border-radius: var(--pp-radius-btn);
   border: 1.5px solid var(--pp-warm-4);
-  background: #ffffff; color: var(--pp-text-2);
+  background: var(--bg-card); color: var(--pp-text-2);
   font-size: 0.72rem; font-weight: 600;
   cursor: pointer; transition: all var(--transition-normal);
   text-align: center; font-family: var(--pp-font-sans);
@@ -488,7 +488,7 @@
 @media (min-width: 768px) { .appt-modal-overlay { align-items: center; padding: var(--pp-space-5); } }
 
 .appt-modal {
-  background: #ffffff;
+  background: var(--bg-card);
   border-radius: 14px 14px 0 0;
   width: 100%; max-width: 560px;
   max-height: 90vh; overflow-y: auto;
@@ -509,7 +509,7 @@
   padding: var(--pp-space-4) var(--pp-space-5);
   border-bottom: 1px solid var(--pp-warm-3);
   display: flex; justify-content: space-between; align-items: center;
-  position: sticky; top: 0; background: #ffffff; z-index: 1;
+  position: sticky; top: 0; background: var(--bg-card); z-index: 1;
 }
 .appt-modal-title { font-size: 0.9375rem; font-weight: 700; color: var(--pp-ink); margin: 0; }
 .appt-modal-body  { padding: var(--pp-space-4) var(--pp-space-5); }
@@ -535,7 +535,7 @@
 @media (min-width: 1024px) { .appt-queue-board { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); } }
 
 .appt-token-card {
-  background: #ffffff;
+  background: var(--bg-card);
   border: 1px solid var(--pp-warm-4);
   border-radius: var(--pp-radius-card);
   padding: var(--pp-space-4);
@@ -587,7 +587,7 @@
   flex: 1; padding: 10px 8px;
   border-radius: var(--pp-radius-btn);
   border: 1.5px solid var(--pp-warm-4);
-  background: #ffffff; color: var(--pp-text-2);
+  background: var(--bg-card); color: var(--pp-text-2);
   font-size: 0.8rem; font-weight: 600;
   cursor: pointer; transition: all var(--transition-normal);
   text-align: center; font-family: var(--pp-font-sans);
@@ -620,7 +620,7 @@
   border: 1px solid var(--pp-warm-4);
   border-radius: var(--pp-radius-btn);
   font-size: 0.82rem; outline: none; color: var(--pp-ink);
-  background: #ffffff; font-family: var(--pp-font-sans);
+  background: var(--bg-card); font-family: var(--pp-font-sans);
   transition: border-color var(--transition-normal);
 }
 @media (min-width: 768px) { .appt-filter-input { height: 34px; } }

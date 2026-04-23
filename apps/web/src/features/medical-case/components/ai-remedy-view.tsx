@@ -35,11 +35,13 @@ interface MatrixNodeProps {
   depth?: number;
   regid?: number;
   searchQuery?: string;
+  expandedId: string | null;
+  onExpand: (id: string | null) => void;
 }
 
-function MatrixNode({ node, depth = 0, regid, searchQuery }: MatrixNodeProps) {
+function MatrixNode({ node, depth = 0, regid, searchQuery, expandedId, onExpand }: MatrixNodeProps) {
   const isSearching = !!searchQuery;
-  const [isManualOpen, setIsManualOpen] = useState(depth < 1); // Top level open by default
+  const isManualOpen = expandedId === node.id;
   const isOpen = isSearching || isManualOpen;
 
   const hasChildren = node.children && node.children.length > 0;
@@ -66,7 +68,12 @@ function MatrixNode({ node, depth = 0, regid, searchQuery }: MatrixNodeProps) {
 
   // Depth-based design tokens
   const getColors = () => {
-    if (depth === 0) return { bg: 'var(--primary-tint)', text: 'var(--primary)', border: 'var(--primary-border)' };
+    if (depth === 0) {
+      if (isOpen) {
+        return { bg: 'var(--primary-tint)', text: 'var(--primary)', border: 'var(--primary-border)' };
+      }
+      return { bg: 'var(--bg-card)', text: 'var(--text-main)', border: 'var(--border-main)' };
+    }
     if (depth === 1) return { bg: 'var(--bg-card)', text: 'var(--text-main)', border: 'var(--border-main)' };
     return { bg: 'var(--bg-surface-2)', text: 'var(--text-secondary)', border: 'transparent' };
   };
@@ -87,7 +94,7 @@ function MatrixNode({ node, depth = 0, regid, searchQuery }: MatrixNodeProps) {
           cursor: hasChildren ? 'pointer' : 'default',
           color: colors.text
         }}
-        onClick={hasChildren ? () => setIsManualOpen(!isManualOpen) : undefined}
+        onClick={hasChildren ? () => onExpand(isManualOpen ? null : node.id) : undefined}
       >
         <div style={{ width: 16, display: 'flex', justifyContent: 'center' }}>
           {hasChildren ? (
@@ -100,7 +107,7 @@ function MatrixNode({ node, depth = 0, regid, searchQuery }: MatrixNodeProps) {
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
           <div style={{
             width: 28, height: 28, borderRadius: '8px',
-            background: 'white', border: '1px solid var(--border-main)',
+            background: 'var(--bg-card)', border: '1px solid var(--border-main)',
             display: 'flex', alignItems: 'center', justifyContent: 'center'
           }}>
             {hasChildren ? (
@@ -115,7 +122,7 @@ function MatrixNode({ node, depth = 0, regid, searchQuery }: MatrixNodeProps) {
         </div>
 
         {hasChildren && (
-          <span className="mc-count" style={{ fontSize: '0.6rem', padding: '2px 8px', background: 'white', borderRadius: '4px', border: '1px solid var(--border-main)' }}>
+          <span className="mc-count" style={{ fontSize: '0.6rem', padding: '2px 8px', background: 'var(--bg-card)', borderRadius: '4px', border: '1px solid var(--border-main)' }}>
             {node.children.length} Clusters
           </span>
         )}
@@ -141,7 +148,7 @@ function MatrixNode({ node, depth = 0, regid, searchQuery }: MatrixNodeProps) {
           gap: '6px'
         }}>
           {node.children?.map(child => (
-            <MatrixNode key={child.id} node={child} depth={depth + 1} regid={regid} searchQuery={searchQuery} />
+            <MatrixNode key={child.id} node={child} depth={depth + 1} regid={regid} searchQuery={searchQuery} expandedId={expandedId} onExpand={onExpand} />
           ))}
 
           {loadingAlts && <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', padding: '4px' }}>Querying clinical matrix...</div>}
@@ -155,7 +162,7 @@ function MatrixNode({ node, depth = 0, regid, searchQuery }: MatrixNodeProps) {
                     key={alt.id}
                     onClick={() => handlePrescribe(alt.remedy, alt.potency)}
                     className="mc-remedy-pill"
-                    style={{ background: 'white', fontSize: '0.72rem' }}
+                    style={{ background: 'var(--bg-card)', fontSize: '0.72rem' }}
                   >
                     <Activity size={10} style={{ color: 'var(--primary)' }} />
                     {alt.remedy} {alt.potency && <span>({alt.potency})</span>}
@@ -174,6 +181,7 @@ function MatrixNode({ node, depth = 0, regid, searchQuery }: MatrixNodeProps) {
 
 export function AiRemedyView({ regid }: { regid?: number }) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const { data: treeNodes, isLoading } = useRemedyTree();
 
   const filteredNodes = useMemo(() => {
@@ -239,7 +247,7 @@ export function AiRemedyView({ regid }: { regid?: number }) {
             ) : (
               <>
                 {filteredNodes.map(node => (
-                  <MatrixNode key={node.id} node={node} regid={regid} searchQuery={searchTerm} />
+                  <MatrixNode key={node.id} node={node} regid={regid} searchQuery={searchTerm} expandedId={expandedId} onExpand={setExpandedId} />
                 ))}
                 {filteredNodes.length === 0 && (
                   <div className="mc-wip">

@@ -2,12 +2,27 @@
 
 .sa-root {
   padding: 0;
-  /* padding-top: var(--pp-space-6); */
   padding-bottom: var(--pp-space-8);
   min-height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 32px;
+  /* Premium backdrop glow */
+  position: relative;
+}
+
+.sa-root::before {
+  content: '';
+  position: absolute;
+  top: -100px;
+  right: -100px;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, var(--pp-blue-tint) 0%, transparent 70%);
+  filter: blur(100px);
+  opacity: 0.15;
+  z-index: -1;
+  pointer-events: none;
 }
 
 .sa-root.sa-loading {
@@ -33,24 +48,38 @@
 }
 
 .sa-title {
-  font-size: 1.5rem;
+  font-size: 2rem;
   font-weight: 800;
-  color: #0f172a;
-  margin: 0 0 2px;
-  letter-spacing: -0.01em;
+  color: var(--text-main);
+  margin: 0 0 4px;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, var(--text-main) 0%, #94a3b8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .sa-subtitle {
-  font-size: 12px;
+  font-size: 13px;
   color: #94a3b8;
-  font-weight: 600;
+  font-weight: 500;
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sa-subtitle::before {
+  content: '';
+  width: 12px;
+  height: 1px;
+  background: var(--pp-blue);
+  opacity: 0.5;
 }
 
 .sa-period-tabs {
   display: flex;
   gap: 2px;
-  background: #f1f5f9;
+  background: var(--bg-surface-2);
   border: 1px solid #e2e8f0;
   border-radius: 10px;
   padding: 3px;
@@ -69,11 +98,11 @@
 }
 
 .sa-period-tab:hover {
-  color: #0f172a;
+  color: var(--text-main);
 }
 
 .sa-period-tab.active {
-  background: #ffffff;
+  background: var(--bg-card);
   color: #2563eb;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
@@ -93,18 +122,24 @@
 }
 
 .sa-kpi-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  padding: 20px;
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 20px;
+  padding: 24px;
   display: flex;
   align-items: flex-start;
-  gap: 14px;
-  transition: box-shadow 0.15s;
+  gap: 18px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
 .sa-kpi-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  transform: translateY(-4px);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
 }
 
 .sa-kpi-icon {
@@ -125,19 +160,20 @@
 }
 
 .sa-kpi-label {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
-  color: #94a3b8;
+  color: #64748b;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.1em;
+  margin-bottom: 4px;
 }
 
 .sa-kpi-value {
-  font-size: 1.5rem;
+  font-size: 1.85rem;
   font-weight: 800;
-  color: #0f172a;
+  color: var(--text-main);
   letter-spacing: -0.02em;
-  line-height: 1.1;
+  line-height: 1;
 }
 
 .sa-kpi-trend {
@@ -172,14 +208,14 @@
 }
 
 .sa-stat-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 18px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  transition: all 0.15s;
+  gap: 14px;
+  transition: all 0.2s ease;
 }
 
 .sa-stat-clickable {
@@ -204,7 +240,7 @@
 .sa-stat-value {
   font-size: 1.1rem;
   font-weight: 800;
-  color: #0f172a;
+  color: var(--text-main);
   letter-spacing: -0.01em;
 }
 
@@ -220,15 +256,16 @@
 /* ─── Revenue Chart ────────────────────────────────────────────────────────── */
 
 .sa-chart-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
   overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 }
 
 .sa-chart-header {
-  padding: 16px 20px;
-  border-bottom: 1px solid #f1f5f9;
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -237,7 +274,7 @@
 .sa-chart-title {
   font-size: 11px;
   font-weight: 800;
-  color: #0f172a;
+  color: var(--text-main);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   display: flex;
@@ -295,17 +332,19 @@
 }
 
 .sa-action-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 18px;
+  padding: 20px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   text-align: left;
   width: 100%;
+  position: relative;
+  overflow: hidden;
 }
 
 .sa-action-card:hover {
@@ -318,7 +357,7 @@
   width: 38px;
   height: 38px;
   border-radius: 10px;
-  background: #f1f5f9;
+  background: var(--bg-surface-2);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -334,7 +373,7 @@
 .sa-action-label {
   font-size: 13px;
   font-weight: 800;
-  color: #0f172a;
+  color: var(--text-main);
 }
 
 .sa-action-sub {

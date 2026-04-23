@@ -173,7 +173,7 @@ export function RemedyChartSession({ regid }: { regid?: number }) {
         )}
 
         {/* Prescription Input Area */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '24px', background: 'white', border: '1px solid var(--border-main)', borderRadius: '16px', boxShadow: '0 2px 12px rgba(0,0,0,0.03)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '24px', background: 'var(--bg-card)', border: '1px solid var(--border-main)', borderRadius: '16px', boxShadow: '0 2px 12px rgba(0,0,0,0.03)' }}>
           <div className="mc-page-title" style={{ fontSize: '1rem' }}>
             <FileText size={18} style={{ color: 'var(--primary)' }} />
             New Prescription Row

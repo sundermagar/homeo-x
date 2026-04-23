@@ -17,6 +17,7 @@ export default function DayChargesPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [search, setSearch] = useState('');
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
   const filtered = charges.filter(c =>
     !search || (c.days ?? '').toLowerCase().includes(search.toLowerCase())
@@ -44,9 +45,21 @@ export default function DayChargesPage() {
     setIsModalOpen(false);
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Delete this day charge entry?')) return;
-    await deleteCharge.mutateAsync(id);
+  const handleDelete = async (e: React.MouseEvent, id: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDeleteConfirmId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirmId) return;
+    try {
+      await deleteCharge.mutateAsync(deleteConfirmId);
+      setDeleteConfirmId(null);
+    } catch (err: any) {
+      alert('Failed to delete day charge: ' + (err.response?.data?.error || err.message));
+      setDeleteConfirmId(null);
+    }
   };
 
   return (
@@ -111,7 +124,7 @@ export default function DayChargesPage() {
                         <button className="plat-btn plat-btn-sm plat-btn-icon" onClick={() => handleOpenEdit(c)}>
                           <Edit2 size={13} />
                         </button>
-                        <button className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" onClick={() => handleDelete(c.id)}>
+                        <button type="button" className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" onClick={(e) => handleDelete(e, c.id)}>
                           <Trash2 size={13} />
                         </button>
                       </div>
@@ -149,6 +162,26 @@ export default function DayChargesPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {deleteConfirmId && (
+        <div className="plat-modal-overlay animate-fade-in" style={{ zIndex: 1100 }}>
+          <div className="plat-modal" style={{ maxWidth: 400 }}>
+            <div className="plat-modal-header">
+              <h2 className="plat-modal-title">Confirm Deletion</h2>
+            </div>
+            <div className="plat-modal-body">
+              <p style={{ margin: 0, color: 'var(--pp-text-2)', fontSize: '13px' }}>
+                Are you sure you want to delete this day charge plan? This action cannot be undone.
+              </p>
+            </div>
+            <div className="plat-modal-footer">
+              <button type="button" className="plat-btn" onClick={() => setDeleteConfirmId(null)}>Cancel</button>
+              <button type="button" className="plat-btn plat-btn-danger" onClick={confirmDelete} disabled={deleteCharge.isPending}>
+                {deleteCharge.isPending ? 'Deleting...' : 'Delete Permanently'}
+              </button>
+            </div>
           </div>
         </div>
       )}

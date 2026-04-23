@@ -64,71 +64,58 @@
 }
 
 .bill-stat-card {
-  background: var(--pp-glass-bg) !important;
-  backdrop-filter: var(--pp-glass-blur);
-  -webkit-backdrop-filter: var(--pp-glass-blur);
-  border: 1px solid var(--pp-glass-border);
+  background: var(--bg-card);
+  border: 1px solid var(--border-main);
   border-radius: var(--pp-radius-card);
-  padding: var(--pp-space-4);
+  padding: 18px 20px;
   display: flex;
-  flex-direction: column;
-  gap: var(--pp-space-2);
+  align-items: center;
+  gap: 16px;
   box-shadow: var(--pp-premium-shadow);
-  transition: all var(--transition-normal);
+  transition: all 0.3s ease;
 }
 
 .bill-stat-card:hover {
   transform: translateY(-2px);
-  box-shadow: var(--pp-shadow-md);
-  background: #ffffff !important;
   border-color: var(--pp-blue-border);
-  transition: all var(--transition-normal);
 }
 
-.bill-stat-card-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+.bill-stat-icon { 
+  width: 52px; 
+  height: 52px; 
+  border-radius: 14px; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px -4px rgba(0,0,0,0.15);
 }
 
-.bill-stat-icon { opacity: 0.8; }
-.bill-stat-icon-default { color: var(--pp-blue);  }
-.bill-stat-icon-success  { color: var(--pp-success-fg);  }
-.bill-stat-icon-danger   { color: var(--pp-danger-fg);   }
-.bill-stat-icon-warning  { color: var(--pp-warning-fg);  }
-
-.bill-stat-count {
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: var(--pp-text-3);
-  font-family: var(--pp-font-mono);
+.bill-stat-label { 
+  font-size: 0.68rem; 
+  font-weight: 700; 
+  text-transform: uppercase; 
+  letter-spacing: 0.08em; 
+  color: var(--pp-text-3); 
 }
 
-.bill-stat-label {
-  font-size: 0.68rem;
-  font-weight: 700;
-  color: var(--pp-text-3);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.bill-stat-value {
-  font-size: 1.6rem;
-  font-weight: 800;
+.bill-stat-value { 
+  font-size: 1.6rem; 
+  font-weight: 850; 
   font-family: var(--pp-font-mono);
   line-height: 1;
-  letter-spacing: -0.04em;
-  color: var(--pp-blue-deep);
+  letter-spacing: -0.02em;
+  color: var(--pp-blue);
 }
 
 .bill-stat-card[data-type="success"] .bill-stat-value { color: var(--pp-success-fg); }
 .bill-stat-card[data-type="danger"]  .bill-stat-value { color: var(--pp-danger-fg); }
 .bill-stat-card[data-type="warning"] .bill-stat-value { color: var(--pp-warning-fg); }
-.bill-stat-card[data-type="default"] .bill-stat-value { color: var(--pp-blue-deep); }
+.bill-stat-card[data-type="default"] .bill-stat-value { color: var(--pp-blue); }
 
 /* ─── Cards ─── */
 .bill-card {
-  background: #ffffff;
+  background: var(--bg-card);
   border: 1px solid var(--pp-warm-4);
   border-radius: var(--pp-radius-card);
   overflow: hidden;
@@ -204,7 +191,7 @@
   .bill-table tr {
     border-bottom: 1px solid var(--pp-warm-4);
     padding: var(--pp-space-4);
-    background: #ffffff;
+    background: var(--bg-card);
   }
   
   .bill-table tr:last-child {
@@ -254,7 +241,7 @@
   font-weight: 700;
   cursor: pointer;
   border: 1px solid var(--pp-warm-4);
-  background: #ffffff;
+  background: var(--bg-card);
   color: var(--pp-text-2);
   transition: all var(--transition-normal);
   white-space: nowrap;
@@ -322,7 +309,7 @@
   font-size: 0.82rem;
   outline: none;
   color: var(--pp-ink);
-  background: #ffffff;
+  background: var(--bg-card);
   font-family: var(--pp-font-sans);
   transition: all var(--transition-normal);
 }
@@ -396,7 +383,7 @@
 }
 
 .bill-modal {
-  background: #ffffff;
+  background: var(--bg-card);
   border-radius: var(--pp-radius-lg);
   width: 100%;
   max-width: 500px;
@@ -414,7 +401,7 @@
   align-items: center;
   position: sticky;
   top: 0;
-  background: white;
+  background: var(--bg-card);
   z-index: 1;
 }
 
@@ -450,7 +437,7 @@
   border-radius: var(--pp-radius-btn);
   font-size: 0.875rem;
   color: var(--pp-ink);
-  background: #ffffff;
+  background: var(--bg-card);
   outline: none;
   width: 100%;
   font-family: var(--pp-font-sans);
@@ -470,7 +457,7 @@
   border: 1px solid var(--pp-warm-4);
   border-radius: 999px;
   overflow: hidden;
-  background: #ffffff;
+  background: var(--bg-card);
 }
 
 .bill-view-toggle-btn {
@@ -550,7 +537,7 @@
   box-shadow: var(--pp-shadow-md);
   border-radius: var(--pp-radius-btn);
   border: 1px solid var(--pp-warm-4);
-  background: #ffffff;
+  background: var(--bg-card);
 }
 
 .bill-dropdown-item {

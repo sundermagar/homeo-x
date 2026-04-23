@@ -55,7 +55,7 @@ export default function MedicalCaseListPage() {
           <button className="mc-filter-btn">
             <Filter size={14} strokeWidth={1.6} /> Filters
           </button>
-          <div style={{ display: 'inline-flex', border: '1px solid #e2e8f0', borderRadius: 999, overflow: 'hidden', background: 'white' }}>
+          <div style={{ display: 'inline-flex', border: '1px solid #e2e8f0', borderRadius: 999, overflow: 'hidden', background: 'var(--bg-card)' }}>
             <button
               type="button"
               onClick={() => setViewMode('list')}
@@ -182,7 +182,7 @@ export default function MedicalCaseListPage() {
           ) : records.data.map((record: any) => (
             <div
               key={record.id}
-              style={{ cursor: 'pointer', borderRadius: 18, border: '1px solid #e2e8f0', background: 'white', padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}
+              style={{ cursor: 'pointer', borderRadius: 18, border: '1px solid #e2e8f0', background: 'var(--bg-card)', padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}
               onClick={() => navigate(`/medical-cases/${record.regid}`)}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>

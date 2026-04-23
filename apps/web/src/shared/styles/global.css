@@ -46,14 +46,21 @@
 }
 
 .dark {
-  --bg-main: #0f172a;
-  --bg-card: #1e293b;
-  --bg-glass: rgba(30, 41, 59, 0.7);
+  --bg-main: #09090B;
+  --bg-card: #121214;
+  --bg-surface-2: #1C1C1F;
+  --bg-glass: rgba(9, 9, 11, 0.8);
   
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
+  --text-main: #FFFFFF;
+  --text-secondary: #A1A1AA;
+  --text-muted: #71717A;
   
-  --border-main: #334155;
+  --border-main: #27272A;
+  
+  --primary-tint: rgba(37, 99, 235, 0.1);
+  --success-bg: rgba(22, 163, 74, 0.1);
+  --danger-bg: rgba(220, 38, 38, 0.1);
+  --warning-bg: rgba(217, 119, 6, 0.1);
 }
 
 /* ─── Base Styles ─── */

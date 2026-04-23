@@ -89,7 +89,7 @@ function TemplateFormModal({
 }
 
 export default function SmsTemplatesPage() {
-  const { data: templates = [], isLoading, refetch } = useSmsTemplates();
+  const { data: templates = [], isLoading, refetch, isFetching } = useSmsTemplates();
   const createTemplate = useCreateTemplate();
   const updateTemplate = useUpdateTemplate();
   const deleteTemplate = useDeleteTemplate();
@@ -129,8 +129,8 @@ export default function SmsTemplatesPage() {
           <p className="comm-subtitle">{templates.length} templates · Manage reusable message templates</p>
         </div>
         <div className="comm-header-actions">
-          <button className="comm-btn comm-btn-sm" onClick={() => refetch()}>
-            <RefreshCw size={13} className="comm-spin" /> Refresh
+          <button className="comm-btn comm-btn-sm" onClick={() => refetch()} disabled={isFetching}>
+            <RefreshCw size={13} className={isFetching ? "comm-spin" : ""} /> Refresh
           </button>
           <button className="comm-btn comm-btn-primary comm-btn-sm" onClick={() => setModal('create')}>
             <Plus size={14} /> New Template

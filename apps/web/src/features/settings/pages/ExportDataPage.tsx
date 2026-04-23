@@ -108,11 +108,11 @@ export default function ExportDataPage() {
       </div>
 
       <div className="security-box">
-        <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600 border border-emerald-100 flex-shrink-0">
+        <div style={{ padding: '8px', background: 'var(--pp-success-bg)', color: 'var(--pp-success-fg)', borderRadius: '8px', border: '1px solid var(--pp-success-border)', flexShrink: 0 }}>
           <CheckCircle2 size={24} />
         </div>
         <div>
-          <h4 className="font-bold text-[14px] text-emerald-900">Data Privacy & Security</h4>
+          <h4 className="font-bold text-[14px]" style={{ color: 'var(--text-main)' }}>Data Privacy & Security</h4>
           <p className="text-[12px] color-muted mt-0.5 leading-relaxed">
             Exported files contain sensitive health information. Ensure you handle these
             downloads according to your clinic's data protection policy.

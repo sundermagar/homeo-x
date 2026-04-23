@@ -28,7 +28,7 @@ export default function SmsReportsPage() {
     limit: 40,
   });
 
-  const { data, isLoading, refetch } = useSmsReports(filters);
+  const { data, isLoading, refetch, isFetching } = useSmsReports(filters);
   const reports = data?.data ?? [];
   const total = data?.total ?? 0;
   const page = filters.page ?? 1;
@@ -51,8 +51,8 @@ export default function SmsReportsPage() {
           <p className="comm-subtitle">Delivery tracking and transmission ledger</p>
         </div>
         <div className="comm-header-actions">
-          <button className="comm-btn comm-btn-sm" onClick={() => refetch()}>
-            <RefreshCw size={13} className="comm-spin" /> Refresh
+          <button className="comm-btn comm-btn-sm" onClick={() => refetch()} disabled={isFetching}>
+            <RefreshCw size={13} className={isFetching ? "comm-spin" : ""} /> Refresh
           </button>
         </div>
       </header>

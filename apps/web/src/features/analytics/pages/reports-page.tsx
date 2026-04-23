@@ -233,7 +233,7 @@ function MonthWiseDueTab({ onExport }: { onExport: (filename: string, headers: s
                 alignItems: 'center',
                 flexWrap: 'wrap',
                 gap: '16px',
-                background: 'white'
+                background: 'var(--bg-card)'
               }}>
                 <div style={{ flex: 1, minWidth: '200px' }}>
                   <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--pp-ink)', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -304,7 +304,7 @@ function BirthdaysTab({ onExport }: { onExport: (filename: string, headers: stri
                    padding: '16px', 
                    border: '1px solid var(--pp-warm-4)', 
                    borderRadius: '12px',
-                   background: 'white',
+                   background: 'var(--bg-card)',
                    display: 'flex',
                    justifyContent: 'space-between',
                    alignItems: 'center'

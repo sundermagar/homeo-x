@@ -86,10 +86,7 @@ export default function BillingListPage() {
 
       {/* ─── Table Section ─── */}
       <div className="bill-section-header">
-        <div>
-          <p className="bill-section-title">Invoice History</p>
-          <p className="bill-section-sub">Showing {bills.length} of {total} records</p>
-        </div>
+        <div />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <div className="bill-view-toggle-group">

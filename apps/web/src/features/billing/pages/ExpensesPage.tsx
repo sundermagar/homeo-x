@@ -5,7 +5,8 @@ import {
   useCreateExpense, 
   useUpdateExpense, 
   useDeleteExpense,
-  useExpenseHeads 
+  useExpenseHeads,
+  useCreateExpenseHead
 } from '../hooks/use-accounts';
 import type { ExpenseWithHead } from '@mmc/types';
 import type { CreateExpenseInput, ListExpensesQuery } from '@mmc/validation';
@@ -28,6 +29,9 @@ export default function ExpensesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [isOtherSelected, setIsOtherSelected] = useState(false);
+  const [customHeadName, setCustomHeadName] = useState('');
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
   const query: ListExpensesQuery = {
     page, limit: 30,
@@ -41,6 +45,7 @@ export default function ExpensesPage() {
   const createExpense = useCreateExpense();
   const updateExpense = useUpdateExpense();
   const deleteExpense = useDeleteExpense();
+  const createExpenseHead = useCreateExpenseHead();
 
   const expenses: ExpenseWithHead[] = data?.data ?? [];
   const total = data?.total ?? 0;
@@ -55,6 +60,8 @@ export default function ExpensesPage() {
   const handleOpenCreate = () => {
     setEditingId(null);
     setForm(EMPTY_FORM);
+    setIsOtherSelected(false);
+    setCustomHeadName('');
     setIsModalOpen(true);
   };
 
@@ -67,26 +74,61 @@ export default function ExpensesPage() {
       amount: exp.amount ?? 0,
       detail: exp.detail ?? '',
     });
+    setIsOtherSelected(false);
+    setCustomHeadName('');
     setIsModalOpen(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.head) {
+    
+    let headId = form.head;
+
+    if (isOtherSelected) {
+      if (!customHeadName.trim()) {
+        alert('Please enter a category name');
+        return;
+      }
+      // Create new expense head
+      try {
+        const newHead = await createExpenseHead.mutateAsync({ name: customHeadName });
+        headId = newHead.id;
+      } catch (err) {
+        alert('Failed to create new category');
+        return;
+      }
+    }
+
+    if (!headId) {
       alert('Please select an expense head');
       return;
     }
+
+    const payload = { ...form, head: headId };
+
     if (editingId) {
-      await updateExpense.mutateAsync({ id: editingId, ...form });
+      await updateExpense.mutateAsync({ id: editingId, ...payload });
     } else {
-      await createExpense.mutateAsync(form as CreateExpenseInput);
+      await createExpense.mutateAsync(payload as CreateExpenseInput);
     }
     setIsModalOpen(false);
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Delete this expense entry?')) return;
-    await deleteExpense.mutateAsync(id);
+  const handleDelete = async (e: React.MouseEvent, id: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDeleteConfirmId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirmId) return;
+    try {
+      await deleteExpense.mutateAsync(deleteConfirmId);
+      setDeleteConfirmId(null);
+    } catch (err: any) {
+      alert('Failed to delete expense: ' + (err.response?.data?.error || err.message));
+      setDeleteConfirmId(null);
+    }
   };
 
   return (
@@ -111,12 +153,22 @@ export default function ExpensesPage() {
       {/* ─── Stats Bar ─── */}
       <div className="bill-stats-bar">
         <div className="bill-stat-card">
-          <span className="bill-stat-label">Total Entries</span>
-          <span className="bill-stat-value">{total}</span>
+          <div className="bill-stat-icon" style={{ background: 'var(--pp-blue-bg)', color: 'var(--pp-blue)' }}>
+            <DollarSign size={22} />
+          </div>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <p className="bill-stat-label">Total Entries</p>
+            <div className="bill-stat-value">{total}</div>
+          </div>
         </div>
-        <div className="bill-stat-card">
-          <span className="bill-stat-label">Total Amount</span>
-          <span className="bill-stat-value">₹{totalAmount.toLocaleString()}</span>
+        <div className="bill-stat-card" data-type="danger">
+          <div className="bill-stat-icon" style={{ background: 'var(--pp-danger-bg)', color: 'var(--pp-danger-fg)' }}>
+            <Wallet size={22} />
+          </div>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <p className="bill-stat-label">Total Amount</p>
+            <div className="bill-stat-value">₹{totalAmount.toLocaleString()}</div>
+          </div>
         </div>
       </div>
 
@@ -185,11 +237,11 @@ export default function ExpensesPage() {
                       ₹{(e.amount ?? 0).toLocaleString()}
                     </td>
                     <td>
-                      <div className="bill-header-actions" style={{ justifyContent: 'flex-end', margin: 0 }}>
+                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                         <button className="bill-btn bill-btn-sm bill-btn-icon" onClick={() => handleOpenEdit(e)}>
                           <Edit2 size={13} strokeWidth={2} />
                         </button>
-                        <button className="bill-btn bill-btn-sm bill-btn-icon bill-btn-danger" onClick={() => handleDelete(e.id)}>
+                        <button type="button" className="bill-btn bill-btn-sm bill-btn-icon bill-btn-danger" onClick={(evt) => handleDelete(evt, e.id)}>
                           <Trash2 size={13} strokeWidth={2} />
                         </button>
                       </div>
@@ -213,11 +265,38 @@ export default function ExpensesPage() {
               <div className="bill-modal-body bill-form">
                 <div className="bill-form-group">
                   <label className="bill-form-label">Expense Head <span className="bill-form-required">*</span></label>
-                  <select className="bill-form-select" value={form.head ?? ''} onChange={e => setForm(f => ({ ...f, head: e.target.value ? parseInt(e.target.value) : undefined }))} required>
+                  <select 
+                    className="bill-form-select" 
+                    value={isOtherSelected ? 'other' : (form.head ?? '')} 
+                    onChange={e => {
+                      if (e.target.value === 'other') {
+                        setIsOtherSelected(true);
+                        setForm(f => ({ ...f, head: undefined }));
+                      } else {
+                        setIsOtherSelected(false);
+                        setForm(f => ({ ...f, head: e.target.value ? parseInt(e.target.value) : undefined }));
+                      }
+                    }} 
+                    required
+                  >
                     <option value="">Select category...</option>
                     {heads.map((h: any) => <option key={h.id} value={h.id}>{h.name}</option>)}
+                    <option value="other" style={{ fontWeight: 700, color: 'var(--pp-blue)' }}>+ Other (Create New)</option>
                   </select>
                 </div>
+                {isOtherSelected && (
+                  <div className="bill-form-group fade-in">
+                    <label className="bill-form-label">New Category Name <span className="bill-form-required">*</span></label>
+                    <input 
+                      className="bill-form-input" 
+                      placeholder="Enter manual category name..." 
+                      value={customHeadName} 
+                      onChange={e => setCustomHeadName(e.target.value)}
+                      required 
+                      autoFocus
+                    />
+                  </div>
+                )}
                 <div className="bill-form-row bill-form-row-2">
                   <div className="bill-form-group">
                     <label className="bill-form-label">Date</label>
@@ -240,6 +319,26 @@ export default function ExpensesPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {deleteConfirmId && (
+        <div className="bill-modal-overlay fade-in" style={{ zIndex: 1100 }}>
+          <div className="bill-modal" style={{ maxWidth: 400 }}>
+            <div className="bill-modal-header">
+              <h2 className="bill-modal-title">Confirm Deletion</h2>
+            </div>
+            <div className="bill-modal-body">
+              <p style={{ margin: 0, color: 'var(--pp-text-2)', fontSize: '0.9rem' }}>
+                Are you sure you want to delete this expense entry? This action cannot be undone.
+              </p>
+            </div>
+            <div className="bill-modal-footer">
+              <button type="button" className="bill-btn" onClick={() => setDeleteConfirmId(null)}>Cancel</button>
+              <button type="button" className="bill-btn bill-btn-danger" onClick={confirmDelete} disabled={deleteExpense.isPending}>
+                {deleteExpense.isPending ? 'Deleting...' : 'Delete Permanently'}
+              </button>
+            </div>
           </div>
         </div>
       )}

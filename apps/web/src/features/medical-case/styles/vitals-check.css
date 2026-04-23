@@ -258,10 +258,9 @@
 
 .ghub-metric-card input::placeholder { color: var(--text-muted); font-size: 1.75rem; }
 
-/* ─── Action Button ─── */
 .ghub-action-button {
   width: 100%;
-  background: var(--text-main);
+  background: var(--primary);
   color: white;
   border: none;
   padding: 16px;
@@ -278,7 +277,15 @@
   margin-top: 24px;
 }
 
-.ghub-action-button:hover:not(:disabled) { background: var(--primary); transform: translateY(-1px); }
+.dark .ghub-action-button {
+  background: var(--primary);
+  color: #FFFFFF;
+}
+
+.ghub-action-button:hover:not(:disabled) { 
+  background: var(--primary-hover); 
+  transform: translateY(-1px); 
+}
 .ghub-action-button:active:not(:disabled) { transform: translateY(0); }
 .ghub-action-button:disabled { opacity: 0.6; cursor: not-allowed; }
 

@@ -154,10 +154,6 @@ export default function PatientFormPage() {
               <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Consultation Fee (₹)</label>
               <NumericInput className="pp-input" name="consultationFee" value={form.consultationFee} onChange={handleChange} />
             </div>
-            <div>
-              <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Date of Birth</label>
-              <input className="pp-input" name="dateOfBirth" type="date" value={form.dateOfBirth} onChange={handleChange} />
-            </div>
           </div>
 
           {/* Row 2: Name */}

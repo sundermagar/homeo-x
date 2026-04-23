@@ -12,7 +12,7 @@ export class PaymentRepositoryPg implements PaymentRepository {
     const [row] = await this.db
       .select({
         payment: payments,
-        patientName: sql<string>`CONCAT(${patients.firstName}, ' ', ${patients.surname})`,
+        patientName: sql<string>`COALESCE(NULLIF(CONCAT_WS(' ', ${patients.firstName}, ${patients.surname}), ''), 'Reg ID: ' || ${payments.regid})`,
         phone: patients.mobile1,
       })
       .from(payments)
@@ -36,7 +36,7 @@ export class PaymentRepositoryPg implements PaymentRepository {
       this.db
         .select({
           payment: payments,
-          patientName: sql<string>`CONCAT(${patients.firstName}, ' ', ${patients.surname})`,
+          patientName: sql<string>`COALESCE(NULLIF(CONCAT_WS(' ', ${patients.firstName}, ${patients.surname}), ''), 'Reg ID: ' || ${payments.regid})`,
           phone: patients.mobile1,
         })
         .from(payments)

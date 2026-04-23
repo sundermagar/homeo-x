@@ -356,7 +356,7 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
                 {showSuggestions && suggestions.length > 0 && (
                   <ul style={{
                     position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 9999, 
-                    backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 6,
+                    backgroundColor: 'var(--bg-card)', border: '1px solid #e2e8f0', borderRadius: 6,
                     boxShadow: '0 10px 25px rgba(0,0,0,0.15)', maxHeight: 250, overflowY: 'auto', 
                     listStyle: 'none', padding: 0, margin: '4px 0 0 0'
                   }}>

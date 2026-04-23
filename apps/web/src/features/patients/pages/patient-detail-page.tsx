@@ -133,7 +133,7 @@ export default function PatientDetailPage() {
         </div>
 
         {showFamilyForm && (
-          <div style={{ padding: '20px', borderBottom: '1px solid var(--pp-warm-4)', background: 'white' }}>
+          <div style={{ padding: '20px', borderBottom: '1px solid var(--pp-warm-4)', background: 'var(--bg-card)' }}>
             <form onSubmit={handleAddFamily} className="pp-filter-bar" style={{ alignItems: 'flex-end' }}>
               <div style={{ position: 'relative' }}>
                 <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>SEARCH PATIENT</label>
@@ -221,7 +221,7 @@ export default function PatientDetailPage() {
                     </td>
                     <td className="text-body" style={{ fontSize: '13px' }}>{m.memberMobile || '—'}</td>
                     <td style={{ textAlign: 'right' }}>
-                      <button onClick={() => handleRemoveFamily(m.id)} className="btn-secondary" style={{ padding: '6px', color: 'var(--pp-danger-fg)', borderColor: 'var(--pp-warm-4)', background: 'white' }} title="Remove link">
+                      <button onClick={() => handleRemoveFamily(m.id)} className="btn-secondary" style={{ padding: '6px', color: 'var(--pp-danger-fg)', borderColor: 'var(--pp-warm-4)', background: 'var(--bg-card)' }} title="Remove link">
                         <Trash2 size={14} />
                       </button>
                     </td>

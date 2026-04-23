@@ -58,7 +58,7 @@
 }
 
 .plat-stat-card {
-  background: white;
+  background: var(--bg-card);
   border: 1px solid var(--pp-warm-4);
   border-radius: var(--pp-radius-card);
   padding: 14px 16px;
@@ -150,7 +150,7 @@
   border: 1px solid var(--pp-warm-4);
   border-radius: var(--pp-radius-btn);
   font-size: 13px;
-  background: white;
+  background: var(--bg-card);
   color: var(--pp-ink);
   font-family: inherit;
   outline: none;
@@ -179,7 +179,7 @@
 
 /* ─── Cards & Containers ─── */
 .plat-card {
-  background: white;
+  background: var(--bg-card);
   border: 1px solid var(--pp-warm-4);
   border-radius: var(--pp-radius-card);
   overflow: hidden;
@@ -207,7 +207,7 @@
   overflow-x: auto;
   border-radius: var(--pp-radius-card);
   border: 1px solid var(--pp-warm-4);
-  background: white;
+  background: var(--bg-card);
 }
 
 .plat-table {
@@ -269,7 +269,7 @@
   font-weight: 500;
   cursor: pointer;
   border: 1px solid var(--pp-warm-4);
-  background: white;
+  background: var(--bg-card);
   color: var(--pp-ink);
   transition: all var(--transition-normal);
   white-space: nowrap;
@@ -337,7 +337,7 @@
 }
 
 .plat-tab.active {
-  background: white;
+  background: var(--bg-card);
   color: var(--pp-blue);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
@@ -445,7 +445,7 @@
 
 .plat-modal-content,
 .plat-modal {
-  background: white;
+  background: var(--bg-card);
   border-radius: var(--pp-radius-card);
   width: 100%;
   max-width: 1000px;
@@ -552,7 +552,7 @@
 
 .plat-form-section {
   padding: 24px;
-  background: white;
+  background: var(--bg-card);
   border: 1px solid var(--pp-warm-4);
   border-radius: var(--pp-radius-card);
   margin-bottom: 24px;
@@ -937,7 +937,7 @@
 }
 
 .plat-doc-item:hover {
-  background: white;
+  background: var(--bg-card);
   border-color: var(--pp-blue);
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
   transform: translateX(2px);
@@ -946,7 +946,7 @@
 .plat-doc-icon {
   width: 24px;
   height: 24px;
-  background: white;
+  background: var(--bg-card);
   border-radius: 6px;
   display: flex;
   align-items: center;

@@ -54,8 +54,11 @@ import {
   type LucideIcon,
   Truck,
   CreditCard,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { useAuthStore } from '../stores/auth-store';
+import { useUiStore } from '../stores/ui-store';
 import '../styles/sidebar.css';
 
 // ─── Role Definitions ────────────────────────────────────────────────────────
@@ -325,6 +328,7 @@ function isGroupActive(group: NavGroup, currentLocation: string): boolean {
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { user, logout } = useAuthStore();
+  const { darkMode, toggleDarkMode } = useUiStore();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -396,6 +400,12 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               <ChildIcon className="sidebar-child-icon" strokeWidth={1.8} />
               <span>{child.label}</span>
             </div>
+            <ChevronDown 
+              size={14} 
+              strokeWidth={2.5} 
+              className={`sidebar-chevron ${isSubOpen ? 'open' : ''}`} 
+              style={{ opacity: 0.5 }}
+            />
           </button>
 
           {isSubOpen && (
@@ -411,7 +421,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       <NavLink
         key={child.path}
         to={child.path}
-        end={child.path === '/analytics' || child.path === '/billing' || child.path === '/patients' || child.path === '/'}
+        end={child.path === '/analytics' || child.path === '/billing' || child.path === '/patients' || child.path === '/packages' || child.path === '/'}
         className={({ isActive }) => {
           const currentFull = location.pathname + location.search;
           const isMatch = child.path.includes('?')
@@ -514,6 +524,15 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               <div className="user-name">{user?.name || 'Practitioner'}</div>
               <div className="user-role">{getRoleLabel(userRole) || (user as any)?.type || 'Doctor'}</div>
             </div>
+            
+            <button 
+              className="theme-toggle-btn" 
+              onClick={toggleDarkMode} 
+              title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            >
+              {darkMode ? <Sun size={16} strokeWidth={2} /> : <Moon size={16} strokeWidth={2} />}
+            </button>
+
             <button className="logout-btn" onClick={logout} title="Logout">
               <LogOut size={16} strokeWidth={2} />
             </button>

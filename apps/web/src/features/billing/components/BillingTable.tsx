@@ -58,7 +58,7 @@ export function BillingTable({ bills, isLoading }: BillingTableProps) {
                     {bill.paymentMode ?? '—'}
                   </span>
                 </td>
-                <td data-label="Charges" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 600 }}>
+                <td data-label="Charges" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 600, color: 'var(--pp-blue)' }}>
                   ₹{bill.charges.toLocaleString()}
                 </td>
                 <td data-label="Received" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 600, color: 'var(--pp-success-fg)' }}>

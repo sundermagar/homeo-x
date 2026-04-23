@@ -106,7 +106,7 @@ export default function DoctorDetailPage() {
                   )}
                 </div>
                 {staff.isActive && (
-                  <div style={{ position: 'absolute', bottom: 4, right: 4, width: 32, height: 32, background: 'white', border: '1px solid var(--pp-warm-4)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--pp-shadow-sm)' }}>
+                  <div style={{ position: 'absolute', bottom: 4, right: 4, width: 32, height: 32, background: 'var(--bg-card)', border: '1px solid var(--pp-warm-4)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--pp-shadow-sm)' }}>
                     <CheckCircle2 size={18} fill="var(--pp-success-fg)" color="white" />
                   </div>
                 )}

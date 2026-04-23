@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { PlusCircle, X, RefreshCw, Trash2, Edit2, Search, Receipt } from 'lucide-react';
 import { useAdditionalCharges, useCreateAdditionalCharge, useUpdateAdditionalCharge, useDeleteAdditionalCharge } from '../hooks/use-accounts';
+import { usePatient } from '../../patients/hooks/use-patients';
 import type { AdditionalChargeWithPatient } from '@mmc/types';
 import type { CreateAdditionalChargeInput } from '@mmc/validation';
 import '../../platform/styles/platform.css';
@@ -20,6 +21,7 @@ export default function AdditionalChargesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
   const query = { page, limit: 30, regid: regidFilter ? parseInt(regidFilter, 10) : undefined };
   const { data, isLoading } = useAdditionalCharges(query);
@@ -68,9 +70,21 @@ export default function AdditionalChargesPage() {
     }
   };
 
-  const handleDelete = async (id: number, name: string) => {
-    if (!confirm(`Delete charge "${name}"?`)) return;
-    await deleteCharge.mutateAsync(id);
+  const handleDelete = async (e: React.MouseEvent, id: number, name: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDeleteConfirmId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirmId) return;
+    try {
+      await deleteCharge.mutateAsync(deleteConfirmId);
+      setDeleteConfirmId(null);
+    } catch (err: any) {
+      alert('Failed to delete charge: ' + (err.response?.data?.error || err.message));
+      setDeleteConfirmId(null);
+    }
   };
 
   return (
@@ -144,7 +158,7 @@ export default function AdditionalChargesPage() {
                 {filtered.map(c => (
                   <tr key={c.id}>
                     <td data-label="ID" style={{ fontFamily: 'var(--pp-font-mono)' }}>#{c.id}</td>
-                    <td data-label="Patient" style={{ fontWeight: 500 }}>{c.patientName || '—'}</td>
+                    <td data-label="Patient" style={{ fontWeight: 500 }}>{c.patientName || `Reg ID: ${c.regid}` || '—'}</td>
                     <td data-label="Name">{c.additionalName}</td>
                     <td data-label="Qty" style={{ fontFamily: 'var(--pp-font-mono)' }}>{c.additionalQuantity}</td>
                     <td data-label="Price" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 600 }}>₹{c.additionalPrice.toLocaleString()}</td>
@@ -154,7 +168,7 @@ export default function AdditionalChargesPage() {
                         <button className="plat-btn plat-btn-sm plat-btn-icon" onClick={() => handleOpenEdit(c)}>
                           <Edit2 size={13} />
                         </button>
-                        <button className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" onClick={() => handleDelete(c.id, c.additionalName ?? '')}>
+                        <button type="button" className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" onClick={(e) => handleDelete(e, c.id, c.additionalName ?? '')}>
                           <Trash2 size={13} />
                         </button>
                       </div>
@@ -179,10 +193,23 @@ export default function AdditionalChargesPage() {
                 <div className="plat-form-group">
                   <label className="plat-form-label">Patient Reg ID</label>
                   <input className="plat-form-input" type="number" value={form.regid ?? ''} onChange={e => setForm(f => ({ ...f, regid: e.target.value ? parseInt(e.target.value) : undefined }))} />
+                  <PatientPreview regid={form.regid} />
                 </div>
                 <div className="plat-form-group plat-form-full">
                   <label className="plat-form-label">Charge Name <span className="plat-form-required">*</span></label>
-                  <input className="plat-form-input" value={form.additionalName} onChange={e => setForm(f => ({ ...f, additionalName: e.target.value }))} required placeholder="e.g. Courier Charges, Consulting" />
+                  <select 
+                    className="plat-form-input" 
+                    value={form.additionalName} 
+                    onChange={e => setForm(f => ({ ...f, additionalName: e.target.value }))} 
+                    required
+                  >
+                    <option value="">Select Charge Type...</option>
+                    <option value="Courier Charges">Courier Charges</option>
+                    <option value="Consultation Fees">Consultation Fees</option>
+                    <option value="Medicine Charges">Medicine Charges</option>
+                    <option value="Registration Fees">Registration Fees</option>
+                    <option value="Miscellaneous">Miscellaneous</option>
+                  </select>
                 </div>
                 <div className="plat-form-group">
                   <label className="plat-form-label">Price</label>
@@ -212,6 +239,39 @@ export default function AdditionalChargesPage() {
           </div>
         </div>
       )}
+      {deleteConfirmId && (
+        <div className="plat-modal-overlay animate-fade-in" style={{ zIndex: 1100 }}>
+          <div className="plat-modal" style={{ maxWidth: 400 }}>
+            <div className="plat-modal-header">
+              <h2 className="plat-modal-title">Confirm Deletion</h2>
+            </div>
+            <div className="plat-modal-body">
+              <p style={{ margin: 0, color: 'var(--pp-text-2)', fontSize: '13px' }}>
+                Are you sure you want to delete this additional charge entry? This action cannot be undone.
+              </p>
+            </div>
+            <div className="plat-modal-footer">
+              <button type="button" className="plat-btn" onClick={() => setDeleteConfirmId(null)}>Cancel</button>
+              <button type="button" className="plat-btn plat-btn-danger" onClick={confirmDelete} disabled={deleteCharge.isPending}>
+                {deleteCharge.isPending ? 'Deleting...' : 'Delete Permanently'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PatientPreview({ regid }: { regid?: number }) {
+  const { data: patient, isLoading, isError } = usePatient(regid ?? 0);
+  if (!regid) return null;
+  if (isLoading) return <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: 4 }}>Checking ID...</div>;
+  if (isError || !patient) return <div style={{ fontSize: '11px', color: 'var(--pp-danger-fg)', marginTop: 4 }}>Patient not found</div>;
+  return (
+    <div style={{ fontSize: '11px', color: 'var(--pp-success-fg)', marginTop: 6, display: 'flex', alignItems: 'center', gap: 4, background: 'var(--pp-success-bg)', padding: '4px 8px', borderRadius: '4px', width: 'fit-content' }}>
+      <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }} />
+      Patient Found: <strong>{patient.firstName} {patient.lastName}</strong>
     </div>
   );
 }

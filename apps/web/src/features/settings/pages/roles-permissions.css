@@ -37,7 +37,7 @@
 
 .plat-role-item {
   padding: 14px 16px;
-  background: white;
+  background: var(--bg-card);
   border: 1px solid var(--pp-warm-4);
   border-radius: var(--pp-radius-card);
   cursor: pointer;
@@ -88,7 +88,7 @@
 }
 
 .plat-role-item.active .plat-role-icon {
-  background: white;
+  background: var(--bg-card);
   color: var(--pp-blue);
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
@@ -116,7 +116,7 @@
 
 /* ─── Capability Matrix Table (Right) ─── */
 .plat-matrix-card {
-  background: white;
+  background: var(--bg-card);
   border: 1px solid var(--pp-warm-4);
   border-radius: var(--pp-radius-card);
   overflow: hidden;
@@ -225,7 +225,7 @@
   width: 14px;
   left: 3px;
   bottom: 3px;
-  background-color: white;
+  background-color: var(--bg-card);
   transition: all var(--transition-normal);
   border-radius: 50%;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
@@ -248,7 +248,7 @@ input:checked + .plat-slider:before {
   align-items: center;
   justify-content: center;
   gap: 16px;
-  background: white;
+  background: var(--bg-card);
 }
 
 @media (min-width: 768px) {

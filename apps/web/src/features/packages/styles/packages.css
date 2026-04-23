@@ -33,15 +33,47 @@
   background: var(--bg-card);
   border: 1px solid var(--border-main);
   border-radius: var(--radius-card);
-  padding: 16px;
+  padding: 18px 20px;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
+  box-shadow: var(--pp-premium-shadow);
+  transition: all 0.3s ease;
 }
 
-.pkg-stat-icon { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.pkg-stat-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); }
-.pkg-stat-value { font-size: 1.5rem; font-weight: 800; color: var(--text-main); line-height: 1.2; }
+.pkg-stat-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--pp-blue-border);
+}
+
+.pkg-stat-icon { 
+  width: 52px; 
+  height: 52px; 
+  border-radius: 14px; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px -4px rgba(0,0,0,0.15);
+}
+
+.pkg-stat-label { 
+  font-size: 0.68rem; 
+  font-weight: 700; 
+  text-transform: uppercase; 
+  letter-spacing: 0.08em; 
+  color: var(--text-muted); 
+  margin-bottom: 2px;
+}
+
+.pkg-stat-value { 
+  font-size: 1.6rem; 
+  font-weight: 850; 
+  color: var(--text-main); 
+  line-height: 1;
+  font-family: var(--pp-font-mono);
+  letter-spacing: -0.02em;
+}
 
 /* ─── Plans Grid ─── */
 .pkg-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
@@ -167,7 +199,7 @@
 @media (min-width: 768px) { .pkg-modal-overlay { align-items: center; padding: 24px; } }
 
 .pkg-modal {
-  background: white;
+  background: var(--bg-card);
   border-radius: 16px 16px 0 0;
   width: 100%;
   max-width: 520px;
@@ -201,7 +233,7 @@
   border-radius: var(--radius-btn);
   font-size: 0.875rem;
   color: var(--text-main);
-  background: white;
+  background: var(--bg-card);
   outline: none;
   font-family: inherit;
   width: 100%;

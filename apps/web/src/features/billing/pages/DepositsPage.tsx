@@ -4,12 +4,14 @@ import { useBankDeposits, useCashDeposits, useCreateBankDeposit, useCreateCashDe
 import type { BankDeposit, CashDeposit } from '@mmc/types';
 import type { CreateBankDepositInput, CreateCashDepositInput, ListDepositsQuery } from '@mmc/validation';
 import '../../platform/styles/platform.css';
+import '../styles/billing.css';
 
 const EMPTY_BANK_FORM = { depositDate: new Date().toISOString().split('T')[0], amount: '', remark: '', submitted: 'No' as const };
 const EMPTY_CASH_FORM = { depositDate: new Date().toISOString().split('T')[0], amount: '', remark: '', submitted: 'No' as const };
 
 export default function DepositsPage() {
   const [activeTab, setActiveTab] = useState<'bank' | 'cash'>('bank');
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
   const [page, setPage] = useState(1);
   const [dateFilter, setDateFilter] = useState('');
   const [search, setSearch] = useState('');
@@ -125,10 +127,22 @@ export default function DepositsPage() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Delete this deposit record?')) return;
-    if (activeTab === 'bank') await deleteBank.mutateAsync(id);
-    else await deleteCash.mutateAsync(id);
+  const handleDelete = async (e: React.MouseEvent, id: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDeleteConfirmId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirmId) return;
+    try {
+      if (activeTab === 'bank') await deleteBank.mutateAsync(deleteConfirmId);
+      else await deleteCash.mutateAsync(deleteConfirmId);
+      setDeleteConfirmId(null);
+    } catch (err: any) {
+      alert('Failed to delete deposit: ' + (err.response?.data?.error || err.message));
+      setDeleteConfirmId(null);
+    }
   };
 
   const isLoading = activeTab === 'bank' ? bankQuery_.isLoading : cashQuery_.isLoading;
@@ -151,23 +165,43 @@ export default function DepositsPage() {
         </div>
       </div>
 
-      <div className="plat-tabs" style={{ marginBottom: 16 }}>
-        <button type="button" className={`plat-tab ${activeTab === 'bank' ? 'plat-tab-active' : ''}`} onClick={() => setActiveTab('bank')}>
+      <div className="bill-view-toggle-group" style={{ marginBottom: 20, width: 'fit-content' }}>
+        <button 
+          type="button" 
+          className={`bill-view-toggle-btn${activeTab === 'bank' ? ' is-active' : ''}`} 
+          onClick={() => { setActiveTab('bank'); setPage(1); }}
+          style={{ padding: '8px 20px', fontSize: '0.85rem' }}
+        >
           <Building size={14} /> Bank Deposits
         </button>
-        <button type="button" className={`plat-tab ${activeTab === 'cash' ? 'plat-tab-active' : ''}`} onClick={() => setActiveTab('cash')}>
+        <button 
+          type="button" 
+          className={`bill-view-toggle-btn${activeTab === 'cash' ? ' is-active' : ''}`} 
+          onClick={() => { setActiveTab('cash'); setPage(1); }}
+          style={{ padding: '8px 20px', fontSize: '0.85rem' }}
+        >
           <Banknote size={14} /> Cash Deposits
         </button>
       </div>
 
-      <div className="plat-stats-bar">
-        <div className="plat-stat-card">
-          <span className="plat-stat-label">{activeTab === 'bank' ? 'Bank' : 'Cash'} Deposits</span>
-          <span className="plat-stat-value">{total}</span>
+      <div className="bill-stats-bar">
+        <div className="bill-stat-card">
+          <div className="bill-stat-icon" style={{ background: 'var(--pp-blue-bg)', color: 'var(--pp-blue)' }}>
+            <Building size={22} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <p className="bill-stat-label">{activeTab === 'bank' ? 'Bank' : 'Cash'} Deposits</p>
+            <div className="bill-stat-value">{total}</div>
+          </div>
         </div>
-        <div className="plat-stat-card">
-          <span className="plat-stat-label">Total Amount</span>
-          <span className="plat-stat-value">₹{totalAmount.toLocaleString()}</span>
+        <div className="bill-stat-card" data-type="success">
+          <div className="bill-stat-icon" style={{ background: 'var(--pp-success-bg)', color: 'var(--pp-success-fg)' }}>
+            <Banknote size={22} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <p className="bill-stat-label">Total Amount</p>
+            <div className="bill-stat-value">₹{totalAmount.toLocaleString()}</div>
+          </div>
         </div>
       </div>
 
@@ -210,12 +244,20 @@ export default function DepositsPage() {
                     <td data-label="Bank">{d.bankdeposit || '—'}</td>
                     <td data-label="Remark">{d.remark || '—'}</td>
                     <td data-label="Status">
-                      <span className={`plat-badge ${d.submitted === 'Yes' ? 'plat-badge-staff' : 'plat-badge-default'}`}>
+                      <span className={`plat-badge ${d.submitted === 'Yes' ? 'plat-badge-success' : 'plat-badge-default'}`} style={{
+                        background: d.submitted === 'Yes' ? 'var(--pp-success-bg)' : 'rgba(255,255,255,0.05)',
+                        color: d.submitted === 'Yes' ? 'var(--pp-success-fg)' : 'var(--text-muted)',
+                        border: 'none',
+                        fontSize: '0.7rem',
+                        fontWeight: 600,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.02em'
+                      }}>
                         {d.submitted === 'Yes' ? 'Submitted' : 'Pending'}
                       </span>
                     </td>
                     <td>
-                      <button className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" onClick={() => handleDelete(d.id)}>
+                      <button type="button" className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" onClick={(e) => handleDelete(e, d.id)}>
                         <Trash2 size={13} />
                       </button>
                     </td>
@@ -234,6 +276,26 @@ export default function DepositsPage() {
               <h2 className="plat-modal-title">Add {activeTab === 'bank' ? 'Bank' : 'Cash'} Deposit</h2>
               <button type="button" className="plat-btn plat-btn-icon" onClick={() => setIsModalOpen(false)}><X size={16} /></button>
             </div>
+            <div className="plat-modal-body" style={{ paddingBottom: 0 }}>
+              <div className="bill-view-toggle-group" style={{ width: '100%' }}>
+                <button 
+                  type="button" 
+                  className={`bill-view-toggle-btn${activeTab === 'bank' ? ' is-active' : ''}`} 
+                  onClick={() => setActiveTab('bank')}
+                  style={{ flex: 1, padding: '10px' }}
+                >
+                  <Building size={14} /> Bank
+                </button>
+                <button 
+                  type="button" 
+                  className={`bill-view-toggle-btn${activeTab === 'cash' ? ' is-active' : ''}`} 
+                  onClick={() => setActiveTab('cash')}
+                  style={{ flex: 1, padding: '10px' }}
+                >
+                  <Banknote size={14} /> Cash
+                </button>
+              </div>
+            </div>
             <form onSubmit={activeTab === 'bank' ? handleSubmitBank : handleSubmitCash}>
               <div className="plat-modal-body plat-form">
                 {submissionError && (
@@ -248,8 +310,12 @@ export default function DepositsPage() {
                   <input className="plat-form-input" name="amount" type="text" required placeholder="e.g. 5000" />
                 </div>
                 <div className="plat-form-group">
-                  <label className="plat-form-label">Bank/Account</label>
-                  <input className="plat-form-input" name="bankdeposit" placeholder="e.g. HDFC Bank - Acc ****1234" />
+                  <label className="plat-form-label">{activeTab === 'bank' ? 'Bank/Account' : 'Source/Category'}</label>
+                  <input 
+                    className="plat-form-input" 
+                    name="bankdeposit" 
+                    placeholder={activeTab === 'bank' ? "e.g. HDFC Bank - Acc ****1234" : "e.g. Cash in Hand, Counter Cash"} 
+                  />
                 </div>
                 <div className="plat-form-group plat-form-full">
                   <label className="plat-form-label">Remark</label>
@@ -274,6 +340,26 @@ export default function DepositsPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {deleteConfirmId && (
+        <div className="plat-modal-overlay animate-fade-in" style={{ zIndex: 1100 }}>
+          <div className="plat-modal" style={{ maxWidth: 400 }}>
+            <div className="plat-modal-header">
+              <h2 className="plat-modal-title">Confirm Deletion</h2>
+            </div>
+            <div className="plat-modal-body">
+              <p style={{ margin: 0, color: 'var(--pp-text-2)', fontSize: '13px' }}>
+                Are you sure you want to delete this {activeTab === 'bank' ? 'bank' : 'cash'} deposit record? This action cannot be undone.
+              </p>
+            </div>
+            <div className="plat-modal-footer">
+              <button type="button" className="plat-btn" onClick={() => setDeleteConfirmId(null)}>Cancel</button>
+              <button type="button" className="plat-btn plat-btn-danger" onClick={confirmDelete} disabled={deleteBank.isPending || deleteCash.isPending}>
+                {(deleteBank.isPending || deleteCash.isPending) ? 'Deleting...' : 'Delete Permanently'}
+              </button>
+            </div>
           </div>
         </div>
       )}

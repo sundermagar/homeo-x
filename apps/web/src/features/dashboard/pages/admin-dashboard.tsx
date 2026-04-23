@@ -119,15 +119,45 @@ export function AdminDashboard() {
               <AreaChart data={revenueSeries} margin={{ top: 10, right: 10, bottom: 0, left: -10 }}>
                 <defs>
                   <linearGradient id="saRevGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#2563eb" stopOpacity={0.12} />
-                    <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
+                    <stop offset="0%" stopColor="#2563eb" stopOpacity={0.25} />
+                    <stop offset="100%" stopColor="#2563eb" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 700 }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 700 }} tickFormatter={fmtNum} />
-                <Tooltip contentStyle={{ borderRadius: 10, border: '1px solid #e2e8f0', background: '#fff', fontSize: 12, fontWeight: 600 }} formatter={(v: any) => [fmt(Number(v)), 'Revenue']} />
-                <Area type="monotone" dataKey="revenue" stroke="#2563eb" strokeWidth={2.5} fill="url(#saRevGrad)" isAnimationActive={false} />
+                <CartesianGrid strokeDasharray="6 6" vertical={false} stroke="rgba(255,255,255,0.03)" />
+                <XAxis 
+                  dataKey="month" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fontSize: 10, fill: '#64748b', fontWeight: 600 }} 
+                  dy={10}
+                />
+                <YAxis 
+                  hide={true}
+                />
+                <Tooltip 
+                  cursor={{ stroke: 'rgba(37, 99, 235, 0.2)', strokeWidth: 2 }}
+                  contentStyle={{ 
+                    borderRadius: 12, 
+                    border: '1px solid rgba(255,255,255,0.1)', 
+                    background: 'rgba(15, 23, 42, 0.9)', 
+                    backdropFilter: 'blur(8px)',
+                    fontSize: 12, 
+                    fontWeight: 700,
+                    boxShadow: '0 10px 25px rgba(0,0,0,0.3)'
+                  }} 
+                  formatter={(v: any) => [fmt(Number(v)), 'Revenue']} 
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="revenue" 
+                  stroke="#3b82f6" 
+                  strokeWidth={3} 
+                  fill="url(#saRevGrad)" 
+                  dot={{ r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: '#0f172a' }}
+                  activeDot={{ r: 6, fill: '#fff', stroke: '#3b82f6', strokeWidth: 3 }}
+                  isAnimationActive={true} 
+                  animationDuration={1500}
+                />
               </AreaChart>
             </ResponsiveContainer>
           ) : (

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Banknote, Search, ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
 import { usePaymentHistory, useRecordManualPayment } from '../hooks/use-payments';
+import { usePatient } from '../../patients/hooks/use-patients';
 import { PaymentTable } from '../components/PaymentTable';
 import { PaymentModeEnum } from '@mmc/validation';
 import '../styles/billing.css';
@@ -41,10 +42,7 @@ export default function PaymentsPage() {
 
       {/* ─── Table Section ─── */}
       <div className="bill-section-header">
-        <div>
-          <p className="bill-section-title">Transaction History</p>
-          <p className="bill-section-sub">Verified clinic income ledger</p>
-        </div>
+        <div />
 
         <div className="bill-search-wrap">
           <Search size={13} className="bill-search-icon" strokeWidth={2} />
@@ -111,6 +109,7 @@ function ManualPaymentModal({ onClose }: { onClose: () => void }) {
           <div className="bill-form-group">
             <label className="bill-form-label">Patient ID (Regid) <span style={{ color: 'var(--pp-danger-fg)' }}>*</span></label>
             <input type="number" required className="bill-form-input" style={{ fontFamily: 'var(--pp-font-mono)' }} value={regid} onChange={e => setRegid(e.target.value)} placeholder="e.g. 1042" />
+            <PatientPreview regid={regid ? parseInt(regid) : 0} />
           </div>
 
           <div className="bill-form-group">
@@ -146,6 +145,31 @@ function ManualPaymentModal({ onClose }: { onClose: () => void }) {
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+function PatientPreview({ regid }: { regid?: number }) {
+  const { data: patient, isLoading, isError } = usePatient(regid ?? 0);
+
+  if (!regid) return null;
+  if (isLoading) return <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: 4 }}>Checking ID...</div>;
+  if (isError || !patient) return <div style={{ fontSize: '11px', color: 'var(--pp-danger-fg)', marginTop: 4 }}>Patient not found</div>;
+
+  return (
+    <div style={{ 
+      fontSize: '11px', 
+      color: 'var(--pp-success-fg)', 
+      marginTop: 6, 
+      display: 'flex', 
+      alignItems: 'center', 
+      gap: 4,
+      background: 'var(--pp-success-bg)',
+      padding: '4px 8px',
+      borderRadius: '4px',
+      width: 'fit-content'
+    }}>
+      <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }} />
+      Patient Found: <strong>{patient.firstName} {patient.lastName}</strong>
     </div>
   );
 }
