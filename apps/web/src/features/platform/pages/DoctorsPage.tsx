@@ -30,7 +30,7 @@ function getDefaultStaffForm(): CreateStaffInput {
     dateBirth: '',
     dateLeft: '',
     salaryCur: 0,
-    title: '',
+    title: 'Dr.',
     firstname: '',
     middlename: '',
     surname: '',
@@ -274,17 +274,13 @@ function StaffModal({
             <div className="plat-form-grid-multi">
               <div className="plat-form-group" style={{ gridColumn: 'span 1' }}>
                 <label className="plat-form-label">Practitioner Title *</label>
-                <select
+                <input
+                  type="text"
                   className="plat-form-input"
-                  value={form.title || ''}
-                  onChange={(e) => updateForm('title', e.target.value)}
+                  value={form.title || 'Dr.'}
+                  readOnly
                   disabled={isLoading}
-                >
-                  <option value="">Select Title</option>
-                  <option value="Dr">Dr.</option>
-                  <option value="Dr. (Mrs)">Dr. (Mrs)</option>
-                  <option value="Dr. (Ms)">Dr. (Ms)</option>
-                </select>
+                />
                 {errors['title'] && <span className="plat-form-error">{errors['title']}</span>}
               </div>
 

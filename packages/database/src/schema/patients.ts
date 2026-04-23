@@ -61,7 +61,7 @@ export const patients = pgTable('case_datas', {
 
   // Identifiers
   // abhaId: text('abha_id'),
-  // coupon: text('coupon').notNull().default(''),
+  // coupon: text('coupon'),
   // scheme: text('scheme'),
   // image: text('image'),
   // sendSms: text('send_sms'),

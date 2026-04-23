@@ -65,7 +65,7 @@ export const homeoDetails = pgTable('homeo_details', {
   regid: integer('regid').notNull().unique(),
   thermal: varchar('thermal', { length: 50 }),
   constitutional: varchar('constitutional', { length: 100 }),
-  miasm: varchar('miasm', { length: 50 }),
+  // miasm: varchar('miasm', { length: 50 }),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
   deletedAt: timestamp('deleted_at'),

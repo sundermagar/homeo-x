@@ -58,7 +58,7 @@ export async function seedPlatform(db: DbClient) {
 
   for (const clinicData of demoClinics) {
     // Check if clinic exists (use raw any to bypass type issues with legacy columns)
-    const seedData = { ...clinicData, assignedTo: 1 };
+    const seedData = { ...clinicData, assignedTo: 1, connectSince: new Date().toISOString().split('T')[0] };
     let clinic = await db.select().from(organizations).where(eq(organizations.name, clinicData.name)).limit(1);
     let clinicId: number;
 

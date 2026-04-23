@@ -233,7 +233,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         LEFT JOIN patients     p ON p.id = w.patient_id
         LEFT JOIN appointments a ON a.id = w.appointment_id
         LEFT JOIN vitals       v ON v.visit_id = COALESCE(a.id, w.appointment_id)
-        WHERE w.date::text LIKE '%' || ${today} || '%'
+        WHERE w.date = ${today}::date
           AND (w.deleted_at IS NULL OR w.deleted_at::text = '')
         ORDER BY w.waiting_number ASC
       `);
@@ -269,12 +269,12 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         FROM appointments a
         LEFT JOIN patients p ON p.id = a.patient_id
         LEFT JOIN vitals v ON v.visit_id = a.id
-        WHERE a.booking_date::text LIKE '%' || ${today} || '%'
+        WHERE a.booking_date = ${today}::date
           AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
           AND NOT EXISTS (
             SELECT 1 FROM waitlist w2
             WHERE (w2.appointment_id = a.id OR w2.patient_id = a.patient_id)
-              AND w2.date::text LIKE '%' || ${today} || '%'
+              AND w2.date = ${today}::date
               AND (w2.deleted_at IS NULL OR w2.deleted_at::text = '')
           )
         ORDER BY a.token_no ASC NULLS LAST, a.id ASC
@@ -746,10 +746,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       FROM appointments a
       LEFT JOIN doctors d ON a.${sql.identifier(docCol)} = d.id
       LEFT JOIN users u ON a.${sql.identifier(docCol)} = u.id
-      WHERE (
-          a.booking_date::text LIKE '%' || TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD') || '%'
-          OR a.booking_date::text LIKE '%' || TO_CHAR(CURRENT_DATE, 'DD/MM/YYYY') || '%'
-        )
+      WHERE a.booking_date = CURRENT_DATE
         AND (a.deleted_at IS NULL OR a.deleted_at::text = '' OR a.deleted_at::text = '0')
       GROUP BY name, specialty
       ORDER BY visit_count DESC

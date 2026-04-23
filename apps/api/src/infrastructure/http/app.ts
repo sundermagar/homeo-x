@@ -1,4 +1,5 @@
 import express from 'express';
+import path from 'path';
 import { createServer } from 'http';
 import { Server as SocketServer } from 'socket.io';
 import type { Express } from 'express';
@@ -87,6 +88,7 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   // ─── Request Processing ───
   app.use(compression());
   app.use(express.json({ limit: '50mb' }));
+  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
   // ─── Observability ───
   app.use(correlationIdMiddleware);

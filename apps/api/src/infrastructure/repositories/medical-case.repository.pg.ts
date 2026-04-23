@@ -300,22 +300,24 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
   }
 
   async saveHomeoDetails(data: Partial<HomeoDetails>): Promise<void> {
+    const homeoData: any = {
+      regid: data.regid!,
+    };
+    if ((schema.homeoDetails as any).thermal) homeoData.thermal = data.thermal;
+    if ((schema.homeoDetails as any).constitutional) homeoData.constitutional = data.constitutional;
+    
+    const setClause: any = {
+      updatedAt: new Date(),
+    };
+    if ((schema.homeoDetails as any).thermal) setClause.thermal = data.thermal;
+    if ((schema.homeoDetails as any).constitutional) setClause.constitutional = data.constitutional;
+
     const execute = () => this.db
       .insert(schema.homeoDetails)
-      .values({
-        regid: data.regid!,
-        thermal: data.thermal,
-        constitutional: data.constitutional,
-        miasm: data.miasm,
-      })
+      .values(homeoData)
       .onConflictDoUpdate({
         target: schema.homeoDetails.regid,
-        set: {
-          thermal: data.thermal,
-          constitutional: data.constitutional,
-          miasm: data.miasm,
-          updatedAt: new Date(),
-        },
+        set: setClause,
       });
 
     try {

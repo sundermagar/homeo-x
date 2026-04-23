@@ -127,43 +127,41 @@ export class PatientRepositoryPg implements PatientRepository {
       .from(patients);
     const nextRegid = Number(maxRows[0]?.maxRegid || 1000) + 1;
 
+    const patientData: any = {
+      id: nextRegid,
+      regid: nextRegid,
+      title: input.title || '',
+      firstName: input.firstName,
+      middleName: input.middleName || '',
+      surname: input.surname,
+      gender: input.gender || 'M',
+      phone: input.phone || '',
+      mobile1: input.mobile1 || '',
+      mobile2: input.mobile2 || '',
+      email: input.email || '',
+      pin: input.pin || '',
+      address: input.address || '',
+      city: input.city || '',
+      state: input.state || '',
+      dateOfBirth: input.dateOfBirth || null,
+      dob: input.dateOfBirth || null,
+    };
+
+    // Only add columns if they exist in the schema to avoid "column does not exist" errors
+    if ((patients as any).road) patientData.road = input.road || '';
+    if ((patients as any).area) patientData.area = input.area || '';
+    if ((patients as any).altAddress) patientData.altAddress = input.altAddress || '';
+    if ((patients as any).religion) patientData.religion = input.religion || '';
+    if ((patients as any).occupation) patientData.occupation = input.occupation || '';
+    if ((patients as any).bloodGroup) patientData.bloodGroup = input.bloodGroup || '';
+    if ((patients as any).reference) patientData.reference = input.referenceType || '';
+    if ((patients as any).assitantDoctor) patientData.assitantDoctor = (input as any).assistantDoctor || '';
+    if ((patients as any).consultationFee) patientData.consultationFee = (input as any).consultationFee || 0;
+    if ((patients as any).courierOutstation) patientData.courierOutstation = input.courierOutstation ? '1' : '0';
+
     const [row] = await this.db
       .insert(patients)
-      .values({
-        id: nextRegid, // Legacy uses ID as primary key manually
-        regid: nextRegid,
-        title: input.title || '',
-        firstName: input.firstName,
-        middleName: input.middleName || '',
-        surname: input.surname,
-        gender: input.gender || 'M',
-        phone: input.phone || '',
-        mobile1: input.mobile1 || '',
-        mobile2: input.mobile2 || '',
-        email: input.email || '',
-        pin: input.pin || '',
-        address: input.address || '',
-        road: input.road || '',
-        area: input.area || '',
-        city: input.city || '',
-        state: input.state || '',
-        altAddress: input.altAddress || '',
-        religion: input.religion || '',
-        occupation: input.occupation || '',
-        // 'status' column = marital status in the legacy table
-        status: (input as any).maritalStatus || '',
-        // 'reference' = referenceType text (actual column name is 'reference', NOT 'reference_type')
-        reference: input.referenceType || '',
-        referedBy: (input as any).referredBy || '',
-        assitantDoctor: (input as any).assistantDoctor || '',
-        consultationFee: (input as any).consultationFee || 0,
-        courierOutstation: (input as any).courierOutstation ? '1' : '0',
-        coupon: '', // Required by legacy database
-        dateOfBirth: input.dateOfBirth ? String(input.dateOfBirth) : null,
-        dob: input.dateOfBirth ? new Date(input.dateOfBirth) : null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      } as any)
+      .values(patientData)
       .returning();
 
     return this.toDomain(row!);
@@ -192,8 +190,8 @@ export class PatientRepositoryPg implements PatientRepository {
     if (input.religion     !== undefined) updateData.religion     = input.religion;
     if (input.occupation   !== undefined) updateData.occupation   = input.occupation;
     if (input.dateOfBirth  !== undefined) {
-      updateData.dateOfBirth  = input.dateOfBirth ? String(input.dateOfBirth) : null;
-      updateData.dob = input.dateOfBirth ? new Date(input.dateOfBirth) : null;
+      updateData.dateOfBirth  = input.dateOfBirth || null;
+      updateData.dob = input.dateOfBirth || null;
     }
     if (input.referenceType !== undefined) updateData.reference   = input.referenceType; // actual col = 'reference'
     if ((input as any).maritalStatus !== undefined) updateData.status   = (input as any).maritalStatus;
@@ -203,7 +201,7 @@ export class PatientRepositoryPg implements PatientRepository {
 
     const [row] = await this.db
       .update(patients)
-      .set(updateData as any)
+      .set(updateData)
       .where(eq(patients.regid, regid))
       .returning();
     return row ? this.toDomain(row) : null;
