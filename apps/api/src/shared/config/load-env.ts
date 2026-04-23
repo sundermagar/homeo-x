@@ -33,5 +33,9 @@ for (const p of searchPaths) {
 
 if (!process.env.JWT_SECRET) {
   console.warn('[Env] WARNING: JWT_SECRET still not found after searching common paths.');
+} else {
+  console.log('[Env] ✅ JWT_SECRET is present in process.env');
 }
+
+console.log(`[Env] Current NODE_ENV: ${process.env.NODE_ENV}`);
 
