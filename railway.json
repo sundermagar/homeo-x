@@ -10,6 +10,6 @@
     "numReplicas": 1,
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10,
-    "startCommand": "if [ \"$RAILWAY_SERVICE_NAME\" = \"generous-flow\" ]; then pnpm run start:web; else pnpm run start:api; fi"
+    "startCommand": "if expr \"$RAILWAY_SERVICE_NAME\" : '.*web.*' > /dev/null; then pnpm run start:web; else pnpm run start:api; fi"
   }
 }
