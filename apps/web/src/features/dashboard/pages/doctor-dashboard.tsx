@@ -250,9 +250,20 @@ export function DoctorDashboard() {
                             <div className="text-label" style={{ fontSize: 10 }}>{a.bookingTime || 'Scheduled'} · Token {a.tokenNo || '—'}</div>
                           </div>
                         </div>
-                        <span className={`dash-badge badge-${a.status === 'Consultation' ? 'success' : a.status === 'Completed' ? 'primary' : 'warning'}`}>
-                          {a.status || 'Waitlist'}
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                          {a.status === 'Waitlist' && (
+                            <button
+                              className="dash-view-btn"
+                              title="Start Consultation"
+                              onClick={(e) => { e.stopPropagation(); handleStartConsultation(a.id); }}
+                            >
+                              Call
+                            </button>
+                          )}
+                          <span className={`dash-badge badge-${a.status === 'Consultation' ? 'success' : a.status === 'Completed' ? 'primary' : 'warning'}`}>
+                            {a.status || 'Waitlist'}
+                          </span>
+                        </div>
                       </div>
                       
                       <div className={`dash-row-details ${isExpanded ? 'expanded' : ''}`}>

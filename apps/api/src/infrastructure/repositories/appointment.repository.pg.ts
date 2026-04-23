@@ -339,6 +339,26 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
 
   async addToWaitlist(dto: { patientId?: number; appointmentId?: number; doctorId?: number; consultationFee?: number }): Promise<number> {
     const today = new Date().toISOString().split('T')[0] as string;
+
+    // Preventive check: Is this patient already in the waitlist for today?
+    if (dto.patientId) {
+      const existing = await this.db.select()
+        .from(schema.waitlist)
+        .where(and(
+          eq(schema.waitlist.patientId, dto.patientId),
+          eq(schema.waitlist.date, today),
+          or(
+            eq(schema.waitlist.status, 0), // Waiting
+            eq(schema.waitlist.status, 1)  // In Progress
+          ),
+          isNull(schema.waitlist.deletedAt)
+        ))
+        .limit(1);
+
+      if (existing.length > 0) {
+        throw new Error('Patient is already in the queue for today.');
+      }
+    }
     
     let pid = dto.patientId;
     let did = dto.doctorId;

@@ -14,7 +14,7 @@ const INDIAN_STATES = [
 ];
 
 const INIT_FORM = {
-  title: '', firstName: '', middleName: '', surname: '', gender: 'M' as 'M' | 'F' | 'Other',
+  title: 'Mr.', firstName: '', middleName: '', surname: '', gender: 'M' as 'M' | 'F' | 'Other',
   phone: '', mobile1: '', mobile2: '', email: '',
   pin: '', address: '', road: '', area: '', city: '', state: 'Punjab', country: 'India', altAddress: '',
   religion: '', occupation: '', maritalStatus: '', bloodGroup: '',
@@ -73,16 +73,20 @@ export default function PatientFormPage() {
     const { name, value, type } = e.target;
     // @ts-ignore Checkbox is handled slightly differently
     const val = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
-    setForm(f => ({ ...f, [name]: val }));
 
-    if (name === 'assistantDoctor') {
-      const doc = meta?.doctors?.find(d => String(d.id) === value);
-      setForm(f => ({ 
-        ...f, 
-        assistantDoctor: value, 
-        consultationFee: doc ? (Number(doc.consultationFee) || 0) : 0 
-      }));
-    }
+    setForm(prev => {
+      const next = { ...prev, [name]: val };
+      
+      // Auto-update consultation fee when doctor is selected
+      if (name === 'assistantDoctor') {
+        const doc = meta?.doctors?.find(d => String(d.id) === value);
+        if (doc) {
+          next.consultationFee = Number(doc.consultationFee) || 0;
+        }
+      }
+      
+      return next;
+    });
   };
 
 
@@ -161,7 +165,6 @@ export default function PatientFormPage() {
             <div>
               <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Title</label>
               <select className="pp-select" name="title" value={form.title} onChange={handleChange}>
-                <option value="">—</option>
                 {(meta?.titles || ['Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Prof.', 'Master', 'Baby']).map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>

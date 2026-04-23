@@ -11,9 +11,20 @@ import { CommunicationRepositoryPG } from '../../repositories/communication.repo
 import { createSmsGateway } from '../../communication/msg91-sms-gateway';
 import { asyncHandler } from '../middleware/async-handler';
 import { authMiddleware } from '../middleware/auth';
-import { BadRequestError } from '../../../shared/errors';
+import { BadRequestError, ValidationError } from '../../../shared/errors';
 import { sendSuccess } from '../../../shared/response-formatter';
 import { createLogger } from '../../../shared/logger';
+import { z } from 'zod';
+
+const addToWaitlistSchema = z.object({
+  patientId: z.number().int().positive().optional(),
+  appointmentId: z.number().int().positive().optional(),
+  doctorId: z.number().int().positive().optional(),
+  consultationFee: z.number().min(0).optional(),
+}).refine((data) => data.patientId || data.appointmentId, {
+  message: "Either patientId or appointmentId is required",
+  path: ["patientId"],
+});
 
 const logger = createLogger('appointments');
 const smsGateway = createSmsGateway();
@@ -143,10 +154,13 @@ appointmentsRouter.post('/:id/issue-token', asyncHandler(async (req, res) => {
 
 // POST /api/appointments/waiting
 appointmentsRouter.post('/waiting', asyncHandler(async (req, res) => {
-  const { patientId, appointmentId, doctorId, consultationFee } = req.body;
-  if (!patientId && !appointmentId) throw new BadRequestError('Either patientId or appointmentId is required');
+  const validation = addToWaitlistSchema.safeParse(req.body);
+  if (!validation.success) {
+    throw new ValidationError('Invalid waitlist data', validation.error.format());
+  }
+
   const queueMgmt = new QueueManagementUseCase(getRepo(req));
-  const result = await queueMgmt.addToWaitlist({ patientId, appointmentId, doctorId, consultationFee });
+  const result = await queueMgmt.addToWaitlist(validation.data);
   if (result.success) {
     sendSuccess(res, result.data, undefined, 201);
   }

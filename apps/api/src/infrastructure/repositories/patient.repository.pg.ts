@@ -254,11 +254,24 @@ export class PatientRepositoryPg implements PatientRepository {
     try {
       const [doctors, religions, occupations, references] = await Promise.all([
         this.db
-          .select({ id: users.id, name: users.name, consultationFee: users.consultationFee })
+          .select({ 
+            id: users.id, 
+            name: users.name, 
+            userFee: users.consultationFee,
+            legacyFee: doctorsLegacy.consultationFee
+          })
           .from(users)
-          .where(and(isNull(users.deletedAt), eq(users.isActive, true), sql`LOWER(${users.type}) = 'doctor'`))
+          .leftJoin(doctorsLegacy, or(
+            eq(users.id, doctorsLegacy.id),
+            sql`LOWER(${users.name}) = LOWER(${doctorsLegacy.name})`
+          ))
+          .where(and(
+            isNull(users.deletedAt), 
+            eq(users.isActive, true), 
+            sql`LOWER(${users.type}) = 'doctor'`
+          ))
           .catch((err) => {
-            console.error('[PatientRepo] Failed to fetch doctors from users table:', err.message);
+            console.error('[PatientRepo] Failed to fetch doctors:', err.message);
             return [];
           }),
         this.db.select().from(religionLegacy).catch((err) => {
@@ -276,11 +289,23 @@ export class PatientRepositoryPg implements PatientRepository {
       ]);
 
       return {
-        doctors: doctors.map(d => ({ 
-          id: d.id, 
-          name: d.name, 
-          consultationFee: d.consultationFee ? Number(d.consultationFee) : null 
-        })),
+        doctors: doctors.map(d => {
+          // If userFee is 0 or null, try legacyFee
+          let fee = (d.userFee && Number(d.userFee) > 0) ? d.userFee : d.legacyFee;
+          let numFee: number | null = null;
+          
+          if (fee !== null && fee !== undefined) {
+            // Remove any non-numeric characters except decimal point
+            const cleaned = String(fee).replace(/[^0-9.]/g, '');
+            numFee = cleaned ? Number(cleaned) : 0;
+          }
+          
+          return {
+            id: d.id,
+            name: d.name,
+            consultationFee: numFee
+          };
+        }),
         religions: religions.map((r: any) => r.religion).filter(Boolean),
         occupations: occupations.map((o: any) => o.occupation).filter(Boolean),
         references: references.map((r: any) => r.referencetype).filter(Boolean),
