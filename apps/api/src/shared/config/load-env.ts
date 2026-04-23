@@ -20,22 +20,27 @@ for (let i = 0; i < 6; i++) {
   curr = path.dirname(curr);
 }
 
-console.log(`[Env] Searching for .env files in ${searchPaths.length} locations...`);
+console.log('────────────────────────────────────────────────────────────────');
+console.log(`[Env] STARTUP DIAGNOSTICS`);
+console.log(`[Env] CWD: ${process.cwd()}`);
+console.log(`[Env] __dirname: ${__dirname}`);
+console.log(`[Env] Searching in ${searchPaths.length} locations...`);
 
 for (const p of searchPaths) {
-  if (fs.existsSync(p)) {
-    console.log(`[Env] ✅ Found .env at: ${p}`);
+  const exists = fs.existsSync(p);
+  if (exists) {
+    console.log(`[Env] ✅ FOUND .env: ${p}`);
     dotenv.config({ path: p });
-  } else {
-    // Silently continue
   }
 }
 
-if (!process.env.JWT_SECRET) {
-  console.warn('[Env] WARNING: JWT_SECRET still not found after searching common paths.');
+if (process.env.JWT_SECRET) {
+  console.log(`[Env] ✅ JWT_SECRET is LOADED (Length: ${process.env.JWT_SECRET.length})`);
 } else {
-  console.log('[Env] ✅ JWT_SECRET is present in process.env');
+  console.error(`[Env] ❌ ERROR: JWT_SECRET IS MISSING FROM ENVIRONMENT`);
+  console.log(`[Env] Available keys: ${Object.keys(process.env).filter(k => !k.includes('PASS') && !k.includes('SECRET')).join(', ')}`);
 }
 
-console.log(`[Env] Current NODE_ENV: ${process.env.NODE_ENV}`);
+console.log(`[Env] NODE_ENV: ${process.env.NODE_ENV}`);
+console.log('────────────────────────────────────────────────────────────────');
 
