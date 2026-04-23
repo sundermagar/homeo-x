@@ -68,8 +68,12 @@ export function DashboardHeader({ onOpenPalette }: DashboardHeaderProps) {
 
           <div className="dh-breadcrumb">
             <span className="dh-page-title">{pageTitle}</span>
-            <ChevronRight size={12} className="dh-breadcrumb-sep" />
-            <span className="dh-clinic-name">{clinicName}</span>
+            {user?.type !== 'SuperAdmin' && (
+              <>
+                <ChevronRight size={12} className="dh-breadcrumb-sep" />
+                <span className="dh-clinic-name">{clinicName}</span>
+              </>
+            )}
           </div>
         </div>
 

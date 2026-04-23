@@ -67,7 +67,9 @@ export class StaffRepositoryPg implements StaffRepository {
 
     // We only select columns confirmed to exist in the legacy schema
     const rows = await this.db.execute(sql`
-      SELECT id, name, email, mobile, gender, designation, city, created_at, deleted_at
+      SELECT id, name, email, mobile, gender, designation, city, created_at, deleted_at,
+             (CASE WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = ${table} AND column_name = 'clinic_id') 
+                   THEN clinic_id ELSE NULL END) as clinic_id
       FROM ${sql.identifier(table)}
       WHERE (deleted_at IS NULL OR deleted_at::text = '')
       ${searchSafe ? sql`AND (name ILIKE ${searchSafe} OR email ILIKE ${searchSafe} OR mobile ILIKE ${searchSafe})` : sql``}
@@ -328,6 +330,7 @@ export class StaffRepositoryPg implements StaffRepository {
       isActive: !row.deleted_at,
       createdAt: row.created_at ? new Date(row.created_at).toISOString() : null,
       city: row.city || '',
+      clinicId: row.clinic_id ?? null,
       title: row.title ?? null,
       qualification: row.qualification ?? null,
       consultationFee: row.consultation_fee ?? null,

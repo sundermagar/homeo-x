@@ -429,6 +429,222 @@
   color: var(--pp-blue);
 }
 
+/* ─── All Users Page Specifics ─── */
+.user-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-avatar-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--pp-warm-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--pp-ink);
+  text-transform: uppercase;
+  border: 1px solid var(--pp-warm-4);
+  flex-shrink: 0;
+}
+
+.user-info-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.user-name-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pp-ink);
+}
+
+.user-email-text {
+  font-size: 11px;
+  color: var(--pp-text-3);
+}
+
+.role-badge {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.role-badge-admin {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #10b98133;
+}
+
+.role-badge-member {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #3b82f633;
+}
+
+.role-badge-client {
+  background: #fffbeb;
+  color: #d97706;
+  border: 1px solid #f59e0b33;
+}
+
+.security-stack {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.security-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--pp-text-3);
+}
+
+.security-icon-check {
+  color: #10b981;
+}
+
+.security-icon-x {
+  color: var(--pp-text-4);
+}
+
+.agency-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--pp-text-2);
+  font-weight: 500;
+}
+
+.status-badge-active {
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #22c55e33;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+/* ─── Audit Logs Specifics ─── */
+.audit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 10px 0;
+}
+
+.audit-item {
+  display: flex;
+  gap: 16px;
+  padding: 20px;
+  background: white;
+  border-bottom: 1px solid var(--pp-warm-4);
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.audit-item:hover {
+  background: var(--pp-warm-1);
+}
+
+.audit-icon-box {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.audit-icon-box-blue {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.audit-icon-box-gray {
+  background: #f8fafc;
+  color: #64748b;
+}
+
+.audit-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.audit-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.audit-title span {
+  font-weight: 700;
+  color: #2563eb;
+}
+
+.audit-title .platform-admin-text {
+  color: #1e293b;
+  font-weight: 700;
+}
+
+.audit-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.audit-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.audit-detail-box {
+  background: #f8fafc;
+  border-radius: 6px;
+  padding: 10px 16px;
+  font-size: 12px;
+  color: #475569;
+  max-width: fit-content;
+  margin-top: 4px;
+}
+
+.audit-detail-box b {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.audit-right-id {
+  font-size: 11px;
+  font-weight: 500;
+  color: #94a3b8;
+  position: absolute;
+  top: 20px;
+  right: 20px;
+}
+
 /* ─── Modals ─── */
 .plat-modal-backdrop,
 .plat-modal-overlay {

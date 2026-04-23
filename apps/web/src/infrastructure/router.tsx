@@ -53,6 +53,7 @@ const EmployeesPage = lazy(() => import('@/features/platform/pages/EmployeesPage
 const ReceptionistsPage = lazy(() => import('@/features/platform/pages/ReceptionistsPage'));
 const ClinicAdminsPage = lazy(() => import('@/features/platform/pages/ClinicAdminsPage'));
 const AccountManagersPage = lazy(() => import('@/features/platform/pages/AccountManagersPage'));
+const AuditLogsPage = lazy(() => import('@/features/platform/pages/AuditLogsPage'));
 
 // ─── Settings & Configuration ─────────────────────
 const DepartmentsPage = lazy(() => import('@/features/settings/pages/DepartmentsPage'));
@@ -173,6 +174,7 @@ export function AppRouter() {
             <Route path="/platform/account-managers" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><AccountManagersPage /></RoleGuard>} />
             <Route path="/platform/clinics" element={<RoleGuard allowed={['SuperAdmin', 'Admin']}><ClinicsPage /></RoleGuard>} />
             <Route path="/platform/accounts" element={<RoleGuard allowed={['SuperAdmin', 'Admin']}><AccountsPage /></RoleGuard>} />
+            <Route path="/platform/audit" element={<RoleGuard allowed={['SuperAdmin']}><AuditLogsPage /></RoleGuard>} />
 
             {/* ─── Operations Hub ─── */}
             <Route

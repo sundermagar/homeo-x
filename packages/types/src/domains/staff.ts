@@ -62,6 +62,7 @@ export interface StaffSummary {
   isActive: boolean;
   createdAt: string | null;
   city: string | null;
+  clinicId: number | null;
   // Doctor extras
   title: string | null;
   qualification: string | null;

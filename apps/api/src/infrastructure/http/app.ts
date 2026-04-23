@@ -1,9 +1,6 @@
-import express from 'express';
-import { createServer } from 'http';
-import { Server as SocketServer } from 'socket.io';
-import type { Express } from 'express';
-import type { Server as HttpServer } from 'node:http';
-import type { Server as SocketIOServer } from 'socket.io';
+import express, { type Application } from 'express';
+import { createServer, type Server as HttpServer } from 'http';
+import { Server as SocketIOServer } from 'socket.io';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -13,7 +10,7 @@ import { requestLogger } from './middleware/request-logger';
 import { errorHandler } from './middleware/error-handler';
 import { tenantMiddleware } from './middleware/tenant';
 import { authMiddleware } from './middleware/auth';
-import { auditMiddleware } from './middleware/audit';
+import { createAuditMiddleware } from './middleware/audit';
 import { appConfig } from '../../shared/config/app-config';
 import { aiConfig } from '../../shared/config/ai-config';
 import { createLogger } from '../../shared/logger';
@@ -46,19 +43,23 @@ import { recordsRouter } from './routes/records.router';
 import { staffRouter } from './routes/staff.router';
 import { createSettingsRouter } from './routes/settings.router';
 import { exportRouter } from './routes/export.router';
+import { createAuditRouter } from './routes/audit.router';
+import { AuditRepositoryPg } from '../repositories/audit.repository.pg';
+import { AuditLogger } from '../../../shared/audit/audit-logger';
 
 const logger = createLogger('http');
 
 import { createDbClient, TenantRegistry } from '@mmc/database';
 
-export async function createApp(): Promise<{ app: Express; server: HttpServer; io: SocketIOServer; tenantDb: any }> {
-  const app: Express = express();
+export async function createApp(): Promise<{ app: Application; server: HttpServer; io: SocketIOServer; tenantDb: any }> {
+  const app: Application = express();
   const server: HttpServer = createServer(app);
+  const io: SocketIOServer = new SocketIOServer(server);
 
-  // Socket.io
-  const io: SocketIOServer = new SocketServer(server, {
-    cors: { origin: appConfig.cors.origins, credentials: true },
-  });
+  // Audit System initialization
+  const publicDb = createDbClient(process.env.DATABASE_URL!);
+  const auditRepo = new AuditRepositoryPg(publicDb);
+  const auditLogger = new AuditLogger(auditRepo);
 
   // ─── Security ───
   app.set('trust proxy', 1);
@@ -96,7 +97,7 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   app.use('/api', tenantMiddleware);
 
   // ─── Audit Trail ───
-  app.use(auditMiddleware);
+  app.use(createAuditMiddleware(auditLogger));
 
   // ─── Routes ───
   app.use('/api/health', healthRouter);
@@ -144,11 +145,14 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   // Data Export
   app.use('/api/export', authMiddleware, exportRouter);
 
+  // Audit Logs
+  app.use('/api/audit', authMiddleware, createAuditRouter(auditRepo));
+
   // ─── Error Handling (must be last) ───
   app.use(errorHandler);
 
   // Initialize TenantRegistry from database to ensure persistence
-  const publicDb = createDbClient(process.env.DATABASE_URL!);
+  // (publicDb already created above)
 
   if (typeof (TenantRegistry as any).initialize === 'function') {
     logger.info('Initializing TenantRegistry from database...');

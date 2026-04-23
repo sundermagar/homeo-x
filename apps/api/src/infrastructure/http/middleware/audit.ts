@@ -1,10 +1,9 @@
 import type { Request, Response, NextFunction } from 'express';
 import { AuditLogger, AuditAction } from '../../../shared/audit/audit-logger';
 
-const auditLogger = new AuditLogger();
-
 // Map HTTP method + path patterns to audit actions
 const AUDIT_ROUTES: Array<{ method: string; pattern: RegExp; action: AuditAction; resourceType: string }> = [
+  // ... (keeping same routes)
   { method: 'POST', pattern: /^\/api\/auth\/login$/, action: AuditAction.LOGIN, resourceType: 'auth' },
   { method: 'POST', pattern: /^\/api\/auth\/logout$/, action: AuditAction.LOGOUT, resourceType: 'auth' },
   { method: 'POST', pattern: /^\/api\/patients$/, action: AuditAction.PATIENT_CREATE, resourceType: 'patient' },
@@ -26,32 +25,32 @@ const AUDIT_ROUTES: Array<{ method: string; pattern: RegExp; action: AuditAction
 
 /**
  * Automatically logs state-changing API requests to the audit trail.
- * Runs AFTER the response is sent (non-blocking).
  */
-export function auditMiddleware(req: Request, res: Response, next: NextFunction) {
-  res.on('finish', () => {
-    // Only audit successful state-changing operations
-    if (res.statusCode >= 400) return;
+export function createAuditMiddleware(auditLogger: AuditLogger) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    res.on('finish', () => {
+      if (res.statusCode >= 400) return;
 
-    const match = AUDIT_ROUTES.find(
-      (r) => r.method === req.method && r.pattern.test(req.path),
-    );
+      const match = AUDIT_ROUTES.find(
+        (r) => r.method === req.method && r.pattern.test(req.path),
+      );
 
-    if (match) {
-      const resourceId = req.params?.regid || req.params?.id || req.body?.visitId || req.body?.regid || 'unknown';
-      auditLogger.log({
-        action: match.action,
-        tenantId: req.tenantSlug || 'unknown',
-        userId: req.user?.id || null,
-        correlationId: req.correlationId || 'unknown',
-        resourceType: match.resourceType,
-        resourceId,
-        newData: ['POST', 'PUT', 'PATCH'].includes(req.method) ? req.body : null,
-        ip: req.ip,
-        userAgent: req.headers['user-agent']?.substring(0, 200),
-      });
-    }
-  });
+      if (match) {
+        const resourceId = req.params?.regid || req.params?.id || req.body?.visitId || req.body?.regid || 'unknown';
+        auditLogger.log({
+          action: match.action,
+          tenantId: req.tenantSlug || 'unknown',
+          userId: req.user?.id || null,
+          correlationId: req.correlationId || 'unknown',
+          resourceType: match.resourceType,
+          resourceId,
+          newData: ['POST', 'PUT', 'PATCH'].includes(req.method) ? req.body : null,
+          ip: req.ip,
+          userAgent: req.headers['user-agent']?.substring(0, 200),
+        });
+      }
+    });
 
-  next();
+    next();
+  };
 }

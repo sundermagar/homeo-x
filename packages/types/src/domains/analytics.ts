@@ -127,7 +127,17 @@ export interface RevenueSeries {
 
 export interface PlatformStats {
   totalClinics: number;
+  activeClinics: number;
+  suspendedClinics: number;
+  trialClinics: number;
+  deletedClinics: number;
+  newClinicsLast30Days: number;
   totalStaff: number;
+  totalPatients: number;
+  totalConsultations: number;
+  totalPrescriptions: number;
+  activePlans: number;
+  totalSubscribers: number;
 }
 
 export interface IntelligenceInsight {

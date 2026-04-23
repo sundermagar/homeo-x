@@ -63,8 +63,10 @@ import '../styles/sidebar.css';
 type UserRole = 'SuperAdmin' | 'Admin' | 'Clinicadmin' | 'Doctor' | 'Receptionist';
 
 const ALL: UserRole[] = ['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist'];
-const ADMIN: UserRole[] = ['SuperAdmin', 'Admin', 'Clinicadmin'];
-const CLINICAL: UserRole[] = ['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor'];
+const CLINIC_STAFF: UserRole[] = ['Admin', 'Clinicadmin', 'Doctor', 'Receptionist'];
+const ADMIN_ROLES: UserRole[] = ['SuperAdmin', 'Admin', 'Clinicadmin'];
+const CLINICAL_ROLES: UserRole[] = ['Admin', 'Clinicadmin', 'Doctor'];
+const PLATFORM_ADMINS: UserRole[] = ['SuperAdmin', 'Admin'];
 
 // ─── Navigation Structure ────────────────────────────────────────────────────
 
@@ -100,12 +102,33 @@ const NAV_STRUCTURE: NavItem[] = [
     roles: ALL,
   },
   {
+    type: 'link',
+    path: '/platform/clinics',
+    label: 'Clinics',
+    icon: Building2,
+    roles: ['SuperAdmin', 'Admin'],
+  },
+  {
+    type: 'link',
+    path: '/platform/accounts',
+    label: 'Users',
+    icon: Users,
+    roles: ['SuperAdmin', 'Admin'],
+  },
+  {
+    type: 'link',
+    path: '/platform/audit',
+    label: 'Audit Logs',
+    icon: FileText,
+    roles: ['SuperAdmin'],
+  },
+  {
     type: 'group',
     group: {
       id: 'patients-group',
       label: 'Patients',
       icon: Users,
-      roles: ALL,
+      roles: CLINIC_STAFF,
       children: [
         { path: '/patients', label: 'Patient List', icon: Users },
         { path: '/family-groups', label: 'Family Groups', icon: Layers },
@@ -118,7 +141,7 @@ const NAV_STRUCTURE: NavItem[] = [
       id: 'appointments',
       label: 'Appointments',
       icon: CalendarClock,
-      roles: ALL,
+      roles: CLINIC_STAFF,
       children: [
         { path: '/appointments', label: 'List View', icon: CalendarClock },
         { path: '/appointments/calendar', label: 'Calendar', icon: Calendar },
@@ -132,7 +155,7 @@ const NAV_STRUCTURE: NavItem[] = [
       id: 'clinical',
       label: 'Clinical Hub',
       icon: Stethoscope,
-      roles: CLINICAL,
+      roles: CLINICAL_ROLES,
       children: [
         // { path: '/consultation-history', label: 'Case History', icon: BarChart2 },
         { path: '/vitals-check', label: 'Height & Weight Check', icon: Scale },
@@ -148,7 +171,7 @@ const NAV_STRUCTURE: NavItem[] = [
       id: 'memberships',
       label: 'Memberships',
       icon: Package,
-      roles: ADMIN,
+      roles: ADMIN_ROLES,
       children: [
         { path: '/packages', label: 'Package Plans', icon: Layers },
         { path: '/packages/tracking', label: 'Tracking', icon: CalendarCheck },
@@ -161,7 +184,7 @@ const NAV_STRUCTURE: NavItem[] = [
       id: 'communications',
       label: 'Communications',
       icon: MessageSquare,
-      roles: ADMIN,
+      roles: ['Admin', 'Clinicadmin'], // Removed SuperAdmin
       children: [
         { path: '/communications/sms', label: 'Send SMS', icon: Send },
         { path: '/communications/templates', label: 'Templates', icon: MessageCircle },
@@ -176,7 +199,7 @@ const NAV_STRUCTURE: NavItem[] = [
       id: 'analytics',
       label: 'Analytics',
       icon: PieChart,
-      roles: ADMIN,
+      roles: ['Admin', 'Clinicadmin'], // Removed SuperAdmin
       defaultPath: '/analytics',
       children: [
         { path: '/analytics', label: 'Dashboard', icon: BarChart2 },
@@ -202,7 +225,7 @@ const NAV_STRUCTURE: NavItem[] = [
       id: 'finance',
       label: 'Finance',
       icon: Receipt,
-      roles: ['SuperAdmin', 'Admin', 'Clinicadmin', 'Receptionist'],
+      roles: ['Admin', 'Clinicadmin', 'Receptionist'],
       children: [
         {
           path: '/billing', label: 'Billing', icon: Receipt,
@@ -223,18 +246,21 @@ const NAV_STRUCTURE: NavItem[] = [
     type: 'group',
     group: {
       id: 'platform',
-      label: 'Staff & Platform',
+      label: 'PLATFORM',
       icon: Building2,
-      roles: ['SuperAdmin', 'Admin', 'Clinicadmin'],
+      roles: ['Admin', 'Clinicadmin'], // Removed SuperAdmin
       children: [
-        { path: '/platform/doctors', label: 'Doctors', icon: Stethoscope },
-        { path: '/platform/employees', label: 'Employees', icon: User },
-        { path: '/platform/receptionists', label: 'Receptionists', icon: Phone },
-        { path: '/platform/clinicadmins', label: 'Clinic Admins', icon: Shield },
-        { path: '/platform/account-managers', label: 'Account Mgrs', icon: Briefcase },
-        { path: '/platform/clinics', label: 'Clinics', icon: Building2, roles: ['SuperAdmin', 'Admin'] },
-        { path: '/platform/accounts', label: 'Accounts', icon: UserCog },
-        { path: '/settings/roles', label: 'Roles & Access', icon: UserCheck, roles: ['SuperAdmin', 'Admin'] },
+        { path: '/platform/plans', label: 'Plans', icon: CreditCard, roles: ['SuperAdmin'] },
+        { path: '/platform/promotions', label: 'Promotions', icon: Sparkles, roles: ['SuperAdmin'] },
+        { path: '/platform/accounts', label: 'Users', icon: Users, roles: ['SuperAdmin', 'Admin'] },
+        { path: '/platform/audit', label: 'Audit Logs', icon: FileText, roles: ['SuperAdmin'] },
+        { path: '/settings/roles', label: 'Roles & Access', icon: Shield, roles: ['SuperAdmin', 'Admin'] },
+        // These are clinic-level - hide for SuperAdmin in this group
+        { path: '/platform/doctors', label: 'Doctors', icon: Stethoscope, roles: ['Admin', 'Clinicadmin'] },
+        { path: '/platform/employees', label: 'Employees', icon: User, roles: ['Admin', 'Clinicadmin'] },
+        { path: '/platform/receptionists', label: 'Receptionists', icon: Phone, roles: ['Admin', 'Clinicadmin'] },
+        { path: '/platform/clinicadmins', label: 'Clinic Admins', icon: Shield, roles: ['Admin', 'Clinicadmin'] },
+        { path: '/platform/account-managers', label: 'Account Mgrs', icon: Briefcase, roles: ['Admin', 'Clinicadmin'] },
       ],
     },
   },
@@ -244,7 +270,7 @@ const NAV_STRUCTURE: NavItem[] = [
       id: 'operations-hub',
       label: 'Operations Hub',
       icon: Settings,
-      roles: ['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor'],
+      roles: ['Admin', 'Clinicadmin', 'Doctor'], // Removed SuperAdmin
       children: [
         { path: '/operations?tab=logistics', label: 'Logistics & Couriers', icon: Layers },
         { path: '/operations?tab=crm', label: 'Lead CRM & Promos', icon: Users },
@@ -259,7 +285,7 @@ const NAV_STRUCTURE: NavItem[] = [
       id: 'settings',
       label: 'System Settings',
       icon: Settings,
-      roles: ADMIN,
+      roles: ['Admin', 'Clinicadmin'], // Removed SuperAdmin
       children: [
         { path: '/settings/departments', label: 'Departments', icon: Layers },
         { path: '/settings/medicines', label: 'Medicine Catalog', icon: Pill },
@@ -438,12 +464,22 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       <aside className={`sidebar ${isOpen ? 'is-open' : ''}`}>
         {/* ── Logo ── */}
         <div className="sidebar-header">
-          <div className="sidebar-logo-group">
-            <div className="sidebar-logo">
-              <Infinity size={20} strokeWidth={2.5} />
+          {userRole === 'SuperAdmin' ? (
+            <div className="sidebar-logo-group">
+              <Shield size={22} className="sidebar-logo-shield" style={{ color: 'var(--primary)' }} />
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span className="sidebar-brand" style={{ lineHeight: 1.2 }}>Platform Admin</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>Super Admin</span>
+              </div>
             </div>
-            <span className="sidebar-brand">Kreed.health</span>
-          </div>
+          ) : (
+            <div className="sidebar-logo-group">
+              <div className="sidebar-logo">
+                <Infinity size={20} strokeWidth={2.5} />
+              </div>
+              <span className="sidebar-brand">Kreed.health</span>
+            </div>
+          )}
           <button className="mh-menu-btn sidebar-header-close" onClick={onClose}>
             <X size={20} strokeWidth={1.6} />
           </button>

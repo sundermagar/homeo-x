@@ -1,30 +1,30 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/infrastructure/api-client';
-import type { Account, CreateAccountInput, UpdateAccountInput } from '@mmc/types';
+import type { StaffSummary, CreateAccountInput, UpdateAccountInput } from '@mmc/types';
 
 const QUERY_KEY = 'accounts';
 
-async function fetchAccounts(clinicId?: number, role?: string): Promise<Account[]> {
+async function fetchAccounts(clinicId?: number, role?: string): Promise<StaffSummary[]> {
   const params = new URLSearchParams();
   if (clinicId) params.append('clinic_id', clinicId.toString());
   if (role) params.append('role', role);
   const q = params.toString() ? `?${params.toString()}` : '';
-  const { data } = await apiClient.get<{ success: boolean; data: Account[] }>(`/platform-accounts${q}`);
+  const { data } = await apiClient.get<{ success: boolean; data: StaffSummary[] }>(`/clinicadmins${q}`);
   return data.data;
 }
 
-async function createAccount(body: CreateAccountInput): Promise<Account> {
-  const { data } = await apiClient.post<{ success: boolean; data: Account }>('/platform-accounts', body);
+async function createAccount(body: CreateAccountInput): Promise<StaffSummary> {
+  const { data } = await apiClient.post<{ success: boolean; data: StaffSummary }>('/clinicadmins', body);
   return data.data;
 }
 
-async function updateAccount({ id, ...body }: UpdateAccountInput & { id: number }): Promise<Account> {
-  const { data } = await apiClient.put<{ success: boolean; data: Account }>(`/platform-accounts/${id}`, body);
+async function updateAccount({ id, ...body }: UpdateAccountInput & { id: number }): Promise<StaffSummary> {
+  const { data } = await apiClient.put<{ success: boolean; data: StaffSummary }>(`/clinicadmins/${id}`, body);
   return data.data;
 }
 
 async function deleteAccount(id: number): Promise<void> {
-  await apiClient.delete(`/platform-accounts/${id}`);
+  await apiClient.delete(`/clinicadmins/${id}`);
 }
 
 export function useAccounts(clinicId?: number, role?: string) {

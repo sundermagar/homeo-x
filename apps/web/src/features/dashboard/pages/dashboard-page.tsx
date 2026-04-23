@@ -2,6 +2,7 @@ import { useAuthStore } from '@/shared/stores/auth-store';
 import { Role } from '@mmc/types';
 import { DoctorDashboard } from './doctor-dashboard';
 import { AdminDashboard } from './admin-dashboard';
+import { SuperAdminDashboard } from './super-admin-dashboard';
 import { ClinicAdminDashboard } from './clinic-admin-dashboard';
 import { ReceptionistDashboard } from './receptionist-dashboard';
 
@@ -17,8 +18,10 @@ export default function DashboardPage() {
     case Role.Doctor:
       return <DoctorDashboard />;
     
-    case Role.Admin:
     case Role.SuperAdmin:
+      return <SuperAdminDashboard />;
+
+    case Role.Admin:
       return <AdminDashboard />;
     
     case Role.Clinicadmin:

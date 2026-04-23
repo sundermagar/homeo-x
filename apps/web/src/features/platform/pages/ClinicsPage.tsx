@@ -91,9 +91,9 @@ export default function ClinicsPage() {
         <div>
           <h1 className="plat-header-title">
             <Building2 size={20} strokeWidth={1.6} style={{ color: 'var(--primary)' }} />
-            Clinics &amp; Organizations
+            Clinics
           </h1>
-          <p className="plat-header-sub">Manage all {orgs.length} registered clinic organisations.</p>
+          <p className="plat-header-sub">Manage all registered clinic organisations on the platform.</p>
         </div>
         <div className="plat-header-actions">
           <button className="plat-btn plat-btn-ghost" onClick={() => refetch()} title="Refresh">
@@ -101,7 +101,7 @@ export default function ClinicsPage() {
           </button>
           <button className="plat-btn plat-btn-primary" onClick={() => { setEditingOrg(null); setIsCreating(true); setForm(EMPTY_FORM); }}>
             <Plus size={14} strokeWidth={1.6} />
-            Add Clinic
+            Create Clinic
           </button>
         </div>
       </div>
@@ -137,12 +137,12 @@ export default function ClinicsPage() {
               <thead>
                 <tr>
                   <th style={{ width: '50px' }}>ID</th>
-                  <th>Clinic Name</th>
-                  <th style={{ width: '120px' }}>City</th>
-                  <th style={{ width: '140px' }}>Phone</th>
-                  <th style={{ width: '180px' }}>Website</th>
-                  <th style={{ width: '110px' }}>Connected</th>
-                  <th style={{ width: '80px' }}>Action</th>
+                  <th>CLINIC</th>
+                  <th style={{ width: '120px' }}>CITY</th>
+                  <th style={{ width: '140px' }}>PHONE</th>
+                  <th style={{ width: '180px' }}>WEBSITE</th>
+                  <th style={{ width: '110px' }}>CREATED</th>
+                  <th style={{ width: '80px' }}>ACTIONS</th>
                 </tr>
               </thead>
               <tbody>
