@@ -14,15 +14,30 @@ import {
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDashboard } from '../hooks/use-dashboard';
+import { useQueueMgmt } from '../hooks/use-queue-mgmt';
 import './role-dashboards.css';
 
 export function ReceptionistDashboard() {
   const navigate = useNavigate();
   const { data: dashData, isLoading } = useDashboard('day');
+  const queueMgmt = useQueueMgmt();
   const [expandedId, setExpandedId] = useState<number | null>(null);
   
   const todayAppts = dashData?.queue || [];
   const kpis = dashData?.kpis;
+
+  const handleAction = async (appt: any) => {
+    if (appt.status === 'Scheduled') {
+      await queueMgmt.checkIn.mutateAsync({ 
+        appointmentId: appt.id, 
+        patientId: appt.patientId || appt.regid,
+        doctorId: appt.doctorId 
+      });
+    } else if (appt.status === 'Waitlist') {
+      const waitlistId = appt.wlId || appt.id;
+      await queueMgmt.callNext.mutateAsync(waitlistId);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -36,12 +51,12 @@ export function ReceptionistDashboard() {
   return (
     <div className="dash-root">
       {/* 1. KPI Strip */}
-  <div className="dash-kpi-strip">
-    <KPIItem label="Today Intake" value={kpis?.newPatientsCount || 0} trend="+12% vs avg" color="#16a34a" />
-    <KPIItem label="Waitlist" value={todayAppts.filter(a => a.status === 'Waitlist').length} trend="Active queue" color="#d97706" />
-    <KPIItem label="Collection" value={`₹${(kpis?.todaysCollection || 0).toLocaleString('en-IN')}`} trend="Today" color="#16a34a" />
-    <KPIItem label="Completed" value={todayAppts.filter(a => a.status === 'Completed').length} trend="Visits done" color="#2563eb" />
-  </div>
+      <div className="dash-kpi-strip">
+        <KPIItem label="Today Intake" value={kpis?.newPatientsCount || 0} trend="+12% vs avg" color="#16a34a" />
+        <KPIItem label="Waitlist" value={todayAppts.filter(a => a.status === 'Waitlist').length} trend="Active queue" color="#d97706" />
+        <KPIItem label="Collection" value={`₹${(kpis?.todaysCollection || 0).toLocaleString('en-IN')}`} trend="Today" color="#16a34a" />
+        <KPIItem label="Completed" value={todayAppts.filter(a => a.status === 'Completed').length} trend="Visits done" color="#2563eb" />
+      </div>
 
       <div className="dash-grid">
         {/* 2. Main Column — Schedule */}
@@ -58,7 +73,7 @@ export function ReceptionistDashboard() {
               <table className="pp-table">
                 <thead>
                   <tr>
-                    <th>TIME</th>
+                    <th>TOKEN / TIME</th>
                     <th>PATIENT</th>
                     <th>STATUS</th>
                     <th style={{ textAlign: 'center' }}>ACTION</th>
@@ -67,16 +82,23 @@ export function ReceptionistDashboard() {
                 <tbody className="dash-scroll">
                   {todayAppts.map((a: any, i: number) => {
                     const isExpanded = expandedId === a.id;
+                    const canCheckIn = a.status === 'Scheduled';
+                    const isWaitlist = a.status === 'Waitlist';
+
                     return (
                       <React.Fragment key={i}>
-                        <tr 
+                        <tr
                           className={`hover-row ${isExpanded ? 'active-row' : ''}`}
                           onClick={() => setExpandedId(isExpanded ? null : a.id)}
                           style={{ cursor: 'pointer' }}
                         >
                           <td style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 700, color: '#64748b' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                              {a.tokenNo ? (
+                                <div className="token-badge">{a.tokenNo}</div>
+                              ) : (
+                                <Clock size={14} />
+                              )}
                               {a.bookingTime || 'Walk-in'}
                             </div>
                           </td>
@@ -95,7 +117,27 @@ export function ReceptionistDashboard() {
                             </span>
                           </td>
                           <td style={{ textAlign: 'center' }}>
-                            <button className="dash-view-btn" onClick={(e) => { e.stopPropagation(); navigate(`/patients/${a.regid || a.patientId}`); }}>View</button>
+                            <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                              {canCheckIn && (
+                                <button 
+                                  className="dash-action-btn btn-checkin" 
+                                  onClick={(e) => { e.stopPropagation(); handleAction(a); }}
+                                  disabled={queueMgmt.isLoading}
+                                >
+                                  {queueMgmt.checkIn.isPending ? '...' : 'Check In'}
+                                </button>
+                              )}
+                              {isWaitlist && (
+                                <button 
+                                  className="dash-action-btn btn-call" 
+                                  onClick={(e) => { e.stopPropagation(); handleAction(a); }}
+                                  disabled={queueMgmt.isLoading}
+                                >
+                                  Call
+                                </button>
+                              )}
+                              <button className="dash-view-btn" onClick={(e) => { e.stopPropagation(); navigate(`/patients/${a.regid || a.patientId}`); }}>View</button>
+                            </div>
                           </td>
                         </tr>
                         <tr>
@@ -191,12 +233,12 @@ function KPIItem({ label, value, trend, color }: any) {
 
 function OpLink({ icon, label, path }: any) {
   return (
-    <Link to={path} style={{ 
-      display: 'flex', 
-      alignItems: 'center', 
-      gap: 12, 
-      padding: '12px 14px', 
-      background: '#f8fafc', 
+    <Link to={path} style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 12,
+      padding: '12px 14px',
+      background: '#f8fafc',
       border: '1px solid #f1f5f9',
       borderRadius: '8px',
       textDecoration: 'none',

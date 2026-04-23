@@ -69,8 +69,13 @@
   font-weight: 700;
 }
 
-.trend-up { color: var(--pp-success-fg); }
-.trend-down { color: var(--pp-danger-fg); }
+.trend-up {
+  color: var(--pp-success-fg);
+}
+
+.trend-down {
+  color: var(--pp-danger-fg);
+}
 
 /* 2. Layout Grid */
 .dash-grid {
@@ -171,8 +176,14 @@
   transition: background var(--transition-fast);
 }
 
-.dash-row:hover { background: var(--pp-warm-1); }
-.dash-row.active { background: var(--pp-warm-2); border-left: 3px solid var(--pp-blue); }
+.dash-row:hover {
+  background: var(--pp-warm-1);
+}
+
+.dash-row.active {
+  background: var(--pp-warm-2);
+  border-left: 3px solid var(--pp-blue);
+}
 
 .dash-row-details {
   max-height: 0;
@@ -218,10 +229,25 @@
   letter-spacing: 0.02em;
 }
 
-.badge-success { background: var(--pp-success-bg); color: var(--pp-success-fg); }
-.badge-primary { background: var(--pp-blue-tint); color: var(--pp-blue); }
-.badge-warning { background: var(--pp-warning-bg); color: var(--pp-warning-fg); }
-.badge-danger  { background: var(--pp-danger-bg);  color: var(--pp-danger-fg); }
+.badge-success {
+  background: var(--pp-success-bg);
+  color: var(--pp-success-fg);
+}
+
+.badge-primary {
+  background: var(--pp-blue-tint);
+  color: var(--pp-blue);
+}
+
+.badge-warning {
+  background: var(--pp-warning-bg);
+  color: var(--pp-warning-fg);
+}
+
+.badge-danger {
+  background: var(--pp-danger-bg);
+  color: var(--pp-danger-fg);
+}
 
 /* 7. Active Consultation HUD (Doctor) */
 .dd-active-head-up {
@@ -304,9 +330,20 @@
 }
 
 @keyframes pulse-dot {
-  0%   { transform: scale(1);    opacity: 1; }
-  50%  { transform: scale(1.3);   opacity: 0.4; }
-  100% { transform: scale(1);    opacity: 1; }
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.3);
+    opacity: 0.4;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 /* 10. Intelligence Hub Specifics */
@@ -430,7 +467,8 @@
 .btn-skip {
   padding: 10px 24px;
   background: white;
-  border: 1.5px solid #f97316; /* Keep orange for specific warning/skip action */
+  border: 1.5px solid #f97316;
+  /* Keep orange for specific warning/skip action */
   color: #f97316;
   font-weight: 800;
   font-size: 13px;
@@ -548,8 +586,15 @@
 }
 
 @keyframes modalIn {
-  from { opacity: 0; transform: scale(0.96) translateY(10px); }
-  to   { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .modal-header {
@@ -583,9 +628,14 @@
   transition: all 0.15s;
 }
 
-.modal-close:hover { background: var(--pp-warm-4); color: var(--pp-ink); }
+.modal-close:hover {
+  background: var(--pp-warm-4);
+  color: var(--pp-ink);
+}
 
-.modal-body { padding: 24px; }
+.modal-body {
+  padding: 24px;
+}
 
 .modal-footer {
   padding: 18px 24px;
@@ -611,8 +661,8 @@
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
 }
 
-.btn-primary:hover { 
-  background: var(--pp-blue-hover); 
+.btn-primary:hover {
+  background: var(--pp-blue-hover);
   box-shadow: 0 6px 16px rgba(37, 99, 235, 0.2);
   transform: translateY(-1px);
 }
@@ -630,8 +680,8 @@
   font-family: inherit;
 }
 
-.btn-secondary:hover { 
-  background: var(--pp-warm-1); 
+.btn-secondary:hover {
+  background: var(--pp-warm-1);
   border-color: var(--pp-warm-5);
   transform: translateY(-1px);
 }
@@ -662,8 +712,8 @@ button.pp-link:hover {
   font-family: inherit;
 }
 
-.btn-danger:hover { 
-  background: #fee2e2; 
+.btn-danger:hover {
+  background: #fee2e2;
   transform: translateY(-1px);
 }
 
@@ -726,4 +776,58 @@ button.pp-link:hover {
   font-size: 13px;
   font-weight: 600;
   color: var(--pp-ink);
+}
+
+/* ─── Queue Management UI ─────────────────────────────────────────────────── */
+
+.token-badge {
+  background: var(--pp-ink);
+  color: white;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: var(--pp-font-mono);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  display: inline-block;
+}
+
+.dash-action-btn {
+  padding: 4px 14px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1.5px solid transparent;
+  font-family: inherit;
+}
+
+.btn-checkin {
+  background: #f0fdf4;
+  color: #16a34a;
+  border-color: #dcfce7;
+}
+
+.btn-checkin:hover:not(:disabled) {
+  background: #16a34a;
+  color: white;
+  border-color: #16a34a;
+}
+
+.btn-call {
+  background: #fffbeb;
+  color: #d97706;
+  border-color: #fef3c7;
+}
+
+.btn-call:hover:not(:disabled) {
+  background: #d97706;
+  color: white;
+  border-color: #d97706;
+}
+
+.dash-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }

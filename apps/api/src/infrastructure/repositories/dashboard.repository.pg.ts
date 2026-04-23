@@ -418,9 +418,9 @@ export class DashboardRepositoryPg implements IDashboardRepository {
   async getRevenueSeries(period: string, contextId: number, paymentMode?: string): Promise<RevenueSeries[]> {
     let modeFilter = '';
     if (paymentMode === 'Cash') {
-      modeFilter = "AND LOWER(COALESCE(payment_mode, '')) = 'cash'";
+      modeFilter = "AND (LOWER(COALESCE(payment_mode, '')) = 'cash' OR payment_mode IS NULL OR payment_mode = '')";
     } else if (paymentMode === 'UPI/Card') {
-      modeFilter = "AND LOWER(COALESCE(payment_mode, '')) IN ('upi', 'card', 'online')";
+      modeFilter = "AND LOWER(COALESCE(payment_mode, '')) IN ('upi', 'card', 'online', 'bank', 'gpay', 'phonepe', 'paytm')";
     }
 
     const results = await this.db.execute(sql`
@@ -632,7 +632,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     const { start, boundary } = this.getPeriodDates(period);
 
     const results = await this.db.execute(sql`
-      SELECT b.id, p.first_name || ' ' || p.surname as patient_name,
+      SELECT b.id, NULLIF(TRIM(COALESCE(p.first_name, '') || ' ' || COALESCE(p.surname, '')), '') as patient_name,
              p.regid,
              b.charges as total,
              CASE
@@ -658,13 +658,13 @@ export class DashboardRepositoryPg implements IDashboardRepository {
   }
 
   async getMonthlyTargets(period: string, contextId: number): Promise<MonthlyTarget[]> {
-    const { start, boundary } = this.getPeriodDates(period);
+    const { start, boundary, prevStart, prevBoundary } = this.getPeriodDates(period);
 
     // Current month actuals
     const revInfo = await this.getRevenueTableInfo();
     const amountCol = revInfo?.amountCol || 'charges';
 
-    const [revRes, patRes, collRes, waitRes] = await Promise.all([
+    const [revRes, patRes, collRes, waitRes, prevRevRes, prevPatRes] = await Promise.all([
       this.db.execute(sql`
         SELECT (
           COALESCE((SELECT sum(received) FROM bills WHERE bill_date >= ${start} AND bill_date < ${boundary} AND (deleted_at IS NULL OR deleted_at::text = '')), 0) +
@@ -688,6 +688,16 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         SELECT COALESCE(avg(extract(epoch from (called_at - checked_in_at))/60), 0)::int as avg_wait 
         FROM waitlist WHERE date >= ${start} AND date < ${boundary} AND called_at IS NOT NULL AND checked_in_at IS NOT NULL AND (deleted_at IS NULL OR deleted_at::text = '')
       `),
+      this.db.execute(sql`
+        SELECT (
+          COALESCE((SELECT sum(received) FROM bills WHERE bill_date >= ${prevStart} AND bill_date < ${prevBoundary} AND (deleted_at IS NULL OR deleted_at::text = '')), 0) +
+          COALESCE((SELECT sum(CAST(NULLIF(amount::text, '') AS numeric)) FROM receipt WHERE created_at >= ${prevStart} AND created_at < ${prevBoundary} AND (deleted_at IS NULL OR deleted_at::text = '')), 0)
+        ) as total
+      `),
+      this.db.execute(sql`
+        SELECT count(*)::int as cnt FROM patients
+        WHERE created_at >= ${prevStart} AND created_at < ${prevBoundary} AND (deleted_at IS NULL OR deleted_at::text = '')
+      `),
     ]);
 
     const revenue = ((revRes as any[])[0] as any)?.total || 0;
@@ -697,11 +707,13 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     const avgWaitTime = ((waitRes as any[])[0] as any)?.avg_wait || 0;
     const collectionRate = totalCharges > 0 ? Math.round((totalReceived / totalCharges) * 100) : 0;
 
-    // Hardcoded targets for now (could be made configurable)
-    const revenueTarget = 500000; // ₹5L
-    const patientsTarget = 350;
+    const prevRevenue = ((prevRevRes as any[])[0] as any)?.total || 0;
+    const prevPatients = ((prevPatRes as any[])[0] as any)?.cnt || 0;
+
+    const revenueTarget = Math.max(Math.round((prevRevenue > 0 ? prevRevenue : revenue > 0 ? revenue : 1000) * 1.15), 5000); 
+    const patientsTarget = Math.max(Math.round((prevPatients > 0 ? prevPatients : patients > 0 ? patients : 5) * 1.15), 10);
     const collectionTarget = 95;
-    const waitTimeTarget = 20; // minutes
+    const waitTimeTarget = 20;
 
     return [
       {
@@ -739,18 +751,14 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     const docCol = await this.getDoctorColumn();
 
     const results = await this.db.execute(sql`
-      SELECT DISTINCT 
-             COALESCE(d.name, u.name, 'Practitioner') as name, 
-             COALESCE(d.specialty, u.type) as specialty,
-             count(a.id)::int as visit_count
-      FROM appointments a
-      LEFT JOIN doctors d ON a.${sql.identifier(docCol)} = d.id
-      LEFT JOIN users u ON a.${sql.identifier(docCol)} = u.id
-      WHERE a.booking_date = CURRENT_DATE
-        AND (a.deleted_at IS NULL OR a.deleted_at::text = '' OR a.deleted_at::text = '0')
-      GROUP BY name, specialty
-      ORDER BY visit_count DESC
-      LIMIT 10
+      SELECT 
+        name, 
+        type as specialty,
+        (SELECT count(id)::int FROM appointments a WHERE a.${sql.identifier(docCol)} = users.id AND a.booking_date = CURRENT_DATE AND (a.deleted_at IS NULL OR a.deleted_at::text = '' OR a.deleted_at::text = '0')) as visit_count
+      FROM users
+      WHERE (deleted_at IS NULL OR deleted_at::text = '') AND is_active = true
+      ORDER BY visit_count DESC, type ASC
+      LIMIT 20
     `) as any[];
 
     if ((results as any[]).length === 0) {

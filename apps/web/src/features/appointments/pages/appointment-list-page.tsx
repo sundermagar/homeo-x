@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import {
   List, Grid, Plus, Search, Filter, Calendar, Clock, User,
-  Trash2, Edit2, RefreshCw,
+  Trash2, Edit2, RefreshCw, MoreVertical,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { AppointmentStatus } from '@mmc/types';
@@ -34,8 +35,41 @@ export default function AppointmentListPage() {
   const [page,       setPage]       = useState(1);
   const [showForm,   setShowForm]   = useState(false);
   const [editAppt,   setEditAppt]   = useState<Appointment | null>(null);
-  const [confirmDel, setConfirmDel] = useState<number | null>(null);
-  const [viewMode,   setViewMode]   = useState<'list' | 'grid'>('list');
+  const [confirmDel,  setConfirmDel]  = useState<number | null>(null);
+  const [viewMode,    setViewMode]    = useState<'list' | 'grid'>('list');
+  const [openMenuId,  setOpenMenuId]  = useState<number | null>(null);
+  const [menuPos,     setMenuPos]     = useState<{ top: number; left: number } | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const MENU_W = 180;
+  const MENU_H = 290;
+
+  const toggleMenu = useCallback((id: number, btn: HTMLButtonElement) => {
+    if (openMenuId === id) { setOpenMenuId(null); setMenuPos(null); return; }
+    const r = btn.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - r.bottom;
+    const top = spaceBelow >= MENU_H ? r.bottom + 4 : r.top - MENU_H - 4;
+    let left = r.right - MENU_W;
+    if (left < 8) left = 8;
+    if (left + MENU_W > window.innerWidth - 8) left = window.innerWidth - MENU_W - 8;
+    setMenuPos({ top: Math.max(8, top), left });
+    setOpenMenuId(id);
+  }, [openMenuId]);
+
+  // Close on outside click or any scroll
+  useEffect(() => {
+    if (openMenuId === null) return;
+    const close = () => { setOpenMenuId(null); setMenuPos(null); };
+    const onMouse = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) close();
+    };
+    document.addEventListener('mousedown', onMouse);
+    window.addEventListener('scroll', close, true);
+    return () => {
+      document.removeEventListener('mousedown', onMouse);
+      window.removeEventListener('scroll', close, true);
+    };
+  }, [openMenuId]);
 
   const todayQuery = useTodayAppointments();
   const listQuery  = useAppointments({
@@ -64,8 +98,15 @@ export default function AppointmentListPage() {
       })
     : todayRaw;
 
-  const data      = tab === 'today' ? todayData : (listQuery.data ?? []);
-  const total     = tab === 'today' ? data.length : (listQuery.data?.length ?? 0);
+  const rawListData = listQuery.data;
+  const listData: typeof todayData = Array.isArray(rawListData)
+    ? rawListData
+    : Array.isArray((rawListData as any)?.data)
+      ? (rawListData as any).data
+      : [];
+
+  const data  = tab === 'today' ? todayData : listData;
+  const total = tab === 'today' ? data.length : listData.length;
   const isPending = tab === 'today' ? todayQuery.isLoading : listQuery.isLoading;
 
   const handleStatusChange = async (id: number, newStatus: string) => {
@@ -207,7 +248,8 @@ export default function AppointmentListPage() {
                         : <span className="appt-cell-slash">—</span>}
                     </td>
                     <td>
-                      <div className="appt-row-actions">
+                      {/* ── Inline buttons (≥1024px) ── */}
+                      <div className="appt-row-actions appt-row-actions-inline">
                         {quickStatuses
                           .filter(q => q.s !== a.status)
                           .slice(0, 2)
@@ -226,9 +268,7 @@ export default function AppointmentListPage() {
                         </button>
                         {confirmDel === a.id ? (
                           <>
-                            <button className="appt-btn appt-btn-sm appt-btn-danger" onClick={() => handleDelete(a.id)}>
-                              Confirm
-                            </button>
+                            <button className="appt-btn appt-btn-sm appt-btn-danger" onClick={() => handleDelete(a.id)}>Confirm</button>
                             <button className="appt-btn appt-btn-sm" onClick={() => setConfirmDel(null)}>✕</button>
                           </>
                         ) : (
@@ -237,6 +277,56 @@ export default function AppointmentListPage() {
                           </button>
                         )}
                       </div>
+
+                      {/* ── Kebab trigger ── */}
+                      <div className="appt-kebab-wrap">
+                        <button
+                          className="appt-kebab-btn"
+                          title="Actions"
+                          onClick={(e) => toggleMenu(a.id, e.currentTarget)}
+                        >
+                          <MoreVertical size={15} strokeWidth={2} />
+                        </button>
+                      </div>
+
+                      {/* ── Portal menu — always fully visible ── */}
+                      {openMenuId === a.id && menuPos && createPortal(
+                        <div
+                          ref={menuRef}
+                          className="appt-kebab-menu"
+                          style={{ position: 'fixed', top: menuPos.top, left: menuPos.left, zIndex: 9999 }}
+                        >
+                          {quickStatuses.filter(q => q.s !== a.status).map(q => (
+                            <button
+                              key={q.s}
+                              className="appt-kebab-item"
+                              style={{ color: q.color }}
+                              onClick={() => { handleStatusChange(a.id, q.s); setOpenMenuId(null); setMenuPos(null); }}
+                            >
+                              {q.label}
+                            </button>
+                          ))}
+                          <div className="appt-kebab-divider" />
+                          <button className="appt-kebab-item" onClick={() => { openEdit(a); setOpenMenuId(null); setMenuPos(null); }}>
+                            <Edit2 size={13} strokeWidth={1.6} /> Edit
+                          </button>
+                          {confirmDel === a.id ? (
+                            <>
+                              <button className="appt-kebab-item is-confirm" onClick={() => { handleDelete(a.id); setOpenMenuId(null); setMenuPos(null); }}>
+                                ✓ Confirm Delete
+                              </button>
+                              <button className="appt-kebab-item" onClick={() => { setConfirmDel(null); setOpenMenuId(null); setMenuPos(null); }}>
+                                ✕ Cancel
+                              </button>
+                            </>
+                          ) : (
+                            <button className="appt-kebab-item is-danger" onClick={() => setConfirmDel(a.id)}>
+                              <Trash2 size={13} strokeWidth={1.6} /> Delete
+                            </button>
+                          )}
+                        </div>,
+                        document.body
+                      )}
                     </td>
                   </tr>
                 ))}

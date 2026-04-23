@@ -308,6 +308,74 @@
 /* ─── Row Actions ─── */
 .appt-row-actions { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
 
+/* ─── Kebab / 3-dot Dropdown ─── */
+.appt-kebab-wrap {
+  position: relative;
+  display: inline-flex;
+}
+.appt-kebab-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px;
+  border-radius: var(--pp-radius-btn);
+  border: 1px solid var(--pp-warm-4);
+  background: #ffffff; color: var(--pp-text-2);
+  cursor: pointer; font-size: 1.1rem; font-weight: 800;
+  letter-spacing: 0.04em;
+  transition: all var(--transition-normal);
+  font-family: var(--pp-font-sans);
+  line-height: 1;
+}
+.appt-kebab-btn:hover { background: var(--pp-warm-2); border-color: var(--pp-warm-4); }
+
+.appt-kebab-menu {
+  /* position & coords are set inline by the portal — do NOT add position/top/right here */
+  background: #ffffff;
+  border: 1px solid var(--pp-warm-4);
+  border-radius: var(--pp-radius-card);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.07);
+  min-width: 180px;
+  max-height: 300px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  animation: kebabIn 140ms cubic-bezier(0,0,0.2,1);
+}
+@keyframes kebabIn {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to   { opacity: 1; transform: none; }
+}
+
+.appt-kebab-item {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; padding: 9px 14px;
+  border: none; background: transparent;
+  font-size: 0.8rem; font-weight: 600; color: var(--pp-text-2);
+  cursor: pointer; text-align: left;
+  font-family: var(--pp-font-sans);
+  transition: background var(--transition-fast), color var(--transition-fast);
+  white-space: nowrap;
+}
+.appt-kebab-item:hover { background: var(--pp-warm-1); color: var(--pp-ink); }
+.appt-kebab-item.is-danger { color: var(--pp-danger-fg); }
+.appt-kebab-item.is-danger:hover { background: var(--pp-danger-bg); }
+.appt-kebab-item.is-confirm {
+  background: var(--pp-danger-bg); color: var(--pp-danger-fg);
+  font-weight: 700;
+}
+.appt-kebab-divider {
+  height: 1px; background: var(--pp-warm-3); margin: 4px 0;
+}
+/* Show inline on very wide screens only, hide kebab */
+@media (min-width: 1400px) {
+  .appt-kebab-wrap { display: none; }
+  .appt-row-actions-inline { display: flex !important; }
+}
+/* Hide inline on everything below 1400px, show kebab */
+@media (max-width: 1399px) {
+  .appt-row-actions-inline { display: none !important; }
+  .appt-kebab-wrap { display: inline-flex; }
+}
+
 /* ─── Status Pill ─── */
 .appt-status-pill {
   display: inline-flex; padding: 2px 8px;

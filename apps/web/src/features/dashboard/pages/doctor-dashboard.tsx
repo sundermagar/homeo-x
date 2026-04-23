@@ -16,6 +16,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useDashboard } from '../hooks/use-dashboard';
+import { useQueueMgmt } from '../hooks/use-queue-mgmt';
 import { useUpdateStatus, useSkipWaitlist, useCompleteVisit, apptKeys } from '../../appointments/hooks/use-appointments';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { VitalsFormModal } from '../../medical-case/components/vitals-form-modal';
@@ -45,6 +46,9 @@ export function DoctorDashboard() {
   const todayAppts = (dashData?.queue || []) as QueueItem[];
   const activeConsultation = todayAppts.find((a) => a.status === 'Consultation');
   const kpis = dashData?.kpis;
+
+  // Use the queue management hook to ensure Waitlist state syncs correctly
+  const queueMgmt = useQueueMgmt();
 
   // Skip: sends to backend which resets to Waitlist + auto-promotes next patient
   const handleSkip = async (item: QueueItem) => {
@@ -113,16 +117,15 @@ export function DoctorDashboard() {
     return () => clearInterval(interval);
   }, [activeConsultation, consultationStartedAt]);
 
-  const handleStartConsultation = (id: number) => {
+  const handleStartConsultation = async (wlId: number) => {
     setConsultationStartedAt(Date.now()); // Record exact click time
     setConsultDuration('00:00');          // Reset display immediately
-    updateStatus.mutate(
-      { id, status: 'Consultation' },
-      { onSuccess: () => {
-        qc.invalidateQueries({ queryKey: ['dashboard'] });
-        qc.invalidateQueries({ queryKey: apptKeys.all });
-      }}
-    );
+    
+    // Call the Queue Management endpoint instead of simply updating appointment status.
+    // This updates the Waitlist to '1' (Consultation) AND the Appointment to 'Consultation'.
+    await queueMgmt.callNext.mutateAsync(wlId);
+    qc.invalidateQueries({ queryKey: ['dashboard'] });
+    qc.invalidateQueries({ queryKey: apptKeys.all });
   };
 
   if (isLoading) {
@@ -213,7 +216,7 @@ export function DoctorDashboard() {
                   <Activity size={32} />
                   <p className="text-small">No patient currently being seen.</p>
                   {todayAppts.filter(a => a.status === 'Waitlist').length > 0 && (
-                    <button className="btn-primary" onClick={() => handleStartConsultation(todayAppts.find(a => a.status === 'Waitlist')!.id)}>Call next patient</button>
+                    <button className="btn-primary" onClick={() => handleStartConsultation(getWlId(todayAppts.find(a => a.status === 'Waitlist')!) || 0)}>Call next patient</button>
                   )}
                 </div>
               )}
@@ -255,7 +258,7 @@ export function DoctorDashboard() {
                             <button
                               className="dash-view-btn"
                               title="Start Consultation"
-                              onClick={(e) => { e.stopPropagation(); handleStartConsultation(a.id); }}
+                              onClick={(e) => { e.stopPropagation(); handleStartConsultation(getWlId(a) || a.id); }}
                             >
                               Call
                             </button>
@@ -287,7 +290,7 @@ export function DoctorDashboard() {
                                     <button 
                                       className="pp-link" 
                                       style={{ color: 'var(--pp-blue)' }} 
-                                      onClick={(e) => { e.stopPropagation(); handleStartConsultation(a.id); }}
+                                      onClick={(e) => { e.stopPropagation(); handleStartConsultation(getWlId(a) || a.id); }}
                                     >
                                       Start Consult
                                     </button>

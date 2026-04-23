@@ -31,7 +31,9 @@ export function useAppointments(filters: {
         if (v !== undefined && v !== '') params.set(k, String(v));
       });
       const res = await apiClient.get<{ success: boolean; data: { data: Appointment[]; total: number } }>(`/appointments?${params}`);
-      return res.data.data;
+      // API returns { data: { data: Appointment[], total: N } } — extract the inner array
+      const payload = res.data.data;
+      return Array.isArray(payload) ? payload : ((payload as any)?.data ?? []);
     },
     staleTime: 30_000,
   });
