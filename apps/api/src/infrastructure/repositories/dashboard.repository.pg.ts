@@ -50,12 +50,20 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     const schemaName = (this.db as any).session?.client?.options?.search_path || 'public';
     if (DashboardRepositoryPg.cachedDocCol[schemaName]) return DashboardRepositoryPg.cachedDocCol[schemaName];
 
+    // Prefer 'doctor_id' (modern) over 'assistant_doctor' (legacy). Use explicit schema to avoid public schema interference.
     const res = await this.db.execute(sql`
-      SELECT column_name FROM information_schema.columns 
-      WHERE table_name = 'appointments' AND column_name IN ('assistant_doctor', 'doctor_id') AND table_schema = CURRENT_SCHEMA() 
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'appointments' 
+        AND table_schema = CURRENT_SCHEMA()
+        AND column_name IN ('doctor_id', 'assistant_doctor', 'practitioner_id')
+      ORDER BY CASE column_name 
+        WHEN 'doctor_id' THEN 1 
+        WHEN 'assistant_doctor' THEN 2 
+        ELSE 3 END ASC
       LIMIT 1
     `);
-    const col = res[0] ? (res[0] as any).column_name : 'assistant_doctor';
+    const col = res[0] ? (res[0] as any).column_name : 'doctor_id';
     DashboardRepositoryPg.cachedDocCol[schemaName] = col;
     return col;
   }
@@ -187,83 +195,163 @@ export class DashboardRepositoryPg implements IDashboardRepository {
   }
 
   async getTodayQueue(contextId: number, doctorId?: number): Promise<QueueItem[]> {
-    const today = new Date().toISOString().split('T')[0];
-    const docCol = await this.getDoctorColumn();
+    const today = new Date().toISOString().split('T')[0]!;
 
-    // Subquery deduplicates rows from the token JOIN (DISTINCT ON requires id first in ORDER BY),
-    // then outer query re-orders by clinical priority so CONSULTATION is first, WAITING by token, etc.
-    const results = await this.db.execute(sql`
-      SELECT * FROM (
-        SELECT DISTINCT ON (a.id)
-          a.id, a.patient_id, a.booking_time, a.status, 
-          COALESCE(p.first_name || ' ' || p.surname, a.patient_name) as patient_name,
-          p.regid, p.gender, 
-          extract(year from age(p.dob))::int as age,
+    // Step 1: Get today's waitlist (source of truth for Token Queue)
+    let waitlistRows: any[] = [];
+    try {
+      const wlResult = await this.db.execute(sql`
+        SELECT
+          w.id                                    AS wl_id,
+          COALESCE(a.id, w.id * -1)               AS id,
+          COALESCE(w.patient_id, a.patient_id)    AS patient_id,
+          w.doctor_id,
+          w.waiting_number                        AS token_no,
+          CASE
+            WHEN w.status = 1 THEN 'Consultation'
+            WHEN w.status = 2 THEN 'Completed'
+            ELSE 'Waitlist'
+          END                                     AS status,
+          COALESCE(
+            p.first_name || ' ' || p.surname,
+            a.patient_name, 'Unknown Patient'
+          )                                       AS patient_name,
+          COALESCE(p.regid, p.id, w.patient_id)   AS regid,
+          w.checked_in_at                         AS created_at,
+          w.checked_in_at                         AS updated_at,
+          COALESCE(a.booking_time, '')            AS booking_time,
+          COALESCE(
+            (SELECT name FROM doctors WHERE id = w.doctor_id LIMIT 1),
+            (SELECT name FROM users   WHERE id = w.doctor_id LIMIT 1),
+            'Practitioner'
+          )                                       AS doctor_name,
+          v.systolic_bp,
+          v.diastolic_bp,
+          v.weight_kg,
+          v.temperature_f
+        FROM waitlist w
+        LEFT JOIN patients     p ON p.id = w.patient_id
+        LEFT JOIN appointments a ON a.id = w.appointment_id
+        LEFT JOIN vitals       v ON v.visit_id = COALESCE(a.id, w.appointment_id)
+        WHERE w.date::text LIKE '%' || ${today} || '%'
+          AND (w.deleted_at IS NULL OR w.deleted_at::text = '')
+        ORDER BY w.waiting_number ASC
+      `);
+      waitlistRows = wlResult as any[];
+    } catch (e: any) {
+      console.error('[Dashboard] waitlist query failed:', e?.message);
+    }
+
+    // Step 2: Get appointments today NOT in waitlist
+    let apptRows: any[] = [];
+    try {
+      const apResult = await this.db.execute(sql`
+        SELECT
+          a.id,
+          a.patient_id,
           a.token_no,
-          d.name as doctor_name,
-          v.systolic_bp || '/' || v.diastolic_bp as bp,
-          v.pulse_rate as pulse,
-          v.weight_kg as weight,
-          v.temperature_f as temp,
+          a.status,
+          COALESCE(p.first_name || ' ' || p.surname, a.patient_name, 'Unknown Patient') AS patient_name,
+          COALESCE(p.regid, p.id, a.patient_id) AS regid,
+          a.doctor_id,
+          a.booking_time,
           a.created_at,
-          a.updated_at
+          a.updated_at,
+          COALESCE(
+            (SELECT name FROM doctors WHERE id = a.doctor_id LIMIT 1),
+            (SELECT name FROM users   WHERE id = a.doctor_id LIMIT 1),
+            'Practitioner'
+          ) AS doctor_name,
+          v.systolic_bp,
+          v.diastolic_bp,
+          v.weight_kg,
+          v.temperature_f
         FROM appointments a
-        LEFT JOIN patients p ON a.patient_id = p.id
-        LEFT JOIN tokens t ON t.patient_id = a.patient_id AND t.date::date = a.booking_date::date
-        LEFT JOIN doctors d ON d.id = a.${sql.identifier(docCol)}
+        LEFT JOIN patients p ON p.id = a.patient_id
         LEFT JOIN vitals v ON v.visit_id = a.id
-        WHERE a.booking_date::date = ${today}
+        WHERE a.booking_date::text LIKE '%' || ${today} || '%'
           AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
-          ${doctorId ? sql`AND a.${sql.identifier(docCol)} = ${doctorId}` : sql``}
-        ORDER BY a.id, 
-          CASE UPPER(a.status)
-            WHEN 'CONSULTATION' THEN 1
-            WHEN 'CONFIRMED'    THEN 2
-            WHEN 'WAITLIST'     THEN 2
-            WHEN 'PENDING'      THEN 3
-            ELSE 4
-          END ASC,
-          a.id DESC
-      ) q
-      ORDER BY
-        CASE 
-          WHEN UPPER(q.status) = 'CONSULTATION' THEN 1
-          WHEN UPPER(q.status) = 'CONFIRMED'    THEN 2
-          WHEN UPPER(q.status) = 'WAITLIST'     THEN 2
-          WHEN UPPER(q.status) = 'WAITING'      THEN 2
-          WHEN UPPER(q.status) = 'PENDING'      THEN 3
-          WHEN UPPER(q.status) = 'COMPLETED'    THEN 4
-          ELSE 5
-        END ASC,
-        q.token_no ASC NULLS LAST,
-        q.booking_time ASC
-    `);
+          AND NOT EXISTS (
+            SELECT 1 FROM waitlist w2
+            WHERE (w2.appointment_id = a.id OR w2.patient_id = a.patient_id)
+              AND w2.date::text LIKE '%' || ${today} || '%'
+              AND (w2.deleted_at IS NULL OR w2.deleted_at::text = '')
+          )
+        ORDER BY a.token_no ASC NULLS LAST, a.id ASC
+      `);
+      apptRows = apResult as any[];
+    } catch (e: any) {
+      console.error('[Dashboard] appointments query failed:', e?.message);
+    }
 
-    return (results as any[]).map(r => ({
-      id: r.id,
-      patientId: r.patient_id,
-      regid: r.regid,
+    let allRows = [...waitlistRows, ...apptRows];
+
+    // Filter by doctorId
+    if (doctorId) {
+      let doctorName = '';
+      try {
+        const dnRes = await this.db.execute(sql`
+          SELECT COALESCE(
+            (SELECT name FROM doctors WHERE id = ${doctorId} LIMIT 1),
+            (SELECT name FROM users   WHERE id = ${doctorId} LIMIT 1),
+            ''
+          ) AS dname
+        `);
+        doctorName = ((dnRes as any[])[0]?.dname || '').toLowerCase().trim();
+      } catch {}
+
+      allRows = allRows.filter(r => {
+        const rowDoctorId = Number(r.doctor_id);
+        if (rowDoctorId === doctorId) return true;
+        if (doctorName && r.doctor_name) {
+          const rowDoctorName = (r.doctor_name || '').toLowerCase().trim();
+          if (rowDoctorName === doctorName || rowDoctorName.includes(doctorName) || doctorName.includes(rowDoctorName)) {
+            return true;
+          }
+        }
+        return false;
+      });
+    }
+
+    allRows.sort((a, b) => {
+      const order: Record<string, number> = {
+        Consultation: 1, Confirmed: 2, Waitlist: 2, Pending: 3, Completed: 4,
+      };
+      const aOrd = order[a.status] ?? 5;
+      const bOrd = order[b.status] ?? 5;
+      if (aOrd !== bOrd) return aOrd - bOrd;
+      return (Number(a.token_no) || 999) - (Number(b.token_no) || 999);
+    });
+
+    return allRows.map(r => ({
+      id:          r.id,
+      wlId:        r.wl_id,
+      patientId:   r.patient_id,
+      regid:       r.regid,
       patientName: r.patient_name,
-      doctorName: r.doctor_name || 'Clinic',
-      bookingTime: r.booking_time,
-      tokenNo: r.token_no,
-      status: r.status,
-      isUrgent: false,
-      age: r.age,
-      gender: r.gender,
-      createdAt: r.created_at,
-      updatedAt: r.updated_at,
-      vitals: r.bp ? {
-        bp: r.bp,
-        pulse: r.pulse,
-        weight: r.weight,
-        temp: r.temp
-      } : undefined
+      doctorName:  r.doctor_name,
+      bookingTime: r.booking_time || '',
+      tokenNo:     r.token_no,
+      status:      r.status,
+      isUrgent:    false,
+      age:         undefined,
+      gender:      undefined,
+      createdAt:   r.created_at,
+      updatedAt:   r.updated_at,
+      vitals:      r.systolic_bp || r.weight_kg || r.temperature_f ? {
+        bp: r.systolic_bp && r.diastolic_bp ? `${r.systolic_bp}/${r.diastolic_bp}` : undefined,
+        weight: r.weight_kg ? Number(r.weight_kg) : undefined,
+        temp: r.temperature_f ? Number(r.temperature_f) : undefined,
+      } : undefined,
     }));
   }
 
+
+
+
   async getRecentActivity(contextId: number, limit: number): Promise<ActivityItem[]> {
     const revInfo = await this.getRevenueTableInfo();
+
 
     const queries: any[] = [];
 
@@ -381,33 +469,54 @@ export class DashboardRepositoryPg implements IDashboardRepository {
   async getRecentTransactions(limit: number): Promise<RecentTransaction[]> {
     try {
       const results = await this.db.execute(sql`
+        WITH combined AS (
+          SELECT 
+            b.id::text,
+            b.regid,
+            COALESCE(b.bill_no::text, 'INV-' || b.id::text) AS invoice_no,
+            COALESCE(CAST(NULLIF(b.charges::text, '') AS numeric), 0)::int AS amount,
+            CASE
+              WHEN COALESCE(CAST(NULLIF(b.balance::text, '') AS numeric), 0) <= 0 THEN 'paid'
+              WHEN COALESCE(CAST(NULLIF(b.received::text, '') AS numeric), 0) > 0 THEN 'partial'
+              ELSE 'due'
+            END AS status,
+            b.created_at
+          FROM bills b
+          WHERE (b.deleted_at IS NULL OR b.deleted_at::text = '')
+          
+          UNION ALL
+          
+          SELECT 
+            'R-' || r.id::text as id,
+            r.regid,
+            'RCT-' || r.id::text AS invoice_no,
+            COALESCE(CAST(NULLIF(r.amount::text, '') AS numeric), 0)::int AS amount,
+            'paid' AS status,
+            COALESCE(r.created_at, NOW()) as created_at
+          FROM receipt r
+          WHERE (r.deleted_at IS NULL OR r.deleted_at::text = '')
+        )
         SELECT 
-          b.id,
-          COALESCE(p.first_name || ' ' || p.surname, 'Unknown') AS patient_name,
-          COALESCE(b.bill_no::text, 'INV-' || b.id::text) AS invoice_no,
-          COALESCE(CAST(NULLIF(b.charges::text, '') AS numeric), 0)::int AS amount,
-          CASE
-            WHEN COALESCE(CAST(NULLIF(b.balance::text, '') AS numeric), 0) <= 0 THEN 'paid'
-            WHEN COALESCE(CAST(NULLIF(b.received::text, '') AS numeric), 0) > 0 THEN 'partial'
-            ELSE 'due'
-          END AS status
-        FROM bills b
-        LEFT JOIN patients p ON b.regid = p.regid
-        WHERE (b.deleted_at IS NULL OR b.deleted_at::text = '')
-        ORDER BY b.id DESC
+          c.*,
+          COALESCE(p.first_name || ' ' || p.surname, 'Patient') AS patient_name
+        FROM combined c
+        LEFT JOIN patients p ON c.regid = p.regid
+        ORDER BY c.created_at DESC
         LIMIT ${limit}
       `);
       return (results as any[]).map(r => ({
         id: r.id,
-        patientName: r.patient_name || 'Unknown',
-        invoiceNo: r.invoice_no || `INV-${r.id}`,
+        patientName: r.patient_name || 'Patient',
+        invoiceNo: r.invoice_no,
         amount: Number(r.amount) || 0,
         status: r.status || 'due',
       }));
-    } catch {
+    } catch (e: any) {
+      console.error('[Dashboard] getRecentTransactions failed:', e?.message);
       return [];
     }
   }
+
 
   async getIntelligenceInsights(kpis: DashboardKpis): Promise<IntelligenceInsight[]> {
     const insights: IntelligenceInsight[] = [];
@@ -627,17 +736,22 @@ export class DashboardRepositoryPg implements IDashboardRepository {
   }
 
   async getStaffOnDuty(contextId: number): Promise<{ name: string; role: string; count?: number }[]> {
-    const today = new Date().toISOString().split('T')[0];
     const docCol = await this.getDoctorColumn();
 
     const results = await this.db.execute(sql`
-      SELECT DISTINCT d.name, d.specialty,
+      SELECT DISTINCT 
+             COALESCE(d.name, u.name, 'Practitioner') as name, 
+             COALESCE(d.specialty, u.type) as specialty,
              count(a.id)::int as visit_count
       FROM appointments a
-      JOIN doctors d ON a.${sql.identifier(docCol)} = d.id
-      WHERE a.booking_date::date = ${today}
-        AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
-      GROUP BY d.name, d.specialty
+      LEFT JOIN doctors d ON a.${sql.identifier(docCol)} = d.id
+      LEFT JOIN users u ON a.${sql.identifier(docCol)} = u.id
+      WHERE (
+          a.booking_date::text LIKE '%' || TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD') || '%'
+          OR a.booking_date::text LIKE '%' || TO_CHAR(CURRENT_DATE, 'DD/MM/YYYY') || '%'
+        )
+        AND (a.deleted_at IS NULL OR a.deleted_at::text = '' OR a.deleted_at::text = '0')
+      GROUP BY name, specialty
       ORDER BY visit_count DESC
       LIMIT 10
     `) as any[];

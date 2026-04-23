@@ -2,7 +2,8 @@ import { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { usePatients, useDeletePatient } from '../hooks/use-patients';
 import { Search, Plus, List as ListIcon, Grid, Eye, Edit2, Phone, MapPin, Calendar } from 'lucide-react';
-import type { PatientSummary } from '@mmc/types';
+import { useAuthStore } from '@/shared/stores/auth-store';
+import { Role, type PatientSummary } from '@mmc/types';
 import '../../appointments/styles/appointments.css';
 import '../styles/patients.css';
 
@@ -16,7 +17,16 @@ export default function PatientListPage() {
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [sortBy, setSortBy] = useState('newest');
 
-  const { data, isLoading } = usePatients({ page, limit: PAGE_SIZE, search: debouncedSearch });
+  const user = useAuthStore(s => s.user);
+  const rawRole = ((user as any)?.type || (user as any)?.role || (user as any)?.roleName || '').toLowerCase();
+  const isDoctor = rawRole === 'doctor' || rawRole === 'medical practitioner' || ((user as any)?.name || '').toLowerCase().startsWith('dr');
+
+  const { data, isLoading } = usePatients({ 
+    page, 
+    limit: PAGE_SIZE, 
+    search: debouncedSearch,
+    doctorId: isDoctor ? (user as any)?.id : undefined
+  });
   const deleteMutation = useDeletePatient();
 
   const handleSearchChange = (val: string) => {

@@ -98,6 +98,12 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   // ─── Audit Trail ───
   app.use(auditMiddleware);
 
+  // ─── Real-time Updates (Socket.io) ───
+  app.use((req, res, next) => {
+    (req as any).io = io;
+    next();
+  });
+
   // ─── Routes ───
   app.use('/api/health', healthRouter);
 

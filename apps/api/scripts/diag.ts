@@ -1,24 +1,20 @@
-import { createDbClient } from '../src/infrastructure/database/client';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
+import * as schema from '@mmc/database/schema/platform';
 import { sql } from 'drizzle-orm';
 
-async function diagnose() {
-  require('dotenv').config();
-  const dbUrl = process.env.DATABASE_URL;
-  if (!dbUrl) { console.error('No DB URL'); return; }
-  
-  const db = createDbClient(dbUrl);
-  
-  console.log('--- PUBLIC USERS ---');
-  const publicUsers = await db.execute(sql`SELECT id, name, email, type, context_id FROM users WHERE LOWER(email) = 'center@gmail.com'`);
-  console.log(JSON.stringify(publicUsers, null, 2));
+async function main() {
+  const connectionString = process.env.DATABASE_URL;
+  const client = postgres(connectionString!);
+  const db = drizzle(client, { schema });
 
-  console.log('\n--- PUBLIC CLINICADMINS ---');
-  const publicAdmins = await db.execute(sql`SELECT id, name, email FROM clinicadmins WHERE LOWER(email) = 'center@gmail.com'`);
-  console.log(JSON.stringify(publicAdmins, null, 2));
-
-  console.log('\n--- ORGANIZATIONS ---');
-  const orgs = await db.execute(sql`SELECT id, name, admin_email FROM organizations WHERE LOWER(admin_email) = 'center@gmail.com'`);
-  console.log(JSON.stringify(orgs, null, 2));
+  const appts = await db.execute(sql`SELECT * FROM appointments ORDER BY id DESC LIMIT 5`);
+  const wl = await db.execute(sql`SELECT * FROM waitlist ORDER BY id DESC LIMIT 5`);
+  
+  console.log("=== APPOINTMENTS ===");
+  console.log(JSON.stringify((appts as any).slice(0,2), null, 2));
+  console.log("=== WAITLIST ===");
+  console.log(JSON.stringify((wl as any).slice(0,2), null, 2));
+  process.exit(0);
 }
-
-diagnose().then(() => process.exit(0)).catch(err => { console.error(err); process.exit(1); });
+main();

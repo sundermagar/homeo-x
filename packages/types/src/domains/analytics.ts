@@ -82,6 +82,7 @@ export interface DashboardKpis {
 
 export interface QueueItem {
   id: number;
+  wlId?: number;
   patientId: number;
   regid: number;
   patientName: string;

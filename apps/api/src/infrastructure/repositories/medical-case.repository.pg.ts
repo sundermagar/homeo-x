@@ -169,8 +169,28 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
     }
   }
 
+  private async patchConstraint(table: string, column: string) {
+    const constraintName = `${table}_${column}_unique`;
+    try {
+      console.log(`[MedicalCaseRepositoryPg] 🔧 Self-healing: Patching missing UNIQUE constraint ${constraintName}...`);
+      await this.db.execute(sql.raw(`
+        DO $$
+        BEGIN
+          IF NOT EXISTS (
+            SELECT 1 FROM pg_constraint WHERE conname = '${constraintName}'
+          ) THEN
+            ALTER TABLE "${table}" ADD CONSTRAINT "${constraintName}" UNIQUE("${column}");
+          END IF;
+        END $$
+      `));
+    } catch (err: any) {
+      console.error(`[MedicalCaseRepositoryPg] ❌ Self-healing failed for ${constraintName}:`, err.message);
+      throw err;
+    }
+  }
+
   async saveVitals(data: Partial<Vitals>): Promise<void> {
-    await this.db
+    const execute = () => this.db
       .insert(schema.vitals)
       .values({
         visitId: data.visitId!,
@@ -190,10 +210,33 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
       .onConflictDoUpdate({
         target: schema.vitals.visitId,
         set: {
-          ...data,
+          heightCm: data.heightCm,
+          weightKg: data.weightKg,
+          bmi: data.bmi,
+          temperatureF: data.temperatureF,
+          pulseRate: data.pulseRate,
+          systolicBp: data.systolicBp,
+          diastolicBp: data.diastolicBp,
+          respiratoryRate: data.respiratoryRate,
+          oxygenSaturation: data.oxygenSaturation,
+          bloodSugar: data.bloodSugar,
+          notes: data.notes,
+          recordedAt: data.recordedAt || new Date(),
           updatedAt: new Date(),
         },
       });
+
+    try {
+      await execute();
+    } catch (err: any) {
+      if (err.message?.includes('ON CONFLICT specification') || err.code === '42P10') {
+        await this.patchConstraint('vitals', 'visit_id');
+        await execute();
+      } else {
+        console.error('💥 [MedicalCaseRepositoryPg] Error in saveVitals:', err);
+        throw err;
+      }
+    }
   }
 
   async getVitals(visitId: number): Promise<Vitals | null> {
@@ -207,7 +250,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
   }
 
   async saveSoapNotes(data: Partial<SoapNotes>): Promise<void> {
-    await this.db
+    const execute = () => this.db
       .insert(schema.soapNotes)
       .values({
         visitId: data.visitId!,
@@ -222,10 +265,28 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
       .onConflictDoUpdate({
         target: schema.soapNotes.visitId,
         set: {
-          ...data,
+          subjective: data.subjective,
+          objective: data.objective,
+          assessment: data.assessment,
+          plan: data.plan,
+          advice: data.advice,
+          followUp: data.followUp,
+          icdCodes: data.icdCodes,
           updatedAt: new Date(),
         },
       });
+
+    try {
+      await execute();
+    } catch (err: any) {
+      if (err.message?.includes('ON CONFLICT specification') || err.code === '42P10') {
+        await this.patchConstraint('soap_notes', 'visit_id');
+        await execute();
+      } else {
+        console.error('💥 [MedicalCaseRepositoryPg] Error in saveSoapNotes:', err);
+        throw err;
+      }
+    }
   }
 
   async getSoapNotes(visitId: number): Promise<SoapNotes | null> {
@@ -239,7 +300,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
   }
 
   async saveHomeoDetails(data: Partial<HomeoDetails>): Promise<void> {
-    await this.db
+    const execute = () => this.db
       .insert(schema.homeoDetails)
       .values({
         regid: data.regid!,
@@ -250,10 +311,24 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
       .onConflictDoUpdate({
         target: schema.homeoDetails.regid,
         set: {
-          ...data,
+          thermal: data.thermal,
+          constitutional: data.constitutional,
+          miasm: data.miasm,
           updatedAt: new Date(),
         },
       });
+
+    try {
+      await execute();
+    } catch (err: any) {
+      if (err.message?.includes('ON CONFLICT specification') || err.code === '42P10') {
+        await this.patchConstraint('homeo_details', 'regid');
+        await execute();
+      } else {
+        console.error('💥 [MedicalCaseRepositoryPg] Error in saveHomeoDetails:', err);
+        throw err;
+      }
+    }
   }
 
   async getHomeoDetails(regid: number): Promise<HomeoDetails | null> {
@@ -265,6 +340,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
 
     return (row as HomeoDetails) || null;
   }
+
 
   async saveNote(data: Partial<CaseNote>): Promise<void> {
     if (data.id) {

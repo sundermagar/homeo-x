@@ -18,9 +18,9 @@ export default function DoctorDetailPage() {
   if (isLoading) {
     return (
       <div className="plat-profile-page flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-4 border-[var(--pp-blue-tint)] border-t-[var(--pp-blue)] rounded-full animate-spin" />
-          <p className="text-[10px] font-black text-[var(--pp-text-3)] uppercase tracking-widest">Digital Credential Access...</p>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+          <div style={{ width: 40, height: 40, border: '4px solid var(--pp-blue-tint)', borderTopColor: 'var(--pp-blue)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          <p style={{ fontSize: 10, fontWeight: 900, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.2em' }}>Digital Credential Access...</p>
         </div>
       </div>
     );
@@ -28,19 +28,16 @@ export default function DoctorDetailPage() {
 
   if (error || !staff) {
     return (
-      <div className="plat-profile-page p-8">
-        <div className="max-w-xl mx-auto bg-white border border-[var(--pp-warm-4)] rounded-[var(--pp-radius-lg)] shadow-[var(--pp-shadow-sm)] p-12 text-center">
-          <div className="w-16 h-16 bg-[var(--pp-danger-bg)] text-[var(--pp-danger-fg)] rounded-full flex items-center justify-center mx-auto mb-6">
+      <div className="plat-profile-page flex items-center justify-center" style={{ padding: '32px' }}>
+        <div className="plat-profile-card" style={{ maxWidth: 500, margin: '0 auto', textAlign: 'center', padding: '48px' }}>
+          <div style={{ width: 64, height: 64, backgroundColor: 'var(--pp-danger-bg)', color: 'var(--pp-danger-fg)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
             <ShieldCheck size={32} />
           </div>
-          <h2 className="text-xl font-black text-[var(--pp-ink)] mb-3">Record Restricted</h2>
-          <p className="text-[var(--pp-text-2)] text-sm mb-8 leading-relaxed">
+          <h2 style={{ fontSize: 20, fontWeight: 900, color: 'var(--pp-ink)', marginBottom: 12 }}>Record Restricted</h2>
+          <p style={{ color: 'var(--pp-text-2)', fontSize: 14, marginBottom: 32, lineHeight: 1.6 }}>
             The requested practitioner profile is currently unavailable or has been archived.
           </p>
-          <button
-            className="btn-primary"
-            onClick={() => navigate('/platform/doctors')}
-          >
+          <button className="btn-primary" onClick={() => navigate('/platform/doctors')}>
             <ArrowLeft size={14} /> Return to Registry
           </button>
         </div>
@@ -52,21 +49,16 @@ export default function DoctorDetailPage() {
     if (!value) return null;
     return (
       <div className="plat-doc-item">
-        <div className="flex items-center gap-3">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div className="plat-doc-icon">
             <Files size={14} />
           </div>
-          <div className="flex flex-col">
-            <span className="plat-profile-label mb-0">Verified Record</span>
-            <span className="text-[11px] font-bold text-[var(--pp-ink)] uppercase">{label}</span>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span className="plat-profile-label" style={{ marginBottom: 0 }}>Verified Record</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--pp-ink)', textTransform: 'uppercase' }}>{label}</span>
           </div>
         </div>
-        <a
-          href={value}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="w-8 h-8 rounded-md flex items-center justify-center text-[var(--pp-blue)] hover:bg-[var(--pp-blue-tint)] transition-colors"
-        >
+        <a href={value} target="_blank" rel="noopener noreferrer" style={{ width: 32, height: 32, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--pp-blue)', transition: 'background 0.2s', backgroundColor: 'var(--pp-blue-tint)' }}>
           <ExternalLink size={14} />
         </a>
       </div>
@@ -75,21 +67,21 @@ export default function DoctorDetailPage() {
 
   return (
     <div className="plat-profile-page animate-fade-in">
-      {/* Paperplane Identity Header */}
+      {/* ─── Premium Profile Header ─── */}
       <div className="plat-profile-header">
-        <div className="plat-profile-container flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3 sm:gap-6">
-            <div className="flex flex-col">
-              <span className="text-[8px] sm:text-[9px] font-black text-[var(--pp-text-3)] uppercase tracking-[0.2em] leading-none mb-1">Electronic Clinical Record</span>
-              <h2 className="text-[10px] sm:text-xs font-black text-[var(--pp-ink)] uppercase tracking-widest leading-none flex items-center gap-2">
-                Practitioner <span className="text-[var(--pp-blue)] font-mono"># {String(id).padStart(4, '0')}</span>
+        <div className="plat-profile-container" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontSize: 9, fontWeight: 900, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: 4 }}>Electronic Clinical Record</span>
+              <h2 style={{ fontSize: 13, fontWeight: 900, color: 'var(--pp-ink)', textTransform: 'uppercase', letterSpacing: '0.1em', display: 'flex', alignItems: 'center', gap: 8, margin: 0 }}>
+                Practitioner <span style={{ color: 'var(--pp-blue)', fontFamily: 'var(--pp-font-mono)' }}># {String(id).padStart(4, '0')}</span>
               </h2>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 px-2 sm:px-3 py-1 bg-[var(--pp-warm-2)] border border-[var(--pp-warm-4)] rounded-full">
-              <span className={`w-1.5 h-1.5 rounded-full ${staff.isActive ? 'bg-[var(--pp-success-fg)] animate-pulse' : 'bg-[var(--pp-text-4)]'}`} />
-              <span className="text-[9px] sm:text-[10px] font-black text-[var(--pp-ink)] uppercase tracking-wider">{staff.isActive ? 'Active' : 'Archived'}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 12px', background: 'var(--pp-warm-2)', border: '1px solid var(--pp-warm-4)', borderRadius: 999 }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: staff.isActive ? 'var(--pp-success-fg)' : 'var(--pp-text-4)', boxShadow: staff.isActive ? '0 0 8px var(--pp-success-fg)' : 'none' }} />
+              <span style={{ fontSize: 10, fontWeight: 900, color: 'var(--pp-ink)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{staff.isActive ? 'Active' : 'Archived'}</span>
             </div>
           </div>
         </div>
@@ -97,171 +89,175 @@ export default function DoctorDetailPage() {
 
       <main className="plat-profile-container">
         <div className="plat-grid">
-
-          {/* Sidebar - Demographic Snapshot */}
-          <aside className="plat-sidebar space-y-6">
-            <div className="plat-profile-card text-center">
-              <div className="inline-block relative mb-6">
-                <div className="w-28 h-28 rounded-[32px] bg-[var(--pp-warm-2)] border-2 border-white shadow-[var(--pp-shadow-md)] relative overflow-hidden flex items-center justify-center">
+          
+          {/* Sidebar - Demographics */}
+          <aside className="plat-sidebar" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <div className="plat-profile-card text-center" style={{ textAlign: 'center', paddingTop: 40 }}>
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 80, background: 'linear-gradient(to bottom, var(--pp-blue-tint), transparent)' }} />
+              
+              <div style={{ display: 'inline-block', position: 'relative', marginBottom: 24 }}>
+                <div className="anim-float-avatar" style={{ width: 120, height: 120, borderRadius: '50%', background: 'var(--pp-warm-2)', border: '4px solid white', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {staff.profilepic ? (
-                    <img src={staff.profilepic} alt={staff.name} className="w-full h-full object-cover" />
+                    <img src={staff.profilepic} alt={staff.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
-                    <div className="flex flex-col items-center text-[var(--pp-text-4)]">
-                      <User size={40} />
-                      <span className="text-[8px] font-black tracking-tighter mt-1 uppercase">No Photo</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: 'var(--pp-text-4)' }}>
+                      <User size={48} />
                     </div>
                   )}
                 </div>
-                <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-white border border-[var(--pp-warm-4)] rounded-full flex items-center justify-center shadow-sm">
-                  <CheckCircle2 size={16} className="text-[var(--pp-success-fg)]" />
-                </div>
+                {staff.isActive && (
+                  <div style={{ position: 'absolute', bottom: 4, right: 4, width: 32, height: 32, background: 'white', border: '1px solid var(--pp-warm-4)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--pp-shadow-sm)' }}>
+                    <CheckCircle2 size={18} fill="var(--pp-success-fg)" color="white" />
+                  </div>
+                )}
               </div>
 
-              <h1 className="plat-profile-title plat-capitalize mb-2">
+              <h1 className="plat-profile-title plat-capitalize" style={{ marginBottom: 8, position: 'relative', zIndex: 10 }}>
                 {staff.title} {staff.firstname} {staff.surname}
               </h1>
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-[var(--pp-blue-tint)] text-[var(--pp-blue)] rounded-lg border border-[var(--pp-blue-border)]">
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '4px 12px', background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)', borderRadius: 8, border: '1px solid var(--pp-blue-border)', position: 'relative', zIndex: 10 }}>
                 <Award size={12} />
-                <span className="text-[10px] font-black uppercase tracking-wider plat-capitalize">{staff.designation || 'Practitioner'}</span>
+                <span style={{ fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em' }} className="plat-capitalize">{staff.designation || 'Practitioner'}</span>
               </div>
 
-              <div className="mt-8 pt-8 border-t border-[var(--pp-warm-2)] grid grid-cols-2 gap-4">
-                <div className="bg-[var(--pp-warm-1)] p-3 rounded-xl border border-white">
+              <div style={{ marginTop: 32, paddingTop: 32, borderTop: '1px solid var(--pp-warm-4)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <div style={{ background: 'var(--pp-warm-1)', padding: 12, borderRadius: 'var(--pp-radius-lg)', border: '1px solid var(--pp-warm-3)' }}>
                   <span className="plat-profile-label">Visit Fee</span>
-                  <p className="plat-profile-value plat-profile-mono text-lg">₹{staff.consultationFee || '0'}</p>
+                  <p className="plat-profile-value plat-profile-mono text-title" style={{ color: 'var(--pp-blue-deep)' }}>₹{staff.consultationFee || '0'}</p>
                 </div>
-                <div className="bg-[var(--pp-warm-1)] p-3 rounded-xl border border-white">
+                <div style={{ background: 'var(--pp-warm-1)', padding: 12, borderRadius: 'var(--pp-radius-lg)', border: '1px solid var(--pp-warm-3)' }}>
                   <span className="plat-profile-label">Tenure</span>
-                  <p className="plat-profile-value text-lg">{staff.joiningdate ? new Date(staff.joiningdate).getFullYear() : 'New'}</p>
+                  <p className="plat-profile-value text-title" style={{ color: 'var(--pp-blue-deep)' }}>{staff.joiningdate ? new Date(staff.joiningdate).getFullYear() : 'New'}</p>
                 </div>
               </div>
             </div>
 
             <div className="plat-profile-card">
-              <h3 className="plat-profile-section-title !mb-4">
-                <div className="w-6 h-6 bg-[var(--pp-blue-tint)] text-[var(--pp-blue)] rounded flex items-center justify-center shadow-sm"><Phone size={12} /></div>
+              <h3 className="plat-profile-section-title" style={{ marginBottom: 24 }}>
+                <div style={{ width: 28, height: 28, background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Phone size={14} /></div>
                 Contact Gateway
               </h3>
-              <div className="space-y-4">
-                <div className="p-3 bg-[var(--pp-warm-2)] rounded-lg border border-white">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div style={{ padding: 12, background: 'var(--pp-warm-1)', borderRadius: 8, borderLeft: '3px solid var(--pp-blue)' }}>
                   <span className="plat-profile-label">Verified Mobile</span>
-                  <p className="plat-profile-value plat-profile-mono text-sm">{staff.mobile}</p>
+                  <p className="plat-profile-value plat-profile-mono">{staff.mobile}</p>
                 </div>
-                <div className="px-1">
+                <div style={{ padding: '0 4px' }}>
                   <span className="plat-profile-label">Clinical Email</span>
-                  <p className="text-xs font-bold text-[var(--pp-ink)] truncate underline decoration-[var(--pp-warm-4)] underline-offset-4">{staff.email}</p>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--pp-ink)' }}>{staff.email}</p>
                 </div>
-                <div className="px-1">
+                <div style={{ padding: '0 4px' }}>
                   <span className="plat-profile-label">Assigned Station</span>
-                  <p className="text-xs font-bold text-[var(--pp-ink)] plat-capitalize flex items-center gap-1.5">
-                    <MapPin size={10} className="text-[var(--pp-danger-fg)]" /> {staff.city || 'Regional Hub'}
+                  <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--pp-ink)', display: 'flex', alignItems: 'center', gap: 6 }} className="plat-capitalize">
+                    <MapPin size={12} fill="var(--pp-danger-bg)" color="var(--pp-danger-fg)" /> {staff.city || 'Regional Hub'}
                   </p>
                 </div>
               </div>
             </div>
           </aside>
 
-          {/* Main Content - Clinical Record */}
-          <section className="plat-main space-y-6">
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="plat-profile-card hover:border-[var(--pp-blue-border)] transition-colors">
+          {/* Main Content */}
+          <section className="plat-main" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 24 }} className="hide-mobile show-desktop">
+              
+              <div className="plat-profile-card">
                 <h3 className="plat-profile-section-title">
-                  <div className="w-6 h-6 bg-[var(--pp-success-bg)] text-[var(--pp-success-fg)] rounded flex items-center justify-center shadow-sm"><GraduationCap size={12} /></div>
+                  <div style={{ width: 28, height: 28, background: 'var(--pp-success-bg)', color: 'var(--pp-success-fg)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><GraduationCap size={14} /></div>
                   Academic Record
                 </h3>
-                <div className="space-y-4">
-                  <div className="p-4 bg-[var(--pp-warm-2)] rounded-xl border border-white shadow-sm">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <div style={{ padding: 16, background: 'var(--pp-warm-1)', borderRadius: 'var(--pp-radius-lg)', border: '1px solid var(--pp-warm-3)' }}>
                     <span className="plat-profile-label">Primary Qualification</span>
-                    <p className="text-sm font-extrabold text-[var(--pp-ink)] plat-capitalize">{staff.qualification || 'Medical Graduate'}</p>
+                    <p style={{ fontSize: 14, fontWeight: 800, color: 'var(--pp-ink)' }} className="plat-capitalize">{staff.qualification || 'Medical Graduate'}</p>
                   </div>
-                  <div className="px-1">
+                  <div style={{ padding: '0 4px' }}>
                     <span className="plat-profile-label">Alma Mater / University</span>
-                    <p className="text-[13px] font-bold text-[var(--pp-ink)] plat-capitalize leading-snug">{staff.institute || 'Verified Institution'}</p>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--pp-ink)' }} className="plat-capitalize">{staff.institute || 'Verified Institution'}</p>
                   </div>
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--pp-blue-tint)] border border-[var(--pp-blue-border)] rounded-lg w-max shadow-sm">
-                    <Landmark size={12} className="text-[var(--pp-blue)]" />
-                    <span className="text-[10px] font-black text-[var(--pp-blue-deep)] font-mono tracking-tighter uppercase">Reg: {staff.registrationId || 'PENDING'}</span>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 12px', background: 'var(--pp-blue-tint)', border: '1px solid var(--pp-blue-border)', borderRadius: 8, width: 'max-content' }}>
+                    <Landmark size={14} color="var(--pp-blue)" />
+                    <span style={{ fontSize: 11, fontWeight: 900, color: 'var(--pp-blue-deep)', fontFamily: 'var(--pp-font-mono)' }}>REG: {staff.registrationId || 'PENDING'}</span>
                   </div>
                 </div>
               </div>
 
-              <div className="plat-profile-card hover:border-amber-200 transition-colors">
+              <div className="plat-profile-card">
                 <h3 className="plat-profile-section-title">
-                  <div className="w-6 h-6 bg-amber-50 text-amber-600 rounded flex items-center justify-center shadow-sm"><Fingerprint size={12} /></div>
+                  <div style={{ width: 28, height: 28, background: 'var(--pp-warning-bg)', color: 'var(--pp-warning-fg)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Fingerprint size={14} /></div>
                   Identity & Compliance
                 </h3>
-                <div className="space-y-4">
-                  <div className="flex flex-col p-4 bg-[var(--pp-warm-1)] rounded-xl border border-[var(--pp-warm-4)] shadow-sm">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <div style={{ padding: 16, background: 'var(--pp-warm-1)', borderRadius: 'var(--pp-radius-lg)', border: '1px solid var(--pp-warm-3)' }}>
                     <span className="plat-profile-label">Aadhar UIDAI</span>
-                    <span className="text-xs font-black font-mono tracking-[0.2em]">{staff.aadharnumber || 'NOT RECORDED'}</span>
+                    <p style={{ fontSize: 14, fontWeight: 900, fontFamily: 'var(--pp-font-mono)', letterSpacing: '0.15em', color: 'var(--pp-ink)' }}>{staff.aadharnumber || 'NOT RECORDED'}</p>
                   </div>
-                  <div className="flex flex-col p-4 bg-[var(--pp-warm-1)] rounded-xl border border-[var(--pp-warm-4)] shadow-sm">
+                  <div style={{ padding: 16, background: 'var(--pp-warm-1)', borderRadius: 'var(--pp-radius-lg)', border: '1px solid var(--pp-warm-3)' }}>
                     <span className="plat-profile-label">Taxation PAN</span>
-                    <span className="text-xs font-black font-mono tracking-[0.2em] uppercase">{staff.pannumber || 'NOT RECORDED'}</span>
+                    <p style={{ fontSize: 14, fontWeight: 900, fontFamily: 'var(--pp-font-mono)', letterSpacing: '0.15em', color: 'var(--pp-ink)', textTransform: 'uppercase' }}>{staff.pannumber || 'NOT RECORDED'}</p>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Credential Vault */}
+            {/* Document Vault */}
             <div className="plat-profile-card">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="plat-profile-section-title !mb-0">
-                  <div className="w-6 h-6 bg-purple-50 text-purple-600 rounded flex items-center justify-center shadow-sm"><Files size={12} /></div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+                <h3 className="plat-profile-section-title" style={{ margin: 0 }}>
+                  <div style={{ width: 28, height: 28, background: '#F3E8FF', color: '#9333EA', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Files size={14} /></div>
                   Digital Credential Vault
                 </h3>
-                <div className="flex items-center gap-1.5 px-2 py-1 bg-purple-50 border border-purple-100 rounded text-[9px] font-black text-purple-700 uppercase">
-                  <Sparkles size={10} /> Clinical Compliance
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', background: '#F3E8FF', border: '1px solid #E9D5FF', borderRadius: 6, color: '#7E22CE', fontSize: 10, fontWeight: 900, textTransform: 'uppercase' }}>
+                  <Sparkles size={12} /> Compliance
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
                 {renderDocument('Medical Registration', staff.registrationCertificate)}
-                {renderDocument('Identity Card (Aadhar)', staff.aadharCard)}
+                {renderDocument('Identity Card', staff.aadharCard)}
                 {renderDocument('Taxation ID (PAN)', staff.panCard)}
                 {renderDocument('Clinical Degree: BHMS', staff.bhmsDocument)}
                 {renderDocument('Advanced Degree: MD', staff.mdDocument)}
-                {renderDocument('Higher Secondary (12th)', staff.col12Document)}
-                {renderDocument('Primary Secondary (10th)', staff.col10Document)}
                 {renderDocument('Appointment Letter', staff.appointmentLetter)}
               </div>
             </div>
 
-            {/* Address Residency */}
+            {/* Residency Log */}
             <div className="plat-profile-card">
-              <h3 className="plat-profile-section-title !mb-6">
-                <div className="w-6 h-6 bg-[var(--pp-danger-bg)] text-[var(--pp-danger-fg)] rounded flex items-center justify-center shadow-sm"><MapPin size={12} /></div>
+              <h3 className="plat-profile-section-title" style={{ marginBottom: 24 }}>
+                <div style={{ width: 28, height: 28, background: 'var(--pp-danger-bg)', color: 'var(--pp-danger-fg)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><MapPin size={14} /></div>
                 Residency Log
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="p-4 bg-[var(--pp-warm-2)] rounded-xl border border-white shadow-sm">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 24 }}>
+                <div style={{ padding: 16, background: 'var(--pp-warm-1)', borderRadius: 'var(--pp-radius-lg)', border: '1px solid var(--pp-warm-3)' }}>
                   <span className="plat-profile-label">Primary Station</span>
-                  <p className="text-[13px] font-bold leading-relaxed plat-capitalize text-[var(--pp-ink)]">
+                  <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--pp-ink)', lineHeight: 1.5 }} className="plat-capitalize">
                     {staff.address || 'Administrative station not recorded.'}
                   </p>
                 </div>
-                <div className="p-4 border border-[var(--pp-warm-2)] rounded-xl shadow-sm">
+                <div style={{ padding: 16, border: '1px dashed var(--pp-warm-4)', borderRadius: 'var(--pp-radius-lg)' }}>
                   <span className="plat-profile-label">Permanent Record</span>
-                  <p className="text-[13px] font-bold leading-relaxed plat-capitalize text-[var(--pp-ink)]">
-                    {staff.permanentAddress || 'Consistent with primary station.'}
+                  <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--pp-text-3)', lineHeight: 1.5 }} className="plat-capitalize">
+                    {staff.permanentAddress || 'Consistent with primary station trajectory.'}
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="plat-profile-card bg-gradient-to-br from-white to-[var(--pp-warm-1)]">
-              <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
-                <Award size={160} />
+            {/* Institutional Summary */}
+            <div className="plat-profile-card" style={{ background: 'linear-gradient(to right, var(--pp-blue-deep), var(--pp-blue))', color: 'white', position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', right: -20, bottom: -20, opacity: 0.1 }}>
+                <Award size={180} />
               </div>
-              <h3 className="plat-profile-section-title">
-                <div className="w-6 h-6 bg-[var(--pp-blue-tint)] text-[var(--pp-blue)] rounded flex items-center justify-center shadow-sm"><FileText size={12} /></div>
+              <h3 className="plat-profile-section-title" style={{ color: 'white', marginBottom: 16 }}>
+                <div style={{ width: 28, height: 28, background: 'rgba(255,255,255,0.2)', color: 'white', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FileText size={14} /></div>
                 Institutional Summary
               </h3>
-              <p className="text-sm leading-relaxed text-[var(--pp-text-2)] font-medium max-w-2xl relative z-10">
-                {staff.about || 'A professional practitioner summary is currently being prepared for this clinical record. All academic and institutional credentials have been digitally verified for regulatory compliance within the HomeoX platform.'}
+              <p style={{ fontSize: 14, lineHeight: 1.6, fontWeight: 500, color: 'rgba(255,255,255,0.9)', maxWidth: '80%', position: 'relative', zIndex: 10 }}>
+                {staff.about || 'A professional practitioner summary is currently being prepared for this clinical record. All academic and institutional credentials have been digitally verified for regulatory compliance within the platform.'}
               </p>
             </div>
+
           </section>
         </div>
       </main>

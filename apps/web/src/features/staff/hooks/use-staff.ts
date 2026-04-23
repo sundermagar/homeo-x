@@ -38,7 +38,8 @@ export function useStaffMember(category: StaffCategory, id: number) {
       const res = await apiClient.get<any>(`/staff/${id}`, {
         params: { category },
       });
-      return res.data as StaffMember;
+      const body = (res as any)._original ?? res.data;
+      return (body.data ?? res.data) as StaffMember;
     },
     enabled: !!id && !!category,
   });
@@ -51,7 +52,8 @@ export function useCreateStaff() {
   return useMutation({
     mutationFn: async (input: CreateStaffInput) => {
       const res = await apiClient.post<any>('/staff', input);
-      return res.data;
+      const body = (res as any)._original ?? res.data;
+      return body.data ?? res.data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: [STAFF_KEY] }),
   });
@@ -67,7 +69,8 @@ export function useUpdateStaff() {
       const res = await apiClient.put<any>(`/staff/${id}`, input, {
         params: { category },
       });
-      return res.data;
+      const body = (res as any)._original ?? res.data;
+      return body.data ?? res.data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: [STAFF_KEY] }),
   });

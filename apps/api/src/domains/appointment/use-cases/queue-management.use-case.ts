@@ -24,4 +24,9 @@ export class QueueManagementUseCase {
     await this.repo.completeWaitlistEntry(waitlistId);
     return ok(undefined);
   }
+
+  async skipWaitlist(waitlistId: number): Promise<Result<void>> {
+    await this.repo.skipWaitlistEntry(waitlistId);
+    return ok(undefined);
+  }
 }

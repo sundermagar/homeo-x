@@ -8,7 +8,7 @@ import { useAuthStore } from '@/shared/stores/auth-store';
 import { NumericInput } from '@/shared/components/NumericInput';
 import '../styles/appointments.css';
 
-interface Doctor { id: number; name: string; consultation_fee?: number; }
+interface Doctor { id: number; name: string; consultation_fee?: number; isActive?: boolean; }
 interface Patient { id: number; regid?: number; first_name?: string; surname?: string; mobile1?: string; }
 
 interface Props {
@@ -35,6 +35,9 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [error, setError] = useState('');
   const [lookupLoading, setLookupLoading] = useState(false);
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [activeSearchField, setActiveSearchField] = useState<'name' | 'id' | 'phone' | null>(null);
 
   const createMutation = useCreateAppointment();
   const updateMutation = useUpdateAppointment();
@@ -48,8 +51,8 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
   // Fetch doctors list
   useEffect(() => {
     apiClient.get('/doctors').then(({ data }) => {
-      // Interceptor now returns the payload directly
-      const docList = Array.isArray(data) ? data : [];
+      // The response structure is { success: true, data: [] }
+      const docList = Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
       setDoctors(docList);
 
       // Auto-select if logged in as a doctor and not editing
@@ -59,7 +62,9 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
           setForm(f => ({
             ...f,
             doctorId: String(myDoc.id),
-            consultationFee: myDoc.consultation_fee ? String(myDoc.consultation_fee) : f.consultationFee
+            consultationFee: (myDoc.consultation_fee !== undefined && myDoc.consultation_fee !== null) 
+              ? String(myDoc.consultation_fee) 
+              : f.consultationFee
           }));
         }
       }
@@ -85,28 +90,52 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
 
   const handleDoctorChange = (id: string) => {
     const doc = doctors.find(d => String(d.id) === id);
-    setForm(f => ({ ...f, doctorId: id, consultationFee: doc?.consultation_fee ? String(doc.consultation_fee) : f.consultationFee }));
+    setForm(f => ({ 
+      ...f, 
+      doctorId: id, 
+      consultationFee: (doc?.consultation_fee !== undefined && doc?.consultation_fee !== null) 
+        ? String(doc.consultation_fee) 
+        : f.consultationFee 
+    }));
   };
 
-  const handlePatientLookup = async (value: string, field: 'id' | 'phone') => {
-    if (value.length < 2) return;
-    setLookupLoading(true);
-    try {
-      const { data } = await apiClient.get<Patient[]>(`/patients/lookup?query=${encodeURIComponent(value)}`);
-      const patients = data ?? [];
-      if (patients.length > 0) {
-        const p = field === 'phone'
-          ? patients.find(pt => pt.mobile1 === value) ?? patients[0]
-          : patients.find(pt => String(pt.regid ?? pt.id) === value) ?? patients[0];
-        if (!p) return;
-        setForm(f => ({
-          ...f,
-          patientId:   String(p.regid ?? p.id ?? f.patientId),
-          phone:       p.mobile1 ?? f.phone,
-          patientName: `${p.first_name ?? ''} ${p.surname ?? ''}`.trim() || f.patientName,
-        }));
-      }
-    } catch { /* silent */ } finally { setLookupLoading(false); }
+  // Debounced lookup for suggestions
+  useEffect(() => {
+    // Only search if user is actively typing in a field
+    if (!activeSearchField) return;
+
+    const value = activeSearchField === 'name' ? form.patientName 
+                : activeSearchField === 'id' ? form.patientId 
+                : activeSearchField === 'phone' ? form.phone : '';
+
+    if (value.trim().length >= 2) {
+      setLookupLoading(true);
+      const timer = setTimeout(async () => {
+        try {
+          const { data } = await apiClient.get<any>(`/patients/lookup?query=${encodeURIComponent(value)}`);
+          const results = Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
+          setSuggestions(results);
+          setShowSuggestions(true);
+        } catch { /* silent */ } finally {
+          setLookupLoading(false);
+        }
+      }, 300);
+      return () => clearTimeout(timer);
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+  }, [form.patientName, form.patientId, form.phone, activeSearchField]);
+
+  const selectSuggestion = (p: any) => {
+    setForm(f => ({
+      ...f,
+      patientId: String(p.regid ?? p.id ?? f.patientId),
+      phone: p.mobile1 ?? p.phone ?? f.phone,
+      patientName: p.fullName || `${p.firstName ?? ''} ${p.surname ?? ''}`.trim() || f.patientName,
+    }));
+    setShowSuggestions(false);
+    setActiveSearchField(null);
   };
 
   const set = (key: keyof typeof form, val: string) => setForm(f => ({ ...f, [key]: val }));
@@ -116,16 +145,28 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
     setError('');
     if (!form.bookingDate) { setError('Booking date is required'); return; }
 
+    // Ensure date is in YYYY-MM-DD format for the backend
+    let normalizedDate = form.bookingDate;
+    if (normalizedDate && normalizedDate.includes('/')) {
+      const parts = normalizedDate.split('/');
+      if (parts.length === 3) {
+        if (parts[2].length === 4) {
+          // DD/MM/YYYY -> YYYY-MM-DD
+          normalizedDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+        }
+      }
+    }
+
     const dto: CreateAppointmentDto = {
       patientId:       form.patientId ? Number(form.patientId) : undefined,
       patientName:     form.patientName || undefined,
       phone:           form.phone || undefined,
       doctorId:        form.doctorId ? Number(form.doctorId) : undefined,
-      bookingDate:     form.bookingDate,
+      bookingDate:     normalizedDate,
       bookingTime:     form.bookingTime || undefined,
-      visitType:       form.visitType,
-      consultationFee: form.consultationFee ? Number(form.consultationFee) : undefined,
-      notes:           form.notes || undefined,
+      visitType:       form.visitType as any,
+      consultationFee: form.consultationFee ? Number(form.consultationFee) : 0,
+      notes:           form.notes || '',
     };
 
     try {
@@ -177,7 +218,20 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
                   onChange={e => handleDoctorChange(e.target.value)}
                 >
                   <option value="">Select Doctor</option>
-                  {doctors.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                    {doctors.map(d => (
+                      <option 
+                        key={d.id} 
+                        value={d.id} 
+                        disabled={!d.isActive}
+                        style={{ 
+                          color: !d.isActive ? '#dc2626' : 'inherit',
+                          fontWeight: !d.isActive ? '800' : 'normal',
+                          backgroundColor: !d.isActive ? '#fef2f2' : 'inherit'
+                        }}
+                      >
+                        {d.name} {!d.isActive ? ' (OFFLINE - DO NOT SELECT)' : ''}
+                      </option>
+                    ))}
                 </select>
               </div>
               <div className="appt-form-group">
@@ -268,21 +322,24 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
                 <User size={13} strokeWidth={1.6} />
                 Patient
               </label>
-              <div className="appt-form-row appt-form-row-2 appt-form-row-start">
+              <div className="appt-form-row appt-form-row-2 appt-form-row-start" style={{ position: 'relative' }}>
                 {form.visitType === VisitType.FollowUp ? (
                   <input
                     className="appt-form-input"
                     placeholder="Case ID / Reg No."
                     value={form.patientId}
-                    onChange={e => set('patientId', e.target.value)}
-                    onBlur={e => handlePatientLookup(e.target.value, 'id')}
+                    onChange={e => { set('patientId', e.target.value); setActiveSearchField('id'); }}
+                    onFocus={() => setActiveSearchField('id')}
+                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                   />
                 ) : (
                   <input
                     className="appt-form-input"
                     placeholder="Patient Name"
                     value={form.patientName}
-                    onChange={e => set('patientName', e.target.value)}
+                    onChange={e => { set('patientName', e.target.value); setActiveSearchField('name'); }}
+                    onFocus={() => setActiveSearchField('name')}
+                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                     required
                   />
                 )}
@@ -290,15 +347,44 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
                 className="appt-form-input"
                 placeholder="Mobile Number"
                 value={form.phone}
-                onChange={e => set('phone', e.target.value)}
-                onBlur={e => form.visitType === VisitType.FollowUp && handlePatientLookup(e.target.value, 'phone')}
+                onChange={e => { set('phone', e.target.value); setActiveSearchField('phone'); }}
+                onFocus={() => setActiveSearchField('phone')}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
               />
+
+                {/* Autocomplete Dropdown */}
+                {showSuggestions && suggestions.length > 0 && (
+                  <ul style={{
+                    position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 9999, 
+                    backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 6,
+                    boxShadow: '0 10px 25px rgba(0,0,0,0.15)', maxHeight: 250, overflowY: 'auto', 
+                    listStyle: 'none', padding: 0, margin: '4px 0 0 0'
+                  }}>
+                    {suggestions.map(p => (
+                      <li 
+                        key={p.regid || p.id} 
+                        onMouseDown={(e) => { e.preventDefault(); selectSuggestion(p); }}
+                        style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9', cursor: 'pointer', transition: 'background 0.2s' }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                      >
+                        <div style={{ fontWeight: 600, fontSize: 13, color: '#1e293b' }}>
+                          {p.fullName || `${p.firstName ?? ''} ${p.surname ?? ''}`.trim()}
+                        </div>
+                        <div style={{ fontSize: 12, color: '#64748b', display: 'flex', gap: '12px', marginTop: 2 }}>
+                          <span>ID: {p.regid || p.id}</span>
+                          {(p.mobile1 || p.phone) && <span>📞 {p.mobile1 || p.phone}</span>}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
               
-              {lookupLoading && <span className="appt-lookup-loading">Looking up patient…</span>}
+              {lookupLoading && <div style={{ fontSize: 12, color: 'var(--pp-text-3)', marginTop: 4 }}>Looking up patient…</div>}
               
-              {/* If follow-up, show the name only after successful lookup */}
-              {form.visitType === VisitType.FollowUp && form.patientName && (
+              {/* If follow-up, show the name only after successful lookup if we have it */}
+              {form.visitType === VisitType.FollowUp && form.patientName && !showSuggestions && (
                 <div className="appt-followup-confirmed">
                   <span className="appt-followup-check">
                     ✓ Confirmed: {form.patientName} (ID: {form.patientId})

@@ -50,4 +50,11 @@ export class ManageAppointmentUseCase {
     const token = await this.repo.issueToken(id);
     return ok({ token, alreadyIssued: false });
   }
+
+  async reschedule(id: number, date: string, time?: string): Promise<Result<void>> {
+    const appt = await this.repo.findById(id);
+    if (!appt) return fail('Appointment not found', 'NOT_FOUND');
+    await this.repo.update(id, { bookingDate: date, bookingTime: time });
+    return ok(undefined);
+  }
 }

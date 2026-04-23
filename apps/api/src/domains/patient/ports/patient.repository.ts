@@ -14,6 +14,7 @@ export interface PatientRepository {
     search?: string;
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
+    doctorId?: number;
   }): Promise<{ data: PatientSummary[]; total: number }>;
   create(data: CreatePatientInput): Promise<Patient>;
   update(regid: number, data: UpdatePatientInput): Promise<Patient | null>;

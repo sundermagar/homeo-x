@@ -172,6 +172,26 @@
 }
 
 .dash-row:hover { background: var(--pp-warm-1); }
+.dash-row.active { background: var(--pp-warm-2); border-left: 3px solid var(--pp-blue); }
+
+.dash-row-details {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: var(--pp-warm-1);
+}
+
+.dash-row-details.expanded {
+  max-height: 200px;
+  border-bottom: 1px solid var(--pp-warm-2);
+}
+
+.details-inner {
+  padding: 16px 20px 16px 50px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
 
 .dash-avatar {
   width: 32px;
@@ -208,7 +228,6 @@
   background: #ffffff;
   border: 1px solid var(--pp-warm-4);
   border-radius: 16px;
-  overflow: hidden;
   margin-bottom: var(--pp-space-6);
   position: relative;
   box-shadow: var(--pp-premium-shadow);
@@ -221,6 +240,7 @@
   justify-content: space-between;
   align-items: center;
   background: var(--pp-warm-1);
+  border-radius: 16px 16px 0 0;
 }
 
 .dd-hud-body {
@@ -616,6 +636,19 @@
   transform: translateY(-1px);
 }
 
+button.pp-link {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+
+button.pp-link:hover {
+  text-decoration: underline;
+}
+
 .btn-danger {
   padding: 10px 24px;
   background: var(--pp-danger-bg);
@@ -632,4 +665,65 @@
 .btn-danger:hover { 
   background: #fee2e2; 
   transform: translateY(-1px);
+}
+
+.dash-view-btn {
+  background: #eff6ff;
+  color: var(--pp-blue);
+  border: 1.5px solid #dbeafe;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.dash-view-btn:hover {
+  background: var(--pp-blue);
+  color: white;
+  border-color: var(--pp-blue);
+}
+
+/* ─── Expansion Table UI (Receptionist) ──────────────────────────────────── */
+.expansion-row {
+  transition: all 0.3s ease;
+}
+
+.expansion-details-td {
+  padding: 0 !important;
+  background: #f8fafc;
+}
+
+.expansion-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out, padding 0.3s ease;
+}
+
+.expansion-content.open {
+  max-height: 300px;
+  padding: 20px;
+  border-bottom: 2px solid var(--pp-warm-2);
+}
+
+.expansion-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 24px;
+}
+
+.expansion-label {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--pp-text-4);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.expansion-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pp-ink);
 }

@@ -6,7 +6,8 @@ import {
   religionLegacy, 
   occupationLegacy, 
   refrencetypeLegacy,
-  users
+  users,
+  appointments
 } from '@mmc/database/schema';
 import type { DbClient } from '@mmc/database';
 import type { 
@@ -32,12 +33,30 @@ export class PatientRepositoryPg implements PatientRepository {
   constructor(private readonly db: DbClient) {}
 
   async findById(id: number): Promise<Patient | null> {
-    const [row] = await this.db.select().from(patients).where(eq(patients.id, id)).limit(1);
+    const [row] = await this.db
+      .select()
+      .from(patients)
+      .where(
+        and(
+          eq(patients.id, id),
+          sql`(deleted_at IS NULL OR deleted_at::text = '')`
+        )
+      )
+      .limit(1);
     return row ? this.toDomain(row) : null;
   }
 
   async findByRegid(regid: number): Promise<Patient | null> {
-    const [row] = await this.db.select().from(patients).where(eq(patients.regid, regid)).limit(1);
+    const [row] = await this.db
+      .select()
+      .from(patients)
+      .where(
+        and(
+          eq(patients.regid, regid),
+          sql`(deleted_at IS NULL OR deleted_at::text = '')`
+        )
+      )
+      .limit(1);
     return row ? this.toDomain(row) : null;
   }
 
@@ -47,11 +66,12 @@ export class PatientRepositoryPg implements PatientRepository {
     search?: string;
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
+    doctorId?: number;
   }): Promise<{ data: PatientSummary[]; total: number }> {
-    const { page, limit, search } = params;
+    const { page, limit, search, doctorId } = params;
     const offset = (page - 1) * limit;
 
-    const conditions = [isNull(patients.deletedAt)];
+    const conditions = [sql`(deleted_at IS NULL OR deleted_at::text = '')` as any];
 
     if (search) {
       const s = `%${search}%`;
@@ -63,6 +83,18 @@ export class PatientRepositoryPg implements PatientRepository {
           like(patients.mobile1, s),
           sql`CAST(${patients.regid} AS TEXT) LIKE ${s}`,
         )!
+      );
+    }
+
+    if (doctorId) {
+      // Filter patients who have at least one appointment with this doctor
+      conditions.push(
+        sql`EXISTS (
+          SELECT 1 FROM ${appointments} 
+          WHERE ${appointments.patientId} = ${patients.id} 
+            AND ${appointments.doctorId} = ${doctorId}
+            AND (deleted_at IS NULL OR deleted_at::text = '')
+        )`
       );
     }
 
@@ -193,7 +225,7 @@ export class PatientRepositoryPg implements PatientRepository {
       .from(patients)
       .where(
         and(
-          isNull(patients.deletedAt),
+          sql`(deleted_at IS NULL OR deleted_at::text = '')`,
           or(
             like(patients.firstName, s),
             like(patients.surname, s),
@@ -213,7 +245,7 @@ export class PatientRepositoryPg implements PatientRepository {
       .from(patients)
       .where(
         and(
-          isNull(patients.deletedAt),
+          sql`(deleted_at IS NULL OR deleted_at::text = '')`,
           sql`to_char(${patients.dob}::date, 'MM-DD') = ${mmdd}`
         )
       );

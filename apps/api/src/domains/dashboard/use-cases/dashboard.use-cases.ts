@@ -24,7 +24,8 @@ export class DashboardUseCases {
     };
 
     try {
-      const isDoctor = user.type.toLowerCase() === 'doctor';
+      console.log(`[Dashboard] Checking isDoctor. User payload:`, user);
+      const isDoctor = (user.type || '').toLowerCase() === 'doctor';
       const doctorId = isDoctor ? user.id : undefined;
 
       const [

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { AppointmentRepositoryPG } from '../../repositories/appointment.repository.pg';
+import { PatientRepositoryPg } from '../../repositories/patient.repository.pg';
 import { ListAppointmentsUseCase } from '../../../domains/appointment/use-cases/list-appointments.use-case';
 import { GetAppointmentUseCase } from '../../../domains/appointment/use-cases/get-appointment.use-case';
 import { BookAppointmentUseCase } from '../../../domains/appointment/use-cases/book-appointment.use-case';
@@ -91,8 +92,9 @@ appointmentsRouter.get('/:id', asyncHandler(async (req, res) => {
 // POST /api/appointments
 appointmentsRouter.post('/', asyncHandler(async (req, res) => {
   const commRepo = new CommunicationRepositoryPG(req.tenantDb);
+  const patientRepo = new PatientRepositoryPg(req.tenantDb);
   const smsUc = new SendSmsUseCase(commRepo, smsGateway);
-  const bookAppt = new BookAppointmentUseCase(getRepo(req), smsUc);
+  const bookAppt = new BookAppointmentUseCase(getRepo(req), smsUc, patientRepo);
   const result = await bookAppt.execute(req.body);
 
   if (result.success) {
@@ -166,4 +168,21 @@ appointmentsRouter.post('/waiting/:id/complete', asyncHandler(async (req, res) =
   const io = (req as any).io;
   if (io) io.emit('queueUpdated', { action: 'completed', id: req.params.id });
   sendSuccess(res, undefined, 'Consultation completed');
+}));
+
+// POST /api/appointments/waiting/:id/skip
+appointmentsRouter.post('/waiting/:id/skip', asyncHandler(async (req, res) => {
+  const queueMgmt = new QueueManagementUseCase(getRepo(req));
+  await queueMgmt.skipWaitlist(Number(req.params.id));
+  const io = (req as any).io;
+  if (io) io.emit('queueUpdated', { action: 'skipped', id: req.params.id });
+  sendSuccess(res, undefined, 'Patient skipped, next patient called in');
+}));
+
+// POST /api/appointments/:id/reschedule
+appointmentsRouter.post('/:id/reschedule', asyncHandler(async (req, res) => {
+  const { date, time } = req.body;
+  const manageAppt = new ManageAppointmentUseCase(getRepo(req));
+  await manageAppt.reschedule(Number(req.params.id), date, time);
+  sendSuccess(res, undefined, 'Appointment rescheduled');
 }));

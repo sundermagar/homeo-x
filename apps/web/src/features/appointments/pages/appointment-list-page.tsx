@@ -10,6 +10,7 @@ import {
   useAppointments, useTodayAppointments,
   useUpdateStatus, useDeleteAppointment,
 } from '../hooks/use-appointments';
+import { useAuthStore } from '@/shared/stores/auth-store';
 import { AppointmentForm } from '../components/appointment-form';
 import { StatusBadge } from '../components/status-badge';
 import '../styles/appointments.css';
@@ -19,6 +20,11 @@ type Tab = 'all' | 'today' | 'pending';
 
 export default function AppointmentListPage() {
   const today = new Date().toISOString().split('T')[0];
+  const user = useAuthStore((s) => s.user);
+  const rawRole = ((user as any)?.type || (user as any)?.role || (user as any)?.roleName || '').toLowerCase();
+  const isDoctor = rawRole === 'doctor' || rawRole === 'medical practitioner' || ((user as any)?.name || '').toLowerCase().startsWith('dr');
+  const doctorUserId: number | undefined = isDoctor ? Number((user as any)?.id) : undefined;
+  const doctorUserName = ((user as any)?.name || '').toLowerCase().trim();
 
   const [tab,        setTab]        = useState<Tab>('today');
   const [search,     setSearch]     = useState('');
@@ -37,14 +43,29 @@ export default function AppointmentListPage() {
     status:    status  || undefined,
     from_date: fromDate || (tab === 'all' ? undefined : today),
     to_date:   toDate  || (tab === 'all' ? undefined : today),
+    // Pass doctor_id for server-side filtering when logged in as doctor
+    doctor_id: doctorUserId,
     page, limit: 40,
   });
 
   const updateStatus = useUpdateStatus();
   const deleteMut    = useDeleteAppointment();
 
-  const data      = tab === 'today' ? (todayQuery.data ?? []) : (listQuery.data?.data ?? []);
-  const total     = tab === 'today' ? data.length : (listQuery.data?.total ?? 0);
+  // For today tab: filter client-side by doctor name/id (since useTodayAppointments has no doctor filter)
+  const todayRaw = todayQuery.data ?? [];
+  const todayData = isDoctor
+    ? todayRaw.filter(a => {
+        if (a.doctorId && doctorUserId && a.doctorId === doctorUserId) return true;
+        if (doctorUserName && a.doctorName) {
+          const dn = (a.doctorName || '').toLowerCase().trim();
+          if (dn === doctorUserName || dn.includes(doctorUserName) || doctorUserName.includes(dn)) return true;
+        }
+        return false;
+      })
+    : todayRaw;
+
+  const data      = tab === 'today' ? todayData : (listQuery.data ?? []);
+  const total     = tab === 'today' ? data.length : (listQuery.data?.length ?? 0);
   const isPending = tab === 'today' ? todayQuery.isLoading : listQuery.isLoading;
 
   const handleStatusChange = async (id: number, newStatus: string) => {

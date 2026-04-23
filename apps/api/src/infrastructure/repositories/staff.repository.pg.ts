@@ -65,9 +65,15 @@ export class StaffRepositoryPg implements StaffRepository {
 
     const searchSafe = search ? `%${search}%` : null;
 
+    const isDoctor = category === 'doctor';
+    const selectCols = ['id', 'name', 'email', 'mobile', 'gender', 'designation', 'city', 'created_at', 'deleted_at'];
+    if (isDoctor) selectCols.push('consultation_fee');
+
+    const colFragment = sql.join(selectCols.map(c => sql.identifier(c)), sql`, `);
+
     // We only select columns confirmed to exist in the legacy schema
     const rows = await this.db.execute(sql`
-      SELECT id, name, email, mobile, gender, designation, city, created_at, deleted_at
+      SELECT ${colFragment}
       FROM ${sql.identifier(table)}
       WHERE (deleted_at IS NULL OR deleted_at::text = '')
       ${searchSafe ? sql`AND (name ILIKE ${searchSafe} OR email ILIKE ${searchSafe} OR mobile ILIKE ${searchSafe})` : sql``}
@@ -247,6 +253,8 @@ export class StaffRepositoryPg implements StaffRepository {
       ? `${data.title || existing.title || 'Dr'} ${data.firstname || existing.firstname || ''} ${data.surname || existing.surname || ''}`.trim()
       : (data.name ?? existing.name);
 
+    const toDate = (val: string | undefined | null) => (val === '' || val === undefined) ? null : val;
+
     // Build update fragments dynamically
     const updates = [
       sql`name = ${name}`,
@@ -258,12 +266,41 @@ export class StaffRepositoryPg implements StaffRepository {
       sql`city = ${data.city ?? existing.city}`,
       sql`address = ${data.address ?? existing.address}`,
       sql`about = ${data.about ?? existing.about}`,
+      sql`date_birth = ${toDate(data.dateBirth ?? (existing.dateBirth as string))}`,
+      sql`date_left = ${toDate(data.dateLeft ?? (existing.dateLeft as string))}`,
       sql`updated_at = NOW()`
     ];
 
     if (!isAccount) {
       updates.push(sql`dept = ${data.dept ?? existing.department}`);
       updates.push(sql`salary_cur = ${data.salaryCur ?? existing.salary}`);
+    }
+
+    if (category === 'doctor') {
+      updates.push(
+        sql`title = ${data.title ?? existing.title}`,
+        sql`firstname = ${data.firstname ?? existing.firstname}`,
+        sql`middlename = ${data.middlename ?? existing.middlename}`,
+        sql`surname = ${data.surname ?? existing.surname}`,
+        sql`qualification = ${data.qualification ?? existing.qualification}`,
+        sql`instutitue = ${data.institute ?? existing.institute}`,
+        sql`passedout = ${data.passedOut ?? existing.passedOut}`,
+        sql`joiningdate = ${toDate(data.joiningdate ?? (existing.joiningdate as string))}`,
+        sql`"registrationId" = ${data.registrationId ?? existing.registrationId}`,
+        sql`consultation_fee = ${data.consultationFee !== undefined ? String(data.consultationFee) : (existing.consultationFee !== null ? String(existing.consultationFee) : '0')}`,
+        sql`permanentaddress = ${data.permanentAddress ?? existing.permanentAddress}`,
+        sql`profilepic = ${data.profilepic ?? existing.profilepic}`,
+        sql`"10_document" = ${data.col10Document ?? existing.col10Document}`,
+        sql`"12_document" = ${data.col12Document ?? existing.col12Document}`,
+        sql`bhms_document = ${data.bhmsDocument ?? existing.bhmsDocument}`,
+        sql`md_document = ${data.mdDocument ?? existing.mdDocument}`,
+        sql`registration_certificate = ${data.registrationCertificate ?? existing.registrationCertificate}`,
+        sql`aadhar_card = ${data.aadharCard ?? existing.aadharCard}`,
+        sql`pan_card = ${data.panCard ?? existing.panCard}`,
+        sql`appointment_letter = ${data.appointmentLetter ?? existing.appointmentLetter}`,
+        sql`aadharnumber = ${data.aadharnumber ?? existing.aadharnumber}`,
+        sql`pannumber = ${data.pannumber ?? existing.pannumber}`
+      );
     }
 
     if (data.password) {

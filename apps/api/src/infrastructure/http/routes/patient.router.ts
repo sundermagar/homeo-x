@@ -19,7 +19,7 @@ function getRepo(req: Request) {
 // GET /api/patients?search=&page=&limit=&sortBy=&sortOrder=
 patientRouter.get('/', async (req: Request, res: Response) => {
   try {
-    const { search, page = '1', limit = '30', sortBy, sortOrder } = req.query;
+    const { search, page = '1', limit = '30', sortBy, sortOrder, doctor_id } = req.query;
     const repo = getRepo(req);
     const uc = new ListPatientsUseCase(repo);
     const result = await uc.execute({
@@ -28,6 +28,7 @@ patientRouter.get('/', async (req: Request, res: Response) => {
       search: search as string,
       sortBy: sortBy as string,
       sortOrder: sortOrder as 'asc' | 'desc',
+      doctorId: doctor_id ? Number(doctor_id) : undefined,
     });
     if (result.success) {
       res.json({ success: true, data: result.data.data, total: result.data.total });

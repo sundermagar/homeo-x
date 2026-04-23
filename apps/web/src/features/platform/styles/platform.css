@@ -787,16 +787,18 @@
 }
 
 .plat-profile-header {
-  min-height: 60px;
-  height: auto;
-  background: white;
-  border-bottom: 1px solid var(--pp-warm-4);
+  min-height: 70px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
   position: sticky;
   top: 0;
   z-index: 100;
   display: flex;
   align-items: center;
-  padding: 8px 0;
+  padding: 12px 0;
+  box-shadow: 0 4px 24px -6px rgba(0, 0, 0, 0.04);
 }
 
 .plat-profile-container {
@@ -828,13 +830,20 @@
 }
 
 .plat-profile-card {
-  background: white;
-  border: 1px solid var(--pp-warm-4);
-  border-radius: var(--pp-radius-card);
+  background: linear-gradient(160deg, #ffffff 0%, #fafafa 100%);
+  border: 1px solid var(--pp-warm-3);
+  border-radius: calc(var(--pp-radius-card) + 4px);
   padding: var(--pp-space-4);
   position: relative;
   overflow: hidden;
-  box-shadow: var(--pp-shadow-sm);
+  box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.04), 0 12px 24px -12px rgba(0, 0, 0, 0.02);
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.plat-profile-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.08), 0 20px 48px -12px rgba(0, 0, 0, 0.04);
+  border-color: var(--pp-blue-tint);
 }
 
 @media (min-width: 640px) {
@@ -913,11 +922,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 10px;
-  background: var(--pp-warm-2);
-  border: 1px solid white;
+  padding: 10px 14px;
+  background: linear-gradient(to right, var(--pp-warm-1), white);
+  border: 1px solid var(--pp-warm-3);
   border-radius: var(--pp-radius-lg);
-  transition: all var(--transition-fast);
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 4px -2px rgba(0,0,0,0.02);
 }
 
 @media (min-width: 640px) {
@@ -928,8 +938,9 @@
 
 .plat-doc-item:hover {
   background: white;
-  border-color: var(--pp-blue-border);
-  box-shadow: var(--pp-shadow-sm);
+  border-color: var(--pp-blue);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
+  transform: translateX(2px);
 }
 
 .plat-doc-icon {
@@ -990,4 +1001,33 @@
   font-weight: 500;
   color: var(--pp-text-3);
   margin: 0;
+}
+
+@keyframes floatAvatar {
+  0% {
+    transform: translateY(0) scale(1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+  50% {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 16px 32px -8px rgba(37, 99, 235, 0.2);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+}
+
+.anim-float-avatar {
+  animation: floatAvatar 4s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+  transform-origin: center center;
+  transition: all 0.3s ease;
+  will-change: transform, box-shadow;
+}
+
+.anim-float-avatar:hover {
+  animation-play-state: paused;
+  transform: scale(1.06) translateY(-4px);
+  box-shadow: 0 20px 40px -8px rgba(37, 99, 235, 0.25);
+  border-color: var(--pp-blue-tint) !important;
 }

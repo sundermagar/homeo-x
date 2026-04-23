@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import {
   CreditCard,
   Calendar,
@@ -8,6 +9,8 @@ import {
   UserPlus,
   Search,
   CheckSquare,
+  ChevronRight,
+  ChevronDown,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDashboard } from '../hooks/use-dashboard';
@@ -16,6 +19,7 @@ import './role-dashboards.css';
 export function ReceptionistDashboard() {
   const navigate = useNavigate();
   const { data: dashData, isLoading } = useDashboard('day');
+  const [expandedId, setExpandedId] = useState<number | null>(null);
   
   const todayAppts = dashData?.queue || [];
   const kpis = dashData?.kpis;
@@ -57,34 +61,68 @@ export function ReceptionistDashboard() {
                     <th>TIME</th>
                     <th>PATIENT</th>
                     <th>STATUS</th>
-                    <th>ACTION</th>
+                    <th style={{ textAlign: 'center' }}>ACTION</th>
                   </tr>
                 </thead>
                 <tbody className="dash-scroll">
-                  {todayAppts.map((a: any, i: number) => (
-                    <tr key={i} className="hover-row">
-                      <td style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 700, color: '#64748b' }}>
-                        {a.bookingTime || 'Walk-in'}
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <div className="dash-avatar">{a.patientName?.charAt(0)}</div>
-                          <div>
-                            <div style={{ fontWeight: 700, color: '#0f172a' }}>{a.patientName}</div>
-                            <div className="text-label" style={{ fontSize: 10 }}>ID: PT-{a.regid || a.id}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <span className={`dash-badge badge-${a.status === 'Consultation' ? 'success' : a.status === 'Waitlist' ? 'warning' : 'primary'}`}>
-                          {a.status}
-                        </span>
-                      </td>
-                      <td>
-                        <button className="pp-link" style={{ fontSize: 11 }} onClick={() => navigate(`/patients/${a.regid || a.id}`)}>View</button>
-                      </td>
-                    </tr>
-                  ))}
+                  {todayAppts.map((a: any, i: number) => {
+                    const isExpanded = expandedId === a.id;
+                    return (
+                      <React.Fragment key={i}>
+                        <tr 
+                          className={`hover-row ${isExpanded ? 'active-row' : ''}`}
+                          onClick={() => setExpandedId(isExpanded ? null : a.id)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <td style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 700, color: '#64748b' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                              {a.bookingTime || 'Walk-in'}
+                            </div>
+                          </td>
+                          <td>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <div className="dash-avatar">{a.patientName?.charAt(0)}</div>
+                              <div>
+                                <div style={{ fontWeight: 700, color: '#0f172a' }}>{a.patientName}</div>
+                                <div className="text-label" style={{ fontSize: 10 }}>ID: PT-{a.regid || a.id}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <span className={`dash-badge badge-${a.status === 'Consultation' ? 'success' : a.status === 'Waitlist' ? 'warning' : 'primary'}`}>
+                              {a.status}
+                            </span>
+                          </td>
+                          <td style={{ textAlign: 'center' }}>
+                            <button className="dash-view-btn" onClick={(e) => { e.stopPropagation(); navigate(`/patients/${a.regid || a.patientId}`); }}>View</button>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td colSpan={4} className="expansion-details-td">
+                            <div className={`expansion-content ${isExpanded ? 'open' : ''}`}>
+                              <div className="expansion-grid">
+                                <div>
+                                  <span className="expansion-label">Contact</span>
+                                  <div className="expansion-value">{a.phone || 'No phone recorded'}</div>
+                                </div>
+                                <div>
+                                  <span className="expansion-label">Demographics</span>
+                                  <div className="expansion-value">{a.age ? `${a.age} Yrs` : '--'} / {a.gender || '--'}</div>
+                                </div>
+                                <div style={{ gridColumn: 'span 2' }}>
+                                  <span className="expansion-label">Follow-up Notes</span>
+                                  <div className="expansion-value" style={{ fontStyle: 'italic', color: '#64748b' }}>
+                                    "{a.notes || 'No specific notes for this visit.'}"
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      </React.Fragment>
+                    );
+                  })}
                   {todayAppts.length === 0 && (
                     <tr>
                       <td colSpan={4} style={{ padding: '48px', textAlign: 'center', color: '#94a3b8' }}>

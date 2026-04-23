@@ -1273,7 +1273,7 @@ END $$`,
     name: 'homeo_details',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."homeo_details" (
   "id" serial PRIMARY KEY,
-  "regid" integer,
+  "regid" integer UNIQUE,
   "homeo_date" text,
   "disease" text,
   "diagnosis" text,
@@ -1297,6 +1297,18 @@ END $$`,
   "updated_at" timestamp,
   "created_at" timestamp
 )`,
+  },
+  {
+    name: 'homeo_details_regid_unique',
+    ddl: `DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'homeo_details_regid_unique'
+      AND conrelid = '"{{SCHEMA}}"."homeo_details"'::regclass
+  ) THEN
+    ALTER TABLE "{{SCHEMA}}"."homeo_details" ADD CONSTRAINT "homeo_details_regid_unique" UNIQUE("regid");
+  END IF;
+END $$`,
   },
   {
     name: 'knex_migrations',
@@ -2055,7 +2067,7 @@ END $$`,
     name: 'soap_notes',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."soap_notes" (
   "id" serial PRIMARY KEY,
-  "visit_id" integer NOT NULL,
+  "visit_id" integer NOT NULL UNIQUE,
   "subjective" text,
   "objective" text,
   "assessment" text,
@@ -2071,6 +2083,18 @@ END $$`,
   "created_at" timestamp,
   "updated_at" timestamp
 )`,
+  },
+  {
+    name: 'soap_notes_visit_id_unique',
+    ddl: `DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'soap_notes_visit_id_unique'
+      AND conrelid = '"{{SCHEMA}}"."soap_notes"'::regclass
+  ) THEN
+    ALTER TABLE "{{SCHEMA}}"."soap_notes" ADD CONSTRAINT "soap_notes_visit_id_unique" UNIQUE("visit_id");
+  END IF;
+END $$`,
   },
   {
     name: 'staticpages',
@@ -2789,7 +2813,7 @@ END $$`,
     name: 'vitals',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."vitals" (
   "id" serial PRIMARY KEY,
-  "visit_id" integer NOT NULL,
+  "visit_id" integer NOT NULL UNIQUE,
   "height_cm" real,
   "weight_kg" real,
   "bmi" real,
@@ -2805,6 +2829,18 @@ END $$`,
   "created_at" timestamp,
   "updated_at" timestamp
 )`,
+  },
+  {
+    name: 'vitals_visit_id_unique',
+    ddl: `DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'vitals_visit_id_unique'
+      AND conrelid = '"{{SCHEMA}}"."vitals"'::regclass
+  ) THEN
+    ALTER TABLE "{{SCHEMA}}"."vitals" ADD CONSTRAINT "vitals_visit_id_unique" UNIQUE("visit_id");
+  END IF;
+END $$`,
   },
   {
     name: 'waitingstatus',

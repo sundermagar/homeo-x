@@ -142,3 +142,11 @@ export function useCompleteVisit() {
     onSuccess: () => qc.invalidateQueries({ queryKey: apptKeys.all }),
   });
 }
+
+export function useSkipWaitlist() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => apiClient.post(`/appointments/waiting/${id}/skip`, {}),
+    onSuccess: () => qc.invalidateQueries({ queryKey: apptKeys.all }),
+  });
+}

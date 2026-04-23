@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { useWaitlist, useCallNext, useCompleteVisit, useTodayAppointments, useIssueToken, useAddToWaitlist } from '../hooks/use-appointments';
 import { apiClient } from '@/infrastructure/api-client';
+import { useAuthStore } from '@/shared/stores/auth-store';
 import { VitalsFormModal } from '../../medical-case/components/vitals-form-modal';
 import '../styles/appointments.css';
 
@@ -13,21 +14,47 @@ const WAIT_COLOR  = { 0: 'var(--pp-warning-fg)', 1: 'var(--pp-blue)', 2: 'var(--
 
 export default function TokenQueuePage() {
   const today = new Date().toISOString().split('T')[0]!;
+  const user = useAuthStore((s) => s.user);
+  const rawRole = ((user as any)?.type || (user as any)?.role || (user as any)?.roleName || '').toLowerCase();
+  const isDoctor = rawRole === 'doctor' || rawRole === 'medical practitioner' || ((user as any)?.name || '').toLowerCase().startsWith('dr');
+  // Doctors see only their own queue automatically; admins/receptionists can choose.
   const [tab, setTab] = useState<'queue' | 'tokens'>('queue');
-  const [doctorFilter, setDoctorFilter] = useState('');
+  const [doctorFilter, setDoctorFilter] = useState(() =>
+    isDoctor ? String((user as any)?.id ?? '') : ''
+  );
   const [doctors, setDoctors] = useState<any[]>([]);
   const [activeVitals, setActiveVitals] = useState<{ visitId: number, regid: number } | null>(null);
 
+  // Keep filter in sync if user identity changes
   useEffect(() => {
-    apiClient.get('/doctors').then(({ data }) => setDoctors(Array.isArray(data) ? data : [])).catch(() => {});
-  }, []);
+    if (isDoctor) setDoctorFilter(String((user as any)?.id ?? ''));
+  }, [(user as any)?.id, isDoctor]);
+
+  useEffect(() => {
+    if (!isDoctor) {
+      apiClient.get('/doctors').then(({ data }) => setDoctors(Array.isArray(data) ? data : [])).catch(() => {});
+    }
+  }, [isDoctor]);
 
   const { data: waitlist = [], isLoading: wLoading, refetch: wRefetch } = useWaitlist(today, doctorFilter ? Number(doctorFilter) : undefined);
   const { data: todayAppts = [], isLoading: aLoading, refetch: aRefetch } = useTodayAppointments();
 
-  const filteredAppts = doctorFilter
-    ? todayAppts.filter(a => a.doctorId === Number(doctorFilter))
-    : todayAppts;
+  // Filter appointments: for doctors, filter strictly by their ID or name match
+  const filteredAppts = (() => {
+    if (!doctorFilter) return todayAppts;
+    const filterNum = Number(doctorFilter);
+    const doctorUserName = ((user as any)?.name || '').toLowerCase().trim();
+    return todayAppts.filter(a => {
+      // Direct ID match
+      if (a.doctorId === filterNum) return true;
+      // Name-based fallback for legacy data
+      if (isDoctor && doctorUserName && a.doctorName) {
+        const aName = (a.doctorName || '').toLowerCase().trim();
+        if (aName === doctorUserName || aName.includes(doctorUserName) || doctorUserName.includes(aName)) return true;
+      }
+      return false;
+    });
+  })();
 
   const callNext      = useCallNext();
   const completeVisit = useCompleteVisit();
@@ -57,15 +84,22 @@ export default function TokenQueuePage() {
           <p className="appt-header-sub">Live waiting room — {today}</p>
         </div>
         <div className="appt-header-actions">
-          <select
-            className="appt-filter-input"
-            style={{ width: 180 }}
-            value={doctorFilter}
-            onChange={e => setDoctorFilter(e.target.value)}
-          >
-            <option value="">All Practitioners</option>
-            {doctors.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-          </select>
+          {/* Doctors always see their own queue — show label instead of dropdown */}
+          {isDoctor ? (
+            <span style={{ fontSize: 13, color: 'var(--pp-muted)', padding: '0 8px' }}>
+              Showing: <strong>{(user as any)?.name ?? 'My Queue'}</strong>
+            </span>
+          ) : (
+            <select
+              className="appt-filter-input"
+              style={{ width: 180 }}
+              value={doctorFilter}
+              onChange={e => setDoctorFilter(e.target.value)}
+            >
+              <option value="">All Practitioners</option>
+              {doctors.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+            </select>
+          )}
           <button className="appt-btn appt-btn-sm" onClick={() => { wRefetch(); aRefetch(); }}>
             <RefreshCw size={14} strokeWidth={1.6} /> Refresh
           </button>

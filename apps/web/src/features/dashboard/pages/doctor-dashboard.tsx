@@ -2,9 +2,6 @@ import { useState, useEffect } from 'react';
 import {
   Activity,
   Zap,
-  Clock,
-  TrendingUp,
-  CreditCard,
   Users,
   MoreHorizontal,
   Calendar,
@@ -12,19 +9,22 @@ import {
   Scale,
   Thermometer,
   Heart,
-  Settings,
   X,
+  ChevronRight,
+  ChevronDown,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useDashboard } from '../hooks/use-dashboard';
-import { useUpdateStatus } from '../../appointments/hooks/use-appointments';
+import { useUpdateStatus, useSkipWaitlist, useCompleteVisit, apptKeys } from '../../appointments/hooks/use-appointments';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { VitalsFormModal } from '../../medical-case/components/vitals-form-modal';
 import type { QueueItem, IntelligenceInsight, RecentTransaction } from '@mmc/types';
 import './role-dashboards.css';
 
-
+function getWlId(item: QueueItem): number | undefined {
+  return (item as any).wlId ?? (item as any).id;
+}
 
 export function DoctorDashboard() {
   const navigate = useNavigate();
@@ -32,57 +32,62 @@ export function DoctorDashboard() {
   const user = useAuthStore((s) => s.user);
   const { data: dashData, isLoading } = useDashboard('day');
   const updateStatus = useUpdateStatus();
+  const skipWaitlist = useSkipWaitlist();
+  const completeVisit = useCompleteVisit();
   const [queueFilter, setQueueFilter] = useState('ALL');
   const [consultDuration, setConsultDuration] = useState('00:00');
+  const [consultationStartedAt, setConsultationStartedAt] = useState<number | null>(null);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [showVitalsModal, setShowVitalsModal] = useState(false);
   const [showIntelligence, setShowIntelligence] = useState(true);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const todayAppts = (dashData?.queue || []) as QueueItem[];
   const activeConsultation = todayAppts.find((a) => a.status === 'Consultation');
   const kpis = dashData?.kpis;
 
-  // Skip: move current patient back to Waitlist, auto-promote next Waitlist patient
-  const handleSkip = async (currentId: number) => {
+  // Skip: sends to backend which resets to Waitlist + auto-promotes next patient
+  const handleSkip = async (item: QueueItem) => {
+    const wlId = getWlId(item);
+    if (!wlId) return;
     setIsMoreMenuOpen(false);
-
-    // Step 1: set current consultation patient back to Waitlist (stays in queue)
-    await new Promise<void>((resolve) =>
-      updateStatus.mutate(
-        { id: currentId, status: 'Waitlist' },
-        { onSuccess: () => resolve(), onError: () => resolve() }
-      )
-    );
-
-    // Step 2: promote the next Waitlist patient to Consultation
-    const nextWaiting = todayAppts.find(
-      (a) => a.status === 'Waitlist' && a.id !== currentId
-    );
-    if (nextWaiting) {
-      updateStatus.mutate(
-        { id: nextWaiting.id, status: 'Consultation' },
-        { onSuccess: () => qc.invalidateQueries({ queryKey: ['dashboard'] }) }
-      );
-    } else {
+    setConsultationStartedAt(null);
+    setConsultDuration('00:00');
+    try {
+      await skipWaitlist.mutateAsync(wlId);
       qc.invalidateQueries({ queryKey: ['dashboard'] });
+      qc.invalidateQueries({ queryKey: apptKeys.all });
+    } catch (err) {
+      console.error('Skip failed', err);
     }
   };
 
-  // Mark Absent: fully removes them from today (used from … menu)
-  const handleMarkAbsent = (id: number) => {
+  const handleMarkAbsent = (item: QueueItem) => {
     updateStatus.mutate(
-      { id, status: 'Absent' },
-      { onSuccess: () => qc.invalidateQueries({ queryKey: ['dashboard'] }) }
+      { id: item.id, status: 'Absent' },
+      { onSuccess: () => {
+        qc.invalidateQueries({ queryKey: ['dashboard'] });
+        qc.invalidateQueries({ queryKey: apptKeys.all });
+      }}
     );
     setIsMoreMenuOpen(false);
   };
 
-  const handleCancel = (id: number) => {
+  const handleCancel = (item: QueueItem) => {
     updateStatus.mutate(
-      { id, status: 'Cancelled' },
-      { onSuccess: () => qc.invalidateQueries({ queryKey: ['dashboard'] }) }
+      { id: item.id, status: 'Cancelled' },
+      { onSuccess: () => {
+        qc.invalidateQueries({ queryKey: ['dashboard'] });
+        qc.invalidateQueries({ queryKey: apptKeys.all });
+      }}
     );
     setIsMoreMenuOpen(false);
+  };
+
+  const handleReschedule = (item: QueueItem) => {
+    setIsMoreMenuOpen(false);
+    // Navigate to appointments with pre-filled patient info
+    navigate(`/appointments/calendar?patient=${item.regid || item.patientId}`);
   };
 
   const filteredAppts = todayAppts.filter((a) => {
@@ -94,22 +99,31 @@ export function DoctorDashboard() {
   useEffect(() => {
     if (!activeConsultation) {
       setConsultDuration('00:00');
+      setConsultationStartedAt(null);
       return;
     }
-    // Guard against invalid/missing timestamps to prevent NaN:NaN
-    const rawTs = activeConsultation ? (activeConsultation.updatedAt || activeConsultation.createdAt) : null;
-    const parsed = rawTs ? new Date(rawTs).getTime() : NaN;
-    const start = isNaN(parsed) ? Date.now() : parsed;
+    // Use the exact time Start Consultation was clicked (stored in state).
+    // Fall back to now (so it starts at 00:00) if no recorded start time.
+    const start = consultationStartedAt ?? Date.now();
 
     const interval = setInterval(() => {
       const diff = Math.max(0, Math.floor((Date.now() - start) / 1000));
       setConsultDuration(`${String(Math.floor(diff / 60)).padStart(2, '0')}:${String(diff % 60).padStart(2, '0')}`);
     }, 1000);
     return () => clearInterval(interval);
-  }, [activeConsultation]);
+  }, [activeConsultation, consultationStartedAt]);
 
-  const handleStartConsultation = (id: number) => updateStatus.mutate({ id, status: 'Consultation' });
-  const handleCompleteConsultation = (id: number) => updateStatus.mutate({ id, status: 'Completed' });
+  const handleStartConsultation = (id: number) => {
+    setConsultationStartedAt(Date.now()); // Record exact click time
+    setConsultDuration('00:00');          // Reset display immediately
+    updateStatus.mutate(
+      { id, status: 'Consultation' },
+      { onSuccess: () => {
+        qc.invalidateQueries({ queryKey: ['dashboard'] });
+        qc.invalidateQueries({ queryKey: apptKeys.all });
+      }}
+    );
+  };
 
   if (isLoading) {
     return (
@@ -161,13 +175,13 @@ export function DoctorDashboard() {
                     </div>
 
                     <div className="dd-hud-actions">
-                      <button className="btn-primary" onClick={() => navigate(`/patients/${activeConsultation.regid}`)}>
+                      <button className="btn-primary" onClick={() => {
+                        const wlId = getWlId(activeConsultation);
+                        if (wlId) handleStartConsultation(wlId);
+                      }}>
                         <Zap size={14} fill="currentColor" /> Start Consultation
                       </button>
-                      <button className="btn-secondary" style={{ color: '#16a34a', borderColor: '#16a34a' }} onClick={() => handleCompleteConsultation(activeConsultation.id)}>
-                        Complete
-                      </button>
-                      <button className="btn-skip" onClick={() => handleSkip(activeConsultation.id)}>Skip</button>
+                      <button className="btn-skip" onClick={() => handleSkip(activeConsultation)}>Skip</button>
 
                       <div className="dash-dropdown-container">
                         <button className="btn-more" onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}>
@@ -175,13 +189,13 @@ export function DoctorDashboard() {
                         </button>
                         {isMoreMenuOpen && (
                           <div className="dash-dropdown-menu">
-                            <button className="dash-dropdown-item" onClick={() => { setIsMoreMenuOpen(false); navigate('/appointments/calendar'); }}>
+                            <button className="dash-dropdown-item" onClick={() => handleReschedule(activeConsultation)}>
                               <Calendar size={14} style={{ marginRight: 8, verticalAlign: 'middle' }} /> Reschedule
                             </button>
-                            <button className="dash-dropdown-item danger" onClick={() => handleMarkAbsent(activeConsultation.id)}>
+                            <button className="dash-dropdown-item danger" onClick={() => handleMarkAbsent(activeConsultation)}>
                               <XCircle size={14} style={{ marginRight: 8, verticalAlign: 'middle' }} /> Mark Absent
                             </button>
-                            <button className="dash-dropdown-item danger" onClick={() => handleCancel(activeConsultation.id)}>
+                            <button className="dash-dropdown-item danger" onClick={() => handleCancel(activeConsultation)}>
                               <XCircle size={14} style={{ marginRight: 8, verticalAlign: 'middle' }} /> Cancel Appointment
                             </button>
                           </div>
@@ -218,18 +232,63 @@ export function DoctorDashboard() {
             </div>
             <div className="dash-card-body" style={{ padding: '0 8px' }}>
               {filteredAppts.length > 0 ? (
-                filteredAppts.map((a) => (
-                  <div key={a.id} className="dash-row" onClick={() => navigate(`/patients/${a.regid}`)} style={{ cursor: 'pointer' }}>
-                    <div className="dash-avatar">T-{a.tokenNo || '—'}</div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{a.patientName}</div>
-                      <div className="text-label" style={{ fontSize: 10 }}>{a.bookingTime || 'Scheduled'} · {a.notes || 'Regular Checkup'}</div>
+                filteredAppts.map((a, idx) => {
+                  const isExpanded = expandedId === a.id;
+                  return (
+                    <div key={`${a.id}-${idx}`}>
+                      <div 
+                        className={`dash-row ${isExpanded ? 'active' : ''}`} 
+                        onClick={() => setExpandedId(isExpanded ? null : a.id)} 
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
+                          <div className="dash-avatar">
+                            {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{a.patientName}</div>
+                            <div className="text-label" style={{ fontSize: 10 }}>{a.bookingTime || 'Scheduled'} · Token {a.tokenNo || '—'}</div>
+                          </div>
+                        </div>
+                        <span className={`dash-badge badge-${a.status === 'Consultation' ? 'success' : a.status === 'Completed' ? 'primary' : 'warning'}`}>
+                          {a.status || 'Waitlist'}
+                        </span>
+                      </div>
+                      
+                      <div className={`dash-row-details ${isExpanded ? 'expanded' : ''}`}>
+                        <div className="details-inner">
+                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                              <div>
+                                <div className="text-label" style={{ fontSize: 9, textTransform: 'uppercase', marginBottom: 4 }}>Clinical Notes</div>
+                                <div style={{ fontSize: 12, color: '#475569', lineHeight: 1.5 }}>
+                                  {a.notes || 'Routine follow-up. No specific symptoms recorded at registration.'}
+                                </div>
+                              </div>
+                              <div style={{ paddingLeft: 16, borderLeft: '1px solid var(--pp-warm-2)' }}>
+                                <div className="text-label" style={{ fontSize: 9, textTransform: 'uppercase', marginBottom: 4 }}>Patient Info</div>
+                                <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>PT-{a.regid}</div>
+                                <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+                                  {a.age || '--'} Yrs · {a.gender || '--'}
+                                </div>
+                                <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+                                  <button className="pp-link" onClick={(e) => { e.stopPropagation(); navigate(`/patients/${a.regid}`); }}>View Profile</button>
+                                  {a.status === 'Waitlist' && (
+                                    <button 
+                                      className="pp-link" 
+                                      style={{ color: 'var(--pp-blue)' }} 
+                                      onClick={(e) => { e.stopPropagation(); handleStartConsultation(a.id); }}
+                                    >
+                                      Start Consult
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                           </div>
+                        </div>
+                      </div>
                     </div>
-                    <span className={`dash-badge badge-${a.status === 'Consultation' ? 'success' : a.status === 'Completed' ? 'primary' : 'warning'}`}>
-                      {a.status || 'Waitlist'}
-                    </span>
-                  </div>
-                ))
+                  );
+                })
               ) : (
                 <div style={{ padding: '48px 0', textAlign: 'center', color: '#94a3b8' }}>
                   <Users size={24} style={{ marginBottom: 8, opacity: 0.5 }} />
@@ -296,7 +355,10 @@ export function DoctorDashboard() {
           regid={activeConsultation.regid || activeConsultation.patientId}
           initialData={activeConsultation.vitals}
           onClose={() => setShowVitalsModal(false)}
-          onSuccess={() => qc.invalidateQueries({ queryKey: ['dashboard'] })}
+          onSuccess={() => {
+            qc.invalidateQueries({ queryKey: ['dashboard'] });
+            qc.invalidateQueries({ queryKey: ['appointments'] });
+          }}
         />
       )}
     </div>

@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Search, Plus, ChevronRight } from 'lucide-react';
+import { Search, Plus, ChevronRight, Power } from 'lucide-react';
 import { useAuthStore } from '@/shared/stores/auth-store';
+import { apiClient } from '@/infrastructure/api-client';
 
 interface DashboardHeaderProps {
   onOpenPalette: () => void;
@@ -56,14 +57,44 @@ export function DashboardHeader({ onOpenPalette }: DashboardHeaderProps) {
   const pageTitle  = getPageTitle(location.pathname);
   const clinicName = user?.clinicName || 'Kreed.health Clinic';
 
+  const rawRole = ((user as any)?.type || (user as any)?.role || (user as any)?.roleName || '').toLowerCase();
+  const isDoctor = rawRole === 'doctor' || rawRole === 'medical practitioner' || ((user as any)?.name || '').toLowerCase().startsWith('dr');
+
+  const [isDoctorActive, setIsDoctorActive] = useState<boolean>(true);
+  const [toggleLoading, setToggleLoading] = useState(false);
+
+  useEffect(() => {
+    if (isDoctor) {
+      apiClient.get<{ success: boolean; isActive: boolean }>('/doctors/status').then(({ data }) => {
+        if (typeof data.isActive === 'boolean') {
+          setIsDoctorActive(data.isActive);
+        }
+      }).catch(() => {});
+    }
+  }, [isDoctor]);
+
+  const toggleDoctorStatus = async () => {
+    setToggleLoading(true);
+    try {
+      const { data } = await apiClient.patch<{ success: boolean; isActive: boolean }>('/doctors/status', { isActive: !isDoctorActive });
+      if (data.success) {
+        setIsDoctorActive(data.isActive);
+      }
+    } catch (err) {
+      console.error('Failed to toggle status', err);
+    } finally {
+      setToggleLoading(false);
+    }
+  };
+
   return (
     <>
       <header className="dh-bar">
         {/* ── Left: Live Status + Page Title ── */}
         <div className="dh-left">
           <div className="dh-live-badge">
-            <span className="dh-live-dot" />
-            <span className="dh-live-text">Live</span>
+            <span className="dh-live-dot" style={{ backgroundColor: isDoctor ? (isDoctorActive ? 'var(--pp-success)' : 'var(--pp-error)') : 'var(--pp-success)' }} />
+            <span className="dh-live-text">{isDoctor ? (isDoctorActive ? 'Live' : 'Offline') : 'Live'}</span>
           </div>
 
           <div className="dh-breadcrumb">
@@ -91,14 +122,35 @@ export function DashboardHeader({ onOpenPalette }: DashboardHeaderProps) {
           </button>
 
           {/* Primary CTA */}
-          <button
-            className="dh-cta-btn"
-            onClick={() => navigate('/appointments')}
-            id="dh-new-appointment-btn"
-          >
-            <Plus size={14} strokeWidth={2.5} />
-            New appointment
-          </button>
+          {isDoctor ? (
+            <button
+              className="dh-cta-btn"
+              onClick={toggleDoctorStatus}
+              disabled={toggleLoading}
+              style={{
+                backgroundColor: isDoctorActive ? 'var(--pp-danger-fg)' : 'var(--pp-success-fg)',
+                color: 'white',
+                border: 'none',
+                minWidth: '100px',
+                justifyContent: 'center',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+              }}
+            >
+              <Power size={14} strokeWidth={2.5} style={{ marginRight: '4px' }} />
+              <span className="hide-mobile">
+                {toggleLoading ? 'Updating…' : (isDoctorActive ? 'Go Inactive' : 'Go Active')}
+              </span>
+            </button>
+          ) : (
+            <button
+              className="dh-cta-btn"
+              onClick={() => navigate('/appointments')}
+              id="dh-new-appointment-btn"
+            >
+              <Plus size={14} strokeWidth={2.5} />
+              <span className="hide-mobile">New appointment</span>
+            </button>
+          )}
         </div>
       </header>
     </>
