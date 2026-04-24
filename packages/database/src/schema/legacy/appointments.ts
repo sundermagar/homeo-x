@@ -5,6 +5,7 @@ export const appointmentsLegacy = pgTable("appointments", {
   clinicId: integer("clinic_id"),
   bookingDate: text("booking_date"),
   bookingTime: text("booking_time"),
+  doctorId: integer("doctor_id"),
   patientId: integer("patient_id"),
   assistantDoctor: text("assistant_doctor"),
   patientName: text("patient_name"),

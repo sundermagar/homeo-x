@@ -38,6 +38,15 @@ const FaqPage = lazy(() => import('@/features/public/pages/faq-page').then(m => 
 const StaticPageView = lazy(() => import('@/features/public/pages/static-page-view').then(m => ({ default: m.StaticPageView })));
 const PublicClinicalShell = lazy(() => import('@/features/public/pages/public-clinical-shell').then(m => ({ default: m.PublicClinicalShell })));
 
+// ─── Patient Portal Pages ───
+const PatientDashboard = lazy(() => import('@/features/public/pages/patient-dashboard'));
+const PatientAppointments = lazy(() => import('@/features/public/pages/patient-appointments'));
+const PatientReports = lazy(() => import('@/features/public/pages/patient-reports'));
+const PatientPrescriptions = lazy(() => import('@/features/public/pages/patient-prescriptions'));
+const PatientProfile = lazy(() => import('@/features/public/pages/patient-profile'));
+const PatientNotifications = lazy(() => import('@/features/public/pages/patient-notifications'));
+const PatientBookWizard = lazy(() => import('@/features/public/pages/patient-book-wizard'));
+
 const Loading = () => <div style={{ padding: 40, textAlign: 'center', opacity: 0.5 }}>Loading...</div>;
 
 export function AppRouter() {
@@ -55,6 +64,16 @@ export function AppRouter() {
           <Route path="/p/:slug" element={<StaticPageView />} />
           <Route path="/public/clinical/:phone" element={<PublicClinicalShell />} />
         </Route>
+
+        {/* Patient Portal (public, OTP-authenticated) */}
+        <Route path="/patient/:phone" element={<PatientDashboard />} />
+        <Route path="/patient/:phone/appointments" element={<PatientAppointments />} />
+        <Route path="/patient/:phone/reports" element={<PatientReports />} />
+        <Route path="/patient/:phone/prescriptions" element={<PatientPrescriptions />} />
+        <Route path="/patient/:phone/profile" element={<PatientProfile />} />
+        <Route path="/patient/:phone/notifications" element={<PatientNotifications />} />
+        <Route path="/patient/:phone/book/*" element={<PatientBookWizard />} />
+
 
         {/* Protected */}
         <Route element={<ProtectedRoute />}>

@@ -2,11 +2,9 @@ import { Router } from 'express';
 import { asyncHandler } from '../middleware/async-handler';
 import { sendSuccess } from '../../../shared/response-formatter';
 import { MedicalCaseRepositoryPg } from '../../repositories/medical-case.repository.pg';
-import { MockMedicalCaseRepository } from '../../repositories/mocks/mock-medical-case.repository';
 import { InventoryRepositoryPg } from '../../repositories/inventory.repository.pg';
 import { BillingRepositoryPg } from '../../repositories/billing.repository.pg';
 import { AppointmentRepositoryPG } from '../../repositories/appointment.repository.pg';
-import { MockAppointmentRepository } from '../../repositories/mocks/mock-appointment.repository';
 import { authMiddleware } from '../middleware/auth';
 import { CreateMedicalCaseUseCase } from '../../../domains/medical-case/use-cases/create-medical-case.use-case';
 import { GetFullMedicalCaseUseCase } from '../../../domains/medical-case/use-cases/get-full-medical-case.use-case';
@@ -19,17 +17,13 @@ const router = Router();
 router.use(authMiddleware);
 
 const getRepo = (req: any) => {
-  if (req.user?.id === 101 || req.user?.id === 102) {
-    return new MockMedicalCaseRepository();
-  }
+  // Always use real database (no more mock data)
   return new MedicalCaseRepositoryPg(req.tenantDb);
 };
 const getInvRepo = (req: any) => new InventoryRepositoryPg(req.tenantDb);
 const getBillRepo = (req: any) => new BillingRepositoryPg(req.tenantDb);
 const getApptRepo = (req: any) => {
-  if (req.user?.id === 101 || req.user?.id === 102) {
-    return new MockAppointmentRepository();
-  }
+  // Always use real database (no more mock data)
   return new AppointmentRepositoryPG(req.tenantDb);
 };
 

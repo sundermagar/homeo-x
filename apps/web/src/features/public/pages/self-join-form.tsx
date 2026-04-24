@@ -36,7 +36,7 @@ export default function SelfJoinForm() {
       <div className="auth-container">
         <div className="auth-card text-center">
           
-          <div style={{ width: 80, height: 80, background: '#dcfce7', color: '#16a34a', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40, margin: '0 auto 24px' }}>
+          <div style={{ width: 80, height: 80, background: 'rgba(99, 102, 241, 0.1)', color: 'var(--primary)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40, margin: '0 auto 24px' }}>
             ✓
           </div>
           <div className="auth-header">

@@ -7,6 +7,8 @@ export * from './billing';
 export * from './consultation';
 export * from './rbac';
 export * from './inventory';
+export * from './patients';
+export * from './patient_preferences';
 export * from './audit';
 export * from './packages';
 export * from './logistics';

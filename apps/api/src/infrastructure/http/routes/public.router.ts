@@ -136,3 +136,73 @@ publicRouter.get('/clinical/:phone', asyncHandler(async (req, res) => {
 
   sendSuccess(res, data);
 }));
+
+// ─── Patient Appointments ─────────────────────────────────────────────────
+publicRouter.get('/appointments/booked-slots', asyncHandler(async (req, res) => {
+  const { date } = req.query as { date: string };
+  const repo = getRepo(req);
+  const slots = await repo.getBookedSlots(date);
+  sendSuccess(res, slots);
+}));
+
+publicRouter.get('/appointments/:phone', asyncHandler(async (req, res) => {
+  const { phone } = req.params;
+  const repo = getRepo(req);
+  const appointments = await repo.getPatientAppointments(phone);
+  sendSuccess(res, appointments);
+}));
+
+publicRouter.post('/appointments/book', asyncHandler(async (req, res) => {
+  const { phone, patientName, bookingDate, bookingTime, doctorId, visitType, notes } = req.body;
+  if (!phone || !bookingDate) {
+    throw new Error('Phone and booking date are required');
+  }
+  
+  const repo = getRepo(req);
+  const appointment = await repo.bookAppointment({
+    phone,
+    patientName: patientName || 'Patient',
+    bookingDate,
+    bookingTime: bookingTime || '',
+    doctorId: doctorId || 101, // fallback if missing
+    visitType: visitType || 'New',
+    notes: notes || '',
+  });
+  
+  sendSuccess(res, appointment, 'Appointment booked successfully');
+}));
+
+// ─── Cancel Appointment ───────────────────────────────────────────────────
+publicRouter.patch('/appointments/:id/cancel', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const repo = getRepo(req);
+  const result = await repo.cancelAppointment(Number(id));
+  sendSuccess(res, result, 'Appointment cancelled');
+}));
+
+// Note: this moved to top of Patient Appointments section
+
+// ─── Patient Preferences ─────────────────────────────────────────────────
+publicRouter.get('/patient/:phone/preferences', asyncHandler(async (req, res) => {
+  const { phone } = req.params;
+  const repo = getRepo(req);
+  const prefs = await repo.getNotificationPreferences(phone);
+  sendSuccess(res, prefs);
+}));
+
+publicRouter.patch('/patient/:phone/preferences', asyncHandler(async (req, res) => {
+  const { phone } = req.params;
+  const prefs = req.body;
+  const repo = getRepo(req);
+  await repo.upsertNotificationPreferences(phone, prefs);
+  sendSuccess(res, prefs, 'Preferences updated successfully');
+}));
+
+// ─── Patient Profile Update ──────────────────────────────────────────────
+publicRouter.put('/patient/:phone/profile', asyncHandler(async (req, res) => {
+  const { phone } = req.params;
+  const updates = req.body;
+  const repo = getRepo(req);
+  const result = await repo.updatePatientProfile(phone, updates);
+  sendSuccess(res, result, 'Profile updated successfully');
+}));

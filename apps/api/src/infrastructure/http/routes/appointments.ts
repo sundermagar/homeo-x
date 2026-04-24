@@ -13,13 +13,10 @@ import { sendSuccess } from '../../../shared/response-formatter';
 export const appointmentsRouter: Router = Router();
 
 import { AppointmentRepositoryPG } from '../../repositories/appointment.repository.pg';
-import { MockAppointmentRepository } from '../../repositories/mocks/mock-appointment.repository';
-// ... existing imports ...
+// Using real DB repository for all users (no more mock data)
 
 const getRepo = (req: any) => {
-  if (req.user?.id === 101 || req.user?.id === 102) {
-    return new MockAppointmentRepository();
-  }
+  // Always use real database so patient-booked appointments show up
   return new AppointmentRepositoryPG(req.tenantDb);
 };
 

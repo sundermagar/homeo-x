@@ -30,7 +30,7 @@ export default function OtpVerifyPage() {
     setErrorMsg('');
     try {
       await verifyOtpMutation.mutateAsync({ phone, otp });
-      navigate(`/public/clinical/${phone}`);
+      navigate(`/patient/${phone}`);
     } catch (err: any) {
       setErrorMsg(err.message || 'Invalid or expired OTP');
     }
@@ -78,11 +78,23 @@ export default function OtpVerifyPage() {
               <input 
                 type="text" 
                 value={otp}
-                onChange={(e) => setOtp(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                  setOtp(val);
+                  // Auto-verify when 6 digits entered
+                  if (val.length === 6 && !verifyOtpMutation.isPending) {
+                    setErrorMsg('');
+                    verifyOtpMutation.mutateAsync({ phone, otp: val })
+                      .then(() => navigate(`/patient/${phone}`))
+                      .catch((err: any) => setErrorMsg(err.message || 'Invalid or expired OTP'));
+                  }
+                }}
                 placeholder="••••••"
                 required
                 maxLength={6}
                 className="form-input otp-input"
+                autoFocus
+                inputMode="numeric"
               />
             </div>
             
