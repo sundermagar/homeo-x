@@ -53,7 +53,7 @@ export class UserRepositoryPG implements UserRepository {
   async findById(id: number): Promise<User | null> {
     const rows = await this.db.execute(
       sql`SELECT id, email, name, type, context_id, mobile, created_at, updated_at
-          FROM users WHERE id = ${id} AND deleted_at IS NULL LIMIT 1`
+          FROM public.users WHERE id = ${id} AND deleted_at IS NULL LIMIT 1`
     );
     const row = (rows as any[])[0];
     return row ? this.rowToUser(row) : null;
@@ -62,7 +62,7 @@ export class UserRepositoryPG implements UserRepository {
   async findByEmail(email: string): Promise<User | null> {
     const rows = await this.db.execute(
       sql`SELECT u.*, o.name as clinic_name 
-          FROM users u 
+          FROM public.users u 
           LEFT JOIN public.organizations o ON o.id = u.context_id 
           WHERE u.email = ${email} AND u.deleted_at IS NULL 
           LIMIT 1`
@@ -73,7 +73,7 @@ export class UserRepositoryPG implements UserRepository {
 
   async getUserPassword(email: string): Promise<string | null> {
     const rows = await this.db.execute(
-      sql`SELECT password FROM users WHERE email = ${email} AND deleted_at IS NULL LIMIT 1`
+      sql`SELECT password FROM public.users WHERE email = ${email} AND deleted_at IS NULL LIMIT 1`
     );
     const row = (rows as any[])[0] as any;
     return row?.password || null;
@@ -81,7 +81,7 @@ export class UserRepositoryPG implements UserRepository {
 
   async updatePassword(userId: number, passwordHash: string): Promise<void> {
     await this.db.execute(
-      sql`UPDATE users SET password = ${passwordHash}, updated_at = NOW() WHERE id = ${userId}`
+      sql`UPDATE public.users SET password = ${passwordHash}, updated_at = NOW() WHERE id = ${userId}`
     );
   }
 
@@ -102,7 +102,7 @@ export class UserRepositoryPG implements UserRepository {
   async findPractitioners(): Promise<User[]> {
     const rows = await this.db.execute(
       sql`SELECT id, email, name, type, context_id, mobile, created_at, updated_at
-          FROM users WHERE type = 'Doctor' AND deleted_at IS NULL`
+          FROM public.users WHERE type = 'Doctor' AND deleted_at IS NULL`
     );
     return (rows as any[]).map(row => this.rowToUser(row));
   }

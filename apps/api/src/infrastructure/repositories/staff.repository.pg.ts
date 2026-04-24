@@ -76,7 +76,7 @@ export class StaffRepositoryPg implements StaffRepository {
     const colFragment = sql.join(selectCols.map(c => sql.identifier(c)), sql`, `);
 
     // Filter by clinicId if provided. 
-    // Note: clinicadmins table does not have clinic_id, so we use context_id from users table for that category.
+    // Note: clinicadmins table does not have clinic_id, so we use context_id from public.users table for that category.
     const supportsClinicId = ['doctor', 'receptionist', 'employee', 'account', 'clinicadmin'].includes(category);
     const clinicCol = isClinicAdmin ? 'context_id' : 'clinic_id';
     const clinicFilter = (clinicId && supportsClinicId) 
@@ -90,7 +90,8 @@ export class StaffRepositoryPg implements StaffRepository {
     const finalSortBy = validSortCols.includes(sortBy) ? sortBy : 'id';
     const finalSortOrder = sortOrder === 'ASC' ? sql`ASC` : sql`DESC`;
 
-    console.log('[StaffRepo] findAll starting', { category, limit, offset, clinicId, sortBy: finalSortBy, sortOrder });
+    const timestamp = new Date().toISOString();
+    console.log(`[StaffRepo] [${timestamp}] findAll category=${category} clinicId=${clinicId}`);
     const rows = await this.db.execute(sql`
       SELECT ${colFragment}
       FROM ${tableIdentifier}
@@ -355,12 +356,15 @@ export class StaffRepositoryPg implements StaffRepository {
     const userUpdates = [];
     if (data.name) userUpdates.push(sql`name = ${data.name}`);
     if (data.email) userUpdates.push(sql`email = ${data.email}`);
-    if (hashedPassword) userUpdates.push(sql`password = ${hashedPassword}`);
+    if (data.password) {
+      const hashed = await bcrypt.hash(data.password, 10);
+      userUpdates.push(sql`password = ${hashed}`);
+    }
     
     if (userUpdates.length > 0) {
       await this.db.execute(sql`
         UPDATE public.users SET ${sql.join(userUpdates, sql`, `)}, updated_at = NOW()
-        WHERE id = ${id}
+        WHERE id = ${id} AND (deleted_at IS NULL OR deleted_at::text = '')
       `);
     }
 
