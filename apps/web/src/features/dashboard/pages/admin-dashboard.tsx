@@ -69,21 +69,21 @@ export function AdminDashboard() {
           value={fmt(Number(clinicData?.totalRevenue ?? kpis?.todaysCollection ?? 0))}
           trend={Number(clinicData?.revenueTrend ?? kpis?.revenueTrend ?? 0)}
           icon={<CreditCard size={18} />}
-          color="#2563eb"
+          color="var(--pp-blue)"
         />
         <PrimaryKPICard
           label="TOTAL PATIENTS"
           value={String(Number(clinicData?.patientsApril ?? kpis?.newPatientsCount ?? 0))}
           trend={Number(clinicData?.patientsTrend ?? kpis?.patientTrend ?? 0)}
           icon={<Users size={18} />}
-          color="#7c3aed"
+          color="var(--pp-blue)"
         />
         <PrimaryKPICard
           label="COLLECTION RATE"
           value={`${clinicData?.collectionRate ?? kpis?.collectionRate ?? 0}%`}
           trend={Number(clinicData?.collectionRateTrend ?? 0)}
           icon={<CheckCircle2 size={18} />}
-          color="#16a34a"
+          color="var(--pp-blue)"
           invertTrend
         />
         <PrimaryKPICard
@@ -91,17 +91,17 @@ export function AdminDashboard() {
           value={`${clinicData?.avgWaitTime ?? kpis?.avgWaitTime ?? 0}m`}
           trend={Number(clinicData?.avgWaitTimeTrend ?? 0)}
           icon={<Clock size={18} />}
-          color="#d97706"
+          color="var(--pp-blue)"
           invertTrend
         />
       </div>
 
       {/* ── Secondary Stats Row ────────────────────────────────────────── */}
       <div className="sa-stats-row">
-        <StatCard label="Active Clinics" value={String(clinicCount)} icon={<Building2 size={16} />} color="#2563eb" onClick={() => navigate('/platform/clinics')} />
-        <StatCard label="Active Staff" value={String(activeStaff)} icon={<Users size={16} />} color="#7c3aed" onClick={() => navigate('/staff')} />
-        <StatCard label="Revenue / Patient" value={fmt(clinicData?.revenueBreakdown?.perPatient || 0)} icon={<BarChart3 size={16} />} color="#16a34a" />
-        <StatCard label="Pending Dues" value={fmt(clinicData?.revenueBreakdown?.pending || 0)} icon={<AlertCircle size={16} />} color="#dc2626" onClick={() => navigate('/billing')} />
+        <StatCard label="Active Clinics" value={String(clinicCount)} icon={<Building2 size={16} />} color="var(--pp-blue)" onClick={() => navigate('/platform/clinics')} />
+        <StatCard label="Active Staff" value={String(activeStaff)} icon={<Users size={16} />} color="var(--pp-blue)" onClick={() => navigate('/staff')} />
+        <StatCard label="Revenue / Patient" value={fmt(clinicData?.revenueBreakdown?.perPatient || 0)} icon={<BarChart3 size={16} />} color="var(--pp-blue)" />
+        <StatCard label="Pending Dues" value={fmt(clinicData?.revenueBreakdown?.pending || 0)} icon={<AlertCircle size={16} />} color="var(--pp-blue)" onClick={() => navigate('/billing')} />
       </div>
 
       {/* ── Revenue Trend Chart ───────────────────────────────────────── */}

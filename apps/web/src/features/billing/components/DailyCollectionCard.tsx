@@ -8,11 +8,9 @@ interface DailyCollectionCardProps {
 
 export function DailyCollectionCard({ label, amount, count, type = 'default', icon }: DailyCollectionCardProps) {
   const styles = {
-    default: { color: 'var(--pp-blue)',       bg: 'var(--pp-blue-tint)' },
-    success: { color: 'var(--pp-success-fg)',  bg: 'var(--pp-success-bg)' },
-    danger:  { color: 'var(--pp-danger-fg)',   bg: 'var(--pp-danger-bg)' },
-    warning: { color: 'var(--pp-warning-fg)',  bg: 'var(--pp-warning-bg)' },
-  }[type];
+    color: 'var(--pp-blue)',
+    bg: 'var(--pp-blue-tint)'
+  };
 
   /* Format: ₹1,000 → split ₹ from number for better typography */
   const formatted = amount.toLocaleString('en-IN');

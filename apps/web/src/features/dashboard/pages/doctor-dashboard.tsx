@@ -139,12 +139,17 @@ export function DoctorDashboard() {
 
   return (
     <div className="dash-root">
+      <div className="dash-header">
+        <h1 className="dash-title">Clinical Workspace</h1>
+        <p className="dash-subtitle">Real-time patient queue and diagnostic insights</p>
+      </div>
+
       {/* 1. KPI Strip */}
       <div className="dash-kpi-strip">
-        <KPIItem label="Daily Visits" value={todayAppts.length} trend={`${kpis?.patientTrend || 0}% vs yesterday`} color={Number(kpis?.patientTrend || 0) > 0 ? '#16a34a' : '#dc2626'} />
-        <KPIItem label="Collection" value={`₹${(kpis?.todaysCollection || 0).toLocaleString()}`} trend={`${kpis?.revenueTrend || 0}% vs yesterday`} color={Number(kpis?.revenueTrend || 0) > 0 ? '#16a34a' : '#dc2626'} />
-        <KPIItem label="Wait Rate" value={`${kpis?.collectionRate || 0}%`} trend="Target 95%" color="#16a34a" />
-        <KPIItem label="Avg Wait" value={`${kpis?.avgWaitTime || 0}m`} trend="In queue" color="#2563eb" />
+        <KPIItem label="Daily Visits" value={todayAppts.length} trend={`${kpis?.patientTrend || 0}% vs yesterday`} color="var(--pp-blue)" />
+        <KPIItem label="Collection" value={`₹${(kpis?.todaysCollection || 0).toLocaleString()}`} trend={`${kpis?.revenueTrend || 0}% vs yesterday`} color="var(--pp-blue)" />
+        <KPIItem label="Wait Rate" value={`${kpis?.collectionRate || 0}%`} trend="Target 95%" color="var(--pp-blue)" />
+        <KPIItem label="Avg Wait" value={`${kpis?.avgWaitTime || 0}m`} trend="In queue" color="var(--pp-blue)" />
       </div>
 
       <div className="dash-grid">

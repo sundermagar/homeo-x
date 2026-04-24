@@ -82,10 +82,10 @@ export function BillingTable({ bills, isLoading }: BillingTableProps) {
                   <td data-label="Charges" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 700, color: 'var(--pp-blue)' }}>
                     ₹{bill.charges.toLocaleString()}
                   </td>
-                  <td data-label="Received" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 700, color: 'var(--pp-success-fg)' }}>
+                  <td data-label="Received" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 700, color: 'var(--pp-blue)' }}>
                     ₹{bill.received.toLocaleString()}
                   </td>
-                  <td data-label="Balance" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 700, color: bill.balance > 0 ? 'var(--pp-danger-fg)' : 'var(--pp-text-3)' }}>
+                  <td data-label="Balance" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 700, color: 'var(--pp-blue)' }}>
                     {bill.balance > 0 ? `₹${bill.balance.toLocaleString()}` : '—'}
                   </td>
                   <td data-label="" style={{ textAlign: 'right' }}>

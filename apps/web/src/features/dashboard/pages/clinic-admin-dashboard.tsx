@@ -51,18 +51,23 @@ function TrendBadge({ value }: { value: number }) {
   );
 }
 
-function ProgressBar({ value, max, color }: { value: number; max: number; color: string }) {
+function ProgressBar({ value, max }: { value: number; max: number; color?: string }) {
   const pct = Math.min(100, Math.round((value / max) * 100));
   return (
     <div className="cad-progress-track">
-      <div className="cad-progress-fill" style={{ width: `${pct}%`, background: color }} />
+      <div className="cad-progress-fill" style={{ width: `${pct}%`, background: 'var(--pp-blue)' }} />
     </div>
   );
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const cls = status === 'Paid' ? 'cad-badge-success' : status === 'Pending' ? 'cad-badge-danger' : 'cad-badge-warning';
-  return <span className={`cad-badge ${cls}`}>{status}</span>;
+  const isNeutral = status === 'Pending' || status === 'Waiting';
+  const cls = isNeutral ? 'cad-badge-default' : 'cad-badge-primary';
+  return <span className={`cad-badge ${cls}`} style={{
+    background: isNeutral ? 'rgba(255,255,255,0.05)' : 'var(--pp-blue-tint)',
+    color: isNeutral ? 'var(--pp-text-3)' : 'var(--pp-blue)',
+    border: 'none'
+  }}>{status}</span>;
 }
 
 export function ClinicAdminDashboard() {
@@ -326,7 +331,6 @@ export function ClinicAdminDashboard() {
                     <ProgressBar
                       value={t.current}
                       max={t.target}
-                      color={t.status === 'success' ? '#16a34a' : t.status === 'warning' ? '#d97706' : '#dc2626'}
                     />
                   </div>
                 ))}

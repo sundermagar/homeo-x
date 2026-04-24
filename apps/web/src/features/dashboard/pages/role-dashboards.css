@@ -12,6 +12,37 @@
   gap: var(--pp-space-6);
 }
 
+/* 0. Main Dashboard Header */
+.dash-header {
+  margin-bottom: var(--pp-space-6);
+}
+
+.dash-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--pp-ink);
+  margin: 0 0 4px;
+  letter-spacing: -0.01em;
+}
+
+.dash-subtitle {
+  font-size: 13px;
+  color: var(--pp-text-3);
+  font-weight: 500;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dash-subtitle::before {
+  content: '';
+  width: 10px;
+  height: 1px;
+  background: var(--pp-blue);
+  opacity: 0.4;
+}
+
 /* 1. KPI Strip (Top Row) */
 .dash-kpi-strip {
   display: grid;
