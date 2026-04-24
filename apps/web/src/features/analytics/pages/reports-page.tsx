@@ -145,10 +145,11 @@ function MonthWiseDueTab({ onExport }: { onExport: (filename: string, headers: s
   );
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }} className="plat-dues-mobile-grid">
+    <div className="plat-dues-grid">
       <style>{`
+        .plat-dues-grid { display: grid; grid-template-columns: 1fr; gap: 24px; }
         @media (min-width: 1024px) {
-          .plat-dues-mobile-grid { grid-template-columns: 320px 1fr !important; }
+          .plat-dues-grid { grid-template-columns: 320px 1fr; }
         }
       `}</style>
 
@@ -222,21 +223,26 @@ function MonthWiseDueTab({ onExport }: { onExport: (filename: string, headers: s
               <div className="plat-empty-text">No outstanding dues for this month.</div>
             </div>
           )}
-          <div style={{ display: 'grid', gap: '12px' }}>
+          <div className="plat-dues-list">
+            <style>{`
+              .plat-dues-list { display: grid; gap: 12px; }
+              .plat-due-item { 
+                padding: 16px; 
+                border: 1px solid var(--pp-warm-4); 
+                border-radius: 12px;
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                background: var(--bg-card);
+              }
+              @media (min-width: 640px) {
+                .plat-due-item { flex-direction: row; justify-content: space-between; align-items: center; }
+              }
+            `}</style>
             {(details ?? []).map((d: any) => (
-              <div key={String(d.regid)} style={{ 
-                padding: '16px', 
-                border: '1px solid var(--pp-warm-4)', 
-                borderRadius: '12px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: '16px',
-                background: 'var(--bg-card)'
-              }}>
-                <div style={{ flex: 1, minWidth: '200px' }}>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--pp-ink)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div key={String(d.regid)} className="plat-due-item">
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--pp-ink)', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     {String(d.first_name ?? '')} {String(d.surname ?? '')}
                     <span className="plat-badge plat-badge-default">#{String(d.regid ?? '')}</span>
                   </div>
@@ -244,12 +250,12 @@ function MonthWiseDueTab({ onExport }: { onExport: (filename: string, headers: s
                     {d.mobile1 ? String(d.mobile1) : '—'}{d.city ? ` · ${String(d.city)}` : ''}
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '16px', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase' }}>Charges</div>
                     <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>₹{Number(d.total_charges ?? 0).toLocaleString()}</div>
                   </div>
-                  <div style={{ padding: '8px 12px', background: 'var(--pp-danger-bg)', borderRadius: '8px', textAlign: 'right', border: '1px solid var(--pp-warm-4)' }}>
+                  <div style={{ padding: '8px 12px', background: 'var(--pp-danger-bg)', borderRadius: '8px', textAlign: 'right', border: '1px solid var(--pp-warm-4)', minWidth: '100px' }}>
                     <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--pp-danger-fg)', textTransform: 'uppercase' }}>Balance Due</div>
                     <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--pp-danger-fg)' }}>
                       ₹{Number(d.total_due ?? 0).toLocaleString()}
