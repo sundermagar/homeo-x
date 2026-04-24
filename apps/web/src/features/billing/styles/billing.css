@@ -108,9 +108,9 @@
   color: var(--pp-blue);
 }
 
-.bill-stat-card[data-type="success"] .bill-stat-value { color: var(--pp-success-fg); }
-.bill-stat-card[data-type="danger"]  .bill-stat-value { color: var(--pp-danger-fg); }
-.bill-stat-card[data-type="warning"] .bill-stat-value { color: var(--pp-warning-fg); }
+.bill-stat-card[data-type="success"] .bill-stat-value { color: var(--pp-blue); }
+.bill-stat-card[data-type="danger"]  .bill-stat-value { color: var(--pp-blue); }
+.bill-stat-card[data-type="warning"] .bill-stat-value { color: var(--pp-blue); }
 .bill-stat-card[data-type="default"] .bill-stat-value { color: var(--pp-blue); }
 
 /* ─── Cards ─── */

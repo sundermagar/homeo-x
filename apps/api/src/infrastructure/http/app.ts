@@ -1,5 +1,8 @@
 import express from 'express';
 import path from 'path';
+import { fileURLToPath } from 'url';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 import { createServer } from 'http';
 import { Server as SocketServer } from 'socket.io';
 import type { Express } from 'express';
@@ -88,7 +91,7 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   // ─── Request Processing ───
   app.use(compression());
   app.use(express.json({ limit: '50mb' }));
-  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+  app.use('/uploads', express.static(path.join(__dirname, '../../../uploads')));
 
   // ─── Observability ───
   app.use(correlationIdMiddleware);
