@@ -3,7 +3,7 @@
   "build": {
     "builder": "NIXPACKS",
     "nixpacksPkgs": "# Added nodejs for railway",
-    "installCommand": "pnpm install --frozen-lockfile",
+    "installCommand": "NODE_ENV=development pnpm install --frozen-lockfile",
     "buildCommand": "pnpm build"
   },
   "deploy": {
