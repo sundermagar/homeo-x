@@ -10,7 +10,10 @@ export interface StaffRepository {
     page: number;
     limit: number;
     search?: string;
-  }): Promise<{ data: StaffSummary[]; total: number }>;
+    clinicId?: number;
+    sortBy?: string;
+    sortOrder?: 'ASC' | 'DESC';
+  }): Promise<{ data: StaffSummary[]; total: number; activeCount: number }>;
 
   findById(category: StaffCategory, id: number): Promise<StaffMember | null>;
 

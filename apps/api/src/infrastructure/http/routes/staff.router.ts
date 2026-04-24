@@ -27,43 +27,43 @@ async function getRepo(req: Request) {
 }
 
 const USER_COLUMNS: { col: string; type: string }[] = [
-  { col: 'title',                  type: 'text' },
-  { col: 'firstname',              type: 'text' },
-  { col: 'middlename',             type: 'text' },
-  { col: 'surname',                type: 'text' },
-  { col: 'gender',                 type: 'text' },
-  { col: 'mobile',                 type: 'text' },
-  { col: 'mobile2',                type: 'text' },
-  { col: 'city',                   type: 'text' },
-  { col: 'address',                type: 'text' },
-  { col: 'permanent_address',      type: 'text' },
-  { col: 'about',                  type: 'text' },
-  { col: 'date_birth',             type: 'date' },
-  { col: 'date_left',              type: 'date' },
-  { col: 'joiningdate',            type: 'date' },
-  { col: 'designation',            type: 'text' },
-  { col: 'dept',                   type: 'integer' },
-  { col: 'qualification',          type: 'text' },
-  { col: 'institute',              type: 'text' },
-  { col: 'passed_out',             type: 'text' },
-  { col: 'registration_id',        type: 'text' },
-  { col: 'consultation_fee',       type: 'real' },
-  { col: 'salary_cur',             type: 'real' },
-  { col: 'aadharnumber',           type: 'text' },
-  { col: 'pannumber',              type: 'text' },
-  { col: 'profilepic',             type: 'text' },
+  { col: 'title', type: 'text' },
+  { col: 'firstname', type: 'text' },
+  { col: 'middlename', type: 'text' },
+  { col: 'surname', type: 'text' },
+  { col: 'gender', type: 'text' },
+  { col: 'mobile', type: 'text' },
+  { col: 'mobile2', type: 'text' },
+  { col: 'city', type: 'text' },
+  { col: 'address', type: 'text' },
+  { col: 'permanent_address', type: 'text' },
+  { col: 'about', type: 'text' },
+  { col: 'date_birth', type: 'date' },
+  { col: 'date_left', type: 'date' },
+  { col: 'joiningdate', type: 'date' },
+  { col: 'designation', type: 'text' },
+  { col: 'dept', type: 'integer' },
+  { col: 'qualification', type: 'text' },
+  { col: 'institute', type: 'text' },
+  { col: 'passed_out', type: 'text' },
+  { col: 'registration_id', type: 'text' },
+  { col: 'consultation_fee', type: 'real' },
+  { col: 'salary_cur', type: 'real' },
+  { col: 'aadharnumber', type: 'text' },
+  { col: 'pannumber', type: 'text' },
+  { col: 'profilepic', type: 'text' },
   { col: 'registration_certificate', type: 'text' },
-  { col: 'aadhar_card',            type: 'text' },
-  { col: 'pan_card',               type: 'text' },
-  { col: 'appointment_letter',     type: 'text' },
-  { col: '10_document',            type: 'text' },
-  { col: '12_document',            type: 'text' },
-  { col: 'bhms_document',          type: 'text' },
-  { col: 'role_id',               type: 'integer' },
-  { col: 'role_name',             type: 'text' },
-  { col: 'is_active',             type: 'boolean' },
-  { col: 'phone',                 type: 'text' },
-  { col: 'md_document',            type: 'text' },
+  { col: 'aadhar_card', type: 'text' },
+  { col: 'pan_card', type: 'text' },
+  { col: 'appointment_letter', type: 'text' },
+  { col: '10_document', type: 'text' },
+  { col: '12_document', type: 'text' },
+  { col: 'bhms_document', type: 'text' },
+  { col: 'role_id', type: 'integer' },
+  { col: 'role_name', type: 'text' },
+  { col: 'is_active', type: 'boolean' },
+  { col: 'phone', type: 'text' },
+  { col: 'md_document', type: 'text' },
 ];
 
 /**
@@ -95,17 +95,31 @@ staffRouter.get('/', async (req: Request, res: Response) => {
       res.status(400).json({ success: false, message: 'Invalid or missing category. Must be one of: doctor, employee, receptionist, clinicadmin, account' });
       return;
     }
-    const { search, page = '1', limit = '30' } = req.query;
+    const { search, page = '1', limit = '30', sortBy, sortOrder } = req.query;
     const repo = await getRepo(req);
     const uc = new ListStaffUseCase(repo);
+
+    // Pass contextId from logged in user as clinicId, unless they are a superadmin
+    const user = (req as any).user;
+    const isSuperAdmin = user?.type === Role.Admin;
+    const clinicId = isSuperAdmin ? undefined : user?.contextId;
+
     const result = await uc.execute({
       category,
       page: Number(page),
       limit: Number(limit),
       search: search as string,
+      clinicId,
+      sortBy: sortBy as string,
+      sortOrder: sortOrder as 'ASC' | 'DESC',
     });
     if (result.success) {
-      res.json({ success: true, data: result.data.data, total: result.data.total });
+      res.json({ 
+        success: true, 
+        data: result.data.data, 
+        total: result.data.total,
+        activeCount: result.data.activeCount
+      });
     } else {
       res.status(500).json({ success: false, message: result.error });
     }
@@ -169,7 +183,14 @@ staffRouter.post('/', async (req: Request, res: Response) => {
 
     const repo = await getRepo(req);
     const uc = new CreateStaffUseCase(repo);
-    const result = await uc.execute(parsed.data);
+
+    // Force clinicId to match the admin's contextId for proper multi-tenant isolation
+    const staffData = {
+      ...parsed.data,
+      clinicId: (req as any).user?.contextId || parsed.data.clinicId
+    };
+
+    const result = await uc.execute(staffData);
     if (result.success) {
       logger.info(`Successfully created staff member: ${result.data.id}`);
       res.status(201).json({ success: true, data: result.data });
