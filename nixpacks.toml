@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ["nodejs_22"]
+
+[phases.install]
+cmds = ["npm install -g pnpm@9.15.0", "NODE_ENV=development pnpm install --frozen-lockfile"]
+
+[phases.build]
+cmds = ["NODE_ENV=development pnpm build"]
+
+[start]
+cmd = "if echo \"$RAILWAY_SERVICE_NAME\" | grep -q 'web'; then pnpm run start:web; else pnpm run start:api; fi"
