@@ -64,7 +64,8 @@ export class StaffRepositoryPg implements StaffRepository {
   }): Promise<{ data: StaffSummary[]; total: number; activeCount: number }> {
     const { category, page, limit, search, clinicId, sortBy = 'id', sortOrder = 'DESC' } = params;
     const offset = (page - 1) * limit;
-    const table = this.getTableName(category);
+    const isClinicAdmin = category === 'clinicadmin';
+    const tableIdentifier = isClinicAdmin ? sql`public.users` : sql.identifier(this.getTableName(category));
 
     const searchSafe = search ? `%${search}%` : null;
 
@@ -74,11 +75,15 @@ export class StaffRepositoryPg implements StaffRepository {
 
     const colFragment = sql.join(selectCols.map(c => sql.identifier(c)), sql`, `);
 
-    // Filter by clinicId if provided. Only apply to tables known to have clinic_id.
-    const supportsClinicId = ['doctor', 'receptionist', 'employee', 'account'].includes(category);
+    // Filter by clinicId if provided. 
+    // Note: clinicadmins table does not have clinic_id, so we use context_id from users table for that category.
+    const supportsClinicId = ['doctor', 'receptionist', 'employee', 'account', 'clinicadmin'].includes(category);
+    const clinicCol = isClinicAdmin ? 'context_id' : 'clinic_id';
     const clinicFilter = (clinicId && supportsClinicId) 
-      ? sql`AND (clinic_id = ${clinicId} OR clinic_id::text = ${String(clinicId)})` 
+      ? sql`AND (${sql.identifier(clinicCol)} = ${clinicId} OR ${sql.identifier(clinicCol)}::text = ${String(clinicId)})` 
       : sql``;
+
+    const typeFilter = isClinicAdmin ? sql`AND type = 'Clinicadmin'` : sql``;
 
     // Handle dynamic sorting safely
     const validSortCols = [...selectCols];
@@ -88,8 +93,9 @@ export class StaffRepositoryPg implements StaffRepository {
     console.log('[StaffRepo] findAll starting', { category, limit, offset, clinicId, sortBy: finalSortBy, sortOrder });
     const rows = await this.db.execute(sql`
       SELECT ${colFragment}
-      FROM ${sql.identifier(table)}
+      FROM ${tableIdentifier}
       WHERE (deleted_at IS NULL OR deleted_at::text = '')
+      ${typeFilter}
       ${clinicFilter}
       ${searchSafe ? sql`AND (name ILIKE ${searchSafe} OR email ILIKE ${searchSafe} OR mobile ILIKE ${searchSafe})` : sql``}
       ORDER BY ${sql.identifier(finalSortBy)} ${finalSortOrder}
@@ -98,16 +104,18 @@ export class StaffRepositoryPg implements StaffRepository {
     console.log('[StaffRepo] SELECT query completed', (rows as any[]).length);
 
     const countResult = await this.db.execute(sql`
-      SELECT count(*)::int as count FROM ${sql.identifier(table)}
+      SELECT count(*)::int as count FROM ${tableIdentifier}
       WHERE (deleted_at IS NULL OR deleted_at::text = '')
+      ${typeFilter}
       ${clinicFilter}
       ${searchSafe ? sql`AND (name ILIKE ${searchSafe} OR email ILIKE ${searchSafe} OR mobile ILIKE ${searchSafe})` : sql``}
     `);
     console.log('[StaffRepo] COUNT query completed', (countResult as any[])[0]?.count);
 
     const activeCountResult = await this.db.execute(sql`
-      SELECT count(*)::int as count FROM ${sql.identifier(table)}
+      SELECT count(*)::int as count FROM ${tableIdentifier}
       WHERE (deleted_at IS NULL OR deleted_at::text = '')
+      ${typeFilter}
       ${clinicFilter}
     `);
 
@@ -173,10 +181,10 @@ export class StaffRepositoryPg implements StaffRepository {
       ? await bcrypt.hash(data.password, 10)
       : '';
 
-    // Check email uniqueness in users table (same as legacy)
+    // Check email uniqueness in public.users table (same as legacy)
     if (data.email) {
       const existingUsers = await this.db.execute(
-        sql`SELECT id FROM users WHERE LOWER(email) = LOWER(${data.email}) AND (deleted_at IS NULL OR deleted_at::text = '') LIMIT 1`
+        sql`SELECT id FROM public.users WHERE LOWER(email) = LOWER(${data.email}) AND (deleted_at IS NULL OR deleted_at::text = '') LIMIT 1`
       ) as any[];
       if (existingUsers.length > 0) {
         throw new Error('Email already exists');
@@ -194,13 +202,13 @@ export class StaffRepositoryPg implements StaffRepository {
     let nextId: number;
     let roleAssignId: number;
 
-    // ─── 0. Mirror to users FIRST ───
+    // ─── 0. Mirror to public.users FIRST ───
     // This allows us to get a unique ID that we then force into the staff table.
     // This ensures consistency across the platform.
     // context_id is set to clinicId so login can resolve the correct tenant
     const contextId = (data as any).clinicId || 1;
     const userMirrorResult = await this.db.execute(sql`
-      INSERT INTO users (
+      INSERT INTO public.users (
         name, email, password, type, context_id,
         is_active, created_at, updated_at
       ) VALUES (
@@ -342,22 +350,18 @@ export class StaffRepositoryPg implements StaffRepository {
       WHERE id = ${id}
     `);
 
-    // Sync to users table
-    const userUpdates = [
-      sql`name = ${name}`,
-      sql`email = ${data.email ?? existing.email}`,
-      sql`updated_at = NOW()`
-    ];
-    if (data.password) {
-      const hashed = await bcrypt.hash(data.password, 10);
-      userUpdates.push(sql`password = ${hashed}`);
+    // Sync to public.users table
+    const userUpdates = [];
+    if (data.name) userUpdates.push(sql`name = ${data.name}`);
+    if (data.email) userUpdates.push(sql`email = ${data.email}`);
+    if (hashedPassword) userUpdates.push(sql`password = ${hashedPassword}`);
+    
+    if (userUpdates.length > 0) {
+      await this.db.execute(sql`
+        UPDATE public.users SET ${sql.join(userUpdates, sql`, `)}, updated_at = NOW()
+        WHERE id = ${id}
+      `);
     }
-
-    await this.db.execute(sql`
-      UPDATE users SET
-        ${sql.join(userUpdates, sql`, `)}
-      WHERE id = ${id} AND (deleted_at IS NULL OR deleted_at::text = '')
-    `);
 
     return this.findById(category, id);
   }
@@ -371,9 +375,9 @@ export class StaffRepositoryPg implements StaffRepository {
       UPDATE ${sql.identifier(table)} SET deleted_at = NOW() WHERE id = ${id}
     `);
 
-    // Also soft-delete the mirror row in users table (same as account soft-delete)
+    // Also soft-delete the mirror row in public.users table (same as account soft-delete)
     await this.db.execute(sql`
-      UPDATE users SET deleted_at = NOW() WHERE id = ${id} AND (deleted_at IS NULL OR deleted_at::text = '')
+      UPDATE public.users SET deleted_at = NOW() WHERE id = ${id} AND (deleted_at IS NULL OR deleted_at::text = '')
     `);
 
     return true;
