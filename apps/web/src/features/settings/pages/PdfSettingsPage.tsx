@@ -50,6 +50,13 @@ export default function PdfSettingsPage() {
     }
   }, [myOrg]);
 
+  const getLogoUrl = (logoPath: string) => {
+    if (!logoPath) return '';
+    if (logoPath.startsWith('http') || logoPath.startsWith('data:')) return logoPath;
+    // Handle relative /uploads paths by ensuring they work through the proxy/base
+    return logoPath; 
+  };
+
   const handleClinicSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (clinicForm) {
@@ -239,7 +246,7 @@ export default function PdfSettingsPage() {
             </div>
             <div className="plat-stat-card">
               <p className="plat-stat-label">Active Listing</p>
-              <p className="plat-stat-value plat-stat-value-success">{filteredConfigs.length}</p>
+              <p className="plat-stat-value plat-stat-value-primary">{filteredConfigs.length}</p>
             </div>
           </div>
 
@@ -512,7 +519,7 @@ export default function PdfSettingsPage() {
                       >
                         {clinicForm?.logo ? (
                           <img 
-                            src={clinicForm.logo} 
+                            src={getLogoUrl(clinicForm.logo)} 
                             style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
                             onError={(e) => {
                               const target = e.target as HTMLImageElement;

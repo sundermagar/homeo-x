@@ -106,39 +106,39 @@ export default function PaymentsPage() {
           </div>
         </div>
 
-        <div className="bill-stat-card" data-type="warning">
-          <div className="bill-stat-icon" style={{ background: 'var(--pp-warning-bg)', color: 'var(--pp-warning-fg)' }}>
+        <div className="bill-stat-card" data-type="default">
+          <div className="bill-stat-icon" style={{ background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)' }}>
             <Clock size={22} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <p className="bill-stat-label" style={{ margin: '0 0 6px' }}>Pending Amount</p>
-            <p style={{ margin: 0, lineHeight: 1, display: 'flex', alignItems: 'baseline', gap: 2, color: 'var(--pp-warning-fg)' }}>
+            <p style={{ margin: 0, lineHeight: 1, display: 'flex', alignItems: 'baseline', gap: 2, color: 'var(--pp-blue)' }}>
               <span style={{ fontSize: '0.85rem', fontWeight: 700, opacity: 0.75, marginRight: 1 }}>₹</span>
               <span className="bill-stat-value">{totalPending.toLocaleString('en-IN')}</span>
             </p>
           </div>
         </div>
 
-        <div className="bill-stat-card">
-          <div className="bill-stat-icon" style={{ background: 'var(--pp-success-bg)', color: 'var(--pp-success-fg)' }}>
+        <div className="bill-stat-card" data-type="default">
+          <div className="bill-stat-icon" style={{ background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)' }}>
             <CheckCircle2 size={22} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <p className="bill-stat-label" style={{ margin: '0 0 6px' }}>Avg Ticket Size</p>
-            <p style={{ margin: 0, lineHeight: 1, display: 'flex', alignItems: 'baseline', gap: 2, color: 'var(--pp-success-fg)' }}>
+            <p style={{ margin: 0, lineHeight: 1, display: 'flex', alignItems: 'baseline', gap: 2, color: 'var(--pp-blue)' }}>
               <span style={{ fontSize: '0.85rem', fontWeight: 700, opacity: 0.75, marginRight: 1 }}>₹</span>
               <span className="bill-stat-value">{avgTicket.toLocaleString('en-IN')}</span>
             </p>
           </div>
         </div>
 
-        <div className="bill-stat-card">
-          <div className="bill-stat-icon" style={{ background: 'var(--pp-purple-tint)', color: 'var(--pp-purple)' }}>
+        <div className="bill-stat-card" data-type="default">
+          <div className="bill-stat-icon" style={{ background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)' }}>
             <Wallet size={22} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <p className="bill-stat-label" style={{ margin: '0 0 6px' }}>Counter / Manual</p>
-            <p style={{ margin: 0, lineHeight: 1, display: 'flex', alignItems: 'baseline', gap: 2, color: 'var(--pp-purple)' }}>
+            <p style={{ margin: 0, lineHeight: 1, display: 'flex', alignItems: 'baseline', gap: 2, color: 'var(--pp-blue)' }}>
               <span className="bill-stat-value">{manualCount}</span>
             </p>
           </div>
@@ -262,7 +262,7 @@ export default function PaymentsPage() {
                         fontFamily: 'var(--pp-font-mono)',
                         fontWeight: 700,
                         fontSize: '1rem',
-                        color: payment.status === 'Failed' ? 'var(--pp-danger-fg)' : 'var(--pp-success-fg)',
+                        color: 'var(--pp-blue)',
                         letterSpacing: '-0.01em',
                       }}>
                         ₹{payment.amount.toLocaleString('en-IN')}
