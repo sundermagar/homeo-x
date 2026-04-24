@@ -149,11 +149,9 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
     let normalizedDate = form.bookingDate;
     if (normalizedDate && normalizedDate.includes('/')) {
       const parts = normalizedDate.split('/');
-      if (parts.length === 3) {
-        if (parts[2].length === 4) {
-          // DD/MM/YYYY -> YYYY-MM-DD
-          normalizedDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-        }
+      const yearPart = parts[2];
+      if (parts.length === 3 && yearPart && yearPart.length === 4) {
+        normalizedDate = `${yearPart}-${parts[1]!.padStart(2, '0')}-${(parts[0] ?? '').padStart(2, '0')}`;
       }
     }
 

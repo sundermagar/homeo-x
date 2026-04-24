@@ -269,7 +269,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         FROM appointments a
         LEFT JOIN patients p ON p.id = a.patient_id
         LEFT JOIN vitals v ON v.visit_id = a.id
-        WHERE a.booking_date = ${today}::date
+        WHERE a.booking_date::date = ${today}::date
           AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
           AND NOT EXISTS (
             SELECT 1 FROM waitlist w2
@@ -498,7 +498,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         )
         SELECT 
           c.*,
-          COALESCE(p.first_name || ' ' || p.surname, 'Patient') AS patient_name
+          COALESCE(NULLIF(TRIM(COALESCE(p.first_name, '') || ' ' || COALESCE(p.surname, '')), ''), 'Patient') AS patient_name
         FROM combined c
         LEFT JOIN patients p ON c.regid = p.regid
         ORDER BY c.created_at DESC
@@ -642,7 +642,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
              END as status
       FROM bills b
       LEFT JOIN patients p ON b.regid = p.regid
-      WHERE b.bill_date >= ${start}::date AND b.bill_date < ${boundary}::date
+      WHERE b.bill_date::date >= ${start}::date AND b.bill_date::date < ${boundary}::date
         AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
       ORDER BY b.charges DESC NULLS LAST
       LIMIT ${limit}

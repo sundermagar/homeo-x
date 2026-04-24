@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   TrendingUp,
   TrendingDown,
@@ -69,6 +70,7 @@ export function ClinicAdminDashboard() {
   const [revTab, setRevTab] = useState<RevenueTab>('Cash');
   const [sidebarTab, setSidebarTab] = useState<'Queue' | 'Analytics' | 'Billing'>('Queue');
 
+  const navigate = useNavigate();
   const { data, isLoading } = useClinicAdminDashboard(period);
   useAuthStore((s) => s.user); // ensures auth store is initialised
 
@@ -281,7 +283,7 @@ export function ClinicAdminDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {topBilling.map((b: { id: number; regid: number; patientName: string; total: number; status: string }) => (
+                      {(topBilling as any[]).map((b) => (
                         <tr key={b.id} onClick={() => navigate(`/patients/${b.regid}`)} style={{ cursor: 'pointer' }}>
                           <td className="cad-patient-cell">
                             <div className="cad-patient-avatar">{b.patientName.charAt(0)}</div>

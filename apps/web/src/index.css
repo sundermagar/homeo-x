@@ -109,34 +109,26 @@
   --pp-blue-glow: 0 0 0 4px rgba(37, 99, 235, 0.1);
 }
 
-/* ──────────────────────────────────────────────────────────────────────────── */
-/* DARK MODE OVERRIDES                                                           */
-/* ──────────────────────────────────────────────────────────────────────────── */
-
 .dark {
   color-scheme: dark;
-  /* ─── Core Dark Palette (Blackish) ───────────────────────────────────────── */
-  --pp-warm-1: #09090B; /* Deep Neutral Background */
-  --pp-warm-2: #121214; /* Surface 2 */
-  --pp-warm-3: #1C1C1F; /* Surface 3 */
-  --pp-warm-4: #27272A; /* Borders */
-
-  /* ─── Typography ───────────────────────────────────────────────────────── */
-  --pp-ink: #FFFFFF;    /* Primary Text */
-  --pp-text-2: #A1A1AA; /* Body Text */
-  --pp-text-3: #71717A; /* Muted Text */
-  --pp-text-4: #52525B; /* Placeholders */
-
-  /* ─── Semantic Adjustments ─────────────────────────────────────────────── */
-  --pp-success-bg: rgba(22, 163, 74, 0.1);
-  --pp-danger-bg: rgba(220, 38, 38, 0.1);
-  --pp-warning-bg: rgba(217, 119, 6, 0.1);
-  --pp-blue: #2563EB;
-  --pp-blue-tint: rgba(37, 99, 235, 0.1);
-  --pp-blue-border: #3B82F6;
-  --pp-blue-hover: #3B82F6;
-
-  /* ─── Surface Overrides ────────────────────────────────────────────────── */
+  --pp-warm-1: #0A0A0C; 
+  --pp-warm-2: #111114; 
+  --pp-warm-3: #18181B; 
+  --pp-warm-4: #242427; 
+  --pp-ink: #F9FAFB;    
+  --pp-text-2: #A1A1AA; 
+  --pp-text-3: #71717A; 
+  --pp-text-4: #3F3F46; 
+  --pp-success-bg: rgba(34, 197, 94, 0.15);
+  --pp-success-fg: #4ADE80;
+  --pp-danger-bg: rgba(239, 68, 68, 0.15);
+  --pp-danger-fg: #F87171;
+  --pp-warning-bg: rgba(245, 158, 11, 0.15);
+  --pp-warning-fg: #FBBF24;
+  --pp-blue: #3B82F6;
+  --pp-blue-tint: rgba(59, 130, 246, 0.15);
+  --pp-blue-border: #60A5FA;
+  --pp-blue-hover: #60A5FA;
   --bg-main: var(--pp-warm-1);
   --bg-card: var(--pp-warm-2);
   --bg-surface-2: var(--pp-warm-3);
@@ -144,16 +136,19 @@
   --text-main: var(--pp-ink);
   --text-secondary: var(--pp-text-2);
   --text-muted: var(--pp-text-3);
-
-  /* ─── Premium Effects ──────────────────────────────────────────────────── */
-  --pp-glass-bg: rgba(9, 9, 11, 0.8);
-  --pp-glass-border: rgba(255, 255, 255, 0.05);
-  --pp-premium-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5), 0 2px 12px -4px rgba(0, 0, 0, 0.3);
-  
-  --pp-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --pp-shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.5), 0 2px 6px -1px rgba(0, 0, 0, 0.3);
-  --pp-shadow-lg: 0 12px 24px -4px rgba(0, 0, 0, 0.6), 0 4px 8px -2px rgba(0, 0, 0, 0.4);
+  --pp-glass-bg: rgba(17, 17, 20, 0.7);
+  --pp-glass-border: rgba(255, 255, 255, 0.08);
+  --pp-premium-shadow: 0 8px 32px -4px rgba(0, 0, 0, 0.6), 0 4px 12px -2px rgba(0, 0, 0, 0.4);
+  --pp-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --pp-shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.6), 0 2px 6px -1px rgba(0, 0, 0, 0.4);
+  --pp-shadow-lg: 0 12px 24px -4px rgba(0, 0, 0, 0.7), 0 4px 8px -2px rgba(0, 0, 0, 0.5);
 }
+
+.dark body {
+  background: radial-gradient(circle at 50% -20%, #1e1b4b 0%, #09090b 100%);
+  background-attachment: fixed;
+}
+
 
 /* ─── Utility Classes ──────────────────────────────────────────────────────── */
 .pp-glass {
@@ -1087,9 +1082,9 @@ a {
   align-items: center;
   justify-content: center;
   background: var(--bg-card);
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-main);
   border-radius: 8px;
-  color: #64748b;
+  color: var(--text-muted);
   cursor: pointer;
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1108,8 +1103,8 @@ a {
 .page-back-widget:hover {
   background: var(--bg-surface-2);
   color: var(--text-main);
-  border-color: #cbd5e1;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border-color: var(--pp-blue-border);
+  box-shadow: var(--pp-shadow-md);
   transform: translateY(-1px);
 }
 

@@ -125,8 +125,21 @@ export default function PatientListPage() {
       </div>
 
       {isLoading ? (
-        <div className="pp-card pat-loading-state">
-          <p>Loading patient records...</p>
+        <div className="pp-card" style={{ padding: 0 }}>
+          <div className="pat-skeleton">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="pat-skeleton-row">
+                <div className="pat-skeleton-avatar" />
+                <div className="pat-skeleton-content">
+                  <div className="pat-skeleton-line" style={{ width: '40%' }} />
+                  <div className="pat-skeleton-line" style={{ width: '25%', marginTop: 4 }} />
+                </div>
+                <div className="pat-skeleton-line" style={{ width: '60px' }} />
+                <div className="pat-skeleton-line" style={{ width: '80px' }} />
+                <div className="pat-skeleton-line" style={{ width: '80px' }} />
+              </div>
+            ))}
+          </div>
         </div>
       ) : patients.length === 0 ? (
         <div className="pp-card pat-empty-state">

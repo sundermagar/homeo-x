@@ -145,7 +145,7 @@ export default function TokenQueuePage() {
                       <button className="appt-btn appt-btn-sm appt-btn-success" onClick={() => handleComplete(w.id)} disabled={completeVisit.isPending}>
                         <CheckCircle2 size={13} strokeWidth={1.6} /> Done
                       </button>
-                      <button className="appt-btn appt-btn-sm appt-btn-purple" onClick={() => setActiveVitals({ visitId: w.appointmentId || w.id, regid: w.patientId })}>
+                      <button className="appt-btn appt-btn-sm appt-btn-purple" onClick={() => setActiveVitals({ visitId: w.appointmentId || w.id, regid: w.patientId ?? 0 })}>
                         <Activity size={13} strokeWidth={1.6} /> Vitals
                       </button>
                     </div>
@@ -180,7 +180,7 @@ export default function TokenQueuePage() {
                           <button className="appt-btn appt-btn-sm appt-btn-primary" onClick={() => handleCall(w.id)} disabled={callNext.isPending}>
                             <ChevronRight size={13} strokeWidth={1.6} /> Call
                           </button>
-                          <button className="appt-btn appt-btn-sm appt-btn-purple" onClick={() => setActiveVitals({ visitId: w.appointmentId || w.id, regid: w.patientId })}>
+                          <button className="appt-btn appt-btn-sm appt-btn-purple" onClick={() => setActiveVitals({ visitId: w.appointmentId || w.id, regid: w.patientId ?? 0 })}>
                             <Activity size={13} strokeWidth={1.6} /> Vitals
                           </button>
                         </div>
@@ -262,7 +262,7 @@ export default function TokenQueuePage() {
                                 <Plus size={12} strokeWidth={1.6} /> Check In
                               </button>
                             )}
-                            <button className="appt-btn appt-btn-sm appt-btn-purple" onClick={() => setActiveVitals({ visitId: a.id, regid: a.regid || a.patientId })}>
+                            <button className="appt-btn appt-btn-sm appt-btn-purple" onClick={() => setActiveVitals({ visitId: a.id, regid: a.patientId ?? 0 })}>
                               <Activity size={12} strokeWidth={1.6} /> Vitals
                             </button>
                           </div>

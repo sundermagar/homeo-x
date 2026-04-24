@@ -158,7 +158,7 @@ export function DoctorDashboard() {
                 ACTIVE CONSULTATION
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 700, color: '#94a3b8' }}>
-                DURATION <span style={{ color: '#0f172a', fontFamily: 'var(--pp-font-mono)', fontSize: 13 }}>{consultDuration}</span>
+                DURATION <span style={{ color: 'var(--pp-ink)', fontFamily: 'var(--pp-font-mono)', fontSize: 13 }}>{consultDuration}</span>
               </div>
             </div>
 
@@ -249,7 +249,7 @@ export function DoctorDashboard() {
                             {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                           </div>
                           <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{a.patientName}</div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--pp-ink)' }}>{a.patientName}</div>
                             <div className="text-label" style={{ fontSize: 10 }}>{a.bookingTime || 'Scheduled'} · Token {a.tokenNo || '—'}</div>
                           </div>
                         </div>
@@ -280,7 +280,7 @@ export function DoctorDashboard() {
                               </div>
                               <div style={{ paddingLeft: 16, borderLeft: '1px solid var(--pp-warm-2)' }}>
                                 <div className="text-label" style={{ fontSize: 9, textTransform: 'uppercase', marginBottom: 4 }}>Patient Info</div>
-                                <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>PT-{a.regid}</div>
+                                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--pp-ink)' }}>PT-{a.regid}</div>
                                 <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
                                   {a.age || '--'} Yrs · {a.gender || '--'}
                                 </div>
@@ -413,15 +413,23 @@ function IntelligenceItem({ color, text }: any) {
 }
 
 function BillingItem({ patient, id, amount, status }: any) {
+  const isPaid = status === 'paid' || status === 'completed' || status === 'Success';
+  const isPartial = status === 'partial';
+  const badgeClass = isPaid ? 'badge-success' : isPartial ? 'badge-warning' : 'badge-danger';
+  const displayStatus = isPaid ? 'Paid' : isPartial ? 'Partial' : 'Due';
+
   return (
     <div className="dash-list-item">
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>{patient}</span>
-        <span style={{ fontSize: 10, color: '#94a3b8' }}>{id}</span>
+      <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, paddingRight: 8 }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--pp-ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{patient}</span>
+        <span style={{ fontSize: 10, color: '#94a3b8', fontFamily: 'var(--pp-font-mono)' }}>{id}</span>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <span style={{ fontSize: 12, fontWeight: 800 }}>₹{amount}</span>
-        <span className={`dash-tag tag-${status}`}>{status}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 2 }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--pp-ink)', opacity: 0.7 }}>₹</span>
+          <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--pp-ink)', fontFamily: 'var(--pp-font-mono)' }}>{amount}</span>
+        </div>
+        <span className={`dash-badge ${badgeClass}`}>{displayStatus}</span>
       </div>
     </div>
   );

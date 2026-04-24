@@ -271,7 +271,7 @@ function PatientPreview({ regid }: { regid?: number }) {
   return (
     <div style={{ fontSize: '11px', color: 'var(--pp-success-fg)', marginTop: 6, display: 'flex', alignItems: 'center', gap: 4, background: 'var(--pp-success-bg)', padding: '4px 8px', borderRadius: '4px', width: 'fit-content' }}>
       <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }} />
-      Patient Found: <strong>{patient.firstName} {patient.lastName}</strong>
+      Patient Found: <strong>{patient.firstName} {patient.surname}</strong>
     </div>
   );
 }

@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import {
   Search, ChevronRight, ChevronDown, Activity,
   Plus, RotateCw, Microscope, Zap,
-  Folder, FolderOpen, FlaskConical, NetworkLine
+  Folder, FolderOpen, FlaskConical, Network
 } from 'lucide-react';
 import {
   useRemedyTree,
@@ -35,8 +35,8 @@ interface MatrixNodeProps {
   depth?: number;
   regid?: number;
   searchQuery?: string;
-  expandedId: string | null;
-  onExpand: (id: string | null) => void;
+  expandedId: number | null;
+  onExpand: (id: number | null) => void;
 }
 
 function MatrixNode({ node, depth = 0, regid, searchQuery, expandedId, onExpand }: MatrixNodeProps) {
@@ -123,7 +123,7 @@ function MatrixNode({ node, depth = 0, regid, searchQuery, expandedId, onExpand 
 
         {hasChildren && (
           <span className="mc-count" style={{ fontSize: '0.6rem', padding: '2px 8px', background: 'var(--bg-card)', borderRadius: '4px', border: '1px solid var(--border-main)' }}>
-            {node.children.length} Clusters
+          {node.children?.length ?? 0} Clusters
           </span>
         )}
 
@@ -181,7 +181,7 @@ function MatrixNode({ node, depth = 0, regid, searchQuery, expandedId, onExpand 
 
 export function AiRemedyView({ regid }: { regid?: number }) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
   const { data: treeNodes, isLoading } = useRemedyTree();
 
   const filteredNodes = useMemo(() => {

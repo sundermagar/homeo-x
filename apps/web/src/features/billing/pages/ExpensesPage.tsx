@@ -91,7 +91,7 @@ export default function ExpensesPage() {
       }
       // Create new expense head
       try {
-        const newHead = await createExpenseHead.mutateAsync({ name: customHeadName });
+        const newHead = await createExpenseHead.mutateAsync({ name: customHeadName, isActive: true });
         headId = newHead.id;
       } catch (err) {
         alert('Failed to create new category');

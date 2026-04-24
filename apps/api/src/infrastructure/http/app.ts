@@ -52,7 +52,7 @@ const logger = createLogger('http');
 
 import { createDbClient, TenantRegistry } from '@mmc/database';
 
-export async function createApp(): Promise<{ app: Express; server: HttpServer; io: SocketIOServer; tenantDb: any }> {
+export async function createApp(): Promise<{ app: Express; server: HttpServer; io: SocketIOServer; tenantDb: any; publicDb: any }> {
   const app: Express = express();
   const server: HttpServer = createServer(app);
 
@@ -169,7 +169,15 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   const defaultTenant = TenantRegistry.resolve('demo') || { schemaName: 'public' };
   const tenantDb = createDbClient(process.env.DATABASE_URL!, (defaultTenant as any).schemaName);
 
-  // --- ONE-TIME AUTO BACKFILL OF MISSING CLINIC ADMINS ---
+  logger.info('Express app configured with enterprise middleware stack');
+  return { app, server, io, tenantDb, publicDb };
+}
+
+/**
+ * Background task to ensure all clinics have their default administrator account
+ * mirrored in the public schema for authentication.
+ */
+export async function runAdminBackfill(publicDb: any) {
   try {
     const { sql } = await import('drizzle-orm');
     const bcrypt = await import('bcryptjs');
@@ -218,8 +226,4 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   } catch (err: any) {
     logger.error({ err: err.message }, 'Failed auto-backfill');
   }
-  // --- END AUTO BACKFILL ---
-
-  logger.info('Express app configured with enterprise middleware stack');
-  return { app, server, io, tenantDb };
 }
