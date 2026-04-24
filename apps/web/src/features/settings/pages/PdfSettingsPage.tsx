@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileText, Plus, X, RefreshCw, ArrowLeft, Trash2, Edit2, Layout, CheckCircle2, Search, Printer, Eye, Settings, ShieldCheck, MapPin, Globe, Mail, Clock, Image as ImageIcon } from 'lucide-react';
+import { FileText, Plus, X, RefreshCw, ArrowLeft, Trash2, Edit2, Layout, CheckCircle2, Search, Printer, Eye, Settings, ShieldCheck, MapPin, Globe, Mail, Clock, Image as ImageIcon, Phone } from 'lucide-react';
 
 import { Link } from 'react-router-dom';
 import { usePdfSettings, useCreatePdfSetting, useUpdatePdfSetting, useDeletePdfSetting } from '../hooks/use-settings';
@@ -54,7 +54,7 @@ export default function PdfSettingsPage() {
     if (!logoPath) return '';
     if (logoPath.startsWith('http') || logoPath.startsWith('data:')) return logoPath;
     // Handle relative /uploads paths by ensuring they work through the proxy/base
-    return logoPath; 
+    return logoPath;
   };
 
   const handleClinicSubmit = async (e: React.FormEvent) => {
@@ -472,132 +472,231 @@ export default function PdfSettingsPage() {
               minHeight: '600px',
               background: 'var(--pp-warm-2)',
               border: '1px solid var(--pp-warm-4)',
-              borderRadius: 24,
+              borderRadius: 32,
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               backgroundImage: 'radial-gradient(var(--pp-warm-4) 1px, transparent 1px)',
-              backgroundSize: '24px 24px',
-              overflowX: 'auto'
+              backgroundSize: '32px 32px',
+              overflowX: 'auto',
+              padding: '60px 20px'
             }}>
-                <div style={{
-                  width: '100%',
-                  maxWidth: '500px',
-                  background: '#fff',
-                  boxShadow: 'var(--pp-shadow-premium)',
-                  borderRadius: '2px',
-                  minHeight: '680px',
-                  padding: 'clamp(16px, 5vw, 40px)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  position: 'relative',
-                  border: '1px solid rgba(0,0,0,0.05)',
-                  boxSizing: 'border-box'
-                }}>
-                  {/* Watermark/Scale hint */}
-                  <div style={{ position: 'absolute', top: 10, right: 10, fontSize: '9px', fontWeight: 900, color: 'var(--pp-warm-4)', textTransform: 'uppercase' }}>A4 Preview (1:1)</div>
+              <div className="letterhead-a4-sheet" style={{
+                width: '100%',
+                maxWidth: '540px',
+                background: '#fff',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15)',
+                borderRadius: '4px',
+                minHeight: '760px',
+                padding: '50px 45px',
+                display: 'flex',
+                flexDirection: 'column',
+                position: 'relative',
+                border: '1px solid rgba(0,0,0,0.03)',
+                boxSizing: 'border-box'
+              }}>
+                {/* Watermark/Scale hint */}
+                <div style={{ position: 'absolute', top: 12, right: 15, fontSize: '7px', fontWeight: 900, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', background: '#f8fafc', padding: '2px 6px', borderRadius: 4, border: '1px solid #e2e8f0' }}>A4 PREVIEW • 1:1 SCALE</div>
 
-                  {/* Header Preview */}
-                  <div className="letterhead-canvas-header" style={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    borderBottom: '2.5px solid var(--pp-blue)', 
-                    paddingBottom: 24, 
-                    marginBottom: 40,
-                    gap: 20
-                  }}>
-                    <style>{`
+                <div className="letterhead-canvas-header" style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
+                  paddingBottom: 28,
+                  marginBottom: 0,
+                  gap: 30,
+                  padding: '20px 22px',
+                  background: 'linear-gradient(135deg, #f8fbff 0%, #ffffff 60%)',
+                  borderRadius: 12,
+                  boxShadow: '0 2px 12px rgba(22, 101, 228, 0.06), inset 0 -1px 0 rgba(22, 101, 228, 0.08)'
+                }}>
+                  <style>{`
                       @media (max-width: 639px) {
                         .letterhead-canvas-header { flex-direction: column; align-items: center; text-align: center; }
-                        .letterhead-canvas-header > div { justify-content: center !important; }
+                        .letterhead-canvas-header > div { justify-content: center !important; text-align: center !important; }
                       }
                     `}</style>
-                    <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-                      <div 
-                        key={clinicForm?.logo} // Force fresh render when URL changes to reset errors
-                        style={{ width: 64, height: 64, borderRadius: 12, background: 'var(--pp-warm-1)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: '1px solid var(--pp-warm-3)', boxShadow: '0 4px 10px rgba(0,0,0,0.03)', flexShrink: 0 }}
-                      >
-                        {clinicForm?.logo ? (
-                          <img 
-                            src={getLogoUrl(clinicForm.logo)} 
-                            style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.style.display = 'none';
-                              const errEl = document.createElement('div');
-                              errEl.style.cssText = 'color: var(--pp-text-4); font-size: 8px; text-align: center; padding: 4px;';
-                              errEl.innerText = 'Link Error (403/CORS)';
-                              target.parentElement?.appendChild(errEl);
-                            }}
-                          />
-                        ) : <ImageIcon size={24} style={{ opacity: 0.1 }} />}
-                      </div>
-                      <div style={{ minWidth: 140 }}>
-                        <h2 style={{ fontSize: '1.2rem', fontWeight: 950, color: 'var(--pp-ink)', margin: 0, textTransform: 'uppercase', letterSpacing: '-0.03em', lineHeight: 1 }}>{clinicForm?.name || 'Clinic Name'}</h2>
-                        <p style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--pp-blue)', margin: '6px 0 0', opacity: 0.9 }}>{clinicForm?.tagLine || 'Primary Slogan'}</p>
-                        <p style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--pp-text-3)', margin: '10px 0 0', display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <ShieldCheck size={10} className="text-success" /> {clinicForm?.registration || 'Registration Credentials'}
-                        </p>
-                      </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 14, flex: 1, minWidth: 0, alignItems: 'flex-start' }}>
+                    <div
+                      key={clinicForm?.logo}
+                      style={{
+                        height: 70,
+                        minWidth: 70,
+                        maxWidth: 160,
+                        borderRadius: 10,
+                        background: '#fff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        overflow: 'hidden',
+                        border: '1px solid #e2e8f0',
+                        boxShadow: '0 2px 8px rgba(22, 101, 228, 0.08), inset 0 1px 2px rgba(255,255,255,0.8)',
+                        flexShrink: 0,
+                        padding: '4px 8px'
+                      }}
+                    >
+                      {clinicForm?.logo ? (
+                        <img
+                          src={getLogoUrl(clinicForm.logo)}
+                          style={{ height: '100%', width: 'auto', maxWidth: '100%', objectFit: 'contain' }}
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const errEl = document.createElement('div');
+                            errEl.style.cssText = 'color: var(--pp-text-4); font-size: 8px; text-align: center; padding: 6px; font-weight: 800;';
+                            errEl.innerText = '403';
+                            target.parentElement?.appendChild(errEl);
+                          }}
+                        />
+                      ) : <ImageIcon size={24} style={{ color: 'var(--pp-warm-4)' }} />}
                     </div>
-                    <div style={{ textAlign: 'right', maxWidth: '200px' }}>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--pp-ink)', fontWeight: 700, display: 'flex', alignItems: 'flex-start', gap: 6, justifyContent: 'flex-end', lineHeight: 1.4 }}>
-                        <MapPin size={11} style={{ color: 'var(--pp-blue)', marginTop: 2 }} /> {clinicForm?.address || 'Site Geography'}
-                      </div>
-                      <div style={{ fontSize: '0.65rem', color: 'var(--pp-text-3)', fontWeight: 500, marginTop: 4 }}>{clinicForm?.address2}</div>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--pp-ink)', fontWeight: 700, marginTop: 14, display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end' }}>
-                        <Clock size={11} style={{ color: 'var(--pp-blue)' }} /> {clinicForm?.timing || 'Schedule'}
+                    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', minWidth: 0, width: '100%' }}>
+                      <h2 style={{
+                        fontSize: '1.4rem',
+                        fontWeight: 975,
+                        color: '#0f172a',
+                        margin: 0,
+                        textTransform: 'uppercase',
+                        letterSpacing: '-0.03em',
+                        lineHeight: 1.15,
+                        overflowWrap: 'break-word',
+                        fontFamily: 'Georgia, "Times New Roman", serif'
+                      }}>
+                        {clinicForm?.name || 'Clinic Name'}
+                      </h2>
+                      <p style={{ fontSize: '0.75rem', fontWeight: 700, background: 'linear-gradient(135deg, #16a1e4 0%, #6366f1 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', margin: '3px 0 0', letterSpacing: '0.02em' }}>
+                        {clinicForm?.tagLine || 'Primary Specialty'}
+                      </p>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, margin: '8px 0 0', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 999, padding: '3px 8px 3px 5px', maxWidth: 'fit-content' }}>
+                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 0 2px rgba(34,197,94,0.3)' }} />
+                        <ShieldCheck size={10} style={{ color: '#16a1e4' }} />
+                        <span style={{ fontSize: '0.55rem', fontWeight: 800, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{clinicForm?.registration || 'REGISTRATION'}</span>
                       </div>
                     </div>
                   </div>
 
-                {/* Content Area Mockup */}
-                <div style={{ padding: '20px 0' }}>
-                  <div style={{ height: 14, width: '35%', background: 'var(--pp-warm-2)', borderRadius: 4, marginBottom: 16 }} />
-                  <div style={{ display: 'grid', gap: 10 }}>
-                    <div style={{ height: 10, width: '100%', background: 'var(--pp-warm-1)', borderRadius: 2, opacity: 0.8 }} />
-                    <div style={{ height: 10, width: '98%', background: 'var(--pp-warm-1)', borderRadius: 2, opacity: 0.6 }} />
-                    <div style={{ height: 10, width: '95%', background: 'var(--pp-warm-1)', borderRadius: 2, opacity: 0.4 }} />
-                    <div style={{ height: 10, width: '99%', background: 'var(--pp-warm-1)', borderRadius: 2, opacity: 0.2 }} />
-                  </div>
-
-                  <div style={{ marginTop: 40, border: '1.5px dashed var(--pp-warm-4)', borderRadius: 16, padding: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.01)' }}>
-                    <div style={{ textAlign: 'center' }}>
-                      <FileText size={32} style={{ color: 'var(--pp-warm-4)', margin: '0 auto 12px', opacity: 0.5 }} />
-                      <p style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--pp-text-4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Document Content Area</p>
+                  <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: 8, borderLeft: '1.5px solid #e2e8f0', paddingLeft: 16, minWidth: '140px', maxWidth: '165px', flexShrink: 0 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <div style={{ fontSize: '0.68rem', color: '#334155', fontWeight: 700, display: 'flex', alignItems: 'flex-start', gap: 5, justifyContent: 'flex-end', lineHeight: 1.35 }}>
+                        <MapPin size={11} style={{ color: '#6366f1', flexShrink: 0, marginTop: 1 }} />
+                        <span style={{ overflowWrap: 'break-word' }}>{clinicForm?.address || 'Site Geography'}</span>
+                      </div>
+                      {clinicForm?.address2 && (
+                        <div style={{ fontSize: '0.6rem', color: '#64748b', fontWeight: 500, paddingRight: 16 }}>{clinicForm?.address2}</div>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <div style={{ fontSize: '0.68rem', color: '#334155', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 5, justifyContent: 'flex-end' }}>
+                        <Phone size={11} style={{ color: '#6366f1' }} />
+                        <span>{clinicForm?.phone || 'Contact'}</span>
+                      </div>
+                      <div style={{ fontSize: '0.68rem', color: '#334155', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 5, justifyContent: 'flex-end' }}>
+                        <Clock size={11} style={{ color: '#6366f1' }} />
+                        <span>{clinicForm?.timing || 'Schedule'}</span>
+                      </div>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, justifyContent: 'flex-end', marginTop: 2, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 999, padding: '3px 8px 3px 6px' }}>
+                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', animation: 'pulse-green 2s infinite' }} />
+                        <span style={{ fontSize: '0.55rem', fontWeight: 800, color: '#15803d', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Open for Appointments</span>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Footer Preview */}
-                <div className="letterhead-canvas-footer" style={{ 
-                  marginTop: 'auto', 
-                  paddingTop: 24, 
-                  borderTop: '1px solid var(--pp-warm-4)', 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center',
+                {/* Refined Divider */}
+                <div style={{ width: '100%', marginBottom: 30 }}>
+                  <div style={{ height: 3, width: '100%', background: 'linear-gradient(90deg, #16a1e4 0%, #6366f1 50%, #8b5cf6 100%)', borderRadius: 3, boxShadow: '0 1px 4px rgba(22, 101, 228, 0.25)' }} />
+                  <div style={{ height: 1, width: '100%', background: '#f1f5f9', marginTop: 3 }} />
+                </div>
+
+                <div style={{ padding: '20px 0', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 35 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <div style={{ fontSize: '0.6rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Patient Details</div>
+                      <div style={{ height: 12, width: 140, background: '#f1f5f9', borderRadius: 3 }} />
+                      <div style={{ height: 10, width: 90, background: '#f8fafc', borderRadius: 3 }} />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
+                      <div style={{ fontSize: '0.6rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Date & Reference</div>
+                      <div style={{ height: 12, width: 100, background: '#f1f5f9', borderRadius: 3 }} />
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: 40 }}>
+                    <div style={{
+                      fontSize: '2.5rem',
+                      fontWeight: 400,
+                      color: '#cbd5e1',
+                      fontFamily: 'Georgia, "Times New Roman", serif',
+                      fontStyle: 'italic',
+                      marginBottom: 15,
+                      lineHeight: 1
+                    }}>Rx</div>
+                    <div style={{ display: 'grid', gap: 14, paddingLeft: 20 }}>
+                      <div style={{ height: 8, width: '100%', background: '#f8fafc', borderRadius: 4, position: 'relative', overflow: 'hidden' }}>
+                        <div style={{ position: 'absolute', top: 0, left: 0, height: '100%', width: '40%', background: 'linear-gradient(90deg, #e2e8f0, #f8fafc)', borderRadius: 4 }} />
+                      </div>
+                      <div style={{ height: 8, width: '85%', background: '#f8fafc', borderRadius: 4 }} />
+                      <div style={{ height: 8, width: '92%', background: '#f8fafc', borderRadius: 4 }} />
+                    </div>
+                  </div>
+
+                  <div style={{
+                    marginTop: 'auto',
+                    border: '1px dashed #cbd5e1',
+                    borderRadius: 16,
+                    padding: '35px 20px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: 'linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(248,250,252,0.6) 100%)',
+                    minHeight: 160,
+                    boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.01)'
+                  }}>
+                    <FileText size={32} style={{ color: '#94a3b8', marginBottom: 12, strokeWidth: 1.5 }} />
+                    <p style={{ fontSize: '0.75rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>Dynamic Content Area</p>
+                    <p style={{ fontSize: '0.65rem', color: '#94a3b8', marginTop: 6, margin: 0, fontWeight: 500 }}>System automatically injects Prescriptions, Invoices, or Clinical Reports here.</p>
+                  </div>
+                </div>
+
+                <div className="letterhead-canvas-footer" style={{
+                  marginTop: 30,
+                  paddingTop: 20,
+                  borderTop: '1px solid #e2e8f0',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-end',
                   gap: 16
                 }}>
                   <style>{`
-                    @media (max-width: 639px) {
-                      .letterhead-canvas-footer { flex-direction: column; text-align: center; }
-                    }
-                  `}</style>
-                  <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', justifyContent: 'center' }}>
-                    <div style={{ fontSize: '0.65rem', color: 'var(--pp-text-3)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Globe size={10} style={{ color: 'var(--pp-blue)' }} /> {clinicForm?.website || 'web-node-dns'}
+                      @media (max-width: 639px) {
+                        .letterhead-canvas-footer { flex-direction: column; text-align: center; align-items: center; }
+                        .letterhead-footer-left { justify-content: center; }
+                        .letterhead-footer-right { text-align: center !important; margin-top: 10px; }
+                      }
+                    `}</style>
+                  <div className="letterhead-footer-left" style={{ display: 'flex', gap: 30, flexWrap: 'wrap', flex: 1 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <span style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Website</span>
+                      <div style={{ fontSize: '0.7rem', color: '#334155', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Globe size={12} style={{ color: '#16a1e4' }} /> {clinicForm?.website || 'www.clinic-portal.com'}
+                      </div>
                     </div>
-                    <div style={{ fontSize: '0.65rem', color: 'var(--pp-text-3)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Mail size={10} style={{ color: 'var(--pp-blue)' }} /> {clinicForm?.email || 'identity@clinic.com'}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <span style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Inquiries</span>
+                      <div style={{ fontSize: '0.7rem', color: '#334155', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Mail size={12} style={{ color: '#16a1e4' }} /> {clinicForm?.email || 'contact@clinic.com'}
+                      </div>
                     </div>
                   </div>
-                  <div style={{ fontSize: '0.6rem', color: 'var(--pp-text-4)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Secure PDF Engine v2.0</div>
+                  <div className="letterhead-footer-right" style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '0.65rem', color: '#475569', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Secure PDF Engine</div>
+                    <div style={{ fontSize: '0.55rem', color: '#94a3b8', fontWeight: 600, marginTop: 2 }}>Digitally Verified • HomeoX v2.0</div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-
         </div>
       )}
 

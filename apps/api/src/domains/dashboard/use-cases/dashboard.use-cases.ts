@@ -140,7 +140,7 @@ export class DashboardUseCases {
         data: {
           totalRevenue: kpis.todaysCollection,
           revenueTrend: Number(kpis.revenueTrend) || 0,
-          patientsApril: kpis.newPatientsCount,
+          patientsCount: kpis.newPatientsCount,
           patientsTrend: Number(kpis.patientTrend) || 0,
           collectionRate: kpis.collectionRate,
           collectionRateTrend: Number(kpis.collectionRateTrend) || 0,

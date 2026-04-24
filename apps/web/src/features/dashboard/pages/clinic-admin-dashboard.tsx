@@ -91,7 +91,7 @@ export function ClinicAdminDashboard() {
   const {
     totalRevenue,
     revenueTrend,
-    patientsApril: patients,
+    patientsCount: patients,
     patientsTrend,
     collectionRate,
     collectionRateTrend,

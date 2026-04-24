@@ -73,7 +73,7 @@ export function AdminDashboard() {
         />
         <PrimaryKPICard
           label="TOTAL PATIENTS"
-          value={String(Number(clinicData?.patientsApril ?? kpis?.newPatientsCount ?? 0))}
+          value={String(Number(clinicData?.patientsCount ?? kpis?.newPatientsCount ?? 0))}
           trend={Number(clinicData?.patientsTrend ?? kpis?.patientTrend ?? 0)}
           icon={<Users size={18} />}
           color="var(--pp-blue)"

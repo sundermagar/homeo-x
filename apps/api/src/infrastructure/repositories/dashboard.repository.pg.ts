@@ -123,23 +123,23 @@ export class DashboardRepositoryPg implements IDashboardRepository {
   async getKpis(period: string, contextId: number, doctorId?: number): Promise<DashboardKpis> {
     const { start, boundary, prevStart, prevBoundary } = this.getPeriodDates(period);
 
-    // Single round-trip: 4 queries instead of 9 (merged prev/curr + eliminated duplicate bills scans)
-    const [patientsRes, expensesRes, billsRes, receiptRes, prevBillsRes, prevReceiptRes] = await Promise.all([
-      // Patients: current + previous
+    // Optimized multi-query round-trip
+    const [patientsRes, expensesRes, billsRes, receiptRes, prevBillsRes, prevReceiptRes, followUpsRes, waitTimeRes, prevWaitTimeRes] = await Promise.all([
+      // 1. Patients: current + previous
       this.db.execute(sql`
         SELECT
           count(*) FILTER (WHERE created_at >= ${start}::timestamp AND created_at < ${boundary}::timestamp AND (deleted_at IS NULL OR deleted_at::text = ''))::int as curr_patients,
           count(*) FILTER (WHERE created_at >= ${prevStart}::timestamp AND created_at < ${prevBoundary}::timestamp AND (deleted_at IS NULL OR deleted_at::text = ''))::int as prev_patients
         FROM patients
       `),
-      // Expenses: current period
+      // 2. Expenses: current period
       this.db.execute(sql`
         SELECT COALESCE(sum(amount), 0)::int as total
         FROM expenses
         WHERE exp_date >= ${start}::date AND exp_date < ${boundary}::date
           AND (deleted_at IS NULL OR deleted_at::text = '')
       `),
-      // Current Bills
+      // 3. Current Bills
       this.db.execute(sql`
         SELECT
           COALESCE(sum(charges), 0)::numeric as charges,
@@ -148,14 +148,14 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         WHERE bill_date >= ${start}::date AND bill_date < ${boundary}::date
           AND (deleted_at IS NULL OR deleted_at::text = '')
       `),
-      // Current Receipts
+      // 4. Current Receipts
       this.db.execute(sql`
         SELECT COALESCE(sum(CAST(NULLIF(amount::text, '') AS numeric)), 0) as revenue
         FROM receipt
         WHERE created_at >= ${start}::timestamp AND created_at < ${boundary}::timestamp
           AND (deleted_at IS NULL OR deleted_at::text = '')
       `),
-      // Previous Bills
+      // 5. Previous Bills
       this.db.execute(sql`
         SELECT
           COALESCE(sum(charges), 0)::numeric as charges,
@@ -164,11 +164,35 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         WHERE bill_date >= ${prevStart}::date AND bill_date < ${prevBoundary}::date
           AND (deleted_at IS NULL OR deleted_at::text = '')
       `),
-      // Previous Receipts
+      // 6. Previous Receipts
       this.db.execute(sql`
         SELECT COALESCE(sum(CAST(NULLIF(amount::text, '') AS numeric)), 0) as revenue
         FROM receipt
         WHERE created_at >= ${prevStart}::timestamp AND created_at < ${prevBoundary}::timestamp
+          AND (deleted_at IS NULL OR deleted_at::text = '')
+      `),
+      // 7. Follow-ups: current period
+      this.db.execute(sql`
+        SELECT count(*)::int as count
+        FROM appointments
+        WHERE booking_date >= ${start} AND booking_date < ${boundary}
+          AND visit_type = 'FollowUp'
+          AND (deleted_at IS NULL OR deleted_at::text = '')
+      `),
+      // 8. Wait Time: Current period average
+      this.db.execute(sql`
+        SELECT COALESCE(avg(extract(epoch from (called_at - checked_in_at))/60), 0)::int as avg_wait
+        FROM waitlist
+        WHERE date >= ${start}::date AND date < ${boundary}::date
+          AND called_at IS NOT NULL AND checked_in_at IS NOT NULL
+          AND (deleted_at IS NULL OR deleted_at::text = '')
+      `),
+      // 9. Wait Time: Previous period average for trend
+      this.db.execute(sql`
+        SELECT COALESCE(avg(extract(epoch from (called_at - checked_in_at))/60), 0)::int as avg_wait
+        FROM waitlist
+        WHERE date >= ${prevStart}::date AND date < ${prevBoundary}::date
+          AND called_at IS NOT NULL AND checked_in_at IS NOT NULL
           AND (deleted_at IS NULL OR deleted_at::text = '')
       `),
     ]) as any[];
@@ -185,9 +209,14 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     const prev = { charges: Number(prevB.charges), received: Number(prevB.received), revenue: prevE };
     const pat = patientsRes[0] || { curr_patients: 0, prev_patients: 0 };
     const exp = expensesRes[0] || { total: 0 };
+    const fup = followUpsRes[0] || { count: 0 };
+    const wait = waitTimeRes[0] || { avg_wait: 0 };
+    const pWait = prevWaitTimeRes[0] || { avg_wait: 0 };
 
     const currP = pat.curr_patients || 0;
     const prevP = pat.prev_patients || 0;
+    const currW = Number(wait.avg_wait) || 0;
+    const prevW = Number(pWait.avg_wait) || 0;
 
     const revTrend = prevE > 0 ? ((currE - prevE) / prevE * 100).toFixed(1) : '0.0';
     const patTrend = prevP > 0 ? ((currP - prevP) / prevP * 100).toFixed(1) : '0.0';
@@ -195,18 +224,20 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     const currRate = Number(curr.charges) > 0 ? Math.round((Number(curr.received) / Number(curr.charges)) * 100) : 0;
     const prevRate = Number(prev.charges) > 0 ? Math.round((Number(prev.received) / Number(prev.charges)) * 100) : 0;
     const collTrend = prevRate > 0 ? ((currRate - prevRate) / prevRate * 100).toFixed(1) : '0.0';
+    
+    const waitTrend = prevW > 0 ? ((currW - prevW) / prevW * 100).toFixed(1) : '0.0';
 
     return {
       newPatientsCount: currP,
-      followUpsCount: 0,
+      followUpsCount: Number(fup.count) || 0,
       todaysCollection: currE,
       todaysExpenses: Number(exp.total) || 0,
       revenueTrend: revTrend,
       patientTrend: patTrend,
       collectionRate: currRate,
       collectionRateTrend: collTrend,
-      avgWaitTime: 0,
-      avgWaitTimeTrend: '0.0'
+      avgWaitTime: currW,
+      avgWaitTimeTrend: waitTrend
     };
   }
 
@@ -447,34 +478,54 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       modeFilter = `AND LOWER(COALESCE(${modeCol}, '')) IN ('upi', 'card', 'online', 'bank', 'gpay', 'phonepe', 'paytm')`;
     }
 
+    let interval = 'months';
+    let count = 5;
+    let trunc = 'month';
+    let format = 'Mon';
+
+    if (period === 'day') {
+      interval = 'hours';
+      count = 23;
+      trunc = 'hour';
+      format = 'HH24:00';
+    } else if (period === 'week') {
+      interval = 'days';
+      count = 6;
+      trunc = 'day';
+      format = 'DD Mon';
+    } else if (period === 'month') {
+      interval = 'days';
+      count = 29;
+      trunc = 'day';
+      format = 'DD Mon';
+    }
+
     const results = await this.db.execute(sql`
-      WITH months AS (
-        SELECT (date_trunc('month', NOW()) - (m || ' months')::interval)::date as m
-        FROM generate_series(0, 5) m
+      WITH periods AS (
+        SELECT (date_trunc(${trunc}, NOW()) - (p || ${' ' + interval})::interval)::timestamp as p
+        FROM generate_series(0, ${count}) p
       ),
       rev_data AS (
         SELECT 
-          date_trunc('month', ${sql.identifier(dateCol)})::date as m, 
+          date_trunc(${trunc}, ${sql.identifier(dateCol)})::timestamp as p, 
           sum(CAST(NULLIF(${sql.identifier(amountCol)}::text, '') AS numeric)) as amt 
         FROM ${sql.identifier(revInfo.name)}
-        WHERE ${sql.identifier(dateCol)} >= date_trunc('month', NOW()) - interval '6 months' 
+        WHERE ${sql.identifier(dateCol)} >= date_trunc(${trunc}, NOW()) - (${count} || ${' ' + interval})::interval
           ${sql.raw(modeFilter)}
           AND (deleted_at IS NULL OR deleted_at::text = '')
         GROUP BY 1
       )
-      SELECT to_char(months.m, 'Mon') as month, 
+      SELECT to_char(periods.p, ${format}) as label, 
              COALESCE(rev_data.amt, 0)::int as revenue
-      FROM months
-      LEFT JOIN rev_data ON rev_data.m = months.m
-      ORDER BY months.m ASC
+      FROM periods
+      LEFT JOIN rev_data ON rev_data.p = periods.p
+      ORDER BY periods.p ASC
     `);
 
-    const series = (results as any[]).map(r => ({
-      month: r.month,
+    return (results as any[]).map(r => ({
+      month: r.label, // keeping 'month' key for frontend compatibility
       revenue: Number(r.revenue) || 0
     }));
-
-    return series;
   }
 
   async markReminderDone(id: number): Promise<void> {

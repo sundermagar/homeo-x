@@ -139,7 +139,7 @@ const NAV_STRUCTURE: NavItem[] = [
       children: [
         // { path: '/consultation-history', label: 'Case History', icon: BarChart2 },
         { path: '/vitals-check', label: 'Height & Weight Check', icon: Scale },
-        // { path: '/medical-cases', label: 'Medical Cases', icon: Stethoscope },
+        { path: '/medical-cases', label: 'Medical Cases', icon: Stethoscope },
         { path: '/ai-remedy-chart', label: 'Materia Medica', icon: BookOpen },
         { path: '/ai-analysis', label: 'AI Analysis', icon: BrainCircuit },
       ],
