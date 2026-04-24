@@ -8,11 +8,12 @@ const STAFF_KEY = 'staff';
 interface StaffListResponse {
   data: StaffSummary[];
   total: number;
+  activeCount: number;
 }
 
 // ─── Staff Queries ───
 
-export function useStaffList(category: StaffCategory, params: { page?: number; limit?: number; search?: string }) {
+export function useStaffList(category: StaffCategory, params: { page?: number; limit?: number; search?: string; sortBy?: string; sortOrder?: 'ASC' | 'DESC' }) {
   return useQuery<StaffListResponse>({
     queryKey: [STAFF_KEY, category, params],
     queryFn: async () => {
@@ -24,7 +25,8 @@ export function useStaffList(category: StaffCategory, params: { page?: number; l
       const body = (res as any)._original ?? res.data;
       return { 
         data: (body.data ?? res.data ?? []) as StaffSummary[], 
-        total: (body.total ?? (Array.isArray(res.data) ? res.data.length : 0)) as number
+        total: (body.total ?? (Array.isArray(res.data) ? res.data.length : 0)) as number,
+        activeCount: (body.activeCount ?? 0) as number
       };
     },
   });
