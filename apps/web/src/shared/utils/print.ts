@@ -108,7 +108,7 @@ export const printBill = (bill: BillWithPatient, org: Organization, options: Pri
             <div class="meta-box">
               <h4>Invoice Identification</h4>
               <p class="meta-value">INV-${bill.billNo}</p>
-              <p class="meta-value" style="font-size: 12px; margin-top: 4px;">Date: ${format(new Date(bill.billDate), 'PPPP')}</p>
+              <p class="meta-value" style="font-size: 12px; margin-top: 4px;">Date: ${bill.billDate ? format(new Date(bill.billDate), 'PPPP') : 'N/A'}</p>
             </div>
             <div class="meta-box">
               <h4>Patient Nomenclature</h4>

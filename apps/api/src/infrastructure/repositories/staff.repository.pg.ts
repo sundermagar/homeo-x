@@ -339,9 +339,10 @@ export class StaffRepositoryPg implements StaffRepository {
       );
     }
 
+    let hashedPassword: string | undefined;
     if (data.password) {
-      const hashed = await bcrypt.hash(data.password, 10);
-      updates.push(sql`password = ${hashed}`);
+      hashedPassword = await bcrypt.hash(data.password, 10);
+      updates.push(sql`password = ${hashedPassword}`);
     }
 
     await this.db.execute(sql`

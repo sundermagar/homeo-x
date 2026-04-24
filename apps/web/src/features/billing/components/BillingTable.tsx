@@ -14,7 +14,7 @@ interface BillingTableProps {
 export function BillingTable({ bills, isLoading }: BillingTableProps) {
   const { data: orgs = [] } = useOrganizations();
   const user = useAuthStore(s => s.user);
-  const myOrg = orgs.find(o => o.id === user?.clinicId) || orgs[0];
+  const myOrg = orgs.find(o => o.id === user?.contextId) || orgs[0];
   
   const [printingBill, setPrintingBill] = useState<BillWithPatient | null>(null);
 
