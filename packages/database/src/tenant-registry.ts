@@ -41,6 +41,7 @@ export class TenantRegistry {
     ['gulf', { slug: 'gulf', schemaName: 'tenant_gulf', displayName: 'Gulf Clinic', isActive: true }],
     ['homeocare', { slug: 'homeocare', schemaName: 'tenant_homeocare', displayName: 'HomeoCAre Clinic', isActive: true }],
     ['hmc', { slug: 'hmc', schemaName: 'tenant_hmc', displayName: 'HMC Clinic', isActive: true }],
+    ['otamaclinic', { slug: 'otamaclinic', schemaName: 'tenant_otamamedical', displayName: 'Otama Medical', isActive: true }],
   ]);
 
   static resolve(host: string): TenantConfig | null {

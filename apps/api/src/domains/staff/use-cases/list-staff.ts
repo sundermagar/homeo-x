@@ -7,12 +7,15 @@ interface ListStaffInput {
   page: number;
   limit: number;
   search?: string;
+  clinicId?: number;
+  sortBy?: string;
+  sortOrder?: 'ASC' | 'DESC';
 }
 
 export class ListStaffUseCase {
   constructor(private readonly staffRepo: StaffRepository) {}
 
-  async execute(input: ListStaffInput): Promise<Result<{ data: StaffSummary[]; total: number }>> {
+  async execute(input: ListStaffInput): Promise<Result<{ data: StaffSummary[]; total: number; activeCount: number }>> {
     const result = await this.staffRepo.findAll(input);
     return ok(result);
   }

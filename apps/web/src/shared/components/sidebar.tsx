@@ -236,7 +236,7 @@ const NAV_STRUCTURE: NavItem[] = [
         { path: '/platform/clinicadmins', label: 'Clinic Admins', icon: Shield },
         { path: '/platform/account-managers', label: 'Account Mgrs', icon: Briefcase },
         { path: '/platform/clinics', label: 'Clinics', icon: Building2, roles: ['SuperAdmin', 'Admin'] },
-        { path: '/platform/accounts', label: 'Accounts', icon: UserCog },
+        { path: '/platform/accounts', label: 'Accounts', icon: UserCog, roles: ['SuperAdmin', 'Admin'] },
         { path: '/settings/roles', label: 'Roles & Access', icon: UserCheck, roles: ['SuperAdmin', 'Admin'] },
       ],
     },

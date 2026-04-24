@@ -58,8 +58,11 @@ export class StaffRepositoryPg implements StaffRepository {
     page: number;
     limit: number;
     search?: string;
-  }): Promise<{ data: StaffSummary[]; total: number }> {
-    const { category, page, limit, search } = params;
+    clinicId?: number;
+    sortBy?: string;
+    sortOrder?: 'ASC' | 'DESC';
+  }): Promise<{ data: StaffSummary[]; total: number; activeCount: number }> {
+    const { category, page, limit, search, clinicId, sortBy = 'id', sortOrder = 'DESC' } = params;
     const offset = (page - 1) * limit;
     const table = this.getTableName(category);
 
@@ -71,25 +74,47 @@ export class StaffRepositoryPg implements StaffRepository {
 
     const colFragment = sql.join(selectCols.map(c => sql.identifier(c)), sql`, `);
 
-    // We only select columns confirmed to exist in the legacy schema
+    // Filter by clinicId if provided. Only apply to tables known to have clinic_id.
+    const supportsClinicId = ['doctor', 'receptionist', 'employee', 'account'].includes(category);
+    const clinicFilter = (clinicId && supportsClinicId) 
+      ? sql`AND (clinic_id = ${clinicId} OR clinic_id::text = ${String(clinicId)})` 
+      : sql``;
+
+    // Handle dynamic sorting safely
+    const validSortCols = [...selectCols];
+    const finalSortBy = validSortCols.includes(sortBy) ? sortBy : 'id';
+    const finalSortOrder = sortOrder === 'ASC' ? sql`ASC` : sql`DESC`;
+
+    console.log('[StaffRepo] findAll starting', { category, limit, offset, clinicId, sortBy: finalSortBy, sortOrder });
     const rows = await this.db.execute(sql`
       SELECT ${colFragment}
       FROM ${sql.identifier(table)}
       WHERE (deleted_at IS NULL OR deleted_at::text = '')
+      ${clinicFilter}
       ${searchSafe ? sql`AND (name ILIKE ${searchSafe} OR email ILIKE ${searchSafe} OR mobile ILIKE ${searchSafe})` : sql``}
-      ORDER BY name ASC
+      ORDER BY ${sql.identifier(finalSortBy)} ${finalSortOrder}
       LIMIT ${limit} OFFSET ${offset}
     `);
+    console.log('[StaffRepo] SELECT query completed', (rows as any[]).length);
 
     const countResult = await this.db.execute(sql`
       SELECT count(*)::int as count FROM ${sql.identifier(table)}
       WHERE (deleted_at IS NULL OR deleted_at::text = '')
+      ${clinicFilter}
       ${searchSafe ? sql`AND (name ILIKE ${searchSafe} OR email ILIKE ${searchSafe} OR mobile ILIKE ${searchSafe})` : sql``}
+    `);
+    console.log('[StaffRepo] COUNT query completed', (countResult as any[])[0]?.count);
+
+    const activeCountResult = await this.db.execute(sql`
+      SELECT count(*)::int as count FROM ${sql.identifier(table)}
+      WHERE (deleted_at IS NULL OR deleted_at::text = '')
+      ${clinicFilter}
     `);
 
     return {
       data: (rows as any[]).map((r: any) => this.toSummary(r, category)),
       total: (countResult as any[])[0]?.count ?? 0,
+      activeCount: (activeCountResult as any[])[0]?.count ?? 0,
     };
   }
 
@@ -177,10 +202,10 @@ export class StaffRepositoryPg implements StaffRepository {
     const userMirrorResult = await this.db.execute(sql`
       INSERT INTO users (
         name, email, password, type, context_id,
-        created_at, updated_at
+        is_active, created_at, updated_at
       ) VALUES (
         ${name}, ${data.email || ''}, ${hashedPassword}, ${roleEnum},
-        ${contextId}, NOW(), NOW()
+        ${contextId}, true, NOW(), NOW()
       ) RETURNING id
     `) as any[];
 
@@ -199,10 +224,13 @@ export class StaffRepositoryPg implements StaffRepository {
       data.dateBirth || null, data.dateLeft || null, data.salaryCur || 0, hashedPassword
     ];
 
-    // Add clinic_id for clinic admins — ties the admin to their organization
-    if (category === 'clinicadmin' && (data as any).clinicId) {
+    // Add clinic_id for relevant categories — ties the staff to their organization
+    // Doctors and Receptionists in legacy schema typically use clinic_id.
+    // Note: clinicadmins table does NOT have a clinic_id column.
+    const cid = (data as any).clinicId;
+    if (cid && (category === 'doctor' || category === 'receptionist' || category === 'employee' || category === 'account')) {
       staffCols.push('clinic_id');
-      staffVals.push((data as any).clinicId);
+      staffVals.push(cid);
     }
 
     // Add doctor-specific columns if applicable
