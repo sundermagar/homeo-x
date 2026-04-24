@@ -1,7 +1,7 @@
-import { pgTable, integer, text, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, integer, text, timestamp, serial } from "drizzle-orm/pg-core";
 
 export const expensesheadLegacy = pgTable("expenseshead", {
-  id: integer("id").notNull(),
+  id: serial("id").primaryKey(),
   expenseshead: text("expenseshead"),
   shortName: text("short_name"),
   createdAt: timestamp("created_at"),

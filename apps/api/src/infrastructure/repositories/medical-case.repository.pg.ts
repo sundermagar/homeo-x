@@ -38,11 +38,25 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
     return rows as MedicalCase[];
   }
 
+  private _calculateAge(dobValue: string | Date | null | undefined): number | undefined {
+    if (!dobValue) return undefined;
+    const dob = new Date(dobValue);
+    if (Number.isNaN(dob.getTime())) return undefined;
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const monthDiff = today.getMonth() - dob.getMonth();
+    const dayDiff = today.getDate() - dob.getDate();
+    if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+      age -= 1;
+    }
+    return age >= 0 ? age : undefined;
+  }
+
   async findMany(filters: { search?: string; page?: number; limit?: number }) {
     const { search, page = 1, limit = 50 } = filters;
     const offset = (page - 1) * limit;
 
-    const query = this.db
+    let query = this.db
       .select({
         id: schema.medicalCases.id,
         regid: schema.medicalCases.regid,
@@ -52,18 +66,20 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
         first_name: schema.patients.firstName,
         surname: schema.patients.surname,
         gender: schema.patients.gender,
-        age: schema.patients.age,
+        dob: schema.patients.dob,
+        date_of_birth: schema.patients.dateOfBirth,
         phone: schema.patients.phone,
         city: schema.patients.city,
       })
       .from(schema.medicalCases)
       .leftJoin(schema.patients, eq(schema.medicalCases.regid, schema.patients.regid))
-      .where(sql`1=1`); // TODO: Add search conditions if provided
+      .$dynamic();
 
     if (search) {
-      // Basic search logic for name/phone
       const searchTerms = `%${search}%`;
-      query.where(sql`(${schema.patients.firstName} ILIKE ${searchTerms} OR ${schema.patients.surname} ILIKE ${searchTerms} OR ${schema.patients.phone} ILIKE ${searchTerms})`);
+      query = query.where(
+        sql`(${schema.patients.firstName} ILIKE ${searchTerms} OR ${schema.patients.surname} ILIKE ${searchTerms} OR ${schema.patients.phone} ILIKE ${searchTerms})`
+      );
     }
 
     const rows = await query
@@ -71,11 +87,16 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
       .limit(limit)
       .offset(offset);
 
+    const hydrated = (rows as any[]).map((row) => ({
+      ...row,
+      age: row.age ?? this._calculateAge(row.dob ?? row.date_of_birth),
+    }));
+
     const [countRes] = await this.db
       .select({ count: sql<number>`count(*)::int` })
       .from(schema.medicalCases);
 
-    return { data: rows, total: countRes?.count ?? 0 };
+    return { data: hydrated, total: countRes?.count ?? 0 };
   }
 
   async create(data: Partial<MedicalCase>): Promise<number> {
@@ -104,46 +125,72 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
   }
 
   async getUnifiedCaseData(regid: number): Promise<FullCaseData | null> {
-    const medicalCases = await this.findByRegId(regid);
-    const activeCase = medicalCases.find(c => c.status === 'Active') || medicalCases[0];
+    try {
+      const medicalCases = await this.findByRegId(regid);
+      const activeCase = medicalCases.find(c => c.status === 'Active') || medicalCases[0];
 
-    if (!activeCase) return null;
+      // If no medical case exists, we still want to return patient-level data (notes, images, homeo)
+      // but soap/vitals will be empty since they depend on visitId (activeCase.id).
+      
+      const [
+        vitals,
+        soap,
+        homeo,
+        notes,
+        examination,
+        images,
+        investigations,
+        prescriptions
+      ] = await Promise.all([
+        activeCase ? this.db.select().from(schema.vitals).where(eq(schema.vitals.visitId, activeCase.id)) : Promise.resolve([]),
+        activeCase ? this.db.select().from(schema.soapNotes).where(eq(schema.soapNotes.visitId, activeCase.id)) : Promise.resolve([]),
+        this.getHomeoDetails(regid),
+        this.db.select().from(schema.caseNotes).where(eq(schema.caseNotes.regid, regid)).orderBy(desc(schema.caseNotes.createdAt)),
+        this.db.select().from(schema.caseExamination).where(eq(schema.caseExamination.regid, regid)),
+        this.db.select().from(schema.caseImages).where(eq(schema.caseImages.regid, regid)),
+        this.db.select().from(schema.investigations).where(eq(schema.investigations.regid, regid)),
+        this.db.select().from(schema.prescriptions).where(eq(schema.prescriptions.regid, regid)),
+      ]);
 
-    const [
-      vitals,
-      soap,
-      homeo,
-      notes,
-      examination,
-      images,
-      investigations,
-      prescriptions
-    ] = await Promise.all([
-      this.db.select().from(schema.vitals).where(eq(schema.vitals.visitId, activeCase.id)), // Should be visitId or regid? Usually visitId in MMC
-      this.db.select().from(schema.soapNotes).where(eq(schema.soapNotes.visitId, activeCase.id)),
-      this.getHomeoDetails(regid),
-      this.db.select().from(schema.caseNotes).where(eq(schema.caseNotes.regid, regid)).orderBy(desc(schema.caseNotes.createdAt)),
-      this.db.select().from(schema.caseExamination).where(eq(schema.caseExamination.regid, regid)),
-      this.db.select().from(schema.caseImages).where(eq(schema.caseImages.regid, regid)),
-      this.db.select().from(schema.investigations).where(eq(schema.investigations.regid, regid)),
-      this.db.select().from(schema.prescriptions).where(eq(schema.prescriptions.regid, regid)),
-    ]);
+      return {
+        medicalCase: activeCase || { id: 0, regid, status: 'None' }, // Fallback for UI
+        vitals: vitals as Vitals[],
+        soap: soap as SoapNotes[],
+        homeo,
+        notes: notes as CaseNote[],
+        examination: examination as CaseExamination[],
+        images: images as CaseImage[],
+        investigations: investigations as Investigation[],
+        prescriptions: prescriptions as Prescription[],
+      };
+    } catch (err: any) {
+      console.error(`💥 [MedicalCaseRepositoryPg] Error in getUnifiedCaseData for regid ${regid}:`, err);
+      throw err; // Re-throw to be caught by Express error handler
+    }
+  }
 
-    return {
-      medicalCase: activeCase,
-      vitals: vitals as Vitals[],
-      soap: soap as SoapNotes[],
-      homeo,
-      notes: notes as CaseNote[],
-      examination: examination as CaseExamination[],
-      images: images as CaseImage[],
-      investigations: investigations as Investigation[],
-      prescriptions: prescriptions as Prescription[],
-    };
+  private async patchConstraint(table: string, column: string) {
+    const constraintName = `${table}_${column}_unique`;
+    try {
+      console.log(`[MedicalCaseRepositoryPg] 🔧 Self-healing: Patching missing UNIQUE constraint ${constraintName}...`);
+      await this.db.execute(sql.raw(`
+        DO $$
+        BEGIN
+          IF NOT EXISTS (
+            SELECT 1 FROM pg_constraint WHERE conname = '${constraintName}'
+          ) THEN
+            ALTER TABLE "${table}" ADD CONSTRAINT "${constraintName}" UNIQUE("${column}");
+          END IF;
+        END $$
+      `));
+    } catch (err: any) {
+      console.error(`[MedicalCaseRepositoryPg] ❌ Self-healing failed for ${constraintName}:`, err.message);
+      throw err;
+    }
   }
 
   async saveVitals(data: Partial<Vitals>): Promise<void> {
-    await this.db
+    const execute = () => this.db
       .insert(schema.vitals)
       .values({
         visitId: data.visitId!,
@@ -163,10 +210,33 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
       .onConflictDoUpdate({
         target: schema.vitals.visitId,
         set: {
-          ...data,
+          heightCm: data.heightCm,
+          weightKg: data.weightKg,
+          bmi: data.bmi,
+          temperatureF: data.temperatureF,
+          pulseRate: data.pulseRate,
+          systolicBp: data.systolicBp,
+          diastolicBp: data.diastolicBp,
+          respiratoryRate: data.respiratoryRate,
+          oxygenSaturation: data.oxygenSaturation,
+          bloodSugar: data.bloodSugar,
+          notes: data.notes,
+          recordedAt: data.recordedAt || new Date(),
           updatedAt: new Date(),
         },
       });
+
+    try {
+      await execute();
+    } catch (err: any) {
+      if (err.message?.includes('ON CONFLICT specification') || err.code === '42P10') {
+        await this.patchConstraint('vitals', 'visit_id');
+        await execute();
+      } else {
+        console.error('💥 [MedicalCaseRepositoryPg] Error in saveVitals:', err);
+        throw err;
+      }
+    }
   }
 
   async getVitals(visitId: number): Promise<Vitals | null> {
@@ -180,7 +250,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
   }
 
   async saveSoapNotes(data: Partial<SoapNotes>): Promise<void> {
-    await this.db
+    const execute = () => this.db
       .insert(schema.soapNotes)
       .values({
         visitId: data.visitId!,
@@ -195,10 +265,28 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
       .onConflictDoUpdate({
         target: schema.soapNotes.visitId,
         set: {
-          ...data,
+          subjective: data.subjective,
+          objective: data.objective,
+          assessment: data.assessment,
+          plan: data.plan,
+          advice: data.advice,
+          followUp: data.followUp,
+          icdCodes: data.icdCodes,
           updatedAt: new Date(),
         },
       });
+
+    try {
+      await execute();
+    } catch (err: any) {
+      if (err.message?.includes('ON CONFLICT specification') || err.code === '42P10') {
+        await this.patchConstraint('soap_notes', 'visit_id');
+        await execute();
+      } else {
+        console.error('💥 [MedicalCaseRepositoryPg] Error in saveSoapNotes:', err);
+        throw err;
+      }
+    }
   }
 
   async getSoapNotes(visitId: number): Promise<SoapNotes | null> {
@@ -212,21 +300,37 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
   }
 
   async saveHomeoDetails(data: Partial<HomeoDetails>): Promise<void> {
-    await this.db
+    const homeoData: any = {
+      regid: data.regid!,
+    };
+    if ((schema.homeoDetails as any).thermal) homeoData.thermal = data.thermal;
+    if ((schema.homeoDetails as any).constitutional) homeoData.constitutional = data.constitutional;
+    
+    const setClause: any = {
+      updatedAt: new Date(),
+    };
+    if ((schema.homeoDetails as any).thermal) setClause.thermal = data.thermal;
+    if ((schema.homeoDetails as any).constitutional) setClause.constitutional = data.constitutional;
+
+    const execute = () => this.db
       .insert(schema.homeoDetails)
-      .values({
-        regid: data.regid!,
-        thermal: data.thermal,
-        constitutional: data.constitutional,
-        miasm: data.miasm,
-      })
+      .values(homeoData)
       .onConflictDoUpdate({
         target: schema.homeoDetails.regid,
-        set: {
-          ...data,
-          updatedAt: new Date(),
-        },
+        set: setClause,
       });
+
+    try {
+      await execute();
+    } catch (err: any) {
+      if (err.message?.includes('ON CONFLICT specification') || err.code === '42P10') {
+        await this.patchConstraint('homeo_details', 'regid');
+        await execute();
+      } else {
+        console.error('💥 [MedicalCaseRepositoryPg] Error in saveHomeoDetails:', err);
+        throw err;
+      }
+    }
   }
 
   async getHomeoDetails(regid: number): Promise<HomeoDetails | null> {
@@ -238,6 +342,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
 
     return (row as HomeoDetails) || null;
   }
+
 
   async saveNote(data: Partial<CaseNote>): Promise<void> {
     if (data.id) {
@@ -280,7 +385,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
       picture: data.picture!,
       description: data.description,
     }).returning({ id: schema.caseImages.id });
-    return row.id;
+    return row?.id ?? 0;
   }
 
   async deleteImage(id: number): Promise<void> {

@@ -1,0 +1,1009 @@
+/* ─── Shared Dashboard Components (All Roles) ──────────────────────────────
+   This design system defines the "Clinical Light" dashboard aesthetic.
+   White cards, Slate-900 typography, subtle Slate-200 borders.
+   Refactored for Paperplane v2.0 Design Tokens.
+────────────────────────────────────────────────────────────────────────────── */
+
+.dash-root {
+  padding: 0;
+  padding-bottom: var(--pp-space-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--pp-space-6);
+}
+
+/* 0. Main Dashboard Header */
+.dash-header {
+  margin-bottom: var(--pp-space-6);
+}
+
+.dash-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--pp-ink);
+  margin: 0 0 4px;
+  letter-spacing: -0.01em;
+}
+
+.dash-subtitle {
+  font-size: 13px;
+  color: var(--pp-text-3);
+  font-weight: 500;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dash-subtitle::before {
+  content: '';
+  width: 10px;
+  height: 1px;
+  background: var(--pp-blue);
+  opacity: 0.4;
+}
+
+/* 1. KPI Strip (Top Row) */
+.dash-kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--pp-space-4);
+}
+
+@media (min-width: 768px) {
+  .dash-kpi-strip {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.dash-kpi-item {
+  background: var(--bg-card);
+  padding: var(--pp-space-5);
+  border-radius: var(--pp-radius-card);
+  border: 1px solid var(--pp-warm-4);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: var(--pp-shadow-sm);
+  transition: all var(--transition-normal);
+}
+
+.dash-kpi-item:hover {
+  border-color: var(--pp-blue-border);
+  box-shadow: var(--pp-shadow-md);
+  transform: translateY(-1px);
+}
+
+.dash-kpi-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--pp-text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.dash-kpi-value-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.dash-kpi-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--pp-ink);
+  letter-spacing: -0.01em;
+}
+
+.dash-kpi-trend {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.trend-up {
+  color: var(--pp-success-fg);
+}
+
+.trend-down {
+  color: var(--pp-danger-fg);
+}
+
+/* 2. Layout Grid */
+.dash-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--pp-space-6);
+}
+
+@media (min-width: 1024px) {
+  .dash-grid {
+    grid-template-columns: 2fr 1.2fr;
+  }
+}
+
+.dash-main-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pp-space-6);
+}
+
+.dash-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pp-space-6);
+}
+
+/* 3. Cards & Sections */
+.dash-card {
+  background: var(--bg-card);
+  border: 1px solid var(--pp-warm-4);
+  border-radius: var(--pp-radius-card);
+  overflow: hidden;
+  box-shadow: var(--pp-shadow-sm);
+}
+
+.dash-card-header {
+  padding: var(--pp-space-3) var(--pp-space-5);
+  border-bottom: 1px solid var(--pp-warm-2);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--pp-warm-1);
+}
+
+.dash-card-body {
+  padding: var(--pp-space-5);
+}
+
+.dash-section-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--pp-ink);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 24px;
+}
+
+/* 4. Lists & Lists (Sidebar) */
+.dash-sidebar-card {
+  background: var(--bg-card);
+  border: 1px solid var(--pp-warm-4);
+  border-radius: var(--pp-radius-card);
+  padding: var(--pp-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--pp-space-4);
+  box-shadow: var(--pp-shadow-sm);
+}
+
+.dash-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.dash-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--pp-warm-1);
+}
+
+.dash-list-item:last-child {
+  border-bottom: none;
+}
+
+/* 5. Components: Queue/Schedule Row */
+.dash-row {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-3);
+  padding: 12px 4px;
+  border-bottom: 1px solid var(--pp-warm-1);
+  transition: background var(--transition-fast);
+}
+
+.dash-row:hover {
+  background: var(--pp-warm-1);
+}
+
+.dash-row.active {
+  background: var(--pp-warm-2);
+  border-left: 3px solid var(--pp-blue);
+}
+
+.dash-row-details {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: var(--pp-warm-1);
+}
+
+.dash-row-details.expanded {
+  max-height: 200px;
+  border-bottom: 1px solid var(--pp-warm-2);
+}
+
+.details-inner {
+  padding: 16px 20px 16px 50px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dash-avatar {
+  width: 32px;
+  height: 32px;
+  background: var(--pp-warm-1);
+  border: 1px solid var(--pp-warm-4);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--pp-text-2);
+  flex-shrink: 0;
+}
+
+/* 6. Status & Badges */
+.dash-badge {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.badge-success {
+  background: var(--pp-success-bg);
+  color: var(--pp-success-fg);
+}
+
+.badge-primary {
+  background: var(--pp-blue-tint);
+  color: var(--pp-blue);
+}
+
+.badge-warning {
+  background: var(--pp-warning-bg);
+  color: var(--pp-warning-fg);
+}
+
+.badge-danger {
+  background: var(--pp-danger-bg);
+  color: var(--pp-danger-fg);
+}
+
+/* 7. Active Consultation HUD (Doctor) */
+.dd-active-head-up {
+  background: var(--bg-card);
+  border: 1px solid var(--pp-warm-4);
+  border-radius: 16px;
+  margin-bottom: var(--pp-space-6);
+  position: relative;
+  box-shadow: var(--pp-premium-shadow);
+}
+
+.dd-hud-header {
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--pp-warm-2);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--pp-warm-1);
+  border-radius: 16px 16px 0 0;
+}
+
+.dd-hud-body {
+  padding: 24px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 32px;
+}
+
+@media (min-width: 1024px) {
+  .dd-hud-body {
+    grid-template-columns: minmax(400px, 1.2fr) 1fr;
+  }
+}
+
+/* 8. Charts and Controls */
+.dash-chart-container {
+  height: 280px;
+  width: 100%;
+  margin-top: 16px;
+}
+
+.dash-tab-btn {
+  padding: 4px 0;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--pp-text-4);
+  background: transparent;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.dash-tab-btn.active {
+  color: var(--pp-blue);
+  border-bottom-color: var(--pp-blue);
+}
+
+.dash-tab-btn:hover:not(.active) {
+  color: var(--pp-text-2);
+}
+
+/* 9. Icons and Dots */
+.dash-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dash-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--pp-success-fg);
+  animation: pulse-dot 2s infinite;
+  flex-shrink: 0;
+}
+
+@keyframes pulse-dot {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.3);
+    opacity: 0.4;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* 10. Intelligence Hub Specifics */
+.dash-intel-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  background: var(--pp-warm-1);
+  border-radius: 12px;
+  border: 1px solid transparent;
+  transition: all var(--transition-normal);
+}
+
+.dash-intel-item:hover {
+  background: var(--bg-card);
+  border-color: var(--pp-warm-4);
+  box-shadow: var(--pp-shadow-sm);
+}
+
+.dash-intel-content {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pp-ink);
+  line-height: 1.5;
+}
+
+.pp-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--pp-warm-4);
+  border-radius: 6px;
+  color: var(--pp-text-3);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.pp-icon-btn:hover {
+  background: var(--pp-warm-2);
+  color: var(--pp-ink);
+  border-color: var(--pp-warm-5);
+}
+
+/* 11. Doctor Specific HUD (Refined) */
+.dd-patient-profile {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dd-token-pill {
+  width: fit-content;
+  padding: 4px 12px;
+  background: var(--pp-warm-2);
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--pp-text-2);
+  margin-bottom: 4px;
+  font-family: var(--pp-font-mono);
+}
+
+.dd-patient-name-big {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--pp-ink);
+  letter-spacing: -0.02em;
+}
+
+.dd-patient-meta {
+  font-size: 13px;
+  color: var(--pp-text-3);
+  font-weight: 600;
+}
+
+.dd-vitals-strip {
+  display: flex;
+  gap: 32px;
+  margin: 20px 0;
+  padding: 20px 0;
+  border-top: 1px solid var(--pp-warm-2);
+  border-bottom: 1px solid var(--pp-warm-2);
+}
+
+.dd-vital-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dd-vital-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--pp-text-4);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.dd-vital-value {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--pp-ink);
+  font-family: var(--pp-font-mono);
+}
+
+.dd-vital-unit {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--pp-text-4);
+  margin-left: 4px;
+}
+
+.dd-hud-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.btn-skip {
+  padding: 10px 24px;
+  background: var(--bg-card);
+  border: 1.5px solid #f97316;
+  /* Keep orange for specific warning/skip action */
+  color: #f97316;
+  font-weight: 800;
+  font-size: 13px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: var(--pp-shadow-sm);
+}
+
+.btn-skip:hover {
+  background: #fff7ed;
+  box-shadow: var(--pp-shadow-md);
+}
+
+.btn-more {
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--pp-warm-1);
+  border: 1px solid var(--pp-warm-4);
+  border-radius: 10px;
+  color: var(--pp-text-3);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-more:hover {
+  background: var(--pp-warm-2);
+  color: var(--pp-ink);
+}
+
+.dd-clinical-notes {
+  background: var(--pp-warm-1);
+  border-radius: 12px;
+  padding: 24px;
+  font-size: 14px;
+  color: var(--pp-text-2);
+  line-height: 1.6;
+  font-weight: 500;
+  height: fit-content;
+  border: 1px solid var(--pp-warm-2);
+}
+
+/* 11. Dropdown Menu Utility */
+.dash-dropdown-container {
+  position: relative;
+}
+
+.dash-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 180px;
+  background: var(--bg-card);
+  border: 1px solid var(--pp-warm-4);
+  border-radius: var(--pp-radius-card);
+  box-shadow: var(--pp-shadow-lg);
+  padding: 8px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+}
+
+.dash-dropdown-item {
+  padding: 10px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--pp-text-2);
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  border: none;
+  background: transparent;
+  width: 100%;
+  transition: all var(--transition-fast);
+}
+
+.dash-dropdown-item:hover {
+  background: var(--pp-warm-1);
+  color: var(--pp-ink);
+}
+
+.dash-dropdown-item.danger {
+  color: var(--pp-danger-fg);
+}
+
+.dash-dropdown-item.danger:hover {
+  background: var(--pp-danger-bg);
+}
+
+/* ─── Modal Overlay ───────────────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(8px);
+  padding: 24px;
+}
+
+.modal-box {
+  background: var(--bg-card);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 440px;
+  box-shadow: var(--pp-shadow-lg);
+  animation: modalIn 250ms cubic-bezier(0, 0, 0.2, 1);
+  overflow: hidden;
+  border: 1px solid var(--pp-warm-4);
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.modal-header {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--pp-warm-2);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--pp-warm-1);
+}
+
+.modal-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--pp-ink);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: var(--pp-warm-2);
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--pp-text-3);
+  transition: all 0.15s;
+}
+
+.modal-close:hover {
+  background: var(--pp-warm-4);
+  color: var(--pp-ink);
+}
+
+.modal-body {
+  padding: 24px;
+}
+
+.modal-footer {
+  padding: 18px 24px;
+  border-top: 1px solid var(--pp-warm-2);
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  background: var(--pp-warm-1);
+}
+
+/* ─── Buttons ─────────────────────────────────────────────────────────────── */
+.btn-primary {
+  padding: 10px 24px;
+  background: var(--pp-blue);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  font-family: inherit;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+}
+
+.btn-primary:hover {
+  background: var(--pp-blue-hover);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.2);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  padding: 10px 24px;
+  background: var(--bg-card);
+  color: var(--pp-text-2);
+  border: 1.5px solid var(--pp-warm-4);
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  font-family: inherit;
+}
+
+.btn-secondary:hover {
+  background: var(--pp-warm-1);
+  border-color: var(--pp-warm-5);
+  transform: translateY(-1px);
+}
+
+button.pp-link {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+
+button.pp-link:hover {
+  text-decoration: underline;
+}
+
+.btn-danger {
+  padding: 10px 24px;
+  background: var(--pp-danger-bg);
+  color: var(--pp-danger-fg);
+  border: 1.5px solid var(--pp-danger-border);
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  font-family: inherit;
+}
+
+.btn-danger:hover {
+  background: #fee2e2;
+  transform: translateY(-1px);
+}
+
+.dash-view-btn {
+  background: #eff6ff;
+  color: var(--pp-blue);
+  border: 1.5px solid #dbeafe;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.dash-view-btn:hover {
+  background: var(--pp-blue);
+  color: white;
+  border-color: var(--pp-blue);
+}
+
+/* ─── Expansion Table UI (Receptionist) ──────────────────────────────────── */
+.expansion-row {
+  transition: all 0.3s ease;
+}
+
+.expansion-details-td {
+  padding: 0 !important;
+  background: var(--bg-surface-2);
+}
+
+.expansion-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out, padding 0.3s ease;
+}
+
+.expansion-content.open {
+  max-height: 300px;
+  padding: 20px;
+  border-bottom: 2px solid var(--pp-warm-2);
+}
+
+.expansion-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 24px;
+}
+
+.expansion-label {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--pp-text-4);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.expansion-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pp-ink);
+}
+
+/* ─── Queue Management UI ─────────────────────────────────────────────────── */
+
+.token-badge {
+  background: var(--pp-ink);
+  color: white;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: var(--pp-font-mono);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  display: inline-block;
+}
+
+.dark .dash-kpi-item {
+  background: rgba(30, 41, 59, 0.4);
+  border-color: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+}
+
+.dark .dash-kpi-item:hover {
+  background: rgba(30, 41, 59, 0.6);
+  border-color: var(--pp-blue);
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
+}
+
+.dark .dash-card {
+  background: rgba(15, 23, 42, 0.6);
+  border-color: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+}
+
+.dark .dash-card-header {
+  background: rgba(30, 41, 59, 0.3);
+  border-bottom-color: rgba(255, 255, 255, 0.05);
+}
+
+.dark .dd-active-head-up {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.8) 100%);
+  border-color: rgba(59, 130, 246, 0.3);
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.4), inset 0 0 20px rgba(59, 130, 246, 0.05);
+}
+
+.dark .dd-hud-header {
+  background: rgba(59, 130, 246, 0.1);
+  border-bottom-color: rgba(59, 130, 246, 0.2);
+}
+
+.dark .dash-row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.dark .dash-row.active {
+  background: rgba(59, 130, 246, 0.1);
+  border-left-color: var(--pp-blue);
+}
+
+.dark .dash-intel-item {
+  background: rgba(30, 41, 59, 0.4);
+  border-color: rgba(255, 255, 255, 0.03);
+}
+
+.dark .dash-intel-item:hover {
+  background: rgba(30, 41, 59, 0.6);
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+.dark .dd-token-pill {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60A5FA;
+}
+
+.dark .modal-overlay {
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(12px);
+}
+
+.dark .modal-box {
+  background: #0F172A;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+}
+
+.dash-action-btn {
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1.5px solid transparent;
+  font-family: inherit;
+}
+
+.btn-checkin {
+  background: #f0fdf4;
+  color: #16a34a;
+  border-color: #dcfce7;
+}
+
+.btn-checkin:hover:not(:disabled) {
+  background: #16a34a;
+  color: white;
+  border-color: #16a34a;
+}
+
+.btn-call {
+  background: #fffbeb;
+  color: #d97706;
+  border-color: #fef3c7;
+}
+
+.btn-call:hover:not(:disabled) {
+  background: #d97706;
+  color: white;
+  border-color: #d97706;
+}
+
+.dash-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+/* ─── OpLink Styles ─── */
+.hover-op {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: all 0.15s;
+}
+
+.hover-op-icon {
+  color: #2563eb;
+  display: flex;
+}
+
+.hover-op-label {
+  font-size: 12px;
+  font-weight: 700;
+  flex: 1;
+  color: #475569;
+}
+
+.hover-op-arrow {
+  color: #94a3b8;
+}
+
+.hover-op:hover {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+}
+
+/* ─── Dark Theme Overrides for Buttons & OpLinks ─── */
+.dark .dash-view-btn {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border-color: rgba(59, 130, 246, 0.25);
+}
+
+.dark .dash-view-btn:hover {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.dark .btn-checkin {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+  border-color: rgba(34, 197, 94, 0.25);
+}
+
+.dark .btn-call {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.25);
+}
+
+.dark .hover-op {
+  background: rgba(30, 41, 59, 0.5);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.dark .hover-op:hover {
+  background: rgba(30, 41, 59, 0.8);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .hover-op-label {
+  color: #cbd5e1;
+}
+
+.dark .hover-op-icon {
+  color: #60a5fa;
+}

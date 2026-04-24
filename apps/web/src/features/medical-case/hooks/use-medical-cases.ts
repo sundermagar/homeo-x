@@ -6,8 +6,8 @@ export function useFullMedicalCase(regid: number) {
   return useQuery({
     queryKey: ['medical-case', 'full', regid],
     queryFn: async () => {
-      const res = await api.get(`/medical-cases/patient/${regid}/full`);
-      return res.data;
+      const res = await api.get<{ success: boolean; data: any }>(`/medical-cases/patient/${regid}/full`);
+      return res.data.data;
     },
     enabled: !!regid,
   });

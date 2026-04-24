@@ -3,9 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>HomeoX — Clinical Management</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <title>Kreed.health — Clinical Management</title>
+    <!-- Preconnect to font CDN -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <!-- Geist Sans & Mono Fonts — async load -->
+    <link rel="preload" as="style" href="https://cdn.jsdelivr.net/npm/@fontsource/geist@5.1.0/index.min.css" />
+    <link rel="preload" as="style" href="https://cdn.jsdelivr.net/npm/@fontsource/geist-mono@5.1.0/index.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/geist@5.1.0/index.min.css" media="print" onload="this.media='all'" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/geist-mono@5.1.0/index.min.css" media="print" onload="this.media='all'" />
+    <noscript>
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/geist@5.1.0/index.min.css" />
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/geist-mono@5.1.0/index.min.css" />
+    </noscript>
   </head>
   <body>
     <div id="root"></div>

@@ -3,31 +3,36 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "main": "./dist/index.js",
+  "main": "./src/index.ts",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
     },
     "./schema": {
-      "import": "./dist/schema/index.js",
-      "types": "./dist/schema/index.d.ts"
+      "import": "./src/schema/index.ts",
+      "types": "./src/schema/index.ts"
     }
   },
   "scripts": {
+    "prebuild": "",
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:migrate:settings": "tsx src/migrate-settings.ts",
     "db:generate:legacy": "drizzle-kit generate --config=drizzle.legacy.config.ts",
     "db:migrate:legacy": "drizzle-kit migrate --config=drizzle.legacy.config.ts",
     "db:push": "drizzle-kit push",
+    "migrate:tenants": "tsx src/migrate_tenants.ts",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx src/seeds/run.ts",
-    "clean": "rm -rf dist"
+    "db:seed:faq": "tsx src/seeds/run-faq.ts",
+    "clean": ""
   },
   "dependencies": {
+    "bcryptjs": "^2.4.3",
     "dotenv": "^16.4.0",
     "drizzle-orm": "^0.38.0",
     "postgres": "^3.4.0"
@@ -36,6 +41,7 @@
     "@mmc/types": "workspace:*",
     "@types/bcryptjs": "^2.4.0",
     "@types/node": "^25.5.2",
+    "dotenv": "^16.4.0",
     "drizzle-kit": "^0.30.0",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0"

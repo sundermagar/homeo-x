@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, Loader2, ShieldCheck, AlertCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Mail, Lock, Eye, EyeOff, Loader2, AlertCircle, Stethoscope } from 'lucide-react';
 import { z } from 'zod';
 import { apiClient } from '@/infrastructure/api-client';
 import { useAuthStore } from '@/shared/stores/auth-store';
@@ -9,77 +9,100 @@ import '../styles/login-page.css';
 
 type LoginFields = z.infer<typeof LoginRequestSchema>;
 
-export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof LoginFields, string>>>({});
+const DEMO_USERS = [
+  { email: 'doctor@kreed.health',      name: 'Dr. Demo',       type: 'Doctor',       role: '🩺 Doctor',       id: 101 },
+  { email: 'admin@kreed.health',       name: 'Admin Demo',     type: 'Admin',        role: '🛡 Admin',        id: 102 },
+  { email: 'reception@kreed.health',   name: 'Reception Demo', type: 'Receptionist', role: '📋 Reception',    id: 103 },
+  { email: 'clinicadmin@kreed.health', name: 'Clinic Admin',   type: 'Clinicadmin',  role: '🏥 Clinic Admin', id: 104 },
+];
 
-  const navigate = useNavigate();
-  const setAuth = useAuthStore((s) => s.setAuth);
+export default function LoginPage() {
+  const [email, setEmail]               = useState('');
+  const [password, setPassword]         = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading]       = useState(false);
+  const [error, setError]               = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors]   = useState<Partial<Record<keyof LoginFields, string>>>({});
+
+  const navigate        = useNavigate();
+  const setAuth         = useAuthStore((s) => s.setAuth);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
-  // If already authenticated, redirect to dashboard
+  // Redirect immediately if already authenticated (mirrors MMC's localStorage check)
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/', { replace: true });
-    }
+    if (isAuthenticated) navigate('/', { replace: true });
   }, [isAuthenticated, navigate]);
 
-  // ─── Instant 1-click demo login ───────────────────────────────────────────
+  // ─── Demo bypass (no network needed) ──────────────────────────────────────
   const loginAsDemo = (demoEmail: string) => {
-    const isDoctor = demoEmail === 'doctor@homeox.com';
-    setAuth('demo-token-123', {
-      id: isDoctor ? 101 : 102,
-      email: demoEmail,
-      name: isDoctor ? 'Dr. Demo' : 'Admin Demo',
-      type: isDoctor ? 'Doctor' : 'Admin',
-      clinicId: 1,
+    const demo = DEMO_USERS.find(d => d.email === demoEmail);
+    if (!demo) return;
+    setAuth('demo-token-' + demo.id, {
+      id:        demo.id,
+      email:     demo.email,
+      name:      demo.name,
+      type:      demo.type,
+      contextId: 1,
+      roleId:    demo.id,
+      roleName:  demo.type,
+      permissions: {
+        canAccessDashboard:    true,
+        canAccessQuickAccess:  true,
+        canViewPatientDetail:  ['Admin', 'Clinicadmin', 'Doctor'].includes(demo.type),
+        canCreatePatient:      true,
+        canEditPatient:        true,
+        canDeletePatient:      ['Admin', 'Clinicadmin'].includes(demo.type),
+        canViewBilling:        ['Admin', 'Clinicadmin', 'Receptionist'].includes(demo.type),
+        canViewExpenses:       ['Admin', 'Clinicadmin'].includes(demo.type),
+        canViewAnalytics:      ['Admin', 'Clinicadmin'].includes(demo.type),
+        canViewDoctors:        ['Admin', 'Clinicadmin'].includes(demo.type),
+        canManageUsers:        demo.type === 'Admin',
+        canManageSettings:     ['Admin', 'Clinicadmin'].includes(demo.type),
+        canViewPackageHistory: true,
+        canNewPatientBtn:      ['Admin', 'Clinicadmin', 'Receptionist'].includes(demo.type),
+      },
     } as any);
     navigate('/', { replace: true });
   };
 
-  // ─── Normal form submit ───────────────────────────────────────────────────
+  // ─── Real login — POST /api/auth/login ───────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
     setFieldErrors({});
 
-    // Zod validation
+    // Client-side Zod validation
     const validation = LoginRequestSchema.safeParse({ email, password });
     if (!validation.success) {
       const formatted = validation.error.flatten().fieldErrors;
       setFieldErrors({
-        email: formatted.email?.[0],
+        email:    formatted.email?.[0],
         password: formatted.password?.[0],
       });
       setIsLoading(false);
       return;
     }
 
-    // Demo bypass
-    if (
-      password === 'password123' &&
-      (email === 'doctor@homeox.com' || email === 'admin@homeox.com')
-    ) {
-      loginAsDemo(email);
-      setIsLoading(false);
-      return;
-    }
-
     try {
+      // POST /api/auth/login → { success: true, token, user: { ...payload, permissions } }
       const { data } = await apiClient.post('/auth/login', { email, password });
-      if (data.success && data.token) {
-        setAuth(data.token, data.user);
+
+      if (data.success && data.data?.token) {
+        // Store token + user (with permissions) in Zustand persisted store
+        setAuth(data.data.token, data.data.user);
         navigate('/', { replace: true });
+      } else {
+        setError(data.error || 'Invalid credentials. Please try again.');
       }
     } catch (err: any) {
-      const msg =
-        err.response?.data?.message || 'Login failed. Please check your credentials.';
-      setError(msg);
+      // Handle rate-limit (mirrors MMC's authLimiter 429 response)
+      if (err.response?.status === 429) {
+        setError('Too many login attempts. Please wait 15 minutes and try again.');
+      } else {
+        const msg = err.response?.data?.message || 'Login failed. Please check your credentials.';
+        setError(msg);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -88,76 +111,81 @@ export default function LoginPage() {
   return (
     <div className="login-container">
       <div className="login-card fade-in">
+
+        {/* ─── Brand Header ─────────────────────────────────────────────── */}
         <div className="login-header">
           <div className="login-logo-container">
-            <ShieldCheck size={32} strokeWidth={1.6} />
+            <Stethoscope size={28} strokeWidth={1.8} />
           </div>
           <h1 className="login-title">
-            Homeo<span style={{ color: 'var(--primary)' }}>X</span>
+            Kreed<span className="login-title-brand">.health</span>
           </h1>
-          <p className="login-subtitle">Secure clinical portal access</p>
+          <p className="login-subtitle">Secure clinical portal · Sign in to continue</p>
         </div>
 
+        {/* ─── Error Banner ─────────────────────────────────────────────── */}
         {error && (
           <div className="alert alert-error">
-            <AlertCircle size={18} strokeWidth={1.6} />
+            <AlertCircle size={16} strokeWidth={1.8} />
             <span>{error}</span>
           </div>
         )}
 
+        {/* ─── Login Form ───────────────────────────────────────────────── */}
         <form className="login-form" onSubmit={handleSubmit}>
           <div className="form-group">
-            <label className="form-label">Email Address</label>
+            <label className="form-label" htmlFor="login-email">Email Address</label>
             <div className="input-wrapper">
-              <Mail className="input-icon" strokeWidth={1.6} />
+              <Mail className="input-icon" size={16} strokeWidth={1.8} />
               <input
+                id="login-email"
                 type="email"
-                className={`login-input ${fieldErrors['email'] ? 'error' : ''}`}
-                placeholder="doctor@homeox.com"
+                className={`login-input${fieldErrors.email ? ' error' : ''}`}
+                placeholder="admin@kreed.health"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 autoComplete="email"
+                required
               />
             </div>
-            {fieldErrors['email'] && (
-              <span className="error-message">{fieldErrors['email']}</span>
-            )}
+            {fieldErrors.email && <span className="error-message">{fieldErrors.email}</span>}
           </div>
 
           <div className="form-group">
-            <label className="form-label">Password</label>
+            <label className="form-label" htmlFor="login-password">Password</label>
             <div className="input-wrapper">
-              <Lock className="input-icon" strokeWidth={1.6} />
+              <Lock className="input-icon" size={16} strokeWidth={1.8} />
               <input
+                id="login-password"
                 type={showPassword ? 'text' : 'password'}
-                className={`login-input ${fieldErrors['password'] ? 'error' : ''}`}
+                className={`login-input${fieldErrors.password ? ' error' : ''}`}
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="current-password"
+                required
               />
               <button
                 type="button"
                 className="password-toggle"
                 onClick={() => setShowPassword(!showPassword)}
                 tabIndex={-1}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
-                {showPassword ? (
-                  <EyeOff size={18} strokeWidth={1.6} />
-                ) : (
-                  <Eye size={18} strokeWidth={1.6} />
-                )}
+                {showPassword
+                  ? <EyeOff size={16} strokeWidth={1.8} />
+                  : <Eye    size={16} strokeWidth={1.8} />}
               </button>
             </div>
-            {fieldErrors['password'] && (
-              <span className="error-message">{fieldErrors['password']}</span>
+            {fieldErrors.password && (
+              <span className="error-message">{fieldErrors.password}</span>
             )}
           </div>
 
-          <button type="submit" className="login-submit" disabled={isLoading}>
+          <button id="login-submit-btn" type="submit" className="login-submit" disabled={isLoading}>
             {isLoading ? (
               <>
-                <Loader2 className="animate-spin" size={20} />
+                <Loader2 className="animate-spin" size={18} />
                 Signing in...
               </>
             ) : (
@@ -169,43 +197,32 @@ export default function LoginPage() {
         {/* ─── Demo Quick Access ─────────────────────────────────────────── */}
         <div className="demo-credentials">
           <div className="demo-header">
-            <span className="demo-badge">⚡ 1-Click Demo Access</span>
+            <span className="demo-badge">⚡ Demo Access</span>
           </div>
           <div className="demo-options">
-            <button
-              className="demo-btn"
-              type="button"
-              onClick={() => loginAsDemo('doctor@homeox.com')}
-            >
-              <div className="demo-btn-info">
-                <span className="demo-btn-role">🩺 Doctor</span>
-                <span className="demo-btn-email">doctor@homeox.com</span>
-              </div>
-            </button>
-            <button
-              className="demo-btn"
-              type="button"
-              onClick={() => loginAsDemo('admin@homeox.com')}
-            >
-              <div className="demo-btn-info">
-                <span className="demo-btn-role">🛡 Admin</span>
-                <span className="demo-btn-email">admin@homeox.com</span>
-              </div>
-            </button>
+            {DEMO_USERS.map(demo => (
+              <button
+                key={demo.email}
+                className="demo-btn"
+                type="button"
+                onClick={() => loginAsDemo(demo.email)}
+              >
+                <div className="demo-btn-info">
+                  <span className="demo-btn-role">{demo.role}</span>
+                  <span className="demo-btn-email">{demo.email}</span>
+                </div>
+              </button>
+            ))}
           </div>
-          <p style={{ textAlign: 'center', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-            Click a role above to log in instantly — no password required.
+          <p className="demo-credentials-footer">
+            Click a role above to explore without credentials.
           </p>
         </div>
 
-        <div className="login-footer" style={{ display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'center', marginTop: '16px' }}>
-          <p>Protected by enterprise-grade encryption</p>
-          <div style={{ display: 'flex', gap: '20px', fontSize: '0.9rem', borderTop: '1px solid var(--border-color)', paddingTop: '16px', width: '100%', justifyContent: 'center' }}>
-            <Link to="/join" style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px' }}>Join Clinic</Link>
-            <Link to="/verify-otp" style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px' }}>Patient Portal</Link>
-            <Link to="/faqs" style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px' }}>FAQs</Link>
-          </div>
+        <div className="login-footer">
+          <p>Protected by enterprise-grade encryption · Kreed.health Clinical Portal</p>
         </div>
+
       </div>
     </div>
   );

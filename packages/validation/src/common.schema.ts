@@ -15,3 +15,16 @@ export const idParamSchema = z.object({
 export const regidParamSchema = z.object({
   regid: z.coerce.number().int().positive(),
 });
+
+/**
+ * Numeric string schema — ensures the string contains only digits.
+ * Uses .regex() instead of .refine() so the type stays ZodString,
+ * which allows further chaining of .max(), .min(), etc.
+ */
+export const numericStringSchema = z
+  .string()
+  .regex(/^\d*$/, { message: 'Must contain only numbers' });
+
+export const phoneSchema = numericStringSchema.max(20).optional();
+
+

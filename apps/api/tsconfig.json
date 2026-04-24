@@ -3,13 +3,26 @@
   "compilerOptions": {
     "outDir": "./dist",
     "rootDir": "./src",
-    "types": ["node"],
+    "types": [
+      "node"
+    ],
     "noPropertyAccessFromIndexSignature": false
   },
-  "include": ["src"],
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "src/scripts"
+  ],
   "references": [
-    { "path": "../../packages/types" },
-    { "path": "../../packages/database" },
-    { "path": "../../packages/validation" }
+    {
+      "path": "../../packages/types"
+    },
+    {
+      "path": "../../packages/database"
+    },
+    {
+      "path": "../../packages/validation"
+    }
   ]
 }

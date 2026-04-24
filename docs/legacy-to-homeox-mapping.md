@@ -1,14 +1,14 @@
-# Legacy MMC -> HomeoX Table Mapping
+# Legacy MMC -> Kreed.health Table Mapping
 
-This document maps legacy MySQL tables (MMC) to current HomeoX PostgreSQL tables and provides a safe migration sequence.
+This document maps legacy MySQL tables (MMC) to current Kreed.health PostgreSQL tables and provides a safe migration sequence.
 
 ## Scope
 
 - Source: legacy tables loaded into PostgreSQL tenant schema (example: `tenant_demo`)
-- Target: HomeoX app tables from `packages/database/src/schema/*.ts`
+- Target: Kreed.health app tables from `packages/database/src/schema/*.ts`
 - Goal: move data from legacy-compatible shape to app-consumable shape
 
-## Current HomeoX Table Names (as implemented)
+## Current Kreed.health Table Names (as implemented)
 
 - `case_datas` (patients)
 - `medicalcases`
@@ -28,7 +28,7 @@ This document maps legacy MySQL tables (MMC) to current HomeoX PostgreSQL tables
 
 ## Mapping Matrix
 
-| Domain | Legacy tables (MMC) | HomeoX target table | Notes |
+| Domain | Legacy tables (MMC) | Kreed.health target table | Notes |
 |---|---|---|---|
 | Patients | `case_datas`, `basic_details` | `case_datas` | Prefer `case_datas` as canonical patient source, use `basic_details` for backfill gaps. |
 | Medical Case | `medicalcases`, `case_notes`, `case_examination` | `medicalcases` | Keep core case status/doctor/clinic in `medicalcases`; optional details can stay in legacy tables until modeled. |

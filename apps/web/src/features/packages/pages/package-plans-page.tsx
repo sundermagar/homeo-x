@@ -112,9 +112,9 @@ export default function PackagePlansPage() {
       {/* Stats */}
       <div className="pkg-stats">
         {[
-          { label: 'Active Subscriptions', value: stats?.activeCount ?? 0,   color: '#059669', bg: '#F0FDF4', icon: <CheckCircle2 size={20} strokeWidth={1.6} /> },
-          { label: 'Expired',              value: stats?.expiredCount ?? 0,  color: '#D97706', bg: '#FFFBEB', icon: <Clock size={20} strokeWidth={1.6} /> },
-          { label: 'Total Revenue',        value: `₹${(stats?.totalRevenue ?? 0).toLocaleString()}`, color: '#7C3AED', bg: '#F5F3FF', icon: <DollarSign size={20} strokeWidth={1.6} /> },
+          { label: 'Active Subscriptions', value: stats?.activeCount ?? 0,   color: 'var(--pp-success-fg)', bg: 'var(--pp-success-bg)', icon: <CheckCircle2 size={18} strokeWidth={2.5} /> },
+          { label: 'Expired',              value: stats?.expiredCount ?? 0,  color: 'var(--pp-warning-fg)', bg: 'var(--pp-warning-bg)', icon: <Clock size={18} strokeWidth={2.5} /> },
+          { label: 'Total Revenue',        value: `₹${(stats?.totalRevenue ?? 0).toLocaleString()}`, color: 'var(--pp-blue)', bg: 'var(--pp-blue-tint)', icon: <DollarSign size={18} strokeWidth={2.5} /> },
         ].map(s => (
           <div key={s.label} className="pkg-stat-card">
             <div className="pkg-stat-icon" style={{ background: s.bg, color: s.color }}>{s.icon}</div>

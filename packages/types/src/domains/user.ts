@@ -12,6 +12,7 @@ export interface User {
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
+  clinicName?: string;
 }
 
 export interface AuthTokenPayload {
@@ -22,6 +23,7 @@ export interface AuthTokenPayload {
   contextId: number;
   roleId: number;
   roleName: string;
+  clinicName?: string;
 }
 
 export interface Permission {

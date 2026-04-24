@@ -10,7 +10,7 @@ export class QueueManagementUseCase {
     return ok(list);
   }
 
-  async addToWaitlist(dto: { patientId: number; appointmentId?: number; doctorId?: number; consultationFee?: number }): Promise<Result<{ waitingNumber: number }>> {
+  async addToWaitlist(dto: { patientId?: number; appointmentId?: number; doctorId?: number; consultationFee?: number }): Promise<Result<{ waitingNumber: number }>> {
     const waitingNumber = await this.repo.addToWaitlist(dto);
     return ok({ waitingNumber });
   }
@@ -22,6 +22,11 @@ export class QueueManagementUseCase {
 
   async completeVisit(waitlistId: number): Promise<Result<void>> {
     await this.repo.completeWaitlistEntry(waitlistId);
+    return ok(undefined);
+  }
+
+  async skipWaitlist(waitlistId: number): Promise<Result<void>> {
+    await this.repo.skipWaitlistEntry(waitlistId);
     return ok(undefined);
   }
 }

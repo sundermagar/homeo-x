@@ -1,370 +1,173 @@
 import { Router } from 'express';
-import { eq, desc, ilike, or, and, isNull, count, sql } from 'drizzle-orm';
-import { 
-  leads, 
-  leadFollowups, 
-  referrals, 
-  caseReminders, 
-  caseDatasLegacy as caseDatas 
-} from '@mmc/database/schema';
+import { CrmRepositoryPg } from '../../repositories/crm.repository.pg';
+import { ManageLeadsUseCase } from '../../../domains/crm/use-cases/manage-leads.use-case';
+import { ManageRemindersUseCase } from '../../../domains/crm/use-cases/manage-reminders.use-case';
+import { ManageReferralsUseCase } from '../../../domains/crm/use-cases/manage-referrals.use-case';
+import { ConvertLeadToPatientUseCase } from '../../../domains/crm/use-cases/convert-lead-to-patient.use-case';
+import { PatientRepositoryPg } from '../../repositories/patient.repository.pg';
+import { asyncHandler } from '../middleware/async-handler';
+import { sendSuccess, sendError } from '../../../shared/response-formatter';
 
-const router = Router();
+export const crmRouter: Router = Router();
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// LEADS
-// ═══════════════════════════════════════════════════════════════════════════════
+const getRepo = (req: any) => new CrmRepositoryPg(req.tenantDb);
 
-router.get('/leads', async (req: any, res, next) => {
-  try {
-    const db = req.tenantDb;
-    const search = req.query.search as string;
-    const status = req.query.status as string;
-    const page = parseInt(req.query.page as string, 10) || 1;
-    const limit = parseInt(req.query.limit as string, 10) || 20;
-    const offset = (page - 1) * limit;
+// ── Leads ────────────────────────────────────────────────────────────────────
 
-    const baseWhere = and(
-      isNull(leads.deletedAt),
-      status ? eq(leads.status, status) : undefined,
-      search ? or(
-        ilike(leads.name, `%${search}%`),
-        ilike(leads.mobile, `%${search}%`),
-        ilike(leads.phone, `%${search}%`),
-        ilike(leads.email, `%${search}%`)
-      ) : undefined
-    );
+crmRouter.get('/leads', asyncHandler(async (req, res) => {
+  const { search, status, page, limit } = req.query as any;
+  const uc = new ManageLeadsUseCase(getRepo(req));
+  const result = await uc.search({
+    search, status,
+    page: parseInt(page) || 1,
+    limit: parseInt(limit) || 20
+  });
+  if (!result.success) { sendError(res, result.error || 'Failed', 400); return; }
+  sendSuccess(res, result.data, undefined, 200, { total: result.data.total, page: parseInt(page) || 1, limit: parseInt(limit) || 20 });
+}));
 
-    const [totalRecord] = await db.select({ total: count() }).from(leads).where(baseWhere);
-    const rows = await db.select()
-      .from(leads)
-      .where(baseWhere)
-      .orderBy(desc(leads.id))
-      .limit(limit)
-      .offset(offset);
+crmRouter.get('/leads/:id', asyncHandler(async (req, res) => {
+  const uc = new ManageLeadsUseCase(getRepo(req));
+  const result = await uc.getById(Number(req.params.id));
+  if (result.success) sendSuccess(res, result.data);
+  else sendError(res, result.error || 'Failed', 400);
+}));
 
-    res.json({ success: true, data: rows, total: totalRecord.total, page, limit });
-  } catch (error) { next(error); }
-});
+crmRouter.post('/leads', asyncHandler(async (req, res) => {
+  const uc = new ManageLeadsUseCase(getRepo(req));
+  const result = await uc.create(req.body);
+  if (result.success) sendSuccess(res, { id: result.data }, 'Lead created', 201);
+  else sendError(res, result.error || 'Failed', 400);
+}));
 
-router.put('/leads/followups/:fid', async (req: any, res, next) => {
-  try {
-    const db = req.tenantDb;
-    const data = req.body;
-    await db.update(leadFollowups)
-      .set({
-        name: data.notes || data.name || '',
-        task: data.task || data.followup_type || '',
-        taskstatus: data.taskstatus || data.status || '',
-        updatedAt: new Date()
-      })
-      .where(eq(leadFollowups.id, parseInt(req.params.fid)));
-    res.json({ success: true, message: 'Followup updated' });
-  } catch (error) { next(error); }
-});
+crmRouter.put('/leads/:id', asyncHandler(async (req, res) => {
+  const uc = new ManageLeadsUseCase(getRepo(req));
+  const result = await uc.update(Number(req.params.id), req.body);
+  if (result.success) sendSuccess(res, undefined, 'Lead updated');
+  else sendError(res, result.error || 'Failed', 400);
+}));
 
-router.delete('/leads/followups/:fid', async (req: any, res, next) => {
-  try {
-    const db = req.tenantDb;
-    await db.update(leadFollowups)
-      .set({ deletedAt: new Date() })
-      .where(eq(leadFollowups.id, parseInt(req.params.fid)));
-    res.json({ success: true, message: 'Followup deleted' });
-  } catch (error) { next(error); }
-});
+crmRouter.delete('/leads/:id', asyncHandler(async (req, res) => {
+  const uc = new ManageLeadsUseCase(getRepo(req));
+  const result = await uc.delete(Number(req.params.id));
+  if (result.success) sendSuccess(res, undefined, 'Lead deleted');
+  else sendError(res, result.error || 'Failed', 400);
+}));
 
-router.delete('/leads/:id/followups/:fid', async (req: any, res, next) => {
-  try {
-    const db = req.tenantDb;
-    await db.update(leadFollowups)
-      .set({ deletedAt: new Date() })
-      .where(eq(leadFollowups.id, parseInt(req.params.fid)));
-    res.json({ success: true, message: 'Followup deleted' });
-  } catch (error) { next(error); }
-});
+crmRouter.post('/leads/:id/convert', asyncHandler(async (req, res) => {
+  const crmRepo = getRepo(req);
+  const patientRepo = new PatientRepositoryPg(req.tenantDb);
+  const uc = new ConvertLeadToPatientUseCase(crmRepo, patientRepo);
+  const result = await uc.execute(Number(req.params.id));
+  if (result.success) sendSuccess(res, result.data, 'Lead converted to patient successfully');
+  else sendError(res, result.error || 'Failed', 400);
+}));
 
-router.get('/leads/:id', async (req: any, res, next) => {
-  try {
-    const db = req.tenantDb;
-    const leadId = parseInt(req.params.id);
-    
-    const [lead] = await db.select()
-      .from(leads)
-      .where(and(eq(leads.id, leadId), isNull(leads.deletedAt)))
-      .limit(1);
+crmRouter.post('/leads/:id/followups', asyncHandler(async (req, res) => {
+  const uc = new ManageLeadsUseCase(getRepo(req));
+  const result = await uc.addFollowup(Number(req.params.id), req.body);
+  if (result.success) sendSuccess(res, { id: result.data }, 'Followup added', 201);
+  else sendError(res, result.error || 'Failed', 400);
+}));
 
-    if (!lead) return res.status(404).json({ success: false, message: 'Lead not found' });
+crmRouter.put('/leads/followups/:fid', asyncHandler(async (req, res) => {
+  const uc = new ManageLeadsUseCase(getRepo(req));
+  const result = await uc.updateFollowup(Number(req.params.fid), req.body);
+  if (result.success) sendSuccess(res, undefined, 'Followup updated');
+  else sendError(res, result.error || 'Failed', 400);
+}));
 
-    const followups = await db.select()
-      .from(leadFollowups)
-      .where(and(eq(leadFollowups.leadId, leadId), isNull(leadFollowups.deletedAt)))
-      .orderBy(desc(leadFollowups.createdAt));
-      
-    res.json({ success: true, data: { ...lead, followups } });
-  } catch (error) { next(error); }
-});
+crmRouter.delete('/leads/followups/:fid', asyncHandler(async (req, res) => {
+  const uc = new ManageLeadsUseCase(getRepo(req));
+  const result = await uc.deleteFollowup(Number(req.params.fid));
+  if (result.success) sendSuccess(res, undefined, 'Followup deleted');
+  else sendError(res, result.error || 'Failed', 400);
+}));
 
-router.post('/leads', async (req: any, res, next) => {
-  try {
-    const db = req.tenantDb;
-    const data = req.body;
-    
-    const [result] = await db.insert(leads).values({
-      name: data.name,
-      mobile: data.mobile || data.phone || '',
-      phone: data.phone || '',
-      email: data.email || '',
-      address: data.address || '',
-      source: data.source || '',
-      status: data.status || '',
-      notes: data.notes || '',
-      assignedTo: data.assigned_to || null,
-    }).returning({ id: leads.id });
-    
-    res.status(201).json({ success: true, id: result.id });
-  } catch (error) { next(error); }
-});
+// Legacy frontend compatibility
+crmRouter.delete('/leads/:id/followups/:fid', asyncHandler(async (req, res) => {
+  const uc = new ManageLeadsUseCase(getRepo(req));
+  const result = await uc.deleteFollowup(Number(req.params.fid));
+  if (result.success) sendSuccess(res, undefined, 'Followup deleted');
+  else sendError(res, result.error || 'Failed', 400);
+}));
 
-router.put('/leads/:id', async (req: any, res, next) => {
-  try {
-    const db = req.tenantDb;
-    const data = req.body;
-    await db.update(leads)
-      .set({
-        name: data.name,
-        mobile: data.mobile || data.phone || '',
-        phone: data.phone || '',
-        email: data.email || '',
-        address: data.address || '',
-        source: data.source || '',
-        status: data.status || '',
-        notes: data.notes || '',
-        assignedTo: data.assigned_to || null,
-        updatedAt: new Date()
-      })
-      .where(eq(leads.id, parseInt(req.params.id)));
-    res.json({ success: true, message: 'Lead updated' });
-  } catch (error) { next(error); }
-});
+// ── Referrals ────────────────────────────────────────────────────────────────
 
-router.delete('/leads/:id', async (req: any, res, next) => {
-  try {
-    const db = req.tenantDb;
-    await db.update(leads)
-      .set({ deletedAt: new Date() })
-      .where(eq(leads.id, parseInt(req.params.id)));
-    res.json({ success: true, message: 'Lead deleted' });
-  } catch (error) { next(error); }
-});
+crmRouter.get('/referrals/summary', asyncHandler(async (req, res) => {
+  const uc = new ManageReferralsUseCase(getRepo(req));
+  const result = await uc.getSummary();
+  if (result.success) sendSuccess(res, result.data);
+  else sendError(res, result.error || 'Failed', 400);
+}));
 
-router.get('/leads/:id/followups', async (req: any, res, next) => {
-  try {
-    const db = req.tenantDb;
-    const rows = await db.select()
-      .from(leadFollowups)
-      .where(and(eq(leadFollowups.leadId, parseInt(req.params.id)), isNull(leadFollowups.deletedAt)))
-      .orderBy(desc(leadFollowups.createdAt));
-    res.json({ success: true, data: rows });
-  } catch (error) { next(error); }
-});
+crmRouter.get('/referrals/details/:referralId', asyncHandler(async (req, res) => {
+  const uc = new ManageReferralsUseCase(getRepo(req));
+  const result = await uc.getDetails(Number(req.params.referralId));
+  if (result.success) sendSuccess(res, result.data);
+  else sendError(res, result.error || 'Failed', 400);
+}));
 
-router.post('/leads/:id/followups', async (req: any, res, next) => {
-  try {
-    const db = req.tenantDb;
-    const data = req.body;
-    const [result] = await db.insert(leadFollowups).values({
-      leadId: parseInt(req.params.id),
-      name: data.notes || data.name || '',
-      task: data.task || data.followup_type || '',
-      taskstatus: data.taskstatus || data.status || '',
-    }).returning({ id: leadFollowups.id });
-    res.status(201).json({ success: true, id: result.id });
-  } catch (error) { next(error); }
-});
+crmRouter.post('/referrals', asyncHandler(async (req, res) => {
+  const uc = new ManageReferralsUseCase(getRepo(req));
+  const result = await uc.create(req.body);
+  if (result.success) sendSuccess(res, { id: result.data }, 'Referral created', 201);
+  else sendError(res, result.error || 'Failed', 400);
+}));
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// REFERRALS
-// ═══════════════════════════════════════════════════════════════════════════════
+crmRouter.delete('/referrals/:id', asyncHandler(async (req, res) => {
+  const uc = new ManageReferralsUseCase(getRepo(req));
+  const result = await uc.delete(Number(req.params.id));
+  if (result.success) sendSuccess(res, undefined, 'Referral deleted');
+  else sendError(res, result.error || 'Failed', 400);
+}));
 
-router.get('/referrals/summary', async (req: any, res, next) => {
-  try {
-    const db = req.tenantDb;
-    
-    // Group By trick to sum referrals
-    const rows = await db.select({
-      total_amount: sql<string>`SUM(CAST(NULLIF(${referrals.totalAmount}, '') AS DECIMAL(10,2)))`,
-      used_amount: sql<string>`SUM(CAST(NULLIF(${referrals.usedAmount}, '') AS DECIMAL(10,2)))`,
-      referral_id: referrals.referralId,
-      first_name: caseDatas.firstName,
-      surname: caseDatas.surname
-    })
-    .from(referrals)
-    .leftJoin(caseDatas, eq(caseDatas.regid, referrals.referralId))
-    .where(isNull(referrals.deletedAt))
-    .groupBy(referrals.referralId, caseDatas.firstName, caseDatas.surname);
+// ── Reminders ────────────────────────────────────────────────────────────────
 
-    res.json({ success: true, data: rows });
-  } catch (error) { next(error); }
-});
+crmRouter.get('/reminders', asyncHandler(async (req, res) => {
+  const { status, page, limit, date } = req.query as any;
+  const uc = new ManageRemindersUseCase(getRepo(req));
+  const result = await uc.list({
+    status,
+    page: parseInt(page) || 1,
+    limit: parseInt(limit) || 20,
+    date
+  });
+  if (!result.success) { sendError(res, result.error, 400); return; }
+  sendSuccess(res, result.data, undefined, 200, { total: result.data.total, page: parseInt(page) || 1, limit: parseInt(limit) || 20 });
+}));
 
-router.get('/referrals/details/:referralId', async (req: any, res, next) => {
-  try {
-    const db = req.tenantDb;
-    const rows = await db.select()
-      .from(referrals)
-      .where(and(eq(referrals.referralId, parseInt(req.params.referralId)), isNull(referrals.deletedAt)))
-      .orderBy(desc(referrals.createdAt));
-    res.json({ success: true, data: rows });
-  } catch (error) { next(error); }
-});
+crmRouter.get('/reminders/:id', asyncHandler(async (req, res) => {
+  const uc = new ManageRemindersUseCase(getRepo(req));
+  const result = await uc.getById(Number(req.params.id));
+  if (result.success) sendSuccess(res, result.data);
+  else sendError(res, result.error || 'Failed', 400);
+}));
 
-router.post('/referrals', async (req: any, res, next) => {
-  try {
-    const db = req.tenantDb;
-    const { regid, referral_id, total_amount, used_amount } = req.body;
-    const [result] = await db.insert(referrals).values({
-      regid: parseInt(regid),
-      referralId: parseInt(referral_id),
-      totalAmount: total_amount ? String(total_amount) : '0',
-      usedAmount: used_amount ? String(used_amount) : '0'
-    }).returning({ id: referrals.id });
-    res.status(201).json({ success: true, id: result.id });
-  } catch (error) { next(error); }
-});
+crmRouter.post('/reminders', asyncHandler(async (req, res) => {
+  const uc = new ManageRemindersUseCase(getRepo(req));
+  const result = await uc.create(req.body);
+  if (result.success) sendSuccess(res, { id: result.data }, 'Reminder created', 201);
+  else sendError(res, result.error || 'Failed', 400);
+}));
 
-router.delete('/referrals/:id', async (req: any, res, next) => {
-  try {
-    const db = req.tenantDb;
-    await db.update(referrals)
-      .set({ deletedAt: new Date() })
-      .where(eq(referrals.id, parseInt(req.params.id)));
-    res.json({ success: true, message: 'Referral deleted' });
-  } catch (error) { next(error); }
-});
+crmRouter.put('/reminders/:id', asyncHandler(async (req, res) => {
+  const uc = new ManageRemindersUseCase(getRepo(req));
+  const result = await uc.update(Number(req.params.id), req.body);
+  if (result.success) sendSuccess(res, undefined, 'Reminder updated');
+  else sendError(res, result.error || 'Failed', 400);
+}));
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// REMINDERS
-// ═══════════════════════════════════════════════════════════════════════════════
+crmRouter.post('/reminders/:id/done', asyncHandler(async (req, res) => {
+  const uc = new ManageRemindersUseCase(getRepo(req));
+  const result = await uc.markDone(Number(req.params.id));
+  if (result.success) sendSuccess(res, undefined, 'Reminder marked as done');
+  else sendError(res, result.error || 'Failed', 400);
+}));
 
-router.get('/reminders', async (req: any, res, next) => {
-  try {
-    const db = req.tenantDb;
-    const status = req.query.status as string;
-    const page = parseInt(req.query.page as string, 10) || 1;
-    const limit = parseInt(req.query.limit as string, 10) || 20;
-    const offset = (page - 1) * limit;
-
-    const baseWhere = and(
-      isNull(caseReminders.deletedAt),
-      status ? eq(caseReminders.status, status) : undefined
-    );
-
-    const [totalRecord] = await db.select({ total: count() }).from(caseReminders).where(baseWhere);
-    
-    // Select with patient name mapping
-    const rows = await db.select({
-      id: caseReminders.id,
-      regid: caseReminders.regid,
-      patient_id: caseReminders.patientId,
-      start_date: caseReminders.startDate,
-      remind_time: caseReminders.remindTime,
-      heading: caseReminders.heading,
-      comments: caseReminders.comments,
-      status: caseReminders.status,
-      created_at: caseReminders.createdAt,
-      patient_name: sql<string>`CONCAT(${caseDatas.firstName}, ' ', ${caseDatas.surname})`,
-      patient_mobile: caseDatas.mobile1
-    })
-    .from(caseReminders)
-    .leftJoin(caseDatas, eq(caseReminders.patientId, caseDatas.id))
-    .where(baseWhere)
-    .orderBy(desc(caseReminders.id))
-    .limit(limit)
-    .offset(offset);
-
-    // Some frontend UI components expect original snake_case fields since this was a legacy router.
-    // It's mapped natively by the selected keys above.
-    res.json({ success: true, data: rows, total: totalRecord.total, page, limit });
-  } catch (error) { next(error); }
-});
-
-router.get('/reminders/:id', async (req: any, res, next) => {
-  try {
-    const db = req.tenantDb;
-    const [row] = await db.select({
-      id: caseReminders.id,
-      regid: caseReminders.regid,
-      patient_id: caseReminders.patientId,
-      start_date: caseReminders.startDate,
-      remind_time: caseReminders.remindTime,
-      heading: caseReminders.heading,
-      comments: caseReminders.comments,
-      status: caseReminders.status,
-      patient_name: sql<string>`CONCAT(${caseDatas.firstName}, ' ', ${caseDatas.surname})`,
-      patient_mobile: caseDatas.mobile1
-    })
-    .from(caseReminders)
-    .leftJoin(caseDatas, eq(caseReminders.patientId, caseDatas.id))
-    .where(and(eq(caseReminders.id, parseInt(req.params.id)), isNull(caseReminders.deletedAt)))
-    .limit(1);
-
-    if (!row) return res.status(404).json({ success: false, message: 'Reminder not found' });
-    res.json({ success: true, data: row });
-  } catch (error) { next(error); }
-});
-
-router.post('/reminders', async (req: any, res, next) => {
-  try {
-    const db = req.tenantDb;
-    const data = req.body;
-    const [result] = await db.insert(caseReminders).values({
-      regid: data.regid,
-      startDate: data.start_date || data.followup_date,
-      remindTime: data.remind_time || '09:00',
-      comments: data.comments || data.notes || '',
-      heading: data.heading || data.reminder_type || '',
-      status: data.status || 'pending',
-    }).returning({ id: caseReminders.id });
-    res.status(201).json({ success: true, id: result.id });
-  } catch (error) { next(error); }
-});
-
-router.put('/reminders/:id', async (req: any, res, next) => {
-  try {
-    const db = req.tenantDb;
-    const data = req.body;
-    await db.update(caseReminders)
-      .set({
-        regid: data.regid,
-        startDate: data.start_date || data.followup_date,
-        remindTime: data.remind_time || '09:00',
-        comments: data.comments || data.notes || '',
-        heading: data.heading || data.reminder_type || '',
-        status: data.status || 'pending',
-        updatedAt: new Date()
-      })
-      .where(eq(caseReminders.id, parseInt(req.params.id)));
-    res.json({ success: true, message: 'Reminder updated' });
-  } catch (error) { next(error); }
-});
-
-router.post('/reminders/:id/done', async (req: any, res, next) => {
-  try {
-    const db = req.tenantDb;
-    await db.update(caseReminders)
-      .set({ status: 'done', updatedAt: new Date() })
-      .where(eq(caseReminders.id, parseInt(req.params.id)));
-    res.json({ success: true, message: 'Reminder marked as done' });
-  } catch (error) { next(error); }
-});
-
-router.delete('/reminders/:id', async (req: any, res, next) => {
-  try {
-    const db = req.tenantDb;
-    await db.update(caseReminders)
-      .set({ deletedAt: new Date() })
-      .where(eq(caseReminders.id, parseInt(req.params.id)));
-    res.json({ success: true, message: 'Reminder deleted' });
-  } catch (error) { next(error); }
-});
-
-export const crmRouter = router;
+crmRouter.delete('/reminders/:id', asyncHandler(async (req, res) => {
+  const uc = new ManageRemindersUseCase(getRepo(req));
+  const result = await uc.delete(Number(req.params.id));
+  if (result.success) sendSuccess(res, undefined, 'Reminder deleted');
+  else sendError(res, result.error || 'Failed', 400);
+}));

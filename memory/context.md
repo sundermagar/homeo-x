@@ -1,6 +1,6 @@
-# Context - HomeoX
+# Context - Kreed.health
 
-HomeoX is an enterprise-grade Homeopathic Clinic Management Platform.
+Kreed.health is an enterprise-grade Homeopathic Clinic Management Platform.
 
 ## Features
 

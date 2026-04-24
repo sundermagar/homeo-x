@@ -1,3 +1,6 @@
 // AI Engine adapters — each engine implements a port interface
-// Migrated from: server/src/modules/ai/engines/
-export {};
+export * from './ai-provider.interface';
+export * from './gemini.provider';
+export * from './stub.provider';
+export * from './llm.facade';
+export * from './llm.service';

@@ -10,7 +10,10 @@ export interface StaffRepository {
     page: number;
     limit: number;
     search?: string;
-  }): Promise<{ data: StaffSummary[]; total: number }>;
+    clinicId?: number;
+    sortBy?: string;
+    sortOrder?: 'ASC' | 'DESC';
+  }): Promise<{ data: StaffSummary[]; total: number; activeCount: number }>;
 
   findById(category: StaffCategory, id: number): Promise<StaffMember | null>;
 
@@ -18,5 +21,5 @@ export interface StaffRepository {
 
   update(category: StaffCategory, id: number, data: UpdateStaffInput): Promise<StaffMember | null>;
 
-  softDelete(category: StaffCategory, id: number): Promise<boolean>;
+  delete(category: StaffCategory, id: number): Promise<boolean>;
 }

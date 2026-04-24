@@ -1,0 +1,618 @@
+/* ─── Billing & Finance Module — Unified Design System v2.0 — Paperplane ──────*/
+/* Follows exact same pattern as appointments.css for visual consistency      */
+
+/* ─── Page Layout ─── */
+.bill-page {
+  padding: 0;
+  max-width: var(--pp-container-width);
+  margin: 0 auto;
+}
+
+/* ─── Page Header ─── */
+.bill-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pp-space-3);
+  margin-bottom: var(--pp-space-5);
+}
+
+@media (min-width: 768px) {
+  .bill-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--pp-space-6);
+  }
+}
+
+.bill-header-title {
+  font-size: 1.1rem;
+  font-weight: 800; /* Bold high-contrast type */
+  color: var(--pp-ink);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-3);
+  letter-spacing: -0.01em;
+}
+
+@media (min-width: 768px) { .bill-header-title { font-size: 1.35rem; } }
+
+.bill-header-sub { font-size: 0.78rem; color: var(--pp-text-3); margin: 4px 0 0; font-weight: 500; }
+
+.bill-header-actions {
+  display: flex;
+  gap: var(--pp-space-2);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* ─── KPI Stats Bar ─── */
+.bill-stats-bar {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--pp-space-3);
+  margin-bottom: var(--pp-space-5);
+}
+
+@media (min-width: 768px) {
+  .bill-stats-bar {
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--pp-space-4);
+    margin-bottom: var(--pp-space-6);
+  }
+}
+
+.bill-stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-main);
+  border-radius: var(--pp-radius-card);
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: var(--pp-premium-shadow);
+  transition: all 0.3s ease;
+}
+
+.bill-stat-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--pp-blue-border);
+}
+
+.bill-stat-icon { 
+  width: 52px; 
+  height: 52px; 
+  border-radius: 14px; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px -4px rgba(0,0,0,0.15);
+}
+
+.bill-stat-label { 
+  font-size: 0.68rem; 
+  font-weight: 700; 
+  text-transform: uppercase; 
+  letter-spacing: 0.08em; 
+  color: var(--pp-text-3); 
+}
+
+.bill-stat-value { 
+  font-size: 1.6rem; 
+  font-weight: 850; 
+  font-family: var(--pp-font-mono);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--pp-blue);
+}
+
+.bill-stat-card[data-type="success"] .bill-stat-value { color: var(--pp-blue); }
+.bill-stat-card[data-type="danger"]  .bill-stat-value { color: var(--pp-blue); }
+.bill-stat-card[data-type="warning"] .bill-stat-value { color: var(--pp-blue); }
+.bill-stat-card[data-type="default"] .bill-stat-value { color: var(--pp-blue); }
+
+/* ─── Cards ─── */
+.bill-card {
+  background: var(--bg-card);
+  border: 1px solid var(--pp-warm-4);
+  border-radius: var(--pp-radius-card);
+  /* Removed overflow: hidden to allow dropdowns/popovers to be visible */
+  box-shadow: var(--pp-shadow-sm);
+}
+
+
+.bill-card-header {
+  padding: var(--pp-space-3) var(--pp-space-4);
+  border-bottom: 1px solid var(--pp-warm-3);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--pp-warm-1);
+}
+
+@media (min-width: 768px) { .bill-card-header { padding: var(--pp-space-4) var(--pp-space-5); } }
+
+.bill-card-title { font-size: 0.9rem; font-weight: 700; color: var(--pp-ink); margin: 0; }
+.bill-card-sub   { font-size: 0.72rem;  color: var(--pp-text-3); margin-top: 2px; font-weight: 500; }
+
+/* ─── Table ─── */
+.bill-table-container { 
+  width: 100%; 
+  overflow-x: auto;
+}
+
+
+
+.bill-table { 
+  width: 100%; 
+  border-collapse: collapse; 
+}
+
+.bill-table th {
+  text-align: left;
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: var(--pp-text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 12px var(--pp-space-4);
+  border-bottom: 1px solid var(--pp-warm-4);
+  background: var(--pp-warm-2);
+  white-space: nowrap;
+}
+
+.bill-table td {
+  padding: 10px var(--pp-space-4);
+
+  font-size: 0.85rem;
+  color: var(--pp-text-2);
+  border-bottom: 1px solid var(--pp-warm-1);
+  vertical-align: middle;
+  font-weight: 500;
+}
+
+.bill-table tr:hover td { background: var(--pp-warm-1); }
+.bill-table-row:hover td { background: var(--pp-warm-1); }
+.bill-table tr:last-child td { border-bottom: none; }
+
+/* ─── Mobile Table Cards ─── */
+@media (max-width: 767px) {
+  .bill-table-container {
+    overflow-x: hidden;
+  }
+  
+  .bill-table, .bill-table tbody, .bill-table tr, .bill-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .bill-table thead {
+    display: none;
+  }
+
+  .bill-table tr {
+    border-bottom: 1px solid var(--pp-warm-4);
+    padding: var(--pp-space-4);
+    background: var(--bg-card);
+  }
+  
+  .bill-table tr:last-child {
+    border-bottom: none;
+  }
+
+  .bill-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: none;
+    font-size: 0.85rem;
+  }
+
+  .bill-table td::before {
+    content: attr(data-label);
+    font-size: 0.68rem;
+    font-weight: 800;
+    color: var(--pp-text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-right: 12px;
+  }
+  
+  .bill-table td:last-child {
+    margin-top: 8px;
+    padding-top: 10px;
+    border-top: 1px solid var(--pp-warm-2);
+    justify-content: flex-end;
+  }
+  
+  .bill-table td:last-child::before {
+    display: none;
+  }
+}
+
+/* ─── Buttons ─── */
+.bill-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--pp-space-2);
+  padding: 9px 16px;
+  border-radius: var(--pp-radius-btn);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid var(--pp-warm-4);
+  background: var(--bg-card);
+  color: var(--pp-text-2);
+  transition: all var(--transition-normal);
+  white-space: nowrap;
+  font-family: var(--pp-font-sans);
+}
+
+.bill-btn:hover { background: var(--pp-warm-2); border-color: var(--pp-warm-4); }
+.bill-btn:active { transform: translateY(1px); }
+.bill-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.bill-btn-primary { 
+  background: var(--pp-blue); 
+  color: #ffffff; 
+  border-color: var(--pp-blue); 
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+}
+.bill-btn-primary:hover { 
+  background: var(--pp-blue-hover); 
+  border-color: var(--pp-blue-hover);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.2); 
+}
+
+.bill-btn-danger { background: var(--pp-danger-bg); color: var(--pp-danger-fg); border-color: var(--pp-danger-border); }
+.bill-btn-danger:hover { background: var(--pp-danger-bg); border-color: var(--pp-danger-fg); }
+
+.bill-btn-sm { padding: 5px 10px; font-size: 0.75rem; }
+.bill-btn-icon { padding: 9px; width: 38px; height: 38px; }
+
+/* ─── Status Badges ─── */
+.bill-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  white-space: nowrap;
+  font-family: var(--pp-font-mono);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.bill-badge-success  { background: var(--pp-success-bg);  color: var(--pp-success-fg); }
+.bill-badge-danger   { background: var(--pp-danger-bg);   color: var(--pp-danger-fg);  }
+.bill-badge-warning  { background: var(--pp-warning-bg);  color: var(--pp-warning-fg); }
+.bill-badge-default  { background: var(--pp-warm-2); color: var(--pp-text-3); }
+.bill-badge-primary  { background: var(--pp-blue-tint); color: var(--pp-blue); }
+.bill-badge-staff    { background: var(--pp-purple-tint); color: var(--pp-purple); }
+.bill-badge-info     { background: var(--pp-cyan-tint); color: var(--pp-cyan); }
+
+/* ─── Brand Token Overrides ─── */
+:root {
+  --pp-danger-border: #FECACA;
+}
+
+/* ─── Filter Bar ─── */
+.bill-filters { display: flex; gap: var(--pp-space-3); flex-wrap: wrap; align-items: center; margin-bottom: var(--pp-space-4); }
+
+.bill-filter-input {
+  height: 38px;
+  padding: 0 var(--pp-space-3);
+  border: 1px solid var(--pp-warm-4);
+  border-radius: var(--pp-radius-btn);
+  font-size: 0.82rem;
+  outline: none;
+  color: var(--pp-ink);
+  background: var(--bg-card);
+  font-family: var(--pp-font-sans);
+  transition: all var(--transition-normal);
+}
+
+.bill-filter-input:focus { 
+  border-color: var(--pp-blue); 
+  box-shadow: 0 0 0 3px var(--pp-blue-tint);
+}
+
+.bill-search-wrap { position: relative; display: flex; align-items: center; }
+.bill-search-icon { position: absolute; left: 12px; color: var(--pp-text-3); pointer-events: none; }
+.bill-search-input { padding-left: 36px !important; min-width: 240px; }
+
+/* ─── Section Label / Sub-header ─── */
+.bill-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: var(--pp-space-3);
+}
+
+.bill-section-title {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--pp-text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.bill-section-sub {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--pp-text-3);
+  margin-top: 4px;
+}
+
+/* ─── Pagination ─── */
+.bill-pagination {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--pp-space-2);
+  padding: var(--pp-space-4) 0;
+  border-top: 1px solid var(--pp-warm-4);
+  margin-top: 4px;
+}
+
+.bill-page-info { font-size: 0.75rem; color: var(--pp-text-3); font-family: var(--pp-font-mono); font-weight: 600; }
+
+/* ─── Empty State ─── */
+.bill-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--pp-text-4);
+}
+
+.bill-empty-icon { margin-bottom: 12px; opacity: 0.3; }
+.bill-empty-text { font-size: 0.875rem; color: var(--pp-text-3); margin-top: 6px; font-weight: 500; }
+
+/* ─── Modal ─── */
+.bill-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(8px);
+  padding: var(--pp-space-4);
+}
+
+.bill-modal {
+  background: var(--bg-card);
+  border-radius: var(--pp-radius-lg);
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--pp-shadow-lg);
+  animation: billModalIn 0.3s cubic-bezier(0, 0, 0.2, 1);
+}
+
+.bill-modal-header {
+  padding: var(--pp-space-4) var(--pp-space-5);
+  border-bottom: 1px solid var(--pp-warm-3);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  background: var(--bg-card);
+  z-index: 1;
+}
+
+.bill-modal-title { font-size: 1rem; font-weight: 800; color: var(--pp-ink); margin: 0; letter-spacing: -0.01em; }
+.bill-modal-body  { padding: var(--pp-space-5); display: flex; flex-direction: column; gap: var(--pp-space-4); }
+
+.bill-modal-footer {
+  padding: var(--pp-space-4) var(--pp-space-5);
+  border-top: 1px solid var(--pp-warm-3);
+  display: flex;
+  gap: var(--pp-space-3);
+  justify-content: flex-end;
+}
+
+/* ─── Form ─── */
+.bill-form  { display: flex; flex-direction: column; gap: var(--pp-space-4); }
+.bill-form-group  { display: flex; flex-direction: column; gap: 6px; }
+.bill-form-label  { font-size: 0.72rem; font-weight: 800; color: var(--pp-text-3); text-transform: uppercase; letter-spacing: 0.05em; }
+.bill-form-required { color: var(--pp-danger-fg); margin-left: 2px; }
+
+.bill-form-row {
+  display: grid;
+  gap: var(--pp-space-4);
+}
+.bill-form-row-2 { grid-template-columns: 1fr 1fr; }
+@media (max-width: 600px) { .bill-form-row-2 { grid-template-columns: 1fr; } }
+
+.bill-form-input,
+.bill-form-select,
+.bill-form-textarea {
+  padding: 10px 14px;
+  border: 1px solid var(--pp-warm-4);
+  border-radius: var(--pp-radius-btn);
+  font-size: 0.875rem;
+  color: var(--pp-ink);
+  background: var(--bg-card);
+  outline: none;
+  width: 100%;
+  font-family: var(--pp-font-sans);
+  transition: all var(--transition-normal);
+}
+
+.bill-form-input:focus,
+.bill-form-select:focus,
+.bill-form-textarea:focus {
+  border-color: var(--pp-blue);
+  box-shadow: 0 0 0 4px var(--pp-blue-tint);
+}
+
+/* ─── View Toggle (List / Grid) ─── */
+.bill-view-toggle-group {
+  display: inline-flex;
+  border: 1px solid var(--pp-warm-4);
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--bg-card);
+}
+
+.bill-view-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--pp-text-3);
+  cursor: pointer;
+  font-size: 12px;
+  font-family: var(--pp-font-sans);
+  transition: all var(--transition-normal);
+  white-space: nowrap;
+}
+.bill-view-toggle-btn.is-active { background: var(--pp-blue-tint); color: var(--pp-blue); font-weight: 700; }
+.bill-view-toggle-btn:hover:not(.is-active) { background: var(--pp-warm-2); }
+
+/* ─── Grid Card View ─── */
+.bill-card-grid {
+  display: grid;
+  gap: var(--pp-space-4);
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.bill-grid-card { padding: var(--pp-space-4); gap: var(--pp-space-3); display: flex; flex-direction: column; }
+.bill-grid-card-icon {
+  width: 40px; height: 40px;
+  border-radius: var(--pp-radius-card);
+  background: var(--pp-blue-tint);
+  color: var(--pp-blue);
+  display: grid;
+  place-items: center;
+}
+.bill-grid-card-footer { margin-top: auto; }
+
+/* ─── Patient Selection ─── */
+.bill-patient-chip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--pp-space-3) var(--pp-space-4);
+  background: var(--pp-blue-tint);
+  border: 1px solid var(--pp-blue-border);
+  border-radius: var(--pp-radius-btn);
+}
+
+.bill-patient-chip-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--pp-blue);
+  margin-bottom: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.bill-patient-chip-name {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--pp-ink);
+}
+
+.bill-patient-chip-id {
+  font-family: var(--pp-font-mono);
+  font-size: 0.75rem;
+  color: var(--pp-text-3);
+}
+
+/* ─── Patient Search Dropdown ─── */
+.bill-dropdown-overlay {
+  position: absolute;
+  z-index: 10;
+  width: calc(100% - 40px);
+  max-height: 200px;
+  overflow-y: auto;
+  box-shadow: var(--pp-shadow-md);
+  border-radius: var(--pp-radius-btn);
+  border: 1px solid var(--pp-warm-4);
+  background: var(--bg-card);
+}
+
+.bill-dropdown-item {
+  width: 100%;
+  text-align: left;
+  padding: var(--pp-space-3) var(--pp-space-4);
+  border: none;
+  border-bottom: 1px solid var(--pp-warm-3);
+  background: none;
+  cursor: pointer;
+  transition: background var(--transition-normal);
+}
+.bill-dropdown-item:last-child { border-bottom: none; }
+.bill-dropdown-item:hover { background: var(--pp-warm-2); }
+
+.bill-dropdown-item-name { font-weight: 600; font-size: 0.875rem; color: var(--pp-ink); }
+.bill-dropdown-item-meta { font-size: 0.72rem; color: var(--pp-text-3); font-family: var(--pp-font-mono); }
+
+/* ─── Form Section ─── */
+.bill-form-section {
+  padding: var(--pp-space-4) var(--pp-space-5);
+  border-bottom: 1px solid var(--pp-warm-3);
+}
+.bill-form-section:last-child { border-bottom: none; }
+
+/* ─── Form Card Body ─── */
+.bill-form-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* ─── Balance Display ─── */
+.bill-balance-row {
+  padding: var(--pp-space-3) var(--pp-space-4);
+  background: var(--pp-warm-2);
+  border-radius: var(--pp-radius-btn);
+  border: 1px solid var(--pp-warm-4);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.bill-balance-label { font-size: 0.72rem; font-weight: 800; color: var(--pp-text-3); text-transform: uppercase; letter-spacing: 0.05em; }
+.bill-balance-value { font-family: var(--pp-font-mono); font-size: 1.1rem; font-weight: 700; }
+
+/* ─── Modal / Overlay ─── */
+.bill-search-relative { position: relative; display: flex; flex-direction: column; gap: var(--pp-space-2); }
+
+/* ─── Animations ─── */
+@keyframes billModalIn { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes spin        { from { transform: rotate(0deg); }  to { transform: rotate(360deg); } }
+
+/* ─── Print Options ─── */
+.bill-print-option {
+  width: 100%;
+  text-align: left;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--pp-ink);
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: block;
+}
+
+.bill-print-option:hover {
+  background: var(--pp-blue-tint);
+  color: var(--pp-blue);
+  padding-left: 16px;
+}
+

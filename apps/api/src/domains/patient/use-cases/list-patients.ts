@@ -8,6 +8,7 @@ interface ListPatientsInput {
   search?: string;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
+  doctorId?: number;
 }
 
 export class ListPatientsUseCase {

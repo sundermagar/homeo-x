@@ -2,7 +2,7 @@ import axios from 'axios';
 import { useAuthStore } from '@/shared/stores/auth-store';
 
 const apiClient = axios.create({
-  baseURL: (import.meta as any).env['VITE_API_URL'] || '/api',
+  baseURL: import.meta.env['VITE_API_URL'] || '/api',
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -12,29 +12,27 @@ apiClient.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
-  // Multi-tenant: spoof host header for local development
-  if (import.meta.env.DEV) {
-    config.headers['x-forwarded-host'] = 'demo.managemyclinic.in';
+  // Multi-tenant: use current window host in local development if needed, 
+  // but preferably let the Vite proxy (changeOrigin: false) handle it.
+  if (import.meta.env.DEV && typeof window !== 'undefined') {
+    config.headers['x-forwarded-host'] = window.location.host;
   }
   return config;
 });
 
 // Handle Response errors
 apiClient.interceptors.response.use(
-  (res) => {
-    // Automatically unwrap high-level "data" key if it exists
-    if (res.data && res.data.success && res.data.data !== undefined) {
-      // Keep the original properties like message or total if they exist alongside data
-      return {
-        ...res,
-        data: res.data.data,
-        _original: res.data // For cases where we might need success/message etc.
-      };
-    }
-    return res;
-  },
+  (res) => res,
   (error) => {
-    // We've removed the /login redirect to bypass auth pages as requested.
+    // 401 Unauthorized → token expired or invalid → force logout
+    if (error.response?.status === 401) {
+      const { logout } = useAuthStore.getState();
+      logout();
+      // Redirect to login (avoid circular import by using window.location)
+      if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+        window.location.href = '/login';
+      }
+    }
     return Promise.reject(error);
   },
 );

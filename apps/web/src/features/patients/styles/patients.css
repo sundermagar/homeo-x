@@ -1,0 +1,454 @@
+/* patients.css — Paperplane design system for patients module */
+
+/* ─── Patient Avatar ──────────────────────────────────────────────────────── */
+
+.pat-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--pp-blue-tint);
+  color: var(--pp-blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.pat-avatar--lg {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.pat-avatar--md {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.pat-avatar--sm {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pat-avatar--warm {
+  background: var(--pp-warm-3);
+  color: var(--pp-text-2);
+}
+
+/* ─── Info Row (detail page) ───────────────────────────────────────────────── */
+
+.pat-info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-main);
+}
+
+.pat-info-row:last-child {
+  border-bottom: none;
+}
+
+.pat-info-label {
+  font-weight: 600;
+  color: var(--pp-text-3);
+  font-size: 12px;
+}
+
+.pat-info-value {
+  font-weight: 500;
+  color: var(--pp-ink);
+  font-size: 13px;
+  text-align: right;
+}
+
+/* ─── Search Wrap ──────────────────────────────────────────────────────────── */
+
+.pat-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  max-width: 400px;
+}
+
+.pat-search-icon {
+  position: absolute;
+  left: 12px;
+  color: var(--pp-text-3);
+  pointer-events: none;
+}
+
+.pat-search-input {
+  padding-left: 36px !important;
+  width: 100% !important;
+}
+
+/* ─── Section Header ──────────────────────────────────────────────────────── */
+
+.pat-section-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-main);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--pp-warm-1);
+}
+
+.pat-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--pp-ink);
+  margin: 0;
+}
+
+.pat-section-title-icon {
+  color: var(--pp-blue);
+  flex-shrink: 0;
+}
+
+/* ─── Patient Header ──────────────────────────────────────────────────────── */
+
+.pat-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.pat-header-info {
+  flex: 1;
+}
+
+.pat-header-name {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--pp-ink);
+  margin-bottom: 8px;
+}
+
+.pat-header-meta {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.pat-reg-badge {
+  font-size: 13px;
+  color: var(--pp-blue);
+  background: var(--pp-blue-tint);
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--pp-blue-border);
+  font-family: var(--pp-font-mono);
+  font-weight: 600;
+}
+
+.pat-header-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.pat-btn-danger {
+  color: var(--pp-danger-fg);
+  border: 1px solid var(--pp-danger-fg);
+  background: var(--pp-danger-bg);
+}
+
+/* ─── Form Error Banner ──────────────────────────────────────────────────── */
+
+.pat-error-banner {
+  background: var(--pp-danger-bg);
+  border: 1px solid var(--pp-danger-fg);
+  padding: 12px 16px;
+  margin: 16px 20px 0;
+  border-radius: var(--pp-radius-card);
+  color: var(--pp-danger-fg);
+}
+
+.pat-error-list {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.pat-error-item {
+  font-weight: 600;
+  color: var(--pp-danger-fg);
+}
+
+/* ─── Relationship Badge ──────────────────────────────────────────────────── */
+
+.pat-relation-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  background: var(--pp-warm-2);
+  border-radius: 12px;
+  border: 1px solid var(--pp-warm-4);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--pp-text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ─── Family Lookup Dropdown ──────────────────────────────────────────────── */
+
+.pat-lookup-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  padding: 0;
+  margin-top: 4px;
+  z-index: 10;
+  max-height: 200px;
+  overflow-y: auto;
+  box-shadow: var(--pp-shadow-md);
+}
+
+.pat-lookup-item {
+  padding: 12px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--pp-warm-4);
+}
+
+.pat-lookup-item:last-child {
+  border-bottom: none;
+}
+
+.pat-lookup-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pp-ink);
+}
+
+.pat-lookup-sub {
+  font-size: 11px;
+  color: var(--pp-text-3);
+}
+
+.pat-lookup-selected {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pat-lookup-check {
+  color: var(--pp-success-fg);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ─── Grid Card (patients variant — shared with appointments.appt-grid-card) ── */
+
+.pat-grid-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pat-grid-card-header {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.pat-grid-card-name {
+  font-weight: 600;
+  color: var(--pp-ink);
+}
+
+.pat-grid-card-regid {
+  font-size: 12px;
+  color: var(--pp-text-3);
+  font-family: var(--pp-font-mono);
+}
+
+.pat-grid-card-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--pp-warm-1);
+  padding: 12px;
+  border-radius: 8px;
+}
+
+.pat-grid-card-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pat-grid-card-detail-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--pp-text-3);
+}
+
+.pat-grid-card-detail-value {
+  font-size: 13px;
+  color: var(--pp-text-2);
+}
+
+/* ─── Stats Row ───────────────────────────────────────────────────────────── */
+
+.pat-stats-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+/* ─── Family Member Row ───────────────────────────────────────────────────── */
+
+.pat-member-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pat-member-name {
+  font-weight: 500;
+  color: var(--pp-ink);
+}
+
+/* ─── Chart Container ──────────────────────────────────────────────────────── */
+
+.pat-chart-wrap {
+  width: 100%;
+  height: 260px;
+}
+
+.pat-chart-title {
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--pp-ink);
+}
+
+.pat-chart-title-icon {
+  color: var(--pp-blue);
+}
+
+/* ─── Form Submit Bar ──────────────────────────────────────────────────────── */
+
+.pat-submit-bar {
+  margin-top: 32px;
+  display: flex;
+  gap: 12px;
+  border-top: 1px solid var(--pp-warm-4);
+  padding-top: 20px;
+}
+
+/* ─── Back Link ───────────────────────────────────────────────────────────── */
+
+.pat-back-link {
+  margin-top: 24px;
+}
+
+.pat-back-link a {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pp-blue);
+  text-decoration: none;
+}
+
+.pat-back-link a:hover {
+  text-decoration: underline;
+}
+
+/* ─── Empty State ─────────────────────────────────────────────────────────── */
+
+.pat-empty-state {
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--pp-text-3);
+}
+
+.pat-empty-state-title {
+  font-weight: 600;
+  color: var(--pp-ink);
+  margin-bottom: 8px;
+}
+
+/* ─── Loading State ───────────────────────────────────────────────────────── */
+
+.pat-loading-state {
+  padding: 60px;
+  text-align: center;
+  color: var(--pp-text-3);
+}
+
+/* ─── Skeleton Loading ──────────────────────────────────────────────────────── */
+
+.pat-skeleton {
+  display: flex;
+  flex-direction: column;
+}
+
+.pat-skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--pp-warm-4);
+}
+
+.pat-skeleton-row:last-child {
+  border-bottom: none;
+}
+
+.pat-skeleton-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--pp-warm-3);
+  flex-shrink: 0;
+  animation: pat-skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+.pat-skeleton-content {
+  flex: 1;
+}
+
+.pat-skeleton-line {
+  height: 12px;
+  border-radius: 6px;
+  background: var(--pp-warm-3);
+  animation: pat-skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes pat-skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ─── Pagination ──────────────────────────────────────────────────────────── */
+
+.pat-pagination {
+  margin-top: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 12px 0;
+}

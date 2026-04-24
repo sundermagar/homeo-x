@@ -1,24 +1,37 @@
 import { Router } from 'express';
 import { AppointmentRepositoryPG } from '../../repositories/appointment.repository.pg';
+import { PatientRepositoryPg } from '../../repositories/patient.repository.pg';
 import { ListAppointmentsUseCase } from '../../../domains/appointment/use-cases/list-appointments.use-case';
 import { GetAppointmentUseCase } from '../../../domains/appointment/use-cases/get-appointment.use-case';
 import { BookAppointmentUseCase } from '../../../domains/appointment/use-cases/book-appointment.use-case';
 import { ManageAppointmentUseCase } from '../../../domains/appointment/use-cases/manage-appointment.use-case';
 import { QueueManagementUseCase } from '../../../domains/appointment/use-cases/queue-management.use-case';
+import { SendSmsUseCase } from '../../../domains/communication/use-cases/send-sms.use-case';
+import { CommunicationRepositoryPG } from '../../repositories/communication.repository.pg';
+import { createSmsGateway } from '../../communication/msg91-sms-gateway';
 import { asyncHandler } from '../middleware/async-handler';
 import { authMiddleware } from '../middleware/auth';
-import { BadRequestError } from '../../../shared/errors';
+import { BadRequestError, ValidationError } from '../../../shared/errors';
 import { sendSuccess } from '../../../shared/response-formatter';
+import { createLogger } from '../../../shared/logger';
+import { z } from 'zod';
+
+const addToWaitlistSchema = z.object({
+  patientId: z.number().int().positive().optional(),
+  appointmentId: z.number().int().positive().optional(),
+  doctorId: z.number().int().positive().optional(),
+  consultationFee: z.number().min(0).optional(),
+}).refine((data) => data.patientId || data.appointmentId, {
+  message: "Either patientId or appointmentId is required",
+  path: ["patientId"],
+});
+
+const logger = createLogger('appointments');
+const smsGateway = createSmsGateway();
 
 export const appointmentsRouter: Router = Router();
 
-import { AppointmentRepositoryPG } from '../../repositories/appointment.repository.pg';
-// Using real DB repository for all users (no more mock data)
-
-const getRepo = (req: any) => {
-  // Always use real database so patient-booked appointments show up
-  return new AppointmentRepositoryPG(req.tenantDb);
-};
+const getRepo = (req: any) => new AppointmentRepositoryPG(req.tenantDb);
 
 // Apply auth to all routes
 appointmentsRouter.use(authMiddleware);
@@ -53,10 +66,10 @@ appointmentsRouter.get('/', asyncHandler(async (req, res) => {
 
 // GET /api/appointments/today
 appointmentsRouter.get('/today', asyncHandler(async (req, res) => {
+  const { doctor_id } = req.query as Record<string, string>;
   const getAppts = new GetAppointmentUseCase(getRepo(req));
-  const user = req.user as any;
-  const doctorId = undefined; // user?.type === 'Doctor' ? Number(user.contextId) : undefined;
-  const result = await getAppts.getToday(doctorId);
+  const effectiveDoctorId = doctor_id ? Number(doctor_id) : undefined;
+  const result = await getAppts.getToday(effectiveDoctorId);
   if (result.success) sendSuccess(res, result.data);
 }));
 
@@ -89,8 +102,12 @@ appointmentsRouter.get('/:id', asyncHandler(async (req, res) => {
 
 // POST /api/appointments
 appointmentsRouter.post('/', asyncHandler(async (req, res) => {
-  const bookAppt = new BookAppointmentUseCase(getRepo(req));
+  const commRepo = new CommunicationRepositoryPG(req.tenantDb);
+  const patientRepo = new PatientRepositoryPg(req.tenantDb);
+  const smsUc = new SendSmsUseCase(commRepo, smsGateway);
+  const bookAppt = new BookAppointmentUseCase(getRepo(req), smsUc, patientRepo);
   const result = await bookAppt.execute(req.body);
+
   if (result.success) {
     sendSuccess(res, result.data, undefined, 201);
   }
@@ -137,10 +154,13 @@ appointmentsRouter.post('/:id/issue-token', asyncHandler(async (req, res) => {
 
 // POST /api/appointments/waiting
 appointmentsRouter.post('/waiting', asyncHandler(async (req, res) => {
-  const { patientId, appointmentId, doctorId, consultationFee } = req.body;
-  if (!patientId) throw new BadRequestError('patientId is required');
+  const validation = addToWaitlistSchema.safeParse(req.body);
+  if (!validation.success) {
+    throw new ValidationError('Invalid waitlist data', validation.error.format());
+  }
+
   const queueMgmt = new QueueManagementUseCase(getRepo(req));
-  const result = await queueMgmt.addToWaitlist({ patientId, appointmentId, doctorId, consultationFee });
+  const result = await queueMgmt.addToWaitlist(validation.data);
   if (result.success) {
     sendSuccess(res, result.data, undefined, 201);
   }
@@ -162,4 +182,21 @@ appointmentsRouter.post('/waiting/:id/complete', asyncHandler(async (req, res) =
   const io = (req as any).io;
   if (io) io.emit('queueUpdated', { action: 'completed', id: req.params.id });
   sendSuccess(res, undefined, 'Consultation completed');
+}));
+
+// POST /api/appointments/waiting/:id/skip
+appointmentsRouter.post('/waiting/:id/skip', asyncHandler(async (req, res) => {
+  const queueMgmt = new QueueManagementUseCase(getRepo(req));
+  await queueMgmt.skipWaitlist(Number(req.params.id));
+  const io = (req as any).io;
+  if (io) io.emit('queueUpdated', { action: 'skipped', id: req.params.id });
+  sendSuccess(res, undefined, 'Patient skipped, next patient called in');
+}));
+
+// POST /api/appointments/:id/reschedule
+appointmentsRouter.post('/:id/reschedule', asyncHandler(async (req, res) => {
+  const { date, time } = req.body;
+  const manageAppt = new ManageAppointmentUseCase(getRepo(req));
+  await manageAppt.reschedule(Number(req.params.id), date, time);
+  sendSuccess(res, undefined, 'Appointment rescheduled');
 }));

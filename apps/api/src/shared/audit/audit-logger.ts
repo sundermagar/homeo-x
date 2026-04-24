@@ -38,7 +38,9 @@ export enum AuditAction {
   APPOINTMENT_CANCEL = 'appointment.cancel',
 
   // Settings
+  SETTINGS_CREATE = 'settings.create',
   SETTINGS_UPDATE = 'settings.update',
+  SETTINGS_DELETE = 'settings.delete',
   ROLE_UPDATE = 'settings.role_update',
 }
 
