@@ -20,7 +20,7 @@ function FileInputRow({
 }: {
   label: string;
   field: string;
-  value?: string;
+  value?: string | null;
   onChange: (f: string, e: React.ChangeEvent<HTMLInputElement>) => void;
   error?: string;
   accept?: string;
@@ -559,8 +559,8 @@ export default function ClinicAdminsPage() {
               value={`${sortBy}-${sortOrder}`}
               onChange={(e) => {
                 const [col, order] = e.target.value.split('-');
-                setSortBy(col);
-                setSortOrder(order as 'ASC' | 'DESC');
+                setSortBy(col ?? 'id');
+                setSortOrder((order ?? 'DESC') as 'ASC' | 'DESC');
                 setPage(1);
               }}
             >

@@ -584,8 +584,8 @@ export default function EmployeesPage() {
               value={`${sortBy}-${sortOrder}`}
               onChange={(e) => {
                 const [col, order] = e.target.value.split('-');
-                setSortBy(col);
-                setSortOrder(order as 'ASC' | 'DESC');
+                setSortBy(col ?? 'id');
+                setSortOrder((order ?? 'DESC') as 'ASC' | 'DESC');
                 setPage(1);
               }}
             >

@@ -29,7 +29,7 @@ export default function PdfSettingsPage() {
   const updateOrg = useUpdateOrganization();
   const user = useAuthStore(s => s.user);
 
-  const myOrg = orgs.find(o => o.id === user?.clinicId) || orgs[0];
+  const myOrg = orgs.find(o => o.id === user?.contextId) || orgs[0];
   const [clinicForm, setClinicForm] = useState<any>(null);
 
   React.useEffect(() => {
