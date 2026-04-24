@@ -76,7 +76,6 @@ export function ClinicAdminDashboard() {
   const [revTab, setRevTab] = useState<RevenueTab>('Cash');
   const [sidebarTab, setSidebarTab] = useState<'Queue' | 'Analytics' | 'Billing'>('Queue');
 
-  const navigate = useNavigate();
   const { data, isLoading } = useClinicAdminDashboard(period);
   useAuthStore((s) => s.user); // ensures auth store is initialised
 
