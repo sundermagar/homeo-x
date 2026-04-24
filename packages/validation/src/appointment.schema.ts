@@ -15,3 +15,15 @@ export const updateAppointmentSchema = createAppointmentSchema.partial().extend(
 
 export type CreateAppointmentInput = z.infer<typeof createAppointmentSchema>;
 export type UpdateAppointmentInput = z.infer<typeof updateAppointmentSchema>;
+
+export const addToWaitlistSchema = z.object({
+  patientId: z.number().int().positive().optional(),
+  appointmentId: z.number().int().positive().optional(),
+  doctorId: z.number().int().positive().optional(),
+  consultationFee: z.number().min(0).optional(),
+}).refine((data) => data.patientId || data.appointmentId, {
+  message: "Either patientId or appointmentId is required",
+  path: ["patientId"],
+});
+
+export type AddToWaitlistInput = z.infer<typeof addToWaitlistSchema>;

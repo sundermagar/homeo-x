@@ -11,6 +11,7 @@ export interface AppConfig {
   redis: { url: string | null; upstashUrl: string | null; upstashToken: string | null };
   cors: { origins: string[] };
   rateLimit: { windowMs: number; max: number; authMax: number };
+  razorpay: { keyId: string | null; keySecret: string | null };
 }
 
 function loadConfig(): AppConfig {
@@ -36,7 +37,11 @@ function loadConfig(): AppConfig {
     rateLimit: {
       windowMs: 60_000,
       max: 200,
-      authMax: 5,
+      authMax: process.env.NODE_ENV === 'production' ? 10 : 100,
+    },
+    razorpay: {
+      keyId: process.env.RAZORPAY_KEY_ID || null,
+      keySecret: process.env.RAZORPAY_KEY_SECRET || null,
     },
   };
 

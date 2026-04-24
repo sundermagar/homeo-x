@@ -5,8 +5,99 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1775717556729,
-      "tag": "0000_hesitant_jubilee",
+      "when": 1776168318601,
+      "tag": "0000_lazy_molten_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1776313958335,
+      "tag": "0001_remedy_chart_trees",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1776407479573,
+      "tag": "0002_sloppy_mongoose",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1776432726239,
+      "tag": "0003_old_rattler",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1776500000000,
+      "tag": "0004_missing_domain_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1776600000000,
+      "tag": "0005_user_mobile2_cols",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1776673600000,
+      "tag": "0006_patch_seed_columns",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1776680000000,
+      "tag": "0007_fix_departments_logistics",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1776690000000,
+      "tag": "0008_fix_payment_regid_type",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1776700000000,
+      "tag": "0009_seed_expense_heads",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1776800000000,
+      "tag": "0010_add_org_assigned_to",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1776900000000,
+      "tag": "0011_dashboard_performance_indexes",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1777000000000,
+      "tag": "0012_add_org_admin_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1745366400000,
+      "tag": "0013_add_knowledge_base_tables",
       "breakpoints": true
     }
   ]

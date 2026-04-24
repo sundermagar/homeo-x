@@ -4,8 +4,15 @@ import { createApp } from './infrastructure/http/app';
 import { createLogger } from './shared/logger';
 import { appConfig } from './shared/config/app-config';
 import { aiConfig } from './shared/config/ai-config';
+import { AppointmentRepositoryPG } from './infrastructure/repositories/appointment.repository.pg';
+import { PatientRepositoryPg } from './infrastructure/repositories/patient.repository.pg';
+import { CommunicationRepositoryPG } from './infrastructure/repositories/communication.repository.pg';
+import { SendSmsUseCase } from './domains/communication/use-cases/send-sms.use-case';
+import { createSmsGateway } from './infrastructure/communication/msg91-sms-gateway';
+import { JobScheduler } from './infrastructure/scheduler/job-scheduler';
 
 const logger = createLogger('main');
+logger.info('Reloading API server...');
 
 async function listenWithFallback(
   server: Server,
@@ -30,6 +37,9 @@ async function listenWithFallback(
         server.once('listening', onListening);
         server.listen(port);
       });
+      if (port !== startPort) {
+        logger.warn(`API bound to fallback port ${port}. Frontend proxy targeting ${startPort} (like Vite) will fail with ECONNREFUSED.`);
+      }
       return port;
     } catch (err) {
       const e = err as NodeJS.ErrnoException;
@@ -48,9 +58,22 @@ async function bootstrap() {
   logger.info(`CORS origins: ${appConfig.cors.origins.join(', ')}`);
   logger.info(`AI health: ${JSON.stringify(aiConfig.getHealthStatus())}`);
 
-  const { app, server } = await createApp();
+  const { app, server, tenantDb } = await createApp();
   const boundPort = await listenWithFallback(server, appConfig.port);
   logger.info(`API server running on port ${boundPort}`);
+
+  // ─── Initialize Background Jobs ───
+  if (tenantDb) {
+    const apptRepo = new AppointmentRepositoryPG(tenantDb);
+    const patientRepo = new PatientRepositoryPg(tenantDb);
+    const commRepo = new CommunicationRepositoryPG(tenantDb);
+    const smsGateway = createSmsGateway();
+    const smsUseCase = new SendSmsUseCase(commRepo, smsGateway);
+
+    const scheduler = new JobScheduler(apptRepo, patientRepo, smsUseCase);
+    scheduler.start();
+    logger.info('Background job scheduler initialized');
+  }
 
   // ─── Global Process Error Handlers ───
   process.on('uncaughtException', (err) => {
@@ -85,3 +108,11 @@ bootstrap().catch((err) => {
   logger.fatal({ err }, 'Failed to start server');
   process.exit(1);
 });
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 

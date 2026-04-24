@@ -1,9 +1,8 @@
-import { type Result, ok } from '../../../shared/result';
+import { type Result, ok, fail } from '../../../shared/result';
 import type { MedicalCaseRepository } from '../ports/medical-case.repository';
 import type { InventoryRepository } from '../../inventory/ports/inventory.repository';
 import type { BillingRepository } from '../../billing/ports/billing.repository';
 import type { AppointmentRepository } from '../../appointment/ports/appointment.repository';
-import { NotFoundError } from '../../../shared/errors';
 import { AppointmentStatus } from '@mmc/types';
 
 export interface FinalizeConsultationDto {
@@ -25,7 +24,7 @@ export class FinalizeConsultationUseCase {
   async execute(dto: FinalizeConsultationDto): Promise<Result<void>> {
     const medicalCase = await this.medicalCaseRepo.findById(dto.visitId);
     if (!medicalCase) {
-      throw new NotFoundError(`Medical case with visit ID ${dto.visitId} not found`);
+      return fail(`Medical case with visit ID ${dto.visitId} not found`, 'NOT_FOUND');
     }
 
     // 1. Deduct Stock for each prescription
@@ -36,19 +35,17 @@ export class FinalizeConsultationUseCase {
     }
 
     // 2. Generate Automatic Bill
-    const billNo = await this.billingRepo.getNextBillNumber();
-    await this.billingRepo.createBill({
+    const billNo = await this.billingRepo.nextBillNo();
+    await this.billingRepo.create({
       regid: dto.regid,
       billNo,
-      billDate: new Date().toISOString().split('T')[0],
-      totalAmount: dto.consultationFee,
-      receivedAmount: 0, // Initially 0 or if paid, update
-      paymentMode: dto.paymentMode || 'Cash',
-      status: 'Pending',
+      billDate: new Date().toISOString().split('T')[0] as string,
+      charges: dto.consultationFee,
+      received: 0,
+      paymentMode: (dto.paymentMode || 'Cash') as any,
     });
 
     // 3. Update Appointment Status to Done
-    // We assume the visitId is linked to an appointment
     await this.appointmentRepo.updateStatus(dto.visitId, AppointmentStatus.Done);
 
     // 4. Update Medical Case Status

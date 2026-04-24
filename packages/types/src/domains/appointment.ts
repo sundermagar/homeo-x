@@ -36,7 +36,7 @@ export interface Token {
 
 export interface WaitlistEntry {
   id: number;
-  patientId: number;
+  patientId: number | null;
   appointmentId: number | null;
   doctorId: number | null;
   waitingNumber: number;

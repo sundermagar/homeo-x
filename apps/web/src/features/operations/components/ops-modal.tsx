@@ -15,9 +15,9 @@ export function OpsModal({ isOpen, onClose, title, children }: OpsModalProps) {
     <div className="ops-modal-backdrop" onClick={onClose}>
       <div className="ops-modal-content slide-up" onClick={(e) => e.stopPropagation()}>
         <div className="ops-modal-header">
-          <h3 className="text-lg font-bold">{title}</h3>
-          <button onClick={onClose} className="ops-modal-close">
-            <X size={20} />
+          <h3>{title}</h3>
+          <button onClick={onClose} className="ops-modal-close" aria-label="Close modal">
+            <X size={18} />
           </button>
         </div>
         <div className="ops-modal-body">

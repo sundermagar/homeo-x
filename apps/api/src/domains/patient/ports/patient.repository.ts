@@ -14,11 +14,13 @@ export interface PatientRepository {
     search?: string;
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
+    doctorId?: number;
   }): Promise<{ data: PatientSummary[]; total: number }>;
   create(data: CreatePatientInput): Promise<Patient>;
   update(regid: number, data: UpdatePatientInput): Promise<Patient | null>;
   softDelete(regid: number): Promise<boolean>;
   lookup(query: string, limit?: number): Promise<PatientSummary[]>;
+  findBirthdays(mmdd: string): Promise<PatientSummary[]>;
 
   // Form meta — dropdown data
   getFormMeta(): Promise<PatientFormMeta>;

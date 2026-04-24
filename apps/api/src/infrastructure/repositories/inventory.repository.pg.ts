@@ -22,7 +22,7 @@ export class InventoryRepositoryPg implements InventoryRepository {
     await this.db
       .update(schema.stocks)
       .set({
-        ml: sql`COALESCE(ml, 0) - ${amount}`,
+        quantity: sql`COALESCE(quantity, 0) - ${amount}`,
         updatedAt: new Date(),
       })
       .where(eq(schema.stocks.id, medicineId));

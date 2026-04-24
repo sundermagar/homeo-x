@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsx watch src/main.ts",
-    "start": "node dist/main.js",
+    "start": "tsx src/main.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:unit": "vitest run --dir src/domains",
@@ -15,8 +15,6 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.88.0",
-    "@google-cloud/speech": "^7.3.0",
     "@google/generative-ai": "^0.24.0",
     "@mmc/database": "workspace:*",
     "@mmc/types": "workspace:*",
@@ -29,14 +27,17 @@
     "drizzle-orm": "^0.38.0",
     "express": "^4.21.0",
     "express-rate-limit": "^8.3.0",
-    "groq-sdk": "^1.1.2",
     "helmet": "^8.1.0",
     "ioredis": "^5.10.0",
     "jsonwebtoken": "^9.0.0",
-    "livekit-server-sdk": "^2.15.1",
+    "multer": "^2.1.1",
+    "nodemailer": "^8.0.5",
+    "pdfkit": "^0.18.0",
     "pino": "^9.6.0",
     "pino-pretty": "^13.0.0",
+    "razorpay": "^2.9.6",
     "socket.io": "^4.8.0",
+    "tsx": "^4.19.0",
     "zod": "^3.24.0"
   },
   "devDependencies": {
@@ -45,8 +46,10 @@
     "@types/cors": "^2.8.0",
     "@types/express": "^5.0.0",
     "@types/jsonwebtoken": "^9.0.0",
+    "@types/multer": "^2.1.0",
     "@types/node": "^25.5.2",
-    "tsx": "^4.19.0",
+    "@types/nodemailer": "^8.0.0",
+    "@types/pdfkit": "^0.17.5",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"
   }

@@ -1,7 +1,6 @@
 import type { PackageRepository } from '../ports/package.repository';
 import type { CreatePackagePlanDto, UpdatePackagePlanDto } from '@mmc/types';
-import { ok, type Result } from '../../../shared/result';
-import { NotFoundError } from '../../../shared/errors';
+import { ok, type Result, fail } from '../../../shared/result';
 
 export class ManagePackagePlansUseCase {
   constructor(private readonly repo: PackageRepository) {}
@@ -13,7 +12,7 @@ export class ManagePackagePlansUseCase {
 
   async getPlan(id: number) {
     const plan = await this.repo.findPlanById(id);
-    if (!plan) throw new NotFoundError(`Package plan #${id} not found`);
+    if (!plan) return fail(`Package plan #${id} not found`, 'NOT_FOUND');
     return ok(plan);
   }
 
@@ -24,14 +23,14 @@ export class ManagePackagePlansUseCase {
 
   async updatePlan(id: number, dto: UpdatePackagePlanDto): Promise<Result<void>> {
     const existing = await this.repo.findPlanById(id);
-    if (!existing) throw new NotFoundError(`Package plan #${id} not found`);
+    if (!existing) return fail(`Package plan #${id} not found`, 'NOT_FOUND');
     await this.repo.updatePlan(id, dto);
     return ok(undefined);
   }
 
   async deletePlan(id: number): Promise<Result<void>> {
     const existing = await this.repo.findPlanById(id);
-    if (!existing) throw new NotFoundError(`Package plan #${id} not found`);
+    if (!existing) return fail(`Package plan #${id} not found`, 'NOT_FOUND');
     await this.repo.deletePlan(id);
     return ok(undefined);
   }

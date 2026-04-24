@@ -6,8 +6,8 @@ export type Result<T, E = string> =
   | { success: true; data: T }
   | { success: false; error: E; code?: string };
 
-export function ok<T>(data: T): Result<T, never> {
-  return { success: true, data };
+export function ok<T>(data?: T): Result<T, never> {
+  return { success: true, data: data as T };
 }
 
 export function fail<E = string>(error: E, code?: string): Result<never, E> {
@@ -24,4 +24,5 @@ export interface ApiResponse<T = any> {
   code?: string;
   message?: string;
   correlationId?: string;
+  meta?: { total?: number; page?: number; limit?: number };
 }

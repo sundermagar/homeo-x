@@ -5,28 +5,41 @@ import type { CreateStaffInput, UpdateStaffInput } from '@mmc/validation';
 
 const STAFF_KEY = 'staff';
 
+interface StaffListResponse {
+  data: StaffSummary[];
+  total: number;
+}
+
 // ─── Staff Queries ───
 
 export function useStaffList(category: StaffCategory, params: { page?: number; limit?: number; search?: string }) {
-  return useQuery({
+  return useQuery<StaffListResponse>({
     queryKey: [STAFF_KEY, category, params],
     queryFn: async () => {
-      const { data } = await apiClient.get<{ success: boolean; data: StaffSummary[]; total: number }>('/staff', {
+      const res = await apiClient.get('/staff', {
         params: { category, ...params },
       });
-      return { data: data.data, total: data.total };
+      // Interceptor unwraps success responses: res.data might be just the array
+      // Use _original to get the full response body containing 'total'
+      const body = (res as any)._original ?? res.data;
+      return { 
+        data: (body.data ?? res.data ?? []) as StaffSummary[], 
+        total: (body.total ?? (Array.isArray(res.data) ? res.data.length : 0)) as number
+      };
     },
   });
 }
 
 export function useStaffMember(category: StaffCategory, id: number) {
-  return useQuery({
+  return useQuery<StaffMember | null>({
     queryKey: [STAFF_KEY, category, id],
     queryFn: async () => {
-      const { data } = await apiClient.get<{ success: boolean; data: StaffMember }>(`/staff/${id}`, {
+      if (!id) return null;
+      const res = await apiClient.get<any>(`/staff/${id}`, {
         params: { category },
       });
-      return data.data;
+      const body = (res as any)._original ?? res.data;
+      return (body.data ?? res.data) as StaffMember;
     },
     enabled: !!id && !!category,
   });
@@ -38,8 +51,9 @@ export function useCreateStaff() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: CreateStaffInput) => {
-      const { data } = await apiClient.post<{ success: boolean; data: StaffMember }>('/staff', input);
-      return data.data;
+      const res = await apiClient.post<any>('/staff', input);
+      const body = (res as any)._original ?? res.data;
+      return body.data ?? res.data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: [STAFF_KEY] }),
   });
@@ -49,10 +63,14 @@ export function useUpdateStaff() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ category, id, ...input }: UpdateStaffInput & { category: StaffCategory; id: number }) => {
-      const { data } = await apiClient.put<{ success: boolean; data: StaffMember }>(`/staff/${id}`, input, {
+      if (!id || isNaN(id)) {
+        throw new Error('Invalid staff member ID');
+      }
+      const res = await apiClient.put<any>(`/staff/${id}`, input, {
         params: { category },
       });
-      return data.data;
+      const body = (res as any)._original ?? res.data;
+      return body.data ?? res.data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: [STAFF_KEY] }),
   });

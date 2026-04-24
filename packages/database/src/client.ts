@@ -17,22 +17,25 @@ export function createDbClient(databaseUrl: string, tenantSchema?: string): DbCl
     return clients.get(cacheKey)!;
   }
 
-  const connectionOptions: any = {
-    max: 10,
-    idle_timeout: 20,
-    connect_timeout: 10,
+  console.log(`🔌 Creating new DB client for schema: [${tenantSchema || 'public'}]`);
+
+  const connectionOptions: Record<string, any> = {
+    max: Number(process.env['DB_MAX_CONNECTIONS'] || 10),
+    idle_timeout: Number(process.env['DB_IDLE_TIMEOUT'] || 20),
+    connect_timeout: Number(process.env['DB_CONNECT_TIMEOUT'] || 10),
   };
 
-  // Set search_path to tenant schema if provided
+  let finalUrl = databaseUrl;
   if (tenantSchema) {
-    // Avoid spaces in search_path string for better driver compatibility
-    connectionOptions.connection = {
-      search_path: `${tenantSchema},${tenantSchema}_legacy,public`,
-    };
+    const separator = finalUrl.includes('?') ? '&' : '?';
+    finalUrl += `${separator}options=-c%20search_path%3D${tenantSchema},public`;
   }
 
-  const sql = postgres(databaseUrl, connectionOptions);
+  const sql = postgres(finalUrl, connectionOptions);
   const db = drizzle(sql, { schema });
+
+  // Attach raw postgres-js client as an escape hatch for raw string queries
+  (db as any).rawClient = sql;
 
   clients.set(cacheKey, db);
   return db;

@@ -5,6 +5,7 @@ import type { StaffCategory } from '@mmc/types';
 import type { CreateStaffInput, UpdateStaffInput } from '@mmc/validation';
 import { createStaffSchema, updateStaffSchema } from '@mmc/validation';
 import { User, Mail, Phone, MapPin, Briefcase, IndianRupee, ShieldCheck } from 'lucide-react';
+import { NumericInput } from '@/shared/components/NumericInput';
 
 const CATEGORY_META: Record<StaffCategory, string> = {
   doctor: 'Doctor',
@@ -128,7 +129,11 @@ export default function StaffFormPage() {
           delete payload.password;
         }
 
-        await updateMutation.mutateAsync({ category, id: staffId, ...payload });
+        if (!staffId || isNaN(staffId)) {
+          throw new Error('Could not identify the staff member to update.');
+        }
+
+        await updateMutation.mutateAsync({ ...payload, category, id: staffId });
       } else {
         const payload = createStaffSchema.parse(formData);
         await createMutation.mutateAsync(payload as CreateStaffInput);
@@ -266,12 +271,12 @@ export default function StaffFormPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(200px, 1fr) minmax(200px, 1fr)', gap: 16, marginBottom: 16 }}>
             <div style={groupStyle}>
               <label style={labelStyle}>Mobile Number *</label>
-              <input style={inputStyle} name="mobile" value={formData.mobile} onChange={handleChange} placeholder="+91" />
+              <NumericInput style={inputStyle} name="mobile" value={formData.mobile} onChange={handleChange} placeholder="+91" />
               {errors.mobile && <span style={{ color: '#ef4444', fontSize: 11, fontWeight: 600 }}>{errors.mobile}</span>}
             </div>
             <div style={groupStyle}>
               <label style={labelStyle}>Alternate Mobile</label>
-              <input style={inputStyle} name="mobile2" value={formData.mobile2} onChange={handleChange} placeholder="+91" />
+              <NumericInput style={inputStyle} name="mobile2" value={formData.mobile2} onChange={handleChange} placeholder="+91" />
             </div>
           </div>
 
@@ -328,12 +333,12 @@ export default function StaffFormPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             <div style={groupStyle}>
               <label style={labelStyle}>Base Salary (₹)</label>
-              <input type="number" style={inputStyle} name="salaryCur" value={formData.salaryCur} onChange={handleChange} placeholder="0" />
+              <NumericInput style={inputStyle} name="salaryCur" value={formData.salaryCur} onChange={handleChange} placeholder="0" />
             </div>
             {category === 'doctor' && (
               <div style={groupStyle}>
                 <label style={labelStyle}>Consultation Fee (₹)</label>
-                <input style={inputStyle} name="consultationFee" value={formData.consultationFee} onChange={handleChange} placeholder="0" />
+                <NumericInput style={inputStyle} name="consultationFee" value={formData.consultationFee} onChange={handleChange} placeholder="0" />
               </div>
             )}
           </div>
