@@ -12,7 +12,7 @@ import '../styles/platform.css';
 
 const CATEGORY = 'doctor' as const;
 const META = { label: 'Doctors', description: 'Manage clinical practitioners and specialized doctor profiles.' };
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 30;
 
 function getDefaultStaffForm(): CreateStaffInput {
   return {
@@ -111,10 +111,10 @@ function FileInputRow({
   className = "",
   style = {}
 }: { 
-  label: string;
-  field: string;
-  value?: string | null;
-  onChange: (f: string, e: React.ChangeEvent<HTMLInputElement>) => void;
+  label: string; 
+  field: string; 
+  value?: string; 
+  onChange: (f: string, e: React.ChangeEvent<HTMLInputElement>) => void; 
   error?: string; 
   accept?: string;
   className?: string;
@@ -621,26 +621,18 @@ export default function DoctorsPage() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
-  const [sortBy, setSortBy] = useState('id');
-  const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('DESC');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
 
-  const { data, isLoading } = useStaffList(CATEGORY, { 
-    page, 
-    limit: PAGE_SIZE, 
-    search: debouncedSearch,
-    sortBy,
-    sortOrder
-  });
+  const { data, isLoading } = useStaffList(CATEGORY, { page, limit: PAGE_SIZE, search: debouncedSearch });
   const deleteMutation = useDeleteStaff();
   const { data: editingStaff, isLoading: isLoadingStaff } = useStaffMember(CATEGORY, editingId ?? 0);
 
   const staffArray = Array.isArray(data?.data) ? data.data : [];
   const staff = staffArray;
   const totalPages = Math.ceil((data?.total || 0) / PAGE_SIZE);
-  const activeCount = data?.activeCount ?? 0;
+  const activeCount = useMemo(() => staffArray.filter((s: StaffSummary) => s.isActive).length, [staffArray]);
 
   const openCreate = () => {
     setModalMode('create');
@@ -696,48 +688,17 @@ export default function DoctorsPage() {
       </div>
 
       <div className="plat-filters">
-        <div className="flex gap-4 flex-1">
-          <div className="plat-search-wrap">
-            <Search className="plat-search-icon" size={14} />
-            <input
-              type="text"
-              className="plat-form-input plat-search-input"
-              placeholder="Search practitioners by name or ID..."
-              value={search}
-              onChange={(e) => handleSearchChange(e.target.value)}
-            />
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-bold color-muted uppercase tracking-wider">Sort:</span>
-            <select 
-              className="plat-form-input !py-1 !text-xs !w-auto min-w-[140px]"
-              value={`${sortBy}-${sortOrder}`}
-              onChange={(e) => {
-                const [col, order] = e.target.value.split('-');
-                setSortBy(col ?? 'id');
-                setSortOrder((order ?? 'DESC') as 'ASC' | 'DESC');
-                setPage(1);
-              }}
-            >
-              <option value="id-DESC">Newest First</option>
-              <option value="id-ASC">Oldest First</option>
-              <option value="name-ASC">A-Z</option>
-              <option value="name-DESC">Z-A</option>
-            </select>
-          </div>
+        <div className="plat-search-wrap">
+          <Search className="plat-search-icon" size={14} />
+          <input
+            type="text"
+            className="plat-form-input plat-search-input"
+            placeholder="Search practitioners by name or ID..."
+            value={search}
+            onChange={(e) => handleSearchChange(e.target.value)}
+          />
         </div>
-
-        <button 
-          className="plat-btn plat-btn-ghost plat-btn-sm" 
-          onClick={() => { 
-            setSearch(''); 
-            setDebouncedSearch(''); 
-            setPage(1); 
-            setSortBy('id');
-            setSortOrder('DESC');
-          }}
-        >
+        <button className="plat-btn plat-btn-ghost plat-btn-sm" onClick={() => { setSearch(''); setDebouncedSearch(''); setPage(1); }}>
           Reset
         </button>
       </div>
@@ -819,26 +780,9 @@ export default function DoctorsPage() {
       </div>
 
       {totalPages > 1 && (
-        <div className="plat-pagination-container">
-          <div className="plat-pagination-pill">
-            <button 
-              className="plat-pagination-btn" 
-              disabled={page <= 1} 
-              onClick={() => { setPage(p => p - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-            >
-              ← Previous
-            </button>
-            <div className="plat-pagination-info">
-              Page <b>{page}</b> of <b>{totalPages}</b>
-            </div>
-            <button 
-              className="plat-pagination-btn" 
-              disabled={page >= totalPages} 
-              onClick={() => { setPage(p => p + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-            >
-              Next →
-            </button>
-          </div>
+        <div className="flex justify-center gap-4 mt-8">
+          <button className="plat-btn" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>← Previous</button>
+          <button className="plat-btn" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>Next →</button>
         </div>
       )}
 

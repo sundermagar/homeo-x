@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { Receipt, Search, ChevronLeft, ChevronRight, FilePlus, Grid, List, Printer } from 'lucide-react';
-
+import { Receipt, Search, ChevronLeft, ChevronRight, FilePlus, Grid, List } from 'lucide-react';
 import { useBills, useDailyCollection } from '../hooks/use-billing';
 import { BillingTable } from '../components/BillingTable';
 import { DailyCollectionCard } from '../components/DailyCollectionCard';
@@ -45,16 +44,11 @@ export default function BillingListPage() {
             onChange={(e) => setDate(e.target.value)}
             className="bill-filter-input"
           />
-          <button className="bill-btn bill-btn-default" onClick={() => window.print()}>
-            <Printer size={14} />
-            Print Report
-          </button>
           <button className="bill-btn bill-btn-primary" onClick={() => (window.location.href = '/billing/create')}>
             <FilePlus size={14} strokeWidth={1.6} />
             New Bill
           </button>
         </div>
-
       </div>
 
       {/* ─── KPI Stats ─── */}

@@ -230,19 +230,19 @@ export default function StaffFormPage() {
               <div style={groupStyle}>
                 <label style={labelStyle}>First Name *</label>
                 <input style={inputStyle} name="firstname" value={formData.firstname} onChange={handleChange} placeholder="First Name" />
-                {errors['firstname'] && <span style={{ color: '#ef4444', fontSize: 11, fontWeight: 600 }}>{errors['firstname']}</span>}
+                {errors.firstname && <span style={{ color: '#ef4444', fontSize: 11, fontWeight: 600 }}>{errors.firstname}</span>}
               </div>
               <div style={groupStyle}>
                 <label style={labelStyle}>Surname *</label>
                 <input style={inputStyle} name="surname" value={formData.surname} onChange={handleChange} placeholder="Surname" />
-                {errors['surname'] && <span style={{ color: '#ef4444', fontSize: 11, fontWeight: 600 }}>{errors['surname']}</span>}
+                {errors.surname && <span style={{ color: '#ef4444', fontSize: 11, fontWeight: 600 }}>{errors.surname}</span>}
               </div>
             </div>
           ) : (
             <div style={groupStyle}>
               <label style={labelStyle}>Full Name *</label>
               <input style={inputStyle} name="name" value={formData.name} onChange={handleChange} placeholder="e.g. Jane Doe" />
-              {errors['name'] && <span style={{ color: '#ef4444', fontSize: 11, fontWeight: 600 }}>{errors['name']}</span>}
+              {errors.name && <span style={{ color: '#ef4444', fontSize: 11, fontWeight: 600 }}>{errors.name}</span>}
             </div>
           )}
 
@@ -272,7 +272,7 @@ export default function StaffFormPage() {
             <div style={groupStyle}>
               <label style={labelStyle}>Mobile Number *</label>
               <NumericInput style={inputStyle} name="mobile" value={formData.mobile} onChange={handleChange} placeholder="+91" />
-              {errors['mobile'] && <span style={{ color: '#ef4444', fontSize: 11, fontWeight: 600 }}>{errors['mobile']}</span>}
+              {errors.mobile && <span style={{ color: '#ef4444', fontSize: 11, fontWeight: 600 }}>{errors.mobile}</span>}
             </div>
             <div style={groupStyle}>
               <label style={labelStyle}>Alternate Mobile</label>
@@ -284,7 +284,7 @@ export default function StaffFormPage() {
             <div style={groupStyle}>
               <label style={labelStyle}>Login Email</label>
               <input type="email" style={inputStyle} name="email" value={formData.email} onChange={handleChange} placeholder="user@clinic.com" />
-              {errors['email'] && <span style={{ color: '#ef4444', fontSize: 11, fontWeight: 600 }}>{errors['email']}</span>}
+              {errors.email && <span style={{ color: '#ef4444', fontSize: 11, fontWeight: 600 }}>{errors.email}</span>}
             </div>
             <div style={groupStyle}>
               <label style={labelStyle}>Password {isEditing && '(leave blank to keep current)'}</label>

@@ -188,7 +188,7 @@ export interface ClinicAdminDashboardData {
   // KPI strip
   totalRevenue: number;
   revenueTrend: number;
-  patientsCount: number;
+  patientsApril: number;
   patientsTrend: number;
   collectionRate: number;
   collectionRateTrend: number;

@@ -13,20 +13,13 @@ export default defineConfig({
   },
   build: {
     sourcemap: false,
-    minify: 'esbuild',
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/')) return 'react-vendor';
-          if (id.includes('node_modules/react-router-dom')) return 'router-lib';
+          if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/') || id.includes('node_modules/react-router-dom')) return 'react-vendor';
           if (id.includes('node_modules/@tanstack')) return 'query';
-          if (id.includes('node_modules/recharts')) return 'charts';
-          if (id.includes('node_modules/@fullcalendar')) return 'calendar';
           if (id.includes('node_modules/lucide-react')) return 'icons';
-          if (id.includes('node_modules/zustand')) return 'state';
-          if (id.includes('node_modules/date-fns')) return 'date';
-          if (id.includes('node_modules/zod')) return 'validation';
-          if (id.includes('node_modules/axios')) return 'axios';
+          if (id.includes('node_modules/recharts')) return 'charts';
         },
       },
     },

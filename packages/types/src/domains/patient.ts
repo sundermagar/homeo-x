@@ -31,7 +31,6 @@ export interface Patient {
   bloodGroup: string | null;
   // Clinical
   referenceType: string | null;
-  referenceTypeId: number | null;
   referredBy: string | null;
   assistantDoctor: string | null;
   consultationFee: number | null;
@@ -68,7 +67,6 @@ export interface FamilyMember {
 export interface PatientFormMeta {
   doctors: Array<{ id: number; name: string; consultationFee: number | null }>;
   references: string[];
-  referenceTypes: Array<{ id: string | number; name: string }>;
   religions: string[];
   occupations: string[];
   statuses: string[];

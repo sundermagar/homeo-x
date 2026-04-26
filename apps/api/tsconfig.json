@@ -11,9 +11,6 @@
   "include": [
     "src"
   ],
-  "exclude": [
-    "src/scripts"
-  ],
   "references": [
     {
       "path": "../../packages/types"

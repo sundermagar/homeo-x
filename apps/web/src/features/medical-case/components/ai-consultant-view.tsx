@@ -105,7 +105,7 @@ export function AiConsultantView({ regid }: { regid?: number }) {
       if (aiStream.content && !aiStream.error) {
         setMessages(prev => {
           // Prevent duplicates if hook state hasn't cleared yet
-          if (prev.length > 0 && prev[prev.length - 1]?.content === aiStream.content) return prev;
+          if (prev.length > 0 && prev[prev.length - 1].content === aiStream.content) return prev;
           return [...prev, { 
             role: 'assistant', 
             content: aiStream.content, 

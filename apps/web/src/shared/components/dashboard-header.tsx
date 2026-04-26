@@ -92,18 +92,9 @@ export function DashboardHeader({ onOpenPalette }: DashboardHeaderProps) {
       <header className="dh-bar">
         {/* ── Left: Live Status + Page Title ── */}
         <div className="dh-left">
-          <div className="dh-live-badge" style={{ 
-            '--badge-bg': isDoctor && !isDoctorActive ? 'var(--pp-danger-bg)' : 'var(--pp-success-bg)',
-            '--badge-border': isDoctor && !isDoctorActive ? 'var(--pp-danger-border)' : 'rgba(34, 197, 94, 0.15)',
-          } as any}>
-            <span className="dh-live-dot" style={{ 
-              '--dot-color': isDoctor && !isDoctorActive ? 'var(--pp-danger-fg)' : 'var(--pp-success-fg)'
-            } as any} />
-            <span className="dh-live-text" style={{ 
-              color: isDoctor && !isDoctorActive ? 'var(--pp-danger-fg)' : 'var(--pp-success-fg)' 
-            }}>
-              {isDoctor ? (isDoctorActive ? 'Live' : 'Offline') : 'Live'}
-            </span>
+          <div className="dh-live-badge">
+            <span className="dh-live-dot" style={{ backgroundColor: isDoctor ? (isDoctorActive ? 'var(--pp-success)' : 'var(--pp-error)') : 'var(--pp-success)' }} />
+            <span className="dh-live-text">{isDoctor ? (isDoctorActive ? 'Live' : 'Offline') : 'Live'}</span>
           </div>
 
           <div className="dh-breadcrumb">

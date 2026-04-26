@@ -12,7 +12,7 @@ const TABS: { key: StaffCategory; label: string; color: string; icon: string }[]
   { key: 'account', label: 'Account Mgrs', color: '#10b981', icon: '💼' },
 ];
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 30;
 
 export default function StaffListPage({ defaultTab }: { defaultTab?: StaffCategory } = {}) {
   const navigate = useNavigate();
@@ -147,7 +147,6 @@ export default function StaffListPage({ defaultTab }: { defaultTab?: StaffCatego
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700 }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border-light)' }}>
-                <th style={{ textAlign: 'left', padding: '14px 20px', fontSize: 11, fontWeight: 800, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.08em', width: 50 }}>#</th>
                 <th style={{ textAlign: 'left', padding: '14px 20px', fontSize: 11, fontWeight: 800, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Name</th>
                 <th style={{ textAlign: 'left', padding: '14px 16px', fontSize: 11, fontWeight: 800, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Contact</th>
                 {activeTab === 'doctor' && (
@@ -159,11 +158,8 @@ export default function StaffListPage({ defaultTab }: { defaultTab?: StaffCatego
               </tr>
             </thead>
             <tbody>
-              {staff.map((s: StaffSummary, idx: number) => (
+              {staff.map((s: StaffSummary) => (
                 <tr key={s.id} className="staff-row" style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.15s' }}>
-                  <td style={{ padding: '14px 20px', fontSize: 12, fontWeight: 700, color: '#94a3b8' }}>
-                    {((page - 1) * PAGE_SIZE) + idx + 1}
-                  </td>
                   <td style={{ padding: '14px 20px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       <div style={{

@@ -1,6 +1,6 @@
 import './shared/config/load-env';
 import type { Server } from 'node:http';
-import { createApp, runAdminBackfill } from './infrastructure/http/app';
+import { createApp } from './infrastructure/http/app';
 import { createLogger } from './shared/logger';
 import { appConfig } from './shared/config/app-config';
 import { aiConfig } from './shared/config/ai-config';
@@ -58,12 +58,9 @@ async function bootstrap() {
   logger.info(`CORS origins: ${appConfig.cors.origins.join(', ')}`);
   logger.info(`AI health: ${JSON.stringify(aiConfig.getHealthStatus())}`);
 
-  const { app, server, tenantDb, publicDb } = await createApp();
+  const { app, server, tenantDb } = await createApp();
   const boundPort = await listenWithFallback(server, appConfig.port);
   logger.info(`API server running on port ${boundPort}`);
-
-  // ─── Background Auth Sync ───
-  runAdminBackfill(publicDb).catch(err => logger.error({ err }, 'Admin backfill failed in background'));
 
   // ─── Initialize Background Jobs ───
   if (tenantDb) {

@@ -167,30 +167,10 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
       );
     const bookedTimes = new Set(booked.map(b => b.time).filter(Boolean));
 
-    const now = new Date();
-    const tz = process.env.TZ || 'Asia/Kolkata';
-    
-    // Safely get YYYY-MM-DD in the target timezone
-    const today = new Intl.DateTimeFormat('en-CA', {
-      timeZone: tz,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    }).format(now);
-    
+    const today = new Date().toISOString().split('T')[0] as string;
     const isToday = date === today;
-
-    // Safely get local hours and minutes
-    const timeFormatter = new Intl.DateTimeFormat('en-US', {
-      timeZone: tz,
-      hour: 'numeric',
-      minute: 'numeric',
-      hour12: false,
-    });
-    const parts = timeFormatter.formatToParts(now);
-    let hours = parseInt(parts.find(p => p.type === 'hour')?.value || '0', 10);
-    if (hours === 24) hours = 0;
-    const currentMins = hours * 60 + parseInt(parts.find(p => p.type === 'minute')?.value || '0', 10);
+    const now = new Date();
+    const currentMins = now.getHours() * 60 + now.getMinutes();
 
     return ALL_TIME_SLOTS.map(time => {
       const tMins = toMins(time);

@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   TrendingUp,
   TrendingDown,
@@ -51,27 +50,21 @@ function TrendBadge({ value }: { value: number }) {
   );
 }
 
-function ProgressBar({ value, max }: { value: number; max: number; color?: string }) {
+function ProgressBar({ value, max, color }: { value: number; max: number; color: string }) {
   const pct = Math.min(100, Math.round((value / max) * 100));
   return (
     <div className="cad-progress-track">
-      <div className="cad-progress-fill" style={{ width: `${pct}%`, background: 'var(--pp-blue)' }} />
+      <div className="cad-progress-fill" style={{ width: `${pct}%`, background: color }} />
     </div>
   );
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const isNeutral = status === 'Pending' || status === 'Waiting';
-  const cls = isNeutral ? 'cad-badge-default' : 'cad-badge-primary';
-  return <span className={`cad-badge ${cls}`} style={{
-    background: isNeutral ? 'rgba(255,255,255,0.05)' : 'var(--pp-blue-tint)',
-    color: isNeutral ? 'var(--pp-text-3)' : 'var(--pp-blue)',
-    border: 'none'
-  }}>{status}</span>;
+  const cls = status === 'Paid' ? 'cad-badge-success' : status === 'Pending' ? 'cad-badge-danger' : 'cad-badge-warning';
+  return <span className={`cad-badge ${cls}`}>{status}</span>;
 }
 
 export function ClinicAdminDashboard() {
-  const navigate = useNavigate();
   const [period, setPeriod] = useState<Period>('year');
   const [revTab, setRevTab] = useState<RevenueTab>('Cash');
   const [sidebarTab, setSidebarTab] = useState<'Queue' | 'Analytics' | 'Billing'>('Queue');
@@ -91,7 +84,7 @@ export function ClinicAdminDashboard() {
   const {
     totalRevenue,
     revenueTrend,
-    patientsCount: patients,
+    patientsApril: patients,
     patientsTrend,
     collectionRate,
     collectionRateTrend,
@@ -208,31 +201,29 @@ export function ClinicAdminDashboard() {
               <div className="cad-chart-area">
                 {chartSeries.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={chartSeries} margin={{ top: 10, right: 10, bottom: 0, left: -10 }}>
-                      <defs>
-                        <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="var(--pp-blue)" stopOpacity={0.15}/>
-                          <stop offset="95%" stopColor="var(--pp-blue)" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
+                    <BarChart data={chartSeries} margin={{ top: 10, right: 10, bottom: 0, left: -10 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                       <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 700 }} />
                       <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 700 }} tickFormatter={fmtNum} />
                       <Tooltip 
                         contentStyle={{ borderRadius: 10, border: '1px solid #e2e8f0', background: '#fff', fontSize: 12, fontWeight: 600 }} 
                         formatter={(v) => [fmt(Number(v)), 'Revenue']} 
-                        cursor={{ stroke: 'var(--pp-blue)', strokeWidth: 1 }}
+                        cursor={{ fill: '#f8fafc' }}
                       />
-                      <Area 
-                        type="monotone" 
+                      <Bar 
                         dataKey="revenue" 
-                        stroke="var(--pp-blue)" 
-                        strokeWidth={3}
-                        fillOpacity={1} 
-                        fill="url(#colorRev)" 
-                        isAnimationActive={true}
-                      />
-                    </AreaChart>
+                        radius={[4, 4, 0, 0]} 
+                        barSize={32}
+                        isAnimationActive={false}
+                      >
+                        {chartSeries.map((entry: any, index: number) => (
+                          <Cell 
+                            key={`cell-${index}`} 
+                            fill={index === chartSeries.length - 1 ? 'var(--pp-blue)' : '#cbd5e1'} 
+                          />
+                        ))}
+                      </Bar>
+                    </BarChart>
                   </ResponsiveContainer>
                 ) : (
                   <div className="cad-chart-empty">
@@ -290,7 +281,7 @@ export function ClinicAdminDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {(topBilling as any[]).map((b) => (
+                      {topBilling.map((b: { id: number; regid: number; patientName: string; total: number; status: string }) => (
                         <tr key={b.id} onClick={() => navigate(`/patients/${b.regid}`)} style={{ cursor: 'pointer' }}>
                           <td className="cad-patient-cell">
                             <div className="cad-patient-avatar">{b.patientName.charAt(0)}</div>
@@ -333,6 +324,7 @@ export function ClinicAdminDashboard() {
                     <ProgressBar
                       value={t.current}
                       max={t.target}
+                      color={t.status === 'success' ? '#16a34a' : t.status === 'warning' ? '#d97706' : '#dc2626'}
                     />
                   </div>
                 ))}
@@ -478,10 +470,10 @@ export function ClinicAdminDashboard() {
 
           {/* Staff on Duty */}
           <div className="cad-staff-section">
-            <div className="cad-sidebar-section-title">DOCTORS ON DUTY</div>
+            <div className="cad-sidebar-section-title">STAFF ON DUTY</div>
             {staffOnDuty.length > 0 ? (
               <div className="cad-staff-list">
-                {staffOnDuty.slice(0, 5).map((s: { name: string; role: string; count?: number }, i: number) => (
+                {staffOnDuty.map((s: { name: string; role: string; count?: number }, i: number) => (
                   <div key={i} className="cad-staff-row">
                     <div className="cad-staff-avatar">{s.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}</div>
                     <div className="cad-staff-info">
@@ -496,14 +488,6 @@ export function ClinicAdminDashboard() {
                     )}
                   </div>
                 ))}
-                {staffOnDuty.length > 5 && (
-                  <button 
-                    className="cad-staff-view-all" 
-                    onClick={() => navigate('/platform/doctors')}
-                  >
-                    View All Doctors
-                  </button>
-                )}
               </div>
             ) : (
               <div className="cad-sidebar-empty">
