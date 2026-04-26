@@ -406,7 +406,7 @@ export function ConsultationStage({
         consultationMode,
         transcript: finalSegs.map(s => `${s.speaker}: ${s.translatedText || s.text}`).join('\n'),
         answeredQuestions,
-        chiefComplaint: visit.chiefComplaint,
+        chiefComplaint: (visit.chiefComplaint || (visit as any).notes || '').trim(),
         patientAge,
         patientGender: patient?.gender,
       });
@@ -565,7 +565,7 @@ export function ConsultationStage({
         consultationMode,
         transcript: [...segments, segment].map(s => `${s.speaker}: ${s.translatedText || s.text}`).join('\n'),
         answeredQuestions: [...answeredQuestions, questionText],
-        chiefComplaint: visit.chiefComplaint,
+        chiefComplaint: (visit.chiefComplaint || (visit as any).notes || '').trim(),
         patientAge,
         patientGender: patient?.gender,
       });

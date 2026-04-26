@@ -30,6 +30,7 @@ const PRINT_STYLES = `
     max-width: 210mm;
     margin: 0 auto;
   }
+  /* ── Legacy header (kept for invoice/receipt templates that still use it) ── */
   .header {
     text-align: center;
     border-bottom: 2px solid #1a1a1a;
@@ -42,14 +43,107 @@ const PRINT_STYLES = `
     text-transform: uppercase;
     letter-spacing: 1px;
   }
-  .header .clinic-address {
-    font-size: 10px;
-    color: #555;
-    margin-top: 2px;
+  .header .clinic-address { font-size: 10px; color: #555; margin-top: 2px; }
+  .header .clinic-phone { font-size: 10px; color: #555; }
+
+  /* ── Letterhead (prescription branding) ───────────────────────────── */
+  .letterhead {
+    position: relative;
+    padding: 14px 4px 10px;
+    margin-bottom: 12px;
   }
-  .header .clinic-phone {
+  .letterhead-band {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 6px;
+    background: linear-gradient(90deg, var(--lh-accent, #2563EB) 0%, #60A5FA 70%, #BFDBFE 100%);
+    border-radius: 0 0 2px 2px;
+  }
+  .letterhead-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding-top: 14px;
+  }
+  .letterhead-logo {
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+    border-radius: 8px;
+    flex-shrink: 0;
+    background: #fff;
+  }
+  .letterhead-logo-fallback {
+    width: 64px;
+    height: 64px;
+    border-radius: 8px;
+    background: var(--lh-accent, #2563EB);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    font-weight: 800;
+    flex-shrink: 0;
+    letter-spacing: 0;
+  }
+  .letterhead-title { flex: 1; min-width: 0; }
+  .letterhead-title .clinic-name {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--lh-accent, #2563EB);
+    letter-spacing: 0.3px;
+    line-height: 1.1;
+    text-transform: uppercase;
+  }
+  .letterhead-title .clinic-tagline {
+    font-size: 10.5px;
+    color: #4A4A47;
+    font-style: italic;
+    margin-top: 3px;
+    letter-spacing: 0.2px;
+  }
+  .letterhead-title .clinic-ids {
+    font-size: 9.5px;
+    color: #6B7280;
+    margin-top: 4px;
+    font-family: 'Consolas', 'Monaco', monospace;
+  }
+  .letterhead-contact {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 0;
     font-size: 10px;
-    color: #555;
+    color: #4A4A47;
+    margin-top: 8px;
+    padding-top: 6px;
+    border-top: 1px dashed #E3E2DF;
+    line-height: 1.5;
+  }
+  .letterhead-doctitle {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--lh-accent, #2563EB);
+    margin-top: 8px;
+    text-align: right;
+  }
+  .letterhead-rule {
+    height: 2px;
+    background: var(--lh-accent, #2563EB);
+    margin-top: 8px;
+    opacity: 0.85;
+  }
+  .letterhead-footer {
+    position: fixed;
+    left: 15mm; right: 15mm; bottom: 6mm;
+    text-align: center;
+    font-size: 8.5px;
+    color: #888786;
+    border-top: 1px solid #E3E2DF;
+    padding-top: 4px;
+    letter-spacing: 0.3px;
   }
   .doctor-info {
     display: flex;
@@ -262,23 +356,66 @@ const PRINT_STYLES = `
 </style>
 `;
 
-// ─── Clinic Header (shared across documents) ─────────────────────────────
+// ─── Clinic Letterhead (shared across documents) ─────────────────────────
 
 interface ClinicInfo {
   name: string;
+  tagline?: string;
+  /** Absolute URL or data: URL to the clinic logo. Embedded into the printed page. */
+  logoUrl?: string;
   address?: string;
   phone?: string;
+  email?: string;
+  website?: string;
+  /** Clinical registration / license / GSTIN — printed on the right band. */
+  registrationNo?: string;
+  gstin?: string;
+  /** Custom footer line (e.g. "Generated electronically — valid without signature"). */
+  footer?: string;
+  /** Top accent colour for the letterhead band. Defaults to clinical blue. */
+  accentColor?: string;
 }
 
 function renderClinicHeader(clinic: ClinicInfo, docTitle?: string): string {
+  const accent = clinic.accentColor || '#2563EB';
+  const safe = (s?: string) => (s ? escapeHtml(s) : '');
+
+  const contactBits: string[] = [];
+  if (clinic.address) contactBits.push(`<span>${safe(clinic.address)}</span>`);
+  if (clinic.phone)   contactBits.push(`<span>📞 ${safe(clinic.phone)}</span>`);
+  if (clinic.email)   contactBits.push(`<span>✉ ${safe(clinic.email)}</span>`);
+  if (clinic.website) contactBits.push(`<span>🌐 ${safe(clinic.website)}</span>`);
+
+  const idBits: string[] = [];
+  if (clinic.registrationNo) idBits.push(`Reg: ${safe(clinic.registrationNo)}`);
+  if (clinic.gstin)          idBits.push(`GSTIN: ${safe(clinic.gstin)}`);
+
   return `
-    <div class="header">
-      <div class="clinic-name">${escapeHtml(clinic.name)}</div>
-      ${clinic.address ? `<div class="clinic-address">${escapeHtml(clinic.address)}</div>` : ''}
-      ${clinic.phone ? `<div class="clinic-phone">Tel: ${escapeHtml(clinic.phone)}</div>` : ''}
-      ${docTitle ? `<div style="font-size:12px;font-weight:600;margin-top:4px;text-transform:uppercase;letter-spacing:1px;">${escapeHtml(docTitle)}</div>` : ''}
+    <div class="letterhead" style="--lh-accent:${accent};">
+      <div class="letterhead-band"></div>
+      <div class="letterhead-row">
+        ${clinic.logoUrl
+          ? `<img src="${escapeHtml(clinic.logoUrl)}" alt="" class="letterhead-logo" onerror="this.style.display='none'" />`
+          : `<div class="letterhead-logo-fallback">${safe((clinic.name || 'C').charAt(0).toUpperCase())}</div>`
+        }
+        <div class="letterhead-title">
+          <div class="clinic-name">${safe(clinic.name)}</div>
+          ${clinic.tagline ? `<div class="clinic-tagline">${safe(clinic.tagline)}</div>` : ''}
+          ${idBits.length ? `<div class="clinic-ids">${idBits.join(' &nbsp;·&nbsp; ')}</div>` : ''}
+        </div>
+      </div>
+      ${contactBits.length ? `<div class="letterhead-contact">${contactBits.join(' &nbsp;·&nbsp; ')}</div>` : ''}
+      ${docTitle ? `<div class="letterhead-doctitle">${safe(docTitle)}</div>` : ''}
+      <div class="letterhead-rule"></div>
     </div>
   `;
+}
+
+/** HTML fragment to inject into the bottom of the printed page (fixed footer). */
+function renderClinicFooter(clinic: ClinicInfo): string {
+  const text = clinic.footer
+    || `${clinic.name}${clinic.phone ? ` · ${clinic.phone}` : ''}${clinic.address ? ` · ${clinic.address}` : ''}`;
+  return `<div class="letterhead-footer">${escapeHtml(text)}</div>`;
 }
 
 // ─── Escape HTML ─────────────────────────────────────────────────────────
@@ -361,7 +498,7 @@ export function generatePrescriptionHtml(data: PrescriptionPrintData): string {
   return `
 ${PRINT_STYLES}
 <div class="page">
-  ${renderClinicHeader(data.clinic)}
+  ${renderClinicHeader(data.clinic, 'Prescription')}
 
   <div class="doctor-info">
     <div>
@@ -418,6 +555,7 @@ ${PRINT_STYLES}
     </div>
   </div>
 </div>
+${renderClinicFooter(data.clinic)}
   `;
 }
 

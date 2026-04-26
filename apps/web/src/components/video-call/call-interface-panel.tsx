@@ -178,46 +178,25 @@ export function CallInterfacePanel({ callMode, ...props }: CallInterfacePanelPro
   );
 
   // ─── IN_PERSON Layout ─────────────────────────────────────────────────────
+  // Panel is preserved; only the manual "Tap to begin" message and the
+  // Start/Stop Recording buttons are removed. Recording auto-starts on mount,
+  // so the panel always renders the active mic + waveform indicator.
   if (callMode === 'IN_PERSON') {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', border: '1.5px solid #14B8A6', background: '#F0FDFA', borderRadius: '1rem' }}>
         <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '1rem', gap: '0.75rem' }}>
 
-          {/* Recording control card */}
+          {/* Recording status card — auto-active, no manual buttons */}
           <div style={{ background: 'white', borderRadius: '0.875rem', padding: '1.5rem 1.25rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.875rem', flexShrink: 0 }}>
-            {isPaused ? (
-              <>
-                <div style={{ width: 72, height: 72, borderRadius: '50%', background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <MicOff style={{ width: 34, height: 34, color: '#9CA3AF' }} />
-                </div>
-                <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Tap to begin</p>
-                <button
-                  onClick={handlePauseToggle}
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', padding: '0.875rem 2.5rem', borderRadius: '9999px', background: '#0D9488', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 15, boxShadow: '0 4px 14px rgba(13,148,136,0.35)' }}
-                >
-                  <Mic style={{ width: 20, height: 20 }} />
-                  Start Recording
-                </button>
-              </>
-            ) : (
-              <>
-                <div style={{ width: 72, height: 72, borderRadius: '50%', background: '#CCFBF1', border: '3px solid #14B8A6', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 0 8px rgba(20,184,166,0.12)' }}>
-                  <Mic style={{ width: 34, height: 34, color: '#0D9488' }} />
-                </div>
-                {/* Waveform */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, height: 36 }}>
-                  {[...Array(14)].map((_, i) => (
-                    <div key={i} style={{ width: 3, borderRadius: 1.5, background: '#14B8A6', height: `${Math.max(4, Math.abs(Math.sin(i * 0.75)) * 22 + 6)}px`, animation: `wave ${1 + (i % 3) * 0.3}s ease-in-out infinite alternate` }} />
-                  ))}
-                </div>
-                <button
-                  onClick={handlePauseToggle}
-                  style={{ fontSize: 11, fontWeight: 700, color: '#EF4444', background: 'transparent', border: '1px solid #FEE2E2', borderRadius: '0.5rem', padding: '0.3rem 0.875rem', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.05em' }}
-                >
-                  Stop Recording
-                </button>
-              </>
-            )}
+            <div style={{ width: 72, height: 72, borderRadius: '50%', background: '#CCFBF1', border: '3px solid #14B8A6', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 0 8px rgba(20,184,166,0.12)' }}>
+              <Mic style={{ width: 34, height: 34, color: '#0D9488' }} />
+            </div>
+            {/* Waveform */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, height: 36 }}>
+              {[...Array(14)].map((_, i) => (
+                <div key={i} style={{ width: 3, borderRadius: 1.5, background: '#14B8A6', height: `${Math.max(4, Math.abs(Math.sin(i * 0.75)) * 22 + 6)}px`, animation: `wave ${1 + (i % 3) * 0.3}s ease-in-out infinite alternate` }} />
+              ))}
+            </div>
           </div>
 
           {/* Separator */}

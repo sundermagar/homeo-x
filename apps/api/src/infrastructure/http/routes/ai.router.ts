@@ -220,6 +220,7 @@ Reply with ONLY the JSON object.`;
       temperature: 0.1,
       maxTokens: 512,
       responseFormat: 'json',
+      useCache: false, // each Q&A pair is a unique extraction call
     });
 
     const parsed = extractJson<{ mental?: string[]; physical?: string[]; particular?: string[] }>(response.content);
@@ -303,6 +304,23 @@ aiRouter.post('/suggest/questions', async (req: Request, res: Response, next: Ne
       patientGender,
     } = req.body ?? {};
 
+    // ── Diagnostic ──
+    // If two patients with different chief complaints get the same questions,
+    // the most common cause is that chiefComplaint is empty in the request
+    // body. Print exactly what came in so we can rule that out fast.
+    logger.info(
+      {
+        consultationMode,
+        chiefComplaint: chiefComplaint || '(empty)',
+        chiefComplaintLength: (chiefComplaint || '').length,
+        transcriptLength: (transcript || '').length,
+        answeredCount: Array.isArray(answeredQuestions) ? answeredQuestions.length : 0,
+        patientAge: patientAge ?? null,
+        patientGender: patientGender ?? null,
+      },
+      '[suggest/questions] incoming request',
+    );
+
     const chain = getAiProviderChain();
     const mode = (consultationMode || 'acute') as 'acute' | 'chronic' | 'followup';
 
@@ -354,73 +372,108 @@ Hering's Law of Cure orientation. The 5 questions should evaluate response to th
 Tone: evaluative, calibrating. Frame questions to elicit precise clinical signals, not vague reassurance.`,
     };
 
-    const systemPrompt = `You are a senior homeopathic physician conducting a high-fidelity case-taking session.
+    const ccTrim = String(chiefComplaint || '').trim();
+    const ageGenderLine = [patientAge ? `Age ${patientAge}` : '', patientGender || ''].filter(Boolean).join(', ');
 
-Your task is to generate exactly 5 clinical questions based on the current mode and patient issues.
+    // ── System prompt — chief complaint moved here so Claude weights it as
+    // the highest-priority instruction. The model gives FAR more attention to
+    // the system message than to anything inside the user message.
+    const systemPrompt = `You are a senior homeopathic physician conducting a high-fidelity case-taking session for a SPECIFIC patient.
 
-MODE RUBRIC:
+${ccTrim
+  ? `THE PATIENT'S CHIEF COMPLAINT IS: "${ccTrim}"${ageGenderLine ? ` (${ageGenderLine})` : ''}
+
+This is THE only signal that matters. Every single question you generate must be directly about THIS specific complaint — its location, sensation, modality, time, trigger, mental dimension, or close differential. A doctor reading your 5 questions should be able to GUESS the chief complaint just by reading them.`
+  : 'No chief complaint was provided. Generate 5 generic mode-appropriate opening questions.'}
+
+DO NOT produce a generic case-taking template. DO NOT produce questions that could apply equally to a patient with backache, headache, asthma, or insomnia. EACH question must be rooted in the specific pathology / phenomenology of "${ccTrim || 'the presenting complaint'}".
+
+MODE RUBRIC (use only as a placement guide for question categories — NOT as a checklist of topics to cover):
 ${MODE_DIRECTIVES[mode]}
 
 RULES:
-1. STRUCTURED OPTIONS — REQUIRED for any question with a discrete/finite answer space. At LEAST 3 of the 5 questions MUST include an "options" array. Examples of question types that MUST have options:
-   - Nature/quality of pain → ["A) Stiffness","B) Sharp/stabbing","C) Dull/aching","D) Burning"]
-   - Worse from / Better from / Modalities → ["A) Worse from motion","B) Better from rest","C) Worse at night","D) Better from warmth"]
-   - Thermal preference → ["A) Hot","B) Chilly","C) Ambithermal"]
-   - Onset character → ["A) Sudden","B) Gradual","C) After injury","D) After emotional stress"]
-   - Frequency / Severity → ["A) Mild","B) Moderate","C) Severe"]
-   - Time of aggravation → ["A) Morning","B) Afternoon","C) Evening","D) Night"]
-   - Side preference → ["A) Right","B) Left","C) Both"]
-   - Improvement % (FOLLOWUP only) → ["A) 0-25%","B) 25-50%","C) 50-75%","D) 75-100%"]
-   - Direction of cure → ["A) Above downward","B) Inside outward","C) Reverse order","D) None of these"]
-   - Mood/emotion category → ["A) Anxious","B) Sad","C) Angry","D) Indifferent"]
-   Only purely open-ended questions (e.g. "Tell me about your sleep") may omit options.
-2. EXCLUSION: If transcript or answeredQuestions are provided, do NOT ask things already clearly answered.
-3. CONTEXT: Tailor questions to the chief complaint (e.g. if "Backache" — focus on back, radiation, modalities).
-4. FOLLOW-UP MODE: Prioritize "0-100% improvement" and "Direction of Cure" (Hering's Law) framings.
-5. EACH QUESTION must include 2 alternates — simpler conversational rephrasings the doctor can use if the primary phrasing is too clinical.
-6. ALL strings in arrays must be plain quoted strings, no trailing commas, no comments.
+1. STRUCTURED OPTIONS — REQUIRED for any question with a discrete/finite answer space. At LEAST 3 of the 5 questions MUST include an "options" array.
 
-Output ONLY valid raw JSON (no prose, no markdown fences). Schema (note: every question object has these exact 4 keys; "options" can be an empty array [] for open-ended questions):
+   ── HARD RULES FOR OPTIONS ──
+   (a) Each option MUST be a direct, plausible ANSWER to the specific question — not a generic list.
+   (b) Options must be MUTUALLY EXCLUSIVE — the patient should pick exactly ONE.
+   (c) 3 to 4 options per question (never fewer than 3, never more than 4).
+   (d) Format every option as "A) ...", "B) ...", "C) ..." (capital letter + closing paren + space + answer text).
+   (e) Each option text under 8 words. Plain English. No punctuation tricks.
+   (f) The set of options must COVER the realistic answer space (include an "Other / Both / Neither" choice if the answer might fall outside the listed three).
+   (g) Options must MATCH the question's question word:
+       - "Where ..." → location options (Frontal, Temporal, Lower back, Right side …)
+       - "When ..." → time options (Morning, 3-5 AM, After meals, At night …)
+       - "What kind of ..." → quality options (Throbbing, Sharp, Dull, Burning …)
+       - "What makes it worse ..." → modality options (Cold air, Motion, Stress, Eating …)
+       - "How long ..." → duration options (Few hours, 1-3 days, Weeks, Months …)
+       - "How severe ..." → severity options (Mild, Moderate, Severe, Disabling)
+       - Yes/No questions → ONLY when the answer is genuinely binary; offer 3 options including a "Sometimes / Partial" middle choice.
+
+   ── GOOD vs BAD EXAMPLES ──
+   For "What kind of pain do you feel in your back?":
+     ✓ GOOD: ["A) Stiffness","B) Sharp/stabbing","C) Dull/aching","D) Burning"]
+     ✗ BAD : ["A) Yes","B) No"]                  (yes/no doesn't fit "what kind")
+     ✗ BAD : ["A) Mild","B) Severe"]             (severity, not quality)
+     ✗ BAD : ["A) Lower","B) Upper","C) Neck"]   (location, not quality)
+
+   For "When does the cough get worse?":
+     ✓ GOOD: ["A) Morning","B) Night","C) After meals","D) Cold air"]
+     ✗ BAD : ["A) Mild","B) Moderate","C) Severe"]  (severity, not timing)
+
+   For "Has the headache spread to other areas?":
+     ✓ GOOD: ["A) No, stays localized","B) Spreads to neck","C) Spreads to shoulders","D) Whole head"]
+     ✗ BAD : ["A) Yes","B) No"]  (provide finer granularity)
+
+2. EXCLUSION: If transcript or answeredQuestions are provided, do NOT ask things already clearly answered.
+3. EACH QUESTION must include 2 alternates — simpler conversational rephrasings.
+4. NO GENERIC TEMPLATES. If a question doesn't reference the chief complaint or its phenomenology, REWRITE IT.
+
+Output ONLY valid raw JSON (no prose, no markdown fences):
 {
   "questions": [
     {
-      "question": "string — the primary phrasing",
-      "category": "symptom",
-      "options": ["A) Choice 1", "B) Choice 2", "C) Choice 3"],
-      "alternates": ["simpler rephrasing 1", "simpler rephrasing 2"]
-    },
-    {
-      "question": "Tell me about your sleep pattern.",
-      "category": "general",
-      "options": [],
-      "alternates": ["How are you sleeping?", "Any sleep issues?"]
+      "question": "string — anchored to the chief complaint above",
+      "category": "symptom" | "modality" | "mental" | "general" | "history" | "followup",
+      "options": ["A) ...", "B) ...", "C) ..."],
+      "alternates": ["rephrasing 1", "rephrasing 2"]
     }
   ]
 }
 
-REMINDER: At least 3 of your 5 questions MUST have a non-empty options array.`;
+FINAL CHECKS before emitting JSON (re-read your output and fix if any fail):
+  • Does each question literally reference the chief complaint (or its anatomy/sensation/timing)? If not, REWRITE.
+  • For each question with "options", do the options DIRECTLY answer the question's question-word? If a "where" question has yes/no options, REWRITE the options.
+  • Are options mutually exclusive (patient picks exactly one)?
+  • Is each option formatted as "A) ...", "B) ...", "C) ..." with a capital letter and a closing paren?
+  • At least 3 of 5 questions MUST have a non-empty options array.`;
 
-    const hasContext = (transcript && transcript.length > 0) || (Array.isArray(answeredQuestions) && answeredQuestions.length > 0) || chiefComplaint;
+    const userPrompt = `Generate the next 5 ${mode.toUpperCase()} consultation questions for the patient described in the system prompt above.${
+      transcript && transcript.length > 0
+        ? `\n\nConversation so far (already-asked context — avoid repeating):\n${String(transcript).slice(-3000)}`
+        : ''
+    }${
+      Array.isArray(answeredQuestions) && answeredQuestions.length
+        ? `\n\nAlready-asked questions (DO NOT repeat verbatim):\n${answeredQuestions.map((q: string, i: number) => `${i + 1}. ${q}`).join('\n')}`
+        : ''
+    }
 
-    const userPrompt = hasContext
-      ? `Patient Context:
-${chiefComplaint ? `Chief Complaint: ${chiefComplaint}\n` : ''}${patientAge ? `Patient Age: ${patientAge}\n` : ''}${patientGender ? `Patient Gender: ${patientGender}\n` : ''}
-Conversation so far:
-${String(transcript).slice(-3000) || '(no transcript yet)'}
-
-${Array.isArray(answeredQuestions) && answeredQuestions.length
-  ? `Already asked questions (DO NOT repeat):\n${answeredQuestions.map((q: string, i: number) => `${i + 1}. ${q}`).join('\n')}`
-  : ''}
-
-Generate the next 5 ${mode} consultation questions:`
-      : `Generate 5 ${mode} consultation questions for a new patient:`;
+Output the JSON now. Anchor every question to "${ccTrim || 'the chief complaint'}" — no generic case-taking templates.`;
 
     const response = await chain.complete({
       systemPrompt,
       userPrompt,
-      temperature: 0.2,
+      // Bump from 0.2 → 0.5 so the same chief complaint can still produce a
+      // fresh phrasing each round; the rubric guidance keeps clinical quality
+      // consistent without making questions identical patient-to-patient.
+      temperature: 0.5,
       maxTokens: 4000,
       responseFormat: 'json',
+      // Critical: never serve a cached response here. Two patients with the
+      // same chief complaint or two consecutive triggers in the same visit
+      // were collapsing to one cached set of 5 questions — that's the
+      // "same hardcoded questions" symptom.
+      useCache: false,
     });
 
     const parsed = extractJson<any>(response.content);
@@ -428,23 +481,54 @@ Generate the next 5 ${mode} consultation questions:`
     if (Array.isArray(parsed?.questions)) questions = parsed.questions;
     else if (Array.isArray(parsed)) questions = parsed;
 
-    const normalized = questions.slice(0, 5).map((q: any) => {
-      // Tolerate option formats: array of strings, array of {label}, single string with newlines, etc.
-      let opts: string[] = [];
-      if (Array.isArray(q.options)) {
-        opts = q.options
+    // Server-side option validator/normalizer.
+    // Goals: format every option as "A) text", drop blanks, dedupe, ensure
+    // 3–4 options. If fewer than 3 valid options remain, drop the options
+    // array entirely (the UI will render the question as open-ended).
+    const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
+    const cleanOption = (raw: string): string => {
+      let s = String(raw).trim();
+      // Strip any leading "A)", "A.", "(A)", "1.", "1)", "- ", "• "
+      s = s.replace(/^[\s ]*[\(\[]?\s*[A-Fa-f0-9]\s*[\)\].\-:]\s*/, '');
+      s = s.replace(/^[\s ]*[\-•\*]\s+/, '');
+      return s.trim();
+    };
+
+    const normalizeOptions = (rawOpts: unknown): string[] | undefined => {
+      let arr: string[] = [];
+      if (Array.isArray(rawOpts)) {
+        arr = rawOpts
           .map((o: any) => (typeof o === 'string' ? o : (o?.label || o?.text || o?.value || '')))
           .filter((s: string) => typeof s === 'string' && s.trim().length > 0);
-      } else if (typeof q.options === 'string' && q.options.trim()) {
-        opts = q.options.split(/\n|;|\|/).map((s: string) => s.trim()).filter(Boolean);
+      } else if (typeof rawOpts === 'string' && rawOpts.trim()) {
+        arr = rawOpts.split(/\n|;|\|/).map((s: string) => s.trim()).filter(Boolean);
       }
-      return {
-        question: q.question || q.q || '',
-        category: ['symptom', 'modality', 'mental', 'general', 'history', 'followup'].includes(q.category) ? q.category : (q.c || 'symptom'),
-        alternates: Array.isArray(q.alternates) ? q.alternates.slice(0, 2) : [],
-        options: opts.length > 0 ? opts.slice(0, 6) : undefined,
-      };
-    }).filter((q) => q.question);
+      // Strip any model-supplied prefix, dedupe (case-insensitive), keep first 4.
+      const seen = new Set<string>();
+      const cleaned: string[] = [];
+      for (const o of arr) {
+        const text = cleanOption(o);
+        if (!text || text.length > 80) continue;     // sanity bound
+        const key = text.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        cleaned.push(text);
+        if (cleaned.length >= 4) break;
+      }
+      // Need at least 3 distinct options to be meaningful; otherwise drop.
+      if (cleaned.length < 3) return undefined;
+      // Re-letter consistently A) B) C) D)
+      return cleaned.map((text, i) => `${LETTERS[i]}) ${text}`);
+    };
+
+    const normalized = questions.slice(0, 5).map((q: any) => ({
+      question: String(q.question || q.q || '').trim(),
+      category: ['symptom', 'modality', 'mental', 'general', 'history', 'followup'].includes(q.category) ? q.category : (q.c || 'symptom'),
+      alternates: Array.isArray(q.alternates)
+        ? q.alternates.map((a: any) => String(a).trim()).filter(Boolean).slice(0, 2)
+        : [],
+      options: normalizeOptions(q.options),
+    })).filter((q) => q.question);
 
     sendSuccess(res, { questions: normalized, consultationMode: mode });
   } catch (err) { next(err); }
