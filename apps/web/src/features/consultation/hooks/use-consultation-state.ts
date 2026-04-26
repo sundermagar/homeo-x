@@ -1,17 +1,16 @@
-// @ts-nocheck
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useCompleteConsultation } from '../../../hooks/use-consultations';
 import { toast } from '../../../hooks/use-toast';
 import { calculateAge } from '../../../lib/format';
 import { SoapSuggestion, HomeopathyConsultResult, SuggestedRubric, GnmAnalysis } from '../../../types/ai';
-import type { ScoredRemedy } from '../../../types/ai';
+import type { ScoredRemedy, ConsultationMode, CategorizedSymptoms } from '../../../types/ai';
 import type { CreatePrescriptionItemInput } from '../../../types/prescription';
 import type { UiHints } from '../../../types/consultation';
 import type { Visit } from '../../../types/visit';
 import type { Patient } from '../../../types/patient';
 
 // ─── Stage Type ───
-export type ConsultStage = 'CONSULTATION' | 'TOTALITY' | 'REPERTORY' | 'PRESCRIPTION';
+export type ConsultStage = 'PATIENT_INFO' | 'CONSULTATION' | 'TOTALITY' | 'REPERTORY' | 'PRESCRIPTION';
 
 // ─── Types ───
 
@@ -43,6 +42,7 @@ export interface AiContext {
   miasm?: string;
   allergies?: string[];
   transcript?: string;
+  consultationMode?: ConsultationMode;
 }
 
 export interface UseConsultationStateInput {
@@ -118,6 +118,7 @@ export interface UseConsultationStateReturn {
 
   handleSaveDraft: () => Promise<void>;
   handleComplete: () => Promise<void>;
+  handleCompleteWithData: (overrideRxItems: CreatePrescriptionItemInput[], overrideAdvice: string, overrideFollowUp: string) => Promise<void>;
   handleVoiceUsed: () => void;
   sttLanguage: 'en-IN' | 'hi-IN';
   handleTemplateUsed: () => void;
@@ -144,6 +145,15 @@ export interface UseConsultationStateReturn {
   // Scored Remedies (for matrix grid)
   scoredRemedies: ScoredRemedy[];
   setScoredRemedies: React.Dispatch<React.SetStateAction<ScoredRemedy[]>>;
+
+  // Consultation Mode (acute/chronic/followup)
+  consultationMode: ConsultationMode;
+  setConsultationMode: (mode: ConsultationMode) => void;
+
+  // Categorized symptoms (live extraction panel)
+  categorizedSymptoms: CategorizedSymptoms;
+  setCategorizedSymptoms: React.Dispatch<React.SetStateAction<CategorizedSymptoms>>;
+  handleSymptomsExtracted: (newSymptoms: CategorizedSymptoms) => void;
 }
 
 // ─── Hook ───
@@ -213,7 +223,9 @@ export function useConsultationState({
   const [aiSuggestedLabs, setAiSuggestedLabs] = useState<string[]>([]);
 
   // ─── Language ───
-  const sttLanguage = 'en-IN';
+  // hi-IN as default — Google's Hindi model handles code-mixed Hinglish (Hindi+English)
+  // better than en-IN with alternatives. Downstream Google Translate converts to English.
+  const sttLanguage = 'hi-IN';
 
   // ─── Follow-up & advice ───
   const [followUp, setFollowUp] = useState('');
@@ -223,21 +235,33 @@ export function useConsultationState({
   const [sessionId, setSessionId] = useState<string | null>(null);
 
   // ─── Stage Navigation ───
-  const STAGE_ORDER: ConsultStage[] = ['CONSULTATION', 'TOTALITY', 'REPERTORY', 'PRESCRIPTION'];
-  const [consultStage, setConsultStage] = useState<ConsultStage>('CONSULTATION');
+  const STAGE_ORDER: ConsultStage[] = ['PATIENT_INFO', 'CONSULTATION', 'TOTALITY', 'REPERTORY', 'PRESCRIPTION'];
+  const [consultStage, setConsultStage] = useState<ConsultStage>('PATIENT_INFO');
   const [scoredRemedies, setScoredRemedies] = useState<ScoredRemedy[]>([]);
+
+  // ─── Consultation Mode & Categorized Symptoms ───
+  const [consultationMode, setConsultationMode] = useState<ConsultationMode>('acute');
+  const [categorizedSymptoms, setCategorizedSymptoms] = useState<CategorizedSymptoms>({
+    mental: [], physical: [], particular: [],
+  });
+
+  const handleSymptomsExtracted = useCallback((newSymptoms: CategorizedSymptoms) => {
+    // The backend now returns the completely merged and deduplicated list.
+    // Replace the state entirely instead of appending.
+    setCategorizedSymptoms(newSymptoms);
+  }, []);
 
   const handleNextStage = useCallback(() => {
     setConsultStage((prev) => {
       const idx = STAGE_ORDER.indexOf(prev);
-      return idx < STAGE_ORDER.length - 1 ? STAGE_ORDER[idx + 1] : prev;
+      return idx < STAGE_ORDER.length - 1 ? STAGE_ORDER[idx + 1] as ConsultStage : prev;
     });
   }, []);
 
   const handlePrevStage = useCallback(() => {
     setConsultStage((prev) => {
       const idx = STAGE_ORDER.indexOf(prev);
-      return idx > 0 ? STAGE_ORDER[idx - 1] : prev;
+      return idx > 0 ? STAGE_ORDER[idx - 1] as ConsultStage : prev;
     });
   }, []);
 
@@ -274,6 +298,8 @@ export function useConsultationState({
     setSessionId(null);
     setSuggestedRubrics([]);
     setGnmAnalysis(null);
+    setConsultationMode('acute');
+    setCategorizedSymptoms({ mental: [], physical: [], particular: [] });
   }, [visitId]);
 
   // ─── Computed ───
@@ -304,6 +330,7 @@ export function useConsultationState({
         miasm,
         allergies: patient?.allergies,
         transcript: ongoingTranscript,
+        consultationMode,
       }
       : undefined;
 
@@ -334,6 +361,7 @@ export function useConsultationState({
         specialtyData:
           Object.keys(specialtyData).length > 0 ? specialtyData : undefined,
       },
+      prescriptionStrategy: 'REMEDY' as const,
       prescription: (() => {
         const filledItems = rxItems.filter(
           (item) =>
@@ -471,6 +499,54 @@ export function useConsultationState({
       });
     }
   }, [visitId, buildPayload, completeConsultation, logMetrics]);
+
+  // Bypass stale-closure: accepts rx data directly without relying on React state flush
+  const handleCompleteWithData = useCallback(async (
+    overrideRxItems: typeof rxItems,
+    overrideAdvice: string,
+    overrideFollowUp: string,
+  ) => {
+    if (!visitId) return;
+    const base = buildPayload();
+
+    const filledItems = overrideRxItems.filter(
+      (item) => item.medicationName && item.dosage && item.frequency && item.duration,
+    );
+
+    const payload = {
+      ...base,
+      prescriptionStrategy: 'REMEDY' as const,
+      soap: {
+        ...base.soap,
+        advice: overrideAdvice.trim() || base.soap.advice,
+        followUp: overrideFollowUp.trim() || base.soap.followUp,
+      },
+      prescription: filledItems.length > 0
+        ? { notes: rxNotes || undefined, items: filledItems }
+        : base.prescription,
+    };
+
+    try {
+      await completeConsultation.mutateAsync({
+        visitId,
+        ...payload,
+        autoApprove: true,
+      });
+      logMetrics();
+      toast({ title: 'Consultation completed', variant: 'success' });
+      setShowCompleted(true);
+    } catch (err) {
+      let errorMsg = err instanceof Error ? err.message : '';
+      if (err && typeof (err as any).details === 'object' && Array.isArray((err as any).details)) {
+        errorMsg += ': ' + (err as any).details.map((d: any) => `${d.field} - ${d.message}`).join(', ');
+      }
+      toast({
+        title: 'Failed to complete consultation',
+        description: errorMsg,
+        variant: 'error',
+      });
+    }
+  }, [visitId, buildPayload, rxNotes, completeConsultation, logMetrics]);
 
   const handleVoiceUsed = useCallback(() => {
     metricsRef.current.voiceUsed = true;
@@ -628,7 +704,22 @@ export function useConsultationState({
 
     // 4. Update Advice & Follow-up
     setAdvice(result.prescriptionDraft.advice?.join('\n') || '');
-    setFollowUp(result.prescriptionDraft.followUp || '');
+    // Convert AI follow-up text to YYYY-MM-DD date
+    const followUpText = result.prescriptionDraft.followUp || '';
+    if (followUpText) {
+      const date = new Date();
+      const daysMatch = followUpText.match(/(\d+)\s*day/i);
+      const weeksMatch = followUpText.match(/(\d+)\s*week/i);
+      const monthsMatch = followUpText.match(/(\d+)\s*month/i);
+      if (daysMatch) date.setDate(date.getDate() + parseInt(daysMatch[1]!));
+      else if (weeksMatch) date.setDate(date.getDate() + parseInt(weeksMatch[1]!) * 7);
+      else if (monthsMatch) date.setMonth(date.getMonth() + parseInt(monthsMatch[1]!));
+      else date.setDate(date.getDate() + 15);
+      const yyyy = date.getFullYear();
+      const mm = String(date.getMonth() + 1).padStart(2, '0');
+      const dd = String(date.getDate()).padStart(2, '0');
+      setFollowUp(`${yyyy}-${mm}-${dd}`);
+    }
 
     // 5. Update Rubrics
     if (result.rubricsResult?.suggestedRubrics) {
@@ -704,6 +795,7 @@ export function useConsultationState({
     handleSaveDraft,
 
     handleComplete,
+    handleCompleteWithData,
     handleVoiceUsed,
     handleTemplateUsed,
     handleRemedySelect,
@@ -717,5 +809,10 @@ export function useConsultationState({
     handlePrevStage,
     scoredRemedies,
     setScoredRemedies,
+    consultationMode,
+    setConsultationMode,
+    categorizedSymptoms,
+    setCategorizedSymptoms,
+    handleSymptomsExtracted,
   };
 }

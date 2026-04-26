@@ -103,6 +103,45 @@ export interface Icd10Code {
   isLeaf: boolean;
 }
 
+// ─── Consultation Mode ───
+
+export type ConsultationMode = 'acute' | 'chronic' | 'followup';
+
+export interface SuggestedConsultQuestion {
+  question: string;
+  category: 'symptom' | 'modality' | 'mental' | 'general' | 'history' | 'followup';
+  alternates: string[];
+  options?: string[];
+}
+
+export interface QuestionSuggestionResult {
+  questions: SuggestedConsultQuestion[];
+  consultationMode: string;
+}
+
+export interface CategorizedSymptoms {
+  mental: string[];
+  physical: string[];
+  particular: string[];
+}
+
+export interface SuggestQuestionsInput {
+  consultationMode: ConsultationMode;
+  transcript?: string;
+  answeredQuestions?: string[];
+  chiefComplaint?: string;
+  patientAge?: number;
+  patientGender?: string;
+}
+
+export interface ExtractSymptomsInput {
+  consultationMode: ConsultationMode;
+  question: string;
+  answer: string;
+  existingSymptoms?: CategorizedSymptoms;
+  labContext?: string;
+}
+
 // ─── Repertorization Types ───
 
 export interface RubricExtractionInput {
@@ -119,6 +158,7 @@ export interface RubricExtractionInput {
   patientAge?: number;
   patientGender?: string;
   visitId?: string;
+  consultationMode?: ConsultationMode;
 }
 
 export interface SuggestedRubric {
@@ -198,6 +238,8 @@ export interface ClinicalExtractionResult {
   clinicalFindings: string[];
   suggestedRubrics: SuggestedRubric[];
   mentalState: string[];
+  physicalGenerals?: string[];
+  particularSymptoms?: string[];
   provisionalDiagnosis?: {
     name: string;
     icdCode: string;

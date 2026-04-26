@@ -25,6 +25,10 @@ export interface HomeopathyConsultInput {
   patientGender?: string;
   chiefComplaint?: string;
   specialty?: string;
+  /** Doctor's case-type pick from PATIENT_INFO — drives Pass 1 prompt directives. */
+  consultationMode?: 'acute' | 'chronic' | 'followup';
+  thermalReaction?: string;
+  miasm?: string;
 }
 
 export interface HomeopathyConsultResult {
@@ -84,6 +88,15 @@ export class ConsultationUseCase {
     const englishTranscript = await this.translator.translateToEnglish(tenantId, userId, input.transcript);
     phasesCompleted++;
 
+    // Phase 1.5: Medical-intent gate — short-circuit if the transcript is clearly
+    // non-medical (greetings only, mic test, silence). Saves ~5 expensive AI calls
+    // and prevents nonsense remedies from being suggested for non-medical input.
+    const isMedical = this.checkMedicalIntent(englishTranscript, input.chiefComplaint);
+    if (!isMedical) {
+      logger.info({ tenantId, transcriptLength: englishTranscript.length }, 'Pipeline short-circuited: no medical content detected');
+      return this.buildEmptyConsultResult(start, phasesCompleted);
+    }
+
     // Phase 2: Clinical extraction
     logger.info({ tenantId }, 'Phase 2: Clinical extraction');
     const extraction = await this.extractionEngine.extract(tenantId, userId, {
@@ -108,7 +121,7 @@ export class ConsultationUseCase {
     phasesCompleted++;
 
     // Phase 4: Rubric extraction
-    logger.info({ tenantId }, 'Phase 4: Rubric extraction');
+    logger.info({ tenantId, consultationMode: input.consultationMode }, 'Phase 4: Rubric extraction');
     const rubrics = await this.repertorizationEngine.extractRubrics(tenantId, userId, {
       chiefComplaint: input.chiefComplaint,
       subjective: soap.subjective,
@@ -119,7 +132,8 @@ export class ConsultationUseCase {
       generalSymptoms: extraction.generalSymptoms,
       particularSymptoms: extraction.physicalSymptoms,
       modalities: extraction.modalities,
-      thermalReaction: extraction.thermalReaction,
+      thermalReaction: input.thermalReaction || extraction.thermalReaction,
+      consultationMode: input.consultationMode,
     });
     phasesCompleted++;
 
@@ -132,8 +146,9 @@ export class ConsultationUseCase {
         category: r.category,
         importance: r.importance,
       })),
-      thermalReaction: extraction.thermalReaction,
-      miasm: extraction.miasm,
+      // Doctor input takes precedence over AI-detected values from extraction.
+      thermalReaction: input.thermalReaction || extraction.thermalReaction,
+      miasm: input.miasm || extraction.miasm,
     });
     phasesCompleted++;
 
@@ -264,18 +279,154 @@ Respond ONLY with a JSON array of objects with keys "q" (the question text) and 
 
   async parseLabReport(tenantId: string, userId: string, input: { filename: string; mimeType: string; base64: string }) {
     if (!input.base64) throw new Error('No document data provided');
-    
+
+    // Step 1 — extract real text from the PDF on the server.
+    // Claude Haiku 4.5 doesn't reliably read base64 PDFs; sending it the file
+    // attachment was making it hallucinate generic lab findings (hypertension,
+    // hyperlipidemia, diabetes — the textbook "metabolic syndrome" trio).
+    // Use pdf-parse to pull the actual text first.
+    const isPdf = (input.mimeType || '').toLowerCase().includes('pdf')
+      || input.filename?.toLowerCase().endsWith('.pdf');
+
+    let extractedText = '';
+    if (isPdf) {
+      try {
+        const buffer = Buffer.from(input.base64, 'base64');
+        // pdf-parse v1's package index.js eagerly tries to read a test PDF
+        // (a known bug). Importing the inner module path bypasses that.
+        // @ts-ignore — no types for the inner module path
+        const pdfParseModule: any = await import('pdf-parse/lib/pdf-parse.js');
+        const pdfParse = pdfParseModule.default || pdfParseModule;
+        const result = await pdfParse(buffer);
+        extractedText = (result?.text || '').trim();
+      } catch (err: any) {
+        logger.error({ err: err?.message, filename: input.filename }, 'PDF text extraction failed');
+        extractedText = '';
+      }
+    }
+
+    if (!extractedText) {
+      logger.warn({ filename: input.filename }, 'No text extractable from PDF — returning empty');
+      return { parsedText: '' };
+    }
+
+    // Step 2 — normalize the raw PDF text into clean markdown so the
+    // downstream symptom-extraction prompt sees structured, easy-to-read
+    // values + reference ranges. We give the AI the REAL text (not the PDF)
+    // so it can't hallucinate.
     const chain = this.providerChain || getAiProviderChain();
-    
+
     const response = await chain.complete({
-      systemPrompt: 'You are an advanced medical OCR system. Extract all text, tabular data, and lab findings from the provided document. Format it as rigorous markdown, preserving all numerical values, reference ranges, and units precisely. Do not add conversational filler.',
-      userPrompt: 'Extract this lab report:',
-      documents: [{ base64: input.base64, mimeType: input.mimeType || 'application/pdf' }],
-      maxTokens: 4000,
+      systemPrompt: `You are a lab-report normalizer. You will be given the RAW TEXT extracted from a lab PDF (possibly with broken layout, OCR artifacts, repeated headers).
+
+Your job: produce a clean markdown summary that preserves EVERY numerical value, unit, and reference range exactly as written. Group values by panel (CBC, LFT, RFT, Lipid, Thyroid, etc.) when possible.
+
+For EACH abnormal value, append a clear flag in parentheses: (HIGH), (LOW), or (CRITICAL). Determine abnormality ONLY by:
+1. An explicit flag in the source text (H, L, *, ↑, ↓, "High", "Low", asterisks).
+2. The value being clearly outside the reference range printed alongside it.
+
+If a value has no reference range AND no explicit flag, leave it without a flag — do not guess.
+
+Output format example:
+### Complete Blood Count
+- Hemoglobin: 8.2 g/dL (Ref: 12-16) (LOW)
+- WBC: 7800 /uL (Ref: 4000-11000)
+- Platelets: 1.5 lakh /uL (Ref: 1.5-4.5 lakh)
+
+### Lipid Profile
+- Total Cholesterol: 245 mg/dL (Ref: <200) (HIGH)
+
+DO NOT invent values. DO NOT add interpretive prose. DO NOT skip values.`,
+      userPrompt: `Raw PDF text from "${input.filename || 'lab.pdf'}":
+"""
+${extractedText.slice(0, 20000)}
+"""
+
+Output the cleaned markdown summary now. If the text contains no actual lab data (e.g. only headers or random PDF artifacts), return the literal string "NO_LAB_DATA".`,
+      maxTokens: 2000,
       temperature: 0.1,
     });
-    
-    return { parsedText: response.content };
+
+    const cleaned = (response.content || '').trim();
+    if (!cleaned || cleaned === 'NO_LAB_DATA') {
+      return { parsedText: '' };
+    }
+
+    return { parsedText: cleaned };
+  }
+
+  // ─── Medical-intent gate ─────────────────────────────────────────────────
+  // Heuristic check: does the transcript contain enough medical signal to be
+  // worth running the full repertorization pipeline? Returns true unless the
+  // transcript is clearly empty, too short, or pure non-medical chitchat.
+  private checkMedicalIntent(transcript: string, chiefComplaint?: string): boolean {
+    const cleaned = (transcript || '').trim();
+    // Always proceed if the doctor recorded a chief complaint at intake.
+    if (chiefComplaint && chiefComplaint.trim().length >= 3) return true;
+    // Too short to act on.
+    if (cleaned.length < 30) return false;
+
+    const medicalRegex = /\b(pain|ache|fever|cough|headache|migraine|nausea|vomit|diarrhea|constipat|cold|flu|symptom|complaint|rash|allergy|allergic|itch|swell|injury|wound|burn|bp|blood\s*pressure|sleep|insomnia|appetite|chest|stomach|abdomen|head|throat|skin|eye|ear|nose|fatigue|weak|dizz|anxious|depress|sad|angry|stress|menstrual|period|pregnan|sick|ill|disease|medicat|treatment|dose|tablet|drug|hospital|clinic|doctor|patient|chronic|acute|symptom|since|started|onset|hurts|hurting|sore|burning|tingling|numb|pressure|tight|cramp|spasm|pulse|breath|shortness|cough|sneeze|wheez)\b/i;
+    if (medicalRegex.test(cleaned)) return true;
+
+    // Hindi/Hinglish medical keywords (transcripts come translated, but be safe)
+    const hindiMedRegex = /\b(dard|bukhar|dawai|dawaai|ilaaj|illness|takleef|tabiyat|sar|pet|bimari|saans|nazla|khansi|jukam)\b/i;
+    if (hindiMedRegex.test(cleaned)) return true;
+
+    return false;
+  }
+
+  // Build a zero-state result so the frontend's handleHomeopathyConsultGenerated
+  // doesn't crash when the gate short-circuits.
+  private buildEmptyConsultResult(start: number, phasesCompleted: number): HomeopathyConsultResult {
+    const message = 'No medical content was detected in the conversation. Continue speaking with the patient and try again.';
+    return {
+      soap: {
+        subjective: '',
+        objective: '',
+        assessment: '',
+        plan: '',
+        advice: message,
+      } as any,
+      clinicalData: {
+        observations: [],
+        clinicalFindings: [],
+        mentalState: [],
+        emotionProfile: [],
+        physicalSymptoms: [],
+        generalSymptoms: [],
+        modalities: { aggravation: [], amelioration: [] },
+        confidence: 0,
+      } as any,
+      diagnosisData: {
+        primaryDiagnosis: null,
+        differentials: [],
+        redFlags: [],
+        suggestedInvestigations: [],
+        confidence: 0,
+        auditLogId: 'short-circuited-no-medical-content',
+      },
+      rubricsResult: {
+        suggestedRubrics: [],
+        provisionalDiagnosis: null,
+        differentials: [],
+        overallConfidence: 0,
+      } as any,
+      remedyScores: { scoredRemedies: [] } as any,
+      prescriptionDraft: {
+        consultationSummary: message,
+        suggestedRemedies: [],
+        advice: [message],
+        followUp: '',
+      } as any,
+      gnmAnalysis: null,
+      caseSummary: message,
+      pipeline: {
+        phasesCompleted,
+        totalPhases: 7,
+        totalLatencyMs: Date.now() - start,
+      },
+    };
   }
 }
 

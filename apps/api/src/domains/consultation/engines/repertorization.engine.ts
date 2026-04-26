@@ -83,6 +83,9 @@ export interface RepertorizeExtractInput {
   particularSymptoms?: string[];
   modalities?: { aggravation?: string[]; amelioration?: string[] };
   thermalReaction?: string;
+  /** Doctor's explicit mode selection from PATIENT_INFO. Drives the case-type
+   *  priority logic in the rubric-extraction prompt. */
+  consultationMode?: 'acute' | 'chronic' | 'followup';
 }
 
 export interface SelectedRubric {
@@ -129,14 +132,19 @@ export class RepertorizationEngine {
 
       logger.info(`Extracting Kent rubrics for: ${symptomText.substring(0, 100)}...`);
 
+      const modeOverride = input.consultationMode
+        ? `## STEP 0 (PRE-DETERMINED): The doctor has selected "${input.consultationMode.toUpperCase()}" as the case type. USE THIS — do not re-classify.`
+        : `## STEP 0: DETERMINE CASE TYPE (MANDATORY)
+Classify the case into ONE:
+1. ACUTE (Cause-driven): Clear recent trigger, sudden onset, short duration
+2. CHRONIC (Personality-driven): Long-standing patterns, emotional tendencies, recurrent complaints
+3. FOLLOWUP (Response-driven): Patient returning to evaluate response to a previous prescription`;
+
       const systemPrompt = `You are an expert homeopathic repertorization assistant trained in deep clinical reasoning.
 
 Your task is to understand the INDIVIDUAL, identify the CAUSE, and extract only HIGH-VALUE rubrics.
 
-## STEP 0: DETERMINE CASE TYPE (MANDATORY)
-Classify the case into ONE:
-1. ACUTE (Cause-driven): Clear recent trigger, sudden onset, short duration
-2. CHRONIC (Personality-driven): Long-standing patterns, emotional tendencies, recurrent complaints
+${modeOverride}
 
 ## CORE ANALYSIS (MANDATORY)
 For ACUTE cases:
@@ -150,6 +158,13 @@ For CHRONIC cases:
 2. Identify REACTION (MOST IMPORTANT)
 3. Identify TRIGGER (if relevant)
 Priority: REACTION > PERSONALITY > TRIGGER
+
+For FOLLOWUP cases:
+1. Identify RESPONSE to previous prescription (improvement %, change in nature)
+2. Identify DIRECTION_OF_CURE (Hering's Law: above→down, inside→out, reverse order of appearance)
+3. Identify NEW_SYMPTOMS (any emerging symptoms — possible proving / shift to deeper layer)
+Priority: RESPONSE > DIRECTION_OF_CURE > NEW_SYMPTOMS
+Output rubrics that capture: improvement state, direction-of-cure indicators, and new symptom patterns.
 
 ## CRITICAL RULES
 * DO NOT extract rubrics from surface words
@@ -176,7 +191,7 @@ Remedy Count: Low=20-50 (high value), Medium=50-150, High=150+
 
 ## OUTPUT FORMAT (STRICT JSON)
 {
-  "caseType": "acute | chronic",
+  "caseType": "acute | chronic | followup",
   "coreAnalysis": { "personality": "...", "trigger": "...", "reaction": "...", "themes": ["..."] },
   "suggestedRubrics": [
     { "chapter": "General", "category": "GENERAL", "description": "General - Ailments from - overwork", "importance": 4, "remedyCount": 40 }

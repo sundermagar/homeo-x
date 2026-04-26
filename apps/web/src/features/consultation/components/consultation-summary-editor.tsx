@@ -5,61 +5,100 @@ import { Input } from '../../../components/ui/input';
 import { Activity, FileText, ClipboardList } from 'lucide-react';
 
 interface ConsultationSummaryEditorProps {
-  subjective: string; onSubjectiveChange: (val: string) => void;
-  assessment: string; onAssessmentChange: (val: string) => void;
-  clinicalNotes: string; onClinicalNotesChange: (val: string) => void;
+  subjective: string;
+  onSubjectiveChange: (val: string) => void;
+  assessment: string;
+  onAssessmentChange: (val: string) => void;
+  clinicalNotes: string;
+  onClinicalNotesChange: (val: string) => void;
 }
 
-const boxHeaderStyle: React.CSSProperties = {
-  padding: '0.75rem 1rem', borderBottom: '1px solid var(--border-light)',
-  background: 'var(--bg-surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-};
-const boxLabelStyle: React.CSSProperties = { fontSize: 10, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.1em' };
-const transparentAreaStyle: React.CSSProperties = { border: 'none', background: 'transparent', boxShadow: 'none', padding: 0, overflow: 'hidden', resize: 'none', lineHeight: 1.6 };
-
-export function ConsultationSummaryEditor({ subjective, onSubjectiveChange, assessment, onAssessmentChange, clinicalNotes, onClinicalNotesChange }: ConsultationSummaryEditorProps) {
+export function ConsultationSummaryEditor({
+  subjective,
+  onSubjectiveChange,
+  assessment,
+  onAssessmentChange,
+  clinicalNotes,
+  onClinicalNotesChange,
+}: ConsultationSummaryEditorProps) {
   const subjectiveRef = useRef<HTMLTextAreaElement>(null);
   const notesRef = useRef<HTMLTextAreaElement>(null);
-  const autoResize = (ref: React.RefObject<HTMLTextAreaElement>) => { if (ref.current) { ref.current.style.height = 'auto'; ref.current.style.height = `${ref.current.scrollHeight}px`; } };
-  useEffect(() => { autoResize(subjectiveRef); }, [subjective]);
-  useEffect(() => { autoResize(notesRef); }, [clinicalNotes]);
+
+  const autoResize = (ref: React.RefObject<HTMLTextAreaElement>) => {
+    if (ref.current) {
+      ref.current.style.height = 'auto';
+      ref.current.style.height = `${ref.current.scrollHeight}px`;
+    }
+  };
+
+  useEffect(() => {
+    autoResize(subjectiveRef);
+  }, [subjective]);
+
+  useEffect(() => {
+    autoResize(notesRef);
+  }, [clinicalNotes]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', animation: 'fadeIn 0.4s ease-out' }}>
-      <Card style={{ borderRadius: 'var(--radius-xl)', overflow: 'hidden', boxShadow: 'var(--shadow-xs)' }}>
-        <div style={boxHeaderStyle}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <Activity style={{ width: 16, height: 16, color: '#6366F1' }} />
-            <span style={boxLabelStyle}>Symptoms</span>
+    <div className="space-y-4 animate-in fade-in duration-500">
+      {/* SYMPTOMS BOX */}
+      <Card className="rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+        <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-900 bg-gray-50/50 dark:bg-gray-900/10 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Activity className="h-4 w-4 text-indigo-500" />
+            <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+              Symptoms
+            </span>
           </div>
-          <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>• Symptoms • Duration • Red Flags</span>
+          <span className="text-[9px] font-bold text-gray-300 uppercase tracking-tighter cursor-default">
+            • Symptoms • Duration • Red Flags
+          </span>
         </div>
-        <CardContent style={{ padding: '1rem' }}>
-          <Textarea ref={subjectiveRef} value={subjective} onChange={e => onSubjectiveChange(e.target.value)} style={{ ...transparentAreaStyle, fontSize: 14, fontWeight: 500 }} placeholder="Enter symptoms here..." />
+        <CardContent className="p-4">
+          <Textarea
+            ref={subjectiveRef}
+            value={subjective}
+            onChange={(e) => onSubjectiveChange(e.target.value)}
+            className="text-[14px] font-medium border-0 bg-transparent shadow-none focus-visible:ring-0 p-0 overflow-hidden resize-none leading-relaxed placeholder:text-gray-300 text-gray-800 dark:text-gray-200"
+            placeholder="Enter symptoms here..."
+          />
         </CardContent>
       </Card>
 
-      <Card style={{ borderRadius: 'var(--radius-xl)', overflow: 'hidden', boxShadow: 'var(--shadow-xs)' }}>
-        <div style={boxHeaderStyle}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <FileText style={{ width: 16, height: 16, color: '#10B981' }} />
-            <span style={boxLabelStyle}>Diagnosis</span>
-          </div>
+      {/* DIAGNOSIS BOX */}
+      <Card className="rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+        <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-900 bg-gray-50/50 dark:bg-gray-900/10 flex items-center gap-3">
+          <FileText className="h-4 w-4 text-emerald-500" />
+          <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+            Diagnosis
+          </span>
         </div>
-        <CardContent style={{ padding: '1rem' }}>
-          <Input value={assessment} onChange={e => onAssessmentChange(e.target.value)} style={{ fontSize: 20, fontWeight: 900, border: 'none', background: 'transparent', boxShadow: 'none', padding: 0, height: 'auto' }} placeholder="Final diagnosis..." />
+        <CardContent className="p-4">
+          <Input
+            value={assessment}
+            onChange={(e) => onAssessmentChange(e.target.value)}
+            className="text-xl font-black border-0 bg-transparent shadow-none focus-visible:ring-0 p-0 h-auto placeholder:text-gray-300 text-gray-900 dark:text-white"
+            placeholder="Final diagnosis..."
+          />
         </CardContent>
       </Card>
 
-      <Card style={{ borderRadius: 'var(--radius-xl)', overflow: 'hidden', boxShadow: 'var(--shadow-xs)' }}>
-        <div style={boxHeaderStyle}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <ClipboardList style={{ width: 16, height: 16, color: '#F59E0B' }} />
-            <span style={boxLabelStyle}>Clinical Notes</span>
-          </div>
+      {/* CLINICAL NOTES BOX */}
+      <Card className="rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+        <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-900 bg-gray-50/50 dark:bg-gray-900/10 flex items-center gap-3">
+          <ClipboardList className="h-4 w-4 text-amber-500" />
+          <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+            Clinical Notes
+          </span>
         </div>
-        <CardContent style={{ padding: '1rem' }}>
-          <Textarea ref={notesRef} value={clinicalNotes} onChange={e => onClinicalNotesChange(e.target.value)} style={{ ...transparentAreaStyle, fontSize: 14 }} placeholder="Notes..." />
+        <CardContent className="p-4">
+          <Textarea
+            ref={notesRef}
+            value={clinicalNotes}
+            onChange={(e) => onClinicalNotesChange(e.target.value)}
+            className="text-[14px] border-0 bg-transparent shadow-none focus-visible:ring-0 p-0 overflow-hidden resize-none leading-relaxed placeholder:text-gray-200 text-gray-700 dark:text-gray-300"
+            placeholder="Notes..."
+          />
         </CardContent>
       </Card>
     </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Activity,
   Zap,
@@ -17,7 +17,8 @@ import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useDashboard } from '../hooks/use-dashboard';
 import { useQueueMgmt } from '../hooks/use-queue-mgmt';
-import { useUpdateStatus, useSkipWaitlist, useCompleteVisit, apptKeys } from '../../appointments/hooks/use-appointments';
+import { useUpdateStatus, apptKeys } from '../../appointments/hooks/use-appointments';
+import { apiClient } from '@/infrastructure/api-client';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { VitalsFormModal } from '../../medical-case/components/vitals-form-modal';
 import type { QueueItem, IntelligenceInsight, RecentTransaction } from '@mmc/types';
@@ -33,8 +34,6 @@ export function DoctorDashboard() {
   const user = useAuthStore((s) => s.user);
   const { data: dashData, isLoading } = useDashboard('day');
   const updateStatus = useUpdateStatus();
-  const skipWaitlist = useSkipWaitlist();
-  const completeVisit = useCompleteVisit();
   const [queueFilter, setQueueFilter] = useState('ALL');
   const [consultDuration, setConsultDuration] = useState('00:00');
   const [consultationStartedAt, setConsultationStartedAt] = useState<number | null>(null);
@@ -42,24 +41,79 @@ export function DoctorDashboard() {
   const [showVitalsModal, setShowVitalsModal] = useState(false);
   const [showIntelligence, setShowIntelligence] = useState(true);
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  // Tracks the appointment ID of the patient we most recently called into consultation
+  const [activePatientId, setActivePatientId] = useState<number | null>(null);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    if (!isMoreMenuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) {
+        setIsMoreMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [isMoreMenuOpen]);
 
   const todayAppts = (dashData?.queue || []) as QueueItem[];
-  const activeConsultation = todayAppts.find((a) => a.status === 'Consultation');
+  // Prefer the patient we explicitly called last; fall back to the first Consultation patient
+  const activeConsultation = activePatientId
+    ? (todayAppts.find((a) => a.id === activePatientId) ?? todayAppts.find((a) => a.status === 'Consultation'))
+    : todayAppts.find((a) => a.status === 'Consultation');
   const kpis = dashData?.kpis;
 
   // Use the queue management hook to ensure Waitlist state syncs correctly
   const queueMgmt = useQueueMgmt();
 
-  // Skip: sends to backend which resets to Waitlist + auto-promotes next patient
+  // Skip: sends current patient back to Waitlist, then calls the next waiting patient
   const handleSkip = async (item: QueueItem) => {
-    const wlId = getWlId(item);
-    if (!wlId) return;
     setIsMoreMenuOpen(false);
     setConsultationStartedAt(null);
     setConsultDuration('00:00');
     try {
-      await skipWaitlist.mutateAsync(wlId);
-      qc.invalidateQueries({ queryKey: ['dashboard'] });
+      const today = new Date().toISOString().split('T')[0]!;
+
+      // 1. Fetch the live waitlist to get REAL waitlist entry IDs
+      const res = await apiClient.get<{ success: boolean; data: any[] }>(
+        `/appointments/waiting?date=${today}`
+      );
+      const liveWaitlist: any[] = res.data.data ?? [];
+
+      // 2. Find THIS patient's waitlist entry (match by appointmentId or patientId)
+      const currentEntry = liveWaitlist.find(
+        (w) => w.appointmentId === item.id || w.patientId === (item as any).patientId
+      );
+
+      if (currentEntry) {
+        // 3. Skip using the CORRECT waitlist entry ID
+        await queueMgmt.skip.mutateAsync(currentEntry.id);
+
+        // 4. Also reset the appointment status so Token Queue shows it as Waiting
+        try {
+          await updateStatus.mutateAsync({ id: item.id, status: 'Waitlist' });
+        } catch { /* best-effort */ }
+      }
+
+      // 5. Fetch fresh waitlist again after the skip
+      const res2 = await apiClient.get<{ success: boolean; data: any[] }>(
+        `/appointments/waiting?date=${today}`
+      );
+      const freshWaitlist: any[] = res2.data.data ?? [];
+
+      // 6. Find next waiting patient — exclude the one we just skipped
+      const skippedId = currentEntry?.id;
+      const nextEntry = freshWaitlist.find((w) => w.status === 0 && w.id !== skippedId);
+      if (nextEntry) {
+        await queueMgmt.callNext.mutateAsync(nextEntry.id);
+        setActivePatientId(nextEntry.appointmentId ?? nextEntry.id);
+      } else {
+        setActivePatientId(null);
+      }
+
+      // 7. Refresh dashboard
+      await qc.refetchQueries({ queryKey: ['dashboard'] });
       qc.invalidateQueries({ queryKey: apptKeys.all });
     } catch (err) {
       console.error('Skip failed', err);
@@ -117,15 +171,31 @@ export function DoctorDashboard() {
     return () => clearInterval(interval);
   }, [activeConsultation, consultationStartedAt]);
 
-  const handleStartConsultation = async (wlId: number) => {
+  const handleStartConsultation = async (item: QueueItem) => {
+    const wlId = getWlId(item);
+    const appointmentId = item.id;
+
     setConsultationStartedAt(Date.now()); // Record exact click time
     setConsultDuration('00:00');          // Reset display immediately
-    
-    // Call the Queue Management endpoint instead of simply updating appointment status.
-    // This updates the Waitlist to '1' (Consultation) AND the Appointment to 'Consultation'.
-    await queueMgmt.callNext.mutateAsync(wlId);
-    qc.invalidateQueries({ queryKey: ['dashboard'] });
-    qc.invalidateQueries({ queryKey: apptKeys.all });
+    setActivePatientId(item.id);          // Pin the HUD to this patient
+
+    try {
+      // Only run the queue transition for patients still in Waitlist.
+      // Re-calling callNext on an already-Consultation patient would be a no-op
+      // at best, and could conflict at worst.
+      if (item.status === 'Waitlist' && wlId) {
+        await queueMgmt.callNext.mutateAsync(wlId);
+        qc.invalidateQueries({ queryKey: ['dashboard'] });
+        qc.invalidateQueries({ queryKey: apptKeys.all });
+      }
+
+      // Enter the full-screen consultation workspace.
+      // appointment.id IS the visit id (consultations.router persists soap_notes
+      // and prescriptions keyed on appointments.id).
+      navigate(`/consultation/${appointmentId}`);
+    } catch (err) {
+      console.error('Start consultation failed', err);
+    }
   };
 
   if (isLoading) {
@@ -178,20 +248,17 @@ export function DoctorDashboard() {
                     </div>
 
                     <div className="dd-hud-actions">
-                      <button className="btn-primary" onClick={() => {
-                        const wlId = getWlId(activeConsultation);
-                        if (wlId) handleStartConsultation(wlId);
-                      }}>
+                      <button className="btn-primary" onClick={() => handleStartConsultation(activeConsultation)}>
                         <Zap size={14} fill="currentColor" /> Start Consultation
                       </button>
                       <button className="btn-skip" onClick={() => handleSkip(activeConsultation)}>Skip</button>
 
-                      <div className="dash-dropdown-container">
+                      <div className="dash-dropdown-container" ref={moreMenuRef}>
                         <button className="btn-more" onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}>
                           <MoreHorizontal size={18} />
                         </button>
                         {isMoreMenuOpen && (
-                          <div className="dash-dropdown-menu">
+                          <div className="dash-dropdown-menu" onClick={(e) => e.stopPropagation()}>
                             <button className="dash-dropdown-item" onClick={() => handleReschedule(activeConsultation)}>
                               <Calendar size={14} style={{ marginRight: 8, verticalAlign: 'middle' }} /> Reschedule
                             </button>
@@ -216,7 +283,7 @@ export function DoctorDashboard() {
                   <Activity size={32} />
                   <p className="text-small">No patient currently being seen.</p>
                   {todayAppts.filter(a => a.status === 'Waitlist').length > 0 && (
-                    <button className="btn-primary" onClick={() => handleStartConsultation(getWlId(todayAppts.find(a => a.status === 'Waitlist')!) || 0)}>Call next patient</button>
+                    <button className="btn-primary" onClick={() => handleStartConsultation(todayAppts.find(a => a.status === 'Waitlist')!)}>Call next patient</button>
                   )}
                 </div>
               )}
@@ -258,7 +325,7 @@ export function DoctorDashboard() {
                             <button
                               className="dash-view-btn"
                               title="Start Consultation"
-                              onClick={(e) => { e.stopPropagation(); handleStartConsultation(getWlId(a) || a.id); }}
+                              onClick={(e) => { e.stopPropagation(); handleStartConsultation(a); }}
                             >
                               Call
                             </button>
@@ -286,13 +353,13 @@ export function DoctorDashboard() {
                                 </div>
                                 <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
                                   <button className="pp-link" onClick={(e) => { e.stopPropagation(); navigate(`/patients/${a.regid}`); }}>View Profile</button>
-                                  {a.status === 'Waitlist' && (
-                                    <button 
-                                      className="pp-link" 
-                                      style={{ color: 'var(--pp-blue)' }} 
-                                      onClick={(e) => { e.stopPropagation(); handleStartConsultation(getWlId(a) || a.id); }}
+                                  {(a.status === 'Waitlist' || a.status === 'Consultation') && (
+                                    <button
+                                      className="pp-link"
+                                      style={{ color: 'var(--pp-blue)' }}
+                                      onClick={(e) => { e.stopPropagation(); handleStartConsultation(a); }}
                                     >
-                                      Start Consult
+                                      {a.status === 'Consultation' ? 'Enter Consult' : 'Start Consult'}
                                     </button>
                                   )}
                                 </div>

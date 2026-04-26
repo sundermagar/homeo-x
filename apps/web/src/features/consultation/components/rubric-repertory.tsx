@@ -1,5 +1,20 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { BookOpen, Search, ChevronRight, ChevronDown, ChevronUp, Brain, X, BarChart3, Check, RotateCcw, Plus, Type } from 'lucide-react';
+import {
+  BookOpen,
+  Search,
+  ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  Brain,
+  X,
+  BarChart3,
+  Check,
+  RotateCcw,
+  Plus,
+  Type,
+} from 'lucide-react';
+
+
 import { Card, CardContent } from '../../../components/ui/card';
 import { Input } from '../../../components/ui/input';
 import { useSearchKentRubrics } from '../../../hooks/use-rubrics';
@@ -7,243 +22,551 @@ import { toast } from '../../../hooks/use-toast';
 import { useRepertorizeScore } from '../../../hooks/use-repertorization';
 import type { SuggestedRubric } from '../../../types/ai';
 
-interface RubricRepertoryProps { visitId: string; onAutoSuggestRemedy?: (remedyName: string, potencies: string[]) => void; initialRubrics?: SuggestedRubric[]; onRubricsChange?: (rubrics: SuggestedRubric[]) => void; onScoredRemediesChange?: (remedies: any[]) => void; }
-interface SelectedRubric { rubricId: string; description: string; category: 'MIND' | 'GENERAL' | 'PARTICULAR'; chapter: string | null; importance: number; source: 'manual' | 'ai' | 'both'; }
+// ─── Props ───
+
+interface RubricRepertoryProps {
+  visitId: string;
+  onAutoSuggestRemedy?: (remedyName: string, potencies: string[]) => void;
+  initialRubrics?: SuggestedRubric[];
+  onRubricsChange?: (rubrics: SuggestedRubric[]) => void;
+  onScoredRemediesChange?: (remedies: any[]) => void;
+}
+
+
+// ─── Selected rubric with importance ───
+
+interface SelectedRubric {
+  rubricId: string;
+  description: string;
+  category: 'MIND' | 'GENERAL' | 'PARTICULAR';
+  chapter: string | null;
+  importance: number; // 1-4
+  source: 'manual' | 'ai' | 'both';
+}
+
 type RubricCategory = 'MIND' | 'GENERAL' | 'PARTICULAR';
 
-const IMPORTANCE_LABELS: Record<number, string> = { 1: 'Supporting', 2: 'Moderate', 3: 'Important', 4: 'Eliminating' };
-const IMPORTANCE_STYLES: Record<number, React.CSSProperties> = {
-  1: { background: 'var(--bg-surface-2)', color: 'var(--text-secondary)' },
-  2: { background: '#DBEAFE', color: '#1E40AF' },
-  3: { background: '#FFEDD5', color: '#9A3412' },
-  4: { background: '#FEE2E2', color: '#7F1D1D' },
+
+const IMPORTANCE_LABELS: Record<number, string> = {
+  1: 'Supporting',
+  2: 'Moderate',
+  3: 'Important',
+  4: 'Eliminating',
 };
 
-export function RubricRepertory({ visitId, onAutoSuggestRemedy, initialRubrics, onRubricsChange, onScoredRemediesChange }: RubricRepertoryProps) {
+const IMPORTANCE_COLORS: Record<number, string> = {
+  1: 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
+  2: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
+  3: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300',
+  4: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+};
+
+// ─── Component ───
+export function RubricRepertory({
+  visitId,
+  onAutoSuggestRemedy,
+  initialRubrics,
+  onRubricsChange,
+  onScoredRemediesChange,
+}: RubricRepertoryProps) {
+
   const [expanded, setExpanded] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [isRubricsExpanded, setIsRubricsExpanded] = useState(false);
   const [customRubricText, setCustomRubricText] = useState('');
+
+  // Selected rubrics for repertorization
   const [selectedRubrics, setSelectedRubrics] = useState<Map<string, SelectedRubric>>(new Map());
+
+  // AI extraction state
   const lastExtractionKeyRef = useRef<string>('');
+
+
+  // Queries & mutations
   const { data: kentResults, isLoading: kentLoading, isFetching: kentFetching } = useSearchKentRubrics(debouncedSearch);
   const scoreMutation = useRepertorizeScore();
 
-  useEffect(() => { const t = setTimeout(() => setDebouncedSearch(searchTerm), 600); return () => clearTimeout(t); }, [searchTerm]);
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchTerm), 600);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Case Summary state (Removed)
   const [clinicalFindings, setClinicalFindings] = useState<string[]>([]);
   const [observations, setObservations] = useState<string[]>([]);
 
+  // ─── Reset state on visitId change ───
   useEffect(() => {
-    setSelectedRubrics(new Map()); lastExtractionKeyRef.current = ''; setClinicalFindings([]); setObservations([]); setIsRubricsExpanded(false);
+    setSelectedRubrics(new Map());
+    lastExtractionKeyRef.current = '';
+    setClinicalFindings([]);
+    setObservations([]);
+    setIsRubricsExpanded(false);
   }, [visitId]);
 
+  // ─── AI Extraction: Synchronize with Props from external analysis ───
   const lastReceivedFingerprint = useRef<string>('');
+
   useEffect(() => {
     if (!initialRubrics || initialRubrics.length === 0) return;
+
     const fingerprint = initialRubrics.map(r => `${r.rubricId}-${r.importance}`).sort().join('|');
     if (fingerprint === lastReceivedFingerprint.current) return;
     lastReceivedFingerprint.current = fingerprint;
-    setSelectedRubrics(prev => {
+
+    setSelectedRubrics((prev) => {
+      // Keep manual ones, but replace/merge AI ones from the new initialRubrics
       const next = new Map();
-      prev.forEach((val, key) => { if (val.source === 'manual') next.set(key, val); });
-      for (const r of initialRubrics) {
-        const ex = next.get(r.rubricId);
-        if (ex) { ex.source = 'both'; ex.importance = Math.max(ex.importance, r.importance); }
-        else next.set(r.rubricId, { rubricId: r.rubricId, description: r.description, category: r.category as any, chapter: r.chapter, importance: r.importance, source: 'ai' });
+      prev.forEach((val, key) => {
+        if (val.source === 'manual') {
+          next.set(key, val);
+        }
+      });
+
+      for (const suggested of initialRubrics) {
+        const existing = next.get(suggested.rubricId);
+        if (existing) {
+          existing.source = 'both';
+          existing.importance = Math.max(existing.importance, suggested.importance);
+        } else {
+          next.set(suggested.rubricId, {
+            rubricId: suggested.rubricId,
+            description: suggested.description,
+            category: suggested.category as any,
+            chapter: suggested.chapter,
+            importance: suggested.importance,
+            source: 'ai',
+          });
+        }
       }
       return next;
     });
-    toast({ title: 'Rubrics Updated', description: `Loaded ${initialRubrics.length} rubrics for this case.`, variant: 'success' });
+
+    toast({
+      title: 'Rubrics Updated',
+      description: `Loaded ${initialRubrics.length} rubrics for this case.`,
+      variant: 'success'
+    });
   }, [initialRubrics]);
 
-  const removeSelectedRubric = useCallback((rubricId: string) => setSelectedRubrics(prev => { const next = new Map(prev); next.delete(rubricId); return next; }), []);
-  const updateImportance = useCallback((rubricId: string, importance: number) => setSelectedRubrics(prev => { const next = new Map(prev); const e = next.get(rubricId); if (e) e.importance = importance; return next; }), []);
+  // ─── Case Summary Sync ─── (Removed local state, now uses props)
+
+  // ─── Rubric Selection Handlers ───
+
+  const removeSelectedRubric = useCallback((rubricId: string) => {
+    setSelectedRubrics((prev) => {
+      const next = new Map(prev);
+      next.delete(rubricId);
+      return next;
+    });
+  }, []);
+
+  const updateImportance = useCallback((rubricId: string, importance: number) => {
+    setSelectedRubrics((prev) => {
+      const next = new Map(prev);
+      const entry = next.get(rubricId);
+      if (entry) {
+        entry.importance = importance;
+      }
+      return next;
+    });
+  }, []);
+
   const handleReset = useCallback(() => {
-    setSelectedRubrics(new Map()); lastExtractionKeyRef.current = ''; setClinicalFindings([]); setObservations([]); setIsRubricsExpanded(false);
+    setSelectedRubrics(new Map());
+    lastExtractionKeyRef.current = '';
+    setClinicalFindings([]);
+    setObservations([]);
+    setIsRubricsExpanded(false);
     toast({ title: 'Repertory Reset', description: 'All rubrics and extractions cleared.', variant: 'default' });
   }, []);
 
+  // ─── Add Custom Free-Text Rubric ───
   const handleAddCustomRubric = useCallback(() => {
-    const text = customRubricText.trim(); if (!text) return;
+    const text = customRubricText.trim();
+    if (!text) return;
+
+    // Auto-detect category from the text
     const lower = text.toLowerCase();
-    let category: RubricCategory = 'PARTICULAR', chapter = 'Unknown';
+    let category: RubricCategory = 'PARTICULAR';
+    let chapter = 'Unknown';
     if (lower.startsWith('mind')) { category = 'MIND'; chapter = 'Mind'; }
     else if (lower.startsWith('general')) { category = 'GENERAL'; chapter = 'Generalities'; }
-    else if (lower.startsWith('head')) chapter = 'Head';
-    else if (lower.startsWith('chest')) chapter = 'Chest';
-    else if (lower.startsWith('stomach') || lower.startsWith('abdomen')) chapter = 'Stomach';
-    else if (lower.startsWith('back')) chapter = 'Back';
-    else if (lower.startsWith('skin')) chapter = 'Skin';
-    else if (lower.startsWith('sleep')) chapter = 'Sleep';
-    else if (lower.startsWith('extremit')) chapter = 'Extremities';
-    else if (lower.startsWith('eye')) chapter = 'Eye';
-    else if (lower.startsWith('ear')) chapter = 'Ear';
-    else if (lower.startsWith('nose')) chapter = 'Nose';
-    else if (lower.startsWith('throat') || lower.startsWith('larynx')) chapter = 'Throat';
-    else if (lower.startsWith('rectum') || lower.startsWith('stool')) chapter = 'Rectum';
-    else if (lower.startsWith('urin') || lower.startsWith('bladder') || lower.startsWith('kidney')) chapter = 'Urinary';
-    else if (lower.startsWith('female') || lower.startsWith('male') || lower.startsWith('genital')) chapter = 'Genitalia';
-    else if (lower.startsWith('fever')) chapter = 'Fever';
-    else if (lower.startsWith('perspir') || lower.startsWith('sweat')) chapter = 'Perspiration';
+    else if (lower.startsWith('head')) { chapter = 'Head'; }
+    else if (lower.startsWith('chest')) { chapter = 'Chest'; }
+    else if (lower.startsWith('stomach') || lower.startsWith('abdomen')) { chapter = 'Stomach'; }
+    else if (lower.startsWith('back')) { chapter = 'Back'; }
+    else if (lower.startsWith('skin')) { chapter = 'Skin'; }
+    else if (lower.startsWith('sleep')) { chapter = 'Sleep'; }
+    else if (lower.startsWith('extremit')) { chapter = 'Extremities'; }
+    else if (lower.startsWith('eye')) { chapter = 'Eye'; }
+    else if (lower.startsWith('ear')) { chapter = 'Ear'; }
+    else if (lower.startsWith('nose')) { chapter = 'Nose'; }
+    else if (lower.startsWith('throat') || lower.startsWith('larynx')) { chapter = 'Throat'; }
+    else if (lower.startsWith('rectum') || lower.startsWith('stool')) { chapter = 'Rectum'; }
+    else if (lower.startsWith('urin') || lower.startsWith('bladder') || lower.startsWith('kidney')) { chapter = 'Urinary'; }
+    else if (lower.startsWith('female') || lower.startsWith('male') || lower.startsWith('genital')) { chapter = 'Genitalia'; }
+    else if (lower.startsWith('fever')) { chapter = 'Fever'; }
+    else if (lower.startsWith('perspir') || lower.startsWith('sweat')) { chapter = 'Perspiration'; }
+
     const rubricId = `custom-rubric-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-    setSelectedRubrics(prev => { const next = new Map(prev); next.set(rubricId, { rubricId, description: text, category, chapter, importance: 2, source: 'manual' }); return next; });
-    setCustomRubricText(''); setIsRubricsExpanded(true);
+
+    setSelectedRubrics((prev) => {
+      const next = new Map(prev);
+      next.set(rubricId, {
+        rubricId,
+        description: text,
+        category,
+        chapter,
+        importance: 2,
+        source: 'manual',
+      });
+      return next;
+    });
+
+    setCustomRubricText('');
+    setIsRubricsExpanded(true);
     toast({ title: 'Custom Rubric Added', description: text, variant: 'success' });
   }, [customRubricText]);
 
-  const rubricsFingerprint = useMemo(() => Array.from(selectedRubrics.values()).map(r => `${r.rubricId}:${r.importance}`).sort().join('|'), [selectedRubrics]);
+  // ─── Repertorization (scoring) ───
+
+  // ─── Auto-Repertorization (scoring) ───
+
+  const rubricsFingerprint = useMemo(
+    () => Array.from(selectedRubrics.values())
+      .map(r => `${r.rubricId}:${r.importance}`)
+      .sort()
+      .join('|'),
+    [selectedRubrics]
+  );
 
   useEffect(() => {
-    if (!rubricsFingerprint) return;
-    const rubricArray = Array.from(selectedRubrics.values()).map(r => ({ rubricId: r.rubricId, description: r.description, category: r.category, chapter: r.chapter || '', importance: r.importance }));
-    scoreMutation.mutate({ selectedRubrics: rubricArray }, { onSuccess: result => { if (onScoredRemediesChange && result.scoredRemedies) onScoredRemediesChange(result.scoredRemedies); if (result.scoredRemedies.length > 0) { const best = result.scoredRemedies[0]; onAutoSuggestRemedy?.(best.remedyName, best.commonPotencies); } } });
+    if (!rubricsFingerprint) {
+      return;
+    }
+
+    const rubricArray = Array.from(selectedRubrics.values()).map((r) => ({
+      rubricId: r.rubricId,
+      description: r.description,
+      category: r.category,
+      chapter: r.chapter || '',
+      importance: r.importance,
+    }));
+
+    scoreMutation.mutate(
+      { selectedRubrics: rubricArray },
+      {
+        onSuccess: (result) => {
+          if (onScoredRemediesChange && result.scoredRemedies) {
+            onScoredRemediesChange(result.scoredRemedies);
+          }
+          // Auto-suggest the top remedy to the prescription draft
+          if (result.scoredRemedies.length > 0) {
+            const bestRemedy = result.scoredRemedies[0];
+            onAutoSuggestRemedy?.(bestRemedy.remedyName, bestRemedy.commonPotencies);
+          }
+        },
+      },
+    );
   }, [rubricsFingerprint, observations, clinicalFindings]);
 
+  // Sync with parent when rubrics change
   const lastEmittedFingerprint = useRef<string>('');
+
   useEffect(() => {
     if (onRubricsChange) {
-      const array = Array.from(selectedRubrics.values()).map(r => ({ rubricId: r.rubricId, description: r.description, category: r.category as 'MIND' | 'GENERAL' | 'PARTICULAR', chapter: r.chapter || null, importance: r.importance, source: r.source, confidence: 100, remedyCount: 0 } as SuggestedRubric));
-      const fp = array.map(r => `${r.rubricId}-${r.importance}`).sort().join('|');
-      if (fp !== lastEmittedFingerprint.current) { lastEmittedFingerprint.current = fp; onRubricsChange(array); }
+      const array = Array.from(selectedRubrics.values()).map(r => ({
+        rubricId: r.rubricId,
+        description: r.description,
+        category: r.category as 'MIND' | 'GENERAL' | 'PARTICULAR',
+        chapter: r.chapter || null,
+        importance: r.importance,
+        source: r.source,
+        confidence: 100,
+        remedyCount: 0,
+      } as SuggestedRubric));
+      
+      const fingerprint = array.map(r => `${r.rubricId}-${r.importance}`).sort().join('|');
+      if (fingerprint !== lastEmittedFingerprint.current) {
+        lastEmittedFingerprint.current = fingerprint;
+        onRubricsChange(array);
+      }
     }
   }, [selectedRubrics, onRubricsChange]);
+
+  // ─── Differential toggle ───
 
   const selectedArray = useMemo(() => Array.from(selectedRubrics.values()), [selectedRubrics]);
 
   return (
     <Card id="section-rubrics">
-      <CardContent style={{ padding: '0.75rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-        {/* Header */}
-        <button type="button" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} onClick={() => setExpanded(!expanded)}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <BookOpen style={{ width: 16, height: 16, color: '#8B5CF6' }} />
-            <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500, color: 'var(--text-secondary)' }}>Repertory</span>
-            <span style={{ fontSize: 10, padding: '0.125rem 0.375rem', borderRadius: 'var(--radius-full)', background: '#EDE9FE', color: '#4C1D95', fontWeight: 500 }}>Repertorization</span>
-            {selectedRubrics.size > 0 && <span style={{ fontSize: 10, padding: '0.125rem 0.375rem', borderRadius: 'var(--radius-full)', background: 'var(--color-success-100)', color: 'var(--color-success-700)', fontWeight: 500 }}>{selectedRubrics.size} selected</span>}
+      <CardContent className="px-4 py-3 space-y-3">
+        {/* ─── Header ─── */}
+        <button
+          type="button"
+          className="flex items-center justify-between w-full"
+          onClick={() => setExpanded(!expanded)}
+        >
+          <div className="flex items-center gap-2">
+            <BookOpen className="h-4 w-4 text-purple-500" />
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Repertory
+            </span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 font-medium">
+              Repertorization
+            </span>
+            {selectedRubrics.size > 0 && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300 font-medium">
+                {selectedRubrics.size} selected
+              </span>
+            )}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            {!expanded && selectedRubrics.size > 0 && <span style={{ fontSize: 10, padding: '0.125rem 0.375rem', borderRadius: 'var(--radius-full)', background: 'var(--color-success-100)', color: 'var(--color-success-700)', fontWeight: 500, whiteSpace: 'nowrap' }}>{selectedRubrics.size} active</span>}
-            <button type="button" onClick={e => { e.stopPropagation(); handleReset(); }} title="Reset Repertory" style={{ padding: 4, borderRadius: 6, border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-disabled)', transition: 'all var(--transition-fast)' }}
-              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = '#FEF2F2'; (e.currentTarget as HTMLButtonElement).style.color = '#EF4444'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-disabled)'; }}>
-              <RotateCcw style={{ width: 14, height: 14 }} />
+          <div className="flex items-center gap-2">
+            {!expanded && selectedRubrics.size > 0 && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300 font-medium whitespace-nowrap">
+                {selectedRubrics.size} active
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleReset();
+              }}
+              className="p-1 hover:bg-red-50 hover:text-red-600 rounded-md transition-colors group"
+              title="Reset Repertory"
+            >
+              <RotateCcw className="h-3.5 w-3.5 text-gray-400 group-hover:text-red-500" />
             </button>
-            <ChevronRight style={{ width: 16, height: 16, color: 'var(--text-tertiary)', transform: expanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
+            <ChevronRight
+              className={`h-4 w-4 text-gray-400 transition-transform ${expanded ? 'rotate-90' : ''}`}
+            />
           </div>
         </button>
 
         {expanded && (
           <>
-            {/* Kent Search */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', borderRadius: 'var(--radius-card)', border: '1px solid #DDD6FE', background: 'var(--bg-card)', padding: '0.75rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Search style={{ width: 14, height: 14, color: '#8B5CF6' }} />
-                <span style={{ fontSize: 10, fontWeight: 700, color: '#6D28D9', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Search Kent's Repertory</span>
-                <span style={{ fontSize: 9, padding: '0.125rem 0.375rem', borderRadius: 'var(--radius-full)', background: '#EDE9FE', color: '#4C1D95', fontWeight: 700 }}>AI-Powered</span>
-              </div>
-              <div style={{ position: 'relative' }}>
-                <Search style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: 'var(--text-tertiary)' }} />
-                <Input value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder='Search any symptom e.g. "jealousy", "headache worse motion", "fear of dark"...' style={{ height: '2.25rem', fontSize: 'var(--font-size-xs)', paddingLeft: '2rem' }} />
-              </div>
-              <div style={{ maxHeight: '13rem', overflowY: 'auto', borderRadius: 'var(--radius-card)', border: '1px solid var(--border-default)', background: 'var(--bg-card)' }}>
-                {!debouncedSearch ? (
-                  <div style={{ padding: '1rem', textAlign: 'center', fontSize: 'var(--font-size-xs)', color: 'var(--text-disabled)' }}>
-                    <BookOpen style={{ width: 20, height: 20, margin: '0 auto 0.5rem', color: 'var(--border-default)' }} />
-                    Type a symptom keyword to search Kent's Repertory
-                  </div>
-                ) : kentLoading || kentFetching ? (
-                  <div style={{ padding: '1rem', textAlign: 'center', fontSize: 'var(--font-size-xs)', color: '#8B5CF6', animation: 'pulse 2s infinite' }}>
-                    <Brain style={{ width: 20, height: 20, margin: '0 auto 0.5rem' }} />
-                    Searching Kent's Repertory for "{debouncedSearch}"...
-                  </div>
-                ) : !kentResults || kentResults.length === 0 ? (
-                  <div style={{ padding: '1rem', textAlign: 'center', fontSize: 'var(--font-size-xs)', color: 'var(--text-disabled)' }}>No rubrics found for "{debouncedSearch}"</div>
-                ) : (
-                  kentResults.map((rubric) => {
-                    const isSelected = selectedRubrics.has(rubric.rubricId);
-                    return (
-                      <button key={rubric.rubricId} type="button" style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.625rem 0.75rem', textAlign: 'left', cursor: 'pointer', border: 'none', borderLeft: `2px solid ${isSelected ? '#8B5CF6' : 'transparent'}`, borderBottom: '1px solid var(--border-light)', background: isSelected ? 'rgba(245,243,255,0.6)' : 'var(--bg-card)', transition: 'all var(--transition-fast)' }}
-                        onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-surface-2)'; }}
-                        onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-card)'; }}
-                        onClick={() => { setSelectedRubrics(prev => { const next = new Map(prev); if (next.has(rubric.rubricId)) next.delete(rubric.rubricId); else { next.set(rubric.rubricId, { rubricId: rubric.rubricId, description: rubric.description, category: rubric.category as RubricCategory, chapter: rubric.chapter, importance: rubric.importance, source: 'manual' }); setIsRubricsExpanded(true); } return next; }); }}>
-                        <div style={{ width: 16, height: 16, borderRadius: 4, border: '1px solid', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', ...(isSelected ? { background: '#7C3AED', borderColor: '#7C3AED', color: 'white' } : { borderColor: 'var(--border-strong)' }) }}>
-                          {isSelected && <Check style={{ width: 12, height: 12 }} />}
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontSize: 'var(--font-size-xs)', margin: 0, color: isSelected ? '#4C1D95' : 'var(--text-secondary)', fontWeight: isSelected ? 500 : 400 }}>{rubric.description}</p>
-                          <p style={{ fontSize: 10, color: 'var(--text-disabled)', margin: 0 }}>{rubric.chapter} · {rubric.category}</p>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexShrink: 0 }}>
-                          <span style={{ fontSize: 9, padding: '0.125rem 0.375rem', borderRadius: 'var(--radius-full)', fontWeight: 700, ...(rubric.importance >= 4 ? { background: '#FEE2E2', color: '#7F1D1D' } : rubric.importance >= 3 ? { background: '#FFEDD5', color: '#9A3412' } : { background: 'var(--bg-surface-2)', color: 'var(--text-tertiary)' }) }}>
-                            {IMPORTANCE_LABELS[rubric.importance] || 'Moderate'}
-                          </span>
-                          <span style={{ fontSize: 10, color: 'var(--text-disabled)' }}>~{rubric.remedyCount}</span>
-                        </div>
-                      </button>
-                    );
-                  })
-                )}
-              </div>
-            </div>
+            {/* ════════════════════════════════════════════
+                SECTION 2: Manual Rubric Browser (multi-select)
+                ════════════════════════════════════════════ */}
+            <div className="space-y-3">
+              {/* ─── Repertory AI Search ─── */}
+              <div className="rounded-lg border border-purple-200 dark:border-purple-800 bg-white dark:bg-gray-950 p-3 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Search className="h-3.5 w-3.5 text-purple-500" />
+                  <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-widest">Search Repertory</span>
+                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-600 font-bold">AI-Powered</span>
+                </div>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                  <Input
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder='Search any symptom e.g. "jealousy", "headache worse motion", "fear of dark"...'
+                    className="h-9 text-xs pl-8"
+                  />
+                </div>
 
-            {/* Custom Rubric Input */}
-            <div style={{ borderRadius: 'var(--radius-card)', border: '1px dashed var(--border-default)', background: 'var(--bg-surface-2)', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Type style={{ width: 12, height: 12, color: 'var(--text-disabled)' }} />
-                <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Or type a custom rubric manually</span>
-              </div>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <Input value={customRubricText} onChange={e => setCustomRubricText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddCustomRubric(); } }} placeholder="e.g. Mind - Jealousy - morning" style={{ height: '1.75rem', fontSize: 11, flex: 1 }} />
-                <button type="button" onClick={handleAddCustomRubric} disabled={!customRubricText.trim()} style={{ height: '1.75rem', padding: '0 0.625rem', borderRadius: 'var(--radius-card)', background: 'var(--text-secondary)', color: 'white', fontSize: 10, fontWeight: 700, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, opacity: customRubricText.trim() ? 1 : 0.4, transition: 'opacity var(--transition-fast)' }}>
-                  <Plus style={{ width: 12, height: 12 }} /> Add
-                </button>
-              </div>
-            </div>
-
-            {/* Selected rubrics */}
-            {selectedArray.length > 0 && (
-              <div style={{ borderRadius: 'var(--radius-xl)', border: '1px solid #EDE9FE', overflow: 'hidden', background: 'var(--bg-card)', boxShadow: 'var(--shadow-xs)', marginTop: '1rem', transition: 'all 0.3s' }}>
-                <button type="button" onClick={() => setIsRubricsExpanded(!isRubricsExpanded)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', background: 'none', border: 'none', cursor: 'pointer', transition: 'background var(--transition-fast)' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(245,243,255,0.5)')} onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <div style={{ padding: '0.375rem', borderRadius: 8, ...(scoreMutation.isPending ? { background: '#EDE9FE', color: '#6D28D9', animation: 'pulse 2s infinite' } : { background: 'rgba(245,243,255,0.5)', color: '#8B5CF6' }) }}>
-                      <BarChart3 style={{ width: 14, height: 14 }} />
+                {/* Results */}
+                <div className="max-h-52 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-800">
+                  {!debouncedSearch ? (
+                    <div className="p-4 text-center text-xs text-gray-400">
+                      <BookOpen className="h-5 w-5 mx-auto mb-2 text-gray-300" />
+                      Type a symptom keyword to search the repertory
                     </div>
-                    <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Selected Rubrics ({selectedArray.length})</span>
+                  ) : kentLoading || kentFetching ? (
+                    <div className="p-4 text-center text-xs text-purple-500 animate-pulse">
+                      <Brain className="h-5 w-5 mx-auto mb-2 animate-bounce" />
+                      Searching repertory for "{debouncedSearch}"...
+                    </div>
+                  ) : !kentResults || kentResults.length === 0 ? (
+                    <div className="p-4 text-center text-xs text-gray-400">
+                      No rubrics found for "{debouncedSearch}"
+                    </div>
+                  ) : (
+                    kentResults.map((rubric) => {
+                      const isSelected = selectedRubrics.has(rubric.rubricId);
+                      return (
+                        <button
+                          key={rubric.rubricId}
+                          type="button"
+                          onClick={() => {
+                            setSelectedRubrics((prev) => {
+                              const next = new Map(prev);
+                              if (next.has(rubric.rubricId)) {
+                                next.delete(rubric.rubricId);
+                              } else {
+                                next.set(rubric.rubricId, {
+                                  rubricId: rubric.rubricId,
+                                  description: rubric.description,
+                                  category: rubric.category as RubricCategory,
+                                  chapter: rubric.chapter,
+                                  importance: rubric.importance,
+                                  source: 'manual',
+                                });
+                                setIsRubricsExpanded(true);
+                              }
+                              return next;
+                            });
+                          }}
+                          className={`w-full flex items-center gap-2 px-3 py-2.5 text-left transition-colors ${
+                            isSelected
+                              ? 'bg-purple-50 dark:bg-purple-950/30 border-l-2 border-purple-500'
+                              : 'hover:bg-gray-50 dark:hover:bg-gray-800/50 border-l-2 border-transparent'
+                          }`}
+                        >
+                          <div
+                            className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                              isSelected
+                                ? 'bg-purple-600 border-purple-600 text-white'
+                                : 'border-gray-300 dark:border-gray-600'
+                            }`}
+                          >
+                            {isSelected && <Check className="h-3 w-3" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-xs ${
+                              isSelected ? 'font-medium text-purple-700 dark:text-purple-300' : 'text-gray-700 dark:text-gray-300'
+                            }`}>
+                              {rubric.description}
+                            </p>
+                            <p className="text-[10px] text-gray-400">
+                              {rubric.chapter} · {rubric.category}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${
+                              rubric.importance >= 4 ? 'bg-red-100 text-red-700' :
+                              rubric.importance >= 3 ? 'bg-orange-100 text-orange-700' :
+                              'bg-gray-100 text-gray-600'
+                            }`}>
+                              {IMPORTANCE_LABELS[rubric.importance] || 'Moderate'}
+                            </span>
+                            <span className="text-[10px] text-gray-400">
+                              ~{rubric.remedyCount}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+              {/* ─── Custom Rubric Input (Free-Text Fallback) ─── */}
+              <div className="rounded-lg border border-dashed border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/20 p-3 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Type className="h-3 w-3 text-gray-400" />
+                  <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Or type a custom rubric manually</span>
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    value={customRubricText}
+                    onChange={(e) => setCustomRubricText(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddCustomRubric(); } }}
+                    placeholder="e.g. Mind - Jealousy - morning"
+                    className="h-7 text-[11px] flex-1"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddCustomRubric}
+                    disabled={!customRubricText.trim()}
+                    className="h-7 px-2.5 rounded-md bg-gray-600 text-white text-[10px] font-bold hover:bg-gray-700 disabled:opacity-40 transition-colors flex items-center gap-1 shrink-0"
+                  >
+                    <Plus className="h-3 w-3" />
+                    Add
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* ════════════════════════════════════════════
+                SECTION 3: Selected Rubrics (Collapsible)
+                ════════════════════════════════════════════ */}
+            {selectedArray.length > 0 && (
+              <div className="border border-purple-100 dark:border-purple-900/30 rounded-xl overflow-hidden bg-white dark:bg-gray-950 shadow-sm mt-4 transition-all duration-300">
+                <button
+                  type="button"
+                  onClick={() => setIsRubricsExpanded(!isRubricsExpanded)}
+                  className="w-full flex items-center justify-between px-4 py-3 hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-colors group"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className={`p-1.5 rounded-lg transition-colors ${scoreMutation.isPending ? 'bg-purple-100 text-purple-600 animate-pulse' : 'bg-purple-50 text-purple-500'}`}>
+                      <BarChart3 className="h-3.5 w-3.5" />
+                    </div>
+                    <span className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest">
+                      Selected Rubrics ({selectedArray.length})
+                    </span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  
+                  <div className="flex items-center gap-3">
                     {!isRubricsExpanded && (
-                      <div style={{ display: 'flex', marginRight: '0.5rem' }}>
+                      <div className="flex -space-x-1 overflow-hidden mr-2">
                         {selectedArray.slice(0, 3).map((r, i) => (
-                          <div key={i} style={{ width: 16, height: 16, borderRadius: '50%', border: '1px solid var(--bg-card)', background: '#EDE9FE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700, color: '#6D28D9', marginLeft: i > 0 ? -4 : 0 }}>
+                          <div key={i} className="h-4 w-4 rounded-full border border-white dark:border-gray-950 bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center text-[8px] font-bold text-purple-600">
                             {r.description[0]}
                           </div>
                         ))}
                       </div>
                     )}
-                    {isRubricsExpanded ? <ChevronUp style={{ width: 16, height: 16, color: 'var(--text-tertiary)' }} /> : <ChevronDown style={{ width: 16, height: 16, color: 'var(--text-tertiary)' }} />}
+                    {isRubricsExpanded ? (
+                      <ChevronUp className="h-4 w-4 text-gray-400 group-hover:text-purple-600" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 text-gray-400 group-hover:text-purple-600" />
+                    )}
                   </div>
                 </button>
 
                 {isRubricsExpanded && (
-                  <CardContent style={{ padding: '0.75rem 1rem', paddingTop: 0, borderTop: '1px solid #EDE9FE', animation: 'fadeIn 0.2s ease-out' }}>
-                    <div style={{ paddingTop: '0.75rem', display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
+                  <CardContent className="px-4 py-3 pt-0 animate-in fade-in slide-in-from-top-2 duration-300 space-y-3 border-t border-purple-50 dark:border-purple-900/20 mt-0">
+                    <div className="pt-3 flex flex-wrap gap-1.5">
                       {selectedArray.map((rubric) => (
-                        <div key={rubric.rubricId} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', borderRadius: 'var(--radius-card)', border: '1px solid #EDE9FE', background: 'var(--bg-card)', padding: '0.25rem 0.5rem', boxShadow: 'var(--shadow-xs)', transition: 'border-color var(--transition-fast)' }}>
-                          <span style={{ fontSize: 8, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#8B5CF6' }}>{rubric.category[0]}</span>
-                          <span style={{ fontSize: 10, color: 'var(--text-secondary)', maxWidth: '7.5rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}>{rubric.description}</span>
-                          <div style={{ display: 'flex', gap: 2, marginLeft: 4, borderLeft: '1px solid #EDE9FE', paddingLeft: 6 }}>
-                            {[1, 2, 3, 4].map(imp => (
-                              <button key={imp} type="button" onClick={e => { e.stopPropagation(); updateImportance(rubric.rubricId, imp); }} title={IMPORTANCE_LABELS[imp]} style={{ width: 14, height: 14, borderRadius: '50%', fontSize: 7, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer', transition: 'all var(--transition-fast)', ...(imp <= rubric.importance ? { ...IMPORTANCE_STYLES[rubric.importance], transform: 'scale(1.1)', boxShadow: 'var(--shadow-xs)' } : { background: 'var(--bg-surface-2)', color: 'var(--text-disabled)' }) }}>
+                        <div
+                          key={rubric.rubricId}
+                          className="inline-flex items-center gap-1 rounded-lg border border-purple-100 dark:border-purple-800 bg-white dark:bg-gray-900 px-2 py-1 shadow-sm hover:border-purple-300 transition-colors"
+                        >
+                          {/* Category badge */}
+                          <span className="text-[8px] font-bold uppercase tracking-wide text-purple-500 dark:text-purple-400">
+                            {rubric.category[0]}
+                          </span>
+                          {/* Description */}
+                          <span className="text-[10px] text-gray-700 dark:text-gray-300 max-w-[120px] truncate font-medium">
+                            {rubric.description}
+                          </span>
+                          {/* Importance buttons */}
+                          <div className="flex gap-0.5 ml-1 border-l border-purple-100 dark:border-purple-800 pl-1.5">
+                            {[1, 2, 3, 4].map((imp) => (
+                              <button
+                                key={imp}
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  updateImportance(rubric.rubricId, imp);
+                                }}
+                                className={`w-3.5 h-3.5 rounded-full text-[7px] font-bold flex items-center justify-center transition-all ${
+                                  imp <= rubric.importance
+                                    ? IMPORTANCE_COLORS[rubric.importance] + ' scale-110 shadow-sm'
+                                    : 'bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-600 hover:bg-gray-200'
+                                }`}
+                                title={IMPORTANCE_LABELS[imp]}
+                              >
                                 {imp}
                               </button>
                             ))}
                           </div>
-                          <button type="button" onClick={e => { e.stopPropagation(); removeSelectedRubric(rubric.rubricId); }} style={{ color: 'var(--text-disabled)', background: 'none', border: 'none', cursor: 'pointer', padding: 2, marginLeft: 4, borderRadius: 4, transition: 'all var(--transition-fast)' }}
-                            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = '#FEF2F2'; (e.currentTarget as HTMLButtonElement).style.color = '#EF4444'; }}
-                            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-disabled)'; }}>
-                            <X style={{ width: 10, height: 10 }} />
+                          {/* Remove */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeSelectedRubric(rubric.rubricId);
+                            }}
+                            className="text-gray-400 hover:text-red-500 transition-colors ml-1 p-0.5 hover:bg-red-50 rounded"
+                          >
+                            <X className="h-2.5 w-2.5" />
                           </button>
                         </div>
                       ))}
@@ -252,6 +575,12 @@ export function RubricRepertory({ visitId, onAutoSuggestRemedy, initialRubrics, 
                 )}
               </div>
             )}
+
+            {/* ════════════════════════════════════════════
+                SECTION 4: Scored Remedies & Differential Matrix (Hiden from UI as per user request)
+                ════════════════════════════════════════════ */}
+            {/* These were removed to reduce redundancy as the top remedy is auto-prescribed in the Remedy Plan */}
+
           </>
         )}
       </CardContent>

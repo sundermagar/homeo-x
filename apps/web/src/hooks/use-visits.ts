@@ -33,6 +33,7 @@ export function useVisit(id: string | undefined) {
     queryKey: ['visit', id],
     queryFn: () => api.get<Visit>(`${API.VISITS}/${id}`),
     enabled: !!id,
+    retry: false,
   });
 }
 

@@ -89,3 +89,14 @@ check_*.ts
 verify_*.ts
 *.ours
 *.theirs
+
+# Cloud credentials — NEVER commit
+google-stt-credentials.json
+**/google-stt-credentials.json
+*-credentials.json
+service-account*.json
+
+# Local dev logs
+ts_errors.txt
+**/ts_errors.txt
+.turbo/

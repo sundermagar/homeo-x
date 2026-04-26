@@ -4,7 +4,7 @@ const logger = createLogger('ai-config');
 
 export interface AiProviderConfig {
   name: string;
-  type: 'gemini' | 'groq' | 'azure';
+  type: 'anthropic' | 'gemini' | 'groq' | 'azure';
   keys: string[];
   models: string[];
   isAvailable: boolean;
@@ -43,12 +43,23 @@ class AiConfigService {
   }
 
   private loadFromEnv(): AiConfig {
+    const anthropicKeys = this.parseKeys(process.env.ANTHROPIC_API_KEY);
     const geminiKeys = this.parseKeys(process.env.GEMINI_API_KEY);
     const groqKeys = this.parseKeys(process.env.GROQ_API_KEY);
     const azureKey = process.env.AI_API_KEY ? [process.env.AI_API_KEY] : [];
 
+    const anthropicModel = process.env.AIMODEL || 'claude-haiku-4-5-20251001';
+
     return {
       providers: [
+        {
+          name: 'Anthropic Claude',
+          type: 'anthropic',
+          keys: anthropicKeys,
+          models: [anthropicModel],
+          isAvailable: anthropicKeys.length > 0,
+          rateLimit: { maxPerMinute: 1000 * anthropicKeys.length, currentUsage: 0 },
+        },
         {
           name: 'Google Gemini',
           type: 'gemini',
@@ -92,7 +103,7 @@ class AiConfigService {
     const totalKeys = available.reduce((sum, p) => sum + p.keys.length, 0);
 
     if (available.length === 0) {
-      logger.error('NO AI PROVIDERS CONFIGURED. Set GEMINI_API_KEY or GROQ_API_KEY in .env');
+      logger.error('NO AI PROVIDERS CONFIGURED. Set ANTHROPIC_API_KEY, GEMINI_API_KEY or GROQ_API_KEY in .env');
     } else {
       logger.info(`AI providers ready: ${available.map((p) => `${p.name} (${p.keys.length} keys)`).join(', ')}`);
     }

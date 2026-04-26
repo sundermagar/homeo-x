@@ -47,6 +47,15 @@ import { recordsRouter } from './routes/records.router';
 import { staffRouter } from './routes/staff.router';
 import { createSettingsRouter } from './routes/settings.router';
 import { exportRouter } from './routes/export.router';
+import { consultationsRouter } from './routes/consultations.router';
+import { aiRouter } from './routes/ai.router';
+import { scribingRouter } from './routes/scribing.router';
+import { visitsRouter } from './routes/visits.router';
+import { videoCallRouter } from './routes/video-call.router';
+import { specialtiesRouter } from './routes/specialties.router';
+import { setupTranscriptionGateway } from './gateways/transcription.gateway';
+import { TranslatorEngine } from '../../domains/consultation/engines/translator.engine';
+import { getAiProviderChain } from '../ai/ai-provider-chain';
 
 const logger = createLogger('http');
 
@@ -151,6 +160,29 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
 
   // Data Export
   app.use('/api/export', authMiddleware, exportRouter);
+
+  // ─── Consultation, Scribing, AI, Visits (JWT required) ───
+  app.use('/api/consultations', authMiddleware, consultationsRouter);
+  app.use('/api/scribing', authMiddleware, scribingRouter);
+  app.use('/api/ai', authMiddleware, aiRouter);
+  app.use('/api/visits', authMiddleware, visitsRouter);
+  app.use('/api/specialties', authMiddleware, specialtiesRouter);
+
+  // ─── Video Call (LiveKit token issuance) ───
+  // Mounted without authMiddleware because the patient-join link must be
+  // accessible without a doctor's JWT. The doctor `/token` endpoint reads
+  // req.user.id when present and falls back to 'system' otherwise.
+  app.use('/api/video-call', videoCallRouter);
+
+  // ─── Real-time transcription gateway (Socket.IO /transcription namespace) ───
+  // Web clients send PCM audio chunks; the gateway streams them to Google STT
+  // and broadcasts transcripts back. The translator engine renders Hindi → English.
+  try {
+    const translator = new TranslatorEngine(getAiProviderChain());
+    setupTranscriptionGateway(io, translator);
+  } catch (err: any) {
+    logger.error({ err: err?.message }, 'Failed to initialize transcription gateway');
+  }
 
   // ─── Error Handling (must be last) ───
   app.use(errorHandler);

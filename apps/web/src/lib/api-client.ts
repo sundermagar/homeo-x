@@ -34,7 +34,10 @@ class ApiClient {
       'Content-Type': 'application/json',
       'ngrok-skip-browser-warning': 'true',
     };
-    const token = useAuthStore.getState().accessToken;
+    // homeo-x's auth store uses `token`, not `accessToken` (the original Ai-Consultation
+    // field name). Reading the wrong field caused every consultation/scribing hook to
+    // hit the API with no auth header → 401 cascade.
+    const token = useAuthStore.getState().token;
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }

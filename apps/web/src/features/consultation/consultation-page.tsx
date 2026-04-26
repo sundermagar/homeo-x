@@ -180,68 +180,64 @@ export function ConsultationPage() {
       )}
 
       {step === 'soap' && (
-        /* Two-column layout: left scrolls, right panel is sticky */
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '1.5rem', alignItems: 'start' }}>
-          {/* ── LEFT: scrollable content ── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <SoapEditor
-              data={soapData}
-              onChange={setSoapData}
-              specialtyFields={specialtyConfig?.soapFields}
-              aiContext={visitId ? {
-                visitId,
+        <div className="space-y-4">
+          {/* Voice-first: Ambient Scribe */}
+          {visitId && (
+            <AmbientScribe
+              visitId={visitId}
+              aiContext={{
                 specialty: visit.specialty,
-                vitals: visit.vitals ? {
-                  heightCm: visit.vitals.heightCm,
-                  weightKg: visit.vitals.weightKg,
-                  temperatureF: visit.vitals.temperatureF,
-                  pulseRate: visit.vitals.pulseRate,
-                  systolicBp: visit.vitals.systolicBp,
-                  diastolicBp: visit.vitals.diastolicBp,
-                } : undefined,
                 patientAge: patient?.dateOfBirth ? calculateAge(patient.dateOfBirth) : undefined,
                 patientGender: patient?.gender,
                 allergies: patient?.allergies,
-                transcript: ongoingTranscript,
-              } : undefined}
-              externalSuggestion={scribeSuggestion}
-              onExternalSuggestionHandled={() => setScribeSuggestion(null)}
+              }}
+
+              onSoapGenerated={(suggestion) => setScribeSuggestion(suggestion)}
+              onTranscriptUpdate={setOngoingTranscript}
             />
+          )}
 
-            {visitId && (
-              <RubricRepertory
-                visitId={visitId}
-                onAutoSuggestRemedy={handleAutoSuggestRemedy}
-              />
-            )}
-
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Button variant="outline" onClick={() => setStep('vitals')}>Back</Button>
-              <Button onClick={() => setStep('prescription')}>Next: Prescription</Button>
-            </div>
-          </div>
-
-          {/* ── RIGHT: sticky transcription sidebar ── */}
-          <div style={{
-            position: 'sticky',
-            top: '1rem',
-            height: 'calc(100vh - 8rem)',
-            minHeight: '520px',
-          }}>
-            {visitId && (
-              <AmbientScribe
-                visitId={visitId}
-                aiContext={{
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+            <div className="xl:col-span-7 space-y-4">
+              <SoapEditor
+                data={soapData}
+                onChange={setSoapData}
+                specialtyFields={specialtyConfig?.soapFields}
+                aiContext={visitId ? {
+                  visitId,
                   specialty: visit.specialty,
+                  vitals: visit.vitals ? {
+                    heightCm: visit.vitals.heightCm,
+                    weightKg: visit.vitals.weightKg,
+                    temperatureF: visit.vitals.temperatureF,
+                    pulseRate: visit.vitals.pulseRate,
+                    systolicBp: visit.vitals.systolicBp,
+                    diastolicBp: visit.vitals.diastolicBp,
+                  } : undefined,
                   patientAge: patient?.dateOfBirth ? calculateAge(patient.dateOfBirth) : undefined,
                   patientGender: patient?.gender,
                   allergies: patient?.allergies,
-                }}
-                onSoapGenerated={(suggestion) => setScribeSuggestion(suggestion)}
-                onTranscriptUpdate={setOngoingTranscript}
-                onWrapUp={() => setStep('prescription')}
+                  transcript: ongoingTranscript,
+                } : undefined}
+
+                externalSuggestion={scribeSuggestion}
+                onExternalSuggestionHandled={() => setScribeSuggestion(null)}
               />
-            )}
+            </div>
+
+            <div className="xl:col-span-5 space-y-4">
+              {visitId && (
+                <RubricRepertory
+                  visitId={visitId}
+                  onAutoSuggestRemedy={handleAutoSuggestRemedy}
+                />
+              )}
+            </div>
+          </div>
+
+          <div className="flex justify-between">
+            <Button variant="outline" onClick={() => setStep('vitals')}>Back</Button>
+            <Button onClick={() => setStep('prescription')}>Next: Prescription</Button>
           </div>
         </div>
       )}

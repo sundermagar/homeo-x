@@ -3,44 +3,96 @@ import { FlaskConical, Plus, X, Sparkles } from 'lucide-react';
 import { Card, CardContent } from '../../../components/ui/card';
 import { Input } from '../../../components/ui/input';
 
-interface LabQuickOrderProps { selectedTests: string[]; onTestsChange: (tests: string[]) => void; aiSuggestedTests?: string[]; }
-
-const COMMON_TESTS = ['CBC', 'LFT', 'KFT', 'Lipid Panel', 'HbA1c', 'TFT', 'Urine R/M', 'CRP', 'ESR', 'Blood Sugar (F)', 'Blood Sugar (PP)', 'Chest X-Ray', 'ECG', 'USG Abdomen'];
-
-const chipActive   = { bg: 'var(--color-success-100)', color: 'var(--color-success-800)', border: 'var(--color-success-300)' };
-const chipInactive = { bg: 'var(--bg-surface-2)',      color: 'var(--text-secondary)',    border: 'var(--border-default)' };
-const aiActive     = { bg: '#EDE9FE', color: '#4C1D95', border: '#C4B5FD' };
-const aiInactive   = { bg: '#F5F3FF', color: '#5B21B6', border: '#DDD6FE' };
-
-function chip(s: { bg: string; color: string; border: string }) {
-  return { display: 'inline-flex', alignItems: 'center', gap: 4, borderRadius: 'var(--radius-full)', padding: '0.25rem 0.625rem', fontSize: 'var(--font-size-xs)', fontWeight: 500, border: `1px solid ${s.border}`, background: s.bg, color: s.color, cursor: 'pointer', transition: 'all var(--transition-fast)' } as React.CSSProperties;
+interface LabQuickOrderProps {
+  selectedTests: string[];
+  onTestsChange: (tests: string[]) => void;
+  /** AI-suggested tests based on diagnosis context */
+  aiSuggestedTests?: string[];
 }
 
-export function LabQuickOrder({ selectedTests, onTestsChange, aiSuggestedTests = [] }: LabQuickOrderProps) {
+const COMMON_TESTS = [
+  'CBC',
+  'LFT',
+  'KFT',
+  'Lipid Panel',
+  'HbA1c',
+  'TFT',
+  'Urine R/M',
+  'CRP',
+  'ESR',
+  'Blood Sugar (F)',
+  'Blood Sugar (PP)',
+  'Chest X-Ray',
+  'ECG',
+  'USG Abdomen',
+];
+
+export function LabQuickOrder({
+  selectedTests,
+  onTestsChange,
+  aiSuggestedTests = [],
+}: LabQuickOrderProps) {
   const [customInput, setCustomInput] = useState('');
   const [showCustom, setShowCustom] = useState(false);
-  const toggle = (t: string) => onTestsChange(selectedTests.includes(t) ? selectedTests.filter(x => x !== t) : [...selectedTests, t]);
-  const addCustom = () => { const t = customInput.trim(); if (t && !selectedTests.includes(t)) { onTestsChange([...selectedTests, t]); setCustomInput(''); setShowCustom(false); } };
+
+  const toggle = (test: string) => {
+    if (selectedTests.includes(test)) {
+      onTestsChange(selectedTests.filter((t) => t !== test));
+    } else {
+      onTestsChange([...selectedTests, test]);
+    }
+  };
+
+  const addCustom = () => {
+    const trimmed = customInput.trim();
+    if (trimmed && !selectedTests.includes(trimmed)) {
+      onTestsChange([...selectedTests, trimmed]);
+      setCustomInput('');
+      setShowCustom(false);
+    }
+  };
 
   return (
     <Card id="section-lab">
-      <CardContent style={{ padding: '0.75rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <FlaskConical style={{ width: 16, height: 16, color: 'var(--text-tertiary)' }} />
-          <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500, color: 'var(--text-secondary)' }}>Lab Orders</span>
-          {selectedTests.length > 0 && <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)' }}>({selectedTests.length})</span>}
+      <CardContent className="px-4 py-3 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <FlaskConical className="h-4 w-4 text-gray-400" />
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Lab Orders
+            </span>
+            {selectedTests.length > 0 && (
+              <span className="text-xs text-gray-400">
+                ({selectedTests.length})
+              </span>
+            )}
+          </div>
         </div>
 
+        {/* AI suggested tests — highlighted */}
         {aiSuggestedTests.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-            <p style={{ fontSize: 11, fontWeight: 500, color: '#7C3AED', display: 'flex', alignItems: 'center', gap: 4, margin: 0 }}><Sparkles style={{ width: 12, height: 12 }} /> Suggested based on diagnosis</p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
-              {aiSuggestedTests.map(test => {
-                const sel = selectedTests.includes(test);
-                const s = sel ? aiActive : aiInactive;
+          <div className="space-y-1.5">
+            <p className="text-[11px] font-medium text-purple-600 dark:text-purple-400 flex items-center gap-1">
+              <Sparkles className="h-3 w-3" />
+              Suggested based on diagnosis
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {aiSuggestedTests.map((test) => {
+                const selected = selectedTests.includes(test);
                 return (
-                  <button key={`ai-${test}`} type="button" onClick={() => toggle(test)} style={chip(s)}>
-                    <Sparkles style={{ width: 12, height: 12 }} />{test}{sel && <X style={{ width: 12, height: 12, marginLeft: 2 }} />}
+                  <button
+                    key={`ai-${test}`}
+                    type="button"
+                    onClick={() => toggle(test)}
+                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors border ${
+                      selected
+                        ? 'bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900/40 dark:text-purple-300 dark:border-purple-700'
+                        : 'bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-800 hover:bg-purple-100 dark:hover:bg-purple-900/40'
+                    }`}
+                  >
+                    <Sparkles className="h-3 w-3" />
+                    {test}
+                    {selected && <X className="h-3 w-3 ml-0.5" />}
                   </button>
                 );
               })}
@@ -48,24 +100,81 @@ export function LabQuickOrder({ selectedTests, onTestsChange, aiSuggestedTests =
           </div>
         )}
 
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
-          {COMMON_TESTS.map(test => {
-            if (aiSuggestedTests.includes(test)) return null;
-            const sel = selectedTests.includes(test);
-            const s = sel ? chipActive : chipInactive;
-            return <button key={test} type="button" onClick={() => toggle(test)} style={chip(s)}>{test}{sel && <X style={{ width: 12, height: 12, marginLeft: 2 }} />}</button>;
+        {/* Common tests — quick select chips */}
+        <div className="flex flex-wrap gap-1.5">
+          {COMMON_TESTS.map((test) => {
+            const selected = selectedTests.includes(test);
+            const isAiSuggested = aiSuggestedTests.includes(test);
+            // Skip if already shown in AI section
+            if (isAiSuggested) return null;
+            return (
+              <button
+                key={test}
+                type="button"
+                onClick={() => toggle(test)}
+                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors border ${
+                  selected
+                    ? 'bg-teal-100 text-teal-800 border-teal-300 dark:bg-teal-900/40 dark:text-teal-300 dark:border-teal-700'
+                    : 'bg-gray-50 text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+              >
+                {test}
+                {selected && <X className="h-3 w-3 ml-0.5" />}
+              </button>
+            );
           })}
-          {selectedTests.filter(t => !COMMON_TESTS.includes(t) && !aiSuggestedTests.includes(t)).map(test => (
-            <button key={`custom-${test}`} type="button" onClick={() => toggle(test)} style={chip(chipActive)}>{test}<X style={{ width: 12, height: 12, marginLeft: 2 }} /></button>
-          ))}
+
+          {/* Custom tests in selected list */}
+          {selectedTests
+            .filter((t) => !COMMON_TESTS.includes(t) && !aiSuggestedTests.includes(t))
+            .map((test) => (
+              <button
+                key={`custom-${test}`}
+                type="button"
+                onClick={() => toggle(test)}
+                className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium bg-teal-100 text-teal-800 border border-teal-300 dark:bg-teal-900/40 dark:text-teal-300 dark:border-teal-700 transition-colors"
+              >
+                {test}
+                <X className="h-3 w-3 ml-0.5" />
+              </button>
+            ))}
+
+          {/* Add custom button / input */}
           {showCustom ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-              <Input value={customInput} onChange={e => setCustomInput(e.target.value)} placeholder="Test name" style={{ height: '1.75rem', width: '8rem', fontSize: 'var(--font-size-xs)' }} autoFocus onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCustom(); } if (e.key === 'Escape') { setShowCustom(false); setCustomInput(''); } }} />
-              <button type="button" onClick={addCustom} style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-success-600)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500 }}>Add</button>
+            <div className="flex items-center gap-1">
+              <Input
+                value={customInput}
+                onChange={(e) => setCustomInput(e.target.value)}
+                placeholder="Test name"
+                className="h-7 w-32 text-xs"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addCustom();
+                  }
+                  if (e.key === 'Escape') {
+                    setShowCustom(false);
+                    setCustomInput('');
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={addCustom}
+                className="text-xs text-teal-600 dark:text-teal-400 hover:underline font-medium"
+              >
+                Add
+              </button>
             </div>
           ) : (
-            <button type="button" onClick={() => setShowCustom(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, borderRadius: 'var(--radius-full)', padding: '0.25rem 0.625rem', fontSize: 'var(--font-size-xs)', fontWeight: 500, color: 'var(--text-tertiary)', border: '1px dashed var(--border-default)', background: 'none', cursor: 'pointer', transition: 'all var(--transition-fast)' }}>
-              <Plus style={{ width: 12, height: 12 }} /> Other
+            <button
+              type="button"
+              onClick={() => setShowCustom(true)}
+              className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium text-gray-400 border border-dashed border-gray-300 dark:border-gray-600 hover:text-gray-600 dark:hover:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500 transition-colors"
+            >
+              <Plus className="h-3 w-3" />
+              Other
             </button>
           )}
         </div>

@@ -35,6 +35,7 @@ export function usePatient(regid: number) {
       return res.data.data ?? null;
     },
     enabled: !!regid,
+    retry: false,
   });
 }
 

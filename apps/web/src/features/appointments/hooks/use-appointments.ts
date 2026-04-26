@@ -39,6 +39,19 @@ export function useAppointments(filters: {
   });
 }
 
+// ─── Single Appointment ────────────────────────────────────────────────────────
+export function useAppointment(id: number | string | undefined) {
+  return useQuery({
+    queryKey: apptKeys.detail(Number(id)),
+    queryFn: async () => {
+      const res = await apiClient.get<{ success: boolean; data: Appointment }>(`/appointments/${id}`);
+      return res.data.data;
+    },
+    enabled: !!id,
+    retry: false,
+  });
+}
+
 // ─── Today's List ─────────────────────────────────────────────────────────────
 export function useTodayAppointments(doctorId?: number) {
   return useQuery({

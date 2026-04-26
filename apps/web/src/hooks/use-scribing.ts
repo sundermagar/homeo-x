@@ -15,7 +15,7 @@ export function useScribingSession(visitId: string | undefined) {
   return useQuery({
     queryKey: ['scribing-session', visitId],
     queryFn: () => api.get<ScribingSession>(API.SCRIBING.SESSION(visitId!)),
-    enabled: false, // Backend session CRUD not yet migrated — prevents 404 console spam
+    enabled: !!visitId,
     retry: false,
   });
 }
@@ -108,6 +108,7 @@ export function useHomeopathyConsult() {
       thermalReaction?: string;
       miasm?: string;
       labReports?: Record<string, string>;
+      consultationMode?: 'acute' | 'chronic' | 'followup';
     }) => api.post<HomeopathyConsultResult>(API.AI.CONSULT_HOMEOPATHY, data),
   });
 }

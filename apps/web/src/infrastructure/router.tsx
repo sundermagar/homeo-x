@@ -9,7 +9,8 @@ const Loading = () => <div style={{ padding: 40, textAlign: 'center', opacity: 0
 // Common Feature Modules
 const LoginPage = lazy(() => import('@/features/auth/pages/login-page'));
 const DashboardPage = lazy(() => import('@/features/dashboard/pages/dashboard-page'));
-const ConsultationPage = lazy(() => import('@/features/consultation/pages/consultation-page'));
+// Multi-stage consultation flow (Patient info → Conversation → Totality → Repertory → Prescription)
+const ConsultationPage = lazy(() => import('@/features/consultation/consultation-mode-page'));
 
 // Patient Module (Selective merge from shiva)
 const PatientListPage = lazy(() => import('@/features/patients/pages/patient-list-page'));

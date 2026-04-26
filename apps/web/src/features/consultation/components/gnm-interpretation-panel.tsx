@@ -1,5 +1,19 @@
 import { useState, useRef, useEffect } from 'react';
-import { Activity, ChevronDown, ChevronRight, Zap, Layers, Heart, Stethoscope, ClipboardList, Trophy, CheckSquare, Sparkles, Plus } from 'lucide-react';
+import {
+  Activity,
+  ChevronDown,
+  ChevronRight,
+  Zap,
+  Layers,
+  Heart,
+  Stethoscope,
+  ClipboardList,
+  Trophy,
+  CheckSquare,
+  Sparkles,
+  Plus,
+} from 'lucide-react';
+
 import { Card, CardContent } from '../../../components/ui/card';
 import { Textarea } from '../../../components/ui/textarea';
 import { Input } from '../../../components/ui/input';
@@ -7,109 +21,210 @@ import { Button } from '../../../components/ui/button';
 import { RubricRepertory } from './rubric-repertory';
 import type { GnmAnalysis, SuggestedRubric } from '../../../types/ai';
 
-// ─── Collapsible Card ───
+// ─── Collapsible Card Wrapper ───
 
-function CollapsibleCard({ id, icon: Icon, title, iconColor, borderColor, cardBg, headerBg, visible, defaultOpen = true, badge, children }: {
-  id: string; icon: React.ElementType; title: string;
-  iconColor: string; borderColor: string; cardBg?: string; headerBg?: string;
-  visible: boolean; defaultOpen?: boolean; badge?: React.ReactNode; children: React.ReactNode;
+function CollapsibleCard({
+  id,
+  icon: Icon,
+  title,
+  iconColor,
+  borderColor,
+  visible,
+  defaultOpen = true,
+  badge,
+  children,
+}: {
+  id: string;
+  icon: React.ElementType;
+  title: string;
+  iconColor: string;
+  borderColor: string;
+  visible: boolean;
+  defaultOpen?: boolean;
+  badge?: React.ReactNode;
+  children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
+
   if (!visible) return null;
 
   return (
-    <Card id={`gnm-${id}`} style={{ borderRadius: 'var(--radius-xl)', border: `1px solid ${borderColor}`, background: cardBg || 'var(--bg-card)', overflow: 'hidden', boxShadow: 'var(--shadow-xs)', animation: 'fadeIn 0.3s ease-out' }}>
-      <button type="button" onClick={() => setOpen(!open)} style={{ width: '100%', padding: '0.75rem 1rem', background: headerBg || 'var(--bg-surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', border: 'none', borderBottom: `1px solid ${borderColor}`, transition: 'background var(--transition-fast)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <Icon style={{ width: 16, height: 16, color: iconColor }} />
-          <span style={{ fontSize: 10, fontWeight: 900, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{title}</span>
+    <Card
+      id={`gnm-${id}`}
+      className={`rounded-xl border ${borderColor} shadow-sm overflow-hidden transition-all duration-500 animate-in fade-in slide-in-from-top-2`}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-full px-4 py-3 border-b border-gray-100 dark:border-gray-900 bg-gray-50/50 dark:bg-gray-900/10 flex items-center justify-between hover:bg-gray-100/50 dark:hover:bg-gray-800/30 transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <Icon className={`h-4 w-4 ${iconColor}`} />
+          <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+            {title}
+          </span>
           {badge}
         </div>
-        {open ? <ChevronDown style={{ width: 14, height: 14, color: 'var(--text-disabled)' }} /> : <ChevronRight style={{ width: 14, height: 14, color: 'var(--text-disabled)' }} />}
+        {open ? (
+          <ChevronDown className="h-3.5 w-3.5 text-gray-400" />
+        ) : (
+          <ChevronRight className="h-3.5 w-3.5 text-gray-400" />
+        )}
       </button>
-      {open && <CardContent style={{ padding: '1rem', animation: 'fadeIn 0.2s ease-out' }}>{children}</CardContent>}
+      {open && (
+        <CardContent className="p-4 animate-in fade-in duration-300">
+          {children}
+        </CardContent>
+      )}
     </Card>
   );
 }
 
-// ─── Match Badge ───
-function MatchBadge({ strength }: { strength: string }) {
-  const colors: Record<string, { bg: string; color: string }> = {
-    strongest: { bg: '#D1FAE5', color: '#065F46' },
-    strong:    { bg: '#DBEAFE', color: '#1E3A8A' },
-    moderate:  { bg: '#FEF3C7', color: '#92400E' },
-  };
-  const style = colors[strength] || colors['moderate'] || { bg: '#FEF3C7', color: '#92400E' };
-  return <span style={{ fontSize: 9, fontWeight: 700, padding: '0.125rem 0.375rem', borderRadius: 'var(--radius-full)', background: style.bg, color: style.color }}>
-    {strength.charAt(0).toUpperCase() + strength.slice(1)} Match
-  </span>;
-}
-
-// ─── Trait Chip ───
-function TraitChip({ label, chipStyle }: { label: string; chipStyle: React.CSSProperties }) {
-  return <span style={{ fontSize: 10, padding: '0.25rem 0.5rem', borderRadius: 'var(--radius-card)', fontWeight: 500, ...chipStyle }}>{label}</span>;
-}
-
-// ─── Sub-section label ───
-function SubLabel({ children }: { children: React.ReactNode }) {
-  return <p style={{ fontSize: 10, color: 'var(--text-disabled)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.375rem', margin: '0 0 0.375rem' }}>{children}</p>;
-}
-
 // ─── Props ───
+
 interface GnmInterpretationPanelProps {
-  subjective: string; onSubjectiveChange: (val: string) => void;
-  assessment: string; onAssessmentChange: (val: string) => void;
-  clinicalNotes: string; onClinicalNotesChange: (val: string) => void;
+  // SOAP fields (editable)
+  subjective: string;
+  onSubjectiveChange: (val: string) => void;
+  assessment: string;
+  onAssessmentChange: (val: string) => void;
+  clinicalNotes: string;
+  onClinicalNotesChange: (val: string) => void;
+
+  // GNM data (AI-generated)
   gnmAnalysis: GnmAnalysis | null;
+
+  // Rubrics
   visitId: string;
   onAutoSuggestRemedy?: (remedyName: string, potencies: string[]) => void;
   initialRubrics?: SuggestedRubric[];
+
+  // Remedy action
   onApplyGnmRemedy?: (remedyName: string, potency: string) => void;
+
+  // Advice
   onCopyToAdvice?: (text: string) => void;
 }
 
-export function GnmInterpretationPanel({ subjective, onSubjectiveChange, assessment, onAssessmentChange, clinicalNotes, onClinicalNotesChange, gnmAnalysis, visitId, onAutoSuggestRemedy, initialRubrics, onApplyGnmRemedy, onCopyToAdvice }: GnmInterpretationPanelProps) {
+// ─── Match Strength Badge ───
+
+function MatchBadge({ strength }: { strength: string }) {
+  const colors: Record<string, string> = {
+    strongest: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
+    strong: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
+    moderate: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+  };
+  return (
+    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${colors[strength] || colors.moderate}`}>
+      {strength.charAt(0).toUpperCase() + strength.slice(1)} Match
+    </span>
+  );
+}
+
+// ─── Main Component ───
+
+export function GnmInterpretationPanel({
+  subjective,
+  onSubjectiveChange,
+  assessment,
+  onAssessmentChange,
+  clinicalNotes,
+  onClinicalNotesChange,
+  gnmAnalysis,
+  visitId,
+  onAutoSuggestRemedy,
+  initialRubrics,
+  onApplyGnmRemedy,
+  onCopyToAdvice,
+}: GnmInterpretationPanelProps) {
   const subjectiveRef = useRef<HTMLTextAreaElement>(null);
   const notesRef = useRef<HTMLTextAreaElement>(null);
-  const autoResize = (ref: React.RefObject<HTMLTextAreaElement | null>) => { if (ref.current) { ref.current.style.height = 'auto'; ref.current.style.height = `${ref.current.scrollHeight}px`; } };
+
+  const autoResize = (ref: React.RefObject<HTMLTextAreaElement>) => {
+    if (ref.current) {
+      ref.current.style.height = 'auto';
+      ref.current.style.height = `${ref.current.scrollHeight}px`;
+    }
+  };
 
   useEffect(() => { autoResize(subjectiveRef); }, [subjective]);
   useEffect(() => { autoResize(notesRef); }, [clinicalNotes]);
 
   const hasGnm = !!gnmAnalysis;
-  const chipTags = (color: string) => ({ borderRadius: 'var(--radius-card)', border: `1px solid ${color}20`, background: `${color}10`, color });
-  const sectionRow = { display: 'flex', flexDirection: 'column' as const, gap: '0.75rem' };
-  const grid2 = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', animation: 'fadeIn 0.4s ease-out' }}>
-      {/* 1. Symptoms */}
-      <CollapsibleCard id="symptoms" icon={Activity} title="Symptoms" iconColor="#6366F1" borderColor="var(--border-default)"
-        badge={<span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>• Symptoms • Duration • Red Flags</span>}
+    <div className="space-y-3 animate-in fade-in duration-500">
+      {/* ═══ 1. SYMPTOMS (always visible, editable) ═══ */}
+      <CollapsibleCard
+        id="symptoms"
+        icon={Activity}
+        title="Symptoms"
+        iconColor="text-indigo-500"
+        borderColor="border-gray-200 dark:border-gray-800"
         visible={true}
+        badge={
+          <span className="text-[9px] font-bold text-gray-300 uppercase tracking-tighter cursor-default">
+            • Symptoms • Duration • Red Flags
+          </span>
+        }
       >
-        <Textarea ref={subjectiveRef} value={subjective} onChange={e => onSubjectiveChange(e.target.value)}
-          style={{ fontSize: 14, fontWeight: 500, border: 'none', background: 'transparent', boxShadow: 'none', padding: 0, overflow: 'hidden', resize: 'none', lineHeight: 1.6 }}
-          placeholder="Enter symptoms here..." />
+        <Textarea
+          ref={subjectiveRef}
+          value={subjective}
+          onChange={(e) => onSubjectiveChange(e.target.value)}
+          className="text-[14px] font-medium border-0 bg-transparent shadow-none focus-visible:ring-0 p-0 overflow-hidden resize-none leading-relaxed placeholder:text-gray-300 text-gray-800 dark:text-gray-200"
+          placeholder="Enter symptoms here..."
+        />
       </CollapsibleCard>
 
-      {/* 2. Core Conflict */}
-      <CollapsibleCard id="core-conflict" icon={Zap} title="Core Conflict" iconColor="#8B5CF6" borderColor="#DDD6FE" cardBg="rgba(245,243,255,0.3)"
-        badge={<span style={{ fontSize: 9, padding: '0.125rem 0.375rem', borderRadius: 'var(--radius-full)', background: '#EDE9FE', color: '#5B21B6', fontWeight: 700 }}>GNM</span>}
+      {/* ═══ 2. CORE CONFLICT (AI, auto-appears) ═══ */}
+      <CollapsibleCard
+        id="core-conflict"
+        icon={Zap}
+        title="Core Conflict"
+        iconColor="text-purple-500"
+        borderColor="border-purple-200 dark:border-purple-800/50"
         visible={hasGnm}
+        badge={
+          <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 font-bold">
+            GNM
+          </span>
+        }
       >
         {gnmAnalysis?.coreConflict && (
-          <div style={sectionRow}>
-            <div style={grid2}>
-              <div><SubLabel>Conflict Type</SubLabel><p style={{ fontSize: 'var(--font-size-sm)', fontWeight: 700, color: '#6D28D9', margin: 0 }}>{gnmAnalysis.coreConflict.conflictType}</p></div>
-              <div><SubLabel>Affected Tissue</SubLabel><p style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500, color: 'var(--text-secondary)', margin: 0 }}>{gnmAnalysis.coreConflict.affectedTissue}</p></div>
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Conflict Type</p>
+                <p className="text-sm font-bold text-purple-700 dark:text-purple-300">
+                  {gnmAnalysis.coreConflict.conflictType}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Affected Tissue</p>
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {gnmAnalysis.coreConflict.affectedTissue}
+                </p>
+              </div>
             </div>
-            <div><SubLabel>Biological Meaning</SubLabel><p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>{gnmAnalysis.coreConflict.biologicalMeaning}</p></div>
+            <div>
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Biological Meaning</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
+                {gnmAnalysis.coreConflict.biologicalMeaning}
+              </p>
+            </div>
             {gnmAnalysis.coreConflict.triggerEvents.length > 0 && (
               <div>
-                <SubLabel>Trigger Events</SubLabel>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginTop: '0.375rem' }}>
-                  {gnmAnalysis.coreConflict.triggerEvents.map((e, i) => <TraitChip key={i} label={e} chipStyle={chipTags('#7C3AED')} />)}
+                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1.5">Trigger Events</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {gnmAnalysis.coreConflict.triggerEvents.map((event, i) => (
+                    <span
+                      key={i}
+                      className="text-[10px] px-2 py-1 rounded-lg bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 font-medium border border-purple-100 dark:border-purple-800/40"
+                    >
+                      {event}
+                    </span>
+                  ))}
                 </div>
               </div>
             )}
@@ -117,25 +232,37 @@ export function GnmInterpretationPanel({ subjective, onSubjectiveChange, assessm
         )}
       </CollapsibleCard>
 
-      {/* 3. Conflict Phases */}
-      <CollapsibleCard id="conflict-phases" icon={Layers} title="Conflict Phases" iconColor="#F97316" borderColor="#FED7AA" visible={hasGnm}>
+      {/* ═══ 3. CONFLICT PHASES (AI, auto-appears) ═══ */}
+      <CollapsibleCard
+        id="conflict-phases"
+        icon={Layers}
+        title="Conflict Phases"
+        iconColor="text-orange-500"
+        borderColor="border-orange-200 dark:border-orange-800/50"
+        visible={hasGnm}
+      >
         {gnmAnalysis?.phases && (
-          <div style={sectionRow}>
-            <div style={grid2}>
-              <div style={{ borderRadius: 'var(--radius-card)', border: '1px solid #FEE2E2', background: 'rgba(254,242,242,0.5)', padding: '0.75rem' }}>
-                <p style={{ fontSize: 9, color: '#EF4444', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.25rem' }}>🔴 Conflict Active</p>
-                <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>{gnmAnalysis.phases.conflictActive}</p>
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="rounded-lg border border-red-100 dark:border-red-900/30 bg-red-50/50 dark:bg-red-950/10 p-3">
+                <p className="text-[9px] text-red-500 font-bold uppercase tracking-wider mb-1">🔴 Conflict Active</p>
+                <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
+                  {gnmAnalysis.phases.conflictActive}
+                </p>
               </div>
-              <div style={{ borderRadius: 'var(--radius-card)', border: '1px solid #BBF7D0', background: 'rgba(240,253,244,0.5)', padding: '0.75rem' }}>
-                <p style={{ fontSize: 9, color: '#16A34A', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.25rem' }}>🟢 Healing Phase</p>
-                <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>{gnmAnalysis.phases.healingPhase}</p>
+              <div className="rounded-lg border border-green-100 dark:border-green-900/30 bg-green-50/50 dark:bg-green-950/10 p-3">
+                <p className="text-[9px] text-green-600 font-bold uppercase tracking-wider mb-1">🟢 Healing Phase</p>
+                <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
+                  {gnmAnalysis.phases.healingPhase}
+                </p>
               </div>
             </div>
             {gnmAnalysis.phases.isRecurrentTrack && (
-              <div style={{ borderRadius: 'var(--radius-card)', border: '1px solid #FDE68A', background: 'rgba(255,251,235,0.5)', padding: '0.5rem 0.75rem' }}>
-                <p style={{ fontSize: 10, fontWeight: 700, color: '#B45309', margin: 0 }}>
+              <div className="rounded-lg border border-amber-200 dark:border-amber-800/40 bg-amber-50/50 dark:bg-amber-950/10 px-3 py-2">
+                <p className="text-[10px] font-bold text-amber-600 dark:text-amber-400">
                   ⚠️ Recurrent Track Conflict
-                  {gnmAnalysis.phases.trackTriggers?.length > 0 && ` — re-triggered by: ${gnmAnalysis.phases.trackTriggers.join(', ')}`}
+                  {gnmAnalysis.phases.trackTriggers?.length > 0 &&
+                    ` — re-triggered by: ${gnmAnalysis.phases.trackTriggers.join(', ')}`}
                 </p>
               </div>
             )}
@@ -143,72 +270,152 @@ export function GnmInterpretationPanel({ subjective, onSubjectiveChange, assessm
         )}
       </CollapsibleCard>
 
-      {/* 4. Homeopathic Totality */}
-      <CollapsibleCard id="totality" icon={Heart} title="Homeopathic Totality" iconColor="#EC4899" borderColor="#FBCFE8" visible={hasGnm}>
+      {/* ═══ 4. HOMEOPATHIC TOTALITY (AI, auto-appears) ═══ */}
+      <CollapsibleCard
+        id="totality"
+        icon={Heart}
+        title="Homeopathic Totality"
+        iconColor="text-pink-500"
+        borderColor="border-pink-200 dark:border-pink-800/50"
+        visible={hasGnm}
+      >
         {gnmAnalysis?.homeopathicTotality && (
-          <div style={sectionRow}>
+          <div className="space-y-3">
             <div>
-              <SubLabel>Mental / Emotional</SubLabel>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginTop: '0.25rem' }}>
-                {gnmAnalysis.homeopathicTotality.mentalEmotional.map((t, i) => <TraitChip key={i} label={t} chipStyle={chipTags('#2563EB')} />)}
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1.5">Mental / Emotional</p>
+              <div className="flex flex-wrap gap-1.5">
+                {gnmAnalysis.homeopathicTotality.mentalEmotional.map((trait, i) => (
+                  <span
+                    key={i}
+                    className="text-[10px] px-2 py-1 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-medium border border-blue-100 dark:border-blue-800/40"
+                  >
+                    {trait}
+                  </span>
+                ))}
               </div>
             </div>
             <div>
-              <SubLabel>Physical Generals</SubLabel>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginTop: '0.25rem' }}>
-                {gnmAnalysis.homeopathicTotality.physicalGenerals.map((g, i) => <TraitChip key={i} label={g} chipStyle={chipTags('#16A34A')} />)}
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1.5">Physical Generals</p>
+              <div className="flex flex-wrap gap-1.5">
+                {gnmAnalysis.homeopathicTotality.physicalGenerals.map((gen, i) => (
+                  <span
+                    key={i}
+                    className="text-[10px] px-2 py-1 rounded-lg bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 font-medium border border-green-100 dark:border-green-800/40"
+                  >
+                    {gen}
+                  </span>
+                ))}
               </div>
             </div>
           </div>
         )}
       </CollapsibleCard>
 
-      {/* 5. Diagnosis */}
-      <CollapsibleCard id="diagnosis" icon={Stethoscope} title="Diagnosis" iconColor="#10B981" borderColor="var(--border-default)" visible={true}>
-        <Input value={assessment} onChange={e => onAssessmentChange(e.target.value)}
-          style={{ fontSize: 20, fontWeight: 900, border: 'none', background: 'transparent', boxShadow: 'none', padding: 0, height: 'auto' }}
-          placeholder="Final diagnosis..." />
+      {/* ═══ 5. DIAGNOSIS (always visible, editable) ═══ */}
+      <CollapsibleCard
+        id="diagnosis"
+        icon={Stethoscope}
+        title="Diagnosis"
+        iconColor="text-emerald-500"
+        borderColor="border-gray-200 dark:border-gray-800"
+        visible={true}
+      >
+        <Input
+          value={assessment}
+          onChange={(e) => onAssessmentChange(e.target.value)}
+          className="text-xl font-black border-0 bg-transparent shadow-none focus-visible:ring-0 p-0 h-auto placeholder:text-gray-300 text-gray-900 dark:text-white"
+          placeholder="Final diagnosis..."
+        />
       </CollapsibleCard>
 
-      {/* 6. Clinical Notes */}
-      <CollapsibleCard id="clinical-notes" icon={ClipboardList} title="Clinical Notes" iconColor="#F59E0B" borderColor="var(--border-default)" visible={true}>
-        <Textarea ref={notesRef} value={clinicalNotes} onChange={e => onClinicalNotesChange(e.target.value)}
-          style={{ fontSize: 14, border: 'none', background: 'transparent', boxShadow: 'none', padding: 0, overflow: 'hidden', resize: 'none', lineHeight: 1.6 }}
-          placeholder="Notes..." />
+      {/* ═══ 6. CLINICAL NOTES (always visible, editable) ═══ */}
+      <CollapsibleCard
+        id="clinical-notes"
+        icon={ClipboardList}
+        title="Clinical Notes"
+        iconColor="text-amber-500"
+        borderColor="border-gray-200 dark:border-gray-800"
+        visible={true}
+      >
+        <Textarea
+          ref={notesRef}
+          value={clinicalNotes}
+          onChange={(e) => onClinicalNotesChange(e.target.value)}
+          className="text-[14px] border-0 bg-transparent shadow-none focus-visible:ring-0 p-0 overflow-hidden resize-none leading-relaxed placeholder:text-gray-200 text-gray-700 dark:text-gray-300"
+          placeholder="Notes..."
+        />
       </CollapsibleCard>
 
-      {/* 7. Rubrics + Repertorization */}
-      <RubricRepertory visitId={visitId} onAutoSuggestRemedy={onAutoSuggestRemedy} initialRubrics={initialRubrics} />
+      {/* ═══ 7. RUBRICS + REPERTORIZATION (always visible) ═══ */}
+      <RubricRepertory
+        visitId={visitId}
+        onAutoSuggestRemedy={onAutoSuggestRemedy}
+        initialRubrics={initialRubrics}
+      />
 
-      {/* 8. Ranked Remedies */}
-      <CollapsibleCard id="ranked-remedies" icon={Trophy} title="Clinical Ranking" iconColor="#EAB308" borderColor="#FDE68A"
-        badge={<span style={{ fontSize: 9, padding: '0.125rem 0.375rem', borderRadius: 'var(--radius-full)', background: '#FEF3C7', color: '#92400E', fontWeight: 700 }}>GNM + Classical</span>}
+      {/* ═══ 8. RANKED REMEDIES (AI, auto-appears after scoring) ═══ */}
+      <CollapsibleCard
+        id="ranked-remedies"
+        icon={Trophy}
+        title="Clinical Ranking"
+        iconColor="text-yellow-500"
+        borderColor="border-yellow-200 dark:border-yellow-800/50"
         visible={hasGnm && (gnmAnalysis?.rankedRemedies?.length ?? 0) > 0}
+        badge={
+          <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300 font-bold">
+            GNM + Classical
+          </span>
+        }
       >
         {gnmAnalysis?.rankedRemedies && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <div className="space-y-2">
             {gnmAnalysis.rankedRemedies.map((remedy, i) => {
               const medals = ['🥇', '🥈', '🥉'];
-              const borders = ['#FCD34D', '#D1D5DB', '#FDBA74'];
+              const borderColors = [
+                'border-yellow-300 dark:border-yellow-700',
+                'border-gray-300 dark:border-gray-600',
+                'border-orange-300 dark:border-orange-700',
+              ];
               return (
-                <div key={i} style={{ borderRadius: 'var(--radius-card)', border: `1px solid ${borders[i] || 'var(--border-default)'}`, background: 'var(--bg-card)', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <span style={{ fontSize: 18 }}>{medals[i] || `#${remedy.rank}`}</span>
-                      <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 700, color: 'var(--text-primary)' }}>{remedy.name}</span>
-                      <span style={{ fontSize: 10, color: 'var(--text-disabled)', fontWeight: 500 }}>{remedy.suggestedPotency}</span>
+                <div
+                  key={i}
+                  className={`rounded-lg border ${borderColors[i] || 'border-gray-200 dark:border-gray-700'} bg-white dark:bg-gray-900 p-3 space-y-2`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">{medals[i] || `#${remedy.rank}`}</span>
+                      <span className="text-sm font-bold text-gray-900 dark:text-white">
+                        {remedy.name}
+                      </span>
+                      <span className="text-[10px] text-gray-400 font-medium">
+                        {remedy.suggestedPotency}
+                      </span>
                       <MatchBadge strength={remedy.matchStrength} />
                     </div>
-                    <Button size="sm" variant="outline" onClick={() => onApplyGnmRemedy?.(remedy.name, remedy.suggestedPotency)} style={{ height: '1.5rem', fontSize: 10, padding: '0 0.5rem', color: 'var(--color-success-600)', borderColor: 'var(--color-success-200)' }}>
-                      <Plus style={{ width: 12, height: 12, marginRight: 2 }} /> Apply to Rx
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-6 text-[10px] px-2 text-teal-600 border-teal-200 hover:bg-teal-50 dark:text-teal-400 dark:border-teal-800 dark:hover:bg-teal-950/30"
+                      onClick={() => onApplyGnmRemedy?.(remedy.name, remedy.suggestedPotency)}
+                    >
+                      <Plus className="h-3 w-3 mr-0.5" />
+                      Apply to Rx
                     </Button>
                   </div>
                   {remedy.keynotes.length > 0 && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
-                      {remedy.keynotes.map((k, j) => <span key={j} style={{ fontSize: 9, padding: '0.125rem 0.375rem', borderRadius: 4, background: 'var(--bg-surface-2)', color: 'var(--text-secondary)' }}>{k}</span>)}
+                    <div className="flex flex-wrap gap-1">
+                      {remedy.keynotes.map((k, j) => (
+                        <span key={j} className="text-[9px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+                          {k}
+                        </span>
+                      ))}
                     </div>
                   )}
-                  {remedy.whenToUse && <p style={{ fontSize: 10, color: 'var(--text-tertiary)', fontStyle: 'italic', margin: 0 }}>When: {remedy.whenToUse}</p>}
+                  {remedy.whenToUse && (
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400 italic">
+                      When: {remedy.whenToUse}
+                    </p>
+                  )}
                 </div>
               );
             })}
@@ -216,29 +423,51 @@ export function GnmInterpretationPanel({ subjective, onSubjectiveChange, assessm
         )}
       </CollapsibleCard>
 
-      {/* 9. Resolution Strategy */}
-      <CollapsibleCard id="resolution" icon={CheckSquare} title="Resolution Strategy" iconColor="#14B8A6" borderColor="#99F6E4"
-        badge={<span style={{ fontSize: 9, padding: '0.125rem 0.375rem', borderRadius: 'var(--radius-full)', background: '#CCFBF1', color: '#0F766E', fontWeight: 700 }}>GNM Healing</span>}
+      {/* ═══ 9. RESOLUTION STRATEGY (AI, auto-appears) ═══ */}
+      <CollapsibleCard
+        id="resolution"
+        icon={CheckSquare}
+        title="Resolution Strategy"
+        iconColor="text-teal-500"
+        borderColor="border-teal-200 dark:border-teal-800/50"
         visible={hasGnm}
+        badge={
+          <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300 font-bold">
+            GNM Healing
+          </span>
+        }
       >
         {gnmAnalysis?.resolutionStrategy && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
               {gnmAnalysis.resolutionStrategy.directions.map((dir, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
-                  <div style={{ width: 16, height: 16, borderRadius: '0.25rem', border: '1px solid var(--border-strong)', flexShrink: 0, marginTop: 2 }} />
-                  <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)', margin: 0 }}>{dir}</p>
+                <div key={i} className="flex items-start gap-2">
+                  <div className="w-4 h-4 rounded border border-gray-300 dark:border-gray-600 shrink-0 mt-0.5" />
+                  <p className="text-xs text-gray-700 dark:text-gray-300">{dir}</p>
                 </div>
               ))}
             </div>
             {gnmAnalysis.resolutionStrategy.prognosis && (
-              <div style={{ borderRadius: 'var(--radius-card)', background: 'rgba(204,251,241,0.3)', border: '1px solid #99F6E4', padding: '0.5rem 0.75rem' }}>
-                <p style={{ fontSize: 10, fontWeight: 700, color: '#0F766E', marginBottom: 2 }}>💡 Prognosis</p>
-                <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>{gnmAnalysis.resolutionStrategy.prognosis}</p>
+              <div className="rounded-lg bg-teal-50/50 dark:bg-teal-950/10 border border-teal-100 dark:border-teal-800/40 px-3 py-2">
+                <p className="text-[10px] font-bold text-teal-600 dark:text-teal-400 mb-0.5">💡 Prognosis</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
+                  {gnmAnalysis.resolutionStrategy.prognosis}
+                </p>
               </div>
             )}
             {onCopyToAdvice && (
-              <Button variant="outline" size="sm" onClick={() => { const text = [...gnmAnalysis.resolutionStrategy.directions, gnmAnalysis.resolutionStrategy.prognosis ? `Prognosis: ${gnmAnalysis.resolutionStrategy.prognosis}` : ''].filter(Boolean).join('\n'); onCopyToAdvice(text); }} style={{ alignSelf: 'flex-start', fontSize: 10, color: '#0F766E', borderColor: '#99F6E4' }}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-[10px] text-teal-600 border-teal-200 hover:bg-teal-50 dark:text-teal-400 dark:border-teal-800"
+                onClick={() => {
+                  const text = [
+                    ...gnmAnalysis.resolutionStrategy.directions,
+                    gnmAnalysis.resolutionStrategy.prognosis ? `Prognosis: ${gnmAnalysis.resolutionStrategy.prognosis}` : '',
+                  ].filter(Boolean).join('\n');
+                  onCopyToAdvice(text);
+                }}
+              >
                 📋 Copy to Advice
               </Button>
             )}
@@ -246,11 +475,13 @@ export function GnmInterpretationPanel({ subjective, onSubjectiveChange, assessm
         )}
       </CollapsibleCard>
 
-      {/* GNM Confidence */}
+      {/* ═══ GNM Confidence ═══ */}
       {hasGnm && gnmAnalysis.confidence > 0 && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.25rem 0' }}>
-          <Sparkles style={{ width: 12, height: 12, color: '#A78BFA' }} />
-          <span style={{ fontSize: 9, color: 'var(--text-disabled)', fontWeight: 500 }}>GNM Analysis Confidence: {Math.round(gnmAnalysis.confidence * 100)}%</span>
+        <div className="flex items-center justify-center gap-2 py-1">
+          <Sparkles className="h-3 w-3 text-purple-400" />
+          <span className="text-[9px] text-gray-400 font-medium">
+            GNM Analysis Confidence: {Math.round(gnmAnalysis.confidence * 100)}%
+          </span>
         </div>
       )}
     </div>

@@ -55,7 +55,8 @@ import { useAuthStore } from '../shared/stores/auth-store';
 export function useParseLabReport() {
   return useMutation({
     mutationFn: async (file: File) => {
-      const token = useAuthStore.getState().accessToken;
+      // homeo-x's auth store uses `token`, not `accessToken`.
+      const token = useAuthStore.getState().token;
       const baseUrl = import.meta.env.VITE_API_URL || '';
       
       const base64 = await new Promise<string>((resolve, reject) => {

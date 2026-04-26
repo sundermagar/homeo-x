@@ -9,14 +9,26 @@ interface AiSuggestButtonProps {
   disabled?: boolean;
 }
 
-export function AiSuggestButton({ onClick, isLoading, label = 'AI Suggest', disabled }: AiSuggestButtonProps) {
+export function AiSuggestButton({
+  onClick,
+  isLoading,
+  label = 'AI Suggest',
+  disabled,
+}: AiSuggestButtonProps) {
   return (
     <Button
-      type="button" variant="outline" size="sm"
-      onClick={onClick} disabled={disabled || isLoading}
-      style={{ gap: '0.375rem', borderColor: '#C4B5FD', color: '#7C3AED' }}
+      type="button"
+      variant="outline"
+      size="sm"
+      onClick={onClick}
+      disabled={disabled || isLoading}
+      className="gap-1.5 border-purple-300 text-purple-700 hover:bg-purple-50"
     >
-      {isLoading ? <Spinner size="sm" /> : <Sparkles style={{ width: 14, height: 14 }} />}
+      {isLoading ? (
+        <Spinner size="sm" />
+      ) : (
+        <Sparkles className="h-3.5 w-3.5" />
+      )}
       {isLoading ? 'Generating...' : label}
     </Button>
   );

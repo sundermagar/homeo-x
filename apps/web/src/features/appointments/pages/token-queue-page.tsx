@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import {
   Clock, UserCheck, CheckCircle2, Users, RefreshCw, Plus, Ticket,
-  ChevronRight, Activity,
+  ChevronRight, Activity, Zap,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useWaitlist, useCallNext, useCompleteVisit, useTodayAppointments, useIssueToken, useAddToWaitlist } from '../hooks/use-appointments';
 import { apiClient } from '@/infrastructure/api-client';
 import { useAuthStore } from '@/shared/stores/auth-store';
@@ -13,6 +14,7 @@ const WAIT_STATUS = { 0: 'Waiting', 1: 'Called', 2: 'Done' } as Record<number, s
 const WAIT_COLOR  = { 0: 'var(--pp-warning-fg)', 1: 'var(--pp-blue)', 2: 'var(--pp-success-fg)' } as Record<number, string>;
 
 export default function TokenQueuePage() {
+  const navigate = useNavigate();
   const today = new Date().toISOString().split('T')[0]!;
   const user = useAuthStore((s) => s.user);
   const rawRole = ((user as any)?.type || (user as any)?.role || (user as any)?.roleName || '').toLowerCase();
@@ -142,6 +144,9 @@ export default function TokenQueuePage() {
                     <div className="appt-token-patient">{w.patientName ?? `Patient #${w.patientId}`}</div>
                     {w.doctorName && <div className="appt-token-doctor">{w.doctorName}</div>}
                     <div className="appt-token-actions">
+                      <button className="appt-btn appt-btn-sm appt-btn-primary" onClick={() => navigate(`/consultation/${w.appointmentId || w.id}`)}>
+                        <Zap size={13} strokeWidth={1.6} /> Enter
+                      </button>
                       <button className="appt-btn appt-btn-sm appt-btn-success" onClick={() => handleComplete(w.id)} disabled={completeVisit.isPending}>
                         <CheckCircle2 size={13} strokeWidth={1.6} /> Done
                       </button>

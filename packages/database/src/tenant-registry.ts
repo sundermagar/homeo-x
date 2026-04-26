@@ -43,7 +43,13 @@ export class TenantRegistry {
     ['hmc', { slug: 'hmc', schemaName: 'tenant_hmc', displayName: 'HMC Clinic', isActive: true }],
   ]);
 
+  private static ensureHardcodedLoaded(): void {
+    if (this.tenants.size > 0) return;
+    this.hardcodedTenants.forEach((v, k) => this.tenants.set(k, v));
+  }
+
   static resolve(host: string): TenantConfig | null {
+    this.ensureHardcodedLoaded();
     // Extract subdomain: "zirakpur.managemyclinic.in" → "zirakpur"
     const slug = host.split('.')[0]?.toLowerCase();
     if (!slug) return null;
@@ -51,6 +57,7 @@ export class TenantRegistry {
   }
 
   static getAll(): TenantConfig[] {
+    this.ensureHardcodedLoaded();
     return Array.from(this.tenants.values());
   }
 
@@ -60,9 +67,9 @@ export class TenantRegistry {
 
   static async initialize(db: any): Promise<void> {
     if (this.isInitialized) return;
-    
+
     // Start with hardcoded defaults
-    this.hardcodedTenants.forEach((v, k) => this.tenants.set(k, v));
+    this.ensureHardcodedLoaded();
 
     try {
       const { sql } = await import('drizzle-orm');

@@ -46,6 +46,7 @@ export const API = {
     PARSE_LAB_REPORT: '/api/ai/parse-lab-report',
     KENT_SEARCH: '/api/ai/rubrics/kent-search',
     SUGGEST_QUESTIONS: '/api/ai/suggest/questions',
+    EXTRACT_SYMPTOMS: '/api/ai/extract/symptoms',
   },
 
   ICD10: {
@@ -121,7 +122,7 @@ export const ROUTES = {
   ADMISSIONS: '/admin/admissions',
 
   // ─── Doctor OS ───
-  DOCTOR_QUEUE: '/doctor',
+  DOCTOR_QUEUE: '/appointments/queue',
   CONSULTATION: (visitId: string) => `/doctor/consult/${visitId}`,
   PATIENT_MEET: (roomId: string) => `/meet/${roomId}`,
 } as const;

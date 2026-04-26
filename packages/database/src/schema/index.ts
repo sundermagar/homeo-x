@@ -1,6 +1,6 @@
 // ─── Domain Schemas ───
 export * from './patients';
-export { medicalCases, vitals, homeoDetails, caseNotes, caseExamination, caseImages, investigations, soapNotes as legacySoapNotes, prescriptions as legacyPrescriptions } from './medical-cases';
+export { medicalCases, vitals, homeoDetails, caseNotes, caseExamination, caseImages, investigations, growthReferences, soapNotes as legacySoapNotes, prescriptions as legacyPrescriptions } from './medical-cases';
 export * from './appointments';
 export * from './users';
 export * from './billing';

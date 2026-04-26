@@ -22,55 +22,127 @@ const vitalsSchema = z.object({
   bloodSugar: z.coerce.number().positive().optional().or(z.literal('')),
   notes: z.string().optional(),
 });
+
 type VitalsForm = z.infer<typeof vitalsSchema>;
 
-interface VitalsPanelProps { visitId: string; existingVitals?: Vitals | null; onComplete: () => void; }
-
-const grid3: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' };
-const fieldCol: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '0.25rem' };
+interface VitalsPanelProps {
+  visitId: string;
+  existingVitals?: Vitals | null;
+  onComplete: () => void;
+}
 
 export function VitalsPanel({ visitId, existingVitals, onComplete }: VitalsPanelProps) {
   const recordVitals = useRecordVitals(visitId);
+
   const { register, handleSubmit, watch } = useForm<VitalsForm>({
     resolver: zodResolver(vitalsSchema),
-    defaultValues: existingVitals ? { heightCm: existingVitals.heightCm ?? '', weightKg: existingVitals.weightKg ?? '', temperatureF: existingVitals.temperatureF ?? '', pulseRate: existingVitals.pulseRate ?? '', systolicBp: existingVitals.systolicBp ?? '', diastolicBp: existingVitals.diastolicBp ?? '', respiratoryRate: existingVitals.respiratoryRate ?? '', oxygenSaturation: existingVitals.oxygenSaturation ?? '', bloodSugar: existingVitals.bloodSugar ?? '', notes: existingVitals.notes ?? '' } : {},
+    defaultValues: existingVitals
+      ? {
+          heightCm: existingVitals.heightCm ?? '',
+          weightKg: existingVitals.weightKg ?? '',
+          temperatureF: existingVitals.temperatureF ?? '',
+          pulseRate: existingVitals.pulseRate ?? '',
+          systolicBp: existingVitals.systolicBp ?? '',
+          diastolicBp: existingVitals.diastolicBp ?? '',
+          respiratoryRate: existingVitals.respiratoryRate ?? '',
+          oxygenSaturation: existingVitals.oxygenSaturation ?? '',
+          bloodSugar: existingVitals.bloodSugar ?? '',
+          notes: existingVitals.notes ?? '',
+        }
+      : {},
   });
-  const height = watch('heightCm'), weight = watch('weightKg');
-  const bmi = height && weight && typeof height === 'number' && typeof weight === 'number' ? (weight / ((height / 100) ** 2)).toFixed(1) : null;
+
+  const height = watch('heightCm');
+  const weight = watch('weightKg');
+  const bmi =
+    height && weight && typeof height === 'number' && typeof weight === 'number'
+      ? (weight / ((height / 100) ** 2)).toFixed(1)
+      : null;
 
   const onSubmit = async (data: VitalsForm) => {
-    const cleaned = Object.fromEntries(Object.entries(data).filter(([, v]) => v !== '' && v !== undefined));
-    try { await recordVitals.mutateAsync(cleaned as Record<string, number>); toast({ title: 'Vitals recorded', variant: 'success' }); onComplete(); }
-    catch (err) { toast({ title: 'Failed to record vitals', description: err instanceof Error ? err.message : '', variant: 'error' }); }
+    const cleaned = Object.fromEntries(
+      Object.entries(data).filter(([, v]) => v !== '' && v !== undefined),
+    );
+    try {
+      await recordVitals.mutateAsync(cleaned as Record<string, number>);
+      toast({ title: 'Vitals recorded', variant: 'success' });
+      onComplete();
+    } catch (err) {
+      toast({ title: 'Failed to record vitals', description: err instanceof Error ? err.message : '', variant: 'error' });
+    }
   };
 
   return (
     <Card>
-      <CardHeader><CardTitle>Record Vitals</CardTitle></CardHeader>
+      <CardHeader>
+        <CardTitle>Record Vitals</CardTitle>
+      </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div style={grid3}>
-            <div style={fieldCol}><Label htmlFor="heightCm">Height (cm)</Label><Input id="heightCm" type="number" step="0.1" {...register('heightCm')} /></div>
-            <div style={fieldCol}><Label htmlFor="weightKg">Weight (kg)</Label><Input id="weightKg" type="number" step="0.1" {...register('weightKg')} /></div>
-            <div style={fieldCol}><Label>BMI (auto)</Label><Input value={bmi || '-'} disabled /></div>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="space-y-1">
+              <Label htmlFor="heightCm">Height (cm)</Label>
+              <Input id="heightCm" type="number" step="0.1" {...register('heightCm')} />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="weightKg">Weight (kg)</Label>
+              <Input id="weightKg" type="number" step="0.1" {...register('weightKg')} />
+            </div>
+            <div className="space-y-1">
+              <Label>BMI (auto)</Label>
+              <Input value={bmi || '-'} disabled />
+            </div>
           </div>
-          <div style={grid3}>
-            <div style={fieldCol}><Label htmlFor="temperatureF">Temperature (°F)</Label><Input id="temperatureF" type="number" step="0.1" {...register('temperatureF')} /></div>
-            <div style={fieldCol}><Label htmlFor="pulseRate">Pulse Rate (bpm)</Label><Input id="pulseRate" type="number" {...register('pulseRate')} /></div>
-            <div style={fieldCol}><Label htmlFor="respiratoryRate">Respiratory Rate (/min)</Label><Input id="respiratoryRate" type="number" {...register('respiratoryRate')} /></div>
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="space-y-1">
+              <Label htmlFor="temperatureF">Temperature (°F)</Label>
+              <Input id="temperatureF" type="number" step="0.1" {...register('temperatureF')} />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="pulseRate">Pulse Rate (bpm)</Label>
+              <Input id="pulseRate" type="number" {...register('pulseRate')} />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="respiratoryRate">Respiratory Rate (/min)</Label>
+              <Input id="respiratoryRate" type="number" {...register('respiratoryRate')} />
+            </div>
           </div>
-          <div style={grid3}>
-            <div style={fieldCol}><Label htmlFor="systolicBp">Systolic BP (mmHg)</Label><Input id="systolicBp" type="number" {...register('systolicBp')} /></div>
-            <div style={fieldCol}><Label htmlFor="diastolicBp">Diastolic BP (mmHg)</Label><Input id="diastolicBp" type="number" {...register('diastolicBp')} /></div>
-            <div style={fieldCol}><Label htmlFor="oxygenSaturation">SpO2 (%)</Label><Input id="oxygenSaturation" type="number" {...register('oxygenSaturation')} /></div>
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="space-y-1">
+              <Label htmlFor="systolicBp">Systolic BP (mmHg)</Label>
+              <Input id="systolicBp" type="number" {...register('systolicBp')} />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="diastolicBp">Diastolic BP (mmHg)</Label>
+              <Input id="diastolicBp" type="number" {...register('diastolicBp')} />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="oxygenSaturation">SpO2 (%)</Label>
+              <Input id="oxygenSaturation" type="number" {...register('oxygenSaturation')} />
+            </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
-            <div style={fieldCol}><Label htmlFor="bloodSugar">Blood Sugar (mg/dL)</Label><Input id="bloodSugar" type="number" {...register('bloodSugar')} /></div>
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="space-y-1">
+              <Label htmlFor="bloodSugar">Blood Sugar (mg/dL)</Label>
+              <Input id="bloodSugar" type="number" {...register('bloodSugar')} />
+            </div>
           </div>
-          <div style={fieldCol}><Label htmlFor="vitalsNotes">Notes</Label><Textarea id="vitalsNotes" {...register('notes')} placeholder="Any notes about vitals..." /></div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-            <Button type="button" variant="outline" onClick={onComplete}>Skip</Button>
-            <Button type="submit" disabled={recordVitals.isPending}>{recordVitals.isPending ? 'Saving...' : 'Save Vitals'}</Button>
+
+          <div className="space-y-1">
+            <Label htmlFor="vitalsNotes">Notes</Label>
+            <Textarea id="vitalsNotes" {...register('notes')} placeholder="Any notes about vitals..." />
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={onComplete}>
+              Skip
+            </Button>
+            <Button type="submit" disabled={recordVitals.isPending}>
+              {recordVitals.isPending ? 'Saving...' : 'Save Vitals'}
+            </Button>
           </div>
         </form>
       </CardContent>

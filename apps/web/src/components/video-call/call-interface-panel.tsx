@@ -129,7 +129,7 @@ export function CallInterfacePanel({ callMode, ...props }: CallInterfacePanelPro
 
   // ─── Shared transcript panel ───────────────────────────────────────────────
   const transcriptPanel = (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'white', borderRadius: '0.875rem', border: '1px solid #E5E7EB', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'white', borderRadius: '0.875rem', border: '1px solid #E5E7EB', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', borderBottom: '1px solid #F3F4F6', flexShrink: 0 }}>
         <span style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Transcript</span>
@@ -137,9 +137,9 @@ export function CallInterfacePanel({ callMode, ...props }: CallInterfacePanelPro
       </div>
 
       {/* Scrollable content */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '0.625rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+      <div style={{ maxHeight: '200px', minHeight: '120px', overflowY: 'auto', padding: '0.625rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
         {props.transcript.length === 0 && !props.interimText && (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', paddingTop: '1.5rem', textAlign: 'center' }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '1.5rem 0', textAlign: 'center' }}>
             <Waves style={{ width: 22, height: 22, color: '#D1D5DB' }} />
             <p style={{ fontSize: 11, color: '#9CA3AF', fontStyle: 'italic', margin: 0 }}>Listening for conversation...</p>
           </div>
@@ -180,8 +180,8 @@ export function CallInterfacePanel({ callMode, ...props }: CallInterfacePanelPro
   // ─── IN_PERSON Layout ─────────────────────────────────────────────────────
   if (callMode === 'IN_PERSON') {
     return (
-      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', border: '1.5px solid #14B8A6', background: '#F0FDFA', borderRadius: '1rem' }}>
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '1rem', gap: '0.75rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', border: '1.5px solid #14B8A6', background: '#F0FDFA', borderRadius: '1rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '1rem', gap: '0.75rem' }}>
 
           {/* Recording control card */}
           <div style={{ background: 'white', borderRadius: '0.875rem', padding: '1.5rem 1.25rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.875rem', flexShrink: 0 }}>
@@ -243,8 +243,8 @@ export function CallInterfacePanel({ callMode, ...props }: CallInterfacePanelPro
 
   // ─── AUDIO Layout ─────────────────────────────────────────────────────────
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', border: '1.5px solid #F59E0B', background: '#FFFBEB', borderRadius: '1rem' }}>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '1rem', gap: '0.875rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', border: '1.5px solid #F59E0B', background: '#FFFBEB', borderRadius: '1rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '1rem', gap: '0.875rem' }}>
 
         {/* Visualization */}
         <div style={{ background: 'white', borderRadius: '0.875rem', border: '1px solid #FDE68A', padding: '1.25rem 1rem', flexShrink: 0, position: 'relative', overflow: 'hidden' }}>

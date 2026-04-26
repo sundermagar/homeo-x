@@ -1,7 +1,5 @@
-// @ts-nocheck
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { api } from '../../../lib/api-client';
-import { API } from '../../../lib/constants';
 import type { TranscriptSegmentLocal } from '../../../types/scribing';
 
 export interface AiSuggestedQuestion {
@@ -12,14 +10,9 @@ export interface AiSuggestedQuestion {
 }
 
 /**
- * Hook that generates AI follow-up homeopathic questions from live transcript.
- * Uses the /api/ai/suggest/questions endpoint (fast, lightweight LLM call) to generate structured
- * clinical questions the doctor should ask next.
- *
- * Triggers:
- * - Every 3+ new final segments (lowered from 2 to catch short exchanges)
- * - After 4s debounce of silence
- * - Works even after recording stops (so questions persist after wrap-up)
+ * Hook that generates AI follow-up questions from live transcript.
+ * Token-efficient: only triggers after sufficient new content and uses debouncing.
+ * Runs on the EXISTING /ai/suggest/soap endpoint to avoid needing a new backend route.
  */
 export function useAiQuestionSuggestions(
   segments: TranscriptSegmentLocal[],
@@ -27,28 +20,28 @@ export function useAiQuestionSuggestions(
 ) {
   const [questions, setQuestions] = useState<AiSuggestedQuestion[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const lastProcessedCountRef = useRef(0);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Build readable transcript
+  // Build transcript text from segments
   const buildTranscriptText = useCallback((segs: TranscriptSegmentLocal[]) => {
     return segs
       .filter(s => s.isFinal)
-      .map(s => `${s.speaker === 'DOCTOR' ? 'Doctor' : 'Patient'}: ${s.translatedText || s.text}`)
+      .map(s => `${s.speaker}: ${s.translatedText || s.text}`)
       .join('\n');
   }, []);
 
+  // Mark a question as answered when the patient talks about it
   const markAnswered = useCallback((questionId: string) => {
     setQuestions(prev =>
       prev.map(q => q.id === questionId ? { ...q, answered: true } : q)
     );
   }, []);
 
-  // Generate questions using the LLM consult endpoint
+  // Generate questions from transcript
   const generateQuestions = useCallback(async (segs: TranscriptSegmentLocal[]) => {
     const transcriptText = buildTranscriptText(segs);
-    if (!transcriptText.trim() || transcriptText.length < 20) return;
+    if (!transcriptText.trim() || transcriptText.length < 30) return;
 
     // Cancel any ongoing request
     if (abortControllerRef.current) {
@@ -58,79 +51,80 @@ export function useAiQuestionSuggestions(
 
     setIsGenerating(true);
     try {
-      const result = await api.post<{ questions?: Array<{q:string;c:string}> }>(
-        API.AI.SUGGEST_QUESTIONS,
-        { transcript: transcriptText }
-      );
+      // Use the existing translate endpoint as a lightweight AI call
+      // with a custom prompt to generate questions
+      const result = await api.post<{ translated: string }>('/api/v1/ai/translate', {
+        text: `TASK: Generate 3-4 short follow-up clinical questions a homeopathic doctor should ask based on this conversation. Focus on uncovered symptoms, modalities (worse/better from), mental state, and duration.
 
-      let parsed: Array<{ q: string; c: string }> = [];
+CONVERSATION:
+${transcriptText.slice(-1500)}
 
-      if (result?.questions && Array.isArray(result.questions)) {
-        parsed = result.questions;
-      }
+RULES:
+- Output ONLY a JSON array of objects: [{"q":"question text","c":"category"}]
+- Categories: symptom, modality, mental, general, history
+- Questions MUST be in English only
+- Max 4 questions
+- Skip questions already answered in the conversation
+- Keep questions SHORT (under 15 words)`,
+        targetLanguage: 'en',
+      });
 
-      if (parsed.length > 0) {
-        const validCategories = ['symptom', 'modality', 'mental', 'general', 'history'];
-        const newQuestions: AiSuggestedQuestion[] = parsed
-          .filter(item => item.q && typeof item.q === 'string' && item.q.length > 3)
-          .slice(0, 4)
-          .map((item, idx) => ({
-            id: `q-${Date.now()}-${idx}`,
-            question: item.q.trim(),
-            category: (validCategories.includes(item.c) ? item.c : 'symptom') as AiSuggestedQuestion['category'],
-            answered: false,
-          }));
+      // Parse the AI response
+      try {
+        const raw = result.translated;
+        // Extract JSON array from response
+        const match = raw.match(/\[[\s\S]*\]/);
+        if (match) {
+          const parsed = JSON.parse(match[0]) as Array<{ q: string; c: string }>;
+          const newQuestions: AiSuggestedQuestion[] = parsed
+            .filter(item => item.q && typeof item.q === 'string')
+            .slice(0, 4)
+            .map((item, idx) => ({
+              id: `q-${Date.now()}-${idx}`,
+              question: item.q,
+              category: (['symptom', 'modality', 'mental', 'general', 'history'].includes(item.c)
+                ? item.c
+                : 'symptom') as AiSuggestedQuestion['category'],
+              answered: false,
+            }));
 
-        if (newQuestions.length > 0) {
-          setQuestions(newQuestions);
+          if (newQuestions.length > 0) {
+            setQuestions(newQuestions);
+          }
         }
+      } catch {
+        // Parsing failed — silently ignore, keep old questions
       }
-    } catch (err: any) {
-      // Silently ignore errors (network, abort, parse failures)
-      if (err?.name !== 'AbortError') {
-        console.debug('[AI Questions] generation failed:', err?.message);
-      }
+    } catch {
+      // API call failed — silently ignore
     } finally {
       setIsGenerating(false);
     }
   }, [buildTranscriptText]);
 
-  // Trigger on transcript changes — works during AND after recording
-  useEffect(() => {
-    const finalSegments = segments.filter(s => s.isFinal);
-    const newCount = finalSegments.length;
-
-    // Need at least 2 segments total, and 2+ new since last generation
-    if (newCount < 2) return;
-    if (newCount - lastProcessedCountRef.current < 2) return;
-
-    // Clear existing debounce
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-
-    // Shorter debounce while actively transcribing, longer when paused
-    const delay = isTranscribing ? 4000 : 1500;
-
-    debounceTimerRef.current = setTimeout(() => {
-      lastProcessedCountRef.current = newCount;
-      generateQuestions(finalSegments);
-    }, delay);
-
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-    };
-  }, [segments.length, isTranscribing, generateQuestions]);
+  // Auto-fire disabled: this hook's output was never rendered in the UI
+  // (only modeQuestions feeds `allQuestions`). markAnswered below still works
+  // as a pure-local state helper without burning ~12 Claude calls per session.
+  // See consultation-stage.tsx:447 for where allQuestions is assembled.
+  void generateQuestions;
+  void segments;
+  void isTranscribing;
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (abortControllerRef.current) abortControllerRef.current.abort();
-      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
     };
   }, []);
 
-  return { questions, isGenerating, markAnswered };
+  return {
+    questions,
+    isGenerating,
+    markAnswered,
+  };
 }

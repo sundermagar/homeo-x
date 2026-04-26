@@ -1,5 +1,13 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Stethoscope, Search, X, ChevronDown, ChevronUp, Sparkles, FileText } from 'lucide-react';
+import {
+  Stethoscope,
+  Search,
+  X,
+  ChevronDown,
+  ChevronUp,
+  Sparkles,
+  FileText,
+} from 'lucide-react';
 import { Card, CardContent } from '../../../components/ui/card';
 import { Input } from '../../../components/ui/input';
 import { Textarea } from '../../../components/ui/textarea';
@@ -10,19 +18,48 @@ import { useAiSuggestSoap, useAiSuggestDiagnosis, useAiFeedback } from '../../..
 import type { SoapSuggestion, DiagnosisSuggestion, SuggestSoapInput, SuggestDiagnosisInput } from '../../../types/ai';
 
 interface DiagnosisChipsProps {
+  /** Selected ICD codes (comma-separated string) */
   selectedCodes: string;
   onCodesChange: (codes: string) => void;
-  soapData: { subjective: string; objective: string; assessment: string; plan: string; clinicalSummary: string; };
-  onSoapChange: (data: { subjective: string; objective: string; assessment: string; plan: string; clinicalSummary: string; }) => void;
+  /** SOAP data for editable summary */
+  soapData: {
+    subjective: string;
+    objective: string;
+    assessment: string;
+    plan: string;
+    clinicalSummary: string;
+  };
+  onSoapChange: (data: {
+    subjective: string;
+    objective: string;
+    assessment: string;
+    plan: string;
+    clinicalSummary: string;
+  }) => void;
+  /** AI suggestion from voice capture or manual trigger */
   aiSuggestion?: SoapSuggestion | null;
   onAiSuggestionHandled?: () => void;
+  /** Context for AI SOAP generation */
   aiContext?: Omit<SuggestSoapInput, 'visitId'> & { visitId: string };
+  /** Callback when diagnosis selection changes (for triggering Rx/lab suggestions) */
   onDiagnosisSelected?: (diagnoses: string[]) => void;
 }
 
-interface SelectedDiagnosis { code: string; description: string; }
+interface SelectedDiagnosis {
+  code: string;
+  description: string;
+}
 
-export function DiagnosisChips({ selectedCodes, onCodesChange, soapData, onSoapChange, aiSuggestion, onAiSuggestionHandled, aiContext, onDiagnosisSelected }: DiagnosisChipsProps) {
+export function DiagnosisChips({
+  selectedCodes,
+  onCodesChange,
+  soapData,
+  onSoapChange,
+  aiSuggestion,
+  onAiSuggestionHandled,
+  aiContext,
+  onDiagnosisSelected,
+}: DiagnosisChipsProps) {
   const [showIcdSearch, setShowIcdSearch] = useState(false);
   const [icdQuery, setIcdQuery] = useState('');
   const [showSoapEditor, setShowSoapEditor] = useState(false);
@@ -36,184 +73,380 @@ export function DiagnosisChips({ selectedCodes, onCodesChange, soapData, onSoapC
   const aiSuggestDx = useAiSuggestDiagnosis();
   const aiFeedback = useAiFeedback();
 
+  // Parse initial codes from string
   useEffect(() => {
     if (selectedCodes) {
-      const codes = selectedCodes.split(',').map(c => c.trim()).filter(Boolean);
-      setSelectedDiagnoses(prev => {
-        const existing = prev.map(d => d.code);
-        return [...prev, ...codes.filter(c => !existing.includes(c)).map(code => ({ code, description: code }))];
+      const codes = selectedCodes.split(',').map((c) => c.trim()).filter(Boolean);
+      setSelectedDiagnoses((prev) => {
+        const existing = prev.map((d) => d.code);
+        const newCodes = codes.filter((c) => !existing.includes(c));
+        return [
+          ...prev,
+          ...newCodes.map((code) => ({ code, description: code })),
+        ];
       });
     }
   }, []);
 
+  // Handle external AI suggestion (from voice capture)
   useEffect(() => {
-    if (aiSuggestion) { setActiveSoapSuggestion(aiSuggestion); setActiveDxSuggestion(null); setShowAiPanel(true); }
+    if (aiSuggestion) {
+      setActiveSoapSuggestion(aiSuggestion);
+      setActiveDxSuggestion(null);
+      setShowAiPanel(true);
+    }
   }, [aiSuggestion]);
 
-  const updateCodes = useCallback((diagnoses: SelectedDiagnosis[]) => {
-    setSelectedDiagnoses(diagnoses);
-    onCodesChange(diagnoses.map(d => d.code).join(', '));
-    onDiagnosisSelected?.(diagnoses.map(d => d.description));
-  }, [onCodesChange, onDiagnosisSelected]);
+  const updateCodes = useCallback(
+    (diagnoses: SelectedDiagnosis[]) => {
+      setSelectedDiagnoses(diagnoses);
+      onCodesChange(diagnoses.map((d) => d.code).join(', '));
+      onDiagnosisSelected?.(diagnoses.map((d) => d.description));
+    },
+    [onCodesChange, onDiagnosisSelected],
+  );
 
-  const addDiagnosis = useCallback((code: string, description: string) => {
-    if (selectedDiagnoses.some(d => d.code === code)) return;
-    updateCodes([...selectedDiagnoses, { code, description }]);
-    setIcdQuery(''); setShowIcdSearch(false);
-  }, [selectedDiagnoses, updateCodes]);
+  const addDiagnosis = useCallback(
+    (code: string, description: string) => {
+      if (selectedDiagnoses.some((d) => d.code === code)) return;
+      const updated = [...selectedDiagnoses, { code, description }];
+      updateCodes(updated);
+      setIcdQuery('');
+      setShowIcdSearch(false);
+    },
+    [selectedDiagnoses, updateCodes],
+  );
 
-  const removeDiagnosis = useCallback((code: string) => updateCodes(selectedDiagnoses.filter(d => d.code !== code)), [selectedDiagnoses, updateCodes]);
+  const removeDiagnosis = useCallback(
+    (code: string) => {
+      const updated = selectedDiagnoses.filter((d) => d.code !== code);
+      updateCodes(updated);
+    },
+    [selectedDiagnoses, updateCodes],
+  );
 
   const handleAiSuggest = useCallback(() => {
     if (!aiContext) return;
-    aiSuggestDx.mutate({ symptoms: [aiContext.chiefComplaint || ''], vitals: aiContext.vitals, patientAge: aiContext.patientAge, patientGender: aiContext.patientGender, specialty: aiContext.specialty, transcript: aiContext.transcript || '' } as SuggestDiagnosisInput, {
-      onSuccess: (suggestion) => { setActiveDxSuggestion(suggestion); setActiveSoapSuggestion(null); setShowAiPanel(true); },
+    
+    // Use targeted diagnosis suggestion engine
+    const suggestInput: SuggestDiagnosisInput = {
+      symptoms: [aiContext.chiefComplaint || ''],
+      vitals: aiContext.vitals,
+      patientAge: aiContext.patientAge,
+      patientGender: aiContext.patientGender,
+      specialty: aiContext.specialty,
+      transcript: aiContext.transcript || '',
+    };
+
+    aiSuggestDx.mutate(suggestInput, {
+      onSuccess: (suggestion) => {
+        setActiveDxSuggestion(suggestion);
+        setActiveSoapSuggestion(null);
+        setShowAiPanel(true);
+      },
     });
   }, [aiContext, aiSuggestDx]);
 
   const handleApplySuggestion = useCallback(() => {
     if (activeSoapSuggestion) {
-      onSoapChange({ subjective: activeSoapSuggestion.subjective || soapData.subjective, objective: activeSoapSuggestion.objective || soapData.objective, assessment: activeSoapSuggestion.assessment || soapData.assessment, plan: activeSoapSuggestion.plan || soapData.plan, clinicalSummary: soapData.clinicalSummary });
-      if (activeSoapSuggestion.icdCodes?.length > 0) {
+      onSoapChange({
+        subjective: activeSoapSuggestion.subjective || soapData.subjective,
+        objective: activeSoapSuggestion.objective || soapData.objective,
+        assessment: activeSoapSuggestion.assessment || soapData.assessment,
+        plan: activeSoapSuggestion.plan || soapData.plan,
+        clinicalSummary: soapData.clinicalSummary,
+      });
+
+      if (activeSoapSuggestion.icdCodes && activeSoapSuggestion.icdCodes.length > 0) {
+        const newDiagnoses = activeSoapSuggestion.icdCodes.map((icd) => ({
+          code: icd.code,
+          description: icd.description,
+        }));
         const merged = [...selectedDiagnoses];
-        activeSoapSuggestion.icdCodes.forEach(icd => { if (!merged.some(m => m.code === icd.code)) merged.push({ code: icd.code, description: icd.description }); });
+        for (const d of newDiagnoses) {
+          if (!merged.some((m) => m.code === d.code)) {
+            merged.push(d);
+          }
+        }
         updateCodes(merged);
       }
-      if (activeSoapSuggestion.auditLogId) aiFeedback.mutate({ auditLogId: activeSoapSuggestion.auditLogId, action: 'accepted' });
+
+      if (activeSoapSuggestion.auditLogId) {
+        aiFeedback.mutate({ auditLogId: activeSoapSuggestion.auditLogId, action: 'accepted' });
+      }
     } else if (activeDxSuggestion) {
-      onSoapChange({ ...soapData, assessment: activeDxSuggestion.primaryDiagnosis.name || soapData.assessment });
-      const merged = [...selectedDiagnoses];
+       onSoapChange({
+        ...soapData,
+        assessment: activeDxSuggestion.primaryDiagnosis.name || soapData.assessment,
+      });
+
       const primary = activeDxSuggestion.primaryDiagnosis;
-      if (primary.icdCode && !merged.some(m => m.code === primary.icdCode)) merged.push({ code: primary.icdCode, description: primary.icdDescription || primary.name });
-      activeDxSuggestion.differentials.forEach(diff => { if (diff.likelihood === 'probable' && !merged.some(m => m.code === diff.icdCode)) merged.push({ code: diff.icdCode, description: diff.icdDescription || diff.name }); });
+      const merged = [...selectedDiagnoses];
+      if (primary.icdCode && !merged.some(m => m.code === primary.icdCode)) {
+        merged.push({ code: primary.icdCode, description: primary.icdDescription || primary.name });
+      }
+      
+      // Also add differentials if likely
+      activeDxSuggestion.differentials.forEach(diff => {
+        if (diff.likelihood === 'probable' && !merged.some(m => m.code === diff.icdCode)) {
+          merged.push({ code: diff.icdCode, description: diff.icdDescription || diff.name });
+        }
+      });
+
       updateCodes(merged);
-      if (activeDxSuggestion.auditLogId) aiFeedback.mutate({ auditLogId: activeDxSuggestion.auditLogId, action: 'accepted' });
+
+      if (activeDxSuggestion.auditLogId) {
+        aiFeedback.mutate({ auditLogId: activeDxSuggestion.auditLogId, action: 'accepted' });
+      }
     }
-    setShowAiPanel(false); setActiveSoapSuggestion(null); setActiveDxSuggestion(null); onAiSuggestionHandled?.();
-  }, [activeSoapSuggestion, activeDxSuggestion, soapData, selectedDiagnoses, onSoapChange, updateCodes, aiFeedback, onAiSuggestionHandled]);
+
+    setShowAiPanel(false);
+    setActiveSoapSuggestion(null);
+    setActiveDxSuggestion(null);
+    onAiSuggestionHandled?.();
+  }, [
+    activeSoapSuggestion,
+    activeDxSuggestion,
+    soapData,
+    selectedDiagnoses,
+    onSoapChange,
+    updateCodes,
+    aiFeedback,
+    onAiSuggestionHandled,
+  ]);
 
   const handleDismissSuggestion = useCallback(() => {
     const auditId = activeSoapSuggestion?.auditLogId || activeDxSuggestion?.auditLogId;
-    if (auditId) aiFeedback.mutate({ auditLogId: auditId, action: 'rejected' });
-    setShowAiPanel(false); setActiveSoapSuggestion(null); setActiveDxSuggestion(null); onAiSuggestionHandled?.();
+    if (auditId) {
+      aiFeedback.mutate({
+        auditLogId: auditId,
+        action: 'rejected',
+      });
+    }
+    setShowAiPanel(false);
+    setActiveSoapSuggestion(null);
+    setActiveDxSuggestion(null);
+    onAiSuggestionHandled?.();
   }, [activeSoapSuggestion, activeDxSuggestion, aiFeedback, onAiSuggestionHandled]);
 
-  const aiDiagnoses = activeSoapSuggestion?.icdCodes
-    ? activeSoapSuggestion.icdCodes
-    : activeDxSuggestion
-      ? [{ code: activeDxSuggestion.primaryDiagnosis.icdCode, description: activeDxSuggestion.primaryDiagnosis.icdDescription || activeDxSuggestion.primaryDiagnosis.name }, ...activeDxSuggestion.differentials.slice(0, 2).map(d => ({ code: d.icdCode, description: d.icdDescription || d.name }))]
+  // AI suggested diagnoses for UI display
+  const aiDiagnoses = activeSoapSuggestion?.icdCodes 
+    ? activeSoapSuggestion.icdCodes 
+    : activeDxSuggestion 
+      ? [
+          { code: activeDxSuggestion.primaryDiagnosis.icdCode, description: activeDxSuggestion.primaryDiagnosis.icdDescription || activeDxSuggestion.primaryDiagnosis.name },
+          ...activeDxSuggestion.differentials.slice(0, 2).map(d => ({ code: d.icdCode, description: d.icdDescription || d.name }))
+        ]
       : [];
-
+  
   const aiConfidence = activeSoapSuggestion?.confidence ?? activeDxSuggestion?.confidence ?? 0;
   const aiAssessment = activeSoapSuggestion?.assessment ?? activeDxSuggestion?.primaryDiagnosis.name;
 
-  const soapFields = ['subjective', 'objective', 'assessment', 'plan'] as const;
-
   return (
     <Card>
-      <CardContent style={{ padding: '0.75rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Stethoscope style={{ width: 16, height: 16, color: 'var(--text-tertiary)' }} />
-            <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500, color: 'var(--text-secondary)' }}>Diagnosis</span>
+      <CardContent className="px-4 py-3 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Stethoscope className="h-4 w-4 text-gray-400" />
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Diagnosis
+            </span>
           </div>
-          {aiContext && (
-            <Button variant="outline" size="sm" onClick={handleAiSuggest} disabled={aiSuggestSoap.isPending || aiSuggestDx.isPending} style={{ height: '1.75rem', fontSize: 'var(--font-size-xs)', color: '#7C3AED', borderColor: '#DDD6FE' }}>
-              <Sparkles style={{ width: 12, height: 12, marginRight: 4 }} />
-              {aiSuggestSoap.isPending || aiSuggestDx.isPending ? 'Analyzing...' : 'AI Suggest'}
-            </Button>
-          )}
+          <div className="flex items-center gap-1.5">
+            {aiContext && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs text-purple-600 border-purple-200 hover:bg-purple-50 dark:text-purple-400 dark:border-purple-800 dark:hover:bg-purple-950/30"
+                onClick={handleAiSuggest}
+                disabled={aiSuggestSoap.isPending || aiSuggestDx.isPending}
+              >
+                <Sparkles className="h-3 w-3 mr-1" />
+                {aiSuggestSoap.isPending || aiSuggestDx.isPending ? 'Analyzing...' : 'AI Suggest'}
+              </Button>
+            )}
+          </div>
         </div>
 
-        {/* AI Panel */}
+        {/* AI Suggestion Panel */}
         {showAiPanel && (activeSoapSuggestion || activeDxSuggestion) && (
-          <div style={{ borderRadius: 'var(--radius-card)', border: '1px solid #DDD6FE', background: 'rgba(245,243,255,0.5)', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Sparkles style={{ width: 16, height: 16, color: '#7C3AED' }} />
-              <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, color: '#4C1D95' }}>AI Suggestion</span>
-              <AiConfidenceBadge confidence={aiConfidence} />
+          <div className="rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-950/20 p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-purple-500" />
+                <span className="text-xs font-semibold text-purple-700 dark:text-purple-300">
+                  AI Suggestion
+                </span>
+                <AiConfidenceBadge confidence={aiConfidence} />
+              </div>
             </div>
+
+            {/* Suggested diagnoses as chips */}
             {aiDiagnoses.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
+              <div className="flex flex-wrap gap-1.5">
                 {aiDiagnoses.map((icd) => (
-                  <span key={icd.code} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, borderRadius: 'var(--radius-full)', padding: '0.25rem 0.625rem', fontSize: 'var(--font-size-xs)', fontWeight: 500, background: '#EDE9FE', color: '#4C1D95' }}>
+                  <span
+                    key={icd.code}
+                    className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300"
+                  >
                     {icd.code}: {icd.description}
                   </span>
                 ))}
               </div>
             )}
-            {aiAssessment && <p style={{ fontSize: 'var(--font-size-xs)', color: '#4C1D95', lineHeight: 1.5, margin: 0 }}>{aiAssessment}</p>}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Button size="sm" onClick={handleApplySuggestion} style={{ height: '1.75rem', fontSize: 'var(--font-size-xs)', background: '#7C3AED', color: 'white' }}>Apply All</Button>
-              <Button size="sm" variant="ghost" onClick={handleDismissSuggestion} style={{ height: '1.75rem', fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)' }}>Dismiss</Button>
+
+            {/* SOAP preview */}
+            {aiAssessment && (
+              <p className="text-xs text-purple-700 dark:text-purple-300 leading-relaxed">
+                {aiAssessment}
+              </p>
+            )}
+
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                className="h-7 text-xs bg-purple-600 hover:bg-purple-700 text-white"
+                onClick={handleApplySuggestion}
+              >
+                Apply All
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 text-xs text-gray-500"
+                onClick={handleDismissSuggestion}
+              >
+                Dismiss
+              </Button>
             </div>
           </div>
         )}
 
         {/* Selected diagnoses */}
         {selectedDiagnoses.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
+          <div className="flex flex-wrap gap-1.5">
             {selectedDiagnoses.map((d) => (
-              <span key={d.code} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, borderRadius: 'var(--radius-full)', padding: '0.25rem 0.625rem', fontSize: 'var(--font-size-xs)', fontWeight: 500, background: 'var(--color-success-100)', color: 'var(--color-success-800)', border: '1px solid var(--color-success-300)' }}>
+              <span
+                key={d.code}
+                className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium bg-teal-100 text-teal-800 border border-teal-300 dark:bg-teal-900/40 dark:text-teal-300 dark:border-teal-700"
+              >
                 {d.code}: {d.description}
-                <button type="button" onClick={() => removeDiagnosis(d.code)} style={{ background: 'none', border: 'none', cursor: 'pointer', marginLeft: 2, color: 'inherit', opacity: 0.7 }}>
-                  <X style={{ width: 12, height: 12 }} />
+                <button
+                  type="button"
+                  onClick={() => removeDiagnosis(d.code)}
+                  className="hover:text-red-600 dark:hover:text-red-400"
+                >
+                  <X className="h-3 w-3" />
                 </button>
               </span>
             ))}
           </div>
         )}
 
-        {/* ICD search */}
+        {/* Add diagnosis — ICD search (secondary action) */}
         {showIcdSearch ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <div style={{ position: 'relative' }}>
-              <Search style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: 'var(--text-tertiary)' }} />
-              <Input value={icdQuery} onChange={e => setIcdQuery(e.target.value)} placeholder="Search ICD-10 codes..." style={{ height: '2rem', paddingLeft: '2rem', fontSize: 'var(--font-size-xs)' }} autoFocus onKeyDown={e => { if (e.key === 'Escape') { setShowIcdSearch(false); setIcdQuery(''); } }} />
+          <div className="space-y-2">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+              <Input
+                value={icdQuery}
+                onChange={(e) => setIcdQuery(e.target.value)}
+                placeholder="Search ICD-10 codes..."
+                className="h-8 pl-8 text-xs"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    setShowIcdSearch(false);
+                    setIcdQuery('');
+                  }
+                }}
+              />
             </div>
             {icdResults && icdResults.length > 0 && (
-              <div style={{ maxHeight: '9rem', overflowY: 'auto', borderRadius: 'var(--radius-card)', border: '1px solid var(--border-default)', background: 'var(--bg-card)' }}>
+              <div className="max-h-36 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
                 {icdResults.map((icd) => (
-                  <button key={icd.code} type="button" onClick={() => addDiagnosis(icd.code, icd.shortDesc)} style={{ width: '100%', textAlign: 'left', padding: '0.5rem 0.75rem', fontSize: 'var(--font-size-xs)', background: 'none', border: 'none', cursor: 'pointer', borderBottom: '1px solid var(--border-light)', transition: 'background var(--transition-fast)' }}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-surface-2)')} onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
-                    <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{icd.code}</span>
-                    <span style={{ color: 'var(--text-tertiary)', marginLeft: '0.5rem' }}>{icd.shortDesc}</span>
+                  <button
+                    key={icd.code}
+                    type="button"
+                    onClick={() => addDiagnosis(icd.code, icd.shortDesc)}
+                    className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 dark:hover:bg-gray-800 border-b border-gray-50 dark:border-gray-800 last:border-0"
+                  >
+                    <span className="font-medium text-gray-900 dark:text-gray-100">
+                      {icd.code}
+                    </span>
+                    <span className="text-gray-500 dark:text-gray-400 ml-2">
+                      {icd.shortDesc}
+                    </span>
                   </button>
                 ))}
               </div>
             )}
-            <button type="button" onClick={() => { setShowIcdSearch(false); setIcdQuery(''); }} style={{ fontSize: 11, color: 'var(--text-disabled)', background: 'none', border: 'none', cursor: 'pointer' }}>Cancel search</button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowIcdSearch(false);
+                setIcdQuery('');
+              }}
+              className="text-[11px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            >
+              Cancel search
+            </button>
           </div>
         ) : (
-          <button type="button" onClick={() => setShowIcdSearch(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 'var(--font-size-xs)', color: 'var(--color-success-600)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}>
-            <Search style={{ width: 12, height: 12 }} /> Add diagnosis
+          <button
+            type="button"
+            onClick={() => setShowIcdSearch(true)}
+            className="inline-flex items-center gap-1 text-xs text-teal-600 dark:text-teal-400 hover:underline font-medium"
+          >
+            <Search className="h-3 w-3" />
+            Add diagnosis
           </button>
         )}
 
-        {/* SOAP Editor toggle */}
-        <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: '0.5rem' }}>
-          <button type="button" onClick={() => setShowSoapEditor(!showSoapEditor)} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: 'var(--font-size-xs)', fontWeight: 500, color: 'var(--text-disabled)', background: 'none', border: 'none', cursor: 'pointer' }}>
-            <FileText style={{ width: 12, height: 12 }} />
+        {/* SOAP Editor — collapsed by default, expand on demand */}
+        <div className="border-t border-gray-100 dark:border-gray-800 pt-2">
+          <button
+            type="button"
+            onClick={() => setShowSoapEditor(!showSoapEditor)}
+            className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 font-medium"
+          >
+            <FileText className="h-3 w-3" />
             {showSoapEditor ? 'Hide' : 'Expand'} Full SOAP Editor
-            {showSoapEditor ? <ChevronUp style={{ width: 12, height: 12 }} /> : <ChevronDown style={{ width: 12, height: 12 }} />}
+            {showSoapEditor ? (
+              <ChevronUp className="h-3 w-3" />
+            ) : (
+              <ChevronDown className="h-3 w-3" />
+            )}
           </button>
 
           {showSoapEditor && (
-            <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {soapFields.map((field) => (
-                <div key={field}>
-                  <label style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 500, color: 'var(--text-disabled)', marginBottom: 4, display: 'block' }}>
-                    {field.charAt(0).toUpperCase() + field.slice(1)}
-                  </label>
-                  <Textarea value={soapData[field]} onChange={e => onSoapChange({ ...soapData, [field]: e.target.value })} rows={2} placeholder={`Enter ${field}...`} />
-                </div>
-              ))}
+            <div className="mt-3 space-y-3">
+              {(['subjective', 'objective', 'assessment', 'plan'] as const).map(
+                (field) => (
+                  <div key={field}>
+                    <label className="text-[11px] uppercase tracking-wide font-medium text-gray-400 mb-1 block">
+                      {field.charAt(0).toUpperCase() + field.slice(1)}
+                    </label>
+                    <Textarea
+                      value={soapData[field]}
+                      onChange={(e) =>
+                        onSoapChange({ ...soapData, [field]: e.target.value })
+                      }
+                      rows={2}
+                      className="text-sm resize-none"
+                      placeholder={`Enter ${field}...`}
+                    />
+                  </div>
+                ),
+              )}
             </div>
           )}
 
+          {/* SOAP summary (when editor is collapsed and data exists) */}
           {!showSoapEditor && soapData.assessment && (
-            <p style={{ marginTop: '0.5rem', fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)', background: 'var(--bg-surface-2)', borderRadius: 'var(--radius-card)', padding: '0.5rem 0.75rem' }}>
-              <span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Assessment: </span>{soapData.assessment}
+            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-lg px-3 py-2">
+              <span className="font-medium text-gray-600 dark:text-gray-300">Assessment: </span>
+              {soapData.assessment}
             </p>
           )}
         </div>
