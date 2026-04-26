@@ -4,6 +4,7 @@ import {
   Stethoscope, CalendarDays, Users, RefreshCw,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import type { Appointment } from '@mmc/types';
 import { useAppointments } from '../hooks/use-appointments';
 import { AppointmentForm } from '../components/appointment-form';
 import { StatusBadge, STATUS_COLOR } from '../components/status-badge';
@@ -43,8 +44,8 @@ export default function CalendarPage() {
   });
 
   // Build date→appointments map
-  const apptMap: Record<string, NonNullable<typeof data>['data']> = {};
-  (data?.data ?? []).forEach(a => {
+  const apptMap: Record<string, Appointment[]> = {};
+  (data ?? []).forEach((a: Appointment) => {
     const d = a.bookingDate ?? '';
     if (!apptMap[d]) apptMap[d] = [];
     apptMap[d].push(a);

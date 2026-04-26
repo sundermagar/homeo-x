@@ -186,7 +186,7 @@ export default function DepositsPage() {
 
       <div className="bill-stats-bar">
         <div className="bill-stat-card">
-          <div className="bill-stat-icon" style={{ background: 'var(--pp-blue-bg)', color: 'var(--pp-blue)' }}>
+          <div className="bill-stat-icon" style={{ background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)' }}>
             <Building size={22} />
           </div>
           <div style={{ flex: 1 }}>
@@ -194,8 +194,8 @@ export default function DepositsPage() {
             <div className="bill-stat-value">{total}</div>
           </div>
         </div>
-        <div className="bill-stat-card" data-type="success">
-          <div className="bill-stat-icon" style={{ background: 'var(--pp-success-bg)', color: 'var(--pp-success-fg)' }}>
+        <div className="bill-stat-card">
+          <div className="bill-stat-icon" style={{ background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)' }}>
             <Banknote size={22} />
           </div>
           <div style={{ flex: 1 }}>
@@ -244,9 +244,9 @@ export default function DepositsPage() {
                     <td data-label="Bank">{d.bankdeposit || '—'}</td>
                     <td data-label="Remark">{d.remark || '—'}</td>
                     <td data-label="Status">
-                      <span className={`plat-badge ${d.submitted === 'Yes' ? 'plat-badge-success' : 'plat-badge-default'}`} style={{
-                        background: d.submitted === 'Yes' ? 'var(--pp-success-bg)' : 'rgba(255,255,255,0.05)',
-                        color: d.submitted === 'Yes' ? 'var(--pp-success-fg)' : 'var(--text-muted)',
+                      <span className={`plat-badge ${d.submitted === 'Yes' ? 'plat-badge-primary' : 'plat-badge-default'}`} style={{
+                        background: d.submitted === 'Yes' ? 'var(--pp-blue-tint)' : 'rgba(255,255,255,0.05)',
+                        color: d.submitted === 'Yes' ? 'var(--pp-blue)' : 'var(--text-muted)',
                         border: 'none',
                         fontSize: '0.7rem',
                         fontWeight: 600,

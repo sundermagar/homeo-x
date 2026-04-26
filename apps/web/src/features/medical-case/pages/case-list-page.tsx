@@ -13,7 +13,7 @@ export default function MedicalCaseListPage() {
   const api = useApi();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
-  const [page] = useState(1);
+  const [page, setPage] = useState(1);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   const { data: records, isLoading } = useQuery({
@@ -211,6 +211,27 @@ export default function MedicalCaseListPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {records?.total > 0 && (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 16, padding: '24px 0', marginTop: 16 }}>
+          <button 
+            disabled={page === 1}
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+            style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #e2e8f0', background: page === 1 ? '#f8fafc' : '#fff', color: page === 1 ? '#94a3b8' : '#334155', cursor: page === 1 ? 'not-allowed' : 'pointer' }}
+          >
+            Previous
+          </button>
+          <span style={{ fontSize: 14, color: '#64748b', fontWeight: 500 }}>Page {page} of {Math.max(1, Math.ceil(records.total / 50))}</span>
+          <button 
+            disabled={page >= Math.ceil(records.total / 50)}
+            onClick={() => setPage(p => p + 1)}
+            style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #e2e8f0', background: page >= Math.ceil(records.total / 50) ? '#f8fafc' : '#fff', color: page >= Math.ceil(records.total / 50) ? '#94a3b8' : '#334155', cursor: page >= Math.ceil(records.total / 50) ? 'not-allowed' : 'pointer' }}
+          >
+            Next
+          </button>
         </div>
       )}
     </div>

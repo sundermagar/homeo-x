@@ -66,7 +66,7 @@ type StaffFormErrors = {
 
 const CATEGORY = 'employee' as const;
 const META = { label: 'Employees', description: 'Manage your support staff and office employees.' };
-const PAGE_SIZE = 30;
+const PAGE_SIZE = 10;
 
 function getDefaultStaffForm(): CreateStaffInput {
   return {
@@ -491,17 +491,25 @@ export default function EmployeesPage() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [sortBy, setSortBy] = useState('id');
+  const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('DESC');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
 
-  const { data, isLoading } = useStaffList(CATEGORY, { page, limit: PAGE_SIZE, search: debouncedSearch });
+  const { data, isLoading } = useStaffList(CATEGORY, { 
+    page, 
+    limit: PAGE_SIZE, 
+    search: debouncedSearch,
+    sortBy,
+    sortOrder
+  });
   const deleteMutation = useDeleteStaff();
   const { data: editingStaff, isLoading: isLoadingStaff } = useStaffMember(CATEGORY, editingId ?? 0);
 
   const staff = data?.data || [];
   const totalPages = Math.ceil((data?.total || 0) / PAGE_SIZE);
-  const activeCount = useMemo(() => (staff as StaffSummary[]).filter((s: StaffSummary) => s.isActive).length, [staff]);
+  const activeCount = data?.activeCount ?? 0;
 
   const openCreate = () => {
     setModalMode('create');
@@ -557,17 +565,48 @@ export default function EmployeesPage() {
       </div>
 
       <div className="plat-filters">
-        <div className="plat-search-wrap">
-          <Search className="plat-search-icon" size={14} />
-          <input
-            type="text"
-            className="plat-form-input plat-search-input"
-            placeholder={`Search ${META.label.toLowerCase()} names...`}
-            value={search}
-            onChange={(e) => handleSearchChange(e.target.value)}
-          />
+        <div className="flex gap-4 flex-1">
+          <div className="plat-search-wrap">
+            <Search className="plat-search-icon" size={14} />
+            <input
+              type="text"
+              className="plat-form-input plat-search-input"
+              placeholder={`Search ${META.label.toLowerCase()} names...`}
+              value={search}
+              onChange={(e) => handleSearchChange(e.target.value)}
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-bold color-muted uppercase tracking-wider">Sort:</span>
+            <select 
+              className="plat-form-input !py-1 !text-xs !w-auto min-w-[140px]"
+              value={`${sortBy}-${sortOrder}`}
+              onChange={(e) => {
+                const [col, order] = e.target.value.split('-');
+                setSortBy(col ?? 'id');
+                setSortOrder((order ?? 'DESC') as 'ASC' | 'DESC');
+                setPage(1);
+              }}
+            >
+              <option value="id-DESC">Newest First</option>
+              <option value="id-ASC">Oldest First</option>
+              <option value="name-ASC">A-Z</option>
+              <option value="name-DESC">Z-A</option>
+            </select>
+          </div>
         </div>
-        <button className="plat-btn plat-btn-ghost plat-btn-sm" onClick={() => { setSearch(''); setDebouncedSearch(''); setPage(1); }}>
+
+        <button 
+          className="plat-btn plat-btn-ghost plat-btn-sm" 
+          onClick={() => { 
+            setSearch(''); 
+            setDebouncedSearch(''); 
+            setPage(1); 
+            setSortBy('id');
+            setSortOrder('DESC');
+          }}
+        >
           Reset
         </button>
       </div>
@@ -648,9 +687,26 @@ export default function EmployeesPage() {
       </div>
 
       {totalPages > 1 && (
-        <div className="flex justify-center gap-4 mt-8">
-          <button className="plat-btn" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>← Previous</button>
-          <button className="plat-btn" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>Next →</button>
+        <div className="plat-pagination-container">
+          <div className="plat-pagination-pill">
+            <button 
+              className="plat-pagination-btn" 
+              disabled={page <= 1} 
+              onClick={() => { setPage(p => p - 1); window.scrollTo(0, 0); }}
+            >
+              ← Previous
+            </button>
+            <div className="plat-pagination-info">
+              Page <b>{page}</b> of <b>{totalPages}</b>
+            </div>
+            <button 
+              className="plat-pagination-btn" 
+              disabled={page >= totalPages} 
+              onClick={() => { setPage(p => p + 1); window.scrollTo(0, 0); }}
+            >
+              Next →
+            </button>
+          </div>
         </div>
       )}
 

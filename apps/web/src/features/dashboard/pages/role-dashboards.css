@@ -12,6 +12,37 @@
   gap: var(--pp-space-6);
 }
 
+/* 0. Main Dashboard Header */
+.dash-header {
+  margin-bottom: var(--pp-space-6);
+}
+
+.dash-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--pp-ink);
+  margin: 0 0 4px;
+  letter-spacing: -0.01em;
+}
+
+.dash-subtitle {
+  font-size: 13px;
+  color: var(--pp-text-3);
+  font-weight: 500;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dash-subtitle::before {
+  content: '';
+  width: 10px;
+  height: 1px;
+  background: var(--pp-blue);
+  opacity: 0.4;
+}
+
 /* 1. KPI Strip (Top Row) */
 .dash-kpi-strip {
   display: grid;
@@ -792,11 +823,80 @@ button.pp-link:hover {
   display: inline-block;
 }
 
+.dark .dash-kpi-item {
+  background: rgba(30, 41, 59, 0.4);
+  border-color: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+}
+
+.dark .dash-kpi-item:hover {
+  background: rgba(30, 41, 59, 0.6);
+  border-color: var(--pp-blue);
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
+}
+
+.dark .dash-card {
+  background: rgba(15, 23, 42, 0.6);
+  border-color: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+}
+
+.dark .dash-card-header {
+  background: rgba(30, 41, 59, 0.3);
+  border-bottom-color: rgba(255, 255, 255, 0.05);
+}
+
+.dark .dd-active-head-up {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.8) 100%);
+  border-color: rgba(59, 130, 246, 0.3);
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.4), inset 0 0 20px rgba(59, 130, 246, 0.05);
+}
+
+.dark .dd-hud-header {
+  background: rgba(59, 130, 246, 0.1);
+  border-bottom-color: rgba(59, 130, 246, 0.2);
+}
+
+.dark .dash-row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.dark .dash-row.active {
+  background: rgba(59, 130, 246, 0.1);
+  border-left-color: var(--pp-blue);
+}
+
+.dark .dash-intel-item {
+  background: rgba(30, 41, 59, 0.4);
+  border-color: rgba(255, 255, 255, 0.03);
+}
+
+.dark .dash-intel-item:hover {
+  background: rgba(30, 41, 59, 0.6);
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+.dark .dd-token-pill {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60A5FA;
+}
+
+.dark .modal-overlay {
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(12px);
+}
+
+.dark .modal-box {
+  background: #0F172A;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+}
+
 .dash-action-btn {
-  padding: 4px 14px;
+  padding: 4px 12px;
   border-radius: 6px;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.2s;
   border: 1.5px solid transparent;
@@ -830,4 +930,80 @@ button.pp-link:hover {
 .dash-action-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+/* ─── OpLink Styles ─── */
+.hover-op {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: all 0.15s;
+}
+
+.hover-op-icon {
+  color: #2563eb;
+  display: flex;
+}
+
+.hover-op-label {
+  font-size: 12px;
+  font-weight: 700;
+  flex: 1;
+  color: #475569;
+}
+
+.hover-op-arrow {
+  color: #94a3b8;
+}
+
+.hover-op:hover {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+}
+
+/* ─── Dark Theme Overrides for Buttons & OpLinks ─── */
+.dark .dash-view-btn {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border-color: rgba(59, 130, 246, 0.25);
+}
+
+.dark .dash-view-btn:hover {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.dark .btn-checkin {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+  border-color: rgba(34, 197, 94, 0.25);
+}
+
+.dark .btn-call {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.25);
+}
+
+.dark .hover-op {
+  background: rgba(30, 41, 59, 0.5);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.dark .hover-op:hover {
+  background: rgba(30, 41, 59, 0.8);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .hover-op-label {
+  color: #cbd5e1;
+}
+
+.dark .hover-op-icon {
+  color: #60a5fa;
 }

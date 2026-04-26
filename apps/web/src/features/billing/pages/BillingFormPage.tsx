@@ -144,7 +144,7 @@ export default function BillingFormPage() {
 
               <div className="bill-balance-row">
                 <span className="bill-balance-label">Balance Due</span>
-                <span className="bill-balance-value" style={{ color: balance > 0 ? 'var(--pp-danger-fg)' : 'var(--pp-success-fg)' }}>
+                <span className="bill-balance-value" style={{ color: 'var(--pp-blue)' }}>
                   ₹{balance.toLocaleString()}
                 </span>
               </div>

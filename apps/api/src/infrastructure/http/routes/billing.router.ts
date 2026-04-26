@@ -3,6 +3,7 @@ import { asyncHandler } from '../middleware/async-handler';
 import { authMiddleware } from '../middleware/auth';
 import { validate, validateQuery } from '../middleware/validate';
 import { BillingRepositoryPg } from '../../repositories/billing.repository.pg';
+import { AppointmentRepositoryPG } from '../../repositories/appointment.repository.pg';
 import {
   CreateBillUseCase,
   ListBillsUseCase,
@@ -73,7 +74,10 @@ export function createBillingRouter(): Router {
     '/',
     validate(createBillSchema),
     asyncHandler(async (req: Request, res: Response) => {
-      const useCase = new CreateBillUseCase(getRepo(req));
+      const useCase = new CreateBillUseCase(
+        getRepo(req),
+        new AppointmentRepositoryPG(req.tenantDb)
+      );
       const result = await useCase.execute(req.body);
       if (!result.success) {
         res.status(400).json({ success: false, error: result.error });

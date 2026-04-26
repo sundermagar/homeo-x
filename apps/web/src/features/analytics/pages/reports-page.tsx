@@ -75,58 +75,97 @@ function CaseMonthWiseTab({ onExport }: { onExport: (filename: string, headers: 
   );
 
   return (
-    <div className="plat-card">
-      <div className="plat-card-header">
-        <h3>Monthly Financial Outline ({year})</h3>
-        <button
-          className="plat-btn plat-btn-sm"
-          onClick={() => onExport('MonthWise_Financial',
-            ['displaydate', 'new_cases', 'followups', 'collection', 'cash', 'card', 'online', 'expenses'],
-            data ?? []
-          )}
-        >
-          <Download size={14} /> Export CSV
-        </button>
+    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      {/* Stats Summary Overlay */}
+      <div className="plat-stats-bar" style={{ 
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+        gap: 16 
+      }}>
+        <div className="plat-stat-card" style={{ background: 'var(--pp-blue)', color: 'white' }}>
+          <div className="plat-stat-label" style={{ opacity: 0.8, color: 'white' }}>Total Annual Revenue</div>
+          <div className="plat-stat-value">₹{(data ?? []).reduce((acc, r: any) => acc + (Number(r.collection) || 0), 0).toLocaleString()}</div>
+          <div className="plat-stat-footer" style={{ color: 'rgba(255,255,255,0.6)' }}>Current Fiscal Year</div>
+        </div>
+        <div className="plat-stat-card">
+          <div className="plat-stat-label">Total Expenses</div>
+          <div className="plat-stat-value" style={{ color: 'var(--pp-danger-fg)' }}>₹{(data ?? []).reduce((acc, r: any) => acc + (Number(r.expenses) || 0), 0).toLocaleString()}</div>
+          <div className="plat-stat-footer">Operational Costs</div>
+        </div>
+        <div className="plat-stat-card">
+          <div className="plat-stat-label">Net Operating Profit</div>
+          <div className="plat-stat-value" style={{ color: 'var(--pp-success-fg)' }}>
+            ₹{(data ?? []).reduce((acc, r: any) => acc + ((Number(r.collection) || 0) - (Number(r.expenses) || 0)), 0).toLocaleString()}
+          </div>
+          <div className="plat-stat-footer">Growth Indicator</div>
+        </div>
       </div>
-      <div className="plat-table-container">
-        <table className="plat-table">
-          <thead>
-            <tr>
-              <th>Month</th>
-              <th style={{ textAlign: 'right' }}>New/Followups</th>
-              <th style={{ textAlign: 'right' }}>Collection</th>
-              <th style={{ textAlign: 'right' }}>Cash</th>
-              <th style={{ textAlign: 'right' }}>Online/Card</th>
-              <th style={{ textAlign: 'right' }}>Expenses</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(data ?? []).map((row, i) => {
-              const r = row as unknown as Record<string, unknown>;
-              return (
-              <tr key={i}>
-                <td data-label="Month" style={{ fontWeight: 700 }}>{String(r['displaydate'] ?? '')}</td>
-                <td data-label="New/Followups" style={{ textAlign: 'right' }}>
-                  <span style={{ fontWeight: 600 }}>{String(r['new_cases'] ?? 0)}</span> / <span style={{ color: 'var(--pp-text-3)' }}>{String(r['followups'] ?? 0)}</span>
-                </td>
-                <td data-label="Collection" style={{ textAlign: 'right', fontWeight: 800, color: 'var(--pp-success-fg)' }}>
-                  ₹{Number(r['collection'] ?? 0).toLocaleString()}
-                </td>
-                <td data-label="Cash" style={{ textAlign: 'right' }}>₹{Number(r['cash'] ?? 0).toLocaleString()}</td>
-                <td data-label="Online/Card" style={{ textAlign: 'right' }}>
-                  ₹{((Number(r['online']) || 0) + (Number(r['card']) || 0)).toLocaleString()}
-                </td>
-                <td data-label="Expenses" style={{ textAlign: 'right', fontWeight: 800, color: 'var(--pp-danger-fg)' }}>
-                  ₹{Number(r['expenses'] ?? 0).toLocaleString()}
-                </td>
-              </tr>
-              );
-            })}
-            {(!data || data.length === 0) && (
-              <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: 'var(--pp-text-3)' }}>No data found</td></tr>
+
+      <div className="plat-card">
+        <div className="plat-card-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--pp-blue-tint)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Activity size={18} style={{ color: 'var(--pp-blue)' }} />
+            </div>
+            <h3 style={{ margin: 0 }}>Monthly Financial Outline ({year})</h3>
+          </div>
+          <button
+            className="plat-btn plat-btn-sm"
+            style={{ borderRadius: 8, fontWeight: 700 }}
+            onClick={() => onExport('MonthWise_Financial',
+              ['displaydate', 'new_cases', 'followups', 'collection', 'cash', 'card', 'online', 'expenses'],
+              data ?? []
             )}
-          </tbody>
-        </table>
+          >
+            <Download size={14} /> Export CSV
+          </button>
+        </div>
+        <div className="plat-table-container">
+          <table className="plat-table">
+            <thead>
+              <tr>
+                <th>Month</th>
+                <th style={{ textAlign: 'right' }}>Case Load</th>
+                <th style={{ textAlign: 'right' }}>Gross Collection</th>
+                <th style={{ textAlign: 'right' }}>Cash / Digital</th>
+                <th style={{ textAlign: 'right' }}>Operational Exp.</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(data ?? []).map((row, i) => {
+                const r = row as unknown as Record<string, unknown>;
+                const collection = Number(r['collection'] ?? 0);
+                const expenses = Number(r['expenses'] ?? 0);
+                return (
+                <tr key={i} className="plat-table-row">
+                  <td data-label="Month" style={{ fontWeight: 800, color: 'var(--pp-blue)' }}>{String(r['displaydate'] ?? '')}</td>
+                  <td data-label="Case Load" style={{ textAlign: 'right' }}>
+                    <div style={{ fontWeight: 700, color: 'var(--pp-ink)' }}>{String(r['new_cases'] ?? 0)} New</div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--pp-text-3)' }}>{String(r['followups'] ?? 0)} Followups</div>
+                  </td>
+                  <td data-label="Gross Collection" style={{ textAlign: 'right' }}>
+                    <div style={{ fontWeight: 900, color: 'var(--pp-success-fg)', fontSize: '1rem' }}>₹{collection.toLocaleString()}</div>
+                    <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', opacity: 0.6 }}>Cleared</div>
+                  </td>
+                  <td data-label="Cash / Digital" style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>₹{Number(r['cash'] ?? 0).toLocaleString()} (C)</div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--pp-blue)', fontWeight: 600 }}>
+                      ₹{((Number(r['online']) || 0) + (Number(r['card']) || 0)).toLocaleString()} (D)
+                    </div>
+                  </td>
+                  <td data-label="Operational Exp." style={{ textAlign: 'right' }}>
+                    <div style={{ fontWeight: 800, color: 'var(--pp-danger-fg)' }}>₹{expenses.toLocaleString()}</div>
+                    <div style={{ fontSize: '0.65rem', color: 'var(--pp-text-4)' }}>Margin: {collection > 0 ? (((collection - expenses) / collection) * 100).toFixed(1) : 0}%</div>
+                  </td>
+                </tr>
+                );
+              })}
+              {(!data || data.length === 0) && (
+                <tr><td colSpan={5} style={{ textAlign: 'center', padding: '60px', color: 'var(--pp-text-3)' }}>No financial records found</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
@@ -145,10 +184,11 @@ function MonthWiseDueTab({ onExport }: { onExport: (filename: string, headers: s
   );
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }} className="plat-dues-mobile-grid">
+    <div className="plat-dues-grid">
       <style>{`
+        .plat-dues-grid { display: grid; grid-template-columns: 1fr; gap: 24px; }
         @media (min-width: 1024px) {
-          .plat-dues-mobile-grid { grid-template-columns: 320px 1fr !important; }
+          .plat-dues-grid { grid-template-columns: 320px 1fr; }
         }
       `}</style>
 
@@ -167,23 +207,29 @@ function MonthWiseDueTab({ onExport }: { onExport: (filename: string, headers: s
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 width: '100%',
-                padding: '14px 16px',
-                background: selectedMonth === s.month ? 'var(--pp-blue-tint)' : 'white',
+                padding: '16px 20px',
+                background: selectedMonth === s.month ? 'var(--pp-blue-tint)' : 'var(--bg-card)',
                 border: 'none',
                 borderBottom: '1px solid var(--pp-warm-4)',
                 cursor: 'pointer',
                 textAlign: 'left',
-                transition: 'all 0.2s ease',
-                borderLeft: selectedMonth === s.month ? '4px solid var(--pp-blue)' : '4px solid transparent'
+                transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                borderLeft: selectedMonth === s.month ? '4px solid var(--pp-blue)' : '4px solid transparent',
+                position: 'relative'
               }}
             >
               <div>
-                <div style={{ fontSize: '0.875rem', fontWeight: 700, color: selectedMonth === s.month ? 'var(--pp-blue)' : 'var(--pp-ink)' }}>
+                <div style={{ fontSize: '0.9rem', fontWeight: 850, color: selectedMonth === s.month ? 'var(--pp-blue)' : 'var(--pp-ink)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
                   {new Date(year, Number(s.month) - 1).toLocaleString('default', { month: 'long' })}
                 </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--pp-text-3)', fontWeight: 500 }}>{String(s.count)} patients</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--pp-text-3)', fontWeight: 600, marginTop: 4 }}>
+                  <Users size={10} style={{ display: 'inline', marginRight: 4 }} /> {String(s.count)} Active Cases
+                </div>
               </div>
-              <div style={{ fontWeight: 800, color: 'var(--pp-danger-fg)', fontSize: '0.9rem' }}>₹{Number(s.total_due ?? 0).toLocaleString()}</div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontWeight: 950, color: 'var(--pp-danger-fg)', fontSize: '1rem' }}>₹{Number(s.total_due ?? 0).toLocaleString()}</div>
+                <div style={{ fontSize: '0.6rem', fontWeight: 800, color: 'var(--pp-text-4)', textTransform: 'uppercase' }}>Unpaid</div>
+              </div>
             </button>
           ))}
           {(!summary || summary.length === 0) && (
@@ -222,21 +268,26 @@ function MonthWiseDueTab({ onExport }: { onExport: (filename: string, headers: s
               <div className="plat-empty-text">No outstanding dues for this month.</div>
             </div>
           )}
-          <div style={{ display: 'grid', gap: '12px' }}>
+          <div className="plat-dues-list">
+            <style>{`
+              .plat-dues-list { display: grid; gap: 12px; }
+              .plat-due-item { 
+                padding: 16px; 
+                border: 1px solid var(--pp-warm-4); 
+                border-radius: 12px;
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                background: var(--bg-card);
+              }
+              @media (min-width: 640px) {
+                .plat-due-item { flex-direction: row; justify-content: space-between; align-items: center; }
+              }
+            `}</style>
             {(details ?? []).map((d: any) => (
-              <div key={String(d.regid)} style={{ 
-                padding: '16px', 
-                border: '1px solid var(--pp-warm-4)', 
-                borderRadius: '12px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: '16px',
-                background: 'var(--bg-card)'
-              }}>
-                <div style={{ flex: 1, minWidth: '200px' }}>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--pp-ink)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div key={String(d.regid)} className="plat-due-item">
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--pp-ink)', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     {String(d.first_name ?? '')} {String(d.surname ?? '')}
                     <span className="plat-badge plat-badge-default">#{String(d.regid ?? '')}</span>
                   </div>
@@ -244,12 +295,12 @@ function MonthWiseDueTab({ onExport }: { onExport: (filename: string, headers: s
                     {d.mobile1 ? String(d.mobile1) : '—'}{d.city ? ` · ${String(d.city)}` : ''}
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '16px', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase' }}>Charges</div>
                     <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>₹{Number(d.total_charges ?? 0).toLocaleString()}</div>
                   </div>
-                  <div style={{ padding: '8px 12px', background: 'var(--pp-danger-bg)', borderRadius: '8px', textAlign: 'right', border: '1px solid var(--pp-warm-4)' }}>
+                  <div style={{ padding: '8px 12px', background: 'var(--pp-danger-bg)', borderRadius: '8px', textAlign: 'right', border: '1px solid var(--pp-warm-4)', minWidth: '100px' }}>
                     <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--pp-danger-fg)', textTransform: 'uppercase' }}>Balance Due</div>
                     <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--pp-danger-fg)' }}>
                       ₹{Number(d.total_due ?? 0).toLocaleString()}
@@ -296,45 +347,61 @@ function BirthdaysTab({ onExport }: { onExport: (filename: string, headers: stri
             <p>No birthdays found for today.</p>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
             {(patients as any[]).map((p) => {
               const smsSent = smsSentIds.includes(Number(p.regid));
               return (
                 <div key={String(p.id)} style={{ 
-                   padding: '16px', 
+                   padding: '20px', 
                    border: '1px solid var(--pp-warm-4)', 
-                   borderRadius: '12px',
+                   borderRadius: '16px',
                    background: 'var(--bg-card)',
                    display: 'flex',
                    justifyContent: 'space-between',
-                   alignItems: 'center'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                   alignItems: 'center',
+                   boxShadow: 'var(--pp-shadow-sm)',
+                   transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                   cursor: 'default'
+                }} className="plat-hover-lift">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                     <div style={{ 
-                      width: '40px', 
-                      height: '40px', 
-                      borderRadius: '50%', 
-                      background: 'var(--pp-blue-tint)', 
+                      width: '48px', 
+                      height: '48px', 
+                      borderRadius: '14px', 
+                      background: 'linear-gradient(135deg, var(--pp-blue) 0%, #4F46E5 100%)', 
                       display: 'flex', 
                       alignItems: 'center', 
                       justifyContent: 'center',
-                      color: 'var(--pp-blue)',
-                      fontWeight: 800,
-                      fontSize: '0.85rem'
+                      color: 'white',
+                      fontWeight: 900,
+                      fontSize: '1rem',
+                      boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)'
                     }}>
                       {String(p.first_name ?? '').charAt(0)}{String(p.surname ?? '').charAt(0)}
                     </div>
                     <div>
-                      <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{String(p.first_name ?? '')} {String(p.surname ?? '')}</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--pp-text-3)' }}>{p.mobile1 ? String(p.mobile1) : '—'}</div>
+                      <div style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--pp-ink)', letterSpacing: '-0.01em' }}>{String(p.first_name ?? '')} {String(p.surname ?? '')}</div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--pp-text-3)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <Activity size={12} style={{ color: 'var(--pp-blue)' }} /> ID #{String(p.regid ?? '')}
+                      </div>
                     </div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <div className={`plat-badge ${smsSent ? 'plat-badge-staff' : 'plat-badge-warning'}`} style={{ marginBottom: 4 }}>
-                      {smsSent ? 'SMS Sent' : 'SMS Pending'}
+                    <div style={{ 
+                      fontSize: '0.65rem', 
+                      fontWeight: 900, 
+                      padding: '4px 10px', 
+                      borderRadius: '20px',
+                      background: smsSent ? 'var(--pp-success-bg)' : 'var(--pp-warm-2)',
+                      color: smsSent ? 'var(--pp-success-fg)' : 'var(--pp-text-3)',
+                      textTransform: 'uppercase',
+                      border: '1px solid ' + (smsSent ? 'var(--pp-success-border)' : 'var(--pp-warm-4)'),
+                      marginBottom: 8
+                    }}>
+                      {smsSent ? 'Wish Sent' : 'Queued'}
                     </div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--pp-text-3)', fontWeight: 600 }}>
-                      {p.date_birth ? new Date(String(p.date_birth)).toLocaleDateString() : '—'}
+                    <div style={{ fontSize: '0.75rem', color: 'var(--pp-blue)', fontWeight: 800 }}>
+                      {p.mobile1 ? String(p.mobile1) : '—'}
                     </div>
                   </div>
                 </div>

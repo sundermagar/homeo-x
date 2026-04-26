@@ -162,7 +162,7 @@ export default function AdditionalChargesPage() {
                     <td data-label="Name">{c.additionalName}</td>
                     <td data-label="Qty" style={{ fontFamily: 'var(--pp-font-mono)' }}>{c.additionalQuantity}</td>
                     <td data-label="Price" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 600 }}>₹{c.additionalPrice.toLocaleString()}</td>
-                    <td data-label="Received" style={{ fontFamily: 'var(--pp-font-mono)', color: 'var(--pp-success-fg)' }}>₹{c.receivedPrice.toLocaleString()}</td>
+                    <td data-label="Received" style={{ fontFamily: 'var(--pp-font-mono)', color: 'var(--pp-blue)' }}>₹{c.receivedPrice.toLocaleString()}</td>
                     <td>
                       <div className="flex justify-end gap-3">
                         <button className="plat-btn plat-btn-sm plat-btn-icon" onClick={() => handleOpenEdit(c)}>
@@ -269,9 +269,9 @@ function PatientPreview({ regid }: { regid?: number }) {
   if (isLoading) return <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: 4 }}>Checking ID...</div>;
   if (isError || !patient) return <div style={{ fontSize: '11px', color: 'var(--pp-danger-fg)', marginTop: 4 }}>Patient not found</div>;
   return (
-    <div style={{ fontSize: '11px', color: 'var(--pp-success-fg)', marginTop: 6, display: 'flex', alignItems: 'center', gap: 4, background: 'var(--pp-success-bg)', padding: '4px 8px', borderRadius: '4px', width: 'fit-content' }}>
+    <div style={{ fontSize: '11px', color: 'var(--pp-blue)', marginTop: 6, display: 'flex', alignItems: 'center', gap: 4, background: 'var(--pp-blue-tint)', padding: '4px 8px', borderRadius: '4px', width: 'fit-content' }}>
       <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }} />
-      Patient Found: <strong>{patient.firstName} {patient.lastName}</strong>
+      Patient Found: <strong>{patient.firstName} {patient.surname}</strong>
     </div>
   );
 }

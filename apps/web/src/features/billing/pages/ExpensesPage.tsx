@@ -91,7 +91,7 @@ export default function ExpensesPage() {
       }
       // Create new expense head
       try {
-        const newHead = await createExpenseHead.mutateAsync({ name: customHeadName });
+        const newHead = await createExpenseHead.mutateAsync({ name: customHeadName, isActive: true });
         headId = newHead.id;
       } catch (err) {
         alert('Failed to create new category');
@@ -161,8 +161,8 @@ export default function ExpensesPage() {
             <div className="bill-stat-value">{total}</div>
           </div>
         </div>
-        <div className="bill-stat-card" data-type="danger">
-          <div className="bill-stat-icon" style={{ background: 'var(--pp-danger-bg)', color: 'var(--pp-danger-fg)' }}>
+        <div className="bill-stat-card">
+          <div className="bill-stat-icon" style={{ background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)' }}>
             <Wallet size={22} />
           </div>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -233,7 +233,7 @@ export default function ExpensesPage() {
                       <span className="bill-badge bill-badge-staff">{e.headName || `Head #${e.head}`}</span>
                     </td>
                     <td data-label="Description">{e.detail || '—'}</td>
-                    <td data-label="Amount" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 700, color: 'var(--pp-danger-fg)' }}>
+                    <td data-label="Amount" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 700, color: 'var(--pp-blue)' }}>
                       ₹{(e.amount ?? 0).toLocaleString()}
                     </td>
                     <td>

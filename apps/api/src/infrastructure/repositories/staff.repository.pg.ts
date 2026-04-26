@@ -58,10 +58,14 @@ export class StaffRepositoryPg implements StaffRepository {
     page: number;
     limit: number;
     search?: string;
-  }): Promise<{ data: StaffSummary[]; total: number }> {
-    const { category, page, limit, search } = params;
+    clinicId?: number;
+    sortBy?: string;
+    sortOrder?: 'ASC' | 'DESC';
+  }): Promise<{ data: StaffSummary[]; total: number; activeCount: number }> {
+    const { category, page, limit, search, clinicId, sortBy = 'id', sortOrder = 'DESC' } = params;
     const offset = (page - 1) * limit;
-    const table = this.getTableName(category);
+    const isClinicAdmin = category === 'clinicadmin';
+    const tableIdentifier = isClinicAdmin ? sql`public.users` : sql.identifier(this.getTableName(category));
 
     const searchSafe = search ? `%${search}%` : null;
 
@@ -71,25 +75,55 @@ export class StaffRepositoryPg implements StaffRepository {
 
     const colFragment = sql.join(selectCols.map(c => sql.identifier(c)), sql`, `);
 
-    // We only select columns confirmed to exist in the legacy schema
+    // Filter by clinicId if provided. 
+    // Note: clinicadmins table does not have clinic_id, so we use context_id from public.users table for that category.
+    const supportsClinicId = ['doctor', 'receptionist', 'employee', 'account', 'clinicadmin'].includes(category);
+    const clinicCol = isClinicAdmin ? 'context_id' : 'clinic_id';
+    const clinicFilter = (clinicId && supportsClinicId) 
+      ? sql`AND (${sql.identifier(clinicCol)} = ${clinicId} OR ${sql.identifier(clinicCol)}::text = ${String(clinicId)})` 
+      : sql``;
+
+    const typeFilter = isClinicAdmin ? sql`AND type = 'Clinicadmin'` : sql``;
+
+    // Handle dynamic sorting safely
+    const validSortCols = [...selectCols];
+    const finalSortBy = validSortCols.includes(sortBy) ? sortBy : 'id';
+    const finalSortOrder = sortOrder === 'ASC' ? sql`ASC` : sql`DESC`;
+
+    const timestamp = new Date().toISOString();
+    console.log(`[StaffRepo] [${timestamp}] findAll category=${category} clinicId=${clinicId}`);
     const rows = await this.db.execute(sql`
       SELECT ${colFragment}
-      FROM ${sql.identifier(table)}
+      FROM ${tableIdentifier}
       WHERE (deleted_at IS NULL OR deleted_at::text = '')
+      ${typeFilter}
+      ${clinicFilter}
       ${searchSafe ? sql`AND (name ILIKE ${searchSafe} OR email ILIKE ${searchSafe} OR mobile ILIKE ${searchSafe})` : sql``}
-      ORDER BY name ASC
+      ORDER BY ${sql.identifier(finalSortBy)} ${finalSortOrder}
       LIMIT ${limit} OFFSET ${offset}
     `);
+    console.log('[StaffRepo] SELECT query completed', (rows as any[]).length);
 
     const countResult = await this.db.execute(sql`
-      SELECT count(*)::int as count FROM ${sql.identifier(table)}
+      SELECT count(*)::int as count FROM ${tableIdentifier}
       WHERE (deleted_at IS NULL OR deleted_at::text = '')
+      ${typeFilter}
+      ${clinicFilter}
       ${searchSafe ? sql`AND (name ILIKE ${searchSafe} OR email ILIKE ${searchSafe} OR mobile ILIKE ${searchSafe})` : sql``}
+    `);
+    console.log('[StaffRepo] COUNT query completed', (countResult as any[])[0]?.count);
+
+    const activeCountResult = await this.db.execute(sql`
+      SELECT count(*)::int as count FROM ${tableIdentifier}
+      WHERE (deleted_at IS NULL OR deleted_at::text = '')
+      ${typeFilter}
+      ${clinicFilter}
     `);
 
     return {
       data: (rows as any[]).map((r: any) => this.toSummary(r, category)),
       total: (countResult as any[])[0]?.count ?? 0,
+      activeCount: (activeCountResult as any[])[0]?.count ?? 0,
     };
   }
 
@@ -148,10 +182,10 @@ export class StaffRepositoryPg implements StaffRepository {
       ? await bcrypt.hash(data.password, 10)
       : '';
 
-    // Check email uniqueness in users table (same as legacy)
+    // Check email uniqueness in public.users table (same as legacy)
     if (data.email) {
       const existingUsers = await this.db.execute(
-        sql`SELECT id FROM users WHERE LOWER(email) = LOWER(${data.email}) AND (deleted_at IS NULL OR deleted_at::text = '') LIMIT 1`
+        sql`SELECT id FROM public.users WHERE LOWER(email) = LOWER(${data.email}) AND (deleted_at IS NULL OR deleted_at::text = '') LIMIT 1`
       ) as any[];
       if (existingUsers.length > 0) {
         throw new Error('Email already exists');
@@ -169,18 +203,18 @@ export class StaffRepositoryPg implements StaffRepository {
     let nextId: number;
     let roleAssignId: number;
 
-    // ─── 0. Mirror to users FIRST ───
+    // ─── 0. Mirror to public.users FIRST ───
     // This allows us to get a unique ID that we then force into the staff table.
     // This ensures consistency across the platform.
     // context_id is set to clinicId so login can resolve the correct tenant
     const contextId = (data as any).clinicId || 1;
     const userMirrorResult = await this.db.execute(sql`
-      INSERT INTO users (
+      INSERT INTO public.users (
         name, email, password, type, context_id,
-        created_at, updated_at
+        is_active, created_at, updated_at
       ) VALUES (
         ${name}, ${data.email || ''}, ${hashedPassword}, ${roleEnum},
-        ${contextId}, NOW(), NOW()
+        ${contextId}, true, NOW(), NOW()
       ) RETURNING id
     `) as any[];
 
@@ -199,10 +233,13 @@ export class StaffRepositoryPg implements StaffRepository {
       data.dateBirth || null, data.dateLeft || null, data.salaryCur || 0, hashedPassword
     ];
 
-    // Add clinic_id for clinic admins — ties the admin to their organization
-    if (category === 'clinicadmin' && (data as any).clinicId) {
+    // Add clinic_id for relevant categories — ties the staff to their organization
+    // Doctors and Receptionists in legacy schema typically use clinic_id.
+    // Note: clinicadmins table does NOT have a clinic_id column.
+    const cid = (data as any).clinicId;
+    if (cid && (category === 'doctor' || category === 'receptionist' || category === 'employee' || category === 'account')) {
       staffCols.push('clinic_id');
-      staffVals.push((data as any).clinicId);
+      staffVals.push(cid);
     }
 
     // Add doctor-specific columns if applicable
@@ -303,9 +340,10 @@ export class StaffRepositoryPg implements StaffRepository {
       );
     }
 
+    let hashedPassword: string | undefined;
     if (data.password) {
-      const hashed = await bcrypt.hash(data.password, 10);
-      updates.push(sql`password = ${hashed}`);
+      hashedPassword = await bcrypt.hash(data.password, 10);
+      updates.push(sql`password = ${hashedPassword}`);
     }
 
     await this.db.execute(sql`
@@ -314,22 +352,21 @@ export class StaffRepositoryPg implements StaffRepository {
       WHERE id = ${id}
     `);
 
-    // Sync to users table
-    const userUpdates = [
-      sql`name = ${name}`,
-      sql`email = ${data.email ?? existing.email}`,
-      sql`updated_at = NOW()`
-    ];
+    // Sync to public.users table
+    const userUpdates = [];
+    if (data.name) userUpdates.push(sql`name = ${data.name}`);
+    if (data.email) userUpdates.push(sql`email = ${data.email}`);
     if (data.password) {
       const hashed = await bcrypt.hash(data.password, 10);
       userUpdates.push(sql`password = ${hashed}`);
     }
-
-    await this.db.execute(sql`
-      UPDATE users SET
-        ${sql.join(userUpdates, sql`, `)}
-      WHERE id = ${id} AND (deleted_at IS NULL OR deleted_at::text = '')
-    `);
+    
+    if (userUpdates.length > 0) {
+      await this.db.execute(sql`
+        UPDATE public.users SET ${sql.join(userUpdates, sql`, `)}, updated_at = NOW()
+        WHERE id = ${id} AND (deleted_at IS NULL OR deleted_at::text = '')
+      `);
+    }
 
     return this.findById(category, id);
   }
@@ -343,9 +380,9 @@ export class StaffRepositoryPg implements StaffRepository {
       UPDATE ${sql.identifier(table)} SET deleted_at = NOW() WHERE id = ${id}
     `);
 
-    // Also soft-delete the mirror row in users table (same as account soft-delete)
+    // Also soft-delete the mirror row in public.users table (same as account soft-delete)
     await this.db.execute(sql`
-      UPDATE users SET deleted_at = NOW() WHERE id = ${id} AND (deleted_at IS NULL OR deleted_at::text = '')
+      UPDATE public.users SET deleted_at = NOW() WHERE id = ${id} AND (deleted_at IS NULL OR deleted_at::text = '')
     `);
 
     return true;

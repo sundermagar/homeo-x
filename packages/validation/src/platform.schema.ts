@@ -13,10 +13,16 @@ export const createOrganizationSchema = z.object({
   connectSince:  z.string().optional().default('1990-01-01'),
   city:          z.string().optional().default(''),
   description:   z.string().optional().default(''),
+  tagLine:       z.string().optional().default(''),
+  registration:  z.string().optional().default(''),
+  logo:          z.string().optional().default(''),
+  address2:      z.string().optional().default(''),
+  timing:        z.string().optional().default(''),
   // Initial Administrator
-  adminEmail:    z.string().email('Invalid admin email'),
-  adminPassword: z.string().min(6, 'Admin password must be at least 6 characters'),
+  adminEmail:    z.string().email('Invalid admin email').optional().or(z.literal('')),
+  adminPassword: z.string().min(6, 'Admin password must be at least 6 characters').optional().or(z.literal('')),
 });
+
 
 export const updateOrganizationSchema = createOrganizationSchema.partial();
 
