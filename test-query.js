@@ -1,0 +1,1 @@
+const postgres = require('/Users/apple/Library/pnpm/global/5/node_modules/postgres') || require('postgres'); // Fallback logic is tricky, I'll just use the pre-existing tsx patch script to run a query instead!

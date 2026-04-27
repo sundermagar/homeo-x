@@ -31,20 +31,11 @@ export function usePatient(regid: number) {
   return useQuery({
     queryKey: [PATIENTS_KEY, regid],
     queryFn: async () => {
-      try {
-        const res = await apiClient.get<{ success: boolean; data: Patient }>(`/patients/${regid}`);
-        return res.data.data ?? null;
-      } catch (err: any) {
-        if (err.response?.status === 404) return null;
-        throw err;
-      }
+      const res = await apiClient.get<{ success: boolean; data: Patient }>(`/patients/${regid}`);
+      return res.data.data ?? null;
     },
     enabled: !!regid,
-    retry: (failureCount, error: any) => {
-      if (error.response?.status === 404) return false;
-      return failureCount < 3;
-    },
-    staleTime: 30000,
+    retry: false,
   });
 }
 

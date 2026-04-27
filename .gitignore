@@ -34,8 +34,6 @@ coverage/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-buildlog.txt
-*.buildlog
 
 # Environment
 .env
@@ -83,8 +81,6 @@ playwright-report/
 blob-report/
 test_*.js
 test_*.ts
-test_*.cjs
-test-*.cjs
 test.js
 test.ts
 debug_*.ts
@@ -94,9 +90,13 @@ verify_*.ts
 *.ours
 *.theirs
 
-# Build Artifacts
-*.cjs
-!*.config.cjs
-!*.config.js
-!*rc.js
-!*rc.cjs
+# Cloud credentials — NEVER commit
+google-stt-credentials.json
+**/google-stt-credentials.json
+*-credentials.json
+service-account*.json
+
+# Local dev logs
+ts_errors.txt
+**/ts_errors.txt
+.turbo/

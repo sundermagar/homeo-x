@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { usePatient, useDeletePatient, useFamilyMembers, useAddFamilyMember, useRemoveFamilyMember, usePatientLookup, usePatientClinicalRecord, usePatientFormMeta } from '../hooks/use-patients';
+import { usePatient, useDeletePatient, useFamilyMembers, useAddFamilyMember, useRemoveFamilyMember, usePatientLookup, usePatientClinicalRecord } from '../hooks/use-patients';
 import { Edit2, Trash2, UserPlus, Users, X, MapPin, Phone, CheckCircle, Search, TrendingUp, Activity } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import type { PatientSummary, FamilyMember } from '@mmc/types';
@@ -98,7 +98,6 @@ export default function PatientDetailPage() {
           <InfoRow label="Landline" value={patient.mobile2} />
           <InfoRow label="Email" value={patient.email} />
           <InfoRow label="Consultation Fee" value={patient.consultationFee ? `₹${patient.consultationFee}` : null} />
-          <DoctorRow doctorId={patient.assistantDoctor} />
         </div>
 
         {/* Address Info */}
@@ -113,8 +112,6 @@ export default function PatientDetailPage() {
           <InfoRow label="Religion" value={patient.religion} />
           <InfoRow label="Occupation" value={patient.occupation} />
           <InfoRow label="Marital Status" value={patient.maritalStatus} />
-          <InfoRow label="Reference" value={patient.referenceType} />
-          <ReferrerRow referredBy={patient.referredBy} />
         </div>
       </div>
 
@@ -239,36 +236,6 @@ export default function PatientDetailPage() {
       <div className="pat-back-link">
         <Link to="/patients" className="pp-link" style={{ fontSize: '13px', fontWeight: 600 }}>← Back to Patient Registry</Link>
       </div>
-    </div>
-  );
-}
-
-function DoctorRow({ doctorId }: { doctorId: string | null | undefined }) {
-  const { data: meta } = usePatientFormMeta();
-  const doctor = meta?.doctors?.find(d => String(d.id) === String(doctorId));
-  const display = doctor ? doctor.name : (doctorId || null);
-  return (
-    <div className="pat-info-row">
-      <span className="pat-info-label">Doctor</span>
-      <span className="pat-info-value">{display || '—'}</span>
-    </div>
-  );
-}
-
-function ReferrerRow({ referredBy }: { referredBy: string | null | undefined }) {
-  const numId = Number(referredBy);
-  const { data: referrer } = usePatient(numId);
-  
-  return (
-    <div className="pat-info-row">
-      <span className="pat-info-label">Referred By</span>
-      <span className="pat-info-value">
-        {referrer ? (
-          <Link to={`/patients/${referrer.regid}`} className="pp-link" style={{ fontWeight: 600 }}>
-            {referrer.firstName} {referrer.surname} ({referrer.regid})
-          </Link>
-        ) : (referredBy || '—')}
-      </span>
     </div>
   );
 }

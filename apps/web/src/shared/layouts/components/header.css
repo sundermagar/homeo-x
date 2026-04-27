@@ -1,0 +1,129 @@
+/* ─── Global Header ─── */
+
+.global-header {
+  height: var(--header-height);
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-default);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-4);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+}
+
+@media (min-width: 768px) {
+  .global-header {
+    padding: 0 var(--space-8);
+  }
+}
+
+.global-header__left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.global-header__menu-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: var(--space-1);
+  border-radius: var(--radius-btn);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.global-header__menu-btn:hover {
+  background-color: var(--color-gray-100);
+  color: var(--text-primary);
+}
+
+.global-header__breadcrumb {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+@media (min-width: 768px) {
+  .global-header__breadcrumb {
+    font-size: var(--font-size-base);
+  }
+}
+
+.global-header__right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+}
+
+.global-header__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  color: var(--text-tertiary);
+}
+
+.global-header__action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: var(--space-1);
+  border-radius: var(--radius-btn);
+  transition: color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.global-header__action-btn:hover {
+  color: var(--text-primary);
+  background-color: var(--color-gray-100);
+}
+
+.global-header__profile {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 4px 4px 4px var(--space-4);
+  border-radius: var(--radius-full);
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-default);
+}
+
+.global-header__profile-text {
+  text-align: right;
+}
+
+.global-header__profile-name {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.global-header__profile-role {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  line-height: 1.2;
+}
+
+.global-header__avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-primary-600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: var(--font-size-xs);
+  flex-shrink: 0;
+}

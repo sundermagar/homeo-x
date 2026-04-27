@@ -21,9 +21,9 @@ export default function PatientListPage() {
   const rawRole = ((user as any)?.type || (user as any)?.role || (user as any)?.roleName || '').toLowerCase();
   const isDoctor = rawRole === 'doctor' || rawRole === 'medical practitioner' || ((user as any)?.name || '').toLowerCase().startsWith('dr');
 
-  const { data, isLoading } = usePatients({
-    page,
-    limit: PAGE_SIZE,
+  const { data, isLoading } = usePatients({ 
+    page, 
+    limit: PAGE_SIZE, 
     search: debouncedSearch,
     doctorId: isDoctor ? (user as any)?.id : undefined
   });
@@ -39,7 +39,7 @@ export default function PatientListPage() {
   const patients = useMemo(() => {
     const list = data?.data || [];
     if (sortBy === 'name') return [...list].sort((a, b) => a.fullName.localeCompare(b.fullName));
-
+    
     if (sortBy === 'oldest') {
       return [...list].sort((a, b) => {
         const dateA = new Date(a.createdAt).getTime();
@@ -125,21 +125,8 @@ export default function PatientListPage() {
       </div>
 
       {isLoading ? (
-        <div className="pp-card" style={{ padding: 0 }}>
-          <div className="pat-skeleton">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="pat-skeleton-row">
-                <div className="pat-skeleton-avatar" />
-                <div className="pat-skeleton-content">
-                  <div className="pat-skeleton-line" style={{ width: '40%' }} />
-                  <div className="pat-skeleton-line" style={{ width: '25%', marginTop: 4 }} />
-                </div>
-                <div className="pat-skeleton-line" style={{ width: '60px' }} />
-                <div className="pat-skeleton-line" style={{ width: '80px' }} />
-                <div className="pat-skeleton-line" style={{ width: '80px' }} />
-              </div>
-            ))}
-          </div>
+        <div className="pp-card pat-loading-state">
+          <p>Loading patient records...</p>
         </div>
       ) : patients.length === 0 ? (
         <div className="pp-card pat-empty-state">
@@ -212,15 +199,15 @@ export default function PatientListPage() {
 
               <div className="pat-grid-card-detail">
                 <div className="pat-grid-card-detail-row">
-                  <span className="pat-grid-card-detail-label"><Phone size={12} /> Phone</span>
+                  <span className="pat-grid-card-detail-label"><Phone size={12}/> Phone</span>
                   <span className="pat-grid-card-detail-value">{p.phone || '—'}</span>
                 </div>
                 <div className="pat-grid-card-detail-row">
-                  <span className="pat-grid-card-detail-label"><MapPin size={12} /> City</span>
+                  <span className="pat-grid-card-detail-label"><MapPin size={12}/> City</span>
                   <span className="pat-grid-card-detail-value">{p.city || '—'}</span>
                 </div>
                 <div className="pat-grid-card-detail-row">
-                  <span className="pat-grid-card-detail-label"><Calendar size={12} /> Date</span>
+                  <span className="pat-grid-card-detail-label"><Calendar size={12}/> Date</span>
                   <span className="pat-grid-card-detail-value">{p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-GB') : '—'}</span>
                 </div>
               </div>

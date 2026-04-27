@@ -33,8 +33,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const user = useAuthStore((s) => s.user);
   const location = useLocation();
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({
-    'Operations Hub': location.pathname.includes('/operations'),
-    'Clinical Hub': ['/consultation-history', '/vitals-check', '/medical-cases'].some(p => location.pathname.includes(p))
+    'Operations Hub': location.pathname.includes('/operations')
   });
 
   const toggleFolder = (label: string) => {
