@@ -5,7 +5,7 @@ export interface MedicalCase {
   regid: number;
   clinicId?: number | null;
   doctorId?: number | null;
-  status: string;
+  status: string | null;
   condition?: string | null;
   createdAt?: Date | null;
   updatedAt?: Date | null;
@@ -84,14 +84,14 @@ export interface Investigation {
 export interface Prescription {
   id: number;
   regid: number;
-  visitId?: number;
-  dateval?: string;
-  medicineId?: number;
-  remedyName?: string; // Virtual join field
-  potencyId?: number;
-  frequencyId?: number;
-  days?: number;
-  instructions?: string;
+  visitId?: number | null;
+  dateval?: string | null;
+  medicineId?: number | null;
+  remedyName?: string | null; // Virtual join field
+  potencyId?: number | null;
+  frequencyId?: number | null;
+  days?: number | null;
+  instructions?: string | null;
 }
 
 export interface FullCaseData {
