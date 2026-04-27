@@ -21,7 +21,7 @@ export interface IDashboardRepository {
   getBirthdays(contextId: number): Promise<BirthdayPatient[]>;
   getRevenueSeries(period: string, contextId: number, paymentMode?: string): Promise<RevenueSeries[]>;
   markReminderDone(id: number): Promise<void>;
-  getRecentTransactions(limit: number): Promise<RecentTransaction[]>;
+  getRecentTransactions(limit: number, contextId?: number): Promise<RecentTransaction[]>;
   getIntelligenceInsights(kpis: DashboardKpis): Promise<IntelligenceInsight[]>;
   // Clinic Admin specific
   getRevenueBreakdown(period: string, contextId: number): Promise<RevenueBreakdown>;

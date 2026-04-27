@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, Loader2, AlertCircle, Stethoscope } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Loader2, AlertCircle, Stethoscope, ShieldCheck, Clipboard, Building2 } from 'lucide-react';
 import { z } from 'zod';
 import { apiClient } from '@/infrastructure/api-client';
 import { useAuthStore } from '@/shared/stores/auth-store';
@@ -10,10 +10,46 @@ import '../styles/login-page.css';
 type LoginFields = z.infer<typeof LoginRequestSchema>;
 
 const DEMO_USERS = [
-  { email: 'doctor@kreed.health',      name: 'Dr. Demo',       type: 'Doctor',       role: '🩺 Doctor',       id: 101 },
-  { email: 'admin@kreed.health',       name: 'Admin Demo',     type: 'Admin',        role: '🛡 Admin',        id: 102 },
-  { email: 'reception@kreed.health',   name: 'Reception Demo', type: 'Receptionist', role: '📋 Reception',    id: 103 },
-  { email: 'clinicadmin@kreed.health', name: 'Clinic Admin',   type: 'Clinicadmin',  role: '🏥 Clinic Admin', id: 104 },
+  { 
+    email: 'doctor@kreed.health',      
+    name: 'Dr. Demo',       
+    type: 'Doctor',       
+    role: 'Doctor',       
+    id: 101,
+    icon: <Stethoscope size={18} strokeWidth={2} />,
+    color: '#3b82f6',
+    bg: '#eff6ff'
+  },
+  { 
+    email: 'admin@kreed.health',       
+    name: 'Admin Demo',     
+    type: 'Admin',        
+    role: 'Admin',        
+    id: 102,
+    icon: <ShieldCheck size={18} strokeWidth={2} />,
+    color: '#ef4444',
+    bg: '#fef2f2'
+  },
+  { 
+    email: 'reception@kreed.health',   
+    name: 'Reception Demo', 
+    type: 'Receptionist', 
+    role: 'Reception',    
+    id: 103,
+    icon: <Clipboard size={18} strokeWidth={2} />,
+    color: '#f59e0b',
+    bg: '#fffbeb'
+  },
+  { 
+    email: 'clinicadmin@kreed.health', 
+    name: 'Clinic Admin',   
+    type: 'Clinicadmin',  
+    role: 'Clinic Admin', 
+    id: 104,
+    icon: <Building2 size={18} strokeWidth={2} />,
+    color: '#6366f1',
+    bg: '#f5f3ff'
+  },
 ];
 
 export default function LoginPage() {
@@ -207,6 +243,9 @@ export default function LoginPage() {
                 type="button"
                 onClick={() => loginAsDemo(demo.email)}
               >
+                <div className="demo-btn-icon-wrap" style={{ background: demo.bg, color: demo.color }}>
+                  {demo.icon}
+                </div>
                 <div className="demo-btn-info">
                   <span className="demo-btn-role">{demo.role}</span>
                   <span className="demo-btn-email">{demo.email}</span>

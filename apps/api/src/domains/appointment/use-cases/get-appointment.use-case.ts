@@ -11,8 +11,8 @@ export class GetAppointmentUseCase {
     return ok(appt);
   }
 
-  async getToday(doctorId?: number): Promise<Result<Appointment[]>> {
-    const result = await this.repo.findToday(doctorId);
+  async getToday(doctorId?: number, clinicId?: number): Promise<Result<Appointment[]>> {
+    const result = await this.repo.findToday(doctorId, clinicId);
     return ok(result);
   }
 

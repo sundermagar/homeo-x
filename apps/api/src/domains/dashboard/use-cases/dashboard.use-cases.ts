@@ -58,7 +58,7 @@ export class DashboardUseCases {
         (['superadmin', 'admin'].includes(user.type.toLowerCase()))
           ? safe(this.repository.getPlatformStats.bind(this.repository), undefined)
           : Promise.resolve(undefined),
-        safe(this.repository.getRecentTransactions.bind(this.repository, 5), []),
+        safe(this.repository.getRecentTransactions.bind(this.repository, 5, contextId), []),
       ]);
 
       const intelligenceInsights = await safe(

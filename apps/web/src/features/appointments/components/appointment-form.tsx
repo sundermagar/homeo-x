@@ -62,40 +62,40 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
           setForm(f => ({
             ...f,
             doctorId: String(myDoc.id),
-            consultationFee: (myDoc.consultation_fee !== undefined && myDoc.consultation_fee !== null) 
-              ? String(myDoc.consultation_fee) 
+            consultationFee: (myDoc.consultation_fee !== undefined && myDoc.consultation_fee !== null)
+              ? String(myDoc.consultation_fee)
               : f.consultationFee
           }));
         }
       }
-    }).catch(() => {});
+    }).catch(() => { });
   }, [user, editAppointment]);
 
   // Populate form if editing
   useEffect(() => {
     if (editAppointment) {
       setForm({
-        patientId:       String(editAppointment.patientId ?? ''),
-        patientName:     editAppointment.patientName ?? '',
-        phone:           editAppointment.phone ?? '',
-        doctorId:        String(editAppointment.doctorId ?? ''),
-        bookingDate:     editAppointment.bookingDate ?? '',
-        bookingTime:     editAppointment.bookingTime ?? '',
-        visitType:       (editAppointment.visitType as VisitType) ?? VisitType.New,
+        patientId: String(editAppointment.patientId ?? ''),
+        patientName: editAppointment.patientName ?? '',
+        phone: editAppointment.phone ?? '',
+        doctorId: String(editAppointment.doctorId ?? ''),
+        bookingDate: editAppointment.bookingDate ?? '',
+        bookingTime: editAppointment.bookingTime ?? '',
+        visitType: (editAppointment.visitType as VisitType) ?? VisitType.New,
         consultationFee: editAppointment.consultationFee ?? '',
-        notes:           editAppointment.notes ?? '',
+        notes: editAppointment.notes ?? '',
       });
     }
   }, [editAppointment]);
 
   const handleDoctorChange = (id: string) => {
     const doc = doctors.find(d => String(d.id) === id);
-    setForm(f => ({ 
-      ...f, 
-      doctorId: id, 
-      consultationFee: (doc?.consultation_fee !== undefined && doc?.consultation_fee !== null) 
-        ? String(doc.consultation_fee) 
-        : f.consultationFee 
+    setForm(f => ({
+      ...f,
+      doctorId: id,
+      consultationFee: (doc?.consultation_fee !== undefined && doc?.consultation_fee !== null)
+        ? String(doc.consultation_fee)
+        : f.consultationFee
     }));
   };
 
@@ -104,9 +104,9 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
     // Only search if user is actively typing in a field
     if (!activeSearchField) return;
 
-    const value = activeSearchField === 'name' ? form.patientName 
-                : activeSearchField === 'id' ? form.patientId 
-                : activeSearchField === 'phone' ? form.phone : '';
+    const value = activeSearchField === 'name' ? form.patientName
+      : activeSearchField === 'id' ? form.patientId
+        : activeSearchField === 'phone' ? form.phone : '';
 
     if (value.trim().length >= 2) {
       setLookupLoading(true);
@@ -162,15 +162,15 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
     }
 
     const dto: CreateAppointmentDto = {
-      patientId:       form.patientId ? Number(form.patientId) : undefined,
-      patientName:     form.patientName || undefined,
-      phone:           form.phone || undefined,
-      doctorId:        form.doctorId ? Number(form.doctorId) : undefined,
-      bookingDate:     normalizedDate,
-      bookingTime:     form.bookingTime || undefined,
-      visitType:       form.visitType as any,
+      patientId: form.patientId ? Number(form.patientId) : undefined,
+      patientName: form.patientName || undefined,
+      phone: form.phone || undefined,
+      doctorId: form.doctorId ? Number(form.doctorId) : undefined,
+      bookingDate: normalizedDate,
+      bookingTime: form.bookingTime || undefined,
+      visitType: form.visitType as any,
       consultationFee: form.consultationFee ? Number(form.consultationFee) : 0,
-      notes:           form.notes || '',
+      notes: form.notes || '',
     };
 
     try {
@@ -187,6 +187,10 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
   };
 
   const isLoading = createMutation.isPending || updateMutation.isPending;
+
+  // True when the selected doctor is explicitly marked offline
+  const selectedDoctorOffline = !!form.doctorId &&
+    doctors.some(d => String(d.id) === form.doctorId && d.isActive === false);
 
   return (
     <div className="appt-modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
@@ -217,26 +221,32 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
                   Practitioner
                 </label>
                 <select
-                  className="appt-form-select"
+                  className={`appt-form-select${selectedDoctorOffline ? ' appt-select-offline' : ''}`}
                   value={form.doctorId}
                   onChange={e => handleDoctorChange(e.target.value)}
                 >
                   <option value="">Select Doctor</option>
-                    {doctors.map(d => (
-                      <option 
-                        key={d.id} 
-                        value={d.id} 
-                        disabled={!d.isActive}
-                        style={{ 
-                          color: !d.isActive ? '#dc2626' : 'inherit',
-                          fontWeight: !d.isActive ? '800' : 'normal',
-                          backgroundColor: !d.isActive ? '#fef2f2' : 'inherit'
-                        }}
-                      >
-                        {d.name} {!d.isActive ? ' (OFFLINE - DO NOT SELECT)' : ''}
-                      </option>
-                    ))}
+                  {/* Active doctors */}
+                  {doctors.filter(d => d.isActive !== false).map(d => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                  {/* Inactive doctors */}
+                  {doctors.filter(d => d.isActive === false).map(d => (
+                    <option key={d.id} value={d.id} disabled>
+                      {d.name} (INACTIVE)
+                    </option>
+                  ))}
                 </select>
+
+                {/* Offline warning banner */}
+                {selectedDoctorOffline && (
+                  <div className="appt-offline-banner">
+                    <span className="appt-offline-dot" />
+                    <span>
+                      <strong>Dr. {doctors.find(d => String(d.id) === form.doctorId)?.name}</strong> is currently <strong>Offline</strong>. Appointments cannot be booked.
+                    </span>
+                  </div>
+                )}
               </div>
               <div className="appt-form-group">
                 <label className="appt-form-label">
@@ -296,7 +306,12 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
                 <Clock size={13} strokeWidth={1.6} />
                 Time Slot
               </label>
-              {slots.length === 0 ? (
+              {selectedDoctorOffline ? (
+                <div className="appt-slots-unavailable">
+                  <span style={{ fontSize: 20 }}>🔴</span>
+                  <span>No slots available — doctor is offline</span>
+                </div>
+              ) : slots.length === 0 ? (
                 <div className="appt-slots-hint">
                   Select doctor and date to see available slots
                 </div>
@@ -306,11 +321,10 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
                     <button
                       key={slot.time}
                       type="button"
-                      className={`appt-slot-btn ${
-                        form.bookingTime === slot.time ? 'selected' :
-                        slot.booked ? 'booked' :
-                        slot.isPast ? 'past' : 'available'
-                      }`}
+                      className={`appt-slot-btn ${form.bookingTime === slot.time ? 'selected' :
+                          slot.booked ? 'booked' :
+                            slot.isPast ? 'past' : 'available'
+                        }`}
                       disabled={slot.booked || slot.isPast}
                       onClick={() => set('bookingTime', slot.time)}
                     >
@@ -348,26 +362,26 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
                     required
                   />
                 )}
-              <NumericInput
-                className="appt-form-input"
-                placeholder="Mobile Number"
-                value={form.phone}
-                onChange={e => { set('phone', e.target.value); setActiveSearchField('phone'); }}
-                onFocus={() => setActiveSearchField('phone')}
-                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-              />
+                <NumericInput
+                  className="appt-form-input"
+                  placeholder="Mobile Number"
+                  value={form.phone}
+                  onChange={e => { set('phone', e.target.value); setActiveSearchField('phone'); }}
+                  onFocus={() => setActiveSearchField('phone')}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                />
 
                 {/* Autocomplete Dropdown */}
                 {showSuggestions && suggestions.length > 0 && (
                   <ul style={{
-                    position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 9999, 
+                    position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 9999,
                     backgroundColor: 'var(--bg-card)', border: '1px solid #e2e8f0', borderRadius: 6,
-                    boxShadow: '0 10px 25px rgba(0,0,0,0.15)', maxHeight: 250, overflowY: 'auto', 
+                    boxShadow: '0 10px 25px rgba(0,0,0,0.15)', maxHeight: 250, overflowY: 'auto',
                     listStyle: 'none', padding: 0, margin: '4px 0 0 0'
                   }}>
                     {suggestions.map(p => (
-                      <li 
-                        key={p.regid || p.id} 
+                      <li
+                        key={p.regid || p.id}
                         onMouseDown={(e) => { e.preventDefault(); selectSuggestion(p); }}
                         style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9', cursor: 'pointer', transition: 'background 0.2s' }}
                         onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
@@ -385,9 +399,9 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
                   </ul>
                 )}
               </div>
-              
+
               {lookupLoading && <div style={{ fontSize: 12, color: 'var(--pp-text-3)', marginTop: 4 }}>Looking up patient…</div>}
-              
+
               {/* If follow-up, show the name only after successful lookup if we have it */}
               {form.visitType === VisitType.FollowUp && form.patientName && !showSuggestions && (
                 <div className="appt-followup-confirmed">
@@ -421,7 +435,12 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
               <button type="button" className="appt-btn appt-form-cancel" onClick={onClose}>
                 Cancel
               </button>
-              <button type="submit" className="appt-btn appt-btn-primary appt-form-submit" disabled={isLoading}>
+              <button
+                type="submit"
+                className="appt-btn appt-btn-primary appt-form-submit"
+                disabled={isLoading || selectedDoctorOffline}
+                title={selectedDoctorOffline ? 'Doctor is offline. Please select an available doctor.' : undefined}
+              >
                 {isLoading ? <><Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> Saving…</> :
                   editAppointment ? 'Save Changes' : 'Confirm Booking'}
               </button>

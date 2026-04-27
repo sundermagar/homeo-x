@@ -2,6 +2,7 @@ import type { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import type { AuthTokenPayload } from '@mmc/types';
 import { Role } from '@mmc/types';
+import { createDbClient } from '@mmc/database';
 import { UnauthorizedError } from '../../../shared/errors';
 
 declare global {
@@ -32,14 +33,30 @@ export function authMiddleware(req: Request, _res: Response, next: NextFunction)
 
   // Demo bypass for local testing/prototype
   const DEMO_USERS: Record<string, Partial<AuthTokenPayload>> = {
-    'demo-token-123': { id: 101, email: 'doctor@kreedhealth.com',      name: 'Dr. Demo',       type: Role.Doctor,        contextId: 1, roleId: 1,   roleName: 'Doctor' },
-    'demo-token-101': { id: 101, email: 'doctor@kreedhealth.com',      name: 'Dr. Demo',       type: Role.Doctor,        contextId: 1, roleId: 101, roleName: 'Doctor' },
-    'demo-token-102': { id: 102, email: 'admin@kreedhealth.com',       name: 'Admin Demo',     type: Role.Admin,         contextId: 1, roleId: 102, roleName: 'Admin' },
-    'demo-token-103': { id: 103, email: 'reception@kreedhealth.com',   name: 'Reception Demo', type: Role.Receptionist,  contextId: 1, roleId: 103, roleName: 'Receptionist' },
-    'demo-token-104': { id: 104, email: 'clinicadmin@kreedhealth.com', name: 'Clinic Admin',   type: Role.Clinicadmin,  contextId: 1, roleId: 104, roleName: 'Clinicadmin' },
+    'demo-token-123': { id: 101, email: 'doctor@kreed.health',      name: 'Dr. Demo',       type: Role.Doctor,        contextId: 1, roleId: 1,   roleName: 'Doctor' },
+    'demo-token-101': { id: 101, email: 'doctor@kreed.health',      name: 'Dr. Demo',       type: Role.Doctor,        contextId: 1, roleId: 101, roleName: 'Doctor' },
+    'demo-token-102': { id: 102, email: 'admin@kreed.health',       name: 'Admin Demo',     type: Role.Admin,         contextId: 1, roleId: 102, roleName: 'Admin' },
+    'demo-token-103': { id: 103, email: 'reception@kreed.health',   name: 'Reception Demo', type: Role.Receptionist,  contextId: 1, roleId: 103, roleName: 'Receptionist' },
+    'demo-token-104': { id: 104, email: 'clinicadmin@kreed.health', name: 'Clinic Admin',   type: Role.Clinicadmin,  contextId: 1, roleId: 104, roleName: 'Clinicadmin' },
   };
+
   if (DEMO_USERS[token]) {
-    req.user = DEMO_USERS[token] as AuthTokenPayload;
+    const user = DEMO_USERS[token] as AuthTokenPayload;
+    req.user = user;
+
+    // For demo users, always use public.users for doctor status checks
+    // Set publicDb so downstream routes can read is_active from public.users
+    req.publicDb = createDbClient(process.env.DATABASE_URL!);
+    req.publicdb = req.publicDb;
+
+    // Force demo schema for non-Admin demo users to satisfy user request
+    // This ensures data is fetched from 'tenant_demo' regardless of host header.
+    if (user.type !== Role.Admin) {
+      req.tenantSlug = 'demo';
+      req.tenantDb = createDbClient(process.env.DATABASE_URL!, 'tenant_demo');
+      req.db = req.tenantDb;
+    }
+
     return next();
   }
 

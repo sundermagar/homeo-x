@@ -16,6 +16,7 @@ const ConsultationPage = lazy(() => import('@/features/consultation/consultation
 const PatientListPage = lazy(() => import('@/features/patients/pages/patient-list-page'));
 const PatientFormPage = lazy(() => import('@/features/patients/pages/patient-form-page'));
 const PatientDetailPage = lazy(() => import('@/features/patients/pages/patient-detail-page'));
+const PatientQueuePage = lazy(() => import('@/features/patients/pages/patient-queue-page'));
 const FamilyGroupListPage = lazy(() => import('@/features/patients/pages/family-group-list-page'));
 
 // Appointments
@@ -107,6 +108,7 @@ export function AppRouter() {
             <Route path="/patients/add" element={<PatientFormPage />} />
             <Route path="/patients/:regid" element={<PatientDetailPage />} />
             <Route path="/patients/:regid/edit" element={<PatientFormPage />} />
+            <Route path="/patients/queue" element={<PatientQueuePage />} />
             <Route path="/family-groups" element={<FamilyGroupListPage />} />
 
             {/* ─── Appointments ─── */}

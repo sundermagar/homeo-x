@@ -381,40 +381,18 @@ EXAMPLE SET — chief complaint "throbbing headache 2 days":
   4. "How did it start?"                     → ["A) Suddenly","B) Built up over hours","C) After stress","D) After exposure to sun"]
   5. "Any other symptom with the headache?"  → ["A) Nausea","B) Visual aura","C) Neck stiffness","D) None"]`,
 
-      chronic: `MODE: CHRONIC  —  long-standing, constitutional, mind-and-body case-taking.
+      chronic: `MODE: CHRONIC — long-standing, constitutional, mind-and-body case-taking.
 
-REQUIRED SLOT COMPOSITION (the 5 questions MUST cover these 5 slots, one each — slot order can vary):
-  Slot 1 — Onset / causation / "Never Well Since". When did THIS specific complaint first appear, what was happening at that life stage?
-  Slot 2 — Mental/emotional pattern AROUND THIS complaint. How does the patient FEEL when the complaint flares — anxious, irritable, sad, indifferent? Mandatory: at least 1 question must probe the mental layer.
-  Slot 3 — Constitutional generality the complaint reflects. Thermal preference, thirst pattern, sleep position, food cravings/aversions, perspiration, energy curve.
-  Slot 4 — Modality / periodicity SPECIFIC to this complaint. Time-of-day pattern, seasonal recurrence, menstrual link, weather sensitivity, before/after eating, position-related.
-  Slot 5 — Past suppressions / treatment history relevant to THIS complaint. What treatments were tried, did anything aggravate or shift symptoms elsewhere?
+REQUIRED SLOT COMPOSITION:
+  Slot 1 — Causation: Probe the context or triggers at the time of onset.
+  Slot 2 — Mental/Emotional: How does the patient's mood shift during a flare?
+  Slot 3 — Generalities: Thermal preferences, thirst, or sleep patterns.
+  Slot 4 — Modalities: Environmental triggers or time-of-day aggravations.
+  Slot 5 — History: Past treatments or suppressions.
 
-NEVER produce questions that could equally apply to any chronic patient. EACH question must reference the patient's actual chief complaint, but use NATURAL phrasing. 
+NEVER repeat the patient's exact complaint verbatim (e.g., if CC is "Psoriasis on elbows for 5 years", do NOT ask "When did your psoriasis on elbows for 5 years start?"). Identify the CORE condition and use it naturally: "When did this skin condition first appear?"
 
-CRITICAL PHRASING RULES:
-1. Do NOT verbatim repeat the entire chief complaint string if it contains durations or multiple symptoms (e.g., if CC is "Fever for 3 days", use "the fever" or "this fever").
-2. Adjust the phrasing to fit the sentence naturally. 
-3. If the CC already includes a duration (e.g. "for 3 days"), do NOT ask "When did it start" as a standalone question — instead ask about the context of that start.
-
-TONE: spacious, exploratory. Each question ≤ 16 words.
-
-INSTEAD OF ONE FIXED EXAMPLE SET, here are the SHAPE of questions per slot — fill in the core complaint <CC_CORE> where indicated:
-  Slot 1 shapes:
-    "What was happening in your life around the time the <CC_CORE> first began?"
-    "How has the <CC_CORE> evolved since it first appeared?"
-  Slot 2 shapes:
-    "How do you typically feel emotionally when the <CC_CORE> is at its worst?"  → [A) Anxious  B) Irritable  C) Sad/withdrawn  D) Indifferent]
-    "What goes through your mind when you are suffering from the <CC_CORE>?"
-  Slot 3 shapes:
-    "Are you generally chilly or hot in nature?"  → [A) Always chilly  B) Always hot  C) Hot core, cold limbs  D) Comfortable in either]
-    "How is your thirst — small sips, large gulps, or rare?"  → [A) Small sips frequent  B) Large gulps occasional  C) Rarely thirsty  D) Cold drinks only]
-  Slot 4 shapes:
-    "Does the <CC_CORE> follow any specific time pattern or seasonal rhythm?"  → [A) Early morning aggravation  B) Worse in cold/damp weather  C) Linked to menstrual cycle  D) Worse at change of season]
-    "Is there any specific time of day when the <CC_CORE> feels more intense?"
-  Slot 5 shapes:
-    "What treatments have you tried for the <CC_CORE>, and how did they affect you?"
-    "Did you notice any other symptom shift or disappear when the <CC_CORE> started?"`,
+TONE: exploratory. Each question ≤ 16 words.`,
 
       followup: `MODE: FOLLOW-UP  —  evaluating response to the previously-prescribed remedy. Hering's Law of Cure orientation.
 
@@ -454,7 +432,7 @@ PHRASING LOGIC:
 - Extract the core condition (e.g. "fever", "headache", "pain") from the complaint string.
 - Use natural phrasing like "the fever" or "your headache" instead of repeating the full string "${ccTrim}".
 - If the patient already gave a duration in the complaint, do not ask "How long have you had it?"`
-  : 'No chief complaint was provided. Generate 5 generic mode-appropriate opening questions.'}
+  : 'No chief complaint was provided at intake. You MUST carefully analyze the provided "Conversation so far" (transcript) to identify the patient\'s main reason for visiting and generate questions based on that detected complaint. If the transcript is also empty, generate 5 generic mode-appropriate opening questions to begin the case-taking.'}
 
 DO NOT produce a generic case-taking template. EACH question must be rooted in the specific pathology / phenomenology of the core condition.
 
@@ -528,7 +506,7 @@ FINAL CHECKS before emitting JSON (re-read your output and fix if any fail):
         : ''
     }
 
-Output the JSON now. Anchor every question to "${ccTrim || 'the chief complaint'}" — no generic case-taking templates.`;
+Output the JSON now. ${ccTrim ? `Anchor every question to "${ccTrim}".` : 'Since no chief complaint was provided, identify the main problem from the conversation above and anchor your questions to that detected condition.'} Do not use generic templates.`;
 
     const response = await chain.complete({
       systemPrompt,

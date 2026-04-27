@@ -14,7 +14,7 @@ export const patients = pgTable('case_datas', {
   id: serial('id').primaryKey(),
   regid: integer('regid').notNull().unique(),
   patientid: integer('patientid'),
-  // clinicId: integer('clinic_id'),
+  clinicId: integer('clinic_id'),
 
   // Name & Demographics
   title: text('title'),

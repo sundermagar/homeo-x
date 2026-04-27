@@ -1,27 +1,28 @@
 import { and, eq, like, or, sql, isNull } from 'drizzle-orm';
-import { 
-  patients, 
-  familygroupsLegacy, 
-  doctorsLegacy, 
-  religionLegacy, 
-  occupationLegacy, 
+import {
+  patients,
+  familygroupsLegacy,
+  doctorsLegacy,
+  religionLegacy,
+  occupationLegacy,
   refrencetypeLegacy,
   users,
-  appointments
+  appointments,
+  referralSources
 } from '@mmc/database/schema';
 import type { DbClient } from '@mmc/database';
-import type { 
-  Patient, 
-  PatientSummary, 
-  FamilyMember, 
-  PatientFormMeta, 
-  FamilyGroupSummary 
+import type {
+  Patient,
+  PatientSummary,
+  FamilyMember,
+  PatientFormMeta,
+  FamilyGroupSummary
 } from '@mmc/types';
 import type { PatientRepository } from '../../domains/patient/ports/patient.repository';
-import type { 
-  CreatePatientInput, 
-  UpdatePatientInput, 
-  FamilyMemberInput 
+import type {
+  CreatePatientInput,
+  UpdatePatientInput,
+  FamilyMemberInput
 } from '@mmc/validation';
 
 /**
@@ -30,7 +31,7 @@ import type {
  * Uses Drizzle ORM with schema-per-tenant (search_path set at connection level).
  */
 export class PatientRepositoryPg implements PatientRepository {
-  constructor(private readonly db: DbClient) {}
+  constructor(private readonly db: DbClient) { }
 
   async findById(id: number): Promise<Patient | null> {
     const [row] = await this.db
@@ -67,8 +68,9 @@ export class PatientRepositoryPg implements PatientRepository {
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
     doctorId?: number;
+    clinicId?: number;
   }): Promise<{ data: PatientSummary[]; total: number }> {
-    const { page, limit, search, doctorId } = params;
+    const { page, limit, search, doctorId, clinicId } = params;
     const offset = (page - 1) * limit;
 
     const conditions = [sql`(deleted_at IS NULL OR deleted_at::text = '')` as any];
@@ -98,6 +100,10 @@ export class PatientRepositoryPg implements PatientRepository {
       );
     }
 
+    if (clinicId) {
+      conditions.push(eq(patients.clinicId, clinicId));
+    }
+
     const whereClause = and(...conditions);
 
     const [data, countRows] = await Promise.all([
@@ -120,7 +126,7 @@ export class PatientRepositoryPg implements PatientRepository {
     };
   }
 
-  async create(input: CreatePatientInput): Promise<Patient> {
+  async create(input: CreatePatientInput & { clinicId?: number }): Promise<Patient> {
     // Generate next regid (legacy compatibility)
     const maxRows = await this.db
       .select({ maxRegid: sql<number>`coalesce(max(${patients.regid}), 1000)` })
@@ -145,6 +151,7 @@ export class PatientRepositoryPg implements PatientRepository {
       state: input.state || '',
       dateOfBirth: input.dateOfBirth || null,
       dob: input.dateOfBirth || null,
+      clinicId: input.clinicId || null,
     };
 
     // Only add columns if they exist in the schema to avoid "column does not exist" errors
@@ -154,10 +161,21 @@ export class PatientRepositoryPg implements PatientRepository {
     if ((patients as any).religion) patientData.religion = input.religion || '';
     if ((patients as any).occupation) patientData.occupation = input.occupation || '';
     if ((patients as any).bloodGroup) patientData.bloodGroup = input.bloodGroup || '';
-    if ((patients as any).reference) patientData.reference = input.referenceType || '';
+    
+    // Handle reference sources
+    const refId = String((input as any).referenceTypeId || '');
+    if (refId.startsWith('rt_')) {
+      (patientData as any).referenceTypeId = Number(refId.replace('rt_', ''));
+    } else {
+      (patientData as any).referenceTypeId = null;
+    }
+    patientData.reference = input.referenceType || '';
+
     if ((patients as any).assitantDoctor) patientData.assitantDoctor = (input as any).assistantDoctor || '';
     if ((patients as any).consultationFee) patientData.consultationFee = (input as any).consultationFee || 0;
     if ((patients as any).courierOutstation) patientData.courierOutstation = input.courierOutstation ? '1' : '0';
+    if ((patients as any).referedBy) patientData.referedBy = (input as any).referredBy || '';
+    if ((patients as any).status) patientData.status = (input as any).maritalStatus || '';
 
     const [row] = await this.db
       .insert(patients)
@@ -171,31 +189,39 @@ export class PatientRepositoryPg implements PatientRepository {
     const updateData: Record<string, unknown> = {
       updatedAt: new Date(),
     };
-    if (input.firstName    !== undefined) updateData.firstName    = input.firstName;
-    if (input.middleName   !== undefined) updateData.middleName   = input.middleName;
-    if (input.surname      !== undefined) updateData.surname      = input.surname;
-    if (input.gender       !== undefined) updateData.gender       = input.gender;
-    if (input.title        !== undefined) updateData.title        = input.title;
-    if (input.phone        !== undefined) updateData.phone        = input.phone;
-    if (input.mobile1      !== undefined) updateData.mobile1      = input.mobile1;
-    if (input.mobile2      !== undefined) updateData.mobile2      = input.mobile2;
-    if (input.email        !== undefined) updateData.email        = input.email;
-    if (input.address      !== undefined) updateData.address      = input.address;
-    if (input.road         !== undefined) updateData.road         = input.road;
-    if (input.area         !== undefined) updateData.area         = input.area;
-    if (input.city         !== undefined) updateData.city         = input.city;
-    if (input.state        !== undefined) updateData.state        = input.state;
-    if (input.pin          !== undefined) updateData.pin          = input.pin;
-    if (input.altAddress   !== undefined) updateData.altAddress   = input.altAddress;
-    if (input.religion     !== undefined) updateData.religion     = input.religion;
-    if (input.occupation   !== undefined) updateData.occupation   = input.occupation;
-    if (input.dateOfBirth  !== undefined) {
-      updateData.dateOfBirth  = input.dateOfBirth || null;
+    if (input.firstName !== undefined) updateData.firstName = input.firstName;
+    if (input.middleName !== undefined) updateData.middleName = input.middleName;
+    if (input.surname !== undefined) updateData.surname = input.surname;
+    if (input.gender !== undefined) updateData.gender = input.gender;
+    if (input.title !== undefined) updateData.title = input.title;
+    if (input.phone !== undefined) updateData.phone = input.phone;
+    if (input.mobile1 !== undefined) updateData.mobile1 = input.mobile1;
+    if (input.mobile2 !== undefined) updateData.mobile2 = input.mobile2;
+    if (input.email !== undefined) updateData.email = input.email;
+    if (input.address !== undefined) updateData.address = input.address;
+    if (input.road !== undefined) updateData.road = input.road;
+    if (input.area !== undefined) updateData.area = input.area;
+    if (input.city !== undefined) updateData.city = input.city;
+    if (input.state !== undefined) updateData.state = input.state;
+    if (input.pin !== undefined) updateData.pin = input.pin;
+    if (input.altAddress !== undefined) updateData.altAddress = input.altAddress;
+    if (input.religion !== undefined) updateData.religion = input.religion;
+    if (input.occupation !== undefined) updateData.occupation = input.occupation;
+    if (input.dateOfBirth !== undefined) {
+      updateData.dateOfBirth = input.dateOfBirth || null;
       updateData.dob = input.dateOfBirth || null;
     }
-    if (input.referenceType !== undefined) updateData.reference   = input.referenceType; // actual col = 'reference'
-    if ((input as any).maritalStatus !== undefined) updateData.status   = (input as any).maritalStatus;
-    if ((input as any).referredBy    !== undefined) updateData.referedBy = (input as any).referredBy;
+    if ((input as any).referenceTypeId !== undefined) {
+      const refId = String((input as any).referenceTypeId || '');
+      if (refId.startsWith('rt_')) {
+        updateData.referenceTypeId = Number(refId.replace('rt_', ''));
+      } else {
+        updateData.referenceTypeId = null;
+      }
+    }
+    if (input.referenceType !== undefined) updateData.reference = input.referenceType;
+    if ((input as any).maritalStatus !== undefined) updateData.status = (input as any).maritalStatus;
+    if ((input as any).referredBy !== undefined) updateData.referedBy = (input as any).referredBy;
     if ((input as any).assistantDoctor !== undefined) updateData.assitantDoctor = (input as any).assistantDoctor;
     if ((input as any).consultationFee !== undefined) updateData.consultationFee = (input as any).consultationFee;
 
@@ -216,99 +242,125 @@ export class PatientRepositoryPg implements PatientRepository {
     return !!row;
   }
 
-  async lookup(query: string, limit = 20): Promise<PatientSummary[]> {
+  async lookup(query: string, limit = 20, clinicId?: number): Promise<PatientSummary[]> {
     const s = `%${query}%`;
+    const conditions = [
+      sql`(deleted_at IS NULL OR deleted_at::text = '')`,
+      or(
+        like(patients.firstName, s),
+        like(patients.surname, s),
+        like(patients.phone, s),
+        like(patients.mobile1, s),
+        sql`CAST(${patients.regid} AS TEXT) LIKE ${s}`,
+      )
+    ];
+
+    if (clinicId) {
+      conditions.push(eq(patients.clinicId, clinicId));
+    }
+
     const rows = await this.db
       .select()
       .from(patients)
-      .where(
-        and(
-          sql`(deleted_at IS NULL OR deleted_at::text = '')`,
-          or(
-            like(patients.firstName, s),
-            like(patients.surname, s),
-            like(patients.phone, s),
-            like(patients.mobile1, s),
-            sql`CAST(${patients.regid} AS TEXT) LIKE ${s}`,
-          )
-        )
-      )
+      .where(and(...conditions))
       .limit(limit);
     return rows.map(row => this.toSummary(row));
   }
 
-  async findBirthdays(mmdd: string): Promise<PatientSummary[]> {
+  async findBirthdays(mmdd: string, clinicId?: number): Promise<PatientSummary[]> {
+    const conditions = [
+      sql`(deleted_at IS NULL OR deleted_at::text = '')`,
+      sql`to_char(${patients.dob}::date, 'MM-DD') = ${mmdd}`
+    ];
+
+    if (clinicId) {
+      conditions.push(eq(patients.clinicId, clinicId));
+    }
+
     const rows = await this.db
       .select()
       .from(patients)
-      .where(
-        and(
-          sql`(deleted_at IS NULL OR deleted_at::text = '')`,
-          sql`to_char(${patients.dob}::date, 'MM-DD') = ${mmdd}`
-        )
-      );
+      .where(and(...conditions));
     return rows.map(row => this.toSummary(row));
   }
 
-  async getFormMeta(): Promise<PatientFormMeta> {
+  async getFormMeta(clinicId?: number): Promise<PatientFormMeta> {
     try {
-      const [doctors, religions, occupations, references] = await Promise.all([
+      // 1. Fetch Doctors — Primary source is doctorsLegacy (tenant's doctors table)
+      // but we join with users to get the most up-to-date name/status if available.
+      const doctorConditions = [
+        isNull(doctorsLegacy.deletedAt),
+      ];
+
+      if (clinicId) {
+        doctorConditions.push(eq(doctorsLegacy.clinicId, clinicId));
+      }
+
+      const [doctors, religions, occupations, references, referralSrcs] = await Promise.all([
         this.db
-          .select({ 
-            id: users.id, 
-            name: users.name, 
+          .select({
+            id: doctorsLegacy.id,
+            name: doctorsLegacy.name,
+            userName: users.name,
+            legacyFee: doctorsLegacy.consultationFee,
             userFee: users.consultationFee,
-            legacyFee: doctorsLegacy.consultationFee
+            isActive: users.isActive
           })
-          .from(users)
-          .leftJoin(doctorsLegacy, or(
-            eq(users.id, doctorsLegacy.id),
-            sql`LOWER(${users.name}) = LOWER(${doctorsLegacy.name})`
-          ))
-          .where(and(
-            isNull(users.deletedAt), 
-            eq(users.isActive, true), 
-            sql`LOWER(${users.type}) = 'doctor'`
-          ))
+          .from(doctorsLegacy)
+          .leftJoin(users, eq(doctorsLegacy.id, users.id))
+          .where(and(...doctorConditions))
           .catch((err) => {
             console.error('[PatientRepo] Failed to fetch doctors:', err.message);
             return [];
           }),
         this.db.select().from(religionLegacy).catch((err) => {
-            console.error('[PatientRepo] Failed to fetch religions:', err.message);
-            return [];
+          console.error('[PatientRepo] Failed to fetch religions:', err.message);
+          return [];
         }),
         this.db.select().from(occupationLegacy).catch((err) => {
-            console.error('[PatientRepo] Failed to fetch occupations:', err.message);
-            return [];
+          console.error('[PatientRepo] Failed to fetch occupations:', err.message);
+          return [];
         }),
         this.db.select().from(refrencetypeLegacy).catch((err) => {
-            console.error('[PatientRepo] Failed to fetch references:', err.message);
-            return [];
+          console.error('[PatientRepo] Failed to fetch references:', err.message);
+          return [];
+        }),
+        this.db.select().from(referralSources).where(eq(referralSources.isActive, true)).catch((err) => {
+          console.error('[PatientRepo] Failed to fetch referral sources:', err.message);
+          return [];
         }),
       ]);
 
+      // Deduplicate doctors by ID (caused by left join if multiple legacy records match)
+      const uniqueDoctorsMap = new Map<number, any>();
+      doctors.forEach(d => {
+        if (!uniqueDoctorsMap.has(d.id)) {
+          uniqueDoctorsMap.set(d.id, d);
+        }
+      });
+      const uniqueDoctors = Array.from(uniqueDoctorsMap.values());
+
       return {
-        doctors: doctors.map(d => {
+        doctors: uniqueDoctors.map(d => {
           // If userFee is 0 or null, try legacyFee
           let fee = (d.userFee && Number(d.userFee) > 0) ? d.userFee : d.legacyFee;
           let numFee: number | null = null;
-          
+
           if (fee !== null && fee !== undefined) {
             // Remove any non-numeric characters except decimal point
             const cleaned = String(fee).replace(/[^0-9.]/g, '');
             numFee = cleaned ? Number(cleaned) : 0;
           }
-          
+
           return {
             id: d.id,
             name: d.name,
             consultationFee: numFee
           };
         }),
-        religions: religions.map((r: any) => r.religion).filter(Boolean),
-        occupations: occupations.map((o: any) => o.occupation).filter(Boolean),
-        references: references.map((r: any) => r.referencetype).filter(Boolean),
+        religions: Array.from(new Set(religions.map((r: any) => r.religion).filter(Boolean))),
+        occupations: Array.from(new Set(occupations.map((o: any) => o.occupation).filter(Boolean))),
+        references: Array.from(new Set(references.map((r: any) => r.referencetype).filter(Boolean))),
         statuses: ['Single', 'Married', 'Divorced', 'Widowed'],
         titles: ['Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Prof.', 'Master', 'Baby'],
       };
@@ -332,8 +384,9 @@ export class PatientRepositoryPg implements PatientRepository {
     page: number;
     limit: number;
     search?: string;
+    clinicId?: number;
   }): Promise<{ data: FamilyGroupSummary[]; total: number }> {
-    const { page, limit, search } = params;
+    const { page, limit, search, clinicId } = params;
     const offset = (page - 1) * limit;
     const fg = familygroupsLegacy;
 
@@ -353,16 +406,22 @@ export class PatientRepositoryPg implements PatientRepository {
 
     for (const headRegid of headRegids) {
       if (!headRegid) continue;
+      const patientConditions = [eq(patients.regid, headRegid)];
+      if (clinicId) patientConditions.push(eq(patients.clinicId, clinicId));
+
       const [patient] = await this.db
         .select({ firstName: patients.firstName, surname: patients.surname })
         .from(patients)
-        .where(eq(patients.regid, headRegid))
+        .where(and(...patientConditions))
         .limit(1);
 
       const [countRow] = await this.db
         .select({ count: sql<number>`count(*)` })
         .from(fg)
         .where(and(eq(fg.regid, headRegid), isNull(fg.deletedAt)));
+
+      // If a clinicId filter is active and the patient wasn't found in this clinic, skip this family head
+      if (clinicId && !patient) continue;
 
       results.push({
         id: headRegid,
@@ -377,9 +436,9 @@ export class PatientRepositoryPg implements PatientRepository {
     let filtered = results;
     if (search) {
       const s = search.toLowerCase();
-      filtered = results.filter(r => 
-        r.name.toLowerCase().includes(s) || 
-        r.surname.toLowerCase().includes(s) || 
+      filtered = results.filter(r =>
+        r.name.toLowerCase().includes(s) ||
+        r.surname.toLowerCase().includes(s) ||
         String(r.regid).includes(s)
       );
     }
@@ -408,7 +467,7 @@ export class PatientRepositoryPg implements PatientRepository {
 
     return Promise.all(rows.map(async r => {
       const [p] = await this.db
-        .select({ firstName: patients.firstName, surname: patients.surname, phone: patients.phone })
+        .select({ firstName: patients.firstName, surname: patients.surname, phone: patients.phone, mobile1: patients.mobile1 })
         .from(patients)
         .where(eq(patients.regid, r.memberRegid!))
         .limit(1);
@@ -419,7 +478,7 @@ export class PatientRepositoryPg implements PatientRepository {
         memberRegid: r.memberRegid!,
         relation: r.relation || '',
         memberName: p ? `${p.firstName} ${p.surname}`.trim() : null,
-        memberMobile: p?.phone || null,
+        memberMobile: (p?.mobile1 || p?.phone) || null,
       };
     }));
   }
@@ -443,7 +502,7 @@ export class PatientRepositoryPg implements PatientRepository {
 
     // Resolve member name and mobile for the returned object
     const [p] = await this.db
-      .select({ firstName: patients.firstName, surname: patients.surname, phone: patients.phone })
+      .select({ firstName: patients.firstName, surname: patients.surname, phone: patients.phone, mobile1: patients.mobile1 })
       .from(patients)
       .where(eq(patients.regid, data.memberRegid))
       .limit(1);
@@ -454,7 +513,7 @@ export class PatientRepositoryPg implements PatientRepository {
       memberRegid: row!.memberRegid!,
       relation: row!.relation || '',
       memberName: p ? `${p.firstName} ${p.surname}`.trim() : null,
-      memberMobile: p?.phone || null,
+      memberMobile: (p?.mobile1 || p?.phone) || null,
     };
   }
 
@@ -497,6 +556,7 @@ export class PatientRepositoryPg implements PatientRepository {
       bloodGroup: row.bloodGroup || null,
       // 'reference' is the actual DB column; domain calls it 'referenceType'
       referenceType: row.reference || null,
+      referenceTypeId: row.referenceTypeId || null,
       referredBy: row.referedBy || null,
       assistantDoctor: row.assitantDoctor || null,
       consultationFee: row.consultationFee ? Number(row.consultationFee) : null,

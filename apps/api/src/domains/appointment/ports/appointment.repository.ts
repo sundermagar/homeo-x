@@ -8,6 +8,7 @@ export interface AppointmentFilters {
   fromDate?: string;
   toDate?: string;
   doctorId?: number;
+  clinicId?: number;
   status?: string;
   search?: string;
   patientId?: number;
@@ -18,7 +19,7 @@ export interface AppointmentFilters {
 export interface AppointmentRepository {
   // Queries
   findMany(filters: AppointmentFilters): Promise<{ data: Appointment[]; total: number }>;
-  findToday(doctorId?: number): Promise<Appointment[]>;
+  findToday(doctorId?: number, clinicId?: number): Promise<Appointment[]>;
   findById(id: number): Promise<Appointment | null>;
   findAvailableSlots(doctorId: number, date: string): Promise<AvailabilitySlot[]>;
 
@@ -30,8 +31,8 @@ export interface AppointmentRepository {
   issueToken(appointmentId: number): Promise<number>;
 
   // Waitlist
-  getWaitlist(date: string, doctorId?: number): Promise<WaitlistEntry[]>;
-  addToWaitlist(dto: { patientId?: number; appointmentId?: number; doctorId?: number; consultationFee?: number }): Promise<number>;
+  getWaitlist(date: string, doctorId?: number, clinicId?: number): Promise<WaitlistEntry[]>;
+  addToWaitlist(dto: { patientId?: number; appointmentId?: number; doctorId?: number; consultationFee?: number; clinicId?: number }): Promise<number>;
   callNextInWaitlist(waitlistId: number): Promise<void>;
   completeWaitlistEntry(waitlistId: number): Promise<void>;
   skipWaitlistEntry(waitlistId: number): Promise<void>;

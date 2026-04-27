@@ -15,6 +15,23 @@ import { BadRequestError, ValidationError } from '../../../shared/errors';
 import { sendSuccess } from '../../../shared/response-formatter';
 import { createLogger } from '../../../shared/logger';
 import { z } from 'zod';
+import { sql } from 'drizzle-orm';
+
+/** Returns true when the doctor's is_active flag is false in the users table. */
+async function isDoctorOffline(req: any, doctorId: number): Promise<boolean> {
+  try {
+    const rows = await req.tenantDb.execute(sql`
+      SELECT is_active FROM users WHERE id = ${doctorId}
+      AND LOWER(type) IN ('doctor', 'medical practitioner')
+      LIMIT 1
+    `);
+    const row = (rows as any[])[0];
+    if (!row) return false;            // doctor not in users table → assume active
+    return row.is_active === false;   // explicitly false → offline
+  } catch {
+    return false;                      // on error, don't block
+  }
+}
 
 const addToWaitlistSchema = z.object({
   patientId: z.number().int().positive().optional(),
@@ -48,11 +65,14 @@ appointmentsRouter.get('/', asyncHandler(async (req, res) => {
   //   effectiveDoctorId = (req.user as any).contextId;
   // }
 
+  const clinicId = (req as any).user?.contextId;
+
   const result = await listAppts.execute({
     date:      date    || undefined,
     fromDate:  from_date || undefined,
     toDate:    to_date || undefined,
     doctorId:  effectiveDoctorId,
+    clinicId,
     status:    status  || undefined,
     search:    search  || undefined,
     page:      page    ? Number(page)  : 1,
@@ -69,7 +89,8 @@ appointmentsRouter.get('/today', asyncHandler(async (req, res) => {
   const { doctor_id } = req.query as Record<string, string>;
   const getAppts = new GetAppointmentUseCase(getRepo(req));
   const effectiveDoctorId = doctor_id ? Number(doctor_id) : undefined;
-  const result = await getAppts.getToday(effectiveDoctorId);
+  const clinicId = (req as any).user?.contextId;
+  const result = await getAppts.getToday(effectiveDoctorId, clinicId);
   if (result.success) sendSuccess(res, result.data);
 }));
 
@@ -77,6 +98,13 @@ appointmentsRouter.get('/today', asyncHandler(async (req, res) => {
 appointmentsRouter.get('/availability', asyncHandler(async (req, res) => {
   const { doctor_id, date } = req.query as Record<string, string>;
   if (!doctor_id || !date) throw new BadRequestError('doctor_id and date are required');
+
+  // Block slots for offline doctors
+  if (await isDoctorOffline(req, Number(doctor_id))) {
+    sendSuccess(res, [], 'Doctor is currently offline. No slots available.');
+    return;
+  }
+
   const getAppts = new GetAppointmentUseCase(getRepo(req));
   const result = await getAppts.getAvailability(Number(doctor_id), date);
   if (result.success) sendSuccess(res, result.data);
@@ -87,7 +115,13 @@ appointmentsRouter.get('/waiting', asyncHandler(async (req, res) => {
   const { date, doctor_id } = req.query as Record<string, string>;
   const today = new Date().toISOString().split('T')[0];
   const queueMgmt = new QueueManagementUseCase(getRepo(req));
-  const result = await queueMgmt.getWaitlist((date || today) as string, doctor_id ? Number(doctor_id) : undefined);
+  
+  const clinicId = (req as any).user?.contextId;
+  const result = await queueMgmt.getWaitlist(
+    (date || today) as string, 
+    doctor_id ? Number(doctor_id) : undefined,
+    clinicId
+  );
   if (result.success) sendSuccess(res, result.data);
 }));
 
@@ -102,11 +136,17 @@ appointmentsRouter.get('/:id', asyncHandler(async (req, res) => {
 
 // POST /api/appointments
 appointmentsRouter.post('/', asyncHandler(async (req, res) => {
+  // Server-side guard: prevent booking with an offline doctor
+  if (req.body.doctorId && await isDoctorOffline(req, Number(req.body.doctorId))) {
+    throw new BadRequestError('This doctor is currently offline and cannot accept appointments.');
+  }
+
   const commRepo = new CommunicationRepositoryPG(req.tenantDb);
   const patientRepo = new PatientRepositoryPg(req.tenantDb);
   const smsUc = new SendSmsUseCase(commRepo, smsGateway);
   const bookAppt = new BookAppointmentUseCase(getRepo(req), smsUc, patientRepo);
-  const result = await bookAppt.execute(req.body);
+  const clinicId = (req as any).user?.contextId;
+  const result = await bookAppt.execute({ ...req.body, clinicId });
 
   if (result.success) {
     sendSuccess(res, result.data, undefined, 201);
@@ -160,7 +200,12 @@ appointmentsRouter.post('/waiting', asyncHandler(async (req, res) => {
   }
 
   const queueMgmt = new QueueManagementUseCase(getRepo(req));
-  const result = await queueMgmt.addToWaitlist(validation.data);
+  const clinicId = (req as any).user?.contextId;
+  
+  const result = await queueMgmt.addToWaitlist({
+    ...validation.data,
+    clinicId
+  });
   if (result.success) {
     sendSuccess(res, result.data, undefined, 201);
   }

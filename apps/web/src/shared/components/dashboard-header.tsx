@@ -10,20 +10,20 @@ interface DashboardHeaderProps {
 
 // ─── Route → Title Mapping ────────────────────────────────────────────────────
 const ROUTE_TITLES: Record<string, string> = {
-  '/':                        'Dashboard',
-  '/patients':                'Patients',
-  '/patients/add':            'New Patient',
-  '/appointments':            'Appointments',
-  '/appointments/calendar':   'Calendar',
-  '/appointments/queue':      'Token Queue',
-  '/medical-cases':           'Medical Cases',
-  '/billing':                 'Billing',
-  '/payments':                'Payments',
-  '/analytics':               'Analytics',
-  '/communications':          'Communications',
-  '/packages':                'Packages',
-  '/platform/clinics':        'Clinics',
-  '/platform/accounts':       'Accounts',
+  '/': 'Dashboard',
+  '/patients': 'Patients',
+  '/patients/add': 'New Patient',
+  '/appointments': 'Appointments',
+  '/appointments/calendar': 'Calendar',
+  '/appointments/queue': 'Token Queue',
+  '/medical-cases': 'Medical Cases',
+  '/billing': 'Billing',
+  '/payments': 'Payments',
+  '/analytics': 'Analytics',
+  '/communications': 'Communications',
+  '/packages': 'Packages',
+  '/platform/clinics': 'Clinics',
+  '/platform/accounts': 'Accounts',
 };
 
 function getPageTitle(pathname: string): string {
@@ -49,12 +49,12 @@ function useFormattedDate(): string {
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 export function DashboardHeader({ onOpenPalette }: DashboardHeaderProps) {
-  const location     = useLocation();
-  const navigate     = useNavigate();
-  const { user }   = useAuthStore();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { user } = useAuthStore();
   const formattedDate = useFormattedDate();
 
-  const pageTitle  = getPageTitle(location.pathname);
+  const pageTitle = getPageTitle(location.pathname);
   const clinicName = user?.clinicName || 'Kreed.health Clinic';
 
   const rawRole = ((user as any)?.type || (user as any)?.role || (user as any)?.roleName || '').toLowerCase();
@@ -69,7 +69,7 @@ export function DashboardHeader({ onOpenPalette }: DashboardHeaderProps) {
         if (typeof data.isActive === 'boolean') {
           setIsDoctorActive(data.isActive);
         }
-      }).catch(() => {});
+      }).catch(() => { });
     }
   }, [isDoctor]);
 
@@ -92,9 +92,18 @@ export function DashboardHeader({ onOpenPalette }: DashboardHeaderProps) {
       <header className="dh-bar">
         {/* ── Left: Live Status + Page Title ── */}
         <div className="dh-left">
-          <div className="dh-live-badge">
-            <span className="dh-live-dot" style={{ backgroundColor: isDoctor ? (isDoctorActive ? 'var(--pp-success)' : 'var(--pp-error)') : 'var(--pp-success)' }} />
-            <span className="dh-live-text">{isDoctor ? (isDoctorActive ? 'Live' : 'Offline') : 'Live'}</span>
+          <div className="dh-live-badge" style={{
+            '--badge-bg': isDoctor && !isDoctorActive ? 'var(--pp-danger-bg)' : 'var(--pp-success-bg)',
+            '--badge-border': isDoctor && !isDoctorActive ? 'var(--pp-danger-border)' : 'rgba(34, 197, 94, 0.15)',
+          } as any}>
+            <span className="dh-live-dot" style={{
+              '--dot-color': isDoctor && !isDoctorActive ? 'var(--pp-danger-fg)' : 'var(--pp-success-fg)'
+            } as any} />
+            <span className="dh-live-text" style={{
+              color: isDoctor && !isDoctorActive ? 'var(--pp-danger-fg)' : 'var(--pp-success-fg)'
+            }}>
+              {isDoctor ? (isDoctorActive ? 'Active' : 'Inactive') : 'Active'}
+            </span>
           </div>
 
           <div className="dh-breadcrumb">

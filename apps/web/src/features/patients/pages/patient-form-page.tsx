@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { usePatient, useCreatePatient, useUpdatePatient, usePatientFormMeta } from '../hooks/use-patients';
 import { NumericInput } from '@/shared/components/NumericInput';
+import { useAuthStore } from '@/shared/stores/auth-store';
 import '../styles/patients.css';
 
 
@@ -26,11 +27,14 @@ export default function PatientFormPage() {
   const navigate = useNavigate();
   const { regid } = useParams();
   const isEdit = Boolean(regid);
+  
+  const { user } = useAuthStore();
+  const clinicId = user?.contextId;
 
   const [form, setForm] = useState(INIT_FORM);
   const [errors, setErrors] = useState<string[]>([]);
 
-  const { data: meta } = usePatientFormMeta();
+  const { data: meta } = usePatientFormMeta(clinicId);
   const { data: patient } = usePatient(Number(regid));
   const createMutation = useCreatePatient();
   const updateMutation = useUpdatePatient();

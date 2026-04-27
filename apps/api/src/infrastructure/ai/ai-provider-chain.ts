@@ -23,7 +23,7 @@ export class AiProviderChain {
   private providers: AiProviderPort[];
 
   constructor() {
-    const defaultModel = process.env.AIMODEL || 'claude-haiku-4-5-20251001';
+    const defaultModel = process.env.AI_MODEL || 'claude-3-5-haiku-20241022';
     
     this.providers = [
       // Primary: Anthropic Claude (Premium Quality)

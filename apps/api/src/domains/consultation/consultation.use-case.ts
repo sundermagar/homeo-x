@@ -293,6 +293,8 @@ Respond ONLY with a JSON array of objects with keys "q" (the question text) and 
     if (isPdf) {
       try {
         const buffer = Buffer.from(input.base64, 'base64');
+        logger.info({ filename: input.filename, bufferLength: buffer.length }, '[parseLabReport] Attempting PDF extraction');
+        
         if (!buffer || buffer.length === 0) {
           throw new Error('PDF buffer is empty');
         }
@@ -301,11 +303,17 @@ Respond ONLY with a JSON array of objects with keys "q" (the question text) and 
         // @ts-ignore — no types for the inner module path
         const pdfParseModule: any = await import('pdf-parse/lib/pdf-parse.js');
         const pdfParse = pdfParseModule.default || pdfParseModule;
+        
+        if (typeof pdfParse !== 'function') {
+          throw new Error('pdf-parse module imported but did not export a function');
+        }
+
         const result = await pdfParse(buffer);
         extractedText = (result?.text || '').trim();
+        logger.info({ filename: input.filename, textLength: extractedText.length, numPages: result?.numpages }, '[parseLabReport] PDF extraction successful');
       } catch (err: any) {
         pdfParseError = err?.message || String(err);
-        logger.error({ err: pdfParseError, filename: input.filename, base64Length: input.base64?.length }, 'PDF text extraction failed');
+        logger.error({ err: pdfParseError, filename: input.filename, stack: err?.stack }, 'PDF text extraction failed');
         extractedText = '';
       }
     }
@@ -325,6 +333,7 @@ Respond ONLY with a JSON array of objects with keys "q" (the question text) and 
     let cleaned = '';
     try {
       const chain = this.providerChain || getAiProviderChain();
+      logger.info({ filename: input.filename, textPreview: extractedText.slice(0, 100) }, '[parseLabReport] Attempting AI normalization');
       const response = await chain.complete({
         systemPrompt: `You are a lab-report normalizer. You will be given the RAW TEXT extracted from a lab PDF (possibly with broken layout, OCR artifacts, repeated headers).
 
@@ -356,9 +365,10 @@ Output the cleaned markdown summary now. If the text contains no actual lab data
         temperature: 0.1,
       });
       cleaned = (response.content || '').trim();
+      logger.info({ filename: input.filename, responseLength: cleaned.length }, '[parseLabReport] AI normalization successful');
     } catch (aiErr: any) {
       logger.warn(
-        { err: aiErr?.message, filename: input.filename },
+        { err: aiErr?.message, filename: input.filename, stack: aiErr?.stack },
         'AI normalization failed — falling back to raw extracted text',
       );
       cleaned = '';

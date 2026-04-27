@@ -124,52 +124,87 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     const { start, boundary, prevStart, prevBoundary } = this.getPeriodDates(period);
 
     // Single round-trip: 4 queries instead of 9 (merged prev/curr + eliminated duplicate bills scans)
-    const [patientsRes, expensesRes, currRes, prevRes] = await Promise.all([
-      // Patients: current + previous in one query
+    const [patientsRes, expensesRes, currRes, prevRes, prevRecRes, followUpRes, currWaitRes, prevWaitRes] = await Promise.all([
+      // 0. Patients: current + previous
       this.db.execute(sql`
         SELECT
-          count(*) FILTER (WHERE created_at >= ${start}::timestamp AND created_at < ${boundary}::timestamp AND (deleted_at IS NULL OR deleted_at::text = ''))::int as curr_patients,
-          count(*) FILTER (WHERE created_at >= ${prevStart}::timestamp AND created_at < ${prevBoundary}::timestamp AND (deleted_at IS NULL OR deleted_at::text = ''))::int as prev_patients
+          count(*) FILTER (WHERE clinic_id = ${contextId} AND created_at >= ${start}::timestamp AND created_at < ${boundary}::timestamp AND (deleted_at IS NULL OR deleted_at::text = ''))::int as curr_patients,
+          count(*) FILTER (WHERE clinic_id = ${contextId} AND created_at >= ${prevStart}::timestamp AND created_at < ${prevBoundary}::timestamp AND (deleted_at IS NULL OR deleted_at::text = ''))::int as prev_patients
         FROM patients
       `),
-      // Expenses for current period only
+      // 1. Expenses for current period
       this.db.execute(sql`
         SELECT COALESCE(sum(amount), 0)::int as total
         FROM expenses
         WHERE exp_date >= ${start}::date AND exp_date < ${boundary}::date
           AND (deleted_at IS NULL OR deleted_at::text = '')
       `),
-      // Current period: bills charges/received + receipt total
+      // 2. Current period: bills charges/received + receipt total
       this.db.execute(sql`
         SELECT
-          COALESCE(sum(b.charges), 0)::numeric as charges,
-          COALESCE(sum(b.received), 0)::numeric as received,
-          COALESCE(sum(b.received), 0) + COALESCE(sum(CAST(NULLIF(r.amount::text, '') AS numeric)), 0) as revenue
-        FROM bills b
-        LEFT JOIN receipt r ON r.created_at >= ${start}::timestamp AND r.created_at < ${boundary}::timestamp AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
-        WHERE b.bill_date >= ${start}::date AND b.bill_date < ${boundary}::date
-          AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
+          COALESCE(sum(charges), 0)::numeric as charges,
+          COALESCE(sum(received), 0)::numeric as received,
+          COALESCE(sum(received), 0) + COALESCE((SELECT sum(CAST(NULLIF(amount::text, '') AS numeric)) FROM receipt WHERE created_at >= ${start}::timestamp AND created_at < ${boundary}::timestamp AND (deleted_at IS NULL OR deleted_at::text = '')), 0) as revenue
+        FROM bills
+        WHERE bill_date >= ${start}::date AND bill_date < ${boundary}::date
+          AND (deleted_at IS NULL OR deleted_at::text = '')
       `),
-      // Previous period: same structure
+      // 3. Previous period bills
       this.db.execute(sql`
         SELECT
-          COALESCE(sum(b.charges), 0)::numeric as charges,
-          COALESCE(sum(b.received), 0)::numeric as received,
-          COALESCE(sum(b.received), 0) + COALESCE(sum(CAST(NULLIF(r.amount::text, '') AS numeric)), 0) as revenue
-        FROM bills b
-        LEFT JOIN receipt r ON r.created_at >= ${prevStart}::timestamp AND r.created_at < ${prevBoundary}::timestamp AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
-        WHERE b.bill_date >= ${prevStart}::date AND b.bill_date < ${prevBoundary}::date
-          AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
+          COALESCE(sum(charges), 0)::numeric as charges,
+          COALESCE(sum(received), 0)::numeric as received
+        FROM bills
+        WHERE bill_date >= ${prevStart}::date AND bill_date < ${prevBoundary}::date
+          AND (deleted_at IS NULL OR deleted_at::text = '')
+      `),
+      // 4. Previous Receipts
+      this.db.execute(sql`
+        SELECT COALESCE(sum(CAST(NULLIF(amount::text, '') AS numeric)), 0) as revenue
+        FROM receipt
+        WHERE created_at >= ${prevStart}::timestamp AND created_at < ${prevBoundary}::timestamp
+          AND (deleted_at IS NULL OR deleted_at::text = '')
+      `),
+      // 5. Follow-ups
+      this.db.execute(sql`
+        SELECT count(*)::int as count
+        FROM appointments
+        WHERE clinic_id = ${contextId}
+          AND booking_date >= ${start} AND booking_date < ${boundary}
+          AND visit_type = 'FollowUp'
+          AND (deleted_at IS NULL OR deleted_at::text = '')
+      `),
+      // 6. Wait Time: Current period
+      this.db.execute(sql`
+        SELECT COALESCE(avg(extract(epoch from (called_at - checked_in_at))/60), 0)::int as avg_wait
+        FROM waitlist
+        WHERE clinic_id = ${contextId}
+          AND date >= ${start}::date AND date < ${boundary}::date
+          AND called_at IS NOT NULL AND checked_in_at IS NOT NULL
+          AND (deleted_at IS NULL OR deleted_at::text = '')
+      `),
+      // 7. Wait Time: Previous period
+      this.db.execute(sql`
+        SELECT COALESCE(avg(extract(epoch from (called_at - checked_in_at))/60), 0)::int as avg_wait
+        FROM waitlist
+        WHERE clinic_id = ${contextId}
+          AND date >= ${prevStart}::date AND date < ${prevBoundary}::date
+          AND called_at IS NOT NULL AND checked_in_at IS NOT NULL
+          AND (deleted_at IS NULL OR deleted_at::text = '')
       `),
     ]) as any[];
 
     const curr = currRes[0] || { charges: 0, received: 0, revenue: 0 };
-    const prev = prevRes[0] || { charges: 0, received: 0, revenue: 0 };
+    const prev = prevRes[0] || { charges: 0, received: 0 };
+    const prevRec = prevRecRes[0] || { revenue: 0 };
     const pat = patientsRes[0] || { curr_patients: 0, prev_patients: 0 };
     const exp = expensesRes[0] || { total: 0 };
+    const followUp = followUpRes[0] || { count: 0 };
+    const currW = currWaitRes[0] || { avg_wait: 0 };
+    const prevW = prevWaitRes[0] || { avg_wait: 0 };
 
     const currE = Number(curr.revenue) || 0;
-    const prevE = Number(prev.revenue) || 0;
+    const prevE = (Number(prev.received) || 0) + (Number(prevRec.revenue) || 0);
     const currP = pat.curr_patients || 0;
     const prevP = pat.prev_patients || 0;
 
@@ -180,17 +215,21 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     const prevRate = Number(prev.charges) > 0 ? Math.round((Number(prev.received) / Number(prev.charges)) * 100) : 0;
     const collTrend = prevRate > 0 ? ((currRate - prevRate) / prevRate * 100).toFixed(1) : '0.0';
 
+    const currWait = Number(currW.avg_wait) || 0;
+    const prevWait = Number(prevW.avg_wait) || 0;
+    const waitTrend = prevWait > 0 ? ((currWait - prevWait) / prevWait * 100).toFixed(1) : '0.0';
+
     return {
       newPatientsCount: currP,
-      followUpsCount: 0,
+      followUpsCount: followUp.count || 0,
       todaysCollection: currE,
       todaysExpenses: Number(exp.total) || 0,
       revenueTrend: revTrend,
       patientTrend: patTrend,
       collectionRate: currRate,
       collectionRateTrend: collTrend,
-      avgWaitTime: 0,
-      avgWaitTimeTrend: '0.0'
+      avgWaitTime: currWait,
+      avgWaitTimeTrend: waitTrend
     };
   }
 
@@ -234,6 +273,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         LEFT JOIN appointments a ON a.id = w.appointment_id
         LEFT JOIN vitals       v ON v.visit_id = COALESCE(a.id, w.appointment_id)
         WHERE w.date = ${today}::date
+          AND w.clinic_id = ${contextId}
           AND (w.deleted_at IS NULL OR w.deleted_at::text = '')
         ORDER BY w.waiting_number ASC
       `);
@@ -270,6 +310,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         LEFT JOIN patients p ON p.id = a.patient_id
         LEFT JOIN vitals v ON v.visit_id = a.id
         WHERE a.booking_date = ${today}::date
+        WHERE a.booking_date = ${today}
+          AND a.clinic_id = ${contextId}
           AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
           AND NOT EXISTS (
             SELECT 1 FROM waitlist w2
@@ -359,7 +401,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     queries.push(this.db.execute(sql`
       SELECT 'appointment' as type, 'Appointment - ' || p.first_name as title, a.booking_date::text as subtitle, a.created_at
       FROM appointments a JOIN patients p ON a.patient_id = p.id
-      WHERE (a.deleted_at IS NULL OR a.deleted_at::text = '')
+      WHERE a.clinic_id = ${contextId} AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
       ORDER BY a.id DESC LIMIT ${limit}
     `));
 
@@ -368,7 +410,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       queries.push(this.db.execute(sql`
         SELECT 'payment' as type, 'Invoice paid - ' || p.first_name as title, 'Rs.' || r.${sql.identifier(revInfo.amountCol)} as subtitle, r.created_at, p.regid
         FROM ${sql.identifier(revInfo.name)} r JOIN patients p ON r.regid = p.regid
-        WHERE (r.deleted_at IS NULL OR r.deleted_at::text = '')
+        WHERE p.clinic_id = ${contextId} AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
         ORDER BY r.id DESC LIMIT ${limit}
       `));
     }
@@ -394,7 +436,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
              cr.heading, cr.comments, cr.start_date, cr.status
       FROM case_reminder cr
       JOIN patients p ON cr.patient_id = p.id
-      WHERE cr.status = 'pending'
+      WHERE cr.clinic_id = ${contextId} AND cr.status = 'pending'
       ORDER BY cr.id DESC LIMIT ${limit}
     `);
 
@@ -408,7 +450,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     const results = await this.db.execute(sql`
       SELECT id, regid, first_name, surname, phone, mobile1, dob
       FROM patients
-      WHERE to_char(dob, 'MM-DD') = ${mmdd}
+      WHERE clinic_id = ${contextId}
+        AND to_char(dob, 'MM-DD') = ${mmdd}
         AND (deleted_at IS NULL OR deleted_at::text = '')
     `);
 
@@ -466,7 +509,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       .where(eq(schema.caseReminders.id, id));
   }
 
-  async getRecentTransactions(limit: number): Promise<RecentTransaction[]> {
+  async getRecentTransactions(limit: number, contextId?: number): Promise<RecentTransaction[]> {
     try {
       const results = await this.db.execute(sql`
         WITH combined AS (
@@ -500,7 +543,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           c.*,
           COALESCE(p.first_name || ' ' || p.surname, 'Patient') AS patient_name
         FROM combined c
-        LEFT JOIN patients p ON c.regid = p.regid
+        LEFT JOIN patients p ON c.regid = p.regid ${contextId ? sql`AND p.clinic_id = ${contextId}` : sql``}
         ORDER BY c.created_at DESC
         LIMIT ${limit}
       `);
@@ -611,7 +654,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     // Per-patient avg
     const patCountRes = await this.db.execute(sql`
       SELECT count(*)::int as cnt FROM patients
-      WHERE created_at::date BETWEEN ${start} AND ${boundary}
+      WHERE clinic_id = ${contextId}
+        AND created_at::date BETWEEN ${start} AND ${boundary}
         AND (deleted_at IS NULL OR deleted_at::text = '')
     `) as any[];
     const patCount = (patCountRes[0] as any)?.cnt || 1;
@@ -643,6 +687,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       FROM bills b
       LEFT JOIN patients p ON b.regid = p.regid
       WHERE b.bill_date >= ${start}::date AND b.bill_date < ${boundary}::date
+      WHERE p.clinic_id = ${contextId}
+        AND b.bill_date::date >= ${start}::date AND b.bill_date::date < ${boundary}::date
         AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
       ORDER BY b.charges DESC NULLS LAST
       LIMIT ${limit}
@@ -673,7 +719,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       `),
       this.db.execute(sql`
         SELECT count(*)::int as cnt FROM patients
-        WHERE created_at >= ${start} AND created_at < ${boundary}
+        WHERE clinic_id = ${contextId}
+          AND created_at >= ${start} AND created_at < ${boundary}
           AND (deleted_at IS NULL OR deleted_at::text = '')
       `),
       this.db.execute(sql`
@@ -686,7 +733,9 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       `),
       this.db.execute(sql`
         SELECT COALESCE(avg(extract(epoch from (called_at - checked_in_at))/60), 0)::int as avg_wait 
-        FROM waitlist WHERE date >= ${start} AND date < ${boundary} AND called_at IS NOT NULL AND checked_in_at IS NOT NULL AND (deleted_at IS NULL OR deleted_at::text = '')
+        FROM waitlist 
+        WHERE clinic_id = ${contextId} 
+          AND date >= ${start} AND date < ${boundary} AND called_at IS NOT NULL AND checked_in_at IS NOT NULL AND (deleted_at IS NULL OR deleted_at::text = '')
       `),
       this.db.execute(sql`
         SELECT (
@@ -696,7 +745,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       `),
       this.db.execute(sql`
         SELECT count(*)::int as cnt FROM patients
-        WHERE created_at >= ${prevStart} AND created_at < ${prevBoundary} AND (deleted_at IS NULL OR deleted_at::text = '')
+        WHERE clinic_id = ${contextId}
+          AND created_at >= ${prevStart} AND created_at < ${prevBoundary} AND (deleted_at IS NULL OR deleted_at::text = '')
       `),
     ]);
 
@@ -750,22 +800,28 @@ export class DashboardRepositoryPg implements IDashboardRepository {
   async getStaffOnDuty(contextId: number): Promise<{ name: string; role: string; count?: number }[]> {
     const docCol = await this.getDoctorColumn();
 
-    const results = await this.db.execute(sql`
+    // Query doctors from the legacy table (same as staff list)
+    // and join with users table to get is_active status
+    const doctors = await this.db.execute(sql`
       SELECT 
-        name, 
-        type as specialty,
-        (SELECT count(id)::int FROM appointments a WHERE a.${sql.identifier(docCol)} = users.id AND a.booking_date = CURRENT_DATE AND (a.deleted_at IS NULL OR a.deleted_at::text = '' OR a.deleted_at::text = '0')) as visit_count
-      FROM users
-      WHERE (deleted_at IS NULL OR deleted_at::text = '') AND is_active = true
-      ORDER BY visit_count DESC, type ASC
+        d.id,
+        d.name, 
+        d.designation as specialty,
+        u.is_active,
+        (SELECT count(a.id)::int FROM appointments a WHERE a.clinic_id = ${contextId} AND a.${sql.identifier(docCol)} = d.id AND a.booking_date = CURRENT_DATE::text AND (a.deleted_at IS NULL OR a.deleted_at::text = '' OR a.deleted_at::text = '0')) as visit_count
+      FROM doctors d
+      LEFT JOIN users u ON LOWER(d.email) = LOWER(u.email) AND u.context_id = ${contextId}
+      WHERE (d.deleted_at IS NULL OR d.deleted_at::text = '') 
+        AND (d.clinic_id = ${contextId} OR d.clinic_id::text = ${String(contextId)})
+        AND (u.is_active IS NULL OR u.is_active = true)
+      ORDER BY visit_count DESC
       LIMIT 20
-    `) as any[];
+    `).catch((err) => {
+      console.error('[Dashboard] Doctors Duty Query Failed:', err.message);
+      return [] as any[];
+    });
 
-    if ((results as any[]).length === 0) {
-      return [];
-    }
-
-    return (results as any[]).map(r => ({
+    return (doctors as any[]).map(r => ({
       name: r.name || 'Unknown',
       role: r.specialty || 'Doctor',
       count: r.visit_count,

@@ -78,7 +78,7 @@ export default function AppointmentListPage() {
     from_date: fromDate || (tab === 'all' ? undefined : today),
     to_date:   toDate  || (tab === 'all' ? undefined : today),
     // Pass doctor_id for server-side filtering when logged in as doctor
-    doctor_id: doctorUserId,
+    doctor_id: undefined,
     page, limit: 40,
   });
 
@@ -87,16 +87,7 @@ export default function AppointmentListPage() {
 
   // For today tab: filter client-side by doctor name/id (since useTodayAppointments has no doctor filter)
   const todayRaw = todayQuery.data ?? [];
-  const todayData = isDoctor
-    ? todayRaw.filter(a => {
-        if (a.doctorId && doctorUserId && a.doctorId === doctorUserId) return true;
-        if (doctorUserName && a.doctorName) {
-          const dn = (a.doctorName || '').toLowerCase().trim();
-          if (dn === doctorUserName || dn.includes(doctorUserName) || doctorUserName.includes(dn)) return true;
-        }
-        return false;
-      })
-    : todayRaw;
+  const todayData = todayRaw;
 
   const rawListData = listQuery.data;
   const listData: typeof todayData = Array.isArray(rawListData)
