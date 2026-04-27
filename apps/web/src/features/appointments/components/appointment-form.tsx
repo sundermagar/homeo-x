@@ -182,6 +182,10 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
 
   const isLoading = createMutation.isPending || updateMutation.isPending;
 
+  // True when the selected doctor is explicitly marked offline
+  const selectedDoctorOffline = !!form.doctorId &&
+    doctors.some(d => String(d.id) === form.doctorId && d.isActive === false);
+
   return (
     <div className="appt-modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="appt-modal">
@@ -211,26 +215,36 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
                   Practitioner
                 </label>
                 <select
-                  className="appt-form-select"
+                  className={`appt-form-select${selectedDoctorOffline ? ' appt-select-offline' : ''}`}
                   value={form.doctorId}
                   onChange={e => handleDoctorChange(e.target.value)}
                 >
                   <option value="">Select Doctor</option>
-                    {doctors.map(d => (
-                      <option 
-                        key={d.id} 
-                        value={d.id} 
-                        disabled={!d.isActive}
-                        style={{ 
-                          color: !d.isActive ? '#dc2626' : 'inherit',
-                          fontWeight: !d.isActive ? '800' : 'normal',
-                          backgroundColor: !d.isActive ? '#fef2f2' : 'inherit'
-                        }}
-                      >
-                        {d.name} {!d.isActive ? ' (OFFLINE - DO NOT SELECT)' : ''}
-                      </option>
-                    ))}
+                  {/* Active doctors */}
+                  {doctors.filter(d => d.isActive !== false).map(d => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                  {/* Offline doctors grouped */}
+                  {doctors.some(d => d.isActive === false) && (
+                    <optgroup label="── Offline / Unavailable ──">
+                      {doctors.filter(d => d.isActive === false).map(d => (
+                        <option key={d.id} value={d.id} disabled>
+                          {d.name} (OFFLINE)
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
                 </select>
+
+                {/* Offline warning banner */}
+                {selectedDoctorOffline && (
+                  <div className="appt-offline-banner">
+                    <span className="appt-offline-dot" />
+                    <span>
+                      <strong>Dr. {doctors.find(d => String(d.id) === form.doctorId)?.name}</strong> is currently <strong>Offline</strong>. Appointments cannot be booked.
+                    </span>
+                  </div>
+                )}
               </div>
               <div className="appt-form-group">
                 <label className="appt-form-label">
@@ -290,7 +304,12 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
                 <Clock size={13} strokeWidth={1.6} />
                 Time Slot
               </label>
-              {slots.length === 0 ? (
+              {selectedDoctorOffline ? (
+                <div className="appt-slots-unavailable">
+                  <span style={{ fontSize: 20 }}>🔴</span>
+                  <span>No slots available — doctor is offline</span>
+                </div>
+              ) : slots.length === 0 ? (
                 <div className="appt-slots-hint">
                   Select doctor and date to see available slots
                 </div>
@@ -408,7 +427,12 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
               <button type="button" className="appt-btn appt-form-cancel" onClick={onClose}>
                 Cancel
               </button>
-              <button type="submit" className="appt-btn appt-btn-primary appt-form-submit" disabled={isLoading}>
+              <button
+                type="submit"
+                className="appt-btn appt-btn-primary appt-form-submit"
+                disabled={isLoading || selectedDoctorOffline}
+                title={selectedDoctorOffline ? 'Doctor is offline. Please select an available doctor.' : undefined}
+              >
                 {isLoading ? <><Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> Saving…</> :
                   editAppointment ? 'Save Changes' : 'Confirm Booking'}
               </button>

@@ -904,3 +904,49 @@
 .dark .appt-card-header {
   border-bottom-color: rgba(255, 255, 255, 0.05);
 }
+
+/* ─── Offline Doctor Status Indicators ───────────────────────────────────── */
+.appt-select-offline {
+  border-color: var(--pp-danger-border) !important;
+  color: var(--pp-danger-fg) !important;
+  background-color: var(--pp-danger-bg) !important;
+}
+
+.appt-offline-banner {
+  margin-top: 8px;
+  padding: 10px 14px;
+  background: var(--pp-danger-bg);
+  border: 1px solid var(--pp-danger-border);
+  border-radius: var(--pp-radius-btn);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.8rem;
+  color: var(--pp-danger-fg);
+  animation: modalIn 300ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.appt-offline-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--pp-danger-fg);
+  border-radius: 50%;
+  flex-shrink: 0;
+  animation: apptPulse 1.5s ease-in-out infinite;
+}
+
+.appt-slots-unavailable {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 32px 16px;
+  background: var(--pp-warm-1);
+  border: 1.5px dashed var(--pp-warm-4);
+  border-radius: var(--pp-radius-btn);
+  color: var(--pp-text-3);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+}
