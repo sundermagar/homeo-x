@@ -3,6 +3,7 @@ import { X, User, Calendar, Clock, Stethoscope, DollarSign, Loader2 } from 'luci
 import { VisitType, Role } from '@mmc/types';
 import type { Appointment, CreateAppointmentDto } from '@mmc/types';
 import { useCreateAppointment, useUpdateAppointment, useAvailableSlots } from '../hooks/use-appointments';
+import { useDoctors } from '../hooks/use-doctors';
 import { apiClient } from '@/infrastructure/api-client';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { NumericInput } from '@/shared/components/NumericInput';
@@ -48,16 +49,15 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
 
   const user = useAuthStore(s => s.user);
 
-  // Fetch doctors list
+  const { data: doctorsList = [] } = useDoctors();
+
   useEffect(() => {
-    apiClient.get('/doctors').then(({ data }) => {
-      // The response structure is { success: true, data: [] }
-      const docList = Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
-      setDoctors(docList);
+    if (doctorsList.length > 0) {
+      setDoctors(doctorsList);
 
       // Auto-select if logged in as a doctor and not editing
       if (!editAppointment && user?.type === Role.Doctor) {
-        const myDoc = docList.find((d: Doctor) => d.id === user.id);
+        const myDoc = doctorsList.find((d: Doctor) => d.id === user.id);
         if (myDoc) {
           setForm(f => ({
             ...f,
@@ -68,8 +68,8 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
           }));
         }
       }
-    }).catch(() => { });
-  }, [user, editAppointment]);
+    }
+  }, [doctorsList, user, editAppointment]);
 
   // Populate form if editing
   useEffect(() => {
@@ -183,7 +183,7 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
   const isLoading = createMutation.isPending || updateMutation.isPending;
 
   // True when the selected doctor is explicitly marked offline
-  const selectedDoctorOffline = !!form.doctorId &&
+  const selectedDoctorInactive = !!form.doctorId &&
     doctors.some(d => String(d.id) === form.doctorId && d.isActive === false);
 
   return (
@@ -215,7 +215,7 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
                   Practitioner
                 </label>
                 <select
-                  className={`appt-form-select${selectedDoctorOffline ? ' appt-select-offline' : ''}`}
+                  className={`appt-form-select${selectedDoctorInactive ? ' appt-select-inactive' : ''}`}
                   value={form.doctorId}
                   onChange={e => handleDoctorChange(e.target.value)}
                 >
@@ -232,12 +232,12 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
                   ))}
                 </select>
 
-                {/* Offline warning banner */}
-                {selectedDoctorOffline && (
-                  <div className="appt-offline-banner">
-                    <span className="appt-offline-dot" />
+                {/* Inactive warning banner */}
+                {selectedDoctorInactive && (
+                  <div className="appt-inactive-banner">
+                    <span className="appt-inactive-dot" />
                     <span>
-                      <strong>Dr. {doctors.find(d => String(d.id) === form.doctorId)?.name}</strong> is currently <strong>Offline</strong>. Appointments cannot be booked.
+                      <strong>Dr. {doctors.find(d => String(d.id) === form.doctorId)?.name}</strong> is currently <strong>Inactive</strong>. Appointments cannot be booked.
                     </span>
                   </div>
                 )}
@@ -300,12 +300,11 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
                 <Clock size={13} strokeWidth={1.6} />
                 Time Slot
               </label>
-              {selectedDoctorOffline ? (
-                <div className="appt-slots-unavailable">
-                  <span style={{ fontSize: 20 }}>🔴</span>
-                  <span>No slots available — doctor is offline</span>
-                </div>
-              ) : slots.length === 0 ? (
+              {selectedDoctorInactive ? (
+              <div className="appt-error-summary" style={{ marginTop: 0 }}>
+                Doctor is inactive. Please select an available practitioner.
+              </div>
+            ) : slots.length === 0 ? (
                 <div className="appt-slots-hint">
                   Select doctor and date to see available slots
                 </div>
@@ -425,8 +424,8 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
               <button
                 type="submit"
                 className="appt-btn appt-btn-primary appt-form-submit"
-                disabled={isLoading || selectedDoctorOffline}
-                title={selectedDoctorOffline ? 'Doctor is offline. Please select an available doctor.' : undefined}
+                disabled={isLoading || selectedDoctorInactive}
+                title={selectedDoctorInactive ? 'Doctor is inactive. Please select an available doctor.' : undefined}
               >
                 {isLoading ? <><Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> Saving…</> :
                   editAppointment ? 'Save Changes' : 'Confirm Booking'}

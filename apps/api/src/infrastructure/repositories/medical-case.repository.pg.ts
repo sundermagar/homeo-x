@@ -126,8 +126,54 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
 
   async getUnifiedCaseData(regid: number): Promise<FullCaseData | null> {
     try {
-      const medicalCases = await this.findByRegId(regid);
+      const medicalCases = await this.db
+        .select({
+          id: schema.medicalCases.id,
+          regid: schema.medicalCases.regid,
+          status: sql<string>`COALESCE(${schema.medicalCases.status}, 'Active')`,
+          condition: sql<string>`COALESCE(${schema.medicalCases.condition}, '')`,
+          createdAt: schema.medicalCases.createdAt,
+          patientName: sql<string>`${schema.patients.firstName} || ' ' || ${schema.patients.surname}`,
+          phone: schema.patients.phone,
+          dateOfBirth: schema.patients.dateOfBirth,
+          city: schema.patients.city,
+        })
+        .from(schema.medicalCases)
+        .leftJoin(schema.patients, eq(schema.medicalCases.regid, schema.patients.regid))
+        .where(eq(schema.medicalCases.regid, regid))
+        .orderBy(desc(schema.medicalCases.createdAt));
+
       const activeCase = medicalCases.find(c => c.status === 'Active') || medicalCases[0];
+
+      // If no medical case exists, fetch patient info separately
+      if (!activeCase) {
+        const [patient] = await this.db
+          .select()
+          .from(schema.patients)
+          .where(eq(schema.patients.regid, regid))
+          .limit(1);
+
+        if (!patient) return null;
+
+        return {
+          medicalCase: {
+            id: 0,
+            regid,
+            status: 'None',
+            patientName: `${patient.firstName} ${patient.surname}`,
+            phone: patient.phone,
+            dateOfBirth: patient.dateOfBirth ? new Date(patient.dateOfBirth).toISOString() : null,
+            city: patient.city,
+          } as MedicalCase,
+          vitals: [],
+          soap: [],
+          notes: [],
+          examination: [],
+          images: [],
+          investigations: [],
+          prescriptions: [],
+        };
+      }
 
       // If no medical case exists, we still want to return patient-level data (notes, images, homeo)
       // but soap/vitals will be empty since they depend on visitId (activeCase.id).
@@ -149,7 +195,27 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
         this.db.select().from(schema.caseExamination).where(eq(schema.caseExamination.regid, regid)),
         this.db.select().from(schema.caseImages).where(eq(schema.caseImages.regid, regid)),
         this.db.select().from(schema.investigations).where(eq(schema.investigations.regid, regid)),
-        this.db.select().from(schema.prescriptions).where(eq(schema.prescriptions.regid, regid)),
+        this.db
+          .select({
+            id: schema.prescriptions.id,
+            regid: schema.prescriptions.regid,
+            visitId: schema.prescriptions.visitId,
+            dateval: schema.prescriptions.dateval,
+            medicineId: schema.prescriptions.medicineId,
+            medicineName: schema.medicines.name,
+            potencyId: schema.prescriptions.potencyId,
+            potencyName: schema.potencies.name,
+            frequencyId: schema.prescriptions.frequencyId,
+            frequencyTitle: schema.frequencies.title,
+            days: schema.prescriptions.days,
+            instructions: schema.prescriptions.instructions,
+          })
+          .from(schema.prescriptions)
+          .leftJoin(schema.medicines, eq(schema.prescriptions.medicineId, schema.medicines.id))
+          .leftJoin(schema.potencies, eq(schema.prescriptions.potencyId, schema.potencies.id))
+          .leftJoin(schema.frequencies, eq(schema.prescriptions.frequencyId, schema.frequencies.id))
+          .where(eq(schema.prescriptions.regid, regid))
+          .orderBy(desc(schema.prescriptions.createdAt)),
       ]);
 
       return {

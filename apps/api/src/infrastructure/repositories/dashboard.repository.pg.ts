@@ -227,7 +227,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     const currRate = Number(curr.charges) > 0 ? Math.round((Number(curr.received) / Number(curr.charges)) * 100) : 0;
     const prevRate = Number(prev.charges) > 0 ? Math.round((Number(prev.received) / Number(prev.charges)) * 100) : 0;
     const collTrend = prevRate > 0 ? ((currRate - prevRate) / prevRate * 100).toFixed(1) : '0.0';
-    
+
     const waitTrend = prevW > 0 ? ((currW - prevW) / prevW * 100).toFixed(1) : '0.0';
 
     return {
@@ -863,9 +863,9 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     });
 
     const [uRes, dRes] = await Promise.all([usersPromise, doctorsPromise]);
-    
+
     const combined = [...(uRes as any[]), ...(dRes as any[])];
-    
+
     // Sort and de-duplicate by name
     const uniqueMap = new Map();
     combined.forEach(r => {

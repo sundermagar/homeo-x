@@ -92,33 +92,34 @@ export class StaffRepositoryPg implements StaffRepository {
 
     const timestamp = new Date().toISOString();
     console.log(`[StaffRepo] [${timestamp}] findAll category=${category} clinicId=${clinicId}`);
-    const rows = await this.db.execute(sql`
-      SELECT ${colFragment}
-      FROM ${tableIdentifier}
-      WHERE (deleted_at IS NULL OR deleted_at::text = '')
-      ${typeFilter}
-      ${clinicFilter}
-      ${searchSafe ? sql`AND (name ILIKE ${searchSafe} OR email ILIKE ${searchSafe} OR mobile ILIKE ${searchSafe})` : sql``}
-      ORDER BY ${sql.identifier(finalSortBy)} ${finalSortOrder}
-      LIMIT ${limit} OFFSET ${offset}
-    `);
-    console.log('[StaffRepo] SELECT query completed', (rows as any[]).length);
 
-    const countResult = await this.db.execute(sql`
-      SELECT count(*)::int as count FROM ${tableIdentifier}
-      WHERE (deleted_at IS NULL OR deleted_at::text = '')
-      ${typeFilter}
-      ${clinicFilter}
-      ${searchSafe ? sql`AND (name ILIKE ${searchSafe} OR email ILIKE ${searchSafe} OR mobile ILIKE ${searchSafe})` : sql``}
-    `);
-    console.log('[StaffRepo] COUNT query completed', (countResult as any[])[0]?.count);
-
-    const activeCountResult = await this.db.execute(sql`
-      SELECT count(*)::int as count FROM ${tableIdentifier}
-      WHERE (deleted_at IS NULL OR deleted_at::text = '')
-      ${typeFilter}
-      ${clinicFilter}
-    `);
+    // Run all 3 independent queries in parallel to reduce round-trips
+    const [rows, countResult, activeCountResult] = await Promise.all([
+      this.db.execute(sql`
+        SELECT ${colFragment}
+        FROM ${tableIdentifier}
+        WHERE (deleted_at IS NULL OR deleted_at::text = '')
+        ${typeFilter}
+        ${clinicFilter}
+        ${searchSafe ? sql`AND (name ILIKE ${searchSafe} OR email ILIKE ${searchSafe} OR mobile ILIKE ${searchSafe})` : sql``}
+        ORDER BY ${sql.identifier(finalSortBy)} ${finalSortOrder}
+        LIMIT ${limit} OFFSET ${offset}
+      `),
+      this.db.execute(sql`
+        SELECT count(*)::int as count FROM ${tableIdentifier}
+        WHERE (deleted_at IS NULL OR deleted_at::text = '')
+        ${typeFilter}
+        ${clinicFilter}
+        ${searchSafe ? sql`AND (name ILIKE ${searchSafe} OR email ILIKE ${searchSafe} OR mobile ILIKE ${searchSafe})` : sql``}
+      `),
+      this.db.execute(sql`
+        SELECT count(*)::int as count FROM ${tableIdentifier}
+        WHERE (deleted_at IS NULL OR deleted_at::text = '')
+        ${typeFilter}
+        ${clinicFilter}
+      `),
+    ]);
+    console.log('[StaffRepo] Parallel queries completed, rows=', (rows as any[]).length, 'total=', (countResult as any[])[0]?.count);
 
     return {
       data: (rows as any[]).map((r: any) => this.toSummary(r, category)),
