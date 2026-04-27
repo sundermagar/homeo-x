@@ -430,6 +430,9 @@ export class PatientRepositoryPg implements PatientRepository {
         .from(fg)
         .where(and(eq(fg.regid, headRegid), isNull(fg.deletedAt)));
 
+      // If a clinicId filter is active and the patient wasn't found in this clinic, skip this family head
+      if (clinicId && !patient) continue;
+
       results.push({
         id: headRegid,
         regid: headRegid,
