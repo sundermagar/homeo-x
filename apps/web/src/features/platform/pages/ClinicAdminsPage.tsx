@@ -480,9 +480,9 @@ export default function ClinicAdminsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
 
-  const { data, isLoading } = useStaffList(CATEGORY, { 
-    page, 
-    limit: PAGE_SIZE, 
+  const { data, isLoading } = useStaffList(CATEGORY, {
+    page,
+    limit: PAGE_SIZE,
     search: debouncedSearch,
     sortBy,
     sortOrder
@@ -554,7 +554,7 @@ export default function ClinicAdminsPage() {
 
           <div className="flex items-center gap-2">
             <span className="text-[11px] font-bold color-muted uppercase tracking-wider">Sort:</span>
-            <select 
+            <select
               className="plat-form-input !py-1 !text-xs !w-auto min-w-[140px]"
               value={`${sortBy}-${sortOrder}`}
               onChange={(e) => {
@@ -571,14 +571,14 @@ export default function ClinicAdminsPage() {
             </select>
           </div>
         </div>
-        
-        <button 
-          className="plat-btn plat-btn-ghost plat-btn-sm" 
-          onClick={() => { 
-            setSearch(''); 
-            setDebouncedSearch(''); 
-            setPage(1); 
-            setSortBy('id'); 
+
+        <button
+          className="plat-btn plat-btn-ghost plat-btn-sm"
+          onClick={() => {
+            setSearch('');
+            setDebouncedSearch('');
+            setPage(1);
+            setSortBy('id');
             setSortOrder('DESC');
           }}
         >
@@ -651,9 +651,9 @@ export default function ClinicAdminsPage() {
       {totalPages > 1 && (
         <div className="plat-pagination-container">
           <div className="plat-pagination-pill">
-            <button 
-              className="plat-pagination-btn" 
-              disabled={page <= 1} 
+            <button
+              className="plat-pagination-btn"
+              disabled={page <= 1}
               onClick={() => { setPage(p => p - 1); window.scrollTo(0, 0); }}
             >
               ← Previous
@@ -661,9 +661,9 @@ export default function ClinicAdminsPage() {
             <div className="plat-pagination-info">
               Page <b>{page}</b> of <b>{totalPages}</b>
             </div>
-            <button 
-              className="plat-pagination-btn" 
-              disabled={page >= totalPages} 
+            <button
+              className="plat-pagination-btn"
+              disabled={page >= totalPages}
               onClick={() => { setPage(p => p + 1); window.scrollTo(0, 0); }}
             >
               Next →
