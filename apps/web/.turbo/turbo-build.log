@@ -139,4 +139,4 @@ computing gzip size...
 [2mdist/[22m[36massets/icons-KnH9sANw.js                     [39m[1m[2m 54.92 kB[22m[1m[22m[2m │ gzip:  11.06 kB[22m
 [2mdist/[22m[36massets/react-vendor-CAACGS7R.js              [39m[1m[2m194.27 kB[22m[1m[22m[2m │ gzip:  60.73 kB[22m
 [2mdist/[22m[36massets/charts-CignpIEd.js                    [39m[1m[2m394.61 kB[22m[1m[22m[2m │ gzip: 115.45 kB[22m
-[32m✓ built in 16.45s[39m
+[32m✓ built in 13.10s[39m

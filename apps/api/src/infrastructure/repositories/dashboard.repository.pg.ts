@@ -519,6 +519,11 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         WHERE ${sql.identifier(dateCol)} >= date_trunc(${trunc}, NOW()) - (${count} || ${' ' + interval})::interval
           ${sql.raw(modeFilter)}
           AND (deleted_at IS NULL OR deleted_at::text = '')
+          AND (
+            regid IN (SELECT regid FROM patients WHERE clinic_id = ${contextId})
+            OR 
+            EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = ${revInfo.name} AND column_name = 'clinic_id' AND clinic_id = ${contextId})
+          )
         GROUP BY 1
       )
       SELECT to_char(periods.p, ${format}) as label, 
@@ -717,11 +722,11 @@ export class DashboardRepositoryPg implements IDashboardRepository {
                ELSE 'Pending'
              END as status
       FROM bills b
-      LEFT JOIN patients p ON b.regid = p.regid
+      INNER JOIN patients p ON b.regid = p.regid
       WHERE p.clinic_id = ${contextId}
         AND b.bill_date::date >= ${start}::date AND b.bill_date::date < ${boundary}::date
         AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
-      ORDER BY b.charges DESC NULLS LAST
+      ORDER BY CAST(NULLIF(b.charges::text, '') AS numeric) DESC NULLS LAST
       LIMIT ${limit}
     `) as any[];
 
@@ -744,8 +749,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     const [revRes, patRes, collRes, waitRes, prevRevRes, prevPatRes] = await Promise.all([
       this.db.execute(sql`
         SELECT (
-          COALESCE((SELECT sum(received) FROM bills WHERE bill_date >= ${start} AND bill_date < ${boundary} AND (deleted_at IS NULL OR deleted_at::text = '')), 0) +
-          COALESCE((SELECT sum(CAST(NULLIF(amount::text, '') AS numeric)) FROM receipt WHERE created_at >= ${start} AND created_at < ${boundary} AND (deleted_at IS NULL OR deleted_at::text = '')), 0)
+          COALESCE((SELECT sum(received) FROM bills WHERE bill_date >= ${start} AND bill_date < ${boundary} AND (deleted_at IS NULL OR deleted_at::text = '') AND clinic_id = ${contextId}), 0) +
+          COALESCE((SELECT sum(CAST(NULLIF(amount::text, '') AS numeric)) FROM receipt WHERE created_at >= ${start} AND created_at < ${boundary} AND (deleted_at IS NULL OR deleted_at::text = '') AND "clinicId" = ${contextId}), 0)
         ) as total
       `),
       this.db.execute(sql`
@@ -761,6 +766,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         FROM bills
         WHERE bill_date >= ${start} AND bill_date < ${boundary}
           AND (deleted_at IS NULL OR deleted_at::text = '')
+          AND clinic_id = ${contextId}
       `),
       this.db.execute(sql`
         SELECT COALESCE(avg(extract(epoch from (called_at - checked_in_at))/60), 0)::int as avg_wait 
@@ -770,8 +776,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       `),
       this.db.execute(sql`
         SELECT (
-          COALESCE((SELECT sum(received) FROM bills WHERE bill_date >= ${prevStart} AND bill_date < ${prevBoundary} AND (deleted_at IS NULL OR deleted_at::text = '')), 0) +
-          COALESCE((SELECT sum(CAST(NULLIF(amount::text, '') AS numeric)) FROM receipt WHERE created_at >= ${prevStart} AND created_at < ${prevBoundary} AND (deleted_at IS NULL OR deleted_at::text = '')), 0)
+          COALESCE((SELECT sum(received) FROM bills WHERE bill_date >= ${prevStart} AND bill_date < ${prevBoundary} AND (deleted_at IS NULL OR deleted_at::text = '') AND clinic_id = ${contextId}), 0) +
+          COALESCE((SELECT sum(CAST(NULLIF(amount::text, '') AS numeric)) FROM receipt WHERE created_at >= ${prevStart} AND created_at < ${prevBoundary} AND (deleted_at IS NULL OR deleted_at::text = '') AND "clinicId" = ${contextId}), 0)
         ) as total
       `),
       this.db.execute(sql`
