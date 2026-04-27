@@ -25,22 +25,37 @@ doctorsRouter.get('/', authMiddleware, async (req: Request, res: Response, next:
       clinicId,
     });
 
-    // Check users table for is_active flag since doctors legacy table doesn't have it
-    // Map by email as it is a unique identifier across both systems
-    const activeUsersRows = await req.tenantDb.execute(sql`SELECT email, is_active FROM users WHERE LOWER(type) IN ('doctor', 'medical practitioner')`);
-    const activeMap = new Map((activeUsersRows as any[]).map((r: any) => [r.email.toLowerCase(), r.is_active]));
+    // Check users table for is_active flag from PUBLIC schema (not tenant)
+    const activeUsersRows = await req.publicDb.execute(sql`SELECT id, email, is_active FROM public.users WHERE LOWER(type) IN ('doctor', 'medical practitioner')`);
+    
+    // Create a map that handles both ID and lowercase Email as keys
+    const statusMap = new Map<string | number, boolean>();
+    (activeUsersRows as any[]).forEach((r: any) => {
+      statusMap.set(Number(r.id), r.is_active);
+      if (r.email) statusMap.set(r.email.toLowerCase(), r.is_active);
+    });
 
     // Map to a lightweight format expected by the frontend AppointmentForm
     const doctors = result.data.map(d => {
-      const email = d.email ? d.email.toLowerCase() : '';
+      const doctorId = Number(d.id);
+      const email = d.email ? d.email.toLowerCase() : null;
+      
+      // Match by ID first, then fallback to Email
+      let isActive = true;
+      if (statusMap.has(doctorId)) {
+        isActive = statusMap.get(doctorId) !== false;
+      } else if (email && statusMap.has(email)) {
+        isActive = statusMap.get(email) !== false;
+      }
+
       return {
-        id: d.id,
+        id: doctorId,
         name: d.name,
         email: d.email,
         mobile: d.mobile,
         consultation_fee: d.consultationFee,
         type: 'doctor',
-        isActive: email ? (activeMap.get(email) !== false) : true
+        isActive
       };
     });
 
@@ -64,8 +79,8 @@ doctorsRouter.patch('/status', authMiddleware, async (req: Request, res: Respons
       return res.status(400).json({ success: false, message: 'isActive boolean is required' });
     }
 
-    await req.tenantDb.execute(sql`
-      UPDATE users SET is_active = ${isActive}, updated_at = NOW() 
+    await req.publicDb.execute(sql`
+      UPDATE public.users SET is_active = ${isActive}, updated_at = NOW()
       WHERE id = ${user.id} AND LOWER(type) IN ('doctor', 'medical practitioner')
     `);
 
@@ -83,8 +98,8 @@ doctorsRouter.patch('/status', authMiddleware, async (req: Request, res: Respons
 doctorsRouter.get('/status', authMiddleware, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const user = req.user as any;
-    const rows = await req.tenantDb.execute(sql`
-      SELECT is_active FROM users 
+    const rows = await req.publicDb.execute(sql`
+      SELECT is_active FROM public.users
       WHERE id = ${user.id} AND LOWER(type) IN ('doctor', 'medical practitioner')
     `);
     
