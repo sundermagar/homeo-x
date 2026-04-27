@@ -541,6 +541,7 @@
   padding: var(--pp-space-4);
   text-align: center; position: relative;
   transition: all var(--transition-normal);
+  overflow: hidden;
 }
 .appt-token-card.calling { border-color: var(--pp-blue); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
 .appt-token-card.done    { opacity: 0.5; }
@@ -562,8 +563,12 @@
 .appt-token-doctor { font-size: 0.72rem; color: var(--pp-text-3); margin-top: 2px; }
 .appt-token-fee    { font-size: 0.72rem; color: var(--pp-text-2); margin-top: 2px; }
 .appt-token-actions {
-  display: flex; gap: var(--pp-space-2);
-  justify-content: center; margin-top: 12px;
+  display: flex; 
+  gap: var(--pp-space-2);
+  justify-content: center; 
+  margin-top: 12px;
+  flex-wrap: wrap;
+  width: 100%;
 }
 
 /* ─── Calling dot ─── */
