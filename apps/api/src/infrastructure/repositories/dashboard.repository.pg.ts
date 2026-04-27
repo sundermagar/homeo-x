@@ -540,7 +540,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       .where(eq(schema.caseReminders.id, id));
   }
 
-  async getRecentTransactions(limit: number): Promise<RecentTransaction[]> {
+  async getRecentTransactions(limit: number, contextId?: number): Promise<RecentTransaction[]> {
     try {
       const results = await this.db.execute(sql`
         WITH combined AS (
@@ -574,7 +574,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           c.*,
           COALESCE(NULLIF(TRIM(COALESCE(p.first_name, '') || ' ' || COALESCE(p.surname, '')), ''), 'Patient') AS patient_name
         FROM combined c
-        LEFT JOIN patients p ON c.regid = p.regid AND p.clinic_id = ${contextId}
+        LEFT JOIN patients p ON c.regid = p.regid ${contextId ? sql`AND p.clinic_id = ${contextId}` : sql``}
         ORDER BY c.created_at DESC
         LIMIT ${limit}
       `);
