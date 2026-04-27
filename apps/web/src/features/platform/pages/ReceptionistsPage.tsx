@@ -483,9 +483,9 @@ export default function ReceptionistsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
 
-  const { data, isLoading } = useStaffList(CATEGORY, { 
-    page, 
-    limit: PAGE_SIZE, 
+  const { data, isLoading } = useStaffList(CATEGORY, {
+    page,
+    limit: PAGE_SIZE,
     search: debouncedSearch,
     sortBy,
     sortOrder
@@ -558,7 +558,7 @@ export default function ReceptionistsPage() {
 
           <div className="flex items-center gap-2">
             <span className="text-[11px] font-bold color-muted uppercase tracking-wider">Sort:</span>
-            <select 
+            <select
               className="plat-form-input !py-1 !text-xs !w-auto min-w-[140px]"
               value={`${sortBy}-${sortOrder}`}
               onChange={(e) => {
@@ -576,12 +576,12 @@ export default function ReceptionistsPage() {
           </div>
         </div>
 
-        <button 
-          className="plat-btn plat-btn-ghost plat-btn-sm" 
-          onClick={() => { 
-            setSearch(''); 
-            setDebouncedSearch(''); 
-            setPage(1); 
+        <button
+          className="plat-btn plat-btn-ghost plat-btn-sm"
+          onClick={() => {
+            setSearch('');
+            setDebouncedSearch('');
+            setPage(1);
             setSortBy('id');
             setSortOrder('DESC');
           }}
@@ -629,9 +629,9 @@ export default function ReceptionistsPage() {
                       <span className={s.isActive ? 'plat-badge plat-badge-info' : 'plat-badge plat-badge-default'}>
                         {s.isActive ? (
                           <span className="flex items-center gap-1">
-                            <UserCheck size={10} /> Authorized
+                            <UserCheck size={10} /> Active
                           </span>
-                        ) : 'Offline'}
+                        ) : 'Inactive'}
                       </span>
                     </td>
                     <td>
@@ -655,9 +655,9 @@ export default function ReceptionistsPage() {
       {totalPages > 1 && (
         <div className="plat-pagination-container">
           <div className="plat-pagination-pill">
-            <button 
-              className="plat-pagination-btn" 
-              disabled={page <= 1} 
+            <button
+              className="plat-pagination-btn"
+              disabled={page <= 1}
               onClick={() => { setPage(p => p - 1); window.scrollTo(0, 0); }}
             >
               ← Previous
@@ -665,9 +665,9 @@ export default function ReceptionistsPage() {
             <div className="plat-pagination-info">
               Page <b>{page}</b> of <b>{totalPages}</b>
             </div>
-            <button 
-              className="plat-pagination-btn" 
-              disabled={page >= totalPages} 
+            <button
+              className="plat-pagination-btn"
+              disabled={page >= totalPages}
               onClick={() => { setPage(p => p + 1); window.scrollTo(0, 0); }}
             >
               Next →

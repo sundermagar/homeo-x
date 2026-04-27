@@ -10,7 +10,7 @@ import { VitalsFormModal } from '@/features/medical-case/components/vitals-form-
 import '@/features/appointments/styles/appointments.css';
 
 const WAIT_STATUS = { 0: 'Waiting', 1: 'Called', 2: 'Done' } as Record<number, string>;
-const WAIT_COLOR  = { 0: 'var(--pp-warning-fg)', 1: 'var(--pp-blue)', 2: 'var(--pp-success-fg)' } as Record<number, string>;
+const WAIT_COLOR = { 0: 'var(--pp-warning-fg)', 1: 'var(--pp-blue)', 2: 'var(--pp-success-fg)' } as Record<number, string>;
 
 function formatWaitTime(checkedInAt: Date | string | null) {
   if (!checkedInAt) return null;
@@ -26,7 +26,7 @@ export default function PatientQueuePage() {
   const user = useAuthStore((s) => s.user);
   const rawRole = ((user as any)?.type || (user as any)?.role || (user as any)?.roleName || '').toLowerCase();
   const isDoctor = rawRole === 'doctor' || rawRole === 'medical practitioner' || ((user as any)?.name || '').toLowerCase().startsWith('dr');
-  
+
   const [doctorFilter, setDoctorFilter] = useState('');
   const [doctors, setDoctors] = useState<any[]>([]);
   const [activeVitals, setActiveVitals] = useState<{ visitId: number, regid: number } | null>(null);
@@ -46,15 +46,15 @@ export default function PatientQueuePage() {
 
   const { data: waitlist = [], isLoading: wLoading, refetch: wRefetch } = useWaitlist(today, doctorFilter ? Number(doctorFilter) : undefined);
 
-  const callNext      = useCallNext();
+  const callNext = useCallNext();
   const completeVisit = useCompleteVisit();
 
-  const waiting    = waitlist.filter(w => w.status === 0);
+  const waiting = waitlist.filter(w => w.status === 0);
   const inProgress = waitlist.filter(w => w.status === 1);
-  const done       = waitlist.filter(w => w.status === 2);
+  const done = waitlist.filter(w => w.status === 2);
 
-  const handleCall      = async (id: number) => { await callNext.mutateAsync(id); wRefetch(); };
-  const handleComplete  = async (id: number) => { await completeVisit.mutateAsync(id); wRefetch(); };
+  const handleCall = async (id: number) => { await callNext.mutateAsync(id); wRefetch(); };
+  const handleComplete = async (id: number) => { await completeVisit.mutateAsync(id); wRefetch(); };
 
   const handleStartConsult = (w: any) => {
     window.location.href = `/medical-case/entry?regid=${w.patientId}&visitId=${w.appointmentId || w.id}`;
@@ -75,14 +75,14 @@ export default function PatientQueuePage() {
         </div>
         <div className="appt-header-actions">
           <select
-              className="appt-filter-input"
-              style={{ width: 200 }}
-              value={doctorFilter}
-              onChange={e => setDoctorFilter(e.target.value)}
-            >
-              <option value="">All Practitioners</option>
-              {doctors.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-            </select>
+            className="appt-filter-input"
+            style={{ width: 200 }}
+            value={doctorFilter}
+            onChange={e => setDoctorFilter(e.target.value)}
+          >
+            <option value="">All Practitioners</option>
+            {doctors.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+          </select>
           <button className="appt-btn appt-btn-sm" onClick={() => wRefetch()}>
             <RefreshCw size={14} strokeWidth={1.6} /> Refresh
           </button>
@@ -180,8 +180,8 @@ export default function PatientQueuePage() {
                   <button className="appt-btn appt-btn-sm appt-btn-primary" onClick={() => handleCall(w.id)}>
                     Call Patient
                   </button>
-                  <button 
-                    className="appt-btn appt-btn-sm appt-btn-purple" 
+                  <button
+                    className="appt-btn appt-btn-sm appt-btn-purple"
                     onClick={() => setActiveVitals({ visitId: w.appointmentId || w.id, regid: w.patientId ?? 0 })}
                   >
                     Vitals

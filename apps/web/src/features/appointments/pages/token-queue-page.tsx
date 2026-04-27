@@ -106,7 +106,7 @@ export default function TokenQueuePage() {
             Token Queue
           </h1>
           <p className="appt-header-sub">
-            Live waiting room — {today} • <span style={{ color: 'var(--pp-blue)', fontWeight: 700, fontFamily: 'var(--pp-font-mono)' }}>{currentTime.toLocaleTimeString()}</span>
+            Active waiting room — {today} • <span style={{ color: 'var(--pp-blue)', fontWeight: 700, fontFamily: 'var(--pp-font-mono)' }}>{currentTime.toLocaleTimeString()}</span>
           </p>
         </div>
         <div className="appt-header-actions">
@@ -157,7 +157,7 @@ export default function TokenQueuePage() {
       {/* Tabs */}
       <div className="appt-tabs">
         <button className={`appt-tab ${tab === 'queue' ? 'active' : ''}`} onClick={() => setTab('queue')}>
-          Live Queue ({waiting.length + inProgress.length})
+          Active Queue ({waiting.length + inProgress.length})
         </button>
         <button className={`appt-tab ${tab === 'tokens' ? 'active' : ''}`} onClick={() => setTab('tokens')}>
           Token Management ({todayAppts.length})
