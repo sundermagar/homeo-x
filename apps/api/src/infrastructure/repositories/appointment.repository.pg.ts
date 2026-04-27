@@ -167,10 +167,10 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
       );
     const bookedTimes = new Set(booked.map(b => b.time).filter(Boolean));
 
-    const today = new Date().toISOString().split('T')[0] as string;
+    const kolkataNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+    const today = kolkataNow.toISOString().split('T')[0] as string;
     const isToday = date === today;
-    const now = new Date();
-    const currentMins = now.getHours() * 60 + now.getMinutes();
+    const currentMins = kolkataNow.getHours() * 60 + kolkataNow.getMinutes();
 
     return ALL_TIME_SLOTS.map(time => {
       const tMins = toMins(time);

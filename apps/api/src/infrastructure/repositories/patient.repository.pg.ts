@@ -309,6 +309,10 @@ export class PatientRepositoryPg implements PatientRepository {
         religions: religions.map((r: any) => r.religion).filter(Boolean),
         occupations: occupations.map((o: any) => o.occupation).filter(Boolean),
         references: references.map((r: any) => r.referencetype).filter(Boolean),
+        referenceTypes: references.map((r: any) => ({
+          id: r.id || r.referencetype,
+          name: r.referencetype
+        })),
         statuses: ['Single', 'Married', 'Divorced', 'Widowed'],
         titles: ['Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Prof.', 'Master', 'Baby'],
       };
@@ -320,6 +324,7 @@ export class PatientRepositoryPg implements PatientRepository {
         religions: [],
         occupations: [],
         references: [],
+        referenceTypes: [],
         statuses: ['Single', 'Married', 'Divorced', 'Widowed'],
         titles: ['Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Prof.', 'Master', 'Baby'],
       };
@@ -497,6 +502,7 @@ export class PatientRepositoryPg implements PatientRepository {
       bloodGroup: row.bloodGroup || null,
       // 'reference' is the actual DB column; domain calls it 'referenceType'
       referenceType: row.reference || null,
+      referenceTypeId: null, // Legacy schema doesn't have normalized reference IDs
       referredBy: row.referedBy || null,
       assistantDoctor: row.assitantDoctor || null,
       consultationFee: row.consultationFee ? Number(row.consultationFee) : null,

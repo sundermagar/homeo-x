@@ -142,6 +142,28 @@
   padding-left: 34px !important;
 }
 
+.plat-input-with-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.plat-input-with-icon .plat-input-icon {
+  position: absolute;
+  left: 11px;
+  color: var(--pp-text-3);
+  pointer-events: none;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.plat-input-with-icon .plat-form-input,
+.plat-input-with-icon .plat-filter-input {
+  padding-left: 34px !important;
+}
+
 .plat-form-input,
 .plat-form-select,
 .plat-filter-input {

@@ -1,11 +1,18 @@
 // ─── Domain Schemas ───
 export * from './patients';
-export { medicalCases, vitals, homeoDetails, caseNotes, caseExamination, caseImages, investigations, growthReferences, soapNotes as legacySoapNotes, prescriptions as legacyPrescriptions } from './medical-cases';
+export { 
+  medicalCases, vitals, homeoDetails, caseNotes, caseExamination, caseImages, 
+  investigations, growthReferences, soapNotes, prescriptions,
+  soapNotes as legacySoapNotes, prescriptions as legacyPrescriptions 
+} from './medical-cases';
 export * from './appointments';
 export * from './users';
 export * from './billing';
 export * from './consultation';
-export * from './consultation-extended';
+export { 
+  rubrics, remedies, remedyProfiles, rubricRemedyMap, 
+  extendedSoapNotes, extendedPrescriptions, prescriptionItems 
+} from './consultation-extended';
 export * from './rbac';
 export * from './inventory';
 export * from './audit';
