@@ -27,9 +27,7 @@ export default function PatientQueuePage() {
   const rawRole = ((user as any)?.type || (user as any)?.role || (user as any)?.roleName || '').toLowerCase();
   const isDoctor = rawRole === 'doctor' || rawRole === 'medical practitioner' || ((user as any)?.name || '').toLowerCase().startsWith('dr');
   
-  const [doctorFilter, setDoctorFilter] = useState(() =>
-    isDoctor ? String((user as any)?.id ?? '') : ''
-  );
+  const [doctorFilter, setDoctorFilter] = useState('');
   const [doctors, setDoctors] = useState<any[]>([]);
   const [activeVitals, setActiveVitals] = useState<{ visitId: number, regid: number } | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -40,8 +38,7 @@ export default function PatientQueuePage() {
   }, []);
 
   useEffect(() => {
-    if (!isDoctor) {
-      apiClient.get('/doctors').then(({ data }) => {
+    apiClient.get('/doctors').then(({ data }) => {
         const list = Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
         setDoctors(list);
       }).catch(() => {});
@@ -78,8 +75,7 @@ export default function PatientQueuePage() {
           </p>
         </div>
         <div className="appt-header-actions">
-          {!isDoctor && (
-            <select
+          <select
               className="appt-filter-input"
               style={{ width: 200 }}
               value={doctorFilter}
@@ -88,7 +84,6 @@ export default function PatientQueuePage() {
               <option value="">All Practitioners</option>
               {doctors.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
             </select>
-          )}
           <button className="appt-btn appt-btn-sm" onClick={() => wRefetch()}>
             <RefreshCw size={14} strokeWidth={1.6} /> Refresh
           </button>

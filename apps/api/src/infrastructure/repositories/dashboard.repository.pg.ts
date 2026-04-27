@@ -420,7 +420,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       queries.push(this.db.execute(sql`
         SELECT 'payment' as type, 'Invoice paid - ' || p.first_name as title, 'Rs.' || r.${sql.identifier(revInfo.amountCol)} as subtitle, r.created_at, p.regid
         FROM ${sql.identifier(revInfo.name)} r JOIN patients p ON r.regid = p.regid
-        WHERE (r.deleted_at IS NULL OR r.deleted_at::text = '')
+        WHERE p.clinic_id = ${contextId} AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
         ORDER BY r.id DESC LIMIT ${limit}
       `));
     }
@@ -574,7 +574,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           c.*,
           COALESCE(NULLIF(TRIM(COALESCE(p.first_name, '') || ' ' || COALESCE(p.surname, '')), ''), 'Patient') AS patient_name
         FROM combined c
-        LEFT JOIN patients p ON c.regid = p.regid
+        LEFT JOIN patients p ON c.regid = p.regid AND p.clinic_id = ${contextId}
         ORDER BY c.created_at DESC
         LIMIT ${limit}
       `);

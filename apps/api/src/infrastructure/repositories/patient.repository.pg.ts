@@ -268,16 +268,20 @@ export class PatientRepositoryPg implements PatientRepository {
     return rows.map(row => this.toSummary(row));
   }
 
-  async findBirthdays(mmdd: string): Promise<PatientSummary[]> {
+  async findBirthdays(mmdd: string, clinicId?: number): Promise<PatientSummary[]> {
+    const conditions = [
+      sql`(deleted_at IS NULL OR deleted_at::text = '')`,
+      sql`to_char(${patients.dob}::date, 'MM-DD') = ${mmdd}`
+    ];
+
+    if (clinicId) {
+      conditions.push(eq(patients.clinicId, clinicId));
+    }
+
     const rows = await this.db
       .select()
       .from(patients)
-      .where(
-        and(
-          sql`(deleted_at IS NULL OR deleted_at::text = '')`,
-          sql`to_char(${patients.dob}::date, 'MM-DD') = ${mmdd}`
-        )
-      );
+      .where(and(...conditions));
     return rows.map(row => this.toSummary(row));
   }
 
@@ -390,8 +394,9 @@ export class PatientRepositoryPg implements PatientRepository {
     page: number;
     limit: number;
     search?: string;
+    clinicId?: number;
   }): Promise<{ data: FamilyGroupSummary[]; total: number }> {
-    const { page, limit, search } = params;
+    const { page, limit, search, clinicId } = params;
     const offset = (page - 1) * limit;
     const fg = familygroupsLegacy;
 
@@ -411,10 +416,13 @@ export class PatientRepositoryPg implements PatientRepository {
 
     for (const headRegid of headRegids) {
       if (!headRegid) continue;
+      const patientConditions = [eq(patients.regid, headRegid)];
+      if (clinicId) patientConditions.push(eq(patients.clinicId, clinicId));
+
       const [patient] = await this.db
         .select({ firstName: patients.firstName, surname: patients.surname })
         .from(patients)
-        .where(eq(patients.regid, headRegid))
+        .where(and(...patientConditions))
         .limit(1);
 
       const [countRow] = await this.db
