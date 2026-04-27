@@ -58,7 +58,7 @@ const AudioPlayer = ({ track }: { track: any }) => {
 
 export function CallInterfacePanel({ callMode, ...props }: CallInterfacePanelProps) {
   const [copied, setCopied] = useState(false);
-  const [isPaused, setIsPaused] = useState(props.isPaused ?? (callMode === 'IN_PERSON'));
+  const [isPaused, setIsPaused] = useState(props.isPaused ?? false);
 
   useEffect(() => {
     if (props.isPaused !== undefined && props.isPaused !== isPaused) {
@@ -67,9 +67,10 @@ export function CallInterfacePanel({ callMode, ...props }: CallInterfacePanelPro
   }, [props.isPaused]);
 
   useEffect(() => {
-    const shouldPause = callMode === 'IN_PERSON';
-    setIsPaused(shouldPause);
-    if (props.onPauseToggle) props.onPauseToggle(shouldPause);
+    if (callMode === 'IN_PERSON') {
+      setIsPaused(false);
+      if (props.onPauseToggle) props.onPauseToggle(false);
+    }
   }, [callMode]);
 
   useEffect(() => {
@@ -204,9 +205,13 @@ export function CallInterfacePanel({ callMode, ...props }: CallInterfacePanelPro
 
           {/* Small mic indicator (right-aligned) */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', flexShrink: 0 }}>
-            <div style={{ width: 36, height: 36, borderRadius: '50%', border: '1.5px solid #14B8A6', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Mic style={{ width: 16, height: 16, color: '#14B8A6' }} />
-            </div>
+            <button
+              onClick={() => handlePauseToggle()}
+              title={isPaused ? "Resume Recording" : "Pause Recording"}
+              style={{ width: 36, height: 36, borderRadius: '50%', border: '1.5px solid #14B8A6', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', outline: 'none' }}
+            >
+              {isPaused ? <MicOff style={{ width: 16, height: 16, color: '#EF4444' }} /> : <Mic style={{ width: 16, height: 16, color: '#14B8A6' }} />}
+            </button>
           </div>
 
           {/* Transcript */}

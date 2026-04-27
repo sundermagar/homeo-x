@@ -1,4 +1,4 @@
-import { eq, and, isNull, gte, lte, ilike, or, sql, desc, asc, max } from 'drizzle-orm';
+import { eq, and, isNull, gte, lte, ilike, or, sql, desc, asc, max, ne } from 'drizzle-orm';
 import type { DbClient } from '@mmc/database';
 import * as schema from '@mmc/database';
 import type { Appointment, WaitlistEntry, AvailabilitySlot, CreateAppointmentDto, UpdateAppointmentDto } from '@mmc/types';
@@ -517,11 +517,13 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
     }
 
     // 2. Find the next waiting patient (status=0) for same doctor and date
+    // Exclude the patient we JUST skipped, otherwise they get immediately re-promoted if they have the lowest waiting number
     const today = new Date().toISOString().split('T')[0] as string;
     const conditions: any[] = [
       sql`(${schema.waitlist.deletedAt} IS NULL OR ${schema.waitlist.deletedAt}::text = '')`,
       eq(schema.waitlist.status, 0),
-      sql`${schema.waitlist.date}::text LIKE '%' || ${today} || '%'`
+      sql`${schema.waitlist.date}::text LIKE '%' || ${today} || '%'`,
+      ne(schema.waitlist.id, waitlistId)
     ];
     if (entry.doctorId) {
       conditions.push(eq(schema.waitlist.doctorId, entry.doctorId));

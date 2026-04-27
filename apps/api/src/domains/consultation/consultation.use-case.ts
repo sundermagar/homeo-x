@@ -289,9 +289,13 @@ Respond ONLY with a JSON array of objects with keys "q" (the question text) and 
       || input.filename?.toLowerCase().endsWith('.pdf');
 
     let extractedText = '';
+    let pdfParseError: string | null = null;
     if (isPdf) {
       try {
         const buffer = Buffer.from(input.base64, 'base64');
+        if (!buffer || buffer.length === 0) {
+          throw new Error('PDF buffer is empty');
+        }
         // pdf-parse v1's package index.js eagerly tries to read a test PDF
         // (a known bug). Importing the inner module path bypasses that.
         // @ts-ignore — no types for the inner module path
@@ -300,24 +304,29 @@ Respond ONLY with a JSON array of objects with keys "q" (the question text) and 
         const result = await pdfParse(buffer);
         extractedText = (result?.text || '').trim();
       } catch (err: any) {
-        logger.error({ err: err?.message, filename: input.filename }, 'PDF text extraction failed');
+        pdfParseError = err?.message || String(err);
+        logger.error({ err: pdfParseError, filename: input.filename, base64Length: input.base64?.length }, 'PDF text extraction failed');
         extractedText = '';
       }
     }
 
     if (!extractedText) {
-      logger.warn({ filename: input.filename }, 'No text extractable from PDF — returning empty');
-      return { parsedText: '' };
+      logger.warn({ filename: input.filename, pdfParseError }, 'No text extractable from PDF — returning empty');
+      // Return success with empty parsedText (the UI handles this gracefully)
+      // rather than a 500. Include the parse error in metadata so a doctor
+      // can see why the file didn't yield text.
+      return { parsedText: '', parseError: pdfParseError ?? 'No text found in PDF (likely scanned/image-only)' } as any;
     }
 
-    // Step 2 — normalize the raw PDF text into clean markdown so the
-    // downstream symptom-extraction prompt sees structured, easy-to-read
-    // values + reference ranges. We give the AI the REAL text (not the PDF)
-    // so it can't hallucinate.
-    const chain = this.providerChain || getAiProviderChain();
-
-    const response = await chain.complete({
-      systemPrompt: `You are a lab-report normalizer. You will be given the RAW TEXT extracted from a lab PDF (possibly with broken layout, OCR artifacts, repeated headers).
+    // Step 2 — normalize the raw PDF text into clean markdown.
+    // If the AI provider chain fails (rate limit, no key, network), fall back
+    // to the raw extracted text so the upload doesn't 500 and the doctor still
+    // gets *something* useful.
+    let cleaned = '';
+    try {
+      const chain = this.providerChain || getAiProviderChain();
+      const response = await chain.complete({
+        systemPrompt: `You are a lab-report normalizer. You will be given the RAW TEXT extracted from a lab PDF (possibly with broken layout, OCR artifacts, repeated headers).
 
 Your job: produce a clean markdown summary that preserves EVERY numerical value, unit, and reference range exactly as written. Group values by panel (CBC, LFT, RFT, Lipid, Thyroid, etc.) when possible.
 
@@ -337,22 +346,32 @@ Output format example:
 - Total Cholesterol: 245 mg/dL (Ref: <200) (HIGH)
 
 DO NOT invent values. DO NOT add interpretive prose. DO NOT skip values.`,
-      userPrompt: `Raw PDF text from "${input.filename || 'lab.pdf'}":
+        userPrompt: `Raw PDF text from "${input.filename || 'lab.pdf'}":
 """
 ${extractedText.slice(0, 20000)}
 """
 
 Output the cleaned markdown summary now. If the text contains no actual lab data (e.g. only headers or random PDF artifacts), return the literal string "NO_LAB_DATA".`,
-      maxTokens: 2000,
-      temperature: 0.1,
-    });
-
-    const cleaned = (response.content || '').trim();
-    if (!cleaned || cleaned === 'NO_LAB_DATA') {
-      return { parsedText: '' };
+        maxTokens: 2000,
+        temperature: 0.1,
+      });
+      cleaned = (response.content || '').trim();
+    } catch (aiErr: any) {
+      logger.warn(
+        { err: aiErr?.message, filename: input.filename },
+        'AI normalization failed — falling back to raw extracted text',
+      );
+      cleaned = '';
     }
 
-    return { parsedText: cleaned };
+    if (!cleaned || cleaned === 'NO_LAB_DATA') {
+      // Fall back: return the raw text so the doctor still sees lab values
+      // even when the AI normalizer is unavailable.
+      const rawTrimmed = extractedText.slice(0, 20000).trim();
+      return { parsedText: rawTrimmed, normalizer: 'raw-fallback' } as any;
+    }
+
+    return { parsedText: cleaned, normalizer: 'ai' } as any;
   }
 
   // ─── Medical-intent gate ─────────────────────────────────────────────────

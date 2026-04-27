@@ -4,6 +4,8 @@
 
 import { Router } from 'express';
 import type { Request, Response, NextFunction } from 'express';
+import path from 'node:path';
+import fs from 'node:fs';
 import { getConsultationUseCase } from '../../../domains/consultation/consultation.use-case';
 import { getAiProviderChain } from '../../ai/ai-provider-chain';
 import { sendSuccess } from '../../../shared/response-formatter';
@@ -266,7 +268,16 @@ Reply with ONLY the JSON object.`;
       physical: mergedPhysical,
       particular: mergedParticular,
     });
-  } catch (err) { next(err); }
+  } catch (err: any) {
+    logger.error({ err: err?.message, stack: err?.stack }, '[extract/symptoms] failed');
+    res.status(502).json({
+      success: false,
+      error: {
+        code: 'AI_PROVIDER_FAILED',
+        message: err?.message || 'AI providers unavailable. Check ANTHROPIC_API_KEY / GROQ_API_KEY / GEMINI_API_KEY in .env.',
+      },
+    });
+  }
 });
 
 // POST /api/ai/case/summary — Generate summary
@@ -321,55 +332,109 @@ aiRouter.post('/suggest/questions', async (req: Request, res: Response, next: Ne
       '[suggest/questions] incoming request',
     );
 
+    // ── Root Path Resolver for Credentials ──
+    // If GOOGLE_APPLICATION_CREDENTIALS is a relative path (e.g. from .env in root),
+    // and process.cwd() is apps/api, Google SDK won't find it. Resolve it here.
+    if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+      const credPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+      if (!path.isAbsolute(credPath)) {
+        // Find root by looking for .env
+        let current = process.cwd();
+        for (let i = 0; i < 5; i++) {
+          if (fs.existsSync(path.join(current, '.env'))) {
+            const resolved = path.resolve(current, credPath);
+            if (fs.existsSync(resolved)) {
+              process.env.GOOGLE_APPLICATION_CREDENTIALS = resolved;
+              logger.info({ resolved }, 'Resolved GOOGLE_APPLICATION_CREDENTIALS path');
+            }
+            break;
+          }
+          current = path.dirname(current);
+        }
+      }
+    }
+
     const chain = getAiProviderChain();
     const mode = (consultationMode || 'acute') as 'acute' | 'chronic' | 'followup';
 
-    // Mode-specific rubrics — verbatim from the spec so the model gets the
-    // same depth of guidance the reference implementation provides.
+    // Mode-specific rubrics with REQUIRED slot composition + concrete sample
+    // question batteries. Claude follows these closely when given concrete
+    // shaped output examples.
     const MODE_DIRECTIVES: Record<typeof mode, string> = {
-      acute: `MODE: ACUTE
-Focus on the immediate presenting complaint. Pace is rapid; pull out characterizing peculiars in 5 questions.
+      acute: `MODE: ACUTE  —  recent onset, short duration, immediate-symptom focus.
 
-Required dimensions to cover (cycle through them across the 5 questions):
-1. Nature of pain/sensation. Always include structured options like ["A) Stiffness","B) Sharp/Stabbing","C) Dull/Aching","D) Bruised/Sore"].
-2. Effect of motion / position (worse from movement vs rest, specific positions).
-3. Relief factors (warmth, cold, pressure, hot bath, lying still). Provide structured options where natural.
-4. Time / modalities (worse 3am, evening, after eating, during menses, weather).
-5. Concomitants (accompanying symptoms — nausea with headache, restlessness with chill, sweat character).
+REQUIRED SLOT COMPOSITION (the 5 questions MUST cover these 5 slots, one each):
+  Slot 1 — Nature/quality of the sensation. (e.g. quality of pain, type of cough, nature of discharge)
+  Slot 2 — Worse-from / aggravation modality. (motion, position, time of day, weather, food, touch)
+  Slot 3 — Better-from / relief modality. (rest, warmth, cold, pressure, lying down)
+  Slot 4 — Onset / trigger. (sudden, gradual, after exposure, after exertion, after meal, after grief)
+  Slot 5 — Concomitant / accompanying symptom. (e.g. nausea with headache, chill with fever, restlessness)
 
-Tone: clipped, clinical, fast. Patients in acute distress have low patience.`,
+DO NOT include constitutional/personality questions. DO NOT ask about thermal preference, dreams, food cravings, miasm, life events, family history. Those belong to CHRONIC, not ACUTE.
 
-      chronic: `MODE: CHRONIC
-This is a deep constitutional case-taking. Across 5 questions, sample broadly from the 10-point rubric below:
+TONE: clipped, clinical, urgent. Each question ≤ 12 words.
 
-1. Location & sensation (with radiation pattern).
-2. Onset & causation (sedentary work, injury, pregnancy, emotional grief, suppression of prior symptoms).
-3. Modalities — worse from / better from (motion, rest, weather, time of day, foods).
-4. Time & periodicity (3-5 AM aggravation, weather changes, full moon, menses, anniversary reactions).
-5. Concomitants (any pattern of symptoms appearing together).
-6. Generalities (thermal preference HOT/CHILLY/AMBITHERMAL, thirst — quantity & temperature, food cravings/aversions, sleep position/restlessness, perspiration map).
-7. Mental/Emotional (Responsibility, Fastidiousness, Anticipation, Grief, Anger, Indignation — these point to specific remedies: Carcinosin, Nat-mur, Arsenicum, Ignatia, Staphysagria).
-8. Past history (suppressions, vaccinations, miasmatic background — Psora/Sycosis/Syphilis/Tubercular).
-9. Red flags (sudden weight loss, hemoptysis, melena, neuro deficits).
-10. Previous treatment (allopathic, homeopathic — what worked, what aggravated).
+EXAMPLE SET — chief complaint "throbbing headache 2 days":
+  1. "Where exactly is the throb located?"  → ["A) Frontal","B) Temporal","C) Occipital","D) Whole head"]
+  2. "What makes the throb worse?"           → ["A) Bright light","B) Movement","C) Noise","D) Bending forward"]
+  3. "What gives some relief?"               → ["A) Cold compress","B) Warm wrap","C) Lying still","D) Pressure"]
+  4. "How did it start?"                     → ["A) Suddenly","B) Built up over hours","C) After stress","D) After exposure to sun"]
+  5. "Any other symptom with the headache?"  → ["A) Nausea","B) Visual aura","C) Neck stiffness","D) None"]`,
 
-Tone: spacious, exploratory. The patient should feel heard, not interrogated.`,
+      chronic: `MODE: CHRONIC  —  long-standing, constitutional, mind-and-body case-taking.
 
-      followup: `MODE: FOLLOW-UP
-Hering's Law of Cure orientation. The 5 questions should evaluate response to the previous prescription:
+REQUIRED SLOT COMPOSITION (the 5 questions MUST cover these 5 slots, one each — slot order can vary):
+  Slot 1 — Onset / causation / "Never Well Since". When did THIS specific complaint first appear, what was happening at that life stage?
+  Slot 2 — Mental/emotional pattern AROUND THIS complaint. How does the patient FEEL when the complaint flares — anxious, irritable, sad, indifferent? Mandatory: at least 1 question must probe the mental layer.
+  Slot 3 — Constitutional generality the complaint reflects. Thermal preference, thirst pattern, sleep position, food cravings/aversions, perspiration, energy curve.
+  Slot 4 — Modality / periodicity SPECIFIC to this complaint. Time-of-day pattern, seasonal recurrence, menstrual link, weather sensitivity, before/after eating, position-related.
+  Slot 5 — Past suppressions / treatment history relevant to THIS complaint. What treatments were tried, did anything aggravate or shift symptoms elsewhere?
 
-1. Improvement % (0-100). Always include structured options like ["A) 0-25%","B) 25-50%","C) 50-75%","D) 75-100%"].
-2. Change in nature/character of the chief complaint (intensity, frequency, quality).
-3. Modalities re-check (have worse-from / better-from triggers shifted? sometimes the remedy changes the modality, signalling a deeper shift).
-4. General well-being (sleep, energy, appetite, mood, sense of well-being independent of the chief complaint).
-5. NEW symptoms emerging (note any — could be proving / re-emergence of suppressed symptoms / shift to a deeper layer).
-6. Direction of Cure check — Hering's Law: Above downward (head→legs)? Inside outward (organs→skin)? Reverse order of appearance? Important for clinical decision.
-7. Aggravation history (initial homeopathic aggravation? duration? severity?).
-8. Remedy action timeline — when did improvement start, when did it plateau, has there been relapse?
-9. Red flags (any new alarming symptoms requiring referral).
-10. Clinical decision indicators — should the doctor WAIT, REPEAT same potency, INCREASE potency, or change remedy?
+NEVER produce questions that could equally apply to any chronic patient. EACH question must reference the patient's actual chief complaint, but use NATURAL phrasing. 
 
-Tone: evaluative, calibrating. Frame questions to elicit precise clinical signals, not vague reassurance.`,
+CRITICAL PHRASING RULES:
+1. Do NOT verbatim repeat the entire chief complaint string if it contains durations or multiple symptoms (e.g., if CC is "Fever for 3 days", use "the fever" or "this fever").
+2. Adjust the phrasing to fit the sentence naturally. 
+3. If the CC already includes a duration (e.g. "for 3 days"), do NOT ask "When did it start" as a standalone question — instead ask about the context of that start.
+
+TONE: spacious, exploratory. Each question ≤ 16 words.
+
+INSTEAD OF ONE FIXED EXAMPLE SET, here are the SHAPE of questions per slot — fill in the core complaint <CC_CORE> where indicated:
+  Slot 1 shapes:
+    "What was happening in your life around the time the <CC_CORE> first began?"
+    "How has the <CC_CORE> evolved since it first appeared?"
+  Slot 2 shapes:
+    "How do you typically feel emotionally when the <CC_CORE> is at its worst?"  → [A) Anxious  B) Irritable  C) Sad/withdrawn  D) Indifferent]
+    "What goes through your mind when you are suffering from the <CC_CORE>?"
+  Slot 3 shapes:
+    "Are you generally chilly or hot in nature?"  → [A) Always chilly  B) Always hot  C) Hot core, cold limbs  D) Comfortable in either]
+    "How is your thirst — small sips, large gulps, or rare?"  → [A) Small sips frequent  B) Large gulps occasional  C) Rarely thirsty  D) Cold drinks only]
+  Slot 4 shapes:
+    "Does the <CC_CORE> follow any specific time pattern or seasonal rhythm?"  → [A) Early morning aggravation  B) Worse in cold/damp weather  C) Linked to menstrual cycle  D) Worse at change of season]
+    "Is there any specific time of day when the <CC_CORE> feels more intense?"
+  Slot 5 shapes:
+    "What treatments have you tried for the <CC_CORE>, and how did they affect you?"
+    "Did you notice any other symptom shift or disappear when the <CC_CORE> started?"`,
+
+      followup: `MODE: FOLLOW-UP  —  evaluating response to the previously-prescribed remedy. Hering's Law of Cure orientation.
+
+REQUIRED SLOT COMPOSITION (the 5 questions MUST cover these 5 slots, one each):
+  Slot 1 — Overall improvement % since the last visit.
+  Slot 2 — Change in the chief complaint itself. (Intensity / frequency / character — did it shift, not just reduce?)
+  Slot 3 — General well-being (sleep, energy, mood, appetite — independent of the chief complaint).
+  Slot 4 — NEW symptoms emerging (proving / re-emerging old symptoms / deeper layer).
+  Slot 5 — Direction of Cure check (above→below, inside→outside, reverse order).
+
+DO NOT ask first-visit-style questions ("when did it start", "what makes it worse"). The doctor already has those answers from the previous visit. EVERY question must be evaluating CHANGE since the last consultation.
+
+TONE: evaluative, calibrating. Each question ≤ 14 words.
+
+EXAMPLE SET — chief complaint "recurring asthma 5 years (follow-up after Pulsatilla 200)":
+  1. "Roughly how much have your symptoms improved since last time?"  → ["A) 0-25%","B) 25-50%","C) 50-75%","D) 75-100%"]
+  2. "Has the type of attack changed (less wheezing, shorter, different time)?"   → ["A) Same","B) Less intense","C) Less frequent","D) Different character"]
+  3. "How is your sleep, energy, and mood compared to before?"   → ["A) Much better","B) A little better","C) Unchanged","D) Worse"]
+  4. "Any NEW symptoms appearing, or any old symptoms that came back?"  (open)
+  5. "Have any symptoms moved (above to below / inside to outside)?"   → ["A) No movement","B) Moved downward","C) Moved outward (skin)","D) Old symptom returned"]`,
     };
 
     const ccTrim = String(chiefComplaint || '').trim();
@@ -383,10 +448,15 @@ Tone: evaluative, calibrating. Frame questions to elicit precise clinical signal
 ${ccTrim
   ? `THE PATIENT'S CHIEF COMPLAINT IS: "${ccTrim}"${ageGenderLine ? ` (${ageGenderLine})` : ''}
 
-This is THE only signal that matters. Every single question you generate must be directly about THIS specific complaint — its location, sensation, modality, time, trigger, mental dimension, or close differential. A doctor reading your 5 questions should be able to GUESS the chief complaint just by reading them.`
+This is THE only signal that matters. Every single question you generate must be directly about THIS specific complaint. 
+
+PHRASING LOGIC:
+- Extract the core condition (e.g. "fever", "headache", "pain") from the complaint string.
+- Use natural phrasing like "the fever" or "your headache" instead of repeating the full string "${ccTrim}".
+- If the patient already gave a duration in the complaint, do not ask "How long have you had it?"`
   : 'No chief complaint was provided. Generate 5 generic mode-appropriate opening questions.'}
 
-DO NOT produce a generic case-taking template. DO NOT produce questions that could apply equally to a patient with backache, headache, asthma, or insomnia. EACH question must be rooted in the specific pathology / phenomenology of "${ccTrim || 'the presenting complaint'}".
+DO NOT produce a generic case-taking template. EACH question must be rooted in the specific pathology / phenomenology of the core condition.
 
 MODE RUBRIC (use only as a placement guide for question categories — NOT as a checklist of topics to cover):
 ${MODE_DIRECTIVES[mode]}
@@ -463,16 +533,13 @@ Output the JSON now. Anchor every question to "${ccTrim || 'the chief complaint'
     const response = await chain.complete({
       systemPrompt,
       userPrompt,
-      // Bump from 0.2 → 0.5 so the same chief complaint can still produce a
-      // fresh phrasing each round; the rubric guidance keeps clinical quality
-      // consistent without making questions identical patient-to-patient.
-      temperature: 0.5,
+      // Higher temperature (0.7) breaks the model out of templated chronic
+      // case-taking patterns — every patient should feel like a unique person,
+      // not a checklist exercise.
+      temperature: 0.7,
       maxTokens: 4000,
       responseFormat: 'json',
-      // Critical: never serve a cached response here. Two patients with the
-      // same chief complaint or two consecutive triggers in the same visit
-      // were collapsing to one cached set of 5 questions — that's the
-      // "same hardcoded questions" symptom.
+      // Always fresh — no cache reuse across patients/visits.
       useCache: false,
     });
 
@@ -531,16 +598,46 @@ Output the JSON now. Anchor every question to "${ccTrim || 'the chief complaint'
     })).filter((q) => q.question);
 
     sendSuccess(res, { questions: normalized, consultationMode: mode });
-  } catch (err) { next(err); }
+  } catch (err: any) {
+    logger.error({ err: err?.message, stack: err?.stack }, '[suggest/questions] failed');
+    res.status(502).json({
+      success: false,
+      error: {
+        code: 'AI_PROVIDER_FAILED',
+        message: err?.message || 'AI providers unavailable. Check ANTHROPIC_API_KEY / GROQ_API_KEY / GEMINI_API_KEY in .env.',
+      },
+    });
+  }
 });
 
 // POST /api/ai/parse-lab-report — Lab OCR
 aiRouter.post('/parse-lab-report', async (req: Request, res: Response, next: NextFunction) => {
   try {
+    const { filename, mimeType, base64 } = req.body ?? {};
+
+    if (!base64 || typeof base64 !== 'string' || base64.length < 50) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_INPUT', message: 'No PDF data received (base64 missing or too short).' },
+      });
+      return;
+    }
+
     const uc = getConsultationUseCase();
-    const result = await uc.parseLabReport(getTenant(req), getUserId(req), req.body);
+    const result = await uc.parseLabReport(getTenant(req), getUserId(req), { filename, mimeType, base64 });
     sendSuccess(res, result);
-  } catch (err) { next(err); }
+  } catch (err: any) {
+    logger.error({ err: err?.message, stack: err?.stack }, '[parse-lab-report] failed');
+    // Surface the underlying error so the user sees what's wrong instead
+    // of an opaque 500.
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'PARSE_LAB_REPORT_FAILED',
+        message: err?.message || 'Failed to parse lab report',
+      },
+    });
+  }
 });
 
 // GET /api/ai/rubrics/kent-search — Kent Repertory search

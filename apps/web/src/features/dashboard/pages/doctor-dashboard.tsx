@@ -73,46 +73,24 @@ export function DoctorDashboard() {
     setConsultationStartedAt(null);
     setConsultDuration('00:00');
     try {
-      const today = new Date().toISOString().split('T')[0]!;
+      const realWlId = (item as any).wlId;
 
-      // 1. Fetch the live waitlist to get REAL waitlist entry IDs
-      const res = await apiClient.get<{ success: boolean; data: any[] }>(
-        `/appointments/waiting?date=${today}`
-      );
-      const liveWaitlist: any[] = res.data.data ?? [];
-
-      // 2. Find THIS patient's waitlist entry (match by appointmentId or patientId)
-      const currentEntry = liveWaitlist.find(
-        (w) => w.appointmentId === item.id || w.patientId === (item as any).patientId
-      );
-
-      if (currentEntry) {
-        // 3. Skip using the CORRECT waitlist entry ID
-        await queueMgmt.skip.mutateAsync(currentEntry.id);
-
-        // 4. Also reset the appointment status so Token Queue shows it as Waiting
+      if (realWlId) {
+        // Backend skip: sets this entry to waiting, appointment to Waitlist, 
+        // AND promotes the next patient to Consultation.
+        await queueMgmt.skip.mutateAsync(realWlId);
+      } else {
+        // Fallback for patients not in the waitlist table
         try {
           await updateStatus.mutateAsync({ id: item.id, status: 'Waitlist' });
         } catch { /* best-effort */ }
       }
 
-      // 5. Fetch fresh waitlist again after the skip
-      const res2 = await apiClient.get<{ success: boolean; data: any[] }>(
-        `/appointments/waiting?date=${today}`
-      );
-      const freshWaitlist: any[] = res2.data.data ?? [];
+      // Clear the actively pinned patient so the dashboard automatically 
+      // selects the new patient that backend promoted to 'Consultation'.
+      setActivePatientId(null);
 
-      // 6. Find next waiting patient — exclude the one we just skipped
-      const skippedId = currentEntry?.id;
-      const nextEntry = freshWaitlist.find((w) => w.status === 0 && w.id !== skippedId);
-      if (nextEntry) {
-        await queueMgmt.callNext.mutateAsync(nextEntry.id);
-        setActivePatientId(nextEntry.appointmentId ?? nextEntry.id);
-      } else {
-        setActivePatientId(null);
-      }
-
-      // 7. Refresh dashboard
+      // Refresh dashboard
       await qc.refetchQueries({ queryKey: ['dashboard'] });
       qc.invalidateQueries({ queryKey: apptKeys.all });
     } catch (err) {
