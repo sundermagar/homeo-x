@@ -97,14 +97,16 @@ patientRouter.get('/meta/form', authMiddleware, async (req: Request, res: Respon
 // ─── Family Group Endpoints ───
 
 // GET /api/family-groups
-patientRouter.get('/family-groups', async (req: Request, res: Response) => {
+patientRouter.get('/family-groups', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { search, page = '1', limit = '30' } = req.query;
     const repo = getRepo(req);
+    const clinicId = (req as any).user?.contextId;
     const result = await repo.getFamilyGroups({
       page: Number(page),
       limit: Number(limit),
       search: search as string,
+      clinicId,
     });
     res.json({ success: true, data: result.data, total: result.total });
   } catch (err: any) {
