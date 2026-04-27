@@ -39,10 +39,9 @@ export default function PatientQueuePage() {
 
   useEffect(() => {
     apiClient.get('/doctors').then(({ data }) => {
-        const list = Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
-        setDoctors(list);
-      }).catch(() => {});
-    }
+      const list = Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
+      setDoctors(list);
+    }).catch(() => {});
   }, [isDoctor]);
 
   const { data: waitlist = [], isLoading: wLoading, refetch: wRefetch } = useWaitlist(today, doctorFilter ? Number(doctorFilter) : undefined);
