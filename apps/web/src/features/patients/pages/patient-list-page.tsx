@@ -25,7 +25,8 @@ export default function PatientListPage() {
     page,
     limit: PAGE_SIZE,
     search: debouncedSearch,
-    doctorId: isDoctor ? (user as any)?.id : undefined
+    doctorId: isDoctor ? (user as any)?.id : undefined,
+    clinicId: (user as any)?.contextId
   });
   const deleteMutation = useDeletePatient();
 

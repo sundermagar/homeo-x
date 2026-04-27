@@ -128,8 +128,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       // 1. Patients: current + previous
       this.db.execute(sql`
         SELECT
-          count(*) FILTER (WHERE created_at >= ${start}::timestamp AND created_at < ${boundary}::timestamp AND (deleted_at IS NULL OR deleted_at::text = ''))::int as curr_patients,
-          count(*) FILTER (WHERE created_at >= ${prevStart}::timestamp AND created_at < ${prevBoundary}::timestamp AND (deleted_at IS NULL OR deleted_at::text = ''))::int as prev_patients
+          count(*) FILTER (WHERE clinic_id = ${contextId} AND created_at >= ${start}::timestamp AND created_at < ${boundary}::timestamp AND (deleted_at IS NULL OR deleted_at::text = ''))::int as curr_patients,
+          count(*) FILTER (WHERE clinic_id = ${contextId} AND created_at >= ${prevStart}::timestamp AND created_at < ${prevBoundary}::timestamp AND (deleted_at IS NULL OR deleted_at::text = ''))::int as prev_patients
         FROM patients
       `),
       // 2. Expenses: current period
@@ -175,7 +175,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       this.db.execute(sql`
         SELECT count(*)::int as count
         FROM appointments
-        WHERE booking_date >= ${start} AND booking_date < ${boundary}
+        WHERE clinic_id = ${contextId}
+          AND booking_date >= ${start} AND booking_date < ${boundary}
           AND visit_type = 'FollowUp'
           AND (deleted_at IS NULL OR deleted_at::text = '')
       `),
@@ -183,7 +184,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       this.db.execute(sql`
         SELECT COALESCE(avg(extract(epoch from (called_at - checked_in_at))/60), 0)::int as avg_wait
         FROM waitlist
-        WHERE date >= ${start}::date AND date < ${boundary}::date
+        WHERE clinic_id = ${contextId}
+          AND date >= ${start}::date AND date < ${boundary}::date
           AND called_at IS NOT NULL AND checked_in_at IS NOT NULL
           AND (deleted_at IS NULL OR deleted_at::text = '')
       `),
@@ -191,7 +193,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       this.db.execute(sql`
         SELECT COALESCE(avg(extract(epoch from (called_at - checked_in_at))/60), 0)::int as avg_wait
         FROM waitlist
-        WHERE date >= ${prevStart}::date AND date < ${prevBoundary}::date
+        WHERE clinic_id = ${contextId}
+          AND date >= ${prevStart}::date AND date < ${prevBoundary}::date
           AND called_at IS NOT NULL AND checked_in_at IS NOT NULL
           AND (deleted_at IS NULL OR deleted_at::text = '')
       `),
@@ -281,6 +284,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         LEFT JOIN appointments a ON a.id = w.appointment_id
         LEFT JOIN vitals       v ON v.visit_id = COALESCE(a.id, w.appointment_id)
         WHERE w.date = ${today}::date
+          AND w.clinic_id = ${contextId}
           AND (w.deleted_at IS NULL OR w.deleted_at::text = '')
         ORDER BY w.waiting_number ASC
       `);
@@ -317,6 +321,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         LEFT JOIN patients p ON p.id = a.patient_id
         LEFT JOIN vitals v ON v.visit_id = a.id
         WHERE a.booking_date = ${today}
+          AND a.clinic_id = ${contextId}
           AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
           AND NOT EXISTS (
             SELECT 1 FROM waitlist w2
@@ -406,7 +411,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     queries.push(this.db.execute(sql`
       SELECT 'appointment' as type, 'Appointment - ' || p.first_name as title, a.booking_date::text as subtitle, a.created_at
       FROM appointments a JOIN patients p ON a.patient_id = p.id
-      WHERE (a.deleted_at IS NULL OR a.deleted_at::text = '')
+      WHERE a.clinic_id = ${contextId} AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
       ORDER BY a.id DESC LIMIT ${limit}
     `));
 
@@ -441,7 +446,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
              cr.heading, cr.comments, cr.start_date, cr.status
       FROM case_reminder cr
       JOIN patients p ON cr.patient_id = p.id
-      WHERE cr.status = 'pending'
+      WHERE cr.clinic_id = ${contextId} AND cr.status = 'pending'
       ORDER BY cr.id DESC LIMIT ${limit}
     `);
 
@@ -455,7 +460,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     const results = await this.db.execute(sql`
       SELECT id, regid, first_name, surname, phone, mobile1, dob
       FROM patients
-      WHERE to_char(dob, 'MM-DD') = ${mmdd}
+      WHERE clinic_id = ${contextId}
+        AND to_char(dob, 'MM-DD') = ${mmdd}
         AND (deleted_at IS NULL OR deleted_at::text = '')
     `);
 
@@ -680,7 +686,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     // Per-patient avg
     const patCountRes = await this.db.execute(sql`
       SELECT count(*)::int as cnt FROM patients
-      WHERE created_at::date BETWEEN ${start} AND ${boundary}
+      WHERE clinic_id = ${contextId}
+        AND created_at::date BETWEEN ${start} AND ${boundary}
         AND (deleted_at IS NULL OR deleted_at::text = '')
     `) as any[];
     const patCount = (patCountRes[0] as any)?.cnt || 1;
@@ -711,7 +718,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
              END as status
       FROM bills b
       LEFT JOIN patients p ON b.regid = p.regid
-      WHERE b.bill_date::date >= ${start}::date AND b.bill_date::date < ${boundary}::date
+      WHERE p.clinic_id = ${contextId}
+        AND b.bill_date::date >= ${start}::date AND b.bill_date::date < ${boundary}::date
         AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
       ORDER BY b.charges DESC NULLS LAST
       LIMIT ${limit}
@@ -742,7 +750,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       `),
       this.db.execute(sql`
         SELECT count(*)::int as cnt FROM patients
-        WHERE created_at >= ${start} AND created_at < ${boundary}
+        WHERE clinic_id = ${contextId}
+          AND created_at >= ${start} AND created_at < ${boundary}
           AND (deleted_at IS NULL OR deleted_at::text = '')
       `),
       this.db.execute(sql`
@@ -755,7 +764,9 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       `),
       this.db.execute(sql`
         SELECT COALESCE(avg(extract(epoch from (called_at - checked_in_at))/60), 0)::int as avg_wait 
-        FROM waitlist WHERE date >= ${start} AND date < ${boundary} AND called_at IS NOT NULL AND checked_in_at IS NOT NULL AND (deleted_at IS NULL OR deleted_at::text = '')
+        FROM waitlist 
+        WHERE clinic_id = ${contextId} 
+          AND date >= ${start} AND date < ${boundary} AND called_at IS NOT NULL AND checked_in_at IS NOT NULL AND (deleted_at IS NULL OR deleted_at::text = '')
       `),
       this.db.execute(sql`
         SELECT (
@@ -765,7 +776,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       `),
       this.db.execute(sql`
         SELECT count(*)::int as cnt FROM patients
-        WHERE created_at >= ${prevStart} AND created_at < ${prevBoundary} AND (deleted_at IS NULL OR deleted_at::text = '')
+        WHERE clinic_id = ${contextId}
+          AND created_at >= ${prevStart} AND created_at < ${prevBoundary} AND (deleted_at IS NULL OR deleted_at::text = '')
       `),
     ]);
 
@@ -824,7 +836,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       SELECT 
         name, 
         type as specialty,
-        (SELECT count(id)::int FROM appointments a WHERE a.${sql.identifier(docCol)} = users.id AND a.booking_date = CURRENT_DATE::text AND (a.deleted_at IS NULL OR a.deleted_at::text = '' OR a.deleted_at::text = '0')) as visit_count
+        (SELECT count(id)::int FROM appointments a WHERE a.clinic_id = ${contextId} AND a.${sql.identifier(docCol)} = users.id AND a.booking_date = CURRENT_DATE::text AND (a.deleted_at IS NULL OR a.deleted_at::text = '' OR a.deleted_at::text = '0')) as visit_count
       FROM users
       WHERE (deleted_at IS NULL OR deleted_at::text = '') 
         AND (context_id = ${contextId} OR context_id::text = ${String(contextId)})
@@ -840,7 +852,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       SELECT 
         name, 
         designation as specialty,
-        (SELECT count(id)::int FROM appointments a WHERE a.${sql.identifier(docCol)} = doctors.id AND a.booking_date = CURRENT_DATE::text AND (a.deleted_at IS NULL OR a.deleted_at::text = '' OR a.deleted_at::text = '0')) as visit_count
+        (SELECT count(id)::int FROM appointments a WHERE a.clinic_id = ${contextId} AND a.${sql.identifier(docCol)} = doctors.id AND a.booking_date = CURRENT_DATE::text AND (a.deleted_at IS NULL OR a.deleted_at::text = '' OR a.deleted_at::text = '0')) as visit_count
       FROM doctors
       WHERE (deleted_at IS NULL OR deleted_at::text = '') 
         AND (clinic_id = ${contextId} OR clinic_id::text = ${String(contextId)})

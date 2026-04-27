@@ -9,6 +9,8 @@ import {
   UpdatePatientUseCase,
   DeletePatientUseCase,
 } from '../../../domains/patient';
+import { authMiddleware } from '../middleware/auth';
+import { Role } from '@mmc/types';
 
 export const patientRouter: IRouter = Router();
 
@@ -17,9 +19,18 @@ function getRepo(req: Request) {
 }
 
 // GET /api/patients?search=&page=&limit=&sortBy=&sortOrder=
-patientRouter.get('/', async (req: Request, res: Response) => {
+patientRouter.get('/', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { search, page = '1', limit = '30', sortBy, sortOrder, doctor_id } = req.query;
+    const { search, page = '1', limit = '30', sortBy, sortOrder, doctor_id, clinicId } = req.query;
+    
+    // Determine clinic filter:
+    // 1. If provided in query and user is Admin, use it.
+    // 2. Otherwise, use user's contextId (clinicId).
+    let effectiveClinicId = req.user?.contextId;
+    if (clinicId && (req.user?.type === Role.Admin || req.user?.type === Role.SuperAdmin)) {
+      effectiveClinicId = Number(clinicId);
+    }
+
     const repo = getRepo(req);
     const uc = new ListPatientsUseCase(repo);
     const result = await uc.execute({
@@ -29,6 +40,7 @@ patientRouter.get('/', async (req: Request, res: Response) => {
       sortBy: sortBy as string,
       sortOrder: sortOrder as 'asc' | 'desc',
       doctorId: doctor_id ? Number(doctor_id) : undefined,
+      clinicId: effectiveClinicId,
     });
     if (result.success) {
       res.json({ success: true, data: result.data.data, total: result.data.total });
@@ -41,7 +53,7 @@ patientRouter.get('/', async (req: Request, res: Response) => {
 });
 
 // GET /api/patients/lookup?query=
-patientRouter.get('/lookup', async (req: Request, res: Response) => {
+patientRouter.get('/lookup', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { query } = req.query;
     if (!query || (query as string).length < 2) {
@@ -49,7 +61,14 @@ patientRouter.get('/lookup', async (req: Request, res: Response) => {
       return;
     }
     const repo = getRepo(req);
-    const data = await repo.lookup(query as string, 20);
+    
+    // Determine clinic filter for lookup
+    let clinicId = req.user?.contextId;
+    if (req.query.clinicId && (req.user?.type === Role.Admin || req.user?.type === Role.SuperAdmin)) {
+      clinicId = Number(req.query.clinicId);
+    }
+
+    const data = await repo.lookup(query as string, 20, clinicId);
     res.json({ success: true, data });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
@@ -57,10 +76,17 @@ patientRouter.get('/lookup', async (req: Request, res: Response) => {
 });
 
 // GET /api/patients/meta/form
-patientRouter.get('/meta/form', async (req: Request, res: Response) => {
+patientRouter.get('/meta/form', authMiddleware, async (req: Request, res: Response) => {
   try {
     const repo = getRepo(req);
-    const meta = await repo.getFormMeta();
+    
+    // Determine clinic filter
+    let clinicId = req.user?.contextId;
+    if (req.query.clinicId && (req.user?.type === Role.Admin || req.user?.type === Role.SuperAdmin)) {
+      clinicId = Number(req.query.clinicId);
+    }
+
+    const meta = await repo.getFormMeta(clinicId);
     res.json({ success: true, data: meta });
   } catch (err: any) {
     console.error('CRITICAL PatientRouter Error:', err);
@@ -105,7 +131,7 @@ patientRouter.get('/:regid', async (req: Request, res: Response) => {
 });
 
 // POST /api/patients
-patientRouter.post('/', async (req: Request, res: Response) => {
+patientRouter.post('/', authMiddleware, async (req: Request, res: Response) => {
   try {
     const parsed = createPatientSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -114,7 +140,8 @@ patientRouter.post('/', async (req: Request, res: Response) => {
     }
     const repo = getRepo(req);
     const uc = new CreatePatientUseCase(repo);
-    const result = await uc.execute(parsed.data);
+    const clinicId = req.user?.contextId;
+    const result = await uc.execute(parsed.data, clinicId);
     if (result.success) {
       res.status(201).json({ success: true, data: result.data, regid: result.data.regid });
     } else {

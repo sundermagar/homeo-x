@@ -16,11 +16,13 @@ doctorsRouter.get('/', authMiddleware, async (req: Request, res: Response, next:
   try {
     const repo = new StaffRepositoryPg(req.tenantDb);
     
-    // Fetch up to 100 physicians to ensure the dropdown is comprehensive
+    // Fetch physicians, filtered by clinicId if the user is scoped to a clinic
+    const clinicId = req.user?.contextId;
     const result = await repo.findAll({
       category: 'doctor',
       page: 1,
       limit: 100,
+      clinicId,
     });
 
     // Check users table for is_active flag since doctors legacy table doesn't have it

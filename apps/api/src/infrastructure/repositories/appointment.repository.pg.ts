@@ -50,10 +50,14 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
   // ─── Queries ──────────────────────────────────────────────────────────────
 
   async findMany(filters: AppointmentFilters) {
-    const { date, fromDate, toDate, doctorId, status, search, patientId, page = 1, limit = 50 } = filters;
+    const { date, fromDate, toDate, doctorId, clinicId, status, search, patientId, page = 1, limit = 50 } = filters;
     const offset = (page - 1) * limit;
 
     const conditions: any[] = [isNull(schema.appointments.deletedAt)];
+
+    if (clinicId) {
+      conditions.push(eq(schema.appointments.clinicId, clinicId));
+    }
 
     if (date) {
       conditions.push(sql`(
@@ -107,7 +111,7 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
     };
   }
 
-  async findToday(doctorId?: number) {
+  async findToday(doctorId?: number, clinicId?: number) {
     const today = new Date().toISOString().split('T')[0];
     
     // Using Drizzle select for automatic mapping
@@ -118,6 +122,10 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
         OR ${schema.appointments.bookingDate}::text LIKE '%' || TO_CHAR(${today}::date, 'DD/MM/YYYY') || '%'
       )`
     ];
+
+    if (clinicId) {
+      conditions.push(eq(schema.appointments.clinicId, clinicId));
+    }
 
     if (doctorId) {
       conditions.push(sql`(
@@ -224,6 +232,7 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
     const [row] = await this.db
       .insert(schema.appointments)
       .values({
+        clinicId:        dto.clinicId ?? null,
         patientId:       dto.patientId ?? null,
         doctorId:        dto.doctorId ?? null,
         bookingDate:     normalizedDate,
@@ -250,6 +259,7 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
     if (dto.visitType        !== undefined) fields.visitType = dto.visitType;
     if (dto.consultationFee  !== undefined) fields.consultationFee = dto.consultationFee?.toString();
     if (dto.cancellationReason !== undefined) fields.cancellationReason = dto.cancellationReason;
+    if (dto.clinicId         !== undefined) fields.clinicId = dto.clinicId;
     fields.updatedAt = new Date();
 
     await this.db.update(schema.appointments).set(fields).where(eq(schema.appointments.id, id));
@@ -301,6 +311,7 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
 
     // Insert into tokens table
     await this.db.insert(schema.tokens).values({
+      clinicId:  appt?.clinicId  ?? null,
       patientId: appt?.patientId ?? null,
       doctorId:  appt?.doctorId  ?? null,
       tokenNo:   nextToken,
@@ -319,7 +330,7 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
 
   // ─── Waitlist ─────────────────────────────────────────────────────────────
 
-  async getWaitlist(date: string, doctorId?: number): Promise<WaitlistEntry[]> {
+  async getWaitlist(date: string, doctorId?: number, clinicId?: number): Promise<WaitlistEntry[]> {
     const conditions: any[] = [
       isNull(schema.waitlist.deletedAt),
       sql`(
@@ -328,6 +339,10 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
         OR ${schema.waitlist.date}::text LIKE '%' || TO_CHAR(${date}::date, 'DD/MM/YYYY') || '%'
       )`
     ];
+
+    if (clinicId) {
+      conditions.push(eq(schema.waitlist.clinicId, clinicId));
+    }
 
     if (doctorId) {
       conditions.push(sql`(
@@ -357,8 +372,9 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
     }));
   }
 
-  async addToWaitlist(dto: { patientId?: number; appointmentId?: number; doctorId?: number; consultationFee?: number }): Promise<number> {
+  async addToWaitlist(dto: { patientId?: number; appointmentId?: number; doctorId?: number; consultationFee?: number; clinicId?: number }): Promise<number> {
     const today = new Date().toISOString().split('T')[0] as string;
+    const cid = dto.clinicId;
 
     // Preventive check: Is this patient already in the waitlist for today?
     if (dto.patientId) {
@@ -437,6 +453,7 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
       const timeStr = `${String(now.getHours() % 12 || 12).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} ${now.getHours() >= 12 ? 'PM' : 'AM'}`;
       
       const [newAppt] = await this.db.insert(schema.appointments).values({
+        clinicId: cid ?? null,
         patientId: pid,
         doctorId: did ?? null,
         bookingDate: today,
@@ -460,6 +477,7 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
 
     const nextNum = (result?.maxNum ?? 0) + 1;
     await this.db.insert(schema.waitlist).values({
+      clinicId:        cid ?? null,
       patientId:       pid,
       appointmentId:   finalAppointmentId ?? null,
       doctorId:        did ?? null,

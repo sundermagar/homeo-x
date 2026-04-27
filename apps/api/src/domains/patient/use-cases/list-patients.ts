@@ -9,6 +9,7 @@ interface ListPatientsInput {
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
   doctorId?: number;
+  clinicId?: number;
 }
 
 export class ListPatientsUseCase {

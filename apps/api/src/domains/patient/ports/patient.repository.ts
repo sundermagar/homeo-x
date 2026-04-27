@@ -15,15 +15,16 @@ export interface PatientRepository {
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
     doctorId?: number;
+    clinicId?: number;
   }): Promise<{ data: PatientSummary[]; total: number }>;
-  create(data: CreatePatientInput): Promise<Patient>;
+  create(data: CreatePatientInput & { clinicId?: number }): Promise<Patient>;
   update(regid: number, data: UpdatePatientInput): Promise<Patient | null>;
   softDelete(regid: number): Promise<boolean>;
-  lookup(query: string, limit?: number): Promise<PatientSummary[]>;
+  lookup(query: string, limit?: number, clinicId?: number): Promise<PatientSummary[]>;
   findBirthdays(mmdd: string): Promise<PatientSummary[]>;
 
   // Form meta — dropdown data
-  getFormMeta(): Promise<PatientFormMeta>;
+  getFormMeta(clinicId?: number): Promise<PatientFormMeta>;
 
   // Family group
   getFamilyGroups(params: {

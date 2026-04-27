@@ -8,7 +8,7 @@ const FAMILY_KEY = 'family-members';
 
 // ─── Patient Queries ───
 
-export function usePatients(params: { page?: number; limit?: number; search?: string; doctorId?: number }) {
+export function usePatients(params: { page?: number; limit?: number; search?: string; doctorId?: number; clinicId?: number }) {
   return useQuery({
     queryKey: [PATIENTS_KEY, params],
     queryFn: async () => {
@@ -17,6 +17,7 @@ export function usePatients(params: { page?: number; limit?: number; search?: st
         limit: params.limit,
         search: params.search,
         doctor_id: params.doctorId,
+        clinicId: params.clinicId,
       };
       const res = await apiClient.get('/patients', { params: apiParams });
       return { 
@@ -70,11 +71,13 @@ export function usePatientLookup(query: string) {
   });
 }
 
-export function usePatientFormMeta() {
+export function usePatientFormMeta(clinicId?: number) {
   return useQuery({
-    queryKey: [PATIENTS_KEY, 'meta'],
+    queryKey: [PATIENTS_KEY, 'meta', clinicId],
     queryFn: async () => {
-      const { data } = await apiClient.get<{ success: boolean; data: PatientFormMeta }>('/patients/meta/form');
+      const { data } = await apiClient.get<{ success: boolean; data: PatientFormMeta }>('/patients/meta/form', {
+        params: { clinicId }
+      });
       return data.data;
     },
     staleTime: 5 * 60 * 1000,

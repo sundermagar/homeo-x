@@ -69,8 +69,9 @@ export class PatientRepositoryPg implements PatientRepository {
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
     doctorId?: number;
+    clinicId?: number;
   }): Promise<{ data: PatientSummary[]; total: number }> {
-    const { page, limit, search, doctorId } = params;
+    const { page, limit, search, doctorId, clinicId } = params;
     const offset = (page - 1) * limit;
 
     const conditions = [sql`(deleted_at IS NULL OR deleted_at::text = '')` as any];
@@ -100,6 +101,10 @@ export class PatientRepositoryPg implements PatientRepository {
       );
     }
 
+    if (clinicId) {
+      conditions.push(eq(patients.clinicId, clinicId));
+    }
+
     const whereClause = and(...conditions);
 
     const [data, countRows] = await Promise.all([
@@ -122,7 +127,7 @@ export class PatientRepositoryPg implements PatientRepository {
     };
   }
 
-  async create(input: CreatePatientInput): Promise<Patient> {
+  async create(input: CreatePatientInput & { clinicId?: number }): Promise<Patient> {
     // Generate next regid (legacy compatibility)
     const maxRows = await this.db
       .select({ maxRegid: sql<number>`coalesce(max(${patients.regid}), 1000)` })
@@ -147,6 +152,7 @@ export class PatientRepositoryPg implements PatientRepository {
       state: input.state || '',
       dateOfBirth: input.dateOfBirth || null,
       dob: input.dateOfBirth || null,
+      clinicId: input.clinicId || null,
     };
 
     // Only add columns if they exist in the schema to avoid "column does not exist" errors
@@ -237,23 +243,27 @@ export class PatientRepositoryPg implements PatientRepository {
     return !!row;
   }
 
-  async lookup(query: string, limit = 20): Promise<PatientSummary[]> {
+  async lookup(query: string, limit = 20, clinicId?: number): Promise<PatientSummary[]> {
     const s = `%${query}%`;
+    const conditions = [
+      sql`(deleted_at IS NULL OR deleted_at::text = '')`,
+      or(
+        like(patients.firstName, s),
+        like(patients.surname, s),
+        like(patients.phone, s),
+        like(patients.mobile1, s),
+        sql`CAST(${patients.regid} AS TEXT) LIKE ${s}`,
+      )
+    ];
+
+    if (clinicId) {
+      conditions.push(eq(patients.clinicId, clinicId));
+    }
+
     const rows = await this.db
       .select()
       .from(patients)
-      .where(
-        and(
-          sql`(deleted_at IS NULL OR deleted_at::text = '')`,
-          or(
-            like(patients.firstName, s),
-            like(patients.surname, s),
-            like(patients.phone, s),
-            like(patients.mobile1, s),
-            sql`CAST(${patients.regid} AS TEXT) LIKE ${s}`,
-          )
-        )
-      )
+      .where(and(...conditions))
       .limit(limit);
     return rows.map(row => this.toSummary(row));
   }
@@ -271,26 +281,31 @@ export class PatientRepositoryPg implements PatientRepository {
     return rows.map(row => this.toSummary(row));
   }
 
-  async getFormMeta(): Promise<PatientFormMeta> {
+  async getFormMeta(clinicId?: number): Promise<PatientFormMeta> {
     try {
+      // 1. Fetch Doctors — Primary source is doctorsLegacy (tenant's doctors table)
+      // but we join with users to get the most up-to-date name/status if available.
+      const doctorConditions = [
+        isNull(doctorsLegacy.deletedAt),
+      ];
+
+      if (clinicId) {
+        doctorConditions.push(eq(doctorsLegacy.clinicId, clinicId));
+      }
+
       const [doctors, religions, occupations, references, refTypes, referralSrcs] = await Promise.all([
         this.db
           .select({
-            id: users.id,
-            name: users.name,
+            id: doctorsLegacy.id,
+            name: doctorsLegacy.name,
+            userName: users.name,
+            legacyFee: doctorsLegacy.consultationFee,
             userFee: users.consultationFee,
-            legacyFee: doctorsLegacy.consultationFee
+            isActive: users.isActive
           })
-          .from(users)
-          .leftJoin(doctorsLegacy, or(
-            eq(users.id, doctorsLegacy.id),
-            sql`LOWER(${users.name}) = LOWER(${doctorsLegacy.name})`
-          ))
-          .where(and(
-            isNull(users.deletedAt),
-            eq(users.isActive, true),
-            sql`LOWER(${users.type}) = 'doctor'`
-          ))
+          .from(doctorsLegacy)
+          .leftJoin(users, eq(doctorsLegacy.id, users.id))
+          .where(and(...doctorConditions))
           .catch((err) => {
             console.error('[PatientRepo] Failed to fetch doctors:', err.message);
             return [];

@@ -5,7 +5,7 @@ import {
 // ─── Appointments ─────────────────────────────────────────────────────────────
 export const appointments = pgTable('appointments', {
   id:                 serial('id').primaryKey(),
-  // clinicId:           integer('clinic_id'),
+  clinicId:           integer('clinic_id'),
   patientId:          integer('patient_id'),
   doctorId:           integer('doctor_id'),
   bookingDate:        date('booking_date'),
@@ -27,6 +27,7 @@ export const appointments = pgTable('appointments', {
 // ─── Daily Tokens ─────────────────────────────────────────────────────────────
 export const tokens = pgTable('tokens', {
   id:        serial('id').primaryKey(),
+  clinicId:  integer('clinic_id'),
   patientId: integer('patient_id'),
   doctorId:  integer('doctor_id'),
   tokenNo:   integer('token_no').notNull(),
@@ -40,6 +41,7 @@ export const tokens = pgTable('tokens', {
 // ─── Live Waiting Room ─────────────────────────────────────────────────────────
 export const waitlist = pgTable('waitlist', {
   id:              serial('id').primaryKey(),
+  clinicId:        integer('clinic_id'),
   patientId:       integer('patient_id'),
   appointmentId:   integer('appointment_id'),
   doctorId:        integer('doctor_id'),

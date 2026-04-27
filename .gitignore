@@ -100,3 +100,14 @@ verify_*.ts
 !*.config.js
 !*rc.js
 !*rc.cjs
+
+# AI Assistant & Tooling
+.gemini/
+.antigravity/
+antigravity.log
+
+# One-off Scripts
+packages/database/src/migrate-*.ts
+check-*.ts
+verify-*.ts
+debug-*.ts

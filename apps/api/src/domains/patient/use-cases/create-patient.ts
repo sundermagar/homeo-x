@@ -6,10 +6,10 @@ import type { CreatePatientInput } from '@mmc/validation';
 export class CreatePatientUseCase {
   constructor(private readonly patientRepo: PatientRepository) {}
 
-  async execute(input: CreatePatientInput): Promise<Result<Patient>> {
+  async execute(input: CreatePatientInput, clinicId?: number): Promise<Result<Patient>> {
     // Domain validation: check for duplicates by phone
     // (Zod handles format validation; domain handles business rules)
-    const patient = await this.patientRepo.create(input);
+    const patient = await this.patientRepo.create({ ...input, clinicId });
     return ok(patient);
   }
 }

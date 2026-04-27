@@ -5,12 +5,12 @@ import { type Result, ok } from '../../../shared/result';
 export class QueueManagementUseCase {
   constructor(private readonly repo: AppointmentRepository) {}
 
-  async getWaitlist(date: string, doctorId?: number): Promise<Result<WaitlistEntry[]>> {
-    const list = await this.repo.getWaitlist(date, doctorId);
+  async getWaitlist(date: string, doctorId?: number, clinicId?: number): Promise<Result<WaitlistEntry[]>> {
+    const list = await this.repo.getWaitlist(date, doctorId, clinicId);
     return ok(list);
   }
 
-  async addToWaitlist(dto: { patientId?: number; appointmentId?: number; doctorId?: number; consultationFee?: number }): Promise<Result<{ waitingNumber: number }>> {
+  async addToWaitlist(dto: { patientId?: number; appointmentId?: number; doctorId?: number; consultationFee?: number; clinicId?: number }): Promise<Result<{ waitingNumber: number }>> {
     const waitingNumber = await this.repo.addToWaitlist(dto);
     return ok({ waitingNumber });
   }

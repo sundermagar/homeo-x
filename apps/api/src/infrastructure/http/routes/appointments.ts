@@ -48,11 +48,14 @@ appointmentsRouter.get('/', asyncHandler(async (req, res) => {
   //   effectiveDoctorId = (req.user as any).contextId;
   // }
 
+  const clinicId = (req as any).user?.contextId;
+
   const result = await listAppts.execute({
     date:      date    || undefined,
     fromDate:  from_date || undefined,
     toDate:    to_date || undefined,
     doctorId:  effectiveDoctorId,
+    clinicId,
     status:    status  || undefined,
     search:    search  || undefined,
     page:      page    ? Number(page)  : 1,
@@ -69,7 +72,8 @@ appointmentsRouter.get('/today', asyncHandler(async (req, res) => {
   const { doctor_id } = req.query as Record<string, string>;
   const getAppts = new GetAppointmentUseCase(getRepo(req));
   const effectiveDoctorId = doctor_id ? Number(doctor_id) : undefined;
-  const result = await getAppts.getToday(effectiveDoctorId);
+  const clinicId = (req as any).user?.contextId;
+  const result = await getAppts.getToday(effectiveDoctorId, clinicId);
   if (result.success) sendSuccess(res, result.data);
 }));
 
@@ -87,7 +91,13 @@ appointmentsRouter.get('/waiting', asyncHandler(async (req, res) => {
   const { date, doctor_id } = req.query as Record<string, string>;
   const today = new Date().toISOString().split('T')[0];
   const queueMgmt = new QueueManagementUseCase(getRepo(req));
-  const result = await queueMgmt.getWaitlist((date || today) as string, doctor_id ? Number(doctor_id) : undefined);
+  
+  const clinicId = (req as any).user?.contextId;
+  const result = await queueMgmt.getWaitlist(
+    (date || today) as string, 
+    doctor_id ? Number(doctor_id) : undefined,
+    clinicId
+  );
   if (result.success) sendSuccess(res, result.data);
 }));
 
@@ -106,7 +116,8 @@ appointmentsRouter.post('/', asyncHandler(async (req, res) => {
   const patientRepo = new PatientRepositoryPg(req.tenantDb);
   const smsUc = new SendSmsUseCase(commRepo, smsGateway);
   const bookAppt = new BookAppointmentUseCase(getRepo(req), smsUc, patientRepo);
-  const result = await bookAppt.execute(req.body);
+  const clinicId = (req as any).user?.contextId;
+  const result = await bookAppt.execute({ ...req.body, clinicId });
 
   if (result.success) {
     sendSuccess(res, result.data, undefined, 201);
@@ -160,7 +171,12 @@ appointmentsRouter.post('/waiting', asyncHandler(async (req, res) => {
   }
 
   const queueMgmt = new QueueManagementUseCase(getRepo(req));
-  const result = await queueMgmt.addToWaitlist(validation.data);
+  const clinicId = (req as any).user?.contextId;
+  
+  const result = await queueMgmt.addToWaitlist({
+    ...validation.data,
+    clinicId
+  });
   if (result.success) {
     sendSuccess(res, result.data, undefined, 201);
   }

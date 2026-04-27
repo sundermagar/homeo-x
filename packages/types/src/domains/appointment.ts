@@ -72,6 +72,7 @@ export interface CreateAppointmentDto {
   consultationFee?: number;
   notes?: string;
   allowWaitlist?: boolean;
+  clinicId?: number;
 }
 
 export interface UpdateAppointmentDto {
@@ -83,4 +84,5 @@ export interface UpdateAppointmentDto {
   visitType?: VisitType;
   consultationFee?: number;
   cancellationReason?: string;
+  clinicId?: number;
 }
