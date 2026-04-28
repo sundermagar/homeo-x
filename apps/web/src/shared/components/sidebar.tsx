@@ -138,6 +138,7 @@ const NAV_STRUCTURE: NavItem[] = [
       label: 'Clinical Hub',
       icon: Stethoscope,
       roles: CLINICAL,
+      defaultPath: '/clinical-hub',
       children: [
         // { path: '/consultation-history', label: 'Case History', icon: BarChart2 },
         { path: '/vitals-check', label: 'Height & Weight Check', icon: Scale },

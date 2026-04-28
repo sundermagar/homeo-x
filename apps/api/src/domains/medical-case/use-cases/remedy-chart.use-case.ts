@@ -232,19 +232,20 @@ export class RemedyChartUseCase {
         cp.regid,
         cp.dateval,
         cp.todate,
-        cp.appremedy   AS remedy_name,
-        cp.apppotency  AS potency_name,
-        cp.appfrequency AS frequency_name,
-        cp.appdays     AS days,
-        cp.appnotes    AS notes,
-        cp.rxprescription AS prescription,
+        COALESCE(cp.rxremedy, '') AS remedy_name,
+        COALESCE(cp.rxpotency, '') AS potency_name,
+        COALESCE(cp.rxfrequency, '') AS frequency_name,
+        COALESCE(cp.rxdays, '0') AS days,
+        COALESCE(cp.rxprescription, '') AS notes,
+        COALESCE(cp.rxprescription, '') AS prescription,
         cp.created_at
       FROM case_potencies cp
       WHERE cp.regid = ${caseId}
-        AND cp.deleted_at IS NULL
+        AND (cp.deleted_at IS NULL OR cp.deleted_at = '')
       ORDER BY cp.id DESC
     `);
 
+    // Drizzle execute returns the rows directly for postgres-js
     return rows;
   }
 
@@ -271,13 +272,12 @@ export class RemedyChartUseCase {
     if (dto.id) {
       await this.db.execute(sql`
         UPDATE case_potencies SET
-          appremedy    = ${remedyName},
-          apppotency   = ${potencyName},
-          appfrequency = ${frequencyName},
-          appdays      = ${days},
-          appnotes     = ${notes},
+          rxremedy      = ${remedyName},
+          rxpotency     = ${potencyName},
+          rxfrequency   = ${frequencyName},
+          rxdays        = ${String(days)},
           rxprescription = ${prescription},
-          updated_at   = NOW()
+          updated_at    = NOW()
         WHERE id = ${dto.id}
       `);
       return { id: dto.id };
@@ -286,13 +286,13 @@ export class RemedyChartUseCase {
       const result = await this.db.execute(sql`
         INSERT INTO case_potencies (
           rand_id, regid, clinic_id,
-          appremedy, apppotency, appfrequency, appdays,
-          appnotes, rxprescription,
+          rxremedy, rxpotency, rxfrequency, rxdays,
+          rxprescription,
           dateval, todate, sdate, created_at, updated_at
         ) VALUES (
           ${randId}, ${caseId}, ${clinicId},
-          ${remedyName}, ${potencyName}, ${frequencyName}, ${days},
-          ${notes}, ${prescription},
+          ${remedyName}, ${potencyName}, ${frequencyName}, ${String(days)},
+          ${prescription},
           ${dateNow}, ${dateNow}, ${dateNow}, NOW(), NOW()
         )
         RETURNING id

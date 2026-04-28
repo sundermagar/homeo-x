@@ -230,6 +230,7 @@ export default function FollowupsPage() {
                       <th>Patient Details</th>
                       <th>Enc. Type</th>
                       <th>Due Date</th>
+                      <th>Time</th>
                       <th>Assigned To</th>
                       <th style={{ textAlign: 'right' }}>Actions</th>
                     </tr>
@@ -255,6 +256,12 @@ export default function FollowupsPage() {
                           <div className="fu-meta-cell">
                             <Calendar size={12} />
                             {new Date(f.bookingDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                          </div>
+                        </td>
+                        <td>
+                          <div className="fu-meta-cell">
+                            <Clock size={12} />
+                            {f.bookingTime || '—'}
                           </div>
                         </td>
                         <td>
@@ -297,6 +304,10 @@ export default function FollowupsPage() {
                       <div className="fu-meta-row">
                         <Calendar size={14} />
                         <span>{new Date(f.bookingDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                      </div>
+                      <div className="fu-meta-row">
+                        <Clock size={14} />
+                        <span>{f.bookingTime || 'Flexible Time'}</span>
                       </div>
                       <div className="fu-meta-row">
                         <User size={14} />
@@ -342,71 +353,87 @@ export default function FollowupsPage() {
         .text-title { font-size: 1.5rem !important; }
         .text-subtitle { font-size: 0.8rem !important; }
 
-        /* Hero Insights */
+        /* Hero Insights - Fully Responsive & Premium */
         .fu-hero-card {
-          padding: 24px;
+          padding: clamp(16px, 4vw, 24px);
           display: flex;
           flex-direction: column;
-          gap: 20px;
+          gap: 24px;
           background: var(--bg-card);
           position: relative;
           overflow: hidden;
+          border-radius: 20px;
         }
         .fu-hero-card::before {
           content: '';
           position: absolute;
           top: 0; right: 0;
-          width: 200px; height: 200px;
+          width: 250px; height: 250px;
           background: radial-gradient(circle at top right, var(--pp-blue-tint) 0%, transparent 70%);
           z-index: 0;
+          pointer-events: none;
         }
         .fu-hero-content {
           display: flex;
           align-items: center;
-          gap: 20px;
+          gap: clamp(12px, 3vw, 20px);
           position: relative;
           z-index: 1;
         }
         .fu-hero-icon-blob {
-          width: 48px;
-          height: 48px;
+          flex-shrink: 0;
+          width: clamp(40px, 10vw, 48px);
+          height: clamp(40px, 10vw, 48px);
           background: var(--pp-blue);
           color: white;
-          border-radius: 18px;
+          border-radius: clamp(12px, 3vw, 18px);
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 8px 20px rgba(37, 99, 235, 0.2);
+          box-shadow: 0 8px 20px rgba(37, 99, 235, 0.15);
         }
-        .fu-h2 { font-size: 1.25rem; font-weight: 700; color: var(--pp-ink); margin: 0; }
-        .fu-p { color: var(--pp-text-3); font-size: 0.85rem; margin-top: 4px; }
+        .fu-h2 { font-size: clamp(1.1rem, 3vw, 1.25rem); font-weight: 700; color: var(--pp-ink); margin: 0; }
+        .fu-p { color: var(--pp-text-3); font-size: clamp(0.75rem, 2vw, 0.85rem); margin-top: 4px; line-height: 1.4; }
 
         .fu-insights-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-          gap: 24px;
+          grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+          gap: clamp(12px, 3vw, 20px);
           position: relative;
           z-index: 1;
+          width: 100%;
         }
         .fu-insight-item {
           display: flex;
           align-items: center;
           gap: 12px;
+          background: var(--pp-warm-1);
+          padding: clamp(10px, 2vw, 14px);
+          border-radius: 12px;
+          border: 1px solid var(--pp-warm-2);
+          transition: all 0.2s ease;
+        }
+        .fu-insight-item:hover {
+          transform: translateY(-2px);
+          box-shadow: var(--pp-shadow-sm);
+          background: white;
+          border-color: var(--pp-blue-border);
         }
         .fu-insight-icon {
-          width: 40px;
-          height: 40px;
-          border-radius: 12px;
+          flex-shrink: 0;
+          width: 38px;
+          height: 38px;
+          border-radius: 10px;
           display: flex;
           align-items: center;
           justify-content: center;
         }
-        .fu-insight-icon.total { background: var(--pp-blue-tint); color: var(--pp-blue); }
-        .fu-insight-icon.missed { background: var(--pp-danger-bg); color: var(--pp-danger-fg); }
-        .fu-insight-icon.next { background: var(--pp-success-bg); color: var(--pp-success-fg); }
+        .fu-insight-icon.total { background: #eff6ff; color: #2563eb; }
+        .fu-insight-icon.missed { background: #fef2f2; color: #dc2626; }
+        .fu-insight-icon.next { background: #f0fdf4; color: #16a34a; }
         
-        .fu-insight-label { display: block; font-size: 10px; font-weight: 700; color: var(--pp-text-3); text-transform: uppercase; letter-spacing: 0.05em; }
-        .fu-insight-value { display: block; font-size: 1.25rem; font-weight: 800; color: var(--pp-ink); line-height: 1; margin-top: 2px; }
+        .fu-insight-label { display: block; font-size: 9px; font-weight: 700; color: var(--pp-text-3); text-transform: uppercase; letter-spacing: 0.05em; }
+        .fu-insight-value { display: block; font-size: clamp(1.1rem, 3vw, 1.25rem); font-weight: 800; color: var(--pp-ink); line-height: 1; margin-top: 2px; }
 
         /* Action Bar */
         .fu-action-bar {
@@ -535,10 +562,16 @@ export default function FollowupsPage() {
         @keyframes fu-spin { to { transform: rotate(360deg); } }
         .fu-spin { animation: fu-spin 1s linear infinite; }
 
-        @media (min-width: 640px) {
+        @media (min-width: 860px) {
           .fu-action-bar { flex-direction: row; }
           .fu-hero-card { flex-direction: row; justify-content: space-between; align-items: center; }
           .fu-insights-grid { width: auto; min-width: 500px; }
+        }
+        
+        @media (max-width: 480px) {
+          .fu-insights-grid { grid-template-columns: 1fr; }
+          .fu-hero-content { align-items: flex-start; }
+          .fu-hero-icon-blob { margin-top: 4px; }
         }
         
         @media (max-width: 639px) {

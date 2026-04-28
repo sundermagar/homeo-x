@@ -193,7 +193,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
         this.getHomeoDetails(regid),
         this.db.select().from(schema.caseNotes).where(eq(schema.caseNotes.regid, regid)).orderBy(desc(schema.caseNotes.createdAt)),
         this.db.select().from(schema.caseExamination).where(eq(schema.caseExamination.regid, regid)),
-        this.db.select().from(schema.caseImages).where(eq(schema.caseImages.regid, regid)),
+        this.db.select().from(schema.caseImages).where(and(eq(schema.caseImages.regid, regid), sql`${schema.caseImages.deletedAt} IS NULL`)),
         this.db.select().from(schema.investigations).where(eq(schema.investigations.regid, regid)),
         this.db
           .select({

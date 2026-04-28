@@ -91,6 +91,9 @@ const RolesPermissionsPage = lazy(() => import('@/features/settings/pages/roles-
 // Operations & CRM
 const OperationsDashboard = lazy(() => import('@/features/operations/pages/operations-dashboard'));
 
+// Clinical Hub
+const ClinicalHubPage = lazy(() => import('@/features/clinical-hub/pages/clinical-hub-page'));
+
 export function AppRouter() {
   return (
     <Suspense fallback={<Loading />}>
@@ -128,6 +131,9 @@ export function AppRouter() {
             <Route path="/vitals-check" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><VitalsCheckPage /></RoleGuard>} />
             <Route path="/ai-remedy-chart" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><AiRemedyChartStandalone /></RoleGuard>} />
             <Route path="/ai-analysis" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><AiConsultantPage /></RoleGuard>} />
+
+            {/* ─── Clinical Hub ─── */}
+            <Route path="/clinical-hub" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><ClinicalHubPage /></RoleGuard>} />
 
             {/* ─── Packages & Memberships ─── */}
             <Route path="/packages" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><PackagePlansPage /></RoleGuard>} />
