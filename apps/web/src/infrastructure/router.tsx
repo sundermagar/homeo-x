@@ -31,6 +31,7 @@ const MedicalCaseDetailPage = lazy(() => import('@/features/medical-case/pages/c
 const VitalsCheckPage = lazy(() => import('@/features/medical-case/pages/vitals-check-page'));
 const AiRemedyChartStandalone = lazy(() => import('@/features/medical-case/components/ai-remedy-view').then(m => ({ default: m.AiRemedyView })));
 const AiConsultantPage = lazy(() => import('@/features/medical-case/pages/ai-consultant-page'));
+const FollowupsPage = lazy(() => import('@/features/medical-case/pages/followups-page'));
 
 // Packages & Memberships
 const PackagePlansPage = lazy(() => import('@/features/packages/pages/package-plans-page'));
@@ -123,6 +124,7 @@ export function AppRouter() {
             {/* ─── Medical Cases ─── */}
             <Route path="/medical-cases" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><MedicalCaseListPage /></RoleGuard>} />
             <Route path="/medical-cases/:regid" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist']}><MedicalCaseDetailPage /></RoleGuard>} />
+            <Route path="/medical-cases/followups" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist']}><FollowupsPage /></RoleGuard>} />
             <Route path="/vitals-check" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><VitalsCheckPage /></RoleGuard>} />
             <Route path="/ai-remedy-chart" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><AiRemedyChartStandalone /></RoleGuard>} />
             <Route path="/ai-analysis" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><AiConsultantPage /></RoleGuard>} />

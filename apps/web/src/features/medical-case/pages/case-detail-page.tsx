@@ -11,6 +11,7 @@ import {
 import { useFullMedicalCase, useManageClinicalRecords } from '../hooks/use-medical-cases';
 import { AssignPackageModal } from '../../packages/components/assign-package-modal';
 import { VitalsFormModal } from '../components/vitals-form-modal';
+import { FollowupScheduler } from '../components/followup-scheduler';
 import { useSendSms } from '../../communications/hooks/use-communications';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/infrastructure/api-client';
@@ -187,7 +188,11 @@ export default function MedicalCaseDetailPage() {
             {activeTab === 'examination' && <ExaminationView examination={fullData.examination} />}
             {activeTab === 'labs' && <LabsView investigations={fullData.investigations} regid={Number(regid)} />}
             {activeTab === 'billing' && <BillingView regid={Number(regid)} />}
-            {activeTab === 'follow-up' && <FollowUpView patientId={medicalCase.patientId} />}
+            {activeTab === 'follow-up' && <FollowUpView 
+              patientId={medicalCase.patientId} 
+              patientName={medicalCase.patientName} 
+              doctorId={medicalCase.doctorId} 
+            />}
             {activeTab === 'media' && <MediaView images={fullData.images} />}
             {activeTab === 'communication' && <CommunicationView regid={Number(regid)} phone={(medicalCase as any).phone || ''} name={(medicalCase as any).patientName || ''} />}
 
@@ -548,25 +553,33 @@ function BillingView({ regid }: { regid: number }) {
 }
 
 /* ─── Follow-up Tab ─────────────────────────────────────────────── */
-function FollowUpView({ patientId }: { patientId: number }) {
-  // Hack: passing patientId as search to get correct results if patient_id filter is not in type
-  const { data: appointments = [], isLoading } = useAppointments({ page: 1, limit: 10 } as any);
+/* ─── Follow-up Tab ─────────────────────────────────────────────── */
+function FollowUpView({ patientId, patientName, doctorId }: { patientId: number, patientName: string, doctorId?: number }) {
+  const { data: appointmentsData, isLoading, refetch } = useAppointments({ page: 1, limit: 100 } as any);
 
   // Filter manually if the API filter isn't strict enough
-  const filtered = Array.isArray(appointments) ? appointments.filter(a => a.patientId === patientId) : [];
+  const appointments = Array.isArray(appointmentsData) ? appointmentsData : (appointmentsData as any)?.data || [];
+  const filtered = appointments.filter((a: any) => a.patientId === patientId);
 
   if (isLoading) return <div>Loading history...</div>;
 
-  const navigate = useNavigate();
   return (
     <div className="mc-followup-wrap">
+      <div style={{ marginBottom: 24 }}>
+        <FollowupScheduler 
+          patientId={patientId} 
+          patientName={patientName}
+          defaultDoctorId={doctorId}
+          onSuccess={() => refetch()}
+        />
+      </div>
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <h3 style={{ margin: 0, fontSize: '1rem' }}>Appointment History</h3>
-        <button className="mc-btn-primary" onClick={() => navigate('/appointments')}>+ Schedule Follow-up</button>
+        <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Appointment History</h3>
       </div>
 
       <div className="mc-timeline">
-        {filtered.map((appt: any) => (
+        {filtered.length > 0 ? filtered.map((appt: any) => (
           <div key={appt.id} className="mc-timeline-item">
             <div className="mc-timeline-date">
               <div className="day">{new Date(appt.bookingDate).getDate()}</div>
@@ -574,7 +587,7 @@ function FollowUpView({ patientId }: { patientId: number }) {
             </div>
             <div className="mc-timeline-content">
               <div className="mc-timeline-header">
-                <span className="type">{appt.visitType}</span>
+                <span className="type">{appt.visitType || 'Follow-up'}</span>
                 <span className={`status ${appt.status.toLowerCase()}`}>{appt.status}</span>
               </div>
               <div className="mc-timeline-body">
@@ -583,8 +596,7 @@ function FollowUpView({ patientId }: { patientId: number }) {
               </div>
             </div>
           </div>
-        ))}
-        {filtered.length === 0 && (
+        )) : (
           <div className="mc-empty-state">
             <Calendar size={40} strokeWidth={1} style={{ color: 'var(--text-muted)', marginBottom: 16 }} />
             <p>No previous or upcoming appointments found.</p>

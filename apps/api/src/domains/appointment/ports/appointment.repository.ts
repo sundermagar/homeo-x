@@ -19,6 +19,7 @@ export interface AppointmentFilters {
 export interface AppointmentRepository {
   // Queries
   findMany(filters: AppointmentFilters): Promise<{ data: Appointment[]; total: number }>;
+  findFollowups(filters: AppointmentFilters): Promise<{ data: Appointment[]; total: number }>;
   findToday(doctorId?: number, clinicId?: number): Promise<Appointment[]>;
   findById(id: number): Promise<Appointment | null>;
   findAvailableSlots(doctorId: number, date: string): Promise<AvailabilitySlot[]>;
