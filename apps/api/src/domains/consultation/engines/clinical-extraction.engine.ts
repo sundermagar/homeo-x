@@ -50,6 +50,7 @@ Extract these categories:
 10. miasm: Predominant miasm if identifiable (PSORA, SYCOSIS, SYPHILIS, TUBERCULAR)
 
 IMPORTANT: Extract ONLY what is explicitly present. Do NOT fabricate.
+CRITICAL: Do NOT extract duplicate symptoms. If a symptom has already been mentioned or is a slight variation of an existing one, merge them into a single, comprehensive entry. Ensure all arrays contain strictly unique items.
 
 Respond in valid JSON matching the structure above.`;
 
@@ -71,20 +72,21 @@ Extract all clinical data:`;
         responseFormat: 'json',
       });
 
-      const parsed = JSON.parse(response.content);
+      const jsonStr = response.content.substring(response.content.indexOf('{'), response.content.lastIndexOf('}') + 1);
+      const parsed = JSON.parse(jsonStr || response.content);
 
       logger.info({ tenantId }, 'Clinical extraction complete');
 
       return {
-        observations: Array.isArray(parsed.observations) ? parsed.observations : [],
-        clinicalFindings: Array.isArray(parsed.clinicalFindings) ? parsed.clinicalFindings : [],
-        mentalState: Array.isArray(parsed.mentalState) ? parsed.mentalState : [],
+        observations: Array.isArray(parsed.observations) ? [...new Set<string>(parsed.observations)] : [],
+        clinicalFindings: Array.isArray(parsed.clinicalFindings) ? [...new Set<string>(parsed.clinicalFindings)] : [],
+        mentalState: Array.isArray(parsed.mentalState) ? [...new Set<string>(parsed.mentalState)] : [],
         emotionProfile: Array.isArray(parsed.emotionProfile) ? parsed.emotionProfile : [],
-        physicalSymptoms: Array.isArray(parsed.physicalSymptoms) ? parsed.physicalSymptoms : [],
-        generalSymptoms: Array.isArray(parsed.generalSymptoms) ? parsed.generalSymptoms : [],
+        physicalSymptoms: Array.isArray(parsed.physicalSymptoms) ? [...new Set<string>(parsed.physicalSymptoms)] : [],
+        generalSymptoms: Array.isArray(parsed.generalSymptoms) ? [...new Set<string>(parsed.generalSymptoms)] : [],
         modalities: {
-          aggravation: Array.isArray(parsed.modalities?.aggravation) ? parsed.modalities.aggravation : [],
-          amelioration: Array.isArray(parsed.modalities?.amelioration) ? parsed.modalities.amelioration : [],
+          aggravation: Array.isArray(parsed.modalities?.aggravation) ? [...new Set<string>(parsed.modalities.aggravation)] : [],
+          amelioration: Array.isArray(parsed.modalities?.amelioration) ? [...new Set<string>(parsed.modalities.amelioration)] : [],
         },
         thermalReaction: parsed.thermalReaction || undefined,
         constitution: parsed.constitution || undefined,

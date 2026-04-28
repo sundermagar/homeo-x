@@ -471,22 +471,54 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
   }
 
   async callNextInWaitlist(waitlistId: number): Promise<void> {
+    const [target] = await this.db
+      .select()
+      .from(schema.waitlist)
+      .where(eq(schema.waitlist.id, waitlistId));
+
+    if (target && target.doctorId && target.date) {
+      const activeEntries = await this.db
+        .select()
+        .from(schema.waitlist)
+        .where(and(
+          eq(schema.waitlist.doctorId, target.doctorId),
+          eq(schema.waitlist.date, target.date),
+          eq(schema.waitlist.status, 1),
+          ne(schema.waitlist.id, waitlistId)
+        ));
+
+      if (activeEntries.length > 0) {
+        await this.db
+          .update(schema.waitlist)
+          .set({ status: 0, calledAt: null, updatedAt: new Date() })
+          .where(and(
+            eq(schema.waitlist.doctorId, target.doctorId),
+            eq(schema.waitlist.date, target.date),
+            eq(schema.waitlist.status, 1),
+            ne(schema.waitlist.id, waitlistId)
+          ));
+
+        for (const entry of activeEntries) {
+          if (entry.appointmentId) {
+            await this.db
+              .update(schema.appointments)
+              .set({ status: AppointmentStatus.Waitlist, updatedAt: new Date() })
+              .where(eq(schema.appointments.id, entry.appointmentId));
+          }
+        }
+      }
+    }
+
     await this.db
       .update(schema.waitlist)
       .set({ status: 1, calledAt: new Date(), updatedAt: new Date() })
       .where(eq(schema.waitlist.id, waitlistId));
 
-    // SYNC: Ensure linked appointment is also in Consultation status
-    const [row] = await this.db
-      .select({ appointmentId: schema.waitlist.appointmentId })
-      .from(schema.waitlist)
-      .where(eq(schema.waitlist.id, waitlistId));
-
-    if (row?.appointmentId) {
+    if (target?.appointmentId) {
       await this.db
         .update(schema.appointments)
         .set({ status: AppointmentStatus.Consultation, updatedAt: new Date() })
-        .where(eq(schema.appointments.id, row.appointmentId));
+        .where(eq(schema.appointments.id, target.appointmentId));
     }
   }
 

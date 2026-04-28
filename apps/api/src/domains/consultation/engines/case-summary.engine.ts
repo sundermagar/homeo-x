@@ -59,7 +59,8 @@ Generate a clinical case summary:`;
         responseFormat: 'json',
       });
 
-      return JSON.parse(response.content);
+      const jsonStr = response.content.substring(response.content.indexOf('{'), response.content.lastIndexOf('}') + 1);
+      return JSON.parse(jsonStr || response.content);
     } catch (error: any) {
       logger.error({ error: error.message }, 'Case summary generation failed');
       return {

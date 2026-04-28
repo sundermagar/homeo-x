@@ -209,7 +209,8 @@ Remedy Count: Low=20-50 (high value), Medium=50-150, High=150+
         temperature: 0.1,
       });
 
-      const parsed = JSON.parse(res.content);
+      const jsonStr = res.content.substring(res.content.indexOf('{'), res.content.lastIndexOf('}') + 1);
+      const parsed = JSON.parse(jsonStr || res.content);
 
       const suggestedRubrics: SuggestedRubric[] = (parsed.suggestedRubrics || []).map((r: any, i: number) => ({
         rubricId: `ai-rubric-${Date.now()}-${i}`,
@@ -284,7 +285,8 @@ JSON Output:
       temperature: 0.1,
     });
 
-    const parsed = JSON.parse(res.content);
+    const jsonStr = res.content.substring(res.content.indexOf('{'), res.content.lastIndexOf('}') + 1);
+    const parsed = JSON.parse(jsonStr || res.content);
 
     const maxPossibleScore = input.selectedRubrics.reduce((sum, r) => {
       let catWeight = 1;
@@ -396,7 +398,8 @@ JSON Output:
         temperature: 0.1,
       });
 
-      const parsed = JSON.parse(res.content);
+      const jsonStr = res.content.substring(res.content.indexOf('{'), res.content.lastIndexOf('}') + 1);
+      const parsed = JSON.parse(jsonStr || res.content);
 
       return (parsed.rubrics || []).map((r: any, i: number) => ({
         rubricId: `kent-search-${Date.now()}-${i}`,

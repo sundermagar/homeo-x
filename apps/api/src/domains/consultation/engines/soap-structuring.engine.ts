@@ -83,7 +83,8 @@ Generate a complete, clinically appropriate SOAP note based strictly on the tran
         responseFormat: 'json',
       });
 
-      const parsed = JSON.parse(response.content);
+      const jsonStr = response.content.substring(response.content.indexOf('{'), response.content.lastIndexOf('}') + 1);
+      const parsed = JSON.parse(jsonStr || response.content);
 
       const icdCodes = Array.isArray(parsed.icdCodes)
         ? parsed.icdCodes.map((c: any) =>

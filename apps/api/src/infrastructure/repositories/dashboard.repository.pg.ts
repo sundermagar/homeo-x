@@ -486,7 +486,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           AND (
             regid IN (SELECT regid FROM patients WHERE clinic_id = ${contextId})
             OR 
-            EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = ${revInfo.name} AND column_name = 'clinic_id' AND clinic_id = ${contextId})
+            EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'receipt' AND column_name = 'clinic_id' AND clinic_id = ${contextId})
           )
         GROUP BY 1
       )

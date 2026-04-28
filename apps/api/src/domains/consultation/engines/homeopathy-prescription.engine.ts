@@ -175,7 +175,8 @@ Draft the consultation report with GNM interpretation. Include top 4 remedies wi
         responseFormat: 'json',
       });
 
-      let parsed = JSON.parse(response.content);
+      const jsonStr = response.content.substring(response.content.indexOf('{'), response.content.lastIndexOf('}') + 1);
+      let parsed = JSON.parse(jsonStr || response.content);
       
       if (!parsed.suggestedRemedies || !Array.isArray(parsed.suggestedRemedies)) {
         parsed.suggestedRemedies = [{
