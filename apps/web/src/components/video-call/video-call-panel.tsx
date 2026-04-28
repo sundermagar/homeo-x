@@ -22,8 +22,8 @@ interface VideoCallPanelProps {
   localSpeaker: SpeakerLabel;
   patientJoinLink?: string;
   transcript: TranscriptSegmentLocal[];
-  interimText?: string;
-  remoteInterimText?: string | null;
+  drInterimText?: string;
+  ptInterimText?: string;
   isTranscribing?: boolean;
   isRemotePaused?: boolean;
   error?: string | null;
@@ -42,19 +42,34 @@ const VideoPlayer = ({ track, isLocal }: { track: any; isLocal?: boolean }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    if (track) {
-      setTimeout(() => {
-        if (typeof track.play === 'function' && containerRef.current) {
-          track.play(containerRef.current, { fit: 'cover' });
-        } else if (typeof track.attach === 'function' && videoRef.current) {
-          track.attach(videoRef.current);
-        } else if (track instanceof MediaStreamTrack && videoRef.current) {
-          videoRef.current.srcObject = new MediaStream([track]);
-        }
-      }, 0);
+    if (!track) return;
+    
+    const element = videoRef.current;
+    if (!element) return;
+
+    console.log(`[VideoPlayer] Rendering track:`, track);
+
+    // LiveKit tracks have .attach(element)
+    if (typeof track.attach === 'function') {
+      track.attach(element);
+      return () => {
+        if (typeof track.detach === 'function') track.detach(element);
+      };
+    } 
+    
+    // Agora tracks have .play(element)
+    if (typeof track.play === 'function') {
+      track.play(element, { fit: 'cover' });
       return () => {
         if (typeof track.stop === 'function') track.stop();
-        else if (typeof track.detach === 'function' && videoRef.current) track.detach(videoRef.current);
+      };
+    }
+
+    // Fallback for MediaStreamTrack
+    if (track instanceof MediaStreamTrack) {
+      element.srcObject = new MediaStream([track]);
+      return () => {
+        element.srcObject = null;
       };
     }
   }, [track]);
@@ -91,22 +106,21 @@ const AudioPlayer = ({ track }: { track: any }) => {
   return <audio ref={audioRef} autoPlay style={{ display: 'none' }} />;
 };
 
-export function VideoCallPanel({
-  video,
-  localSpeaker,
-  patientJoinLink,
-  transcript,
-  interimText,
-  remoteInterimText,
-  isTranscribing,
-  isRemotePaused,
-  error,
-  onLeave,
-  onPauseToggle,
-  transcriptHeaderActions,
-  transcriptBottomActions,
-  isPaused: externalPaused,
-}: VideoCallPanelProps) {
+export function VideoCallPanel(props: VideoCallPanelProps) {
+  const {
+    video,
+    localSpeaker,
+    patientJoinLink,
+    transcript,
+    isTranscribing,
+    isRemotePaused,
+    error,
+    onLeave,
+    onPauseToggle,
+    transcriptHeaderActions,
+    transcriptBottomActions,
+    isPaused: externalPaused,
+  } = props;
   const [copied, setCopied] = useState(false);
   const [isPaused, setIsPaused] = useState(externalPaused ?? false);
   const [isFocused, setIsFocused] = useState(false);
@@ -122,13 +136,13 @@ export function VideoCallPanel({
     if (transcriptRef.current) {
       transcriptRef.current.scrollTop = transcriptRef.current.scrollHeight;
     }
-  }, [transcript.length, interimText]);
+  }, [transcript.length, props.drInterimText, props.ptInterimText]);
 
   const handleCopyLink = () => {
     if (patientJoinLink) {
       // If doctor is visiting from localhost, force the Ngrok internet url for the patient link
       const BASE_URL = window.location.origin.includes('localhost') 
-        ? 'https://lordliest-thu-unsuccessfully.ngrok-free.dev' 
+        ? `https://${import.meta.env.VITE_FRONTEND_URL || 'cornmeal-immodest-unlinked.ngrok-free.dev'}` 
         : window.location.origin;
       const fullUrl = new URL(patientJoinLink, BASE_URL).toString();
       navigator.clipboard.writeText(fullUrl);
@@ -186,14 +200,23 @@ export function VideoCallPanel({
   }
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'white', border: '1px solid #E0E7FF', borderRadius: '1rem', boxShadow: '0 4px 20px rgba(79,70,229,0.07)' }}>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '1rem', gap: '0.75rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'white', border: '1px solid #E0E7FF', borderRadius: '1rem', boxShadow: '0 4px 20px rgba(79,70,229,0.07)' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '1rem', gap: '0.75rem' }}>
 
         {/* ── Video area ── */}
         <div style={{ borderRadius: '0.75rem', overflow: 'hidden', background: '#0F172A', position: 'relative', height: '180px', flexShrink: 0, border: '1px solid #1E293B' }}>
           {/* Remote */}
           <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
-            {video?.remoteUsers?.length > 0 && <VideoPlayer track={video.remoteUsers[0]?.videoTrack} isLocal={false} />}
+            {video?.remoteUsers?.length > 0 && (
+              <>
+                <VideoPlayer track={video.remoteUsers[0]?.videoTrack} isLocal={false} />
+                {/* Remote User Mic Indicator */}
+                <div style={{ position: 'absolute', bottom: 12, left: 12, display: 'flex', alignItems: 'center', gap: '0.375rem', background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', padding: '0.25rem 0.5rem', borderRadius: '0.5rem', border: '1px solid rgba(255,255,255,0.1)', zIndex: 10 }}>
+                  {video.remoteUsers[0]?.isMicOn ? <Mic style={{ width: 14, height: 14, color: '#10B981' }} /> : <MicOff style={{ width: 14, height: 14, color: '#EF4444' }} />}
+                  <span style={{ fontSize: 11, fontWeight: 600, color: 'white' }}>{localSpeaker === 'DOCTOR' ? 'Patient' : 'Doctor'}</span>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Local PiP */}
@@ -294,7 +317,7 @@ export function VideoCallPanel({
         </div>
 
         {/* ── Transcript ── */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'white', borderRadius: '0.875rem', border: '1px solid #E5E7EB' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'white', borderRadius: '0.875rem', border: '1px solid #E5E7EB', flexShrink: 0 }}>
           {/* Header */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', borderBottom: '1px solid #F3F4F6', flexShrink: 0 }}>
             <span style={{ fontSize: 11, fontWeight: 800, color: '#4338CA', textTransform: 'uppercase', letterSpacing: '0.1em', borderBottom: '2px solid #6366F1', paddingBottom: '0.2rem' }}>Transcript</span>
@@ -302,33 +325,56 @@ export function VideoCallPanel({
           </div>
 
           {/* Scroll area */}
-          <div ref={transcriptRef} style={{ flex: 1, overflowY: 'auto', padding: '0.625rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-            {transcript.length === 0 && !interimText && (
+          <div ref={transcriptRef} style={{ maxHeight: '90px', minHeight: '60px', overflowY: 'auto', padding: '0.625rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {transcript.length === 0 && !props.drInterimText && !props.ptInterimText && (
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', paddingTop: '1.5rem', textAlign: 'center' }}>
                 <Waves style={{ width: 22, height: 22, color: '#D1D5DB' }} />
                 <p style={{ fontSize: 11, color: '#9CA3AF', fontStyle: 'italic', margin: 0 }}>Listening for conversation...</p>
               </div>
             )}
             {transcript.filter(s => s.isFinal).map((seg, idx) => (
-              <div key={`${seg.speaker}-${seg.sequenceNumber}-${idx}`} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.625rem' }}>
-                <div style={{ width: 22, height: 22, borderRadius: 4, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, color: seg.speaker === 'DOCTOR' ? '#3B82F6' : '#16A34A' }}>
+              <div key={`${seg.speaker}-${seg.sequenceNumber}-${idx}`} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
+                <div style={{ 
+                  width: 24, 
+                  height: 24, 
+                  borderRadius: 6, 
+                  flexShrink: 0, 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  fontSize: 9, 
+                  fontWeight: 800, 
+                  background: seg.speaker === 'DOCTOR' ? '#F1F5F9' : '#EEF2FF',
+                  color: seg.speaker === 'DOCTOR' ? '#475569' : '#4F46E5',
+                  border: `1px solid ${seg.speaker === 'DOCTOR' ? '#E2E8F0' : '#C7D2FE'}`
+                }}>
                   {seg.speaker === 'DOCTOR' ? 'DR' : 'PT'}
                 </div>
-                <p style={{ fontSize: 12, color: '#374151', fontWeight: 500, margin: 0, lineHeight: 1.5 }}>
+                <p style={{ fontSize: 13, color: '#1E293B', fontWeight: 500, margin: 0, lineHeight: 1.6, paddingTop: 2 }}>
                   {seg.translatedText || seg.text}
                 </p>
               </div>
             ))}
-            {interimText && (
-              <div style={{ display: 'flex', gap: '0.625rem', opacity: 0.65 }}>
-                <div style={{ width: 22, height: 22, borderRadius: 4, color: '#60A5FA', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, flexShrink: 0 }}>DR</div>
-                <p style={{ fontSize: 12, color: 'rgba(59,130,246,0.7)', fontStyle: 'italic', margin: 0 }}>{interimText}</p>
+            {props.drInterimText && (
+              <div style={{ display: 'flex', gap: '0.75rem', opacity: 0.8 }}>
+                <div style={{ 
+                  width: 24, height: 24, borderRadius: 6, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800,
+                  background: '#F8FAFC', color: '#94A3B8', border: '1px solid #F1F5F9'
+                }}>DR</div>
+                <p style={{ fontSize: 13, color: '#64748B', fontStyle: 'italic', margin: 0, paddingTop: 2 }}>
+                  {/[\u0900-\u097F]/.test(props.drInterimText) ? '...' : props.drInterimText}
+                </p>
               </div>
             )}
-            {remoteInterimText && (
-              <div style={{ display: 'flex', gap: '0.625rem', opacity: 0.65 }}>
-                <div style={{ width: 22, height: 22, borderRadius: 4, color: '#4ADE80', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, flexShrink: 0 }}>PT</div>
-                <p style={{ fontSize: 12, color: 'rgba(34,197,94,0.7)', fontStyle: 'italic', margin: 0 }}>{remoteInterimText}</p>
+            {props.ptInterimText && (
+              <div style={{ display: 'flex', gap: '0.75rem', opacity: 0.8 }}>
+                <div style={{ 
+                  width: 24, height: 24, borderRadius: 6, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800,
+                  background: '#F5F3FF', color: '#A78BFA', border: '1px solid #EDE9FE'
+                }}>PT</div>
+                <p style={{ fontSize: 13, color: '#8B5CF6', fontStyle: 'italic', margin: 0, paddingTop: 2 }}>
+                  {/[\u0900-\u097F]/.test(props.ptInterimText) ? '...' : props.ptInterimText}
+                </p>
               </div>
             )}
           </div>

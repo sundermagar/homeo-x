@@ -29,7 +29,12 @@ export default function ConsultationModePage() {
 
   if (!visitId) return null;
 
-  if (isVisitLoading || isApptLoading || (patientIdToFetch && isPatientLoading)) {
+  // We can proceed if we have either the visit OR the appointment data.
+  // We only wait if NEITHER is ready and they are still loading.
+  const isCoreDataReady = !!visit || !!appointment;
+  const isCoreLoading = !isCoreDataReady && (isVisitLoading || isApptLoading);
+  
+  if (isCoreLoading || (patientIdToFetch && isPatientLoading)) {
     return <LoadingState message="Loading consultation details..." />;
   }
 

@@ -459,6 +459,9 @@ export class DashboardRepositoryPg implements IDashboardRepository {
   }
 
   async getRevenueSeries(period: string, contextId: number, paymentMode?: string): Promise<RevenueSeries[]> {
+    const revInfo = await this.getRevenueTableInfo();
+    if (!revInfo) return [];
+
     let modeFilter = '';
     if (paymentMode === 'Cash') {
       modeFilter = "AND (LOWER(COALESCE(payment_mode, '')) = 'cash' OR payment_mode IS NULL OR payment_mode = '')";

@@ -91,12 +91,15 @@ const RolesPermissionsPage = lazy(() => import('@/features/settings/pages/roles-
 // Operations & CRM
 const OperationsDashboard = lazy(() => import('@/features/operations/pages/operations-dashboard'));
 
+const PatientMeetPage = lazy(() => import('@/features/consultation/patient-meet-page'));
+
 export function AppRouter() {
   return (
     <Suspense fallback={<Loading />}>
       <Routes>
         {/* Public */}
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/meet/:roomId" element={<PatientMeetPage />} />
 
         {/* Protected */}
         <Route element={<ProtectedRoute />}>

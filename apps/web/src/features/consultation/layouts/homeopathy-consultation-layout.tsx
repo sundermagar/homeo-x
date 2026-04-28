@@ -113,7 +113,9 @@ export function HomeopathyConsultationLayout({
           : `${rawLink}?mode=${callMode.toLowerCase()}`;
         const patientJoinLink = dynamicLink?.startsWith('http')
           ? dynamicLink
-          : `${window.location.origin}${dynamicLink || `/meet/${visitId}?mode=${callMode.toLowerCase()}`}`;
+          : `${window.location.origin.includes('localhost') 
+              ? `https://${import.meta.env.VITE_FRONTEND_URL || 'cornmeal-immodest-unlinked.ngrok-free.dev'}` 
+              : window.location.origin}${dynamicLink || `/meet/${visitId}?mode=${callMode.toLowerCase()}`}`;
         onStartVideoCall({
           appId: result.appId,
           channel: result.channel,

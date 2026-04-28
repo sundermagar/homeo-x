@@ -18,7 +18,7 @@ export function getTenantSlugFromUrl(): string | null {
 
   // Handle ngrok free domains: skip the base ngrok subdomain
   if (hostname.endsWith('.ngrok-free.dev')) {
-    // lordliest-thu-unsuccessfully.ngrok-free.dev -> ["lordliest-thu-unsuccessfully", "ngrok-free", "dev"]
+    // cornmeal-immodest-unlinked.ngrok-free.dev -> ["cornmeal-immodest-unlinked", "ngrok-free", "dev"]
     if (parts.length <= 3) return null;
     return parts[0];
   }

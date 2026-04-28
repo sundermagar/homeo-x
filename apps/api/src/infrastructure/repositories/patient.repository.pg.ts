@@ -296,7 +296,7 @@ export class PatientRepositoryPg implements PatientRepository {
         doctorConditions.push(eq(doctorsLegacy.clinicId, clinicId));
       }
 
-      const [doctors, religions, occupations, references, refTypes, referralSrcs] = await Promise.all([
+      const [doctors, religions, occupations, references, referralSrcs] = await Promise.all([
         this.db
           .select({
             id: doctorsLegacy.id,
@@ -556,7 +556,6 @@ export class PatientRepositoryPg implements PatientRepository {
       bloodGroup: row.bloodGroup || null,
       // 'reference' is the actual DB column; domain calls it 'referenceType'
       referenceType: row.reference || null,
-      referenceTypeId: row.referenceTypeId || null,
       referredBy: row.referedBy || null,
       assistantDoctor: row.assitantDoctor || null,
       consultationFee: row.consultationFee ? Number(row.consultationFee) : null,

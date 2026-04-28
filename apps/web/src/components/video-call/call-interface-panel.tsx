@@ -8,6 +8,7 @@ import {
   Waves,
   Copy,
   Check,
+  User,
 } from 'lucide-react';
 import type { TranscriptSegmentLocal, SpeakerLabel } from '../../types/scribing';
 import { VideoCallPanel } from './video-call-panel';
@@ -22,6 +23,8 @@ interface CallInterfacePanelProps {
   transcript: TranscriptSegmentLocal[];
   interimText?: string;
   remoteInterimText?: string | null;
+  drInterimText?: string;
+  ptInterimText?: string;
   isTranscribing?: boolean;
   isRemotePaused?: boolean;
   error?: string | null;
@@ -87,9 +90,13 @@ export function CallInterfacePanel({ callMode, ...props }: CallInterfacePanelPro
   const handleCopyLink = () => {
     if (props.patientJoinLink) {
       const BASE_URL = window.location.origin.includes('localhost') 
-        ? 'https://lordliest-thu-unsuccessfully.ngrok-free.dev' 
+        ? `https://${import.meta.env.VITE_FRONTEND_URL || 'cornmeal-immodest-unlinked.ngrok-free.dev'}` 
         : window.location.origin;
-      const fullUrl = new URL(props.patientJoinLink, BASE_URL).toString();
+      
+      const url = new URL(props.patientJoinLink, BASE_URL);
+      url.searchParams.set('mode', callMode.toLowerCase());
+      
+      const fullUrl = url.toString();
       navigator.clipboard.writeText(fullUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -138,33 +145,67 @@ export function CallInterfacePanel({ callMode, ...props }: CallInterfacePanelPro
       </div>
 
       {/* Scrollable content */}
-      <div style={{ maxHeight: '200px', minHeight: '120px', overflowY: 'auto', padding: '0.625rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+      <div style={{ maxHeight:90, minHeight:60, overflowY: 'auto', padding: '0.625rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
         {props.transcript.length === 0 && !props.interimText && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '1.5rem 0', textAlign: 'center' }}>
             <Waves style={{ width: 22, height: 22, color: '#D1D5DB' }} />
             <p style={{ fontSize: 11, color: '#9CA3AF', fontStyle: 'italic', margin: 0 }}>Listening for conversation...</p>
           </div>
         )}
-        {props.transcript.filter(s => s.isFinal).map((seg, idx) => (
-          <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.625rem' }}>
-            <div style={{ width: 22, height: 22, borderRadius: 4, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, ...(seg.speaker === 'DOCTOR' ? { background: '#F3F4F6', color: '#374151' } : { background: '#EFF6FF', color: '#1D4ED8' }) }}>
-              {seg.speaker === 'DOCTOR' ? 'DR' : 'PT'}
+        {/* Final Segments */}
+        {props.transcript.filter(s => s.isFinal).map((seg, idx) => {
+          const displayText = seg.translatedText || seg.text;
+          const isHindi = /[\u0900-\u097F]/.test(seg.text);
+          const finalDisplay = (isHindi && !seg.translatedText) ? 'Translating...' : displayText;
+
+          return (
+            <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
+              <div style={{ 
+                width: 24, 
+                height: 24, 
+                borderRadius: 6, 
+                flexShrink: 0, 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                fontSize: 9, 
+                fontWeight: 800, 
+                background: seg.speaker === 'DOCTOR' ? '#F1F5F9' : '#EEF2FF',
+                color: seg.speaker === 'DOCTOR' ? '#475569' : '#4F46E5',
+                border: `1px solid ${seg.speaker === 'DOCTOR' ? '#E2E8F0' : '#C7D2FE'}`
+              }}>
+                {seg.speaker === 'DOCTOR' ? 'DR' : 'PT'}
+              </div>
+              <p style={{ fontSize: 13, color: '#1E293B', fontWeight: 500, margin: 0, lineHeight: 1.6, paddingTop: 2 }}>
+                {finalDisplay}
+              </p>
             </div>
-            <p style={{ fontSize: 12, color: '#374151', fontWeight: 500, margin: 0, lineHeight: 1.5 }}>
-              {seg.translatedText || seg.text}
+          );
+        })}
+
+        {/* Interim Text — DR */}
+        {props.drInterimText && (
+          <div style={{ display: 'flex', gap: '0.75rem', opacity: 0.8 }}>
+            <div style={{ 
+              width: 24, height: 24, borderRadius: 6, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800,
+              background: '#F8FAFC', color: '#94A3B8', border: '1px solid #F1F5F9'
+            }}>DR</div>
+            <p style={{ fontSize: 13, color: '#64748B', fontStyle: 'italic', margin: 0, paddingTop: 2 }}>
+              {/[\u0900-\u097F]/.test(props.drInterimText) ? '...' : props.drInterimText}
             </p>
           </div>
-        ))}
-        {props.interimText && (
-          <div style={{ display: 'flex', gap: '0.625rem', opacity: 0.7 }}>
-            <div style={{ width: 22, height: 22, borderRadius: 4, background: '#EFF6FF', color: '#93C5FD', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, flexShrink: 0 }}>...</div>
-            <p style={{ fontSize: 12, color: 'rgba(59,130,246,0.7)', fontStyle: 'italic', margin: 0 }}>{props.interimText}</p>
-          </div>
         )}
-        {props.remoteInterimText && (
-          <div style={{ display: 'flex', gap: '0.625rem', opacity: 0.7 }}>
-            <div style={{ width: 22, height: 22, borderRadius: 4, background: '#EFF6FF', color: '#818CF8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, flexShrink: 0 }}>...</div>
-            <p style={{ fontSize: 12, color: 'rgba(99,102,241,0.7)', fontStyle: 'italic', margin: 0 }}>{props.remoteInterimText}</p>
+
+        {/* Interim Text — PT */}
+        {props.ptInterimText && (
+          <div style={{ display: 'flex', gap: '0.75rem', opacity: 0.8 }}>
+            <div style={{ 
+              width: 24, height: 24, borderRadius: 6, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800,
+              background: '#F5F3FF', color: '#A78BFA', border: '1px solid #EDE9FE'
+            }}>PT</div>
+            <p style={{ fontSize: 13, color: '#8B5CF6', fontStyle: 'italic', margin: 0, paddingTop: 2 }}>
+              {/[\u0900-\u097F]/.test(props.ptInterimText) ? '...' : props.ptInterimText}
+            </p>
           </div>
         )}
       </div>
@@ -225,6 +266,27 @@ export function CallInterfacePanel({ callMode, ...props }: CallInterfacePanelPro
     );
   }
 
+  if (callMode === 'VIDEO') {
+    return (
+      <VideoCallPanel
+        video={props.video}
+        localSpeaker={props.localSpeaker}
+        patientJoinLink={props.patientJoinLink}
+        transcript={props.transcript}
+        drInterimText={props.drInterimText}
+        ptInterimText={props.ptInterimText}
+        isTranscribing={props.isTranscribing}
+        isRemotePaused={props.isRemotePaused}
+        error={props.error}
+        onLeave={props.onLeave}
+        onPauseToggle={props.onPauseToggle}
+        isPaused={props.isPaused}
+        transcriptHeaderActions={props.transcriptHeaderActions}
+        transcriptBottomActions={props.transcriptBottomActions}
+      />
+    );
+  }
+
   // ─── AUDIO Layout ─────────────────────────────────────────────────────────
   return (
     <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', border: '1.5px solid #F59E0B', background: '#FFFBEB', borderRadius: '1rem' }}>
@@ -234,22 +296,26 @@ export function CallInterfacePanel({ callMode, ...props }: CallInterfacePanelPro
         <div style={{ background: 'white', borderRadius: '0.875rem', border: '1px solid #FDE68A', padding: '1.25rem 1rem', flexShrink: 0, position: 'relative', overflow: 'hidden' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             {/* PT */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-              <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 14, color: '#6B7280' }}>PT</div>
-              <span style={{ fontSize: 9, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Patient</span>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.625rem' }}>
+              <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'linear-gradient(135deg, #F3F4F6 0%, #D1D5DB 100%)', border: '2px solid #E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4B5563', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+                <User style={{ width: 28, height: 28 }} />
+              </div>
+              <span style={{ fontSize: 10, fontWeight: 800, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Patient</span>
             </div>
 
             {/* Waveform */}
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, height: 50, padding: '0 0.5rem' }}>
-              {[...Array(8)].map((_, i) => (
-                <div key={i} style={{ width: 4, borderRadius: 2, background: '#F59E0B', height: `${Math.max(6, Math.abs(Math.sin(i * 0.9 + 0.5)) * 28 + 8)}px`, animation: !isPaused ? `wave ${1 + (i % 3) * 0.25}s ease-in-out infinite alternate` : 'none', opacity: 0.85 }} />
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, height: 60, padding: '0 1rem' }}>
+              {[...Array(12)].map((_, i) => (
+                <div key={i} style={{ width: 3.5, borderRadius: 2, background: '#F59E0B', height: `${Math.max(6, Math.abs(Math.sin(i * 0.7 + 0.5)) * 34 + 10)}px`, animation: !isPaused ? `wave ${1 + (i % 4) * 0.2}s ease-in-out infinite alternate` : 'none', opacity: 0.9 }} />
               ))}
             </div>
 
             {/* DR */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-              <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#FEF3C7', border: '2.5px solid #F59E0B', boxShadow: '0 0 0 6px rgba(245,158,11,0.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 14, color: '#92400E' }}>DR</div>
-              <span style={{ fontSize: 9, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Doctor</span>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.625rem' }}>
+              <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'linear-gradient(135deg, #EEF2FF 0%, #C7D2FE 100%)', border: '2.5px solid #6366F1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4338CA', boxShadow: '0 8px 16px rgba(99,102,241,0.15)' }}>
+                <User style={{ width: 28, height: 28 }} />
+              </div>
+              <span style={{ fontSize: 10, fontWeight: 800, color: '#4338CA', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Doctor</span>
             </div>
           </div>
 

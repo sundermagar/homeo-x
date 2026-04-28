@@ -22,7 +22,6 @@ doctorsRouter.get('/', authMiddleware, async (req: Request, res: Response, next:
       category: 'doctor',
       page: 1,
       limit: 100,
-      clinicId,
     });
 
     // Check users table for is_active flag from PUBLIC schema (not tenant)
