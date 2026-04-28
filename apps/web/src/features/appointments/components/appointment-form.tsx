@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
-import { X, User, Calendar, Clock, Stethoscope, DollarSign, Loader2 } from 'lucide-react';
+import { X, User, Calendar, Clock, Stethoscope, DollarSign, Loader2, Printer } from 'lucide-react';
 import { VisitType, Role } from '@mmc/types';
 import type { Appointment, CreateAppointmentDto } from '@mmc/types';
 import { useCreateAppointment, useUpdateAppointment, useAvailableSlots } from '../hooks/use-appointments';
 import { useDoctors } from '../hooks/use-doctors';
+import { useOrganizations } from '@/features/platform/hooks/use-organizations';
 import { apiClient } from '@/infrastructure/api-client';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { NumericInput } from '@/shared/components/NumericInput';
+import { printAppointmentSlip } from '@/shared/utils/print';
 import '../styles/appointments.css';
 
 interface Doctor { id: number; name: string; consultation_fee?: number; isActive?: boolean; }
@@ -39,6 +41,7 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeSearchField, setActiveSearchField] = useState<'name' | 'id' | 'phone' | null>(null);
+  const [bookingResult, setBookingResult] = useState<{doctorName: string; tokenNo?: number} | null>(null);
 
   const createMutation = useCreateAppointment();
   const updateMutation = useUpdateAppointment();
@@ -50,6 +53,8 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
   const user = useAuthStore(s => s.user);
 
   const { data: doctorsList = [] } = useDoctors();
+  const { data: orgs = [] } = useOrganizations();
+  const currentOrg = orgs[0];
 
   useEffect(() => {
     if (doctorsList.length > 0) {
@@ -144,6 +149,7 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
     e.preventDefault();
     setError('');
     if (!form.bookingDate) { setError('Booking date is required'); return; }
+    if (!form.bookingTime) { setError('Please select a time slot'); return; }
 
     // Ensure date is in YYYY-MM-DD format for the backend
     let normalizedDate = form.bookingDate;
@@ -170,11 +176,18 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
     try {
       if (editAppointment) {
         await updateMutation.mutateAsync({ id: editAppointment.id, dto });
+        onSuccess?.();
+        onClose();
       } else {
-        await createMutation.mutateAsync(dto);
+        const result = await createMutation.mutateAsync(dto);
+        const created = result?.data ?? result;
+        const doc = doctors.find(d => String(d.id) === form.doctorId);
+        setBookingResult({
+          doctorName: doc?.name || 'N/A',
+          tokenNo: created?.tokenNo,
+        });
+        // Don't close yet - show success panel first
       }
-      onSuccess?.();
-      onClose();
     } catch (err: any) {
       setError(err.response?.data?.error ?? 'Something went wrong. Please try again.');
     }
@@ -433,6 +446,49 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
             </div>
           </form>
         </div>
+
+        {/* Booking Success - Print Slip */}
+        {bookingResult && (
+          <div className="appt-success-panel">
+            <div className="appt-success-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <div className="appt-success-text">
+              <h3>Appointment Confirmed!</h3>
+              <p>Dr. {bookingResult.doctorName} • {form.bookingDate} at {form.bookingTime}</p>
+              {bookingResult.tokenNo && <span className="appt-token-badge">Token #{bookingResult.tokenNo}</span>}
+            </div>
+            <div className="appt-success-actions">
+              <button
+                type="button"
+                className="appt-print-btn"
+                onClick={() => {
+                  const doc = doctors.find(d => String(d.id) === form.doctorId);
+                  if (currentOrg) {
+                    const today = new Date().toISOString().split('T')[0] as string;
+                    printAppointmentSlip({
+                      patientName: form.patientName || 'Patient',
+                      phone: form.phone || '',
+                      doctorName: (doc?.name) || 'N/A',
+                      bookingDate: form.bookingDate || today,
+                      bookingTime: form.bookingTime || '',
+                      consultationFee: form.consultationFee || '0',
+                      visitType: form.visitType,
+                      tokenNo: bookingResult.tokenNo ?? undefined,
+                      notes: form.notes,
+                    }, currentOrg);
+                  }
+                }}
+              >
+                <Printer size={16} />
+                Print Slip
+              </button>
+              <button type="button" className="appt-close-btn" onClick={onClose}>
+                Close
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

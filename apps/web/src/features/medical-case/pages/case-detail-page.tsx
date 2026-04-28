@@ -6,14 +6,14 @@ import {
   Phone, Calendar, MapPin, CheckCircle2, AlertCircle,
   Sparkles, MoreHorizontal, ChevronRight, Plus, Package,
   MessageSquare, Send, BrainCircuit, ClipboardList, FlaskConical,
-  Printer, Paperclip, Upload, X, Eye, Loader2
+  Printer, Paperclip, Upload, X, Eye, Loader2, Trash2
 } from 'lucide-react';
 import { useFullMedicalCase, useManageClinicalRecords } from '../hooks/use-medical-cases';
 import { AssignPackageModal } from '../../packages/components/assign-package-modal';
 import { VitalsFormModal } from '../components/vitals-form-modal';
 import { FollowupScheduler } from '../components/followup-scheduler';
 import { useSendSms } from '../../communications/hooks/use-communications';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/infrastructure/api-client';
 import { RemedyChartSession } from '../components/remedy-chart-session';
 import { AiRemedyView } from '../components/ai-remedy-view';
@@ -28,12 +28,10 @@ const TABS = [
   { id: 'vitals', label: 'Vitals', icon: Activity },
   { id: 'soap', label: 'SOAP', icon: Edit },
   { id: 'prescription', label: 'Prescription', icon: FileText },
-  { id: 'examination', label: 'Examination', icon: Search },
   { id: 'labs', label: 'Labs', icon: Zap },
-  { id: 'images', label: 'Media', icon: Camera },
+  { id: 'media', label: 'Media', icon: Camera },
   { id: 'billing', label: 'Billing', icon: CreditCard },
-  { id: 'followup', label: 'Follow-up', icon: Clock },
-  { id: 'ai', label: 'Repertory', icon: Sparkles },
+  { id: 'follow-up', label: 'Follow-up', icon: Clock },
   { id: 'consultant', label: 'AI Analysis', icon: BrainCircuit },
   { id: 'communication', label: 'Communication', icon: MessageSquare },
 ];
@@ -61,12 +59,9 @@ export default function MedicalCaseDetailPage() {
       {/* Header */}
       <header className="mc-detail-header">
         <div className="mc-back-group">
-          {/* <button className="mc-back-btn" onClick={() => navigate('/medical-cases')}>
-            <ArrowLeft size={16} strokeWidth={1.6} />
-          </button> */}
           <div className="mc-divider-v" />
           <div>
-            <div className="mc-page-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div className="mc-page-title">
               <span className="pp-text-gradient">Clinical Hub</span>
               <span className="mc-active-badge">Active Case</span>
             </div>
@@ -133,18 +128,9 @@ export default function MedicalCaseDetailPage() {
               <SnapshotItem icon={MapPin} label="Location" value={medicalCase.city || '—'} />
             </div>
 
-            <button className="mc-snapshot-edit-btn" onClick={() => navigate(`/patients/${regid}/edit`)}>Edit Profile</button>
-          </div>
-
-          {/* AI Hub */}
-          <div className="mc-ai-card pp-glass">
-            <Sparkles className="mc-ai-bg-icon" size={80} strokeWidth={1.6} />
-            <div className="mc-ai-title">Clinical AI</div>
-            <p className="mc-ai-sub">
-              Analyze patient trajectory based on clinical history and recent findings.
-            </p>
-            <button className="mc-ai-btn btn-primary" onClick={() => setActiveTab('consultant')}>
-              Run Analysis <ChevronRight size={12} strokeWidth={1.6} />
+            <button className="mc-snapshot-edit-btn" onClick={() => navigate(`/patients/${regid}/edit`)}>
+              <Edit size={14} strokeWidth={2} />
+              Edit Profile
             </button>
           </div>
         </div>
@@ -183,9 +169,7 @@ export default function MedicalCaseDetailPage() {
             {activeTab === 'vitals' && <VitalsView vitals={vitals} onRecord={() => setShowVitalsModal(true)} />}
             {activeTab === 'soap' && <SoapView soap={soap} onAiAssist={() => setActiveTab('consultant')} />}
             {activeTab === 'prescription' && <RemedyChartSession regid={Number(regid)} />}
-            {activeTab === 'ai' && <AiRemedyView regid={Number(regid)} />}
             {activeTab === 'consultant' && <AiConsultantView regid={Number(regid)} />}
-            {activeTab === 'examination' && <ExaminationView examination={fullData.examination} />}
             {activeTab === 'labs' && <LabsView investigations={fullData.investigations} regid={Number(regid)} />}
             {activeTab === 'billing' && <BillingView regid={Number(regid)} />}
             {activeTab === 'follow-up' && <FollowUpView 
@@ -193,7 +177,7 @@ export default function MedicalCaseDetailPage() {
               patientName={medicalCase.patientName} 
               doctorId={medicalCase.doctorId} 
             />}
-            {activeTab === 'media' && <MediaView images={fullData.images} />}
+            {activeTab === 'media' && <MediaView images={fullData.images} regid={Number(regid)} />}
             {activeTab === 'communication' && <CommunicationView regid={Number(regid)} phone={(medicalCase as any).phone || ''} name={(medicalCase as any).patientName || ''} />}
 
             {showVitalsModal && (
@@ -249,6 +233,7 @@ function SummaryView({ data }: any) {
     <div className="mc-summary-grid">
       <div className="mc-summary-card pp-card">
         <div className="mc-summary-card-title text-label">
+          <div className="mc-pulse-dot" />
           <AlertCircle size={14} strokeWidth={1.6} style={{ color: 'var(--pp-warning-fg)' }} />
           Active Conditions
         </div>
@@ -463,34 +448,145 @@ function CommunicationView({ regid, phone, name }: { regid: number; phone: strin
   );
 }
 /* ─── Media Tab ─────────────────────────────────────────────────── */
-function MediaView({ images }: { images: any[] }) {
-  if (!images || images.length === 0) {
-    return (
-      <div className="mc-empty-state">
-        <FileText size={40} strokeWidth={1} style={{ color: 'var(--text-muted)', marginBottom: 16 }} />
-        <p>No clinical images or documents uploaded yet.</p>
-        <button className="mc-btn-primary" style={{ marginTop: 12 }} onClick={() => alert('Media upload functionality coming soon')}>+ Upload Media</button>
-      </div>
-    );
-  }
+function MediaView({ images, regid }: { images: any[], regid: number }) {
+  const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [pendingFiles, setPendingFiles] = useState<{ file: File; preview: string; desc: string }[]>([]);
+  const [uploaded, setUploaded] = useState<any[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+
+  const addFiles = (files: FileList | null) => {
+    if (!files) return;
+    const newEntries = Array.from(files).map(file => ({
+      file,
+      preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : '',
+      desc: ''
+    }));
+    setPendingFiles(prev => [...prev, ...newEntries]);
+  };
+
+  const handleUpload = async () => {
+    if (pendingFiles.length === 0) return;
+    setUploading(true);
+    const results = [];
+    for (const entry of pendingFiles) {
+      const formData = new FormData();
+      formData.append('files', entry.file);
+      formData.append('regid', String(regid));
+      formData.append('description', entry.desc || 'Clinical Media');
+      formData.append('type', 'Media');
+
+      try {
+        const res = await apiClient.post('/medical-cases/records/images', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        if (res.data && res.data.data) {
+          results.push({ id: Date.now() + Math.random(), picture: res.data.data.picture, description: entry.desc, createdAt: new Date().toISOString() });
+        }
+      } catch (err) {
+        console.error('Upload failed', err);
+      }
+    }
+    setPendingFiles([]);
+    setUploading(false);
+  };
+
+  const handleDeleteMedia = async (id: number) => {
+    if (!window.confirm('Are you sure you want to delete this clinical record?')) return;
+    try {
+      await apiClient.delete(`/medical-cases/records/images/${id}`);
+      setUploaded(prev => prev.filter(img => img.id !== id));
+      // Re-fetch full data to sync with backend
+      queryClient.invalidateQueries({ queryKey: ['medical-case', Number(regid)] });
+    } catch (err) {
+      console.error('Delete failed', err);
+      alert('Failed to delete media');
+    }
+  };
+
+  const allImages = [...(images || []), ...uploaded];
 
   return (
-    <div className="mc-media-grid">
-      {images.map((img: any) => (
-        <div key={img.id} className="mc-media-card">
-          <div className="mc-media-preview">
-            {img.picture?.endsWith('.pdf') ? (
-              <FileText size={32} />
-            ) : (
-              <img src={img.picture} alt={img.description} />
-            )}
-          </div>
-          <div className="mc-media-info">
-            <div className="mc-media-desc">{img.description || 'Clinical Image'}</div>
-            <div className="mc-media-date">{new Date(img.createdAt).toLocaleDateString()}</div>
-          </div>
+    <div className="mc-media-workspace">
+      <div className="mc-media-upload-section pp-card" 
+           onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+           onDragLeave={() => setDragOver(false)}
+           onDrop={e => { e.preventDefault(); setDragOver(false); addFiles(e.dataTransfer.files); }}>
+        <div className="mc-media-dropzone" onClick={() => fileInputRef.current?.click()}>
+          <input ref={fileInputRef} type="file" multiple accept="image/*,application/pdf" style={{ display: 'none' }} onChange={e => addFiles(e.target.files)} />
+          <Camera size={32} strokeWidth={1} style={{ color: 'var(--text-muted)', marginBottom: 12 }} />
+          <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Click or drag clinical photos & documents to upload</p>
         </div>
-      ))}
+
+        {pendingFiles.length > 0 && (
+          <div className="mc-media-pending-list">
+            {pendingFiles.map((f, i) => (
+              <div key={i} className="mc-media-pending-item">
+                {f.preview ? <img src={f.preview} alt="preview" /> : <div className="pdf-icon"><FileText size={20} /></div>}
+                <input 
+                  type="text" 
+                  placeholder="Add description..." 
+                  value={f.desc} 
+                  onChange={e => {
+                    const next = [...pendingFiles];
+                    next[i].desc = e.target.value;
+                    setPendingFiles(next);
+                  }}
+                />
+                <button onClick={() => setPendingFiles(prev => prev.filter((_, idx) => idx !== i))}><X size={14} /></button>
+              </div>
+            ))}
+            <button className="mc-btn-primary" onClick={handleUpload} disabled={uploading}>
+              {uploading ? 'Uploading...' : `Upload ${pendingFiles.length} file(s)`}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {allImages.length === 0 ? (
+        <div className="mc-empty-state" style={{ marginTop: 24 }}>
+          <Camera size={40} strokeWidth={1} style={{ color: 'var(--text-muted)', marginBottom: 16 }} />
+          <p>No clinical images or documents uploaded yet.</p>
+        </div>
+      ) : (
+        <div className="mc-media-grid" style={{ marginTop: 24 }}>
+          {allImages.map((img: any) => (
+            <div key={img.id} className="mc-media-card pp-card group relative">
+              <div className="mc-media-preview">
+                {img.picture?.toLowerCase().endsWith('.pdf') ? (
+                  <div className="pdf-full-preview">
+                    <FileText size={48} strokeWidth={1} />
+                    <span>PDF Document</span>
+                  </div>
+                ) : (
+                  <img 
+                    src={img.picture} 
+                    alt={img.description} 
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      if (!target.src.includes('127.0.0.1:3000')) {
+                        target.src = `http://127.0.0.1:3000${img.picture}`;
+                      }
+                    }}
+                  />
+                )}
+                <button 
+                  className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-red-600 shadow-lg"
+                  onClick={(e) => { e.stopPropagation(); handleDeleteMedia(img.id); }}
+                  title="Delete Image"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+              <div className="mc-media-info">
+                <div className="mc-media-desc">{img.description || 'Clinical Image'}</div>
+                <div className="mc-media-date">{new Date(img.createdAt).toLocaleDateString()}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -556,21 +652,48 @@ function BillingView({ regid }: { regid: number }) {
 /* ─── Follow-up Tab ─────────────────────────────────────────────── */
 function FollowUpView({ patientId, patientName, doctorId }: { patientId: number, patientName: string, doctorId?: number }) {
   const { data: appointmentsData, isLoading, refetch } = useAppointments({ page: 1, limit: 100 } as any);
+  
+  // Fetch Follow-up Dues specifically for this patient
+  const { data: duesData } = useQuery({
+    queryKey: ['appointments', 'followups', 'dues', patientId],
+    queryFn: () => apiClient.get('/appointments/followups', { params: { patient_id: patientId } }).then(r => r.data.data as any[]),
+  });
 
-  // Filter manually if the API filter isn't strict enough
   const appointments = Array.isArray(appointmentsData) ? appointmentsData : (appointmentsData as any)?.data || [];
   const filtered = appointments.filter((a: any) => a.patientId === patientId);
+  const dues = Array.isArray(duesData) ? duesData : [];
 
   if (isLoading) return <div>Loading history...</div>;
 
   return (
     <div className="mc-followup-wrap">
+      {/* Follow-up Dues Section (New) */}
+      {dues.length > 0 && (
+        <div className="mc-dues-banner animate-pulse-subtle">
+          <div className="mc-dues-header">
+            <AlertCircle size={14} />
+            <span>Pending Follow-up Dues</span>
+          </div>
+          <div className="mc-dues-list">
+            {dues.map(d => (
+              <div key={d.id} className="mc-due-item">
+                <span className="mc-due-date">{d.bookingDate}</span>
+                <span className="mc-due-type">{d.visitType}</span>
+                <span className="mc-due-reason">Missed appointment</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div style={{ marginBottom: 24 }}>
         <FollowupScheduler 
           patientId={patientId} 
           patientName={patientName}
           defaultDoctorId={doctorId}
-          onSuccess={() => refetch()}
+          onSuccess={() => {
+            refetch();
+          }}
         />
       </div>
 
