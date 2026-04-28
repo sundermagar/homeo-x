@@ -2498,7 +2498,142 @@
 }
 .dark .mc-pulse-dot { animation: mc-pulse-active-dark 2s infinite; }
 
+/* ─── 9. Remedy Explorer Search Bar ─── */
+.mc-search-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 24px;
+  margin-bottom: 24px;
+}
 
+.mc-search-wrap {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  background: white;
+  border: 2.5px solid #f1f5f9;
+  border-radius: 16px;
+  padding: 4px 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
 
+.mc-search-wrap:focus-within {
+  border-color: #3b82f6;
+  box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.12), 0 8px 10px -6px rgba(59, 130, 246, 0.1);
+  transform: translateY(-1px);
+}
 
+.mc-search-icon {
+  color: #94a3b8;
+  transition: color 0.2s;
+}
 
+.mc-search-wrap:focus-within .mc-search-icon {
+  color: #3b82f6;
+}
+
+.mc-search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 12px 14px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1e293b;
+  outline: none;
+  width: 100%;
+}
+
+.mc-search-input::placeholder {
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.mc-search-clear {
+  padding: 6px;
+  border-radius: 8px;
+  background: #f1f5f9;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.mc-search-clear:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.mc-search-badge {
+  background: #eff6ff;
+  color: #2563eb;
+  padding: 4px 12px;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  border: 1.5px solid #dbeafe;
+  white-space: nowrap;
+}
+
+.mc-search-shortcut {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #64748b;
+  margin-left: 10px;
+}
+
+@media (min-width: 768px) {
+  .mc-search-shortcut { display: flex; }
+}
+
+/* Dark Mode Search */
+.dark .mc-search-wrap {
+  background: rgba(15, 15, 20, 0.4);
+  border-color: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+}
+
+.dark .mc-search-wrap:focus-within {
+  border-color: #3b82f6;
+  background: rgba(15, 15, 20, 0.6);
+}
+
+.dark .mc-search-input {
+  color: #e2e8f0;
+}
+
+.dark .mc-search-clear {
+  background: rgba(255, 255, 255, 0.05);
+  color: #94a3b8;
+}
+
+.dark .mc-search-clear:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.dark .mc-search-badge {
+  background: rgba(37, 99, 235, 0.1);
+  color: #60a5fa;
+  border-color: rgba(37, 99, 235, 0.2);
+}
+
+.dark .mc-search-shortcut {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #71717a;
+}
