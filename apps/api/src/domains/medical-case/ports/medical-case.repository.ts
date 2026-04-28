@@ -7,6 +7,10 @@ export interface MedicalCase {
   doctorId?: number | null;
   status: string;
   condition?: string | null;
+  patientName?: string | null;
+  phone?: string | null;
+  dateOfBirth?: string | null;
+  city?: string | null;
   createdAt?: Date | null;
   updatedAt?: Date | null;
 }

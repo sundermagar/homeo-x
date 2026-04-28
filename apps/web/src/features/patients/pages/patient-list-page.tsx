@@ -163,15 +163,15 @@ export default function PatientListPage() {
               {patients.map((p: PatientSummary) => (
                 <tr key={p.regid} className="hover-row">
                   <td>
-                    <div className="pat-member-row">
+                    <Link to={`/medical-cases/${p.regid}`} className="pat-member-row hover-opacity" style={{ textDecoration: 'none', color: 'inherit' }}>
                       <div className="pat-avatar">
                         {(p.fullName?.[0] || '?').toUpperCase()}
                       </div>
                       <div>
-                        <div className="pat-member-name">{p.fullName || 'Unknown'}</div>
+                        <div className="pat-member-name" style={{ color: 'var(--pp-blue)', fontWeight: 700 }}>{p.fullName || 'Unknown'}</div>
                         <div className="text-small">{p.gender === 'M' ? 'Male' : p.gender === 'F' ? 'Female' : p.gender}</div>
                       </div>
-                    </div>
+                    </Link>
                   </td>
                   <td>
                     <span className="pp-mono" style={{ background: 'var(--pp-warm-2)', padding: '2px 6px', borderRadius: '4px', fontSize: '12px' }}>
@@ -183,8 +183,8 @@ export default function PatientListPage() {
                   <td className="text-small">{p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-GB') : '—'}</td>
                   <td style={{ textAlign: 'right' }}>
                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                      <Link to={`/patients/${p.regid}`} className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px' }}>
-                        <Eye size={14} /> View
+                      <Link to={`/medical-cases/${p.regid}`} className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', background: 'var(--pp-blue)', color: '#fff', border: 'none' }}>
+                        <Eye size={14} /> History
                       </Link>
                       <Link to={`/patients/${p.regid}/edit`} className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', border: '1px solid var(--pp-warm-4)', color: 'var(--pp-text-2)' }}>
                         <Edit2 size={14} />
@@ -225,8 +225,8 @@ export default function PatientListPage() {
                 </div>
               </div>
 
-              <Link to={`/patients/${p.regid}`} className="btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>
-                View Details
+              <Link to={`/medical-cases/${p.regid}`} className="btn-secondary" style={{ width: '100%', justifyContent: 'center', background: 'var(--pp-blue)', color: '#fff', border: 'none' }}>
+                View History
               </Link>
             </div>
           ))}

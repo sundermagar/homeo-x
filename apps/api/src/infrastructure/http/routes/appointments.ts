@@ -84,6 +84,27 @@ appointmentsRouter.get('/', asyncHandler(async (req, res) => {
   }
 }));
 
+// GET /api/appointments/followups
+appointmentsRouter.get('/followups', asyncHandler(async (req, res) => {
+  const { from_date, to_date, doctor_id, search, page, limit } = req.query as Record<string, string>;
+  const listAppts = new ListAppointmentsUseCase(getRepo(req));
+  const clinicId = (req as any).user?.contextId;
+
+  const result = await listAppts.executeFollowups({
+    fromDate:  from_date || undefined,
+    toDate:    to_date || undefined,
+    doctorId:  doctor_id ? Number(doctor_id) : undefined,
+    clinicId,
+    search:    search || undefined,
+    page:      page ? Number(page) : 1,
+    limit:     limit ? Number(limit) : 100,
+  });
+
+  if (result.success) {
+    sendSuccess(res, result.data);
+  }
+}));
+
 // GET /api/appointments/today
 appointmentsRouter.get('/today', asyncHandler(async (req, res) => {
   const { doctor_id } = req.query as Record<string, string>;
