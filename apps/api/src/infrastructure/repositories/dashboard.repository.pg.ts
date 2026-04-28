@@ -82,7 +82,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         break;
       case 'week': {
         const d = new Date(now);
-        d.setHours(0,0,0,0);
+        d.setHours(0, 0, 0, 0);
         d.setDate(d.getDate() - d.getDay());
         const s = d.toISOString().split('T')[0] || '';
         d.setDate(d.getDate() + 6);
@@ -340,7 +340,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           ) AS dname
         `);
         doctorName = ((dnRes as any[])[0]?.dname || '').toLowerCase().trim();
-      } catch {}
+      } catch { }
 
       allRows = allRows.filter(r => {
         const rowDoctorId = Number(r.doctor_id);
@@ -366,21 +366,21 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     });
 
     return allRows.map(r => ({
-      id:          r.id,
-      wlId:        r.wl_id,
-      patientId:   r.patient_id,
-      regid:       r.regid,
+      id: r.id,
+      wlId: r.wl_id,
+      patientId: r.patient_id,
+      regid: r.regid,
       patientName: r.patient_name,
-      doctorName:  r.doctor_name,
+      doctorName: r.doctor_name,
       bookingTime: r.booking_time || '',
-      tokenNo:     r.token_no,
-      status:      r.status,
-      isUrgent:    false,
-      age:         undefined,
-      gender:      undefined,
-      createdAt:   r.created_at,
-      updatedAt:   r.updated_at,
-      vitals:      r.systolic_bp || r.weight_kg || r.temperature_f ? {
+      tokenNo: r.token_no,
+      status: r.status,
+      isUrgent: false,
+      age: undefined,
+      gender: undefined,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
+      vitals: r.systolic_bp || r.weight_kg || r.temperature_f ? {
         bp: r.systolic_bp && r.diastolic_bp ? `${r.systolic_bp}/${r.diastolic_bp}` : undefined,
         weight: r.weight_kg ? Number(r.weight_kg) : undefined,
         temp: r.temperature_f ? Number(r.temperature_f) : undefined,
@@ -483,6 +483,11 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         WHERE created_at >= date_trunc('month', NOW()) - interval '6 months'
           ${sql.raw(modeFilter ? modeFilter.replace('payment_mode', 'mode') : "")}
           AND (deleted_at IS NULL OR deleted_at::text = '')
+          AND (
+            regid IN (SELECT regid FROM patients WHERE clinic_id = ${contextId})
+            OR 
+            EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = ${revInfo.name} AND column_name = 'clinic_id' AND clinic_id = ${contextId})
+          )
         GROUP BY 1
       )
       SELECT to_char(months.m, 'Mon') as month, 
@@ -690,7 +695,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       WHERE p.clinic_id = ${contextId}
         AND b.bill_date::date >= ${start}::date AND b.bill_date::date < ${boundary}::date
         AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
-      ORDER BY b.charges DESC NULLS LAST
+      ORDER BY CAST(NULLIF(b.charges::text, '') AS numeric) DESC NULLS LAST
       LIMIT ${limit}
     `) as any[];
 
@@ -713,8 +718,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     const [revRes, patRes, collRes, waitRes, prevRevRes, prevPatRes] = await Promise.all([
       this.db.execute(sql`
         SELECT (
-          COALESCE((SELECT sum(received) FROM bills WHERE bill_date >= ${start} AND bill_date < ${boundary} AND (deleted_at IS NULL OR deleted_at::text = '')), 0) +
-          COALESCE((SELECT sum(CAST(NULLIF(amount::text, '') AS numeric)) FROM receipt WHERE created_at >= ${start} AND created_at < ${boundary} AND (deleted_at IS NULL OR deleted_at::text = '')), 0)
+          COALESCE((SELECT sum(received) FROM bills WHERE bill_date >= ${start} AND bill_date < ${boundary} AND (deleted_at IS NULL OR deleted_at::text = '') AND clinic_id = ${contextId}), 0) +
+          COALESCE((SELECT sum(CAST(NULLIF(amount::text, '') AS numeric)) FROM receipt WHERE created_at >= ${start} AND created_at < ${boundary} AND (deleted_at IS NULL OR deleted_at::text = '') AND "clinicId" = ${contextId}), 0)
         ) as total
       `),
       this.db.execute(sql`
@@ -730,6 +735,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         FROM bills
         WHERE bill_date >= ${start} AND bill_date < ${boundary}
           AND (deleted_at IS NULL OR deleted_at::text = '')
+          AND clinic_id = ${contextId}
       `),
       this.db.execute(sql`
         SELECT COALESCE(avg(extract(epoch from (called_at - checked_in_at))/60), 0)::int as avg_wait 
@@ -739,8 +745,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       `),
       this.db.execute(sql`
         SELECT (
-          COALESCE((SELECT sum(received) FROM bills WHERE bill_date >= ${prevStart} AND bill_date < ${prevBoundary} AND (deleted_at IS NULL OR deleted_at::text = '')), 0) +
-          COALESCE((SELECT sum(CAST(NULLIF(amount::text, '') AS numeric)) FROM receipt WHERE created_at >= ${prevStart} AND created_at < ${prevBoundary} AND (deleted_at IS NULL OR deleted_at::text = '')), 0)
+          COALESCE((SELECT sum(received) FROM bills WHERE bill_date >= ${prevStart} AND bill_date < ${prevBoundary} AND (deleted_at IS NULL OR deleted_at::text = '') AND clinic_id = ${contextId}), 0) +
+          COALESCE((SELECT sum(CAST(NULLIF(amount::text, '') AS numeric)) FROM receipt WHERE created_at >= ${prevStart} AND created_at < ${prevBoundary} AND (deleted_at IS NULL OR deleted_at::text = '') AND "clinicId" = ${contextId}), 0)
         ) as total
       `),
       this.db.execute(sql`
@@ -760,7 +766,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     const prevRevenue = ((prevRevRes as any[])[0] as any)?.total || 0;
     const prevPatients = ((prevPatRes as any[])[0] as any)?.cnt || 0;
 
-    const revenueTarget = Math.max(Math.round((prevRevenue > 0 ? prevRevenue : revenue > 0 ? revenue : 1000) * 1.15), 5000); 
+    const revenueTarget = Math.max(Math.round((prevRevenue > 0 ? prevRevenue : revenue > 0 ? revenue : 1000) * 1.15), 5000);
     const patientsTarget = Math.max(Math.round((prevPatients > 0 ? prevPatients : patients > 0 ? patients : 5) * 1.15), 10);
     const collectionTarget = 95;
     const waitTimeTarget = 20;

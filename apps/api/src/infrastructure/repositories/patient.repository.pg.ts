@@ -161,7 +161,7 @@ export class PatientRepositoryPg implements PatientRepository {
     if ((patients as any).religion) patientData.religion = input.religion || '';
     if ((patients as any).occupation) patientData.occupation = input.occupation || '';
     if ((patients as any).bloodGroup) patientData.bloodGroup = input.bloodGroup || '';
-    
+
     // Handle reference sources
     const refId = String((input as any).referenceTypeId || '');
     if (refId.startsWith('rt_')) {
@@ -296,7 +296,7 @@ export class PatientRepositoryPg implements PatientRepository {
         doctorConditions.push(eq(doctorsLegacy.clinicId, clinicId));
       }
 
-      const [doctors, religions, occupations, references, referralSrcs] = await Promise.all([
+      const [doctors, religions, occupations, references, refTypes, referralSrcs] = await Promise.all([
         this.db
           .select({
             id: doctorsLegacy.id,

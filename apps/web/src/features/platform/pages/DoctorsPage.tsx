@@ -101,21 +101,21 @@ function staffMemberToForm(staff: StaffMember): CreateStaffInput {
   };
 }
 
-function FileInputRow({ 
-  label, 
-  field, 
-  value, 
-  onChange, 
-  error, 
+function FileInputRow({
+  label,
+  field,
+  value,
+  onChange,
+  error,
   accept = "image/*,application/pdf",
   className = "",
   style = {}
-}: { 
-  label: string; 
-  field: string; 
-  value?: string; 
-  onChange: (f: string, e: React.ChangeEvent<HTMLInputElement>) => void; 
-  error?: string; 
+}: {
+  label: string;
+  field: string;
+  value?: string;
+  onChange: (f: string, e: React.ChangeEvent<HTMLInputElement>) => void;
+  error?: string;
   accept?: string;
   className?: string;
   style?: React.CSSProperties;
@@ -127,10 +127,10 @@ function FileInputRow({
         <div className="plat-file-trigger">
           <Upload size={14} /> Upload {label}
         </div>
-        <input 
-          type="file" 
+        <input
+          type="file"
           accept={accept}
-          onChange={(e) => onChange(field, e)} 
+          onChange={(e) => onChange(field, e)}
         />
       </div>
       {value && (
@@ -236,12 +236,12 @@ function StaffModal({
       const res = await apiClient.post('/staff/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      
+
       const resData = (res as any)._original ?? res.data;
       if (resData?.success && resData?.path) {
-         updateForm(field, resData.path);
+        updateForm(field, resData.path);
       } else {
-         setErrors((prev) => ({ ...prev, [field]: 'Upload failed' }));
+        setErrors((prev) => ({ ...prev, [field]: 'Upload failed' }));
       }
     } catch (err: any) {
       setErrors((prev) => ({ ...prev, [field]: err.message || 'Upload failed' }));
@@ -344,12 +344,12 @@ function StaffModal({
                 />
               </div>
 
-              <FileInputRow 
-                label="Profile Picture" 
-                field="profilepic" 
-                value={form.profilepic} 
-                onChange={handleFileUpload} 
-                error={errors['profilepic']} 
+              <FileInputRow
+                label="Profile Picture"
+                field="profilepic"
+                value={form.profilepic}
+                onChange={handleFileUpload}
+                error={errors['profilepic']}
                 accept="image/*"
                 style={{ gridColumn: 'span 2' }}
               />
@@ -552,13 +552,13 @@ function StaffModal({
                   disabled={isLoading}
                 />
               </div>
-              
-              <FileInputRow 
-                label="Aadhar Card" 
-                field="aadharCard" 
-                value={form.aadharCard} 
-                onChange={handleFileUpload} 
-                error={errors['aadharCard']} 
+
+              <FileInputRow
+                label="Aadhar Card"
+                field="aadharCard"
+                value={form.aadharCard}
+                onChange={handleFileUpload}
+                error={errors['aadharCard']}
               />
 
               <div className="plat-form-group">
@@ -571,29 +571,29 @@ function StaffModal({
                   disabled={isLoading}
                 />
               </div>
-              
-              <FileInputRow 
-                label="PAN Card" 
-                field="panCard" 
-                value={form.panCard} 
-                onChange={handleFileUpload} 
-                error={errors['panCard']} 
+
+              <FileInputRow
+                label="PAN Card"
+                field="panCard"
+                value={form.panCard}
+                onChange={handleFileUpload}
+                error={errors['panCard']}
               />
 
-              <FileInputRow 
-                label="Registration Certificate" 
-                field="registrationCertificate" 
-                value={form.registrationCertificate} 
-                onChange={handleFileUpload} 
-                error={errors['registrationCertificate']} 
+              <FileInputRow
+                label="Registration Certificate"
+                field="registrationCertificate"
+                value={form.registrationCertificate}
+                onChange={handleFileUpload}
+                error={errors['registrationCertificate']}
               />
 
-              <FileInputRow 
-                label="Appointment Letter" 
-                field="appointmentLetter" 
-                value={form.appointmentLetter} 
-                onChange={handleFileUpload} 
-                error={errors['appointmentLetter']} 
+              <FileInputRow
+                label="Appointment Letter"
+                field="appointmentLetter"
+                value={form.appointmentLetter}
+                onChange={handleFileUpload}
+                error={errors['appointmentLetter']}
               />
 
               <FileInputRow label="10th Marksheet" field="col10Document" value={form.col10Document} onChange={handleFileUpload} error={errors['col10Document']} />
@@ -758,7 +758,7 @@ export default function DoctorsPage() {
                       <span className={s.isActive ? 'plat-badge plat-badge-info' : 'plat-badge plat-badge-default'}>
                         {s.isActive ? (
                           <span className="flex items-center gap-1"><UserCheck size={10} /> Active</span>
-                        ) : 'Deactivated'}
+                        ) : 'Inactive'}
                       </span>
                     </td>
                     <td>

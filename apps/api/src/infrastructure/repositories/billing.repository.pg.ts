@@ -17,13 +17,19 @@ export class BillingRepositoryPg implements BillingRepository {
     return row ? this.toDomain(row) : null;
   }
 
-  async findAll(params: ListBillsQuery): Promise<{ data: BillWithPatient[]; total: number }> {
+  async findAll(params: ListBillsQuery, clinicId?: number): Promise<{ data: BillWithPatient[]; total: number }> {
     const { page, limit, regid, date } = params;
     const offset = (page - 1) * limit;
 
     // Build where conditions
     const conditions = [isNull(bills.deletedAt)];
     if (regid) conditions.push(eq(bills.regid, regid));
+    
+    // Filter by clinicId on patients table safely
+    if (clinicId) {
+      conditions.push(eq(patients.clinicId, clinicId));
+    }
+
     if (date) {
       const start = new Date(date);
       const end = new Date(date);
@@ -46,7 +52,10 @@ export class BillingRepositoryPg implements BillingRepository {
         .orderBy(desc(bills.id))
         .limit(limit)
         .offset(offset),
-      this.db.select({ count: sql<number>`count(*)` }).from(bills).where(where),
+      this.db.select({ count: sql<number>`count(*)` })
+        .from(bills)
+        .leftJoin(patients, eq(patients.regid, bills.regid))
+        .where(where),
     ]);
 
     const total = Number(countRows[0]?.count ?? 0);
@@ -73,12 +82,16 @@ export class BillingRepositoryPg implements BillingRepository {
     };
   }
 
-  async findDailyCollection(date: string): Promise<DailyCollectionSummary> {
+  async findDailyCollection(date: string, clinicId?: number): Promise<DailyCollectionSummary> {
     const start = new Date(date);
     const end = new Date(date);
     end.setDate(end.getDate() + 1);
 
-    const where = and(isNull(bills.deletedAt), gte(bills.createdAt, start), lt(bills.createdAt, end));
+    const conditions = [isNull(bills.deletedAt), gte(bills.createdAt, start), lt(bills.createdAt, end)];
+    if (clinicId) {
+      conditions.push(eq(patients.clinicId, clinicId));
+    }
+    const where = and(...conditions);
 
     const rows = await this.db
       .select({
@@ -87,7 +100,7 @@ export class BillingRepositoryPg implements BillingRepository {
         phone: patients.mobile1,
       })
       .from(bills)
-      .leftJoin(patients, eq(patients.regid, bills.regid))
+      .innerJoin(patients, eq(patients.regid, bills.regid))
       .where(where)
       .orderBy(desc(bills.id));
 

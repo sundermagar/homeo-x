@@ -24,8 +24,9 @@ export function createBillingRouter(): Router {
     '/',
     validateQuery(listBillsQuerySchema),
     asyncHandler(async (req: Request, res: Response) => {
+      const clinicId = (req as any).user?.contextId;
       const useCase = new ListBillsUseCase(getRepo(req));
-      const result = await useCase.execute(req.query as any);
+      const result = await useCase.execute(req.query as any, clinicId);
       if (!result.success) {
         res.status(400).json({ success: false, error: result.error });
         return;
@@ -38,8 +39,9 @@ export function createBillingRouter(): Router {
   router.get(
     '/daily',
     asyncHandler(async (req: Request, res: Response) => {
+      const clinicId = (req as any).user?.contextId;
       const useCase = new GetDailyCollectionUseCase(getRepo(req));
-      const result = await useCase.execute(req.query.date as string | undefined);
+      const result = await useCase.execute(req.query.date as string | undefined, clinicId);
       if (!result.success) {
         res.status(400).json({ success: false, error: result.error });
         return;
