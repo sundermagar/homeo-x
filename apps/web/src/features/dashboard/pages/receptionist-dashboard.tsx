@@ -106,7 +106,7 @@ export function ReceptionistDashboard() {
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                               <div className="dash-avatar">{a.patientName?.charAt(0)}</div>
                               <div>
-                                <div style={{ fontWeight: 700, color: 'var(--pp-ink)' }}>{a.patientName}</div>
+                                <div style={{ fontWeight: 700, color: '#0f172a' }}>{a.patientName}</div>
                                 <div className="text-label" style={{ fontSize: 10 }}>ID: PT-{a.regid || a.id}</div>
                               </div>
                             </div>
@@ -198,7 +198,7 @@ export function ReceptionistDashboard() {
               {todayAppts.slice(0, 6).map((a: any, i: number) => (
                 <div key={i} className="dash-list-item">
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--pp-ink)' }}>{a.patientName}</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>{a.patientName}</div>
                     <div className="text-label" style={{ fontSize: 10 }}>{a.status} · {a.bookingTime || `Token ${a.tokenNo}`}</div>
                   </div>
                   <div className="dash-status-dot" style={{ background: a.status === 'Consultation' ? '#16a34a' : '#e2e8f0' }} />
@@ -233,10 +233,21 @@ function KPIItem({ label, value, trend, color }: any) {
 
 function OpLink({ icon, label, path }: any) {
   return (
-    <Link to={path} className="hover-op">
-      <span className="hover-op-icon">{icon}</span>
-      <span className="hover-op-label">{label}</span>
-      <ArrowUpRight size={13} className="hover-op-arrow" />
+    <Link to={path} style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 12,
+      padding: '12px 14px',
+      background: '#f8fafc',
+      border: '1px solid #f1f5f9',
+      borderRadius: '8px',
+      textDecoration: 'none',
+      color: '#475569',
+      transition: 'all 0.15s'
+    }} className="hover-op">
+      <span style={{ color: '#2563eb' }}>{icon}</span>
+      <span style={{ fontSize: 12, fontWeight: 700, flex: 1 }}>{label}</span>
+      <ArrowUpRight size={13} style={{ color: '#94a3b8' }} />
     </Link>
   );
 }

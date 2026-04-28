@@ -1,0 +1,96 @@
+/* ─── Dropdown Menu Component ─── */
+
+.dropdown-content {
+  z-index: var(--z-dropdown);
+  min-width: 8rem;
+  overflow: hidden;
+  background-color: #ffffff;
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-card);
+  padding: 0.25rem;
+  box-shadow: var(--shadow-lg);
+  animation: slideDown 0.15s ease-out;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  border-radius: calc(var(--radius-btn) - 2px);
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  transition: background-color var(--transition-fast),
+              color var(--transition-fast);
+}
+
+.dropdown-item:hover,
+.dropdown-item[data-highlighted] {
+  background-color: var(--color-gray-100);
+  color: var(--text-primary);
+}
+
+.dropdown-item[data-disabled] {
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.dropdown-item--destructive {
+  color: var(--color-error-600);
+}
+
+.dropdown-item--destructive:hover,
+.dropdown-item--destructive[data-highlighted] {
+  background-color: var(--color-error-50);
+  color: var(--color-error-700);
+}
+
+.dropdown-separator {
+  height: 1px;
+  background-color: var(--border-default);
+  margin: 0.25rem -0.25rem;
+}
+
+.dropdown-label {
+  padding: 0.375rem 0.5rem 0.25rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+}
+
+.dropdown-shortcut {
+  margin-left: auto;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  color: var(--text-tertiary);
+}
+
+.dropdown-item-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.dropdown-sub-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dropdown-sub-trigger-icon {
+  margin-left: auto;
+  width: 1rem;
+  height: 1rem;
+  color: var(--text-tertiary);
+}

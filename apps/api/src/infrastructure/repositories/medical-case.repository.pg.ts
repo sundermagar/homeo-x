@@ -189,33 +189,13 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
         prescriptions
       ] = await Promise.all([
         activeCase ? this.db.select().from(schema.vitals).where(eq(schema.vitals.visitId, activeCase.id)) : Promise.resolve([]),
-        activeCase ? this.db.select().from(schema.soapNotes).where(eq(schema.soapNotes.visitId, activeCase.id)) : Promise.resolve([]),
+        activeCase ? this.db.select().from(schema.legacySoapNotes).where(eq(schema.legacySoapNotes.visitId, activeCase.id)) : Promise.resolve([]),
         this.getHomeoDetails(regid),
         this.db.select().from(schema.caseNotes).where(eq(schema.caseNotes.regid, regid)).orderBy(desc(schema.caseNotes.createdAt)),
         this.db.select().from(schema.caseExamination).where(eq(schema.caseExamination.regid, regid)),
         this.db.select().from(schema.caseImages).where(and(eq(schema.caseImages.regid, regid), sql`${schema.caseImages.deletedAt} IS NULL`)),
         this.db.select().from(schema.investigations).where(eq(schema.investigations.regid, regid)),
-        this.db
-          .select({
-            id: schema.prescriptions.id,
-            regid: schema.prescriptions.regid,
-            visitId: schema.prescriptions.visitId,
-            dateval: schema.prescriptions.dateval,
-            medicineId: schema.prescriptions.medicineId,
-            medicineName: schema.medicines.name,
-            potencyId: schema.prescriptions.potencyId,
-            potencyName: schema.potencies.name,
-            frequencyId: schema.prescriptions.frequencyId,
-            frequencyTitle: schema.frequencies.title,
-            days: schema.prescriptions.days,
-            instructions: schema.prescriptions.instructions,
-          })
-          .from(schema.prescriptions)
-          .leftJoin(schema.medicines, eq(schema.prescriptions.medicineId, schema.medicines.id))
-          .leftJoin(schema.potencies, eq(schema.prescriptions.potencyId, schema.potencies.id))
-          .leftJoin(schema.frequencies, eq(schema.prescriptions.frequencyId, schema.frequencies.id))
-          .where(eq(schema.prescriptions.regid, regid))
-          .orderBy(desc(schema.prescriptions.createdAt)),
+        this.db.select().from(schema.legacyPrescriptions).where(eq(schema.legacyPrescriptions.regid, regid)),
       ]);
 
       return {
@@ -317,7 +297,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
 
   async saveSoapNotes(data: Partial<SoapNotes>): Promise<void> {
     const execute = () => this.db
-      .insert(schema.soapNotes)
+      .insert(schema.legacySoapNotes)
       .values({
         visitId: data.visitId!,
         subjective: data.subjective,
@@ -329,7 +309,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
         icdCodes: data.icdCodes,
       })
       .onConflictDoUpdate({
-        target: schema.soapNotes.visitId,
+        target: schema.legacySoapNotes.visitId,
         set: {
           subjective: data.subjective,
           objective: data.objective,
@@ -358,8 +338,8 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
   async getSoapNotes(visitId: number): Promise<SoapNotes | null> {
     const [row] = await this.db
       .select()
-      .from(schema.soapNotes)
-      .where(eq(schema.soapNotes.visitId, visitId))
+      .from(schema.legacySoapNotes)
+      .where(eq(schema.legacySoapNotes.visitId, visitId))
       .limit(1);
 
     return (row as SoapNotes) || null;
@@ -478,9 +458,9 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
 
   async savePrescription(data: Partial<Prescription>): Promise<void> {
     if (data.id) {
-      await this.db.update(schema.prescriptions).set(data).where(eq(schema.prescriptions.id, data.id));
+      await this.db.update(schema.legacyPrescriptions).set(data).where(eq(schema.legacyPrescriptions.id, data.id));
     } else {
-      await this.db.insert(schema.prescriptions).values({
+      await this.db.insert(schema.legacyPrescriptions).values({
         regid: data.regid!,
         visitId: data.visitId,
         dateval: data.dateval,
@@ -494,6 +474,6 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
   }
 
   async deletePrescription(id: number): Promise<void> {
-    await this.db.update(schema.prescriptions).set({ deletedAt: new Date() }).where(eq(schema.prescriptions.id, id));
+    await this.db.update(schema.legacyPrescriptions).set({ deletedAt: new Date() }).where(eq(schema.legacyPrescriptions.id, id));
   }
 }

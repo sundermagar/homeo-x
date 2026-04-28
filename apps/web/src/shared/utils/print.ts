@@ -305,12 +305,16 @@ export const printAppointmentSlip = (appointment: {
           body { padding: 20px; color: #1e293b; line-height: 1.4; font-size: 13px; }
           .container { max-width: 100%; margin: auto; }
 
-          .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; border-bottom: 2px solid #0f172a; padding-bottom: 12px; }
-          .clinic-info { flex: 1; }
-          .clinic-name { font-size: 18px; font-weight: 800; color: #0f172a; margin-bottom: 2px; letter-spacing: -0.02em; }
-          .clinic-tagline { font-size: 10px; color: #3b82f6; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
-          .clinic-details { font-size: 10px; color: #64748b; font-weight: 500; line-height: 1.4; }
-          .logo { width: 60px; height: 60px; border-radius: 8px; object-fit: contain; }
+          .letterhead { position: relative; padding: 14px 4px 10px; margin-bottom: 20px; border-bottom: 1px solid #e2e8f0; }
+          .letterhead-band { position: absolute; top: 0; left: 0; right: 0; height: 6px; background: linear-gradient(90deg, #2563EB 0%, #60A5FA 70%, #BFDBFE 100%); border-radius: 0 0 2px 2px; }
+          .letterhead-row { display: flex; align-items: center; gap: 14px; padding-top: 14px; }
+          .letterhead-logo { width: 64px; height: 64px; object-fit: contain; border-radius: 8px; flex-shrink: 0; }
+          .letterhead-logo-fallback { width: 64px; height: 64px; border-radius: 8px; background: #2563EB; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 800; flex-shrink: 0; }
+          .letterhead-title { flex: 1; }
+          .clinic-name { font-size: 22px; font-weight: 800; color: #2563EB; letter-spacing: 0.3px; line-height: 1.1; text-transform: uppercase; margin: 0; }
+          .clinic-tagline { font-size: 10.5px; color: #4a4a4a; font-style: italic; margin-top: 3px; letter-spacing: 0.2px; }
+          .clinic-ids { font-size: 9.5px; color: #64748b; margin-top: 4px; font-family: monospace; }
+          .letterhead-contact { display: flex; flex-wrap: wrap; gap: 4px 0; font-size: 10px; color: #4a4a4a; margin-top: 8px; padding-top: 6px; border-top: 1px dashed #e2e8f0; }
 
           .slip-label-wrap { text-align: center; margin-bottom: 15px; }
           .slip-label { display: inline-block; padding: 6px 20px; background: #0f172a; color: #fff; border-radius: 100px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; }
@@ -356,19 +360,29 @@ export const printAppointmentSlip = (appointment: {
             <button onclick="window.print()" style="padding: 10px 20px; background: #0f172a; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: 800; font-size: 13px;">Confirm Print</button>
           </div>
 
-          <div class="header">
-            <div class="clinic-info">
-              <h1 class="clinic-name">${org.name}</h1>
-              <p class="clinic-tagline">${org.tagLine || 'Healthcare Excellence'}</p>
-              <div class="clinic-details">
-                ${org.address || ''} ${org.address2 ? `<br>${org.address2}` : ''}
-                ${org.phone ? `<br>Phone: ${org.phone}` : ''}
-                ${org.email ? ` | Email: ${org.email}` : ''}
-                ${org.registration ? `<br>Reg No: ${org.registration}` : ''}
-                ${org.timing ? `<br>Hours: ${org.timing}` : ''}
+          <div class="letterhead">
+            <div class="letterhead-band"></div>
+            <div class="letterhead-row">
+              ${org.logo 
+                ? `<img src="${org.logo}" alt="" class="letterhead-logo" onerror="this.style.display='none'" />` 
+                : `<div class="letterhead-logo-fallback">${(org.name || 'C').charAt(0).toUpperCase()}</div>`
+              }
+              <div class="letterhead-title">
+                <div class="clinic-name">${org.name}</div>
+                ${org.tagLine ? `<div class="clinic-tagline">${org.tagLine}</div>` : ''}
+                <div class="clinic-ids">
+                  ${org.registration ? `Reg: ${org.registration}` : ''}
+                </div>
               </div>
             </div>
-            ${org.logo ? `<img src="${org.logo}" class="logo" />` : ''}
+            <div class="letterhead-contact">
+              ${org.address ? `<span>${org.address}</span>` : ''}
+              ${org.address2 ? `<span>&nbsp;·&nbsp;${org.address2}</span>` : ''}
+              ${org.phone ? `<span>&nbsp;·&nbsp;📞 ${org.phone}</span>` : ''}
+              ${org.email ? `<span>&nbsp;·&nbsp;✉ ${org.email}</span>` : ''}
+              ${org.website ? `<span>&nbsp;·&nbsp;🌐 ${org.website}</span>` : ''}
+              ${org.timing ? `<span>&nbsp;·&nbsp;⏰ ${org.timing}</span>` : ''}
+            </div>
           </div>
 
           <div class="slip-label-wrap">

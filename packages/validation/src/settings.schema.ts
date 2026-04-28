@@ -43,15 +43,6 @@ export const updateReferralSourceSchema = createReferralSourceSchema.partial();
 export type CreateReferralSourceInput = z.infer<typeof createReferralSourceSchema>;
 export type UpdateReferralSourceInput = z.infer<typeof updateReferralSourceSchema>;
 
-// ─── Reference Type ───────────────────────────────────────────────────────────
-export const createReferenceTypeSchema = z.object({
-  name: z.string().min(1, 'Name is required').max(255),
-  isActive: z.boolean().default(true),
-});
-export const updateReferenceTypeSchema = createReferenceTypeSchema.partial();
-export type CreateReferenceTypeInput = z.infer<typeof createReferenceTypeSchema>;
-export type UpdateReferenceTypeInput = z.infer<typeof updateReferenceTypeSchema>;
-
 // ─── Sticker ──────────────────────────────────────────────────────────────────
 export const createStickerSchema = z.object({
   name: z.string().min(1, 'Name is required').max(255),

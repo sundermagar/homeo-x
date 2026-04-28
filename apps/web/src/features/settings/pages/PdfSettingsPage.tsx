@@ -24,7 +24,7 @@ export default function PdfSettingsPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [search, setSearch] = useState('');
 
-  // ─── Clinic Details Config (Letterhead) ───
+  // ÔöÇÔöÇÔöÇ Clinic Details Config (Letterhead) ÔöÇÔöÇÔöÇ
   const { data: orgs = [] } = useOrganizations();
   const updateOrg = useUpdateOrganization();
   const user = useAuthStore(s => s.user);
@@ -214,16 +214,43 @@ export default function PdfSettingsPage() {
           </h1>
           <p className="plat-header-sub">Manage institutional branding and clinical document layouts.</p>
         </div>
-        <div className="plat-header-actions" style={{ flexWrap: 'wrap' }}>
-          <div className="plat-view-toggle-group">
+        <div className="plat-header-actions" style={{ flexWrap: 'wrap', gap: '12px' }}>
+          <div style={{ 
+            display: 'flex', 
+            background: '#f8fafc', 
+            padding: '4px', 
+            borderRadius: '12px', 
+            border: '1px solid #e2e8f0',
+            boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.02)'
+          }}>
             <button
-              className={`plat-view-toggle-btn ${activeTab === 'templates' ? 'is-active' : ''}`}
+              className="plat-btn"
+              style={{
+                background: activeTab === 'templates' ? '#fff' : 'transparent',
+                border: 'none',
+                color: activeTab === 'templates' ? '#2563eb' : '#64748b',
+                fontWeight: 600,
+                boxShadow: activeTab === 'templates' ? '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)' : 'none',
+                borderRadius: '8px',
+                padding: '6px 16px',
+                transition: 'all 0.2s'
+              }}
               onClick={() => setActiveTab('templates')}
             >
               <FileText size={14} /> Templates
             </button>
             <button
-              className={`plat-view-toggle-btn ${activeTab === 'letterhead' ? 'is-active' : ''}`}
+              className="plat-btn"
+              style={{
+                background: activeTab === 'letterhead' ? '#fff' : 'transparent',
+                border: 'none',
+                color: activeTab === 'letterhead' ? '#2563eb' : '#64748b',
+                fontWeight: 600,
+                boxShadow: activeTab === 'letterhead' ? '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)' : 'none',
+                borderRadius: '8px',
+                padding: '6px 16px',
+                transition: 'all 0.2s'
+              }}
               onClick={() => setActiveTab('letterhead')}
             >
               <Printer size={14} /> Letterhead
@@ -295,17 +322,47 @@ export default function PdfSettingsPage() {
                           </div>
                         </td>
                         <td data-label="Margin" className="plat-table-cell font-mono text-xs">{config.margin}</td>
-                        <td data-label="Type" className="plat-table-cell">{config.isDefault ? <span className="plat-badge plat-badge-staff">Default</span> : <span className="plat-badge plat-badge-default">Custom</span>}</td>
+                        <td data-label="Type" className="plat-table-cell font-medium" style={{ color: '#64748b' }}>
+                          {config.isDefault ? 'Default' : 'Custom'}
+                        </td>
                         <td className="plat-table-cell">
-                          <div className="flex justify-end gap-3">
-                            <button className="plat-btn plat-btn-sm plat-btn-icon" onClick={() => handlePrintPreview(config)} title="Preview & Print">
-                              <Eye size={13} />
+                          <div className="flex justify-end gap-2">
+                            <button 
+                              className="plat-btn plat-btn-sm" 
+                              style={{ 
+                                background: '#fff', 
+                                border: '1px solid #e2e8f0', 
+                                padding: '6px',
+                                color: '#64748b' 
+                              }} 
+                              onClick={() => handlePrintPreview(config)} 
+                              title="Preview & Print"
+                            >
+                              <Eye size={14} />
                             </button>
-                            <button className="plat-btn plat-btn-sm plat-btn-icon" onClick={() => handleOpenEdit(config)}>
-                              <Edit2 size={13} />
+                            <button 
+                              className="plat-btn plat-btn-sm" 
+                              style={{ 
+                                background: '#fff', 
+                                border: '1px solid #e2e8f0', 
+                                padding: '6px',
+                                color: '#64748b' 
+                              }} 
+                              onClick={() => handleOpenEdit(config)}
+                            >
+                              <Edit2 size={14} />
                             </button>
-                            <button className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" onClick={() => { if (confirm(`Delete config?`)) deletePdf.mutate(config.id) }}>
-                              <Trash2 size={13} />
+                            <button 
+                              className="plat-btn plat-btn-sm" 
+                              style={{ 
+                                background: '#fff', 
+                                border: '1px solid #fee2e2', 
+                                padding: '6px',
+                                color: '#ef4444' 
+                              }} 
+                              onClick={() => { if (confirm(`Delete config?`)) deletePdf.mutate(config.id) }}
+                            >
+                              <Trash2 size={14} />
                             </button>
                           </div>
                         </td>
@@ -496,7 +553,7 @@ export default function PdfSettingsPage() {
                 boxSizing: 'border-box'
               }}>
                 {/* Watermark/Scale hint */}
-                <div style={{ position: 'absolute', top: 12, right: 15, fontSize: '7px', fontWeight: 900, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', background: '#f8fafc', padding: '2px 6px', borderRadius: 4, border: '1px solid #e2e8f0' }}>A4 PREVIEW • 1:1 SCALE</div>
+                <div style={{ position: 'absolute', top: 12, right: 15, fontSize: '7px', fontWeight: 900, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', background: '#f8fafc', padding: '2px 6px', borderRadius: 4, border: '1px solid #e2e8f0' }}>A4 PREVIEW ÔÇó 1:1 SCALE</div>
 
                 <div className="letterhead-canvas-header" style={{
                   display: 'flex',
@@ -691,7 +748,7 @@ export default function PdfSettingsPage() {
                   </div>
                   <div className="letterhead-footer-right" style={{ textAlign: 'right' }}>
                     <div style={{ fontSize: '0.65rem', color: '#475569', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Secure PDF Engine</div>
-                    <div style={{ fontSize: '0.55rem', color: '#94a3b8', fontWeight: 600, marginTop: 2 }}>Digitally Verified • HomeoX v2.0</div>
+                    <div style={{ fontSize: '0.55rem', color: '#94a3b8', fontWeight: 600, marginTop: 2 }}>Digitally Verified ÔÇó HomeoX v2.0</div>
                   </div>
                 </div>
               </div>

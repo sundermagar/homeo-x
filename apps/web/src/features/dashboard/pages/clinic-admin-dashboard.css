@@ -30,17 +30,17 @@
 }
 
 .cad-title {
-  font-size: 22px;
-  font-weight: 700;
+  font-size: 1.5rem;
+  font-weight: 800;
   color: var(--pp-ink);
-  margin: 0 0 4px;
+  margin: 0 0 2px;
   letter-spacing: -0.01em;
 }
 
 .cad-subtitle {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--pp-text-3);
-  font-weight: 500;
+  font-weight: 600;
   margin: 0;
 }
 
@@ -791,27 +791,4 @@
   color: #94a3b8;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-}
-
-.cad-staff-view-all {
-  width: 100%;
-  padding: 8px;
-  margin-top: 8px;
-  background: var(--pp-warm-1);
-  border: 1px dashed var(--pp-warm-4);
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--pp-blue);
-  cursor: pointer;
-  transition: all var(--transition-normal);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.cad-staff-view-all:hover {
-  background: var(--pp-blue-tint);
-  border-color: var(--pp-blue-border);
-  color: var(--pp-blue-hover);
 }

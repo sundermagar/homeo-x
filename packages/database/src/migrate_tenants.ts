@@ -11,9 +11,14 @@ dotenv.config({ path: path.join(process.cwd(), '../../.env') });
 
 const dbUrl = process.env['DATABASE_URL'];
 
-if (!dbUrl || !dbUrl.includes('@postgres.railway.internal')) {
-  console.error(`❌ INVALID DATABASE_URL DETECTED IN RAILWAY: [${dbUrl}]`);
-  console.error("The deployment is reading this as empty, or the URL contains invalid invisible spaces/newlines that break the connection string.");
+if (!dbUrl) {
+  console.error('❌ DATABASE_URL is not set. Add it to .env at the monorepo root.');
+  process.exit(1);
+}
+
+if (process.env['NODE_ENV'] === 'production' && !dbUrl.includes('@postgres.railway.internal')) {
+  console.error(`❌ INVALID DATABASE_URL DETECTED IN PRODUCTION: [${dbUrl}]`);
+  console.error('Production deployments must use the Railway internal Postgres URL.');
   process.exit(1);
 }
 

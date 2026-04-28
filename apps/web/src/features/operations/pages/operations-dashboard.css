@@ -163,6 +163,7 @@
 .ops-stat-body { min-width: 0; }
 
 .stat-value {
+  font-size: 1.25rem;
   font-weight: 800;
   color: var(--pp-blue-deep);
   line-height: 1;
@@ -186,6 +187,7 @@
 
 /* ─── Content Card ─── */
 .ops-content {
+  padding: 16px;
   min-height: 160px;
   background: var(--bg-card);
   border: 1px solid var(--pp-warm-4);

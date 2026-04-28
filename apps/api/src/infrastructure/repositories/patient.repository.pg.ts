@@ -8,7 +8,6 @@ import {
   refrencetypeLegacy,
   users,
   appointments,
-  referenceTypes,
   referralSources
 } from '@mmc/database/schema';
 import type { DbClient } from '@mmc/database';
@@ -162,7 +161,7 @@ export class PatientRepositoryPg implements PatientRepository {
     if ((patients as any).religion) patientData.religion = input.religion || '';
     if ((patients as any).occupation) patientData.occupation = input.occupation || '';
     if ((patients as any).bloodGroup) patientData.bloodGroup = input.bloodGroup || '';
-    
+
     // Handle reference sources
     const refId = String((input as any).referenceTypeId || '');
     if (refId.startsWith('rt_')) {
@@ -297,7 +296,7 @@ export class PatientRepositoryPg implements PatientRepository {
         doctorConditions.push(eq(doctorsLegacy.clinicId, clinicId));
       }
 
-      const [doctors, religions, occupations, references, refTypes, referralSrcs] = await Promise.all([
+      const [doctors, religions, occupations, references, referralSrcs] = await Promise.all([
         this.db
           .select({
             id: doctorsLegacy.id,
@@ -324,10 +323,6 @@ export class PatientRepositoryPg implements PatientRepository {
         }),
         this.db.select().from(refrencetypeLegacy).catch((err) => {
           console.error('[PatientRepo] Failed to fetch references:', err.message);
-          return [];
-        }),
-        this.db.select().from(referenceTypes).where(isNull(referenceTypes.deletedAt)).catch((err) => {
-          console.error('[PatientRepo] Failed to fetch reference types:', err.message);
           return [];
         }),
         this.db.select().from(referralSources).where(eq(referralSources.isActive, true)).catch((err) => {
@@ -366,10 +361,6 @@ export class PatientRepositoryPg implements PatientRepository {
         religions: Array.from(new Set(religions.map((r: any) => r.religion).filter(Boolean))),
         occupations: Array.from(new Set(occupations.map((o: any) => o.occupation).filter(Boolean))),
         references: Array.from(new Set(references.map((r: any) => r.referencetype).filter(Boolean))),
-        referenceTypes: Array.from(new Map([
-          ...refTypes.map((r: any) => [`rt_${r.id}`, { id: `rt_${r.id}`, name: r.name }]),
-          ...referralSrcs.map((r: any) => [`rs_${r.id}`, { id: `rs_${r.id}`, name: r.name }])
-        ] as [string, any][]).values()),
         statuses: ['Single', 'Married', 'Divorced', 'Widowed'],
         titles: ['Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Prof.', 'Master', 'Baby'],
       };
@@ -381,7 +372,6 @@ export class PatientRepositoryPg implements PatientRepository {
         religions: [],
         occupations: [],
         references: [],
-        referenceTypes: [],
         statuses: ['Single', 'Married', 'Divorced', 'Widowed'],
         titles: ['Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Prof.', 'Master', 'Baby'],
       };
@@ -566,7 +556,6 @@ export class PatientRepositoryPg implements PatientRepository {
       bloodGroup: row.bloodGroup || null,
       // 'reference' is the actual DB column; domain calls it 'referenceType'
       referenceType: row.reference || null,
-      referenceTypeId: row.referenceTypeId || null,
       referredBy: row.referedBy || null,
       assistantDoctor: row.assitantDoctor || null,
       consultationFee: row.consultationFee ? Number(row.consultationFee) : null,

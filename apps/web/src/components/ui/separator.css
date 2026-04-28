@@ -1,0 +1,18 @@
+/* ─── Separator Component ─── */
+
+.ui-separator {
+  flex-shrink: 0;
+  background-color: var(--border-default);
+}
+
+.ui-separator[data-orientation="horizontal"] {
+  height: 1px;
+  width: 100%;
+  margin: 0.25rem 0;
+}
+
+.ui-separator[data-orientation="vertical"] {
+  width: 1px;
+  align-self: stretch;
+  margin: 0 0.25rem;
+}

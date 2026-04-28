@@ -150,14 +150,20 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
     setError('');
     if (!form.bookingDate) { setError('Booking date is required'); return; }
     if (!form.bookingTime) { setError('Please select a time slot'); return; }
+    if (!form.notes || !form.notes.trim()) {
+      setError('Chief Complaint is required — describe what brings the patient in today.');
+      return;
+    }
 
     // Ensure date is in YYYY-MM-DD format for the backend
     let normalizedDate = form.bookingDate;
     if (normalizedDate && normalizedDate.includes('/')) {
       const parts = normalizedDate.split('/');
-      const yearPart = parts[2];
-      if (parts.length === 3 && yearPart && yearPart.length === 4) {
-        normalizedDate = `${yearPart}-${parts[1]!.padStart(2, '0')}-${(parts[0] ?? '').padStart(2, '0')}`;
+      if (parts.length === 3) {
+        if (parts[2].length === 4) {
+          // DD/MM/YYYY -> YYYY-MM-DD
+          normalizedDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+        }
       }
     }
 
@@ -418,15 +424,22 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
               )}
             </div>
 
-            {/* Notes */}
+            {/* Chief Complaint — required, shown to the doctor on the consultation page */}
             <div className="appt-form-group">
-              <label className="appt-form-label">Notes (optional)</label>
+              <label className="appt-form-label">
+                Chief Complaint <span style={{ color: '#dc2626' }}>*</span>
+              </label>
               <textarea
                 className="appt-form-input appt-form-textarea"
-                placeholder="Additional remarks…"
+                placeholder="What brings the patient in today? e.g. fever for 3 days, recurring headache, anxiety…"
                 value={form.notes}
                 onChange={e => set('notes', e.target.value)}
+                required
+                aria-required="true"
               />
+              <p style={{ fontSize: 11, color: '#6b7280', margin: '4px 0 0' }}>
+                Required. This appears on the doctor's consultation screen as the chief complaint.
+              </p>
             </div>
 
             {/* Actions */}

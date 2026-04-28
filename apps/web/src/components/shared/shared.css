@@ -1,0 +1,183 @@
+/* ─── Shared Components CSS ─── */
+
+/* ── ChipSelector ── */
+.chip-selector {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--border-default);
+  font-weight: 500;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: border-color var(--transition-fast),
+              background-color var(--transition-fast),
+              color var(--transition-fast);
+}
+
+.chip:hover {
+  border-color: var(--border-strong);
+  background-color: var(--bg-surface-2);
+}
+
+.chip--sm {
+  min-height: 36px;
+  padding: 0.25rem 0.625rem;
+  font-size: var(--font-size-xs);
+}
+
+.chip--md {
+  min-height: 44px;
+  padding: 0.375rem 0.75rem;
+  font-size: var(--font-size-sm);
+}
+
+.chip--selected {
+  border-color: var(--color-primary-400);
+  background-color: var(--color-primary-50);
+  color: var(--color-primary-700);
+}
+
+.chip--selected:hover {
+  background-color: var(--color-primary-100);
+}
+
+.chip--custom {
+  border-style: dashed;
+  border-color: var(--color-gray-300);
+  color: var(--text-tertiary);
+}
+
+.chip--custom:hover {
+  border-color: var(--border-strong);
+  color: var(--text-secondary);
+}
+
+/* ── EmptyState ── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  text-align: center;
+}
+
+.empty-state__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--radius-full);
+  background-color: var(--color-gray-100);
+  color: var(--text-tertiary);
+  margin-bottom: var(--space-4);
+}
+
+.empty-state__title {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.empty-state__description {
+  margin-top: 0.25rem;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  max-width: 28rem;
+  line-height: 1.5;
+}
+
+.empty-state__action {
+  margin-top: var(--space-4);
+}
+
+/* ── PageHeader ── */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-6);
+}
+
+.page-header__title {
+  font-size: var(--font-size-2xl);
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.page-header__description {
+  margin-top: 0.25rem;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.page-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* ── SearchInput ── */
+.search-input-wrapper {
+  position: relative;
+}
+
+.search-input-icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1rem;
+  height: 1rem;
+  color: var(--text-tertiary);
+  pointer-events: none;
+}
+
+.search-input-wrapper .ui-input {
+  padding-left: 2.25rem;
+}
+
+/* ── LoadingState ── */
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+}
+
+/* ── ErrorBoundary ── */
+.error-boundary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 16rem;
+  padding: 2rem;
+  text-align: center;
+  gap: var(--space-4);
+}
+
+.error-boundary__title {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--color-error-600);
+  margin: 0;
+}
+
+.error-boundary__description {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  max-width: 32rem;
+}

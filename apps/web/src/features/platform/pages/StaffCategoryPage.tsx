@@ -1,5 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
-import { Plus, Search, Edit2, Trash2, X, Users, Stethoscope, ClipboardList, ShieldCheck, UserCog } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, X, Users, UserCheck, Stethoscope, ClipboardList, ShieldCheck, UserCog } from 'lucide-react';
 import { NumericInput } from '@/shared/components/NumericInput';
 import { useStaffList, useDeleteStaff, useCreateStaff, useUpdateStaff, useStaffMember } from '@/features/staff/hooks/use-staff';
 import type { StaffCategory, StaffSummary, StaffMember } from '@mmc/types';
@@ -15,7 +14,7 @@ const CATEGORY_META: Record<StaffCategory, { label: string; description: string;
   account: { label: 'Account Mgrs', description: 'Account managers handling clinic billing.', icon: UserCog },
 };
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 30;
 
 function getDefaultStaffForm(category: StaffCategory): CreateStaffInput {
   return {
@@ -179,7 +178,7 @@ function StaffModal({
     if (field === 'dept' || field === 'salaryCur' || field === 'consultationFee') {
       castValue = value === '' ? 0 : Number(value);
     }
-    setForm((prev: CreateStaffInput | UpdateStaffInput) => ({ ...prev, [field]: castValue }));
+    setForm((prev) => ({ ...prev, [field]: castValue }));
   };
 
   const isPending = createMutation.isPending || updateMutation.isPending;
@@ -289,27 +288,19 @@ export default function StaffCategoryPage({ category }: { category: StaffCategor
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
-  const [sortBy, setSortBy] = useState('id');
-  const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('DESC');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
 
   const meta = CATEGORY_META[category] || CATEGORY_META.doctor;
   const Icon = meta.icon;
 
-  const { data, isLoading } = useStaffList(category, { 
-    page, 
-    limit: PAGE_SIZE, 
-    search: debouncedSearch,
-    sortBy,
-    sortOrder
-  });
+  const { data, isLoading } = useStaffList(category, { page, limit: PAGE_SIZE, search: debouncedSearch });
   const deleteMutation = useDeleteStaff();
   const { data: editingStaff, isLoading: isLoadingStaff } = useStaffMember(category, editingId ?? 0);
 
   const staff = data?.data || [];
   const totalPages = Math.ceil((data?.total || 0) / PAGE_SIZE);
-  const activeCount = data?.activeCount ?? 0;
+  const activeCount = useMemo(() => (staff as StaffSummary[]).filter((s: StaffSummary) => s.isActive).length, [staff]);
 
   const handleEdit = (s: StaffSummary) => {
     setEditingId(s.id);
@@ -352,49 +343,10 @@ export default function StaffCategoryPage({ category }: { category: StaffCategor
       </div>
 
       <div className="plat-filters">
-        <div className="flex gap-4 flex-1">
-          <div className="plat-search-wrap">
-            <Search className="plat-search-icon" size={14} />
-            <input
-              className="plat-form-input plat-search-input"
-              placeholder="Search registry..."
-              value={search}
-              onChange={(e) => handleSearchChange(e.target.value)}
-            />
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-bold color-muted uppercase tracking-wider">Sort:</span>
-            <select 
-              className="plat-form-input !py-1 !text-xs !w-auto min-w-[140px]"
-              value={`${sortBy}-${sortOrder}`}
-              onChange={(e) => {
-                const [col, order] = e.target.value.split('-');
-                setSortBy(col ?? 'id');
-                setSortOrder((order ?? 'DESC') as 'ASC' | 'DESC');
-                setPage(1);
-              }}
-            >
-              <option value="id-DESC">Newest First</option>
-              <option value="id-ASC">Oldest First</option>
-              <option value="name-ASC">A-Z</option>
-              <option value="name-DESC">Z-A</option>
-            </select>
-          </div>
+        <div className="plat-search-wrap" style={{ flex: '1 1 300px' }}>
+          <Search className="plat-search-icon" size={14} />
+          <input className="plat-form-input plat-search-input" placeholder="Search registry..." value={search} onChange={(e) => handleSearchChange(e.target.value)} />
         </div>
-
-        <button 
-          className="plat-btn plat-btn-ghost plat-btn-sm" 
-          onClick={() => { 
-            setSearch(''); 
-            setDebouncedSearch(''); 
-            setPage(1); 
-            setSortBy('id');
-            setSortOrder('DESC');
-          }}
-        >
-          Reset
-        </button>
       </div>
 
       <div className="plat-card">
@@ -422,28 +374,6 @@ export default function StaffCategoryPage({ category }: { category: StaffCategor
           </div>
         )}
       </div>
-
-      {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-6 mt-8">
-          <button 
-            className="plat-btn plat-btn-ghost plat-btn-sm" 
-            disabled={page <= 1} 
-            onClick={() => { setPage(p => p - 1); window.scrollTo(0, 0); }}
-          >
-            ← Previous
-          </button>
-          <div className="text-sm font-bold color-muted">
-            Page <span className="color-primary">{page}</span> of {totalPages}
-          </div>
-          <button 
-            className="plat-btn plat-btn-ghost plat-btn-sm" 
-            disabled={page >= totalPages} 
-            onClick={() => { setPage(p => p + 1); window.scrollTo(0, 0); }}
-          >
-            Next →
-          </button>
-        </div>
-      )}
 
       {modalOpen && <StaffModal category={category} mode={editingId ? 'edit' : 'create'} staff={editingStaff} isLoading={isLoadingStaff} onClose={() => { setModalOpen(false); setEditingId(null); }} onSuccess={() => setEditingId(null)} />}
     </div>

@@ -14,13 +14,7 @@ export interface Organization {
   connectSince: string;
   city:         string;
   description:  string;
-  tagLine?:     string;
-  registration?: string;
-  logo?:         string;
-  address2?:     string;
-  timing?:       string;
   adminEmail?:  string;
-
   adminPassword?: string;
   deletedAt?:   string | null;
   createdAt:    string;
@@ -56,14 +50,8 @@ export interface CreateOrganizationInput {
   connectSince?: string;
   city?:        string;
   description?: string;
-  tagLine?:     string;
-  registration?: string;
-  logo?:         string;
-  address2?:     string;
-  timing?:       string;
   adminEmail?:  string;
   adminPassword?: string;
-
 }
 
 export type UpdateOrganizationInput = Partial<CreateOrganizationInput>;

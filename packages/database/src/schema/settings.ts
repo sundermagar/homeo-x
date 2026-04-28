@@ -43,15 +43,6 @@ export const referralSources = pgTable('referral_sources', {
   updatedAt: timestamp('updated_at').defaultNow(),
 });
 
-export const referenceTypes = pgTable('reference_types', {
-  id: serial('id').primaryKey(),
-  name: varchar('name', { length: 255 }).notNull(),
-  isActive: boolean('is_active').default(true),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
-  deletedAt: timestamp('deleted_at'),
-});
-
 export const stickers = pgTable('stickers', {
   id: serial('id').primaryKey(),
   name: varchar('name', { length: 255 }).notNull(),
