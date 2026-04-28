@@ -1,36 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, FileText, Activity, Search, Edit,
   History, Camera, Zap, CreditCard, Clock,
   Phone, Calendar, MapPin, CheckCircle2, AlertCircle,
   Sparkles, MoreHorizontal, ChevronRight, Plus, Package,
-  MessageSquare, Send, BrainCircuit
+  MessageSquare, Send, BrainCircuit, ClipboardList, FlaskConical,
+  Printer, Paperclip, Upload, X, Eye, Loader2, Trash2
 } from 'lucide-react';
 import { useFullMedicalCase, useManageClinicalRecords } from '../hooks/use-medical-cases';
 import { AssignPackageModal } from '../../packages/components/assign-package-modal';
 import { VitalsFormModal } from '../components/vitals-form-modal';
+import { FollowupScheduler } from '../components/followup-scheduler';
 import { useSendSms } from '../../communications/hooks/use-communications';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/infrastructure/api-client';
 import { RemedyChartSession } from '../components/remedy-chart-session';
 import { AiRemedyView } from '../components/ai-remedy-view';
 import { AiConsultantView } from '../components/ai-consultant-view';
+import { usePatientBills } from '../../billing/hooks/use-billing';
+import { useAppointments } from '../../appointments/hooks/use-appointments';
+import { useAuthStore } from '@/shared/stores/auth-store';
 import '../styles/medical-case.css';
 
 const TABS = [
-  { id: 'summary',       label: 'Summary',       icon: History },
-  { id: 'vitals',        label: 'Vitals',        icon: Activity },
-  { id: 'soap',          label: 'SOAP',          icon: Edit },
-  { id: 'prescription',  label: 'Prescription',  icon: FileText },
-  { id: 'examination',   label: 'Examination',   icon: Search },
-  { id: 'labs',          label: 'Labs',           icon: Zap },
-  { id: 'images',        label: 'Media',          icon: Camera },
-  { id: 'billing',       label: 'Billing',        icon: CreditCard },
-  { id: 'followup',      label: 'Follow-up',      icon: Clock },
-  { id: 'ai',            label: 'Repertory',      icon: Sparkles },
-  { id: 'consultant',    label: 'AI Analysis',    icon: BrainCircuit },
-  { id: 'communication', label: 'Communication',  icon: MessageSquare },
+  { id: 'summary', label: 'Summary', icon: History },
+  { id: 'vitals', label: 'Vitals', icon: Activity },
+  { id: 'soap', label: 'SOAP', icon: Edit },
+  { id: 'prescription', label: 'Prescription', icon: FileText },
+  { id: 'labs', label: 'Labs', icon: Zap },
+  { id: 'media', label: 'Media', icon: Camera },
+  { id: 'billing', label: 'Billing', icon: CreditCard },
+  { id: 'follow-up', label: 'Follow-up', icon: Clock },
+  { id: 'consultant', label: 'AI Analysis', icon: BrainCircuit },
+  { id: 'communication', label: 'Communication', icon: MessageSquare },
 ];
 
 export default function MedicalCaseDetailPage() {
@@ -39,6 +42,8 @@ export default function MedicalCaseDetailPage() {
   const [activeTab, setActiveTab] = useState('summary');
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showVitalsModal, setShowVitalsModal] = useState(false);
+  
+  const clinicName = useAuthStore(s => s.user?.clinicName || 'HomeoX Clinic');
 
   const { data: fullData, isLoading, error } = useFullMedicalCase(Number(regid));
   const { finalizeConsultation } = useManageClinicalRecords();
@@ -49,18 +54,15 @@ export default function MedicalCaseDetailPage() {
   const { medicalCase, vitals, soap, prescriptions } = fullData;
 
   return (
-    <div className="mc-detail-page">
+    <div className="mc-detail-page pp-page-container animate-fade-in">
 
       {/* Header */}
       <header className="mc-detail-header">
         <div className="mc-back-group">
-          <button className="mc-back-btn" onClick={() => navigate('/medical-cases')}>
-            <ArrowLeft size={16} strokeWidth={1.6} />
-          </button>
           <div className="mc-divider-v" />
           <div>
-            <div className="mc-page-title pp-text-gradient" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              Clinical Hub
+            <div className="mc-page-title">
+              <span className="pp-text-gradient">Clinical Hub</span>
               <span className="mc-active-badge">Active Case</span>
             </div>
             <p className="mc-page-sub">Patient PT-{regid} · Longitudinal record</p>
@@ -71,7 +73,9 @@ export default function MedicalCaseDetailPage() {
           <button className="mc-btn-ghost" onClick={() => setShowAssignModal(true)}>
             <Package size={15} strokeWidth={1.6} /> Membership
           </button>
-          <button className="mc-btn-ghost">Print</button>
+          <button className="mc-btn-ghost" onClick={() => window.print()}>
+            <Printer size={15} strokeWidth={1.6} /> Print
+          </button>
           <button
             className="mc-btn-finalize"
             onClick={() =>
@@ -94,7 +98,7 @@ export default function MedicalCaseDetailPage() {
           regid={Number(regid)}
           patientId={medicalCase.patientId || 0}
           onClose={() => setShowAssignModal(false)}
-          onSuccess={() => {}}
+          onSuccess={() => { }}
         />
       )}
 
@@ -118,30 +122,34 @@ export default function MedicalCaseDetailPage() {
             </div>
 
             <div className="mc-snapshot-items">
-              <SnapshotItem icon={Phone}    label="Mobile"   value={medicalCase.phone || '—'} />
-              <SnapshotItem icon={Calendar} label="DOB"      value={(medicalCase as any).dateOfBirth || '—'} />
-              <SnapshotItem icon={Clock}    label="Wait"     value="—" />
-              <SnapshotItem icon={MapPin}   label="Location" value={(medicalCase as any).city || '—'} />
+              <SnapshotItem icon={Phone} label="Mobile" value={medicalCase.phone || '—'} />
+              <SnapshotItem icon={Calendar} label="DOB" value={medicalCase.dateOfBirth ? new Date(medicalCase.dateOfBirth).toLocaleDateString('en-GB') : '—'} />
+              <SnapshotItem icon={Clock} label="Wait" value="Active" />
+              <SnapshotItem icon={MapPin} label="Location" value={medicalCase.city || '—'} />
             </div>
 
-            <button className="mc-snapshot-edit-btn">Edit Profile</button>
-          </div>
-
-          {/* AI Hub */}
-          <div className="mc-ai-card">
-            <Sparkles className="mc-ai-bg-icon" size={80} strokeWidth={1.6} />
-            <div className="mc-ai-title">Clinical AI</div>
-            <p className="mc-ai-sub">
-              Analyze patient trajectory based on clinical history and recent findings.
-            </p>
-            <button className="mc-ai-btn" onClick={() => setActiveTab('consultant')}>
-              Run Analysis <ChevronRight size={12} strokeWidth={1.6} />
+            <button className="mc-snapshot-edit-btn" onClick={() => navigate(`/patients/${regid}/edit`)}>
+              <Edit size={14} strokeWidth={2} />
+              Edit Profile
             </button>
           </div>
         </div>
 
         {/* Workspace: Tab Panel */}
         <div className="mc-workspace">
+          
+          {/* Printable Letterhead (hidden on screen) */}
+          <div className="mc-print-header">
+            <div className="mc-print-clinic">{clinicName}</div>
+            <div className="mc-print-doc">Clinical Record</div>
+            <div className="mc-print-pat">
+              <strong>Patient:</strong> {medicalCase.patientName} (PT-{regid}) &nbsp;|&nbsp;
+              <strong>Phone:</strong> {medicalCase.phone || 'N/A'} &nbsp;|&nbsp;
+              <strong>Date:</strong> {new Date().toLocaleDateString()}
+            </div>
+            <hr />
+          </div>
+
           <nav className="mc-tab-nav">
             {TABS.map((tab) => (
               <button
@@ -156,24 +164,31 @@ export default function MedicalCaseDetailPage() {
             ))}
           </nav>
 
-            <div className="mc-workspace-body">
-            {activeTab === 'summary'      && <SummaryView data={fullData} />}
-            {activeTab === 'vitals'       && <VitalsView vitals={vitals} onRecord={() => setShowVitalsModal(true)} />}
-            {activeTab === 'soap'         && <SoapView soap={soap} />}
+          <div className="mc-workspace-body">
+            {activeTab === 'summary' && <SummaryView data={fullData} />}
+            {activeTab === 'vitals' && <VitalsView vitals={vitals} onRecord={() => setShowVitalsModal(true)} />}
+            {activeTab === 'soap' && <SoapView soap={soap} onAiAssist={() => setActiveTab('consultant')} />}
             {activeTab === 'prescription' && <RemedyChartSession regid={Number(regid)} />}
-            {activeTab === 'ai'           && <AiRemedyView regid={Number(regid)} />}
-            {activeTab === 'consultant'   && <AiConsultantView regid={Number(regid)} />}
+            {activeTab === 'consultant' && <AiConsultantView regid={Number(regid)} />}
+            {activeTab === 'labs' && <LabsView investigations={fullData.investigations} regid={Number(regid)} />}
+            {activeTab === 'billing' && <BillingView regid={Number(regid)} />}
+            {activeTab === 'follow-up' && <FollowUpView 
+              patientId={medicalCase.patientId} 
+              patientName={medicalCase.patientName} 
+              doctorId={medicalCase.doctorId} 
+            />}
+            {activeTab === 'media' && <MediaView images={fullData.images} regid={Number(regid)} />}
             {activeTab === 'communication' && <CommunicationView regid={Number(regid)} phone={(medicalCase as any).phone || ''} name={(medicalCase as any).patientName || ''} />}
 
             {showVitalsModal && (
-              <VitalsFormModal 
+              <VitalsFormModal
                 visitId={medicalCase.id}
                 regid={Number(regid)}
                 onClose={() => setShowVitalsModal(false)}
               />
             )}
 
-            {!['summary', 'vitals', 'soap', 'prescription', 'ai', 'consultant', 'communication'].includes(activeTab) && (
+            {!['summary', 'vitals', 'soap', 'prescription', 'ai', 'consultant', 'communication', 'billing', 'follow-up', 'media', 'examination', 'labs'].includes(activeTab) && (
               <div className="mc-wip">
                 <Zap size={40} strokeWidth={1.6} style={{ color: 'var(--border-main)' }} />
                 <div className="mc-wip-title">Module pending</div>
@@ -206,25 +221,38 @@ function SnapshotItem({ icon: Icon, label, value }: { icon: any; label: string; 
 }
 
 function SummaryView({ data }: any) {
+  const { medicalCase, soap } = data;
+  const conditions = medicalCase.condition?.split(',').map((c: string) => c.trim()) ||
+    soap?.[0]?.assessment?.split('\n').filter((l: string) => l.trim()).slice(0, 2) ||
+    ['No active conditions noted'];
+
+  const daysSinceCreated = medicalCase.createdAt ?
+    Math.floor((new Date().getTime() - new Date(medicalCase.createdAt).getTime()) / (1000 * 60 * 60 * 24)) : 0;
+
   return (
     <div className="mc-summary-grid">
-      <div className="mc-summary-card">
-        <div className="mc-summary-card-title">
-          <AlertCircle size={14} strokeWidth={1.6} style={{ color: 'var(--warning)' }} />
+      <div className="mc-summary-card pp-card">
+        <div className="mc-summary-card-title text-label">
+          <div className="mc-pulse-dot" />
+          <AlertCircle size={14} strokeWidth={1.6} style={{ color: 'var(--pp-warning-fg)' }} />
           Active Conditions
         </div>
         <div className="mc-conditions">
-          <span className="mc-condition-chip rose">Severe Gastritis</span>
-          <span className="mc-condition-chip indigo">Chronic Sinusitis</span>
+          {conditions.map((c: string, i: number) => (
+            <span key={i} className={`mc-condition-chip ${i % 2 === 0 ? 'rose' : 'indigo'}`}>
+              {c}
+            </span>
+          ))}
         </div>
       </div>
-      <div className="mc-summary-card">
-        <div className="mc-summary-card-title">
-          <CheckCircle2 size={14} strokeWidth={1.6} style={{ color: 'var(--success)' }} />
+      <div className="mc-summary-card pp-card">
+        <div className="mc-summary-card-title text-label">
+          <CheckCircle2 size={14} strokeWidth={1.6} style={{ color: 'var(--pp-success-fg)' }} />
           Treatment Status
         </div>
-        <p className="mc-treatment-text">
-          15-day course. Patient reports 40% improvement in primary symptoms.
+        <p className="mc-treatment-text text-body">
+          {daysSinceCreated > 0 ? `${daysSinceCreated}-day trajectory.` : 'New clinical case.'}
+          {soap?.[0]?.plan ? ` ${soap[0].plan.slice(0, 100)}${soap[0].plan.length > 100 ? '...' : ''}` : ' Follow-up plan pending clinical evaluation.'}
         </p>
       </div>
     </div>
@@ -263,7 +291,7 @@ function VitalsView({ vitals, onRecord }: { vitals: any[]; onRecord: () => void 
         <VitalCard label="Temperature" value={latest?.temperatureF} unit="°F" date={latest?.recordedAt} />
         <VitalCard label="Oxygen (SpO2)" value={latest?.oxygenSaturation} unit="%" date={latest?.recordedAt} />
         <VitalCard label="Resp. Rate" value={latest?.respiratoryRate} unit="/min" date={latest?.recordedAt} />
-        
+
         <button className="mc-add-reading-btn" onClick={onRecord}>
           <Plus size={16} strokeWidth={2} /> Record New Reading
         </button>
@@ -302,20 +330,20 @@ function VitalsView({ vitals, onRecord }: { vitals: any[]; onRecord: () => void 
   );
 }
 
-function SoapView({ soap }: any) {
+function SoapView({ soap, onAiAssist }: any) {
   return (
     <div className="mc-soap-wrap">
       <div className="mc-soap-topbar">
         <span className="mc-soap-topbar-title">Clinical Observation (SOAP)</span>
-        <button className="mc-soap-ai-btn">
+        <button className="mc-soap-ai-btn" onClick={onAiAssist}>
           <Sparkles size={12} strokeWidth={1.6} /> AI Assist
         </button>
       </div>
       <div className="mc-soap-body">
         <SoapSection label="Subjective" value={soap?.[0]?.subjective || 'Pending patient statement.'} />
-        <SoapSection label="Objective"  value={soap?.[0]?.objective  || 'Pending clinical findings.'} />
+        <SoapSection label="Objective" value={soap?.[0]?.objective || 'Pending clinical findings.'} />
         <SoapSection label="Assessment" value={soap?.[0]?.assessment || 'Provisional diagnosis pending.'} />
-        <SoapSection label="Plan"       value={soap?.[0]?.plan       || 'Treatment plan pending configuration.'} />
+        <SoapSection label="Plan" value={soap?.[0]?.plan || 'Treatment plan pending configuration.'} />
       </div>
     </div>
   );
@@ -333,35 +361,13 @@ function SoapSection({ label, value }: { label: string; value: string }) {
   );
 }
 
-function PrescriptionView({ prescriptions }: any) {
-  return (
-    <div className="mc-rx-list">
-      {prescriptions?.map((p: any) => (
-        <div key={p.id} className="mc-rx-item">
-          <div className="mc-rx-left">
-            <div className="mc-rx-icon">Rx</div>
-            <div>
-              <div className="mc-rx-name">{p.remedyName || 'Arnica Montana'}</div>
-              <div className="mc-rx-detail">
-                30C · 2 pills TDS · {p.days || 3} days
-              </div>
-            </div>
-          </div>
-          <button className="mc-rx-menu-btn">
-            <MoreHorizontal size={16} strokeWidth={1.6} />
-          </button>
-        </div>
-      ))}
-      <button className="mc-add-rx-btn">+ Add to prescription</button>
-    </div>
-  );
-}
+
 
 /* ─── Communication Tab ──────────────────────────────────────────── */
 function CommunicationView({ regid, phone, name }: { regid: number; phone: string; name: string }) {
   const { data: templates = [] } = useQuery({
     queryKey: ['communications', 'templates'],
-    queryFn: () => apiClient.get('/communications/templates').then(r => r.data as any[]),
+    queryFn: () => apiClient.get('/communications/templates').then(r => r.data.data as any[]),
   });
   const sendSms = useSendSms();
   const [message, setMessage] = useState('');
@@ -383,36 +389,36 @@ function CommunicationView({ regid, phone, name }: { regid: number; phone: strin
   };
 
   return (
-    <div style={{ padding: '0 4px' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+    <div className="mc-communication-wrap" style={{ padding: '0 4px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
         {/* Contact Info */}
         <div>
-          <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#888786', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>
+          <div className="text-label" style={{ marginBottom: 12 }}>
             Patient Contact
           </div>
-          <div style={{ background: '#FAFAF8', border: '1px solid #E3E2DF', borderRadius: 8, padding: 16 }}>
+          <div className="pp-card">
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <Phone size={14} strokeWidth={1.6} style={{ color: '#2563EB' }} />
-              <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{phone || 'No phone'}</span>
+              <Phone size={14} strokeWidth={1.6} style={{ color: 'var(--primary)' }} />
+              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{phone || 'No phone'}</span>
             </div>
-            <div style={{ fontSize: '0.82rem', color: '#4A4A47' }}>
-              RegID: <strong>PT-{regid}</strong>
+            <div className="text-body" style={{ color: 'var(--text-main)' }}>
+              RegID: <strong style={{ color: 'var(--text-main)' }}>PT-{regid}</strong>
             </div>
-            {name && <div style={{ fontSize: '0.82rem', color: '#4A4A47' }}>Name: {name}</div>}
+            {name && <div className="text-body" style={{ color: 'var(--text-main)' }}>Name: {name}</div>}
           </div>
         </div>
 
         {/* SMS Composer */}
         <div>
-          <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#888786', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>
+          <div className="text-label" style={{ marginBottom: 12 }}>
             Send SMS
           </div>
-          <div style={{ background: '#fff', border: '1px solid #E3E2DF', borderRadius: 8, padding: 16 }}>
+          <div className="pp-card">
             <div style={{ marginBottom: 10 }}>
-              <div style={{ fontSize: '0.72rem', color: '#888786', marginBottom: 6 }}>Templates</div>
+              <div className="text-label" style={{ marginBottom: 6, fontSize: '0.72rem' }}>Templates</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {templates.slice(0, 6).map((t: any) => (
-                  <button key={t.id} style={{ padding: '3px 10px', borderRadius: 20, border: '1px solid #E3E2DF', fontSize: '0.72rem', cursor: 'pointer', background: '#fff' }}
+                {Array.isArray(templates) && templates.slice(0, 6).map((t: any) => (
+                  <button key={t.id} style={{ padding: '4px 12px', borderRadius: 20, border: '1px solid var(--border-main)', fontSize: '0.72rem', cursor: 'pointer', background: 'var(--bg-card)', color: 'var(--text-main)', transition: 'background 0.2s' }}
                     onClick={() => applyTemplate(t)}>
                     {t.name}
                   </button>
@@ -423,12 +429,13 @@ function CommunicationView({ regid, phone, name }: { regid: number; phone: strin
               placeholder="Type message or select a template…"
               value={message}
               onChange={e => setMessage(e.target.value)}
-              style={{ width: '100%', minHeight: 80, padding: '8px 10px', border: '1px solid #E3E2DF', borderRadius: 6, fontSize: '0.82rem', resize: 'vertical', fontFamily: 'inherit' }}
+              style={{ width: '100%', minHeight: 80, padding: '10px', border: '1px solid var(--border-main)', borderRadius: 'var(--radius-card)', fontSize: '0.85rem', resize: 'vertical', fontFamily: 'inherit', background: 'var(--bg-surface-1)', color: 'var(--text-main)' }}
             />
-            {sent && <div style={{ fontSize: '0.78rem', color: '#16A34A', marginTop: 6 }}>✓ SMS sent successfully</div>}
-            {error && <div style={{ fontSize: '0.78rem', color: '#DC2626', marginTop: 6 }}>{error}</div>}
+            {sent && <div style={{ fontSize: '0.78rem', color: 'var(--pp-success-fg)', marginTop: 8 }}>✓ SMS sent successfully</div>}
+            {error && <div style={{ fontSize: '0.78rem', color: 'var(--pp-danger-fg)', marginTop: 8 }}>{error}</div>}
             <button
-              style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', background: '#2563EB', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600 }}
+              className="mc-btn-primary"
+              style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 6 }}
               onClick={handleSend}
               disabled={!phone || sendSms.isPending}
             >
@@ -437,6 +444,548 @@ function CommunicationView({ regid, phone, name }: { regid: number; phone: strin
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+/* ─── Media Tab ─────────────────────────────────────────────────── */
+function MediaView({ images, regid }: { images: any[], regid: number }) {
+  const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [pendingFiles, setPendingFiles] = useState<{ file: File; preview: string; desc: string }[]>([]);
+  const [uploaded, setUploaded] = useState<any[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+
+  const addFiles = (files: FileList | null) => {
+    if (!files) return;
+    const newEntries = Array.from(files).map(file => ({
+      file,
+      preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : '',
+      desc: ''
+    }));
+    setPendingFiles(prev => [...prev, ...newEntries]);
+  };
+
+  const handleUpload = async () => {
+    if (pendingFiles.length === 0) return;
+    setUploading(true);
+    const results = [];
+    for (const entry of pendingFiles) {
+      const formData = new FormData();
+      formData.append('files', entry.file);
+      formData.append('regid', String(regid));
+      formData.append('description', entry.desc || 'Clinical Media');
+      formData.append('type', 'Media');
+
+      try {
+        const res = await apiClient.post('/medical-cases/records/images', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        if (res.data && res.data.data) {
+          results.push({ id: Date.now() + Math.random(), picture: res.data.data.picture, description: entry.desc, createdAt: new Date().toISOString() });
+        }
+      } catch (err) {
+        console.error('Upload failed', err);
+      }
+    }
+    setPendingFiles([]);
+    setUploading(false);
+  };
+
+  const handleDeleteMedia = async (id: number) => {
+    if (!window.confirm('Are you sure you want to delete this clinical record?')) return;
+    try {
+      await apiClient.delete(`/medical-cases/records/images/${id}`);
+      setUploaded(prev => prev.filter(img => img.id !== id));
+      // Re-fetch full data to sync with backend
+      queryClient.invalidateQueries({ queryKey: ['medical-case', Number(regid)] });
+    } catch (err) {
+      console.error('Delete failed', err);
+      alert('Failed to delete media');
+    }
+  };
+
+  const allImages = [...(images || []), ...uploaded];
+
+  return (
+    <div className="mc-media-workspace">
+      <div className="mc-media-upload-section pp-card" 
+           onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+           onDragLeave={() => setDragOver(false)}
+           onDrop={e => { e.preventDefault(); setDragOver(false); addFiles(e.dataTransfer.files); }}>
+        <div className="mc-media-dropzone" onClick={() => fileInputRef.current?.click()}>
+          <input ref={fileInputRef} type="file" multiple accept="image/*,application/pdf" style={{ display: 'none' }} onChange={e => addFiles(e.target.files)} />
+          <Camera size={32} strokeWidth={1} style={{ color: 'var(--text-muted)', marginBottom: 12 }} />
+          <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Click or drag clinical photos & documents to upload</p>
+        </div>
+
+        {pendingFiles.length > 0 && (
+          <div className="mc-media-pending-list">
+            {pendingFiles.map((f, i) => (
+              <div key={i} className="mc-media-pending-item">
+                {f.preview ? <img src={f.preview} alt="preview" /> : <div className="pdf-icon"><FileText size={20} /></div>}
+                <input 
+                  type="text" 
+                  placeholder="Add description..." 
+                  value={f.desc} 
+                  onChange={e => {
+                    const next = [...pendingFiles];
+                    next[i].desc = e.target.value;
+                    setPendingFiles(next);
+                  }}
+                />
+                <button onClick={() => setPendingFiles(prev => prev.filter((_, idx) => idx !== i))}><X size={14} /></button>
+              </div>
+            ))}
+            <button className="mc-btn-primary" onClick={handleUpload} disabled={uploading}>
+              {uploading ? 'Uploading...' : `Upload ${pendingFiles.length} file(s)`}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {allImages.length === 0 ? (
+        <div className="mc-empty-state" style={{ marginTop: 24 }}>
+          <Camera size={40} strokeWidth={1} style={{ color: 'var(--text-muted)', marginBottom: 16 }} />
+          <p>No clinical images or documents uploaded yet.</p>
+        </div>
+      ) : (
+        <div className="mc-media-grid" style={{ marginTop: 24 }}>
+          {allImages.map((img: any) => (
+            <div key={img.id} className="mc-media-card pp-card group relative">
+              <div className="mc-media-preview">
+                {img.picture?.toLowerCase().endsWith('.pdf') ? (
+                  <div className="pdf-full-preview">
+                    <FileText size={48} strokeWidth={1} />
+                    <span>PDF Document</span>
+                  </div>
+                ) : (
+                  <img 
+                    src={img.picture} 
+                    alt={img.description} 
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      if (!target.src.includes('127.0.0.1:3000')) {
+                        target.src = `http://127.0.0.1:3000${img.picture}`;
+                      }
+                    }}
+                  />
+                )}
+                <button 
+                  className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-red-600 shadow-lg"
+                  onClick={(e) => { e.stopPropagation(); handleDeleteMedia(img.id); }}
+                  title="Delete Image"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+              <div className="mc-media-info">
+                <div className="mc-media-desc">{img.description || 'Clinical Image'}</div>
+                <div className="mc-media-date">{new Date(img.createdAt).toLocaleDateString()}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Billing Tab ───────────────────────────────────────────────── */
+function BillingView({ regid }: { regid: number }) {
+  const { data: summary, isLoading } = usePatientBills(regid);
+
+  if (isLoading) return <div>Loading billing records...</div>;
+
+  return (
+    <div className="mc-billing-workspace">
+      <div className="mc-billing-summary">
+        <div className="mc-bill-stat">
+          <span className="label">Total Charges</span>
+          <span className="value">₹{summary?.totals.totalCharges.toLocaleString()}</span>
+        </div>
+        <div className="mc-bill-stat">
+          <span className="label">Received</span>
+          <span className="value success">₹{summary?.totals.totalReceived.toLocaleString()}</span>
+        </div>
+        <div className="mc-bill-stat">
+          <span className="label">Balance</span>
+          <span className="value danger">₹{summary?.totals.totalBalance.toLocaleString()}</span>
+        </div>
+      </div>
+
+      <div className="mc-table-wrap" style={{ marginTop: 24 }}>
+        <table className="mc-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Bill #</th>
+              <th>Treatment</th>
+              <th>Charges</th>
+              <th>Received</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {summary?.bills.map(bill => (
+              <tr key={bill.id}>
+                <td>{bill.billDate}</td>
+                <td style={{ fontWeight: 700 }}>#{bill.billNo}</td>
+                <td>{bill.treatment || 'Consultation'}</td>
+                <td>₹{bill.charges}</td>
+                <td className="pp-text-success">₹{bill.received}</td>
+                <td>
+                  <span className={`pp-status-badge ${bill.balance === 0 ? 'success' : 'warning'}`}>
+                    {bill.balance === 0 ? 'Paid' : 'Pending'}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Follow-up Tab ─────────────────────────────────────────────── */
+/* ─── Follow-up Tab ─────────────────────────────────────────────── */
+function FollowUpView({ patientId, patientName, doctorId }: { patientId: number, patientName: string, doctorId?: number }) {
+  const { data: appointmentsData, isLoading, refetch } = useAppointments({ page: 1, limit: 100 } as any);
+  
+  // Fetch Follow-up Dues specifically for this patient
+  const { data: duesData } = useQuery({
+    queryKey: ['appointments', 'followups', 'dues', patientId],
+    queryFn: () => apiClient.get('/appointments/followups', { params: { patient_id: patientId } }).then(r => r.data.data as any[]),
+  });
+
+  const appointments = Array.isArray(appointmentsData) ? appointmentsData : (appointmentsData as any)?.data || [];
+  const filtered = appointments.filter((a: any) => a.patientId === patientId);
+  const dues = Array.isArray(duesData) ? duesData : [];
+
+  if (isLoading) return <div>Loading history...</div>;
+
+  return (
+    <div className="mc-followup-wrap">
+      {/* Follow-up Dues Section (New) */}
+      {dues.length > 0 && (
+        <div className="mc-dues-banner animate-pulse-subtle">
+          <div className="mc-dues-header">
+            <AlertCircle size={14} />
+            <span>Pending Follow-up Dues</span>
+          </div>
+          <div className="mc-dues-list">
+            {dues.map(d => (
+              <div key={d.id} className="mc-due-item">
+                <span className="mc-due-date">{d.bookingDate}</span>
+                <span className="mc-due-type">{d.visitType}</span>
+                <span className="mc-due-reason">Missed appointment</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div style={{ marginBottom: 24 }}>
+        <FollowupScheduler 
+          patientId={patientId} 
+          patientName={patientName}
+          defaultDoctorId={doctorId}
+          onSuccess={() => {
+            refetch();
+          }}
+        />
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Appointment History</h3>
+      </div>
+
+      <div className="mc-timeline">
+        {filtered.length > 0 ? filtered.map((appt: any) => (
+          <div key={appt.id} className="mc-timeline-item">
+            <div className="mc-timeline-date">
+              <div className="day">{new Date(appt.bookingDate).getDate()}</div>
+              <div className="month">{new Date(appt.bookingDate).toLocaleString('default', { month: 'short' })}</div>
+            </div>
+            <div className="mc-timeline-content">
+              <div className="mc-timeline-header">
+                <span className="type">{appt.visitType || 'Follow-up'}</span>
+                <span className={`status ${appt.status.toLowerCase()}`}>{appt.status}</span>
+              </div>
+              <div className="mc-timeline-body">
+                With <strong>{appt.doctorName}</strong> at {appt.bookingTime}
+                {appt.notes && <p className="notes">{appt.notes}</p>}
+              </div>
+            </div>
+          </div>
+        )) : (
+          <div className="mc-empty-state">
+            <Calendar size={40} strokeWidth={1} style={{ color: 'var(--text-muted)', marginBottom: 16 }} />
+            <p>No previous or upcoming appointments found.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+/* ─── Examination Tab ───────────────────────────────────────────── */
+function ExaminationView({ examination }: { examination: any[] }) {
+  if (!examination || examination.length === 0) {
+    return (
+      <div className="mc-empty-state">
+        <ClipboardList size={40} strokeWidth={1} style={{ color: 'var(--text-muted)', marginBottom: 16 }} />
+        <p>No physical examination records found for this patient.</p>
+        <button className="mc-btn-primary" style={{ marginTop: 12 }} onClick={() => alert('Examination form coming soon')}>+ Record Examination</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mc-exam-wrap">
+      <div className="mc-table-wrap">
+        <table className="mc-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>BP (Systolic/Diastolic)</th>
+              <th>Findings</th>
+            </tr>
+          </thead>
+          <tbody>
+            {examination.map((ex: any) => (
+              <tr key={ex.id}>
+                <td className="mc-vital-date">{ex.examinationDate || new Date(ex.createdAt).toLocaleDateString()}</td>
+                <td style={{ fontWeight: 700 }}>{ex.bpSystolic}/{ex.bpDiastolic} mmHg</td>
+                <td style={{ fontSize: '0.85rem' }}>{ex.findings || 'No notes.'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Labs Tab ──────────────────────────────────────────────────── */
+function LabsView({ investigations, regid }: { investigations: any[]; regid: number }) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [pendingFiles, setPendingFiles] = useState<{ file: File; preview: string; desc: string }[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const [uploaded, setUploaded] = useState<{ name: string; path: string; desc: string }[]>([]);
+  const [dragOver, setDragOver] = useState(false);
+
+  const addFiles = (files: FileList | null) => {
+    if (!files) return;
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+    const newEntries = Array.from(files)
+      .filter(f => allowed.includes(f.type))
+      .map(f => ({
+        file: f,
+        preview: f.type.startsWith('image/') ? URL.createObjectURL(f) : '',
+        desc: f.name.replace(/\.[^/.]+$/, ''),
+      }));
+    setPendingFiles(prev => [...prev, ...newEntries]);
+    setUploadError('');
+  };
+
+  const removeFile = (idx: number) => {
+    setPendingFiles(prev => {
+      const copy = [...prev];
+      if (copy[idx]?.preview) URL.revokeObjectURL(copy[idx].preview);
+      copy.splice(idx, 1);
+      return copy;
+    });
+  };
+
+  const updateDesc = (idx: number, desc: string) => {
+    setPendingFiles(prev => prev.map((f, i) => i === idx ? { ...f, desc } : f));
+  };
+
+  const handleUploadAll = async () => {
+    if (!pendingFiles.length) return;
+    setUploading(true);
+    setUploadError('');
+    const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token') || '';
+
+    const results: { name: string; path: string; desc: string }[] = [];
+    for (const entry of pendingFiles) {
+      const formData = new FormData();
+      formData.append('files', entry.file);
+      formData.append('regid', String(regid));
+      formData.append('description', entry.desc || entry.file.name);
+      try {
+        const res = await fetch('/api/medical-cases/records/images', {
+          method: 'POST',
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          body: formData,
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json?.error || 'Upload failed');
+        results.push({ name: entry.file.name, path: json?.data?.picture || '', desc: entry.desc });
+      } catch (err: any) {
+        setUploadError(err.message || 'One or more files failed to upload');
+      }
+    }
+
+    setUploaded(prev => [...prev, ...results]);
+    setPendingFiles([]);
+    setUploading(false);
+  };
+
+  const hasContent = (investigations && investigations.length > 0) || uploaded.length > 0;
+
+  return (
+    <div className="mc-labs-workspace">
+
+      {/* ─── Upload Zone ─────────────────────────────── */}
+      <div className="mc-labs-section">
+        <div className="mc-section-header" style={{ marginBottom: 14 }}>
+          <Paperclip size={14} strokeWidth={1.6} style={{ color: 'var(--primary)' }} />
+          Attach Lab Reports
+        </div>
+
+        {/* Drop Zone */}
+        <div
+          className={`mc-labs-dropzone${dragOver ? ' drag-active' : ''}`}
+          onClick={() => fileInputRef.current?.click()}
+          onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={e => { e.preventDefault(); setDragOver(false); addFiles(e.dataTransfer.files); }}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept="image/jpeg,image/png,image/webp,application/pdf"
+            style={{ display: 'none' }}
+            onChange={e => addFiles(e.target.files)}
+          />
+          <Upload size={28} strokeWidth={1.2} style={{ color: dragOver ? 'var(--primary)' : 'var(--text-muted)', marginBottom: 8 }} />
+          <div className="mc-labs-drop-title">
+            {dragOver ? 'Drop files here' : 'Click or drag files to attach'}
+          </div>
+          <div className="mc-labs-drop-sub">
+            Supports: JPG, PNG, WebP, PDF · Max 5 MB each
+          </div>
+        </div>
+
+        {/* Pending Files Preview */}
+        {pendingFiles.length > 0 && (
+          <div className="mc-labs-pending">
+            {pendingFiles.map((entry, idx) => (
+              <div key={idx} className="mc-labs-pending-item">
+                {entry.preview ? (
+                  <img src={entry.preview} alt={entry.file.name} className="mc-labs-pending-thumb" />
+                ) : (
+                  <div className="mc-labs-pending-pdf">
+                    <FileText size={22} strokeWidth={1.2} />
+                  </div>
+                )}
+                <div className="mc-labs-pending-meta">
+                  <input
+                    className="mc-labs-desc-input"
+                    value={entry.desc}
+                    onChange={e => updateDesc(idx, e.target.value)}
+                    placeholder="Description (e.g. CBC Report)"
+                  />
+                  <div className="mc-labs-filename">{entry.file.name}</div>
+                </div>
+                <button
+                  className="mc-labs-remove-btn"
+                  onClick={() => removeFile(idx)}
+                  title="Remove"
+                >
+                  <X size={14} strokeWidth={2} />
+                </button>
+              </div>
+            ))}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12 }}>
+              <button
+                className="mc-btn-primary"
+                onClick={handleUploadAll}
+                disabled={uploading}
+                style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+              >
+                {uploading ? <Loader2 size={13} className="mc-spin" /> : <Upload size={13} />}
+                {uploading ? 'Uploading...' : `Upload ${pendingFiles.length} file${pendingFiles.length > 1 ? 's' : ''}`}
+              </button>
+              <button
+                className="mc-btn-ghost"
+                onClick={() => setPendingFiles([])}
+                disabled={uploading}
+              >
+                Clear all
+              </button>
+            </div>
+
+            {uploadError && (
+              <div className="mc-labs-error">
+                <AlertCircle size={13} strokeWidth={1.6} /> {uploadError}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Newly Uploaded This Session */}
+        {uploaded.length > 0 && (
+          <div className="mc-labs-uploaded">
+            {uploaded.map((u, i) => (
+              <div key={i} className="mc-labs-uploaded-item">
+                <CheckCircle2 size={14} style={{ color: 'var(--pp-success-fg)', flexShrink: 0 }} />
+                <span className="mc-labs-uploaded-name">{u.desc || u.name}</span>
+                {u.path && (
+                  <a
+                    href={u.path}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mc-labs-view-btn"
+                    title="View"
+                  >
+                    <Eye size={13} strokeWidth={1.6} /> View
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ─── Investigations List ─────────────────────── */}
+      {!hasContent ? (
+        <div className="mc-empty-state" style={{ marginTop: 24 }}>
+          <FlaskConical size={36} strokeWidth={1} style={{ color: 'var(--text-muted)', marginBottom: 12 }} />
+          <p>No lab investigations or test results recorded yet.</p>
+        </div>
+      ) : investigations && investigations.length > 0 ? (
+        <div className="mc-labs-section" style={{ marginTop: 24 }}>
+          <div className="mc-section-header" style={{ marginBottom: 14 }}>
+            <FlaskConical size={14} strokeWidth={1.6} style={{ color: 'var(--primary)' }} />
+            Investigations
+          </div>
+          <div className="mc-labs-grid">
+            {investigations.map((lab: any) => (
+              <div key={lab.id} className="mc-lab-card">
+                <div className="mc-lab-header">
+                  <span className="mc-lab-type">{lab.type}</span>
+                  <span className="mc-lab-date">{lab.investDate || new Date(lab.createdAt).toLocaleDateString()}</span>
+                </div>
+                <div className="mc-lab-body">
+                  {lab.data ? (
+                    <pre style={{ fontSize: '0.75rem', margin: 0, whiteSpace: 'pre-wrap' }}>
+                      {JSON.stringify(lab.data, null, 2)}
+                    </pre>
+                  ) : (
+                    <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Pending results...</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

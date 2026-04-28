@@ -1,13 +1,14 @@
 import type { BillWithPatient } from '@mmc/types';
 import { format } from 'date-fns';
-import { RefreshCw, Receipt } from 'lucide-react';
+import { RefreshCw, Receipt, Printer } from 'lucide-react';
 
 interface BillingTableProps {
   bills: BillWithPatient[];
   isLoading: boolean;
+  onPrint?: (bill: BillWithPatient) => void;
 }
 
-export function BillingTable({ bills, isLoading }: BillingTableProps) {
+export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
   if (isLoading) {
     return (
       <div className="bill-empty">
@@ -68,13 +69,38 @@ export function BillingTable({ bills, isLoading }: BillingTableProps) {
                   {bill.balance > 0 ? `₹${bill.balance.toLocaleString()}` : '—'}
                 </td>
                 <td data-label="" style={{ textAlign: 'right' }}>
-                  <button 
-                    className="bill-btn bill-btn-sm" 
-                    style={{ color: 'var(--pp-blue)', border: 'none', background: 'none', fontWeight: 600, cursor: 'pointer' }}
-                    onClick={() => window.location.href = `/patients/${bill.regid}`}
-                  >
-                    View
-                  </button>
+                  <div className="flex justify-end items-center gap-3">
+                    <button
+                      className="bill-btn bill-btn-sm"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        background: '#f8fafc',
+                        border: '1px solid #e2e8f0',
+                        color: '#475569',
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: 600
+                      }}
+                      onClick={() => onPrint?.(bill)}
+                    >
+                      <Printer size={14} />
+                      Print
+                    </button>
+                    <a
+                      href={`/patients/${bill.regid}`}
+                      style={{
+                        color: 'var(--pp-blue)',
+                        textDecoration: 'none',
+                        fontSize: '13px',
+                        fontWeight: 600
+                      }}
+                    >
+                      View
+                    </a>
+                  </div>
                 </td>
               </tr>
             ))}

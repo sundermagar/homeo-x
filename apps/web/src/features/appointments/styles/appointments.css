@@ -1211,7 +1211,7 @@
 
 @media (min-width: 1024px) {
   .appt-queue-board {
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   }
 }
 
@@ -1219,10 +1219,12 @@
   background: var(--bg-card);
   border: 1px solid var(--pp-warm-4);
   border-radius: var(--pp-radius-card);
-  padding: var(--pp-space-4);
+  padding: 20px 16px;
   text-align: center;
   position: relative;
   transition: all var(--transition-normal);
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 
@@ -1273,7 +1275,7 @@
 
 .appt-token-actions {
   display: flex;
-  gap: var(--pp-space-2);
+  gap: 6px;
   justify-content: center;
   margin-top: 12px;
   flex-wrap: wrap;
@@ -1780,4 +1782,114 @@
   font-size: 0.85rem;
   font-weight: 600;
   text-align: center;
+}
+
+/* ─── Booking Success Panel ─── */
+.appt-success-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 28px 24px;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border-top: 1px solid #bbf7d0;
+  text-align: center;
+}
+
+.appt-success-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #16a34a;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 20px rgba(22, 163, 74, 0.25);
+}
+
+.appt-success-text h3 {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #15803d;
+  margin: 0 0 6px;
+}
+
+.appt-success-text p {
+  font-size: 0.82rem;
+  color: #166534;
+  margin: 0 0 8px;
+  font-weight: 500;
+}
+
+.appt-token-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  background: #16a34a;
+  color: white;
+  border-radius: 100px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.appt-print-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 24px;
+  background: #0f172a;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
+}
+
+.appt-print-btn:hover {
+  background: #1e293b;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.3);
+}
+
+.appt-success-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  padding: 0 20px;
+}
+
+@media (min-width: 480px) {
+  .appt-success-actions {
+    flex-direction: row;
+    justify-content: center;
+  }
+}
+
+.appt-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 24px;
+  background: white;
+  color: #166534;
+  border: 2px solid #bbf7d0;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.appt-close-btn:hover {
+  background: #f0fdf4;
+  border-color: #16a34a;
 }

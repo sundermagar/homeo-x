@@ -1,9 +1,15 @@
 import { useState } from 'react';
-import { Receipt, Search, ChevronLeft, ChevronRight, FilePlus, Grid, List } from 'lucide-react';
+import { Receipt, Search, ChevronLeft, ChevronRight, FilePlus, Grid, List, Printer } from 'lucide-react';
 import { useBills, useDailyCollection } from '../hooks/use-billing';
 import { BillingTable } from '../components/BillingTable';
 import { DailyCollectionCard } from '../components/DailyCollectionCard';
+import { PrintOptionsModal } from '../components/PrintOptionsModal';
+import { useOrganizations } from '../../platform/hooks/use-organizations';
+import { useAuthStore } from '../../../shared/stores/auth-store';
+import { printBill } from '../../../shared/utils/print';
 import { format } from 'date-fns';
+import type { BillWithPatient } from '@mmc/types';
+import '../../platform/styles/platform.css';
 import '../styles/billing.css';
 
 export default function BillingListPage() {
@@ -11,19 +17,30 @@ export default function BillingListPage() {
   const [page, setPage] = useState(1);
   const [regidFilter, setRegidFilter] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [selectedBill, setSelectedBill] = useState<BillWithPatient | null>(null);
+
+  const { data: orgs = [] } = useOrganizations();
+  const user = useAuthStore(s => s.user);
+  const myOrg = orgs.find(o => o.id === user?.contextId) || orgs[0];
 
   const parsedRegid = parseInt(regidFilter, 10);
-  const billsQuery      = useBills({ 
-    page, 
-    limit: 30, 
-    regid: (!isNaN(parsedRegid) && regidFilter) ? parsedRegid : undefined, 
-    date: date || undefined 
+  const billsQuery = useBills({
+    page,
+    limit: 30,
+    regid: (!isNaN(parsedRegid) && regidFilter) ? parsedRegid : undefined,
+    date: date || undefined
   });
   const collectionQuery = useDailyCollection(date);
 
-  const total     = billsQuery.data?.total     ?? 0;
-  const bills     = billsQuery.data?.data       ?? [];
-  const hasMore   = bills.length === 30;
+  const total = billsQuery.data?.total ?? 0;
+  const bills = billsQuery.data?.data ?? [];
+  const hasMore = bills.length === 30;
+
+  const handlePrint = (template: 'standard' | 'pharmacy' | 'package' | 'comprehensive') => {
+    if (!selectedBill || !myOrg) return;
+    printBill(selectedBill, myOrg, { template });
+    setSelectedBill(null);
+  };
 
   return (
     <div className="bill-page fade-in">
@@ -120,7 +137,11 @@ export default function BillingListPage() {
       </div>
 
       {viewMode === 'list' ? (
-        <BillingTable bills={bills} isLoading={billsQuery.isLoading} />
+        <BillingTable
+          bills={bills}
+          isLoading={billsQuery.isLoading}
+          onPrint={(bill) => setSelectedBill(bill)}
+        />
       ) : (
         <div className="bill-card-grid">
           {bills.map((bill) => (
@@ -141,10 +162,28 @@ export default function BillingListPage() {
                 <div><strong>Received:</strong> ₹{bill.received.toLocaleString()}</div>
                 <div><strong>Balance:</strong> {bill.balance > 0 ? `₹${bill.balance.toLocaleString()}` : '—'}</div>
               </div>
-              <div className="bill-grid-card-footer">
-                <button 
-                  className="bill-btn bill-btn-primary" 
-                  style={{ width: '100%' }}
+              <div className="bill-grid-card-footer" style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  className="bill-btn"
+                  style={{
+                    flex: 1,
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    color: '#64748b',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
+                  }}
+                  onClick={() => setSelectedBill(bill)}
+                >
+                  <Printer size={14} /> Print
+                </button>
+                <button
+                  className="bill-btn bill-btn-primary"
+                  style={{ flex: 1.5 }}
                   onClick={() => window.location.href = `/patients/${bill.regid}`}
                 >
                   View Details
@@ -166,6 +205,13 @@ export default function BillingListPage() {
         </button>
       </div>
 
+      {selectedBill && (
+        <PrintOptionsModal
+          bill={selectedBill}
+          onClose={() => setSelectedBill(null)}
+          onPrint={handlePrint}
+        />
+      )}
     </div>
   );
 }

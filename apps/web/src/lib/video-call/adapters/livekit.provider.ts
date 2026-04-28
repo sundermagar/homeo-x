@@ -35,13 +35,14 @@ export class LiveKitProvider implements VideoProvider {
     
     // Map LiveKit RemoteParticipant to UI expected {uid, videoTrack, audioTrack}
     return Array.from(this.client.remoteParticipants.values()).map(participant => {
-      const videoPub = Array.from(participant.videoTrackPublications.values()).find(p => p.track);
-      const audioPub = Array.from(participant.audioTrackPublications.values()).find(p => p.track);
+      const videoPub = Array.from(participant.videoTrackPublications.values())[0];
+      const audioPub = Array.from(participant.audioTrackPublications.values())[0];
       
       return {
         uid: participant.identity,
         videoTrack: videoPub?.track,
         audioTrack: audioPub?.track,
+        isMicOn: !!audioPub && !audioPub.isMuted,
       };
     });
   }
@@ -56,8 +57,12 @@ export class LiveKitProvider implements VideoProvider {
 
     this.client.on(RoomEvent.TrackSubscribed, updateParticipants);
     this.client.on(RoomEvent.TrackUnsubscribed, updateParticipants);
+    this.client.on(RoomEvent.TrackPublished, updateParticipants);
+    this.client.on(RoomEvent.TrackUnpublished, updateParticipants);
     this.client.on(RoomEvent.ParticipantConnected, updateParticipants);
     this.client.on(RoomEvent.ParticipantDisconnected, updateParticipants);
+    this.client.on(RoomEvent.TrackMuted, updateParticipants);
+    this.client.on(RoomEvent.TrackUnmuted, updateParticipants);
   }
 
   async join(_roomId: string, credentials?: { token: string; appId?: string }) {
@@ -82,15 +87,20 @@ export class LiveKitProvider implements VideoProvider {
 
       // Start Video
       if (this.isCameraOn) {
+        console.log("[LiveKit] Creating local video track...");
         this.localVideoTrack = await createLocalVideoTrack();
+        console.log("[LiveKit] Publishing video track...");
         await this.client!.localParticipant.publishTrack(this.localVideoTrack);
         this.callbacks?.onLocalVideoTrack?.(this.localVideoTrack);
       }
       
       // Start Audio
       if (this.isMicOn) {
+        console.log("[LiveKit] Creating local audio track...");
         this.localAudioTrack = await createLocalAudioTrack();
+        console.log("[LiveKit] Publishing audio track...");
         await this.client!.localParticipant.publishTrack(this.localAudioTrack);
+        this.callbacks?.onLocalAudioTrack?.(this.localAudioTrack);
       }
 
       this.isConnected = true;

@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import {
   Search, ChevronRight, ChevronDown, Activity,
   Plus, RotateCw, Microscope, Zap,
-  Folder, FolderOpen, FlaskConical, NetworkLine
+  Folder, FolderOpen, FlaskConical, Network, X
 } from 'lucide-react';
 import {
   useRemedyTree,
@@ -184,6 +184,19 @@ export function AiRemedyView({ regid }: { regid?: number }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const { data: treeNodes, isLoading } = useRemedyTree();
 
+  // Keyboard shortcut for search
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === '/' && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        const input = document.querySelector('.mc-search-input') as HTMLInputElement;
+        input?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const filteredNodes = useMemo(() => {
     if (!searchTerm) return treeNodes || [];
     const filter = (nodes: RemedyTreeNode[]): RemedyTreeNode[] => {
@@ -227,15 +240,35 @@ export function AiRemedyView({ regid }: { regid?: number }) {
             </div>
           </div>
 
-          <div className="mc-search-wrap" style={{ marginTop: '20px' }}>
-            <Search className="mc-search-icon" size={18} />
-            <input
-              type="text"
-              placeholder="Locate remedy family or taxonomy node..."
-              className="mc-search-input"
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-            />
+          <div className="mc-search-container">
+            <div className="mc-search-wrap">
+              <Search className="mc-search-icon" size={18} />
+              <input
+                type="text"
+                placeholder="Locate remedy family or taxonomy node..."
+                className="mc-search-input"
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                autoFocus
+              />
+              {searchTerm && (
+                <button 
+                  className="mc-search-clear" 
+                  onClick={() => setSearchTerm('')}
+                  title="Clear search"
+                >
+                  <X size={14} />
+                </button>
+              )}
+              <div className="mc-search-shortcut">
+                <span style={{ opacity: 0.6 }}>/</span>
+              </div>
+            </div>
+            {searchTerm && (
+              <div className="mc-search-badge">
+                {filteredNodes.length} Results
+              </div>
+            )}
           </div>
 
           <div className="mc-matrix-tree">

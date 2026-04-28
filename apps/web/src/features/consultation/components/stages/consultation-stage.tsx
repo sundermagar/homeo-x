@@ -14,6 +14,7 @@ import { useSymptomExtraction } from '../../hooks/use-symptom-extraction';
 import { Zap, RefreshCw, ClipboardList, Brain, Heart, Search, Star, Volume2, Mic, X, Trash2 } from 'lucide-react';
 import { io, type Socket } from 'socket.io-client';
 import { toast } from '../../../../hooks/use-toast';
+import { ROUTES } from '../../../../lib/constants';
 
 interface ConsultationStageProps {
   visitId: string;
@@ -76,8 +77,8 @@ export function ConsultationStage({
 }: ConsultationStageProps) {
 
   const [segments, setSegments] = useState<TranscriptSegmentLocal[]>([]);
-  const [interimText, setInterimText] = useState('');
-  const [remoteInterimText, setRemoteInterimText] = useState<string | null>(null);
+  const [drInterimText, setDrInterimText] = useState('');
+  const [ptInterimText, setPtInterimText] = useState('');
   const nextSeqRef = useRef(0);
   const [customQuestion, setCustomQuestion] = useState('');
   const [_ongoingTranscript, _setOngoingTranscript] = useState('');
@@ -105,7 +106,7 @@ export function ConsultationStage({
   const interimClearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (!interimText && !remoteInterimText) return;
+    if (!drInterimText && !ptInterimText) return;
 
     // Restart the clear timer whenever new interim text arrives
     if (interimClearTimerRef.current) clearTimeout(interimClearTimerRef.current);
@@ -115,15 +116,15 @@ export function ConsultationStage({
       const staleMs = Date.now() - lastInterimTimeRef.current;
       if (staleMs >= 7500) {
         // No final result arrived — clear the frozen interim text
-        setInterimText('');
-        setRemoteInterimText(null);
+        setDrInterimText('');
+        setPtInterimText('');
       }
     }, 8000);
 
     return () => {
       if (interimClearTimerRef.current) clearTimeout(interimClearTimerRef.current);
     };
-  }, [interimText, remoteInterimText]);
+  }, [drInterimText, ptInterimText]);
 
   // --- Patient presence (LiveKit) ---
 
@@ -193,8 +194,6 @@ export function ConsultationStage({
       return;
     }
 
-    // In IN_PERSON mode, if the doctor is explicitly "Listening", the audio belongs to the PATIENT.
-    // Otherwise, use the role provided by the transcriber gateway.
     const speaker: SpeakerLabel = 
       (callMode === 'IN_PERSON' && isListeningForAnswer) 
         ? 'PATIENT' 
@@ -202,20 +201,16 @@ export function ConsultationStage({
 
     if (result.isFinal) {
       if (isListeningForAnswer && speaker === 'PATIENT') {
-        // Buffer into the ref so translation updates can swap Hindi → English later.
-        // Do NOT add to segments yet — committed on Submit to prevent duplicate saves.
         const answerSeg = {
           text: result.text,
           translatedText: result.translatedText || '',
           timestamp: result.timestamp,
         };
         patientAnswerSegmentsRef.current = [...patientAnswerSegmentsRef.current, answerSeg];
-        // Show translated (English) text immediately if available; translation update will
-        // replace as soon as it arrives via the isTranslationUpdate branch above.
         setPatientAnswer(
           patientAnswerSegmentsRef.current.map(s => s.translatedText || s.text).join(' ')
         );
-        setRemoteInterimText(null); // clear interim once final arrives
+        setPtInterimText(''); 
         return;
       }
 
@@ -232,6 +227,7 @@ export function ConsultationStage({
       };
 
       setSegments(prev => {
+        if (prev.some(s => s.timestamp === result.timestamp)) return prev;
         const updated = [...prev, segment];
         const fullText = updated
           .map(s => `${s.speaker === 'DOCTOR' ? 'Doctor' : 'Patient'}: ${s.translatedText || s.text}`)
@@ -240,18 +236,11 @@ export function ConsultationStage({
         return updated;
       });
 
-      if (speaker === 'DOCTOR') setInterimText('');
-      else setRemoteInterimText(null);
+      if (speaker === 'DOCTOR') setDrInterimText('');
+      else setPtInterimText('');
     } else {
-      if (speaker === 'DOCTOR') setInterimText(result.text);
-      else {
-        setRemoteInterimText(result.text);
-        // Also show interim in patient answer if listening
-        if (isListeningForAnswer) {
-          // Note: we don't permanently set state here to avoid jitter, 
-          // but we could show it in a preview
-        }
-      }
+      if (speaker === 'DOCTOR') setDrInterimText(result.text);
+      else setPtInterimText(result.text);
     }
   }, [onTranscriptUpdate, isListeningForAnswer, callMode]);
 
@@ -263,13 +252,25 @@ export function ConsultationStage({
     onTranscript: onTranscriptResult,
     onError: (err: any) => {
       const msg = err?.message || String(err) || 'Transcription failed';
-      console.error('[Transcription] Error:', err);
-      // Surface the error to the user so they know why nothing is appearing
+      console.error('[Transcription:DOCTOR] Error:', err);
       toast({
-        title: 'Transcription error',
-        description: msg.length > 200 ? msg.slice(0, 200) + '…' : msg,
+        title: 'Doctor transcription error',
+        description: msg.length > 100 ? msg.slice(0, 100) + '…' : msg,
         variant: 'error',
       });
+    },
+  });
+
+  const patientTranscriber = useBinaryTranscriber({
+    visitId,
+    engine: 'GOOGLE',
+    languageCode: sttLanguage,
+    role: 'PATIENT',
+    onTranscript: onTranscriptResult,
+    onError: (err: any) => {
+      const msg = err?.message || String(err) || 'Transcription failed';
+      console.error('[Transcription:PATIENT] Error:', err);
+      // Don't toast for patient errors to avoid spamming the doctor, just log it
     },
   });
 
@@ -278,39 +279,55 @@ export function ConsultationStage({
   // For AUDIO/VIDEO → reuse LiveKit's local audio track so we don't fight LiveKit
   // over the mic (the classic "silent stream in video mode" bug). We wait until
   // LiveKit has finished publishing the track before starting.
-  const hasAutoStarted = useRef(false);
-  useEffect(() => {
-    if (hasAutoStarted.current) return;
-    if (binaryTranscriber.isRecording || binaryTranscriber.isConnecting) return;
+  const hasAutoStartedDr = useRef(false);
+  const hasAutoStartedPt = useRef(false);
 
+  useEffect(() => {
     const isLiveKitMode = callMode === 'AUDIO' || callMode === 'VIDEO';
 
     if (isLiveKitMode) {
-      // Extract the underlying MediaStreamTrack from LiveKit's LocalAudioTrack.
-      // LiveKit's client exposes it as `.mediaStreamTrack` on LocalAudioTrack.
-      const liveKitTrack: MediaStreamTrack | undefined =
-        video?.localAudioTrack?.mediaStreamTrack || video?.localAudioTrack;
-      if (!liveKitTrack || !(liveKitTrack instanceof MediaStreamTrack)) {
-        // Track not ready yet — wait for the next render when LiveKit finishes init
-        return;
+      // 1. Doctor voice
+      if (!hasAutoStartedDr.current && !binaryTranscriber.isRecording && !binaryTranscriber.isConnecting) {
+        const drTrack = video?.localAudioTrack?.mediaStreamTrack || video?.localAudioTrack;
+        if (drTrack && drTrack instanceof MediaStreamTrack) {
+          hasAutoStartedDr.current = true;
+          console.log('[ConsultationStage] Auto-starting DR transcription via LiveKit');
+          binaryTranscriber.startRecording({ audioTrack: drTrack }).catch(err => {
+            console.error('[ConsultationStage] DR Auto-start failed:', err);
+            hasAutoStartedDr.current = false;
+          });
+          onVoiceUsed?.();
+        }
       }
-      hasAutoStarted.current = true;
-      console.log(`[ConsultationStage] Auto-starting transcription (${callMode}) via LiveKit track`);
-      Promise.resolve(binaryTranscriber.startRecording({ audioTrack: liveKitTrack })).catch((err) => {
-        console.error('[ConsultationStage] Auto-start failed:', err);
-      });
-      onVoiceUsed?.();
+
+      // 2. Patient voice (remote)
+      if (!hasAutoStartedPt.current && !patientTranscriber.isRecording && !patientTranscriber.isConnecting) {
+        // Find the first remote user with an audio track
+        const remoteUser = video?.remoteUsers?.find((u: any) => u.audioTrack);
+        const ptTrack = remoteUser?.audioTrack?.mediaStreamTrack || remoteUser?.audioTrack;
+        
+        if (ptTrack && ptTrack instanceof MediaStreamTrack) {
+          hasAutoStartedPt.current = true;
+          console.log('[ConsultationStage] Auto-starting PT transcription via remote track');
+          patientTranscriber.startRecording({ audioTrack: ptTrack }).catch(err => {
+            console.error('[ConsultationStage] PT Auto-start failed:', err);
+            hasAutoStartedPt.current = false;
+          });
+        }
+      }
     } else {
       // IN_PERSON — no LiveKit, our own getUserMedia
-      hasAutoStarted.current = true;
-      console.log(`[ConsultationStage] Auto-starting transcription (${callMode}) via getUserMedia`);
-      Promise.resolve(binaryTranscriber.startRecording()).catch((err) => {
-        console.error('[ConsultationStage] Auto-start failed:', err);
-      });
-      onVoiceUsed?.();
+      if (!hasAutoStartedDr.current && !binaryTranscriber.isRecording && !binaryTranscriber.isConnecting) {
+        hasAutoStartedDr.current = true;
+        console.log('[ConsultationStage] Auto-starting transcription (IN_PERSON)');
+        binaryTranscriber.startRecording().catch(err => {
+          console.error('[ConsultationStage] IN_PERSON Auto-start failed:', err);
+          hasAutoStartedDr.current = false;
+        });
+        onVoiceUsed?.();
+      }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [callMode, video?.localAudioTrack, binaryTranscriber.isRecording, binaryTranscriber.isConnecting]);
+  }, [callMode, video?.localAudioTrack, video?.remoteUsers, binaryTranscriber.isRecording, binaryTranscriber.isConnecting, patientTranscriber.isRecording, patientTranscriber.isConnecting, onVoiceUsed]);
 
   // Manual start/stop handlers for IN_PERSON
   const handleStartRecording = useCallback(() => {
@@ -320,8 +337,8 @@ export function ConsultationStage({
 
   const handleStopRecording = useCallback(() => {
     binaryTranscriber.stopRecording();
-    setInterimText('');
-    setRemoteInterimText(null);
+    setDrInterimText('');
+    setPtInterimText('');
     setIsListeningForAnswer(false);
   }, [binaryTranscriber]);
 
@@ -442,7 +459,7 @@ export function ConsultationStage({
   // Scroll chat to bottom on new segments
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [segments, interimText, remoteInterimText]);
+  }, [segments, drInterimText, ptInterimText]);
 
   // Combine AI and mode questions
   const modeQList = (modeQuestions.data as any)?.questions || [];
@@ -702,19 +719,21 @@ export function ConsultationStage({
                 callMode={callMode}
                 video={video}
                 localSpeaker="DOCTOR"
-                patientJoinLink={videoCallState?.patientJoinLink}
+                patientJoinLink={ROUTES.PATIENT_MEET(visitId)}
                 transcript={segments}
-                interimText={interimText}
-                remoteInterimText={remoteInterimText}
-                isTranscribing={binaryTranscriber.isRecording}
+                drInterimText={drInterimText}
+                ptInterimText={ptInterimText}
+                isTranscribing={binaryTranscriber.isRecording || patientTranscriber.isRecording}
                 isRemotePaused={false}
                 error={null}
                 onLeave={() => {
-                  // Notify the patient that the doctor is ending the call
                   if (vcSocketRef.current?.connected) {
                     vcSocketRef.current.emit('call:leave');
                   }
-                  // Also disconnect the video tracks
+                  // Stop all transcription
+                  binaryTranscriber.stopRecording();
+                  patientTranscriber.stopRecording();
+                  // Disconnect video
                   video?.leave?.();
                   onStartVideoCall?.(null as any);
                 }}

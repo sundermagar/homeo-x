@@ -410,7 +410,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       queries.push(this.db.execute(sql`
         SELECT 'payment' as type, 'Invoice paid - ' || p.first_name as title, 'Rs.' || r.${sql.identifier(revInfo.amountCol)} as subtitle, r.created_at, p.regid
         FROM ${sql.identifier(revInfo.name)} r JOIN patients p ON r.regid = p.regid
-        WHERE p.clinic_id = ${contextId} AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
+        WHERE (r.deleted_at IS NULL OR r.deleted_at::text = '')
         ORDER BY r.id DESC LIMIT ${limit}
       `));
     }
@@ -459,6 +459,9 @@ export class DashboardRepositoryPg implements IDashboardRepository {
   }
 
   async getRevenueSeries(period: string, contextId: number, paymentMode?: string): Promise<RevenueSeries[]> {
+    const revInfo = await this.getRevenueTableInfo();
+    if (!revInfo) return [];
+
     let modeFilter = '';
     if (paymentMode === 'Cash') {
       modeFilter = "AND (LOWER(COALESCE(payment_mode, '')) = 'cash' OR payment_mode IS NULL OR payment_mode = '')";
@@ -514,7 +517,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       .where(eq(schema.caseReminders.id, id));
   }
 
-  async getRecentTransactions(limit: number, contextId?: number): Promise<RecentTransaction[]> {
+  async getRecentTransactions(limit: number): Promise<RecentTransaction[]> {
     try {
       const results = await this.db.execute(sql`
         WITH combined AS (
@@ -548,7 +551,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           c.*,
           COALESCE(p.first_name || ' ' || p.surname, 'Patient') AS patient_name
         FROM combined c
-        LEFT JOIN patients p ON c.regid = p.regid ${contextId ? sql`AND p.clinic_id = ${contextId}` : sql``}
+        LEFT JOIN patients p ON c.regid = p.regid
         ORDER BY c.created_at DESC
         LIMIT ${limit}
       `);
@@ -695,7 +698,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       WHERE p.clinic_id = ${contextId}
         AND b.bill_date::date >= ${start}::date AND b.bill_date::date < ${boundary}::date
         AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
-      ORDER BY CAST(NULLIF(b.charges::text, '') AS numeric) DESC NULLS LAST
+      ORDER BY b.charges DESC NULLS LAST
       LIMIT ${limit}
     `) as any[];
 
@@ -718,8 +721,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     const [revRes, patRes, collRes, waitRes, prevRevRes, prevPatRes] = await Promise.all([
       this.db.execute(sql`
         SELECT (
-          COALESCE((SELECT sum(received) FROM bills WHERE bill_date >= ${start} AND bill_date < ${boundary} AND (deleted_at IS NULL OR deleted_at::text = '') AND clinic_id = ${contextId}), 0) +
-          COALESCE((SELECT sum(CAST(NULLIF(amount::text, '') AS numeric)) FROM receipt WHERE created_at >= ${start} AND created_at < ${boundary} AND (deleted_at IS NULL OR deleted_at::text = '') AND "clinicId" = ${contextId}), 0)
+          COALESCE((SELECT sum(received) FROM bills WHERE bill_date >= ${start} AND bill_date < ${boundary} AND (deleted_at IS NULL OR deleted_at::text = '')), 0) +
+          COALESCE((SELECT sum(CAST(NULLIF(amount::text, '') AS numeric)) FROM receipt WHERE created_at >= ${start} AND created_at < ${boundary} AND (deleted_at IS NULL OR deleted_at::text = '')), 0)
         ) as total
       `),
       this.db.execute(sql`
@@ -735,7 +738,6 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         FROM bills
         WHERE bill_date >= ${start} AND bill_date < ${boundary}
           AND (deleted_at IS NULL OR deleted_at::text = '')
-          AND clinic_id = ${contextId}
       `),
       this.db.execute(sql`
         SELECT COALESCE(avg(extract(epoch from (called_at - checked_in_at))/60), 0)::int as avg_wait 
@@ -745,8 +747,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       `),
       this.db.execute(sql`
         SELECT (
-          COALESCE((SELECT sum(received) FROM bills WHERE bill_date >= ${prevStart} AND bill_date < ${prevBoundary} AND (deleted_at IS NULL OR deleted_at::text = '') AND clinic_id = ${contextId}), 0) +
-          COALESCE((SELECT sum(CAST(NULLIF(amount::text, '') AS numeric)) FROM receipt WHERE created_at >= ${prevStart} AND created_at < ${prevBoundary} AND (deleted_at IS NULL OR deleted_at::text = '') AND "clinicId" = ${contextId}), 0)
+          COALESCE((SELECT sum(received) FROM bills WHERE bill_date >= ${prevStart} AND bill_date < ${prevBoundary} AND (deleted_at IS NULL OR deleted_at::text = '')), 0) +
+          COALESCE((SELECT sum(CAST(NULLIF(amount::text, '') AS numeric)) FROM receipt WHERE created_at >= ${prevStart} AND created_at < ${prevBoundary} AND (deleted_at IS NULL OR deleted_at::text = '')), 0)
         ) as total
       `),
       this.db.execute(sql`
@@ -806,28 +808,53 @@ export class DashboardRepositoryPg implements IDashboardRepository {
   async getStaffOnDuty(contextId: number): Promise<{ name: string; role: string; count?: number }[]> {
     const docCol = await this.getDoctorColumn();
 
-    // Query doctors from the legacy table (same as staff list)
-    // and join with users table to get is_active status
-    const doctors = await this.db.execute(sql`
+    // Query 1: Modern Users table
+    const usersPromise = this.db.execute(sql`
       SELECT 
-        d.id,
-        d.name, 
-        d.designation as specialty,
-        u.is_active,
-        (SELECT count(a.id)::int FROM appointments a WHERE a.clinic_id = ${contextId} AND a.${sql.identifier(docCol)} = d.id AND a.booking_date = CURRENT_DATE::text AND (a.deleted_at IS NULL OR a.deleted_at::text = '' OR a.deleted_at::text = '0')) as visit_count
-      FROM doctors d
-      LEFT JOIN users u ON LOWER(d.email) = LOWER(u.email) AND u.context_id = ${contextId}
-      WHERE (d.deleted_at IS NULL OR d.deleted_at::text = '') 
-        AND (d.clinic_id = ${contextId} OR d.clinic_id::text = ${String(contextId)})
-        AND (u.is_active IS NULL OR u.is_active = true)
-      ORDER BY visit_count DESC
+        name, 
+        type as specialty,
+        (SELECT count(id)::int FROM appointments a WHERE a.clinic_id = ${contextId} AND a.${sql.identifier(docCol)} = users.id AND a.booking_date = CURRENT_DATE::text AND (a.deleted_at IS NULL OR a.deleted_at::text = '' OR a.deleted_at::text = '0')) as visit_count
+      FROM users
+      WHERE (deleted_at IS NULL OR deleted_at::text = '') 
+        AND (context_id = ${contextId} OR context_id::text = ${String(contextId)})
+        AND LOWER(type) IN ('doctor', 'practitioner', 'practitioner_id')
+      LIMIT 20
+    `).catch((err) => {
+      console.error('[Dashboard] Users Duty Query Failed:', err.message);
+      return [] as any[];
+    });
+
+    // Query 2: Legacy Doctors table
+    const doctorsPromise = this.db.execute(sql`
+      SELECT 
+        name, 
+        designation as specialty,
+        (SELECT count(id)::int FROM appointments a WHERE a.clinic_id = ${contextId} AND a.${sql.identifier(docCol)} = doctors.id AND a.booking_date = CURRENT_DATE::text AND (a.deleted_at IS NULL OR a.deleted_at::text = '' OR a.deleted_at::text = '0')) as visit_count
+      FROM doctors
+      WHERE (deleted_at IS NULL OR deleted_at::text = '') 
+        AND (clinic_id = ${contextId} OR clinic_id::text = ${String(contextId)})
       LIMIT 20
     `).catch((err) => {
       console.error('[Dashboard] Doctors Duty Query Failed:', err.message);
       return [] as any[];
     });
 
-    return (doctors as any[]).map(r => ({
+    const [uRes, dRes] = await Promise.all([usersPromise, doctorsPromise]);
+
+    const combined = [...(uRes as any[]), ...(dRes as any[])];
+
+    // Sort and de-duplicate by name
+    const uniqueMap = new Map();
+    combined.forEach(r => {
+      if (!uniqueMap.has(r.name) || (Number(r.visit_count) > Number(uniqueMap.get(r.name).visit_count))) {
+        uniqueMap.set(r.name, r);
+      }
+    });
+
+    const result = Array.from(uniqueMap.values());
+    result.sort((a, b) => (Number(b.visit_count) || 0) - (Number(a.visit_count) || 0));
+
+    return result.map(r => ({
       name: r.name || 'Unknown',
       role: r.specialty || 'Doctor',
       count: r.visit_count,

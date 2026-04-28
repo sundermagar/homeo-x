@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.91.0",
+    "@deepgram/sdk": "^5.1.0",
     "@google-cloud/speech": "^7.3.0",
     "@google-cloud/translate": "^9.3.0",
     "@google/generative-ai": "^0.24.0",

@@ -202,7 +202,7 @@ export function PrintPrescriptionButton({
 
       // Get medications from prescriptions
       const medications = summary!.prescriptions?.flatMap((rx: any) =>
-        rx.items.map((item: any) => ({
+        (rx.items || []).map((item: any) => ({
           name: item.medicationName,
           genericName: item.genericName,
           dosage: item.dosage,

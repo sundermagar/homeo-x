@@ -556,7 +556,6 @@ export class PatientRepositoryPg implements PatientRepository {
       bloodGroup: row.bloodGroup || null,
       // 'reference' is the actual DB column; domain calls it 'referenceType'
       referenceType: row.reference || null,
-      // referenceTypeId removed as it is not in the Patient domain type
       referredBy: row.referedBy || null,
       assistantDoctor: row.assitantDoctor || null,
       consultationFee: row.consultationFee ? Number(row.consultationFee) : null,

@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Search, Plus, ChevronRight, Power } from 'lucide-react';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { apiClient } from '@/infrastructure/api-client';
+import { useDoctorStatus, useUpdateDoctorStatus } from '@/features/dashboard/hooks/use-doctor-status';
 
 interface DashboardHeaderProps {
   onOpenPalette: () => void;
@@ -60,32 +61,14 @@ export function DashboardHeader({ onOpenPalette }: DashboardHeaderProps) {
   const rawRole = ((user as any)?.type || (user as any)?.role || (user as any)?.roleName || '').toLowerCase();
   const isDoctor = rawRole === 'doctor' || rawRole === 'medical practitioner' || ((user as any)?.name || '').toLowerCase().startsWith('dr');
 
-  const [isDoctorActive, setIsDoctorActive] = useState<boolean>(true);
-  const [toggleLoading, setToggleLoading] = useState(false);
-
-  useEffect(() => {
-    if (isDoctor) {
-      apiClient.get<{ success: boolean; isActive: boolean }>('/doctors/status').then(({ data }) => {
-        if (typeof data.isActive === 'boolean') {
-          setIsDoctorActive(data.isActive);
-        }
-      }).catch(() => { });
-    }
-  }, [isDoctor]);
+  const { data: isDoctorActive = true, isLoading: statusLoading } = useDoctorStatus(isDoctor);
+  const updateStatus = useUpdateDoctorStatus();
 
   const toggleDoctorStatus = async () => {
-    setToggleLoading(true);
-    try {
-      const { data } = await apiClient.patch<{ success: boolean; isActive: boolean }>('/doctors/status', { isActive: !isDoctorActive });
-      if (data.success) {
-        setIsDoctorActive(data.isActive);
-      }
-    } catch (err) {
-      console.error('Failed to toggle status', err);
-    } finally {
-      setToggleLoading(false);
-    }
+    updateStatus.mutate(!isDoctorActive);
   };
+
+  const toggleLoading = updateStatus.isPending || statusLoading;
 
   return (
     <>

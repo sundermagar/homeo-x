@@ -110,6 +110,153 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
       total: countResult?.count ?? 0 
     };
   }
+  
+  async findFollowups(filters: AppointmentFilters) {
+    const { fromDate, toDate, doctorId, clinicId, search, page = 1, limit = 50 } = filters;
+    const offset = (page - 1) * limit;
+    const todayStr = new Date().toISOString().split('T')[0]!;
+
+    // For appointments table: handle booking_date as text (may be YYYY-MM-DD or DD/MM/YYYY)
+    // Helper to safely compare dates regardless of input format (YYYY-MM-DD or DD/MM/YYYY)
+    const safeDateCondition = (col: string, val: string, op: string) => {
+      if (!val) return sql``;
+      const isIso = val.includes('-');
+      const dateVal = isIso ? val : val;
+      const format = isIso ? 'YYYY-MM-DD' : 'DD/MM/YYYY';
+      
+      return sql`AND (
+        CASE 
+          WHEN ${sql.raw(col)}::text ~ '^\\d{4}-\\d{2}-\\d{2}' THEN ${sql.raw(col)}::date
+          WHEN ${sql.raw(col)}::text ~ '^\\d{2}/\\d{2}/\\d{4}' THEN TO_DATE(${sql.raw(col)}::text, 'DD/MM/YYYY')
+          ELSE ${sql.raw(col)}::date
+        END ${sql.raw(op)} TO_DATE(${dateVal}, ${format})
+      )`;
+    };
+
+    const getBaseDateCompare = (col: string, op: string) => {
+      return sql`(
+        CASE 
+          WHEN ${sql.raw(col)}::text ~ '^\\d{4}-\\d{2}-\\d{2}' THEN ${sql.raw(col)}::date
+          WHEN ${sql.raw(col)}::text ~ '^\\d{2}/\\d{2}/\\d{4}' THEN TO_DATE(${sql.raw(col)}::text, 'DD/MM/YYYY')
+          ELSE ${sql.raw(col)}::date
+        END ${sql.raw(op)} ${todayStr}::date
+      )`;
+    };
+
+    const fromDateCondition = fromDate ? safeDateCondition('a.booking_date', fromDate, '>=') : sql``;
+    const toDateCondition = toDate ? safeDateCondition('a.booking_date', toDate, '<=') : sql``;
+    const pendingFromDateCondition = fromDate ? safeDateCondition('p.next_date', fromDate, '>=') : sql``;
+    const pendingToDateCondition = toDate ? safeDateCondition('p.next_date', toDate, '<=') : sql``;
+
+    const apptsQuery = sql`
+      SELECT
+        a.id as id,
+        a.patient_id as patient_id,
+        a.doctor_id as doctor_id,
+        (
+          CASE 
+            WHEN a.booking_date::text ~ '^\\d{2}/\\d{2}/\\d{4}' THEN TO_DATE(a.booking_date::text, 'DD/MM/YYYY')
+            ELSE a.booking_date::date
+          END
+        )::date as booking_date,
+        a.booking_time::text as booking_time,
+        a.status::text as status,
+        'Missed'::text as visit_type,
+        a.consultation_fee::numeric as consultation_fee,
+        a.token_no::integer as token_no,
+        a.notes::text as notes,
+        a.phone::text as phone,
+        a.patient_name::text as patient_name,
+        a.cancellation_reason::text as cancellation_reason,
+        a.created_at::timestamp as created_at,
+        a.updated_at::timestamp as updated_at,
+        a.deleted_at::timestamp as deleted_at,
+        COALESCE(d.name, u.name, 'Practitioner')::text as doctor_name
+      FROM appointments a
+      LEFT JOIN doctors d ON d.id = a.doctor_id
+      LEFT JOIN users u ON u.id = a.doctor_id
+      WHERE a.deleted_at IS NULL
+        AND a.status NOT IN ('Done', 'Visited', 'Completed', 'Cancelled')
+        AND ${getBaseDateCompare('a.booking_date', '<')}
+        ${clinicId ? sql`AND a.clinic_id = ${clinicId}` : sql``}
+        ${doctorId ? sql`AND a.doctor_id = ${doctorId}` : sql``}
+        ${search ? sql`AND (a.patient_name ILIKE ${'%' + search + '%'} OR a.phone ILIKE ${'%' + search + '%'})` : sql``}
+        ${fromDateCondition}
+        ${toDateCondition}
+    `;
+
+    const pendingQuery = sql`
+      SELECT
+        p.id as id,
+        p.regid as patient_id,
+        NULL::integer as doctor_id,
+        (
+          CASE 
+            WHEN p.next_date::text ~ '^\\d{2}/\\d{2}/\\d{4}' THEN TO_DATE(p.next_date::text, 'DD/MM/YYYY')
+            ELSE p.next_date::date
+          END
+        )::date as booking_date,
+        NULL::text as booking_time,
+        p.call_status::text as status,
+        'Next Visit'::text as visit_type,
+        NULL::numeric as consultation_fee,
+        NULL::integer as token_no,
+        NULL::text as notes,
+        cd.mobile1::text as phone,
+        (COALESCE(cd.first_name, '') || ' ' || COALESCE(cd.surname, ''))::text as patient_name,
+        NULL::text as cancellation_reason,
+        p.created_at::timestamp as created_at,
+        p.updated_at::timestamp as updated_at,
+        NULL::timestamp as deleted_at,
+        'General'::text as doctor_name
+      FROM pending_appointments p
+      LEFT JOIN case_datas cd ON cd.regid = p.regid
+      WHERE (p.deleted_at IS NULL OR p.deleted_at = '')
+        AND ${getBaseDateCompare('p.next_date', '<=')}
+        ${clinicId ? sql`AND cd.clinic_id = ${clinicId}` : sql``}
+        ${search ? sql`AND ((COALESCE(cd.first_name, '') || ' ' || COALESCE(cd.surname, '')) ILIKE ${'%' + search + '%'} OR cd.mobile1 ILIKE ${'%' + search + '%'})` : sql``}
+        ${pendingFromDateCondition}
+        ${pendingToDateCondition}
+    `;
+
+    const unionQuery = sql`
+      SELECT * FROM (${apptsQuery} UNION ALL ${pendingQuery}) as combined
+      ORDER BY booking_date DESC, id DESC
+      LIMIT ${limit} OFFSET ${offset}
+    `;
+
+    const countQuery = sql`
+      SELECT count(*)::int as total FROM (${apptsQuery} UNION ALL ${pendingQuery}) as combined
+    `;
+
+    const [rows, countRows] = await Promise.all([
+      this.db.execute(unionQuery),
+      this.db.execute(countQuery)
+    ]);
+
+    return {
+      data: (rows as any[]).map(r => ({
+        id: r.id,
+        patientId: r.patient_id,
+        doctorId: r.doctor_id,
+        bookingDate: r.booking_date,
+        bookingTime: r.booking_time,
+        status: r.status,
+        visitType: r.visit_type,
+        consultationFee: r.consultation_fee,
+        tokenNo: r.token_no,
+        notes: r.notes,
+        phone: r.phone,
+        patientName: r.patient_name,
+        cancellationReason: r.cancellation_reason,
+        createdAt: r.created_at,
+        updatedAt: r.updated_at,
+        deletedAt: r.deleted_at,
+        doctorName: r.doctor_name
+      })),
+      total: (countRows[0] as any)?.total ?? 0
+    };
+  }
 
   async findToday(doctorId?: number, clinicId?: number) {
     const today = new Date().toISOString().split('T')[0];

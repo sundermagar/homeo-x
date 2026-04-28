@@ -184,6 +184,7 @@
   --danger: var(--pp-danger-fg);
   --danger-bg: var(--pp-danger-bg);
   --success: var(--pp-success-fg);
+  --success-bg: var(--pp-success-bg);
   --warning: var(--pp-warning-fg);
   --warning-bg: var(--pp-warning-bg);
   --font-mono: var(--pp-font-mono);

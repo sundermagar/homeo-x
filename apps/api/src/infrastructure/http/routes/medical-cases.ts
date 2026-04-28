@@ -166,6 +166,12 @@ router.post('/records/images', upload.array('files', 5), asyncHandler(async (req
   sendSuccess(res, result.data, 'Image uploaded successfully');
 }));
 
+router.delete('/records/images/:id', asyncHandler(async (req, res) => {
+  const useCase = new ManageClinicalRecordsUseCase(getRepo(req));
+  await useCase.deleteImage(Number(req.params.id));
+  sendSuccess(res, null, 'Image deleted');
+}));
+
 // ─── Consultation Workflow ───
 
 router.post('/:regid/finalize', asyncHandler(async (req, res) => {

@@ -328,6 +328,11 @@
   color: var(--pp-ink);
 }
 
+.hover-opacity:hover {
+  opacity: 0.75;
+  transition: opacity 0.2s ease;
+}
+
 /* ─── Chart Container ──────────────────────────────────────────────────────── */
 
 .pat-chart-wrap {

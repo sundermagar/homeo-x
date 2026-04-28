@@ -32,6 +32,7 @@ const MedicalCaseDetailPage = lazy(() => import('@/features/medical-case/pages/c
 const VitalsCheckPage = lazy(() => import('@/features/medical-case/pages/vitals-check-page'));
 const AiRemedyChartStandalone = lazy(() => import('@/features/medical-case/components/ai-remedy-view').then(m => ({ default: m.AiRemedyView })));
 const AiConsultantPage = lazy(() => import('@/features/medical-case/pages/ai-consultant-page'));
+const FollowupsPage = lazy(() => import('@/features/medical-case/pages/followups-page'));
 
 // Packages & Memberships
 const PackagePlansPage = lazy(() => import('@/features/packages/pages/package-plans-page'));
@@ -91,12 +92,17 @@ const RolesPermissionsPage = lazy(() => import('@/features/settings/pages/roles-
 // Operations & CRM
 const OperationsDashboard = lazy(() => import('@/features/operations/pages/operations-dashboard'));
 
+// Clinical Hub
+const ClinicalHubPage = lazy(() => import('@/features/clinical-hub/pages/clinical-hub-page'));
+const PatientMeetPage = lazy(() => import('@/features/consultation/patient-meet-page'));
+
 export function AppRouter() {
   return (
     <Suspense fallback={<Loading />}>
       <Routes>
         {/* Public */}
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/meet/:roomId" element={<PatientMeetPage />} />
 
         {/* Protected */}
         <Route element={<ProtectedRoute />}>
@@ -123,10 +129,14 @@ export function AppRouter() {
 
             {/* ─── Medical Cases ─── */}
             <Route path="/medical-cases" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><MedicalCaseListPage /></RoleGuard>} />
-            <Route path="/medical-cases/:regid" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><MedicalCaseDetailPage /></RoleGuard>} />
+            <Route path="/medical-cases/:regid" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist']}><MedicalCaseDetailPage /></RoleGuard>} />
+            <Route path="/medical-cases/followups" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist']}><FollowupsPage /></RoleGuard>} />
             <Route path="/vitals-check" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><VitalsCheckPage /></RoleGuard>} />
             <Route path="/ai-remedy-chart" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><AiRemedyChartStandalone /></RoleGuard>} />
             <Route path="/ai-analysis" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><AiConsultantPage /></RoleGuard>} />
+
+            {/* ─── Clinical Hub ─── */}
+            <Route path="/clinical-hub" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><ClinicalHubPage /></RoleGuard>} />
 
             {/* ─── Packages & Memberships ─── */}
             <Route path="/packages" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><PackagePlansPage /></RoleGuard>} />

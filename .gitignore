@@ -112,8 +112,24 @@ ts_errors.txt
 .antigravity/
 antigravity.log
 
-# One-off Scripts
+# One-off Scripts & Recovery Files
 packages/database/src/migrate-*.ts
 check-*.ts
 verify-*.ts
 debug-*.ts
+main_*.ts
+main_*.tsx
+temp_*.ts
+temp_*.tsx
+scratch*.ts
+test-*.js
+test-*.ts
+test_*.js
+test_*.ts
+tsc_output*.txt
+vars.txt
+.token
+drop_schemas.sql
+fix-migration.js
+check-db.mjs
+

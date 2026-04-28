@@ -1,3 +1,4 @@
+
 // ─── Translator Engine ────────────────────────────────────────────────────────
 // Translates Hindi/Hinglish text to English for the consultation pipeline.
 // Primary path: Google Cloud Translation API (deterministic, purpose-built).

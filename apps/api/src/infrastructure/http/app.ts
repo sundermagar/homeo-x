@@ -206,7 +206,7 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
     const { sql } = await import('drizzle-orm');
     const bcrypt = await import('bcryptjs');
     logger.info('Running auto-backfill for clinic admins...');
-    
+
     const orgs = await publicDb.execute(sql`
       SELECT id, name, admin_email, admin_password
       FROM organizations
