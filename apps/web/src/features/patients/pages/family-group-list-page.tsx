@@ -49,20 +49,20 @@ export default function FamilyGroupListPage() {
           />
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <div className="appt-view-toggle">
+          <div className="appt-segmented-toggle">
             <button
               type="button"
-              className={`appt-view-btn${viewMode === 'list' ? ' is-active' : ''}`}
+              className={`appt-segmented-btn ${viewMode === 'list' ? 'active' : ''}`}
               onClick={() => setViewMode('list')}
             >
-              <ListIcon size={14} /> List
+              <ListIcon size={16} /> List
             </button>
             <button
               type="button"
-              className={`appt-view-btn${viewMode === 'grid' ? ' is-active' : ''}`}
+              className={`appt-segmented-btn ${viewMode === 'grid' ? 'active' : ''}`}
               onClick={() => setViewMode('grid')}
             >
-              <Grid size={14} /> Grid
+              <Grid size={16} /> Grid
             </button>
           </div>
           <button

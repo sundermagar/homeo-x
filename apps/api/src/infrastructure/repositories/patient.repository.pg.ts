@@ -70,7 +70,7 @@ export class PatientRepositoryPg implements PatientRepository {
     doctorId?: number;
     clinicId?: number;
   }): Promise<{ data: PatientSummary[]; total: number }> {
-    const { page, limit, search, doctorId, clinicId } = params;
+    const { page, limit, search, doctorId, clinicId, sortBy, sortOrder } = params;
     const offset = (page - 1) * limit;
 
     const conditions = [sql`(deleted_at IS NULL OR deleted_at::text = '')` as any];
@@ -89,7 +89,6 @@ export class PatientRepositoryPg implements PatientRepository {
     }
 
     if (doctorId) {
-      // Filter patients who have at least one appointment with this doctor
       conditions.push(
         sql`EXISTS (
           SELECT 1 FROM ${appointments} 
@@ -106,12 +105,28 @@ export class PatientRepositoryPg implements PatientRepository {
 
     const whereClause = and(...conditions);
 
+    // Sorting logic
+    let orderBy: any = sql`${patients.id} DESC`; // default
+    if (sortBy === 'name') {
+      orderBy = sortOrder === 'desc' ? sql`${patients.firstName} DESC` : sql`${patients.firstName} ASC`;
+    } else if (sortBy === 'newest') {
+      orderBy = sql`${patients.id} DESC`;
+    } else if (sortBy === 'oldest') {
+      orderBy = sql`${patients.id} ASC`;
+    } else if (sortBy) {
+      // Direct column sort if valid
+      const col = (patients as any)[sortBy];
+      if (col) {
+        orderBy = sortOrder === 'desc' ? sql`${col} DESC` : sql`${col} ASC`;
+      }
+    }
+
     const [data, countRows] = await Promise.all([
       this.db
         .select()
         .from(patients)
         .where(whereClause)
-        .orderBy(sql`${patients.id} DESC`)
+        .orderBy(orderBy)
         .limit(limit)
         .offset(offset),
       this.db

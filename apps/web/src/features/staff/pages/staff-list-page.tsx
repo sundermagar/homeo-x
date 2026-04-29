@@ -74,20 +74,20 @@ export default function StaffListPage({ defaultTab }: { defaultTab?: StaffCatego
           <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>Manage clinical practitioners, support staff, and system administrators.</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <div style={{ display: 'inline-flex', border: '1px solid #e2e8f0', borderRadius: 999, overflow: 'hidden', background: 'var(--bg-card)' }}>
+          <div className="appt-segmented-toggle">
             <button
               type="button"
               onClick={() => setViewMode('list')}
-              style={{ minWidth: 76, border: 'none', borderRadius: 0, padding: '10px 14px', background: viewMode === 'list' ? '#eff6ff' : 'transparent', color: viewMode === 'list' ? currentTabMeta.color : '#64748b', fontWeight: 700, cursor: 'pointer' }}
+              className={`appt-segmented-btn ${viewMode === 'list' ? 'active' : ''}`}
             >
-              <List size={14} />
+              <List size={16} /> List
             </button>
             <button
               type="button"
               onClick={() => setViewMode('grid')}
-              style={{ minWidth: 76, border: 'none', borderRadius: 0, padding: '10px 14px', background: viewMode === 'grid' ? '#eff6ff' : 'transparent', color: viewMode === 'grid' ? currentTabMeta.color : '#64748b', fontWeight: 700, cursor: 'pointer' }}
+              className={`appt-segmented-btn ${viewMode === 'grid' ? 'active' : ''}`}
             >
-              <Grid size={14} />
+              <Grid size={16} /> Grid
             </button>
           </div>
           <button

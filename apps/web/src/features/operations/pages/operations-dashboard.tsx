@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Package, Clock, CheckCircle2, AlertCircle, Phone,
-  UsersRound, BellRing, ExternalLink
+  UsersRound, BellRing, ExternalLink, LayoutGrid, List,
+  ChevronLeft, ChevronRight, Search, Plus, Edit3, Trash2,
+  FileText, Users
 } from 'lucide-react';
 import { apiClient } from '@/infrastructure/api-client';
-import { OpsModal } from '../components/ops-modal';
 import './operations-dashboard.css';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -42,21 +43,92 @@ function StatCard({ icon: Icon, value, label, variant = 'default' }: {
   variant?: 'default' | 'warn' | 'danger' | 'success' | 'info';
 }) {
   return (
-    <div className="ops-stat-card">
-      <div className={`ops-stat-icon ${variant}`}>
-        <Icon size={18} />
+    <div className="ops-stat-card" style={{ display: 'flex', alignItems: 'center', padding: '20px', background: 'white', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
+      <div className={`ops-stat-icon ${variant}`} style={{ width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '16px' }}>
+        <Icon size={20} strokeWidth={2} />
       </div>
-      <div className="ops-stat-body">
-        <div className="stat-value">{value}</div>
-        <div className="stat-label">{label}</div>
+      <div>
+        <div style={{ fontSize: '13px', color: '#64748b', fontWeight: 500, marginBottom: '2px' }}>{label}</div>
+        <div style={{ fontSize: '24px', fontWeight: 700, color: '#0f172a' }}>{value}</div>
       </div>
     </div>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// TABLE COLUMN LABELS (for mobile card view)
+// COMPONENTS
 // ═══════════════════════════════════════════════════════════════════════════════
+
+function TableShimmer({ cols }: { cols: number }) {
+  return (
+    <div style={{ display: 'grid', gap: 12 }}>
+      {[...Array(5)].map((_, i) => (
+        <div key={i} className="appt-shimmer" style={{ height: 62, borderRadius: 12 }} />
+      ))}
+    </div>
+  );
+}
+
+function Pagination({ 
+  total, 
+  current, 
+  pageSize, 
+  onPageChange,
+  onPageSizeChange 
+}: { 
+  total: number; 
+  current: number; 
+  pageSize: number; 
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (size: number) => void;
+}) {
+  const totalPages = Math.ceil(total / pageSize);
+  if (total === 0) return null;
+
+  return (
+    <div className="ops-pagination">
+      <div className="ops-pagination-info">
+        <span className="ops-pagination-text">
+          Showing {(current - 1) * pageSize + 1}-{Math.min(current * pageSize, total)} of {total}
+        </span>
+        <select 
+          value={pageSize}
+          onChange={(e) => onPageSizeChange(Number(e.target.value))}
+          className="ops-pagination-select"
+        >
+          {[8, 10, 20, 50].map(size => (
+            <option key={size} value={size}>{size} per page</option>
+          ))}
+        </select>
+      </div>
+      <div className="ops-pagination-controls">
+        <button 
+          onClick={() => onPageChange(current - 1)}
+          disabled={current === 1}
+          className="ops-pagination-btn"
+        >
+          <ChevronLeft size={16} />
+        </button>
+        {[...Array(totalPages)].map((_, i) => (
+          <button
+            key={i + 1}
+            onClick={() => onPageChange(i + 1)}
+            className={`ops-pagination-btn ${current === i + 1 ? 'active' : ''}`}
+          >
+            {i + 1}
+          </button>
+        ))}
+        <button 
+          onClick={() => onPageChange(current + 1)}
+          disabled={current === totalPages}
+          className="ops-pagination-btn"
+        >
+          <ChevronRight size={16} />
+        </button>
+      </div>
+    </div>
+  );
+}
 
 const shipmentCols = ['Reg ID', 'Patient', 'Courier', 'Tracking', 'Status', 'Date'];
 const leadCols = ['#', 'Name', 'Source', 'Status', 'Notes', 'Date', 'Action'];
@@ -89,6 +161,14 @@ export default function OperationsDashboard() {
   const [searchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as GenericTab) || 'logistics';
   const [modalType, setModalType] = useState<'courier' | 'lead' | 'dictionary' | 'export' | 'referral' | 'reminder' | 'book' | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+
+  // ─── CRM Tab Sub-Navigation ───
+  const [crmSection, setCrmSection] = useState<'pipeline' | 'referrals' | 'reminders'>('pipeline');
+  const [crmFilter, setCrmFilter] = useState<'all' | 'new' | 'pending' | 'converted' | 'overdue'>('all');
+  const [crmSearch, setCrmSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(8);
 
   // ─── Real Data State ───
   const [leads, setLeads] = useState<any[]>([]);
@@ -232,7 +312,7 @@ export default function OperationsDashboard() {
       // Cleanup if needed
     }
   };
-  
+
   const handleConvertLead = async (id: number) => {
     if (!window.confirm('Convert this lead to a formal patient registration?')) return;
     try {
@@ -291,31 +371,90 @@ export default function OperationsDashboard() {
           </div>
 
           <div className="ops-content card">
-            <div className="ops-table-header">
-              <h2 className="pane-title">Active Shipments</h2>
+            <div className="ops-table-header" style={{ alignItems: 'flex-start' }}>
+              <div>
+                <h2 className="pane-title">Active Shipments</h2>
+                <p style={{ fontSize: '0.72rem', color: 'var(--pp-muted)', marginTop: 4 }}>Real-time tracking of medicine dispatches.</p>
+              </div>
+              <div className="appt-segmented-toggle">
+                <button
+                  className={`appt-segmented-btn ${viewMode === 'list' ? 'active' : ''}`}
+                  onClick={() => setViewMode('list')}
+                >
+                  <List size={16} /> List
+                </button>
+                <button
+                  className={`appt-segmented-btn ${viewMode === 'grid' ? 'active' : ''}`}
+                  onClick={() => setViewMode('grid')}
+                >
+                  <LayoutGrid size={16} /> Grid
+                </button>
+              </div>
             </div>
-            <div className="ops-table-wrapper">
-              <table className="ops-table">
-                <thead>
-                  <tr>{shipmentCols.map(col => <th key={col}>{col}</th>)}</tr>
-                </thead>
-                <tbody>
-                  {mockShipments.map(s => (
-                    <tr key={s.id}>
-                      <td data-label="Reg ID"><span className="reg-badge">#{s.regid}</span></td>
-                      <td data-label="Patient">
-                        <div className="cell-main">{s.patient}</div>
+
+            {loading ? (
+              <TableShimmer cols={shipmentCols.length} />
+            ) : viewMode === 'list' ? (
+              <div className="ops-table-wrapper">
+                <table className="ops-table">
+                  <thead>
+                    <tr>{shipmentCols.map(col => <th key={col}>{col}</th>)}</tr>
+                  </thead>
+                  <tbody>
+                    {mockShipments.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(s => (
+                      <tr key={s.id}>
+                        <td data-label="Reg ID"><span className="reg-badge">#{s.regid}</span></td>
+                        <td data-label="Patient">
+                          <div className="cell-main">{s.patient}</div>
+                          <div className="cell-sub"><Phone size={11} /> {s.mobile}</div>
+                        </td>
+                        <td data-label="Courier"><span className="courier-tag">{s.courier}</span></td>
+                        <td data-label="Tracking"><span className="mono">{s.tracking}</span></td>
+                        <td data-label="Status"><StatusBadge status={s.status} /></td>
+                        <td data-label="Date"><span className="cell-sub">{s.date}</span></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="ops-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+                {mockShipments.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(s => (
+                  <div key={s.id} className="ops-card" style={{ padding: 16, borderRadius: 18 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+                      <div>
+                        <div className="reg-badge" style={{ marginBottom: 8, display: 'inline-block' }}>#{s.regid}</div>
+                        <div className="cell-main" style={{ fontSize: '15px' }}>{s.patient}</div>
                         <div className="cell-sub"><Phone size={11} /> {s.mobile}</div>
-                      </td>
-                      <td data-label="Courier"><span className="courier-tag">{s.courier}</span></td>
-                      <td data-label="Tracking"><span className="mono">{s.tracking}</span></td>
-                      <td data-label="Status"><StatusBadge status={s.status} /></td>
-                      <td data-label="Date"><span className="cell-sub">{s.date}</span></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      </div>
+                      <StatusBadge status={s.status} />
+                    </div>
+                    <div style={{ padding: '12px', background: 'var(--pp-warm-1)', borderRadius: 12, display: 'grid', gap: 8 }}>
+                      <div style={{ fontSize: '12px', display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--pp-muted)' }}>Courier</span>
+                        <span style={{ fontWeight: 600 }}>{s.courier}</span>
+                      </div>
+                      <div style={{ fontSize: '12px', display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--pp-muted)' }}>Tracking</span>
+                        <span className="mono">{s.tracking}</span>
+                      </div>
+                    </div>
+                    <div style={{ marginTop: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span className="cell-sub">{s.date}</span>
+                      <button className="ops-btn ops-btn-ghost" style={{ padding: '6px 12px', fontSize: '11px', borderRadius: 8 }}>Details</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <Pagination 
+              total={mockShipments.length}
+              current={currentPage}
+              pageSize={itemsPerPage}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={setItemsPerPage}
+            />
           </div>
         </div>
       )}
@@ -330,111 +469,228 @@ export default function OperationsDashboard() {
             <StatCard icon={BellRing} value={reminders.length} label="Reminders" variant="warn" />
           </div>
 
-          <div className="ops-content card" style={{ marginBottom: 16 }}>
-            <div className="ops-table-header">
-              <h2 className="pane-title">Lead Pipeline ({leads.length})</h2>
-            </div>
-            <div className="ops-table-wrapper">
-              <table className="ops-table">
-                <thead>
-                  <tr>{leadCols.map(col => <th key={col}>{col}</th>)}</tr>
-                </thead>
-                <tbody>
-                  {loading ? (
-                    <tr><td colSpan={6} style={{ textAlign: 'center', padding: 40 }}>Loading leads...</td></tr>
-                  ) : leads.length === 0 ? (
-                    <tr><td colSpan={6} style={{ textAlign: 'center', padding: 40 }}>No leads found.</td></tr>
-                  ) : leads.map(l => (
-                    <tr key={l.id}>
-                      <td data-label="#">{l.id}</td>
-                      <td data-label="Name">
-                        <div className="cell-main">{l.name}</div>
-                        <div className="cell-sub"><Phone size={11} /> {l.mobile || l.phone}</div>
-                      </td>
-                      <td data-label="Source">{l.source}</td>
-                      <td data-label="Status"><StatusBadge status={l.status || 'New'} /></td>
-                      <td data-label="Notes"><span className="cell-sub" style={{ maxWidth: 160 }}>{l.notes}</span></td>
-                      <td data-label="Date"><span className="cell-sub">{l.created_at ? new Date(l.created_at).toLocaleDateString() : '-'}</span></td>
-                      <td data-label="Action">
-                        {l.status?.toLowerCase() === 'converted' ? (
-                          <span className="ops-status-badge converted">Converted</span>
-                        ) : (
-                          <button 
-                            className="ops-btn ops-btn-xs ops-btn-success"
-                            onClick={() => handleConvertLead(l.id)}
-                            style={{ padding: '4px 8px', fontSize: '11px' }}
-                          >
-                            Convert
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          {/* Sub-navigation Switch Bar */}
+          <div className="crm-switch-bar">
+            <button
+              className={`crm-switch-btn ${crmSection === 'pipeline' ? 'active' : ''}`}
+              onClick={() => { setCrmSection('pipeline'); setCurrentPage(1); }}
+            >
+              <LayoutGrid size={16} /> Lead Pipeline
+            </button>
+            <button
+              className={`crm-switch-btn ${crmSection === 'referrals' ? 'active' : ''}`}
+              onClick={() => { setCrmSection('referrals'); setCurrentPage(1); }}
+            >
+              <Users size={16} /> Referral Summary
+            </button>
+            <button
+              className={`crm-switch-btn ${crmSection === 'reminders' ? 'active' : ''}`}
+              onClick={() => { setCrmSection('reminders'); setCurrentPage(1); }}
+            >
+              <FileText size={16} /> Case Reminders
+            </button>
           </div>
 
-          <div className="ops-grid">
-            <div className="ops-content card">
-              <div className="ops-table-header">
-                <h2 className="pane-title">Referral Summary ({referrals.length})</h2>
-                <button className="ops-btn ops-btn-ghost" onClick={() => setModalType('referral')}>
-                  + Log Referral
-                </button>
-              </div>
-              <div className="ops-table-wrapper">
-                <table className="ops-table">
-                  <thead>
-                    <tr>{referralCols.map(col => <th key={col}>{col}</th>)}</tr>
-                  </thead>
-                  <tbody>
-                    {referrals.map((r, idx) => (
-                      <tr key={idx}>
-                        <td data-label="Patient"><span className="cell-main">{r.first_name} {r.surname}</span></td>
-                        <td data-label="Referred"><span className="cell-sub">ID: {r.referral_id}</span></td>
-                        <td data-label="Total">
-                          <span style={{ color: 'var(--pp-success-fg)', fontWeight: 600 }}>₹{r.total_amount}</span>
-                        </td>
-                        <td data-label="Used">₹{r.used_amount}</td>
-                      </tr>
-                    ))}
-                    {referrals.length === 0 && !loading && (
-                      <tr><td colSpan={4} style={{ textAlign: 'center', padding: 20 }}>No referrals found.</td></tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+          {crmSection === 'pipeline' && (
+            <div className="ops-content card slide-up">
+              <>
+                <div className="ops-table-header">
+                  <div>
+                    <h2 className="pane-title">Lead Pipeline ({leads.length})</h2>
+                    <p style={{ fontSize: '0.72rem', color: 'var(--pp-muted)', marginTop: 4 }}>Manage patient inquiries and follow-ups.</p>
+                  </div>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <div className="crm-search-wrap">
+                      <Search size={14} className="crm-search-icon" />
+                      <input
+                        type="text"
+                        placeholder="Search patients by name or phone..."
+                        className="crm-search-input"
+                        value={crmSearch}
+                        onChange={e => setCrmSearch(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="crm-filter-pills" style={{ marginBottom: 20, borderBottom: 'none' }}>
+                  {['all', 'new', 'pending', 'converted', 'overdue'].map(f => (
+                    <button
+                      key={f}
+                      className={`crm-filter-pill ${crmFilter === f ? 'active' : ''}`}
+                      onClick={() => setCrmFilter(f as any)}
+                    >
+                      {f.charAt(0).toUpperCase() + f.slice(1)}
+                    </button>
+                  ))}
+                </div>
+
+                {loading ? (
+                  <TableShimmer cols={leadCols.length} />
+                ) : leads.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: 40, background: 'var(--pp-warm-1)', borderRadius: 12 }}>
+                    <UsersRound size={32} strokeWidth={1} style={{ color: 'var(--pp-warm-5)', marginBottom: 12 }} />
+                    <p style={{ color: 'var(--pp-ink)', fontWeight: 600 }}>No leads found</p>
+                  </div>
+                ) : (
+                  <div className="ops-table-wrapper">
+                    <table className="ops-table">
+                      <thead>
+                        <tr>{leadCols.map(col => <th key={col}>{col}</th>)}</tr>
+                      </thead>
+                      <tbody>
+                        {leads.filter(l => {
+                          const matchesSearch = l.name?.toLowerCase().includes(crmSearch.toLowerCase());
+                          const matchesFilter = crmFilter === 'all' || l.status?.toLowerCase() === crmFilter;
+                          return matchesSearch && matchesFilter;
+                        }).slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(l => (
+                          <tr key={l.id}>
+                            <td data-label="#">{l.id}</td>
+                            <td data-label="Name">
+                              <div className="cell-main">{l.name}</div>
+                              <div className="cell-sub"><Phone size={11} /> {l.mobile || l.phone}</div>
+                            </td>
+                            <td data-label="Source">{l.source}</td>
+                            <td data-label="Status"><StatusBadge status={l.status || 'New'} /></td>
+                            <td data-label="Notes">
+                              <div className="cell-sub" style={{ maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {l.notes}
+                              </div>
+                            </td>
+                            <td data-label="Date"><span className="cell-sub">{l.created_at ? new Date(l.created_at).toLocaleDateString() : '-'}</span></td>
+                            <td data-label="Action">
+                              <div style={{ display: 'flex', gap: 8 }}>
+                                {l.status?.toLowerCase() !== 'converted' && (
+                                  <button
+                                    className="ops-btn ops-btn-xs ops-btn-success"
+                                    onClick={() => handleConvertLead(l.id)}
+                                    style={{ padding: '4px 8px', fontSize: '11px' }}
+                                  >
+                                    Convert
+                                  </button>
+                                )}
+                                <button className="ops-icon-btn"><Edit3 size={14} /></button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                <Pagination 
+                  total={leads.filter(l => {
+                    const matchesSearch = l.name?.toLowerCase().includes(crmSearch.toLowerCase());
+                    const matchesFilter = crmFilter === 'all' || l.status?.toLowerCase() === crmFilter;
+                    return matchesSearch && matchesFilter;
+                  }).length}
+                  current={currentPage}
+                  pageSize={itemsPerPage}
+                  onPageChange={setCurrentPage}
+                  onPageSizeChange={setItemsPerPage}
+                />
+              </>
             </div>
-            <div className="ops-content card">
-              <div className="ops-table-header">
-                <h2 className="pane-title">Case Reminders ({reminders.length})</h2>
-                <button className="ops-btn ops-btn-ghost" onClick={() => setModalType('reminder')}>
-                  + Create
-                </button>
-              </div>
-              <div className="ops-table-wrapper">
-                <table className="ops-table">
-                  <thead>
-                    <tr>{reminderCols.map(col => <th key={col}>{col}</th>)}</tr>
-                  </thead>
-                  <tbody>
-                    {reminders.map(r => (
-                      <tr key={r.id}>
-                        <td data-label="Patient"><span className="cell-main">{r.patient_name || 'Patient #'+r.patient_id}</span></td>
-                        <td data-label="Heading">{r.heading}</td>
-                        <td data-label="Date"><span className="cell-sub">{r.start_date} {r.remind_time}</span></td>
-                        <td data-label="Status"><StatusBadge status={r.status} /></td>
-                      </tr>
-                    ))}
-                    {reminders.length === 0 && !loading && (
-                      <tr><td colSpan={4} style={{ textAlign: 'center', padding: 20 }}>No reminders found.</td></tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+          )}
+
+          {crmSection === 'referrals' && (
+            <div className="ops-content card slide-up">
+              <>
+                <div className="ops-table-header">
+                  <div>
+                    <h2 className="pane-title">Referral Summary ({referrals.length})</h2>
+                    <p style={{ fontSize: '0.72rem', color: 'var(--pp-muted)', marginTop: 4 }}>Track patient referral network and incentives.</p>
+                  </div>
+                  <button className="ops-btn ops-btn-primary" onClick={() => setModalType('referral')}>
+                    <Plus size={16} /> Log Referral
+                  </button>
+                </div>
+                {loading ? (
+                  <TableShimmer cols={referralCols.length} />
+                ) : (
+                  <div className="ops-table-wrapper">
+                    <table className="ops-table">
+                      <thead>
+                        <tr>{referralCols.map(col => <th key={col}>{col}</th>)}</tr>
+                      </thead>
+                      <tbody>
+                      {referrals.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((r, idx) => (
+                        <tr key={idx}>
+                          <td data-label="Patient"><span className="cell-main">{r.first_name} {r.surname}</span></td>
+                          <td data-label="Referred"><span className="cell-sub">ID: {r.referral_id}</span></td>
+                          <td data-label="Total">
+                            <span style={{ color: 'var(--pp-success-fg)', fontWeight: 600 }}>₹{r.total_amount}</span>
+                          </td>
+                          <td data-label="Used">₹{r.used_amount}</td>
+                        </tr>
+                      ))}
+                      {referrals.length === 0 && !loading && (
+                        <tr><td colSpan={4} style={{ textAlign: 'center', padding: 20 }}>No referrals found.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+                )}
+
+                <Pagination 
+                  total={referrals.length}
+                  current={currentPage}
+                  pageSize={itemsPerPage}
+                  onPageChange={setCurrentPage}
+                  onPageSizeChange={setItemsPerPage}
+                />
+              </>
             </div>
-          </div>
+          )}
+
+          {crmSection === 'reminders' && (
+            <div className="ops-content card slide-up">
+              <>
+                <div className="ops-table-header">
+                  <div>
+                    <h2 className="pane-title">Case Reminders ({reminders.length})</h2>
+                    <p style={{ fontSize: '0.72rem', color: 'var(--pp-muted)', marginTop: 4 }}>Upcoming patient follow-ups and case reviews.</p>
+                  </div>
+                  <button className="ops-btn ops-btn-primary" onClick={() => setModalType('reminder')}>
+                    <Plus size={16} /> Set Reminder
+                  </button>
+                </div>
+                {loading ? (
+                  <TableShimmer cols={reminderCols.length} />
+                ) : (
+                  <div className="ops-table-wrapper">
+                    <table className="ops-table">
+                      <thead>
+                        <tr>{reminderCols.map(col => <th key={col}>{col}</th>)}</tr>
+                      </thead>
+                      <tbody>
+                      {reminders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(r => (
+                        <tr key={r.id}>
+                          <td data-label="Patient"><span className="cell-main">{r.patient_name || 'Patient #' + r.patient_id}</span></td>
+                          <td data-label="Heading">{r.heading}</td>
+                          <td data-label="Date"><span className="cell-sub">{r.start_date} {r.remind_time}</span></td>
+                          <td data-label="Status"><StatusBadge status={r.status} /></td>
+                        </tr>
+                      ))}
+                      {reminders.length === 0 && !loading && (
+                        <tr><td colSpan={4} style={{ textAlign: 'center', padding: 20 }}>No reminders found.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+                )}
+
+                <Pagination 
+                  total={reminders.length}
+                  current={currentPage}
+                  pageSize={itemsPerPage}
+                  onPageChange={setCurrentPage}
+                  onPageSizeChange={setItemsPerPage}
+                />
+              </>
+            </div>
+          )}
         </div>
       )}
 
@@ -442,63 +698,157 @@ export default function OperationsDashboard() {
       {activeTab === 'knowledge' && (
         <div className="slide-up">
           <div className="ops-content card" style={{ marginBottom: 16 }}>
-            <div className="ops-table-header">
-              <h2 className="pane-title">Medical Dictionary</h2>
+            <div className="ops-table-header" style={{ alignItems: 'flex-start' }}>
+              <div>
+                <h2 className="pane-title">Medical Dictionary</h2>
+                <p style={{ fontSize: '0.72rem', color: 'var(--pp-muted)', marginTop: 4 }}>Diagnosis terminology and clinical references.</p>
+              </div>
+              <div className="appt-segmented-toggle">
+                <button
+                  className={`appt-segmented-btn ${viewMode === 'list' ? 'active' : ''}`}
+                  onClick={() => setViewMode('list')}
+                >
+                  <List size={16} /> List
+                </button>
+                <button
+                  className={`appt-segmented-btn ${viewMode === 'grid' ? 'active' : ''}`}
+                  onClick={() => setViewMode('grid')}
+                >
+                  <LayoutGrid size={16} /> Grid
+                </button>
+              </div>
             </div>
-            <div className="ops-table-wrapper">
-              <table className="ops-table">
-                <thead>
-                  <tr>{dictCols.map(col => <th key={col}>{col}</th>)}</tr>
-                </thead>
-                <tbody>
-                  {loading ? (
-                    <tr><td colSpan={3} style={{ textAlign: 'center', padding: 40 }}>Loading...</td></tr>
-                  ) : dictionary.length === 0 ? (
-                    <tr><td colSpan={3} style={{ textAlign: 'center', padding: 40 }}>No dictionary entries found.</td></tr>
-                  ) : dictionary.map(d => (
-                    <tr key={d.id}>
-                      <td data-label="Remedy"><span className="cell-main" style={{ fontWeight: 700 }}>{d.title}</span></td>
-                      <td data-label="Description"><span className="cell-sub" style={{ maxWidth: 300 }}>{d.text}</span></td>
-                      <td data-label="Cross"><span className="ops-cross-ref">{d.cross_ref || d.crossRef}</span></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+
+            {loading ? (
+              <TableShimmer cols={dictCols.length} />
+            ) : dictionary.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: 40, background: 'var(--pp-warm-1)', borderRadius: 12 }}>
+                <p style={{ color: 'var(--pp-muted)' }}>No dictionary entries found.</p>
+              </div>
+            ) : viewMode === 'list' ? (
+              <div className="ops-table-wrapper">
+                <table className="ops-table">
+                  <thead>
+                    <tr>{dictCols.map(col => <th key={col}>{col}</th>)}</tr>
+                  </thead>
+                  <tbody>
+                    {dictionary.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(d => (
+                      <tr key={d.id}>
+                        <td data-label="Remedy"><span className="cell-main" style={{ fontWeight: 700 }}>{d.title}</span></td>
+                        <td data-label="Description"><span className="cell-sub" style={{ maxWidth: 300 }}>{d.text}</span></td>
+                        <td data-label="Cross"><span className="ops-cross-ref">{d.cross_ref || d.crossRef}</span></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="ops-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+                {dictionary.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(d => (
+                  <div key={d.id} className="ops-card" style={{ padding: 16, borderRadius: 18 }}>
+                    <div className="cell-main" style={{ fontSize: '16px', fontWeight: 800, color: 'var(--pp-blue-deep)', marginBottom: 8 }}>{d.title}</div>
+                    <div style={{ fontSize: '13px', color: 'var(--pp-muted)', lineHeight: 1.5, marginBottom: 12, flex: 1 }}>{d.text}</div>
+                    {d.cross_ref && (
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        <span className="ops-cross-ref">Ref: {d.cross_ref}</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+            <Pagination 
+              total={dictionary.length}
+              current={currentPage}
+              pageSize={itemsPerPage}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={setItemsPerPage}
+            />
           </div>
 
           <div className="ops-content card">
-            <div className="ops-table-header">
-              <h2 className="pane-title">Library Resources</h2>
-              <button className="ops-btn ops-btn-primary" onClick={() => setModalType('book')}>
-                + Upload Book
-              </button>
+            <div className="ops-table-header" style={{ alignItems: 'flex-start' }}>
+              <div>
+                <h2 className="pane-title">Library Resources</h2>
+                <p style={{ fontSize: '0.72rem', color: 'var(--pp-muted)', marginTop: 4 }}>Uploaded clinical books and PDFs.</p>
+              </div>
+              <div style={{ display: 'flex', gap: 12 }}>
+                <div className="appt-segmented-toggle">
+                  <button
+                    className={`appt-segmented-btn ${viewMode === 'list' ? 'active' : ''}`}
+                    onClick={() => setViewMode('list')}
+                  >
+                    <List size={16} /> List
+                  </button>
+                  <button
+                    className={`appt-segmented-btn ${viewMode === 'grid' ? 'active' : ''}`}
+                    onClick={() => setViewMode('grid')}
+                  >
+                    <LayoutGrid size={16} /> Grid
+                  </button>
+                </div>
+                <button className="ops-btn ops-btn-primary" onClick={() => setModalType('book')} style={{ padding: '8px 16px' }}>
+                  + Upload
+                </button>
+              </div>
             </div>
-            <div className="ops-table-wrapper">
-              <table className="ops-table">
-                <thead>
-                  <tr>{bookCols.map(col => <th key={col}>{col}</th>)}</tr>
-                </thead>
-                <tbody>
-                  {loading ? (
-                    <tr><td colSpan={4} style={{ textAlign: 'center', padding: 40 }}>Loading...</td></tr>
-                  ) : books.length === 0 ? (
-                    <tr><td colSpan={4} style={{ textAlign: 'center', padding: 40 }}>No library resources found.</td></tr>
-                  ) : books.map(b => (
-                    <tr key={b.id}>
-                      <td data-label="Title"><span className="cell-main">{b.title}</span></td>
-                      <td data-label="Author">{b.author || 'Unknown'}</td>
-                      <td data-label="Type"><StatusBadge status={b.resource_type || 'Book'} /></td>
-                      <td data-label="Link">
-                        <button className="ops-icon-btn" aria-label="Open link">
-                          <ExternalLink size={14} style={{ color: 'var(--primary)' }} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+
+            {loading ? (
+              <TableShimmer cols={bookCols.length} />
+            ) : books.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: 40, background: 'var(--pp-warm-1)', borderRadius: 12 }}>
+                <p style={{ color: 'var(--pp-muted)' }}>No library resources found.</p>
+              </div>
+            ) : viewMode === 'list' ? (
+              <div className="ops-table-wrapper">
+                <table className="ops-table">
+                  <thead>
+                    <tr>{bookCols.map(col => <th key={col}>{col}</th>)}</tr>
+                  </thead>
+                  <tbody>
+                    {books.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(b => (
+                      <tr key={b.id}>
+                        <td data-label="Title"><span className="cell-main">{b.title}</span></td>
+                        <td data-label="Author">{b.author || 'Unknown'}</td>
+                        <td data-label="Type"><StatusBadge status={b.resource_type || 'Book'} /></td>
+                        <td data-label="Link">
+                          <button className="ops-icon-btn" aria-label="Open link">
+                            <ExternalLink size={14} style={{ color: 'var(--primary)' }} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="ops-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 }}>
+                {books.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(b => (
+                  <div key={b.id} className="ops-card" style={{ padding: 16, borderRadius: 18, border: '1px solid var(--pp-warm-4)' }}>
+                    <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+                      <div style={{ width: 40, height: 48, background: 'var(--pp-warm-1)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <ExternalLink size={16} style={{ color: 'var(--pp-warm-5)' }} />
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <div className="cell-main" style={{ fontSize: '14px', marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.title}</div>
+                        <div className="cell-sub" style={{ fontSize: '11px' }}>{b.author || 'Unknown'}</div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <StatusBadge status={b.resource_type || 'Book'} />
+                      <button className="ops-btn ops-btn-ghost" style={{ padding: '6px 10px', fontSize: '11px', borderRadius: 8 }}>Open</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <Pagination 
+              total={books.length}
+              current={currentPage}
+              pageSize={itemsPerPage}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={setItemsPerPage}
+            />
           </div>
         </div>
       )}
@@ -607,199 +957,109 @@ export default function OperationsDashboard() {
         </div>
       )}
 
-      {/* ─── MODALS ─── */}
-      <OpsModal isOpen={modalType === 'courier'} onClose={closeModal} title="Assign Medicine to Courier">
-        <div className="ops-form-group"><label>Patient Reg ID</label><input type="text" className="ops-input" placeholder="e.g. 1004" /></div>
-        <div className="ops-form-group"><label>Select Logistic Vendor</label>
-          <select className="ops-input"><option>FedEx Partner (V12)</option><option>Delhivery Express</option><option>BlueDart</option><option>Speed Post</option></select>
-        </div>
-        <div className="ops-form-group"><label>Tracking Number</label><input type="text" className="ops-input" placeholder="e.g. DLV-88712" /></div>
-        <div className="ops-modal-footer"><button className="ops-btn ops-btn-ghost" onClick={closeModal}>Cancel</button><button className="ops-btn ops-btn-primary" onClick={handleAction}>Dispatch Order</button></div>
-      </OpsModal>
+      {/* ─── SIDE DRAWERS (MODALS REPLACED WITH RIGHT SIDED DRAWER) ─── */}
+      <div className={`ops-drawer-overlay ${modalType ? 'active' : ''}`} onClick={closeModal}>
+        <div className={`ops-drawer ${modalType ? 'active' : ''}`} onClick={e => e.stopPropagation()}>
+          <div className="ops-drawer-header">
+            <h2 className="ops-drawer-title">
+              {modalType === 'lead' && 'Capture New Lead'}
+              {modalType === 'courier' && 'Update Courier Info'}
+              {modalType === 'referral' && 'Log Referral'}
+              {modalType === 'reminder' && 'Create Case Reminder'}
+              {modalType === 'dictionary' && 'Add Dictionary Entry'}
+              {modalType === 'book' && 'Upload Resource'}
+              {modalType === 'export' && 'Data Export'}
+            </h2>
+            <button className="ops-drawer-close" onClick={closeModal}><Plus style={{ transform: 'rotate(45deg)' }} /></button>
+          </div>
+          
+          <div className="ops-drawer-body">
+            {modalType === 'lead' && (
+              <>
+                <div className="ops-form-group">
+                  <label>Full Name</label>
+                  <input type="text" className="ops-input" placeholder="e.g. Suman Magar" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
+                </div>
+                <div className="ops-form-group">
+                  <label>Mobile Number</label>
+                  <input type="tel" className="ops-input" placeholder="e.g. 98XXXXXXXX" value={formData.mobile} onChange={e => setFormData({ ...formData, mobile: e.target.value })} />
+                </div>
+                <div className="ops-form-group">
+                  <label>Lead Source</label>
+                  <select className="ops-input" value={formData.source} onChange={e => setFormData({ ...formData, source: e.target.value })}>
+                    <option>Instagram Ads</option><option>Facebook</option><option>Google Search</option><option>Website Form</option><option>Direct / Walk-in</option><option>Referral</option>
+                  </select>
+                </div>
+                <div className="ops-form-group">
+                  <label>Notes / Requirements</label>
+                  <textarea className="ops-input" placeholder="Additional details..." style={{ minHeight: 100 }} value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })} />
+                </div>
+              </>
+            )}
 
-      <OpsModal isOpen={modalType === 'lead'} onClose={closeModal} title="Enter External CRM Lead">
-        <div className="ops-form-group">
-          <label>Lead Full Name</label>
-          <input 
-            type="text" 
-            className="ops-input" 
-            placeholder="Enter name" 
-            value={formData.name}
-            onChange={e => setFormData({ ...formData, name: e.target.value })}
-          />
-        </div>
-        <div className="ops-form-group">
-          <label>Mobile Number</label>
-          <input 
-            type="text" 
-            className="ops-input" 
-            placeholder="+91 98765 43210" 
-            value={formData.mobile}
-            onChange={e => setFormData({ ...formData, mobile: e.target.value })}
-          />
-        </div>
-        <div className="ops-form-group">
-          <label>Source / Campaign</label>
-          <select 
-            className="ops-input"
-            value={formData.source}
-            onChange={e => setFormData({ ...formData, source: e.target.value })}
-          >
-            <option>Instagram Ads</option>
-            <option>Facebook Ads</option>
-            <option>Google Search</option>
-            <option>Walk-in Referral</option>
-            <option>Website Form</option>
-          </select>
-        </div>
-        <div className="ops-form-group">
-          <label>Notes</label>
-          <textarea 
-            className="ops-input" 
-            placeholder="Initial inquiry details..." 
-            style={{ minHeight: 60 }} 
-            value={formData.notes}
-            onChange={e => setFormData({ ...formData, notes: e.target.value })}
-          />
-        </div>
-        <div className="ops-modal-footer">
-          <button className="ops-btn ops-btn-ghost" onClick={closeModal}>Cancel</button>
-          <button className="ops-btn ops-btn-primary" onClick={handleAction}>Save Lead</button>
-        </div>
-      </OpsModal>
+            {modalType === 'courier' && (
+              <>
+                <div className="ops-form-group"><label>Courier Partner</label><input type="text" className="ops-input" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} /></div>
+                <div className="ops-form-group"><label>Tracking ID</label><input type="text" className="ops-input" value={formData.mobile} onChange={e => setFormData({ ...formData, mobile: e.target.value })} /></div>
+              </>
+            )}
 
-      <OpsModal isOpen={modalType === 'referral'} onClose={closeModal} title="Log Network Referral">
-        <div className="ops-form-group">
-          <label>Patient Reg ID</label>
-          <input 
-            type="text" 
-            className="ops-input" 
-            placeholder="e.g. 1001" 
-            value={formData.regid}
-            onChange={e => setFormData({ ...formData, regid: e.target.value })}
-          />
-        </div>
-        <div className="ops-form-group">
-          <label>Referral ID (Referring Patient)</label>
-          <input 
-            type="text" 
-            className="ops-input" 
-            placeholder="e.g. 1044" 
-            value={formData.referral_id}
-            onChange={e => setFormData({ ...formData, referral_id: e.target.value })}
-          />
-        </div>
-        <div className="ops-form-group">
-          <label>Total Amount (₹)</label>
-          <input 
-            type="number" 
-            className="ops-input" 
-            placeholder="5000" 
-            value={formData.total_amount}
-            onChange={e => setFormData({ ...formData, total_amount: e.target.value })}
-          />
-        </div>
-        <div className="ops-modal-footer">
-          <button className="ops-btn ops-btn-ghost" onClick={closeModal}>Cancel</button>
-          <button className="ops-btn ops-btn-primary" onClick={handleAction}>Submit Referral</button>
-        </div>
-      </OpsModal>
+            {modalType === 'referral' && (
+              <>
+                <div className="ops-form-group"><label>Reg ID</label><input type="text" className="ops-input" value={formData.regid} onChange={e => setFormData({ ...formData, regid: e.target.value })} /></div>
+                <div className="ops-form-group"><label>Referral ID</label><input type="text" className="ops-input" value={formData.referral_id} onChange={e => setFormData({ ...formData, referral_id: e.target.value })} /></div>
+                <div className="ops-form-group"><label>Total Amount</label><input type="number" className="ops-input" value={formData.total_amount} onChange={e => setFormData({ ...formData, total_amount: e.target.value })} /></div>
+              </>
+            )}
 
-      <OpsModal isOpen={modalType === 'reminder'} onClose={closeModal} title="Case Reminder">
-        <div className="ops-form-group">
-          <label>Patient Reg ID</label>
-          <input 
-            type="text" 
-            className="ops-input" 
-            placeholder="e.g. 1202" 
-            value={formData.regid}
-            onChange={e => setFormData({ ...formData, regid: e.target.value })}
-          />
-        </div>
-        <div className="ops-form-group">
-          <label>Heading</label>
-          <input 
-            type="text" 
-            className="ops-input" 
-            placeholder="e.g. Follow-up Visit" 
-            value={formData.heading}
-            onChange={e => setFormData({ ...formData, heading: e.target.value })}
-          />
-        </div>
-        <div className="ops-form-group">
-          <label>Reminder Date</label>
-          <input 
-            type="date" 
-            className="ops-input" 
-            value={formData.date}
-            onChange={e => setFormData({ ...formData, date: e.target.value })}
-          />
-        </div>
-        <div className="ops-form-group">
-          <label>Time</label>
-          <input 
-            type="time" 
-            className="ops-input" 
-            value={formData.time}
-            onChange={e => setFormData({ ...formData, time: e.target.value })}
-          />
-        </div>
-        <div className="ops-form-group">
-          <label>Comments</label>
-          <textarea 
-            className="ops-input" 
-            placeholder="Notes..." 
-            style={{ minHeight: 60 }} 
-            value={formData.notes}
-            onChange={e => setFormData({ ...formData, notes: e.target.value })}
-          />
-        </div>
-        <div className="ops-modal-footer">
-          <button className="ops-btn ops-btn-ghost" onClick={closeModal}>Cancel</button>
-          <button className="ops-btn ops-btn-primary" onClick={handleAction}>Schedule Reminder</button>
-        </div>
-      </OpsModal>
+            {modalType === 'reminder' && (
+              <>
+                <div className="ops-form-group"><label>Reminder Heading</label><input type="text" className="ops-input" value={formData.heading} onChange={e => setFormData({ ...formData, heading: e.target.value })} /></div>
+                <div className="ops-form-group"><label>Date</label><input type="date" className="ops-input" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} /></div>
+                <div className="ops-form-group"><label>Time</label><input type="time" className="ops-input" value={formData.time} onChange={e => setFormData({ ...formData, time: e.target.value })} /></div>
+                <div className="ops-form-group"><label>Notes</label><textarea className="ops-input" style={{ minHeight: 80 }} value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })} /></div>
+              </>
+            )}
 
-      <OpsModal isOpen={modalType === 'dictionary'} onClose={closeModal} title="Add Dictionary Entry">
-        <div className="ops-form-group"><label>Title / Remedy Name</label>
-          <input type="text" className="ops-input" placeholder="e.g. Belladonna" value={dictForm.title} onChange={e => setDictForm({ ...dictForm, title: e.target.value })} />
-        </div>
-        <div className="ops-form-group"><label>Description</label>
-          <textarea className="ops-input" placeholder="Key symptoms, modalities..." style={{ minHeight: 80 }} value={dictForm.text} onChange={e => setDictForm({ ...dictForm, text: e.target.value })} />
-        </div>
-        <div className="ops-form-group"><label>Cross Reference</label>
-          <input type="text" className="ops-input" placeholder="e.g. Aconitum" value={dictForm.cross_ref} onChange={e => setDictForm({ ...dictForm, cross_ref: e.target.value })} />
-        </div>
-        <div className="ops-modal-footer"><button className="ops-btn ops-btn-ghost" onClick={closeModal}>Cancel</button><button className="ops-btn ops-btn-primary" onClick={handleAction}>Save Entry</button></div>
-      </OpsModal>
+            {modalType === 'dictionary' && (
+              <>
+                <div className="ops-form-group"><label>Title / Remedy Name</label><input type="text" className="ops-input" value={dictForm.title} onChange={e => setDictForm({ ...dictForm, title: e.target.value })} /></div>
+                <div className="ops-form-group"><label>Description</label><textarea className="ops-input" style={{ minHeight: 120 }} value={dictForm.text} onChange={e => setDictForm({ ...dictForm, text: e.target.value })} /></div>
+                <div className="ops-form-group"><label>Cross Reference</label><input type="text" className="ops-input" value={dictForm.cross_ref} onChange={e => setDictForm({ ...dictForm, cross_ref: e.target.value })} /></div>
+              </>
+            )}
 
-      <OpsModal isOpen={modalType === 'book'} onClose={closeModal} title="Upload Library Resource">
-        <div className="ops-form-group"><label>Resource Title</label>
-          <input type="text" className="ops-input" placeholder="e.g. Materia Medica Vol 1" value={bookForm.title} onChange={e => setBookForm({ ...bookForm, title: e.target.value })} />
-        </div>
-        <div className="ops-form-group"><label>Author</label>
-          <input type="text" className="ops-input" placeholder="e.g. Samuel Hahnemann" value={bookForm.author} onChange={e => setBookForm({ ...bookForm, author: e.target.value })} />
-        </div>
-        <div className="ops-form-group"><label>Type</label>
-          <select className="ops-input" value={bookForm.resource_type} onChange={e => setBookForm({ ...bookForm, resource_type: e.target.value })}>
-            <option value="Book">Book</option><option value="PDF">PDF</option><option value="Link">Link</option>
-          </select>
-        </div>
-        <div className="ops-form-group"><label>URL</label>
-          <input type="url" className="ops-input" placeholder="https://" value={bookForm.url} onChange={e => setBookForm({ ...bookForm, url: e.target.value })} />
-        </div>
-        <div className="ops-form-group"><label>Description</label>
-          <textarea className="ops-input" placeholder="Description..." style={{ minHeight: 60 }} value={bookForm.description} onChange={e => setBookForm({ ...bookForm, description: e.target.value })} />
-        </div>
-        <div className="ops-modal-footer"><button className="ops-btn ops-btn-ghost" onClick={closeModal}>Cancel</button><button className="ops-btn ops-btn-primary" onClick={handleAction}>Save Resource</button></div>
-      </OpsModal>
+            {modalType === 'book' && (
+              <>
+                <div className="ops-form-group"><label>Resource Title</label><input type="text" className="ops-input" value={bookForm.title} onChange={e => setBookForm({ ...bookForm, title: e.target.value })} /></div>
+                <div className="ops-form-group"><label>Author</label><input type="text" className="ops-input" value={bookForm.author} onChange={e => setBookForm({ ...bookForm, author: e.target.value })} /></div>
+                <div className="ops-form-group">
+                  <label>Type</label>
+                  <select className="ops-input" value={bookForm.resource_type} onChange={e => setBookForm({ ...bookForm, resource_type: e.target.value })}>
+                    <option value="Book">Book</option><option value="PDF">PDF</option><option value="Link">Link</option>
+                  </select>
+                </div>
+                <div className="ops-form-group"><label>URL</label><input type="url" className="ops-input" value={bookForm.url} onChange={e => setBookForm({ ...bookForm, url: e.target.value })} /></div>
+                <div className="ops-form-group"><label>Description</label><textarea className="ops-input" style={{ minHeight: 80 }} value={bookForm.description} onChange={e => setBookForm({ ...bookForm, description: e.target.value })} /></div>
+              </>
+            )}
 
-      <OpsModal isOpen={modalType === 'export'} onClose={closeModal} title="Schedule Data Export">
-        <div className="ops-form-group"><label>Select Dataset</label>
-          <select className="ops-input"><option>All Patients via CSV</option><option>Medicines & Inventory (Excel)</option><option>Full Backup Dump (.sql)</option></select>
+            {modalType === 'export' && (
+              <div className="ops-form-group">
+                <label>Select Dataset</label>
+                <select className="ops-input"><option>All Patients via CSV</option><option>Medicines & Inventory (Excel)</option><option>Full Backup Dump (.sql)</option></select>
+              </div>
+            )}
+          </div>
+
+          <div className="ops-drawer-footer">
+            <button className="ops-btn ops-btn-ghost" onClick={closeModal}>Cancel</button>
+            <button className="ops-btn ops-btn-primary" onClick={handleAction}>
+              {modalType === 'export' ? 'Queue Download' : 'Save Changes'}
+            </button>
+          </div>
         </div>
-        <div className="ops-modal-footer"><button className="ops-btn ops-btn-ghost" onClick={closeModal}>Cancel</button><button className="ops-btn ops-btn-primary" onClick={handleAction}>Queue Download</button></div>
-      </OpsModal>
+      </div>
     </div>
   );
 }

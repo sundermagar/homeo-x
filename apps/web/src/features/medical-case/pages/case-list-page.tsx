@@ -55,20 +55,20 @@ export default function MedicalCaseListPage() {
           <button className="mc-filter-btn">
             <Filter size={14} strokeWidth={1.6} /> Filters
           </button>
-          <div style={{ display: 'inline-flex', border: '1px solid #e2e8f0', borderRadius: 999, overflow: 'hidden', background: 'var(--bg-card)' }}>
+          <div className="appt-segmented-toggle">
             <button
               type="button"
               onClick={() => setViewMode('list')}
-              style={{ border: 'none', borderRadius: 0, minWidth: 78, padding: '8px 12px', background: viewMode === 'list' ? '#eff6ff' : 'transparent', color: viewMode === 'list' ? '#1d4ed8' : '#64748b', cursor: 'pointer' }}
+              className={`appt-segmented-btn ${viewMode === 'list' ? 'active' : ''}`}
             >
-              <List size={14} strokeWidth={1.6} /> List
+              <List size={16} strokeWidth={1.6} /> List
             </button>
             <button
               type="button"
               onClick={() => setViewMode('grid')}
-              style={{ border: 'none', borderRadius: 0, minWidth: 78, padding: '8px 12px', background: viewMode === 'grid' ? '#eff6ff' : 'transparent', color: viewMode === 'grid' ? '#1d4ed8' : '#64748b', cursor: 'pointer' }}
+              className={`appt-segmented-btn ${viewMode === 'grid' ? 'active' : ''}`}
             >
-              <Grid size={14} strokeWidth={1.6} /> Grid
+              <Grid size={16} strokeWidth={1.6} /> Grid
             </button>
           </div>
           <span className="mc-count">

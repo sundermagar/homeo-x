@@ -89,20 +89,20 @@ export default function BillingListPage() {
         <div />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <div className="bill-view-toggle-group">
+          <div className="appt-segmented-toggle">
             <button
               type="button"
               onClick={() => setViewMode('list')}
-              className={`bill-view-toggle-btn${viewMode === 'list' ? ' is-active' : ''}`}
+              className={`appt-segmented-btn ${viewMode === 'list' ? 'active' : ''}`}
             >
-              <List size={14} /> List
+              <List size={16} /> List
             </button>
             <button
               type="button"
               onClick={() => setViewMode('grid')}
-              className={`bill-view-toggle-btn${viewMode === 'grid' ? ' is-active' : ''}`}
+              className={`appt-segmented-btn ${viewMode === 'grid' ? 'active' : ''}`}
             >
-              <Grid size={14} /> Grid
+              <Grid size={16} /> Grid
             </button>
           </div>
           <div className="bill-search-wrap">

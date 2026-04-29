@@ -1,31 +1,38 @@
 import { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { usePatients, useDeletePatient } from '../hooks/use-patients';
-import { Search, Plus, List as ListIcon, Grid, Eye, Edit2, Phone, MapPin, Calendar } from 'lucide-react';
+import { Search, Plus, List as ListIcon, Grid, Eye, Edit2, Phone, MapPin, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { Role, type PatientSummary } from '@mmc/types';
+import { PatientFormDrawer } from '../components/patient-form-drawer';
 import '../../appointments/styles/appointments.css';
+import '../../dashboard/pages/role-dashboards.css';
 import '../styles/patients.css';
-
-const PAGE_SIZE = 10;
 
 export default function PatientListPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [sortBy, setSortBy] = useState('newest');
+
+  // Drawer state
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [drawerRegid, setDrawerRegid] = useState<number | null>(null);
 
   const user = useAuthStore(s => s.user);
   const rawRole = ((user as any)?.type || (user as any)?.role || (user as any)?.roleName || '').toLowerCase();
   const isDoctor = rawRole === 'doctor' || rawRole === 'medical practitioner' || ((user as any)?.name || '').toLowerCase().startsWith('dr');
 
-  const { data, isLoading } = usePatients({ 
-    page, 
-    limit: PAGE_SIZE, 
+  const { data, isLoading } = usePatients({
+    page,
+    limit: pageSize,
     search: debouncedSearch,
-    clinicId: (user as any)?.contextId
+    clinicId: (user as any)?.contextId,
+    sortBy: sortBy,
+    sortOrder: sortBy === 'oldest' ? 'asc' : 'desc'
   });
   const deleteMutation = useDeletePatient();
 
@@ -36,32 +43,12 @@ export default function PatientListPage() {
     (window as any).__patientSearchTimer = setTimeout(() => setDebouncedSearch(val), 300);
   };
 
-  const patients = useMemo(() => {
-    const list = data?.data || [];
-    if (sortBy === 'name') return [...list].sort((a, b) => a.fullName.localeCompare(b.fullName));
-    
-    if (sortBy === 'oldest') {
-      return [...list].sort((a, b) => {
-        const dateA = new Date(a.createdAt).getTime();
-        const dateB = new Date(b.createdAt).getTime();
-        if (dateA !== dateB) return dateA - dateB;
-        return a.regid - b.regid; // Fallback to regid
-      });
-    }
+  const patients = data?.data || [];
 
-    if (sortBy === 'newest') {
-      return [...list].sort((a, b) => {
-        const dateA = new Date(a.createdAt).getTime();
-        const dateB = new Date(b.createdAt).getTime();
-        if (dateA !== dateB) return dateB - dateA;
-        return b.regid - a.regid; // Fallback to regid
-      });
-    }
-
-    return list;
-  }, [data?.data, sortBy]);
-
-  const totalPages = Math.ceil((data?.total || 0) / PAGE_SIZE);
+  const totalPages = Math.ceil((data?.total || 0) / pageSize);
+  const totalEntries = data?.total || 0;
+  const fromEntry = (page - 1) * pageSize + 1;
+  const toEntry = Math.min(page * pageSize, totalEntries);
 
   return (
     <div className="pp-page-container animate-fade-in">
@@ -71,23 +58,23 @@ export default function PatientListPage() {
           <p className="text-subtitle">Access and manage comprehensive patient health records.</p>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
-          <div className="appt-view-toggle">
+          <div className="appt-segmented-toggle">
             <button
               type="button"
-              className={`appt-view-btn${viewMode === 'list' ? ' is-active' : ''}`}
+              className={`appt-segmented-btn ${viewMode === 'list' ? 'active' : ''}`}
               onClick={() => setViewMode('list')}
             >
-              <ListIcon size={14} /> List
+              <ListIcon size={16} /> List
             </button>
             <button
               type="button"
-              className={`appt-view-btn${viewMode === 'grid' ? ' is-active' : ''}`}
+              className={`appt-segmented-btn ${viewMode === 'grid' ? 'active' : ''}`}
               onClick={() => setViewMode('grid')}
             >
-              <Grid size={14} /> Grid
+              <Grid size={16} /> Grid
             </button>
           </div>
-          <button className="btn-primary" onClick={() => navigate('/patients/add')}>
+          <button className="btn-primary" onClick={() => { setDrawerRegid(null); setIsDrawerOpen(true); }}>
             <Plus size={16} /> New Patient
           </button>
         </div>
@@ -125,8 +112,38 @@ export default function PatientListPage() {
       </div>
 
       {isLoading ? (
-        <div className="pp-card pat-loading-state">
-          <p>Loading patient records...</p>
+        <div className="pp-card pp-table-scroll" style={{ padding: 0, overflow: 'hidden', border: '1px solid #f1f5f9' }}>
+          <table className="pp-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr>
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <th key={i} style={{ padding: '16px 24px', background: '#ffffff', borderBottom: '1px solid #f1f5f9' }}>
+                    <div className="skeleton-box" style={{ height: '12px', width: '40px', borderRadius: '4px', opacity: 0.7, animationDelay: `${i * 0.1}s` }} />
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {Array.from({ length: 10 }).map((_, rowIndex) => (
+                <tr key={rowIndex}>
+                  {Array.from({ length: 6 }).map((_, colIndex) => (
+                    <td key={colIndex} style={{ padding: '16px 24px', borderBottom: '1px solid #f1f5f9', background: '#ffffff' }}>
+                      <div 
+                        className="skeleton-box" 
+                        style={{ 
+                          height: '24px', 
+                          width: colIndex === 0 ? '120px' : colIndex === 5 ? '40px' : '80px', 
+                          borderRadius: '6px',
+                          opacity: 0.8,
+                          animationDelay: `${colIndex * 0.1}s`
+                        }} 
+                      />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       ) : patients.length === 0 ? (
         <div className="pp-card pat-empty-state">
@@ -173,9 +190,13 @@ export default function PatientListPage() {
                       <Link to={`/patients/${p.regid}`} className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px' }}>
                         <Eye size={14} /> View
                       </Link>
-                      <Link to={`/patients/${p.regid}/edit`} className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', border: '1px solid var(--pp-warm-4)', color: 'var(--pp-text-2)' }}>
+                      <button 
+                        onClick={() => { setDrawerRegid(p.regid); setIsDrawerOpen(true); }} 
+                        className="btn-secondary" 
+                        style={{ padding: '4px 8px', fontSize: '12px', border: '1px solid var(--pp-warm-4)', color: 'var(--pp-text-2)' }}
+                      >
                         <Edit2 size={14} />
-                      </Link>
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -199,15 +220,15 @@ export default function PatientListPage() {
 
               <div className="pat-grid-card-detail">
                 <div className="pat-grid-card-detail-row">
-                  <span className="pat-grid-card-detail-label"><Phone size={12}/> Phone</span>
+                  <span className="pat-grid-card-detail-label"><Phone size={12} /> Phone</span>
                   <span className="pat-grid-card-detail-value">{p.phone || '—'}</span>
                 </div>
                 <div className="pat-grid-card-detail-row">
-                  <span className="pat-grid-card-detail-label"><MapPin size={12}/> City</span>
+                  <span className="pat-grid-card-detail-label"><MapPin size={12} /> City</span>
                   <span className="pat-grid-card-detail-value">{p.city || '—'}</span>
                 </div>
                 <div className="pat-grid-card-detail-row">
-                  <span className="pat-grid-card-detail-label"><Calendar size={12}/> Date</span>
+                  <span className="pat-grid-card-detail-label"><Calendar size={12} /> Date</span>
                   <span className="pat-grid-card-detail-value">{p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-GB') : '—'}</span>
                 </div>
               </div>
@@ -220,27 +241,59 @@ export default function PatientListPage() {
         </div>
       )}
 
-      {totalPages > 1 && (
-        <div className="pat-pagination">
-          <button
-            disabled={page <= 1}
-            onClick={() => setPage(p => p - 1)}
-            className="btn-secondary"
-            style={{ opacity: page <= 1 ? 0.5 : 1 }}
-          >
-            Previous
-          </button>
-          <span className="text-small">Page {page} of {totalPages}</span>
-          <button
-            disabled={page >= totalPages}
-            onClick={() => setPage(p => p + 1)}
-            className="btn-secondary"
-            style={{ opacity: page >= totalPages ? 0.5 : 1 }}
-          >
-            Next
-          </button>
+      {totalPages > 0 && (
+        <div className="pat-pagination-bar">
+          <div className="pat-pagination-info-wrap">
+            <span className="pat-pagination-info">
+              Showing {fromEntry}-{toEntry} of {totalEntries}
+            </span>
+            <select 
+              className="pat-pagination-limit" 
+              value={pageSize} 
+              onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
+            >
+              <option value={5}>5 per page</option>
+              <option value={10}>10 per page</option>
+              <option value={20}>20 per page</option>
+              <option value={50}>50 per page</option>
+            </select>
+          </div>
+
+          <div className="pat-pagination-controls">
+            <button 
+              className="pat-pagination-btn" 
+              disabled={page === 1} 
+              onClick={() => setPage(p => p - 1)}
+            >
+              <ChevronLeft size={16} />
+            </button>
+            
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+              <button 
+                key={p} 
+                className={`pat-pagination-page ${p === page ? 'is-active' : ''}`}
+                onClick={() => setPage(p)}
+              >
+                {p}
+              </button>
+            ))}
+
+            <button 
+              className="pat-pagination-btn" 
+              disabled={page === totalPages} 
+              onClick={() => setPage(p => p + 1)}
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
         </div>
       )}
+
+      <PatientFormDrawer 
+        isOpen={isDrawerOpen} 
+        onClose={() => setIsDrawerOpen(false)} 
+        regid={drawerRegid} 
+      />
     </div>
   );
 }

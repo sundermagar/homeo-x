@@ -1,10 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
   Clock, UserCheck, CheckCircle2, Users, RefreshCw, Plus, Ticket,
-  ChevronRight, Activity, Search, CreditCard, IndianRupee, X
+  ChevronRight, Activity, IndianRupee, ChevronLeft, LayoutGrid, List
 } from 'lucide-react';
 import { useWaitlist, useCallNext, useCompleteVisit, useTodayAppointments, useIssueToken, useAddToWaitlist } from '../hooks/use-appointments';
-import { usePatientLookup } from '@/features/patients/hooks/use-patients';
 import { useDailyCollection } from '@/features/billing/hooks/use-billing';
 import { apiClient } from '@/infrastructure/api-client';
 import { useAuthStore } from '@/shared/stores/auth-store';
@@ -28,33 +27,28 @@ export default function TokenQueuePage() {
   const user = useAuthStore((s) => s.user);
   const rawRole = ((user as any)?.type || (user as any)?.role || (user as any)?.roleName || '').toLowerCase();
   const isDoctor = rawRole === 'doctor' || rawRole === 'medical practitioner' || ((user as any)?.name || '').toLowerCase().startsWith('dr');
-  // Doctors see only their own queue automatically; admins/receptionists can choose.
+
   const [tab, setTab] = useState<'queue' | 'tokens' | 'collection'>('queue');
   const [doctorFilter, setDoctorFilter] = useState(() =>
     isDoctor ? String((user as any)?.id ?? '') : ''
   );
   const [doctors, setDoctors] = useState<any[]>([]);
   const [activeVitals, setActiveVitals] = useState<{ visitId: number, regid: number } | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
   const [currentTime, setCurrentTime] = useState(new Date());
+  
+  // View & Pagination State
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // Keep filter in sync if user identity changes
   useEffect(() => {
-    if (isDoctor) setDoctorFilter(String((user as any)?.id ?? ''));
-  }, [(user as any)?.id, isDoctor]);
-
-  useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setSearchQuery('');
-    };
-    window.addEventListener('keydown', handleEsc);
-    return () => window.removeEventListener('keydown', handleEsc);
-  }, []);
+    setPage(1);
+  }, [tab, doctorFilter, limit, viewMode]);
 
   useEffect(() => {
     if (!isDoctor) {
@@ -68,7 +62,6 @@ export default function TokenQueuePage() {
   const { data: waitlist = [], isLoading: wLoading, refetch: wRefetch } = useWaitlist(today, doctorFilter ? Number(doctorFilter) : undefined);
   const { data: todayAppts = [], isLoading: aLoading, refetch: aRefetch } = useTodayAppointments(doctorFilter ? Number(doctorFilter) : undefined);
   const { data: collection, isLoading: cLoading, refetch: cRefetch } = useDailyCollection(today);
-  const { data: lookupResults = [], isLoading: lLoading } = usePatientLookup(searchQuery);
 
   const callNext      = useCallNext();
   const completeVisit = useCompleteVisit();
@@ -76,25 +69,253 @@ export default function TokenQueuePage() {
   const addToWaitlist = useAddToWaitlist();
 
   const totalReceived = collection?.totalReceived ?? 0;
-  const cashTotal = collection?.records.filter((r: any) => r.paymentMode === 'Cash').reduce((acc: number, r: any) => acc + Number(r.received), 0) ?? 0;
-  const onlineTotal = totalReceived - cashTotal;
-  const avgValue = collection?.records.length ? Math.round(totalReceived / collection.records.length) : 0;
-
+  
   const waiting    = waitlist.filter(w => w.status === 0);
   const inProgress = waitlist.filter(w => w.status === 1);
-  const done       = waitlist.filter(w => w.status === 2);
+  const withToken  = todayAppts.filter(a => a.tokenNo);
 
-  const withToken     = todayAppts.filter(a => a.tokenNo);
-  const withoutToken  = todayAppts.filter(a => !a.tokenNo);
+  // Data selection based on tab
+  const currentDataList = useMemo(() => {
+    if (tab === 'queue') return [...inProgress, ...waiting];
+    if (tab === 'tokens') return todayAppts;
+    if (tab === 'collection') return collection?.records || [];
+    return [];
+  }, [tab, inProgress, waiting, todayAppts, collection]);
+
+  // Pagination Logic
+  const totalItems = currentDataList.length;
+  const totalPages = Math.ceil(totalItems / limit);
+  const paginatedData = currentDataList.slice((page - 1) * limit, page * limit);
+
+  const fromEntry = totalItems === 0 ? 0 : (page - 1) * limit + 1;
+  const toEntry = Math.min(page * limit, totalItems);
 
   const handleCall      = async (id: number) => { await callNext.mutateAsync(id); wRefetch(); };
   const handleComplete  = async (id: number) => { await completeVisit.mutateAsync(id); wRefetch(); aRefetch(); };
   const handleIssueToken = async (appointmentId: number) => { await issueToken.mutateAsync(appointmentId); aRefetch(); };
 
   const handleStartConsult = (w: any) => {
-    // Navigate to medical case entry
     window.location.href = `/medical-case/entry?regid=${w.patientId}&visitId=${w.appointmentId || w.id}`;
   };
+
+  const renderPagination = () => {
+    if (totalItems === 0) return null;
+    return (
+      <div className="appt-pagination-bar" style={{ marginTop: 24 }}>
+        <div className="appt-pagination-info-wrap">
+          <div className="appt-pagination-info">
+            Showing {fromEntry}-{toEntry} of {totalItems}
+          </div>
+          <select
+            className="appt-pagination-limit"
+            value={limit}
+            onChange={(e) => {
+              setLimit(Number(e.target.value));
+              setPage(1);
+            }}
+          >
+            {[5, 10, 20, 50].map((l) => (
+              <option key={l} value={l}>
+                {l} per page
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="appt-pagination-controls">
+          <button
+            className="appt-pagination-btn"
+            disabled={page === 1}
+            onClick={() => setPage((p) => p - 1)}
+          >
+            <ChevronLeft size={16} />
+          </button>
+
+          {[...Array(totalPages)].map((_, i) => {
+            const p = i + 1;
+            if (p === 1 || p === totalPages || (p >= page - 1 && p <= page + 1)) {
+              return (
+                <button
+                  key={p}
+                  className={`appt-pagination-page ${page === p ? 'is-active' : ''}`}
+                  onClick={() => setPage(p)}
+                >
+                  {p}
+                </button>
+              );
+            }
+            if (p === page - 2 || p === page + 2) {
+              return <span key={p} style={{ color: '#cbd5e1' }}>...</span>;
+            }
+            return null;
+          })}
+
+          <button
+            className="appt-pagination-btn"
+            disabled={page === totalPages}
+            onClick={() => setPage((p) => p + 1)}
+          >
+            <ChevronRight size={16} />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderSkeletonGrid = () => (
+    <div className="appt-queue-board">
+      {[...Array(limit)].map((_, i) => (
+        <div key={i} className="appt-token-card-minimal" style={{ border: '1px solid #f1f5f9', padding: 24, borderRadius: 12, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="appt-shimmer" style={{ width: 60, height: 28, borderRadius: 4 }}></div>
+            <div className="appt-shimmer" style={{ width: 80, height: 20, borderRadius: 4 }}></div>
+          </div>
+          <div style={{ background: 'var(--pp-warm-1)', padding: 14, borderRadius: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div className="appt-shimmer" style={{ width: '70%', height: 20, borderRadius: 4 }}></div>
+            <div className="appt-shimmer" style={{ width: '40%', height: 14, borderRadius: 4 }}></div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <div className="appt-shimmer" style={{ width: 40, height: 14, borderRadius: 4 }}></div>
+            <div className="appt-shimmer" style={{ width: 60, height: 14, borderRadius: 4 }}></div>
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 'auto', paddingTop: 8 }}>
+            <div className="appt-shimmer" style={{ flex: 1, height: 36, borderRadius: 8 }}></div>
+            <div className="appt-shimmer" style={{ flex: 1, height: 36, borderRadius: 8 }}></div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
+  const renderSkeletonList = () => (
+    <div className="appt-card">
+      <div className="appt-table-scroll">
+        <table className="appt-table">
+          <tbody>
+            {[...Array(limit)].map((_, i) => (
+              <tr key={i} className="appt-skeleton-row">
+                <td colSpan={6}><div className="appt-skeleton-box" style={{ height: 40, margin: '8px 16px' }} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
+  const renderGridView = () => (
+    <div className="appt-queue-board">
+      {paginatedData.map((w: any) => (
+        <div key={w.id} className={`appt-token-card-minimal ${w.status === 1 ? 'calling' : ''}`}>
+          <div className="appt-token-header-minimal">
+            <div className="appt-token-badge-wrap">
+              <div className="appt-token-num-minimal" style={{ color: WAIT_COLOR[w.status] }}>
+                W{w.waitingNumber}
+              </div>
+              <div className="appt-token-status-label" style={{ color: WAIT_COLOR[w.status] }}>
+                {WAIT_STATUS[w.status]}
+              </div>
+            </div>
+            {w.status === 1 && <span className="appt-calling-dot" />}
+          </div>
+
+          <div className="appt-token-patient-box">
+            <div className="appt-token-patient-name">{w.patientName ?? `Patient #${w.patientId}`}</div>
+            {w.doctorName && <div className="appt-token-doctor-name">{w.doctorName}</div>}
+          </div>
+
+          <div className="appt-token-meta-minimal">
+            <div>{w.consultationFee ? `₹${w.consultationFee}` : '—'}</div>
+            <div>{formatWaitTime(w.checkedInAt || w.createdAt)}</div>
+          </div>
+
+          <div className="appt-token-actions-minimal">
+            {w.status === 1 ? (
+              <>
+                <button className="appt-btn appt-btn-sm appt-btn-primary" onClick={() => handleStartConsult(w)}>
+                  <Activity size={13} strokeWidth={2} /> Consult
+                </button>
+                <button className="appt-btn appt-btn-sm appt-btn-success" onClick={() => handleComplete(w.id)} disabled={completeVisit.isPending}>
+                  <CheckCircle2 size={13} strokeWidth={1.6} /> Done
+                </button>
+              </>
+            ) : (
+              <button className="appt-btn appt-btn-sm appt-btn-primary" onClick={() => handleCall(w.id)} disabled={callNext.isPending}>
+                <ChevronRight size={13} strokeWidth={1.6} /> Call Next
+              </button>
+            )}
+            <button className="appt-btn appt-btn-sm appt-btn-purple" onClick={() => setActiveVitals({ visitId: w.appointmentId || w.id, regid: w.patientId ?? 0 })}>
+              <Activity size={13} strokeWidth={1.6} /> Vitals
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
+  const renderListView = () => (
+    <div className="appt-card">
+      <div className="appt-table-scroll">
+        <table className="appt-table">
+          <thead className="appt-table-header-minimal">
+            <tr>
+              <th style={{ textAlign: 'left', paddingLeft: 24 }}>TOKEN</th>
+              <th style={{ textAlign: 'left' }}>PATIENT</th>
+              <th style={{ textAlign: 'left' }}>DOCTOR</th>
+              <th style={{ textAlign: 'left' }}>WAIT TIME</th>
+              <th style={{ textAlign: 'center' }}>STATUS</th>
+              <th style={{ textAlign: 'right', paddingRight: 24 }}>ACTION</th>
+            </tr>
+          </thead>
+          <tbody>
+            {paginatedData.map((w: any) => (
+              <tr key={w.id} className={`appt-table-row-minimal ${w.status === 1 ? 'is-active-row' : ''}`}>
+                <td style={{ paddingLeft: 24 }}>
+                  <span className="appt-token-pill" style={{ color: WAIT_COLOR[w.status] }}>W{w.waitingNumber}</span>
+                </td>
+                <td>
+                  <div className="appt-patient-info">
+                    <div className="appt-cell-name" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {w.patientName ?? `Patient #${w.patientId}`}
+                      {w.status === 1 && <span className="appt-calling-dot" style={{ position: 'static' }} />}
+                    </div>
+                  </div>
+                </td>
+                <td className="appt-cell-muted">{w.doctorName ?? '—'}</td>
+                <td className="appt-cell-muted">{formatWaitTime(w.checkedInAt || w.createdAt)}</td>
+                <td style={{ textAlign: 'center' }}>
+                  <span className={`appt-status-pill-minimal ${w.status === 1 ? 'success' : 'waiting'}`}>
+                    {WAIT_STATUS[w.status]}
+                  </span>
+                </td>
+                <td style={{ paddingRight: 24 }}>
+                  <div className="appt-row-actions-minimal">
+                    {w.status === 1 ? (
+                      <>
+                        <button className="appt-btn-minimal primary" onClick={() => handleStartConsult(w)}>
+                           Consult
+                        </button>
+                        <button className="appt-btn-minimal success" onClick={() => handleComplete(w.id)} disabled={completeVisit.isPending}>
+                           Done
+                        </button>
+                      </>
+                    ) : (
+                      <button className="appt-btn-minimal primary" onClick={() => handleCall(w.id)} disabled={callNext.isPending}>
+                         Call
+                      </button>
+                    )}
+                    <button className="appt-btn-minimal purple" onClick={() => setActiveVitals({ visitId: w.appointmentId || w.id, regid: w.patientId ?? 0 })}>
+                      <Activity size={14} /> Vitals
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
 
   return (
     <div className="appt-page">
@@ -110,7 +331,6 @@ export default function TokenQueuePage() {
           </p>
         </div>
         <div className="appt-header-actions">
-          {/* Doctors always see their own queue — show label instead of dropdown */}
           {isDoctor ? (
             <span style={{ fontSize: 13, color: 'var(--pp-muted)', padding: '0 8px' }}>
               Showing: <strong>{(user as any)?.name ?? 'My Queue'}</strong>
@@ -126,7 +346,7 @@ export default function TokenQueuePage() {
               {doctors.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
             </select>
           )}
-          <button className="appt-btn appt-btn-sm" onClick={() => { wRefetch(); aRefetch(); }}>
+          <button className="appt-btn appt-btn-sm" onClick={() => { wRefetch(); aRefetch(); cRefetch(); }}>
             <RefreshCw size={14} strokeWidth={1.6} /> Refresh
           </button>
         </div>
@@ -135,20 +355,18 @@ export default function TokenQueuePage() {
       {/* Stats bar */}
       <div className="appt-stats-bar">
         {([
-          { label: 'Waiting',       value: waiting.length,    bg: 'var(--pp-warning-bg)', ic: 'var(--pp-warning-fg)', icon: <Clock size={18} strokeWidth={1.6} /> },
-          { label: 'In Progress',   value: inProgress.length, bg: 'var(--pp-purple-tint)', ic: 'var(--pp-purple)',    icon: <UserCheck size={18} strokeWidth={1.6} /> },
-          { label: 'Realized Revenue', value: `₹${totalReceived.toLocaleString()}`, bg: 'var(--pp-success-bg)',  ic: 'var(--pp-success-fg)', icon: <IndianRupee size={18} strokeWidth={1.6} /> },
-          { label: 'Tokens Issued',value: withToken.length,  bg: 'var(--pp-blue-tint)',  ic: 'var(--pp-blue)',      icon: <Ticket size={18} strokeWidth={1.6} /> },
+          { label: 'Waiting',       value: waiting.length,    bg: 'rgba(245, 158, 11, 0.1)', ic: '#d97706', icon: <Clock size={20} strokeWidth={2} /> },
+          { label: 'In Progress',   value: inProgress.length, bg: 'rgba(124, 58, 237, 0.1)', ic: '#7c3aed', icon: <UserCheck size={20} strokeWidth={2} /> },
+          { label: 'Realized Revenue', value: `₹${totalReceived.toLocaleString()}`, bg: 'rgba(5, 150, 105, 0.1)',  ic: '#059669', icon: <IndianRupee size={20} strokeWidth={2} /> },
+          { label: 'Tokens Issued',value: withToken.length,  bg: 'rgba(37, 99, 235, 0.1)',  ic: '#2563eb', icon: <Ticket size={20} strokeWidth={2} /> },
         ] as const).map(item => (
-          <div key={item.label} className="appt-card">
-            <div className="appt-card-body" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div className="appt-stat-icon-wrap" style={{ background: item.bg, color: item.ic }}>
-                {item.icon}
-              </div>
-              <div>
-                <div className="appt-stat-label">{item.label}</div>
-                <div className="appt-stat-value">{item.value}</div>
-              </div>
+          <div key={item.label} className="appt-stat-card">
+            <div className="appt-stat-icon-wrap" style={{ background: item.bg, color: item.ic }}>
+              {item.icon}
+            </div>
+            <div>
+              <div className="appt-stat-label">{item.label}</div>
+              <div className="appt-stat-value">{item.value}</div>
             </div>
           </div>
         ))}
@@ -157,7 +375,7 @@ export default function TokenQueuePage() {
       {/* Tabs */}
       <div className="appt-tabs">
         <button className={`appt-tab ${tab === 'queue' ? 'active' : ''}`} onClick={() => setTab('queue')}>
-          Active Queue ({waiting.length + inProgress.length})
+          Active Queue ({inProgress.length + waiting.length})
         </button>
         <button className={`appt-tab ${tab === 'tokens' ? 'active' : ''}`} onClick={() => setTab('tokens')}>
           Token Management ({todayAppts.length})
@@ -169,91 +387,35 @@ export default function TokenQueuePage() {
 
       {/* ─── LIVE QUEUE TAB ───────────────────────────────────────────────────── */}
       {tab === 'queue' && (
-        <div>
-          {/* In Progress */}
-          {inProgress.length > 0 && (
-            <div style={{ marginBottom: 20 }}>
-              <div className="appt-section-label">Now In Consultation</div>
-              <div className="appt-queue-board">
-                {inProgress.map(w => (
-                  <div key={w.id} className="appt-token-card calling">
-                    <div style={{ position: 'absolute', top: 10, right: 10 }}>
-                      <span className="appt-calling-dot" />
-                    </div>
-                    <div className="appt-token-num">W{w.waitingNumber}</div>
-                    <div className="appt-token-label">In Progress</div>
-                    <div className="appt-token-patient">{w.patientName ?? `Patient #${w.patientId}`}</div>
-                    {w.doctorName && <div className="appt-token-doctor">{w.doctorName}</div>}
-                    <div className="appt-token-actions">
-                      <button className="appt-btn appt-btn-sm appt-btn-primary" onClick={() => handleStartConsult(w)}>
-                        <Activity size={13} strokeWidth={2} /> Start Consult
-                      </button>
-                      <button className="appt-btn appt-btn-sm appt-btn-success" onClick={() => handleComplete(w.id)} disabled={completeVisit.isPending}>
-                        <CheckCircle2 size={13} strokeWidth={1.6} /> Done
-                      </button>
-                      <button className="appt-btn appt-btn-sm appt-btn-purple" onClick={() => setActiveVitals({ visitId: w.appointmentId || w.id, regid: w.patientId ?? 0 })}>
-                        <Activity size={13} strokeWidth={1.6} /> Vitals
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+        <div className="animate-fade-in">
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+            <div className="appt-segmented-toggle">
+              <button 
+                className={`appt-segmented-btn ${viewMode === 'list' ? 'active' : ''}`} 
+                onClick={() => setViewMode('list')}
+              >
+                <List size={16} /> List
+              </button>
+              <button 
+                className={`appt-segmented-btn ${viewMode === 'grid' ? 'active' : ''}`} 
+                onClick={() => setViewMode('grid')}
+              >
+                <LayoutGrid size={16} /> Grid
+              </button>
             </div>
-          )}
+          </div>
 
-          {/* Waiting */}
           {wLoading ? (
-            <div className="appt-empty"><RefreshCw size={22} style={{ animation: 'spin 1s linear infinite', opacity: 0.3 }} /></div>
-          ) : waiting.length === 0 && inProgress.length === 0 ? (
+            viewMode === 'grid' ? renderSkeletonGrid() : renderSkeletonList()
+          ) : (inProgress.length + waiting.length) === 0 ? (
             <div className="appt-empty" style={{ padding: 60 }}>
               <Users size={28} className="appt-empty-icon" />
               <p className="appt-empty-text">No patients in the waiting room</p>
             </div>
           ) : (
             <>
-              {waiting.length > 0 && (
-                <>
-                  <div className="appt-section-label">Waiting ({waiting.length})</div>
-                  <div className="appt-queue-board" style={{ marginBottom: 24 }}>
-                    {waiting.map(w => (
-                      <div key={w.id} className="appt-token-card">
-                        <div className="appt-token-num" style={{ color: WAIT_COLOR[w.status] }}>W{w.waitingNumber}</div>
-                        <div className="appt-token-label" style={{ color: WAIT_COLOR[w.status] }}>{WAIT_STATUS[w.status]}</div>
-                        <div className="appt-token-patient">{w.patientName ?? `Patient #${w.patientId}`}</div>
-                        {w.doctorName && <div className="appt-token-doctor">{w.doctorName}</div>}
-                        <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 4 }}>
-                          {w.consultationFee && <div className="appt-token-fee">₹{w.consultationFee}</div>}
-                          <div style={{ fontSize: 10, color: 'var(--pp-text-3)', fontWeight: 600 }}>{formatWaitTime(w.checkedInAt || w.createdAt)}</div>
-                        </div>
-                        <div className="appt-token-actions">
-                          <button className="appt-btn appt-btn-sm appt-btn-primary" onClick={() => handleCall(w.id)} disabled={callNext.isPending}>
-                            <ChevronRight size={13} strokeWidth={1.6} /> Call
-                          </button>
-                          <button className="appt-btn appt-btn-sm appt-btn-purple" onClick={() => setActiveVitals({ visitId: w.appointmentId || w.id, regid: w.patientId ?? 0 })}>
-                            <Activity size={13} strokeWidth={1.6} /> Vitals
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-
-              {/* Done */}
-              {done.length > 0 && (
-                <>
-                  <div className="appt-section-label">Completed ({done.length})</div>
-                  <div className="appt-queue-board">
-                    {done.map(w => (
-                      <div key={w.id} className="appt-token-card done">
-                        <div className="appt-token-num" style={{ color: 'var(--pp-success-fg)' }}>W{w.waitingNumber}</div>
-                        <div className="appt-token-label" style={{ color: 'var(--pp-success-fg)' }}>Done</div>
-                        <div className="appt-token-patient">{w.patientName ?? `Patient #${w.patientId}`}</div>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
+              {viewMode === 'grid' ? renderGridView() : renderListView()}
+              {renderPagination()}
             </>
           )}
         </div>
@@ -261,67 +423,76 @@ export default function TokenQueuePage() {
 
       {/* ─── TOKEN MANAGEMENT TAB ───────────────────────────────────────────── */}
       {tab === 'tokens' && (
-        <div>
+        <div className="animate-fade-in">
           {aLoading ? (
-            <div className="appt-empty"><RefreshCw size={22} style={{ animation: 'spin 1s linear infinite', opacity: 0.3 }} /></div>
+            renderSkeletonList()
           ) : todayAppts.length === 0 ? (
             <div className="appt-empty">
               <Ticket size={28} className="appt-empty-icon" />
-              <p className="appt-empty-text">No appointments found {doctorFilter ? 'for this doctor' : 'today'}</p>
+              <p className="appt-empty-text">No appointments found today</p>
             </div>
           ) : (
-            <div className="appt-card">
-              <div className="appt-table-scroll">
-                <table className="appt-table">
-                  <thead>
-                    <tr>
-                      <th>Token</th>
-                      <th>Patient</th>
-                      <th>Doctor</th>
-                      <th>Time</th>
-                      <th>Status</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {todayAppts.map(a => (
-                      <tr key={a.id}>
-                        <td>
-                          {a.tokenNo ? (
-                            <span className="appt-cell-token">T{a.tokenNo}</span>
-                          ) : (
-                            <span className="appt-cell-slash">No token</span>
-                          )}
-                        </td>
-                        <td>
-                          <div className="appt-cell-name">{a.patientNameFromCase ?? a.patientName ?? `#${a.patientId}`}</div>
-                          {a.phone && <div className="appt-cell-phone">{a.phone}</div>}
-                        </td>
-                        <td className="appt-cell-muted">{a.doctorName ?? '—'}</td>
-                        <td className="appt-cell-muted">{a.bookingTime ?? '—'}</td>
-                        <td><span className="appt-status-pill">{a.status}</span></td>
-                        <td>
-                          <div className="appt-row-actions">
-                            {!a.tokenNo ? (
-                              <button className="appt-btn appt-btn-sm appt-btn-primary" onClick={() => handleIssueToken(a.id)} disabled={issueToken.isPending}>
-                                <Ticket size={12} strokeWidth={1.6} /> Issue Token
-                              </button>
-                            ) : (
-                              <button className="appt-btn appt-btn-sm appt-btn-success" onClick={() => addToWaitlist.mutateAsync({ patientId: a.patientId!, appointmentId: a.id, doctorId: a.doctorId ?? undefined })} disabled={addToWaitlist.isPending}>
-                                <Plus size={12} strokeWidth={1.6} /> Check In
-                              </button>
-                            )}
-                            <button className="appt-btn appt-btn-sm appt-btn-purple" onClick={() => setActiveVitals({ visitId: a.id, regid: a.patientId ?? 0 })}>
-                              <Activity size={12} strokeWidth={1.6} /> Vitals
-                            </button>
-                          </div>
-                        </td>
+            <>
+              <div className="appt-card">
+                <div className="appt-table-scroll">
+                  <table className="appt-table">
+                    <thead className="appt-table-header-minimal">
+                      <tr>
+                        <th style={{ textAlign: 'left', paddingLeft: 24 }}>TOKEN</th>
+                        <th style={{ textAlign: 'left' }}>PATIENT</th>
+                        <th style={{ textAlign: 'left' }}>DOCTOR</th>
+                        <th style={{ textAlign: 'left' }}>TIME</th>
+                        <th style={{ textAlign: 'center' }}>STATUS</th>
+                        <th style={{ textAlign: 'right', paddingRight: 24 }}>ACTION</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {paginatedData.map((a: any) => (
+                        <tr key={a.id} className="appt-table-row-minimal">
+                          <td style={{ paddingLeft: 24 }}>
+                            {a.tokenNo ? (
+                              <span className="appt-token-pill">T{a.tokenNo}</span>
+                            ) : (
+                              <span className="appt-cell-slash">None</span>
+                            )}
+                          </td>
+                          <td>
+                            <div className="appt-patient-info">
+                              <div className="appt-cell-name">{a.patientNameFromCase ?? a.patientName ?? `#${a.patientId}`}</div>
+                              {a.phone && <div className="appt-cell-phone">{a.phone}</div>}
+                            </div>
+                          </td>
+                          <td className="appt-cell-muted">{a.doctorName ?? '—'}</td>
+                          <td className="appt-cell-muted">{a.bookingTime ?? '—'}</td>
+                          <td style={{ textAlign: 'center' }}>
+                            <span className={`appt-status-pill-minimal ${a.status.toLowerCase()}`}>
+                              {a.status}
+                            </span>
+                          </td>
+                          <td style={{ paddingRight: 24 }}>
+                            <div className="appt-row-actions-minimal">
+                              {!a.tokenNo ? (
+                                <button className="appt-btn-minimal primary" onClick={() => handleIssueToken(a.id)} disabled={issueToken.isPending}>
+                                  <Ticket size={14} /> Issue Token
+                                </button>
+                              ) : (
+                                <button className="appt-btn-minimal success" onClick={() => addToWaitlist.mutateAsync({ patientId: a.patientId!, appointmentId: a.id, doctorId: a.doctorId ?? undefined })} disabled={addToWaitlist.isPending}>
+                                  <Plus size={14} /> Check In
+                                </button>
+                              )}
+                              <button className="appt-btn-minimal purple" onClick={() => setActiveVitals({ visitId: a.id, regid: a.patientId ?? 0 })}>
+                                <Activity size={14} /> Vitals
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
+              {renderPagination()}
+            </>
           )}
         </div>
       )}
@@ -332,7 +503,7 @@ export default function TokenQueuePage() {
           <div className="appt-card">
             <div className="appt-card-header">
               <h3 className="appt-card-title">Institutional Receipt Ledger</h3>
-              <div className="appt-badge appt-badge-visited">{collection?.records.length || 0} Transactions</div>
+              <div className="appt-badge appt-badge-visited">{(collection?.records.length || 0)} Transactions</div>
             </div>
             <div className="appt-table-scroll">
               <table className="appt-ledger-table">
@@ -346,12 +517,16 @@ export default function TokenQueuePage() {
                 </thead>
                 <tbody>
                   {cLoading ? (
-                    <tr><td colSpan={4} style={{ padding: 80, textAlign: 'center' }}><RefreshCw className="spin" size={24} style={{ opacity: 0.3 }} /></td></tr>
+                    [...Array(limit)].map((_, i) => (
+                      <tr key={i} className="appt-skeleton-row">
+                        <td colSpan={4}><div className="appt-skeleton-box" style={{ height: 40, margin: '8px 16px' }} /></td>
+                      </tr>
+                    ))
                   ) : !collection || collection.records.length === 0 ? (
                     <tr><td colSpan={4} style={{ padding: 80, textAlign: 'center', color: 'var(--pp-text-3)' }}>No clinical receipts identified for this target date.</td></tr>
                   ) : (
                     <>
-                      {collection.records.map((r: any) => (
+                      {paginatedData.map((r: any) => (
                         <tr key={r.id} className="appt-ledger-row">
                           <td style={{ padding: '12px 16px', textAlign: 'left' }}>
                             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--pp-blue)' }}>#{r.billNo || r.id}</div>
@@ -377,6 +552,7 @@ export default function TokenQueuePage() {
               </table>
             </div>
           </div>
+          {renderPagination()}
         </div>
       )}
 

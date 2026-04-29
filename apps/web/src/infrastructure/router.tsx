@@ -21,6 +21,7 @@ const FamilyGroupListPage = lazy(() => import('@/features/patients/pages/family-
 
 // Appointments
 const AppointmentListPage = lazy(() => import('@/features/appointments/pages/appointment-list-page'));
+const AppointmentFormPage = lazy(() => import('@/features/appointments/pages/appointment-form-page'));
 const CalendarPage = lazy(() => import('@/features/appointments/pages/calendar-page'));
 const TokenQueuePage = lazy(() => import('@/features/appointments/pages/token-queue-page'));
 const StaffListPage = lazy(() => import('@/features/staff/pages/staff-list-page'));
@@ -116,6 +117,8 @@ export function AppRouter() {
 
             {/* ─── Appointments ─── */}
             <Route path="/appointments" element={<AppointmentListPage />} />
+            <Route path="/appointments/add" element={<AppointmentFormPage />} />
+            <Route path="/appointments/:id/edit" element={<AppointmentFormPage />} />
             <Route path="/appointments/calendar" element={<CalendarPage />} />
             <Route path="/appointments/queue" element={<TokenQueuePage />} />
 

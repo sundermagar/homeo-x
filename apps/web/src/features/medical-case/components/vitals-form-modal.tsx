@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { X, Activity, Scale, MoveVertical, Thermometer, Heart, Wind, Droplets, Loader2, Save } from 'lucide-react';
 import { useManageClinicalRecords } from '../hooks/use-medical-cases';
 import '../styles/medical-case.css';
@@ -69,26 +70,22 @@ export function VitalsFormModal({ visitId, regid, initialData, onClose, onSucces
     }
   };
 
-  return (
-    <div className="mc-modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="mc-modal mc-vitals-modal fade-in">
-        <header className="mc-modal-header">
-          <div className="mc-modal-title-group">
-            <div className="mc-modal-icon-bg">
-              <Activity size={18} strokeWidth={2} />
-            </div>
-            <div>
-              <h2 className="mc-modal-title">Record Vitals / Triage</h2>
-              <p className="mc-modal-sub">Patient ID: PT-{regid} · Visit Reference: #{visitId}</p>
-            </div>
+  return ReactDOM.createPortal(
+    <>
+      <div className="appt-drawer-overlay" onClick={onClose} />
+      <div className="appt-drawer-panel">
+        <header className="appt-drawer-header">
+          <div>
+            <h2 className="appt-drawer-title">Record Vitals / Triage</h2>
+            <p className="appt-header-sub" style={{ marginTop: 4 }}>Patient ID: PT-{regid} · Visit Reference: #{visitId}</p>
           </div>
-          <button className="mc-modal-close" onClick={onClose}>
-            <X size={20} strokeWidth={1.6} />
+          <button className="appt-drawer-close" onClick={onClose}>
+            <X size={20} />
           </button>
         </header>
 
-        <form onSubmit={handleSubmit} className="mc-modal-body">
-          <div className="mc-form-grid">
+        <form onSubmit={handleSubmit} className="appt-drawer-body" style={{ display: 'flex', flexDirection: 'column' }}>
+          <div className="mc-form-grid" style={{ flex: 1 }}>
             
             {/* Height & Weight Section */}
             <div className="mc-form-section">
@@ -175,15 +172,16 @@ export function VitalsFormModal({ visitId, regid, initialData, onClose, onSucces
             </div>
           </div>
 
-          <footer className="mc-modal-footer">
-            <button type="button" className="mc-btn-secondary" onClick={onClose}>Cancel</button>
-            <button type="submit" className="mc-btn-primary" disabled={saveVitals.isPending}>
+          <footer className="appt-form-actions" style={{ marginTop: 24, paddingTop: 24, borderTop: '1px solid #f1f5f9', display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+            <button type="button" className="appt-btn" onClick={onClose}>Cancel</button>
+            <button type="submit" className="appt-btn appt-btn-primary" disabled={saveVitals.isPending}>
               {saveVitals.isPending ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
               Save Vitals
             </button>
           </footer>
         </form>
       </div>
-    </div>
+    </>,
+    document.body
   );
 }
