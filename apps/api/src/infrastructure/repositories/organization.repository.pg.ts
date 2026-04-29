@@ -83,6 +83,7 @@ export class OrganizationRepositoryPg implements OrganizationRepository {
       description: row.description ?? '',
       adminEmail: row.adminEmail ?? '',
       adminPassword: row.adminPassword ?? '',
+      registrationFee: (row as any).registrationFee ?? 0,
       deletedAt: row.deletedAt?.toISOString() ?? null,
       createdAt: row.createdAt?.toISOString() ?? new Date().toISOString(),
       updatedAt: row.updatedAt?.toISOString() ?? new Date().toISOString(),

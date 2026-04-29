@@ -4,6 +4,7 @@ import {
   ChevronRight, Activity, ChevronLeft, LayoutGrid, List
 } from 'lucide-react';
 import { useWaitlist, useCallNext, useCompleteVisit } from '@/features/appointments/hooks/use-appointments';
+import { useDoctors } from '@/features/appointments/hooks/use-doctors';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { apiClient } from '@/infrastructure/api-client';
 import { VitalsFormModal } from '@/features/medical-case/components/vitals-form-modal';
@@ -42,6 +43,14 @@ export default function PatientQueuePage() {
     return () => clearInterval(timer);
   }, []);
 
+  const { data: doctorsList = [] } = useDoctors();
+
+  useEffect(() => {
+    if (doctorsList.length > 0) {
+      setDoctors(doctorsList);
+    }
+  }, [doctorsList]);
+
   useEffect(() => {
     if (isDoctor) setDoctorFilter(String((user as any)?.id ?? ''));
   }, [isDoctor, (user as any)?.id]);
@@ -49,15 +58,6 @@ export default function PatientQueuePage() {
   useEffect(() => {
     setPage(1);
   }, [doctorFilter, limit, viewMode]);
-
-  useEffect(() => {
-    if (!isDoctor) {
-      apiClient.get('/doctors').then(({ data }) => {
-        const list = Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
-        setDoctors(list);
-      }).catch(() => {});
-    }
-  }, [isDoctor]);
 
   const { data: waitlist = [], isLoading: wLoading, refetch: wRefetch } = useWaitlist(today, doctorFilter ? Number(doctorFilter) : undefined);
 

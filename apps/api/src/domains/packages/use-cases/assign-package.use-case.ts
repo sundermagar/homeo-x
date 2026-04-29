@@ -1,11 +1,15 @@
 import type { PackageRepository } from '../ports/package.repository';
+import type { BillingRepository } from '../../billing/ports/billing.repository';
 import type { AssignPackageDto } from '@mmc/types';
 import { ok, type Result, fail } from '../../../shared/result';
 
 export class AssignPackageUseCase {
-  constructor(private readonly repo: PackageRepository) {}
+  constructor(
+    private readonly repo: PackageRepository,
+    private readonly billingRepo: BillingRepository,
+  ) {}
 
-  async execute(dto: AssignPackageDto & { patientId: number }): Promise<Result<{ subscriptionId: number; expiryDate: string }>> {
+  async execute(dto: AssignPackageDto & { patientId: number }): Promise<Result<{ subscriptionId: number; expiryDate: string; billId: number }>> {
     const { regid, packageId, startDate, patientId, notes } = dto;
 
     if (!patientId) return fail('patientId is required', 'VALIDATION');
@@ -22,6 +26,22 @@ export class AssignPackageUseCase {
     const startDateStr  = fmt(start);
     const expiryDateStr = fmt(expiry);
 
+    // Step 1: Create the billing record for this package
+    const billNo = await this.billingRepo.nextBillNo();
+    const bill = await this.billingRepo.create({
+      regid,
+      billNo,
+      billDate: new Date().toISOString().split('T')[0],
+      charges: plan.price,
+      received: 0,
+      paymentMode: 'Cash',
+      treatment: `Package: ${plan.name}`,
+      disease: undefined,
+      fromDate: startDateStr,
+      toDate: expiryDateStr,
+    });
+
+    // Step 2: Create the package subscription, linked to the bill
     const subscriptionId = await this.repo.assignPackage({
       regid,
       packageId,
@@ -29,9 +49,10 @@ export class AssignPackageUseCase {
       startDate: startDateStr,
       expiryDate: expiryDateStr,
       notes,
+      billId: bill.id,
     });
 
-    return ok({ subscriptionId, expiryDate: expiryDateStr });
+    return ok({ subscriptionId, expiryDate: expiryDateStr, billId: bill.id });
   }
 
   async getPatientPackages(regid: number) {

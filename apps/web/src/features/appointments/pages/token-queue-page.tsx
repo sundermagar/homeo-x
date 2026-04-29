@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
+import { format } from 'date-fns';
 import {
   Clock, UserCheck, CheckCircle2, Users, RefreshCw, Plus, Ticket,
-  ChevronRight, Activity, IndianRupee, ChevronLeft, LayoutGrid, List
+  ChevronRight, Activity, IndianRupee, ChevronLeft, LayoutGrid, List, Search, X
 } from 'lucide-react';
 import { useWaitlist, useCallNext, useCompleteVisit, useTodayAppointments, useIssueToken, useAddToWaitlist } from '../hooks/use-appointments';
 import { useDailyCollection } from '@/features/billing/hooks/use-billing';
@@ -34,6 +35,7 @@ export default function TokenQueuePage() {
   );
   const [doctors, setDoctors] = useState<any[]>([]);
   const [activeVitals, setActiveVitals] = useState<{ visitId: number, regid: number } | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [currentTime, setCurrentTime] = useState(new Date());
   
   // View & Pagination State
@@ -386,6 +388,7 @@ export default function TokenQueuePage() {
       </div>
 
       {/* ─── LIVE QUEUE TAB ───────────────────────────────────────────────────── */}
+      {/* ─── LIVE QUEUE TAB ───────────────────────────────────────────────────── */}
       {tab === 'queue' && (
         <div className="animate-fade-in">
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
@@ -564,6 +567,33 @@ export default function TokenQueuePage() {
           onSuccess={() => { wRefetch(); aRefetch(); }}
         />
       )}
+    </div>
+  );
+}
+
+function WaitlistCard({ entry, onStartConsult, onComplete, onVitals, isPending }: any) {
+  return (
+    <div className="appt-token-card calling">
+      <div style={{ position: 'absolute', top: 16, right: 16 }}>
+        <span className="appt-calling-dot" />
+      </div>
+      <div className="appt-token-num">W{entry.waitingNumber}</div>
+      <div className="appt-token-label">In Consultation</div>
+      
+      <div className="appt-token-patient">{entry.patientName ?? `Patient #${entry.patientId}`}</div>
+      <div className="appt-token-doctor">{entry.doctorName ?? 'Practitioner'}</div>
+      
+      <div className="appt-token-actions">
+        <button className="appt-btn-icon" title="Start Consultation" onClick={() => onStartConsult(entry)}>
+          <Activity size={16} />
+        </button>
+        <button className="appt-btn-icon" title="Mark Done" onClick={() => onComplete(entry.id)} disabled={isPending} style={{ color: 'var(--pp-success-fg)' }}>
+          <CheckCircle2 size={16} />
+        </button>
+        <button className="appt-btn-icon" title="Vitals" onClick={onVitals} style={{ color: 'var(--pp-purple)' }}>
+          <Activity size={16} />
+        </button>
+      </div>
     </div>
   );
 }

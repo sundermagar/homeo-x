@@ -34,6 +34,17 @@ const createMedicineSchema = z.object({
 });
 const updateMedicineSchema = createMedicineSchema.partial();
 
+const createStockSchema = z.object({
+  name: z.string().min(1).max(255),
+  description: z.string().optional().nullable(),
+  potency: z.string().optional().nullable(),
+  category: z.string().optional().nullable(),
+  quantity: z.number().optional(),
+  unitPrice: z.number().optional(),
+  batchNumber: z.string().optional().nullable(),
+});
+const updateStockSchema = createStockSchema.partial();
+
 export function createSettingsRouter(): Router {
   const router = Router();
   router.use(authMiddleware);
@@ -318,6 +329,33 @@ export function createSettingsRouter(): Router {
   }));
 
 
+
+  // ─── Stocks (Inventory) ───────────────────────────────────────────────────
+  router.get('/stocks', asyncHandler(async (req: Request, res: Response) => {
+    const data = await getRepo(req).listStocks();
+    res.json({ success: true, data });
+  }));
+
+  router.get('/stocks/:id', asyncHandler(async (req: Request, res: Response) => {
+    const row = await getRepo(req).getStock(Number(req.params.id));
+    if (!row) { res.status(404).json({ success: false, error: 'Not found' }); return; }
+    res.json({ success: true, data: row });
+  }));
+
+  router.post('/stocks', validate(createStockSchema), asyncHandler(async (req: Request, res: Response) => {
+    const data = await getRepo(req).createStock(req.body);
+    res.status(201).json({ success: true, data });
+  }));
+
+  router.put('/stocks/:id', validate(updateStockSchema), asyncHandler(async (req: Request, res: Response) => {
+    const data = await getRepo(req).updateStock(Number(req.params.id), req.body);
+    res.json({ success: true, data });
+  }));
+
+  router.delete('/stocks/:id', asyncHandler(async (req: Request, res: Response) => {
+    await getRepo(req).deleteStock(Number(req.params.id));
+    res.json({ success: true });
+  }));
 
   // ─── Message Templates ────────────────────────────────────────────────────
   router.get('/message-templates', asyncHandler(async (req: Request, res: Response) => {

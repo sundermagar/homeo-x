@@ -1,13 +1,30 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { usePatients, useDeletePatient } from '../hooks/use-patients';
-import { Search, Plus, List as ListIcon, Grid, Eye, Edit2, Phone, MapPin, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { 
+  Search, Plus, List as ListIcon, Grid, Eye, Edit2, Phone, MapPin, Calendar, 
+  ChevronLeft, ChevronRight, MessageCircle, Printer, Download, RefreshCw, MoreVertical, Trash2
+} from 'lucide-react';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { Role, type PatientSummary } from '@mmc/types';
 import { PatientFormDrawer } from '../components/patient-form-drawer';
 import '../../appointments/styles/appointments.css';
 import '../../dashboard/pages/role-dashboards.css';
 import '../styles/patients.css';
+
+function formatDate(date: Date | string | null | undefined) {
+  if (!date) return '—';
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function openWhatsApp(phone: string | null, name: string) {
+  if (!phone) return alert('No phone number available.');
+  const cleaned = phone.replace(/\D/g, '');
+  const msg = encodeURIComponent(`Hello ${name}, this is a message from your clinic.`);
+  window.open(`https://wa.me/91${cleaned}?text=${msg}`, '_blank');
+}
 
 export default function PatientListPage() {
   const navigate = useNavigate();
@@ -17,16 +34,18 @@ export default function PatientListPage() {
   const [pageSize, setPageSize] = useState(10);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [sortBy, setSortBy] = useState('newest');
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
 
   // Drawer state
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [drawerRegid, setDrawerRegid] = useState<number | null>(null);
 
   const user = useAuthStore(s => s.user);
-  const rawRole = ((user as any)?.type || (user as any)?.role || (user as any)?.roleName || '').toLowerCase();
-  const isDoctor = rawRole === 'doctor' || rawRole === 'medical practitioner' || ((user as any)?.name || '').toLowerCase().startsWith('dr');
+  const rawRole = ((user as any)?.type || (user as any)?.role || '').toLowerCase();
+  const isDoctor = rawRole === 'doctor';
 
-  const { data, isLoading } = usePatients({
+  const { data, isLoading, refetch } = usePatients({
     page,
     limit: pageSize,
     search: debouncedSearch,
@@ -44,11 +63,28 @@ export default function PatientListPage() {
   };
 
   const patients = data?.data || [];
-
-  const totalPages = Math.ceil((data?.total || 0) / pageSize);
   const totalEntries = data?.total || 0;
-  const fromEntry = (page - 1) * pageSize + 1;
+  const totalPages = Math.ceil(totalEntries / pageSize);
+  const fromEntry = totalEntries === 0 ? 0 : (page - 1) * pageSize + 1;
   const toEntry = Math.min(page * pageSize, totalEntries);
+
+  const handleDelete = async (regid: number, name: string) => {
+    if (!confirm(`Delete patient "${name}"? This cannot be undone.`)) return;
+    setDeletingId(regid);
+    try {
+      await deleteMutation.mutateAsync(regid);
+      refetch();
+    } catch { alert('Failed to delete patient.'); }
+    finally { setDeletingId(null); }
+  };
+
+  const handlePrintPrescription = (regid: number) => {
+    window.open(`/api/medical-cases/remedy-chart/pdf/${regid}`, '_blank');
+  };
+
+  const handleDownloadReport = (regid: number) => {
+    window.open(`/api/medical-cases/pdf/summary/${regid}`, '_blank');
+  };
 
   return (
     <div className="pp-page-container animate-fade-in">
@@ -80,35 +116,32 @@ export default function PatientListPage() {
         </div>
       </div>
 
-      <div className="pp-card pp-filter-bar" style={{ marginBottom: '24px' }}>
-        <div className="pat-search-wrap">
-          <Search size={14} className="pat-search-icon" />
+      <div className="mmc-pl-filterbar" style={{ marginBottom: '20px' }}>
+        <div className="mmc-pl-search-wrap">
+          <Search size={15} className="mmc-pl-search-icon" />
           <input
-            className="pp-input pat-search-input"
+            className="mmc-pl-search-input"
             type="text"
-            placeholder="Search patients by name or phone..."
+            placeholder="Search by name, phone or Case ID..."
             value={search}
-            onChange={(e) => handleSearchChange(e.target.value)}
+            onChange={e => handleSearchChange(e.target.value)}
           />
         </div>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <span className="text-label">Sort By:</span>
-          <select
-            className="pp-select"
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            style={{ minWidth: '140px' }}
-          >
+        <div className="mmc-pl-filter-right">
+          <label className="mmc-pl-filter-label">Sort:</label>
+          <select className="mmc-pl-sort-select" value={sortBy} onChange={e => setSortBy(e.target.value)}>
             <option value="newest">Newest First</option>
             <option value="oldest">Oldest First</option>
-            <option value="name">Alphabetical</option>
           </select>
+          <button className="mmc-pl-refresh-btn" onClick={() => refetch()} title="Refresh">
+            <RefreshCw size={14} />
+          </button>
         </div>
       </div>
 
       <div className="pat-stats-row">
         <span className="text-label">Registry Entries</span>
-        <span className="text-small">Showing {patients.length} of {data?.total || 0}</span>
+        <span className="text-small">Showing {patients.length} of {totalEntries}</span>
       </div>
 
       {isLoading ? (
@@ -118,7 +151,7 @@ export default function PatientListPage() {
               <tr>
                 {Array.from({ length: 6 }).map((_, i) => (
                   <th key={i} style={{ padding: '16px 24px', background: '#ffffff', borderBottom: '1px solid #f1f5f9' }}>
-                    <div className="skeleton-box" style={{ height: '12px', width: '40px', borderRadius: '4px', opacity: 0.7, animationDelay: `${i * 0.1}s` }} />
+                    <div className="skeleton-box" style={{ height: '12px', width: '40px', borderRadius: '4px', opacity: 0.7 }} />
                   </th>
                 ))}
               </tr>
@@ -128,16 +161,7 @@ export default function PatientListPage() {
                 <tr key={rowIndex}>
                   {Array.from({ length: 6 }).map((_, colIndex) => (
                     <td key={colIndex} style={{ padding: '16px 24px', borderBottom: '1px solid #f1f5f9', background: '#ffffff' }}>
-                      <div 
-                        className="skeleton-box" 
-                        style={{ 
-                          height: '24px', 
-                          width: colIndex === 0 ? '120px' : colIndex === 5 ? '40px' : '80px', 
-                          borderRadius: '6px',
-                          opacity: 0.8,
-                          animationDelay: `${colIndex * 0.1}s`
-                        }} 
-                      />
+                      <div className="skeleton-box" style={{ height: '24px', width: colIndex === 0 ? '120px' : '80px', borderRadius: '6px' }} />
                     </td>
                   ))}
                 </tr>
@@ -184,19 +208,41 @@ export default function PatientListPage() {
                   </td>
                   <td>{p.phone || '—'}</td>
                   <td>{p.city || '—'}</td>
-                  <td className="text-small">{p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-GB') : '—'}</td>
+                  <td className="text-small">{formatDate(p.createdAt)}</td>
                   <td style={{ textAlign: 'right' }}>
-                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                      <Link to={`/patients/${p.regid}`} className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px' }}>
-                        <Eye size={14} /> View
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
+                      <Link to={`/medical-cases/${p.regid}`} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Eye size={14} /> History
                       </Link>
-                      <button 
-                        onClick={() => { setDrawerRegid(p.regid); setIsDrawerOpen(true); }} 
-                        className="btn-secondary" 
-                        style={{ padding: '4px 8px', fontSize: '12px', border: '1px solid var(--pp-warm-4)', color: 'var(--pp-text-2)' }}
-                      >
-                        <Edit2 size={14} />
-                      </button>
+                      
+                      <div className="appt-kebab-wrap">
+                        <button 
+                          className="appt-kebab-btn"
+                          onClick={() => setOpenMenuId(openMenuId === p.regid ? null : p.regid)}
+                        >
+                          <MoreVertical size={16} />
+                        </button>
+                        {openMenuId === p.regid && (
+                          <div className="appt-kebab-menu" style={{ right: 0, top: '100%', position: 'absolute', zIndex: 100 }}>
+                            <button className="appt-kebab-item" onClick={() => { setDrawerRegid(p.regid); setIsDrawerOpen(true); setOpenMenuId(null); }}>
+                              <Edit2 size={14} /> Edit Patient
+                            </button>
+                            <button className="appt-kebab-item" onClick={() => { openWhatsApp(p.phone, p.fullName); setOpenMenuId(null); }}>
+                              <MessageCircle size={14} /> WhatsApp
+                            </button>
+                            <button className="appt-kebab-item" onClick={() => { handlePrintPrescription(p.regid); setOpenMenuId(null); }}>
+                              <Printer size={14} /> Print Prescription
+                            </button>
+                            <button className="appt-kebab-item" onClick={() => { handleDownloadReport(p.regid); setOpenMenuId(null); }}>
+                              <Download size={14} /> Download Report
+                            </button>
+                            <div className="appt-kebab-divider" />
+                            <button className="appt-kebab-item text-danger" onClick={() => { handleDelete(p.regid, p.fullName); setOpenMenuId(null); }}>
+                              <Trash2 size={14} /> Delete
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </td>
                 </tr>
@@ -205,43 +251,48 @@ export default function PatientListPage() {
           </table>
         </div>
       ) : (
-        <div className="pp-patient-grid">
+        <div className="appt-card-grid">
           {patients.map((p: PatientSummary) => (
-            <div key={p.regid} className="pp-card pat-grid-card">
-              <div className="pat-grid-card-header">
-                <div className="pat-avatar pat-avatar--md">
-                  {(p.fullName?.[0] || '?').toUpperCase()}
-                </div>
+            <div key={p.regid} className="appt-card appt-grid-card">
+              <div className="appt-grid-card-header">
                 <div>
-                  <div className="pat-grid-card-name">{p.fullName}</div>
-                  <div className="pat-grid-card-regid">RegID: {p.regid}</div>
+                  <div className="appt-grid-card-patient">{p.fullName}</div>
+                  <div className="appt-grid-card-phone">ID: {p.regid} • {p.phone || 'No phone'}</div>
+                </div>
+                <div className="appt-kebab-wrap">
+                  <button className="appt-kebab-btn" onClick={() => setOpenMenuId(openMenuId === p.regid ? null : p.regid)}>
+                    <MoreVertical size={16} />
+                  </button>
+                  {openMenuId === p.regid && (
+                    <div className="appt-kebab-menu" style={{ right: 0, top: '100%', position: 'absolute', zIndex: 100 }}>
+                      <button className="appt-kebab-item" onClick={() => { setDrawerRegid(p.regid); setIsDrawerOpen(true); setOpenMenuId(null); }}>
+                        <Edit2 size={14} /> Edit
+                      </button>
+                      <button className="appt-kebab-item" onClick={() => { handleDelete(p.regid, p.fullName); setOpenMenuId(null); }}>
+                        <Trash2 size={14} /> Delete
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
-
-              <div className="pat-grid-card-detail">
-                <div className="pat-grid-card-detail-row">
-                  <span className="pat-grid-card-detail-label"><Phone size={12} /> Phone</span>
-                  <span className="pat-grid-card-detail-value">{p.phone || '—'}</span>
-                </div>
-                <div className="pat-grid-card-detail-row">
-                  <span className="pat-grid-card-detail-label"><MapPin size={12} /> City</span>
-                  <span className="pat-grid-card-detail-value">{p.city || '—'}</span>
-                </div>
-                <div className="pat-grid-card-detail-row">
-                  <span className="pat-grid-card-detail-label"><Calendar size={12} /> Date</span>
-                  <span className="pat-grid-card-detail-value">{p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-GB') : '—'}</span>
-                </div>
+              <div className="appt-grid-card-detail">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><MapPin size={14} /> {p.city || '—'}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Calendar size={14} /> Registered: {formatDate(p.createdAt)}</div>
               </div>
-
-              <Link to={`/patients/${p.regid}`} className="btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>
-                View Details
-              </Link>
+              <div className="appt-grid-card-actions-minimal">
+                <Link to={`/medical-cases/${p.regid}`} className="appt-btn-minimal white-pill" style={{ flex: 1 }}>
+                  <Eye size={14} /> History
+                </Link>
+                <button className="appt-btn-minimal white-pill" onClick={() => openWhatsApp(p.phone, p.fullName)}>
+                  <MessageCircle size={14} />
+                </button>
+              </div>
             </div>
           ))}
         </div>
       )}
 
-      {totalPages > 0 && (
+      {totalPages > 1 && (
         <div className="pat-pagination-bar">
           <div className="pat-pagination-info-wrap">
             <span className="pat-pagination-info">
@@ -269,13 +320,17 @@ export default function PatientListPage() {
             </button>
             
             {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-              <button 
-                key={p} 
-                className={`pat-pagination-page ${p === page ? 'is-active' : ''}`}
-                onClick={() => setPage(p)}
-              >
-                {p}
-              </button>
+              (p === 1 || p === totalPages || (p >= page - 1 && p <= page + 1)) ? (
+                <button 
+                  key={p} 
+                  className={`pat-pagination-page ${p === page ? 'is-active' : ''}`}
+                  onClick={() => setPage(p)}
+                >
+                  {p}
+                </button>
+              ) : (p === page - 2 || p === page + 2) ? (
+                <span key={p} style={{ color: '#cbd5e1' }}>...</span>
+              ) : null
             ))}
 
             <button 
@@ -293,6 +348,7 @@ export default function PatientListPage() {
         isOpen={isDrawerOpen} 
         onClose={() => setIsDrawerOpen(false)} 
         regid={drawerRegid} 
+        onSuccess={refetch}
       />
     </div>
   );

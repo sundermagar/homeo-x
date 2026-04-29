@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Search, Plus, List as ListIcon, Grid, Edit2, Trash2, Calendar, ChevronLeft, ChevronRight,
-  Clock, UserCheck, MoreVertical, X, Filter, Stethoscope, Activity, Tag, User
+  Clock, UserCheck, MoreVertical, X, Filter, Stethoscope, Activity, Tag, User, Printer, RefreshCw
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { AppointmentStatus } from '@mmc/types';
@@ -14,6 +14,8 @@ import {
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { StatusBadge } from '../components/status-badge';
 import { AppointmentFormDrawer } from '../components/appointment-form-drawer';
+import { printAppointmentSlip } from '@/shared/utils/print';
+import { useOrganizations } from '@/features/platform/hooks/use-organizations';
 import '../styles/appointments.css';
 
 const STATUS_OPTIONS = ['', ...Object.values(AppointmentStatus)];
@@ -24,6 +26,9 @@ export default function AppointmentListPage() {
   const user = useAuthStore((s) => s.user);
   const rawRole = ((user as any)?.type || (user as any)?.role || (user as any)?.roleName || '').toLowerCase();
   const isDoctor = rawRole === 'doctor' || rawRole === 'medical practitioner' || ((user as any)?.name || '').toLowerCase().startsWith('dr');
+
+  const { data: orgs = [] } = useOrganizations();
+  const currentOrg = orgs[0];
 
   const [tab,        setTab]        = useState<Tab>('today');
   const [search,     setSearch]     = useState('');
@@ -98,6 +103,22 @@ export default function AppointmentListPage() {
   const handleStatusChange = async (id: number, newStatus: string) => {
     await updateStatus.mutateAsync({ id, status: newStatus });
   };
+  const handlePrintSlip = (a: Appointment) => {
+    if (currentOrg) {
+      printAppointmentSlip({
+        patientName: a.patientNameFromCase ?? a.patientName ?? 'Patient',
+        phone: a.phone ?? '',
+        doctorName: a.doctorName ?? 'N/A',
+        bookingDate: a.bookingDate ?? today,
+        bookingTime: a.bookingTime ?? '',
+        consultationFee: String(a.consultationFee ?? 0),
+        visitType: a.visitType as any,
+        tokenNo: a.tokenNo ?? undefined,
+        notes: a.notes ?? '',
+      }, currentOrg);
+    }
+  };
+
   const handleDelete = async (id: number) => {
     await deleteMut.mutateAsync(id);
     setConfirmDel(null);
@@ -280,6 +301,9 @@ export default function AppointmentListPage() {
                               {q.label}
                             </button>
                           ))}
+                        <button className="appt-btn appt-btn-icon appt-btn-sm" title="Print Slip" onClick={() => handlePrintSlip(a)}>
+                          <Printer size={13} strokeWidth={1.6} />
+                        </button>
                         <button 
                           className="appt-btn appt-btn-icon appt-btn-sm" 
                           title="Edit"
@@ -328,6 +352,9 @@ export default function AppointmentListPage() {
                             </button>
                           ))}
                           <div className="appt-kebab-divider" />
+                          <button className="appt-kebab-item" onClick={() => { handlePrintSlip(a); setOpenMenuId(null); setMenuPos(null); }}>
+                            <Printer size={13} strokeWidth={1.6} /> Print Slip
+                          </button>
                           <button 
                             className="appt-kebab-item"
                             onClick={() => { setDrawerApptId(a.id); setIsDrawerOpen(true); setOpenMenuId(null); }}
@@ -390,8 +417,10 @@ export default function AppointmentListPage() {
                     <span className="value">{a.tokenNo ? `T${a.tokenNo}` : '—'}</span>
                   </div>
                 </div>
-
                 <div className="appt-grid-card-actions-minimal">
+                  <button className="appt-btn-minimal white-pill" style={{ flex: '0 0 auto' }} onClick={() => handlePrintSlip(a)}>
+                    <Printer size={14} />
+                  </button>
                   <button 
                     className="appt-btn-minimal white-pill" 
                     onClick={() => { setDrawerApptId(a.id); setIsDrawerOpen(true); }}

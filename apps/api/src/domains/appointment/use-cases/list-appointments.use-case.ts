@@ -9,4 +9,9 @@ export class ListAppointmentsUseCase {
     const result = await this.repo.findMany(filters);
     return ok(result);
   }
+
+  async executeFollowups(filters: AppointmentFilters): Promise<Result<{ data: Appointment[]; total: number }>> {
+    const result = await this.repo.findFollowups(filters);
+    return ok(result);
+  }
 }

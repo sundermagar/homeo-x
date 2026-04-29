@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
-import { X, User, Calendar, Clock, Stethoscope, DollarSign, Loader2 } from 'lucide-react';
+import { X, User, Calendar, Clock, Stethoscope, DollarSign, Loader2, Printer } from 'lucide-react';
 import { VisitType, Role } from '@mmc/types';
 import type { Appointment, CreateAppointmentDto } from '@mmc/types';
 import { useCreateAppointment, useUpdateAppointment, useAvailableSlots } from '../hooks/use-appointments';
+import { useDoctors } from '../hooks/use-doctors';
+import { useOrganizations } from '@/features/platform/hooks/use-organizations';
 import { apiClient } from '@/infrastructure/api-client';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { NumericInput } from '@/shared/components/NumericInput';
+import { printAppointmentSlip } from '@/shared/utils/print';
 import '../styles/appointments.css';
 
 interface Doctor { id: number; name: string; consultation_fee?: number; isActive?: boolean; }
@@ -16,6 +19,7 @@ interface Props {
   editAppointment?: Appointment | null;
   onClose: () => void;
   onSuccess?: () => void;
+  onCancel?: () => void; // Added onCancel support for drawer
 }
 
 const EMPTY_FORM = {
@@ -30,7 +34,7 @@ const EMPTY_FORM = {
   notes: '',
 };
 
-export function AppointmentForm({ initialDate, editAppointment, onCancel, onSuccess }: Props) {
+export function AppointmentForm({ initialDate, editAppointment, onClose, onSuccess, onCancel }: Props) {
   const [form, setForm] = useState({ ...EMPTY_FORM, bookingDate: initialDate ?? EMPTY_FORM.bookingDate });
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [error, setError] = useState('');
@@ -38,6 +42,7 @@ export function AppointmentForm({ initialDate, editAppointment, onCancel, onSucc
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeSearchField, setActiveSearchField] = useState<'name' | 'id' | 'phone' | null>(null);
+  const [bookingResult, setBookingResult] = useState<{doctorName: string; tokenNo?: number} | null>(null);
 
   const createMutation = useCreateAppointment();
   const updateMutation = useUpdateAppointment();
@@ -48,16 +53,17 @@ export function AppointmentForm({ initialDate, editAppointment, onCancel, onSucc
 
   const user = useAuthStore(s => s.user);
 
-  // Fetch doctors list
+  const { data: doctorsList = [] } = useDoctors();
+  const { data: orgs = [] } = useOrganizations();
+  const currentOrg = orgs[0];
+
   useEffect(() => {
-    apiClient.get('/doctors').then(({ data }) => {
-      // The response structure is { success: true, data: [] }
-      const docList = Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
-      setDoctors(docList);
+    if (doctorsList.length > 0) {
+      setDoctors(doctorsList);
 
       // Auto-select if logged in as a doctor and not editing
       if (!editAppointment && user?.type === Role.Doctor) {
-        const myDoc = docList.find((d: Doctor) => d.id === user.id);
+        const myDoc = doctorsList.find((d: Doctor) => d.id === user.id);
         if (myDoc) {
           setForm(f => ({
             ...f,
@@ -68,8 +74,8 @@ export function AppointmentForm({ initialDate, editAppointment, onCancel, onSucc
           }));
         }
       }
-    }).catch(() => { });
-  }, [user, editAppointment]);
+    }
+  }, [doctorsList, user, editAppointment]);
 
   // Populate form if editing
   useEffect(() => {
@@ -144,6 +150,8 @@ export function AppointmentForm({ initialDate, editAppointment, onCancel, onSucc
     e.preventDefault();
     setError('');
     if (!form.bookingDate) { setError('Booking date is required'); return; }
+    if (!form.bookingTime) { setError('Please select a time slot'); return; }
+    
     if (!form.notes || !form.notes.trim()) {
       setError('Chief Complaint is required — describe what brings the patient in today.');
       return;
@@ -176,10 +184,18 @@ export function AppointmentForm({ initialDate, editAppointment, onCancel, onSucc
     try {
       if (editAppointment) {
         await updateMutation.mutateAsync({ id: editAppointment.id, dto });
+        onSuccess?.();
+        onClose();
       } else {
-        await createMutation.mutateAsync(dto);
+        const result = await createMutation.mutateAsync(dto);
+        const created = result?.data ?? result;
+        const doc = doctors.find(d => String(d.id) === form.doctorId);
+        setBookingResult({
+          doctorName: doc?.name || 'N/A',
+          tokenNo: created?.tokenNo,
+        });
+        onSuccess?.();
       }
-      onSuccess?.();
     } catch (err: any) {
       setError(err.response?.data?.error ?? 'Something went wrong. Please try again.');
     }
@@ -187,9 +203,54 @@ export function AppointmentForm({ initialDate, editAppointment, onCancel, onSucc
 
   const isLoading = createMutation.isPending || updateMutation.isPending;
 
-  // True when the selected doctor is explicitly marked offline
-  const selectedDoctorOffline = !!form.doctorId &&
+  // True when the selected doctor is explicitly marked offline/inactive
+  const selectedDoctorInactive = !!form.doctorId &&
     doctors.some(d => String(d.id) === form.doctorId && d.isActive === false);
+
+  // If booking was successful, show the success panel
+  if (bookingResult) {
+    return (
+      <div className="appt-success-panel animate-fade-in">
+        <div className="appt-success-icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div className="appt-success-text">
+          <h3>Appointment Confirmed!</h3>
+          <p>Dr. {bookingResult.doctorName} • {form.bookingDate} at {form.bookingTime}</p>
+          {bookingResult.tokenNo && <span className="appt-token-badge">Token #{bookingResult.tokenNo}</span>}
+        </div>
+        <div className="appt-success-actions">
+          <button
+            type="button"
+            className="appt-print-btn"
+            onClick={() => {
+              const doc = doctors.find(d => String(d.id) === form.doctorId);
+              if (currentOrg) {
+                const today = new Date().toISOString().split('T')[0] as string;
+                printAppointmentSlip({
+                  patientName: form.patientName || 'Patient',
+                  phone: form.phone || '',
+                  doctorName: (doc?.name) || 'N/A',
+                  bookingDate: form.bookingDate || today,
+                  bookingTime: form.bookingTime || '',
+                  consultationFee: form.consultationFee || '0',
+                  visitType: form.visitType,
+                  tokenNo: bookingResult.tokenNo ?? undefined,
+                  notes: form.notes,
+                }, currentOrg);
+              }
+            }}
+          >
+            <Printer size={16} />
+            Print Slip
+          </button>
+          <button type="button" className="appt-close-btn" onClick={onClose}>
+            Close
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="appt-form">
@@ -206,7 +267,7 @@ export function AppointmentForm({ initialDate, editAppointment, onCancel, onSucc
             Practitioner
           </label>
           <select
-            className={`appt-form-select${selectedDoctorOffline ? ' appt-select-offline' : ''}`}
+            className={`appt-form-select${selectedDoctorInactive ? ' appt-select-offline' : ''}`}
             value={form.doctorId}
             onChange={e => handleDoctorChange(e.target.value)}
           >
@@ -223,12 +284,12 @@ export function AppointmentForm({ initialDate, editAppointment, onCancel, onSucc
             ))}
           </select>
 
-          {/* Offline warning banner */}
-          {selectedDoctorOffline && (
+          {/* Inactive warning banner */}
+          {selectedDoctorInactive && (
             <div className="appt-offline-banner">
               <span className="appt-offline-dot" />
               <span>
-                <strong>Dr. {doctors.find(d => String(d.id) === form.doctorId)?.name}</strong> is currently <strong>Offline</strong>. Appointments cannot be booked.
+                <strong>Dr. {doctors.find(d => String(d.id) === form.doctorId)?.name}</strong> is currently <strong>Inactive</strong>. Appointments cannot be booked.
               </span>
             </div>
           )}
@@ -291,10 +352,10 @@ export function AppointmentForm({ initialDate, editAppointment, onCancel, onSucc
           <Clock size={13} strokeWidth={1.6} />
           Time Slot
         </label>
-        {selectedDoctorOffline ? (
+        {selectedDoctorInactive ? (
           <div className="appt-slots-unavailable">
             <span style={{ fontSize: 20 }}>🔴</span>
-            <span>No slots available — doctor is offline</span>
+            <span>No slots available — doctor is inactive</span>
           </div>
         ) : slots.length === 0 ? (
           <div className="appt-slots-hint">
@@ -410,14 +471,14 @@ export function AppointmentForm({ initialDate, editAppointment, onCancel, onSucc
 
       {/* Actions */}
       <div className="appt-form-actions">
-        <button type="button" className="appt-btn appt-form-cancel" onClick={onCancel}>
+        <button type="button" className="appt-btn appt-form-cancel" onClick={onCancel || onClose}>
           Cancel
         </button>
         <button
           type="submit"
           className="appt-btn appt-btn-primary appt-form-submit"
-          disabled={isLoading || selectedDoctorOffline}
-          title={selectedDoctorOffline ? 'Doctor is offline. Please select an available doctor.' : undefined}
+          disabled={isLoading || selectedDoctorInactive}
+          title={selectedDoctorInactive ? 'Doctor is inactive. Please select an available doctor.' : undefined}
         >
           {isLoading ? <><Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> Saving…</> :
             editAppointment ? 'Save Changes' : 'Confirm Booking'}
