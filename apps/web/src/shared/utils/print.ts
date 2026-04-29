@@ -7,7 +7,12 @@ export interface PrintOptions {
 }
 
 export const printBill = (bill: BillWithPatient, org: Organization, options: PrintOptions = {}) => {
-  const { template = 'standard', showLetterhead = true } = options;
+  const effectiveTemplate = options.template ?? (
+    bill.billType === 'Package'       ? 'package'       :
+    bill.billType === 'Custom'        ? 'comprehensive' :
+    'standard'
+  );
+  const { template = effectiveTemplate, showLetterhead = true } = { ...options, template: effectiveTemplate };
   const balance = bill.balance || 0;
   const isPaid = balance <= 0;
 

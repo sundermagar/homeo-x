@@ -13,6 +13,17 @@ export function useFullMedicalCase(regid: number) {
   });
 }
 
+export function useMasterVaccines() {
+  const api = useApi();
+  return useQuery({
+    queryKey: ['vaccines', 'master'],
+    queryFn: async () => {
+      const res = await api.get<{ success: boolean; data: any[] }>('/medical-cases/vaccines/master');
+      return res.data.data;
+    },
+  });
+}
+
 export function useManageClinicalRecords() {
   const api = useApi();
   const queryClient = useQueryClient();
@@ -45,6 +56,20 @@ export function useManageClinicalRecords() {
     },
   });
 
+  const saveHomeoDetails = useMutation({
+    mutationFn: (data: any) => api.post('/medical-cases/records/homeo-details', data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['medical-case', 'full', variables.regid] });
+    },
+  });
+
+  const saveInvestigation = useMutation({
+    mutationFn: (data: any) => api.post('/medical-cases/records/investigations', data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['medical-case', 'full', variables.regid] });
+    },
+  });
+
   const deleteRecord = useMutation({
     mutationFn: ({ type, id }: { type: string; id: number }) => api.delete(`/medical-cases/records/${type}/${id}`),
     onSuccess: () => {
@@ -59,11 +84,37 @@ export function useManageClinicalRecords() {
     },
   });
 
+  const saveVaccine = useMutation({
+    mutationFn: (data: any) => api.post('/medical-cases/vaccines', data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['medical-case', 'full', variables.regid] });
+    },
+  });
+
+  const saveReminder = useMutation({
+    mutationFn: (data: any) => api.post('/medical-cases/reminders', data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['medical-case', 'full', variables.regid] });
+    },
+  });
+  const saveImage = useMutation({
+    mutationFn: (data: FormData) => api.post('/medical-cases/records/images', data),
+    onSuccess: (_, variables) => {
+      const regid = (variables as any).get('regid');
+      queryClient.invalidateQueries({ queryKey: ['medical-case', 'full', Number(regid)] });
+    },
+  });
+
   return {
     saveVitals,
     saveSoap,
     saveNote,
     savePrescription,
+    saveHomeoDetails,
+    saveInvestigation,
+    saveImage,
+    saveVaccine,
+    saveReminder,
     deleteRecord,
     finalizeConsultation,
   };

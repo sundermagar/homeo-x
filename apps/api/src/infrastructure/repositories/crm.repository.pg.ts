@@ -152,9 +152,9 @@ export class CrmRepositoryPg implements ILeadRepository {
     const { status, page, limit, date } = filters;
     const offset = (page - 1) * limit;
 
-    const conditions = [isNull(schema.caseReminders.deletedAt)];
-    if (status) conditions.push(eq(schema.caseReminders.status, status));
-    if (date) conditions.push(eq(schema.caseReminders.startDate, date));
+    const conditions = [isNull(schema.crmCaseReminders.deletedAt)];
+    if (status) conditions.push(eq(schema.crmCaseReminders.status, status));
+    if (date) conditions.push(eq(schema.crmCaseReminders.startDate, date));
 
     const [rows, countRows] = await Promise.all([
       this.db.execute(sql`
@@ -164,7 +164,7 @@ export class CrmRepositoryPg implements ILeadRepository {
         WHERE cr.deleted_at IS NULL ${status ? sql`AND cr.status = ${status}` : sql``}
         ORDER BY cr.id DESC LIMIT ${limit} OFFSET ${offset}
       `),
-      this.db.select({ count: sql<number>`count(*)::int` }).from(schema.caseReminders).where(and(...conditions))
+      this.db.select({ count: sql<number>`count(*)::int` }).from(schema.crmCaseReminders).where(and(...conditions))
     ]);
 
     return { data: rows as any[], total: countRows[0]?.count ?? 0 };
@@ -211,17 +211,17 @@ export class CrmRepositoryPg implements ILeadRepository {
   }
 
   async updateReminder(id: number, dto: any): Promise<void> {
-    await this.db.update(schema.caseReminders).set({
+    await this.db.update(schema.crmCaseReminders).set({
       ...dto,
       updatedAt: new Date(),
-    }).where(eq(schema.caseReminders.id, id));
+    }).where(eq(schema.crmCaseReminders.id, id));
   }
 
   async markReminderDone(id: number): Promise<void> {
-    await this.db.update(schema.caseReminders).set({ status: 'done', updatedAt: new Date() }).where(eq(schema.caseReminders.id, id));
+    await this.db.update(schema.crmCaseReminders).set({ status: 'done', updatedAt: new Date() }).where(eq(schema.crmCaseReminders.id, id));
   }
 
   async deleteReminder(id: number): Promise<void> {
-    await this.db.update(schema.caseReminders).set({ deletedAt: new Date().toISOString() as any }).where(eq(schema.caseReminders.id, id));
+    await this.db.update(schema.crmCaseReminders).set({ deletedAt: new Date().toISOString() as any }).where(eq(schema.crmCaseReminders.id, id));
   }
 }

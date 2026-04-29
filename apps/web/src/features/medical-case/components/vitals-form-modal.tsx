@@ -170,7 +170,7 @@ export function VitalsFormModal({ visitId, regid, initialData, onClose, onSucces
 
             {/* Notes Section */}
             <div className="mc-input-group" style={{ gridColumn: 'span 2' }}>
-              <label>Additional Clinical Notes</label>
+              <label>Clinical Findings (Examination)</label>
               <textarea name="notes" value={form.notes} onChange={handleChange} placeholder="Physical appearance, patient complaints, etc." rows={3} />
             </div>
           </div>

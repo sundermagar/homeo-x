@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
   List, Grid, Plus, Search, Filter, Calendar, Clock, User,
-  Trash2, Edit2, RefreshCw, MoreVertical,
+  Trash2, Edit2, RefreshCw, MoreVertical, Printer,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { AppointmentStatus } from '@mmc/types';
@@ -14,6 +14,8 @@ import {
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { AppointmentForm } from '../components/appointment-form';
 import { StatusBadge } from '../components/status-badge';
+import { printAppointmentSlip } from '@/shared/utils/print';
+import { useOrganizations } from '@/features/platform/hooks/use-organizations';
 import '../styles/appointments.css';
 
 const STATUS_OPTIONS = ['', ...Object.values(AppointmentStatus)];
@@ -26,6 +28,9 @@ export default function AppointmentListPage() {
   const isDoctor = rawRole === 'doctor' || rawRole === 'medical practitioner' || ((user as any)?.name || '').toLowerCase().startsWith('dr');
   const doctorUserId: number | undefined = isDoctor ? Number((user as any)?.id) : undefined;
   const doctorUserName = ((user as any)?.name || '').toLowerCase().trim();
+
+  const { data: orgs = [] } = useOrganizations();
+  const currentOrg = orgs[0];
 
   const [tab,        setTab]        = useState<Tab>('today');
   const [search,     setSearch]     = useState('');
@@ -112,6 +117,22 @@ export default function AppointmentListPage() {
   const handleStatusChange = async (id: number, newStatus: string) => {
     await updateStatus.mutateAsync({ id, status: newStatus });
   };
+  const handlePrintSlip = (a: Appointment) => {
+    if (currentOrg) {
+      printAppointmentSlip({
+        patientName: a.patientNameFromCase ?? a.patientName ?? 'Patient',
+        phone: a.phone ?? '',
+        doctorName: a.doctorName ?? 'N/A',
+        bookingDate: a.bookingDate ?? today,
+        bookingTime: a.bookingTime ?? '',
+        consultationFee: String(a.consultationFee ?? 0),
+        visitType: a.visitType as any,
+        tokenNo: a.tokenNo ?? undefined,
+        notes: a.notes ?? '',
+      }, currentOrg);
+    }
+  };
+
   const handleDelete = async (id: number) => {
     await deleteMut.mutateAsync(id);
     setConfirmDel(null);
@@ -263,6 +284,9 @@ export default function AppointmentListPage() {
                               {q.label}
                             </button>
                           ))}
+                        <button className="appt-btn appt-btn-icon appt-btn-sm" title="Print Slip" onClick={() => handlePrintSlip(a)}>
+                          <Printer size={13} strokeWidth={1.6} />
+                        </button>
                         <button className="appt-btn appt-btn-icon appt-btn-sm" title="Edit" onClick={() => openEdit(a)}>
                           <Edit2 size={13} strokeWidth={1.6} />
                         </button>
@@ -307,6 +331,9 @@ export default function AppointmentListPage() {
                             </button>
                           ))}
                           <div className="appt-kebab-divider" />
+                          <button className="appt-kebab-item" onClick={() => { handlePrintSlip(a); setOpenMenuId(null); setMenuPos(null); }}>
+                            <Printer size={13} strokeWidth={1.6} /> Print Slip
+                          </button>
                           <button className="appt-kebab-item" onClick={() => { openEdit(a); setOpenMenuId(null); setMenuPos(null); }}>
                             <Edit2 size={13} strokeWidth={1.6} /> Edit
                           </button>
@@ -351,6 +378,7 @@ export default function AppointmentListPage() {
                   <div><strong>Token:</strong> {a.tokenNo ? `T${a.tokenNo}` : '—'}</div>
                 </div>
                 <div className="appt-grid-card-actions">
+                  <button className="appt-btn appt-btn-sm" onClick={() => handlePrintSlip(a)}>Print</button>
                   <button className="appt-btn appt-btn-sm" onClick={() => openEdit(a)}>Edit</button>
                   {confirmDel === a.id ? (
                     <>

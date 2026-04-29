@@ -50,6 +50,10 @@ export interface WaitlistEntry {
   patientName?: string;
   patientMobile?: string;
   doctorName?: string;
+  balance?: string;
+  packageName?: string;
+  packageExpiry?: string;
+  rowcolor?: number;
   createdAt: Date;
   updatedAt: Date;
 }

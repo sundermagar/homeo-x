@@ -43,6 +43,7 @@ export interface Patient {
 }
 
 export interface PatientSummary {
+  id: number;
   regid: number;
   fullName: string;
   gender: string;
@@ -53,6 +54,7 @@ export interface PatientSummary {
   city: string | null;
   lastVisit: Date | null;
   totalVisits: number;
+  doctorName?: string | null;
   createdAt: Date;
 }
 

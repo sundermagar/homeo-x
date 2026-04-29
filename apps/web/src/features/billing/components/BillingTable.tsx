@@ -1,10 +1,11 @@
 import type { BillWithPatient } from '@mmc/types';
 import { format } from 'date-fns';
-import { RefreshCw, Receipt, Printer, X } from 'lucide-react';
+import { RefreshCw, Receipt, Printer, X, DollarSign, CreditCard } from 'lucide-react';
 import { printBill } from '@/shared/utils/print';
 import { useOrganizations } from '../../platform/hooks/use-organizations';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { useState } from 'react';
+import { useRecordPayment } from '../hooks/use-billing';
 
 interface BillingTableProps {
   bills: BillWithPatient[];
@@ -15,8 +16,12 @@ export function BillingTable({ bills, isLoading }: BillingTableProps) {
   const { data: orgs = [] } = useOrganizations();
   const user = useAuthStore(s => s.user);
   const myOrg = orgs.find(o => o.id === user?.contextId) || orgs[0];
+  const recordPayment = useRecordPayment();
   
   const [printingBill, setPrintingBill] = useState<BillWithPatient | null>(null);
+  const [receivingBill, setReceivingBill] = useState<BillWithPatient | null>(null);
+  const [receiveAmount, setReceiveAmount] = useState<number>(0);
+  const [paymentMode, setPaymentMode] = useState('Cash');
 
   if (isLoading) {
     return (
@@ -44,6 +49,23 @@ export function BillingTable({ bills, isLoading }: BillingTableProps) {
     }
   };
 
+  const handleReceivePayment = async () => {
+    if (!receivingBill || receiveAmount <= 0) return;
+    try {
+      await recordPayment.mutateAsync({
+        regid: receivingBill.regid,
+        billId: receivingBill.id,
+        amount: receiveAmount,
+        paymentMode: paymentMode,
+      });
+      setReceivingBill(null);
+      setReceiveAmount(0);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to record payment');
+    }
+  };
+
   return (
     <>
       <div className="bill-card fade-in">
@@ -59,7 +81,7 @@ export function BillingTable({ bills, isLoading }: BillingTableProps) {
                 <th style={{ width: '100px' }}>Charges</th>
                 <th style={{ width: '100px' }}>Received</th>
                 <th style={{ width: '100px' }}>Balance</th>
-                <th style={{ width: '120px', textAlign: 'right' }}>Action</th>
+                <th style={{ width: '220px', textAlign: 'right' }}>Action</th>
               </tr>
             </thead>
             <tbody>
@@ -90,18 +112,28 @@ export function BillingTable({ bills, isLoading }: BillingTableProps) {
                   </td>
                   <td data-label="" style={{ textAlign: 'right' }}>
                     <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center' }}>
+                      {bill.balance > 0 && (
+                        <button 
+                          className="bill-btn bill-btn-primary" 
+                          style={{ height: 28, padding: '0 12px', borderRadius: 6, fontSize: 11, fontWeight: 700 }}
+                          onClick={() => { setReceivingBill(bill); setReceiveAmount(bill.balance); }}
+                        >
+                          Receive
+                        </button>
+                      )}
+                      
                       <button 
                         className="bill-btn bill-btn-sm" 
-                        style={{ height: 28, padding: '0 12px', borderRadius: 6, background: 'var(--bg-surface-2)', border: '1px solid var(--border-main)', display: 'flex', alignItems: 'center', gap: 6 }}
+                        style={{ height: 28, padding: '0 10px', borderRadius: 6, background: 'var(--bg-surface-2)', border: '1px solid var(--border-main)', display: 'flex', alignItems: 'center', gap: 4 }}
                         onClick={() => setPrintingBill(bill)}
                       >
-                        <Printer size={13} />
+                        <Printer size={12} />
                         <span style={{ fontSize: 11, fontWeight: 700 }}>Print</span>
                       </button>
 
                       <button 
                         className="bill-btn bill-btn-sm" 
-                        style={{ color: 'var(--pp-blue)', border: 'none', background: 'none', fontWeight: 600, cursor: 'pointer', fontSize: 12 }}
+                        style={{ color: 'var(--pp-blue)', border: 'none', background: 'none', fontWeight: 600, cursor: 'pointer', fontSize: 11 }}
                         onClick={() => window.location.href = `/patients/${bill.regid}`}
                       >
                         View
@@ -114,6 +146,55 @@ export function BillingTable({ bills, isLoading }: BillingTableProps) {
           </table>
         </div>
       </div>
+
+      {/* Receive Payment Modal */}
+      {receivingBill && (
+        <div className="bill-modal-overlay" onClick={() => setReceivingBill(null)}>
+          <div className="bill-modal" style={{ maxWidth: 400, borderRadius: '24px' }} onClick={e => e.stopPropagation()}>
+            <div className="bill-modal-header" style={{ padding: '20px 24px' }}>
+              <h3 className="bill-modal-title">Record Payment</h3>
+              <button className="bill-btn" style={{ padding: 8, borderRadius: 12, border: 'none' }} onClick={() => setReceivingBill(null)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className="bill-modal-body" style={{ padding: '0 24px 24px' }}>
+               <div style={{ marginBottom: 16, padding: 12, background: 'var(--bg-surface-2)', borderRadius: 12 }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--pp-text-3)', fontWeight: 700 }}>Bill #{receivingBill.billNo} • {receivingBill.patientName}</div>
+                  <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--pp-blue)', marginTop: 4 }}>Balance: ₹{receivingBill.balance.toLocaleString()}</div>
+               </div>
+               <div className="bill-form-group">
+                 <label className="bill-form-label">Amount Received (₹)</label>
+                 <input 
+                  type="number" 
+                  className="bill-form-input" 
+                  style={{ fontSize: '1.2rem', fontWeight: 800, fontFamily: 'var(--pp-font-mono)' }}
+                  value={receiveAmount} 
+                  onChange={e => setReceiveAmount(Number(e.target.value))} 
+                />
+               </div>
+               <div className="bill-form-group" style={{ marginTop: 16 }}>
+                 <label className="bill-form-label">Payment Mode</label>
+                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    <button className={`bill-view-toggle-btn ${paymentMode === 'Cash' ? 'is-active' : ''}`} onClick={() => setPaymentMode('Cash')}>
+                      <DollarSign size={14} /> Cash
+                    </button>
+                    <button className={`bill-view-toggle-btn ${paymentMode === 'Online' ? 'is-active' : ''}`} onClick={() => setPaymentMode('Online')}>
+                      <CreditCard size={14} /> Online
+                    </button>
+                 </div>
+               </div>
+               <button 
+                  className="bill-btn bill-btn-primary" 
+                  style={{ width: '100%', marginTop: 24, height: 44, borderRadius: 12 }}
+                  disabled={recordPayment.isPending}
+                  onClick={handleReceivePayment}
+                >
+                  {recordPayment.isPending ? 'Saving...' : 'Confirm Payment'}
+               </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Print Template Selection Modal */}
       {printingBill && (

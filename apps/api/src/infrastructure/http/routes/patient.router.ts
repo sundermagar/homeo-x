@@ -2,6 +2,8 @@ import { Router } from 'express';
 import type { Request, Response, Router as IRouter } from 'express';
 import { createPatientSchema, updatePatientSchema, familyMemberSchema } from '@mmc/validation';
 import { PatientRepositoryPg } from '../../repositories/patient.repository.pg';
+import { OrganizationRepositoryPg } from '../../repositories/organization.repository.pg';
+import { BillingRepositoryPg } from '../../repositories/billing.repository.pg';
 import {
   ListPatientsUseCase,
   GetPatientUseCase,
@@ -139,11 +141,13 @@ patientRouter.post('/', authMiddleware, async (req: Request, res: Response) => {
       return;
     }
     const repo = getRepo(req);
-    const uc = new CreatePatientUseCase(repo);
+    const billingRepo = new BillingRepositoryPg(req.tenantDb);
+    const orgRepo = new OrganizationRepositoryPg(req.publicDb);
+    const uc = new CreatePatientUseCase(repo, billingRepo, orgRepo);
     const clinicId = req.user?.contextId;
     const result = await uc.execute(parsed.data, clinicId);
     if (result.success) {
-      res.status(201).json({ success: true, data: result.data, regid: result.data.regid });
+      res.status(201).json({ success: true, data: result.data.patient, regid: result.data.patient.regid, registrationBillId: (result.data as any).registrationBillId });
     } else {
       res.status(400).json({ success: false, message: result.error });
     }

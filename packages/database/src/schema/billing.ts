@@ -17,6 +17,8 @@ export const bills = pgTable('bills', {
   chargeId: integer('charge_id'),
   doctorId: integer('doctor_id'),
   notes: text('notes'),
+  billType: varchar('bill_type', { length: 30 }).default('Consultation'),
+  customTitle: varchar('custom_title', { length: 255 }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   deletedAt: timestamp('deleted_at'),

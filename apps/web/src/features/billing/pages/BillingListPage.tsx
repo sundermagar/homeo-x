@@ -53,6 +53,10 @@ export default function BillingListPage() {
             <FilePlus size={14} strokeWidth={1.6} />
             New Bill
           </button>
+          <button className="bill-btn bill-btn-default" onClick={() => (window.location.href = '/billing/custom')}>
+            <FilePlus size={14} strokeWidth={1.6} />
+            Custom Bill
+          </button>
         </div>
 
       </div>

@@ -536,7 +536,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
 
   async markReminderDone(id: number): Promise<void> {
     await this.db.update(schema.caseReminders)
-      .set({ status: 'done', updatedAt: new Date() })
+      .set({ status: 'done' })
       .where(eq(schema.caseReminders.id, id));
   }
 

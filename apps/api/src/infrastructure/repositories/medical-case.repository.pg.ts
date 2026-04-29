@@ -12,7 +12,9 @@ import type {
   CaseImage,
   Investigation,
   Prescription,
-  FullCaseData
+  FullCaseData,
+  VaccineMaster,
+  CaseReminder
 } from '../../domains/medical-case/ports/medical-case.repository';
 
 export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
@@ -25,7 +27,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
       .where(eq(schema.medicalCases.id, id))
       .limit(1);
 
-    return (row as MedicalCase) || null;
+    return (row as unknown as MedicalCase) || null;
   }
 
   async findByRegId(regid: number): Promise<MedicalCase[]> {
@@ -35,7 +37,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
       .where(eq(schema.medicalCases.regid, regid))
       .orderBy(desc(schema.medicalCases.createdAt));
 
-    return rows as MedicalCase[];
+    return rows as unknown as MedicalCase[];
   }
 
   private _calculateAge(dobValue: string | Date | null | undefined): number | undefined {
@@ -129,6 +131,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
       const medicalCases = await this.db
         .select({
           id: schema.medicalCases.id,
+          patientId: schema.patients.id,
           regid: schema.medicalCases.regid,
           status: sql<string>`COALESCE(${schema.medicalCases.status}, 'Active')`,
           condition: sql<string>`COALESCE(${schema.medicalCases.condition}, '')`,
@@ -158,6 +161,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
         return {
           medicalCase: {
             id: 0,
+            patientId: patient.id,
             regid,
             status: 'None',
             patientName: `${patient.firstName} ${patient.surname}`,
@@ -172,6 +176,8 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
           images: [],
           investigations: [],
           prescriptions: [],
+          vaccines: [],
+          reminders: [],
         };
       }
 
@@ -186,7 +192,9 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
         examination,
         images,
         investigations,
-        prescriptions
+        prescriptions,
+        vaccines,
+        reminders
       ] = await Promise.all([
         activeCase ? this.db.select().from(schema.vitals).where(eq(schema.vitals.visitId, activeCase.id)) : Promise.resolve([]),
         activeCase ? this.db.select().from(schema.soapNotes).where(eq(schema.soapNotes.visitId, activeCase.id)) : Promise.resolve([]),
@@ -209,25 +217,30 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
             frequencyTitle: schema.frequencies.title,
             days: schema.prescriptions.days,
             instructions: schema.prescriptions.instructions,
+            createdAt: schema.prescriptions.createdAt,
           })
           .from(schema.prescriptions)
           .leftJoin(schema.medicines, eq(schema.prescriptions.medicineId, schema.medicines.id))
           .leftJoin(schema.potencies, eq(schema.prescriptions.potencyId, schema.potencies.id))
           .leftJoin(schema.frequencies, eq(schema.prescriptions.frequencyId, schema.frequencies.id))
-          .where(eq(schema.prescriptions.regid, regid))
+          .where(and(eq(schema.prescriptions.regid, regid), sql`${schema.prescriptions.deletedAt} IS NULL`))
           .orderBy(desc(schema.prescriptions.createdAt)),
+        this.getVaccines(regid),
+        this.getReminders(regid)
       ]);
 
       return {
-        medicalCase: activeCase || { id: 0, regid, status: 'None' }, // Fallback for UI
+        medicalCase: (activeCase || { id: 0, regid: regid, status: 'None' }) as MedicalCase, // Fallback for UI
         vitals: vitals as Vitals[],
         soap: soap as SoapNotes[],
         homeo,
         notes: notes as CaseNote[],
         examination: examination as CaseExamination[],
         images: images as CaseImage[],
-        investigations: investigations as Investigation[],
-        prescriptions: prescriptions as Prescription[],
+        investigations: investigations as any[],
+        prescriptions: prescriptions as any[],
+        vaccines: vaccines as any[],
+        reminders: reminders as any[],
       };
     } catch (err: any) {
       console.error(`💥 [MedicalCaseRepositoryPg] Error in getUnifiedCaseData for regid ${regid}:`, err);
@@ -494,6 +507,61 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
   }
 
   async deletePrescription(id: number): Promise<void> {
-    await this.db.update(schema.prescriptions).set({ deletedAt: new Date() }).where(eq(schema.prescriptions.id, id));
+    await this.db.update(schema.prescriptions).set({ deletedAt: sql`NOW()::text` }).where(eq(schema.prescriptions.id, id));
+  }
+
+  // ─── Vaccines ───
+  async getVaccines(regid: number) {
+    const rows = await this.db
+      .select({
+        id: schema.caseVaccines.id,
+        regid: schema.caseVaccines.regid,
+        vaccineId: schema.caseVaccines.vaccineId,
+        notes: schema.caseVaccines.notes,
+        createdAt: schema.caseVaccines.createdAt,
+        vaccineName: schema.vaccineMaster.label,
+      })
+      .from(schema.caseVaccines)
+      .leftJoin(schema.vaccineMaster, eq(schema.caseVaccines.vaccineId, schema.vaccineMaster.id))
+      .where(eq(schema.caseVaccines.regid, regid));
+    return rows as any[];
+  }
+
+  async getMasterVaccines() {
+    return await this.db.select().from(schema.vaccineMaster) as unknown as VaccineMaster[];
+  }
+
+  async saveVaccine(data: Partial<any>) {
+    if (data.id) {
+      await this.db.update(schema.caseVaccines).set(data).where(eq(schema.caseVaccines.id, data.id));
+    } else {
+      await this.db.insert(schema.caseVaccines).values(data as any);
+    }
+  }
+
+  async deleteVaccine(id: number) {
+    await this.db.delete(schema.caseVaccines).where(eq(schema.caseVaccines.id, id));
+  }
+
+  // ─── Reminders ───
+  async getReminders(regid: number) {
+    const rows = await this.db
+      .select()
+      .from(schema.caseReminders)
+      .where(eq(schema.caseReminders.regid, regid))
+      .orderBy(desc(schema.caseReminders.reminderDate));
+    return rows as unknown as CaseReminder[];
+  }
+
+  async saveReminder(data: Partial<any>) {
+    if (data.id) {
+      await this.db.update(schema.caseReminders).set(data).where(eq(schema.caseReminders.id, data.id));
+    } else {
+      await this.db.insert(schema.caseReminders).values(data as any);
+    }
+  }
+
+  async deleteReminder(id: number) {
+    await this.db.delete(schema.caseReminders).where(eq(schema.caseReminders.id, id));
   }
 }

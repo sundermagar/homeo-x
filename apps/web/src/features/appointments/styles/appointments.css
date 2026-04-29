@@ -1234,20 +1234,37 @@
 }
 
 .appt-token-card {
-  background: var(--bg-card);
+  background: white;
   border: 1px solid var(--pp-warm-4);
-  border-radius: var(--pp-radius-card);
-  padding: 20px 16px;
+  border-radius: 20px;
+  padding: 24px 20px;
   text-align: center;
   position: relative;
-  transition: all var(--transition-normal);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   display: flex;
   flex-direction: column;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+  overflow: hidden;
+}
+
+.appt-token-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+  border-color: var(--pp-blue-border);
 }
 
 .appt-token-card.calling {
+  border-width: 2px;
   border-color: var(--pp-blue);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  background: linear-gradient(to bottom, #fff, #f8faff);
+}
+
+.appt-token-card.calling::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  background: var(--pp-blue);
 }
 
 .appt-token-card.done {
@@ -1908,4 +1925,280 @@
 .appt-close-btn:hover {
   background: #f0fdf4;
   border-color: #16a34a;
+}
+/* ─── Queue Page 2-Column Layout ─── */
+.appt-queue-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--pp-space-6);
+  margin-top: var(--pp-space-4);
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (min-width: 1024px) {
+  .appt-queue-layout {
+    grid-template-columns: 1fr 340px;
+  }
+}
+
+.appt-queue-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.appt-queue-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pp-space-4);
+}
+
+/* ─── Search Panel ─── */
+.appt-sidebar-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--pp-warm-4);
+  border-radius: var(--pp-radius-card);
+  padding: var(--pp-space-6);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  position: sticky;
+  top: 20px;
+  transition: box-shadow 0.3s;
+}
+
+.appt-sidebar-panel:hover {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+}
+
+.appt-panel-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--pp-ink);
+  margin-bottom: var(--pp-space-4);
+}
+
+.appt-search-box {
+  position: relative;
+  margin-bottom: var(--pp-space-4);
+}
+
+.appt-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--pp-text-3);
+}
+
+.appt-clear-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--pp-text-3);
+  cursor: pointer;
+}
+
+.appt-search-input {
+  width: 100%;
+  padding: 10px 36px;
+  border-radius: 8px;
+  border: 1.5px solid var(--pp-warm-4);
+  background: var(--pp-warm-1);
+  font-size: 0.85rem;
+  color: var(--pp-ink);
+  transition: all 0.2s;
+}
+
+.appt-search-input:focus {
+  border-color: var(--pp-blue);
+  background: #fff;
+  box-shadow: 0 0 0 4px var(--pp-blue-glow);
+  outline: none;
+}
+
+.appt-results-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 400px;
+  overflow-y: auto;
+  margin: 0 -4px;
+  padding: 4px;
+}
+
+.appt-result-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.appt-result-item:hover {
+  background: var(--pp-warm-1);
+}
+
+.appt-result-item.active {
+  background: var(--pp-blue-tint);
+  border-color: var(--pp-blue-border);
+}
+
+.appt-result-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--pp-ink);
+}
+
+.appt-result-meta {
+  font-size: 0.75rem;
+  color: var(--pp-text-3);
+  margin-top: 2px;
+}
+
+.appt-add-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: var(--pp-blue);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.appt-add-btn:hover {
+  background: var(--pp-blue-hover);
+  transform: scale(1.05);
+}
+
+.appt-sidebar-footer {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--pp-warm-3);
+}
+
+/* ─── Queue Management Table ─── */
+.appt-queue-table-wrap {
+  background: var(--bg-card);
+  border-radius: 16px;
+  border: 1px solid var(--pp-warm-4);
+  overflow: hidden;
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.03);
+}
+
+.appt-legacy-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.appt-legacy-table th {
+  background: #fcfcfc;
+  padding: 16px 18px;
+  text-align: left;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--pp-text-3);
+  border-bottom: 1px solid var(--pp-warm-4);
+}
+
+.appt-legacy-table td {
+  padding: 14px 18px;
+  font-size: 0.88rem;
+  border-bottom: 1px solid var(--pp-warm-2);
+  color: var(--pp-ink);
+  vertical-align: middle;
+  transition: background 0.2s;
+}
+
+.appt-legacy-table tr:hover td {
+  background: #fafafa;
+}
+
+.appt-legacy-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Legacy Status Colors */
+.row-teal {
+  position: relative;
+}
+.row-teal td:first-child {
+  box-shadow: inset 4px 0 0 #02b3b6;
+}
+.row-teal td {
+  background-color: rgba(2, 179, 182, 0.04);
+}
+
+.row-yellow {
+  position: relative;
+}
+.row-yellow td:first-child {
+  box-shadow: inset 4px 0 0 #f59e0b;
+}
+.row-yellow td {
+  background-color: rgba(245, 158, 11, 0.04);
+}
+
+.row-red {
+  position: relative;
+}
+.row-red td:first-child {
+  box-shadow: inset 4px 0 0 #ef4444;
+}
+.row-red td {
+  background-color: rgba(239, 68, 68, 0.02);
+}
+
+.appt-btn-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1.5px solid var(--pp-warm-4);
+  background: white;
+  color: var(--pp-text-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.appt-btn-icon:hover {
+  background: var(--pp-warm-1);
+  color: var(--pp-ink);
+  border-color: var(--pp-warm-5);
+  transform: translateY(-2px);
+}
+
+.appt-btn-icon svg {
+  stroke-width: 2px;
+}
+
+.appt-badge {
+  background: var(--pp-warm-1);
+  color: var(--pp-blue);
+  padding: 4px 10px;
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: 1px solid var(--pp-blue-border);
+  white-space: nowrap;
+}
+
+.appt-btn-icon:hover {
+  background: var(--pp-warm-1);
+  color: var(--pp-ink);
+  border-color: var(--pp-warm-5);
 }

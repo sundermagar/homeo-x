@@ -136,4 +136,29 @@ export const courierMasters = pgTable('courier_masters', {
   updatedAt:     timestamp('updated_at').defaultNow(),
 });
 
+export const remedyTreeNodes = pgTable('remedy_tree_nodes', {
+  id: serial('id').primaryKey(),
+  label: varchar('label', { length: 255 }),
+  parentId: integer('parent_id'),
+  hindiLabel: text('hindi_label'),
+  gujratiLabel: text('gujrati_label'),
+  punjabiLabel: text('punjabi_label'),
+  malyalumLabel: text('malyalum_label'),
+  kannadLabel: text('kannad_label'),
+  bengaliLabel: text('bengali_label'),
+  marathiLabel: text('marathi_label'),
+  frenchLabel: text('french_label'),
+  germanLabel: text('german_label'),
+  spanishLabel: text('spanish_label'),
+  image: varchar('image', { length: 255 }),
+  description: text('description'),
+  detailImage: varchar('detail_image', { length: 255 }),
+  nodeType: varchar('node_type', { length: 50 }).default('RUBRIC'),
+  sortOrder: integer('sort_order').default(0),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+  deletedAt: timestamp('deleted_at'),
+});
+
 

@@ -1,27 +1,44 @@
 import { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { usePatients, useDeletePatient } from '../hooks/use-patients';
-import { Search, Plus, List as ListIcon, Grid, Eye, Edit2, Phone, MapPin, Calendar } from 'lucide-react';
+import {
+  Search, Plus, Hash, MessageCircle,
+  Printer, Download, Sticker, Filter, RefreshCw, Users, MoreHorizontal
+} from 'lucide-react';
 import { useAuthStore } from '@/shared/stores/auth-store';
-import { Role, type PatientSummary } from '@mmc/types';
-import '../../appointments/styles/appointments.css';
+import { type PatientSummary } from '@mmc/types';
 import '../styles/patients.css';
 
 const PAGE_SIZE = 10;
+
+function formatDate(date: Date | string | null | undefined) {
+  if (!date) return '—';
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function openWhatsApp(phone: string | null, name: string) {
+  if (!phone) return alert('No phone number available.');
+  const cleaned = phone.replace(/\D/g, '');
+  const msg = encodeURIComponent(`Hello ${name}, this is a message from your clinic.`);
+  window.open(`https://wa.me/91${cleaned}?text=${msg}`, '_blank');
+}
 
 export default function PatientListPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [sortBy, setSortBy] = useState('newest');
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
 
   const user = useAuthStore(s => s.user);
-  const rawRole = ((user as any)?.type || (user as any)?.role || (user as any)?.roleName || '').toLowerCase();
-  const isDoctor = rawRole === 'doctor' || rawRole === 'medical practitioner' || ((user as any)?.name || '').toLowerCase().startsWith('dr');
+  const rawRole = ((user as any)?.type || (user as any)?.role || '').toLowerCase();
+  const isDoctor = rawRole === 'doctor';
 
-  const { data, isLoading } = usePatients({
+  const { data, isLoading, refetch } = usePatients({
     page,
     limit: PAGE_SIZE,
     search: debouncedSearch,
@@ -40,221 +57,276 @@ export default function PatientListPage() {
   const patients = useMemo(() => {
     const list = data?.data || [];
     if (sortBy === 'name') return [...list].sort((a, b) => a.fullName.localeCompare(b.fullName));
-
-    if (sortBy === 'oldest') {
-      return [...list].sort((a, b) => {
-        const dateA = new Date(a.createdAt).getTime();
-        const dateB = new Date(b.createdAt).getTime();
-        if (dateA !== dateB) return dateA - dateB;
-        return a.regid - b.regid; // Fallback to regid
-      });
-    }
-
-    if (sortBy === 'newest') {
-      return [...list].sort((a, b) => {
-        const dateA = new Date(a.createdAt).getTime();
-        const dateB = new Date(b.createdAt).getTime();
-        if (dateA !== dateB) return dateB - dateA;
-        return b.regid - a.regid; // Fallback to regid
-      });
-    }
-
-    return list;
+    if (sortBy === 'oldest') return [...list].sort((a, b) => a.regid - b.regid);
+    return [...list].sort((a, b) => b.regid - a.regid);
   }, [data?.data, sortBy]);
 
-  const totalPages = Math.ceil((data?.total || 0) / PAGE_SIZE);
+  const total = data?.total || 0;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  const fromEntry = ((page - 1) * PAGE_SIZE) + 1;
+  const toEntry = Math.min(page * PAGE_SIZE, total);
+
+  const handleDelete = async (regid: number, name: string) => {
+    if (!confirm(`Delete patient "${name}"? This cannot be undone.`)) return;
+    setDeletingId(regid);
+    try {
+      await deleteMutation.mutateAsync(regid);
+      refetch();
+    } catch { alert('Failed to delete patient.'); }
+    finally { setDeletingId(null); }
+  };
+
+  const handleAddToken = (regid: number, name: string) => {
+    navigate(`/appointments?addToken=${regid}&name=${encodeURIComponent(name)}`);
+  };
+
+  const handlePrintPrescription = (regid: number) => {
+    window.open(`/api/medical-cases/remedy-chart/pdf/${regid}`, '_blank');
+  };
+
+  const handleDownload = (regid: number) => {
+    window.open(`/api/medical-cases/pdf/summary/${regid}`, '_blank');
+  };
 
   return (
-    <div className="pp-page-container animate-fade-in">
-      <div className="pp-page-header" style={{ marginBottom: '24px' }}>
-        <div>
-          <h1 className="text-title" style={{ fontSize: '24px' }}>Patient Registry</h1>
-          <p className="text-subtitle">Access and manage comprehensive patient health records.</p>
-        </div>
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <div className="appt-view-toggle">
-            <button
-              type="button"
-              className={`appt-view-btn${viewMode === 'list' ? ' is-active' : ''}`}
-              onClick={() => setViewMode('list')}
-            >
-              <ListIcon size={14} /> List
-            </button>
-            <button
-              type="button"
-              className={`appt-view-btn${viewMode === 'grid' ? ' is-active' : ''}`}
-              onClick={() => setViewMode('grid')}
-            >
-              <Grid size={14} /> Grid
-            </button>
+    <div className="pp-page-container mmc-pl-container animate-fade-in">
+      {/* ─── Page Header ─── */}
+      <div className="mmc-pl-header">
+        <div className="mmc-pl-header-left">
+          <div className="mmc-pl-header-icon"><Users size={22} /></div>
+          <div>
+            <h1 className="mmc-pl-title">Patient Registry</h1>
+            <p className="mmc-pl-subtitle">Manage and access all patient clinical records</p>
           </div>
-          <button className="btn-primary" onClick={() => navigate('/patients/add')}>
-            <Plus size={16} /> New Patient
-          </button>
         </div>
+        <button className="mmc-pl-add-btn" onClick={() => navigate('/patients/add')}>
+          <Plus size={16} /> New Patient
+        </button>
       </div>
 
-      <div className="pp-card pp-filter-bar" style={{ marginBottom: '24px' }}>
-        <div className="pat-search-wrap">
-          <Search size={14} className="pat-search-icon" />
+      {/* ─── Filter Bar ─── */}
+      <div className="mmc-pl-filterbar">
+        <div className="mmc-pl-search-wrap">
+          <Search size={15} className="mmc-pl-search-icon" />
           <input
-            className="pp-input pat-search-input"
+            className="mmc-pl-search-input"
             type="text"
-            placeholder="Search patients by name or phone..."
+            placeholder="Search by name, phone or Case ID..."
             value={search}
-            onChange={(e) => handleSearchChange(e.target.value)}
+            onChange={e => handleSearchChange(e.target.value)}
           />
         </div>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <span className="text-label">Sort By:</span>
-          <select
-            className="pp-select"
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            style={{ minWidth: '140px' }}
-          >
+        <div className="mmc-pl-filter-right">
+          <label className="mmc-pl-filter-label">Sort:</label>
+          <select className="mmc-pl-sort-select" value={sortBy} onChange={e => setSortBy(e.target.value)}>
             <option value="newest">Newest First</option>
             <option value="oldest">Oldest First</option>
             <option value="name">Alphabetical</option>
           </select>
+          <button className="mmc-pl-refresh-btn" onClick={() => refetch()} title="Refresh">
+            <RefreshCw size={14} />
+          </button>
         </div>
       </div>
 
-      <div className="pat-stats-row">
-        <span className="text-label">Registry Entries</span>
-        <span className="text-small">Showing {patients.length} of {data?.total || 0}</span>
-      </div>
-
-      {isLoading ? (
-        <div className="pp-card" style={{ padding: 0 }}>
-          <div className="pat-skeleton">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="pat-skeleton-row">
-                <div className="pat-skeleton-avatar" />
-                <div className="pat-skeleton-content">
-                  <div className="pat-skeleton-line" style={{ width: '40%' }} />
-                  <div className="pat-skeleton-line" style={{ width: '25%', marginTop: 4 }} />
-                </div>
-                <div className="pat-skeleton-line" style={{ width: '60px' }} />
-                <div className="pat-skeleton-line" style={{ width: '80px' }} />
-                <div className="pat-skeleton-line" style={{ width: '80px' }} />
+      {/* ─── Table ─── */}
+      <div className="mmc-pl-card">
+        {isLoading ? (
+          <div className="mmc-pl-skeleton">
+            {[...Array(7)].map((_, i) => (
+              <div key={i} className="mmc-pl-skeleton-row">
+                <div className="mmc-pl-skeleton-cell" style={{ width: '60px' }} />
+                <div className="mmc-pl-skeleton-cell" style={{ width: '160px' }} />
+                <div className="mmc-pl-skeleton-cell" style={{ width: '120px' }} />
+                <div className="mmc-pl-skeleton-cell" style={{ width: '100px' }} />
+                <div className="mmc-pl-skeleton-cell" style={{ width: '100px' }} />
+                <div className="mmc-pl-skeleton-cell" style={{ width: '200px' }} />
               </div>
             ))}
           </div>
-        </div>
-      ) : patients.length === 0 ? (
-        <div className="pp-card pat-empty-state">
-          <p className="pat-empty-state-title">No patients found</p>
-          <p className="text-small">Try adjusting your search filters</p>
-        </div>
-      ) : viewMode === 'list' ? (
-        <div className="pp-card pp-table-scroll" style={{ padding: 0 }}>
-          <table className="pp-table">
-            <thead>
-              <tr>
-                <th>Patient</th>
-                <th>RegID</th>
-                <th>Contact</th>
-                <th>City</th>
-                <th>Registered</th>
-                <th style={{ textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {patients.map((p: PatientSummary) => (
-                <tr key={p.regid} className="hover-row">
-                  <td>
-                    <Link to={`/medical-cases/${p.regid}`} className="pat-member-row hover-opacity" style={{ textDecoration: 'none', color: 'inherit' }}>
-                      <div className="pat-avatar">
-                        {(p.fullName?.[0] || '?').toUpperCase()}
-                      </div>
-                      <div>
-                        <div className="pat-member-name" style={{ color: 'var(--pp-blue)', fontWeight: 700 }}>{p.fullName || 'Unknown'}</div>
-                        <div className="text-small">{p.gender === 'M' ? 'Male' : p.gender === 'F' ? 'Female' : p.gender}</div>
-                      </div>
-                    </Link>
-                  </td>
-                  <td>
-                    <span className="pp-mono" style={{ background: 'var(--pp-warm-2)', padding: '2px 6px', borderRadius: '4px', fontSize: '12px' }}>
-                      {p.regid}
-                    </span>
-                  </td>
-                  <td>{p.phone || '—'}</td>
-                  <td>{p.city || '—'}</td>
-                  <td className="text-small">{p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-GB') : '—'}</td>
-                  <td style={{ textAlign: 'right' }}>
-                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                      <Link to={`/medical-cases/${p.regid}`} className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', background: 'var(--pp-blue)', color: '#fff', border: 'none' }}>
-                        <Eye size={14} /> History
-                      </Link>
-                      <Link to={`/patients/${p.regid}/edit`} className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', border: '1px solid var(--pp-warm-4)', color: 'var(--pp-text-2)' }}>
-                        <Edit2 size={14} />
-                      </Link>
-                    </div>
-                  </td>
+        ) : patients.length === 0 ? (
+          <div className="mmc-pl-empty">
+            <Users size={48} opacity={0.2} />
+            <p className="mmc-pl-empty-title">No patients found</p>
+            <p className="mmc-pl-empty-sub">Try adjusting your search or add a new patient.</p>
+            <button className="mmc-pl-add-btn" onClick={() => navigate('/patients/add')}>
+              <Plus size={14} /> Add Patient
+            </button>
+          </div>
+        ) : (
+          <div className="mmc-pl-table-wrap">
+            <table className="mmc-pl-table">
+              <thead>
+                <tr>
+                  <th>Case Id ↕</th>
+                  <th>Patient Name ↕</th>
+                  <th>Mobile ↕</th>
+                  <th>Doctor Name ↕</th>
+                  <th>Last Followup ↕</th>
+                  <th style={{ textAlign: 'center' }}>Actions ↕</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <div className="pp-patient-grid">
-          {patients.map((p: PatientSummary) => (
-            <div key={p.regid} className="pp-card pat-grid-card">
-              <div className="pat-grid-card-header">
-                <div className="pat-avatar pat-avatar--md">
-                  {(p.fullName?.[0] || '?').toUpperCase()}
-                </div>
-                <div>
-                  <div className="pat-grid-card-name">{p.fullName}</div>
-                  <div className="pat-grid-card-regid">RegID: {p.regid}</div>
-                </div>
-              </div>
+              </thead>
+              <tbody>
+                {patients.map((p: PatientSummary, idx: number) => {
+                  const isNearBottom = idx > patients.length - 4; // Simple logic to open dropdown upwards
+                  return (
+                    <tr key={p.regid} className={idx % 2 === 0 ? 'mmc-pl-row-even' : 'mmc-pl-row-odd'}>
+                      {/* Case Id */}
+                      <td className="mmc-pl-caseid">{p.regid}</td>
 
-              <div className="pat-grid-card-detail">
-                <div className="pat-grid-card-detail-row">
-                  <span className="pat-grid-card-detail-label"><Phone size={12} /> Phone</span>
-                  <span className="pat-grid-card-detail-value">{p.phone || '—'}</span>
-                </div>
-                <div className="pat-grid-card-detail-row">
-                  <span className="pat-grid-card-detail-label"><MapPin size={12} /> City</span>
-                  <span className="pat-grid-card-detail-value">{p.city || '—'}</span>
-                </div>
-                <div className="pat-grid-card-detail-row">
-                  <span className="pat-grid-card-detail-label"><Calendar size={12} /> Date</span>
-                  <span className="pat-grid-card-detail-value">{p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-GB') : '—'}</span>
-                </div>
-              </div>
+                      {/* Patient Name */}
+                      <td>
+                        <Link to={`/medical-cases/${p.regid}`} className="mmc-pl-patient-link">
+                          {p.fullName || 'Unknown'}
+                        </Link>
+                      </td>
 
-              <Link to={`/medical-cases/${p.regid}`} className="btn-secondary" style={{ width: '100%', justifyContent: 'center', background: 'var(--pp-blue)', color: '#fff', border: 'none' }}>
-                View History
-              </Link>
+                      {/* Mobile */}
+                      <td className="mmc-pl-mobile">{p.phone || '—'}</td>
+
+                      {/* Doctor Name */}
+                      <td className="mmc-pl-doctor">
+                        {p.doctorName ? `Dr. ${p.doctorName}` : 'Dr. XYZ'}
+                      </td>
+
+                      {/* Last Followup */}
+                      <td className="mmc-pl-followup">
+                        {formatDate(p.lastVisit || p.createdAt)}
+                      </td>
+
+                      {/* Actions */}
+                      <td>
+                        <div className="mmc-pl-actions-dropdown">
+                          <button
+                            className="mmc-pl-action-trigger"
+                            onClick={() => setOpenDropdownId(openDropdownId === p.regid ? null : p.regid)}
+                          >
+                            <MoreHorizontal size={18} />
+                          </button>
+
+                          {openDropdownId === p.regid && (
+                            <div className={`mmc-pl-dropdown-menu ${isNearBottom ? 'up' : ''}`}>
+                              <button
+                                className="mmc-pl-dropdown-item"
+                                onClick={() => {
+                                  setOpenDropdownId(null);
+                                  navigate(`/patients/${p.regid}/edit`);
+                                }}
+                              >
+                                Edit Patient
+                              </button>
+                              <button
+                                className="mmc-pl-dropdown-item"
+                                disabled={deletingId === p.regid}
+                                onClick={() => {
+                                  setOpenDropdownId(null);
+                                  handleDelete(p.regid, p.fullName);
+                                }}
+                              >
+                                Delete Patient
+                              </button>
+                              <button
+                                className="mmc-pl-dropdown-item"
+                                onClick={() => {
+                                  setOpenDropdownId(null);
+                                  handleAddToken(p.regid, p.fullName);
+                                }}
+                              >
+                                Token
+                              </button>
+                              <button
+                                className="mmc-pl-dropdown-item"
+                                onClick={() => {
+                                  setOpenDropdownId(null);
+                                  openWhatsApp(p.phone || p.mobile1, p.fullName);
+                                }}
+                              >
+                                WhatsApp
+                              </button>
+                              <button
+                                className="mmc-pl-dropdown-item"
+                                onClick={() => {
+                                  setOpenDropdownId(null);
+                                  handlePrintPrescription(p.regid);
+                                }}
+                              >
+                                Print Prescription
+                              </button>
+                              <Link
+                                to={`/medical-cases/${p.regid}`}
+                                className="mmc-pl-dropdown-item"
+                                onClick={() => setOpenDropdownId(null)}
+                              >
+                                View History
+                              </Link>
+                              <button
+                                className="mmc-pl-dropdown-item"
+                                onClick={() => {
+                                  setOpenDropdownId(null);
+                                  handleDownload(p.regid);
+                                }}
+                              >
+                                Download Report
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+
+        {/* ─── Pagination Footer ─── */}
+        {!isLoading && patients.length > 0 && (
+          <div className="mmc-pl-pagination">
+            <span className="mmc-pl-showing">
+              Showing {fromEntry} to {toEntry} of {total} entries
+            </span>
+            <div className="mmc-pl-page-btns">
+              <button
+                className="mmc-pl-page-btn"
+                disabled={page <= 1}
+                onClick={() => setPage(p => p - 1)}
+              >
+                ← Previous
+              </button>
+              {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                const pageNum = i + 1;
+                return (
+                  <button
+                    key={pageNum}
+                    className={`mmc-pl-page-num${page === pageNum ? ' active' : ''}`}
+                    onClick={() => setPage(pageNum)}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+              {totalPages > 7 && <span className="mmc-pl-page-ellipsis">...</span>}
+              {totalPages > 7 && (
+                <button
+                  className={`mmc-pl-page-num${page === totalPages ? ' active' : ''}`}
+                  onClick={() => setPage(totalPages)}
+                >
+                  {totalPages}
+                </button>
+              )}
+              <button
+                className="mmc-pl-page-btn"
+                disabled={page >= totalPages}
+                onClick={() => setPage(p => p + 1)}
+              >
+                Next →
+              </button>
             </div>
-          ))}
-        </div>
-      )}
-
-      {totalPages > 1 && (
-        <div className="pat-pagination">
-          <button
-            disabled={page <= 1}
-            onClick={() => setPage(p => p - 1)}
-            className="btn-secondary"
-            style={{ opacity: page <= 1 ? 0.5 : 1 }}
-          >
-            Previous
-          </button>
-          <span className="text-small">Page {page} of {totalPages}</span>
-          <button
-            disabled={page >= totalPages}
-            onClick={() => setPage(p => p + 1)}
-            className="btn-secondary"
-            style={{ opacity: page >= totalPages ? 0.5 : 1 }}
-          >
-            Next
-          </button>
-        </div>
-      )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

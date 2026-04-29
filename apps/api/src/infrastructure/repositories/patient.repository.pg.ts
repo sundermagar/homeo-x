@@ -1,4 +1,4 @@
-import { and, eq, like, or, sql, isNull } from 'drizzle-orm';
+import { and, eq, isNull, like, or, sql } from 'drizzle-orm';
 import {
   patients,
   familygroupsLegacy,
@@ -6,10 +6,10 @@ import {
   religionLegacy,
   occupationLegacy,
   refrencetypeLegacy,
-  users,
   appointments,
   referenceTypes,
-  referralSources
+  referralSources,
+  users
 } from '@mmc/database/schema';
 import type { DbClient } from '@mmc/database';
 import type {
@@ -74,7 +74,7 @@ export class PatientRepositoryPg implements PatientRepository {
     const { page, limit, search, doctorId, clinicId } = params;
     const offset = (page - 1) * limit;
 
-    const conditions = [sql`(deleted_at IS NULL OR deleted_at::text = '')` as any];
+    const conditions = [sql`(${patients.deletedAt} IS NULL OR ${patients.deletedAt}::text = '')` as any];
 
     if (search) {
       const s = `%${search}%`;
@@ -96,7 +96,7 @@ export class PatientRepositoryPg implements PatientRepository {
           SELECT 1 FROM ${appointments} 
           WHERE ${appointments.patientId} = ${patients.id} 
             AND ${appointments.doctorId} = ${doctorId}
-            AND (deleted_at IS NULL OR deleted_at::text = '')
+            AND (${appointments.deletedAt} IS NULL OR ${appointments.deletedAt}::text = '')
         )`
       );
     }
@@ -109,8 +109,12 @@ export class PatientRepositoryPg implements PatientRepository {
 
     const [data, countRows] = await Promise.all([
       this.db
-        .select()
+        .select({
+          patient: patients,
+          doctorName: users.name
+        })
         .from(patients)
+        .leftJoin(users, sql`CASE WHEN ${patients.assitantDoctor} ~ '^[0-9]+$' THEN CAST(${patients.assitantDoctor} AS INTEGER) ELSE NULL END = ${users.id}`)
         .where(whereClause)
         .orderBy(sql`${patients.id} DESC`)
         .limit(limit)
@@ -122,7 +126,14 @@ export class PatientRepositoryPg implements PatientRepository {
     ]);
 
     return {
-      data: data.map(row => this.toSummary(row)),
+      data: data.map(row => {
+        // Handle the joined structure
+        const summary = this.toSummary(row.patient || row);
+        if (row.doctorName) {
+          summary.doctorName = row.doctorName;
+        }
+        return summary;
+      }),
       total: Number(countRows[0]?.count ?? 0),
     };
   }
@@ -246,7 +257,7 @@ export class PatientRepositoryPg implements PatientRepository {
   async lookup(query: string, limit = 20, clinicId?: number): Promise<PatientSummary[]> {
     const s = `%${query}%`;
     const conditions = [
-      sql`(deleted_at IS NULL OR deleted_at::text = '')`,
+      sql`(${patients.deletedAt} IS NULL OR ${patients.deletedAt}::text = '')`,
       or(
         like(patients.firstName, s),
         like(patients.surname, s),
@@ -274,7 +285,7 @@ export class PatientRepositoryPg implements PatientRepository {
       .from(patients)
       .where(
         and(
-          sql`(deleted_at IS NULL OR deleted_at::text = '')`,
+          sql`(${patients.deletedAt} IS NULL OR ${patients.deletedAt}::text = '')`,
           sql`to_char(${patients.dob}::date, 'MM-DD') = ${mmdd}`
         )
       );
@@ -568,6 +579,7 @@ export class PatientRepositoryPg implements PatientRepository {
 
   private toSummary(row: any): PatientSummary {
     return {
+      id: row.id || 0,
       regid: row.regid || 0,
       fullName: `${row.firstName || ''} ${row.surname || ''}`.trim(),
       gender: row.gender || '',
@@ -576,8 +588,9 @@ export class PatientRepositoryPg implements PatientRepository {
       mobile1: row.mobile1 || null,
       dob: row.dob || row.dateOfBirth || null,
       city: row.city || null,
-      lastVisit: null,
+      lastVisit: row.lastVisit || row.updatedAt || null,
       totalVisits: 0,
+      doctorName: row.assitantDoctor || row.assistantDoctor || null,
       createdAt: row.createdAt || new Date(),
     };
   }

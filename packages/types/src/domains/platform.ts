@@ -20,8 +20,8 @@ export interface Organization {
   address2?:     string;
   timing?:       string;
   adminEmail?:  string;
-
   adminPassword?: string;
+  registrationFee?: number;
   deletedAt?:   string | null;
   createdAt:    string;
   updatedAt:    string;
@@ -63,7 +63,7 @@ export interface CreateOrganizationInput {
   timing?:       string;
   adminEmail?:  string;
   adminPassword?: string;
-
+  registrationFee?: number;
 }
 
 export type UpdateOrganizationInput = Partial<CreateOrganizationInput>;

@@ -21,7 +21,7 @@ export interface AlphabetGroup {
 export interface RemedyLookups {
   medicines:   { id: number; name: string }[];
   potencies:   { id: number; name: string }[];
-  frequencies: { id: number; name: string }[];
+  frequencies: { id: number; name: string; instruction: string }[];
 }
 
 export interface RemedyAlternative {
@@ -44,6 +44,7 @@ export interface PrescriptionRow {
   notes: string;
   prescription: string;
   created_at: string;
+  deliveryMode?: string;
 }
 
 export interface SavePrescriptionDto {
@@ -56,6 +57,7 @@ export interface SavePrescriptionDto {
   days:           number;
   notes?:         string;
   instructions?:  string;
+  deliveryMode?:  string;
 }
 
 // ─── Hooks ───────────────────────────────────────────────────────────────────

@@ -22,6 +22,7 @@ export const organizations = pgTable('organizations', {
   timing:       text('timing').default(''),
   adminEmail:   text('admin_email').default(''),
   adminPassword: text('admin_password').default(''),
+  registrationFee: integer('registration_fee').default(0),
 
   deletedAt:    timestamp('deleted_at'),
   createdAt:    timestamp('created_at').defaultNow(),
