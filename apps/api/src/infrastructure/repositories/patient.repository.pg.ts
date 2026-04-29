@@ -7,7 +7,6 @@ import {
   occupationLegacy,
   refrencetypeLegacy,
   appointments,
-  referenceTypes,
   referralSources,
   users
 } from '@mmc/database/schema';

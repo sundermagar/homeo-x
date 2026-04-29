@@ -1,4 +1,4 @@
-import { eq, and, sql, desc } from 'drizzle-orm';
+import { eq, and, sql, desc, isNull } from 'drizzle-orm';
 import type { DbClient } from '@mmc/database';
 import * as schema from '@mmc/database';
 import type { 
@@ -192,7 +192,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
         examination,
         images,
         investigations,
-        prescriptions,
+        prescriptionRows,
         vaccines,
         reminders
       ] = await Promise.all([
@@ -201,30 +201,30 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
         this.getHomeoDetails(regid),
         this.db.select().from(schema.caseNotes).where(eq(schema.caseNotes.regid, regid)).orderBy(desc(schema.caseNotes.createdAt)),
         this.db.select().from(schema.caseExamination).where(eq(schema.caseExamination.regid, regid)),
-        this.db.select().from(schema.caseImages).where(and(eq(schema.caseImages.regid, regid), sql`${schema.caseImages.deletedAt} IS NULL`)),
+        this.db.select().from(schema.caseImages).where(and(eq(schema.caseImages.regid, regid), isNull(schema.caseImages.deletedAt))),
         this.db.select().from(schema.investigations).where(eq(schema.investigations.regid, regid)),
         this.db
           .select({
-            id: schema.prescriptions.id,
-            regid: schema.prescriptions.regid,
-            visitId: schema.prescriptions.visitId,
-            dateval: schema.prescriptions.dateval,
-            medicineId: schema.prescriptions.medicineId,
+            id: schema.legacyPrescriptions.id,
+            regid: schema.legacyPrescriptions.regid,
+            visitId: schema.legacyPrescriptions.visitId,
+            dateval: schema.legacyPrescriptions.dateval,
+            medicineId: schema.legacyPrescriptions.medicineId,
             medicineName: schema.medicines.name,
-            potencyId: schema.prescriptions.potencyId,
+            potencyId: schema.legacyPrescriptions.potencyId,
             potencyName: schema.potencies.name,
-            frequencyId: schema.prescriptions.frequencyId,
+            frequencyId: schema.legacyPrescriptions.frequencyId,
             frequencyTitle: schema.frequencies.title,
-            days: schema.prescriptions.days,
-            instructions: schema.prescriptions.instructions,
-            createdAt: schema.prescriptions.createdAt,
+            days: schema.legacyPrescriptions.days,
+            instructions: schema.legacyPrescriptions.instructions,
+            createdAt: schema.legacyPrescriptions.createdAt,
           })
-          .from(schema.prescriptions)
-          .leftJoin(schema.medicines, eq(schema.prescriptions.medicineId, schema.medicines.id))
-          .leftJoin(schema.potencies, eq(schema.prescriptions.potencyId, schema.potencies.id))
-          .leftJoin(schema.frequencies, eq(schema.prescriptions.frequencyId, schema.frequencies.id))
-          .where(and(eq(schema.prescriptions.regid, regid), sql`${schema.prescriptions.deletedAt} IS NULL`))
-          .orderBy(desc(schema.prescriptions.createdAt)),
+          .from(schema.legacyPrescriptions)
+          .leftJoin(schema.medicines, eq(schema.legacyPrescriptions.medicineId, schema.medicines.id))
+          .leftJoin(schema.potencies, eq(schema.legacyPrescriptions.potencyId, schema.potencies.id))
+          .leftJoin(schema.frequencies, eq(schema.legacyPrescriptions.frequencyId, schema.frequencies.id))
+          .where(and(eq(schema.legacyPrescriptions.regid, regid), isNull(schema.legacyPrescriptions.deletedAt)))
+          .orderBy(desc(schema.legacyPrescriptions.createdAt)),
         this.getVaccines(regid),
         this.getReminders(regid)
       ]);
@@ -238,7 +238,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
         examination: examination as CaseExamination[],
         images: images as CaseImage[],
         investigations: investigations as any[],
-        prescriptions: prescriptions as any[],
+        prescriptions: prescriptionRows as any[],
         vaccines: vaccines as any[],
         reminders: reminders as any[],
       };

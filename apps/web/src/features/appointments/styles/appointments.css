@@ -2188,6 +2188,7 @@
   background: #f0fdf4;
   border-color: #16a34a;
 }
+.appt-success-text {
   margin-top: var(--pp-space-4);
   animation: fadeIn 0.4s ease-out;
 }
@@ -2795,7 +2796,6 @@
 .appt-slot-list::-webkit-scrollbar-thumb {
   background: var(--pp-warm-4);
   border-radius: 10px;
-}
 }
 
 .appt-add-btn:hover {

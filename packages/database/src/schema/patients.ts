@@ -27,7 +27,7 @@ export const patients = pgTable('case_datas', {
   // age: integer('age'),
 
   // Status (marital status in legacy schema)
-  // status: text('status'),
+  status: text('status'),
 
   // Contact
   phone: varchar('phone', { length: 20 }),
@@ -37,27 +37,27 @@ export const patients = pgTable('case_datas', {
 
   // Address
   address: text('address'),
-  // road: text('road'),
-  // area: text('area'),
+  road: text('road'),
+  area: text('area'),
   city: text('city'),
   state: text('state'),
   pin: text('pin'),
-  // altAddress: text('alt_address'),
+  altAddress: text('alt_address'),
 
   // Medical / Social
-  // religion: text('religion'),
-  // occupation: text('occupation'),
-  // bloodGroup: text('blood_group'),
+  religion: text('religion'),
+  occupation: text('occupation'),
+  bloodGroup: text('blood_group'),
 
   // Reference & Referral — IMPORTANT: actual DB column is 'reference', NOT 'reference_type'
-  // reference: text('reference'),
-  // referedBy: text('refered_by'),
-  // referedName: text('refered_name'),
+  reference: text('reference'),
+  referedBy: text('refered_by'),
+  referedName: text('refered_name'),
 
   // Doctor & Fees
-  // assitantDoctor: text('assitant_doctor'),
-  // consultationFee: integer('consultation_fee'),
-  // courierOutstation: text('courier_outstation'),
+  assitantDoctor: text('assitant_doctor'),
+  consultationFee: integer('consultation_fee'),
+  courierOutstation: text('courier_outstation'),
 
   // Identifiers
   // abhaId: text('abha_id'),

@@ -61,7 +61,7 @@ const logger = createLogger('http');
 
 import { createDbClient, TenantRegistry } from '@mmc/database';
 
-export async function createApp(): Promise<{ app: Express; server: HttpServer; io: SocketIOServer; tenantDb: any }> {
+export async function createApp(): Promise<{ app: Express; server: HttpServer; io: SocketIOServer; tenantDb: any; publicDb: any }> {
   const app: Express = express();
   const server: HttpServer = createServer(app);
 

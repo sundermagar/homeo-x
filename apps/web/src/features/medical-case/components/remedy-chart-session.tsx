@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Search, BookOpen, ChevronRight, Activity, 
   FlaskConical, Save, Trash2, Calendar, FileText, Printer, Plus, X
@@ -31,7 +31,7 @@ function SearchableSelect({
   const [search, setSearch] = useState('');
   const wrapperRef = React.useRef<HTMLDivElement>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
         setIsOpen(false);
