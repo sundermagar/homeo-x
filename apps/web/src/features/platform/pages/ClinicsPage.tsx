@@ -10,6 +10,7 @@ import '../styles/platform.css';
 import { Pagination } from '@/shared/components/Pagination';
 import { usePagination } from '@/shared/hooks/use-pagination';
 import { TableSkeleton } from '@/shared/components/TableSkeleton';
+import { Drawer } from '@/shared/components/drawer';
 
 const EMPTY_FORM: any = {
   name: '', email: '', phone: '', city: '', website: '', description: '', connectSince: '',
@@ -228,18 +229,15 @@ export default function ClinicsPage() {
         )}
       </div>
 
-      {/* ─── Create/Edit Modal ─── */}
       {isCreating && (
-        <div className="plat-modal-backdrop" onClick={() => { setIsCreating(false); setEditingOrg(null); setForm(EMPTY_FORM); }}>
-          <div className="plat-modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="plat-modal-header">
-              <h3 className="plat-modal-title">{editingOrg ? 'Edit Clinic' : 'Register New Clinic'}</h3>
-              <button className="plat-btn plat-btn-icon plat-btn-ghost" onClick={() => { setIsCreating(false); setEditingOrg(null); setForm(EMPTY_FORM); }}>
-                <X size={14} />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreate} className="plat-modal-body">
+    <Drawer
+      isOpen={true}
+      onClose={() => { setIsCreating(false); setEditingOrg(null); setForm(EMPTY_FORM); }}
+      title={editingOrg ? 'Edit Clinic' : 'Register New Clinic'}
+      maxWidth="600px"
+    >
+      <div className="plat-modal-content" style={{ border: 'none', boxShadow: 'none', margin: 0, padding: 0 }}>
+        <form onSubmit={handleCreate} className="plat-modal-body">
               <div className="plat-form-section">
                 <h4 className="plat-form-section-title">Clinic Identity</h4>
                 <div className="plat-form-grid-multi">
@@ -363,7 +361,7 @@ export default function ClinicsPage() {
               </div>
             </form>
           </div>
-        </div>
+        </Drawer>
       )}
 
     </div>

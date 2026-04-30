@@ -3,6 +3,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useStaffList, useDeleteStaff } from '../hooks/use-staff';
 import { Grid, List } from 'lucide-react';
 import type { StaffCategory, StaffSummary } from '@mmc/types';
+import { Pagination } from '@/shared/components/Pagination';
+import { TableSkeleton } from '@/shared/components/TableSkeleton';
 
 const TABS: { key: StaffCategory; label: string; color: string; icon: string }[] = [
   { key: 'doctor', label: 'Doctors', color: '#0ea5e9', icon: '🩺' },
@@ -23,6 +25,7 @@ export default function StaffListPage({ defaultTab }: { defaultTab?: StaffCatego
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(PAGE_SIZE);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   useEffect(() => {
@@ -30,7 +33,7 @@ export default function StaffListPage({ defaultTab }: { defaultTab?: StaffCatego
     setActiveTab(tab);
   }, [searchParams, defaultTab]);
 
-  const { data, isLoading } = useStaffList(activeTab, { page, limit: PAGE_SIZE, search: debouncedSearch });
+  const { data, isLoading } = useStaffList(activeTab, { page, limit: itemsPerPage, search: debouncedSearch });
   const deleteMutation = useDeleteStaff();
 
   const handleSearchChange = (val: string) => {
@@ -133,17 +136,20 @@ export default function StaffListPage({ defaultTab }: { defaultTab?: StaffCatego
 
       {/* Content */}
       {isLoading ? (
-        <div style={{ textAlign: 'center', padding: 80, color: '#94a3b8' }}>
-          <div style={{ fontSize: 32, marginBottom: 12, animation: 'spin 1s linear infinite' }}>⟳</div>
-          <p style={{ fontWeight: 600 }}>Loading {currentTabMeta.label.toLowerCase()}...</p>
-        </div>
+        viewMode === 'list' ? <TableSkeleton rows={itemsPerPage} columns={7} /> : (
+          <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
+            {Array.from({ length: itemsPerPage }).map((_, i) => (
+              <div key={i} className="shimmer-wrapper" style={{ height: 180, borderRadius: 18 }}></div>
+            ))}
+          </div>
+        )
       ) : staff.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 80, color: '#94a3b8', background: 'var(--bg-card)', border: '1px solid #e2e8f0', borderRadius: 14 }}>
           <p style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>No {currentTabMeta.label.toLowerCase()} found</p>
           <p style={{ fontSize: 14 }}>Add your first {currentTabMeta.label.toLowerCase().replace(/s$/, '')} to get started.</p>
         </div>
       ) : viewMode === 'list' ? (
-        <div className="table-responsive card" style={{ background: 'var(--bg-card)', overflow: 'hidden' }}>
+        <div className="table-responsive card" style={{ background: 'var(--bg-card)', overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700 }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border-light)' }}>
@@ -162,7 +168,7 @@ export default function StaffListPage({ defaultTab }: { defaultTab?: StaffCatego
               {staff.map((s: StaffSummary, idx: number) => (
                 <tr key={s.id} className="staff-row" style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.15s' }}>
                   <td style={{ padding: '14px 20px', fontSize: 12, fontWeight: 700, color: '#94a3b8' }}>
-                    {((page - 1) * PAGE_SIZE) + idx + 1}
+                    {((page - 1) * itemsPerPage) + idx + 1}
                   </td>
                   <td style={{ padding: '14px 20px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -264,12 +270,14 @@ export default function StaffListPage({ defaultTab }: { defaultTab?: StaffCatego
       )}
 
       {/* Pagination */}
-      {totalPages > 1 && (
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 32 }}>
-          <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12, fontWeight: 700, cursor: page <= 1 ? 'default' : 'pointer', opacity: page <= 1 ? 0.4 : 1, background: 'var(--bg-card)', color: '#0f172a' }}>← Previous</button>
-          <span style={{ padding: '8px 16px', fontSize: 13, fontWeight: 700, color: '#64748b' }}>Page {page} of {totalPages}</span>
-          <button disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12, fontWeight: 700, cursor: page >= totalPages ? 'default' : 'pointer', opacity: page >= totalPages ? 0.4 : 1, background: 'var(--bg-card)', color: '#0f172a' }}>Next →</button>
-        </div>
+      {!isLoading && staff.length > 0 && (
+        <Pagination
+          totalItems={data?.total || 0}
+          itemsPerPage={itemsPerPage}
+          currentPage={page}
+          onPageChange={setPage}
+          onLimitChange={setItemsPerPage}
+        />
       )}
     </div>
   );

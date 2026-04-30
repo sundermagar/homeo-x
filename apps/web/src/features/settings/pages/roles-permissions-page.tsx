@@ -30,6 +30,7 @@ import {
 import './roles-permissions.css';
 import '@/features/platform/styles/platform.css';
 import { TableSkeleton } from '@/shared/components/TableSkeleton';
+import { Drawer } from '@/shared/components/drawer';
 
 export function RolesPermissionsPage() {
   const [activeTab, setActiveTab] = useState<'matrix' | 'lab'>('matrix');
@@ -112,16 +113,16 @@ export function RolesPermissionsPage() {
           <p className="plat-header-sub">Define organizational hierarchies and cross-module capability nodes.</p>
         </div>
 
-        <div className="plat-header-actions">
-          <div className="plat-tab-group">
+        <div className="plat-header-actions" style={{ flexWrap: 'wrap' }}>
+          <div className="plat-view-toggle-group">
             <button
-              className={`plat-tab ${activeTab === 'matrix' ? 'active' : ''}`}
+              className={`plat-view-toggle-btn ${activeTab === 'matrix' ? 'is-active' : ''}`}
               onClick={() => setActiveTab('matrix')}
             >
               Access Matrix
             </button>
             <button
-              className={`plat-tab ${activeTab === 'lab' ? 'active' : ''}`}
+              className={`plat-view-toggle-btn ${activeTab === 'lab' ? 'is-active' : ''}`}
               onClick={() => setActiveTab('lab')}
             >
               Capability Lab
@@ -348,116 +349,110 @@ export function RolesPermissionsPage() {
           </div>
         )}
 
-        {/* ── Role Management Modal ── */}
-        {roleModalOpen && (
-          <div className="plat-modal-backdrop" onClick={() => setRoleModalOpen(false)}>
-            <div className="plat-modal-content max-w-md" onClick={e => e.stopPropagation()}>
-              <div className="plat-modal-header">
-                <h3 className="plat-modal-title">{editRole ? 'Update Role Definition' : 'Register New Organizational Role'}</h3>
-                <button className="plat-btn plat-btn-icon plat-btn-ghost" onClick={() => setRoleModalOpen(false)}>
-                  <X size={14} />
-                </button>
-              </div>
-              <form onSubmit={async (e) => {
-                e.preventDefault();
-                const formData = new FormData(e.currentTarget);
-                const data = {
-                  name: formData.get('name') as string,
-                  description: formData.get('description') as string,
-                  displayName: formData.get('name') as string,
-                };
-                if (editRole) {
-                  await updateRole.mutateAsync({ id: editRole.id, ...data });
-                } else {
-                  await createRole.mutateAsync(data);
-                }
-                setRoleModalOpen(false);
-              }}>
-                <div className="plat-modal-body">
-                  <div className="plat-form-section">
-                    <div className="plat-form-grid-multi" style={{ gridTemplateColumns: '1fr' }}>
-                      <div className="plat-form-group">
-                        <label className="plat-form-label">Role Name / Identifier *</label>
-                        <input name="name" defaultValue={editRole?.name} required className="plat-form-input" placeholder="e.g. Clinical Staff" />
-                      </div>
-                      <div className="plat-form-group">
-                        <label className="plat-form-label">Purpose / Description</label>
-                        <textarea name="description" defaultValue={editRole?.description} className="plat-form-input" style={{ minHeight: '100px' }} placeholder="What capabilities does this role typically perform?" />
-                      </div>
+        {/* ── Role Management Drawer ── */}
+        <Drawer
+          isOpen={roleModalOpen}
+          onClose={() => setRoleModalOpen(false)}
+          title={editRole ? 'Update Role Definition' : 'Register New Organizational Role'}
+          maxWidth="600px"
+        >
+          <div className="plat-modal-content" style={{ border: 'none', boxShadow: 'none', margin: 0, padding: 0 }}>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
+              const data = {
+                name: formData.get('name') as string,
+                description: formData.get('description') as string,
+                displayName: formData.get('name') as string,
+              };
+              if (editRole) {
+                await updateRole.mutateAsync({ id: editRole.id, ...data });
+              } else {
+                await createRole.mutateAsync(data);
+              }
+              setRoleModalOpen(false);
+            }}>
+              <div className="plat-modal-body">
+                <div className="plat-form-section">
+                  <div className="plat-form-grid-multi" style={{ gridTemplateColumns: '1fr' }}>
+                    <div className="plat-form-group">
+                      <label className="plat-form-label">Role Name / Identifier *</label>
+                      <input name="name" defaultValue={editRole?.name} required className="plat-form-input" placeholder="e.g. Clinical Staff" />
+                    </div>
+                    <div className="plat-form-group">
+                      <label className="plat-form-label">Purpose / Description</label>
+                      <textarea name="description" defaultValue={editRole?.description} className="plat-form-input" style={{ minHeight: '100px' }} placeholder="What capabilities does this role typically perform?" />
                     </div>
                   </div>
                 </div>
-                <div className="plat-modal-footer">
-                  <button type="button" className="plat-btn plat-btn-ghost" onClick={() => setRoleModalOpen(false)}>Cancel</button>
-                  <button type="submit" className="plat-btn plat-btn-primary" disabled={createRole.isPending || updateRole.isPending}>
-                    {editRole ? 'Sync Changes' : 'Create Role'}
-                  </button>
-                </div>
-              </form>
-            </div>
+              </div>
+              <div className="plat-modal-footer">
+                <button type="button" className="plat-btn plat-btn-ghost" onClick={() => setRoleModalOpen(false)}>Cancel</button>
+                <button type="submit" className="plat-btn plat-btn-primary" disabled={createRole.isPending || updateRole.isPending}>
+                  {editRole ? 'Sync Changes' : 'Create Role'}
+                </button>
+              </div>
+            </form>
           </div>
-        )}
+        </Drawer>
 
-        {/* ── Capability Lab Modal (Permissions) ── */}
-        {permModalOpen && (
-          <div className="plat-modal-backdrop" onClick={() => setPermModalOpen(false)}>
-            <div className="plat-modal-content max-w-md" onClick={e => e.stopPropagation()}>
-              <div className="plat-modal-header">
-                <h3 className="plat-modal-title">{editPerm ? 'Refine Capability Node' : 'Define New System Capability'}</h3>
-                <button className="plat-btn plat-btn-icon plat-btn-ghost" onClick={() => setPermModalOpen(false)}>
-                  <X size={14} />
-                </button>
-              </div>
-              <form onSubmit={async (e) => {
-                e.preventDefault();
-                const formData = new FormData(e.currentTarget);
-                const data = {
-                  name: formData.get('name') as string,
-                  module: formData.get('module') as string,
-                  description: formData.get('description') as string,
-                };
-                if (editPerm) {
-                  await updatePerm.mutateAsync({ id: editPerm.id, slug: editPerm.slug, ...data });
-                } else {
-                  await createPerm.mutateAsync(data);
-                }
-                setPermModalOpen(false);
-              }}>
-                <div className="plat-modal-body">
-                  <div className="plat-form-section">
-                    <div className="plat-form-grid-multi" style={{ gridTemplateColumns: '1fr' }}>
-                      <div className="plat-form-group">
-                        <label className="plat-form-label">Node Friendly Name *</label>
-                        <input name="name" defaultValue={editPerm?.name} required className="plat-form-input" placeholder="e.g. Patients View Only" />
-                      </div>
-                      <div className="plat-form-group">
-                        <label className="plat-form-label">System Module / Cluster</label>
-                        <select name="module" defaultValue={editPerm?.module || 'CORE'} className="plat-form-input">
-                          <option value="CORE">Global Core</option>
-                          <option value="PLATFORM">Platform Management</option>
-                          <option value="CLINICAL">Clinical Workflows</option>
-                          <option value="BILLING">Billing & Finance</option>
-                          <option value="INVENTORY">Inventory / Stores</option>
-                          <option value="CRM">Patient Relationship</option>
-                        </select>
-                      </div>
-                      <div className="plat-form-group">
-                        <label className="plat-form-label">Operational Scope</label>
-                        <textarea name="description" defaultValue={editPerm?.description} className="plat-form-input" style={{ minHeight: '80px' }} placeholder="What specific access does this node grant?" />
-                      </div>
+        {/* ── Capability Lab Drawer (Permissions) ── */}
+        <Drawer
+          isOpen={permModalOpen}
+          onClose={() => setPermModalOpen(false)}
+          title={editPerm ? 'Refine Capability Node' : 'Define New System Capability'}
+          maxWidth="600px"
+        >
+          <div className="plat-modal-content" style={{ border: 'none', boxShadow: 'none', margin: 0, padding: 0 }}>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
+              const data = {
+                name: formData.get('name') as string,
+                module: formData.get('module') as string,
+                description: formData.get('description') as string,
+              };
+              if (editPerm) {
+                await updatePerm.mutateAsync({ id: editPerm.id, slug: editPerm.slug, ...data });
+              } else {
+                await createPerm.mutateAsync(data);
+              }
+              setPermModalOpen(false);
+            }}>
+              <div className="plat-modal-body">
+                <div className="plat-form-section">
+                  <div className="plat-form-grid-multi" style={{ gridTemplateColumns: '1fr' }}>
+                    <div className="plat-form-group">
+                      <label className="plat-form-label">Node Friendly Name *</label>
+                      <input name="name" defaultValue={editPerm?.name} required className="plat-form-input" placeholder="e.g. Patients View Only" />
+                    </div>
+                    <div className="plat-form-group">
+                      <label className="plat-form-label">System Module / Cluster</label>
+                      <select name="module" defaultValue={editPerm?.module || 'CORE'} className="plat-form-input">
+                        <option value="CORE">Global Core</option>
+                        <option value="PLATFORM">Platform Management</option>
+                        <option value="CLINICAL">Clinical Workflows</option>
+                        <option value="BILLING">Billing & Finance</option>
+                        <option value="INVENTORY">Inventory / Stores</option>
+                        <option value="CRM">Patient Relationship</option>
+                      </select>
+                    </div>
+                    <div className="plat-form-group">
+                      <label className="plat-form-label">Operational Scope</label>
+                      <textarea name="description" defaultValue={editPerm?.description} className="plat-form-input" style={{ minHeight: '80px' }} placeholder="What specific access does this node grant?" />
                     </div>
                   </div>
                 </div>
-                <div className="plat-modal-footer">
-                  <button type="button" className="plat-btn plat-btn-ghost" onClick={() => setPermModalOpen(false)}>Discard</button>
-                  <button type="submit" className="plat-btn plat-btn-primary" disabled={createPerm.isPending || updatePerm.isPending}>
-                    {editPerm ? 'Update Node' : 'Register Node'}
-                  </button>
-                </div>
-              </form>
-            </div>
+              </div>
+              <div className="plat-modal-footer">
+                <button type="button" className="plat-btn plat-btn-ghost" onClick={() => setPermModalOpen(false)}>Discard</button>
+                <button type="submit" className="plat-btn plat-btn-primary" disabled={createPerm.isPending || updatePerm.isPending}>
+                  {editPerm ? 'Update Node' : 'Register Node'}
+                </button>
+              </div>
+            </form>
           </div>
-        )}
+        </Drawer>
     </div>
   );
 }
