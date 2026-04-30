@@ -831,3 +831,82 @@ button.pp-link:hover {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* ─── DOCTOR DASHBOARD PANEL UI OVERRIDES (Matched to Reference) ─── */
+.doctor-dashboard-panel .dash-kpi-item,
+.doctor-dashboard-panel .dash-card,
+.doctor-dashboard-panel .dash-sidebar-card,
+.doctor-dashboard-panel .dd-active-head-up {
+  background: #ffffff;
+  border: 1px solid #e5e7eb; /* Soft light gray border */
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); /* Soft, professional shadow */
+  transition: all 0.3s ease;
+}
+
+.doctor-dashboard-panel .dash-card-header,
+.doctor-dashboard-panel .dd-hud-header {
+  background: transparent; /* Remove background fill to match reference */
+  border-bottom: 1px solid #f1f5f9;
+  padding: 16px 20px;
+}
+
+.doctor-dashboard-panel .dd-hud-header {
+  border-radius: 12px 12px 0 0;
+}
+
+.doctor-dashboard-panel .dash-section-title,
+.doctor-dashboard-panel .dash-kpi-label {
+  color: #64748b; /* Slate 500 */
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.doctor-dashboard-panel .dash-kpi-value {
+  color: #0f172a; /* Slate 900 */
+}
+
+.doctor-dashboard-panel .dash-kpi-item:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+  transform: translateY(-2px);
+}
+
+.doctor-dashboard-panel .dash-row {
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.doctor-dashboard-panel .dash-row:hover {
+  background: #f8fafc;
+}
+
+.doctor-dashboard-panel .dash-row.active {
+  background: #f1f5f9;
+  border-left: 3px solid #0f172a;
+}
+
+.doctor-dashboard-panel .dash-row-details {
+  background: #f8fafc;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+/* Standardized skeletons are now in shared.css */
+
+
+.skeleton-text {
+  height: 12px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+}
+
+.skeleton-text.title {
+  height: 24px;
+  width: 40%;
+  margin-bottom: 16px;
+}
+
+.skeleton-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}

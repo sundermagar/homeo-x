@@ -38,6 +38,7 @@ import {
   FileJson,
   UserCheck,
   ChevronDown,
+  ChevronRight,
   Sparkles,
   Clock,
   Send,
@@ -85,9 +86,7 @@ interface NavGroup {
   label: string;
   icon: LucideIcon;
   children: NavChild[];
-  /** Roles allowed to see this group. Undefined = visible to all. */
   roles?: UserRole[];
-  /** If set, clicking the group header also navigates to this path */
   defaultPath?: string;
 }
 
@@ -140,11 +139,11 @@ const NAV_STRUCTURE: NavItem[] = [
       roles: CLINICAL,
       defaultPath: '/clinical-hub',
       children: [
-        // { path: '/consultation-history', label: 'Case History', icon: BarChart2 },
         { path: '/vitals-check', label: 'Height & Weight Check', icon: Scale },
         // { path: '/medical-cases', label: 'Medical Cases', icon: Stethoscope },
         { path: '/ai-remedy-chart', label: 'Materia Medica', icon: BookOpen },
         { path: '/ai-analysis', label: 'AI Analysis', icon: BrainCircuit },
+        { path: '/clinical/remedy-chart', label: 'Remedy Chart', icon: Activity },
         { path: '/medical-cases/followups', label: 'Follow-up Dues', icon: BellDot },
       ],
     },
@@ -270,6 +269,8 @@ const NAV_STRUCTURE: NavItem[] = [
       children: [
         { path: '/settings/departments', label: 'Departments', icon: Layers },
         { path: '/settings/medicines', label: 'Medicine Catalog', icon: Pill },
+        { path: '/settings/stocks', label: 'Stock Management', icon: Package },
+        { path: '/settings/stock-logs', label: 'Stock Logs', icon: Database },
         { path: '/settings/potencies', label: 'Potencies', icon: Sparkles },
         { path: '/settings/frequencies', label: 'Dosage Frequencies', icon: Clock },
         { path: '/settings/dispensaries', label: 'Dispensaries', icon: Hospital },
@@ -278,12 +279,11 @@ const NAV_STRUCTURE: NavItem[] = [
         { path: '/settings/cms', label: 'Content (CMS)', icon: Globe },
         { path: '/settings/pdf', label: 'PDF & Reports', icon: FileText },
         { path: '/settings/faqs', label: 'Help & FAQs', icon: HelpCircle },
+        { path: '/settings/staff', label: 'Staff Management', icon: UserCircle },
       ],
     },
   },
 ];
-
-// ─── Role Normalizer ─────────────────────────────────────────────────────────
 
 function normalizeRole(raw: string | undefined | null): UserRole | null {
   if (!raw) return null;
@@ -308,8 +308,6 @@ function getRoleLabel(role: UserRole | null): string {
   return labels[role];
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
@@ -328,17 +326,14 @@ function isGroupActive(group: NavGroup, currentLocation: string): boolean {
   });
 }
 
-// ─── Component ───────────────────────────────────────────────────────────────
-
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { user, logout } = useAuthStore();
-  const { darkMode, toggleDarkMode } = useUiStore();
+  const { darkMode, toggleDarkMode, sidebarCollapsed, toggleSidebarCollapse } = useUiStore();
   const navigate = useNavigate();
   const location = useLocation();
 
   const userRole = normalizeRole((user as any)?.type || (user as any)?.role);
 
-  // Filter nav items by role
   const visibleNav = NAV_STRUCTURE.filter(item => {
     if (item.type === 'link') {
       return !item.roles || (userRole && item.roles.includes(userRole));
@@ -346,14 +341,12 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     return !item.group.roles || (userRole && item.group.roles.includes(userRole));
   });
 
-  // Auto-expand the active group by default
   const currentLocation = location.pathname + location.search;
   const defaultOpen = visibleNav
     .filter((item): item is { type: 'group'; group: NavGroup } => item.type === 'group')
     .filter(item => isGroupActive(item.group, currentLocation))
     .map(item => item.group.id);
 
-  // Auto-expand any sub-group whose children match the current path
   const defaultOpenSub = visibleNav
     .filter((item): item is { type: 'group'; group: NavGroup } => item.type === 'group')
     .flatMap(item => item.group.children)
@@ -402,14 +395,16 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
               <span className="sidebar-child-dot" />
               <ChildIcon className="sidebar-child-icon" strokeWidth={1.8} />
-              <span>{child.label}</span>
+              {!sidebarCollapsed && <span>{child.label}</span>}
             </div>
-            <ChevronDown 
-              size={14} 
-              strokeWidth={2.5} 
-              className={`sidebar-chevron ${isSubOpen ? 'open' : ''}`} 
-              style={{ opacity: 0.5 }}
-            />
+            {!sidebarCollapsed && (
+              <ChevronDown 
+                size={14} 
+                strokeWidth={2.5} 
+                className={`sidebar-chevron ${isSubOpen ? 'open' : ''}`} 
+                style={{ opacity: 0.5 }}
+              />
+            )}
           </button>
 
           {isSubOpen && (
@@ -437,7 +432,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       >
         <span className="sidebar-child-dot" />
         <ChildIcon className="sidebar-child-icon" strokeWidth={1.8} />
-        <span>{child.label}</span>
+        {!sidebarCollapsed && <span>{child.label}</span>}
       </NavLink>
     );
   };
@@ -449,21 +444,24 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         onClick={onClose}
       />
 
-      <aside className={`sidebar ${isOpen ? 'is-open' : ''}`}>
-        {/* ── Logo ── */}
+      <aside className={`sidebar ${isOpen ? 'is-open' : ''} ${sidebarCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-header">
           <div className="sidebar-logo-group">
             <div className="sidebar-logo">
               <Infinity size={20} strokeWidth={2.5} />
             </div>
-            <span className="sidebar-brand">Kreed.health</span>
+            {!sidebarCollapsed && <span className="sidebar-brand">Kreed.health</span>}
           </div>
-          <button className="mh-menu-btn sidebar-header-close" onClick={onClose}>
-            <X size={20} strokeWidth={1.6} />
-          </button>
+          <div className="sidebar-header-actions">
+            <button className="collapse-toggle-btn" onClick={toggleSidebarCollapse}>
+              {sidebarCollapsed ? <ChevronRight size={18} strokeWidth={2} /> : <ChevronRight size={18} strokeWidth={2} className="rotate-180" />}
+            </button>
+            <button className="mh-menu-btn sidebar-header-close" onClick={onClose}>
+              <X size={20} strokeWidth={1.6} />
+            </button>
+          </div>
         </div>
 
-        {/* ── Navigation ── */}
         <nav className="sidebar-nav">
           {visibleNav.map((item) => {
             if (item.type === 'link') {
@@ -477,12 +475,11 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                   onClick={handleNavClick}
                 >
                   <Icon className="sidebar-item-icon" strokeWidth={1.8} />
-                  <span>{item.label}</span>
+                  {!sidebarCollapsed && <span>{item.label}</span>}
                 </NavLink>
               );
             }
 
-            // Grouped section
             const { group } = item;
             const isOpen_ = openGroups.includes(group.id);
             const groupActive = isGroupActive(group, location.pathname);
@@ -499,11 +496,13 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 >
                   <div className="sidebar-group-trigger-left">
                     <GroupIcon className="sidebar-item-icon" strokeWidth={1.8} />
-                    <span>{group.label}</span>
+                    {!sidebarCollapsed && <span>{group.label}</span>}
                   </div>
-                  <span className={`sidebar-chevron ${isOpen_ ? 'open' : ''}`}>
-                    <ChevronDown size={14} strokeWidth={2} />
-                  </span>
+                  {!sidebarCollapsed && (
+                    <span className={`sidebar-chevron ${isOpen_ ? 'open' : ''}`}>
+                      <ChevronDown size={14} strokeWidth={2} />
+                    </span>
+                  )}
                 </button>
 
                 <div className={`sidebar-group-children ${isOpen_ ? 'expanded' : ''}`}>
@@ -516,7 +515,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           })}
         </nav>
 
-        {/* ── Footer ── */}
         <div className="sidebar-footer">
           <div className="user-profile">
             <div className="user-avatar">
@@ -524,20 +522,18 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 {user?.name?.substring(0, 2).toUpperCase() || 'UX'}
               </span>
             </div>
-            <div className="user-info">
-              <div className="user-name">{user?.name || 'Practitioner'}</div>
-              <div className="user-role">{getRoleLabel(userRole) || (user as any)?.type || 'Doctor'}</div>
-            </div>
+            {!sidebarCollapsed && (
+              <div className="user-info">
+                <div className="user-name">{user?.name || 'Practitioner'}</div>
+                <div className="user-role">{getRoleLabel(userRole) || (user as any)?.type || 'Doctor'}</div>
+              </div>
+            )}
             
-            <button 
-              className="theme-toggle-btn" 
-              onClick={toggleDarkMode} 
-              title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
-            >
+            <button className="theme-toggle-btn" onClick={toggleDarkMode}>
               {darkMode ? <Sun size={16} strokeWidth={2} /> : <Moon size={16} strokeWidth={2} />}
             </button>
 
-            <button className="logout-btn" onClick={logout} title="Logout">
+            <button className="logout-btn" onClick={logout}>
               <LogOut size={16} strokeWidth={2} />
             </button>
           </div>

@@ -9,6 +9,8 @@ import { useAuthStore } from '../../../shared/stores/auth-store';
 import { printBill } from '../../../shared/utils/print';
 import { format } from 'date-fns';
 import type { BillWithPatient } from '@mmc/types';
+import { PageHeader } from '@/components/shared/page-header';
+import { Pagination } from '@/components/shared/pagination';
 import '../../platform/styles/platform.css';
 import '../styles/billing.css';
 
@@ -46,27 +48,29 @@ export default function BillingListPage() {
     <div className="bill-page fade-in">
 
       {/* ─── Header ─── */}
-      <div className="bill-header">
-        <div>
-          <h1 className="bill-header-title">
-            <Receipt size={20} strokeWidth={1.6} style={{ color: 'var(--pp-blue)' }} />
-            Billing &amp; Finance
-          </h1>
-          <p className="bill-header-sub">Manage clinic invoices, daily collections, and patient accounts.</p>
-        </div>
-        <div className="bill-header-actions">
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="bill-filter-input"
-          />
-          <button className="bill-btn bill-btn-primary" onClick={() => (window.location.href = '/billing/create')}>
-            <FilePlus size={14} strokeWidth={1.6} />
-            New Bill
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        icon={Receipt}
+        title="Billing & Finance"
+        description="Manage clinic invoices, daily collections, and patient accounts."
+        actions={
+          <div className="bill-header-actions">
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="pp-input" style={{ width: 'auto', height: '36px' }}
+            />
+            <button className="btn-primary" onClick={() => (window.location.href = '/billing/create')}>
+              <FilePlus size={14} strokeWidth={1.6} />
+              New Bill
+            </button>
+            <button className="btn-secondary" onClick={() => (window.location.href = '/billing/custom')}>
+              <FilePlus size={14} strokeWidth={1.6} />
+              Custom Bill
+            </button>
+          </div>
+        }
+      />
 
       {/* ─── KPI Stats ─── */}
       <div className="bill-stats-bar">
@@ -106,20 +110,20 @@ export default function BillingListPage() {
         <div />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <div className="bill-view-toggle-group">
+          <div className="appt-segmented-toggle">
             <button
               type="button"
               onClick={() => setViewMode('list')}
-              className={`bill-view-toggle-btn${viewMode === 'list' ? ' is-active' : ''}`}
+              className={`appt-segmented-btn ${viewMode === 'list' ? 'active' : ''}`}
             >
-              <List size={14} /> List
+              <List size={16} /> List
             </button>
             <button
               type="button"
               onClick={() => setViewMode('grid')}
-              className={`bill-view-toggle-btn${viewMode === 'grid' ? ' is-active' : ''}`}
+              className={`appt-segmented-btn ${viewMode === 'grid' ? 'active' : ''}`}
             >
-              <Grid size={14} /> Grid
+              <Grid size={16} /> Grid
             </button>
           </div>
           <div className="bill-search-wrap">
@@ -195,15 +199,16 @@ export default function BillingListPage() {
       )}
 
       {/* ─── Pagination ─── */}
-      <div className="bill-pagination">
-        <span className="bill-page-info">Page {page} · {total} total</span>
-        <button className="bill-btn bill-btn-sm bill-btn-icon" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
-          <ChevronLeft size={14} strokeWidth={2} />
-        </button>
-        <button className="bill-btn bill-btn-sm bill-btn-icon" disabled={!hasMore} onClick={() => setPage(p => p + 1)}>
-          <ChevronRight size={14} strokeWidth={2} />
-        </button>
-      </div>
+      {total > 0 && (
+        <Pagination
+          currentPage={page}
+          totalPages={Math.max(1, Math.ceil(total / 30))}
+          pageSize={30}
+          totalItems={total}
+          onPageChange={setPage}
+          onPageSizeChange={() => {}}
+        />
+      )}
 
       {selectedBill && (
         <PrintOptionsModal

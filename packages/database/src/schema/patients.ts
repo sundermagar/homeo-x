@@ -15,7 +15,8 @@ export const patients = pgTable('case_datas', {
   // Basic Info
   gender: varchar('gender', { length: 20 }),
   dob: date('dob'),
-  dateOfBirth: varchar('date_of_birth', { length: 50 }),
+  dateOfBirth: text('date_of_birth'),
+  status: text('status'),
   
   // Contact
   phone: varchar('phone', { length: 50 }),
@@ -25,11 +26,28 @@ export const patients = pgTable('case_datas', {
   
   // Location
   address: text('address'),
-  city: varchar('city', { length: 100 }),
-  state: varchar('state', { length: 100 }),
-  pin: varchar('pin', { length: 20 }),
-  
-  // Metadata
+  road: text('road'),
+  area: text('area'),
+  city: text('city'),
+  state: text('state'),
+  pin: text('pin'),
+  altAddress: text('alt_address'),
+
+  // Medical / Social
+  religion: text('religion'),
+  occupation: text('occupation'),
+  bloodGroup: text('blood_group'),
+
+  // Reference & Referral
+  reference: text('reference'),
+  referedBy: text('refered_by'),
+  referedName: text('refered_name'),
+
+  // Doctor & Fees
+  assitantDoctor: text('assitant_doctor'),
+  consultationFee: integer('consultation_fee'),
+  courierOutstation: text('courier_outstation'),
+
   notes: text('notes'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),

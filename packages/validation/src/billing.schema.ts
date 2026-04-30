@@ -19,6 +19,8 @@ export const createBillSchema = z.object({
   chargeId: z.number().int().positive().optional(),
   doctorId: z.number().int().positive().optional(),
   notes: z.string().optional(),
+  billType: z.enum(['Consultation', 'Package', 'Registration', 'Custom']).optional(),
+  customTitle: z.string().max(255).optional(),
 });
 
 export const updateBillSchema = createBillSchema.partial().omit({ regid: true });
@@ -176,6 +178,22 @@ export const listExpensesQuerySchema = z.object({
 export type CreateExpenseInput = z.infer<typeof createExpenseSchema>;
 export type UpdateExpenseInput = z.infer<typeof updateExpenseSchema>;
 export type ListExpensesQuery = z.infer<typeof listExpensesQuerySchema>;
+
+// ─── Custom Bill Schema ────────────────────────────────────────────────────────
+
+export const createCustomBillSchema = z.object({
+  regid: z.number().int().positive('Patient Reg ID is required'),
+  customTitle: z.string().min(1, 'Title is required').max(255),
+  charges: z.number().min(0, 'Charges must be non-negative'),
+  received: z.number().min(0).default(0),
+  paymentMode: PaymentModeEnum.default('Cash'),
+  billDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  notes: z.string().optional(),
+  fromDate: z.string().optional(),
+  toDate: z.string().optional(),
+});
+
+export type CreateCustomBillInput = z.infer<typeof createCustomBillSchema>;
 
 // ─── Expense Head Schemas ──────────────────────────────────────────────────────
 

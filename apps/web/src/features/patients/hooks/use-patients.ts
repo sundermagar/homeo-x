@@ -8,7 +8,15 @@ const FAMILY_KEY = 'family-members';
 
 // ─── Patient Queries ───
 
-export function usePatients(params: { page?: number; limit?: number; search?: string; doctorId?: number; clinicId?: number }) {
+export function usePatients(params: { 
+  page?: number; 
+  limit?: number; 
+  search?: string; 
+  doctorId?: number; 
+  clinicId?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}) {
   return useQuery({
     queryKey: [PATIENTS_KEY, params],
     queryFn: async () => {
@@ -18,6 +26,8 @@ export function usePatients(params: { page?: number; limit?: number; search?: st
         search: params.search,
         doctor_id: params.doctorId,
         clinicId: params.clinicId,
+        sortBy: params.sortBy,
+        sortOrder: params.sortOrder,
       };
       const res = await apiClient.get('/patients', { params: apiParams });
       return { 

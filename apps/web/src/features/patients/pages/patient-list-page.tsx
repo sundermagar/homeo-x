@@ -1,31 +1,59 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { usePatients, useDeletePatient } from '../hooks/use-patients';
-import { Search, Plus, List as ListIcon, Grid, Eye, Edit2, Phone, MapPin, Calendar } from 'lucide-react';
+import { 
+  Search, Plus, List as ListIcon, Grid, Eye, Edit2, Phone, MapPin, Calendar, 
+  ChevronLeft, ChevronRight, MessageCircle, Printer, Download, RefreshCw, MoreVertical, Trash2
+} from 'lucide-react';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { Role, type PatientSummary } from '@mmc/types';
+import { PatientFormDrawer } from '../components/patient-form-drawer';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
 import '../../appointments/styles/appointments.css';
+import '../../dashboard/pages/role-dashboards.css';
 import '../styles/patients.css';
+import { Pagination } from '@/components/shared/pagination';
 
-const PAGE_SIZE = 10;
+function formatDate(date: Date | string | null | undefined) {
+  if (!date) return '—';
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function openWhatsApp(phone: string | null, name: string) {
+  if (!phone) return alert('No phone number available.');
+  const cleaned = phone.replace(/\D/g, '');
+  const msg = encodeURIComponent(`Hello ${name}, this is a message from your clinic.`);
+  window.open(`https://wa.me/91${cleaned}?text=${msg}`, '_blank');
+}
 
 export default function PatientListPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [sortBy, setSortBy] = useState('newest');
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+
+  // Drawer state
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [drawerRegid, setDrawerRegid] = useState<number | null>(null);
 
   const user = useAuthStore(s => s.user);
-  const rawRole = ((user as any)?.type || (user as any)?.role || (user as any)?.roleName || '').toLowerCase();
-  const isDoctor = rawRole === 'doctor' || rawRole === 'medical practitioner' || ((user as any)?.name || '').toLowerCase().startsWith('dr');
+  const rawRole = ((user as any)?.type || (user as any)?.role || '').toLowerCase();
+  const isDoctor = rawRole === 'doctor';
 
-  const { data, isLoading } = usePatients({ 
-    page, 
-    limit: PAGE_SIZE, 
+  const { data, isLoading, refetch } = usePatients({
+    page,
+    limit: pageSize,
     search: debouncedSearch,
-    clinicId: (user as any)?.contextId
+    clinicId: (user as any)?.contextId,
+    sortBy: sortBy,
+    sortOrder: sortBy === 'oldest' ? 'asc' : 'desc'
   });
   const deleteMutation = useDeletePatient();
 
@@ -36,32 +64,29 @@ export default function PatientListPage() {
     (window as any).__patientSearchTimer = setTimeout(() => setDebouncedSearch(val), 300);
   };
 
-  const patients = useMemo(() => {
-    const list = data?.data || [];
-    if (sortBy === 'name') return [...list].sort((a, b) => a.fullName.localeCompare(b.fullName));
-    
-    if (sortBy === 'oldest') {
-      return [...list].sort((a, b) => {
-        const dateA = new Date(a.createdAt).getTime();
-        const dateB = new Date(b.createdAt).getTime();
-        if (dateA !== dateB) return dateA - dateB;
-        return a.regid - b.regid; // Fallback to regid
-      });
-    }
+  const patients = data?.data || [];
+  const totalEntries = data?.total || 0;
+  const totalPages = Math.ceil(totalEntries / pageSize);
+  const fromEntry = totalEntries === 0 ? 0 : (page - 1) * pageSize + 1;
+  const toEntry = Math.min(page * pageSize, totalEntries);
 
-    if (sortBy === 'newest') {
-      return [...list].sort((a, b) => {
-        const dateA = new Date(a.createdAt).getTime();
-        const dateB = new Date(b.createdAt).getTime();
-        if (dateA !== dateB) return dateB - dateA;
-        return b.regid - a.regid; // Fallback to regid
-      });
-    }
+  const handleDelete = async (regid: number, name: string) => {
+    if (!confirm(`Delete patient "${name}"? This cannot be undone.`)) return;
+    setDeletingId(regid);
+    try {
+      await deleteMutation.mutateAsync(regid);
+      refetch();
+    } catch { alert('Failed to delete patient.'); }
+    finally { setDeletingId(null); }
+  };
 
-    return list;
-  }, [data?.data, sortBy]);
+  const handlePrintPrescription = (regid: number) => {
+    window.open(`/api/medical-cases/remedy-chart/pdf/${regid}`, '_blank');
+  };
 
-  const totalPages = Math.ceil((data?.total || 0) / PAGE_SIZE);
+  const handleDownloadReport = (regid: number) => {
+    window.open(`/api/medical-cases/pdf/summary/${regid}`, '_blank');
+  };
 
   return (
     <div className="pp-page-container animate-fade-in">
@@ -71,63 +96,58 @@ export default function PatientListPage() {
           <p className="text-subtitle">Access and manage comprehensive patient health records.</p>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
-          <div className="appt-view-toggle">
+          <div className="appt-segmented-toggle">
             <button
               type="button"
-              className={`appt-view-btn${viewMode === 'list' ? ' is-active' : ''}`}
+              className={`appt-segmented-btn ${viewMode === 'list' ? 'active' : ''}`}
               onClick={() => setViewMode('list')}
             >
-              <ListIcon size={14} /> List
+              <ListIcon size={16} /> List
             </button>
             <button
               type="button"
-              className={`appt-view-btn${viewMode === 'grid' ? ' is-active' : ''}`}
+              className={`appt-segmented-btn ${viewMode === 'grid' ? 'active' : ''}`}
               onClick={() => setViewMode('grid')}
             >
-              <Grid size={14} /> Grid
+              <Grid size={16} /> Grid
             </button>
           </div>
-          <button className="btn-primary" onClick={() => navigate('/patients/add')}>
+          <button className="btn-primary" onClick={() => { setDrawerRegid(null); setIsDrawerOpen(true); }}>
             <Plus size={16} /> New Patient
           </button>
         </div>
       </div>
 
-      <div className="pp-card pp-filter-bar" style={{ marginBottom: '24px' }}>
-        <div className="pat-search-wrap">
-          <Search size={14} className="pat-search-icon" />
+      <div className="mmc-pl-filterbar" style={{ marginBottom: '20px' }}>
+        <div className="mmc-pl-search-wrap">
+          <Search size={15} className="mmc-pl-search-icon" />
           <input
-            className="pp-input pat-search-input"
+            className="mmc-pl-search-input"
             type="text"
-            placeholder="Search patients by name or phone..."
+            placeholder="Search by name, phone or Case ID..."
             value={search}
-            onChange={(e) => handleSearchChange(e.target.value)}
+            onChange={e => handleSearchChange(e.target.value)}
           />
         </div>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <span className="text-label">Sort By:</span>
-          <select
-            className="pp-select"
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            style={{ minWidth: '140px' }}
-          >
+        <div className="mmc-pl-filter-right">
+          <label className="mmc-pl-filter-label">Sort:</label>
+          <select className="mmc-pl-sort-select" value={sortBy} onChange={e => setSortBy(e.target.value)}>
             <option value="newest">Newest First</option>
             <option value="oldest">Oldest First</option>
-            <option value="name">Alphabetical</option>
           </select>
+          <button className="mmc-pl-refresh-btn" onClick={() => refetch()} title="Refresh">
+            <RefreshCw size={14} />
+          </button>
         </div>
       </div>
 
       <div className="pat-stats-row">
         <span className="text-label">Registry Entries</span>
-        <span className="text-small">Showing {patients.length} of {data?.total || 0}</span>
+        <span className="text-small">Showing {patients.length} of {totalEntries}</span>
       </div>
 
       {isLoading ? (
-        <div className="pp-card pat-loading-state">
-          <p>Loading patient records...</p>
-        </div>
+        <TableSkeleton rows={10} cols={6} />
       ) : patients.length === 0 ? (
         <div className="pp-card pat-empty-state">
           <p className="pat-empty-state-title">No patients found</p>
@@ -150,32 +170,58 @@ export default function PatientListPage() {
               {patients.map((p: PatientSummary) => (
                 <tr key={p.regid} className="hover-row">
                   <td>
-                    <Link to={`/medical-cases/${p.regid}`} className="pat-member-row hover-opacity" style={{ textDecoration: 'none', color: 'inherit' }}>
+                    <div className="pat-member-row">
                       <div className="pat-avatar">
                         {(p.fullName?.[0] || '?').toUpperCase()}
                       </div>
                       <div>
-                        <div className="pat-member-name" style={{ color: 'var(--pp-blue)', fontWeight: 700 }}>{p.fullName || 'Unknown'}</div>
+                        <Link to={`/medical-cases/${p.regid}`} className="pat-member-name clickable-link">
+                          {p.fullName || 'Unknown'}
+                        </Link>
                         <div className="text-small">{p.gender === 'M' ? 'Male' : p.gender === 'F' ? 'Female' : p.gender}</div>
                       </div>
-                    </Link>
+                    </div>
                   </td>
                   <td>
-                    <span className="pp-mono" style={{ background: 'var(--pp-warm-2)', padding: '2px 6px', borderRadius: '4px', fontSize: '12px' }}>
+                    <Link to={`/medical-cases/${p.regid}`} className="pp-mono pat-regid-pill clickable-link">
                       {p.regid}
-                    </span>
+                    </Link>
                   </td>
                   <td>{p.phone || '—'}</td>
                   <td>{p.city || '—'}</td>
-                  <td className="text-small">{p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-GB') : '—'}</td>
+                  <td className="text-small">{formatDate(p.createdAt)}</td>
                   <td style={{ textAlign: 'right' }}>
-                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                      <Link to={`/medical-cases/${p.regid}`} className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', background: 'var(--pp-blue)', color: '#fff', border: 'none' }}>
-                        <Eye size={14} /> History
-                      </Link>
-                      <Link to={`/patients/${p.regid}/edit`} className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', border: '1px solid var(--pp-warm-4)', color: 'var(--pp-text-2)' }}>
-                        <Edit2 size={14} />
-                      </Link>
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
+                      {/* History button removed - click name/ID instead */}
+                      
+                      <div className="appt-kebab-wrap">
+                        <button 
+                          className="appt-kebab-btn"
+                          onClick={() => setOpenMenuId(openMenuId === p.regid ? null : p.regid)}
+                        >
+                          <MoreVertical size={16} />
+                        </button>
+                        {openMenuId === p.regid && (
+                          <div className="appt-kebab-menu" style={{ right: 0, top: '100%', position: 'absolute', zIndex: 100 }}>
+                            <button className="appt-kebab-item" onClick={() => { setDrawerRegid(p.regid); setIsDrawerOpen(true); setOpenMenuId(null); }}>
+                              <Edit2 size={14} /> Edit Patient
+                            </button>
+                            <button className="appt-kebab-item" onClick={() => { openWhatsApp(p.phone, p.fullName); setOpenMenuId(null); }}>
+                              <MessageCircle size={14} /> WhatsApp
+                            </button>
+                            <button className="appt-kebab-item" onClick={() => { handlePrintPrescription(p.regid); setOpenMenuId(null); }}>
+                              <Printer size={14} /> Print Prescription
+                            </button>
+                            <button className="appt-kebab-item" onClick={() => { handleDownloadReport(p.regid); setOpenMenuId(null); }}>
+                              <Download size={14} /> Download Report
+                            </button>
+                            <div className="appt-kebab-divider" />
+                            <button className="appt-kebab-item text-danger" onClick={() => { handleDelete(p.regid, p.fullName); setOpenMenuId(null); }}>
+                              <Trash2 size={14} /> Delete
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </td>
                 </tr>
@@ -184,63 +230,67 @@ export default function PatientListPage() {
           </table>
         </div>
       ) : (
-        <div className="pp-patient-grid">
+        <div className="appt-card-grid">
           {patients.map((p: PatientSummary) => (
-            <div key={p.regid} className="pp-card pat-grid-card">
-              <div className="pat-grid-card-header">
-                <div className="pat-avatar pat-avatar--md">
-                  {(p.fullName?.[0] || '?').toUpperCase()}
-                </div>
+            <div key={p.regid} className="appt-card appt-grid-card">
+              <div className="appt-grid-card-header">
                 <div>
-                  <div className="pat-grid-card-name">{p.fullName}</div>
-                  <div className="pat-grid-card-regid">RegID: {p.regid}</div>
+                  <Link to={`/medical-cases/${p.regid}`} className="appt-grid-card-patient clickable-link">
+                    {p.fullName}
+                  </Link>
+                  <div className="appt-grid-card-phone">
+                    <Link to={`/medical-cases/${p.regid}`} className="clickable-link" style={{ color: 'inherit' }}>
+                      ID: {p.regid}
+                    </Link> • {p.phone || 'No phone'}
+                  </div>
+                </div>
+                <div className="appt-kebab-wrap">
+                  <button className="appt-kebab-btn" onClick={() => setOpenMenuId(openMenuId === p.regid ? null : p.regid)}>
+                    <MoreVertical size={16} />
+                  </button>
+                  {openMenuId === p.regid && (
+                    <div className="appt-kebab-menu" style={{ right: 0, top: '100%', position: 'absolute', zIndex: 100 }}>
+                      <button className="appt-kebab-item" onClick={() => { setDrawerRegid(p.regid); setIsDrawerOpen(true); setOpenMenuId(null); }}>
+                        <Edit2 size={14} /> Edit
+                      </button>
+                      <button className="appt-kebab-item" onClick={() => { handleDelete(p.regid, p.fullName); setOpenMenuId(null); }}>
+                        <Trash2 size={14} /> Delete
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
-
-              <div className="pat-grid-card-detail">
-                <div className="pat-grid-card-detail-row">
-                  <span className="pat-grid-card-detail-label"><Phone size={12}/> Phone</span>
-                  <span className="pat-grid-card-detail-value">{p.phone || '—'}</span>
-                </div>
-                <div className="pat-grid-card-detail-row">
-                  <span className="pat-grid-card-detail-label"><MapPin size={12}/> City</span>
-                  <span className="pat-grid-card-detail-value">{p.city || '—'}</span>
-                </div>
-                <div className="pat-grid-card-detail-row">
-                  <span className="pat-grid-card-detail-label"><Calendar size={12}/> Date</span>
-                  <span className="pat-grid-card-detail-value">{p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-GB') : '—'}</span>
-                </div>
+              <div className="appt-grid-card-detail">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><MapPin size={14} /> {p.city || '—'}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Calendar size={14} /> Registered: {formatDate(p.createdAt)}</div>
               </div>
-
-              <Link to={`/medical-cases/${p.regid}`} className="btn-secondary" style={{ width: '100%', justifyContent: 'center', background: 'var(--pp-blue)', color: '#fff', border: 'none' }}>
-                View History
-              </Link>
+              <div className="appt-grid-card-actions-minimal">
+                <button className="appt-btn-minimal white-pill" style={{ flex: 1 }} onClick={() => openWhatsApp(p.phone, p.fullName)}>
+                  <MessageCircle size={14} /> Send WhatsApp Message
+                </button>
+              </div>
             </div>
           ))}
         </div>
       )}
 
-      {totalPages > 1 && (
-        <div className="pat-pagination">
-          <button
-            disabled={page <= 1}
-            onClick={() => setPage(p => p - 1)}
-            className="btn-secondary"
-            style={{ opacity: page <= 1 ? 0.5 : 1 }}
-          >
-            Previous
-          </button>
-          <span className="text-small">Page {page} of {totalPages}</span>
-          <button
-            disabled={page >= totalPages}
-            onClick={() => setPage(p => p + 1)}
-            className="btn-secondary"
-            style={{ opacity: page >= totalPages ? 0.5 : 1 }}
-          >
-            Next
-          </button>
-        </div>
+      {totalEntries > 0 && (
+        <Pagination
+          currentPage={page}
+          totalPages={totalPages}
+          pageSize={pageSize}
+          totalItems={totalEntries}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+        />
       )}
+
+      <PatientFormDrawer 
+        isOpen={isDrawerOpen} 
+        onClose={() => setIsDrawerOpen(false)} 
+        regid={drawerRegid} 
+        onSuccess={refetch}
+      />
     </div>
   );
 }

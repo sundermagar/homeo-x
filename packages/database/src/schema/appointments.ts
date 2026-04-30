@@ -51,6 +51,7 @@ export const waitlist = pgTable('waitlist', {
   checkedInAt:     timestamp('checked_in_at'),
   calledAt:        timestamp('called_at'),
   completedAt:     timestamp('completed_at'),
+  rowcolor:        integer('rowcolor').default(0),
   createdAt:       timestamp('created_at').defaultNow().notNull(),
   updatedAt:       timestamp('updated_at').defaultNow().notNull(),
   deletedAt:       timestamp('deleted_at'),

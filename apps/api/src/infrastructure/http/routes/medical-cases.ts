@@ -102,6 +102,41 @@ router.get('/soap/:visitId', asyncHandler(async (req, res) => {
   sendSuccess(res, result.data);
 }));
 
+// ─── Vaccines ───
+router.get('/vaccines/master', asyncHandler(async (req, res) => {
+  const useCase = new ManageClinicalRecordsUseCase(getRepo(req));
+  const result = await useCase.getMasterVaccines();
+  if (!result.success) throw new Error(result.error);
+  sendSuccess(res, result.data);
+}));
+
+router.get('/vaccines/:regid', asyncHandler(async (req, res) => {
+  const useCase = new ManageClinicalRecordsUseCase(getRepo(req));
+  const result = await useCase.getVaccines(Number(req.params.regid));
+  if (!result.success) throw new Error(result.error);
+  sendSuccess(res, result.data);
+}));
+
+router.post('/vaccines', asyncHandler(async (req, res) => {
+  const useCase = new ManageClinicalRecordsUseCase(getRepo(req));
+  await useCase.saveVaccine(req.body);
+  sendSuccess(res, null, 'Vaccine recorded');
+}));
+
+// ─── Reminders ───
+router.get('/reminders/:regid', asyncHandler(async (req, res) => {
+  const useCase = new ManageClinicalRecordsUseCase(getRepo(req));
+  const result = await useCase.getReminders(Number(req.params.regid));
+  if (!result.success) throw new Error(result.error);
+  sendSuccess(res, result.data);
+}));
+
+router.post('/reminders', asyncHandler(async (req, res) => {
+  const useCase = new ManageClinicalRecordsUseCase(getRepo(req));
+  await useCase.saveReminder(req.body);
+  sendSuccess(res, null, 'Reminder saved');
+}));
+
 router.post('/soap', asyncHandler(async (req, res) => {
   const useCase = new ManageSoapNotesUseCase(getRepo(req));
   await useCase.execute(req.body);
@@ -138,6 +173,12 @@ router.post('/records/investigations', asyncHandler(async (req, res) => {
   const useCase = new ManageClinicalRecordsUseCase(getRepo(req));
   await useCase.saveInvestigation(req.body);
   sendSuccess(res, null, 'Investigation recorded');
+}));
+
+router.post('/records/homeo-details', asyncHandler(async (req, res) => {
+  const useCase = new ManageClinicalRecordsUseCase(getRepo(req));
+  await useCase.saveHomeoDetails(req.body);
+  sendSuccess(res, null, 'Homeopathic details saved');
 }));
 
 import { upload } from '../middleware/upload';
@@ -251,6 +292,68 @@ router.delete('/remedy-chart/:id', asyncHandler(async (req, res) => {
   const uc = getRemedyChart(req);
   await uc.deletePrescription(Number(req.params.id));
   sendSuccess(res, null, 'Prescription removed');
+}));
+
+// GET /api/medical-cases/remedy-chart/pdf/:regid
+router.get('/remedy-chart/pdf/:regid', asyncHandler(async (req, res) => {
+  const regid = Number(req.params.regid);
+  const uc = getRemedyChart(req);
+  const prescriptions = await uc.getPrescriptionsForPatient(regid);
+  
+  const { PdfkitServiceAdapter } = await import('../../pdf/pdfkit.service.js');
+  const pdfService = new PdfkitServiceAdapter();
+
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `inline; filename="prescription-${regid}.pdf"`);
+
+  await pdfService.generatePrescription(res, {
+    clinicName: (req as any).tenantDb?.schemaName || 'Homeo-X Clinic',
+    patientName: `Patient ${regid}`,
+    regid,
+    potencies: prescriptions.map((p: any) => ({
+      medicine: p.remedy_name,
+      potency: p.potency_name,
+      frequency: p.frequency_name,
+      days: p.days,
+      createdAt: p.created_at
+    }))
+  });
+}));
+
+// GET /api/medical-cases/pdf/summary/:regid
+router.get('/pdf/summary/:regid', asyncHandler(async (req, res) => {
+  const regid = Number(req.params.regid);
+  const useCase = new GetFullMedicalCaseUseCase(getRepo(req));
+  const result = await useCase.execute(regid);
+  
+  if (!result.success) {
+    res.status(404).json({ success: false, error: 'Case not found' });
+    return;
+  }
+
+  const { PdfkitServiceAdapter } = await import('../../pdf/pdfkit.service.js');
+  const pdfService = new PdfkitServiceAdapter();
+
+  const filename = `clinical-summary-${regid}.pdf`;
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+  const data = result.data;
+  await pdfService.generateClinicalSummary(res, {
+    clinicName: (req as any).tenantDb?.schemaName || 'Homeo-X Clinic',
+    patient: {
+      regid: data.medicalCase.regid,
+      name: data.medicalCase.patientName || 'Patient',
+      age: (data.medicalCase as any).age,
+      gender: (data.medicalCase as any).gender,
+      phone: data.medicalCase.phone
+    },
+    vitals: data.vitals || [],
+    homeo: data.homeo,
+    notes: data.notes || [],
+    prescriptions: data.prescriptions || [],
+    investigations: data.investigations || []
+  });
 }));
 
 export const medicalCasesRouter: ExpressRouter = router;

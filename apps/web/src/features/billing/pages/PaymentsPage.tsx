@@ -4,6 +4,8 @@ import { usePaymentHistory, useRecordManualPayment } from '../hooks/use-payments
 import { usePatient } from '../../patients/hooks/use-patients';
 import { PaymentTable } from '../components/PaymentTable';
 import { PaymentModeEnum } from '@mmc/validation';
+import { PageHeader } from '@/components/shared/page-header';
+import { Pagination } from '@/components/shared/pagination';
 import '../styles/billing.css';
 
 export default function PaymentsPage() {
@@ -24,21 +26,17 @@ export default function PaymentsPage() {
     <div className="bill-page fade-in">
 
       {/* ─── Header ─── */}
-      <div className="bill-header">
-        <div>
-          <h1 className="bill-header-title">
-            <Banknote size={20} strokeWidth={1.6} style={{ color: 'var(--pp-blue)' }} />
-            Payment Ledger
-          </h1>
-          <p className="bill-header-sub">Transaction history and electronic payment processing records.</p>
-        </div>
-        <div className="bill-header-actions">
-          <button className="bill-btn bill-btn-primary" onClick={() => setIsModalOpen(true)}>
+      <PageHeader
+        icon={Banknote}
+        title="Payment Ledger"
+        description="Transaction history and electronic payment processing records."
+        actions={
+          <button className="btn-primary" onClick={() => setIsModalOpen(true)}>
             <Plus size={14} strokeWidth={1.6} />
             Manual Payment
           </button>
-        </div>
-      </div>
+        }
+      />
 
       {/* ─── Table Section ─── */}
       <div className="bill-section-header">
@@ -60,15 +58,14 @@ export default function PaymentsPage() {
       <PaymentTable payments={payments} isLoading={historyQuery.isLoading} />
 
       {/* ─── Pagination ─── */}
-      <div className="bill-pagination">
-        <span className="bill-page-info">Page {page}</span>
-        <button className="bill-btn bill-btn-sm bill-btn-icon" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
-          <ChevronLeft size={14} strokeWidth={2} />
-        </button>
-        <button className="bill-btn bill-btn-sm bill-btn-icon" disabled={!hasMore} onClick={() => setPage(p => p + 1)}>
-          <ChevronRight size={14} strokeWidth={2} />
-        </button>
-      </div>
+      <Pagination
+        currentPage={page}
+        totalPages={hasMore ? page + 1 : page}
+        pageSize={50}
+        totalItems={hasMore ? (page * 50) + 1 : page * payments.length}
+        onPageChange={setPage}
+        onPageSizeChange={() => {}}
+      />
 
       {/* ─── Manual Payment Modal ─── */}
       {isModalOpen && <ManualPaymentModal onClose={() => setIsModalOpen(false)} />}

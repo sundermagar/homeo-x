@@ -5,11 +5,12 @@ import { validate, validateQuery } from '../middleware/validate';
 import { BillingRepositoryPg } from '../../repositories/billing.repository.pg';
 import {
   CreateBillUseCase,
+  CreateCustomBillUseCase,
   ListBillsUseCase,
   GetDailyCollectionUseCase,
   GetPatientBillsUseCase,
 } from '../../../domains/billing';
-import { createBillSchema, listBillsQuerySchema } from '@mmc/validation';
+import { createBillSchema, listBillsQuerySchema, createCustomBillSchema } from '@mmc/validation';
 import type { DbClient } from '@mmc/database';
 
 export function createBillingRouter(): Router {
@@ -76,6 +77,21 @@ export function createBillingRouter(): Router {
     validate(createBillSchema),
     asyncHandler(async (req: Request, res: Response) => {
       const useCase = new CreateBillUseCase(getRepo(req));
+      const result = await useCase.execute(req.body);
+      if (!result.success) {
+        res.status(400).json({ success: false, error: result.error });
+        return;
+      }
+      res.status(201).json({ success: true, data: result.data });
+    }),
+  );
+
+  // POST /api/billing/custom — create a custom/manual bill
+  router.post(
+    '/custom',
+    validate(createCustomBillSchema),
+    asyncHandler(async (req: Request, res: Response) => {
+      const useCase = new CreateCustomBillUseCase(getRepo(req));
       const result = await useCase.execute(req.body);
       if (!result.success) {
         res.status(400).json({ success: false, error: result.error });

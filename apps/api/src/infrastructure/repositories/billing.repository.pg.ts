@@ -137,6 +137,8 @@ export class BillingRepositoryPg implements BillingRepository {
         chargeId: data.chargeId,
         doctorId: data.doctorId,
         notes: data.notes || undefined,
+        billType: data.billType || undefined,
+        customTitle: data.customTitle || undefined,
         createdAt: new Date(),
         updatedAt: new Date(),
       })
@@ -160,8 +162,9 @@ export class BillingRepositoryPg implements BillingRepository {
   }
 
   async nextBillNo(): Promise<number> {
-    const [res] = await this.db.select({ max: sql<number>`COALESCE(MAX(bill_no), 0)` }).from(bills);
-    return (Number(res?.max ?? 0)) + 1;
+    // Atomic sequence — safe under concurrent bill creation
+    const [res] = await this.db.execute(sql`SELECT nextval('bill_no_seq')`);
+    return Number(res?.nextval ?? 1);
   }
 
   async softDelete(id: number): Promise<boolean> {
@@ -186,6 +189,8 @@ export class BillingRepositoryPg implements BillingRepository {
       chargeId: row.chargeId ?? null,
       doctorId: row.doctorId ?? null,
       notes: row.notes ?? null,
+      billType: (row.billType as Bill['billType']) ?? undefined,
+      customTitle: row.customTitle ?? null,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
       deletedAt: row.deletedAt ?? null,

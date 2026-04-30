@@ -10,6 +10,7 @@ export type {
 
 // Use Cases
 export { CreateBillUseCase } from './use-cases/create-bill';
+export { CreateCustomBillUseCase } from './use-cases/create-custom-bill';
 export { ListBillsUseCase } from './use-cases/list-bills';
 export { GetDailyCollectionUseCase } from './use-cases/get-daily-collection';
 export { GetPatientBillsUseCase } from './use-cases/get-patient-bills';

@@ -4,7 +4,13 @@ import { ProtectedRoute } from '@/shared/components/protected-route';
 import { RoleGuard } from '@/shared/components/role-guard';
 import { AppLayout } from '@/shared/layouts/app-layout';
 
-const Loading = () => <div style={{ padding: 40, textAlign: 'center', opacity: 0.5 }}>Loading...</div>;
+const Loading = () => (
+  <div style={{ padding: '40px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+    <div className="skeleton-box" style={{ width: '100%', height: '60px', borderRadius: '12px' }} />
+    <div className="skeleton-box" style={{ width: '80%', height: '24px', borderRadius: '6px' }} />
+    <div className="skeleton-box" style={{ width: '100%', height: '200px', borderRadius: '16px' }} />
+  </div>
+);
 
 // Common Feature Modules
 const LoginPage = lazy(() => import('@/features/auth/pages/login-page'));
@@ -21,6 +27,7 @@ const FamilyGroupListPage = lazy(() => import('@/features/patients/pages/family-
 
 // Appointments
 const AppointmentListPage = lazy(() => import('@/features/appointments/pages/appointment-list-page'));
+const AppointmentFormPage = lazy(() => import('@/features/appointments/pages/appointment-form-page'));
 const CalendarPage = lazy(() => import('@/features/appointments/pages/calendar-page'));
 const TokenQueuePage = lazy(() => import('@/features/appointments/pages/token-queue-page'));
 const StaffListPage = lazy(() => import('@/features/staff/pages/staff-list-page'));
@@ -30,7 +37,6 @@ const StaffFormPage = lazy(() => import('@/features/staff/pages/staff-form-page'
 const MedicalCaseListPage = lazy(() => import('@/features/medical-case/pages/case-list-page'));
 const MedicalCaseDetailPage = lazy(() => import('@/features/medical-case/pages/case-detail-page'));
 const VitalsCheckPage = lazy(() => import('@/features/medical-case/pages/vitals-check-page'));
-const AiRemedyChartStandalone = lazy(() => import('@/features/medical-case/components/ai-remedy-view').then(m => ({ default: m.AiRemedyView })));
 const AiConsultantPage = lazy(() => import('@/features/medical-case/pages/ai-consultant-page'));
 const FollowupsPage = lazy(() => import('@/features/medical-case/pages/followups-page'));
 
@@ -41,6 +47,7 @@ const PackageTrackingPage = lazy(() => import('@/features/packages/pages/package
 // Billing & Payments
 const BillingListPage = lazy(() => import('@/features/billing/pages/BillingListPage'));
 const BillingFormPage = lazy(() => import('@/features/billing/pages/BillingFormPage'));
+const CustomBillPage = lazy(() => import('@/features/billing/pages/CustomBillPage'));
 const PaymentsPage = lazy(() => import('@/features/billing/pages/PaymentsPage'));
 const AdditionalChargesPage = lazy(() => import('@/features/billing/pages/AdditionalChargesPage'));
 const DayChargesPage = lazy(() => import('@/features/billing/pages/DayChargesPage'));
@@ -75,6 +82,8 @@ const FrequenciesPage = lazy(() => import('@/features/settings/pages/Frequencies
 const CouriersPage = lazy(() => import('@/features/settings/pages/CouriersPage'));
 const FaqsPage = lazy(() => import('@/features/settings/pages/FaqsPage'));
 const StaffManagementPage = lazy(() => import('@/features/settings/pages/StaffManagementPage'));
+const StocksPage = lazy(() => import('@/features/settings/pages/StocksPage'));
+const RemedyTreePage = lazy(() => import('@/features/settings/pages/RemedyTreePage'));
 
 // Communications
 const SmsTemplatesPage = lazy(() => import('@/features/communications/pages/sms-templates-page'));
@@ -119,6 +128,8 @@ export function AppRouter() {
 
             {/* ─── Appointments ─── */}
             <Route path="/appointments" element={<AppointmentListPage />} />
+            <Route path="/appointments/add" element={<AppointmentFormPage />} />
+            <Route path="/appointments/:id/edit" element={<AppointmentFormPage />} />
             <Route path="/appointments/calendar" element={<CalendarPage />} />
             <Route path="/appointments/queue" element={<TokenQueuePage />} />
 
@@ -132,8 +143,8 @@ export function AppRouter() {
             <Route path="/medical-cases/:regid" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist']}><MedicalCaseDetailPage /></RoleGuard>} />
             <Route path="/medical-cases/followups" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist']}><FollowupsPage /></RoleGuard>} />
             <Route path="/vitals-check" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><VitalsCheckPage /></RoleGuard>} />
-            <Route path="/ai-remedy-chart" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><AiRemedyChartStandalone /></RoleGuard>} />
             <Route path="/ai-analysis" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><AiConsultantPage /></RoleGuard>} />
+            <Route path="/clinical/remedy-chart" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><RemedyTreePage /></RoleGuard>} />
 
             {/* ─── Clinical Hub ─── */}
             <Route path="/clinical-hub" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><ClinicalHubPage /></RoleGuard>} />
@@ -164,6 +175,7 @@ export function AppRouter() {
             {/* ─── Billing & Payments ─── */}
             <Route path="/billing" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist']}><BillingListPage /></RoleGuard>} />
             <Route path="/billing/create" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist']}><BillingFormPage /></RoleGuard>} />
+            <Route path="/billing/custom" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist']}><CustomBillPage /></RoleGuard>} />
             <Route path="/billing/additional-charges" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Receptionist']}><AdditionalChargesPage /></RoleGuard>} />
             <Route path="/billing/day-charges" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Receptionist']}><DayChargesPage /></RoleGuard>} />
             <Route path="/billing/deposits" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Receptionist']}><DepositsPage /></RoleGuard>} />
@@ -171,13 +183,7 @@ export function AppRouter() {
             <Route path="/payments" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist']}><PaymentsPage /></RoleGuard>} />
 
             {/* ─── Platform & Multi-tenancy ─── */}
-            {/* ─── Platform & Multi-tenancy ─── */}
             <Route path="/platform/staff" element={<Navigate to="/platform/doctors" replace />} />
-            <Route path="/platform/staff/doctor" element={<Navigate to="/platform/doctors" replace />} />
-            <Route path="/platform/staff/employee" element={<Navigate to="/platform/employees" replace />} />
-            <Route path="/platform/staff/receptionist" element={<Navigate to="/platform/receptionists" replace />} />
-            <Route path="/platform/staff/clinicadmin" element={<Navigate to="/platform/clinicadmins" replace />} />
-            <Route path="/platform/staff/account" element={<Navigate to="/platform/account-managers" replace />} />
             <Route path="/platform/doctors" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><DoctorsPage /></RoleGuard>} />
             <Route path="/platform/doctors/:id" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><DoctorDetailPage /></RoleGuard>} />
             <Route path="/platform/employees" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><EmployeesPage /></RoleGuard>} />
@@ -188,14 +194,7 @@ export function AppRouter() {
             <Route path="/platform/accounts" element={<RoleGuard allowed={['SuperAdmin', 'Admin']}><AccountsPage /></RoleGuard>} />
 
             {/* ─── Operations Hub ─── */}
-            <Route
-              path="/operations"
-              element={
-                <RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}>
-                  <OperationsDashboard />
-                </RoleGuard>
-              }
-            />
+            <Route path="/operations" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><OperationsDashboard /></RoleGuard>} />
 
             {/* ─── Settings ─── */}
             <Route path="/settings" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><Navigate to="/settings/departments" replace /></RoleGuard>} />
@@ -208,8 +207,8 @@ export function AppRouter() {
             <Route path="/settings/pdf" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><PdfSettingsPage /></RoleGuard>} />
             <Route path="/settings/expenses" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><ExpensesHeadPage /></RoleGuard>} />
             <Route path="/settings/messages" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><MessageTemplatesPage /></RoleGuard>} />
-            {/* <Route path="/settings/stocks" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><StocksLogPage /></RoleGuard>} /> */}
-            {/* <Route path="/settings/export"       element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><ExportDataPage /></RoleGuard>} /> */}
+            <Route path="/settings/stocks" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><StocksPage /></RoleGuard>} />
+            <Route path="/settings/stock-logs" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><StocksLogPage /></RoleGuard>} />
             <Route path="/settings/packages" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><PackagePlansSettingsPage /></RoleGuard>} />
             <Route path="/settings/potencies" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><PotenciesPage /></RoleGuard>} />
             <Route path="/settings/frequencies" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><FrequenciesPage /></RoleGuard>} />

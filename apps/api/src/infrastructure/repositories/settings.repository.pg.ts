@@ -632,6 +632,39 @@ export class SettingsRepositoryPg implements ISettingsRepository {
     await this.q('DELETE FROM courier_masters WHERE id = $1', [id]);
   }
 
+  // ─── Stocks (Inventory) ───────────────────────────────────────────────────
+  async listStocks(): Promise<any[]> {
+    return this.q('SELECT * FROM stocks WHERE deleted_at IS NULL ORDER BY name ASC');
+  }
+  async getStock(id: number): Promise<any | undefined> {
+    return this.q1('SELECT * FROM stocks WHERE id = $1 AND deleted_at IS NULL', [id]);
+  }
+  async createStock(data: any): Promise<any> {
+    return this.q1(
+      `INSERT INTO stocks (name, description, potency, category, quantity, unit_price, batch_number, created_at, updated_at) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW()) RETURNING *`,
+      [data.name, data.description ?? null, data.potency ?? null, data.category ?? null, data.quantity ?? 0, data.unitPrice ?? 0, data.batchNumber ?? null]
+    );
+  }
+  async updateStock(id: number, data: any): Promise<any> {
+    return this.q1(
+      `UPDATE stocks SET 
+        name = COALESCE($1, name), 
+        description = COALESCE($2, description),
+        potency = COALESCE($3, potency),
+        category = COALESCE($4, category),
+        quantity = COALESCE($5, quantity),
+        unit_price = COALESCE($6, unit_price),
+        batch_number = COALESCE($7, batch_number),
+        updated_at = NOW() 
+       WHERE id = $8 RETURNING *`,
+      [data.name ?? null, data.description ?? null, data.potency ?? null, data.category ?? null, data.quantity ?? null, data.unitPrice ?? null, data.batchNumber ?? null, id]
+    );
+  }
+  async deleteStock(id: number): Promise<void> {
+    await this.q('UPDATE stocks SET deleted_at = NOW() WHERE id = $1', [id]);
+  }
+
   // ─── Practitioners (Doctors from users table) ──────────────────────────────
   async listPractitioners(): Promise<User[]> {
     return this.q<User>(

@@ -15,6 +15,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import { useDashboard } from '../hooks/use-dashboard';
 import { useQueueMgmt } from '../hooks/use-queue-mgmt';
+import { Pagination } from '@/components/shared/pagination';
 import './role-dashboards.css';
 
 export function ReceptionistDashboard() {
@@ -22,9 +23,15 @@ export function ReceptionistDashboard() {
   const { data: dashData, isLoading } = useDashboard('day');
   const queueMgmt = useQueueMgmt();
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   
   const todayAppts = dashData?.queue || [];
   const kpis = dashData?.kpis;
+
+  const totalPages = Math.ceil(todayAppts.length / pageSize);
+  const startIndex = (page - 1) * pageSize;
+  const currentAppts = todayAppts.slice(startIndex, startIndex + pageSize);
 
   const handleAction = async (appt: any) => {
     if (appt.status === 'Scheduled') {
@@ -80,7 +87,7 @@ export function ReceptionistDashboard() {
                   </tr>
                 </thead>
                 <tbody className="dash-scroll">
-                  {todayAppts.map((a: any, i: number) => {
+                  {currentAppts.map((a: any, i: number) => {
                     const isExpanded = expandedId === a.id;
                     const canCheckIn = a.status === 'Scheduled';
                     const isWaitlist = a.status === 'Waitlist';
@@ -175,6 +182,20 @@ export function ReceptionistDashboard() {
                 </tbody>
               </table>
             </div>
+
+            {todayAppts.length > 0 && totalPages > 1 && (
+              <Pagination
+                currentPage={page}
+                totalPages={totalPages}
+                pageSize={pageSize}
+                totalItems={todayAppts.length}
+                onPageChange={setPage}
+                onPageSizeChange={(newSize) => {
+                  setPageSize(newSize);
+                  setPage(1);
+                }}
+              />
+            )}
           </div>
         </div>
 

@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
 import {
   Calendar, ChevronLeft, ChevronRight, Plus, List,
-  Stethoscope, CalendarDays, Users, RefreshCw,
+  Stethoscope, CalendarDays, Users, RefreshCw, CalendarPlus
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAppointments } from '../hooks/use-appointments';
-import { AppointmentForm } from '../components/appointment-form';
 import { StatusBadge, STATUS_COLOR } from '../components/status-badge';
 import { apiClient } from '@/infrastructure/api-client';
 import '../styles/appointments.css';
@@ -26,8 +25,6 @@ export default function CalendarPage() {
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [doctorFilter, setDoctorFilter] = useState('');
   const [doctors, setDoctors]  = useState<Doctor[]>([]);
-  const [showForm, setShowForm] = useState(false);
-  const [formDate, setFormDate] = useState<string | undefined>();
 
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const startDow    = new Date(year, month, 1).getDay();
@@ -78,27 +75,16 @@ export default function CalendarPage() {
           <p className="appt-header-sub">Manage practitioner schedules and availability</p>
         </div>
         <div className="appt-header-actions">
-          <select
-            className="appt-filter-input"
-            style={{ width: 180 }}
-            value={doctorFilter}
-            onChange={e => { setDoctorFilter(e.target.value); setSelectedDay(null); }}
-          >
-            <option value="">All Practitioners</option>
-            {doctors.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-          </select>
           <button className="appt-btn appt-btn-sm" onClick={() => refetch()} title="Refresh">
             <RefreshCw size={14} strokeWidth={1.6} />
           </button>
-          <button
+          <Link
+            to={`/appointments/add?date=${selectedDay ?? todayISO}`}
             className="appt-btn appt-btn-primary"
-            onClick={() => { setFormDate(selectedDay ?? todayISO); setShowForm(true); }}
           >
             <Plus size={15} strokeWidth={1.6} /> New Booking
-          </button>
-          <Link to="/appointments" className="appt-btn" title="List View">
-            <List size={15} strokeWidth={1.6} />
           </Link>
+
         </div>
       </div>
 
@@ -129,7 +115,11 @@ export default function CalendarPage() {
 
             {/* Cells */}
             {isLoading ? (
-              <div className="appt-empty"><RefreshCw size={22} className="appt-empty-icon" style={{ animation: 'spin 1s linear infinite' }} /></div>
+              <div className="appt-cal-shimmer-cells">
+                {[...Array(35)].map((_, i) => (
+                  <div key={i} className="appt-cal-shimmer-cell" />
+                ))}
+              </div>
             ) : (
               <div className="appt-cal-cells">
                 {cells.map((iso, idx) => {
@@ -193,35 +183,53 @@ export default function CalendarPage() {
               </h3>
             </div>
             <div className="appt-card-body">
-              {!selectedDay ? (
-                <div className="appt-empty">
-                  <CalendarDays size={22} className="appt-empty-icon" />
-                  <p className="appt-empty-text">Select a date to view</p>
+              {isLoading ? (
+                <div className="appt-slot-list">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="appt-slot-item appt-shimmer" style={{ height: 62, border: 'none' }} />
+                  ))}
+                </div>
+              ) : !selectedDay ? (
+                <div className="appt-empty" style={{ minHeight: 220, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                  <CalendarDays size={48} strokeWidth={1} style={{ color: '#e2e8f0', marginBottom: 16 }} />
+                  <p style={{ color: '#64748b', fontSize: 16, fontWeight: 500, margin: 0 }}>Select a date to view</p>
                 </div>
               ) : selectedAppts.length === 0 ? (
-                <div className="appt-empty">
-                  <p className="appt-empty-text">No appointments</p>
-                  <button className="appt-btn appt-btn-sm appt-btn-primary" style={{ marginTop: 10 }}
-                    onClick={() => { setFormDate(selectedDay); setShowForm(true); }}>
-                    + Add Slot
-                  </button>
+                <div className="appt-empty" style={{ padding: '40px 20px', background: 'var(--pp-warm-1)', borderRadius: 12, border: '1px dashed var(--pp-warm-4)' }}>
+                  <CalendarPlus size={32} strokeWidth={1} style={{ color: 'var(--pp-warm-5)', marginBottom: 12 }} />
+                  <p className="appt-empty-text" style={{ fontWeight: 600, color: 'var(--pp-ink)' }}>No appointments scheduled</p>
+                  <p className="appt-empty-sub" style={{ fontSize: 12, color: 'var(--pp-muted)', marginBottom: 16 }}>Tap the button below to book a new slot for this day.</p>
+                  <Link 
+                    to={`/appointments/add?date=${selectedDay}`}
+                    className="appt-btn appt-btn-primary" 
+                    style={{ padding: '10px 20px' }}
+                  >
+                    <Plus size={16} /> Add First Slot
+                  </Link>
                 </div>
               ) : (
-                <div className="appt-slot-list">
-                  {selectedAppts.map(a => (
-                    <div key={a.id} className="appt-slot-item">
-                      <div className="appt-slot-time">{a.bookingTime ?? '—'}</div>
-                      <div className="appt-slot-name">
-                        <div className="appt-slot-patient">{a.patientNameFromCase ?? a.patientName ?? '—'}</div>
-                        {a.doctorName && <div className="appt-slot-doctor">{a.doctorName}</div>}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <div className="appt-slot-list" style={{ maxHeight: 280, overflowY: 'auto', paddingRight: 4 }}>
+                    {selectedAppts.map(a => (
+                      <div key={a.id} className="appt-slot-item">
+                        <div className="appt-slot-time">{a.bookingTime ?? '—'}</div>
+                        <div className="appt-slot-name">
+                          <div className="appt-slot-patient">{a.patientNameFromCase ?? a.patientName ?? '—'}</div>
+                          {a.doctorName && <div className="appt-slot-doctor">{a.doctorName}</div>}
+                        </div>
+                        <StatusBadge status={a.status} size="sm" />
                       </div>
-                      <StatusBadge status={a.status} size="sm" />
-                    </div>
-                  ))}
-                  <button className="appt-btn appt-btn-sm appt-btn-primary" style={{ width: '100%', marginTop: 4 }}
-                    onClick={() => { setFormDate(selectedDay); setShowForm(true); }}>
-                    + Add Slot
-                  </button>
+                    ))}
+                  </div>
+                  <div style={{ position: 'sticky', bottom: 0, paddingTop: 12, background: 'linear-gradient(to top, #fff 80%, rgba(255,255,255,0))', marginTop: -4 }}>
+                    <Link 
+                      to={`/appointments/add?date=${selectedDay}`}
+                      className="appt-btn appt-btn-primary" 
+                      style={{ width: '100%', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.15)' }}
+                    >
+                      <Plus size={16} /> Add Slot
+                    </Link>
+                  </div>
                 </div>
               )}
             </div>
@@ -235,34 +243,34 @@ export default function CalendarPage() {
               </h3>
             </div>
             <div className="appt-card-body">
-              <div className="appt-insights-grid">
-                {([
-                  { label: 'Total This Month', value: totalAppts, icon: <CalendarDays size={15} strokeWidth={1.6} />, bg: 'var(--pp-blue-tint)', ic: 'var(--pp-blue)' },
-                  { label: 'Avg Daily Load', value: `${daysInMonth > 0 ? Math.round((totalAppts / daysInMonth) * 10) / 10 : 0} / day`, icon: <Users size={15} strokeWidth={1.6} />, bg: 'var(--pp-success-bg)', ic: 'var(--pp-success-fg)' },
-                ] as const).map(item => (
-                  <div key={item.label} className="appt-insight-item">
-                    <div className="appt-insight-icon-wrap" style={{ background: item.bg, color: item.ic }}>
-                      {item.icon}
+              {isLoading ? (
+                <div className="appt-insights-grid">
+                  {[...Array(2)].map((_, i) => (
+                    <div key={i} className="appt-insight-item appt-shimmer" style={{ height: 48, borderRadius: 8 }} />
+                  ))}
+                </div>
+              ) : (
+                <div className="appt-insights-grid">
+                  {([
+                    { label: 'Total This Month', value: totalAppts, icon: <CalendarDays size={15} strokeWidth={1.6} />, bg: 'var(--pp-blue-tint)', ic: 'var(--pp-blue)' },
+                    { label: 'Avg Daily Load', value: `${daysInMonth > 0 ? Math.round((totalAppts / daysInMonth) * 10) / 10 : 0} / day`, icon: <Users size={15} strokeWidth={1.6} />, bg: 'var(--pp-success-bg)', ic: 'var(--pp-success-fg)' },
+                  ] as const).map(item => (
+                    <div key={item.label} className="appt-insight-item">
+                      <div className="appt-insight-icon-wrap" style={{ background: item.bg, color: item.ic }}>
+                        {item.icon}
+                      </div>
+                      <div>
+                        <div className="appt-insight-label">{item.label}</div>
+                        <div className="appt-insight-value">{item.value}</div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="appt-insight-label">{item.label}</div>
-                      <div className="appt-insight-value">{item.value}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
-
-      {showForm && (
-        <AppointmentForm
-          initialDate={formDate}
-          onClose={() => setShowForm(false)}
-          onSuccess={() => refetch()}
-        />
-      )}
     </div>
   );
 }

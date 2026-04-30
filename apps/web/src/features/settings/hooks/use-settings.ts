@@ -61,6 +61,7 @@ export const pdfHooks        = makeSettingsHooks<any>('pdf');
 export const messageHooks    = makeSettingsHooks<any>('message-templates');
 export const packageHooks    = makeSettingsHooks<any>('packages');
 export const courierHooks    = makeSettingsHooks<any>('couriers');
+export const stockHooks      = makeSettingsHooks<any>('stocks');
 
 export function useStockLogs(medicineId?: number) {
   return useQuery({
@@ -88,3 +89,4 @@ export const { useList: usePdfSettings, useCreate: useCreatePdfSetting, useUpdat
 export const { useList: useMessageTemplates, useCreate: useCreateMessageTemplate, useUpdate: useUpdateMessageTemplate, useRemove: useDeleteMessageTemplate } = messageHooks;
 export const { useList: usePackagePlans, useCreate: useCreatePackagePlan, useUpdate: useUpdatePackagePlan, useRemove: useDeletePackagePlan } = packageHooks;
 export const { useList: useCouriers, useCreate: useCreateCourier, useUpdate: useUpdateCourier, useRemove: useDeleteCourier } = courierHooks;
+export const { useList: useStocks, useCreate: useCreateStock, useUpdate: useUpdateStock, useRemove: useDeleteStock } = stockHooks;

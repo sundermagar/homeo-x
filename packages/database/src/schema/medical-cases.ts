@@ -131,20 +131,6 @@ export const prescriptions = pgTable('case_potencies', {
 });
 
 // ─── AI Remedy Chart Session ─────────────────────────────────────────────────
-// Migrated from legacy: managetreedatas → remedy_tree_nodes
-
-export const remedyTreeNodes = pgTable('remedy_tree_nodes', {
-  id:          serial('id').primaryKey(),
-  parentId:    integer('parent_id').default(0),
-  label:       varchar('label',       { length: 255 }).notNull(),
-  description: text('description'),
-  nodeType:    varchar('node_type',   { length: 50 }).default('RUBRIC'), // RUBRIC | REMEDY | CATEGORY
-  sortOrder:   integer('sort_order').default(0),
-  isActive:    boolean('is_active').default(true),
-  createdAt:   timestamp('created_at').defaultNow(),
-  updatedAt:   timestamp('updated_at').defaultNow(),
-});
-
 // Migrated from legacy: medicine_others → remedy_alternatives
 export const remedyAlternatives = pgTable('remedy_alternatives', {
   id:        serial('id').primaryKey(),
@@ -153,5 +139,32 @@ export const remedyAlternatives = pgTable('remedy_alternatives', {
   potency:   varchar('potency', { length: 100 }),
   notes:     text('notes'),
   sortOrder: integer('sort_order').default(0),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// ─── Vaccines & Reminders ────────────────────────────────────────────────────
+
+export const vaccineMaster = pgTable('vaccinedatas', {
+  id: serial('id').primaryKey(),
+  label: varchar('label', { length: 255 }).notNull(),
+  description: text('description'),
+  months: integer('months'), // Recommended age in months
+  parentId: integer('parent_id').default(0),
+});
+
+export const caseVaccines = pgTable('case_vaccins', {
+  id: serial('id').primaryKey(),
+  regid: integer('reg_id').notNull(),
+  vaccineId: integer('vaccinee_id').notNull(),
+  notes: text('notes'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const caseReminders = pgTable('case_reminders', {
+  id: serial('id').primaryKey(),
+  regid: integer('regid').notNull(),
+  reminderDate: timestamp('reminder_date'),
+  message: text('message'),
+  status: varchar('status', { length: 20 }).default('Pending'),
   createdAt: timestamp('created_at').defaultNow(),
 });

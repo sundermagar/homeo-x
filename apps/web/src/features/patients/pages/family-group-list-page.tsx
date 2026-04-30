@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useFamilyGroups } from '../hooks/use-patients';
 import { Search, Settings, Grid, List as ListIcon } from 'lucide-react';
 import '../styles/patients.css';
-
+import { Pagination } from '@/components/shared/pagination';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
 const PAGE_SIZE = 30;
 
 export default function FamilyGroupListPage() {
@@ -49,20 +50,20 @@ export default function FamilyGroupListPage() {
           />
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <div className="appt-view-toggle">
+          <div className="appt-segmented-toggle">
             <button
               type="button"
-              className={`appt-view-btn${viewMode === 'list' ? ' is-active' : ''}`}
+              className={`appt-segmented-btn ${viewMode === 'list' ? 'active' : ''}`}
               onClick={() => setViewMode('list')}
             >
-              <ListIcon size={14} /> List
+              <ListIcon size={16} /> List
             </button>
             <button
               type="button"
-              className={`appt-view-btn${viewMode === 'grid' ? ' is-active' : ''}`}
+              className={`appt-segmented-btn ${viewMode === 'grid' ? 'active' : ''}`}
               onClick={() => setViewMode('grid')}
             >
-              <Grid size={14} /> Grid
+              <Grid size={16} /> Grid
             </button>
           </div>
           <button
@@ -82,9 +83,7 @@ export default function FamilyGroupListPage() {
 
       {/* Content */}
       {isLoading ? (
-        <div className="pp-card pat-loading-state">
-          <p style={{ fontWeight: 600 }}>Loading family groups...</p>
-        </div>
+        <TableSkeleton rows={10} cols={4} />
       ) : families.length === 0 ? (
         <div className="pp-card pat-empty-state">
           <p className="pat-empty-state-title">No family groups found</p>
@@ -158,27 +157,14 @@ export default function FamilyGroupListPage() {
       )}
 
       {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="pat-pagination">
-          <button
-            disabled={page <= 1}
-            onClick={() => setPage(p => p - 1)}
-            className="btn-secondary"
-            style={{ opacity: page <= 1 ? 0.5 : 1 }}
-          >
-            Previous
-          </button>
-          <span className="text-small">Page {page} of {totalPages}</span>
-          <button
-            disabled={page >= totalPages}
-            onClick={() => setPage(p => p + 1)}
-            className="btn-secondary"
-            style={{ opacity: page >= totalPages ? 0.5 : 1 }}
-          >
-            Next
-          </button>
-        </div>
-      )}
+      <Pagination
+        currentPage={page}
+        totalPages={totalPages}
+        pageSize={PAGE_SIZE}
+        totalItems={total}
+        onPageChange={setPage}
+        onPageSizeChange={() => {}}
+      />
     </div>
   );
 }

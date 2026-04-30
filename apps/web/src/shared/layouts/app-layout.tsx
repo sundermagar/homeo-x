@@ -62,7 +62,7 @@ export function AppLayout() {
         <DashboardHeader onOpenPalette={() => setPaletteOpen(true)} />
         <div className="page-content-area">
           <div className="page-content-row">
-            {location.pathname !== '/' && location.pathname !== '/login' && (
+            {/* {location.pathname !== '/' && location.pathname !== '/login' && (
               <div className="page-back-widget-area">
                 <button
                   className="page-back-widget"
@@ -72,7 +72,7 @@ export function AppLayout() {
                   <ArrowLeft size={16} strokeWidth={2.5} />
                 </button>
               </div>
-            )}
+            )} */}
             <div className="page-content-main">
               <Outlet />
             </div>

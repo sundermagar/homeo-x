@@ -7,7 +7,12 @@ export interface PrintOptions {
 }
 
 export const printBill = (bill: BillWithPatient, org: Organization, options: PrintOptions = {}) => {
-  const { template = 'standard', showLetterhead = true } = options;
+  const effectiveTemplate = options.template ?? (
+    bill.billType === 'Package'       ? 'package'       :
+    bill.billType === 'Custom'        ? 'comprehensive' :
+    'standard'
+  );
+  const { template = effectiveTemplate, showLetterhead = true } = { ...options, template: effectiveTemplate };
   const balance = bill.balance || 0;
   const isPaid = balance <= 0;
 
@@ -314,7 +319,7 @@ export const printAppointmentSlip = (appointment: {
           .clinic-name { font-size: 22px; font-weight: 800; color: #2563EB; letter-spacing: 0.3px; line-height: 1.1; text-transform: uppercase; margin: 0; }
           .clinic-tagline { font-size: 10.5px; color: #4a4a4a; font-style: italic; margin-top: 3px; letter-spacing: 0.2px; }
           .clinic-ids { font-size: 9.5px; color: #64748b; margin-top: 4px; font-family: monospace; }
-          .letterhead-contact { display: flex; flex-wrap: wrap; gap: 4px 0; font-size: 10px; color: #4a4a4a; margin-top: 8px; padding-top: 6px; border-top: 1px dashed #e2e8f0; }
+          .letterhead-contact { display: flex; flex-wrap: wrap; gap: 4px 0; font-size: 10px; color: #4a4a4a; margin-top: 8px; padding-top: 64px; border-top: 1px dashed #e2e8f0; }
 
           .slip-label-wrap { text-align: center; margin-bottom: 15px; }
           .slip-label { display: inline-block; padding: 6px 20px; background: #0f172a; color: #fff; border-radius: 100px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; }
@@ -383,6 +388,7 @@ export const printAppointmentSlip = (appointment: {
               ${org.website ? `<span>&nbsp;·&nbsp;🌐 ${org.website}</span>` : ''}
               ${org.timing ? `<span>&nbsp;·&nbsp;⏰ ${org.timing}</span>` : ''}
             </div>
+
           </div>
 
           <div class="slip-label-wrap">

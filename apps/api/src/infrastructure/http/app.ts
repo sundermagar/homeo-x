@@ -62,7 +62,7 @@ const logger = createLogger('http');
 
 import { createDbClient, TenantRegistry } from '@mmc/database';
 
-export async function createApp(): Promise<{ app: Express; server: HttpServer; io: SocketIOServer; tenantDb: any }> {
+export async function createApp(): Promise<{ app: Express; server: HttpServer; io: SocketIOServer; tenantDb: any; publicDb: any }> {
   const app: Express = express();
   const server: HttpServer = createServer(app);
 
@@ -211,6 +211,54 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   const tenantDb = createDbClient(process.env.DATABASE_URL!, (defaultTenant as any).schemaName);
 
   // --- ONE-TIME AUTO BACKFILL OF MISSING CLINIC ADMINS ---
+  logger.info('Express app configured with enterprise middleware stack');
+
+  // Ensure performance indexes on first startup (fire-and-forget, non-blocking)
+  ensureIndexes(publicDb).catch(err => logger.warn({ err }, 'Index creation skipped'));
+  if (tenantDb) ensureIndexes(tenantDb).catch(err => logger.warn({ err }, 'Tenant index creation skipped'));
+
+  return { app, server, io, tenantDb, publicDb };
+}
+
+/**
+ * Creates performance indexes on all core tables.
+ * Safe to re-run — indexes will be created only if they don't exist.
+ * This improves dashboard, patient, and doctor query performance.
+ */
+async function ensureIndexes(db: any): Promise<void> {
+  const { sql } = await import('drizzle-orm');
+  const indexes: string[] = [
+    `CREATE INDEX IF NOT EXISTS idx_patients_clinic_deleted ON patients (clinic_id) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    `CREATE INDEX IF NOT EXISTS idx_patients_deleted ON patients (id) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    `CREATE INDEX IF NOT EXISTS idx_appts_clinic ON appointments (clinic_id) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    `CREATE INDEX IF NOT EXISTS idx_appts_date ON appointments (booking_date) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    `CREATE INDEX IF NOT EXISTS idx_appts_doctor_clinic ON appointments (doctor_id, clinic_id) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    `CREATE INDEX IF NOT EXISTS idx_waitlist_clinic_date ON waitlist (clinic_id, date) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    `CREATE INDEX IF NOT EXISTS idx_bills_clinic_date ON bills (clinic_id, bill_date) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    `CREATE INDEX IF NOT EXISTS idx_doctors_clinic ON doctors (clinic_id) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    `CREATE INDEX IF NOT EXISTS idx_receipt_created ON receipt (created_at) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    `CREATE INDEX IF NOT EXISTS idx_users_email_active ON users (email) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    `CREATE INDEX IF NOT EXISTS idx_users_type ON users (type) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    `CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses (exp_date) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+  ];
+
+  for (const idxSql of indexes) {
+    try {
+      await db.execute(sql.raw(idxSql));
+    } catch (err: any) {
+      if (!err.message?.includes('already exists')) {
+        logger.debug({ err: err.message }, `Index: ${idxSql.substring(0, 50)}`);
+      }
+    }
+  }
+  logger.info(`Indexes ensured (${indexes.length} checked)`);
+}
+
+/**
+ * Background task to ensure all clinics have their default administrator account
+ * mirrored in the public schema for authentication.
+ */
+export async function runAdminBackfill(publicDb: any) {
   try {
     const { sql } = await import('drizzle-orm');
     const bcrypt = await import('bcryptjs');
@@ -259,8 +307,4 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   } catch (err: any) {
     logger.error({ err: err.message }, 'Failed auto-backfill');
   }
-  // --- END AUTO BACKFILL ---
-
-  logger.info('Express app configured with enterprise middleware stack');
-  return { app, server, io, tenantDb };
 }

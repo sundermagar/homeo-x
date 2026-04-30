@@ -2,6 +2,7 @@ import type { Result } from '../../../shared/result';
 
 export interface MedicalCase {
   id: number;
+  patientId?: number | null;
   regid: number;
   clinicId?: number | null;
   doctorId?: number | null;
@@ -88,14 +89,40 @@ export interface Investigation {
 export interface Prescription {
   id: number;
   regid: number;
-  visitId?: number | null;
-  dateval?: string | null;
-  medicineId?: number | null;
-  remedyName?: string | null; // Virtual join field
-  potencyId?: number | null;
-  frequencyId?: number | null;
-  days?: number | null;
-  instructions?: string | null;
+  visitId?: number;
+  dateval?: string;
+  medicineId?: number;
+  remedyName?: string; // Virtual join field
+  potencyId?: number;
+  frequencyId?: number;
+  days?: number;
+  instructions?: string;
+  createdAt?: Date;
+}
+
+export interface CaseVaccine {
+  id: number;
+  regid: number;
+  vaccineId: number;
+  vaccineName?: string;
+  notes?: string;
+  createdAt?: Date;
+}
+
+export interface VaccineMaster {
+  id: number;
+  label: string;
+  description?: string | null;
+  months?: number | null;
+}
+
+export interface CaseReminder {
+  id: number;
+  regid: number;
+  reminderDate?: Date | null;
+  message?: string | null;
+  status?: string | null;
+  createdAt?: Date | null;
 }
 
 export interface FullCaseData {
@@ -108,6 +135,8 @@ export interface FullCaseData {
   images?: CaseImage[];
   investigations?: Investigation[];
   prescriptions?: Prescription[];
+  vaccines?: CaseVaccine[];
+  reminders?: CaseReminder[];
 }
 
 export interface MedicalCaseRepository {
@@ -144,4 +173,15 @@ export interface MedicalCaseRepository {
 
   savePrescription(data: Partial<Prescription>): Promise<void>;
   deletePrescription(id: number): Promise<void>;
+
+  // Vaccines
+  getVaccines(regid: number): Promise<CaseVaccine[]>;
+  getMasterVaccines(): Promise<VaccineMaster[]>;
+  saveVaccine(data: Partial<CaseVaccine>): Promise<void>;
+  deleteVaccine(id: number): Promise<void>;
+
+  // Reminders
+  getReminders(regid: number): Promise<CaseReminder[]>;
+  saveReminder(data: Partial<CaseReminder>): Promise<void>;
+  deleteReminder(id: number): Promise<void>;
 }
