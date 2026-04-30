@@ -103,7 +103,8 @@ export function useBinaryTranscriber({
       streamRef.current = stream;
 
       // 2. Connect to Transcription Gateway
-      const socket = io('/transcription', {
+      const baseUrl = import.meta.env.VITE_API_URL || window.location.origin;
+      const socket = io(`${baseUrl}/transcription`, {
         withCredentials: true,
         extraHeaders: {
           'ngrok-skip-browser-warning': 'true'
