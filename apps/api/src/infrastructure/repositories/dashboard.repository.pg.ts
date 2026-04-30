@@ -669,8 +669,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           COALESCE(sum(CAST(NULLIF(received::text, '') AS numeric)), 0)::int as total_received,
           count(*)::int as invoice_count
         FROM bills
-        WHERE bill_date >= ${start}::date AND bill_date < ${boundary}::date
-          AND (deleted_at IS NULL OR deleted_at::text = '')
+        WHERE (deleted_at IS NULL OR deleted_at::text = '')
       `)
     ]);
 
@@ -894,9 +893,18 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       SELECT count(*)::int as count FROM users WHERE (deleted_at IS NULL OR deleted_at::text = '') AND is_active = true
     `) as any[];
 
+    const [adminCount] = await this.db.execute(sql`
+      SELECT count(*)::int as count 
+      FROM public.users 
+      WHERE (deleted_at IS NULL OR deleted_at::text = '') 
+        AND is_active = true 
+        AND type = 'Clinicadmin'
+    `) as any[];
+
     return {
       totalClinics: orgCount?.count || 0,
       totalStaff: userCount?.count || 0,
+      totalClinicAdmins: adminCount?.count || 0,
     };
   }
 }

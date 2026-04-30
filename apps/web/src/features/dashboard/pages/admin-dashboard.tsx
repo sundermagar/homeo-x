@@ -1,16 +1,16 @@
 import { useState } from 'react';
 import {
-  Building2,
-  Users,
   TrendingUp,
   TrendingDown,
   Activity,
   CreditCard,
-  Clock,
-  CheckCircle2,
   AlertCircle,
   ArrowRight,
   BarChart3,
+  CalendarClock,
+  Ticket,
+  Building2,
+  Users,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -40,7 +40,6 @@ export function AdminDashboard() {
   
   const platformStats = dashData?.platformStats;
   const clinicCount = platformStats?.totalClinics ?? 0;
-  const activeStaff = platformStats?.totalStaff ?? 0;
 
   if (isLoading) {
     return (
@@ -79,29 +78,25 @@ export function AdminDashboard() {
           color="var(--pp-blue)"
         />
         <PrimaryKPICard
-          label="COLLECTION RATE"
-          value={`${clinicData?.collectionRate ?? kpis?.collectionRate ?? 0}%`}
-          trend={Number(clinicData?.collectionRateTrend ?? 0)}
-          icon={<CheckCircle2 size={18} />}
+          label="REVENUE / PATIENT"
+          value={fmt(clinicData?.revenueBreakdown?.perPatient || 0)}
+          trend={0}
+          icon={<BarChart3 size={18} />}
           color="var(--pp-blue)"
-          invertTrend
         />
         <PrimaryKPICard
-          label="AVG WAIT TIME"
-          value={`${clinicData?.avgWaitTime ?? kpis?.avgWaitTime ?? 0}m`}
-          trend={Number(clinicData?.avgWaitTimeTrend ?? 0)}
-          icon={<Clock size={18} />}
+          label="PENDING DUES"
+          value={fmt(clinicData?.revenueBreakdown?.pending || 0)}
+          trend={0}
+          icon={<AlertCircle size={18} />}
           color="var(--pp-blue)"
-          invertTrend
         />
       </div>
 
-      {/* ── Secondary Stats Row ────────────────────────────────────────── */}
-      <div className="sa-stats-row">
+      {/* ── Platform Stats Row ────────────────────────────────────────── */}
+      <div className="sa-stats-row" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
         <StatCard label="Active Clinics" value={String(clinicCount)} icon={<Building2 size={16} />} color="var(--pp-blue)" onClick={() => navigate('/platform/clinics')} />
-        <StatCard label="Active Staff" value={String(activeStaff)} icon={<Users size={16} />} color="var(--pp-blue)" onClick={() => navigate('/staff')} />
-        <StatCard label="Revenue / Patient" value={fmt(clinicData?.revenueBreakdown?.perPatient || 0)} icon={<BarChart3 size={16} />} color="var(--pp-blue)" />
-        <StatCard label="Pending Dues" value={fmt(clinicData?.revenueBreakdown?.pending || 0)} icon={<AlertCircle size={16} />} color="var(--pp-blue)" onClick={() => navigate('/billing')} />
+        <StatCard label="Clinic Admins" value={String(platformStats?.totalClinicAdmins ?? 0)} icon={<Users size={16} />} color="var(--pp-blue)" onClick={() => navigate('/platform/clinicadmins')} />
       </div>
 
       {/* ── Revenue Trend Chart ───────────────────────────────────────── */}
@@ -171,8 +166,8 @@ export function AdminDashboard() {
 
       {/* ── Quick Actions ─────────────────────────────────────────────── */}
       <div className="sa-actions-grid">
-        <QuickAction icon={<Building2 size={18} />} label="Manage Clinics" sub="Add, edit or view clinics" onClick={() => navigate('/platform/clinics')} />
-        <QuickAction icon={<Users size={18} />} label="Staff Management" sub="Doctors, receptionists & roles" onClick={() => navigate('/staff')} />
+        <QuickAction icon={<CalendarClock size={18} />} label="Appointments" sub="Today's schedule & bookings" onClick={() => navigate('/appointments')} />
+        <QuickAction icon={<Ticket size={18} />} label="Patient Queue" sub="Live token & waitlist status" onClick={() => navigate('/patients/queue')} />
         <QuickAction icon={<CreditCard size={18} />} label="Billing & Payments" sub="Invoices, receipts & dues" onClick={() => navigate('/billing')} />
         <QuickAction icon={<BarChart3 size={18} />} label="Analytics" sub="Reports & revenue insights" onClick={() => navigate('/analytics')} />
       </div>

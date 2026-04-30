@@ -220,9 +220,14 @@
 }
 
 .sa-stat-clickable:hover {
-  border-color: #c7d2fe;
-  background: #f8faff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border-color: rgba(37, 99, 235, 0.3);
+  background: rgba(37, 99, 235, 0.06);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.1);
+}
+
+.sa-stat-clickable:active {
+  transform: scale(0.97);
+  background: rgba(37, 99, 235, 0.1);
 }
 
 .sa-stat-icon {
@@ -287,8 +292,8 @@
 }
 
 .sa-badge-primary {
-  background: #eff6ff;
-  color: #2563eb;
+  background: rgba(37, 99, 235, 0.15);
+  color: #60a5fa;
 }
 
 .sa-chart-body {
@@ -345,9 +350,16 @@
 }
 
 .sa-action-card:hover {
-  border-color: #bfdbfe;
-  background: #f8faff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border-color: rgba(37, 99, 235, 0.3);
+  background: rgba(37, 99, 235, 0.06);
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.12);
+}
+
+.sa-action-card:active {
+  transform: scale(0.98);
+  background: rgba(37, 99, 235, 0.1);
+  border-color: rgba(37, 99, 235, 0.4);
+  box-shadow: none;
 }
 
 .sa-action-icon {
