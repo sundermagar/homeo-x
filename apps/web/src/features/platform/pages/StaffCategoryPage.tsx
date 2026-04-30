@@ -1,3 +1,4 @@
+import React, { useState, useEffect, useMemo } from 'react';
 import { Plus, Search, Edit2, Trash2, X, Users, UserCheck, Stethoscope, ClipboardList, ShieldCheck, UserCog } from 'lucide-react';
 import { NumericInput } from '@/shared/components/NumericInput';
 import { useStaffList, useDeleteStaff, useCreateStaff, useUpdateStaff, useStaffMember } from '@/features/staff/hooks/use-staff';

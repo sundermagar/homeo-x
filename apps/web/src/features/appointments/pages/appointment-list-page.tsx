@@ -24,7 +24,7 @@ const STATUS_OPTIONS = ['', ...Object.values(AppointmentStatus)];
 type Tab = 'all' | 'today' | 'pending';
 
 export default function AppointmentListPage() {
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toISOString().split('T')[0] || '';
   const user = useAuthStore((s) => s.user);
   const rawRole = ((user as any)?.type || (user as any)?.role || (user as any)?.roleName || '').toLowerCase();
   const isDoctor = rawRole === 'doctor' || rawRole === 'medical practitioner' || ((user as any)?.name || '').toLowerCase().startsWith('dr');
@@ -45,7 +45,7 @@ export default function AppointmentListPage() {
 
   const [confirmDel, setConfirmDel] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
-  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<number | string | null>(null);
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 

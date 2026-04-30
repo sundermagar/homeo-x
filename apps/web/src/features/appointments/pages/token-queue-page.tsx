@@ -42,7 +42,7 @@ export default function TokenQueuePage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
-  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<number | string | null>(null);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -521,11 +521,11 @@ export default function TokenQueuePage() {
                             <div className="appt-kebab-wrap">
                               <button 
                                 className="appt-kebab-btn"
-                                onClick={() => setOpenMenuId(openMenuId === `token-${a.id}` ? null : `token-${a.id}` as any)}
+                                onClick={() => setOpenMenuId(openMenuId === `token-${a.id}` ? null : `token-${a.id}`)}
                               >
                                 <MoreVertical size={16} />
                               </button>
-                              {openMenuId === `token-${a.id}` as any && (
+                              {openMenuId === `token-${a.id}` && (
                                 <div className="appt-kebab-menu" style={{ right: 24, top: '50%', transform: 'translateY(-50%)', position: 'absolute', zIndex: 100 }}>
                                   {!a.tokenNo ? (
                                     <button className="appt-kebab-item" style={{ color: 'var(--pp-blue)' }} onClick={() => { handleIssueToken(a.id); setOpenMenuId(null); }} disabled={issueToken.isPending}>
