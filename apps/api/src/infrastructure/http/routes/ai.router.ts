@@ -176,16 +176,19 @@ WRONG: Same idea twice → "Back - Pain" AND "Back - Pain, lower" (keep only the
 10. Combine related modalities into ONE rubric ("worse motion, better rest" → "Back - Pain, worse motion, better rest").
 11. Each entry must be a SHORT phrase under 14 words.
 
-## MODE BUCKETING HINT (${mode.toUpperCase()}) — describes WHERE present symptoms go, NOT what to invent
-${MODE_HINT[mode]}${labBlock}${mergeRule}
-
 ## OUTPUT FORMAT (STRICT JSON)
 Return ONLY raw JSON — no markdown, no prose. Schema:
 { "mental": [string], "physical": [string], "particular": [string] }
 If nothing extractable: { "mental": [], "physical": [], "particular": [] }`;
 
+    const dynamicInstructions = `
+## MODE BUCKETING HINT (${mode.toUpperCase()})
+${MODE_HINT[mode]}${labBlock}${mergeRule}
+`;
+
     const userPrompt = isLabOnly
-      ? `LAB REPORT TEXT (the ONLY source you are allowed to extract from):
+      ? `${dynamicInstructions}
+LAB REPORT TEXT (the ONLY source you are allowed to extract from):
 """
 ${labContext}
 """${(existing.mental.length || existing.physical.length || existing.particular.length) ? `
@@ -194,7 +197,8 @@ EXISTING SYMPTOMS (already on the panel — keep, do not re-emit):
 ${JSON.stringify(existing, null, 2)}` : ''}
 
 TASK: Extract rubrics ONLY for abnormal lab values that are explicitly listed above. If a value isn't there, don't emit a rubric for it. If no abnormalities are listed, return empty arrays. Reply with ONLY the JSON.`
-      : `THE ONLY SOURCE YOU ARE ALLOWED TO EXTRACT FROM is the conversation below.
+      : `${dynamicInstructions}
+THE ONLY SOURCE YOU ARE ALLOWED TO EXTRACT FROM is the conversation below.
 Do NOT add anything that is not literally in these two lines. Empty answer = empty arrays.
 
 Doctor's Question: "${question || ''}"
@@ -232,36 +236,49 @@ Reply with ONLY the JSON object.`;
     // Smarter than plain string-match — handles word-order & rephrasings.
     const normalize = (s: string) => s.toLowerCase().replace(/[.,;:!?()\[\]"']/g, ' ').replace(/\s+/g, ' ').trim();
     const tokenSet = (s: string) => new Set(normalize(s).split(' ').filter(Boolean));
+    
+    // a is a subset of b if all tokens in a are in b.
+    // Includes equality (a is a subset of itself).
     const isSubsetOf = (a: Set<string>, b: Set<string>) => {
-      if (a.size === 0 || a.size >= b.size) return false;
+      if (a.size === 0 || a.size > b.size) return false;
       for (const t of a) if (!b.has(t)) return false;
       return true;
     };
 
-    // Stage 1 — within the incoming list keep the most specific variant.
-    // Stage 2 — drop incoming entries that are subsets of existing entries.
-    const dedupAgainst = (incoming: string[], existingList: string[]): string[] => {
-      const sets = incoming.map(s => ({ s, t: tokenSet(s) }));
-      const stage1: typeof sets = [];
+    // Stage 1 — Combine incoming and existing.
+    // Stage 2 — Keep only the most specific version (longest token set) of each idea.
+    // Stage 3 — This also naturally handles exact duplicates (isSubsetOf(a, b) && isSubsetOf(b, a)).
+    const mergeAndDedup = (existingList: string[], incomingList: string[]): string[] => {
+      const all = [...existingList, ...incomingList];
+      const sets = all.map(s => ({ s, t: tokenSet(s) }));
+      const result: typeof sets = [];
+      
       for (const cand of sets) {
         let dominated = false;
-        for (let i = stage1.length - 1; i >= 0; i--) {
-          const kept = stage1[i];
+        for (let i = result.length - 1; i >= 0; i--) {
+          const kept = result[i];
           if (!kept) continue;
-          if (isSubsetOf(cand.t, kept.t)) { dominated = true; break; }
-          if (isSubsetOf(kept.t, cand.t)) stage1.splice(i, 1);
+          
+          // If candidate is a subset of (or identical to) something we already kept, skip it.
+          if (isSubsetOf(cand.t, kept.t)) {
+            dominated = true;
+            break;
+          }
+          
+          // If what we kept is a subset of the new candidate, remove the old one 
+          // (replace with the more specific variant).
+          if (isSubsetOf(kept.t, cand.t)) {
+            result.splice(i, 1);
+          }
         }
-        if (!dominated) stage1.push(cand);
+        if (!dominated) result.push(cand);
       }
-      const existingSets = existingList.map(s => tokenSet(s));
-      return stage1
-        .filter(c => !existingSets.some(es => isSubsetOf(c.t, es)))
-        .map(c => c.s);
+      return result.map(r => r.s);
     };
 
-    const mergedMental     = [...existing.mental,     ...dedupAgainst(Array.isArray(parsed.mental)     ? parsed.mental     : [], existing.mental)];
-    const mergedPhysical   = [...existing.physical,   ...dedupAgainst(Array.isArray(parsed.physical)   ? parsed.physical   : [], existing.physical)];
-    const mergedParticular = [...existing.particular, ...dedupAgainst(Array.isArray(parsed.particular) ? parsed.particular : [], existing.particular)];
+    const mergedMental     = mergeAndDedup(existing.mental,     Array.isArray(parsed.mental)     ? parsed.mental     : []);
+    const mergedPhysical   = mergeAndDedup(existing.physical,   Array.isArray(parsed.physical)   ? parsed.physical   : []);
+    const mergedParticular = mergeAndDedup(existing.particular, Array.isArray(parsed.particular) ? parsed.particular : []);
 
     sendSuccess(res, {
       mental: mergedMental,
@@ -426,12 +443,14 @@ EXAMPLE SET — chief complaint "recurring asthma 5 years (follow-up after Pulsa
 ${ccTrim
   ? `THE PATIENT'S CHIEF COMPLAINT IS: "${ccTrim}"${ageGenderLine ? ` (${ageGenderLine})` : ''}
 
-This is THE only signal that matters. Every single question you generate must be directly about THIS specific complaint. 
+This is the primary clinical focus. However, you MUST also carefully analyze the "Conversation so far" (transcript). If the patient mentions new symptoms, different problems, or if the conversation has shifted to a new concern not mentioned in the initial complaint, you MUST adapt your questions to follow up on these new developments. 
+
+Do not strictly adhere to the chief complaint if the patient is currently discussing something else; instead, balance your 5 questions to cover both the initial complaint and any new symptoms mentioned. If a new issue is significant, dedicate at least 2-3 questions to exploring its nature, modalities, and timing.
 
 PHRASING LOGIC:
-- Extract the core condition (e.g. "fever", "headache", "pain") from the complaint string.
+- Extract core conditions from both the chief complaint AND any new issues identified in the transcript.
 - Use natural phrasing like "the fever" or "your headache" instead of repeating the full string "${ccTrim}".
-- If the patient already gave a duration in the complaint, do not ask "How long have you had it?"`
+- If the patient already gave a duration in the complaint or transcript, do not ask "How long have you had it?"`
   : 'No chief complaint was provided at intake. You MUST carefully analyze the provided "Conversation so far" (transcript) to identify the patient\'s main reason for visiting and generate questions based on that detected complaint. If the transcript is also empty, generate 5 generic mode-appropriate opening questions to begin the case-taking.'}
 
 DO NOT produce a generic case-taking template. EACH question must be rooted in the specific pathology / phenomenology of the core condition.
@@ -506,7 +525,7 @@ FINAL CHECKS before emitting JSON (re-read your output and fix if any fail):
         : ''
     }
 
-Output the JSON now. ${ccTrim ? `Anchor every question to "${ccTrim}".` : 'Since no chief complaint was provided, identify the main problem from the conversation above and anchor your questions to that detected condition.'} Do not use generic templates.`;
+Output the JSON now. ${ccTrim ? `Anchor your questions to "${ccTrim}" and any new symptoms or concerns mentioned in the conversation. If a new problem has emerged, ensure you ask specific follow-up questions about it.` : 'Since no chief complaint was provided, identify the main problem from the conversation above and anchor your questions to that detected condition.'} Do not use generic templates.`;
 
     const response = await chain.complete({
       systemPrompt,

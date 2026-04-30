@@ -167,21 +167,21 @@ Priority: RESPONSE > DIRECTION_OF_CURE > NEW_SYMPTOMS
 Output rubrics that capture: improvement state, direction-of-cure indicators, and new symptom patterns.
 
 ## CRITICAL RULES
-* DO NOT extract rubrics from surface words
-* DO NOT include generic/common symptoms unless causally linked
-* DO NOT repeat similar rubrics (NO redundancy)
-* MAXIMUM 8 rubrics total (ideal 6–7)
-* Prefer QUALITY over quantity
+* CHIEF COMPLAINT IS KING: You MUST extract at least 1-2 rubrics directly representing the Chief Complaint / Core Pathology. A remedy that covers personality but misses the main disease is wrong.
+* DO NOT extract rubrics from surface words without clinical meaning.
+* DO NOT include generic/common symptoms unless causally linked.
+* DO NOT repeat similar rubrics (NO redundancy).
+* MAXIMUM 8 rubrics total (ideal 6–7).
+* Prefer QUALITY over quantity.
 
-## ETIOLOGY RULE (MOST IMPORTANT)
-IF a clear cause is present (overwork, grief, injury, etc.):
-1. MUST include etiology rubric(s): "General - Ailments from - ..."
-2. Assign importance = 4 (highest)
-3. LIMIT: Max 2 etiology, Max 2 downstream physical
+## PATHOLOGY & ETIOLOGY RULE (MOST IMPORTANT)
+1. PATHOLOGY: The Core Pathology (which includes the original Chief Complaint AND any newly mentioned major disease/issue during the conversation) MUST have a rubric with importance = 4.
+2. ETIOLOGY: IF a clear cause is present (overwork, grief, injury, etc.), it MUST have a rubric with importance = 4.
 
 ## RUBRIC SELECTION LOGIC
-* Etiology: 1–2 (importance 4)
-* Reaction (Mind): 2–3 (importance 3–4)
+* Chief Complaint / Pathology: 1–2 (importance 4)
+* Etiology: 1 (importance 4 - if present)
+* Reaction (Mind): 1–2 (importance 3–4)
 * Generals: 1–2 (importance 2–3)
 * Particulars: only if highly specific
 

@@ -1,0 +1,175 @@
+     * {@link protos.google.cloud.speech.v2.Recognizer|Recognizer}. Fails with
+     * {@link protos.google.rpc.Code.NOT_FOUND|NOT_FOUND} if the requested Recognizer doesn't
+     *   Required. The name of the Recognizer to retrieve. The expected format is
+     *   `projects/{project}/locations/{location}/recognizers/{recognizer}`.
+     *   The first element of the array is an object representing {@link protos.google.cloud.speech.v2.Recognizer|Recognizer}.
+     * @example <caption>include:samples/generated/v2/speech.get_recognizer.js</caption>
+     * region_tag:speech_v2_generated_Speech_GetRecognizer_async
+    getRecognizer(request?: protos.google.cloud.speech.v2.IGetRecognizerRequest, options?: CallOptions): Promise<[
+        protos.google.cloud.speech.v2.IRecognizer,
+        protos.google.cloud.speech.v2.IGetRecognizerRequest | undefined,
+    getRecognizer(request: protos.google.cloud.speech.v2.IGetRecognizerRequest, options: CallOptions, callback: Callback<protos.google.cloud.speech.v2.IRecognizer, protos.google.cloud.speech.v2.IGetRecognizerRequest | null | undefined, {} | null | undefined>): void;
+    getRecognizer(request: protos.google.cloud.speech.v2.IGetRecognizerRequest, callback: Callback<protos.google.cloud.speech.v2.IRecognizer, protos.google.cloud.speech.v2.IGetRecognizerRequest | null | undefined, {} | null | undefined>): void;
+     * @param {string} request.recognizer
+     *   Required. The name of the Recognizer to use during recognition. The
+     *   `projects/{project}/locations/{location}/recognizers/{recognizer}`. The
+     *   {recognizer} segment may be set to `_` to use an empty implicit Recognizer.
+     * @param {google.cloud.speech.v2.RecognitionConfig} request.config
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config_mask|config_mask} field
+     *   {@link protos.google.cloud.speech.v2.Recognizer.default_recognition_config|default_recognition_config}
+     *   of the Recognizer resource.
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config|config} that override the
+     *   {@link protos.google.cloud.speech.v2.Recognizer.default_recognition_config|default_recognition_config}
+     *   of the recognizer during this recognition request. If no mask is provided,
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config|config} override the
+     *   values in the recognizer for this recognition request. If a mask is
+     *   recognizer for this recognition request. If a wildcard (`*`) is provided,
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config|config} completely
+     *   overrides and replaces the config in the recognizer for this recognition
+     *   {@link protos.google.cloud.speech.v2.RecognitionConfig|RecognitionConfig}. As
+     *   {@link protos.google.cloud.speech.v2.RecognitionConfig|RecognitionConfig}. The file
+     *   The first element of the array is an object representing {@link protos.google.cloud.speech.v2.RecognizeResponse|RecognizeResponse}.
+    recognize(request?: protos.google.cloud.speech.v2.IRecognizeRequest, options?: CallOptions): Promise<[
+        protos.google.cloud.speech.v2.IRecognizeResponse,
+        protos.google.cloud.speech.v2.IRecognizeRequest | undefined,
+    recognize(request: protos.google.cloud.speech.v2.IRecognizeRequest, options: CallOptions, callback: Callback<protos.google.cloud.speech.v2.IRecognizeResponse, protos.google.cloud.speech.v2.IRecognizeRequest | null | undefined, {} | null | undefined>): void;
+    recognize(request: protos.google.cloud.speech.v2.IRecognizeRequest, callback: Callback<protos.google.cloud.speech.v2.IRecognizeResponse, protos.google.cloud.speech.v2.IRecognizeRequest | null | undefined, {} | null | undefined>): void;
+     *   representing {@link protos.google.cloud.speech.v2.StreamingRecognizeRequest|StreamingRecognizeRequest} for write() method, and
+     *   will emit objects representing {@link protos.google.cloud.speech.v2.StreamingRecognizeResponse|StreamingRecognizeResponse} on 'data' event asynchronously.
+     * region_tag:speech_v2_generated_Speech_StreamingRecognize_async
+    _streamingRecognize(options?: CallOptions): gax.CancellableStream;
+     * Creates a {@link protos.google.cloud.speech.v2.Recognizer|Recognizer}.
+     * @param {google.cloud.speech.v2.Recognizer} request.recognizer
+     *   Required. The Recognizer to create.
+     *   If set, validate the request and preview the Recognizer, but do not
+     * @param {string} request.recognizerId
+     *   The ID to use for the Recognizer, which will become the final component of
+     *   the Recognizer's resource name.
+     *   Required. The project and location where this Recognizer will be created.
+     * @example <caption>include:samples/generated/v2/speech.create_recognizer.js</caption>
+     * region_tag:speech_v2_generated_Speech_CreateRecognizer_async
+    createRecognizer(request?: protos.google.cloud.speech.v2.ICreateRecognizerRequest, options?: CallOptions): Promise<[
+        LROperation<protos.google.cloud.speech.v2.IRecognizer, protos.google.cloud.speech.v2.IOperationMetadata>,
+    createRecognizer(request: protos.google.cloud.speech.v2.ICreateRecognizerRequest, options: CallOptions, callback: Callback<LROperation<protos.google.cloud.speech.v2.IRecognizer, protos.google.cloud.speech.v2.IOperationMetadata>, protos.google.longrunning.IOperation | null | undefined, {} | null | undefined>): void;
+    createRecognizer(request: protos.google.cloud.speech.v2.ICreateRecognizerRequest, callback: Callback<LROperation<protos.google.cloud.speech.v2.IRecognizer, protos.google.cloud.speech.v2.IOperationMetadata>, protos.google.longrunning.IOperation | null | undefined, {} | null | undefined>): void;
+     * Check the status of the long running operation returned by `createRecognizer()`.
+     * @example <caption>include:samples/generated/v2/speech.create_recognizer.js</caption>
+     * region_tag:speech_v2_generated_Speech_CreateRecognizer_async
+    checkCreateRecognizerProgress(name: string): Promise<LROperation<protos.google.cloud.speech.v2.Recognizer, protos.google.cloud.speech.v2.OperationMetadata>>;
+     * Updates the {@link protos.google.cloud.speech.v2.Recognizer|Recognizer}.
+     * @param {google.cloud.speech.v2.Recognizer} request.recognizer
+     *   Required. The Recognizer to update.
+     *   The Recognizer's `name` field is used to identify the Recognizer to update.
+     *   Format: `projects/{project}/locations/{location}/recognizers/{recognizer}`.
+     *   considered for update. Use `*` to update the entire Recognizer resource.
+     *   If set, validate the request and preview the updated Recognizer, but do not
+     * @example <caption>include:samples/generated/v2/speech.update_recognizer.js</caption>
+     * region_tag:speech_v2_generated_Speech_UpdateRecognizer_async
+    updateRecognizer(request?: protos.google.cloud.speech.v2.IUpdateRecognizerRequest, options?: CallOptions): Promise<[
+        LROperation<protos.google.cloud.speech.v2.IRecognizer, protos.google.cloud.speech.v2.IOperationMetadata>,
+    updateRecognizer(request: protos.google.cloud.speech.v2.IUpdateRecognizerRequest, options: CallOptions, callback: Callback<LROperation<protos.google.cloud.speech.v2.IRecognizer, protos.google.cloud.speech.v2.IOperationMetadata>, protos.google.longrunning.IOperation | null | undefined, {} | null | undefined>): void;
+    updateRecognizer(request: protos.google.cloud.speech.v2.IUpdateRecognizerRequest, callback: Callback<LROperation<protos.google.cloud.speech.v2.IRecognizer, protos.google.cloud.speech.v2.IOperationMetadata>, protos.google.longrunning.IOperation | null | undefined, {} | null | undefined>): void;
+     * Check the status of the long running operation returned by `updateRecognizer()`.
+     * @example <caption>include:samples/generated/v2/speech.update_recognizer.js</caption>
+     * region_tag:speech_v2_generated_Speech_UpdateRecognizer_async
+    checkUpdateRecognizerProgress(name: string): Promise<LROperation<protos.google.cloud.speech.v2.Recognizer, protos.google.cloud.speech.v2.OperationMetadata>>;
+     * Deletes the {@link protos.google.cloud.speech.v2.Recognizer|Recognizer}.
+     *   Required. The name of the Recognizer to delete.
+     *   Format: `projects/{project}/locations/{location}/recognizers/{recognizer}`
+     *   If set, validate the request and preview the deleted Recognizer, but do not
+     *   If set to true, and the Recognizer is not found, the request will succeed
+     * @example <caption>include:samples/generated/v2/speech.delete_recognizer.js</caption>
+     * region_tag:speech_v2_generated_Speech_DeleteRecognizer_async
+    deleteRecognizer(request?: protos.google.cloud.speech.v2.IDeleteRecognizerRequest, options?: CallOptions): Promise<[
+        LROperation<protos.google.cloud.speech.v2.IRecognizer, protos.google.cloud.speech.v2.IOperationMetadata>,
+    deleteRecognizer(request: protos.google.cloud.speech.v2.IDeleteRecognizerRequest, options: CallOptions, callback: Callback<LROperation<protos.google.cloud.speech.v2.IRecognizer, protos.google.cloud.speech.v2.IOperationMetadata>, protos.google.longrunning.IOperation | null | undefined, {} | null | undefined>): void;
+    deleteRecognizer(request: protos.google.cloud.speech.v2.IDeleteRecognizerRequest, callback: Callback<LROperation<protos.google.cloud.speech.v2.IRecognizer, protos.google.cloud.speech.v2.IOperationMetadata>, protos.google.longrunning.IOperation | null | undefined, {} | null | undefined>): void;
+     * Check the status of the long running operation returned by `deleteRecognizer()`.
+     * @example <caption>include:samples/generated/v2/speech.delete_recognizer.js</caption>
+     * region_tag:speech_v2_generated_Speech_DeleteRecognizer_async
+    checkDeleteRecognizerProgress(name: string): Promise<LROperation<protos.google.cloud.speech.v2.Recognizer, protos.google.cloud.speech.v2.OperationMetadata>>;
+     * Undeletes the {@link protos.google.cloud.speech.v2.Recognizer|Recognizer}.
+     *   Required. The name of the Recognizer to undelete.
+     *   Format: `projects/{project}/locations/{location}/recognizers/{recognizer}`
+     *   If set, validate the request and preview the undeleted Recognizer, but do
+     * @example <caption>include:samples/generated/v2/speech.undelete_recognizer.js</caption>
+     * region_tag:speech_v2_generated_Speech_UndeleteRecognizer_async
+    undeleteRecognizer(request?: protos.google.cloud.speech.v2.IUndeleteRecognizerRequest, options?: CallOptions): Promise<[
+        LROperation<protos.google.cloud.speech.v2.IRecognizer, protos.google.cloud.speech.v2.IOperationMetadata>,
+    undeleteRecognizer(request: protos.google.cloud.speech.v2.IUndeleteRecognizerRequest, options: CallOptions, callback: Callback<LROperation<protos.google.cloud.speech.v2.IRecognizer, protos.google.cloud.speech.v2.IOperationMetadata>, protos.google.longrunning.IOperation | null | undefined, {} | null | undefined>): void;
+    undeleteRecognizer(request: protos.google.cloud.speech.v2.IUndeleteRecognizerRequest, callback: Callback<LROperation<protos.google.cloud.speech.v2.IRecognizer, protos.google.cloud.speech.v2.IOperationMetadata>, protos.google.longrunning.IOperation | null | undefined, {} | null | undefined>): void;
+     * Check the status of the long running operation returned by `undeleteRecognizer()`.
+     * @example <caption>include:samples/generated/v2/speech.undelete_recognizer.js</caption>
+     * region_tag:speech_v2_generated_Speech_UndeleteRecognizer_async
+    checkUndeleteRecognizerProgress(name: string): Promise<LROperation<protos.google.cloud.speech.v2.Recognizer, protos.google.cloud.speech.v2.OperationMetadata>>;
+     * @param {string} request.recognizer
+     *   Required. The name of the Recognizer to use during recognition. The
+     *   `projects/{project}/locations/{location}/recognizers/{recognizer}`. The
+     *   {recognizer} segment may be set to `_` to use an empty implicit Recognizer.
+     * @param {google.cloud.speech.v2.RecognitionConfig} request.config
+     *   {@link protos.google.cloud.speech.v2.BatchRecognizeRequest.config_mask|config_mask}
+     *   {@link protos.google.cloud.speech.v2.Recognizer.default_recognition_config|default_recognition_config}
+     *   of the Recognizer resource.
+     *   {@link protos.google.cloud.speech.v2.BatchRecognizeRequest.config|config} that override
+     *   {@link protos.google.cloud.speech.v2.Recognizer.default_recognition_config|default_recognition_config}
+     *   of the recognizer during this recognition request. If no mask is provided,
+     *   {@link protos.google.cloud.speech.v2.BatchRecognizeRequest.config|config} override the
+     *   values in the recognizer for this recognition request. If a mask is
+     *   recognizer for this recognition request. If a wildcard (`*`) is provided,
+     *   {@link protos.google.cloud.speech.v2.BatchRecognizeRequest.config|config} completely
+     *   overrides and replaces the config in the recognizer for this recognition
+     * @param {google.cloud.speech.v2.BatchRecognizeRequest.ProcessingStrategy} request.processingStrategy
+    batchRecognize(request?: protos.google.cloud.speech.v2.IBatchRecognizeRequest, options?: CallOptions): Promise<[
+        LROperation<protos.google.cloud.speech.v2.IBatchRecognizeResponse, protos.google.cloud.speech.v2.IOperationMetadata>,
+    batchRecognize(request: protos.google.cloud.speech.v2.IBatchRecognizeRequest, options: CallOptions, callback: Callback<LROperation<protos.google.cloud.speech.v2.IBatchRecognizeResponse, protos.google.cloud.speech.v2.IOperationMetadata>, protos.google.longrunning.IOperation | null | undefined, {} | null | undefined>): void;
+    batchRecognize(request: protos.google.cloud.speech.v2.IBatchRecognizeRequest, callback: Callback<LROperation<protos.google.cloud.speech.v2.IBatchRecognizeResponse, protos.google.cloud.speech.v2.IOperationMetadata>, protos.google.longrunning.IOperation | null | undefined, {} | null | undefined>): void;
+    checkBatchRecognizeProgress(name: string): Promise<LROperation<protos.google.cloud.speech.v2.BatchRecognizeResponse, protos.google.cloud.speech.v2.OperationMetadata>>;
+    * Lists Recognizers.
+    *   Required. The project and location of Recognizers to list. The expected
+    *   The maximum number of Recognizers to return. The service may return fewer
+    *   than this value. If unspecified, at most 5 Recognizers will be returned.
+    *   {@link protos.google.cloud.speech.v2.Speech.ListRecognizers|ListRecognizers} call.
+    *   {@link protos.google.cloud.speech.v2.Speech.ListRecognizers|ListRecognizers} must match
+    *   The first element of the array is Array of {@link protos.google.cloud.speech.v2.Recognizer|Recognizer}.
+    *   We recommend using `listRecognizersAsync()`
+    listRecognizers(request?: protos.google.cloud.speech.v2.IListRecognizersRequest, options?: CallOptions): Promise<[
+        protos.google.cloud.speech.v2.IRecognizer[],
+        protos.google.cloud.speech.v2.IListRecognizersRequest | null,
+        protos.google.cloud.speech.v2.IListRecognizersResponse
+    listRecognizers(request: protos.google.cloud.speech.v2.IListRecognizersRequest, options: CallOptions, callback: PaginationCallback<protos.google.cloud.speech.v2.IListRecognizersRequest, protos.google.cloud.speech.v2.IListRecognizersResponse | null | undefined, protos.google.cloud.speech.v2.IRecognizer>): void;
+    listRecognizers(request: protos.google.cloud.speech.v2.IListRecognizersRequest, callback: PaginationCallback<protos.google.cloud.speech.v2.IListRecognizersRequest, protos.google.cloud.speech.v2.IListRecognizersResponse | null | undefined, protos.google.cloud.speech.v2.IRecognizer>): void;
+     * Equivalent to `listRecognizers`, but returns a NodeJS Stream object.
+     *   Required. The project and location of Recognizers to list. The expected
+     *   The maximum number of Recognizers to return. The service may return fewer
+     *   than this value. If unspecified, at most 5 Recognizers will be returned.
+     *   {@link protos.google.cloud.speech.v2.Speech.ListRecognizers|ListRecognizers} call.
+     *   {@link protos.google.cloud.speech.v2.Speech.ListRecognizers|ListRecognizers} must match
+     *   An object stream which emits an object representing {@link protos.google.cloud.speech.v2.Recognizer|Recognizer} on 'data' event.
+     *   We recommend using `listRecognizersAsync()`
+    listRecognizersStream(request?: protos.google.cloud.speech.v2.IListRecognizersRequest, options?: CallOptions): Transform;
+     * Equivalent to `listRecognizers`, but returns an iterable object.
+     *   Required. The project and location of Recognizers to list. The expected
+     *   The maximum number of Recognizers to return. The service may return fewer
+     *   than this value. If unspecified, at most 5 Recognizers will be returned.
+     *   {@link protos.google.cloud.speech.v2.Speech.ListRecognizers|ListRecognizers} call.
+     *   {@link protos.google.cloud.speech.v2.Speech.ListRecognizers|ListRecognizers} must match
+     *   {@link protos.google.cloud.speech.v2.Recognizer|Recognizer}. The API will be called under the hood as needed, once per the page,
+     * @example <caption>include:samples/generated/v2/speech.list_recognizers.js</caption>
+     * region_tag:speech_v2_generated_Speech_ListRecognizers_async
+    listRecognizersAsync(request?: protos.google.cloud.speech.v2.IListRecognizersRequest, options?: CallOptions): AsyncIterable<protos.google.cloud.speech.v2.IRecognizer>;
+     * Return a fully-qualified recognizer resource name string.
+     * @param {string} recognizer
+    recognizerPath(project: string, location: string, recognizer: string): string;
+     * Parse the project from Recognizer resource.
+     * @param {string} recognizerName
+     *   A fully-qualified path representing Recognizer resource.
+    matchProjectFromRecognizerName(recognizerName: string): string | number;
+     * Parse the location from Recognizer resource.
+     * @param {string} recognizerName
+     *   A fully-qualified path representing Recognizer resource.
+    matchLocationFromRecognizerName(recognizerName: string): string | number;
+     * Parse the recognizer from Recognizer resource.
+     * @param {string} recognizerName
+     *   A fully-qualified path representing Recognizer resource.
+     * @returns {string} A string representing the recognizer.
+    matchRecognizerFromRecognizerName(recognizerName: string): string | number;

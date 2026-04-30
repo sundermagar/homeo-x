@@ -531,6 +531,7 @@ export class PatientRepositoryPg implements PatientRepository {
       id: row.id,
       regid: row.regid || 0,
       tenantId: '',
+      clinicId: row.clinicId || null,
       title: row.title || null,
       firstName: row.firstName || '',
       middleName: row.middleName || null,

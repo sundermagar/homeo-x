@@ -178,36 +178,98 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
       // If no medical case exists, we still want to return patient-level data (notes, images, homeo)
       // but soap/vitals will be empty since they depend on visitId (activeCase.id).
       
+      // Fetch all clinical data points for this patient, unifying legacy and AI-driven tables.
       const [
-        vitals,
-        soap,
+        vitalsRows,
+        soapRows,
         homeo,
         notes,
         examination,
         images,
         investigations,
-        prescriptions
+        legacyPrescriptions,
+        aiPrescriptions
       ] = await Promise.all([
-        activeCase ? this.db.select().from(schema.vitals).where(eq(schema.vitals.visitId, activeCase.id)) : Promise.resolve([]),
-        activeCase ? this.db.select().from(schema.legacySoapNotes).where(eq(schema.legacySoapNotes.visitId, activeCase.id)) : Promise.resolve([]),
+        // Vitals: Fetch all vitals recorded for this patient's visits
+        this.db
+          .select({
+            id: schema.vitals.id,
+            visitId: schema.vitals.visitId,
+            heightCm: schema.vitals.heightCm,
+            weightKg: schema.vitals.weightKg,
+            bmi: schema.vitals.bmi,
+            temperatureF: schema.vitals.temperatureF,
+            pulseRate: schema.vitals.pulseRate,
+            systolicBp: schema.vitals.systolicBp,
+            diastolicBp: schema.vitals.diastolicBp,
+            respiratoryRate: schema.vitals.respiratoryRate,
+            oxygenSaturation: schema.vitals.oxygenSaturation,
+            bloodSugar: schema.vitals.bloodSugar,
+            notes: schema.vitals.notes,
+            recordedAt: schema.vitals.recordedAt,
+          })
+          .from(schema.vitals)
+          .innerJoin(schema.appointments, eq(schema.vitals.visitId, schema.appointments.id))
+          .where(eq(schema.appointments.patientId, regid))
+          .orderBy(desc(schema.vitals.recordedAt)),
+
+        // SOAP: Fetch all SOAP notes recorded for this patient's visits
+        this.db
+          .select({
+            id: schema.legacySoapNotes.id,
+            visitId: schema.legacySoapNotes.visitId,
+            subjective: schema.legacySoapNotes.subjective,
+            objective: schema.legacySoapNotes.objective,
+            assessment: schema.legacySoapNotes.assessment,
+            plan: schema.legacySoapNotes.plan,
+            advice: schema.legacySoapNotes.advice,
+            followUp: schema.legacySoapNotes.followUp,
+            icdCodes: schema.legacySoapNotes.icdCodes,
+          })
+          .from(schema.legacySoapNotes)
+          .innerJoin(schema.appointments, eq(schema.legacySoapNotes.visitId, schema.appointments.id))
+          .where(eq(schema.appointments.patientId, regid))
+          .orderBy(desc(schema.legacySoapNotes.id)),
+
         this.getHomeoDetails(regid),
         this.db.select().from(schema.caseNotes).where(eq(schema.caseNotes.regid, regid)).orderBy(desc(schema.caseNotes.createdAt)),
         this.db.select().from(schema.caseExamination).where(eq(schema.caseExamination.regid, regid)),
         this.db.select().from(schema.caseImages).where(and(eq(schema.caseImages.regid, regid), sql`${schema.caseImages.deletedAt} IS NULL`)),
         this.db.select().from(schema.investigations).where(eq(schema.investigations.regid, regid)),
         this.db.select().from(schema.legacyPrescriptions).where(eq(schema.legacyPrescriptions.regid, regid)),
+        
+        // AI Prescriptions: Raw fetch for the newer text-based table
+        this.db.execute(sql`SELECT * FROM "prescriptions" WHERE "regid" = ${regid} ORDER BY "id" DESC`) as Promise<any[]>
       ]);
+
+      // Normalize AI prescriptions into the standard Prescription interface for UI consistency
+      const normalizedAiRx: Prescription[] = (aiPrescriptions || []).map(row => ({
+        id: row.id,
+        regid: row.regid,
+        visitId: row.consultation_id,
+        dateval: row.created_at ? new Date(row.created_at).toISOString().split('T')[0] : null,
+        remedyName: row.remedy,
+        potencyId: null, // text-based legacy field
+        frequencyId: null, // text-based legacy field
+        days: parseInt(row.duration) || null,
+        instructions: row.instructions,
+        // These fields are often expected by the UI for AI-generated remedies
+        potency: row.potency,
+        frequency: row.frequency,
+      } as any));
+
+      const allPrescriptions = [...(legacyPrescriptions as Prescription[]), ...normalizedAiRx];
 
       return {
         medicalCase: activeCase || { id: 0, regid, status: 'None' }, // Fallback for UI
-        vitals: vitals as Vitals[],
-        soap: soap as SoapNotes[],
+        vitals: vitalsRows as Vitals[],
+        soap: soapRows as SoapNotes[],
         homeo,
         notes: notes as CaseNote[],
         examination: examination as CaseExamination[],
         images: images as CaseImage[],
         investigations: investigations as Investigation[],
-        prescriptions: prescriptions as Prescription[],
+        prescriptions: allPrescriptions,
       };
     } catch (err: any) {
       console.error(`💥 [MedicalCaseRepositoryPg] Error in getUnifiedCaseData for regid ${regid}:`, err);

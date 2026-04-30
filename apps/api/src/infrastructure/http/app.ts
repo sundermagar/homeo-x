@@ -54,6 +54,7 @@ import { visitsRouter } from './routes/visits.router';
 import { videoCallRouter } from './routes/video-call.router';
 import { specialtiesRouter } from './routes/specialties.router';
 import { setupTranscriptionGateway } from './gateways/transcription.gateway';
+import { setupVideoCallGateway } from './gateways/video-call.gateway';
 import { TranslatorEngine } from '../../domains/consultation/engines/translator.engine';
 import { getAiProviderChain } from '../ai/ai-provider-chain';
 
@@ -182,6 +183,14 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
     setupTranscriptionGateway(io, translator);
   } catch (err: any) {
     logger.error({ err: err?.message }, 'Failed to initialize transcription gateway');
+  }
+
+  // ─── Video Call signalling gateway (Socket.IO /video-call namespace) ───
+  // Relays doctor questions and call-leave events to the patient's browser tab.
+  try {
+    setupVideoCallGateway(io);
+  } catch (err: any) {
+    logger.error({ err: err?.message }, 'Failed to initialize video-call gateway');
   }
 
   // ─── Error Handling (must be last) ───

@@ -38,6 +38,7 @@ function mapRow(row: typeof schema.appointments.$inferSelect): Appointment {
     phone:                row.phone,
     patientName:          row.patientName,
     cancellationReason:   row.cancellationReason,
+    clinicId:             row.clinicId,
     createdAt:            row.createdAt,
     updatedAt:            row.updatedAt,
     deletedAt:            row.deletedAt,
@@ -171,6 +172,7 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
         a.created_at::timestamp as created_at,
         a.updated_at::timestamp as updated_at,
         a.deleted_at::timestamp as deleted_at,
+        a.clinic_id as clinic_id,
         COALESCE(d.name, u.name, 'Practitioner')::text as doctor_name
       FROM appointments a
       LEFT JOIN doctors d ON d.id = a.doctor_id
@@ -208,6 +210,7 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
         p.created_at::timestamp as created_at,
         p.updated_at::timestamp as updated_at,
         NULL::timestamp as deleted_at,
+        cd.clinic_id as clinic_id,
         'General'::text as doctor_name
       FROM pending_appointments p
       LEFT JOIN case_datas cd ON cd.regid = p.regid
@@ -252,6 +255,7 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
         createdAt: r.created_at,
         updatedAt: r.updated_at,
         deletedAt: r.deleted_at,
+        clinicId: r.clinic_id,
         doctorName: r.doctor_name
       })),
       total: (countRows[0] as any)?.total ?? 0
@@ -495,6 +499,7 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
       ...r.waitlist,
       patientName: r.patientName,
       doctorName: r.doctorName,
+      clinicId: r.waitlist.clinicId,
       consultationFee: r.waitlist.consultationFee?.toString() || null,
     }));
   }

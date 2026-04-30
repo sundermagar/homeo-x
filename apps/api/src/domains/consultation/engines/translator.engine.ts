@@ -2,7 +2,7 @@
 // ─── Translator Engine ────────────────────────────────────────────────────────
 // Translates Hindi/Hinglish text to English for the consultation pipeline.
 // Primary path: Google Cloud Translation API (deterministic, purpose-built).
-// Fallback path: Claude via providerChain (only if Google translate fails).
+// Fallback: returns original text as-is (no LLM fallback to save credits).
 
 import { createLogger } from '../../../shared/logger';
 import type { AiProviderChain } from '../../../infrastructure/ai/ai-provider-chain';
@@ -22,7 +22,12 @@ function getTranslateClient(): Promise<any | null> {
           logger.warn('@google-cloud/translate loaded but no Translate constructor found');
           return null;
         }
-        return new TranslateCtor();
+        const credentialsStr = process.env.GOOGLE_CREDENTIALS_BASE64 
+          ? Buffer.from(process.env.GOOGLE_CREDENTIALS_BASE64, 'base64').toString('utf-8') 
+          : null;
+        const credentials = credentialsStr ? JSON.parse(credentialsStr) : undefined;
+
+        return new TranslateCtor(credentials ? { credentials, projectId: credentials.project_id } : undefined);
       } catch (err: any) {
         logger.warn({ err: err?.message }, '@google-cloud/translate not available — will fall back to LLM');
         return null;
@@ -38,93 +43,40 @@ export class TranslatorEngine {
   async translateToEnglish(tenantId: string, userId: string, text: string): Promise<string> {
     if (!text?.trim()) return '';
 
-    // Skip if already English (simple heuristic)
-    const nonAsciiRatio = (text.replace(/[\x00-\x7F]/g, '').length) / text.length;
-    if (nonAsciiRatio < 0.1 && !this.looksLikeHinglish(text)) {
+    // ── 1. Skip logic: Is it pure English? ───────────────────────────────────
+    // Use a simple heuristic: if mostly ASCII and no non-English words, assume English
+    const isLikelyEnglish = /^[a-zA-Z0-9\s\.,!?;:'"()-]+$/.test(text) && !/\b(hai|mein|hain|nahi|aur|ko|se|par|ka|ki|ke|tha|thi|ho|hota|wala|accha|theek|bahut|et|und|der|die|das|le|la|les|el|los|las|che|il|lo|gli|la|le|i|o|a|gli|ne|na|ta|te|ho|hai|wa|ga|wo|ni|de|wa|mo|ru|shi|ri|ku|tsu|ka|ke|ko|sa|shi|su|se|so|ta|chi|tsu|te|to|na|ni|nu|ne|no|ha|hi|fu|he|ho|ma|mi|mu|me|mo|ya|yu|yo|ra|ri|ru|re|ro|wa|wo|n|ga|gi|gu|ge|go|za|ji|zu|ze|zo|da|di|du|de|do|ba|bi|bu|be|bo|pa|pi|pu|pe|po)\b/i.test(text);
+    
+    if (isLikelyEnglish) {
       return text;
     }
 
-    // ── Primary path: Google Cloud Translation ──
-    // Same Google credentials as STT. Always returns a clean translation,
-    // no chatbot meta-text, no refusals.
+    // ── 2. Primary path: Google Cloud Translation ─────────────────────────────
     try {
       const translate = await getTranslateClient();
       if (translate) {
-        const [translated] = await translate.translate(text, { from: 'hi', to: 'en', format: 'text' });
+        const translateOptions: { to: string; format: string; from?: string } = {
+          to: 'en',
+          format: 'text',
+        };
+        // Let Google auto-detect the source language
+        const [translated] = await translate.translate(text, translateOptions);
         const out = (Array.isArray(translated) ? translated[0] : translated || '').trim();
-        if (out) {
-          logger.info({ tenantId, inputLen: text.length, outputLen: out.length, engine: 'google' }, 'Translation complete');
-          return out;
-        }
+        if (out) return out;
       }
     } catch (err: any) {
-      logger.warn({ err: err?.message }, 'Google Translate failed — falling back to LLM');
+      logger.warn({ err: err?.message }, 'Google Translate failed — returning original text');
     }
 
-    // ── Fallback: LLM ──
-    // Only reached if @google-cloud/translate is missing or the API errored.
-
-    try {
-      const response = await this.providerChain.complete({
-        systemPrompt: `You are a deterministic LITERAL TRANSLATOR. You translate any Hindi or Hinglish text to plain English. You translate every input — no exceptions.
-
-ABSOLUTE RULES:
-1. NEVER refuse. NEVER ask for clarification. NEVER explain what you're doing.
-2. NEVER add commentary, preamble, or trailing notes (no "Translation:", no "Sure, here's…", no "I couldn't find…").
-3. If the input is already English, return it UNCHANGED, character for character.
-4. If the input is a single word (medical or not — "cow", "bukhar", "headache"), translate that single word literally and return ONLY the translation.
-5. If the input is gibberish, mic-test sounds, or unintelligible, return the original input unchanged. Do NOT comment on it.
-6. If the input is non-medical (e.g. greetings, small talk, animal names), translate it literally anyway.
-7. Preserve proper nouns (names, places, drug brand names) as-is.
-8. Keep numbers, units, and times exactly as written.
-9. Output is a single line of English text. No quotes around it. No JSON.
-
-EXAMPLES (input → output):
-"namaste doctor" → "hello doctor"
-"mujhe sar mein dard hai" → "I have a headache"
-"cow" → "cow"
-"hello" → "hello"
-"acha" → "okay"
-"asdfgh" → "asdfgh"
-"" → ""
-
-Translate the next user message and reply with ONLY the translated text.`,
-        userPrompt: text,
-        temperature: 0,
-        maxTokens: 1024,
-        responseFormat: 'text',
-      });
-
-      const out = (response.content || '').trim();
-
-      // Refusal-pattern guard: if the model slipped into chatbot mode,
-      // fall back to the original input so the consultation pipeline isn't
-      // polluted with meta-commentary like "I couldn't find any medical text".
-      const refusalPatterns = [
-        /^i (?:couldn'?t|cannot|can'?t)\b/i,
-        /^i'?m (?:not|sorry|here)\b/i,
-        /\bplease (?:provide|share|give)\b/i,
-        /\bno (?:medical|hindi|hinglish) (?:text|content)\b/i,
-        /^translation:?\s/i,
-        /\bunable to (?:translate|find)\b/i,
-      ];
-      if (!out || refusalPatterns.some((rx) => rx.test(out))) {
-        logger.warn({ tenantId, sample: out.slice(0, 80) }, 'Translator returned refusal-like output — using original text');
-        return text;
-      }
-
-      // Defensive trim: strip surrounding quotes the model sometimes adds
-      const cleaned = out.replace(/^["'`]+|["'`]+$/g, '').trim();
-      logger.info({ tenantId, inputLen: text.length, outputLen: cleaned.length }, 'Translation complete');
-      return cleaned || text;
-    } catch (error: any) {
-      logger.error({ error: error.message }, 'Translation failed, returning original text');
-      return text;
-    }
+    // ── 3. Fallback: return original text (no LLM to save credits) ─────────────
+    logger.warn('Google Translate unavailable — returning original text as-is');
+    return text;
   }
 
-  private looksLikeHinglish(text: string): boolean {
-    const hinglishPatterns = /\b(kya|hai|mein|hain|nahi|aur|ko|se|par|ka|ki|ke|tha|thi|ho|hota|karke|wala|accha|theek|bahut|dard)\b/i;
-    return hinglishPatterns.test(text);
+  private isStrongHinglish(text: string): boolean {
+    // Only trigger if we see actual Hindi grammar words (hai, mein, ka, ki, etc.)
+    // Avoid common words that are used in English like 'doctor', 'patient', 'clinic'.
+    const strongHinglish = /\b(hai|mein|hain|nahi|aur|ko|se|par|ka|ki|ke|tha|thi|ho|hota|wala|accha|theek|bahut|dard|bukhar|khasi|pet|sar|kamar|neend|chakkar|jalan|khujli|sujan|thand|garmi|bata|raha|rahi|abhi|pehle|baad|din|hamesha|kabhi|kbhi|thoda|zyada)\b/i;
+    return strongHinglish.test(text);
   }
 }

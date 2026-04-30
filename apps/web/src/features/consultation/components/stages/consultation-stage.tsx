@@ -8,7 +8,6 @@ import type { VideoCallState } from '../consultation-header';
 import type { SoapSuggestion, HomeopathyConsultResult, ConsultationMode, CategorizedSymptoms } from '../../../../types/ai';
 import type { GnmAnalysis } from '../../../../types/ai';
 import type { TranscriptSegmentLocal, SpeakerLabel } from '../../../../types/scribing';
-import { useAiQuestionSuggestions } from '../../hooks/use-ai-question-suggestions';
 import { useModeQuestions } from '../../hooks/use-mode-questions';
 import { useSymptomExtraction } from '../../hooks/use-symptom-extraction';
 import { Zap, RefreshCw, ClipboardList, Brain, Heart, Search, Star, Volume2, Mic, X, Trash2 } from 'lucide-react';
@@ -180,17 +179,7 @@ export function ConsultationStage({
         })
       );
 
-      // Also update the patient-answer buffer if we are in listen mode,
-      // then recompute the textarea so it shows English instead of Hindi.
-      if (isListeningForAnswer && patientAnswerSegmentsRef.current.length > 0) {
-        const updated = patientAnswerSegmentsRef.current.map(s =>
-          (s.timestamp === result.timestamp || s.text === result.text)
-            ? { ...s, translatedText: result.translatedText }
-            : s
-        );
-        patientAnswerSegmentsRef.current = updated;
-        setPatientAnswer(updated.map(s => s.translatedText || s.text).join(' '));
-      }
+      // We no longer intercept audio into patientAnswer buffer.
       return;
     }
 
@@ -200,19 +189,7 @@ export function ConsultationStage({
         : (result.role === 'PATIENT' ? 'PATIENT' : 'DOCTOR');
 
     if (result.isFinal) {
-      if (isListeningForAnswer && speaker === 'PATIENT') {
-        const answerSeg = {
-          text: result.text,
-          translatedText: result.translatedText || '',
-          timestamp: result.timestamp,
-        };
-        patientAnswerSegmentsRef.current = [...patientAnswerSegmentsRef.current, answerSeg];
-        setPatientAnswer(
-          patientAnswerSegmentsRef.current.map(s => s.translatedText || s.text).join(' ')
-        );
-        setPtInterimText(''); 
-        return;
-      }
+
 
       const segment: TranscriptSegmentLocal = {
         sequenceNumber: nextSeqRef.current++,
@@ -286,6 +263,11 @@ export function ConsultationStage({
     const isLiveKitMode = callMode === 'AUDIO' || callMode === 'VIDEO';
 
     if (isLiveKitMode) {
+      // REQUIREMENT: Don't start transcription until both have joined.
+      // We check if at least one remote user (the patient) is present.
+      const isPatientJoined = (video?.remoteUsers || []).length > 0;
+      if (!isPatientJoined) return;
+
       // 1. Doctor voice
       if (!hasAutoStartedDr.current && !binaryTranscriber.isRecording && !binaryTranscriber.isConnecting) {
         const drTrack = video?.localAudioTrack?.mediaStreamTrack || video?.localAudioTrack;
@@ -329,11 +311,19 @@ export function ConsultationStage({
     }
   }, [callMode, video?.localAudioTrack, video?.remoteUsers, binaryTranscriber.isRecording, binaryTranscriber.isConnecting, patientTranscriber.isRecording, patientTranscriber.isConnecting, onVoiceUsed]);
 
-  // Manual start/stop handlers for IN_PERSON
+  // Manual start/stop handlers for IN_PERSON or Resume buttons
   const handleStartRecording = useCallback(() => {
+    const isLiveKitMode = callMode === 'AUDIO' || callMode === 'VIDEO';
+    if (isLiveKitMode) {
+      const isPatientJoined = (video?.remoteUsers || []).length > 0;
+      if (!isPatientJoined) {
+        console.warn('[ConsultationStage] Manual start blocked: Patient not joined.');
+        return;
+      }
+    }
     binaryTranscriber.startRecording();
     onVoiceUsed?.();
-  }, [binaryTranscriber, onVoiceUsed]);
+  }, [binaryTranscriber, onVoiceUsed, callMode, video?.remoteUsers]);
 
   const handleStopRecording = useCallback(() => {
     binaryTranscriber.stopRecording();
@@ -342,7 +332,6 @@ export function ConsultationStage({
     setIsListeningForAnswer(false);
   }, [binaryTranscriber]);
 
-  const aiQuestions = useAiQuestionSuggestions(segments, binaryTranscriber.isRecording);
 
   // --- Mode-specific question generation ---
   const modeQuestions = useModeQuestions();
@@ -363,8 +352,8 @@ export function ConsultationStage({
     const finalSegs = segments.filter(s => s.isFinal);
     const newSegCount = finalSegs.length;
 
-    // Need at least 2 new segments since last extraction
-    if (newSegCount - lastExtractedSegCountRef.current < 2) return;
+    // Need at least 4 new segments since last extraction (saves credits)
+    if (newSegCount - lastExtractedSegCountRef.current < 4) return;
 
     // Debounce: wait 4 seconds of silence
     if (extractionTimerRef.current) {
@@ -427,7 +416,7 @@ export function ConsultationStage({
         patientAge,
         patientGender: patient?.gender,
       });
-    }, 4000);
+    }, 8000);
 
     return () => {
       if (extractionTimerRef.current) {
@@ -461,24 +450,23 @@ export function ConsultationStage({
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [segments, drInterimText, ptInterimText]);
 
-  // Combine AI and mode questions
+  // Combine AI and mode questions with deduplication
   const modeQList = (modeQuestions.data as any)?.questions || [];
-  const allQuestions = [
-    ...modeQList.map((q: any, i: number) => {
-      const qText = typeof q === 'string' ? q : q.question;
-      const isAnswered = answeredQuestions.includes(qText);
-      return {
-        id: `mode-${i}`,
-        question: qText,
-        options: (q as any).options,
-        answered: isAnswered,
-      };
-    }),
-  ];
+  
+  const allQuestions = modeQList.map((q: any, i: number) => {
+    const qText = typeof q === 'string' ? q : q.question;
+    const isAnswered = answeredQuestions.includes(qText);
+    return {
+      id: `mode-${i}`,
+      question: qText,
+      options: (q as any).options,
+      answered: isAnswered,
+      isLive: false,
+    };
+  });
 
   // Inject a question into the transcript
   const injectQuestion = useCallback((questionText: string, questionId?: string) => {
-    if (questionId) aiQuestions.markAnswered(questionId);
     setAnsweredQuestions(prev => [...prev, questionText]);
     lastQuestionRef.current = questionText;
     const segment: TranscriptSegmentLocal = {
@@ -515,12 +503,11 @@ export function ConsultationStage({
       setPatientAnswer('');
       setIsListeningForAnswer(true);
     }
-  }, [aiQuestions, onTranscriptUpdate, visitId, callMode]);
+  }, [onTranscriptUpdate, visitId, callMode]);
 
-  // Submit patient answer — then extract symptoms from this Q&A pair
-  const handleSubmitAnswer = useCallback(() => {
-    if (!patientAnswer.trim()) return;
-    const answerText = patientAnswer.trim();
+  // Submit patient answer directly to transcript — then extract symptoms from this Q&A pair
+  const injectAnswer = useCallback((answerText: string) => {
+    if (!answerText.trim()) return;
     const questionText = lastQuestionRef.current || 'General question';
 
     // Add answer to transcript
@@ -543,18 +530,8 @@ export function ConsultationStage({
       setTimeout(() => onTranscriptUpdate?.(fullText), 0);
       return updated;
     });
-    // Use the fully-translated version from the segment buffer (translation may
-    // have arrived after the original final event, swapping Hindi → English).
-    const translatedAnswer = patientAnswerSegmentsRef.current.length > 0
-      ? patientAnswerSegmentsRef.current.map(s => s.translatedText || s.text).join(' ')
-      : answerText;
-    patientAnswerSegmentsRef.current = []; // clear buffer for next answer
-    setPatientAnswer('');
-    // Done listening for this answer — next audio belongs to the doctor again
-    setIsListeningForAnswer(false);
 
-    // Add answer to transcript using the English-translated text
-    const finalAnswerText = translatedAnswer.trim() || answerText;
+    const finalAnswerText = answerText;
 
     // Extract symptoms from this Q&A pair (like demo does per answer)
     const genAtDispatch = clearGenerationRef.current;
@@ -741,67 +718,34 @@ export function ConsultationStage({
                 isPaused={isVideoPaused}
                 onStartRecording={handleStartRecording}
                 onStopRecording={handleStopRecording}
-                aiQuestions={aiQuestions.questions}
-                isGeneratingQuestions={aiQuestions.isGenerating}
-                onQuestionAnswered={aiQuestions.markAnswered}
-                transcriptHeaderActions={AttachLabButton}
+                aiQuestions={allQuestions}
+                isGeneratingQuestions={modeQuestions.isPending}
+                onQuestionAnswered={() => {}}
+                transcriptHeaderActions={
+                  <div className="flex items-center gap-2">
+                    {callMode === 'IN_PERSON' && (
+                      <button
+                        onClick={() => setIsListeningForAnswer(prev => !prev)}
+                        className={cn(
+                          "inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-bold uppercase tracking-wider transition-colors",
+                          isListeningForAnswer
+                            ? "bg-[#FEF2F2] text-[#DC2626] border border-[#FECACA] animate-pulse"
+                            : "bg-[#FAFAF8] text-[#4A4A47] border border-[#E3E2DF] hover:bg-[#EFF6FF] hover:text-[#2563EB] hover:border-[#BFDBFE]"
+                        )}
+                        title="Toggle who is speaking to correctly label the transcript"
+                      >
+                        <Mic className="h-3 w-3" />
+                        {isListeningForAnswer ? "Patient Speaking" : "Doctor Speaking"}
+                      </button>
+                    )}
+                    {AttachLabButton}
+                  </div>
+                }
                 transcriptBottomActions={uploadStatus}
               />
             ); }}
           </AICaptureModule>
 
-          {/* Patient's Answer area — pinned directly under the transcript (IN_PERSON only).
-              For Audio/Video calls, patient answers via their own link in a separate tab
-              and answers are captured automatically through live transcription. */}
-          {callMode === 'IN_PERSON' && (
-          <div className="pp-card overflow-hidden">
-            <div className="px-4 py-3 bg-[#FAFAF8] border-b border-[#E3E2DF] flex items-center justify-between">
-              <span className="text-[13px] font-bold text-[#0F0F0E] tracking-tight flex items-center gap-2">
-                <span className="text-[#2563EB]">
-                  <Mic className="h-4 w-4" />
-                </span>
-                Patient's Input
-              </span>
-              <button
-                onClick={() => {
-                  setIsListeningForAnswer(prev => !prev);
-                }}
-                className={cn(
-                  "inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-md transition-all uppercase tracking-wider",
-                  isListeningForAnswer
-                    ? "bg-[#FEF2F2] text-[#DC2626] border border-[#FECACA] animate-pulse"
-                    : "text-[#4A4A47] hover:text-[#2563EB] hover:bg-[#EFF6FF] border border-transparent"
-                )}
-              >
-                {isListeningForAnswer ? <Mic className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
-                {isListeningForAnswer ? 'Stop Listening' : 'Listen'}
-              </button>
-            </div>
-            <div className="p-4 space-y-3 bg-white">
-              <textarea
-                value={patientAnswer}
-                onChange={(e) => setPatientAnswer(e.target.value)}
-                placeholder={isListeningForAnswer ? "Listening to patient... speak clearly." : "Type patient's response here..."}
-                rows={2}
-                className={cn(
-                  "w-full text-[13px] px-3 py-2 rounded-md border transition-all duration-200 resize-none outline-none font-medium text-[#0F0F0E]",
-                  isListeningForAnswer
-                    ? "bg-[#EFF6FF] border-[#BFDBFE] focus:ring-2 focus:ring-[#BFDBFE]/50 placeholder:text-[#3B82F6]"
-                    : "bg-[#FAFAF8] border-[#E3E2DF] focus:bg-white focus:ring-2 focus:ring-[#EFF6FF] focus:border-[#2563EB] placeholder:text-[#888786]"
-                )}
-              />
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleSubmitAnswer}
-                  disabled={!patientAnswer.trim()}
-                  className="pp-btn-primary h-8 px-4 text-[11px] uppercase tracking-wider"
-                >
-                  Submit
-                </button>
-              </div>
-            </div>
-          </div>
-          )}
 
           {/* AI Suggested Questions panel */}
           <div className="pp-card overflow-hidden">
@@ -809,6 +753,16 @@ export function ConsultationStage({
               <div className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-[#2563EB]" />
                 <span className="text-[14px] font-bold text-[#0F0F0E] tracking-tight">AI Suggested Inquiries</span>
+                {modeQuestions.isPending && (
+                  <span className="flex items-center gap-1 ml-2 text-[10px] text-[#2563EB] font-bold animate-pulse uppercase tracking-widest">
+                    <div className="flex gap-0.5">
+                      <div className="w-1 h-1 bg-[#2563EB] rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                      <div className="w-1 h-1 bg-[#2563EB] rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                      <div className="w-1 h-1 bg-[#2563EB] rounded-full animate-bounce"></div>
+                    </div>
+                    Thinking...
+                  </span>
+                )}
               </div>
               <button
                 onClick={handleLoadModeQuestions}
@@ -821,23 +775,32 @@ export function ConsultationStage({
 
             <div className="p-4 space-y-2 bg-white">
               {/* Question items as clickable cards */}
-              {allQuestions.filter(q => !q.answered).length === 0 && !modeQuestions.isPending && (
+              {allQuestions.filter((q: any) => !q.answered).length === 0 && !modeQuestions.isPending && (
                 <p className="text-[13px] text-[#888786] italic text-center py-4">
                   No questions available. Click Regenerate or start recording.
                 </p>
               )}
               <div className="grid grid-cols-1 gap-2">
-                {allQuestions.filter(q => !q.answered).map((q: any) => (
+                {allQuestions.filter((q: any) => !q.answered).map((q: any) => (
                   <div key={q.id} className="flex flex-col gap-1">
                     <button
                       type="button"
                       onClick={() => injectQuestion(q.question, q.id)}
                       className="group flex items-start gap-3 p-3 rounded-md bg-white border border-[#E3E2DF] hover:border-[#BFDBFE] hover:bg-[#EFF6FF] transition-colors text-left"
                     >
-                      <Star className="h-4 w-4 text-[#2563EB] mt-0.5 shrink-0 opacity-70 group-hover:opacity-100" />
-                      <span className="text-[13px] text-[#0F0F0E] font-medium leading-snug">
-                        {q.question}
-                      </span>
+                      <Star className={cn("h-4 w-4 mt-0.5 shrink-0 transition-colors", q.isLive ? "text-amber-500" : "text-[#2563EB] opacity-70 group-hover:opacity-100")} />
+                      <div className="flex flex-col gap-0.5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[13px] text-[#0F0F0E] font-medium leading-snug">
+                            {q.question}
+                          </span>
+                          {q.isLive && (
+                            <span className="px-1.5 py-0.5 rounded-[4px] bg-amber-50 text-amber-700 text-[9px] font-black uppercase tracking-tighter border border-amber-200">
+                              New
+                            </span>
+                          )}
+                        </div>
+                      </div>
                       <ArrowRight className="h-4 w-4 text-[#888786] group-hover:text-[#2563EB] mt-0.5 shrink-0 ml-auto transition-transform group-hover:translate-x-1" />
                     </button>
                     
@@ -849,7 +812,8 @@ export function ConsultationStage({
                             key={idx}
                             onClick={() => {
                               injectQuestion(q.question, q.id);
-                              setPatientAnswer(prev => prev ? `${prev}. ${opt}` : opt);
+                              // Add a small delay so the answer appears after the question
+                              setTimeout(() => injectAnswer(opt), 300);
                             }}
                             className="px-2 py-1 text-[11px] font-bold bg-[#FAFAF8] border border-[#E3E2DF] rounded-[4px] text-[#4A4A47] hover:border-[#2563EB] hover:text-[#2563EB] transition-colors"
                           >

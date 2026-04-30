@@ -124,7 +124,7 @@ class ApiClient {
     return this.refreshPromise;
   }
 
-  private async request<T>(method: string, url: string, body?: unknown): Promise<T> {
+  private async request<T>(method: string, url: string, body?: unknown, options?: RequestInit): Promise<T> {
     const headers = this.getHeaders();
     // Don't send Content-Type: application/json when there's no body —
     // NestJS body parser rejects empty payloads with that content type.
@@ -132,16 +132,20 @@ class ApiClient {
       delete headers['Content-Type'];
     }
 
-    const options: RequestInit = {
+    const requestOptions: RequestInit = {
+      ...options,
       method,
-      headers,
+      headers: {
+        ...headers,
+        ...(options?.headers as Record<string, string>),
+      },
     };
 
     if (body !== undefined) {
-      options.body = JSON.stringify(body);
+      requestOptions.body = JSON.stringify(body);
     }
 
-    const response = await fetch(`${this.baseUrl}${url}`, options);
+    const response = await fetch(`${this.baseUrl}${url}`, requestOptions);
 
     try {
       return await this.handleResponse<T>(response);
@@ -157,24 +161,24 @@ class ApiClient {
     }
   }
 
-  async get<T>(url: string): Promise<T> {
-    return this.request<T>('GET', url);
+  async get<T>(url: string, options?: RequestInit): Promise<T> {
+    return this.request<T>('GET', url, undefined, options);
   }
 
-  async post<T>(url: string, body?: unknown): Promise<T> {
-    return this.request<T>('POST', url, body);
+  async post<T>(url: string, body?: unknown, options?: RequestInit): Promise<T> {
+    return this.request<T>('POST', url, body, options);
   }
 
-  async patch<T>(url: string, body?: unknown): Promise<T> {
-    return this.request<T>('PATCH', url, body);
+  async patch<T>(url: string, body?: unknown, options?: RequestInit): Promise<T> {
+    return this.request<T>('PATCH', url, body, options);
   }
 
-  async delete<T>(url: string): Promise<T> {
-    return this.request<T>('DELETE', url);
+  async delete<T>(url: string, options?: RequestInit): Promise<T> {
+    return this.request<T>('DELETE', url, undefined, options);
   }
 
-  async getPaginated<T>(url: string): Promise<PaginatedData<T>> {
-    return this.request<PaginatedData<T>>('GET', url);
+  async getPaginated<T>(url: string, options?: RequestInit): Promise<PaginatedData<T>> {
+    return this.request<PaginatedData<T>>('GET', url, undefined, options);
   }
 }
 

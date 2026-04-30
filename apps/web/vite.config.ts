@@ -26,8 +26,7 @@ export default defineConfig({
   },
   server: {
     allowedHosts: [
-      'cornmeal-immodest-unlinked.ngrok-free.dev',
-      'lordliest-thu-unsuccessfully.ngrok-free.dev'
+      'frying-deviancy-rocklike.ngrok-free.dev'
     ],
     proxy: {
       '/api': { target: 'http://127.0.0.1:3000', changeOrigin: false },

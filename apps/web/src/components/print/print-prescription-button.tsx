@@ -4,42 +4,11 @@ import { printHtml } from '../../lib/print';
 import { generatePrescriptionHtml } from '../../lib/print-templates';
 import { useConsultationSummary } from '../../hooks/use-consultations';
 import { calculateAge } from '../../lib/format';
-import { useAuthStore } from '@/shared/stores/auth-store';
+import { getClinicLetterhead, getDoctorLetterhead } from '../../lib/clinic-letterhead';
 import type { PrescriptionPrintData } from '../../lib/print-templates';
-
-/**
- * Pulls clinic letterhead info from whatever sources are available:
- *  1. <meta name="clinic-..."> tags (highest priority — let env-baked branding win)
- *  2. The auth-store user record (some tenants store clinic fields on the user)
- *  3. window.localStorage 'mmc-clinic-letterhead' (manual override / preview mode)
- *  4. Fallback to a generic Homeopathy clinic letterhead so printouts never look raw.
- */
-function buildClinicLetterhead() {
-  const meta = (k: string) => document.querySelector<HTMLMetaElement>(`meta[name="clinic-${k}"]`)?.content;
-
-  let stored: any = {};
-  try {
-    const raw = typeof window !== 'undefined' ? window.localStorage.getItem('mmc-clinic-letterhead') : null;
-    if (raw) stored = JSON.parse(raw);
-  } catch { /* ignore */ }
-
-  const user: any = (() => { try { return useAuthStore.getState().user; } catch { return null; } })();
-
-  return {
-    name:           meta('name')           || stored.name           || user?.clinicName || 'Homeopathy Clinic',
-    tagline:        meta('tagline')        || stored.tagline        || 'Classical Homeopathy · Holistic Care',
-    logoUrl:        meta('logo')           || stored.logoUrl        || user?.clinicLogo || undefined,
-    address:        meta('address')        || stored.address        || user?.clinicAddress,
-    phone:          meta('phone')          || stored.phone          || user?.clinicPhone,
-    email:          meta('email')          || stored.email          || user?.clinicEmail,
-    website:        meta('website')        || stored.website        || user?.clinicWebsite,
-    registrationNo: meta('registration')   || stored.registrationNo || user?.clinicRegistration,
-    gstin:          meta('gstin')          || stored.gstin          || user?.clinicGstin,
-    accentColor:    meta('accent')         || stored.accentColor    || '#2563EB',
-    footer:         meta('footer')         || stored.footer
-                    || 'This prescription is generated electronically and is valid as a clinical record.',
-  };
-}
+import { useOrganizations } from '../../features/platform/hooks/use-organizations';
+import { usePdfSettings } from '../../features/settings/hooks/use-settings';
+import { useAuthStore } from '@/shared/stores/auth-store';
 
 interface PrintPrescriptionButtonProps {
   visitId: string;
@@ -96,6 +65,9 @@ export function PrintPrescriptionButton({
   inlineData,
 }: PrintPrescriptionButtonProps) {
   const { data: summary, isLoading } = useConsultationSummary(visitId);
+  const { data: orgs = [] } = useOrganizations();
+  const { data: pdfSettings = [] } = usePdfSettings();
+  const user = useAuthStore(s => s.user);
 
   const handlePrint = () => {
     // Determine data source: inline (in-memory) data takes priority over API data
@@ -105,6 +77,28 @@ export function PrintPrescriptionButton({
     );
 
     if (!useInline && !summary) return;
+
+    // Retrieve active organization and pdf settings
+    const myOrg: any = orgs.find(o => o.id === user?.contextId) || orgs[0];
+    const defaultTemplate = pdfSettings.find((s: any) => s.isDefault) || pdfSettings[0];
+    
+    // Merge latest org data into clinic letterhead
+    const baseClinic = getClinicLetterhead();
+    const clinic = {
+      ...baseClinic,
+      name: myOrg?.name || baseClinic.name,
+      tagline: myOrg?.tagLine || baseClinic.tagline,
+      logoUrl: myOrg?.logo || baseClinic.logoUrl,
+      address: myOrg?.address || baseClinic.address,
+      address2: myOrg?.address2 || baseClinic.address2,
+      phone: myOrg?.phone || baseClinic.phone,
+      timing: myOrg?.timing || baseClinic.timing,
+      email: myOrg?.email || baseClinic.email,
+      website: myOrg?.website || baseClinic.website,
+      registrationNo: myOrg?.registration || baseClinic.registrationNo,
+      headerHtml: defaultTemplate?.headerHtml,
+      footerHtml: defaultTemplate?.footerHtml,
+    };
 
     let printData: PrescriptionPrintData;
 
@@ -121,8 +115,8 @@ export function PrintPrescriptionButton({
       const visit = inlineData.visit || { id: visitId };
 
       printData = {
-        clinic: buildClinicLetterhead(),
-        doctor: { name: 'Doctor' },
+        clinic: clinic as any,
+        doctor: getDoctorLetterhead(),
         patient: {
           name: patientName,
           age: patientAge,
@@ -163,15 +157,17 @@ export function PrintPrescriptionButton({
       };
     } else {
       // ─── Build from API summary (original logic) ───
-      const clinic = buildClinicLetterhead();
+      const apiDoctorName = summary!.doctor
+        ? `${summary!.doctor.firstName} ${summary!.doctor.lastName}`.trim()
+        : '';
 
-      const doctor = {
-        name: summary!.doctor
-          ? `${summary!.doctor.firstName} ${summary!.doctor.lastName}`
-          : 'Doctor',
+      // Prefer the API summary's doctor (the visit's actual physician), but
+      // fall back to the shared letterhead source so missing fields stay consistent.
+      const doctor = getDoctorLetterhead({
+        name: apiDoctorName || undefined,
         qualification: summary!.doctor?.qualifications ?? undefined,
         registrationNumber: summary!.doctor?.registrationNumber ?? undefined,
-      };
+      });
 
       const patientName = summary!.patient
         ? `${summary!.patient.firstName} ${summary!.patient.lastName}`
@@ -215,7 +211,7 @@ export function PrintPrescriptionButton({
       ) ?? [];
 
       printData = {
-        clinic,
+        clinic: clinic as any,
         doctor,
         patient,
         visit: {

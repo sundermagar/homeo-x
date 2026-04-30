@@ -17,7 +17,6 @@ export const appointments = pgTable('appointments', {
   notes:              text('notes'),
   phone:              varchar('phone', { length: 20 }),
   patientName:        varchar('patient_name', { length: 200 }),
-  // assistantDoctor:    text('assistant_doctor'),
   cancellationReason: text('cancellation_reason'),
   createdAt:          timestamp('created_at').defaultNow().notNull(),
   updatedAt:          timestamp('updated_at').defaultNow().notNull(),

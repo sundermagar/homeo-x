@@ -353,6 +353,253 @@ const PRINT_STYLES = `
     margin-top: 8px;
     letter-spacing: 2px;
   }
+
+  /* ── Prescription Letterhead (editorial style — matches on-screen review) ── */
+  .rx-page {
+    width: 100%;
+    max-width: 210mm;
+    margin: 0 auto;
+    color: #111827;
+    font-family: 'Inter', 'Segoe UI', Tahoma, sans-serif;
+  }
+  .rx-letterhead {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 2px solid #111827;
+    padding-bottom: 14px;
+    margin-bottom: 18px;
+  }
+  .rx-lh-left { display: flex; flex-direction: column; gap: 6px; }
+  .rx-clinic-name {
+    font-size: 26px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: -0.5px;
+    color: #0F0F0E;
+    line-height: 1;
+  }
+  .rx-clinic-tagline {
+    font-size: 10px;
+    color: #6B7280;
+    font-style: italic;
+    letter-spacing: 0.2px;
+  }
+  .rx-doctor-line {
+    font-size: 11px;
+    font-weight: 700;
+    color: #1F2937;
+    margin-top: 2px;
+  }
+  .rx-doctor-meta {
+    font-size: 10px;
+    color: #6B7280;
+    font-weight: 500;
+  }
+  .rx-lh-right {
+    text-align: right;
+    font-size: 10px;
+    font-weight: 700;
+    color: #6B7280;
+    line-height: 1.5;
+  }
+  .rx-lh-right .rx-date { color: #9CA3AF; }
+  .rx-lh-contact {
+    font-size: 9.5px;
+    color: #6B7280;
+    margin-top: 4px;
+    font-weight: 500;
+    letter-spacing: 0.1px;
+  }
+
+  .rx-section { margin-bottom: 14px; }
+  .rx-section-label {
+    font-size: 9px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--rx-accent, #2563EB);
+    margin-bottom: 6px;
+  }
+
+  .rx-patient-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border: 1px solid #E5E7EB;
+    background: #FAFAFA;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .rx-patient-cell {
+    padding: 8px 10px;
+    border-right: 1px solid #E5E7EB;
+  }
+  .rx-patient-cell:last-child { border-right: none; }
+  .rx-cell-label {
+    display: block;
+    font-size: 8px;
+    font-weight: 700;
+    color: #9CA3AF;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-bottom: 3px;
+  }
+  .rx-cell-value {
+    font-size: 12px;
+    font-weight: 800;
+    color: #111827;
+    word-break: break-word;
+  }
+  .rx-cell-value.rx-allergy { color: #DC2626; }
+
+  .rx-vitals-strip {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0;
+    border: 1px solid #E5E7EB;
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 8px;
+  }
+  .rx-vitals-strip .rx-patient-cell {
+    padding: 6px 8px;
+  }
+
+  .rx-narrative {
+    font-size: 11px;
+    color: #1F2937;
+    line-height: 1.55;
+    white-space: pre-wrap;
+  }
+
+  .rx-diagnosis-text {
+    font-size: 14px;
+    font-weight: 800;
+    color: #0F0F0E;
+    line-height: 1.3;
+  }
+  .rx-diagnosis-icd {
+    font-size: 10px;
+    color: #6B7280;
+    font-style: italic;
+    margin-top: 2px;
+  }
+
+  .rx-meds-table {
+    width: 100%;
+    border-collapse: collapse;
+    border-top: 2px solid #111827;
+    border-bottom: 2px solid #111827;
+  }
+  .rx-meds-table thead th {
+    text-align: left;
+    font-size: 9px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: #9CA3AF;
+    padding: 8px 6px;
+    background: transparent;
+    border-bottom: none;
+  }
+  .rx-meds-table tbody td {
+    padding: 10px 6px;
+    border-bottom: 1px solid #F3F4F6;
+    font-size: 11px;
+    vertical-align: top;
+    color: #1F2937;
+  }
+  .rx-meds-table tbody tr:last-child td { border-bottom: none; }
+  .rx-meds-table .rx-md-num {
+    color: #9CA3AF;
+    font-weight: 700;
+    text-align: center;
+  }
+  .rx-meds-table .rx-md-name {
+    font-weight: 900;
+    color: #0F0F0E;
+  }
+  .rx-meds-table .rx-md-generic {
+    display: block;
+    font-size: 9px;
+    font-weight: 500;
+    color: #9CA3AF;
+    margin-top: 1px;
+  }
+  .rx-meds-table .rx-md-instr {
+    display: block;
+    font-size: 9.5px;
+    font-style: italic;
+    color: #9CA3AF;
+    margin-top: 2px;
+  }
+  .rx-meds-empty {
+    padding: 22px 0;
+    text-align: center;
+    font-size: 11px;
+    font-style: italic;
+    color: #9CA3AF;
+  }
+
+  .rx-twocol {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+    margin-top: 14px;
+  }
+  .rx-prose {
+    font-size: 11px;
+    color: #374151;
+    line-height: 1.55;
+    white-space: pre-wrap;
+  }
+  .rx-prose-em {
+    font-size: 13px;
+    font-weight: 800;
+    color: #0F0F0E;
+  }
+  .rx-prose-meta {
+    font-size: 9px;
+    font-style: italic;
+    font-weight: 700;
+    color: #9CA3AF;
+    margin-top: 3px;
+  }
+
+  .rx-additional {
+    margin-top: 14px;
+  }
+
+  .rx-signature {
+    margin-top: 36px;
+    padding-top: 12px;
+    border-top: 1px solid #E5E7EB;
+    max-width: 260px;
+  }
+  .rx-sig-name {
+    font-size: 12px;
+    font-weight: 900;
+    color: #0F0F0E;
+  }
+  .rx-sig-meta {
+    font-size: 8.5px;
+    font-weight: 700;
+    color: #9CA3AF;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 3px;
+    line-height: 1.5;
+  }
+
+  .rx-print-footer {
+    margin-top: 24px;
+    padding-top: 6px;
+    border-top: 1px dashed #E5E7EB;
+    font-size: 8.5px;
+    color: #9CA3AF;
+    text-align: center;
+    letter-spacing: 0.3px;
+  }
 </style>
 `;
 
@@ -364,7 +611,9 @@ interface ClinicInfo {
   /** Absolute URL or data: URL to the clinic logo. Embedded into the printed page. */
   logoUrl?: string;
   address?: string;
+  address2?: string;
   phone?: string;
+  timing?: string;
   email?: string;
   website?: string;
   /** Clinical registration / license / GSTIN — printed on the right band. */
@@ -374,6 +623,8 @@ interface ClinicInfo {
   footer?: string;
   /** Top accent colour for the letterhead band. Defaults to clinical blue. */
   accentColor?: string;
+  headerHtml?: string;
+  footerHtml?: string;
 }
 
 function renderClinicHeader(clinic: ClinicInfo, docTitle?: string): string {
@@ -489,74 +740,319 @@ export interface PrescriptionPrintData {
 }
 
 export function generatePrescriptionHtml(data: PrescriptionPrintData): string {
-  const vitalsHtml = data.vitals ? renderVitals(data.vitals) : '';
-  const diagnosisHtml = data.diagnosis ? renderDiagnosis(data.diagnosis) : '';
-  const soapHtml = data.soap ? renderSoap(data.soap) : '';
-  const medsHtml = renderMedications(data.medications, data.prescriptionStrategy);
-  const labsHtml = data.labOrders && data.labOrders.length > 0 ? renderLabOrders(data.labOrders) : '';
+  const accent = data.clinic.accentColor || '#2563EB';
+  const safe = (s?: string) => (s ? escapeHtml(s) : '');
+
+  const formattedDate = new Date(data.visit.date || Date.now()).toLocaleDateString('en-GB', {
+    day: '2-digit', month: 'short', year: 'numeric',
+  });
+
+  const refNumber = data.visit.visitNumber || '—';
+
+  const contactBits: string[] = [];
+  if (data.clinic.address) contactBits.push(safe(data.clinic.address));
+  if (data.clinic.phone)   contactBits.push(safe(data.clinic.phone));
+  if (data.clinic.email)   contactBits.push(safe(data.clinic.email));
+  if (data.clinic.website) contactBits.push(safe(data.clinic.website));
+
+  const ageGender = [
+    data.patient.age ? `${safe(data.patient.age)} yrs` : null,
+    data.patient.gender ? safe(data.patient.gender).charAt(0).toUpperCase() : null,
+  ].filter(Boolean).join(' · ') || '—';
+
+  // Build SOAP narrative (subjective + objective combined)
+  const narrative = [data.soap?.subjective, data.soap?.objective].filter(Boolean).join('\n\n');
+
+  const followUpDate = data.followUp
+    ? null
+    : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('en-GB', {
+        day: '2-digit', month: 'short', year: 'numeric',
+      });
+
+  const vitalsCells = renderVitalsCells(data.vitals);
+  const medsHtml = renderMedicationsLetterhead(data.medications, data.prescriptionStrategy);
+  const labsHtml = data.labOrders && data.labOrders.length > 0
+    ? `
+      <section class="rx-section">
+        <h3 class="rx-section-label">Lab Orders</h3>
+        <p class="rx-narrative">${data.labOrders.map(escapeHtml).join(', ')}</p>
+      </section>`
+    : '';
+
+  // ─── Resolve Header ───
+  let headerHtml = data.clinic.headerHtml;
+  
+  // Ignore legacy seed HTML so the new premium default layout activates
+  if (headerHtml && headerHtml.includes('Kreed.health Clinical Prescription')) {
+    headerHtml = undefined;
+  }
+
+  if (!headerHtml) {
+    const mapPinIcon = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 1px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>`;
+    const phoneIcon = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>`;
+    const clockIcon = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`;
+    const mailIcon = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>`;
+    const globeIcon = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>`;
+
+    headerHtml = `
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; padding-bottom:28px; margin-bottom:18px; gap:30px; padding:20px 22px; background:linear-gradient(135deg, #f8fbff 0%, #ffffff 60%); border-radius:12px; box-shadow:0 2px 12px rgba(22, 101, 228, 0.06), inset 0 -1px 0 rgba(22, 101, 228, 0.08);">
+        <div style="display:flex; flex-direction:column; gap:14px; flex:1; min-width:0; align-items:flex-start;">
+          <div style="height:70px; min-width:70px; max-width:160px; border-radius:10px; background:#fff; display:flex; align-items:center; justify-content:center; overflow:hidden; border:1px solid #e2e8f0; box-shadow:0 2px 8px rgba(22, 101, 228, 0.08), inset 0 1px 2px rgba(255,255,255,0.8); flex-shrink:0; padding:4px 8px;">
+            ${data.clinic.logoUrl ? `<img src="${safe(data.clinic.logoUrl)}" style="height:100%; width:auto; max-width:100%; object-fit:contain;" />` : `<span style="font-size:24px; color:#9ca3af; font-weight:bold;">${safe(data.clinic.name?.charAt(0))}</span>`}
+          </div>
+          <div style="display:flex; flex-direction:column; justify-content:center; min-width:0; width:100%;">
+            <h2 style="font-size:1.4rem; font-weight:900; color:#0f172a; margin:0; text-transform:uppercase; letter-spacing:-0.03em; line-height:1.15; overflow-wrap:break-word; font-family:Georgia, 'Times New Roman', serif;">${safe(data.clinic.name)}</h2>
+            ${data.clinic.tagline ? `<p style="font-size:0.75rem; font-weight:700; background:linear-gradient(135deg, #16a1e4 0%, #6366f1 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; margin:3px 0 0; letter-spacing:0.02em;">${safe(data.clinic.tagline)}</p>` : ''}
+            ${data.clinic.registrationNo ? `<div style="display:inline-flex; align-items:center; gap:6px; margin:8px 0 0; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:999px; padding:3px 8px 3px 5px; max-width:fit-content;"><div style="width:6px; height:6px; border-radius:50%; background:#22c55e; box-shadow:0 0 0 2px rgba(34,197,94,0.3);"></div><span style="font-size:0.55rem; font-weight:800; color:#374151; text-transform:uppercase; letter-spacing:0.06em;">${safe(data.clinic.registrationNo)}</span></div>` : ''}
+          </div>
+        </div>
+        <div style="text-align:right; display:flex; flex-direction:column; gap:8px; border-left:1.5px solid #e2e8f0; padding-left:16px; min-width:140px; max-width:165px; flex-shrink:0;">
+          <div style="display:flex; flex-direction:column; gap:2px;">
+            <div style="font-size:0.68rem; color:#334155; font-weight:700; display:flex; align-items:flex-start; gap:5px; justify-content:flex-end; line-height:1.35;">
+              ${mapPinIcon}
+              <span style="overflow-wrap:break-word;">${safe(data.clinic.address) || 'Clinic Address'}</span>
+            </div>
+            ${data.clinic.address2 ? `<div style="font-size:0.6rem; color:#64748b; font-weight:500; padding-right:16px;">${safe(data.clinic.address2)}</div>` : ''}
+          </div>
+          <div style="display:flex; flex-direction:column; gap:2px;">
+            <div style="font-size:0.68rem; color:#334155; font-weight:700; display:flex; align-items:center; gap:5px; justify-content:flex-end;">
+              ${phoneIcon}
+              <span>${safe(data.clinic.phone) || 'Contact'}</span>
+            </div>
+            ${data.clinic.timing ? `
+            <div style="font-size:0.68rem; color:#334155; font-weight:700; display:flex; align-items:center; gap:5px; justify-content:flex-end;">
+              ${clockIcon}
+              <span>${safe(data.clinic.timing)}</span>
+            </div>` : ''}
+            ${data.clinic.email ? `
+            <div style="font-size:0.68rem; color:#334155; font-weight:700; display:flex; align-items:center; gap:5px; justify-content:flex-end;">
+              ${mailIcon}
+              <span>${safe(data.clinic.email)}</span>
+            </div>` : ''}
+            ${data.clinic.website ? `
+            <div style="font-size:0.68rem; color:#334155; font-weight:700; display:flex; align-items:center; gap:5px; justify-content:flex-end;">
+              ${globeIcon}
+              <span>${safe(data.clinic.website)}</span>
+            </div>` : ''}
+          </div>
+        </div>
+      </div>
+      <div style="width:100%; margin-bottom:20px;">
+        <div style="height:3px; width:100%; background:linear-gradient(90deg, #16a1e4 0%, #6366f1 50%, #8b5cf6 100%); border-radius:3px; box-shadow:0 1px 4px rgba(22, 101, 228, 0.25);"></div>
+        <div style="height:1px; width:100%; background:#f1f5f9; margin-top:3px;"></div>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px;">
+        <div>
+          <p style="font-size:11px; font-weight:700; color:#1F2937; margin:0;">Dr. ${safe(data.doctor.name)}${data.doctor.qualification ? ` — ${safe(data.doctor.qualification)}` : ''}</p>
+          ${data.doctor.registrationNumber ? `<p style="font-size:10px; color:#6B7280; font-weight:500; margin:2px 0 0;">Reg. No. ${safe(data.doctor.registrationNumber)}</p>` : ''}
+        </div>
+        <div style="text-align:right;">
+          <p style="font-size:10px; font-weight:700; color:#6B7280; margin:0;">Date: ${formattedDate}</p>
+          <p style="font-size:10px; font-weight:700; color:#6B7280; margin:2px 0 0;">Ref #RX-${safe(refNumber)}</p>
+        </div>
+      </div>
+    `;
+  }
+
+  // ─── Resolve Footer ───
+  let footerHtml = data.clinic.footerHtml;
+  if (!footerHtml) {
+    footerHtml = `
+      <div style="margin-top:30px; padding-top:20px; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:flex-end; gap:16px;">
+        <div style="display:flex; gap:30px; flex-wrap:wrap; flex:1;">
+          <div style="display:flex; flex-direction:column; gap:4px;">
+            <span style="font-size:0.6rem; font-weight:800; color:#94a3b8; text-transform:uppercase; letter-spacing:0.05em;">Website</span>
+            <div style="font-size:0.7rem; color:#334155; font-weight:600;">${safe(data.clinic.website) || 'N/A'}</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:4px;">
+            <span style="font-size:0.6rem; font-weight:800; color:#94a3b8; text-transform:uppercase; letter-spacing:0.05em;">Inquiries</span>
+            <div style="font-size:0.7rem; color:#334155; font-weight:600;">${safe(data.clinic.email) || 'N/A'}</div>
+          </div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:0.65rem; color:#475569; font-weight:800; text-transform:uppercase; letter-spacing:0.05em;">Secure Clinical Engine</div>
+          <div style="font-size:0.55rem; color:#94a3b8; font-weight:600; margin-top:2px;">Digitally Verified</div>
+        </div>
+      </div>
+    `;
+  }
 
   return `
 ${PRINT_STYLES}
-<div class="page">
-  ${renderClinicHeader(data.clinic, 'Prescription')}
+<div class="rx-page" style="--rx-accent:${accent};">
 
-  <div class="doctor-info">
-    <div>
-      <div class="name">Dr. ${escapeHtml(data.doctor.name)}</div>
-      ${data.doctor.qualification ? `<div class="qual">${escapeHtml(data.doctor.qualification)}</div>` : ''}
+  <header>
+    ${headerHtml}
+  </header>
+
+  <section class="rx-section">
+    <h3 class="rx-section-label">Patient Details</h3>
+    <div class="rx-patient-grid">
+      <div class="rx-patient-cell">
+        <span class="rx-cell-label">Patient Name</span>
+        <p class="rx-cell-value">${safe(data.patient.name) || '—'}</p>
+      </div>
+      <div class="rx-patient-cell">
+        <span class="rx-cell-label">Age / Sex</span>
+        <p class="rx-cell-value">${ageGender}</p>
+      </div>
+      <div class="rx-patient-cell">
+        <span class="rx-cell-label">Patient ID</span>
+        <p class="rx-cell-value">${safe(data.patient.mrn) || '—'}</p>
+      </div>
+      <div class="rx-patient-cell">
+        <span class="rx-cell-label">${data.visit.chiefComplaint ? 'Chief Complaint' : 'Visit Date'}</span>
+        <p class="rx-cell-value">${data.visit.chiefComplaint ? safe(data.visit.chiefComplaint) : formattedDate}</p>
+      </div>
     </div>
-    <div style="text-align:right;">
-      ${data.doctor.registrationNumber ? `<div class="reg">Reg. No: ${escapeHtml(data.doctor.registrationNumber)}</div>` : ''}
-      ${data.visit.specialty ? `<div class="qual">${escapeHtml(data.visit.specialty)}</div>` : ''}
-    </div>
-  </div>
+    ${vitalsCells}
+  </section>
 
-  <div class="patient-info">
-    <div class="field"><span class="label">Patient:</span> ${escapeHtml(data.patient.name)}</div>
-    ${data.patient.age ? `<div class="field"><span class="label">Age:</span> ${escapeHtml(data.patient.age)}</div>` : ''}
-    ${data.patient.gender ? `<div class="field"><span class="label">Gender:</span> ${escapeHtml(data.patient.gender)}</div>` : ''}
-    ${data.patient.mrn ? `<div class="field"><span class="label">MRN:</span> ${escapeHtml(data.patient.mrn)}</div>` : ''}
-    <div class="field"><span class="label">Visit #:</span> ${escapeHtml(data.visit.visitNumber)}</div>
-    <div class="field"><span class="label">Date:</span> ${formatPrintDate(data.visit.date)}</div>
-    ${data.visit.chiefComplaint ? `<div class="field"><span class="label">C/C:</span> ${escapeHtml(data.visit.chiefComplaint)}</div>` : ''}
-  </div>
+  ${narrative ? `
+    <section class="rx-section">
+      <h3 class="rx-section-label">Clinical Summary</h3>
+      <p class="rx-narrative">${escapeHtml(narrative).replace(/\n/g, '<br>')}</p>
+    </section>
+  ` : ''}
 
-  ${vitalsHtml}
-  ${soapHtml}
-  ${diagnosisHtml}
+  ${data.diagnosis && (data.diagnosis.assessment || (data.diagnosis.icdCodes && data.diagnosis.icdCodes.length > 0)) ? `
+    <section class="rx-section">
+      <h3 class="rx-section-label">Diagnosis</h3>
+      ${data.diagnosis.assessment ? `<p class="rx-diagnosis-text">${safe(data.diagnosis.assessment)}</p>` : ''}
+      ${data.diagnosis.icdCodes && data.diagnosis.icdCodes.length > 0
+        ? `<p class="rx-diagnosis-icd">(ICD-10: ${data.diagnosis.icdCodes.map(escapeHtml).join(', ')})</p>`
+        : ''}
+    </section>
+  ` : ''}
 
-  ${medsHtml}
+  <section class="rx-section">
+    <h3 class="rx-section-label">${data.prescriptionStrategy === 'REMEDY' ? 'Remedies' : 'Medicines'}</h3>
+    ${medsHtml}
+  </section>
 
   ${labsHtml}
 
-  ${data.advice ? `
-    <div class="section-title">Advice & Management</div>
-    <div class="advice-box">${escapeHtml(data.advice).replace(/\n/g, '<br>')}</div>
-  ` : ''}
-
-  ${data.followUp ? `
-    <div class="follow-up"><strong>Follow-up:</strong> ${escapeHtml(data.followUp)}</div>
+  ${(data.advice || data.followUp) ? `
+    <div class="rx-twocol">
+      ${data.advice ? `
+        <section class="rx-section" style="margin-bottom:0;">
+          <h3 class="rx-section-label">Advice / Instructions</h3>
+          <p class="rx-prose">${escapeHtml(data.advice).replace(/\n/g, '<br>')}</p>
+        </section>
+      ` : '<div></div>'}
+      
+      ${data.followUp ? `
+        <section class="rx-section" style="margin-bottom:0;">
+          <h3 class="rx-section-label">Follow-up</h3>
+          <p class="rx-prose-em">${safe(data.followUp)}</p>
+          ${followUpDate ? `<p class="rx-prose-meta">Suggested: ${followUpDate}</p>` : ''}
+        </section>
+      ` : '<div></div>'}
+    </div>
   ` : ''}
 
   ${data.prescriptionNotes ? `
-    <div class="section-title">Additional Advisory</div>
-    <div style="font-size:11px;color:#666;padding:2px 0;">${escapeHtml(data.prescriptionNotes).replace(/\n/g, '<br>')}</div>
+    <section class="rx-section rx-additional">
+      <h3 class="rx-section-label">Additional Advisory</h3>
+      <p class="rx-prose">${escapeHtml(data.prescriptionNotes).replace(/\n/g, '<br>')}</p>
+    </section>
   ` : ''}
 
-  <div class="footer">
-    <div class="timestamp">
-      Printed: ${new Date().toLocaleString('en-IN')}<br>
-      Visit #${escapeHtml(data.visit.visitNumber)}
-    </div>
-    <div class="signature">
-      <div class="line"></div>
-      <div class="name">Consulting Physician: Dr. ${escapeHtml(data.doctor.name)}</div>
-      ${data.doctor.registrationNumber ? `<div style="font-size:9px;color:#666;">Reg. No: ${escapeHtml(data.doctor.registrationNumber)}</div>` : ''}
-    </div>
+  <footer class="rx-signature">
+    <p class="rx-sig-name">Dr. ${safe(data.doctor.name)}</p>
+    ${data.doctor.qualification ? `<p class="rx-sig-meta">${safe(data.doctor.qualification)}</p>` : ''}
+    ${data.doctor.registrationNumber ? `<p class="rx-sig-meta">Reg. No. ${safe(data.doctor.registrationNumber)}</p>` : ''}
+  </footer>
+
+  <div class="rx-print-footer">
+    ${safe(data.clinic.footer || `${data.clinic.name}${data.clinic.phone ? ` · ${data.clinic.phone}` : ''}`)}
+    &nbsp;·&nbsp; Printed ${new Date().toLocaleString('en-IN')}
   </div>
 </div>
-${renderClinicFooter(data.clinic)}
   `;
+}
+
+function renderVitalsCells(vitals?: PrescriptionPrintData['vitals']): string {
+  if (!vitals) return '';
+  const cells: Array<{ label: string; value: string }> = [];
+  if (vitals.heightCm) cells.push({ label: 'Height', value: `${vitals.heightCm} cm` });
+  if (vitals.weightKg) cells.push({ label: 'Weight', value: `${vitals.weightKg} kg` });
+  if (vitals.bmi) cells.push({ label: 'BMI', value: vitals.bmi.toFixed(1) });
+  if (vitals.temperatureF) cells.push({ label: 'Temp', value: `${vitals.temperatureF}°F` });
+  if (vitals.pulseRate) cells.push({ label: 'Pulse', value: `${vitals.pulseRate}/min` });
+  if (vitals.systolicBp && vitals.diastolicBp) cells.push({ label: 'BP', value: `${vitals.systolicBp}/${vitals.diastolicBp}` });
+  if (vitals.oxygenSaturation) cells.push({ label: 'SpO₂', value: `${vitals.oxygenSaturation}%` });
+  if (cells.length === 0) return '';
+
+  // Pad to 7 columns to keep grid even
+  while (cells.length < 7) cells.push({ label: '', value: '' });
+
+  return `
+    <div class="rx-vitals-strip">
+      ${cells.slice(0, 7).map(c => `
+        <div class="rx-patient-cell">
+          ${c.label ? `<span class="rx-cell-label">${escapeHtml(c.label)}</span>` : ''}
+          <p class="rx-cell-value" style="font-size:11px;">${escapeHtml(c.value) || '&nbsp;'}</p>
+        </div>
+      `).join('')}
+    </div>`;
+}
+
+function renderMedicationsLetterhead(meds: PrescriptionPrintData['medications'], strategy?: string): string {
+  if (meds.length === 0) {
+    return `<div class="rx-meds-table"><p class="rx-meds-empty">No medications prescribed.</p></div>`;
+  }
+
+  const isRemedy = strategy === 'REMEDY';
+  const isTitration = strategy === 'TITRATION';
+
+  const headers = isRemedy
+    ? ['#', 'Remedy', 'Potency', 'Frequency', 'Duration', 'Instructions']
+    : isTitration
+      ? ['#', 'Medication', 'Current Dose', 'Frequency', 'Duration', 'Titration Notes']
+      : ['#', 'Medicine', 'Dose', 'Frequency', 'Duration', 'Instructions'];
+
+  const rows = meds.map((med, i) => {
+    const numCell = `<td class="rx-md-num">${i + 1}.</td>`;
+    const nameCell = `
+      <td class="rx-md-name">
+        ${escapeHtml(med.name)}
+        ${med.genericName ? `<span class="rx-md-generic">(${escapeHtml(med.genericName)})</span>` : ''}
+        ${med.route && !isRemedy ? `<span class="rx-md-generic">via ${escapeHtml(med.route)}</span>` : ''}
+      </td>`;
+
+    if (isRemedy) {
+      return `<tr>
+        ${numCell}
+        ${nameCell}
+        <td>${escapeHtml(med.dosage) || '—'}</td>
+        <td>${escapeHtml(med.frequency) || '—'}</td>
+        <td>${escapeHtml(med.duration) || '—'}</td>
+        <td>${med.instructions ? escapeHtml(med.instructions) : '—'}</td>
+      </tr>`;
+    }
+
+    return `<tr>
+      ${numCell}
+      ${nameCell}
+      <td>${escapeHtml(med.dosage) || '—'}</td>
+      <td>${escapeHtml(med.frequency) || '—'}</td>
+      <td>${escapeHtml(med.duration) || '—'}</td>
+      <td>${med.instructions ? escapeHtml(med.instructions) : '—'}</td>
+    </tr>`;
+  }).join('');
+
+  return `
+    <table class="rx-meds-table">
+      <thead>
+        <tr>
+          ${headers.map((h, i) => `<th${i === 0 ? ' style="width:32px;text-align:center;"' : ''}>${escapeHtml(h)}</th>`).join('')}
+        </tr>
+      </thead>
+      <tbody>
+        ${rows}
+      </tbody>
+    </table>`;
 }
 
 function renderVitals(vitals: NonNullable<PrescriptionPrintData['vitals']>): string {

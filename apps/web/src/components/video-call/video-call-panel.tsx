@@ -142,7 +142,7 @@ export function VideoCallPanel(props: VideoCallPanelProps) {
     if (patientJoinLink) {
       // If doctor is visiting from localhost, force the Ngrok internet url for the patient link
       const BASE_URL = window.location.origin.includes('localhost') 
-        ? `https://${import.meta.env.VITE_FRONTEND_URL || 'cornmeal-immodest-unlinked.ngrok-free.dev'}` 
+        ? `https://${import.meta.env.VITE_FRONTEND_URL || 'frying-deviancy-rocklike.ngrok-free.dev'}` 
         : window.location.origin;
       const fullUrl = new URL(patientJoinLink, BASE_URL).toString();
       navigator.clipboard.writeText(fullUrl);
@@ -325,7 +325,7 @@ export function VideoCallPanel(props: VideoCallPanelProps) {
           </div>
 
           {/* Scroll area */}
-          <div ref={transcriptRef} style={{ maxHeight: '90px', minHeight: '60px', overflowY: 'auto', padding: '0.625rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <div ref={transcriptRef} style={{ maxHeight: '160px', minHeight: '100px', overflowY: 'auto', padding: '0.625rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {transcript.length === 0 && !props.drInterimText && !props.ptInterimText && (
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', paddingTop: '1.5rem', textAlign: 'center' }}>
                 <Waves style={{ width: 22, height: 22, color: '#D1D5DB' }} />

@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { api } from '../../../lib/api-client';
+import { API } from '../../../lib/constants';
 import type { TranscriptSegmentLocal } from '../../../types/scribing';
 
 export interface AiSuggestedQuestion {
   id: string;
   question: string;
-  category: 'symptom' | 'modality' | 'mental' | 'general' | 'history';
+  category: 'symptom' | 'modality' | 'mental' | 'general' | 'history' | 'followup';
   answered: boolean;
+  options?: string[];
 }
 
 /**
@@ -17,11 +19,14 @@ export interface AiSuggestedQuestion {
 export function useAiQuestionSuggestions(
   segments: TranscriptSegmentLocal[],
   isTranscribing: boolean,
+  mode: 'acute' | 'chronic' | 'followup' = 'acute'
 ) {
   const [questions, setQuestions] = useState<AiSuggestedQuestion[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const lastTriggerLengthRef = useRef(0);
+  const lastTriggerTimeRef = useRef(0);
 
   // Build transcript text from segments
   const buildTranscriptText = useCallback((segs: TranscriptSegmentLocal[]) => {
@@ -49,66 +54,70 @@ export function useAiQuestionSuggestions(
     }
     abortControllerRef.current = new AbortController();
 
+    console.log('[AI Discovery] Generating questions from transcript...', { transcriptLen: transcriptText.length });
     setIsGenerating(true);
     try {
-      // Use the existing translate endpoint as a lightweight AI call
-      // with a custom prompt to generate questions
-      const result = await api.post<{ translated: string }>('/api/v1/ai/translate', {
-        text: `TASK: Generate 3-4 short follow-up clinical questions a homeopathic doctor should ask based on this conversation. Focus on uncovered symptoms, modalities (worse/better from), mental state, and duration.
+      const result = await api.post<{ questions: any[] }>(API.AI.SUGGEST_QUESTIONS, {
+        transcript: transcriptText,
+        consultationMode: mode,
+      }, { signal: abortControllerRef.current.signal });
 
-CONVERSATION:
-${transcriptText.slice(-1500)}
+      if (result.questions && Array.isArray(result.questions)) {
+        const newQuestions: AiSuggestedQuestion[] = result.questions
+          .map((item, idx) => ({
+            id: `q-${Date.now()}-${idx}`,
+            question: item.question,
+            category: item.category,
+            answered: false,
+            options: item.options,
+          }));
 
-RULES:
-- Output ONLY a JSON array of objects: [{"q":"question text","c":"category"}]
-- Categories: symptom, modality, mental, general, history
-- Questions MUST be in English only
-- Max 4 questions
-- Skip questions already answered in the conversation
-- Keep questions SHORT (under 15 words)`,
-        targetLanguage: 'en',
-      });
-
-      // Parse the AI response
-      try {
-        const raw = result.translated;
-        // Extract JSON array from response
-        const match = raw.match(/\[[\s\S]*\]/);
-        if (match) {
-          const parsed = JSON.parse(match[0]) as Array<{ q: string; c: string }>;
-          const newQuestions: AiSuggestedQuestion[] = parsed
-            .filter(item => item.q && typeof item.q === 'string')
-            .slice(0, 4)
-            .map((item, idx) => ({
-              id: `q-${Date.now()}-${idx}`,
-              question: item.q,
-              category: (['symptom', 'modality', 'mental', 'general', 'history'].includes(item.c)
-                ? item.c
-                : 'symptom') as AiSuggestedQuestion['category'],
-              answered: false,
-            }));
-
-          if (newQuestions.length > 0) {
-            setQuestions(newQuestions);
-          }
+        if (newQuestions.length > 0) {
+          setQuestions(newQuestions);
         }
-      } catch {
-        // Parsing failed — silently ignore, keep old questions
       }
-    } catch {
-      // API call failed — silently ignore
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return;
+      console.error('[AI Discovery] Generation failed:', err);
     } finally {
       setIsGenerating(false);
     }
   }, [buildTranscriptText]);
 
-  // Auto-fire disabled: this hook's output was never rendered in the UI
-  // (only modeQuestions feeds `allQuestions`). markAnswered below still works
-  // as a pure-local state helper without burning ~12 Claude calls per session.
-  // See consultation-stage.tsx:447 for where allQuestions is assembled.
-  void generateQuestions;
-  void segments;
-  void isTranscribing;
+  // Trigger generation when segments change
+  useEffect(() => {
+    if (!isTranscribing || segments.length === 0) return;
+
+    const transcript = buildTranscriptText(segments);
+    const currentLength = transcript.length;
+    const now = Date.now();
+
+    // ── Credit Saving Guards ──────────────────────────────────────────
+    // 1. Min 100 chars growth (requires meaningful new content)
+    const lengthGrowth = currentLength - lastTriggerLengthRef.current;
+    const timeSinceLast = now - lastTriggerTimeRef.current;
+
+    if (lengthGrowth < 100 && timeSinceLast < 180000) {
+      return;
+    }
+    if (timeSinceLast < 30000) {
+      // Hard cooldown of 30s
+      return;
+    }
+
+    const finalSegs = segments.filter(s => s.isFinal);
+    const lastSeg = finalSegs[finalSegs.length - 1];
+
+    if (!lastSeg) return;
+
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    debounceTimerRef.current = setTimeout(() => {
+      console.log('[AI Discovery] Triggering generation...', { lengthGrowth, timeSinceLast });
+      lastTriggerLengthRef.current = currentLength;
+      lastTriggerTimeRef.current = Date.now();
+      generateQuestions(segments);
+    }, 6000); 
+  }, [segments.length, isTranscribing, generateQuestions, mode, buildTranscriptText]);
 
   // Cleanup on unmount
   useEffect(() => {

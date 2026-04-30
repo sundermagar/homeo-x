@@ -2,6 +2,7 @@ export interface Patient {
   id: number;
   regid: number;
   tenantId: string;
+  clinicId: number | null;
   // Name
   title: string | null;
   firstName: string;

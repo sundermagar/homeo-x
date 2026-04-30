@@ -14,6 +14,7 @@ export interface Appointment {
   phone: string | null;
   patientName: string | null;
   cancellationReason: string | null;
+  clinicId: number | null;
   // Joined fields (from API)
   doctorName?: string;
   patientNameFromCase?: string;
@@ -30,6 +31,7 @@ export interface Token {
   tokenNo: number;
   date: string;                        // YYYY-MM-DD
   status: TokenStatus;
+  clinicId: number | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -46,6 +48,7 @@ export interface WaitlistEntry {
   checkedInAt: Date | null;
   calledAt: Date | null;
   completedAt: Date | null;
+  clinicId: number | null;
   // Joined fields
   patientName?: string;
   patientMobile?: string;

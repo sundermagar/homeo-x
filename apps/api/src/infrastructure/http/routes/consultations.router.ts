@@ -14,7 +14,7 @@
 
 import { Router } from 'express';
 import type { Request, Response, NextFunction } from 'express';
-import { sql, eq } from 'drizzle-orm';
+import { sql, eq, and } from 'drizzle-orm';
 import * as schema from '@mmc/database/schema';
 import { sendSuccess } from '../../../shared/response-formatter';
 import { createLogger } from '../../../shared/logger';
@@ -235,6 +235,37 @@ consultationsRouter.post('/complete', async (req: Request, res: Response, next: 
       } catch (e: any) {
         // Non-fatal: some tenants may not have a waitlist row for every visit.
         logger.warn({ visitId, err: e?.message }, 'Could not update waitlist row to Done — non-fatal');
+      }
+
+      // 5. Ensure a Medical Case exists and link this consultation's diagnosis as the case condition.
+      //    This makes the consultation data "stick" to a case in the UI.
+      if (appt.patientId) {
+        try {
+          const [existingCase] = await tx
+            .select()
+            .from(schema.medicalCases)
+            .where(and(eq(schema.medicalCases.regid, appt.patientId), eq(schema.medicalCases.status, 'Active')))
+            .limit(1);
+
+          const condition = soap?.assessment || appt.visitType || 'General Consultation';
+
+          if (existingCase) {
+            await tx
+              .update(schema.medicalCases)
+              .set({ condition, updatedAt: new Date() })
+              .where(eq(schema.medicalCases.id, existingCase.id));
+          } else {
+            await tx.insert(schema.medicalCases).values({
+              regid: appt.patientId,
+              clinicId: appt.clinicId,
+              doctorId: appt.doctorId,
+              status: 'Active',
+              condition,
+            });
+          }
+        } catch (caseErr: any) {
+          logger.warn({ visitId, err: caseErr?.message }, 'Could not ensure medical case record — non-fatal');
+        }
       }
     });
 

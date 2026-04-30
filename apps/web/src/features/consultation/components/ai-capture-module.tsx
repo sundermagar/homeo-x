@@ -558,7 +558,7 @@ export function AICaptureModule({
                 )}
               </div>
 
-              <div ref={scrollContainerRef} className={`space-y-2 max-h-[150px] overflow-y-auto px-2 pb-2 scrollbar-thin scrollbar-thumb-indigo-200 dark:scrollbar-thumb-indigo-900`}>
+              <div ref={scrollContainerRef} className={`space-y-2 max-h-[160px] min-h-[100px] overflow-y-auto px-2 pb-2 scrollbar-thin scrollbar-thumb-indigo-200 dark:scrollbar-thumb-indigo-900`}>
                 {interimText && (
                   <div className="text-sm font-medium animate-pulse text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/20 p-2 rounded-lg border border-indigo-100 dark:border-indigo-800 mb-2 italic">
                     Listening: {interimText}

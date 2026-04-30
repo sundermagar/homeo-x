@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 import { Button } from '../../../components/ui/button';
 import { Textarea } from '../../../components/ui/textarea';
 import { Input } from '../../../components/ui/input';
+import { useClinicLetterhead, useDoctorLetterhead } from '../../../lib/clinic-letterhead';
 import type { CreatePrescriptionItemInput } from '../../../types/prescription';
 
 interface PrescriptionReviewProps {
@@ -47,6 +48,8 @@ export function PrescriptionReview({
   isCompleting,
 }: PrescriptionReviewProps) {
   const adviceRef = useRef<HTMLTextAreaElement>(null);
+  const clinic = useClinicLetterhead();
+  const doctor = useDoctorLetterhead();
 
   useEffect(() => {
     if (adviceRef.current) {
@@ -94,16 +97,34 @@ export function PrescriptionReview({
       <div className="flex justify-between items-start border-b-2 pb-6 border-gray-900 dark:border-gray-200">
         <div className="space-y-2">
           <h1 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tighter leading-none">
-            MMC Clinic
+            {clinic.name}
           </h1>
+          {clinic.tagline && (
+            <p className="text-[11px] italic text-gray-500 dark:text-gray-400">{clinic.tagline}</p>
+          )}
           <div className="text-[12px] text-gray-600 dark:text-gray-400 font-medium">
-            <p className="text-gray-800 dark:text-gray-200 font-bold">Dr. Sarah M. Richardson — MBBS, MD (Family Medicine)</p>
-            <p>Reg. No. MCI-IL-0362019 · +1 (217) 555-0198</p>
+            <p className="text-gray-800 dark:text-gray-200 font-bold">
+              Dr. {doctor.name}{doctor.qualification ? ` — ${doctor.qualification}` : ''}
+            </p>
+            <p>
+              {[
+                doctor.registrationNumber ? `Reg. No. ${doctor.registrationNumber}` : null,
+                clinic.phone,
+              ].filter(Boolean).join(' · ') || '—'}
+            </p>
+            {(clinic.address || clinic.email || clinic.website) && (
+              <p className="text-[10px] text-gray-500 dark:text-gray-500 font-medium mt-1">
+                {[clinic.address, clinic.email, clinic.website].filter(Boolean).join(' · ')}
+              </p>
+            )}
           </div>
         </div>
         <div className="text-right text-[12px] text-gray-500 dark:text-gray-400 font-bold space-y-1">
           <p className="text-gray-400">{formattedDate}</p>
-          <p>Ref #RX-{visit?.id.slice(-5).toUpperCase() || '2026-00847'}</p>
+          <p>Ref #RX-{visit?.refNo || visit?.id.slice(-5).toUpperCase() || '—'}</p>
+          {clinic.registrationNo && (
+            <p className="text-[10px] text-gray-400 font-medium">Clinic Reg. {clinic.registrationNo}</p>
+          )}
         </div>
       </div>
 
@@ -256,10 +277,14 @@ export function PrescriptionReview({
       {/* ─── Signature Footer ─── */}
       <div className="pt-8 flex justify-between">
         <div className="space-y-4 border-t border-gray-100 dark:border-gray-800 pt-4 min-w-[240px]">
-          <p className="text-sm font-black text-gray-900 dark:text-white">Dr. Sarah M. Richardson</p>
+          <p className="text-sm font-black text-gray-900 dark:text-white">Dr. {doctor.name}</p>
           <div className="text-[9px] text-gray-400 font-bold space-y-0.5">
-            <p className="uppercase">MBBS, MD (Family Medicine)</p>
-            <p>DEA: AR5839217 | NPI: 1234567890</p>
+            {doctor.qualification && (
+              <p className="uppercase">{doctor.qualification}</p>
+            )}
+            {doctor.registrationNumber && (
+              <p>Reg. No. {doctor.registrationNumber}</p>
+            )}
           </div>
         </div>
       </div>

@@ -62,6 +62,13 @@ const AudioPlayer = ({ track }: { track: any }) => {
 export function CallInterfacePanel({ callMode, ...props }: CallInterfacePanelProps) {
   const [copied, setCopied] = useState(false);
   const [isPaused, setIsPaused] = useState(props.isPaused ?? false);
+  const transcriptRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (transcriptRef.current) {
+      transcriptRef.current.scrollTop = transcriptRef.current.scrollHeight;
+    }
+  }, [props.transcript.length, props.drInterimText, props.ptInterimText, props.interimText]);
 
   useEffect(() => {
     if (props.isPaused !== undefined && props.isPaused !== isPaused) {
@@ -90,7 +97,7 @@ export function CallInterfacePanel({ callMode, ...props }: CallInterfacePanelPro
   const handleCopyLink = () => {
     if (props.patientJoinLink) {
       const BASE_URL = window.location.origin.includes('localhost') 
-        ? `https://${import.meta.env.VITE_FRONTEND_URL || 'cornmeal-immodest-unlinked.ngrok-free.dev'}` 
+        ? `https://${import.meta.env['VITE_FRONTEND_URL'] || 'frying-deviancy-rocklike.ngrok-free.dev'}` 
         : window.location.origin;
       
       const url = new URL(props.patientJoinLink, BASE_URL);
@@ -145,7 +152,7 @@ export function CallInterfacePanel({ callMode, ...props }: CallInterfacePanelPro
       </div>
 
       {/* Scrollable content */}
-      <div style={{ maxHeight:90, minHeight:60, overflowY: 'auto', padding: '0.625rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+      <div ref={transcriptRef} style={{ maxHeight: 160, minHeight: 100, overflowY: 'auto', padding: '0.625rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
         {props.transcript.length === 0 && !props.interimText && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '1.5rem 0', textAlign: 'center' }}>
             <Waves style={{ width: 22, height: 22, color: '#D1D5DB' }} />
@@ -266,26 +273,7 @@ export function CallInterfacePanel({ callMode, ...props }: CallInterfacePanelPro
     );
   }
 
-  if (callMode === 'VIDEO') {
-    return (
-      <VideoCallPanel
-        video={props.video}
-        localSpeaker={props.localSpeaker}
-        patientJoinLink={props.patientJoinLink}
-        transcript={props.transcript}
-        drInterimText={props.drInterimText}
-        ptInterimText={props.ptInterimText}
-        isTranscribing={props.isTranscribing}
-        isRemotePaused={props.isRemotePaused}
-        error={props.error}
-        onLeave={props.onLeave}
-        onPauseToggle={props.onPauseToggle}
-        isPaused={props.isPaused}
-        transcriptHeaderActions={props.transcriptHeaderActions}
-        transcriptBottomActions={props.transcriptBottomActions}
-      />
-    );
-  }
+
 
   // ─── AUDIO Layout ─────────────────────────────────────────────────────────
   return (
@@ -296,22 +284,38 @@ export function CallInterfacePanel({ callMode, ...props }: CallInterfacePanelPro
         <div style={{ background: 'white', borderRadius: '0.875rem', border: '1px solid #FDE68A', padding: '1.25rem 1rem', flexShrink: 0, position: 'relative', overflow: 'hidden' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             {/* PT */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.625rem' }}>
-              <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'linear-gradient(135deg, #F3F4F6 0%, #D1D5DB 100%)', border: '2px solid #E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4B5563', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.625rem', opacity: (props.localSpeaker === 'DOCTOR' && (!props.video?.isConnected || props.video?.remoteUsers?.length === 0)) ? 0.4 : 1, transition: 'opacity 0.3s' }}>
+              <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'linear-gradient(135deg, #CCFBF1 0%, #99F6E4 100%)', border: '2.5px solid #14B8A6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0F766E', boxShadow: '0 8px 16px rgba(20,184,166,0.15)' }}>
                 <User style={{ width: 28, height: 28 }} />
               </div>
-              <span style={{ fontSize: 10, fontWeight: 800, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Patient</span>
+              <span style={{ fontSize: 10, fontWeight: 800, color: '#0F766E', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Patient</span>
             </div>
 
-            {/* Waveform */}
+            {/* Waveform or Waiting Indicator */}
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, height: 60, padding: '0 1rem' }}>
-              {[...Array(12)].map((_, i) => (
-                <div key={i} style={{ width: 3.5, borderRadius: 2, background: '#F59E0B', height: `${Math.max(6, Math.abs(Math.sin(i * 0.7 + 0.5)) * 34 + 10)}px`, animation: !isPaused ? `wave ${1 + (i % 4) * 0.2}s ease-in-out infinite alternate` : 'none', opacity: 0.9 }} />
-              ))}
+              {!props.video?.isConnected ? (
+                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.375rem' }}>
+                   <div style={{ width: 18, height: 18, border: '2px solid #FDE68A', borderTopColor: '#F59E0B', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                   <span style={{ fontSize: 10, fontWeight: 700, color: '#D97706', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Connecting</span>
+                 </div>
+              ) : props.video?.remoteUsers?.length === 0 ? (
+                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.375rem', background: '#FFFBEB', padding: '0.375rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #FDE68A' }}>
+                   <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#F59E0B', animation: 'pulse-opacity 1.5s ease-in-out infinite' }} />
+                   <span style={{ fontSize: 9, fontWeight: 800, color: '#D97706', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'center' }}>
+                     Waiting for {props.localSpeaker === 'DOCTOR' ? 'Patient' : 'Doctor'}
+                   </span>
+                 </div>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  {[...Array(12)].map((_, i) => (
+                    <div key={i} style={{ width: 3.5, borderRadius: 2, background: '#F59E0B', height: `${Math.max(6, Math.abs(Math.sin(i * 0.7 + 0.5)) * 34 + 10)}px`, animation: !isPaused ? `wave ${1 + (i % 4) * 0.2}s ease-in-out infinite alternate` : 'none', opacity: 0.9 }} />
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* DR */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.625rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.625rem', opacity: (props.localSpeaker === 'PATIENT' && (!props.video?.isConnected || props.video?.remoteUsers?.length === 0)) ? 0.4 : 1, transition: 'opacity 0.3s' }}>
               <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'linear-gradient(135deg, #EEF2FF 0%, #C7D2FE 100%)', border: '2.5px solid #6366F1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4338CA', boxShadow: '0 8px 16px rgba(99,102,241,0.15)' }}>
                 <User style={{ width: 28, height: 28 }} />
               </div>
@@ -375,6 +379,8 @@ export function CallInterfacePanel({ callMode, ...props }: CallInterfacePanelPro
 
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes wave { 0% { transform: scaleY(0.4); } 100% { transform: scaleY(2.4); } }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes pulse-opacity { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
       ` }} />
     </div>
   );
