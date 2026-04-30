@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  Search, Plus, List as ListIcon, Grid, Edit2, Trash2, Calendar, ChevronLeft, ChevronRight,
+  Search, Plus, List as ListIcon, Grid, Edit2, Trash2, Calendar,
   Clock, UserCheck, MoreVertical, X, Filter, Stethoscope, Activity, Tag, User, Printer, RefreshCw
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -32,21 +32,21 @@ export default function AppointmentListPage() {
   const { data: orgs = [] } = useOrganizations();
   const currentOrg = orgs[0];
 
-  const [tab,        setTab]        = useState<Tab>('today');
-  const [search,     setSearch]     = useState('');
-  const [status,     setStatus]     = useState('');
-  const [fromDate,   setFromDate]   = useState('');
-  const [toDate,     setToDate]     = useState('');
-  const [page,       setPage]       = useState(1);
-  const [pageSize,   setPageSize]   = useState(10);
+  const [tab, setTab] = useState<Tab>('today');
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [drawerApptId, setDrawerApptId] = useState<number | null>(null);
 
-  const [confirmDel,  setConfirmDel]  = useState<number | null>(null);
-  const [viewMode,    setViewMode]    = useState<'list' | 'grid'>('list');
-  const [openMenuId,  setOpenMenuId]  = useState<number | null>(null);
-  const [menuPos,     setMenuPos]     = useState<{ top: number; left: number } | null>(null);
+  const [confirmDel, setConfirmDel] = useState<number | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const MENU_W = 180;
@@ -79,28 +79,40 @@ export default function AppointmentListPage() {
   }, [openMenuId]);
 
   const todayQuery = useTodayAppointments();
-  const listQuery  = useAppointments({
-    search:    search  || undefined,
-    status:    status  || undefined,
+  const listQuery = useAppointments({
+    search: search || undefined,
+    status: status || undefined,
     from_date: fromDate || (tab === 'all' ? undefined : today),
-    to_date:   toDate  || (tab === 'all' ? undefined : today),
+    to_date: toDate || (tab === 'all' ? undefined : today),
     doctor_id: undefined,
-    page, 
+    page,
     limit: pageSize,
   });
 
   const updateStatus = useUpdateStatus();
-  const deleteMut    = useDeleteAppointment();
+  const deleteMut = useDeleteAppointment();
 
   const todayData = todayQuery.data ?? [];
   const listData = listQuery.data?.data ?? [];
-  const data = tab === 'today' ? todayData : listData;
-  const totalEntries = tab === 'today' ? todayData.length : (listQuery.data?.total ?? 0);
-  const isPending = tab === 'today' ? todayQuery.isLoading : listQuery.isLoading;
+  
+  let data = listData;
+  let totalEntries = listQuery.data?.total ?? 0;
+  let isPending = listQuery.isLoading;
+
+  if (tab === 'today') {
+    totalEntries = todayData.length;
+    isPending = todayQuery.isLoading;
+    const startIndex = (page - 1) * pageSize;
+    data = todayData.slice(startIndex, startIndex + pageSize);
+  } else if (tab === 'pending') {
+    const pendingData = todayData.filter(a => ['Pending', 'Waitlist', 'Scheduled'].includes(a.status));
+    totalEntries = pendingData.length;
+    isPending = todayQuery.isLoading;
+    const startIndex = (page - 1) * pageSize;
+    data = pendingData.slice(startIndex, startIndex + pageSize);
+  }
 
   const totalPages = Math.ceil(totalEntries / pageSize);
-  const fromEntry = (page - 1) * pageSize + 1;
-  const toEntry = Math.min(page * pageSize, totalEntries);
 
   const handleStatusChange = async (id: number, newStatus: string) => {
     await updateStatus.mutateAsync({ id, status: newStatus });
@@ -127,12 +139,12 @@ export default function AppointmentListPage() {
   };
 
   const quickStatuses = [
-    { s: AppointmentStatus.Confirmed,    label: 'Confirm',   color: 'var(--pp-blue)' },
-    { s: AppointmentStatus.Arrived,     label: 'Arrived',   color: 'var(--pp-green-mid)' },
-    { s: AppointmentStatus.Consultation,label: 'In Room',  color: 'var(--pp-purple)' },
-    { s: AppointmentStatus.Done,        label: 'Done',      color: 'var(--pp-success-fg)' },
-    { s: AppointmentStatus.Absent,      label: 'Absent',    color: 'var(--pp-text-3)' },
-    { s: AppointmentStatus.Cancelled,   label: 'Cancel',   color: 'var(--pp-danger-fg)' },
+    { s: AppointmentStatus.Confirmed, label: 'Confirm', color: 'var(--pp-blue)' },
+    { s: AppointmentStatus.Arrived, label: 'Arrived', color: 'var(--pp-green-mid)' },
+    { s: AppointmentStatus.Consultation, label: 'In Room', color: 'var(--pp-purple)' },
+    { s: AppointmentStatus.Done, label: 'Done', color: 'var(--pp-success-fg)' },
+    { s: AppointmentStatus.Absent, label: 'Absent', color: 'var(--pp-text-3)' },
+    { s: AppointmentStatus.Cancelled, label: 'Cancel', color: 'var(--pp-danger-fg)' },
   ];
 
   return (
@@ -169,7 +181,7 @@ export default function AppointmentListPage() {
 
       {/* Tabs */}
       <div className="appt-tabs">
-        {([['today','Today'], ['all','All Appointments'], ['pending','Pending Queue']] as [Tab, string][]).map(([key, label]) => (
+        {([['today', 'Today'], ['all', 'All Appointments'], ['pending', 'Pending Queue']] as [Tab, string][]).map(([key, label]) => (
           <button key={key} className={`appt-tab ${tab === key ? 'active' : ''}`} onClick={() => { setTab(key); setPage(1); }}>
             {label}
           </button>
@@ -204,7 +216,7 @@ export default function AppointmentListPage() {
       {/* Table / Grid */}
       <div className={viewMode === 'list' ? "appt-card" : "appt-grid-view-container"}>
         {isPending ? (
-          <TableSkeleton rows={6} cols={8} />
+          <TableSkeleton rows={10} cols={6} />
         ) : data.length === 0 ? (
           <div className="appt-empty">
             <Calendar size={28} className="appt-empty-icon" />
@@ -271,8 +283,8 @@ export default function AppointmentListPage() {
                         <button className="appt-btn appt-btn-icon appt-btn-sm" title="Print Slip" onClick={() => handlePrintSlip(a)}>
                           <Printer size={13} strokeWidth={1.6} />
                         </button>
-                        <button 
-                          className="appt-btn appt-btn-icon appt-btn-sm" 
+                        <button
+                          className="appt-btn appt-btn-icon appt-btn-sm"
                           title="Edit"
                           onClick={() => { setDrawerApptId(a.id); setIsDrawerOpen(true); }}
                         >
@@ -322,7 +334,7 @@ export default function AppointmentListPage() {
                           <button className="appt-kebab-item" onClick={() => { handlePrintSlip(a); setOpenMenuId(null); setMenuPos(null); }}>
                             <Printer size={13} strokeWidth={1.6} /> Print Slip
                           </button>
-                          <button 
+                          <button
                             className="appt-kebab-item"
                             onClick={() => { setDrawerApptId(a.id); setIsDrawerOpen(true); setOpenMenuId(null); }}
                           >
@@ -365,7 +377,7 @@ export default function AppointmentListPage() {
                   </div>
                   <StatusBadge status={a.status} size="sm" />
                 </div>
-                
+
                 <div className="appt-grid-card-body-minimal">
                   <div className="appt-grid-detail-item">
                     <span className="label"><Stethoscope size={14} /> Doctor</span>
@@ -388,8 +400,8 @@ export default function AppointmentListPage() {
                   <button className="appt-btn-minimal white-pill" style={{ flex: '0 0 auto' }} onClick={() => handlePrintSlip(a)}>
                     <Printer size={14} />
                   </button>
-                  <button 
-                    className="appt-btn-minimal white-pill" 
+                  <button
+                    className="appt-btn-minimal white-pill"
                     onClick={() => { setDrawerApptId(a.id); setIsDrawerOpen(true); }}
                   >
                     <Edit2 size={14} /> Edit
@@ -413,7 +425,7 @@ export default function AppointmentListPage() {
       </div>
 
       {/* Pagination */}
-      {totalEntries > 0 && totalPages > 1 && (
+      {totalEntries > 0 && (
         <Pagination
           currentPage={page}
           totalPages={totalPages}

@@ -7,7 +7,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import { apiClient } from '@/infrastructure/api-client';
 import { useDoctors } from '@/features/appointments/hooks/use-doctors';
-
+import { Pagination } from '@/components/shared/pagination';
 export default function FollowupsPage() {
   const navigate = useNavigate();
   const [followups, setFollowups] = useState<any[]>([]);
@@ -22,21 +22,26 @@ export default function FollowupsPage() {
     doctor_id: ''
   });
 
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(30);
+  const [totalItems, setTotalItems] = useState(0);
+
   const { data: doctors = [] } = useDoctors();
 
   useEffect(() => {
     fetchFollowups();
-  }, [filters]);
+  }, [filters, page, pageSize]);
 
   const fetchFollowups = async () => {
     setLoading(true);
     try {
-      const params: any = { ...filters };
+      const params: any = { ...filters, page, limit: pageSize };
       if (search) params.search = search;
 
       const res = await apiClient.get('/appointments/followups', { params });
       if (res.data?.data) {
         setFollowups(res.data.data.data || []);
+        setTotalItems(res.data.data.total || res.data.data.data?.length || 0);
       }
     } catch (error) {
       console.error("Failed to load followups", error);
@@ -47,6 +52,7 @@ export default function FollowupsPage() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    setPage(1);
     fetchFollowups();
   };
 
@@ -171,7 +177,10 @@ export default function FollowupsPage() {
               <select
                 className="pp-select"
                 value={filters.doctor_id}
-                onChange={e => setFilters(prev => ({ ...prev, doctor_id: e.target.value }))}
+                onChange={e => {
+                  setFilters(prev => ({ ...prev, doctor_id: e.target.value }));
+                  setPage(1);
+                }}
               >
                 <option value="">All Doctors</option>
                 {doctors.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
@@ -183,7 +192,10 @@ export default function FollowupsPage() {
                 type="date"
                 className="pp-input"
                 value={filters.from_date}
-                onChange={e => setFilters(prev => ({ ...prev, from_date: e.target.value }))}
+                onChange={e => {
+                  setFilters(prev => ({ ...prev, from_date: e.target.value }));
+                  setPage(1);
+                }}
               />
             </div>
             <div className="fu-field">
@@ -192,7 +204,10 @@ export default function FollowupsPage() {
                 type="date"
                 className="pp-input"
                 value={filters.to_date}
-                onChange={e => setFilters(prev => ({ ...prev, to_date: e.target.value }))}
+                onChange={e => {
+                  setFilters(prev => ({ ...prev, to_date: e.target.value }));
+                  setPage(1);
+                }}
               />
             </div>
           </div>
@@ -329,6 +344,20 @@ export default function FollowupsPage() {
           </div>
         )}
       </main>
+
+      {totalItems > 0 && Math.ceil(totalItems / pageSize) > 1 && (
+        <Pagination
+          currentPage={page}
+          totalPages={Math.ceil(totalItems / pageSize)}
+          pageSize={pageSize}
+          totalItems={totalItems}
+          onPageChange={setPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setPage(1);
+          }}
+        />
+      )}
 
       <style>{`
         .fu-back-btn {

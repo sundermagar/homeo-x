@@ -8,9 +8,11 @@ import {
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { Role, type PatientSummary } from '@mmc/types';
 import { PatientFormDrawer } from '../components/patient-form-drawer';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
 import '../../appointments/styles/appointments.css';
 import '../../dashboard/pages/role-dashboards.css';
 import '../styles/patients.css';
+import { Pagination } from '@/components/shared/pagination';
 
 function formatDate(date: Date | string | null | undefined) {
   if (!date) return '—';
@@ -145,30 +147,7 @@ export default function PatientListPage() {
       </div>
 
       {isLoading ? (
-        <div className="pp-card pp-table-scroll" style={{ padding: 0, overflow: 'hidden', border: '1px solid #f1f5f9' }}>
-          <table className="pp-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr>
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <th key={i} style={{ padding: '16px 24px', background: '#ffffff', borderBottom: '1px solid #f1f5f9' }}>
-                    <div className="skeleton-box" style={{ height: '12px', width: '40px', borderRadius: '4px', opacity: 0.7 }} />
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {Array.from({ length: 10 }).map((_, rowIndex) => (
-                <tr key={rowIndex}>
-                  {Array.from({ length: 6 }).map((_, colIndex) => (
-                    <td key={colIndex} style={{ padding: '16px 24px', borderBottom: '1px solid #f1f5f9', background: '#ffffff' }}>
-                      <div className="skeleton-box" style={{ height: '24px', width: colIndex === 0 ? '120px' : '80px', borderRadius: '6px' }} />
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <TableSkeleton rows={10} cols={6} />
       ) : patients.length === 0 ? (
         <div className="pp-card pat-empty-state">
           <p className="pat-empty-state-title">No patients found</p>
@@ -295,56 +274,15 @@ export default function PatientListPage() {
         </div>
       )}
 
-      {totalPages > 1 && (
-        <div className="pat-pagination-bar">
-          <div className="pat-pagination-info-wrap">
-            <span className="pat-pagination-info">
-              Showing {fromEntry}-{toEntry} of {totalEntries}
-            </span>
-            <select 
-              className="pat-pagination-limit" 
-              value={pageSize} 
-              onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
-            >
-              <option value={5}>5 per page</option>
-              <option value={10}>10 per page</option>
-              <option value={20}>20 per page</option>
-              <option value={50}>50 per page</option>
-            </select>
-          </div>
-
-          <div className="pat-pagination-controls">
-            <button 
-              className="pat-pagination-btn" 
-              disabled={page === 1} 
-              onClick={() => setPage(p => p - 1)}
-            >
-              <ChevronLeft size={16} />
-            </button>
-            
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-              (p === 1 || p === totalPages || (p >= page - 1 && p <= page + 1)) ? (
-                <button 
-                  key={p} 
-                  className={`pat-pagination-page ${p === page ? 'is-active' : ''}`}
-                  onClick={() => setPage(p)}
-                >
-                  {p}
-                </button>
-              ) : (p === page - 2 || p === page + 2) ? (
-                <span key={p} style={{ color: '#cbd5e1' }}>...</span>
-              ) : null
-            ))}
-
-            <button 
-              className="pat-pagination-btn" 
-              disabled={page === totalPages} 
-              onClick={() => setPage(p => p + 1)}
-            >
-              <ChevronRight size={16} />
-            </button>
-          </div>
-        </div>
+      {totalEntries > 0 && (
+        <Pagination
+          currentPage={page}
+          totalPages={totalPages}
+          pageSize={pageSize}
+          totalItems={totalEntries}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+        />
       )}
 
       <PatientFormDrawer 

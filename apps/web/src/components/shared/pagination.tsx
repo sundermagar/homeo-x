@@ -19,9 +19,7 @@ export function Pagination({
   onPageChange,
   onPageSizeChange
 }: PaginationProps) {
-  if (totalPages <= 1) return null;
-
-  const fromEntry = (currentPage - 1) * pageSize + 1;
+  const fromEntry = totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1;
   const toEntry = Math.min(currentPage * pageSize, totalItems);
 
   return (

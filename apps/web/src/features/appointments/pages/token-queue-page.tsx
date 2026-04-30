@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { format } from 'date-fns';
 import {
   Clock, UserCheck, CheckCircle2, Users, RefreshCw, Plus, Ticket,
-  ChevronRight, Activity, IndianRupee, ChevronLeft, LayoutGrid, List, Search, X
+  ChevronRight, Activity, IndianRupee, ChevronLeft, LayoutGrid, List, Search, X, MoreVertical
 } from 'lucide-react';
 import { useWaitlist, useCallNext, useCompleteVisit, useTodayAppointments, useIssueToken, useAddToWaitlist } from '../hooks/use-appointments';
 import { useDailyCollection } from '@/features/billing/hooks/use-billing';
@@ -42,6 +42,7 @@ export default function TokenQueuePage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -291,24 +292,54 @@ export default function TokenQueuePage() {
                   </span>
                 </td>
                 <td style={{ paddingRight: 24 }}>
-                  <div className="appt-row-actions-minimal">
+                  <div className="appt-row-actions appt-row-actions-inline">
                     {w.status === 1 ? (
                       <>
-                        <button className="appt-btn-minimal primary" onClick={() => handleStartConsult(w)}>
-                           Consult
+                        <button className="appt-btn appt-btn-sm" style={{ background: '#0f172a', color: 'white', borderColor: '#0f172a' }} onClick={() => handleStartConsult(w)}>
+                           <Activity size={13} strokeWidth={2} /> Consult
                         </button>
-                        <button className="appt-btn-minimal success" onClick={() => handleComplete(w.id)} disabled={completeVisit.isPending}>
-                           Done
+                        <button className="appt-btn appt-btn-sm appt-btn-success" onClick={() => handleComplete(w.id)} disabled={completeVisit.isPending}>
+                           <CheckCircle2 size={13} strokeWidth={1.6} /> Done
                         </button>
                       </>
                     ) : (
-                      <button className="appt-btn-minimal primary" onClick={() => handleCall(w.id)} disabled={callNext.isPending}>
-                         Call
+                      <button className="appt-btn appt-btn-sm" style={{ background: '#0f172a', color: 'white', borderColor: '#0f172a' }} onClick={() => handleCall(w.id)} disabled={callNext.isPending}>
+                         <ChevronRight size={13} strokeWidth={1.6} /> Call
                       </button>
                     )}
-                    <button className="appt-btn-minimal purple" onClick={() => setActiveVitals({ visitId: w.appointmentId || w.id, regid: w.patientId ?? 0 })}>
+                    <button className="appt-btn appt-btn-sm appt-btn-purple" onClick={() => setActiveVitals({ visitId: w.appointmentId || w.id, regid: w.patientId ?? 0 })}>
                       <Activity size={14} /> Vitals
                     </button>
+                  </div>
+                  <div className="appt-kebab-wrap">
+                    <button 
+                      className="appt-kebab-btn"
+                      onClick={() => setOpenMenuId(openMenuId === w.id ? null : w.id)}
+                    >
+                      <MoreVertical size={16} />
+                    </button>
+                    {openMenuId === w.id && (
+                      <div className="appt-kebab-menu" style={{ right: 24, top: '50%', transform: 'translateY(-50%)', position: 'absolute', zIndex: 100 }}>
+                        {w.status === 1 ? (
+                          <>
+                            <button className="appt-kebab-item" style={{ color: 'var(--pp-blue)' }} onClick={() => { handleStartConsult(w); setOpenMenuId(null); }}>
+                              <Activity size={14} /> Consult
+                            </button>
+                            <button className="appt-kebab-item" style={{ color: 'var(--pp-success-fg)' }} onClick={() => { handleComplete(w.id); setOpenMenuId(null); }} disabled={completeVisit.isPending}>
+                              <CheckCircle2 size={14} /> Done
+                            </button>
+                          </>
+                        ) : (
+                          <button className="appt-kebab-item" style={{ color: 'var(--pp-blue)' }} onClick={() => { handleCall(w.id); setOpenMenuId(null); }} disabled={callNext.isPending}>
+                            <ChevronRight size={14} /> Call
+                          </button>
+                        )}
+                        <div className="appt-kebab-divider" />
+                        <button className="appt-kebab-item" style={{ color: 'var(--pp-purple)' }} onClick={() => { setActiveVitals({ visitId: w.appointmentId || w.id, regid: w.patientId ?? 0 }); setOpenMenuId(null); }}>
+                          <Activity size={14} /> Vitals
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -473,19 +504,44 @@ export default function TokenQueuePage() {
                             </span>
                           </td>
                           <td style={{ paddingRight: 24 }}>
-                            <div className="appt-row-actions-minimal">
+                            <div className="appt-row-actions appt-row-actions-inline">
                               {!a.tokenNo ? (
-                                <button className="appt-btn-minimal primary" onClick={() => handleIssueToken(a.id)} disabled={issueToken.isPending}>
+                                <button className="appt-btn appt-btn-sm" style={{ background: '#0f172a', color: 'white', borderColor: '#0f172a' }} onClick={() => handleIssueToken(a.id)} disabled={issueToken.isPending}>
                                   <Ticket size={14} /> Issue Token
                                 </button>
                               ) : (
-                                <button className="appt-btn-minimal success" onClick={() => addToWaitlist.mutateAsync({ patientId: a.patientId!, appointmentId: a.id, doctorId: a.doctorId ?? undefined })} disabled={addToWaitlist.isPending}>
+                                <button className="appt-btn appt-btn-sm appt-btn-success" onClick={() => addToWaitlist.mutateAsync({ patientId: a.patientId!, appointmentId: a.id, doctorId: a.doctorId ?? undefined })} disabled={addToWaitlist.isPending}>
                                   <Plus size={14} /> Check In
                                 </button>
                               )}
-                              <button className="appt-btn-minimal purple" onClick={() => setActiveVitals({ visitId: a.id, regid: a.patientId ?? 0 })}>
+                              <button className="appt-btn appt-btn-sm appt-btn-purple" onClick={() => setActiveVitals({ visitId: a.id, regid: a.patientId ?? 0 })}>
                                 <Activity size={14} /> Vitals
                               </button>
+                            </div>
+                            <div className="appt-kebab-wrap">
+                              <button 
+                                className="appt-kebab-btn"
+                                onClick={() => setOpenMenuId(openMenuId === `token-${a.id}` ? null : `token-${a.id}` as any)}
+                              >
+                                <MoreVertical size={16} />
+                              </button>
+                              {openMenuId === `token-${a.id}` as any && (
+                                <div className="appt-kebab-menu" style={{ right: 24, top: '50%', transform: 'translateY(-50%)', position: 'absolute', zIndex: 100 }}>
+                                  {!a.tokenNo ? (
+                                    <button className="appt-kebab-item" style={{ color: 'var(--pp-blue)' }} onClick={() => { handleIssueToken(a.id); setOpenMenuId(null); }} disabled={issueToken.isPending}>
+                                      <Ticket size={14} /> Issue Token
+                                    </button>
+                                  ) : (
+                                    <button className="appt-kebab-item" style={{ color: 'var(--pp-success-fg)' }} onClick={() => { addToWaitlist.mutateAsync({ patientId: a.patientId!, appointmentId: a.id, doctorId: a.doctorId ?? undefined }); setOpenMenuId(null); }} disabled={addToWaitlist.isPending}>
+                                      <Plus size={14} /> Check In
+                                    </button>
+                                  )}
+                                  <div className="appt-kebab-divider" />
+                                  <button className="appt-kebab-item" style={{ color: 'var(--pp-purple)' }} onClick={() => { setActiveVitals({ visitId: a.id, regid: a.patientId ?? 0 }); setOpenMenuId(null); }}>
+                                    <Activity size={14} /> Vitals
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           </td>
                         </tr>

@@ -27,9 +27,10 @@ interface PatientFormDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   regid?: number | null; // null for create, number for edit
+  onSuccess?: () => void;
 }
 
-export function PatientFormDrawer({ isOpen, onClose, regid }: PatientFormDrawerProps) {
+export function PatientFormDrawer({ isOpen, onClose, regid, onSuccess }: PatientFormDrawerProps) {
   const isEdit = Boolean(regid);
   const { user } = useAuthStore();
   const clinicId = user?.contextId;
@@ -121,9 +122,11 @@ export function PatientFormDrawer({ isOpen, onClose, regid }: PatientFormDrawerP
     try {
       if (isEdit) {
         await updateMutation.mutateAsync({ regid: Number(regid), ...form });
+        onSuccess?.();
         onClose();
       } else {
         await createMutation.mutateAsync(form);
+        onSuccess?.();
         onClose();
       }
     } catch (err: any) {

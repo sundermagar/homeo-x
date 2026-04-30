@@ -1247,7 +1247,9 @@
 .appt-token-card.calling::before {
   content: '';
   position: absolute;
-  top: 0; left: 0; right: 0;
+  top: 0;
+  left: 0;
+  right: 0;
   height: 4px;
   background: var(--pp-blue);
 }
@@ -1536,7 +1538,7 @@
 
 /* ─── Patient Search Dropdown ───────────────────────────────────────────── */
 .appt-search-container {
-  position: relative; 
+  position: relative;
   width: 100%;
   max-width: 400px;
   margin-bottom: var(--pp-space-4);
@@ -1825,18 +1827,18 @@
   bottom: 0;
   left: 0;
   transform: translateX(-100%);
-  background-image: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0) 0,
-    rgba(255, 255, 255, 0.2) 20%,
-    rgba(255, 255, 255, 0.5) 60%,
-    rgba(255, 255, 255, 0)
-  );
+  background-image: linear-gradient(90deg,
+      rgba(255, 255, 255, 0) 0,
+      rgba(255, 255, 255, 0.2) 20%,
+      rgba(255, 255, 255, 0.5) 60%,
+      rgba(255, 255, 255, 0));
   animation: shimmer 2s infinite;
 }
 
 @keyframes shimmer {
-  100% { transform: translateX(100%); }
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 .appt-shimmer {
@@ -1848,15 +1850,16 @@
 .appt-shimmer::after {
   content: "";
   position: absolute;
-  top: 0; right: 0; bottom: 0; left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   transform: translateX(-100%);
-  background-image: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0) 0,
-    rgba(255, 255, 255, 0.4) 20%,
-    rgba(255, 255, 255, 0.6) 60%,
-    rgba(255, 255, 255, 0)
-  );
+  background-image: linear-gradient(90deg,
+      rgba(255, 255, 255, 0) 0,
+      rgba(255, 255, 255, 0.4) 20%,
+      rgba(255, 255, 255, 0.6) 60%,
+      rgba(255, 255, 255, 0));
   animation: shimmer 2s infinite;
 }
 
@@ -1969,7 +1972,7 @@
     width: 100% !important;
     box-sizing: border-box !important;
   }
-  
+
   .appt-pagination-info-wrap {
     flex-direction: column !important;
     gap: 12px !important;
@@ -2021,13 +2024,23 @@
 }
 
 @keyframes slideInRight {
-  from { transform: translateX(100%); }
-  to { transform: translateX(0); }
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .appt-drawer-header {
@@ -2188,14 +2201,22 @@
   background: #f0fdf4;
   border-color: #16a34a;
 }
+
 .appt-success-text {
   margin-top: var(--pp-space-4);
   animation: fadeIn 0.4s ease-out;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (min-width: 1024px) {
@@ -2506,7 +2527,8 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  background: var(--pp-warm-1); /* Use page-matching warm tint */
+  background: var(--pp-warm-1);
+  /* Use page-matching warm tint */
   padding: 16px;
   border-radius: 8px;
 }
@@ -2742,9 +2764,11 @@
   .appt-queue-board {
     grid-template-columns: 1fr;
   }
+
   .appt-token-card-minimal {
     padding: 16px;
   }
+
   .appt-token-num-minimal {
     font-size: 24px;
   }
@@ -2768,15 +2792,16 @@
 .appt-cal-shimmer-cell::after {
   content: "";
   position: absolute;
-  top: 0; right: 0; bottom: 0; left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   transform: translateX(-100%);
-  background-image: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0) 0,
-    rgba(255, 255, 255, 0.4) 20%,
-    rgba(255, 255, 255, 0.6) 60%,
-    rgba(255, 255, 255, 0)
-  );
+  background-image: linear-gradient(90deg,
+      rgba(255, 255, 255, 0) 0,
+      rgba(255, 255, 255, 0.4) 20%,
+      rgba(255, 255, 255, 0.6) 60%,
+      rgba(255, 255, 255, 0));
   animation: shimmer 2s infinite;
 }
 
@@ -2784,7 +2809,8 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-height: 380px; /* Limits to ~4 elements before scroll */
+  max-height: 380px;
+  /* Limits to ~4 elements before scroll */
   overflow-y: auto;
   padding-right: 4px;
 }
