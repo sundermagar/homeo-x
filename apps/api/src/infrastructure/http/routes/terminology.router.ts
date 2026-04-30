@@ -188,6 +188,23 @@ export function createTerminologyRouter(): Router {
     res.json({ success: true, data: result });
   }));
 
+  // ─── SNOMED ───────────────────────────────────────────────────────────────
+  router.get('/snomed/search', asyncHandler(async (req: Request, res: Response) => {
+    const query = req.query.q as string;
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+    const results = await getService(req).searchSnomed(query, limit);
+    res.json({ success: true, data: results });
+  }));
+
+  router.get('/snomed/:conceptId', asyncHandler(async (req: Request, res: Response) => {
+    const result = await getService(req).getSnomedDetails(req.params.conceptId as string);
+    if (!result) {
+      res.status(404).json({ success: false, error: 'SNOMED concept not found' });
+      return;
+    }
+    res.json({ success: true, data: result });
+  }));
+
   // ─── Seed endpoint (POST /api/terminology/seed) ──────────────────────────
   router.post('/seed', asyncHandler(async (req: Request, res: Response) => {
     const db = (req as any).tenantDb;

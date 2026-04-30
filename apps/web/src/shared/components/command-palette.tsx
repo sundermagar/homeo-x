@@ -105,9 +105,9 @@ function buildCommands(
       ['new', 'book', 'appointment', 'schedule']
     ),
     action(
-      'action-new-staff', 'Add Staff Member', 'Register a new employee',
-      <Plus size={16} />, ADMIN_ONLY, '/staff/add',
-      ['new', 'staff', 'add', 'employee', 'user']
+      'action-new-clinic', 'Add Clinic', 'Register a new clinic or branch',
+      <Plus size={16} />, ADMIN_ONLY, '/platform/clinics?add=true',
+      ['new', 'clinic', 'add', 'branch', 'organisation']
     ),
 
     // ── Patient Module ────────────────────────────────────────────────────────
@@ -133,8 +133,6 @@ function buildCommands(
       ['ai', 'consultant', 'advisor', 'bot', 'assistant', 'analysis']),
     nav('Remedy Chart', '/clinical/remedy-chart', <Brain size={16} />, CLINICAL,
       ['remedy', 'chart', 'tree', 'medicine', 'drug']),
-    nav('Clinical Hub', '/clinical-hub', <Stethoscope size={16} />, CLINICAL,
-      ['clinical', 'hub', 'overview']),
 
     // ── Packages ─────────────────────────────────────────────────────────────
     nav('Packages', '/packages', <Package size={16} />, ADMIN_CLINIC,

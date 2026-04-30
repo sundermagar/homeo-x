@@ -30,12 +30,23 @@ export interface ProcedureCode {
   isActive: boolean | null;
 }
 
+export interface SnomedConcept {
+  id: number;
+  conceptId: string;
+  fsn: string;
+  term: string;
+  conceptType?: string | null;
+  active: boolean | null;
+}
+
 export interface ITerminologyRepository {
   searchIcdCodes(query: string, limit?: number): Promise<IcdCode[]>;
   searchLoincCodes(query: string, limit?: number): Promise<LoincCode[]>;
   searchProcedureCodes(query: string, limit?: number): Promise<ProcedureCode[]>;
-  
+  searchSnomedConcepts(query: string, limit?: number): Promise<SnomedConcept[]>;
+
   getIcdByCode(code: string): Promise<IcdCode | undefined>;
   getLoincByNum(loincNum: string): Promise<LoincCode | undefined>;
   getProcedureByCode(code: string): Promise<ProcedureCode | undefined>;
+  getSnomedByConceptId(conceptId: string): Promise<SnomedConcept | undefined>;
 }

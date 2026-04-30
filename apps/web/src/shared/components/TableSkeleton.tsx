@@ -7,8 +7,8 @@ interface TableSkeletonProps {
 
 export function TableSkeleton({ rows = 5, columns = 4 }: TableSkeletonProps) {
   return (
-    <div className="plat-table-container">
-      <table className="plat-table">
+    <div className="pp-table-scroll pp-card-premium" style={{ padding: 0, overflow: 'hidden' }}>
+      <table className="pp-table">
         <thead>
           <tr>
             {Array.from({ length: columns }).map((_, i) => (
@@ -20,9 +20,9 @@ export function TableSkeleton({ rows = 5, columns = 4 }: TableSkeletonProps) {
         </thead>
         <tbody>
           {Array.from({ length: rows }).map((_, rowIndex) => (
-            <tr key={rowIndex} className="plat-table-row">
+            <tr key={rowIndex} className="hover-row">
               {Array.from({ length: columns }).map((_, colIndex) => (
-                <td key={colIndex} className="plat-table-cell">
+                <td key={colIndex}>
                   <div 
                     className="skeleton-box skeleton-text" 
                     style={{ 

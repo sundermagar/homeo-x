@@ -1,7 +1,8 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Stethoscope, Activity, BellDot, BookOpen, BrainCircuit,
-  Scale, TrendingUp, Users, CalendarCheck, ArrowRight,
+  Stethoscope, Activity, BellDot, BrainCircuit,
+  Scale, TrendingUp, Users, CalendarCheck,
   ChevronRight, Clock, AlertCircle
 } from 'lucide-react';
 import '../styles/clinical-hub.css';
@@ -16,20 +17,20 @@ const FEATURES = [
     badge: null,
   },
   {
-    icon: BookOpen,
-    iconStyle: 'alt',
-    title: 'Materia Medica',
-    desc: 'AI-powered remedy charting with visual taxonomy matrix and cross-referencing capabilities.',
-    path: '/ai-remedy-chart',
-    badge: 'new',
-  },
-  {
     icon: BrainCircuit,
     iconStyle: 'purple',
     title: 'AI Analysis',
     desc: 'Clinical decision support with multi-theory AI consultation engine.',
     path: '/ai-analysis',
     badge: 'active',
+  },
+  {
+    icon: Activity,
+    iconStyle: 'alt',
+    title: 'Remedy Chart',
+    desc: 'AI-powered remedy charting with visual taxonomy matrix and cross-referencing capabilities.',
+    path: '/clinical/remedy-chart',
+    badge: 'new',
   },
   {
     icon: BellDot,
@@ -51,10 +52,17 @@ const STATS = [
 const ACTIVITIES = [
   { text: 'No recent clinical activity to display.', time: 'Start by capturing a patient vitals or reviewing a case', type: 'default' },
 ];
-
 export default function ClinicalHubPage() {
+  const [loading, setLoading] = useState(true);
+
+  // Simulate loading for demonstration
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 1500);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
-    <div className="chub-page fade-in">
+    <div className="pp-page-container chub-page animate-fade-in">
       {/* ─── Header ─── */}
       <header className="chub-header">
         <div className="chub-header-top">
@@ -78,25 +86,39 @@ export default function ClinicalHubPage() {
           <BellDot size={16} />
           Follow-ups
         </Link>
-        <Link to="/ai-remedy-chart" className="chub-quick-btn">
-          <BookOpen size={16} />
-          Materia Medica
+        <Link to="/clinical/remedy-chart" className="chub-quick-btn">
+          <Activity size={16} />
+          Remedy Chart
         </Link>
       </div>
 
       {/* ─── Stats Row ─── */}
       <div className="chub-stats-row">
-        {STATS.map((stat, i) => (
-          <div key={i} className="chub-stat-card">
-            <div className={`chub-stat-icon ${stat.style}`}>
-              <stat.icon size={18} />
+        {loading ? (
+          STATS.map((_, i) => (
+            <div key={i} className="chub-stat-card">
+              <div className="chub-stat-icon" style={{ background: 'var(--pp-warm-2)' }}>
+                <div className="skeleton-box" style={{ width: 18, height: 18 }} />
+              </div>
+              <div className="chub-stat-body" style={{ flex: 1 }}>
+                <div className="skeleton-box skeleton-text" style={{ width: '60%', height: 24, marginBottom: 4 }} />
+                <div className="skeleton-box skeleton-text" style={{ width: '40%', height: 10 }} />
+              </div>
             </div>
-            <div className="chub-stat-body">
-              <div className="chub-stat-value">{stat.value}</div>
-              <div className="chub-stat-label">{stat.label}</div>
+          ))
+        ) : (
+          STATS.map((stat, i) => (
+            <div key={i} className="chub-stat-card">
+              <div className={`chub-stat-icon ${stat.style}`}>
+                <stat.icon size={18} />
+              </div>
+              <div className="chub-stat-body">
+                <div className="chub-stat-value">{stat.value}</div>
+                <div className="chub-stat-label">{stat.label}</div>
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
 
       {/* ─── Feature Cards ─── */}
@@ -139,7 +161,19 @@ export default function ClinicalHubPage() {
         </div>
 
         <div className="chub-activity-card">
-          {ACTIVITIES.length === 0 ? (
+          {loading ? (
+            <div className="chub-activity-list">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="chub-activity-item">
+                  <div className="chub-activity-dot" style={{ background: 'var(--pp-warm-3)' }} />
+                  <div className="chub-activity-content">
+                    <div className="skeleton-box skeleton-text" style={{ width: '80%', height: 14, marginBottom: 8 }} />
+                    <div className="skeleton-box skeleton-text" style={{ width: '30%', height: 10 }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : ACTIVITIES.length === 0 ? (
             <div className="chub-empty">
               <div className="chub-empty-icon">
                 <Activity size={28} />

@@ -67,7 +67,7 @@ export default function GroupSmsPage() {
   };
 
   return (
-    <div className="comm-page">
+    <div className="pp-page-container comm-page animate-fade-in">
       {/* Header */}
       <header className="comm-header">
         <div>

@@ -29,7 +29,9 @@
 }
 
 @media (min-width: 1024px) {
-  .mobile-header { display: none; }
+  .mobile-header {
+    display: none;
+  }
 }
 
 .mh-left {
@@ -84,7 +86,7 @@
     width: 256px;
     flex-shrink: 0;
   }
-  
+
   .sidebar.collapsed {
     width: 72px;
   }
@@ -108,7 +110,9 @@
 }
 
 @media (min-width: 1024px) {
-  .sidebar-overlay { display: none; }
+  .sidebar-overlay {
+    display: none;
+  }
 }
 
 /* ─── Header ─── */
@@ -117,7 +121,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 57px; /* Matches DashboardHeader 56px + border */
+  height: 57px;
+  /* Matches DashboardHeader 56px + border */
   background-color: var(--bg-card);
   border-bottom: 1px solid var(--border-main);
   overflow: hidden;
@@ -135,7 +140,9 @@
 }
 
 @media (min-width: 1024px) {
-  .sidebar-header-close { display: none; }
+  .sidebar-header-close {
+    display: none;
+  }
 }
 
 .collapse-toggle-btn {
@@ -331,7 +338,7 @@
   grid-template-rows: 1fr;
 }
 
-.sidebar-group-children > * {
+.sidebar-group-children>* {
   overflow: hidden;
 }
 
@@ -556,7 +563,17 @@
 }
 
 /* ─── Global Transitions for Theme ─── */
-body, .sidebar, .sidebar-footer, .sidebar-header, .app-main, .dh-bar, .card, .pp-card, .pp-input, .pp-select, .pp-textarea {
+body,
+.sidebar,
+.sidebar-footer,
+.sidebar-header,
+.app-main,
+.dh-bar,
+.card,
+.pp-card,
+.pp-input,
+.pp-select,
+.pp-textarea {
   transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 

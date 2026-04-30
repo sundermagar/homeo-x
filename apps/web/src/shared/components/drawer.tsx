@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import '../styles/drawer.css';
 
@@ -40,7 +41,7 @@ export function Drawer({
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div className="drawer-overlay" onClick={onClose}>
       <div 
         className="drawer-content" 
@@ -57,6 +58,7 @@ export function Drawer({
           {children}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useSearchIcd, useSearchLoinc, useSearchProcedures } from '@/shared/hooks/use-terminology';
-import type { IcdCodeResult, LoincCodeResult, ProcedureCodeResult } from '@/shared/hooks/use-terminology';
+import { useSearchIcd, useSearchLoinc, useSearchProcedures, useSearchSnomed } from '@/shared/hooks/use-terminology';
+import type { IcdCodeResult, LoincCodeResult, ProcedureCodeResult, SnomedConceptResult } from '@/shared/hooks/use-terminology';
 import './code-autocomplete.css';
 
-type CodeType = 'icd' | 'loinc' | 'procedure';
+type CodeType = 'icd' | 'loinc' | 'procedure' | 'snomed';
 
-type SelectedCode = IcdCodeResult | LoincCodeResult | ProcedureCodeResult;
+type SelectedCode = IcdCodeResult | LoincCodeResult | ProcedureCodeResult | SnomedConceptResult;
 
 interface CodeAutocompleteProps {
   type: CodeType;
@@ -25,6 +25,10 @@ function getDisplayLabel(type: CodeType, item: SelectedCode): string {
     const loinc = item as LoincCodeResult;
     return `${loinc.loincNum} — ${loinc.component}`;
   }
+  if (type === 'snomed') {
+    const snomed = item as SnomedConceptResult;
+    return snomed.term || snomed.fsn;
+  }
   const proc = item as ProcedureCodeResult;
   return `${proc.code} — ${proc.name}`;
 }
@@ -32,12 +36,14 @@ function getDisplayLabel(type: CodeType, item: SelectedCode): string {
 function getCodeBadge(type: CodeType, item: SelectedCode): string {
   if (type === 'icd') return (item as IcdCodeResult).code;
   if (type === 'loinc') return (item as LoincCodeResult).loincNum;
+  if (type === 'snomed') return (item as SnomedConceptResult).conceptId;
   return (item as ProcedureCodeResult).code;
 }
 
 function getCategory(type: CodeType, item: SelectedCode): string | null | undefined {
   if (type === 'icd') return (item as IcdCodeResult).category;
   if (type === 'loinc') return (item as LoincCodeResult).system;
+  if (type === 'snomed') return (item as SnomedConceptResult).conceptType;
   return (item as ProcedureCodeResult).category;
 }
 
@@ -66,15 +72,18 @@ export function CodeAutocomplete({
   const icdResults = useSearchIcd(type === 'icd' ? debouncedQuery : '', 15);
   const loincResults = useSearchLoinc(type === 'loinc' ? debouncedQuery : '', 15);
   const procResults = useSearchProcedures(type === 'procedure' ? debouncedQuery : '', 15);
+  const snomedResults = useSearchSnomed(type === 'snomed' ? debouncedQuery : '', 15);
 
   const getResults = useCallback((): SelectedCode[] => {
     if (type === 'icd') return icdResults.data || [];
     if (type === 'loinc') return loincResults.data || [];
+    if (type === 'snomed') return snomedResults.data || [];
     return procResults.data || [];
-  }, [type, icdResults.data, loincResults.data, procResults.data]);
+  }, [type, icdResults.data, loincResults.data, procResults.data, snomedResults.data]);
 
   const isLoading = type === 'icd' ? icdResults.isLoading :
                     type === 'loinc' ? loincResults.isLoading :
+                    type === 'snomed' ? snomedResults.isLoading :
                     procResults.isLoading;
 
   const results = getResults();
@@ -123,12 +132,14 @@ export function CodeAutocomplete({
     icd: 'ICD',
     loinc: 'LOINC',
     procedure: 'Procedure',
+    snomed: 'SNOMED',
   };
 
   const typeColors: Record<CodeType, string> = {
     icd: 'var(--code-icd)',
     loinc: 'var(--code-loinc)',
     procedure: 'var(--code-proc)',
+    snomed: 'var(--code-snomed)',
   };
 
   return (

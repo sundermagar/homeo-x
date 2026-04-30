@@ -1,9 +1,9 @@
 /* ─── Operations Hub — Mobile-First Design System Refactor ───────────────── */
 
 .operations-dashboard {
-  padding: 0 12px 80px;
   max-width: 1280px;
   margin: 0 auto;
+  padding-bottom: 80px;
 }
 
 /* ─── Page Header: back btn + title on same row ─── */

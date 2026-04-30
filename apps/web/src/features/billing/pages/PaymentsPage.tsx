@@ -8,6 +8,9 @@ import { usePaymentHistory, useRecordManualPayment } from '../hooks/use-payments
 import { usePatient } from '../../patients/hooks/use-patients';
 import { PaymentModeEnum } from '@mmc/validation';
 import type { PaymentWithPatient } from '@mmc/types';
+import { Pagination } from '@/shared/components/Pagination';
+import { TableSkeleton } from '@/shared/components/TableSkeleton';
+import { Drawer } from '@/shared/components/drawer';
 import { format } from 'date-fns';
 import '../styles/billing.css';
 
@@ -72,7 +75,7 @@ export default function PaymentsPage() {
   const manualCount     = filtered.filter(p => !p.orderId && !p.paymentId).length;
 
   return (
-    <div className="bill-page fade-in">
+    <div className="pp-page-container bill-page animate-fade-in">
 
       {/* ─── Header ─── */}
       <div className="bill-header">
@@ -189,16 +192,10 @@ export default function PaymentsPage() {
         </span>
       </div>
 
-      {/* ─── Table ─── */}
       {historyQuery.isLoading ? (
-        <div className="bill-card">
-          <div className="bill-empty">
-            <RefreshCw size={24} style={{ animation: 'spin 1s linear infinite', opacity: 0.3 }} />
-            <p className="bill-empty-text" style={{ marginTop: 12 }}>Loading transactions…</p>
-          </div>
-        </div>
+        <TableSkeleton rows={10} columns={7} />
       ) : filtered.length === 0 ? (
-        <div className="bill-card">
+        <div className="bill-card" style={{ boxShadow: 'var(--pp-premium-shadow)' }}>
           <div className="bill-empty">
             <Banknote size={36} className="bill-empty-icon" />
             <p className="bill-empty-text">No payment records found.</p>
@@ -208,7 +205,7 @@ export default function PaymentsPage() {
           </div>
         </div>
       ) : (
-        <div className="bill-card fade-in">
+        <div className="bill-card fade-in" style={{ boxShadow: 'var(--pp-premium-shadow)' }}>
           <div className="bill-table-container">
             <table className="bill-table">
               <thead>
@@ -310,25 +307,28 @@ export default function PaymentsPage() {
         </div>
       )}
 
-      {/* ─── Pagination ─── */}
-      <div className="bill-pagination">
-        <span className="bill-page-info">Page {page}</span>
-        <button className="bill-btn bill-btn-sm bill-btn-icon" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
-          <ChevronLeft size={14} strokeWidth={2} />
-        </button>
-        <button className="bill-btn bill-btn-sm bill-btn-icon" disabled={!hasMore} onClick={() => setPage(p => p + 1)}>
-          <ChevronRight size={14} strokeWidth={2} />
-        </button>
-      </div>
+      <Pagination
+        totalItems={historyQuery.data?.pagination?.total ?? 0}
+        itemsPerPage={30}
+        currentPage={page}
+        onPageChange={(p) => setPage(p)}
+        onLimitChange={() => {}}
+      />
 
-      {/* ─── Manual Payment Modal ─── */}
-      {isModalOpen && <ManualPaymentModal onClose={() => setIsModalOpen(false)} />}
+      <Drawer
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="Record Counter Payment"
+        maxWidth="460px"
+      >
+        <ManualPaymentDrawerContent onClose={() => setIsModalOpen(false)} />
+      </Drawer>
     </div>
   );
 }
 
-/* ─── Manual Payment Modal ──────────────────────────────────────────────────── */
-function ManualPaymentModal({ onClose }: { onClose: () => void }) {
+/* ─── Manual Payment Drawer Content ────────────────────────────────────────── */
+function ManualPaymentDrawerContent({ onClose }: { onClose: () => void }) {
   const [regid,  setRegid]  = useState('');
   const [amount, setAmount] = useState('');
   const [mode,   setMode]   = useState('Cash');
@@ -355,143 +355,104 @@ function ManualPaymentModal({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="bill-modal-overlay fade-in" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="bill-modal" style={{ maxWidth: 460 }}>
+    <div className="bill-form">
+      <div style={{ marginBottom: 24 }}>
+        <p style={{ fontSize: '0.85rem', color: 'var(--pp-text-3)', margin: 0 }}>
+          Use this to record manual receipts, cash payments, or counter transactions.
+        </p>
+      </div>
 
-        {/* Header */}
-        <div className="bill-modal-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{
-              width: 36, height: 36, borderRadius: 10,
-              background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)',
-              display: 'grid', placeItems: 'center', flexShrink: 0,
-            }}>
-              <IndianRupee size={17} strokeWidth={2} />
-            </div>
-            <div>
-              <h2 className="bill-modal-title">Record Counter Payment</h2>
-              <p style={{ fontSize: '0.72rem', color: 'var(--pp-text-3)', margin: 0, marginTop: 1 }}>
-                Manual / cash counter receipt
-              </p>
-            </div>
+      <form onSubmit={handleSubmit}>
+        {error && (
+          <div style={{
+            background: 'var(--pp-danger-bg)', color: 'var(--pp-danger-fg)',
+            border: '1px solid var(--pp-danger-border)', borderRadius: 12,
+            padding: '12px 16px', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 8,
+            marginBottom: 20
+          }}>
+            <AlertTriangle size={14} /> {error}
           </div>
-          <button className="bill-btn bill-btn-icon" onClick={onClose} style={{ border: 'none' }}>
-            <X size={16} strokeWidth={2} />
-          </button>
+        )}
+
+        <div className="bill-form-group">
+          <label className="bill-form-label">Patient Reg ID <span className="bill-form-required">*</span></label>
+          <input
+            type="number"
+            required
+            className="bill-form-input"
+            style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '1rem' }}
+            value={regid}
+            onChange={e => setRegid(e.target.value)}
+            placeholder="e.g. 1042"
+            autoFocus
+          />
+          <PatientPreview regid={regid ? parseInt(regid) : 0} />
         </div>
 
-        {/* Body */}
-        <form onSubmit={handleSubmit} className="bill-modal-body">
-          {error && (
-            <div style={{
-              background: 'var(--pp-danger-bg)', color: 'var(--pp-danger-fg)',
-              border: '1px solid var(--pp-danger-border)', borderRadius: 8,
-              padding: '10px 14px', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 8,
-            }}>
-              <AlertTriangle size={14} /> {error}
-            </div>
-          )}
-
-          {/* Patient ID */}
-          <div className="bill-form-group">
-            <label className="bill-form-label">
-              Patient Reg ID <span className="bill-form-required">*</span>
-            </label>
+        <div className="bill-form-group" style={{ marginTop: 20 }}>
+          <label className="bill-form-label">Amount (₹) <span className="bill-form-required">*</span></label>
+          <div style={{ position: 'relative' }}>
+            <span style={{
+              position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
+              color: 'var(--pp-text-3)', fontWeight: 700, fontSize: '1.1rem', pointerEvents: 'none',
+            }}>₹</span>
             <input
-              id="modal-regid"
               type="number"
               required
+              min={1}
+              step="0.01"
               className="bill-form-input"
-              style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '1rem' }}
-              value={regid}
-              onChange={e => setRegid(e.target.value)}
-              placeholder="e.g. 1042"
-              autoFocus
-            />
-            <PatientPreview regid={regid ? parseInt(regid) : 0} />
-          </div>
-
-          {/* Amount */}
-          <div className="bill-form-group">
-            <label className="bill-form-label">
-              Amount (₹) <span className="bill-form-required">*</span>
-            </label>
-            <div style={{ position: 'relative' }}>
-              <span style={{
-                position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
-                color: 'var(--pp-text-3)', fontWeight: 700, fontSize: '1rem', pointerEvents: 'none',
-              }}>₹</span>
-              <input
-                id="modal-amount"
-                type="number"
-                required
-                min={1}
-                step="0.01"
-                className="bill-form-input"
-                style={{ paddingLeft: 30, fontFamily: 'var(--pp-font-mono)', fontSize: '1.15rem', fontWeight: 700 }}
-                value={amount}
-                onChange={e => setAmount(e.target.value)}
-                placeholder="0.00"
-              />
-            </div>
-          </div>
-
-          {/* Payment Mode */}
-          <div className="bill-form-group">
-            <label className="bill-form-label">Payment Mode</label>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {PaymentModeEnum.options.filter(o => o !== 'Online').map(o => (
-                <button
-                  key={o}
-                  type="button"
-                  onClick={() => setMode(o)}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 6,
-                    padding: '7px 14px', borderRadius: 999, fontSize: '0.78rem', fontWeight: 700,
-                    cursor: 'pointer', border: '1.5px solid',
-                    transition: 'all 0.15s ease',
-                    background: mode === o ? 'var(--pp-blue)' : 'var(--bg-card)',
-                    color:      mode === o ? '#fff' : 'var(--pp-text-2)',
-                    borderColor: mode === o ? 'var(--pp-blue)' : 'var(--border-main)',
-                    boxShadow: mode === o ? '0 4px 12px rgba(37,99,235,0.2)' : 'none',
-                  }}
-                >
-                  {MODE_ICON[o]}
-                  {o}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Notes */}
-          <div className="bill-form-group">
-            <label className="bill-form-label">Notes <span style={{ opacity: 0.5, fontWeight: 500, textTransform: 'none' }}>(optional)</span></label>
-            <textarea
-              className="bill-form-textarea"
-              rows={2}
-              value={notes}
-              onChange={e => setNotes(e.target.value)}
-              placeholder="e.g. Advance payment for next visit…"
+              style={{ paddingLeft: 30, fontFamily: 'var(--pp-font-mono)', fontSize: '1.25rem', fontWeight: 850 }}
+              value={amount}
+              onChange={e => setAmount(e.target.value)}
+              placeholder="0.00"
             />
           </div>
-        </form>
+        </div>
 
-        {/* Footer */}
-        <div className="bill-modal-footer">
-          <button type="button" className="bill-btn" onClick={onClose}>Cancel</button>
+        <div className="bill-form-group" style={{ marginTop: 20 }}>
+          <label className="bill-form-label">Payment Mode</label>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 8 }}>
+            {PaymentModeEnum.options.filter(o => o !== 'Online').map(o => (
+              <button
+                key={o}
+                type="button"
+                onClick={() => setMode(o)}
+                className={`bill-view-toggle-btn ${mode === o ? 'is-active' : ''}`}
+                style={{
+                  justifyContent: 'center', height: 40, borderRadius: 12, border: '1px solid var(--pp-warm-4)'
+                }}
+              >
+                {o}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="bill-form-group" style={{ marginTop: 20 }}>
+          <label className="bill-form-label">Notes</label>
+          <textarea
+            className="bill-form-textarea"
+            rows={3}
+            value={notes}
+            onChange={e => setNotes(e.target.value)}
+            placeholder="Add any internal remarks..."
+            style={{ borderRadius: 12 }}
+          />
+        </div>
+
+        <div style={{ marginTop: 32, display: 'flex', gap: 12 }}>
+          <button type="button" className="bill-btn" style={{ flex: 1, height: 48, borderRadius: 14 }} onClick={onClose}>Cancel</button>
           <button
-            type="button"
+            type="submit"
             className="bill-btn bill-btn-primary"
             disabled={recordManual.isPending || !regid || !amount}
-            onClick={handleSubmit as any}
-            style={{ minWidth: 140 }}
+            style={{ flex: 2, height: 48, borderRadius: 14 }}
           >
-            {recordManual.isPending
-              ? <><RefreshCw size={13} style={{ animation: 'spin 1s linear infinite' }} /> Saving…</>
-              : <><CheckCircle2 size={14} /> Confirm Payment</>}
+            {recordManual.isPending ? 'Saving...' : 'Confirm Payment'}
           </button>
         </div>
-      </div>
+      </form>
     </div>
   );
 }

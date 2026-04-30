@@ -18,6 +18,11 @@ export class TerminologyService {
     return this.repo.searchProcedureCodes(query, limit);
   }
 
+  async searchSnomed(query: string, limit?: number) {
+    if (!query || query.length < 2) return [];
+    return this.repo.searchSnomedConcepts(query, limit);
+  }
+
   async getIcdDetails(code: string) {
     return this.repo.getIcdByCode(code);
   }
@@ -28,5 +33,9 @@ export class TerminologyService {
 
   async getProcedureDetails(code: string) {
     return this.repo.getProcedureByCode(code);
+  }
+
+  async getSnomedDetails(conceptId: string) {
+    return this.repo.getSnomedByConceptId(conceptId);
   }
 }

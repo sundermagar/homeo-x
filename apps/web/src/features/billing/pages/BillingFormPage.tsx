@@ -8,7 +8,7 @@ import { CodeAutocomplete } from '@/shared/components/code-autocomplete';
 import type { IcdCodeResult, ProcedureCodeResult } from '@/shared/hooks/use-terminology';
 import '../styles/billing.css';
 
-export default function BillingFormPage() {
+export function BillingForm({ onSuccess, onCancel }: { onSuccess?: () => void; onCancel?: () => void }) {
   const navigate = useNavigate();
   const createBill = useCreateBill();
 
@@ -45,7 +45,8 @@ export default function BillingFormPage() {
         treatment: selectedProcedure ? `[${selectedProcedure.code}] ${selectedProcedure.name}` : formData.treatment,
         disease: selectedIcd ? `[${selectedIcd.code}] ${selectedIcd.description}` : formData.disease,
       });
-      navigate('/billing');
+      if (onSuccess) onSuccess();
+      else navigate('/billing');
     } catch (err: any) {
       alert(err.response?.data?.error || 'Failed to create bill');
     }
@@ -55,26 +56,7 @@ export default function BillingFormPage() {
   const set = (key: string, val: any) => setFormData(prev => ({ ...prev, [key]: val }));
 
   return (
-    <div className="bill-page fade-in" style={{ maxWidth: '860px' }}>
-
-      {/* ─── Header ─── */}
-      <div className="bill-header">
-        <div>
-          <h1 className="bill-header-title">
-            <FilePlus size={20} strokeWidth={1.6} style={{ color: 'var(--pp-blue)' }} />
-            Generate New Invoice
-          </h1>
-          <p className="bill-header-sub">Fill in treatment charges and payment details for official records.</p>
-        </div>
-        <div className="bill-header-actions">
-          <button className="bill-btn" onClick={() => navigate('/billing')}>
-            <ChevronLeft size={14} strokeWidth={2} />
-            Back to Billing
-          </button>
-        </div>
-      </div>
-
-      <form onSubmit={handleSubmit} className="bill-card bill-form-card">
+    <form onSubmit={handleSubmit} className="bill-card bill-form-card" style={{ boxShadow: 'none', border: 'none', padding: 0 }}>
 
         {/* ─── Section: Patient ─── */}
         <div className="bill-card-header">
@@ -127,9 +109,8 @@ export default function BillingFormPage() {
           )}
         </div>
 
-        {/* ─── Section: Financial + Treatment (2-col on desktop) ─── */}
-        <div className="bill-form-section">
-          <div className="bill-form-row bill-form-row-2" style={{ alignItems: 'start' }}>
+        {/* ─── Section: Financial + Treatment (Stacked for Drawer) ─── */}
+        <div className="bill-form-section" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
             {/* Financial Details */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -208,7 +189,7 @@ export default function BillingFormPage() {
                 )}
               </div>
 
-              <div className="bill-form-row bill-form-row-2" style={{ gap: '10px' }}>
+              <div className="bill-form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div className="bill-form-group">
                   <label className="bill-form-label">From Date</label>
                   <input className="bill-form-input" type="date"
@@ -223,12 +204,11 @@ export default function BillingFormPage() {
                 </div>
               </div>
             </div>
-          </div>
         </div>
 
         {/* ─── Footer Actions ─── */}
         <div className="bill-form-section" style={{ display: 'flex', gap: 'var(--pp-space-3)', justifyContent: 'flex-end' }}>
-          <button type="button" className="bill-btn" onClick={() => navigate('/billing')}>
+          <button type="button" className="bill-btn" onClick={() => onCancel ? onCancel() : navigate('/billing')}>
             Cancel
           </button>
           <button type="submit" className="bill-btn bill-btn-primary" disabled={createBill.isPending} style={{ minWidth: '160px' }}>
@@ -237,6 +217,31 @@ export default function BillingFormPage() {
         </div>
 
       </form>
+  );
+}
+
+export default function BillingFormPage() {
+  const navigate = useNavigate();
+  return (
+    <div className="bill-page fade-in" style={{ maxWidth: '860px' }}>
+      <div className="bill-header">
+        <div>
+          <h1 className="bill-header-title">
+            <FilePlus size={20} strokeWidth={1.6} style={{ color: 'var(--pp-blue)' }} />
+            Generate New Invoice
+          </h1>
+          <p className="bill-header-sub">Fill in treatment charges and payment details for official records.</p>
+        </div>
+        <div className="bill-header-actions">
+          <button className="bill-btn" onClick={() => navigate('/billing')}>
+            <ChevronLeft size={14} strokeWidth={2} />
+            Back to Billing
+          </button>
+        </div>
+      </div>
+      <div className="bill-card bill-form-card">
+        <BillingForm onSuccess={() => navigate('/billing')} onCancel={() => navigate('/billing')} />
+      </div>
     </div>
   );
 }

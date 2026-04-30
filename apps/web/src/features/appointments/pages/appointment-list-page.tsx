@@ -32,18 +32,18 @@ export default function AppointmentListPage() {
   const { data: orgs = [] } = useOrganizations();
   const currentOrg = orgs[0];
 
-  const [tab,        setTab]        = useState<Tab>('today');
-  const [search,     setSearch]     = useState('');
-  const [status,     setStatus]     = useState('');
-  const [fromDate,   setFromDate]   = useState('');
-  const [toDate,     setToDate]     = useState('');
-  const [page,       setPage]       = useState(1);
-  const [showForm,   setShowForm]   = useState(false);
-  const [editAppt,   setEditAppt]   = useState<Appointment | null>(null);
-  const [confirmDel,  setConfirmDel]  = useState<number | null>(null);
-  const [viewMode,    setViewMode]    = useState<'list' | 'grid'>('list');
-  const [openMenuId,  setOpenMenuId]  = useState<number | null>(null);
-  const [menuPos,     setMenuPos]     = useState<{ top: number; left: number } | null>(null);
+  const [tab, setTab] = useState<Tab>('today');
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [page, setPage] = useState(1);
+  const [showForm, setShowForm] = useState(false);
+  const [editAppt, setEditAppt] = useState<Appointment | null>(null);
+  const [confirmDel, setConfirmDel] = useState<number | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const MENU_W = 180;
@@ -77,30 +77,30 @@ export default function AppointmentListPage() {
   }, [openMenuId]);
 
   const todayQuery = useTodayAppointments();
-  const listQuery  = useAppointments({
-    search:    search  || undefined,
-    status:    status  || undefined,
+  const listQuery = useAppointments({
+    search: search || undefined,
+    status: status || undefined,
     from_date: fromDate || (tab === 'all' ? undefined : today),
-    to_date:   toDate  || (tab === 'all' ? undefined : today),
+    to_date: toDate || (tab === 'all' ? undefined : today),
     // Pass doctor_id for server-side filtering when logged in as doctor
     doctor_id: doctorUserId,
     page, limit: 40,
   });
 
   const updateStatus = useUpdateStatus();
-  const deleteMut    = useDeleteAppointment();
+  const deleteMut = useDeleteAppointment();
 
   // For today tab: filter client-side by doctor name/id (since useTodayAppointments has no doctor filter)
   const todayRaw = todayQuery.data ?? [];
   const todayData = isDoctor
     ? todayRaw.filter(a => {
-        if (a.doctorId && doctorUserId && a.doctorId === doctorUserId) return true;
-        if (doctorUserName && a.doctorName) {
-          const dn = (a.doctorName || '').toLowerCase().trim();
-          if (dn === doctorUserName || dn.includes(doctorUserName) || doctorUserName.includes(dn)) return true;
-        }
-        return false;
-      })
+      if (a.doctorId && doctorUserId && a.doctorId === doctorUserId) return true;
+      if (doctorUserName && a.doctorName) {
+        const dn = (a.doctorName || '').toLowerCase().trim();
+        if (dn === doctorUserName || dn.includes(doctorUserName) || doctorUserName.includes(dn)) return true;
+      }
+      return false;
+    })
     : todayRaw;
 
   const rawListData = listQuery.data;
@@ -110,7 +110,7 @@ export default function AppointmentListPage() {
       ? (rawListData as any).data
       : [];
 
-  const data  = tab === 'today' ? todayData : listData;
+  const data = tab === 'today' ? todayData : listData;
   const total = tab === 'today' ? data.length : listData.length;
   const isPending = tab === 'today' ? todayQuery.isLoading : listQuery.isLoading;
 
@@ -137,16 +137,16 @@ export default function AppointmentListPage() {
     await deleteMut.mutateAsync(id);
     setConfirmDel(null);
   };
-  const openEdit  = (a: Appointment) => { setEditAppt(a); setShowForm(true); };
+  const openEdit = (a: Appointment) => { setEditAppt(a); setShowForm(true); };
   const closeForm = () => { setShowForm(false); setEditAppt(null); };
 
   const quickStatuses = [
-    { s: AppointmentStatus.Confirmed,    label: 'Confirm',   color: 'var(--pp-blue)' },
-    { s: AppointmentStatus.Arrived,     label: 'Arrived',   color: 'var(--pp-green-mid)' },
-    { s: AppointmentStatus.Consultation,label: 'In Room',  color: 'var(--pp-purple)' },
-    { s: AppointmentStatus.Done,        label: 'Done',      color: 'var(--pp-success-fg)' },
-    { s: AppointmentStatus.Absent,      label: 'Absent',    color: 'var(--pp-text-3)' },
-    { s: AppointmentStatus.Cancelled,   label: 'Cancel',   color: 'var(--pp-danger-fg)' },
+    { s: AppointmentStatus.Confirmed, label: 'Confirm', color: 'var(--pp-blue)' },
+    { s: AppointmentStatus.Arrived, label: 'Arrived', color: 'var(--pp-green-mid)' },
+    { s: AppointmentStatus.Consultation, label: 'In Room', color: 'var(--pp-purple)' },
+    { s: AppointmentStatus.Done, label: 'Done', color: 'var(--pp-success-fg)' },
+    { s: AppointmentStatus.Absent, label: 'Absent', color: 'var(--pp-text-3)' },
+    { s: AppointmentStatus.Cancelled, label: 'Cancel', color: 'var(--pp-danger-fg)' },
   ];
 
   return (
@@ -183,7 +183,7 @@ export default function AppointmentListPage() {
 
       {/* Tabs */}
       <div className="appt-tabs">
-        {([['today','Today'], ['all','All Appointments'], ['pending','Pending Queue']] as [Tab, string][]).map(([key, label]) => (
+        {([['today', 'Today'], ['all', 'All Appointments'], ['pending', 'Pending Queue']] as [Tab, string][]).map(([key, label]) => (
           <button key={key} className={`appt-tab ${tab === key ? 'active' : ''}`} onClick={() => { setTab(key); setPage(1); }}>
             {label}
           </button>

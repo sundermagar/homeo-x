@@ -54,7 +54,8 @@ async function main() {
       // Add custom_title column
       await sql.unsafe(`
         ALTER TABLE "${schema_name}".bills
-          ADD COLUMN IF NOT EXISTS custom_title varchar(255);
+          ADD COLUMN IF NOT EXISTS custom_title varchar(255),
+          ADD COLUMN IF NOT EXISTS procedure_code_id integer;
       `);
 
       // Create bill_no_seq sequence if not exists (for race-condition-free numbering)

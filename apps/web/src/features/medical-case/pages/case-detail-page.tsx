@@ -29,6 +29,7 @@ import { BillingUpdateModal } from '../components/billing-update-modal';
 import { useAppointments } from '../../appointments/hooks/use-appointments';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { CodeAutocomplete } from '@/shared/components/code-autocomplete';
+import { CaseDetailSkeleton } from '@/shared/components/CaseDetailSkeleton';
 import '../styles/medical-case.css';
 
 export function AutoSaveNoteArea({ initialValue = '', onSave, placeholder = '' }: { initialValue?: string, onSave: (val: string) => Promise<void>, placeholder?: string }) {
@@ -73,7 +74,7 @@ export default function MedicalCaseDetailPage() {
   const { data: summary } = usePatientBills(Number(regid));
   const { data: activePackage } = useActivePackage(Number(regid));
 
-  if (isLoading) return <div className="mc-loading">Loading clinical records...</div>;
+  if (isLoading) return <CaseDetailSkeleton />;
   if (error || !fullData) return <div className="mc-error">Failed to load clinical records.</div>;
 
   const { medicalCase, vitals, soap, notes, examination, images, investigations, prescriptions, homeo, vaccines, reminders } = fullData;

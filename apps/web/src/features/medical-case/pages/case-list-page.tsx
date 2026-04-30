@@ -7,6 +7,8 @@ import {
   Grid, List
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { TableSkeleton } from '@/shared/components/TableSkeleton';
+import { Pagination } from '@/shared/components/Pagination';
 import '../styles/medical-case.css';
 
 export default function MedicalCaseListPage() {
@@ -92,8 +94,10 @@ export default function MedicalCaseListPage() {
             </thead>
             <tbody>
               {isLoading ? (
-                <tr className="mc-loading-row">
-                  <td colSpan={5}>Loading records...</td>
+                <tr>
+                  <td colSpan={5} style={{ padding: 0 }}>
+                    <TableSkeleton rows={10} columns={5} />
+                  </td>
                 </tr>
               ) : !records?.data?.length ? (
                 <tr className="mc-empty-row">
@@ -216,23 +220,13 @@ export default function MedicalCaseListPage() {
 
       {/* Pagination */}
       {records?.total > 0 && (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 16, padding: '24px 0', marginTop: 16 }}>
-          <button 
-            disabled={page === 1}
-            onClick={() => setPage(p => Math.max(1, p - 1))}
-            style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #e2e8f0', background: page === 1 ? '#f8fafc' : '#fff', color: page === 1 ? '#94a3b8' : '#334155', cursor: page === 1 ? 'not-allowed' : 'pointer' }}
-          >
-            Previous
-          </button>
-          <span style={{ fontSize: 14, color: '#64748b', fontWeight: 500 }}>Page {page} of {Math.max(1, Math.ceil(records.total / 50))}</span>
-          <button 
-            disabled={page >= Math.ceil(records.total / 50)}
-            onClick={() => setPage(p => p + 1)}
-            style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #e2e8f0', background: page >= Math.ceil(records.total / 50) ? '#f8fafc' : '#fff', color: page >= Math.ceil(records.total / 50) ? '#94a3b8' : '#334155', cursor: page >= Math.ceil(records.total / 50) ? 'not-allowed' : 'pointer' }}
-          >
-            Next
-          </button>
-        </div>
+        <Pagination
+          totalItems={records.total}
+          itemsPerPage={50}
+          currentPage={page}
+          onPageChange={setPage}
+          onLimitChange={() => {}}
+        />
       )}
     </div>
   );

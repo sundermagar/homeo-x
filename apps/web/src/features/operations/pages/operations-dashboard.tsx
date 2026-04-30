@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { apiClient } from '@/infrastructure/api-client';
 import { OpsModal } from '../components/ops-modal';
+import { TableSkeleton } from '@/shared/components/TableSkeleton';
 import './operations-dashboard.css';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -266,7 +267,7 @@ export default function OperationsDashboard() {
   const activeAction = actionMap[activeTab];
 
   return (
-    <div className="operations-dashboard fade-in">
+    <div className="pp-page-container operations-dashboard fade-in">
       {/* ─── Page Header: back btn + title on same row ─── */}
       <PageHeader
         title={h.title}
@@ -341,9 +342,9 @@ export default function OperationsDashboard() {
                 </thead>
                 <tbody>
                   {loading ? (
-                    <tr><td colSpan={6} style={{ textAlign: 'center', padding: 40 }}>Loading leads...</td></tr>
+                    <tr><td colSpan={7} style={{ padding: 0 }}><TableSkeleton rows={5} columns={7} /></td></tr>
                   ) : leads.length === 0 ? (
-                    <tr><td colSpan={6} style={{ textAlign: 'center', padding: 40 }}>No leads found.</td></tr>
+                    <tr><td colSpan={7} style={{ textAlign: 'center', padding: 40 }}>No leads found.</td></tr>
                   ) : leads.map(l => (
                     <tr key={l.id}>
                       <td data-label="#">{l.id}</td>
@@ -452,7 +453,7 @@ export default function OperationsDashboard() {
                 </thead>
                 <tbody>
                   {loading ? (
-                    <tr><td colSpan={3} style={{ textAlign: 'center', padding: 40 }}>Loading...</td></tr>
+                    <tr><td colSpan={3} style={{ padding: 0 }}><TableSkeleton rows={5} columns={3} /></td></tr>
                   ) : dictionary.length === 0 ? (
                     <tr><td colSpan={3} style={{ textAlign: 'center', padding: 40 }}>No dictionary entries found.</td></tr>
                   ) : dictionary.map(d => (
@@ -481,7 +482,7 @@ export default function OperationsDashboard() {
                 </thead>
                 <tbody>
                   {loading ? (
-                    <tr><td colSpan={4} style={{ textAlign: 'center', padding: 40 }}>Loading...</td></tr>
+                    <tr><td colSpan={4} style={{ padding: 0 }}><TableSkeleton rows={5} columns={4} /></td></tr>
                   ) : books.length === 0 ? (
                     <tr><td colSpan={4} style={{ textAlign: 'center', padding: 40 }}>No library resources found.</td></tr>
                   ) : books.map(b => (

@@ -38,7 +38,7 @@ export function Pagination({
       buttons.push(
         <button
           key={i}
-          className={`plat-pagination-page ${currentPage === i ? 'is-active' : ''}`}
+          className={`pp-pagination-page ${currentPage === i ? 'is-active' : ''}`}
           onClick={() => onPageChange(i)}
         >
           {i}
@@ -49,13 +49,13 @@ export function Pagination({
   };
 
   return (
-    <div className="plat-pagination-bar">
-      <div className="plat-pagination-info-wrap">
-        <span className="plat-pagination-info">
+    <div className="pp-pagination-bar">
+      <div className="pp-pagination-info-wrap">
+        <span className="pp-pagination-info">
           Showing {startIdx}-{endIdx} of {totalItems}
         </span>
         <select 
-          className="plat-pagination-limit"
+          className="pp-pagination-limit"
           value={itemsPerPage}
           onChange={(e) => {
             onLimitChange(Number(e.target.value));
@@ -67,9 +67,9 @@ export function Pagination({
           <option value={50}>50 per page</option>
         </select>
       </div>
-      <div className="plat-pagination-controls">
+      <div className="pp-pagination-controls">
         <button 
-          className="plat-pagination-btn"
+          className="pp-pagination-btn"
           onClick={() => onPageChange(Math.max(1, currentPage - 1))}
           disabled={currentPage === 1}
         >
@@ -79,7 +79,7 @@ export function Pagination({
         {renderPageButtons()}
 
         <button 
-          className="plat-pagination-btn"
+          className="pp-pagination-btn"
           onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
           disabled={currentPage === totalPages || totalPages === 0}
         >

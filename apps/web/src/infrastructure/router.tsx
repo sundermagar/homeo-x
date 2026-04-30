@@ -45,6 +45,8 @@ const AdditionalChargesPage = lazy(() => import('@/features/billing/pages/Additi
 const DayChargesPage = lazy(() => import('@/features/billing/pages/DayChargesPage'));
 const DepositsPage = lazy(() => import('@/features/billing/pages/DepositsPage'));
 const ExpensesPage = lazy(() => import('@/features/billing/pages/ExpensesPage'));
+const ViewCollectionPage = lazy(() => import('@/features/billing/pages/ViewCollectionPage'));
+const ViewBalancePage = lazy(() => import('@/features/billing/pages/ViewBalancePage'));
 
 // Platform & Multi-tenancy
 const ClinicsPage = lazy(() => import('@/features/platform/pages/ClinicsPage'));
@@ -93,8 +95,6 @@ const RolesPermissionsPage = lazy(() => import('@/features/settings/pages/roles-
 // Operations & CRM
 const OperationsDashboard = lazy(() => import('@/features/operations/pages/operations-dashboard'));
 
-// Clinical Hub
-const ClinicalHubPage = lazy(() => import('@/features/clinical-hub/pages/clinical-hub-page'));
 
 export function AppRouter() {
   return (
@@ -134,8 +134,6 @@ export function AppRouter() {
             <Route path="/ai-analysis" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><AiConsultantPage /></RoleGuard>} />
             <Route path="/clinical/remedy-chart" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><RemedyTreePage /></RoleGuard>} />
 
-            {/* ─── Clinical Hub ─── */}
-            <Route path="/clinical-hub" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><ClinicalHubPage /></RoleGuard>} />
 
             {/* ─── Packages & Memberships ─── */}
             <Route path="/packages" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><PackagePlansPage /></RoleGuard>} />
@@ -164,6 +162,8 @@ export function AppRouter() {
             <Route path="/billing" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist']}><BillingListPage /></RoleGuard>} />
             <Route path="/billing/create" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist']}><BillingFormPage /></RoleGuard>} />
             <Route path="/billing/custom" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist']}><CustomBillPage /></RoleGuard>} />
+            <Route path="/billing/collection" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist']}><ViewCollectionPage /></RoleGuard>} />
+            <Route path="/billing/balance" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist']}><ViewBalancePage /></RoleGuard>} />
             <Route path="/billing/additional-charges" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Receptionist']}><AdditionalChargesPage /></RoleGuard>} />
             <Route path="/billing/day-charges" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Receptionist']}><DayChargesPage /></RoleGuard>} />
             <Route path="/billing/deposits" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Receptionist']}><DepositsPage /></RoleGuard>} />

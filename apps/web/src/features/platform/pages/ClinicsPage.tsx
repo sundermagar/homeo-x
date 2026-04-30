@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Building2, Plus, X, RefreshCw, Edit2, Trash2 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useOrganizations, useCreateOrganization, useDeleteOrganization, useUpdateOrganization } from '../hooks/use-organizations';
@@ -34,6 +35,19 @@ export default function ClinicsPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [editingOrg, setEditingOrg] = useState<any>(null);
   const [form, setForm] = useState<CreateOrganizationInput>(EMPTY_FORM);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get('add') === 'true') {
+      setIsCreating(true);
+      setEditingOrg(null);
+      setForm(EMPTY_FORM);
+      // Clean up the URL
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('add');
+      setSearchParams(newParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();

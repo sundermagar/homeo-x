@@ -33,27 +33,32 @@ export class BillingRepositoryPg implements BillingRepository {
     }
     const where = and(...conditions);
 
-    const [rows, countRows] = await Promise.all([
-      this.db
-        .select({
-          bill: bills,
-          patientName: sql<string>`CONCAT(${patients.firstName}, ' ', ${patients.surname})`,
-          phone: patients.mobile1,
-        })
-        .from(bills)
-        .leftJoin(patients, eq(patients.regid, bills.regid))
-        .where(where)
-        .orderBy(desc(bills.id))
-        .limit(limit)
-        .offset(offset),
-      this.db.select({ count: sql<number>`count(*)` }).from(bills).where(where),
-    ]);
+    try {
+      const [rows, countRows] = await Promise.all([
+        this.db
+          .select({
+            bill: bills,
+            patientName: sql<string>`CONCAT(${patients.firstName}, ' ', ${patients.surname})`,
+            phone: patients.mobile1,
+          })
+          .from(bills)
+          .leftJoin(patients, eq(patients.regid, bills.regid))
+          .where(where)
+          .orderBy(desc(bills.id))
+          .limit(limit)
+          .offset(offset),
+        this.db.select({ count: sql<number>`count(*)` }).from(bills).where(where),
+      ]);
 
-    const total = Number(countRows[0]?.count ?? 0);
-    return {
-      data: rows.map(r => ({ ...this.toDomain(r.bill), patientName: r.patientName ?? '', phone: r.phone ?? null })),
-      total,
-    };
+      const total = Number(countRows[0]?.count ?? 0);
+      return {
+        data: rows.map(r => ({ ...this.toDomain(r.bill), patientName: r.patientName ?? '', phone: r.phone ?? null })),
+        total,
+      };
+    } catch (err) {
+      console.error('[BillingRepositoryPg] Error in findAll:', err);
+      throw err;
+    }
   }
 
   async findByRegid(regid: number): Promise<PatientBillSummary> {
@@ -80,29 +85,34 @@ export class BillingRepositoryPg implements BillingRepository {
 
     const where = and(isNull(bills.deletedAt), gte(bills.createdAt, start), lt(bills.createdAt, end));
 
-    const rows = await this.db
-      .select({
-        bill: bills,
-        patientName: sql<string>`CONCAT(${patients.firstName}, ' ', ${patients.surname})`,
-        phone: patients.mobile1,
-      })
-      .from(bills)
-      .leftJoin(patients, eq(patients.regid, bills.regid))
-      .where(where)
-      .orderBy(desc(bills.id));
+    try {
+      const rows = await this.db
+        .select({
+          bill: bills,
+          patientName: sql<string>`CONCAT(${patients.firstName}, ' ', ${patients.surname})`,
+          phone: patients.mobile1,
+        })
+        .from(bills)
+        .leftJoin(patients, eq(patients.regid, bills.regid))
+        .where(where)
+        .orderBy(desc(bills.id));
 
-    const totalCharges = rows.reduce((s, r) => s + (r.bill.charges ?? 0), 0);
-    const totalReceived = rows.reduce((s, r) => s + (r.bill.received ?? 0), 0);
-    const totalBalance = rows.reduce((s, r) => s + (r.bill.balance ?? 0), 0);
+      const totalCharges = rows.reduce((s, r) => s + (r.bill.charges ?? 0), 0);
+      const totalReceived = rows.reduce((s, r) => s + (r.bill.received ?? 0), 0);
+      const totalBalance = rows.reduce((s, r) => s + (r.bill.balance ?? 0), 0);
 
-    return {
-      date,
-      totalCharges,
-      totalReceived,
-      totalBalance,
-      recordCount: rows.length,
-      records: rows.map(r => ({ ...this.toDomain(r.bill), patientName: r.patientName ?? '', phone: r.phone ?? null })),
-    };
+      return {
+        date,
+        totalCharges,
+        totalReceived,
+        totalBalance,
+        recordCount: rows.length,
+        records: rows.map(r => ({ ...this.toDomain(r.bill), patientName: r.patientName ?? '', phone: r.phone ?? null })),
+      };
+    } catch (err) {
+      console.error('[BillingRepositoryPg] Error in findDailyCollection:', err);
+      throw err;
+    }
   }
 
   async create(data: CreateBillInput & { billNo: number }): Promise<Bill> {

@@ -5,16 +5,18 @@ import {
 import {
   usePackagePlans, useCreatePackagePlan, useUpdatePackagePlan, useDeletePackagePlan, usePackageRevenueStats
 } from '../hooks/use-packages';
+import { Drawer } from '@/shared/components/drawer';
 import '../styles/packages.css';
 
 const COLORS = ['#2563EB', '#7C3AED', '#059669', '#D97706', '#E11D48', '#0891B2', '#EA580C', '#6366F1'];
 
-function PlanFormModal({
-  initial, onClose, onSave,
+function PlanDrawer({
+  initial, onClose, onSave, isOpen
 }: {
   initial?: any;
   onClose: () => void;
   onSave: (data: any) => void;
+  isOpen: boolean;
 }) {
   const [form, setForm] = useState({
     name:         initial?.name         ?? '',
@@ -28,48 +30,64 @@ function PlanFormModal({
   const submit = (e: React.FormEvent) => { e.preventDefault(); onSave(form); };
 
   return (
-    <div className="pkg-modal-overlay" onClick={onClose}>
-      <div className="pkg-modal" onClick={e => e.stopPropagation()}>
-        <div className="pkg-modal-header">
-          <h2 className="pkg-modal-title">{initial ? 'Edit Plan' : 'New Package Plan'}</h2>
-          <button className="pkg-btn pkg-btn-ghost pkg-btn-sm" onClick={onClose}><X size={16} /></button>
+    <Drawer 
+      isOpen={isOpen} 
+      onClose={onClose} 
+      title={initial ? 'Edit Plan' : 'New Package Plan'}
+      maxWidth="540px"
+    >
+      <div className="pkg-form-group">
+        <label className="pkg-form-label">Plan Name *</label>
+        <input className="pkg-form-input" placeholder="e.g. Monthly Bronze" value={form.name} onChange={e => set('name', e.target.value)} required />
+      </div>
+      <div className="pkg-form-group">
+        <label className="pkg-form-label">Description</label>
+        <textarea className="pkg-form-input" style={{ minHeight: '80px', resize: 'vertical' }}
+          placeholder="Short description of the plan…" value={form.description} onChange={e => set('description', e.target.value)} />
+      </div>
+      <div className="pkg-form-row pkg-form-row-2">
+        <div className="pkg-form-group">
+          <label className="pkg-form-label">Price (₹) *</label>
+          <input className="pkg-form-input" type="number" min="0" placeholder="e.g. 2500" value={form.price} onChange={e => set('price', Number(e.target.value))} required />
         </div>
-        <form onSubmit={submit}>
-          <div className="pkg-modal-body">
-            <div className="pkg-form-group">
-              <label className="pkg-form-label">Plan Name *</label>
-              <input className="pkg-form-input" placeholder="e.g. Monthly Bronze" value={form.name} onChange={e => set('name', e.target.value)} required />
-            </div>
-            <div className="pkg-form-group">
-              <label className="pkg-form-label">Description</label>
-              <input className="pkg-form-input" placeholder="Short description of the plan…" value={form.description} onChange={e => set('description', e.target.value)} />
-            </div>
-            <div className="pkg-form-row pkg-form-row-2">
-              <div className="pkg-form-group">
-                <label className="pkg-form-label">Price (₹) *</label>
-                <input className="pkg-form-input" type="number" min="0" placeholder="e.g. 2500" value={form.price} onChange={e => set('price', Number(e.target.value))} required />
-              </div>
-              <div className="pkg-form-group">
-                <label className="pkg-form-label">Duration (days) *</label>
-                <input className="pkg-form-input" type="number" min="1" placeholder="e.g. 30" value={form.durationDays} onChange={e => set('durationDays', Number(e.target.value))} required />
-              </div>
-            </div>
-            <div className="pkg-form-group">
-              <label className="pkg-form-label">Color Tag</label>
-              <div className="pkg-color-row">
-                {COLORS.map(c => (
-                  <button type="button" key={c} className={`pkg-color-swatch ${form.colorCode === c ? 'selected' : ''}`} style={{ background: c }} onClick={() => set('colorCode', c)} />
-                ))}
-              </div>
-            </div>
-          </div>
-          <div className="pkg-modal-footer">
-            <button type="button" className="pkg-btn" onClick={onClose}>Cancel</button>
-            <button type="submit" className="pkg-btn pkg-btn-primary">
-              <CheckCircle2 size={15} strokeWidth={1.6} /> {initial ? 'Save Changes' : 'Create Plan'}
-            </button>
-          </div>
-        </form>
+        <div className="pkg-form-group">
+          <label className="pkg-form-label">Duration (days) *</label>
+          <input className="pkg-form-input" type="number" min="1" placeholder="e.g. 30" value={form.durationDays} onChange={e => set('durationDays', Number(e.target.value))} required />
+        </div>
+      </div>
+      <div className="pkg-form-group" style={{ marginTop: '16px' }}>
+        <label className="pkg-form-label">Color Tag</label>
+        <div className="pkg-color-row">
+          {COLORS.map(c => (
+            <button type="button" key={c} className={`pkg-color-swatch ${form.colorCode === c ? 'selected' : ''}`} style={{ background: c }} onClick={() => set('colorCode', c)} />
+          ))}
+        </div>
+      </div>
+      <div className="plat-modal-footer" style={{ padding: '24px 0 0 0', marginTop: '24px', borderTop: '1px solid var(--pp-warm-4)', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+        <button type="button" className="pp-btn pp-btn-secondary" onClick={onClose}>Cancel</button>
+        <button className="pp-btn pp-btn-primary" onClick={submit}>
+          <CheckCircle2 size={15} strokeWidth={1.6} /> {initial ? 'Save Changes' : 'Create Plan'}
+        </button>
+      </div>
+    </Drawer>
+  );
+}
+
+function PlanSkeleton() {
+  return (
+    <div className="pkg-plan-card">
+      <div className="pp-skeleton" style={{ height: '5px', width: '100%' }} />
+      <div className="pkg-plan-body">
+        <div className="pp-skeleton pp-skeleton-title" style={{ width: '60%' }} />
+        <div className="pp-skeleton pp-skeleton-text" style={{ height: '32px' }} />
+        <div className="pp-skeleton pp-skeleton-text" style={{ width: '40%', height: '24px', marginTop: '12px' }} />
+      </div>
+      <div className="pkg-plan-footer">
+        <div className="pp-skeleton" style={{ width: '60px', height: '20px', borderRadius: '20px' }} />
+        <div style={{ display: 'flex', gap: 6 }}>
+          <div className="pp-skeleton" style={{ width: '32px', height: '32px', borderRadius: '8px' }} />
+          <div className="pp-skeleton" style={{ width: '32px', height: '32px', borderRadius: '8px' }} />
+        </div>
       </div>
     </div>
   );
@@ -94,7 +112,7 @@ export default function PackagePlansPage() {
   };
 
   return (
-    <div className="pkg-page">
+    <div className="pp-page-container pkg-page animate-fade-in">
       {/* Header */}
       <header className="pkg-header">
         <div>
@@ -129,9 +147,7 @@ export default function PackagePlansPage() {
       {/* Plans Grid */}
       <div className="pkg-grid">
         {isLoading ? (
-          <div className="pkg-empty" style={{ gridColumn: '1/-1' }}>
-            <Zap size={28} className="pkg-empty-icon" style={{ animation: 'spin 1s linear infinite' }} />
-          </div>
+          [1, 2, 3].map(i => <PlanSkeleton key={i} />)
         ) : plans.length === 0 ? (
           <div className="pkg-empty" style={{ gridColumn: '1/-1' }}>
             <Package size={32} className="pkg-empty-icon" />
@@ -173,20 +189,33 @@ export default function PackagePlansPage() {
         )}
 
         {/* Add Card */}
-        <div className="pkg-add-card" onClick={() => setModal('create')}>
-          <Plus size={28} strokeWidth={1.5} />
-          Add New Plan
-        </div>
+        {!isLoading && (
+          <div className="pkg-add-card" onClick={() => setModal('create')}>
+            <Plus size={28} strokeWidth={1.5} />
+            Add New Plan
+          </div>
+        )}
       </div>
 
-      {/* Modal */}
-      {modal && (
-        <PlanFormModal
-          initial={typeof modal === 'object' ? modal.plan : undefined}
-          onClose={() => setModal(null)}
-          onSave={handleSave}
-        />
+      {/* Pagination */}
+      {!isLoading && plans.length > 0 && (
+        <div className="pp-pagination-bar" style={{ marginTop: '20px' }}>
+          <div className="pp-pagination-info-wrap">
+            <span className="pp-pagination-info">Showing 1-{plans.length} of {plans.length} plans</span>
+          </div>
+          <div className="pp-pagination-controls">
+            <button className="pp-pagination-page is-active">1</button>
+          </div>
+        </div>
       )}
+
+      {/* Modal */}
+      <PlanDrawer
+        isOpen={!!modal}
+        initial={(modal && typeof modal === 'object') ? modal.plan : undefined}
+        onClose={() => setModal(null)}
+        onSave={handleSave}
+      />
 
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>

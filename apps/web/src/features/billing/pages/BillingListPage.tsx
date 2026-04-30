@@ -1,17 +1,46 @@
 import { useState } from 'react';
+import { format } from 'date-fns';
 import { Receipt, Search, ChevronLeft, ChevronRight, FilePlus, Grid, List, Printer } from 'lucide-react';
 
 import { useBills, useDailyCollection } from '../hooks/use-billing';
 import { BillingTable } from '../components/BillingTable';
-import { DailyCollectionCard } from '../components/DailyCollectionCard';
-import { format } from 'date-fns';
+import { Pagination } from '@/shared/components/Pagination';
+import { TableSkeleton } from '@/shared/components/TableSkeleton';
+import { Drawer } from '@/shared/components/drawer';
+import { BillingForm } from './BillingFormPage';
+import { CustomBillForm } from './CustomBillPage';
 import '../styles/billing.css';
+
+function DailyCollectionCard({ label, amount, count, icon, type = 'default' }: { 
+  label: string; 
+  amount: number; 
+  count?: number; 
+  icon: React.ReactNode;
+  type?: 'success' | 'danger' | 'warning' | 'default';
+}) {
+  return (
+    <div className="bill-stat-card" data-type={type}>
+      <div className="bill-stat-icon">
+        {icon}
+      </div>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <p className="bill-stat-label">{label}</p>
+          {count !== undefined && <span style={{ fontSize: '0.65rem', fontWeight: 800, opacity: 0.5 }}>{count} items</span>}
+        </div>
+        <div className="bill-stat-value">₹{amount.toLocaleString()}</div>
+      </div>
+    </div>
+  );
+}
 
 export default function BillingListPage() {
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [page, setPage] = useState(1);
   const [regidFilter, setRegidFilter] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [isNewBillOpen, setIsNewBillOpen] = useState(false);
+  const [isCustomBillOpen, setIsCustomBillOpen] = useState(false);
 
   const parsedRegid = parseInt(regidFilter, 10);
   const billsQuery      = useBills({ 
@@ -27,7 +56,7 @@ export default function BillingListPage() {
   const hasMore   = bills.length === 30;
 
   return (
-    <div className="bill-page fade-in">
+    <div className="pp-page-container bill-page animate-fade-in">
 
       {/* ─── Header ─── */}
       <div className="bill-header">
@@ -49,11 +78,11 @@ export default function BillingListPage() {
             <Printer size={14} />
             Print Report
           </button>
-          <button className="bill-btn bill-btn-primary" onClick={() => (window.location.href = '/billing/create')}>
+          <button className="bill-btn bill-btn-primary" onClick={() => setIsNewBillOpen(true)}>
             <FilePlus size={14} strokeWidth={1.6} />
             New Bill
           </button>
-          <button className="bill-btn bill-btn-default" onClick={() => (window.location.href = '/billing/custom')}>
+          <button className="bill-btn bill-btn-default" onClick={() => setIsCustomBillOpen(true)}>
             <FilePlus size={14} strokeWidth={1.6} />
             Custom Bill
           </button>
@@ -129,8 +158,10 @@ export default function BillingListPage() {
         </div>
       </div>
 
-      {viewMode === 'list' ? (
-        <BillingTable bills={bills} isLoading={billsQuery.isLoading} />
+      {billsQuery.isLoading ? (
+        <TableSkeleton rows={8} columns={8} />
+      ) : viewMode === 'list' ? (
+        <BillingTable bills={bills} isLoading={false} />
       ) : (
         <div className="bill-card-grid">
           {bills.map((bill) => (
@@ -165,17 +196,29 @@ export default function BillingListPage() {
         </div>
       )}
 
-      {/* ─── Pagination ─── */}
-      <div className="bill-pagination">
-        <span className="bill-page-info">Page {page} · {total} total</span>
-        <button className="bill-btn bill-btn-sm bill-btn-icon" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
-          <ChevronLeft size={14} strokeWidth={2} />
-        </button>
-        <button className="bill-btn bill-btn-sm bill-btn-icon" disabled={!hasMore} onClick={() => setPage(p => p + 1)}>
-          <ChevronRight size={14} strokeWidth={2} />
-        </button>
-      </div>
+      <Pagination
+        totalItems={total}
+        itemsPerPage={30}
+        currentPage={page}
+        onPageChange={(p) => setPage(p)}
+        onLimitChange={() => {}}
+      />
+
+      <Drawer isOpen={isNewBillOpen} onClose={() => setIsNewBillOpen(false)} title="Generate New Invoice" maxWidth="500px">
+        <BillingForm 
+          onSuccess={() => { setIsNewBillOpen(false); billsQuery.refetch(); collectionQuery.refetch(); }} 
+          onCancel={() => setIsNewBillOpen(false)} 
+        />
+      </Drawer>
+
+      <Drawer isOpen={isCustomBillOpen} onClose={() => setIsCustomBillOpen(false)} title="Custom Bill" maxWidth="500px">
+        <CustomBillForm 
+          onSuccess={() => { setIsCustomBillOpen(false); billsQuery.refetch(); collectionQuery.refetch(); }} 
+          onCancel={() => setIsCustomBillOpen(false)} 
+        />
+      </Drawer>
 
     </div>
   );
 }
+

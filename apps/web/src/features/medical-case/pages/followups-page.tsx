@@ -7,6 +7,8 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import { apiClient } from '@/infrastructure/api-client';
 import { useDoctors } from '@/features/appointments/hooks/use-doctors';
+import { TableSkeleton } from '@/shared/components/TableSkeleton';
+import { Pagination } from '@/shared/components/Pagination';
 
 export default function FollowupsPage() {
   const navigate = useNavigate();
@@ -21,22 +23,30 @@ export default function FollowupsPage() {
     to_date: '',
     doctor_id: ''
   });
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(25);
+  const [total, setTotal] = useState(0);
 
   const { data: doctors = [] } = useDoctors();
 
   useEffect(() => {
     fetchFollowups();
-  }, [filters]);
+  }, [filters, page, limit]);
 
   const fetchFollowups = async () => {
     setLoading(true);
     try {
-      const params: any = { ...filters };
+      const params: any = { 
+        ...filters,
+        page,
+        limit
+      };
       if (search) params.search = search;
 
       const res = await apiClient.get('/appointments/followups', { params });
       if (res.data?.data) {
         setFollowups(res.data.data.data || []);
+        setTotal(res.data.data.total || 0);
       }
     } catch (error) {
       console.error("Failed to load followups", error);
@@ -199,10 +209,22 @@ export default function FollowupsPage() {
       {/* Main Content Area */}
       <main className="fu-main">
         {loading ? (
-          <div className="fu-loading-state">
-            <div className="fu-loader-circle" />
-            <p className="text-subtitle">Retrieving clinical records...</p>
-          </div>
+          viewMode === 'list' ? (
+            <TableSkeleton rows={limit} columns={6} />
+          ) : (
+            <div className="pp-patient-grid">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="pp-card-premium" style={{ height: 280, padding: 24 }}>
+                  <div className="skeleton-box skeleton-text" style={{ width: '40%', height: 20, marginBottom: 20 }} />
+                  <div className="flex flex-col items-center mb-5">
+                    <div className="skeleton-box" style={{ width: 64, height: 64, borderRadius: 20, marginBottom: 12 }} />
+                    <div className="skeleton-box skeleton-text" style={{ width: '60%', height: 18 }} />
+                  </div>
+                  <div className="skeleton-box skeleton-text" style={{ height: 60, borderRadius: 12 }} />
+                </div>
+              ))}
+            </div>
+          )
         ) : followups.length === 0 ? (
           <div className="fu-empty-state pp-card">
             <div className="fu-empty-icon">
@@ -326,6 +348,17 @@ export default function FollowupsPage() {
           </div>
         )}
       </main>
+
+      {/* Pagination Bar */}
+      {!loading && total > 0 && (
+        <Pagination
+          totalItems={total}
+          itemsPerPage={limit}
+          currentPage={page}
+          onPageChange={setPage}
+          onLimitChange={setLimit}
+        />
+      )}
 
       <style>{`
         .fu-back-btn {

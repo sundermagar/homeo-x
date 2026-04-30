@@ -3,6 +3,7 @@
   --code-icd:  #6366f1;
   --code-loinc: #14b8a6;
   --code-proc:  #f59e0b;
+  --code-snomed: #ec4899;
 }
 
 .code-autocomplete {

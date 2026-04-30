@@ -27,6 +27,15 @@ export interface ProcedureCodeResult {
   category?: string | null;
 }
 
+export interface SnomedConceptResult {
+  id: number;
+  conceptId: string;
+  fsn: string;
+  term: string;
+  conceptType?: string | null;
+  active?: boolean | null;
+}
+
 export function useSearchIcd(query: string, limit = 20) {
   const api = useApi();
   return useQuery({
@@ -75,5 +84,36 @@ export function useSearchProcedures(query: string, limit = 20) {
     enabled: query.length >= 2,
     staleTime: 5 * 60 * 1000,
     placeholderData: (prev) => prev,
+  });
+}
+
+export function useSearchSnomed(query: string, limit = 20) {
+  const api = useApi();
+  return useQuery({
+    queryKey: ['terminology', 'snomed', 'search', query, limit],
+    queryFn: async () => {
+      const res = await api.get<{ success: boolean; data: SnomedConceptResult[] }>(
+        '/terminology/snomed/search',
+        { params: { q: query, limit } }
+      );
+      return res.data.data;
+    },
+    enabled: query.length >= 2,
+    staleTime: 5 * 60 * 1000,
+    placeholderData: (prev) => prev,
+  });
+}
+
+export function useGetSnomedDetails(conceptId: string) {
+  const api = useApi();
+  return useQuery({
+    queryKey: ['terminology', 'snomed', conceptId],
+    queryFn: async () => {
+      const res = await api.get<{ success: boolean; data: SnomedConceptResult }>(
+        `/terminology/snomed/${conceptId}`
+      );
+      return res.data.data;
+    },
+    enabled: !!conceptId && conceptId.length > 0,
   });
 }

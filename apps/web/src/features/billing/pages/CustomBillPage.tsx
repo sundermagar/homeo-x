@@ -6,7 +6,7 @@ import { usePatients } from '@/features/patients/hooks/use-patients';
 import { PaymentModeEnum } from '@mmc/validation';
 import '../styles/billing.css';
 
-export default function CustomBillPage() {
+export function CustomBillForm({ onSuccess, onCancel }: { onSuccess?: () => void; onCancel?: () => void }) {
   const navigate = useNavigate();
   const createCustomBill = useCreateCustomBill();
 
@@ -34,7 +34,8 @@ export default function CustomBillPage() {
     if (!formData.customTitle.trim()) return alert('Please enter a bill title');
     try {
       await createCustomBill.mutateAsync({ regid: selectedPatient.regid, ...formData });
-      navigate('/billing');
+      if (onSuccess) onSuccess();
+      else navigate('/billing');
     } catch (err: any) {
       alert(err.response?.data?.error || 'Failed to create custom bill');
     }
@@ -44,26 +45,7 @@ export default function CustomBillPage() {
   const set = (key: string, val: any) => setFormData(prev => ({ ...prev, [key]: val }));
 
   return (
-    <div className="bill-page fade-in" style={{ maxWidth: '860px' }}>
-
-      {/* ─── Header ─── */}
-      <div className="bill-header">
-        <div>
-          <h1 className="bill-header-title">
-            <FilePlus size={20} strokeWidth={1.6} style={{ color: 'var(--pp-blue)' }} />
-            Custom Bill
-          </h1>
-          <p className="bill-header-sub">Create a manual invoice for miscellaneous charges.</p>
-        </div>
-        <div className="bill-header-actions">
-          <button className="bill-btn" onClick={() => navigate('/billing')}>
-            <ChevronLeft size={14} strokeWidth={2} />
-            Back to Billing
-          </button>
-        </div>
-      </div>
-
-      <form onSubmit={handleSubmit} className="bill-card bill-form-card">
+    <form onSubmit={handleSubmit} className="bill-card bill-form-card" style={{ boxShadow: 'none', border: 'none', padding: 0 }}>
 
         {/* ─── Section: Patient ─── */}
         <div className="bill-card-header">
@@ -116,9 +98,8 @@ export default function CustomBillPage() {
           )}
         </div>
 
-        {/* ─── Section: Custom Bill Details ─── */}
-        <div className="bill-form-section">
-          <div className="bill-form-row bill-form-row-2" style={{ alignItems: 'start' }}>
+        {/* ─── Section: Custom Bill Details (Stacked for Drawer) ─── */}
+        <div className="bill-form-section" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
             {/* Billing Details */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -177,12 +158,11 @@ export default function CustomBillPage() {
                   value={formData.notes} onChange={e => set('notes', e.target.value)} />
               </div>
             </div>
-          </div>
         </div>
 
         {/* ─── Footer Actions ─── */}
         <div className="bill-form-section" style={{ display: 'flex', gap: 'var(--pp-space-3)', justifyContent: 'flex-end' }}>
-          <button type="button" className="bill-btn" onClick={() => navigate('/billing')}>
+          <button type="button" className="bill-btn" onClick={() => onCancel ? onCancel() : navigate('/billing')}>
             Cancel
           </button>
           <button type="submit" className="bill-btn bill-btn-primary" disabled={createCustomBill.isPending} style={{ minWidth: '160px' }}>
@@ -191,6 +171,31 @@ export default function CustomBillPage() {
         </div>
 
       </form>
+  );
+}
+
+export default function CustomBillPage() {
+  const navigate = useNavigate();
+  return (
+    <div className="bill-page fade-in" style={{ maxWidth: '860px' }}>
+      <div className="bill-header">
+        <div>
+          <h1 className="bill-header-title">
+            <FilePlus size={20} strokeWidth={1.6} style={{ color: 'var(--pp-blue)' }} />
+            Custom Bill
+          </h1>
+          <p className="bill-header-sub">Create a manual invoice for miscellaneous charges.</p>
+        </div>
+        <div className="bill-header-actions">
+          <button className="bill-btn" onClick={() => navigate('/billing')}>
+            <ChevronLeft size={14} strokeWidth={2} />
+            Back to Billing
+          </button>
+        </div>
+      </div>
+      <div className="bill-card bill-form-card">
+        <CustomBillForm onSuccess={() => navigate('/billing')} onCancel={() => navigate('/billing')} />
+      </div>
     </div>
   );
 }

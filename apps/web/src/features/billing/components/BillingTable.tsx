@@ -6,6 +6,7 @@ import { useOrganizations } from '../../platform/hooks/use-organizations';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { useState } from 'react';
 import { useRecordPayment } from '../hooks/use-billing';
+import { Drawer } from '@/shared/components/drawer';
 
 interface BillingTableProps {
   bills: BillWithPatient[];
@@ -68,7 +69,7 @@ export function BillingTable({ bills, isLoading }: BillingTableProps) {
 
   return (
     <>
-      <div className="bill-card fade-in">
+      <div className="bill-card fade-in" style={{ boxShadow: 'var(--pp-premium-shadow)' }}>
         <div className="bill-table-container">
           <table className="bill-table">
             <thead>
@@ -147,98 +148,113 @@ export function BillingTable({ bills, isLoading }: BillingTableProps) {
         </div>
       </div>
 
-      {/* Receive Payment Modal */}
-      {receivingBill && (
-        <div className="bill-modal-overlay" onClick={() => setReceivingBill(null)}>
-          <div className="bill-modal" style={{ maxWidth: 400, borderRadius: '24px' }} onClick={e => e.stopPropagation()}>
-            <div className="bill-modal-header" style={{ padding: '20px 24px' }}>
-              <h3 className="bill-modal-title">Record Payment</h3>
-              <button className="bill-btn" style={{ padding: 8, borderRadius: 12, border: 'none' }} onClick={() => setReceivingBill(null)}>
-                <X size={20} />
-              </button>
-            </div>
-            <div className="bill-modal-body" style={{ padding: '0 24px 24px' }}>
-               <div style={{ marginBottom: 16, padding: 12, background: 'var(--bg-surface-2)', borderRadius: 12 }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--pp-text-3)', fontWeight: 700 }}>Bill #{receivingBill.billNo} • {receivingBill.patientName}</div>
-                  <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--pp-blue)', marginTop: 4 }}>Balance: ₹{receivingBill.balance.toLocaleString()}</div>
-               </div>
-               <div className="bill-form-group">
-                 <label className="bill-form-label">Amount Received (₹)</label>
-                 <input 
-                  type="number" 
-                  className="bill-form-input" 
-                  style={{ fontSize: '1.2rem', fontWeight: 800, fontFamily: 'var(--pp-font-mono)' }}
-                  value={receiveAmount} 
-                  onChange={e => setReceiveAmount(Number(e.target.value))} 
-                />
-               </div>
-               <div className="bill-form-group" style={{ marginTop: 16 }}>
-                 <label className="bill-form-label">Payment Mode</label>
-                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                    <button className={`bill-view-toggle-btn ${paymentMode === 'Cash' ? 'is-active' : ''}`} onClick={() => setPaymentMode('Cash')}>
-                      <DollarSign size={14} /> Cash
-                    </button>
-                    <button className={`bill-view-toggle-btn ${paymentMode === 'Online' ? 'is-active' : ''}`} onClick={() => setPaymentMode('Online')}>
-                      <CreditCard size={14} /> Online
-                    </button>
-                 </div>
-               </div>
-               <button 
-                  className="bill-btn bill-btn-primary" 
-                  style={{ width: '100%', marginTop: 24, height: 44, borderRadius: 12 }}
-                  disabled={recordPayment.isPending}
-                  onClick={handleReceivePayment}
-                >
-                  {recordPayment.isPending ? 'Saving...' : 'Confirm Payment'}
-               </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Print Template Selection Modal */}
-      {printingBill && (
-        <div className="bill-modal-overlay" onClick={() => setPrintingBill(null)}>
-          <div className="bill-modal" style={{ maxWidth: 450, borderRadius: '24px' }} onClick={e => e.stopPropagation()}>
-            <div className="bill-modal-header" style={{ padding: '20px 24px' }}>
-              <h3 className="bill-modal-title" style={{ fontSize: '1.1rem' }}>Print Options</h3>
-              <button className="bill-btn" style={{ padding: 8, borderRadius: 12, border: 'none' }} onClick={() => setPrintingBill(null)}>
-                <X size={20} />
-              </button>
+      {/* Receive Payment Side Drawer */}
+      <Drawer
+        isOpen={!!receivingBill}
+        onClose={() => setReceivingBill(null)}
+        title="Record Payment"
+        maxWidth="400px"
+      >
+        {receivingBill && (
+          <div className="bill-form">
+            <div style={{ marginBottom: 16, padding: 16, background: 'var(--bg-surface-2)', borderRadius: 16 }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--pp-text-3)', fontWeight: 700 }}>
+                Bill #{receivingBill.billNo} • {receivingBill.patientName}
+              </div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 850, color: 'var(--pp-blue)', marginTop: 4 }}>
+                Balance: ₹{receivingBill.balance.toLocaleString()}
+              </div>
             </div>
             
-            <div className="bill-modal-body" style={{ padding: '0 24px 24px' }}>
-              <div style={{ marginBottom: 20, padding: 16, background: 'var(--pp-blue-tint)', borderRadius: 16, border: '1px solid var(--pp-blue-border)' }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--pp-blue)', fontWeight: 800, textTransform: 'uppercase', marginBottom: 4 }}>Active Record</div>
-                <div style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--pp-ink)' }}>{printingBill.patientName}</div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--pp-text-3)', fontWeight: 600 }}>Bill No: #{printingBill.billNo} • Amount: ₹{printingBill.charges.toLocaleString()}</div>
-              </div>
-
-              <div style={{ display: 'grid', gap: '12px' }}>
-                <button className="bill-print-option" style={{ padding: '16px', border: '1px solid var(--pp-warm-3)', borderRadius: 16, background: 'var(--bg-card)', display: 'flex', flexDirection: 'column', gap: 4 }} onClick={() => handlePrint('standard')}>
-                  <div style={{ fontWeight: 800, color: 'var(--pp-ink)', fontSize: '0.95rem' }}>Standard Receipt</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--pp-text-3)', fontWeight: 500 }}>Professional bill with clinic branding</div>
+            <div className="bill-form-group">
+              <label className="bill-form-label">Amount Received (₹)</label>
+              <input 
+                type="number" 
+                className="bill-form-input" 
+                style={{ fontSize: '1.2rem', fontWeight: 800, fontFamily: 'var(--pp-font-mono)' }}
+                value={receiveAmount} 
+                onChange={e => setReceiveAmount(Number(e.target.value))} 
+              />
+            </div>
+            
+            <div className="bill-form-group" style={{ marginTop: 16 }}>
+              <label className="bill-form-label">Payment Mode</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <button 
+                  className={`bill-view-toggle-btn ${paymentMode === 'Cash' ? 'is-active' : ''}`} 
+                  onClick={() => setPaymentMode('Cash')}
+                  style={{ justifyContent: 'center', height: 40, borderRadius: 12, border: '1px solid var(--pp-warm-4)' }}
+                >
+                  <DollarSign size={14} /> Cash
                 </button>
-                
-                <button className="bill-print-option" style={{ padding: '16px', border: '1px solid var(--pp-warm-3)', borderRadius: 16, background: 'var(--bg-card)', display: 'flex', flexDirection: 'column', gap: 4 }} onClick={() => handlePrint('pharmacy')}>
-                  <div style={{ fontWeight: 800, color: 'var(--pp-ink)', fontSize: '0.95rem' }}>Pharmacy Layout</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--pp-text-3)', fontWeight: 500 }}>Optimized for medicine and stock items</div>
-                </button>
-                
-                <button className="bill-print-option" style={{ padding: '16px', border: '1px solid var(--pp-warm-3)', borderRadius: 16, background: 'var(--bg-card)', display: 'flex', flexDirection: 'column', gap: 4 }} onClick={() => handlePrint('package')}>
-                  <div style={{ fontWeight: 800, color: 'var(--pp-ink)', fontSize: '0.95rem' }}>Package Invoice</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--pp-text-3)', fontWeight: 500 }}>Summary of treatment plans and bundles</div>
-                </button>
-                
-                <button className="bill-print-option" style={{ padding: '16px', border: '1px solid var(--pp-warm-3)', borderRadius: 16, background: 'var(--bg-card)', display: 'flex', flexDirection: 'column', gap: 4 }} onClick={() => handlePrint('comprehensive')}>
-                  <div style={{ fontWeight: 800, color: 'var(--pp-ink)', fontSize: '0.95rem' }}>Full Statement</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--pp-text-3)', fontWeight: 500 }}>Detailed clinical history and payments</div>
+                <button 
+                  className={`bill-view-toggle-btn ${paymentMode === 'Online' ? 'is-active' : ''}`} 
+                  onClick={() => setPaymentMode('Online')}
+                  style={{ justifyContent: 'center', height: 40, borderRadius: 12, border: '1px solid var(--pp-warm-4)' }}
+                >
+                  <CreditCard size={14} /> Online
                 </button>
               </div>
             </div>
+            
+            <button 
+              className="bill-btn bill-btn-primary" 
+              style={{ width: '100%', marginTop: 24, height: 48, borderRadius: 14, fontSize: '0.95rem' }}
+              disabled={recordPayment.isPending}
+              onClick={handleReceivePayment}
+            >
+              {recordPayment.isPending ? 'Saving...' : 'Confirm Payment'}
+            </button>
           </div>
-        </div>
-      )}
+        )}
+      </Drawer>
+
+      {/* Print Options Side Drawer */}
+      <Drawer
+        isOpen={!!printingBill}
+        onClose={() => setPrintingBill(null)}
+        title="Print Options"
+        maxWidth="450px"
+      >
+        {printingBill && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <div style={{ padding: 20, background: 'var(--pp-blue-tint)', borderRadius: 20, border: '1px solid var(--pp-blue-border)' }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--pp-blue)', fontWeight: 800, textTransform: 'uppercase', marginBottom: 6, letterSpacing: '0.05em' }}>Selected Record</div>
+              <div style={{ fontWeight: 850, fontSize: '1.1rem', color: 'var(--pp-ink)' }}>{printingBill.patientName}</div>
+              <div style={{ fontSize: '0.85rem', color: 'var(--pp-text-3)', fontWeight: 600, marginTop: 4 }}>Bill No: #{printingBill.billNo} • Amount: ₹{printingBill.charges.toLocaleString()}</div>
+            </div>
+
+            <div style={{ display: 'grid', gap: '12px' }}>
+              {[
+                { id: 'standard', label: 'Standard Receipt', sub: 'Professional bill with clinic branding' },
+                { id: 'pharmacy', label: 'Pharmacy Layout', sub: 'Optimized for medicine and stock items' },
+                { id: 'package', label: 'Package Invoice', sub: 'Summary of treatment plans and bundles' },
+                { id: 'comprehensive', label: 'Full Statement', sub: 'Detailed clinical history and payments' },
+              ].map(opt => (
+                <button 
+                  key={opt.id}
+                  className="bill-print-option" 
+                  style={{ 
+                    padding: '18px', 
+                    border: '1px solid var(--pp-warm-3)', 
+                    borderRadius: 20, 
+                    background: 'var(--bg-card)', 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    gap: 4,
+                    transition: 'all 0.2s ease',
+                    boxShadow: 'var(--pp-shadow-sm)'
+                  }} 
+                  onClick={() => handlePrint(opt.id)}
+                >
+                  <div style={{ fontWeight: 850, color: 'var(--pp-ink)', fontSize: '1rem' }}>{opt.label}</div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--pp-text-3)', fontWeight: 500 }}>{opt.sub}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </Drawer>
     </>
   );
 }

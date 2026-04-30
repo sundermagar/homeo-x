@@ -1262,7 +1262,9 @@
 .appt-token-card.calling::before {
   content: '';
   position: absolute;
-  top: 0; left: 0; right: 0;
+  top: 0;
+  left: 0;
+  right: 0;
   height: 4px;
   background: var(--pp-blue);
 }
@@ -1926,6 +1928,7 @@
   background: #f0fdf4;
   border-color: #16a34a;
 }
+
 /* ─── Queue Page 2-Column Layout ─── */
 .appt-queue-layout {
   display: grid;
@@ -1936,8 +1939,15 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (min-width: 1024px) {
@@ -2134,9 +2144,11 @@
 .row-teal {
   position: relative;
 }
+
 .row-teal td:first-child {
   box-shadow: inset 4px 0 0 #02b3b6;
 }
+
 .row-teal td {
   background-color: rgba(2, 179, 182, 0.04);
 }
@@ -2144,9 +2156,11 @@
 .row-yellow {
   position: relative;
 }
+
 .row-yellow td:first-child {
   box-shadow: inset 4px 0 0 #f59e0b;
 }
+
 .row-yellow td {
   background-color: rgba(245, 158, 11, 0.04);
 }
@@ -2154,9 +2168,11 @@
 .row-red {
   position: relative;
 }
+
 .row-red td:first-child {
   box-shadow: inset 4px 0 0 #ef4444;
 }
+
 .row-red td {
   background-color: rgba(239, 68, 68, 0.02);
 }

@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { usePatient, useDeletePatient, useFamilyMembers, useAddFamilyMember, useRemoveFamilyMember, usePatientLookup, usePatientClinicalRecord, usePatientFormMeta } from '../hooks/use-patients';
 import { Edit2, Trash2, UserPlus, Users, X, MapPin, Phone, CheckCircle, Search, TrendingUp, Activity } from 'lucide-react';
+import { DetailSkeleton } from '@/shared/components/DetailSkeleton';
+import { TableSkeleton } from '@/shared/components/TableSkeleton';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import type { PatientSummary, FamilyMember } from '@mmc/types';
 import '../styles/patients.css';
@@ -47,7 +49,7 @@ export default function PatientDetailPage() {
   };
 
   if (isLoading) {
-    return <div className="app-container" style={{ textAlign: 'center', padding: '80px', color: 'var(--pp-text-3)' }}>Loading patient details...</div>;
+    return <DetailSkeleton type="patient" />;
   }
   if (!patient) {
     return <div className="app-container" style={{ textAlign: 'center', padding: '80px', color: 'var(--pp-danger-fg)' }}>Patient not found</div>;
@@ -188,7 +190,7 @@ export default function PatientDetailPage() {
 
         <div className="pp-table-scroll">
           {familyLoading ? (
-            <div className="pat-loading-state">Loading family members...</div>
+            <TableSkeleton rows={3} columns={5} />
           ) : familyMembers.length === 0 ? (
             <div className="pat-empty-state">
               <p className="pat-empty-state-title">No family members linked</p>

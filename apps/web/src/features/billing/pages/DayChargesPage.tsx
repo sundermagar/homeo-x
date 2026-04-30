@@ -3,7 +3,11 @@ import { PlusCircle, X, RefreshCw, Trash2, Edit2, Search, Calendar } from 'lucid
 import { useDayCharges, useCreateDayCharge, useUpdateDayCharge, useDeleteDayCharge } from '../hooks/use-accounts';
 import type { DayCharge } from '@mmc/types';
 import type { CreateDayChargeInput } from '@mmc/validation';
+import { Drawer } from '@/shared/components/drawer';
+import { Pagination } from '@/shared/components/Pagination';
+import { TableSkeleton } from '@/shared/components/TableSkeleton';
 import '../../platform/styles/platform.css';
+import '../styles/billing.css';
 
 const EMPTY_FORM = { days: '', regularCharges: 0 };
 
@@ -19,9 +23,13 @@ export default function DayChargesPage() {
   const [search, setSearch] = useState('');
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
+  const [page, setPage] = useState(1);
+
   const filtered = charges.filter(c =>
     !search || (c.days ?? '').toLowerCase().includes(search.toLowerCase())
   );
+
+  const paginated = filtered.slice((page - 1) * 30, page * 30);
 
   const handleOpenCreate = () => {
     setEditingId(null);
@@ -63,8 +71,8 @@ export default function DayChargesPage() {
   };
 
   return (
-    <div className="plat-page animate-fade-in">
-      <div className="plat-header">
+    <div className="pp-page-container bill-page animate-fade-in">
+      <div className="bill-header">
         <div>
           <h1 className="plat-header-title">
             <Calendar size={20} className="color-primary" />
@@ -72,8 +80,8 @@ export default function DayChargesPage() {
           </h1>
           <p className="plat-header-sub">Configure duration-based pricing for treatments.</p>
         </div>
-        <div className="plat-header-actions">
-          <button className="plat-btn plat-btn-primary" onClick={handleOpenCreate}>
+        <div className="bill-header-actions">
+          <button className="bill-btn bill-btn-primary" onClick={handleOpenCreate}>
             <PlusCircle size={14} />
             Add Day Charge
           </button>
@@ -114,7 +122,7 @@ export default function DayChargesPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map(c => (
+                {paginated.map(c => (
                   <tr key={c.id}>
                     <td data-label="ID" style={{ fontFamily: 'var(--pp-font-mono)' }}>#{c.id}</td>
                     <td data-label="Days" style={{ fontWeight: 500 }}>{c.days}</td>
@@ -137,34 +145,34 @@ export default function DayChargesPage() {
         )}
       </div>
 
-      {isModalOpen && (
-        <div className="plat-modal-overlay animate-fade-in" onClick={e => e.target === e.currentTarget && setIsModalOpen(false)}>
-          <div className="plat-modal" style={{ maxWidth: 450 }}>
-            <div className="plat-modal-header">
-              <h2 className="plat-modal-title">{editingId ? 'Edit Day Charge' : 'Add Day Charge Plan'}</h2>
-              <button className="plat-btn plat-btn-icon" onClick={() => setIsModalOpen(false)}><X size={16} /></button>
-            </div>
-            <form onSubmit={handleSubmit}>
-              <div className="plat-modal-body plat-form">
-                <div className="plat-form-group plat-form-full">
-                  <label className="plat-form-label">Duration (Days) <span className="plat-form-required">*</span></label>
-                  <input className="plat-form-input" value={form.days} onChange={e => setForm(f => ({ ...f, days: e.target.value }))} required placeholder="e.g. 1 day, 5 days, 2 weeks" />
-                </div>
-                <div className="plat-form-group plat-form-full">
-                  <label className="plat-form-label">Charges (₹) <span className="plat-form-required">*</span></label>
-                  <input className="plat-form-input" type="number" min={0} value={form.regularCharges} onChange={e => setForm(f => ({ ...f, regularCharges: Number(e.target.value) }))} required />
-                </div>
-              </div>
-              <div className="plat-modal-footer">
-                <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                <button type="submit" className="plat-btn plat-btn-primary" disabled={createCharge.isPending || updateCharge.isPending}>
-                  {editingId ? 'Save Changes' : 'Create'}
-                </button>
-              </div>
-            </form>
+      <Pagination
+        totalItems={filtered.length}
+        itemsPerPage={30}
+        currentPage={page}
+        onPageChange={setPage}
+        onLimitChange={() => {}}
+      />
+
+      <Drawer
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={editingId ? 'Edit Day Charge' : 'Add Day Charge Plan'}
+        maxWidth="400px"
+      >
+        <form onSubmit={handleSubmit} className="bill-form">
+          <div className="bill-form-group">
+            <label className="bill-form-label">Duration (Days) <span className="plat-form-required">*</span></label>
+            <input className="bill-form-input" value={form.days} onChange={e => setForm(f => ({ ...f, days: e.target.value }))} required placeholder="e.g. 1 day, 5 days, 2 weeks" />
           </div>
-        </div>
-      )}
+          <div className="bill-form-group">
+            <label className="bill-form-label">Charges (₹) <span className="plat-form-required">*</span></label>
+            <input className="bill-form-input" type="number" min={0} value={form.regularCharges} onChange={e => setForm(f => ({ ...f, regularCharges: Number(e.target.value) }))} required />
+          </div>
+          <button type="submit" className="bill-btn bill-btn-primary" style={{ marginTop: 24, width: '100%', height: 44 }} disabled={createCharge.isPending || updateCharge.isPending}>
+            {editingId ? 'Save Changes' : 'Create'}
+          </button>
+        </form>
+      </Drawer>
       {deleteConfirmId && (
         <div className="plat-modal-overlay animate-fade-in" style={{ zIndex: 1100 }}>
           <div className="plat-modal" style={{ maxWidth: 400 }}>

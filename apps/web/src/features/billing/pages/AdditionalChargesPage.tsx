@@ -4,6 +4,10 @@ import { useAdditionalCharges, useCreateAdditionalCharge, useUpdateAdditionalCha
 import { usePatient } from '../../patients/hooks/use-patients';
 import type { AdditionalChargeWithPatient } from '@mmc/types';
 import type { CreateAdditionalChargeInput } from '@mmc/validation';
+import { Pagination } from '@/shared/components/Pagination';
+import { TableSkeleton } from '@/shared/components/TableSkeleton';
+import { Drawer } from '@/shared/components/drawer';
+import '../styles/billing.css';
 import '../../platform/styles/platform.css';
 
 const EMPTY_FORM = {
@@ -88,7 +92,7 @@ export default function AdditionalChargesPage() {
   };
 
   return (
-    <div className="plat-page animate-fade-in">
+    <div className="pp-page-container plat-page animate-fade-in">
       <div className="plat-header">
         <div>
           <h1 className="plat-header-title">
@@ -134,14 +138,14 @@ export default function AdditionalChargesPage() {
 
       <div className="plat-card">
         {isLoading ? (
-          <div className="plat-empty"><RefreshCw size={22} className="animate-spin opacity-30" /></div>
+          <TableSkeleton rows={8} columns={7} />
         ) : filtered.length === 0 ? (
           <div className="plat-empty">
             <PlusCircle size={40} className="plat-empty-icon" />
             <p className="plat-empty-text">No additional charges found.</p>
           </div>
         ) : (
-          <div className="plat-table-container">
+          <div className="plat-table-container" style={{ boxShadow: 'var(--pp-premium-shadow)' }}>
             <table className="plat-table">
               <thead>
                 <tr>
@@ -181,64 +185,101 @@ export default function AdditionalChargesPage() {
         )}
       </div>
 
-      {isModalOpen && (
-        <div className="plat-modal-overlay animate-fade-in" onClick={e => e.target === e.currentTarget && setIsModalOpen(false)}>
-          <div className="plat-modal" style={{ maxWidth: 500 }}>
-            <div className="plat-modal-header">
-              <h2 className="plat-modal-title">{editingId ? 'Edit Charge' : 'Add Additional Charge'}</h2>
-              <button className="plat-btn plat-btn-icon" onClick={() => setIsModalOpen(false)}><X size={16} /></button>
-            </div>
-            <form onSubmit={handleSubmit}>
-              <div className="plat-modal-body plat-form">
-                <div className="plat-form-group">
-                  <label className="plat-form-label">Patient Reg ID</label>
-                  <input className="plat-form-input" type="number" value={form.regid ?? ''} onChange={e => setForm(f => ({ ...f, regid: e.target.value ? parseInt(e.target.value) : undefined }))} />
-                  <PatientPreview regid={form.regid} />
-                </div>
-                <div className="plat-form-group plat-form-full">
-                  <label className="plat-form-label">Charge Name <span className="plat-form-required">*</span></label>
-                  <select 
-                    className="plat-form-input" 
-                    value={form.additionalName} 
-                    onChange={e => setForm(f => ({ ...f, additionalName: e.target.value }))} 
-                    required
-                  >
-                    <option value="">Select Charge Type...</option>
-                    <option value="Courier Charges">Courier Charges</option>
-                    <option value="Consultation Fees">Consultation Fees</option>
-                    <option value="Medicine Charges">Medicine Charges</option>
-                    <option value="Registration Fees">Registration Fees</option>
-                    <option value="Miscellaneous">Miscellaneous</option>
-                  </select>
-                </div>
-                <div className="plat-form-group">
-                  <label className="plat-form-label">Price</label>
-                  <input className="plat-form-input" type="number" min={0} value={form.additionalPrice} onChange={e => setForm(f => ({ ...f, additionalPrice: Number(e.target.value) }))} />
-                </div>
-                <div className="plat-form-group">
-                  <label className="plat-form-label">Quantity</label>
-                  <input className="plat-form-input" type="number" min={1} value={form.additionalQuantity} onChange={e => setForm(f => ({ ...f, additionalQuantity: Number(e.target.value) }))} />
-                </div>
-                <div className="plat-form-group">
-                  <label className="plat-form-label">Received</label>
-                  <input className="plat-form-input" type="number" min={0} value={form.receivedPrice} onChange={e => setForm(f => ({ ...f, receivedPrice: Number(e.target.value) }))} />
-                </div>
-              </div>
-              <div className="plat-modal-footer">
-                {(createCharge.error || updateCharge.error) && (
-                  <div className="plat-form-error" style={{ marginRight: 'auto', fontSize: '0.8rem', color: 'var(--pp-danger-fg)' }}>
-                    {((createCharge.error || updateCharge.error) as any)?.response?.data?.error || 'Validation failed'}
-                  </div>
-                )}
-                <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                <button type="submit" className="plat-btn plat-btn-primary" disabled={createCharge.isPending || updateCharge.isPending}>
-                  {editingId ? 'Save Changes' : 'Create'}
-                </button>
-              </div>
-            </form>
+      <Pagination
+        totalItems={total}
+        itemsPerPage={30}
+        currentPage={page}
+        onPageChange={(p) => setPage(p)}
+        onLimitChange={() => {}}
+      />
+
+      <Drawer
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={editingId ? 'Edit Charge' : 'Add Additional Charge'}
+        maxWidth="500px"
+      >
+        <form onSubmit={handleSubmit} className="plat-form">
+          <div className="plat-form-group">
+            <label className="plat-form-label">Patient Reg ID</label>
+            <input 
+              className="plat-form-input" 
+              type="number" 
+              value={form.regid ?? ''} 
+              onChange={e => setForm(f => ({ ...f, regid: e.target.value ? parseInt(e.target.value) : undefined }))} 
+              style={{ fontSize: '1rem', fontWeight: 700, fontFamily: 'var(--pp-font-mono)' }}
+            />
+            <PatientPreview regid={form.regid} />
           </div>
-        </div>
-      )}
+          
+          <div className="plat-form-group plat-form-full">
+            <label className="plat-form-label">Charge Name <span className="plat-form-required">*</span></label>
+            <select 
+              className="plat-form-input" 
+              value={form.additionalName} 
+              onChange={e => setForm(f => ({ ...f, additionalName: e.target.value }))} 
+              required
+              style={{ height: 44, borderRadius: 10 }}
+            >
+              <option value="">Select Charge Type...</option>
+              <option value="Courier Charges">Courier Charges</option>
+              <option value="Consultation Fees">Consultation Fees</option>
+              <option value="Medicine Charges">Medicine Charges</option>
+              <option value="Registration Fees">Registration Fees</option>
+              <option value="Miscellaneous">Miscellaneous</option>
+            </select>
+          </div>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div className="plat-form-group">
+              <label className="plat-form-label">Price (₹)</label>
+              <input 
+                className="plat-form-input" 
+                type="number" 
+                min={0} 
+                value={form.additionalPrice} 
+                onChange={e => setForm(f => ({ ...f, additionalPrice: Number(e.target.value) }))} 
+                style={{ fontWeight: 800, fontFamily: 'var(--pp-font-mono)' }}
+              />
+            </div>
+            <div className="plat-form-group">
+              <label className="plat-form-label">Quantity</label>
+              <input 
+                className="plat-form-input" 
+                type="number" 
+                min={1} 
+                value={form.additionalQuantity} 
+                onChange={e => setForm(f => ({ ...f, additionalQuantity: Number(e.target.value) }))} 
+                style={{ fontFamily: 'var(--pp-font-mono)' }}
+              />
+            </div>
+          </div>
+          
+          <div className="plat-form-group">
+            <label className="plat-form-label">Received Amount (₹)</label>
+            <input 
+              className="plat-form-input" 
+              type="number" 
+              min={0} 
+              value={form.receivedPrice} 
+              onChange={e => setForm(f => ({ ...f, receivedPrice: Number(e.target.value) }))} 
+              style={{ fontWeight: 800, color: 'var(--pp-blue)', fontFamily: 'var(--pp-font-mono)' }}
+            />
+          </div>
+
+          <div style={{ marginTop: 32, display: 'flex', gap: 12 }}>
+            <button type="button" className="plat-btn" style={{ flex: 1, height: 48, borderRadius: 14 }} onClick={() => setIsModalOpen(false)}>Cancel</button>
+            <button 
+              type="submit" 
+              className="plat-btn plat-btn-primary" 
+              style={{ flex: 2, height: 48, borderRadius: 14 }}
+              disabled={createCharge.isPending || updateCharge.isPending}
+            >
+              {editingId ? 'Save Changes' : 'Add Charge'}
+            </button>
+          </div>
+        </form>
+      </Drawer>
       {deleteConfirmId && (
         <div className="plat-modal-overlay animate-fade-in" style={{ zIndex: 1100 }}>
           <div className="plat-modal" style={{ maxWidth: 400 }}>
