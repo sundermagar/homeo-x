@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, Infinity, ArrowLeft, Search } from 'lucide-react';
+import { Menu, Infinity, Search } from 'lucide-react';
 import { Sidebar } from '../components/sidebar';
 import { DashboardHeader } from '../components/dashboard-header';
 import { CommandPalette } from '../components/command-palette';
@@ -62,17 +62,6 @@ export function AppLayout() {
         <DashboardHeader onOpenPalette={() => setPaletteOpen(true)} />
         <div className="page-content-area">
           <div className="page-content-row">
-            {location.pathname !== '/' && location.pathname !== '/login' && (
-              <div className="page-back-widget-area">
-                <button
-                  className="page-back-widget"
-                  onClick={() => navigate(-1)}
-                  aria-label="Go back"
-                >
-                  <ArrowLeft size={16} strokeWidth={2.5} />
-                </button>
-              </div>
-            )}
             <div className="page-content-main">
               <Outlet />
             </div>

@@ -7,11 +7,12 @@ import {
   Sparkles, MoreHorizontal, ChevronRight, Plus, Package,
   MessageSquare, Send, BrainCircuit, ClipboardList, FlaskConical,
   Printer, Paperclip, Upload, X, Eye, Loader2, Trash2, Thermometer,
-  TrendingUp, Stethoscope, Scale, Syringe, BarChart3, Pill, Check
+  TrendingUp, Stethoscope, Scale, Syringe, BarChart3, Pill, Check,
+  FileHeart, Wallet
 } from 'lucide-react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import { useAutoSave } from '@/shared/hooks/use-auto-save';
-import { useFullMedicalCase, useManageClinicalRecords } from '../hooks/use-medical-cases';
+import { useFullMedicalCase, useManageClinicalRecords, useExaminations, usePackageHistory, useAdditionalCharges } from '../hooks/use-medical-cases';
 import { AssignPackageModal } from '../../packages/components/assign-package-modal';
 import { VitalsFormModal } from '../components/vitals-form-modal';
 import { FinalizeConsultationModal } from '../components/finalize-consultation-modal';
@@ -27,6 +28,7 @@ import { useActivePackage } from '../../packages/hooks/use-packages';
 import { BillingUpdateModal } from '../components/billing-update-modal';
 import { useAppointments } from '../../appointments/hooks/use-appointments';
 import { useAuthStore } from '@/shared/stores/auth-store';
+import { CodeAutocomplete } from '@/shared/components/code-autocomplete';
 import '../styles/medical-case.css';
 
 export function AutoSaveNoteArea({ initialValue = '', onSave, placeholder = '' }: { initialValue?: string, onSave: (val: string) => Promise<void>, placeholder?: string }) {
@@ -125,8 +127,10 @@ export default function MedicalCaseDetailPage() {
           <SidebarIcon icon={Pill} active={activeTab === 'homeo'} onClick={() => setActiveTab('homeo')} title="Remedy Chart" />
           <SidebarIcon icon={Stethoscope} active={activeTab === 'vitals'} onClick={() => setActiveTab('vitals')} title="Vitals / Examination" />
           <SidebarIcon icon={FlaskConical} active={activeTab === 'labs'} onClick={() => setActiveTab('labs')} title="Lab Investigations" />
-
+          <SidebarIcon icon={FileHeart} active={activeTab === 'examination'} onClick={() => setActiveTab('examination')} title="Physical Examination" />
           <SidebarIcon icon={Syringe} active={activeTab === 'vaccine'} onClick={() => setActiveTab('vaccine')} title="Vaccine Tracker" />
+          <SidebarIcon icon={Package} active={activeTab === 'packages'} onClick={() => setActiveTab('packages')} title="Package History" />
+          <SidebarIcon icon={Wallet} active={activeTab === 'charges'} onClick={() => setActiveTab('charges')} title="Additional Charges" />
           <SidebarIcon icon={Phone} active={activeTab === 'communication'} onClick={() => setActiveTab('communication')} title="Communication" />
           <SidebarIcon icon={Clock} active={activeTab === 'summary'} onClick={() => setActiveTab('summary')} title="Follow-up History" />
           <SidebarIcon icon={BarChart3} active={activeTab === 'analytics'} onClick={() => setActiveTab('analytics')} title="Analytics" />
@@ -183,8 +187,10 @@ export default function MedicalCaseDetailPage() {
                     {activeTab === 'homeo' && <HomeoView regid={Number(regid)} initialData={homeo} />}
                     {activeTab === 'vitals' && <VitalsView vitals={vitals} onRecord={() => setShowVitalsModal(true)} />}
                     {activeTab === 'labs' && <LabsView investigations={investigations} regid={Number(regid)} visitId={medicalCase.id} />}
-
+                    {activeTab === 'examination' && <ExaminationView regid={Number(regid)} />}
                     {activeTab === 'vaccine' && <VaccineView regid={Number(regid)} caseVaccines={vaccines || []} />}
+                    {activeTab === 'packages' && <PackageHistoryView regid={Number(regid)} />}
+                    {activeTab === 'charges' && <AdditionalChargesView regid={Number(regid)} />}
                     {activeTab === 'communication' && <CommunicationView regid={Number(regid)} phone={medicalCase.phone || ''} name={medicalCase.patientName || ''} />}
                     {activeTab === 'analytics' && <AnalyticsView vitals={vitals || []} />}
                     {activeTab === 'reports' && <ReportsView regid={Number(regid)} investigations={investigations || []} />}
@@ -199,6 +205,20 @@ export default function MedicalCaseDetailPage() {
               <div className="mc-legacy-pane-title">Clinical Snapshot</div>
               <div className="mc-snapshot-vertical">
                 <SnapshotRow label="Diagnosis" value={medicalCase.condition || 'Pending'} />
+                <div style={{ padding: '8px 0' }}>
+                  <CodeAutocomplete
+                    type="icd"
+                    label="ICD Diagnosis Code"
+                    placeholder="Search ICD code..."
+                    value={null}
+                    onSelect={(code) => {
+                      if (code) {
+                        console.log('Selected ICD:', code);
+                        // Future: save to medical_case_diagnoses
+                      }
+                    }}
+                  />
+                </div>
                 <SnapshotRow label="Thermal" value={homeo?.thermal || '—'} />
                 <SnapshotRow label="Miasm" value={homeo?.miasm || '—'} />
                 <div style={{ marginTop: 'auto', borderTop: '1px solid var(--border-main)', paddingTop: '12px' }}>
@@ -979,4 +999,230 @@ function MediaView({ images, regid }: { images: any[], regid: number }) {
   );
 }
 
+function ExaminationView({ regid }: { regid: number }) {
+  const { data: examinations, isLoading } = useExaminations(regid);
+  const { saveExamination, deleteExamination } = useManageClinicalRecords();
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ examinationDate: '', bpSystolic: '', bpDiastolic: '', findings: '' });
+  const [saved, setSaved] = useState(false);
+
+  const handleSave = async () => {
+    try {
+      await saveExamination.mutateAsync({
+        regid,
+        examinationDate: form.examinationDate || new Date().toISOString().split('T')[0],
+        bpSystolic: parseInt(form.bpSystolic) || undefined,
+        bpDiastolic: parseInt(form.bpDiastolic) || undefined,
+        findings: form.findings,
+      });
+      setSaved(true);
+      setForm({ examinationDate: '', bpSystolic: '', bpDiastolic: '', findings: '' });
+      setShowForm(false);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) { console.error(err); }
+  };
+
+  if (isLoading) return <div className="mc-loading">Loading examinations...</div>;
+
+  return (
+    <div className="mc-examination-workspace animate-fade-in">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <div className="mc-legacy-pane-title" style={{ margin: 0 }}>Physical Examination History</div>
+        <button onClick={() => setShowForm(!showForm)} className="mc-legacy-btn-primary" style={{ padding: '8px 16px' }}>
+          <Plus size={16} style={{ marginRight: '6px' }} /> Record Examination
+        </button>
+      </div>
+
+      {showForm && (
+        <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 2fr', gap: '12px', marginBottom: '12px' }}>
+            <div className="mc-legacy-input-group">
+              <label>Date</label>
+              <input type="date" value={form.examinationDate} onChange={e => setForm({...form, examinationDate: e.target.value})} />
+            </div>
+            <div className="mc-legacy-input-group">
+              <label>BP Systolic</label>
+              <input type="number" placeholder="mmHg" value={form.bpSystolic} onChange={e => setForm({...form, bpSystolic: e.target.value})} />
+            </div>
+            <div className="mc-legacy-input-group">
+              <label>BP Diastolic</label>
+              <input type="number" placeholder="mmHg" value={form.bpDiastolic} onChange={e => setForm({...form, bpDiastolic: e.target.value})} />
+            </div>
+            <div className="mc-legacy-input-group">
+              <label>Findings</label>
+              <input type="text" placeholder="Clinical findings..." value={form.findings} onChange={e => setForm({...form, findings: e.target.value})} />
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button onClick={handleSave} className="mc-legacy-btn-primary">{saved ? 'Saved!' : 'Save'}</button>
+            <button onClick={() => setShowForm(false)} className="mc-legacy-btn-secondary">Cancel</button>
+          </div>
+        </div>
+      )}
+
+      <table className="mc-legacy-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>BP (mmHg)</th>
+            <th>Findings</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {examinations?.map(exam => (
+            <tr key={exam.id}>
+              <td>{exam.examinationDate ? new Date(exam.examinationDate).toLocaleDateString('en-GB') : '—'}</td>
+              <td>{exam.bpSystolic && exam.bpDiastolic ? `${exam.bpSystolic}/${exam.bpDiastolic}` : '—'}</td>
+              <td>{exam.findings || '—'}</td>
+              <td>
+                <button onClick={() => deleteExamination.mutate(exam.id)} className="mc-legacy-action-btn delete">Delete</button>
+              </td>
+            </tr>
+          ))}
+          {(!examinations || examinations.length === 0) && (
+            <tr><td colSpan={4} style={{ textAlign: 'center', color: '#94a3b8', padding: '24px' }}>No examination records found.</td></tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function PackageHistoryView({ regid }: { regid: number }) {
+  const { data: packages, isLoading } = usePackageHistory(regid);
+
+  if (isLoading) return <div className="mc-loading">Loading package history...</div>;
+
+  return (
+    <div className="mc-package-workspace animate-fade-in">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <div className="mc-legacy-pane-title" style={{ margin: 0 }}>Package Subscription History</div>
+      </div>
+
+      <table className="mc-legacy-table">
+        <thead>
+          <tr>
+            <th>Package</th>
+            <th>Start Date</th>
+            <th>Expiry Date</th>
+            <th>Amount</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {packages?.map(pkg => (
+            <tr key={pkg.id}>
+              <td style={{ fontWeight: 600 }}>{pkg.packageName || 'Unknown Package'}</td>
+              <td>{pkg.startDate ? new Date(pkg.startDate).toLocaleDateString('en-GB') : '—'}</td>
+              <td>{pkg.expiryDate ? new Date(pkg.expiryDate).toLocaleDateString('en-GB') : '—'}</td>
+              <td>₹{pkg.amount || 0}</td>
+              <td>
+                <span style={{
+                  padding: '4px 8px',
+                  borderRadius: '12px',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  background: pkg.status === 'Active' ? '#dcfce7' : '#fee2e2',
+                  color: pkg.status === 'Active' ? '#166534' : '#dc2626'
+                }}>
+                  {pkg.status || 'Unknown'}
+                </span>
+              </td>
+            </tr>
+          ))}
+          {(!packages || packages.length === 0) && (
+            <tr><td colSpan={5} style={{ textAlign: 'center', color: '#94a3b8', padding: '24px' }}>No package history found.</td></tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function AdditionalChargesView({ regid }: { regid: number }) {
+  const { data: charges, isLoading } = useAdditionalCharges(regid);
+  const { saveAdditionalCharge, deleteAdditionalCharge } = useManageClinicalRecords();
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ name: '', amount: '' });
+  const [saved, setSaved] = useState(false);
+
+  const handleSave = async () => {
+    if (!form.name || !form.amount) return;
+    try {
+      await saveAdditionalCharge.mutateAsync({
+        regid,
+        name: form.name,
+        amount: parseFloat(form.amount),
+      });
+      setSaved(true);
+      setForm({ name: '', amount: '' });
+      setShowForm(false);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) { console.error(err); }
+  };
+
+  const totalCharges = charges?.reduce((sum, c) => sum + (c.amount || 0), 0) || 0;
+
+  if (isLoading) return <div className="mc-loading">Loading charges...</div>;
+
+  return (
+    <div className="mc-charges-workspace animate-fade-in">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <div className="mc-legacy-pane-title" style={{ margin: 0 }}>Additional Charges</div>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <span style={{ fontWeight: 600, color: '#dc2626' }}>Total: ₹{totalCharges.toFixed(2)}</span>
+          <button onClick={() => setShowForm(!showForm)} className="mc-legacy-btn-primary" style={{ padding: '8px 16px' }}>
+            <Plus size={16} style={{ marginRight: '6px' }} /> Add Charge
+          </button>
+        </div>
+      </div>
+
+      {showForm && (
+        <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px', marginBottom: '12px' }}>
+            <div className="mc-legacy-input-group">
+              <label>Charge Name</label>
+              <input type="text" placeholder="e.g., Injection, Procedure..." value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
+            </div>
+            <div className="mc-legacy-input-group">
+              <label>Amount (₹)</label>
+              <input type="number" placeholder="0.00" value={form.amount} onChange={e => setForm({...form, amount: e.target.value})} />
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button onClick={handleSave} className="mc-legacy-btn-primary">{saved ? 'Saved!' : 'Save'}</button>
+            <button onClick={() => setShowForm(false)} className="mc-legacy-btn-secondary">Cancel</button>
+          </div>
+        </div>
+      )}
+
+      <table className="mc-legacy-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Description</th>
+            <th>Amount</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {charges?.map(charge => (
+            <tr key={charge.id}>
+              <td>{charge.createdAt ? new Date(charge.createdAt).toLocaleDateString('en-GB') : '—'}</td>
+              <td>{charge.name || '—'}</td>
+              <td style={{ fontWeight: 600, color: '#dc2626' }}>₹{charge.amount || 0}</td>
+              <td>
+                <button onClick={() => deleteAdditionalCharge.mutate(charge.id)} className="mc-legacy-action-btn delete">Delete</button>
+              </td>
+            </tr>
+          ))}
+          {(!charges || charges.length === 0) && (
+            <tr><td colSpan={4} style={{ textAlign: 'center', color: '#94a3b8', padding: '24px' }}>No additional charges recorded.</td></tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 

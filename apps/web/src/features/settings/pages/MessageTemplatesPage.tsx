@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
-import { MessageSquare, Plus, X, RefreshCw, ArrowLeft, Trash2, Edit2, Send, Search } from 'lucide-react';
+import { MessageSquare, Plus, X, RefreshCw, Trash2, Edit2, Send, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useMessageTemplates, useCreateMessageTemplate, useUpdateMessageTemplate, useDeleteMessageTemplate } from '../hooks/use-settings';
+import { Drawer } from '@/shared/components/drawer';
 import '../../platform/styles/platform.css';
 import '../styles/settings.css';
+
+import { Pagination } from '@/shared/components/Pagination';
+import { usePagination } from '@/shared/hooks/use-pagination';
+import { TableSkeleton } from '@/shared/components/TableSkeleton';
 
 const EMPTY_FORM = { name: '', content: '', type: 'SMS', isActive: true };
 
@@ -17,6 +22,20 @@ export default function MessageTemplatesPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [search, setSearch] = useState('');
+
+  const filtered = templates.filter((t: any) =>
+    t.name.toLowerCase().includes(search.toLowerCase()) ||
+    t.content.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const {
+    currentPage,
+    setCurrentPage,
+    itemsPerPage,
+    setItemsPerPage,
+    paginatedData,
+    totalItems
+  } = usePagination(filtered);
 
   const handleOpenCreate = () => {
     setEditingId(null);
@@ -49,11 +68,6 @@ export default function MessageTemplatesPage() {
     if (!confirm(`Delete message template "${name}"?`)) return;
     await deleteTpl.mutateAsync(id);
   };
-
-  const filtered = templates.filter((t: any) =>
-    t.name.toLowerCase().includes(search.toLowerCase()) ||
-    t.content.toLowerCase().includes(search.toLowerCase())
-  );
 
   return (
     <div className="plat-page fade-in">
@@ -102,15 +116,14 @@ export default function MessageTemplatesPage() {
 
       <div className="plat-card">
         {isLoading ? (
-          <div className="plat-empty">
-            <RefreshCw size={22} className="animate-spin opacity-30" />
-          </div>
+          <TableSkeleton rows={5} columns={6} />
         ) : filtered.length === 0 ? (
           <div className="plat-empty">
             <MessageSquare size={40} className="plat-empty-icon" />
             <p className="plat-empty-text">No templates found.</p>
           </div>
         ) : (
+          <>
           <div className="plat-table-container">
             <table className="plat-table">
               <thead>
@@ -124,7 +137,7 @@ export default function MessageTemplatesPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((tpl: any) => (
+                {paginatedData.map((tpl: any) => (
                   <tr key={tpl.id} className="plat-table-row">
                     <td data-label="ID" className="plat-table-cell font-mono text-xs color-muted">{tpl.id}</td>
                     <td data-label="Name" className="plat-table-cell font-semibold">{tpl.name}</td>
@@ -156,83 +169,86 @@ export default function MessageTemplatesPage() {
               </tbody>
             </table>
           </div>
+          <Pagination
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+            currentPage={currentPage}
+            onPageChange={setCurrentPage}
+            onLimitChange={setItemsPerPage}
+          />
+          </>
         )}
       </div>
 
-      {isModalOpen && (
-        <div className="plat-modal-backdrop" onClick={() => setIsModalOpen(false)}>
-          <div className="plat-modal-content max-w-xl" onClick={e => e.stopPropagation()}>
-            <div className="plat-modal-header">
-              <h2 className="plat-modal-title">{editingId ? 'Edit Template' : 'Add Message Template'}</h2>
-              <button className="plat-btn plat-btn-icon" onClick={() => setIsModalOpen(false)}>
-                <X size={16} />
-              </button>
-            </div>
-            <form onSubmit={handleSubmit}>
-              <div className="plat-modal-body">
-                <div className="plat-form-section">
-                  <div className="plat-form-grid-multi" style={{ gridTemplateColumns: '1fr' }}>
-                    <div className="plat-form-group">
-                      <label className="plat-form-label">Template Name *</label>
-                      <input
-                        className="plat-form-input"
-                        value={form.name}
-                        onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                        required
-                        placeholder="e.g. Appointment Confirmation"
-                      />
-                    </div>
-                    <div className="plat-form-group">
-                      <label className="plat-form-label">Communication Channel</label>
-                      <div className="flex gap-4 p-2 border border-main rounded-lg bg-soft">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input type="radio" className="w-4 h-4 accent-primary" name="tpl-type" checked={form.type === 'SMS'} onChange={() => setForm(f => ({ ...f, type: 'SMS' }))} />
-                          <span className="text-sm">SMS</span>
-                        </label>
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input type="radio" className="w-4 h-4 accent-primary" name="tpl-type" checked={form.type === 'WhatsApp'} onChange={() => setForm(f => ({ ...f, type: 'WhatsApp' }))} />
-                          <span className="text-sm font-bold color-primary">WhatsApp</span>
-                        </label>
-                      </div>
-                    </div>
-                    <div className="plat-form-group">
-                      <label className="plat-form-label">Message Content *</label>
-                      <div className="bg-faded rounded-lg p-3 mb-2 text-[11px] text-muted border border-dashed border-main">
-                        Tip: Use <b>{"{name}"}</b>, <b>{"{date}"}</b> for variables.
-                      </div>
-                      <textarea
-                        className="plat-form-input"
-                        style={{ minHeight: '120px', fontFamily: 'monospace', fontSize: '13px' }}
-                        value={form.content}
-                        onChange={e => setForm(f => ({ ...f, content: e.target.value }))}
-                        required
-                        placeholder="Hello {name}, your appointment is confirmed for {date}..."
-                      />
-                    </div>
-
-                    <div className="flex items-center gap-2 py-2">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 accent-primary"
-                        id="isActiveTpl"
-                        checked={form.isActive}
-                        onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))}
-                      />
-                      <label htmlFor="isActiveTpl" className="plat-form-label mb-0 cursor-pointer">Template is Active</label>
-                    </div>
+      <Drawer
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={editingId ? 'Edit Template' : 'Add Message Template'}
+        maxWidth="600px"
+      >
+        <form onSubmit={handleSubmit}>
+          <div className="plat-modal-body" style={{ padding: 0 }}>
+            <div className="plat-form-section" style={{ border: 'none', boxShadow: 'none', padding: 0 }}>
+              <div className="plat-form-grid-multi" style={{ gridTemplateColumns: '1fr' }}>
+                <div className="plat-form-group">
+                  <label className="plat-form-label">Template Name *</label>
+                  <input
+                    className="plat-form-input"
+                    value={form.name}
+                    onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                    required
+                    placeholder="e.g. Appointment Confirmation"
+                  />
+                </div>
+                <div className="plat-form-group">
+                  <label className="plat-form-label">Communication Channel</label>
+                  <div className="flex gap-4 p-2 border border-main rounded-lg bg-soft">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="radio" className="w-4 h-4 accent-primary" name="tpl-type" checked={form.type === 'SMS'} onChange={() => setForm(f => ({ ...f, type: 'SMS' }))} />
+                      <span className="text-sm">SMS</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="radio" className="w-4 h-4 accent-primary" name="tpl-type" checked={form.type === 'WhatsApp'} onChange={() => setForm(f => ({ ...f, type: 'WhatsApp' }))} />
+                      <span className="text-sm font-bold color-primary">WhatsApp</span>
+                    </label>
                   </div>
                 </div>
+                <div className="plat-form-group">
+                  <label className="plat-form-label">Message Content *</label>
+                  <div className="bg-faded rounded-lg p-3 mb-2 text-[11px] text-muted border border-dashed border-main">
+                    Tip: Use <b>{"{name}"}</b>, <b>{"{date}"}</b> for variables.
+                  </div>
+                  <textarea
+                    className="plat-form-input"
+                    style={{ minHeight: '160px', fontFamily: 'monospace', fontSize: '13px' }}
+                    value={form.content}
+                    onChange={e => setForm(f => ({ ...f, content: e.target.value }))}
+                    required
+                    placeholder="Hello {name}, your appointment is confirmed for {date}..."
+                  />
+                </div>
+
+                <div className="flex items-center gap-2 py-2">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 accent-primary"
+                    id="isActiveTpl"
+                    checked={form.isActive}
+                    onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))}
+                  />
+                  <label htmlFor="isActiveTpl" className="plat-form-label mb-0 cursor-pointer">Template is Active</label>
+                </div>
               </div>
-              <div className="plat-modal-footer">
-                <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                <button type="submit" className="plat-btn plat-btn-primary" disabled={createTpl.isPending || updateTpl.isPending}>
-                  {editingId ? 'Save Changes' : 'Create Template'}
-                </button>
-              </div>
-            </form>
+            </div>
           </div>
-        </div>
-      )}
+          <div className="plat-modal-footer" style={{ padding: '24px 0 0 0', marginTop: '24px' }}>
+            <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
+            <button type="submit" className="plat-btn plat-btn-primary" disabled={createTpl.isPending || updateTpl.isPending}>
+              {editingId ? 'Save Changes' : 'Create Template'}
+            </button>
+          </div>
+        </form>
+      </Drawer>
     </div>
   );
 }

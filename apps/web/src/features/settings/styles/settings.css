@@ -287,3 +287,24 @@
 .text-secondary { color: var(--text-secondary); }
 .color-muted { color: var(--text-muted); }
 .font-semibold { font-weight: 600; }
+
+
+
+@media (max-width: 640px) {
+  .plat-pagination-bar {
+    flex-direction: column;
+    gap: 16px;
+    padding: 20px;
+    text-align: center;
+  }
+  
+  .plat-pagination-info-wrap {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .plat-pagination-limit {
+    width: 100%;
+  }
+}
+

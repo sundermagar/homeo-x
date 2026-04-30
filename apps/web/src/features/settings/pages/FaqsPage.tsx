@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
-import { HelpCircle, Plus, X, RefreshCw, ArrowLeft, Trash2, Edit2, Search, MessageSquare, ListOrdered, CheckCircle2 } from 'lucide-react';
+import { HelpCircle, Plus, X, RefreshCw, Trash2, Edit2, Search, MessageSquare, ListOrdered, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useFaqs, useCreateFaq, useUpdateFaq, useDeleteFaq } from '../hooks/use-settings';
+import { Drawer } from '@/shared/components/drawer';
 import '../../platform/styles/platform.css';
 import '../styles/settings.css';
+
+import { Pagination } from '@/shared/components/Pagination';
+import { usePagination } from '@/shared/hooks/use-pagination';
+import { TableSkeleton } from '@/shared/components/TableSkeleton';
 
 interface Faq {
   id: number;
@@ -31,6 +36,15 @@ export default function FaqsPage() {
     f.name?.toLowerCase().includes(search.toLowerCase()) ||
     f.detail?.toLowerCase().includes(search.toLowerCase())
   ).sort((a: Faq, b: Faq) => (a.displayOrder || 0) - (b.displayOrder || 0));
+
+  const {
+    currentPage,
+    setCurrentPage,
+    itemsPerPage,
+    setItemsPerPage,
+    paginatedData,
+    totalItems
+  } = usePagination(filtered);
 
   const handleOpenCreate = () => {
     setEditingId(null);
@@ -125,15 +139,14 @@ export default function FaqsPage() {
 
       <div className="plat-card">
         {isLoading ? (
-          <div className="plat-empty">
-            <RefreshCw size={22} className="animate-spin opacity-30" />
-          </div>
+          <TableSkeleton rows={5} columns={4} />
         ) : filtered.length === 0 ? (
           <div className="plat-empty">
             <MessageSquare size={40} className="plat-empty-icon" />
             <p className="plat-empty-text">No matching entries found in the knowledge base.</p>
           </div>
         ) : (
+          <>
           <div className="plat-table-container">
             <table className="plat-table">
               <thead>
@@ -145,12 +158,12 @@ export default function FaqsPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((faq: Faq, index) => (
+                {paginatedData.map((faq: Faq, index) => (
                   <tr key={faq.id} className="plat-table-row">
                     <td data-label="Order" className="plat-table-cell font-mono text-xs color-muted">
                       <div className="flex items-center gap-1.5">
                         <ListOrdered size={12} className="opacity-50" />
-                        {index + 1}
+                        {(currentPage - 1) * itemsPerPage + index + 1}
                       </div>
                     </td>
                     <td data-label="FAQ" className="plat-table-cell">
@@ -188,74 +201,74 @@ export default function FaqsPage() {
               </tbody>
             </table>
           </div>
+          <Pagination
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+            currentPage={currentPage}
+            onPageChange={setCurrentPage}
+            onLimitChange={setItemsPerPage}
+          />
+          </>
         )}
       </div>
 
-      {isModalOpen && (
-        <div className="plat-modal-backdrop" onClick={() => setIsModalOpen(false)}>
-          <div className="plat-modal-content max-w-2xl" onClick={e => e.stopPropagation()}>
-            <div className="plat-modal-header border-none pb-0">
-              <div>
-                <h2 className="plat-modal-title">{editingId ? 'Update Knowledge Base Entry' : 'Create New Knowledge Entry'}</h2>
-                <p className="text-xs text-muted mt-1">Define clear answers for your staff members.</p>
-              </div>
-              <button className="plat-btn plat-btn-icon" onClick={() => setIsModalOpen(false)}>
-                <X size={16} />
-              </button>
-            </div>
-            <form onSubmit={handleSubmit}>
-              <div className="plat-modal-body">
-                <div className="plat-form-section">
-                  <div className="plat-form-grid-multi" style={{ gridTemplateColumns: '1fr' }}>
-                    {error && (
-                      <div className="plat-alert plat-alert-danger" style={{ marginBottom: '1rem', fontSize: '13px' }}>
-                        {error}
-                      </div>
-                    )}
-                    <div className="plat-form-group">
-                      <label className="plat-form-label font-bold">Question / Title</label>
-                      <input
-                        className="plat-form-input"
-                        required
-                        value={form.name}
-                        onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                        placeholder="e.g. How to handle emergency appointments?"
-                      />
-                    </div>
-                    <div className="plat-form-group">
-                      <label className="plat-form-label font-bold">Detailed Answer</label>
-                      <textarea
-                        className="plat-form-input leading-relaxed"
-                        required
-                        style={{ minHeight: '150px', padding: '12px' }}
-                        value={form.detail}
-                        onChange={e => setForm(f => ({ ...f, detail: e.target.value }))}
-                        placeholder="Explain the process in detail..."
-                      />
-                    </div>
-                    <div className="flex items-center gap-2 py-2">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 accent-primary"
-                        id="isActiveFaq"
-                        checked={form.isActive}
-                        onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))}
-                      />
-                      <label htmlFor="isActiveFaq" className="plat-form-label mb-0 cursor-pointer font-semibold">Active & Visible</label>
-                    </div>
+      <Drawer
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={editingId ? 'Update Knowledge Base Entry' : 'Create New Knowledge Entry'}
+        maxWidth="600px"
+      >
+        <form onSubmit={handleSubmit}>
+          <div className="plat-modal-body" style={{ padding: 0 }}>
+            <div className="plat-form-section" style={{ border: 'none', boxShadow: 'none', padding: 0 }}>
+              <div className="plat-form-grid-multi" style={{ gridTemplateColumns: '1fr' }}>
+                {error && (
+                  <div className="plat-alert plat-alert-danger" style={{ marginBottom: '1rem', fontSize: '13px' }}>
+                    {error}
                   </div>
+                )}
+                <div className="plat-form-group">
+                  <label className="plat-form-label font-bold">Question / Title</label>
+                  <input
+                    className="plat-form-input"
+                    required
+                    value={form.name}
+                    onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                    placeholder="e.g. How to handle emergency appointments?"
+                  />
+                </div>
+                <div className="plat-form-group">
+                  <label className="plat-form-label font-bold">Detailed Answer</label>
+                  <textarea
+                    className="plat-form-input leading-relaxed"
+                    required
+                    style={{ minHeight: '200px', padding: '12px' }}
+                    value={form.detail}
+                    onChange={e => setForm(f => ({ ...f, detail: e.target.value }))}
+                    placeholder="Explain the process in detail..."
+                  />
+                </div>
+                <div className="flex items-center gap-2 py-2">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 accent-primary"
+                    id="isActiveFaq"
+                    checked={form.isActive}
+                    onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))}
+                  />
+                  <label htmlFor="isActiveFaq" className="plat-form-label mb-0 cursor-pointer font-semibold">Active & Visible</label>
                 </div>
               </div>
-              <div className="plat-modal-footer">
-                <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>Discard Changes</button>
-                <button type="submit" className="plat-btn plat-btn-primary px-10" disabled={createFaq.isPending || updateFaq.isPending}>
-                  {editingId ? 'Update Entry' : 'Save Entry'}
-                </button>
-              </div>
-            </form>
+            </div>
           </div>
-        </div>
-      )}
+          <div className="plat-modal-footer" style={{ padding: '24px 0 0 0', marginTop: '24px' }}>
+            <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>Discard Changes</button>
+            <button type="submit" className="plat-btn plat-btn-primary px-10" disabled={createFaq.isPending || updateFaq.isPending}>
+              {editingId ? 'Update Entry' : 'Save Entry'}
+            </button>
+          </div>
+        </form>
+      </Drawer>
     </div>
   );
 }

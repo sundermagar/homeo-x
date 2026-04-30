@@ -29,6 +29,7 @@ import {
 } from '../hooks/use-roles-permissions';
 import './roles-permissions.css';
 import '@/features/platform/styles/platform.css';
+import { TableSkeleton } from '@/shared/components/TableSkeleton';
 
 export function RolesPermissionsPage() {
   const [activeTab, setActiveTab] = useState<'matrix' | 'lab'>('matrix');
@@ -169,7 +170,7 @@ export function RolesPermissionsPage() {
 
             <div className="plat-role-list">
               {loadingRoles ? (
-                <div className="plat-empty py-12"><div className="plat-spinner" /></div>
+                <TableSkeleton rows={8} columns={1} />
               ) : filteredRoles.length === 0 ? (
                 <div className="plat-card p-8 text-center bg-white">
                   <p className="plat-empty-text">No roles found matching "{searchTerm}"</p>
@@ -217,7 +218,7 @@ export function RolesPermissionsPage() {
 
             <div className="plat-matrix-table-wrap">
               {loadingSelectedRole ? (
-                <div className="plat-empty py-24"><div className="plat-spinner" /></div>
+                <TableSkeleton rows={10} columns={3} />
               ) : !selectedRole ? (
                 <div className="plat-matrix-empty">
                   <Shield size={48} className="plat-empty-icon" />
@@ -306,7 +307,7 @@ export function RolesPermissionsPage() {
                 </thead>
                 <tbody>
                   {loadingPerms ? (
-                    <tr><td colSpan={4}><div className="plat-spinner mx-auto" /></td></tr>
+                    <tr><td colSpan={4}><TableSkeleton rows={10} columns={4} /></td></tr>
                   ) : allPermissions.length === 0 ? (
                     <tr>
                       <td colSpan={4} className="text-center py-12">

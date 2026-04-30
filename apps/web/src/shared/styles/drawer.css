@@ -1,0 +1,124 @@
+.drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(4px);
+  z-index: 1100;
+  display: flex;
+  justify-content: flex-end;
+  animation: drawerFadeIn 0.3s ease-out;
+}
+
+.drawer-content {
+  width: 100%;
+  height: 100%;
+  background-color: var(--bg-card, #ffffff);
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  animation: drawerSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+@keyframes drawerFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes drawerSlideIn {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.drawer-header {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--pp-warm-4, #e2e8f0);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-card);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.drawer-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--pp-ink, #0f172a);
+  margin: 0;
+}
+
+.drawer-close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--pp-warm-4, #e2e8f0);
+  background: transparent;
+  color: var(--pp-text-3, #64748b);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.drawer-close-btn:hover {
+  background-color: var(--pp-warm-2, #f8fafc);
+  color: var(--pp-ink);
+  border-color: var(--pp-warm-4);
+}
+
+.drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  background-color: var(--bg-card);
+}
+
+/* Mobile First Responsiveness */
+@media (max-width: 640px) {
+  .drawer-content {
+    max-width: 100% !important;
+  }
+  
+  .drawer-body {
+    padding: 16px;
+  }
+  
+  .drawer-header {
+    padding: 14px 16px;
+  }
+}
+
+/* Ensure form actions are visible and sticky if needed, 
+   but since forms inside will have their own footers, 
+   we just make sure the body is scrollable. */
+
+.drawer-body form {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+}
+
+/* Override some plat classes when inside drawer to fit better */
+.drawer-body .plat-form-section {
+    padding: 0;
+    border: none;
+    box-shadow: none;
+    margin-bottom: 0;
+}
+
+.drawer-body .plat-modal-body {
+    padding: 0;
+}
+
+.drawer-body .plat-modal-footer {
+    padding: 24px 0 0 0;
+    margin-top: auto;
+    position: sticky;
+    bottom: 0;
+    background: var(--bg-card);
+    border-top: 1px solid var(--pp-warm-4);
+    z-index: 5;
+}

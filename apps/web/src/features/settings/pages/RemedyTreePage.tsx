@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useRemedyTree } from '@/features/medical-case/hooks/use-remedy-chart';
 import '../styles/remedy-tree.css';
+import { TableSkeleton } from '@/shared/components/TableSkeleton';
 
 // ─── Sub-Components ──────────────────────────────────────────────────────────
 
@@ -121,10 +122,7 @@ export default function RemedyTreePage() {
 
         <div className="rt-tree-viewport">
           {isLoading ? (
-            <div className="rt-loading-state">
-              <RotateCw className="rt-spin" size={32} />
-              <span>Loading taxonomy...</span>
-            </div>
+            <TableSkeleton rows={10} columns={1} />
           ) : filteredNodes.length === 0 ? (
             <div className="rt-empty-state">
               <div className="rt-empty-icon"><Search size={40} /></div>

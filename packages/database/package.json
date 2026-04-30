@@ -13,6 +13,10 @@
     "./schema": {
       "import": "./src/schema/index.ts",
       "types": "./src/schema/index.ts"
+    },
+    "./seeds/clinical-codes-seed": {
+      "import": "./src/seeds/clinical-codes-seed.ts",
+      "types": "./src/seeds/clinical-codes-seed.ts"
     }
   },
   "scripts": {

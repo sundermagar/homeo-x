@@ -4,6 +4,8 @@ import { FilePlus, Search, X, ChevronLeft } from 'lucide-react';
 import { useCreateBill } from '../hooks/use-billing';
 import { usePatients } from '@/features/patients/hooks/use-patients';
 import { PaymentModeEnum } from '@mmc/validation';
+import { CodeAutocomplete } from '@/shared/components/code-autocomplete';
+import type { IcdCodeResult, ProcedureCodeResult } from '@/shared/hooks/use-terminology';
 import '../styles/billing.css';
 
 export default function BillingFormPage() {
@@ -12,6 +14,8 @@ export default function BillingFormPage() {
 
   const [search, setSearch] = useState('');
   const [selectedPatient, setSelectedPatient] = useState<{ regid: number; name: string } | null>(null);
+  const [selectedIcd, setSelectedIcd] = useState<IcdCodeResult | null>(null);
+  const [selectedProcedure, setSelectedProcedure] = useState<ProcedureCodeResult | null>(null);
 
   const [formData, setFormData] = useState({
     charges:     0,
@@ -35,7 +39,12 @@ export default function BillingFormPage() {
     e.preventDefault();
     if (!selectedPatient) return alert('Please select a patient');
     try {
-      await createBill.mutateAsync({ regid: selectedPatient.regid, ...formData });
+      await createBill.mutateAsync({
+        regid: selectedPatient.regid,
+        ...formData,
+        treatment: selectedProcedure ? `[${selectedProcedure.code}] ${selectedProcedure.name}` : formData.treatment,
+        disease: selectedIcd ? `[${selectedIcd.code}] ${selectedIcd.description}` : formData.disease,
+      });
       navigate('/billing');
     } catch (err: any) {
       alert(err.response?.data?.error || 'Failed to create bill');
@@ -164,10 +173,39 @@ export default function BillingFormPage() {
               </div>
 
               <div className="bill-form-group">
-                <label className="bill-form-label">Treatment / Reason</label>
-                <input className="bill-form-input" type="text"
-                  value={formData.treatment} onChange={e => set('treatment', e.target.value)}
-                  placeholder="Clinical reason…" />
+                <label className="bill-form-label">Treatment / Procedure Code</label>
+                <CodeAutocomplete
+                  type="procedure"
+                  placeholder="Search procedure code or type free text..."
+                  value={selectedProcedure}
+                  onSelect={(code) => {
+                    setSelectedProcedure(code as ProcedureCodeResult | null);
+                    if (code) set('treatment', `[${(code as ProcedureCodeResult).code}] ${(code as ProcedureCodeResult).name}`);
+                  }}
+                />
+                {!selectedProcedure && (
+                  <input className="bill-form-input" type="text" style={{ marginTop: '8px' }}
+                    value={formData.treatment} onChange={e => set('treatment', e.target.value)}
+                    placeholder="Or type treatment reason manually…" />
+                )}
+              </div>
+
+              <div className="bill-form-group">
+                <label className="bill-form-label">Disease / Diagnosis (ICD)</label>
+                <CodeAutocomplete
+                  type="icd"
+                  placeholder="Search ICD diagnosis code..."
+                  value={selectedIcd}
+                  onSelect={(code) => {
+                    setSelectedIcd(code as IcdCodeResult | null);
+                    if (code) set('disease', `[${(code as IcdCodeResult).code}] ${(code as IcdCodeResult).description}`);
+                  }}
+                />
+                {!selectedIcd && (
+                  <input className="bill-form-input" type="text" style={{ marginTop: '8px' }}
+                    value={formData.disease} onChange={e => set('disease', e.target.value)}
+                    placeholder="Or type disease manually…" />
+                )}
               </div>
 
               <div className="bill-form-row bill-form-row-2" style={{ gap: '10px' }}>

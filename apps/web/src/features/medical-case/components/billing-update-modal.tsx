@@ -24,7 +24,7 @@ export function BillingUpdateModal({ regid, patientName, onClose, currentConsult
   const [amount, setAmount] = useState<string>(currentConsultationFee?.toString() || '');
   const [customTitle, setCustomTitle] = useState('');
   const [notes, setNotes] = useState('');
-  const [paymentMode, setPaymentMode] = useState('Cash');
+  const [paymentMode, setPaymentMode] = useState<'Cash' | 'Card' | 'Cheque' | 'UPI' | 'Online' | 'Bank Transfer'>('Cash');
 
   // Mutations
   const updatePatient = useUpdatePatient();
@@ -52,6 +52,7 @@ export function BillingUpdateModal({ regid, patientName, onClose, currentConsult
         regid,
         charges: Number(amount),
         received: 0,
+        paymentMode: 'Cash',
         customTitle,
         notes,
         billDate: new Date().toISOString().split('T')[0]
@@ -201,7 +202,7 @@ export function BillingUpdateModal({ regid, patientName, onClose, currentConsult
                 <select 
                   className="mc-legacy-select" 
                   value={paymentMode}
-                  onChange={e => setPaymentMode(e.target.value)}
+                  onChange={e => setPaymentMode(e.target.value as any)}
                   style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-main)' }}
                 >
                   <option>Cash</option>

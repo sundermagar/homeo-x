@@ -1,4 +1,5 @@
 import { Router, type Request, type Response } from 'express';
+import { sql } from 'drizzle-orm';
 import { asyncHandler } from '../middleware/async-handler.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
@@ -381,8 +382,70 @@ export function createSettingsRouter(): Router {
   // ─── Stock Logs ───────────────────────────────────────────────────────────
   router.get('/stock-logs', asyncHandler(async (req: Request, res: Response) => {
     const medicineId = req.query.medicineId ? Number(req.query.medicineId) : undefined;
-    const data = await getRepo(req).listStockLogs(medicineId);
+    const repo = getRepo(req);
+    // Auto-create table if missing
+    try {
+      await (repo as any).db.execute(sql`
+        CREATE TABLE IF NOT EXISTS stock_logs (
+          id SERIAL PRIMARY KEY,
+          medicine_id INTEGER NOT NULL,
+          change_type VARCHAR(50) NOT NULL,
+          quantity DECIMAL(10,2) NOT NULL,
+          previous_stock DECIMAL(10,2),
+          new_stock DECIMAL(10,2),
+          reason TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+    } catch (_) {}
+    const data = await repo.listStockLogs(medicineId);
     res.json({ success: true, data });
+  }));
+
+  router.post('/stock-logs', asyncHandler(async (req: Request, res: Response) => {
+    const { medicineId, quantity, changeType = 'INVENTORY_ADD', reason } = req.body;
+    if (!medicineId || !quantity) {
+      res.status(400).json({ success: false, error: 'medicineId and quantity are required' });
+      return;
+    }
+    const repo = getRepo(req);
+    // Ensure table exists
+    try {
+      await (repo as any).db.execute(sql`
+        CREATE TABLE IF NOT EXISTS stock_logs (
+          id SERIAL PRIMARY KEY,
+          medicine_id INTEGER NOT NULL,
+          change_type VARCHAR(50) NOT NULL,
+          quantity DECIMAL(10,2) NOT NULL,
+          previous_stock DECIMAL(10,2),
+          new_stock DECIMAL(10,2),
+          reason TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+    } catch (_) {}
+    // Get current medicine stock
+    const medicine = await repo.getMedicine(Number(medicineId));
+    const prevStock = medicine?.stockLevel ?? 0;
+    const delta = changeType === 'INVENTORY_ADD' ? Number(quantity) : -Number(quantity);
+    const newStock = Math.max(0, prevStock + delta);
+    // Update medicine stock level
+    await repo.updateMedicine(Number(medicineId), { stockLevel: newStock });
+    // Create log entry
+    const log = await repo.createStockLog({
+      medicineId: Number(medicineId),
+      changeType,
+      quantity: Math.abs(Number(quantity)),
+      previousStock: prevStock,
+      newStock,
+      reason: reason ?? null,
+    });
+    res.status(201).json({ success: true, data: log });
+  }));
+
+  router.delete('/stock-logs/:id', asyncHandler(async (req: Request, res: Response) => {
+    await getRepo(req).deleteStockLog(Number(req.params.id));
+    res.json({ success: true });
   }));
 
   // ─── Package Plans ────────────────────────────────────────────────────────

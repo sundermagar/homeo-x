@@ -50,6 +50,7 @@ import { recordsRouter } from './routes/records.router';
 import { staffRouter } from './routes/staff.router';
 import { createSettingsRouter } from './routes/settings.router';
 import { exportRouter } from './routes/export.router';
+import { createTerminologyRouter } from './routes/terminology.router';
 
 const logger = createLogger('http');
 
@@ -137,9 +138,12 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   // Temporary unauthenticated route for backfilling
   app.use('/api/public-clinicadmins', createClinicAdminsRouter());
   app.use('/api/clinicadmins', authMiddleware, createClinicAdminsRouter());
-
+  
   // Our modules — Settings & Configuration
   app.use('/api/settings', authMiddleware, createSettingsRouter());
+  
+  // Clinical Terminology
+  app.use('/api/terminology', createTerminologyRouter());
 
   // ─── Operations & Logistics (JWT required) ───
   app.use('/api/crm', authMiddleware, crmRouter);

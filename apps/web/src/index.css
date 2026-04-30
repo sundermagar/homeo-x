@@ -230,6 +230,14 @@
   padding: 0;
 }
 
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+}
+
 body {
   background-color: var(--pp-warm-1);
   color: var(--pp-ink);
@@ -262,17 +270,18 @@ a {
   width: 100%;
   max-width: var(--pp-container-width);
   margin: 0 auto;
-  padding-bottom: var(--pp-space-6);
+  /* padding-bottom: var(--pp-space-6); -- Removed to allow global consistency */
 }
 
 @media (min-width: 640px) {
   .pp-page-container {
-    padding-bottom: var(--pp-space-8);
+    /* padding-bottom: var(--pp-space-8); -- Removed */
   }
 }
 
+.plat-page,
 .-page {
-  padding: 16px;
+  padding: 0; /* Let global container handle padding */
   width: 100%;
   min-width: 320px;
 }
@@ -284,7 +293,7 @@ a {
 
 @media (min-width: 1024px) {
   .pp-page-container {
-    padding-bottom: var(--pp-space-12);
+    /* padding-bottom: var(--pp-space-12); -- Removed */
   }
 }
 
@@ -1021,19 +1030,13 @@ a {
 /* Centralized Grid Alignment */
 .page-content-area,
 .dash-root {
-  padding-left: var(--pp-space-6);
-  padding-right: var(--pp-space-6);
-  padding-top: var(--pp-space-4);
-  padding-bottom: var(--pp-space-8);
+  padding: var(--pp-space-6); /* 24px on all sides */
 }
 
 @media (min-width: 1024px) {
-
   .page-content-area,
   .dash-root {
-    padding-left: 40px;
-    padding-right: 40px;
-    /* padding-top: var(--pp-space-8); */
+    padding: 40px; /* 40px on all sides for desktop */
   }
 }
 
@@ -1057,61 +1060,6 @@ a {
   min-width: 0;
 }
 
-/* ── Back Button Area ── */
-.page-back-widget-area {
-  display: flex;
-  align-items: center;
-  /* Mobile: render as a slim top bar above content */
-  padding: 6px 0 8px 0;
-  margin-bottom: 0;
-}
-
-@media (min-width: 768px) {
-  .page-back-widget-area {
-    /* Desktop: revert to side-column alignment */
-    padding: 0;
-    padding-top: 2px;
-    margin-bottom: 0;
-  }
-}
-
-.page-back-widget {
-  /* Mobile-first: compact, slim button */
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg-card);
-  border: 1px solid var(--border-main);
-  border-radius: 8px;
-  color: var(--text-muted);
-  cursor: pointer;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  flex-shrink: 0;
-}
-
-@media (min-width: 768px) {
-  .page-back-widget {
-    /* Desktop: full-size widget */
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
-  }
-}
-
-.page-back-widget:hover {
-  background: var(--bg-surface-2);
-  color: var(--text-main);
-  border-color: var(--pp-blue-border);
-  box-shadow: var(--pp-shadow-md);
-  transform: translateY(-1px);
-}
-
-.page-back-widget:active {
-  transform: translateY(0) scale(0.95);
-}
 
 /* Live Badge — State Aware Polish */
 .dh-live-badge {

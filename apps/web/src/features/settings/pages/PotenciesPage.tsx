@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
-import { Sparkles, Plus, X, RefreshCw, ArrowLeft, Trash2, Edit2, Search } from 'lucide-react';
+import { Sparkles, Plus, X, RefreshCw, Trash2, Edit2, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { usePotencies, useCreatePotency, useUpdatePotency, useDeletePotency } from '../hooks/use-settings';
+import { Drawer } from '@/shared/components/drawer';
 import '../../platform/styles/platform.css';
 import '../styles/settings.css';
+
+import { Pagination } from '@/shared/components/Pagination';
+import { usePagination } from '@/shared/hooks/use-pagination';
+import { TableSkeleton } from '@/shared/components/TableSkeleton';
 
 interface Potency {
   id: number;
@@ -28,6 +33,15 @@ export default function PotenciesPage() {
     p.name?.toLowerCase().includes(search.toLowerCase()) ||
     p.detail?.toLowerCase().includes(search.toLowerCase())
   );
+
+  const {
+    currentPage,
+    setCurrentPage,
+    itemsPerPage,
+    setItemsPerPage,
+    paginatedData,
+    totalItems
+  } = usePagination(filtered);
 
   const handleOpenCreate = () => {
     setEditingId(null);
@@ -103,15 +117,14 @@ export default function PotenciesPage() {
 
       <div className="plat-card">
         {isLoading ? (
-          <div className="plat-empty">
-            <RefreshCw size={22} className="animate-spin opacity-30" />
-          </div>
+          <TableSkeleton rows={5} columns={4} />
         ) : filtered.length === 0 ? (
           <div className="plat-empty">
             <Sparkles size={40} className="plat-empty-icon" />
             <p className="plat-empty-text">No potencies found matching search.</p>
           </div>
         ) : (
+          <>
           <div className="plat-table-container">
             <table className="plat-table">
               <thead>
@@ -123,9 +136,9 @@ export default function PotenciesPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((pot: Potency, idx: number) => (
+                {paginatedData.map((pot: Potency, idx: number) => (
                   <tr key={pot.id} className="plat-table-row">
-                    <td data-label="ID" className="plat-table-cell font-mono text-xs color-muted">{idx + 1}</td>
+                    <td data-label="ID" className="plat-table-cell font-mono text-xs color-muted">{(currentPage - 1) * itemsPerPage + idx + 1}</td>
                     <td data-label="Potency Name" className="plat-table-cell font-semibold">{pot.name}</td>
                     <td data-label="Detail" className="plat-table-cell text-secondary">{pot.detail || '—'}</td>
                     <td className="plat-table-cell">
@@ -143,56 +156,59 @@ export default function PotenciesPage() {
               </tbody>
             </table>
           </div>
+          <Pagination
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+            currentPage={currentPage}
+            onPageChange={setCurrentPage}
+            onLimitChange={setItemsPerPage}
+          />
+          </>
         )}
       </div>
 
-      {isModalOpen && (
-        <div className="plat-modal-backdrop" onClick={() => setIsModalOpen(false)}>
-          <div className="plat-modal-content max-w-lg" onClick={e => e.stopPropagation()}>
-            <div className="plat-modal-header">
-              <h2 className="plat-modal-title">{editingId ? 'Edit Potency' : 'Add Potency'}</h2>
-              <button className="plat-btn plat-btn-icon" onClick={() => setIsModalOpen(false)}>
-                <X size={16} />
-              </button>
-            </div>
-            <form onSubmit={handleSubmit}>
-              <div className="plat-modal-body">
-                <div className="plat-form-section">
-                  <div className="plat-form-grid-multi" style={{ gridTemplateColumns: '1fr' }}>
-                    <div className="plat-form-group">
-                      <label className="plat-form-label">Potency Name *</label>
-                      <input
-                        className="plat-form-input"
-                        required
-                        value={form.name}
-                        onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                        placeholder="e.g. 30C"
-                      />
-                    </div>
-                    <div className="plat-form-group">
-                      <label className="plat-form-label">Description / Detail</label>
-                      <textarea
-                        className="plat-form-input"
-                        rows={3}
-                        style={{ resize: 'none', minHeight: '80px' }}
-                        value={form.detail}
-                        onChange={e => setForm(f => ({ ...f, detail: e.target.value }))}
-                        placeholder="Optional description..."
-                      />
-                    </div>
-                  </div>
+      <Drawer
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={editingId ? 'Edit Potency' : 'Add Potency'}
+        maxWidth="480px"
+      >
+        <form onSubmit={handleSubmit}>
+          <div className="plat-modal-body" style={{ padding: 0 }}>
+            <div className="plat-form-section" style={{ border: 'none', boxShadow: 'none', padding: 0 }}>
+              <div className="plat-form-grid-multi" style={{ gridTemplateColumns: '1fr' }}>
+                <div className="plat-form-group">
+                  <label className="plat-form-label">Potency Name *</label>
+                  <input
+                    className="plat-form-input"
+                    required
+                    value={form.name}
+                    onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                    placeholder="e.g. 30C"
+                  />
+                </div>
+                <div className="plat-form-group">
+                  <label className="plat-form-label">Description / Detail</label>
+                  <textarea
+                    className="plat-form-input"
+                    rows={4}
+                    style={{ minHeight: '120px' }}
+                    value={form.detail}
+                    onChange={e => setForm(f => ({ ...f, detail: e.target.value }))}
+                    placeholder="Optional description..."
+                  />
                 </div>
               </div>
-              <div className="plat-modal-footer">
-                <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                <button type="submit" className="plat-btn plat-btn-primary" disabled={createPot.isPending || updatePot.isPending}>
-                  {editingId ? 'Save Changes' : 'Add Potency'}
-                </button>
-              </div>
-            </form>
+            </div>
           </div>
-        </div>
-      )}
+          <div className="plat-modal-footer" style={{ padding: '24px 0 0 0', marginTop: '24px' }}>
+            <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
+            <button type="submit" className="plat-btn plat-btn-primary" disabled={createPot.isPending || updatePot.isPending}>
+              {editingId ? 'Save Changes' : 'Add Potency'}
+            </button>
+          </div>
+        </form>
+      </Drawer>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Search, BookOpen, ChevronRight, Activity, 
   FlaskConical, Save, Trash2, Calendar, FileText, Printer, Plus, X
@@ -163,7 +163,7 @@ export function RemedyChartSession({ regid }: { regid?: number }) {
 
   useEffect(() => {
     if (history && history.length > 0) {
-      const mode = history[0].deliveryMode;
+      const mode = history[0]?.deliveryMode;
       if (mode && ['clinic', 'courier', 'pickup'].includes(mode)) {
         setDelivery(mode);
       }

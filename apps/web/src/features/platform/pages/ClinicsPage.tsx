@@ -6,6 +6,10 @@ import type { CreateOrganizationInput } from '@mmc/types';
 import { NumericInput } from '@/shared/components/NumericInput';
 import '../styles/platform.css';
 
+import { Pagination } from '@/shared/components/Pagination';
+import { usePagination } from '@/shared/hooks/use-pagination';
+import { TableSkeleton } from '@/shared/components/TableSkeleton';
+
 const EMPTY_FORM: any = {
   name: '', email: '', phone: '', city: '', website: '', description: '', connectSince: '',
   adminEmail: '', adminPassword: '',
@@ -18,7 +22,14 @@ export default function ClinicsPage() {
   const deleteOrg = useDeleteOrganization();
   const updateOrg = useUpdateOrganization();
 
-  const sortedOrgs = [...orgs].sort((a, b) => a.id - b.id);
+  const {
+    currentPage,
+    setCurrentPage,
+    itemsPerPage,
+    setItemsPerPage,
+    paginatedData,
+    totalItems
+  } = usePagination(orgs);
 
   const [isCreating, setIsCreating] = useState(false);
   const [editingOrg, setEditingOrg] = useState<any>(null);
@@ -123,76 +134,83 @@ export default function ClinicsPage() {
       {/* ─── Table ─── */}
       <div className="plat-card">
         {isLoading ? (
-          <div className="plat-empty">
-            <RefreshCw size={22} style={{ animation: 'spin 1s linear infinite', opacity: 0.3 }} />
-          </div>
+          <TableSkeleton rows={8} columns={7} />
         ) : orgs.length === 0 ? (
           <div className="plat-empty">
             <Building2 size={28} className="plat-empty-icon" />
             <p className="plat-empty-text">No clinics registered. Add your first clinic.</p>
           </div>
         ) : (
-          <div className="plat-table-container">
-            <table className="plat-table">
-              <thead>
-                <tr>
-                  <th style={{ width: '50px' }}>ID</th>
-                  <th>Clinic Name</th>
-                  <th style={{ width: '120px' }}>City</th>
-                  <th style={{ width: '140px' }}>Phone</th>
-                  <th style={{ width: '180px' }}>Website</th>
-                  <th style={{ width: '110px' }}>Connected</th>
-                  <th style={{ width: '80px' }}>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedOrgs.map((org, index) => (
-                  <tr key={index}>
-                    <td data-label="ID" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      {index + 1}
-                    </td>
-                    <td data-label="Clinic Name">
-                      <div style={{ fontWeight: 600 }}>{org.name}</div>
-                      {org.description && (
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '1px' }}>
-                          {org.description}
-                        </div>
-                      )}
-                    </td>
-                    <td data-label="City" style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{org.city || '—'}</td>
-                    <td data-label="Phone" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                      {org.phone || '—'}
-                    </td>
-                    <td data-label="Website" style={{ fontSize: '0.75rem' }}>
-                      {org.website ? (
-                        <a href={org.website} target="_blank" rel="noreferrer"
-                          style={{ color: 'var(--primary)', textDecoration: 'none' }}>
-                          {org.website.replace(/^https?:\/\//, '')}
-                        </a>
-                      ) : '—'}
-                    </td>
-                    <td data-label="Connected" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      {org.connectSince || '—'}
-                    </td>
-                    <td data-label="Action">
-                      <div className="flex justify-center gap-2">
-                        <button className="plat-btn plat-btn-icon plat-btn-ghost" onClick={() => handleEdit(org)} title="Edit">
-                          <Edit2 size={13} />
-                        </button>
-                        <button
-                          className="plat-btn plat-btn-icon plat-btn-danger"
-                          onClick={() => handleDelete(org.id, org.name)}
-                          title="Delete"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </td>
+          <>
+            <div className="plat-table-container">
+              <table className="plat-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '50px' }}>ID</th>
+                    <th>Clinic Name</th>
+                    <th style={{ width: '120px' }}>City</th>
+                    <th style={{ width: '140px' }}>Phone</th>
+                    <th style={{ width: '180px' }}>Website</th>
+                    <th style={{ width: '110px' }}>Connected</th>
+                    <th style={{ width: '80px' }}>Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {paginatedData.map((org: any, index: number) => (
+                    <tr key={org.id}>
+                      <td data-label="ID" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        {(currentPage - 1) * itemsPerPage + index + 1}
+                      </td>
+                      <td data-label="Clinic Name">
+                        <div style={{ fontWeight: 600 }}>{org.name}</div>
+                        {org.description && (
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '1px' }}>
+                            {org.description}
+                          </div>
+                        )}
+                      </td>
+                      <td data-label="City" style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{org.city || '—'}</td>
+                      <td data-label="Phone" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                        {org.phone || '—'}
+                      </td>
+                      <td data-label="Website" style={{ fontSize: '0.75rem' }}>
+                        {org.website ? (
+                          <a href={org.website} target="_blank" rel="noreferrer"
+                            style={{ color: 'var(--primary)', textDecoration: 'none' }}>
+                            {org.website.replace(/^https?:\/\//, '')}
+                          </a>
+                        ) : '—'}
+                      </td>
+                      <td data-label="Connected" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        {org.connectSince || '—'}
+                      </td>
+                      <td data-label="Action">
+                        <div className="flex justify-center gap-2">
+                          <button className="plat-btn plat-btn-icon plat-btn-ghost" onClick={() => handleEdit(org)} title="Edit">
+                            <Edit2 size={13} />
+                          </button>
+                          <button
+                            className="plat-btn plat-btn-icon plat-btn-danger"
+                            onClick={() => handleDelete(org.id, org.name)}
+                            title="Delete"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <Pagination
+              totalItems={totalItems}
+              itemsPerPage={itemsPerPage}
+              currentPage={currentPage}
+              onPageChange={setCurrentPage}
+              onLimitChange={setItemsPerPage}
+            />
+          </>
         )}
       </div>
 

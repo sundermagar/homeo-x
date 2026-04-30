@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Bell, Filter, RotateCw, List, LayoutGrid, MessageSquare,
   AlertCircle, CalendarClock, Search, ChevronRight, Clock,
-  CheckCircle2, User, Calendar, ArrowLeft, MoreVertical
+  CheckCircle2, User, Calendar, MoreVertical
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { apiClient } from '@/infrastructure/api-client';
@@ -68,9 +68,6 @@ export default function FollowupsPage() {
       {/* Header Section */}
       <header className="pp-page-header mb-8">
         <div className="flex items-center gap-4">
-          {/* <button className="fu-back-btn" onClick={() => navigate(-1)} title="Go Back">
-            <ArrowLeft size={18} strokeWidth={2} />
-          </button> */}
           <div>
             <h1 className="text-title pp-text-gradient">Follow-up Dues</h1>
             <p className="text-subtitle">{followups.length} clinical encounters pending attention</p>

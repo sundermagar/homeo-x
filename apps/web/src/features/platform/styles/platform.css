@@ -12,10 +12,10 @@
 
 /* ─── Layout & Page Surface ─── */
 .plat-page {
-  padding: var(--pp-space-4);
+  padding: 0;
   max-width: var(--pp-container-width);
   margin: 0 auto;
-  min-height: 100vh;
+  min-height: auto;
   background-color: var(--pp-warm-1);
   color: var(--pp-ink);
   font-family: var(--pp-font-sans);
@@ -1222,4 +1222,118 @@
 .plat-pagination-info b {
   color: #1e293b;
   font-weight: 700;
+}
+
+/* ─── Shimmer Skeleton Loader ─── */
+@keyframes shimmer {
+  0%   { background-position: -1000px 0; }
+  100% { background-position: 1000px 0; }
+}
+
+.skeleton-box {
+  background: #f6f7f8;
+  background-image: linear-gradient(
+    to right,
+    #f6f7f8 0%,
+    #edeef1 20%,
+    #f6f7f8 40%,
+    #f6f7f8 100%
+  );
+  background-repeat: no-repeat;
+  background-size: 1000px 100%;
+  display: inline-block;
+  position: relative;
+  animation: shimmer 2s infinite linear;
+  border-radius: 4px;
+}
+
+.skeleton-text {
+  height: 12px;
+  width: 100%;
+  margin-bottom: 8px;
+  border-radius: 2px;
+}
+
+.skeleton-text.title {
+  height: 24px;
+  width: 40%;
+  margin-bottom: 12px;
+}
+
+/* ─── Pagination (Unified v2.0) ────────────────────────────────────────────── */
+
+.plat-pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: var(--bg-card);
+  border-top: 1px solid var(--pp-warm-4);
+  border-radius: 0 0 14px 14px;
+}
+
+.plat-pagination-info-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.plat-pagination-info {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.plat-pagination-limit {
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--pp-warm-4);
+  border-radius: 6px;
+  font-size: 12px;
+  background: var(--pp-warm-1);
+  color: var(--pp-ink);
+  outline: none;
+  cursor: pointer;
+}
+
+.plat-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.plat-pagination-btn,
+.plat-pagination-page {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: white;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.plat-pagination-btn:hover:not(:disabled),
+.plat-pagination-page:hover:not(.is-active) {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+
+.plat-pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.plat-pagination-page.is-active {
+  background: #334155;
+  border-color: #334155;
+  color: white;
 }

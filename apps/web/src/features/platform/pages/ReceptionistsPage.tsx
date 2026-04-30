@@ -8,6 +8,9 @@ import { createStaffSchema, updateStaffSchema } from '@mmc/validation';
 import { apiClient } from '@/infrastructure/api-client';
 import '../styles/platform.css';
 
+import { Pagination } from '@/shared/components/Pagination';
+import { TableSkeleton } from '@/shared/components/TableSkeleton';
+
 function FileInputRow({
   label,
   field,
@@ -482,10 +485,11 @@ export default function ReceptionistsPage() {
   const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('DESC');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [itemsPerPage, setItemsPerPage] = useState(PAGE_SIZE);
 
   const { data, isLoading } = useStaffList(CATEGORY, {
     page,
-    limit: PAGE_SIZE,
+    limit: itemsPerPage,
     search: debouncedSearch,
     sortBy,
     sortOrder
@@ -592,7 +596,7 @@ export default function ReceptionistsPage() {
 
       <div className="plat-card">
         {isLoading ? (
-          <div className="plat-empty" style={{ minHeight: 400 }}><RefreshCw size={24} className="animate-spin opacity-20" /></div>
+          <TableSkeleton rows={itemsPerPage} columns={6} />
         ) : staff.length === 0 ? (
           <div className="plat-empty" style={{ minHeight: 400 }}>
             <div className="plat-empty-icon-wrap mb-6">
@@ -607,7 +611,8 @@ export default function ReceptionistsPage() {
             </button>
           </div>
         ) : (
-          <div className="plat-table-container">
+          <>
+            <div className="plat-table-container">
             <table className="plat-table">
               <thead><tr><th>#</th><th>Staff Identity</th><th>Contact Information</th><th>Primary Role</th><th>Status</th><th>Actions</th></tr></thead>
               <tbody>
@@ -649,32 +654,17 @@ export default function ReceptionistsPage() {
               </tbody>
             </table>
           </div>
+          <Pagination
+            totalItems={data?.total || 0}
+            itemsPerPage={itemsPerPage}
+            currentPage={page}
+            onPageChange={setPage}
+            onLimitChange={setItemsPerPage}
+          />
+        </>
         )}
       </div>
 
-      {totalPages > 1 && (
-        <div className="plat-pagination-container">
-          <div className="plat-pagination-pill">
-            <button
-              className="plat-pagination-btn"
-              disabled={page <= 1}
-              onClick={() => { setPage(p => p - 1); window.scrollTo(0, 0); }}
-            >
-              ← Previous
-            </button>
-            <div className="plat-pagination-info">
-              Page <b>{page}</b> of <b>{totalPages}</b>
-            </div>
-            <button
-              className="plat-pagination-btn"
-              disabled={page >= totalPages}
-              onClick={() => { setPage(p => p + 1); window.scrollTo(0, 0); }}
-            >
-              Next →
-            </button>
-          </div>
-        </div>
-      )}
 
       {modalOpen && <StaffModal mode={editingId ? 'edit' : 'create'} staff={editingStaff} isLoading={isLoadingStaff} onClose={() => { setModalOpen(false); setEditingId(null); }} onSuccess={() => setEditingId(null)} />}
     </div>
