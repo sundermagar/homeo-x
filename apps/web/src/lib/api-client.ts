@@ -27,7 +27,7 @@ interface PaginatedData<T> {
 }
 
 class ApiClient {
-  private baseUrl = window.location.origin;
+  private baseUrl = import.meta.env.VITE_API_URL || window.location.origin;
 
   private getHeaders(): Record<string, string> {
     const headers: Record<string, string> = {
