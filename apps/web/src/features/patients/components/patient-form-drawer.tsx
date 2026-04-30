@@ -278,6 +278,24 @@ export function PatientFormDrawer({ isOpen, onClose, regid }: PatientFormDrawerP
               </div>
             </div>
 
+            {/* Reference Details */}
+            <div className="drawer-grid-2" style={{ marginTop: '8px' }}>
+              <div className="form-group">
+                <label className="drawer-label">Reference</label>
+                <select className="drawer-input" name="referenceType" value={form.referenceType} onChange={handleChange}>
+                  <option value="">Select Reference</option>
+                  {['Self', 'Existing Patient', 'Doctor', 'Social Media', 'Advertisement', 'Walk-in', 'Other'].map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="drawer-label">Referred By</label>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input className="drawer-input" style={{ width: '60px' }} placeholder="ID" disabled />
+                  <input className="drawer-input" style={{ flex: 1 }} name="referredBy" value={form.referredBy} onChange={handleChange} placeholder="Enter Patient ID or Name" />
+                </div>
+              </div>
+            </div>
+
             <div className="form-group" style={{ marginTop: '24px' }}>
               <button className="drawer-submit-btn" type="submit" disabled={isSubmitting}>
                 {isSubmitting ? 'Saving...' : (isEdit ? 'Update Patient' : 'Register Patient')}

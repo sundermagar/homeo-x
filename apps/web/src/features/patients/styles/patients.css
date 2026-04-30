@@ -1210,3 +1210,34 @@
   color: var(--pp-text-3);
   padding: 0 4px;
 }
+
+/* ─── Clickable Links (Navigation via Name/ID) ────────────────────────────── */
+
+.clickable-link {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-block;
+}
+
+.clickable-link:hover {
+  color: var(--pp-blue) !important;
+  text-decoration: underline !important;
+}
+
+.pat-regid-pill {
+  background: var(--pp-warm-2);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pp-text-2);
+  border: 1px solid var(--pp-warm-4);
+}
+
+.pat-regid-pill:hover {
+  background: var(--pp-blue-tint);
+  border-color: var(--pp-blue-border);
+}
+

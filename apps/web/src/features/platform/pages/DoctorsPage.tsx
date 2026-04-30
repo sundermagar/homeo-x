@@ -8,6 +8,8 @@ import type { StaffSummary, StaffMember } from '@mmc/types';
 import type { CreateStaffInput, UpdateStaffInput } from '@mmc/validation';
 import { createStaffSchema, updateStaffSchema } from '@mmc/validation';
 import { apiClient } from '@/infrastructure/api-client';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { Pagination } from '@/components/shared/pagination';
 import '../styles/platform.css';
 
 const CATEGORY = 'doctor' as const;
@@ -705,10 +707,7 @@ export default function DoctorsPage() {
 
       <div className="plat-card">
         {isLoading ? (
-          <div className="plat-empty" style={{ minHeight: 240 }}>
-            <div className="animate-spin opacity-30 text-2xl mb-4">⟳</div>
-            <p className="plat-empty-text">Loading doctors...</p>
-          </div>
+          <TableSkeleton rows={5} cols={6} />
         ) : staff.length === 0 ? (
           <div className="plat-empty" style={{ minHeight: 240 }}>
             <Stethoscope size={40} className="plat-empty-icon" />
@@ -780,10 +779,14 @@ export default function DoctorsPage() {
       </div>
 
       {totalPages > 1 && (
-        <div className="flex justify-center gap-4 mt-8">
-          <button className="plat-btn" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>← Previous</button>
-          <button className="plat-btn" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>Next →</button>
-        </div>
+        <Pagination
+          currentPage={page}
+          totalPages={totalPages}
+          pageSize={PAGE_SIZE}
+          totalItems={data?.total || 0}
+          onPageChange={setPage}
+          onPageSizeChange={() => {}}
+        />
       )}
 
       {modalOpen && (

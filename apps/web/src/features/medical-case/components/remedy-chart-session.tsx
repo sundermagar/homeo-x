@@ -1,12 +1,13 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { 
-  Search, BookOpen, ChevronRight, Activity, 
-  FlaskConical, Save, Trash2, Calendar, FileText, Printer, Plus, X
+import {
+  Search, BookOpen, ChevronRight, Activity,
+  FlaskConical, Save, Trash2, Calendar, FileText, Printer, Plus, X,
+  ChevronLeft
 } from 'lucide-react';
 import { useManageClinicalRecords } from '../hooks/use-medical-cases';
-import { 
-  useAlphabetIndex, 
-  useRemedyLookups, 
+import {
+  useAlphabetIndex,
+  useRemedyLookups,
   useRemedyAlternatives,
   usePatientPrescriptions,
   useSavePrescription,
@@ -15,16 +16,18 @@ import {
   RemedyTreeNode,
   PrescriptionRow
 } from '../hooks/use-remedy-chart';
+import { Pagination } from '@/components/shared/pagination';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
 
-function SearchableSelect({ 
-  value, 
-  onChange, 
-  options, 
-  placeholder = "Select" 
-}: { 
-  value: string; 
-  onChange: (val: string) => void; 
-  options: string[]; 
+function SearchableSelect({
+  value,
+  onChange,
+  options,
+  placeholder = "Select"
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  options: string[];
   placeholder?: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -53,8 +56,8 @@ function SearchableSelect({
           setIsOpen(!isOpen);
           setSearch('');
         }}
-        style={{ 
-          width: '100%', 
+        style={{
+          width: '100%',
           boxSizing: 'border-box',
           padding: '6px 8px',
           border: '1px solid #cbd5e1',
@@ -72,7 +75,7 @@ function SearchableSelect({
         <span>{value || placeholder}</span>
         <span style={{ fontSize: '0.6rem', opacity: 0.6 }}>▼</span>
       </div>
-      
+
       {isOpen && (
         <div style={{
           position: 'absolute',
@@ -142,11 +145,11 @@ function SearchableSelect({
 
 export function RemedyChartSession({ regid }: { regid?: number }) {
   const { data: lookups } = useRemedyLookups();
-  const { data: history } = usePatientPrescriptions(regid || 0);
-  
+  const { data: history, isLoading } = usePatientPrescriptions(regid || 0);
+
   const [activeTab, setActiveTab] = useState('rx');
   const [delivery, setDelivery] = useState('clinic');
-  
+
   const [form, setForm] = useState({
     remedyName: '',
     potencyName: '',
@@ -155,11 +158,17 @@ export function RemedyChartSession({ regid }: { regid?: number }) {
     instructions: '',
     notes: ''
   });
- 
+
   const saveMutation = useSavePrescription();
   const deleteMutation = useDeletePrescription(regid ?? 0);
 
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  const totalPages = Math.ceil((history?.length || 0) / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const currentHistory = history?.slice(startIndex, startIndex + pageSize) || [];
 
   useEffect(() => {
     if (history && history.length > 0) {
@@ -173,14 +182,14 @@ export function RemedyChartSession({ regid }: { regid?: number }) {
   const handleSave = async () => {
     if (!regid) return alert('Cannot save: No active patient session.');
     if (!form.remedyName) return alert('Please select a remedy.');
-    
+
     await saveMutation.mutateAsync({
       regid,
       id: editingId ?? undefined,
       deliveryMode: delivery,
       ...form
     });
-    
+
     setForm({ remedyName: '', potencyName: '', frequencyName: '', days: 0, instructions: '', notes: '' });
     setEditingId(null);
   };
@@ -233,72 +242,97 @@ export function RemedyChartSession({ regid }: { regid?: number }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '16px' }}>
-      
-      {/* Top Header Row */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '24px', padding: '16px' }}>
-        <div className="mc-legacy-rx-tabs">
-          <button className={`mc-legacy-rx-tab ${activeTab === 'rx' ? 'active' : 'inactive'}`} onClick={() => setActiveTab('rx')}>Rx</button>
-          <button className={`mc-legacy-rx-tab ${activeTab === 'repeat' ? 'active' : 'inactive'}`} onClick={() => { handleRepeat(); }}>Repeat</button>
-          <button className={`mc-legacy-rx-tab ${activeTab === 'image' ? 'active' : 'inactive'}`} onClick={() => setActiveTab('image')}>Add Image</button>
-        </div>
-        
-        <div className="mc-legacy-delivery-opts">
-          <label className={`mc-delivery-option ${delivery === 'clinic' ? 'selected' : ''}`}>
-            <input type="radio" name="delivery" checked={delivery === 'clinic'} onChange={() => setDelivery('clinic')} /> Clinic
-          </label>
-          <label className={`mc-delivery-option ${delivery === 'courier' ? 'selected' : ''}`}>
-            <input type="radio" name="delivery" checked={delivery === 'courier'} onChange={() => setDelivery('courier')} /> Courier
-          </label>
-          <label className={`mc-delivery-option ${delivery === 'pickup' ? 'selected' : ''}`}>
-            <input type="radio" name="delivery" checked={delivery === 'pickup'} onChange={() => setDelivery('pickup')} /> Pickup
-          </label>
+
+      {/* Top Header Row Matching Image 2 */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px 0 24px', flexWrap: 'wrap', gap: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap' }}>
+          {/* Action Tabs */}
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button 
+              onClick={() => setActiveTab('rx')}
+              style={{ padding: '8px 24px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 700, border: 'none', cursor: 'pointer', background: activeTab === 'rx' ? '#1e3a8a' : '#f8fafc', color: activeTab === 'rx' ? 'white' : '#64748b' }}
+            >
+              Rx
+            </button>
+            <button 
+              onClick={() => handleRepeat()}
+              style={{ padding: '8px 24px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 700, border: 'none', cursor: 'pointer', background: activeTab === 'repeat' ? '#1e3a8a' : '#f8fafc', color: activeTab === 'repeat' ? 'white' : '#64748b' }}
+            >
+              Repeat
+            </button>
+            <button 
+              onClick={() => setActiveTab('image')}
+              style={{ padding: '8px 24px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 700, border: 'none', cursor: 'pointer', background: activeTab === 'image' ? '#1e3a8a' : '#f8fafc', color: activeTab === 'image' ? 'white' : '#64748b' }}
+            >
+              Add Image
+            </button>
+          </div>
+
+          {/* Delivery Modes */}
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {['clinic', 'courier', 'pickup'].map(mode => (
+              <button
+                key={mode}
+                onClick={() => setDelivery(mode)}
+                style={{
+                  padding: '8px 24px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', textTransform: 'capitalize',
+                  background: 'white',
+                  border: delivery === mode ? '1px solid #2563eb' : '1px solid #e2e8f0',
+                  color: delivery === mode ? '#2563eb' : '#64748b'
+                }}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
         </div>
 
+        {/* Print Button */}
         <button
-          className="mc-print-rx-btn"
           onClick={() => {
             const authStorage = localStorage.getItem('auth-storage');
             const token = authStorage ? JSON.parse(authStorage).state.token : '';
             window.open(`/api/medical-cases/remedy-chart/pdf/${regid}?token=${token}`, '_blank');
           }}
+          style={{ background: '#1e3a8a', color: 'white', border: 'none', borderRadius: '12px', padding: '10px 24px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 6px rgba(30,58,138,0.2)' }}
         >
-          <Printer size={14} /> Print Prescription
+          <Printer size={16} /> Print Prescription
         </button>
       </div>
 
       {activeTab === 'rx' && (
-        <div style={{ padding: '0 16px' }}>
+        <div style={{ padding: '16px 24px' }}>
           {/* Inline Form */}
           {editingId && (
-            <div style={{ padding: '6px 12px', marginBottom: '8px', background: '#eff6ff', borderLeft: '3px solid #3b82f6', borderRadius: '4px', fontSize: '0.75rem', color: '#1e40af' }}>
+            <div style={{ padding: '6px 12px', marginBottom: '12px', background: '#eff6ff', borderLeft: '3px solid #3b82f6', borderRadius: '4px', fontSize: '0.75rem', color: '#1e40af' }}>
               ✏️ Editing prescription — make changes and click <strong>✓ Update</strong>
             </div>
           )}
-          <div className="mc-legacy-form-row" style={editingId ? { border: '1px solid #3b82f6', borderRadius: '6px', padding: '8px' } : {}}>
-            <div className="mc-legacy-input-group">
-              <label>Remedy:</label>
-              <SearchableSelect 
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 2fr 2fr 1fr 2fr', gap: '16px', alignItems: 'end', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0f172a' }}>Remedy:</label>
+              <SearchableSelect
                 value={form.remedyName}
-                onChange={val => setForm({...form, remedyName: val})}
+                onChange={val => setForm({ ...form, remedyName: val })}
                 options={lookups?.medicines?.map(m => m.name) || []}
               />
             </div>
-            <div className="mc-legacy-input-group">
-              <label>Potency:</label>
-              <SearchableSelect 
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0f172a' }}>Potency:</label>
+              <SearchableSelect
                 value={form.potencyName}
-                onChange={val => setForm({...form, potencyName: val})}
+                onChange={val => setForm({ ...form, potencyName: val })}
                 options={lookups?.potencies?.map(p => p.name) || []}
               />
             </div>
-            <div className="mc-legacy-input-group">
-              <label>Frequency:</label>
-              <SearchableSelect 
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0f172a' }}>Frequency:</label>
+              <SearchableSelect
                 value={form.frequencyName}
                 onChange={val => {
                   const freq = lookups?.frequencies?.find(f => f.name === val);
                   setForm({
-                    ...form, 
+                    ...form,
                     frequencyName: val,
                     instructions: freq?.instruction || form.instructions
                   });
@@ -306,100 +340,134 @@ export function RemedyChartSession({ regid }: { regid?: number }) {
                 options={lookups?.frequencies?.map(f => f.name) || []}
               />
             </div>
-            <div className="mc-legacy-input-group">
-              <label>Days:</label>
-              <input 
-                type="number" 
-                placeholder="Select" 
-                value={form.days} 
-                onChange={e => setForm({...form, days: parseInt(e.target.value) || 0})}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0f172a' }}>Days:</label>
+              <input
+                type="number"
+                style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.9rem' }}
+                value={form.days}
+                onChange={e => setForm({ ...form, days: parseInt(e.target.value) || 0 })}
               />
             </div>
-            <div className="mc-legacy-input-group">
-              <label>Instructions</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0f172a' }}>Instructions</label>
               <div style={{ display: 'flex', gap: '8px' }}>
-                <input 
+                <input
                   type="text"
                   placeholder="Prescription"
+                  style={{ flex: 1, padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.9rem' }}
                   value={form.instructions}
-                  onChange={e => setForm({...form, instructions: e.target.value})}
+                  onChange={e => setForm({ ...form, instructions: e.target.value })}
                 />
-                <button 
+                <button
                   onClick={handleSave}
                   disabled={saveMutation.isPending}
-                  className="mc-legacy-btn-primary"
-                  style={{ padding: '0 12px', borderRadius: '4px', whiteSpace: 'nowrap' }}
+                  style={{ background: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', width: '38px', height: '38px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
                 >
-                  {saveMutation.isPending ? '...' : editingId ? '✓ Update' : '+'}
+                  {saveMutation.isPending ? '...' : editingId ? '✓' : <Plus size={20} />}
                 </button>
                 {editingId && (
-                  <button 
+                  <button
                     onClick={() => { setEditingId(null); setForm({ remedyName: '', potencyName: '', frequencyName: '', days: 0, instructions: '', notes: '' }); }}
-                    className="mc-btn-link"
-                    style={{ padding: '0 8px', whiteSpace: 'nowrap', color: 'var(--text-muted)' }}
+                    style={{ background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '8px', width: '38px', height: '38px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
                   >
-                    ✕ Cancel
+                    ✕
                   </button>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Table */}
-          <div style={{ marginTop: '16px', overflowX: 'auto' }}>
-            <table className="mc-legacy-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Remedy</th>
-                  <th>Potency</th>
-                  <th>Frequency</th>
-                  <th>Days</th>
-                  <th>Instructions</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {history?.map((rx) => (
-                  <tr key={rx.id}>
-                    <td>{new Date(rx.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric'})}</td>
-                    <td>{rx.remedy_name}</td>
-                    <td>{rx.potency_name}</td>
-                    <td>{rx.frequency_name}</td>
-                    <td>{rx.days}</td>
-                    <td>{rx.prescription || rx.notes || ''}</td>
-                    <td>
-                      <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
-                        <button 
-                          onClick={() => handleEdit(rx)} 
-                          className="mc-btn-link" 
-                          style={{ color: 'var(--color-primary, #1e40af)', fontSize: '0.75rem' }}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(rx.id, rx.remedy_name)}
-                          className="mc-btn-link"
-                          disabled={deleteMutation.isPending}
-                          style={{ color: 'var(--pp-danger-fg, #dc2626)', fontSize: '0.75rem' }}
-                        >
-                          {deleteMutation.isPending ? '...' : 'Remove'}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {history?.length === 0 && (
+          <div className="pp-card pp-table-scroll" style={{ padding: 0 }}>
+            {isLoading ? (
+              <TableSkeleton rows={5} cols={7} />
+            ) : (
+              <table className="pp-table">
+                <thead>
                   <tr>
-                    <td colSpan={7} style={{ padding: '24px', color: 'var(--text-muted)', textAlign: 'center' }}>No prescriptions added.</td>
+                    <th>DATE</th>
+                    <th>REMEDY</th>
+                    <th>POTENCY</th>
+                    <th>FREQUENCY</th>
+                    <th>DAYS</th>
+                    <th>INSTRUCTIONS</th>
+                    <th style={{ textAlign: 'right' }}>ACTION</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {currentHistory.map((rx) => (
+                    <tr key={rx.id} className="hover-row">
+                      <td>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#64748b' }}>{new Date(rx.created_at).getDate()}</span>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase' }}>
+                            {new Date(rx.created_at).toLocaleString('default', { month: 'short' })} {new Date(rx.created_at).getFullYear()}
+                          </span>
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1e293b', letterSpacing: '-0.01em' }}>
+                          {rx.remedy_name}
+                        </div>
+                      </td>
+                      <td>
+                        <span style={{ padding: '4px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700, color: '#475569' }}>
+                          {rx.potency_name}
+                        </span>
+                      </td>
+                      <td>
+                        <span style={{ color: '#2563eb', fontWeight: 700, fontSize: '0.9rem' }}>{rx.frequency_name}</span>
+                      </td>
+                      <td>
+                        <span style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>{rx.days}</span>
+                      </td>
+                      <td style={{ maxWidth: '200px' }}>
+                        <div className="text-small" style={{ color: '#64748b', fontStyle: 'italic', lineHeight: 1.4 }}>
+                          {rx.prescription || rx.notes || '—'}
+                        </div>
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                          <button
+                            onClick={() => handleEdit(rx)}
+                            className="dash-action-btn"
+                            style={{ background: '#eff6ff', color: '#2563eb', border: 'none', borderRadius: '6px', padding: '4px 10px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDelete(rx.id, rx.remedy_name)}
+                            disabled={deleteMutation.isPending}
+                            className="dash-action-btn"
+                            style={{ background: '#fef2f2', color: '#dc2626', border: 'none', borderRadius: '6px', padding: '4px 10px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
+                          >
+                            {deleteMutation.isPending ? '...' : 'Remove'}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {history?.length === 0 && (
+                    <tr>
+                      <td colSpan={7} style={{ padding: '24px', color: 'var(--pp-text-3)', textAlign: 'center' }}>No prescriptions added.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            )}
           </div>
+
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            pageSize={pageSize}
+            totalItems={history?.length || 0}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={setPageSize}
+          />
         </div>
       )}
-      
+
       {activeTab === 'image' && (
         <ImageUploadTab regid={Number(regid)} />
       )}
@@ -451,7 +519,7 @@ function ImageUploadTab({ regid }: { regid: number }) {
         {preview ? (
           <div style={{ position: 'relative', display: 'inline-block' }}>
             <img src={preview} style={{ maxWidth: '100%', maxHeight: '250px', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-            <button 
+            <button
               onClick={() => { setFile(null); setPreview(null); }}
               style={{ position: 'absolute', top: '-10px', right: '-10px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '50%', width: '24px', height: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
@@ -467,25 +535,25 @@ function ImageUploadTab({ regid }: { regid: number }) {
             <div style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '4px' }}>PNG, JPG or PDF (Max 10MB)</div>
           </div>
         )}
-        <input 
-          type="file" 
-          ref={fileInputRef} 
-          hidden 
+        <input
+          type="file"
+          ref={fileInputRef}
+          hidden
           onChange={handleFileChange}
           accept="image/*"
         />
       </div>
 
       <div style={{ display: 'flex', gap: '12px' }}>
-        <input 
+        <input
           className="mc-legacy-input"
           placeholder="Enter image description (e.g. Scan 1, Notes...)"
           value={description}
           onChange={e => setDescription(e.target.value)}
           style={{ flex: 1 }}
         />
-        <button 
-          className="mc-legacy-btn-primary" 
+        <button
+          className="mc-legacy-btn-primary"
           onClick={handleUpload}
           disabled={!file || saveImage.isPending}
           style={{ padding: '0 24px' }}
@@ -493,7 +561,7 @@ function ImageUploadTab({ regid }: { regid: number }) {
           {saveImage.isPending ? 'Uploading...' : 'Upload Image'}
         </button>
       </div>
-      
+
       <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '16px' }}>
         <p style={{ fontSize: '0.85rem', color: '#64748b' }}>
           💡 These images will also appear in the <strong>Media</strong> tab of the patient record.

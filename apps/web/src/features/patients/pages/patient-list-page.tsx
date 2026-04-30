@@ -196,24 +196,24 @@ export default function PatientListPage() {
                         {(p.fullName?.[0] || '?').toUpperCase()}
                       </div>
                       <div>
-                        <div className="pat-member-name">{p.fullName || 'Unknown'}</div>
+                        <Link to={`/medical-cases/${p.regid}`} className="pat-member-name clickable-link">
+                          {p.fullName || 'Unknown'}
+                        </Link>
                         <div className="text-small">{p.gender === 'M' ? 'Male' : p.gender === 'F' ? 'Female' : p.gender}</div>
                       </div>
                     </div>
                   </td>
                   <td>
-                    <span className="pp-mono" style={{ background: 'var(--pp-warm-2)', padding: '2px 6px', borderRadius: '4px', fontSize: '12px' }}>
+                    <Link to={`/medical-cases/${p.regid}`} className="pp-mono pat-regid-pill clickable-link">
                       {p.regid}
-                    </span>
+                    </Link>
                   </td>
                   <td>{p.phone || '—'}</td>
                   <td>{p.city || '—'}</td>
                   <td className="text-small">{formatDate(p.createdAt)}</td>
                   <td style={{ textAlign: 'right' }}>
                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
-                      <Link to={`/medical-cases/${p.regid}`} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <Eye size={14} /> History
-                      </Link>
+                      {/* History button removed - click name/ID instead */}
                       
                       <div className="appt-kebab-wrap">
                         <button 
@@ -256,8 +256,14 @@ export default function PatientListPage() {
             <div key={p.regid} className="appt-card appt-grid-card">
               <div className="appt-grid-card-header">
                 <div>
-                  <div className="appt-grid-card-patient">{p.fullName}</div>
-                  <div className="appt-grid-card-phone">ID: {p.regid} • {p.phone || 'No phone'}</div>
+                  <Link to={`/medical-cases/${p.regid}`} className="appt-grid-card-patient clickable-link">
+                    {p.fullName}
+                  </Link>
+                  <div className="appt-grid-card-phone">
+                    <Link to={`/medical-cases/${p.regid}`} className="clickable-link" style={{ color: 'inherit' }}>
+                      ID: {p.regid}
+                    </Link> • {p.phone || 'No phone'}
+                  </div>
                 </div>
                 <div className="appt-kebab-wrap">
                   <button className="appt-kebab-btn" onClick={() => setOpenMenuId(openMenuId === p.regid ? null : p.regid)}>
@@ -280,11 +286,8 @@ export default function PatientListPage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Calendar size={14} /> Registered: {formatDate(p.createdAt)}</div>
               </div>
               <div className="appt-grid-card-actions-minimal">
-                <Link to={`/medical-cases/${p.regid}`} className="appt-btn-minimal white-pill" style={{ flex: 1 }}>
-                  <Eye size={14} /> History
-                </Link>
-                <button className="appt-btn-minimal white-pill" onClick={() => openWhatsApp(p.phone, p.fullName)}>
-                  <MessageCircle size={14} />
+                <button className="appt-btn-minimal white-pill" style={{ flex: 1 }} onClick={() => openWhatsApp(p.phone, p.fullName)}>
+                  <MessageCircle size={14} /> Send WhatsApp Message
                 </button>
               </div>
             </div>

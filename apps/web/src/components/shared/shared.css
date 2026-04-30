@@ -110,17 +110,21 @@
 }
 
 .page-header__title {
-  font-size: var(--font-size-2xl);
-  font-weight: 800;
-  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--pp-ink);
   letter-spacing: -0.02em;
   margin: 0;
 }
 
 .page-header__description {
-  margin-top: 0.25rem;
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--pp-text-3);
+  font-weight: 500;
 }
 
 .page-header__actions {
@@ -180,4 +184,133 @@
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
   max-width: 32rem;
+}
+
+/* ── Pagination ── */
+.pat-pagination-bar {
+  margin-top: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: #ffffff;
+  border: 1px solid #f1f5f9;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.pat-pagination-info-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pat-pagination-info {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.pat-pagination-limit {
+  padding: 4px 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #0f172a;
+  background: #ffffff;
+  cursor: pointer;
+  outline: none;
+}
+
+.pat-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pat-pagination-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0;
+}
+
+.pat-pagination-btn:hover:not(:disabled) {
+  background: #f8fafc;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
+.pat-pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pat-pagination-page {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pat-pagination-page.is-active {
+  background: #334155;
+  color: #ffffff;
+  border-color: #334155;
+}
+
+@media (max-width: 768px) {
+  .pat-pagination-bar {
+    flex-direction: column;
+    gap: 16px;
+    align-items: center;
+  }
+}
+
+/* ── Skeleton Loading ── */
+@keyframes shimmer {
+  0% { background-position: -1000px 0; }
+  100% { background-position: 1000px 0; }
+}
+
+.skeleton-box {
+  animation: shimmer 2s infinite linear;
+  background: linear-gradient(to right, var(--pp-warm-2) 4%, var(--pp-warm-3) 25%, var(--pp-warm-2) 36%);
+  background-size: 1000px 100%;
+  border-radius: 4px;
+}
+
+.skeleton-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+.skeleton-text {
+  height: 12px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+}
+
+.skeleton-text.title {
+  height: 24px;
+  width: 40%;
+  margin-bottom: 16px;
 }

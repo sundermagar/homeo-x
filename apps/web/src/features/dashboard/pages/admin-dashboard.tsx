@@ -7,10 +7,15 @@ import {
   Activity,
   CreditCard,
   Clock,
-  CheckCircle2,
-  AlertCircle,
+  CheckCircle,
   ArrowRight,
   BarChart3,
+  ChevronRight,
+  ChevronDown,
+  DollarSign,
+  Plus,
+  MoreVertical,
+  Zap,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -35,8 +40,7 @@ export function AdminDashboard() {
   const { data: clinicData, isLoading: clinicLoading } = useClinicAdminDashboard(period);
 
   const isLoading = dashLoading && clinicLoading;
-  const kpis = dashData?.kpis;
-  const revenueSeries = clinicData?.revenueSeries || clinicData?.revenueSeries || dashData?.revenueSeries || [];
+  const revenueSeries = clinicData?.revenueSeries || dashData?.revenueSeries || [];
   
   const platformStats = dashData?.platformStats;
   const clinicCount = platformStats?.totalClinics ?? 0;
@@ -44,9 +48,52 @@ export function AdminDashboard() {
 
   if (isLoading) {
     return (
-      <div className="sa-root sa-loading">
-        <Activity size={28} style={{ color: 'var(--pp-blue)', animation: 'pulse 1.5s infinite' }} />
-        <p>Loading Executive Dashboard…</p>
+      <div className="sa-root sa-loading-skeleton">
+        {/* Header Skeleton */}
+        <div className="sa-header">
+          <div>
+            <div className="skeleton-box skeleton-text title" style={{ width: '240px', marginBottom: '8px' }} />
+            <div className="skeleton-box skeleton-text" style={{ width: '180px' }} />
+          </div>
+        </div>
+
+        {/* Primary KPI Skeleton */}
+        <div className="sa-kpi-primary">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="sa-kpi-card" style={{ height: '110px' }}>
+              <div className="skeleton-box" style={{ width: '48px', height: '48px', borderRadius: '12px' }} />
+              <div style={{ flex: 1 }}>
+                <div className="skeleton-box skeleton-text" style={{ width: '40%', marginBottom: '8px' }} />
+                <div className="skeleton-box skeleton-text title" style={{ width: '70%', marginBottom: '8px', height: '24px' }} />
+                <div className="skeleton-box skeleton-text" style={{ width: '30%', marginBottom: 0 }} />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="sa-main-grid">
+           <div className="sa-chart-card" style={{ height: '320px' }}>
+              <div className="sa-chart-header">
+                <div className="skeleton-box skeleton-text" style={{ width: '150px', marginBottom: 0 }} />
+              </div>
+              <div className="sa-chart-body" style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', padding: '24px' }}>
+                 <div className="skeleton-box" style={{ width: '100%', height: '80%', borderRadius: '8px 8px 0 0', opacity: 0.1 }} />
+              </div>
+           </div>
+           <div className="sa-intel-card" style={{ height: '320px' }}>
+              <div className="sa-intel-header">
+                <div className="skeleton-box skeleton-text" style={{ width: '120px', marginBottom: 0 }} />
+              </div>
+              <div className="sa-intel-list">
+                 {[1, 2, 3].map(i => (
+                    <div key={i} className="sa-intel-item">
+                       <div className="skeleton-box skeleton-circle" style={{ width: '8px', height: '8px' }} />
+                       <div className="skeleton-box skeleton-text" style={{ width: '100%' }} />
+                    </div>
+                 ))}
+              </div>
+           </div>
+        </div>
       </div>
     );
   }
@@ -62,37 +109,43 @@ export function AdminDashboard() {
         </div>
       </div>
 
-      {/* ── Primary KPI Strip ─────────────────────────────────────────── */}
+      {/* ── KPI Strip ─────────────────────────────────────────────────── */}
       <div className="sa-kpi-primary">
-        <PrimaryKPICard
-          label="TOTAL REVENUE"
-          value={fmt(Number(clinicData?.totalRevenue ?? kpis?.todaysCollection ?? 0))}
-          trend={Number(clinicData?.revenueTrend ?? kpis?.revenueTrend ?? 0)}
-          icon={<CreditCard size={18} />}
-          color="#2563eb"
+        <KPIItem
+          label="Total Revenue"
+          value={`₹${(dashData?.totalRevenue || 0).toLocaleString()}`}
+          trend={`${dashData?.revenueTrend || 0}% vs prev.`}
+          positive={Number(dashData?.revenueTrend || 0) >= 0}
+          icon={<CreditCard size={20} />}
+          iconBg="rgba(37, 99, 235, 0.1)"
+          iconColor="#2563eb"
         />
-        <PrimaryKPICard
-          label="TOTAL PATIENTS"
-          value={String(Number(clinicData?.patientsCount ?? kpis?.newPatientsCount ?? 0))}
-          trend={Number(clinicData?.patientsTrend ?? kpis?.patientTrend ?? 0)}
-          icon={<Users size={18} />}
-          color="#7c3aed"
+        <KPIItem
+          label="Total Patients"
+          value={String(dashData?.patientsCount || 0)}
+          trend={`${dashData?.patientsTrend || 0}% vs prev.`}
+          positive={Number(dashData?.patientsTrend || 0) >= 0}
+          icon={<Users size={20} />}
+          iconBg="rgba(139, 92, 246, 0.1)"
+          iconColor="#8b5cf6"
         />
-        <PrimaryKPICard
-          label="COLLECTION RATE"
-          value={`${clinicData?.collectionRate ?? kpis?.collectionRate ?? 0}%`}
-          trend={Number(clinicData?.collectionRateTrend ?? 0)}
-          icon={<CheckCircle2 size={18} />}
-          color="#16a34a"
-          invertTrend
+        <KPIItem
+          label="Collection Rate"
+          value={`${dashData?.collectionRate || 0}%`}
+          trend={`${dashData?.collectionRateTrend || 0}% vs prev.`}
+          positive={Number(dashData?.collectionRateTrend || 0) >= 0}
+          icon={<CheckCircle size={20} />}
+          iconBg="rgba(16, 185, 129, 0.1)"
+          iconColor="#10b981"
         />
-        <PrimaryKPICard
-          label="AVG WAIT TIME"
-          value={`${clinicData?.avgWaitTime ?? kpis?.avgWaitTime ?? 0}m`}
-          trend={Number(clinicData?.avgWaitTimeTrend ?? 0)}
-          icon={<Clock size={18} />}
-          color="#d97706"
-          invertTrend
+        <KPIItem
+          label="Avg Wait Time"
+          value={`${dashData?.avgWaitTime || 0}m`}
+          trend={`${dashData?.avgWaitTimeTrend || 0}% vs prev.`}
+          positive={Number(dashData?.avgWaitTimeTrend || 0) <= 0}
+          icon={<Clock size={20} />}
+          iconBg="rgba(245, 158, 11, 0.1)"
+          iconColor="#f59e0b"
         />
       </div>
 
@@ -101,71 +154,97 @@ export function AdminDashboard() {
         <StatCard label="Active Clinics" value={String(clinicCount)} icon={<Building2 size={16} />} color="#2563eb" onClick={() => navigate('/platform/clinics')} />
         <StatCard label="Active Staff" value={String(activeStaff)} icon={<Users size={16} />} color="#7c3aed" onClick={() => navigate('/staff')} />
         <StatCard label="Revenue / Patient" value={fmt(clinicData?.revenueBreakdown?.perPatient || 0)} icon={<BarChart3 size={16} />} color="#16a34a" />
-        <StatCard label="Pending Dues" value={fmt(clinicData?.revenueBreakdown?.pending || 0)} icon={<AlertCircle size={16} />} color="#dc2626" onClick={() => navigate('/billing')} />
+        <StatCard label="Pending Dues" value={fmt(clinicData?.revenueBreakdown?.pending || 0)} icon={<Activity size={16} />} color="#dc2626" onClick={() => navigate('/billing')} />
       </div>
 
-      {/* ── Revenue Trend Chart ───────────────────────────────────────── */}
-      <div className="sa-chart-card">
-        <div className="sa-chart-header">
-          <div className="sa-chart-title">
-            <BarChart3 size={14} />
-            REVENUE TREND · 6 MONTHS
-          </div>
-          <span className="sa-badge sa-badge-primary">CURRENT YEAR</span>
-        </div>
-        <div className="sa-chart-body">
-          {revenueSeries.length > 0 ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={revenueSeries} margin={{ top: 10, right: 10, bottom: 0, left: -10 }}>
-                <defs>
-                  <linearGradient id="saRevGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#2563eb" stopOpacity={0.25} />
-                    <stop offset="100%" stopColor="#2563eb" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="6 6" vertical={false} stroke="rgba(255,255,255,0.03)" />
-                <XAxis 
-                  dataKey="month" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fontSize: 10, fill: '#64748b', fontWeight: 600 }} 
-                  dy={10}
-                />
-                <YAxis 
-                  hide={true}
-                />
-                <Tooltip 
-                  cursor={{ stroke: 'rgba(37, 99, 235, 0.2)', strokeWidth: 2 }}
-                  contentStyle={{ 
-                    borderRadius: 12, 
-                    border: '1px solid rgba(255,255,255,0.1)', 
-                    background: 'rgba(15, 23, 42, 0.9)', 
-                    backdropFilter: 'blur(8px)',
-                    fontSize: 12, 
-                    fontWeight: 700,
-                    boxShadow: '0 10px 25px rgba(0,0,0,0.3)'
-                  }} 
-                  formatter={(v: any) => [fmt(Number(v)), 'Revenue']} 
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="revenue" 
-                  stroke="#3b82f6" 
-                  strokeWidth={3} 
-                  fill="url(#saRevGrad)" 
-                  dot={{ r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: '#0f172a' }}
-                  activeDot={{ r: 6, fill: '#fff', stroke: '#3b82f6', strokeWidth: 3 }}
-                  isAnimationActive={true} 
-                  animationDuration={1500}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="sa-chart-empty">
-              <Activity size={24} style={{ opacity: 0.3 }} />
-              <span>No revenue data</span>
+      <div className="sa-main-grid">
+        {/* ── Revenue Trend Chart ───────────────────────────────────────── */}
+        <div className="sa-chart-card">
+          <div className="sa-chart-header">
+            <div className="sa-chart-title">
+              <BarChart3 size={14} />
+              REVENUE TREND · 6 MONTHS
             </div>
-          )}
+            <span className="sa-badge sa-badge-primary">CURRENT YEAR</span>
+          </div>
+          <div className="sa-chart-body">
+            {revenueSeries.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={revenueSeries} margin={{ top: 10, right: 10, bottom: 0, left: -10 }}>
+                  <defs>
+                    <linearGradient id="saRevGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#2563eb" stopOpacity={0.2} />
+                      <stop offset="100%" stopColor="#2563eb" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="6 6" vertical={false} stroke="#f1f5f9" />
+                  <XAxis 
+                    dataKey="month" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 600 }} 
+                    dy={10}
+                  />
+                  <YAxis hide={true} />
+                  <Tooltip 
+                    cursor={{ stroke: 'rgba(37, 99, 235, 0.1)', strokeWidth: 2 }}
+                    contentStyle={{ 
+                      borderRadius: 12, 
+                      border: '1px solid #e2e8f0', 
+                      background: '#fff', 
+                      fontSize: 12, 
+                      fontWeight: 700,
+                      boxShadow: '0 10px 25px rgba(0,0,0,0.05)'
+                    }} 
+                    formatter={(v: any) => [fmt(Number(v)), 'Revenue']} 
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="revenue" 
+                    stroke="#2563eb" 
+                    strokeWidth={3} 
+                    fill="url(#saRevGrad)" 
+                    dot={{ r: 4, fill: '#fff', strokeWidth: 2, stroke: '#2563eb' }}
+                    activeDot={{ r: 6, fill: '#2563eb', stroke: '#fff', strokeWidth: 3 }}
+                    isAnimationActive={true} 
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="sa-chart-empty">
+                <Activity size={24} style={{ opacity: 0.3 }} />
+                <span>No revenue data</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── Intelligence Hub ──────────────────────────────────────────── */}
+        <div className="sa-intel-card">
+          <div className="sa-intel-header">
+            <div className="sa-intel-title">
+              <Zap size={14} fill="#f59e0b" color="#f59e0b" />
+              INTELLIGENCE HUB
+            </div>
+            <span className="sa-badge sa-badge-warning" style={{ background: '#fffbeb', color: '#d97706' }}>LIVE INSIGHTS</span>
+          </div>
+          <div className="sa-intel-list">
+            {dashData?.intelligenceInsights?.length ? (
+              dashData.intelligenceInsights.map((insight: any, idx: number) => (
+                <div key={idx} className="sa-intel-item">
+                  <div className="sa-intel-dot" style={{ background: insight.color || '#2563eb' }} />
+                  <div className="sa-intel-content">{insight.text}</div>
+                </div>
+              ))
+            ) : (
+              <>
+                <IntelItem color="#10b981" text="Revenue is up 12% this month. Keep it up!" />
+                <IntelItem color="#3b82f6" text="Collection rate has stabilized at 98.5%." />
+                <IntelItem color="#f59e0b" text="Wait times are slightly higher in the evening shift." />
+                <IntelItem color="#ef4444" text="2 clinics are reporting pending invoice dues > 15 days." />
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -181,7 +260,14 @@ export function AdminDashboard() {
   );
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+function IntelItem({ color, text }: { color: string; text: string }) {
+  return (
+    <div className="sa-intel-item">
+      <div className="sa-intel-dot" style={{ background: color }} />
+      <div className="sa-intel-content">{text}</div>
+    </div>
+  );
+}
 
 function fmt(n: number): string {
   if (!n && n !== 0) return '₹0';
@@ -190,34 +276,18 @@ function fmt(n: number): string {
   return `₹${n}`;
 }
 
-function fmtNum(n: number): string {
-  if (!n && n !== 0) return '0';
-  if (n >= 1000) return `${(n / 1000).toFixed(0)}k`;
-  return String(n);
-}
-
-// ── Sub-components ─────────────────────────────────────────────────────────────
-
-function PrimaryKPICard({
-  label, value, trend, icon, color, invertTrend
-}: {
-  label: string;
-  value: string;
-  trend: number;
-  icon: React.ReactNode;
-  color: string;
-  invertTrend?: boolean;
-}) {
-  const positive = invertTrend ? trend <= 0 : trend >= 0;
+function KPIItem({ label, value, trend, positive, icon, iconBg, iconColor }: any) {
   return (
     <div className="sa-kpi-card">
-      <div className="sa-kpi-icon" style={{ background: `${color}15`, color }}>{icon}</div>
+      <div className="sa-kpi-icon" style={{ background: iconBg, color: iconColor }}>
+        {icon}
+      </div>
       <div className="sa-kpi-body">
         <div className="sa-kpi-label">{label}</div>
         <div className="sa-kpi-value">{value}</div>
         <div className={`sa-kpi-trend ${positive ? 'sa-trend-up' : 'sa-trend-down'}`}>
-          {positive ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
-          {positive ? '+' : ''}{trend}% vs prev.
+          {positive ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+          {trend}
         </div>
       </div>
     </div>

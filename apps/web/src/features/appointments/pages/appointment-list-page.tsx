@@ -16,6 +16,8 @@ import { StatusBadge } from '../components/status-badge';
 import { AppointmentFormDrawer } from '../components/appointment-form-drawer';
 import { printAppointmentSlip } from '@/shared/utils/print';
 import { useOrganizations } from '@/features/platform/hooks/use-organizations';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { Pagination } from '@/components/shared/pagination';
 import '../styles/appointments.css';
 
 const STATUS_OPTIONS = ['', ...Object.values(AppointmentStatus)];
@@ -202,42 +204,7 @@ export default function AppointmentListPage() {
       {/* Table / Grid */}
       <div className={viewMode === 'list' ? "appt-card" : "appt-grid-view-container"}>
         {isPending ? (
-          <div className="appt-table-scroll">
-            <table className="appt-table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Patient</th>
-                  <th>Doctor</th>
-                  <th>Date & Time</th>
-                  <th>Type</th>
-                  <th>Status</th>
-                  <th>Token</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[...Array(6)].map((_, i) => (
-                  <tr key={i} className="appt-skeleton-row">
-                    <td><div className="appt-skeleton-box" style={{ width: '40px' }} /></td>
-                    <td>
-                      <div className="appt-skeleton-box" style={{ width: '140px', marginBottom: '8px' }} />
-                      <div className="appt-skeleton-box" style={{ width: '90px' }} />
-                    </td>
-                    <td><div className="appt-skeleton-box" style={{ width: '100px' }} /></td>
-                    <td>
-                      <div className="appt-skeleton-box" style={{ width: '100px', marginBottom: '8px' }} />
-                      <div className="appt-skeleton-box" style={{ width: '60px' }} />
-                    </td>
-                    <td><div className="appt-skeleton-box" style={{ width: '60px' }} /></td>
-                    <td><div className="appt-skeleton-box" style={{ width: '80px', borderRadius: '12px' }} /></td>
-                    <td><div className="appt-skeleton-box" style={{ width: '40px' }} /></td>
-                    <td><div className="appt-skeleton-box" style={{ width: '100px' }} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <TableSkeleton rows={6} cols={8} />
         ) : data.length === 0 ? (
           <div className="appt-empty">
             <Calendar size={28} className="appt-empty-icon" />
@@ -247,8 +214,8 @@ export default function AppointmentListPage() {
             </button>
           </div>
         ) : viewMode === 'list' ? (
-          <div className="appt-table-scroll">
-            <table className="appt-table">
+          <div className="pp-table-scroll">
+            <table className="pp-table">
               <thead>
                 <tr>
                   <th>#</th>
@@ -446,69 +413,15 @@ export default function AppointmentListPage() {
       </div>
 
       {/* Pagination */}
-      {totalEntries > 0 && (
-        <div className="appt-pagination-bar animate-fade-in">
-          <div className="appt-pagination-info-wrap">
-            <div className="appt-pagination-info">
-              Showing {fromEntry}-{toEntry} of {totalEntries}
-            </div>
-            <select
-              className="appt-pagination-limit"
-              value={pageSize}
-              onChange={(e) => {
-                setPageSize(Number(e.target.value));
-                setPage(1);
-              }}
-            >
-              {[5, 10, 20, 50].map((limit) => (
-                <option key={limit} value={limit}>
-                  {limit} per page
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="appt-pagination-controls">
-            <button
-              className="appt-pagination-btn"
-              disabled={page === 1}
-              onClick={() => setPage((p) => p - 1)}
-            >
-              <ChevronLeft size={16} />
-            </button>
-
-            {[...Array(totalPages)].map((_, i) => {
-              const p = i + 1;
-              if (
-                p === 1 ||
-                p === totalPages ||
-                (p >= page - 1 && p <= page + 1)
-              ) {
-                return (
-                  <button
-                    key={p}
-                    className={`appt-pagination-page${page === p ? ' is-active' : ''}`}
-                    onClick={() => setPage(p)}
-                  >
-                    {p}
-                  </button>
-                );
-              }
-              if (p === page - 2 || p === page + 2) {
-                return <span key={p} style={{ color: '#cbd5e1' }}>...</span>;
-              }
-              return null;
-            })}
-
-            <button
-              className="appt-pagination-btn"
-              disabled={page === totalPages}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              <ChevronRight size={16} />
-            </button>
-          </div>
-        </div>
+      {totalEntries > 0 && totalPages > 1 && (
+        <Pagination
+          currentPage={page}
+          totalPages={totalPages}
+          pageSize={pageSize}
+          totalItems={totalEntries}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+        />
       )}
 
       <AppointmentFormDrawer

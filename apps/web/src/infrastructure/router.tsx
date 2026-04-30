@@ -4,7 +4,13 @@ import { ProtectedRoute } from '@/shared/components/protected-route';
 import { RoleGuard } from '@/shared/components/role-guard';
 import { AppLayout } from '@/shared/layouts/app-layout';
 
-const Loading = () => <div style={{ padding: 40, textAlign: 'center', opacity: 0.5 }}>Loading...</div>;
+const Loading = () => (
+  <div style={{ padding: '40px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+    <div className="skeleton-box" style={{ width: '100%', height: '60px', borderRadius: '12px' }} />
+    <div className="skeleton-box" style={{ width: '80%', height: '24px', borderRadius: '6px' }} />
+    <div className="skeleton-box" style={{ width: '100%', height: '200px', borderRadius: '16px' }} />
+  </div>
+);
 
 // Common Feature Modules
 const LoginPage = lazy(() => import('@/features/auth/pages/login-page'));

@@ -890,22 +890,8 @@ button.pp-link:hover {
   border-bottom: 1px solid #f1f5f9;
 }
 
-/* ─── Skeleton Animations ─── */
-@keyframes shimmer {
-  0% {
-    background-position: -1000px 0;
-  }
-  100% {
-    background-position: 1000px 0;
-  }
-}
+/* Standardized skeletons are now in shared.css */
 
-.skeleton-box {
-  animation: shimmer 2s infinite linear;
-  background: linear-gradient(to right, #f1f5f9 4%, #e2e8f0 25%, #f1f5f9 36%);
-  background-size: 1000px 100%;
-  border-radius: 4px;
-}
 
 .skeleton-text {
   height: 12px;
