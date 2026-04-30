@@ -103,7 +103,7 @@ export function useBinaryTranscriber({
       streamRef.current = stream;
 
       // 2. Connect to Transcription Gateway
-      const baseUrl = import.meta.env.VITE_API_URL || window.location.origin;
+      const baseUrl = import.meta.env['VITE_API_URL'] || window.location.origin;
       const socket = io(`${baseUrl}/transcription`, {
         withCredentials: true,
         extraHeaders: {
