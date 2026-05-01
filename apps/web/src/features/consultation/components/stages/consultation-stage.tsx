@@ -131,7 +131,8 @@ export function ConsultationStage({
   const vcSocketRef = useRef<Socket | null>(null);
   useEffect(() => {
     if (callMode === 'IN_PERSON') return;
-    const socket = io(`${window.location.origin}/video-call`, {
+    const baseUrl = import.meta.env['VITE_API_URL'] || window.location.origin;
+    const socket = io(`${baseUrl}/video-call`, {
       extraHeaders: { 'ngrok-skip-browser-warning': 'true' },
     });
     socket.on('connect', () => {

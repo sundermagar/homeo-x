@@ -336,21 +336,34 @@ export function setupTranscriptionGateway(io: Server, translator: TranslatorEngi
     const isFinal = result.isFinal;
     if (!text?.trim()) return;
 
-    // ── Confidence threshold ──────────────────────────────────────────────────
-    // Google STT returns a confidence score (0.0–1.0) only for final results.
-    // Values below 0.70 are often hallucinations (background noise, distant chatter).
-    // For interim results, confidence is 0.0 — skip the check there.
+    // ── Confidence & Hallucination Filter ──────────────────────────────────────
+    // Google STT (especially chirp_2) returns a confidence score only for final results.
+    // It also frequently hallucinates during silence (e.g., counting, "thank you").
     const confidence: number = alternative?.confidence ?? 1.0;
     
-    // Hallucination patterns (phrases Google often "invents" in silence/noise)
-    const hallucinationPatterns = /^(thank you|bye bye|please subscribe|subscribe|hey guys|goodbye)\.?$/i;
+    function isHallucination(tStr: string): boolean {
+      const t = tStr.trim().toLowerCase();
+      const fixed = /^(thank you|bye bye|bye-bye|please subscribe|subscribe|hey guys|goodbye|thank you for watching|thanks for watching|amen|amend|testing 1 2 3|1 to 10|1 to 100|1 to 100 counting|counting)\.?$/i;
+      if (fixed.test(t)) return true;
 
-    if (isFinal) {
-      if (confidence < 0.70 || hallucinationPatterns.test(text.trim())) {
-        logger.warn({ confidence, text: text.slice(0, 60) }, '[STT] Dropped low-confidence or hallucinated result');
-        session.latestInterimText = undefined;
-        return;
-      }
+      const cleanStr = t.replace(/[,\.]/g, '');
+      if (/1 to 100/i.test(cleanStr) || /1 2 3 4/i.test(cleanStr) || /one two three/i.test(cleanStr)) return true;
+
+      const isOnlyNumbers = /^[\d\s]+$/.test(cleanStr);
+      if (isOnlyNumbers && cleanStr.split(/\s+/).length >= 2) return true;
+      
+      return false;
+    }
+
+    if (isHallucination(text)) {
+      if (isFinal) session.latestInterimText = undefined;
+      return;
+    }
+
+    if (isFinal && confidence < 0.70) {
+      logger.warn({ confidence, text: text.slice(0, 60) }, '[STT] Dropped low-confidence result');
+      session.latestInterimText = undefined;
+      return;
     }
 
     const resultTimestamp = Date.now();
