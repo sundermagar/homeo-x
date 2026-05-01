@@ -170,6 +170,14 @@ export function useManageClinicalRecords() {
     },
   });
 
+  const updateDiagnosis = useMutation({
+    mutationFn: ({ regid, condition }: { regid: number; condition: string }) =>
+      api.put(`/medical-cases/${regid}/diagnosis`, { condition }),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['medical-case', 'full', variables.regid] });
+    },
+  });
+
   return {
     saveVitals,
     saveSoap,
@@ -186,5 +194,6 @@ export function useManageClinicalRecords() {
     deleteAdditionalCharge,
     deleteRecord,
     finalizeConsultation,
+    updateDiagnosis,
   };
 }

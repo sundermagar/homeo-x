@@ -12,6 +12,8 @@ import {
   X,
   ChevronRight,
   ChevronDown,
+  BrainCircuit,
+  MessageSquare
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -224,6 +226,13 @@ export function DoctorDashboard() {
                     <div className="dd-hud-actions">
                       <button className="btn-primary" onClick={() => handleStartConsultation(activeConsultation)}>
                         <Zap size={14} fill="currentColor" /> Start Consultation
+                      </button>
+                      <button 
+                        className="btn-primary" 
+                        onClick={() => window.open(`http://localhost:5174/consultation/${activeConsultation.regid || (activeConsultation as any).patientId}`, '_blank')}
+                        style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', border: 'none' }}
+                      >
+                        <BrainCircuit size={14} /> AI Assist
                       </button>
                       <button className="btn-skip" onClick={() => handleSkip(activeConsultation)}>Skip</button>
 
