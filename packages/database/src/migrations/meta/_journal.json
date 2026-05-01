@@ -99,6 +99,13 @@
       "when": 1745366400000,
       "tag": "0013_add_knowledge_base_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1746107400000,
+      "tag": "0014_add_clinic_id_to_case_datas",
+      "breakpoints": true
     }
   ]
 }
