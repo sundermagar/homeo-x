@@ -9,49 +9,6 @@ import '../styles/login-page.css';
 
 type LoginFields = z.infer<typeof LoginRequestSchema>;
 
-const DEMO_USERS = [
-  { 
-    email: 'doctor@kreed.health',      
-    name: 'Dr. Demo',       
-    type: 'Doctor',       
-    role: 'Doctor',       
-    id: 101,
-    icon: <Stethoscope size={18} strokeWidth={2} />,
-    color: '#3b82f6',
-    bg: '#eff6ff'
-  },
-  { 
-    email: 'admin@kreed.health',       
-    name: 'Admin Demo',     
-    type: 'Admin',        
-    role: 'Admin',        
-    id: 102,
-    icon: <ShieldCheck size={18} strokeWidth={2} />,
-    color: '#ef4444',
-    bg: '#fef2f2'
-  },
-  { 
-    email: 'reception@kreed.health',   
-    name: 'Reception Demo', 
-    type: 'Receptionist', 
-    role: 'Reception',    
-    id: 103,
-    icon: <Clipboard size={18} strokeWidth={2} />,
-    color: '#f59e0b',
-    bg: '#fffbeb'
-  },
-  { 
-    email: 'clinicadmin@kreed.health', 
-    name: 'Clinic Admin',   
-    type: 'Clinicadmin',  
-    role: 'Clinic Admin', 
-    id: 104,
-    icon: <Building2 size={18} strokeWidth={2} />,
-    color: '#6366f1',
-    bg: '#f5f3ff'
-  },
-];
-
 export default function LoginPage() {
   const [email, setEmail]               = useState('');
   const [password, setPassword]         = useState('');
@@ -68,38 +25,6 @@ export default function LoginPage() {
   useEffect(() => {
     if (isAuthenticated) navigate('/', { replace: true });
   }, [isAuthenticated, navigate]);
-
-  // ─── Demo bypass (no network needed) ──────────────────────────────────────
-  const loginAsDemo = (demoEmail: string) => {
-    const demo = DEMO_USERS.find(d => d.email === demoEmail);
-    if (!demo) return;
-    setAuth('demo-token-' + demo.id, {
-      id:        demo.id,
-      email:     demo.email,
-      name:      demo.name,
-      type:      demo.type,
-      contextId: 1,
-      roleId:    demo.id,
-      roleName:  demo.type,
-      permissions: {
-        canAccessDashboard:    true,
-        canAccessQuickAccess:  true,
-        canViewPatientDetail:  ['Admin', 'Clinicadmin', 'Doctor'].includes(demo.type),
-        canCreatePatient:      true,
-        canEditPatient:        true,
-        canDeletePatient:      ['Admin', 'Clinicadmin'].includes(demo.type),
-        canViewBilling:        ['Admin', 'Clinicadmin', 'Receptionist'].includes(demo.type),
-        canViewExpenses:       ['Admin', 'Clinicadmin'].includes(demo.type),
-        canViewAnalytics:      ['Admin', 'Clinicadmin'].includes(demo.type),
-        canViewDoctors:        ['Admin', 'Clinicadmin'].includes(demo.type),
-        canManageUsers:        demo.type === 'Admin',
-        canManageSettings:     ['Admin', 'Clinicadmin'].includes(demo.type),
-        canViewPackageHistory: true,
-        canNewPatientBtn:      ['Admin', 'Clinicadmin', 'Receptionist'].includes(demo.type),
-      },
-    } as any);
-    navigate('/', { replace: true });
-  };
 
   // ─── Real login — POST /api/auth/login ───────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
@@ -229,34 +154,6 @@ export default function LoginPage() {
             )}
           </button>
         </form>
-
-        {/* ─── Demo Quick Access ─────────────────────────────────────────── */}
-        <div className="demo-credentials">
-          <div className="demo-header">
-            <span className="demo-badge">⚡ Demo Access</span>
-          </div>
-          <div className="demo-options">
-            {DEMO_USERS.map(demo => (
-              <button
-                key={demo.email}
-                className="demo-btn"
-                type="button"
-                onClick={() => loginAsDemo(demo.email)}
-              >
-                <div className="demo-btn-icon-wrap" style={{ background: demo.bg, color: demo.color }}>
-                  {demo.icon}
-                </div>
-                <div className="demo-btn-info">
-                  <span className="demo-btn-role">{demo.role}</span>
-                  <span className="demo-btn-email">{demo.email}</span>
-                </div>
-              </button>
-            ))}
-          </div>
-          <p className="demo-credentials-footer">
-            Click a role above to explore without credentials.
-          </p>
-        </div>
 
         <div className="login-footer">
           <p>Protected by enterprise-grade encryption · Kreed.health Clinical Portal</p>
