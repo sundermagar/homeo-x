@@ -1,8 +1,16 @@
 import axios from 'axios';
 import { useAuthStore } from '@/shared/stores/auth-store';
 
+const getAxiosBaseUrl = () => {
+  const envUrl = import.meta.env['VITE_API_URL'];
+  if (envUrl) {
+    return envUrl.endsWith('/api') ? envUrl : `${envUrl}/api`;
+  }
+  return '/api';
+};
+
 const apiClient = axios.create({
-  baseURL: import.meta.env['VITE_API_URL'] || '/api',
+  baseURL: getAxiosBaseUrl(),
   headers: { 'Content-Type': 'application/json' },
 });
 
