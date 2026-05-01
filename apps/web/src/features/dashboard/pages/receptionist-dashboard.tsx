@@ -16,6 +16,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useDashboard } from '../hooks/use-dashboard';
 import { useQueueMgmt } from '../hooks/use-queue-mgmt';
 import { Pagination } from '@/components/shared/pagination';
+import { DashboardSkeleton } from '@/components/shared/dashboard-skeleton';
 import './role-dashboards.css';
 
 export function ReceptionistDashboard() {
@@ -47,12 +48,7 @@ export function ReceptionistDashboard() {
   };
 
   if (isLoading) {
-    return (
-      <div className="dash-root" style={{ padding: '64px', textAlign: 'center', color: '#94a3b8' }}>
-        <Activity className="animate-pulse" style={{ margin: '0 auto 16px', color: 'var(--primary)' }} />
-        <p className="text-small">Connecting to Front-Desk Hub...</p>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (

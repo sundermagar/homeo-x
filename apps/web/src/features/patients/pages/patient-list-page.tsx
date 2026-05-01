@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { usePatients, useDeletePatient } from '../hooks/use-patients';
+import { usePatients, useDeletePatient, usePatientFormMeta } from '../hooks/use-patients';
 import { 
   Search, Plus, List as ListIcon, Grid, Eye, Edit2, Phone, MapPin, Calendar, 
   ChevronLeft, ChevronRight, MessageCircle, Printer, Download, RefreshCw, MoreVertical, Trash2
@@ -55,6 +55,7 @@ export default function PatientListPage() {
     sortBy: sortBy,
     sortOrder: sortBy === 'oldest' ? 'asc' : 'desc'
   });
+  const { data: meta } = usePatientFormMeta((user as any)?.contextId);
   const deleteMutation = useDeletePatient();
 
   const handleSearchChange = (val: string) => {
@@ -161,8 +162,8 @@ export default function PatientListPage() {
                 <th>Patient</th>
                 <th>RegID</th>
                 <th>Contact</th>
-                <th>City</th>
-                <th>Registered</th>
+                <th>Doctor Name</th>
+                <th>Last Followup</th>
                 <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
@@ -188,8 +189,8 @@ export default function PatientListPage() {
                     </Link>
                   </td>
                   <td>{p.phone || '—'}</td>
-                  <td>{p.city || '—'}</td>
-                  <td className="text-small">{formatDate(p.createdAt)}</td>
+                  <td>{meta?.doctors?.find(d => String(d.id) === String(p.doctorName))?.name || p.doctorName || '—'}</td>
+                  <td className="text-small">{formatDate(p.lastVisit || p.createdAt)}</td>
                   <td style={{ textAlign: 'right' }}>
                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
                       {/* History button removed - click name/ID instead */}
@@ -261,8 +262,8 @@ export default function PatientListPage() {
                 </div>
               </div>
               <div className="appt-grid-card-detail">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><MapPin size={14} /> {p.city || '—'}</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Calendar size={14} /> Registered: {formatDate(p.createdAt)}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><MapPin size={14} /> {meta?.doctors?.find(d => String(d.id) === String(p.doctorName))?.name || p.doctorName || 'No Doctor Assigned'}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Calendar size={14} /> Followup: {formatDate(p.lastVisit || p.createdAt)}</div>
               </div>
               <div className="appt-grid-card-actions-minimal">
                 <button className="appt-btn-minimal white-pill" style={{ flex: 1 }} onClick={() => openWhatsApp(p.phone, p.fullName)}>

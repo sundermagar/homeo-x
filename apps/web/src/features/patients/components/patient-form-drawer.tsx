@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
-import { usePatient, useCreatePatient, useUpdatePatient, usePatientFormMeta } from '../hooks/use-patients';
+import { usePatient, useCreatePatient, useUpdatePatient, usePatientFormMeta, usePatientLookup } from '../hooks/use-patients';
+import { useReferrals } from '../../settings/hooks/use-settings';
 import { NumericInput } from '@/shared/components/NumericInput';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { X } from 'lucide-react';
@@ -37,9 +38,13 @@ export function PatientFormDrawer({ isOpen, onClose, regid, onSuccess }: Patient
 
   const [form, setForm] = useState(INIT_FORM);
   const [errors, setErrors] = useState<string[]>([]);
+  const [refSearch, setRefSearch] = useState('');
+  const [showRefDropdown, setShowRefDropdown] = useState(false);
 
   const { data: meta } = usePatientFormMeta(clinicId);
-  const { data: patient } = usePatient(Number(regid), { enabled: isEdit && !!regid });
+  const { data: patient } = usePatient(Number(regid), { enabled: isEdit && !!regid } as any);
+  const { data: refResults = [] } = usePatientLookup(refSearch);
+  const { data: referrals = [] } = useReferrals();
   const createMutation = useCreatePatient();
   const updateMutation = useUpdatePatient();
 
@@ -287,14 +292,54 @@ export function PatientFormDrawer({ isOpen, onClose, regid, onSuccess }: Patient
                 <label className="drawer-label">Reference</label>
                 <select className="drawer-input" name="referenceType" value={form.referenceType} onChange={handleChange}>
                   <option value="">Select Reference</option>
-                  {['Self', 'Existing Patient', 'Doctor', 'Social Media', 'Advertisement', 'Walk-in', 'Other'].map(r => <option key={r} value={r}>{r}</option>)}
+                  {referrals.filter((r: any) => r.isActive).length > 0 
+                    ? referrals.filter((r: any) => r.isActive).map((r: any) => <option key={r.id} value={r.name}>{r.name}</option>)
+                    : ['Self', 'Existing Patient', 'Doctor', 'Social Media', 'Advertisement', 'Walk-in', 'Other'].map(r => <option key={r} value={r}>{r}</option>)
+                  }
                 </select>
               </div>
               <div className="form-group">
                 <label className="drawer-label">Referred By</label>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <input className="drawer-input" style={{ width: '60px' }} placeholder="ID" disabled />
-                  <input className="drawer-input" style={{ flex: 1 }} name="referredBy" value={form.referredBy} onChange={handleChange} placeholder="Enter Patient ID or Name" />
+                <div style={{ display: 'flex', gap: '8px', position: 'relative' }}>
+                  <input 
+                    className="drawer-input" 
+                    style={{ width: '80px' }} 
+                    placeholder="ID" 
+                    value={refSearch}
+                    onChange={e => {
+                       setRefSearch(e.target.value);
+                       setShowRefDropdown(true);
+                    }}
+                    onFocus={() => setShowRefDropdown(true)}
+                  />
+                  <input 
+                    className="drawer-input" 
+                    style={{ flex: 1 }} 
+                    name="referredBy" 
+                    value={form.referredBy} 
+                    onChange={handleChange} 
+                    placeholder="Patient Name" 
+                    readOnly
+                  />
+                  
+                  {showRefDropdown && refSearch.length >= 2 && refResults.length > 0 && (
+                    <div className="appt-kebab-menu" style={{ position: 'absolute', top: '100%', left: 0, width: '100%', zIndex: 10, maxHeight: '200px', overflowY: 'auto' }}>
+                      {refResults.map(p => (
+                        <button 
+                          key={p.regid} 
+                          type="button"
+                          className="appt-kebab-item" 
+                          onClick={() => {
+                            setForm(f => ({ ...f, referredBy: p.fullName }));
+                            setRefSearch(String(p.regid));
+                            setShowRefDropdown(false);
+                          }}
+                        >
+                          <span className="pp-mono text-small" style={{ color: 'var(--pp-blue)' }}>{p.regid}</span> - {p.fullName}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

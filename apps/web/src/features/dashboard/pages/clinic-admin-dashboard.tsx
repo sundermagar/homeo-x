@@ -22,6 +22,7 @@ import {
 } from 'recharts';
 import { useClinicAdminDashboard } from '../hooks/use-clinic-admin-dashboard';
 import { useAuthStore } from '@/shared/stores/auth-store';
+import { DashboardSkeleton } from '@/components/shared/dashboard-skeleton';
 import './role-dashboards.css';
 import './clinic-admin-dashboard.css';
 
@@ -73,12 +74,7 @@ export function ClinicAdminDashboard() {
   useAuthStore((s) => s.user); // ensures auth store is initialised
 
   if (isLoading || !data) {
-    return (
-      <div className="cad-root cad-loading">
-        <Activity size={28} style={{ color: 'var(--pp-blue)', animation: 'pulse 1.5s infinite' }} />
-        <p>Loading Clinic Analytics…</p>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   const {

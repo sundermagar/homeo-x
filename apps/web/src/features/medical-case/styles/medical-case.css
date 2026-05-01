@@ -16,6 +16,13 @@
   flex-direction: column;
   min-height: 100vh;
   background: var(--pp-warm-1);
+  margin: -24px; /* Counteracts page-content-area padding */
+}
+
+@media (min-width: 1024px) {
+  .mc-detail-container {
+    margin: -40px; /* Counteracts desktop page-content-area padding */
+  }
 }
 
 /* ─── Redesigned Patient Hero Banner ─── */

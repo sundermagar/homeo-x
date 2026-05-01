@@ -31,6 +31,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useDashboard } from '../hooks/use-dashboard';
 import { useClinicAdminDashboard } from '../hooks/use-clinic-admin-dashboard';
+import { DashboardSkeleton } from '@/components/shared/dashboard-skeleton';
 import './role-dashboards.css';
 import './admin-dashboard.css';
 
@@ -48,55 +49,7 @@ export function AdminDashboard() {
   const clinicCount = platformStats?.totalClinics ?? 0;
 
   if (isLoading) {
-    return (
-      <div className="sa-root sa-loading-skeleton">
-        {/* Header Skeleton */}
-        <div className="sa-header">
-          <div>
-            <div className="skeleton-box skeleton-text title" style={{ width: '240px', marginBottom: '8px' }} />
-            <div className="skeleton-box skeleton-text" style={{ width: '180px' }} />
-          </div>
-        </div>
-
-        {/* Primary KPI Skeleton */}
-        <div className="sa-kpi-primary">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="sa-kpi-card" style={{ height: '110px' }}>
-              <div className="skeleton-box" style={{ width: '48px', height: '48px', borderRadius: '12px' }} />
-              <div style={{ flex: 1 }}>
-                <div className="skeleton-box skeleton-text" style={{ width: '40%', marginBottom: '8px' }} />
-                <div className="skeleton-box skeleton-text title" style={{ width: '70%', marginBottom: '8px', height: '24px' }} />
-                <div className="skeleton-box skeleton-text" style={{ width: '30%', marginBottom: 0 }} />
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="sa-main-grid">
-          <div className="sa-chart-card" style={{ height: '320px' }}>
-            <div className="sa-chart-header">
-              <div className="skeleton-box skeleton-text" style={{ width: '150px', marginBottom: 0 }} />
-            </div>
-            <div className="sa-chart-body" style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', padding: '24px' }}>
-              <div className="skeleton-box" style={{ width: '100%', height: '80%', borderRadius: '8px 8px 0 0', opacity: 0.1 }} />
-            </div>
-          </div>
-          <div className="sa-intel-card" style={{ height: '320px' }}>
-            <div className="sa-intel-header">
-              <div className="skeleton-box skeleton-text" style={{ width: '120px', marginBottom: 0 }} />
-            </div>
-            <div className="sa-intel-list">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="sa-intel-item">
-                  <div className="skeleton-box skeleton-circle" style={{ width: '8px', height: '8px' }} />
-                  <div className="skeleton-box skeleton-text" style={{ width: '100%' }} />
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (
