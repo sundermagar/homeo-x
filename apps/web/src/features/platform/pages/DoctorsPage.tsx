@@ -10,8 +10,8 @@ import { createStaffSchema, updateStaffSchema } from '@mmc/validation';
 import { apiClient } from '@/infrastructure/api-client';
 import '../styles/platform.css';
 
-import { Pagination } from '@/shared/components/Pagination';
-import { TableSkeleton } from '@/shared/components/TableSkeleton';
+import { Pagination } from '@/components/shared/pagination';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { Drawer } from '@/shared/components/drawer';
 
 const CATEGORY = 'doctor' as const;
@@ -815,11 +815,12 @@ export default function DoctorsPage() {
             </table>
           </div>
           <Pagination
-            totalItems={data?.total || 0}
-            itemsPerPage={itemsPerPage}
             currentPage={page}
+            totalPages={Math.ceil((data?.total || 0) / itemsPerPage)}
+            pageSize={itemsPerPage}
+            totalItems={data?.total || 0}
             onPageChange={setPage}
-            onLimitChange={setItemsPerPage}
+            onPageSizeChange={setItemsPerPage}
           />
         </>
         )}

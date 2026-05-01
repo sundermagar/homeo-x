@@ -6,6 +6,8 @@ import {
   usePackagePlans, useCreatePackagePlan, useUpdatePackagePlan, useDeletePackagePlan, usePackageRevenueStats
 } from '../hooks/use-packages';
 import { Drawer } from '@/shared/components/drawer';
+import { Pagination } from '@/components/shared/pagination';
+import { usePagination } from '@/shared/hooks/use-pagination';
 import '../styles/packages.css';
 
 const COLORS = ['#2563EB', '#7C3AED', '#059669', '#D97706', '#E11D48', '#0891B2', '#EA580C', '#6366F1'];
@@ -101,6 +103,14 @@ export default function PackagePlansPage() {
   const deletePlan = useDeletePackagePlan();
 
   const [modal, setModal] = useState<null | 'create' | { plan: any }>(null);
+  const {
+    currentPage,
+    setCurrentPage,
+    itemsPerPage,
+    setItemsPerPage,
+    paginatedData,
+    totalItems
+  } = usePagination(plans, 10);
 
   const handleSave = async (data: any) => {
     if (typeof modal === 'object' && modal?.plan) {
@@ -154,7 +164,7 @@ export default function PackagePlansPage() {
             <p className="pkg-empty-text">No plans yet. Create your first membership package.</p>
           </div>
         ) : (
-          plans.map(plan => (
+          paginatedData.map(plan => (
             <div key={plan.id} className={`pkg-plan-card ${!plan.isActive ? 'inactive' : ''}`}>
               <div className="pkg-plan-accent" style={{ background: plan.colorCode }} />
               <div className="pkg-plan-body">
@@ -197,16 +207,15 @@ export default function PackagePlansPage() {
         )}
       </div>
 
-      {/* Pagination */}
-      {!isLoading && plans.length > 0 && (
-        <div className="pp-pagination-bar" style={{ marginTop: '20px' }}>
-          <div className="pp-pagination-info-wrap">
-            <span className="pp-pagination-info">Showing 1-{plans.length} of {plans.length} plans</span>
-          </div>
-          <div className="pp-pagination-controls">
-            <button className="pp-pagination-page is-active">1</button>
-          </div>
-        </div>
+      {!isLoading && totalItems > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={Math.ceil(totalItems / itemsPerPage)}
+          pageSize={itemsPerPage}
+          totalItems={totalItems}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={setItemsPerPage}
+        />
       )}
 
       {/* Modal */}

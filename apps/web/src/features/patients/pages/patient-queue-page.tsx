@@ -36,7 +36,7 @@ export default function PatientQueuePage() {
   // View & Pagination State
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(6);
+  const [limit, setLimit] = useState(10);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);

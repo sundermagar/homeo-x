@@ -53,7 +53,7 @@ export class BillingRepositoryPg implements BillingRepository {
           .orderBy(desc(bills.id))
           .limit(limit)
           .offset(offset),
-        this.db.select({ count: sql<number>`count(*)` }).from(bills).where(where),
+        this.db.select({ count: sql<number>`count(*)` }).from(bills).leftJoin(patients, eq(patients.regid, bills.regid)).where(where),
       ]);
 
       const total = Number(countRows[0]?.count ?? 0);

@@ -5,7 +5,7 @@ import { usePatient } from '../../patients/hooks/use-patients';
 import type { AdditionalChargeWithPatient } from '@mmc/types';
 import type { CreateAdditionalChargeInput } from '@mmc/validation';
 import { Pagination } from '@/shared/components/Pagination';
-import { TableSkeleton } from '@/shared/components/TableSkeleton';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { Drawer } from '@/shared/components/drawer';
 import '../styles/billing.css';
 import '../../platform/styles/platform.css';
@@ -27,7 +27,7 @@ export default function AdditionalChargesPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
-  const query = { page, limit: 30, regid: regidFilter ? parseInt(regidFilter, 10) : undefined };
+  const query = { page, limit: 10, regid: regidFilter ? parseInt(regidFilter, 10) : undefined };
   const { data, isLoading } = useAdditionalCharges(query);
   const createCharge = useCreateAdditionalCharge();
   const updateCharge = useUpdateAdditionalCharge();
@@ -187,7 +187,7 @@ export default function AdditionalChargesPage() {
 
       <Pagination
         totalItems={total}
-        itemsPerPage={30}
+        itemsPerPage={10}
         currentPage={page}
         onPageChange={(p) => setPage(p)}
         onLimitChange={() => {}}

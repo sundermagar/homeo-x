@@ -36,7 +36,7 @@ export default function CalendarPage() {
     from_date: fromDate,
     to_date:   toDate,
     doctor_id: doctorFilter ? Number(doctorFilter) : undefined,
-    limit:     500,
+    limit: 100,
   });
 
   // Build date→appointments map

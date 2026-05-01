@@ -4,8 +4,8 @@ import { Receipt, Search, ChevronLeft, ChevronRight, FilePlus, Grid, List, Print
 
 import { useBills, useDailyCollection } from '../hooks/use-billing';
 import { BillingTable } from '../components/BillingTable';
-import { Pagination } from '@/shared/components/Pagination';
-import { TableSkeleton } from '@/shared/components/TableSkeleton';
+import { Pagination } from '@/components/shared/pagination';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { Drawer } from '@/shared/components/drawer';
 import { BillingForm } from './BillingFormPage';
 import { CustomBillForm } from './CustomBillPage';
@@ -45,7 +45,7 @@ export default function BillingListPage() {
   const parsedRegid = parseInt(regidFilter, 10);
   const billsQuery      = useBills({ 
     page, 
-    limit: 30, 
+    limit: 10, 
     regid: (!isNaN(parsedRegid) && regidFilter) ? parsedRegid : undefined, 
     date: date || undefined 
   });
@@ -197,11 +197,12 @@ export default function BillingListPage() {
       )}
 
       <Pagination
-        totalItems={total}
-        itemsPerPage={30}
         currentPage={page}
+        totalPages={Math.ceil(total / 10)}
+        pageSize={10}
+        totalItems={total}
         onPageChange={(p) => setPage(p)}
-        onLimitChange={() => {}}
+        onPageSizeChange={() => {}}
       />
 
       <Drawer isOpen={isNewBillOpen} onClose={() => setIsNewBillOpen(false)} title="Generate New Invoice" maxWidth="500px">

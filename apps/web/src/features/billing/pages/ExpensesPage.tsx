@@ -11,7 +11,7 @@ import {
 import type { ExpenseWithHead } from '@mmc/types';
 import type { CreateExpenseInput, ListExpensesQuery } from '@mmc/validation';
 import { Pagination } from '@/shared/components/Pagination';
-import { TableSkeleton } from '@/shared/components/TableSkeleton';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { Drawer } from '@/shared/components/drawer';
 import '../styles/billing.css';
 
@@ -37,7 +37,7 @@ export default function ExpensesPage() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
   const query: ListExpensesQuery = {
-    page, limit: 30,
+    page, limit: 10,
     head: headFilter ? parseInt(headFilter, 10) : undefined,
     fromDate: fromDate || undefined,
     toDate: toDate || undefined,
@@ -258,7 +258,7 @@ export default function ExpensesPage() {
       </div>
       <Pagination
         totalItems={total}
-        itemsPerPage={30}
+        itemsPerPage={10}
         currentPage={page}
         onPageChange={(p) => setPage(p)}
         onLimitChange={() => {}}

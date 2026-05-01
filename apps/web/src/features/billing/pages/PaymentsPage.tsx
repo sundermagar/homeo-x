@@ -9,7 +9,7 @@ import { usePatient } from '../../patients/hooks/use-patients';
 import { PaymentModeEnum } from '@mmc/validation';
 import type { PaymentWithPatient } from '@mmc/types';
 import { Pagination } from '@/shared/components/Pagination';
-import { TableSkeleton } from '@/shared/components/TableSkeleton';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { Drawer } from '@/shared/components/drawer';
 import { format } from 'date-fns';
 import '../styles/billing.css';
@@ -50,7 +50,7 @@ export default function PaymentsPage() {
 
   const historyQuery = usePaymentHistory({
     page,
-    limit: 50,
+    limit: 10,
     regid: regidFilter ? parseInt(regidFilter, 10) : undefined,
   });
 
@@ -309,7 +309,7 @@ export default function PaymentsPage() {
 
       <Pagination
         totalItems={historyQuery.data?.pagination?.total ?? 0}
-        itemsPerPage={30}
+        itemsPerPage={10}
         currentPage={page}
         onPageChange={(p) => setPage(p)}
         onLimitChange={() => {}}

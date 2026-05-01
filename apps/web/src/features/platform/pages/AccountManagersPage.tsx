@@ -9,7 +9,7 @@ import { apiClient } from '@/infrastructure/api-client';
 import '../styles/platform.css';
 
 import { Pagination } from '@/shared/components/Pagination';
-import { TableSkeleton } from '@/shared/components/TableSkeleton';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { Drawer } from '@/shared/components/drawer';
 
 function FileInputRow({

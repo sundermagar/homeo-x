@@ -3,8 +3,8 @@ import { Calendar, RefreshCw, AlertTriangle, CheckCircle2, XCircle, Clock, Phone
 import { usePackageExpiryReport } from '../hooks/use-packages';
 import { useSendWhatsApp } from '@/features/communications/hooks/use-communications';
 import { Drawer } from '@/shared/components/drawer';
-import { Pagination } from '@/shared/components/Pagination';
-import { TableSkeleton } from '@/shared/components/TableSkeleton';
+import { Pagination } from '@/components/shared/pagination';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { usePagination } from '@/shared/hooks/use-pagination';
 import '../styles/packages.css';
 
@@ -237,11 +237,12 @@ export default function PackageTrackingPage() {
               </table>
             </div>
             <Pagination
-              totalItems={totalItems}
-              itemsPerPage={itemsPerPage}
               currentPage={currentPage}
+              totalPages={Math.ceil(totalItems / itemsPerPage)}
+              pageSize={itemsPerPage}
+              totalItems={totalItems}
               onPageChange={setCurrentPage}
-              onLimitChange={setItemsPerPage}
+              onPageSizeChange={setItemsPerPage}
             />
           </>
         )}

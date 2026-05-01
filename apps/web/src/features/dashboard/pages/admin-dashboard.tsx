@@ -4,13 +4,20 @@ import {
   TrendingDown,
   Activity,
   CreditCard,
-  AlertCircle,
+  Clock,
+  CheckCircle,
   ArrowRight,
   BarChart3,
+  ChevronRight,
+  ChevronDown,
+  DollarSign,
+  Plus,
+  MoreVertical,
+  Zap,
+  Users,
+  Building2,
   CalendarClock,
   Ticket,
-  Building2,
-  Users,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -123,26 +130,32 @@ export function AdminDashboard() {
           iconBg="rgba(139, 92, 246, 0.1)"
           iconColor="#8b5cf6"
         />
-        <PrimaryKPICard
-          label="REVENUE / PATIENT"
-          value={fmt(clinicData?.revenueBreakdown?.perPatient || 0)}
-          trend={0}
-          icon={<BarChart3 size={18} />}
-          color="var(--pp-blue)"
+        <KPIItem
+          label="Collection Rate"
+          value={`${dashData?.collectionRate || 0}%`}
+          trend={`${dashData?.collectionRateTrend || 0}% vs prev.`}
+          positive={Number(dashData?.collectionRateTrend || 0) >= 0}
+          icon={<CheckCircle size={20} />}
+          iconBg="rgba(16, 185, 129, 0.1)"
+          iconColor="#10b981"
         />
-        <PrimaryKPICard
-          label="PENDING DUES"
-          value={fmt(clinicData?.revenueBreakdown?.pending || 0)}
-          trend={0}
-          icon={<AlertCircle size={18} />}
-          color="var(--pp-blue)"
+        <KPIItem
+          label="Avg Wait Time"
+          value={`${dashData?.avgWaitTime || 0}m`}
+          trend={`${dashData?.avgWaitTimeTrend || 0}% vs prev.`}
+          positive={Number(dashData?.avgWaitTimeTrend || 0) <= 0}
+          icon={<Clock size={20} />}
+          iconBg="rgba(245, 158, 11, 0.1)"
+          iconColor="#f59e0b"
         />
       </div>
 
-      {/* ── Platform Stats Row ────────────────────────────────────────── */}
-      <div className="sa-stats-row" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
-        <StatCard label="Active Clinics" value={String(clinicCount)} icon={<Building2 size={16} />} color="var(--pp-blue)" onClick={() => navigate('/platform/clinics')} />
-        <StatCard label="Clinic Admins" value={String(platformStats?.totalClinicAdmins ?? 0)} icon={<Users size={16} />} color="var(--pp-blue)" onClick={() => navigate('/platform/clinicadmins')} />
+      {/* ── Secondary Stats Row ────────────────────────────────────────── */}
+      <div className="sa-stats-row">
+        <StatCard label="Active Clinics" value={String(clinicCount)} icon={<Building2 size={16} />} color="#2563eb" onClick={() => navigate('/platform/clinics')} />
+        <StatCard label="Active Staff" value={String(dashData?.staffCount || 0)} icon={<Users size={16} />} color="#7c3aed" onClick={() => navigate('/staff')} />
+        <StatCard label="Revenue / Patient" value={fmt(clinicData?.revenueBreakdown?.perPatient || 0)} icon={<BarChart3 size={16} />} color="#16a34a" />
+        <StatCard label="Pending Dues" value={fmt(clinicData?.revenueBreakdown?.pending || 0)} icon={<Activity size={16} />} color="#dc2626" onClick={() => navigate('/billing')} />
       </div>
 
       <div className="sa-main-grid">

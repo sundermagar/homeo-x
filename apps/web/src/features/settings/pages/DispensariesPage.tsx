@@ -8,7 +8,7 @@ import '../styles/settings.css';
 
 import { Pagination } from '@/shared/components/Pagination';
 import { usePagination } from '@/shared/hooks/use-pagination';
-import { TableSkeleton } from '@/shared/components/TableSkeleton';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
 
 interface Dispensary {
   id: number;

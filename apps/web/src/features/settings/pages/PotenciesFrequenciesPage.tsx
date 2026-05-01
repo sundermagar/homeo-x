@@ -7,7 +7,7 @@ import {
 } from '../hooks/use-settings';
 import '../../platform/styles/platform.css';
 import '../styles/settings.css';
-import { TableSkeleton } from '@/shared/components/TableSkeleton';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
 
 export default function PotenciesFrequenciesPage() {
   const { data: potencies = [], isLoading: loadingP } = usePotencies();

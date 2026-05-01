@@ -621,6 +621,10 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       return { physicalCurrency: 0, physicalCurrencyPct: 0, upiCard: 0, upiCardPct: 0, pending: 0, pendingCount: 0, perPatient: 0 };
     }
 
+    const amountCol = revInfo.amountCol;
+    const dateCol = revInfo.name === 'receipt' ? 'created_at' : 'bill_date';
+    const modeCol = revInfo.name === 'receipt' ? 'mode' : 'payment_mode';
+
     // Consolidated Cash vs UPI/Card
     const results = await Promise.all([
       this.db.execute(sql`
@@ -630,10 +634,10 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         ) as total
       `),
       this.db.execute(sql`
-        SELECT COALESCE(sum(CAST(NULLIF(${sql.identifier(amountCol)}::text, '') AS numeric)), 0) as total
-        FROM ${sql.identifier(revInfo.name)}
-        WHERE ${sql.identifier(dateCol)} >= ${start} AND ${sql.identifier(dateCol)} < ${boundary}
-          AND LOWER(COALESCE(${sql.identifier(modeCol)}, '')) IN ('upi', 'card', 'online', 'bank', 'gpay', 'phonepe', 'paytm')
+        SELECT COALESCE(sum(CAST(NULLIF(${sql.raw(amountCol)}::text, '') AS numeric)), 0) as total
+        FROM ${sql.raw(revInfo.name)}
+        WHERE ${sql.raw(dateCol)} >= ${start} AND ${sql.raw(dateCol)} < ${boundary}
+          AND LOWER(COALESCE(${sql.raw(modeCol)}, '')) IN ('upi', 'card', 'online', 'bank', 'gpay', 'phonepe', 'paytm')
           AND (deleted_at IS NULL OR deleted_at::text = '')
       `),
       this.db.execute(sql`

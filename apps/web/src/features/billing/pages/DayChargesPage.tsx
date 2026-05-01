@@ -5,7 +5,7 @@ import type { DayCharge } from '@mmc/types';
 import type { CreateDayChargeInput } from '@mmc/validation';
 import { Drawer } from '@/shared/components/drawer';
 import { Pagination } from '@/shared/components/Pagination';
-import { TableSkeleton } from '@/shared/components/TableSkeleton';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
 import '../../platform/styles/platform.css';
 import '../styles/billing.css';
 
@@ -29,7 +29,7 @@ export default function DayChargesPage() {
     !search || (c.days ?? '').toLowerCase().includes(search.toLowerCase())
   );
 
-  const paginated = filtered.slice((page - 1) * 30, page * 30);
+  const paginated = filtered.slice((page - 1) * 10, page * 10);
 
   const handleOpenCreate = () => {
     setEditingId(null);
@@ -104,7 +104,7 @@ export default function DayChargesPage() {
 
       <div className="plat-card">
         {isLoading ? (
-          <div className="plat-empty"><RefreshCw size={22} className="animate-spin opacity-30" /></div>
+          <TableSkeleton rows={5} columns={4} />
         ) : filtered.length === 0 ? (
           <div className="plat-empty">
             <Calendar size={40} className="plat-empty-icon" />
@@ -147,7 +147,7 @@ export default function DayChargesPage() {
 
       <Pagination
         totalItems={filtered.length}
-        itemsPerPage={30}
+        itemsPerPage={10}
         currentPage={page}
         onPageChange={setPage}
         onLimitChange={() => {}}

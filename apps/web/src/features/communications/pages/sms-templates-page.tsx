@@ -1,11 +1,14 @@
 import { useState } from 'react';
-import { Plus, Edit2, Trash2, X, CheckCircle2, MessageSquare, RefreshCw, Search } from 'lucide-react';
+import { Plus, Edit2, Trash2, CheckCircle2, MessageSquare, RefreshCw, Search } from 'lucide-react';
 import {
   useSmsTemplates, useCreateTemplate, useUpdateTemplate, useDeleteTemplate
 } from '../hooks/use-communications';
 import { SmsType } from '@mmc/types';
 import type { SmsTemplate, CreateSmsTemplateDto } from '@mmc/types';
 import { Drawer } from '@/shared/components/drawer';
+import { Pagination } from '@/components/shared/pagination';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
+import '../../platform/styles/platform.css';
 import '../styles/communications.css';
 
 const SMS_TYPES = Object.values(SmsType);
@@ -76,27 +79,12 @@ function TemplateDrawer({
         </label>
       </div>
       <div className="plat-modal-footer" style={{ padding: '24px 0 0 0', marginTop: '24px', borderTop: '1px solid var(--pp-warm-4)', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-        <button type="button" className="pp-btn pp-btn-secondary" onClick={onClose}>Cancel</button>
-        <button className="pp-btn pp-btn-primary" onClick={() => onSave(form as CreateSmsTemplateDto)}>
+        <button type="button" className="plat-btn plat-btn-ghost" onClick={onClose}>Cancel</button>
+        <button className="plat-btn plat-btn-primary" onClick={() => onSave(form as CreateSmsTemplateDto)}>
           <CheckCircle2 size={14} /> {initial ? 'Save Changes' : 'Create Template'}
         </button>
       </div>
     </Drawer>
-  );
-}
-
-function TemplateSkeleton() {
-  return (
-    <div className="comm-template-item">
-      <div className="comm-template-item-header">
-        <div style={{ width: '100%' }}>
-          <div className="pp-skeleton pp-skeleton-title" style={{ width: '40%' }}></div>
-          <div className="pp-skeleton pp-skeleton-text" style={{ width: '20%', height: '16px' }}></div>
-        </div>
-      </div>
-      <div className="pp-skeleton pp-skeleton-text" style={{ height: '40px', marginTop: '12px' }}></div>
-      <div className="pp-skeleton pp-skeleton-text" style={{ width: '30%', marginTop: '8px' }}></div>
-    </div>
   );
 }
 
@@ -108,11 +96,16 @@ export default function SmsTemplatesPage() {
 
   const [modal, setModal] = useState<null | 'create' | SmsTemplate>(null);
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const filtered = templates.filter(t =>
     t.name.toLowerCase().includes(search.toLowerCase()) ||
     t.smsType.toLowerCase().includes(search.toLowerCase())
   );
+
+  const totalItems = filtered.length;
+  const paginatedData = filtered.slice((page - 1) * itemsPerPage, page * itemsPerPage);
 
   const handleSave = async (data: CreateSmsTemplateDto) => {
     if (modal && typeof modal !== 'string') {
@@ -130,99 +123,116 @@ export default function SmsTemplatesPage() {
   };
 
   return (
-    <div className="pp-page-container comm-page animate-fade-in">
+    <div className="plat-page animate-fade-in">
       {/* Header */}
-      <header className="comm-header">
+      <div className="plat-header">
         <div>
-          <h1 className="comm-title">
-            <MessageSquare size={20} strokeWidth={1.6} className="comm-title-icon-blue" />
+          <h1 className="plat-header-title">
+            <MessageSquare size={16} className="color-primary" />
             SMS Templates
           </h1>
-          <p className="comm-subtitle">{templates.length} templates · Manage reusable message templates</p>
+          <p className="plat-header-sub">{templates.length} templates · Manage reusable message templates</p>
         </div>
-        <div className="comm-header-actions">
-          <button className="comm-btn comm-btn-sm" onClick={() => refetch()} disabled={isFetching}>
-            <RefreshCw size={13} className={isFetching ? "comm-spin" : ""} /> Refresh
+        <div className="plat-header-actions">
+          <button className="plat-btn plat-btn-ghost plat-btn-sm" onClick={() => refetch()} disabled={isFetching}>
+            <RefreshCw size={13} className={isFetching ? 'comm-spin' : ''} /> Refresh
           </button>
-          <button className="comm-btn comm-btn-primary comm-btn-sm" onClick={() => setModal('create')}>
+          <button className="plat-btn plat-btn-primary" onClick={() => setModal('create')}>
             <Plus size={14} /> New Template
           </button>
         </div>
-      </header>
+      </div>
 
-      {/* Search */}
-      <div className="comm-filters">
-        <div className="comm-search-wrap">
-          <Search size={14} className="comm-search-icon" />
+      {/* Search / Filters */}
+      <div className="plat-filters">
+        <div className="plat-search-wrap">
+          <Search className="plat-search-icon" size={14} />
           <input
-            className="comm-filter-input comm-filter-input-search"
-            placeholder="Search templates…"
+            type="text"
+            className="plat-form-input plat-search-input"
+            placeholder="Search templates by name or category..."
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={e => { setSearch(e.target.value); setPage(1); }}
           />
         </div>
-        <span className="comm-result-count">{filtered.length} result{filtered.length !== 1 ? 's' : ''}</span>
       </div>
 
-      {/* Grid */}
-      <div className="comm-card">
+      {/* Table */}
+      <div className="plat-card">
         {isLoading ? (
-          <div className="comm-template-grid">
-            {[1, 2, 3, 4].map(i => <TemplateSkeleton key={i} />)}
-          </div>
+          <TableSkeleton rows={itemsPerPage} columns={6} />
         ) : filtered.length === 0 ? (
-          <div className="comm-empty">
-            <MessageSquare size={36} className="comm-empty-icon" />
-            <p className="comm-empty-text">No templates found. Create your first one.</p>
+          <div className="plat-empty" style={{ minHeight: 240 }}>
+            <MessageSquare size={40} className="plat-empty-icon" />
+            <p className="plat-empty-text">No templates found. Create your first one.</p>
           </div>
         ) : (
-          <div className="comm-template-grid">
-            {filtered.map(t => (
-              <div key={t.id} className="comm-template-item">
-                <div className="comm-template-item-header">
-                  <div>
-                    <div className="comm-template-name">{t.name}</div>
-                    <span className="comm-type-tag">{t.smsType}</span>
-                  </div>
-                  <div className="comm-template-actions">
-                    <button className="comm-btn comm-btn-icon comm-btn-sm" onClick={() => setModal(t)} title="Edit">
-                      <Edit2 size={13} />
-                    </button>
-                    <button className="comm-btn comm-btn-icon comm-btn-sm comm-btn-danger" onClick={() => handleDelete(t)} title="Delete">
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                </div>
-                <div className="comm-template-message">
-                  {t.message.length > 100 ? t.message.slice(0, 100) + '…' : t.message}
-                </div>
-                <div className="comm-template-meta">
-                  {t.message.length} chars ·{' '}
-                  <span className={t.isActive ? 'comm-template-active' : 'comm-template-inactive'}>
-                    {t.isActive ? 'Active' : 'Inactive'}
-                  </span>
-                </div>
-              </div>
-            ))}
+          <div className="plat-table-container">
+            <table className="plat-table">
+              <thead>
+                <tr>
+                  <th style={{ width: '50px' }}>#</th>
+                  <th>Template Name</th>
+                  <th style={{ width: '130px' }}>Category</th>
+                  <th>Message Preview</th>
+                  <th style={{ width: '90px' }}>Status</th>
+                  <th style={{ width: '100px' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedData.map((t, index) => (
+                  <tr key={t.id} className="plat-table-row">
+                    <td className="plat-mono-data text-xs">{(page - 1) * itemsPerPage + index + 1}</td>
+                    <td>
+                      <div style={{ fontWeight: 700, color: 'var(--pp-ink)' }}>{t.name}</div>
+                    </td>
+                    <td>
+                      <span className="plat-badge plat-badge-default">{t.smsType}</span>
+                    </td>
+                    <td>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--pp-text-2)', maxWidth: '360px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {t.message}
+                      </div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--pp-text-3)', marginTop: '2px' }}>
+                        {t.message.length} chars · {Math.ceil(t.message.length / 160)} segment{Math.ceil(t.message.length / 160) > 1 ? 's' : ''}
+                      </div>
+                    </td>
+                    <td>
+                      <span className={t.isActive ? 'plat-badge plat-badge-info' : 'plat-badge plat-badge-default'}>
+                        {t.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <button className="plat-btn plat-btn-ghost plat-btn-sm" onClick={() => setModal(t)} title="Edit">
+                          <Edit2 size={13} />
+                        </button>
+                        <button className="plat-btn plat-btn-ghost plat-btn-sm" style={{ color: 'var(--pp-danger-fg)' }} onClick={() => handleDelete(t)} title="Delete">
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
-        
+
         {/* Pagination */}
-        {!isLoading && filtered.length > 0 && (
-          <div className="pp-pagination-bar">
-            <div className="pp-pagination-info-wrap">
-              <span className="pp-pagination-info">Showing 1-{filtered.length} of {templates.length}</span>
-            </div>
-            <div className="pp-pagination-controls">
-              <button className="pp-pagination-btn" disabled><RefreshCw size={14} /></button>
-              <button className="pp-pagination-page is-active">1</button>
-              <button className="pp-pagination-btn" disabled><RefreshCw size={14} /></button>
-            </div>
-          </div>
+        {!isLoading && totalItems > 0 && (
+          <Pagination
+            currentPage={page}
+            totalPages={Math.ceil(totalItems / itemsPerPage)}
+            pageSize={itemsPerPage}
+            totalItems={totalItems}
+            onPageChange={(p) => setPage(p)}
+            onPageSizeChange={(size) => { setItemsPerPage(size); setPage(1); }}
+          />
         )}
       </div>
 
-      {/* Modal */}
+      {/* Drawer */}
       <TemplateDrawer
         isOpen={!!modal}
         initial={(modal && typeof modal === 'object') ? modal : undefined}

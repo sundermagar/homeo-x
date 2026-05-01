@@ -7,21 +7,22 @@ import {
   Grid, List
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { TableSkeleton } from '@/shared/components/TableSkeleton';
-import { Pagination } from '@/shared/components/Pagination';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { Pagination } from '@/components/shared/pagination';
 import '../styles/medical-case.css';
 
 export default function MedicalCaseListPage() {
   const api = useApi();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
-  const [page] = useState(1);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   const { data: records, isLoading } = useQuery({
-    queryKey: ['medical-cases', search, page],
+    queryKey: ['medical-cases', search, page, pageSize],
     queryFn: async () => {
-      const res = await api.get(`/medical-cases?search=${search}&page=${page}`);
+      const res = await api.get(`/medical-cases?search=${search}&page=${page}&limit=${pageSize}`);
       return res.data;
     },
   });
@@ -50,7 +51,7 @@ export default function MedicalCaseListPage() {
             placeholder="Search by name, RegID, or mobile..."
             className="mc-search-input"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
@@ -216,6 +217,16 @@ export default function MedicalCaseListPage() {
             </div>
           ))}
         </div>
+      )}
+      {!isLoading && (records?.total ?? 0) > 0 && (
+        <Pagination
+          currentPage={page}
+          totalPages={Math.ceil((records?.total ?? 0) / pageSize)}
+          pageSize={pageSize}
+          totalItems={records?.total ?? 0}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
+        />
       )}
     </div>
   );

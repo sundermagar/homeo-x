@@ -7,8 +7,8 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import { apiClient } from '@/infrastructure/api-client';
 import { useDoctors } from '@/features/appointments/hooks/use-doctors';
-import { TableSkeleton } from '@/shared/components/TableSkeleton';
-import { Pagination } from '@/shared/components/Pagination';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { Pagination } from '@/components/shared/pagination';
 
 export default function FollowupsPage() {
   const navigate = useNavigate();
@@ -24,7 +24,7 @@ export default function FollowupsPage() {
     doctor_id: ''
   });
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(25);
+  const [limit, setLimit] = useState(10);
   const [total, setTotal] = useState(0);
 
   const { data: doctors = [] } = useDoctors();
@@ -349,14 +349,14 @@ export default function FollowupsPage() {
         )}
       </main>
 
-      {/* Pagination Bar */}
       {!loading && total > 0 && (
         <Pagination
-          totalItems={total}
-          itemsPerPage={limit}
           currentPage={page}
+          totalPages={Math.ceil(total / limit)}
+          pageSize={limit}
+          totalItems={total}
           onPageChange={setPage}
-          onLimitChange={setLimit}
+          onPageSizeChange={setLimit}
         />
       )}
 

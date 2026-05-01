@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { useRemedyTree } from '@/features/medical-case/hooks/use-remedy-chart';
 import '../styles/remedy-tree.css';
-import { TableSkeleton } from '@/shared/components/TableSkeleton';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
 
 // ─── Sub-Components ──────────────────────────────────────────────────────────
 

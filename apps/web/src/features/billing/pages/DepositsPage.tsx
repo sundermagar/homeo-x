@@ -5,7 +5,7 @@ import type { BankDeposit, CashDeposit } from '@mmc/types';
 import type { CreateBankDepositInput, CreateCashDepositInput, ListDepositsQuery } from '@mmc/validation';
 import { Drawer } from '@/shared/components/drawer';
 import { Pagination } from '@/shared/components/Pagination';
-import { TableSkeleton } from '@/shared/components/TableSkeleton';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
 import '../../platform/styles/platform.css';
 import '../styles/billing.css';
 
@@ -21,8 +21,8 @@ export default function DepositsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submissionError, setSubmissionError] = useState('');
 
-  const bankQuery: ListDepositsQuery = { page, limit: 30, date: dateFilter || undefined };
-  const cashQuery: ListDepositsQuery = { page, limit: 30, date: dateFilter || undefined };
+  const bankQuery: ListDepositsQuery = { page, limit: 10, date: dateFilter || undefined };
+  const cashQuery: ListDepositsQuery = { page, limit: 10, date: dateFilter || undefined };
 
   const bankQuery_ = useBankDeposits(bankQuery);
   const cashQuery_ = useCashDeposits(cashQuery);
@@ -218,7 +218,7 @@ export default function DepositsPage() {
 
       <div className="plat-card">
         {isLoading ? (
-          <div className="plat-empty"><RefreshCw size={22} className="animate-spin opacity-30" /></div>
+          <TableSkeleton rows={5} columns={7} />
         ) : filtered.length === 0 ? (
           <div className="plat-empty">
             <Building size={40} className="plat-empty-icon" />
@@ -274,7 +274,7 @@ export default function DepositsPage() {
 
       <Pagination
         totalItems={total}
-        itemsPerPage={30}
+        itemsPerPage={10}
         currentPage={page}
         onPageChange={setPage}
         onLimitChange={() => {}}

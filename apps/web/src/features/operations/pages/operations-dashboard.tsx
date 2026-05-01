@@ -7,6 +7,7 @@ import {
   FileText, Users
 } from 'lucide-react';
 import { apiClient } from '@/infrastructure/api-client';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
 import './operations-dashboard.css';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -59,15 +60,6 @@ function StatCard({ icon: Icon, value, label, variant = 'default' }: {
 // COMPONENTS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function TableShimmer({ cols }: { cols: number }) {
-  return (
-    <div style={{ display: 'grid', gap: 12 }}>
-      {[...Array(5)].map((_, i) => (
-        <div key={i} className="appt-shimmer" style={{ height: 62, borderRadius: 12 }} />
-      ))}
-    </div>
-  );
-}
 
 function Pagination({ 
   total, 
@@ -168,7 +160,7 @@ export default function OperationsDashboard() {
   const [crmFilter, setCrmFilter] = useState<'all' | 'new' | 'pending' | 'converted' | 'overdue'>('all');
   const [crmSearch, setCrmSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(8);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // ─── Real Data State ───
   const [leads, setLeads] = useState<any[]>([]);
@@ -393,7 +385,7 @@ export default function OperationsDashboard() {
             </div>
 
             {loading ? (
-              <TableShimmer cols={shipmentCols.length} />
+              <TableSkeleton rows={5} columns={shipmentCols.length} />
             ) : viewMode === 'list' ? (
               <div className="ops-table-wrapper">
                 <table className="ops-table">
@@ -526,7 +518,7 @@ export default function OperationsDashboard() {
                 </div>
 
                 {loading ? (
-                  <TableShimmer cols={leadCols.length} />
+                  <TableSkeleton rows={5} columns={leadCols.length} />
                 ) : leads.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: 40, background: 'var(--pp-warm-1)', borderRadius: 12 }}>
                     <UsersRound size={32} strokeWidth={1} style={{ color: 'var(--pp-warm-5)', marginBottom: 12 }} />
@@ -607,7 +599,7 @@ export default function OperationsDashboard() {
                   </button>
                 </div>
                 {loading ? (
-                  <TableShimmer cols={referralCols.length} />
+                  <TableSkeleton rows={5} columns={referralCols.length} />
                 ) : (
                   <div className="ops-table-wrapper">
                     <table className="ops-table">
@@ -657,7 +649,7 @@ export default function OperationsDashboard() {
                   </button>
                 </div>
                 {loading ? (
-                  <TableShimmer cols={reminderCols.length} />
+                  <TableSkeleton rows={5} columns={reminderCols.length} />
                 ) : (
                   <div className="ops-table-wrapper">
                     <table className="ops-table">
@@ -720,7 +712,7 @@ export default function OperationsDashboard() {
             </div>
 
             {loading ? (
-              <TableShimmer cols={dictCols.length} />
+              <TableSkeleton rows={5} columns={dictCols.length} />
             ) : dictionary.length === 0 ? (
               <div style={{ textAlign: 'center', padding: 40, background: 'var(--pp-warm-1)', borderRadius: 12 }}>
                 <p style={{ color: 'var(--pp-muted)' }}>No dictionary entries found.</p>
@@ -794,7 +786,7 @@ export default function OperationsDashboard() {
             </div>
 
             {loading ? (
-              <TableShimmer cols={bookCols.length} />
+              <TableSkeleton rows={5} columns={bookCols.length} />
             ) : books.length === 0 ? (
               <div style={{ textAlign: 'center', padding: 40, background: 'var(--pp-warm-1)', borderRadius: 12 }}>
                 <p style={{ color: 'var(--pp-muted)' }}>No library resources found.</p>

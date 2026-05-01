@@ -4,7 +4,7 @@ import { useStaffList, useDeleteStaff } from '../hooks/use-staff';
 import { Grid, List } from 'lucide-react';
 import type { StaffCategory, StaffSummary } from '@mmc/types';
 import { Pagination } from '@/shared/components/Pagination';
-import { TableSkeleton } from '@/shared/components/TableSkeleton';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
 
 const TABS: { key: StaffCategory; label: string; color: string; icon: string }[] = [
   { key: 'doctor', label: 'Doctors', color: '#0ea5e9', icon: '🩺' },

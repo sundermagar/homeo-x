@@ -10,8 +10,8 @@ import {
   useReferenceListing
 } from '../hooks/use-analytics';
 import { useSendWhatsApp, useSmsTemplates } from '@/features/communications/hooks/use-communications';
-import { TableSkeleton } from '@/shared/components/TableSkeleton';
-import { Pagination } from '@/shared/components/Pagination';
+import { Pagination } from '@/components/shared/pagination';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
 import '../../platform/styles/platform.css';
 
 export function ReportsPage() {
@@ -104,35 +104,13 @@ function CaseMonthWiseTab({ onExport }: { onExport: (filename: string, headers: 
           <thead>
             <tr>
               <th>Month</th>
-              <th style={{ textAlign: 'right' }}>New/Followups</th>
-              <th style={{ textAlign: 'right' }}>Collection</th>
-              <th style={{ textAlign: 'right' }}>Cash</th>
-              <th style={{ textAlign: 'right' }}>Online/Card</th>
-              <th style={{ textAlign: 'right' }}>Expenses</th>
+              <th style={{ textAlign: 'right' }}>Case Load</th>
+              <th style={{ textAlign: 'right' }}>Gross Collection</th>
+              <th style={{ textAlign: 'right' }}>Cash / Digital</th>
+              <th style={{ textAlign: 'right' }}>Operational Exp.</th>
             </tr>
           </thead>
           <tbody>
-            {(data ?? []).map((row, i) => {
-              const r = row as unknown as Record<string, unknown>;
-              return (
-              <tr key={i}>
-                <td data-label="Month" style={{ fontWeight: 700 }}>{String(r['displaydate'] ?? '')}</td>
-                <td data-label="New/Followups" style={{ textAlign: 'right' }}>
-                  <span style={{ fontWeight: 600 }}>{String(r['new_cases'] ?? 0)}</span> / <span style={{ color: 'var(--pp-text-3)' }}>{String(r['followups'] ?? 0)}</span>
-                </td>
-                <td data-label="Collection" style={{ textAlign: 'right', fontWeight: 800, color: 'var(--pp-success-fg)' }}>
-                  ₹{Number(r['collection'] ?? 0).toLocaleString()}
-                </td>
-                <td data-label="Cash" style={{ textAlign: 'right' }}>₹{Number(r['cash'] ?? 0).toLocaleString()}</td>
-                <td data-label="Online/Card" style={{ textAlign: 'right' }}>
-                  ₹{((Number(r['online']) || 0) + (Number(r['card']) || 0)).toLocaleString()}
-                </td>
-                <td data-label="Expenses" style={{ textAlign: 'right', fontWeight: 800, color: 'var(--pp-danger-fg)' }}>
-                  ₹{Number(r['expenses'] ?? 0).toLocaleString()}
-                </td>
-              </tr>
-            </thead>
-            <tbody>
               {paginatedData.map((row, i) => {
                 const r = row as unknown as Record<string, unknown>;
                 const collection = Number(r['collection'] ?? 0);
@@ -167,13 +145,13 @@ function CaseMonthWiseTab({ onExport }: { onExport: (filename: string, headers: 
             </tbody>
           </table>
         </div>
-      </div>
       <Pagination 
+        currentPage={page}
+        totalPages={Math.ceil((data ?? []).length / itemsPerPage)}
+        pageSize={itemsPerPage}
         totalItems={(data ?? []).length} 
-        itemsPerPage={itemsPerPage} 
-        currentPage={page} 
         onPageChange={setPage} 
-        onLimitChange={() => {}}
+        onPageSizeChange={() => {}}
       />
     </div>
   );
@@ -333,11 +311,12 @@ function MonthWiseDueTab({ onExport }: { onExport: (filename: string, headers: s
           {details && details.length > itemsPerPage && (
             <div style={{ marginTop: 24 }}>
               <Pagination 
-                totalItems={details.length} 
-                itemsPerPage={itemsPerPage} 
-                currentPage={page} 
+                currentPage={page}
+                totalPages={Math.ceil((details ?? []).length / itemsPerPage)}
+                pageSize={itemsPerPage}
+                totalItems={(details ?? []).length} 
                 onPageChange={setPage} 
-                onLimitChange={() => {}}
+                onPageSizeChange={() => {}}
               />
             </div>
           )}
@@ -558,11 +537,12 @@ function BirthdaysTab({ onExport }: { onExport: (filename: string, headers: stri
         {patients.length > itemsPerPage && (
           <div style={{ marginTop: 24 }}>
             <Pagination
-              totalItems={patients.length}
-              itemsPerPage={itemsPerPage}
               currentPage={page}
-              onPageChange={setPage}
-              onLimitChange={() => {}}
+              totalPages={Math.ceil((patients ?? []).length / itemsPerPage)}
+              pageSize={itemsPerPage}
+              totalItems={(patients ?? []).length} 
+              onPageChange={setPage} 
+              onPageSizeChange={() => {}}
             />
           </div>
         )}
@@ -680,11 +660,12 @@ function ReferencesTab({ onExport }: { onExport: (filename: string, headers: str
       </div>
       {(data ?? []).length > itemsPerPage && (
         <Pagination 
+          currentPage={page}
+          totalPages={Math.ceil((data ?? []).length / itemsPerPage)}
+          pageSize={itemsPerPage}
           totalItems={(data ?? []).length} 
-          itemsPerPage={itemsPerPage} 
-          currentPage={page} 
           onPageChange={setPage} 
-          onLimitChange={() => {}}
+          onPageSizeChange={() => {}}
         />
       )}
     </div>

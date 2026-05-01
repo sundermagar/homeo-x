@@ -29,7 +29,7 @@ import {
 } from '../hooks/use-roles-permissions';
 import './roles-permissions.css';
 import '@/features/platform/styles/platform.css';
-import { TableSkeleton } from '@/shared/components/TableSkeleton';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { Drawer } from '@/shared/components/drawer';
 
 export function RolesPermissionsPage() {

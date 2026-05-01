@@ -3,7 +3,7 @@ import { BarChart2, RefreshCw, Search } from 'lucide-react';
 import { useSmsReports } from '../hooks/use-communications';
 import type { SmsReport } from '@mmc/types';
 import { Pagination } from '@/shared/components/Pagination';
-import { TableSkeleton } from '@/shared/components/TableSkeleton';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
 import '../styles/communications.css';
 
 const SMS_TYPES_FILTER = ['', 'Appointment', 'Group', 'Birthday', 'Package Expiry', 'Reminder', 'General', 'OTP'];
