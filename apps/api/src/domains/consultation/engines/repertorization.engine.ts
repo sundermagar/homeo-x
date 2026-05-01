@@ -252,12 +252,13 @@ Take a list of EXACT rubrics and score the TOP 8 classically indicated remedies.
 
 CRITICAL RULES:
 1. Identify EXACTLY 8 remedies that best cover the combined totality.
-2. For EACH remedy, provide a "coverage" array with the EXACT grade for each rubric.
+2. ANTI-POLYCREST BIAS: Do NOT automatically default to Arsenicum album, Sulphur, Nux vomica, or Pulsatilla unless the case strictly demands it. Heavily favor smaller, specific remedies if they perfectly match a highly characteristic or "Grade 3" rubric in the case.
+3. For EACH remedy, provide a "coverage" array with the EXACT grade for each rubric.
    - Grade 3: Strong, bold, highly characteristic
    - Grade 2: Moderate, italic
    - Grade 1: Present, ordinary
    - Omit from "coverage" if it does not cover.
-3. Strictly return JSON format.
+4. Strictly return JSON format.
 
 JSON Output:
 {
