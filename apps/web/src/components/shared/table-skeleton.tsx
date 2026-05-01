@@ -11,7 +11,7 @@ export function TableSkeleton({ rows = 5, columns, cols }: TableSkeletonProps) {
   
   return (
     <div className="pp-table-scroll pp-card-premium" style={{ padding: 0, overflow: 'hidden' }}>
-      <table className="pp-table">
+      <table className="pp-table" style={{ tableLayout: 'fixed' }}>
         <thead>
           <tr>
             {Array.from({ length: colCount }).map((_, i) => (
