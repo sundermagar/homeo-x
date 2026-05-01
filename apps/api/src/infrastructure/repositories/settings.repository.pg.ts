@@ -578,6 +578,15 @@ export class SettingsRepositoryPg implements ISettingsRepository {
       [data.medicineId, data.changeType, data.quantity, data.previousStock ?? null, data.newStock ?? null, data.reason ?? null]
     ) as Promise<StockLog>;
   }
+  async deleteStockLog(id: number): Promise<void> {
+    try {
+      await this.q('DELETE FROM stock_logs WHERE id = $1', [id]);
+    } catch (err) {
+      this.logger.warn({ err, id }, 'deleteStockLog failed');
+      throw err;
+    }
+  }
+
 
   // ─── Package Plans ────────────────────────────────────────────────────────
   async listPackagePlans(): Promise<PackagePlan[]> {

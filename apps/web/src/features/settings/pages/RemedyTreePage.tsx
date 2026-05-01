@@ -1,15 +1,16 @@
 import React, { useState, useMemo } from 'react';
-import { 
-  BookOpen, 
-  Search, 
-  ChevronRight, 
-  ChevronDown, 
+import {
+  BookOpen,
+  Search,
+  ChevronRight,
+  ChevronDown,
   RotateCw,
   Stethoscope,
   Activity
 } from 'lucide-react';
 import { useRemedyTree } from '@/features/medical-case/hooks/use-remedy-chart';
 import '../styles/remedy-tree.css';
+import { TableSkeleton } from '@/shared/components/TableSkeleton';
 
 // ─── Sub-Components ──────────────────────────────────────────────────────────
 
@@ -32,7 +33,7 @@ function TreeRow({ node, depth = 0, expandedIds, onToggle }: TreeRowProps) {
 
   return (
     <div className="rt-tree-item-group">
-      <div 
+      <div
         className={`rt-tree-row group ${isExpanded ? 'rt-row-expanded' : ''}`}
         style={{ paddingLeft: `${(depth * 20) + 12}px` }}
         onClick={() => hasChildren && onToggle(node.id)}
@@ -54,12 +55,12 @@ function TreeRow({ node, depth = 0, expandedIds, onToggle }: TreeRowProps) {
       {isExpanded && hasChildren && (
         <div className="rt-children-container">
           {node.children.map((child: any) => (
-            <TreeRow 
-              key={child.id} 
-              node={child} 
-              depth={depth + 1} 
-              expandedIds={expandedIds} 
-              onToggle={onToggle} 
+            <TreeRow
+              key={child.id}
+              node={child}
+              depth={depth + 1}
+              expandedIds={expandedIds}
+              onToggle={onToggle}
             />
           ))}
         </div>
@@ -98,10 +99,13 @@ export default function RemedyTreePage() {
   }, [treeNodes, searchTerm]);
 
   return (
-    <div className="rt-page-container full-height single-column enhanced">
+    <div className="pp-page-container rt-page-container full-height single-column enhanced animate-fade-in">
       <div className="rt-header">
-        <div className="rt-header-info">
-          <h1 className="rt-title">Remedy Chart</h1>
+        <div>
+          <h1 className="rt-title">
+            <Activity size={20} strokeWidth={1.6} style={{ color: 'var(--pp-blue)', marginRight: '12px' }} />
+            Remedy Chart
+          </h1>
           <p className="rt-subtitle">Clinical Materia Medica Explorer</p>
         </div>
       </div>
@@ -110,8 +114,8 @@ export default function RemedyTreePage() {
         <div className="rt-toolbar">
           <div className="rt-search-wrapper">
             <Search className="rt-search-icon" size={16} />
-            <input 
-              placeholder="Search by symptom or remedy..." 
+            <input
+              placeholder="Search by symptom or remedy..."
               className="rt-search-input"
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
@@ -121,10 +125,7 @@ export default function RemedyTreePage() {
 
         <div className="rt-tree-viewport">
           {isLoading ? (
-            <div className="rt-loading-state">
-              <RotateCw className="rt-spin" size={32} />
-              <span>Loading taxonomy...</span>
-            </div>
+            <TableSkeleton rows={10} columns={1} />
           ) : filteredNodes.length === 0 ? (
             <div className="rt-empty-state">
               <div className="rt-empty-icon"><Search size={40} /></div>
@@ -136,11 +137,11 @@ export default function RemedyTreePage() {
           ) : (
             <div className="rt-tree-root">
               {filteredNodes.map(node => (
-                <TreeRow 
-                  key={node.id} 
-                  node={node} 
-                  expandedIds={expandedIds} 
-                  onToggle={toggleNode} 
+                <TreeRow
+                  key={node.id}
+                  node={node}
+                  expandedIds={expandedIds}
+                  onToggle={toggleNode}
                 />
               ))}
             </div>

@@ -11,6 +11,10 @@
   "include": [
     "src"
   ],
+  "exclude": [
+    "src/scripts",
+    "src/scratch-*.ts"
+  ],
   "references": [
     {
       "path": "../../packages/types"

@@ -3,6 +3,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useStaffList, useDeleteStaff } from '../hooks/use-staff';
 import { Grid, List } from 'lucide-react';
 import type { StaffCategory, StaffSummary } from '@mmc/types';
+import { Pagination } from '@/shared/components/Pagination';
+import { TableSkeleton } from '@/shared/components/TableSkeleton';
 
 const TABS: { key: StaffCategory; label: string; color: string; icon: string }[] = [
   { key: 'doctor', label: 'Doctors', color: '#0ea5e9', icon: '🩺' },
@@ -12,7 +14,7 @@ const TABS: { key: StaffCategory; label: string; color: string; icon: string }[]
   { key: 'account', label: 'Account Mgrs', color: '#10b981', icon: '💼' },
 ];
 
-const PAGE_SIZE = 30;
+const PAGE_SIZE = 10;
 
 export default function StaffListPage({ defaultTab }: { defaultTab?: StaffCategory } = {}) {
   const navigate = useNavigate();
@@ -23,6 +25,7 @@ export default function StaffListPage({ defaultTab }: { defaultTab?: StaffCatego
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(PAGE_SIZE);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   useEffect(() => {
@@ -30,7 +33,7 @@ export default function StaffListPage({ defaultTab }: { defaultTab?: StaffCatego
     setActiveTab(tab);
   }, [searchParams, defaultTab]);
 
-  const { data, isLoading } = useStaffList(activeTab, { page, limit: PAGE_SIZE, search: debouncedSearch });
+  const { data, isLoading } = useStaffList(activeTab, { page, limit: itemsPerPage, search: debouncedSearch });
   const deleteMutation = useDeleteStaff();
 
   const handleSearchChange = (val: string) => {
@@ -74,20 +77,20 @@ export default function StaffListPage({ defaultTab }: { defaultTab?: StaffCatego
           <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>Manage clinical practitioners, support staff, and system administrators.</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <div className="appt-segmented-toggle">
+          <div style={{ display: 'inline-flex', border: '1px solid #e2e8f0', borderRadius: 999, overflow: 'hidden', background: 'var(--bg-card)' }}>
             <button
               type="button"
               onClick={() => setViewMode('list')}
-              className={`appt-segmented-btn ${viewMode === 'list' ? 'active' : ''}`}
+              style={{ minWidth: 76, border: 'none', borderRadius: 0, padding: '10px 14px', background: viewMode === 'list' ? '#eff6ff' : 'transparent', color: viewMode === 'list' ? currentTabMeta.color : '#64748b', fontWeight: 700, cursor: 'pointer' }}
             >
-              <List size={16} /> List
+              <List size={14} />
             </button>
             <button
               type="button"
               onClick={() => setViewMode('grid')}
-              className={`appt-segmented-btn ${viewMode === 'grid' ? 'active' : ''}`}
+              style={{ minWidth: 76, border: 'none', borderRadius: 0, padding: '10px 14px', background: viewMode === 'grid' ? '#eff6ff' : 'transparent', color: viewMode === 'grid' ? currentTabMeta.color : '#64748b', fontWeight: 700, cursor: 'pointer' }}
             >
-              <Grid size={16} /> Grid
+              <Grid size={14} />
             </button>
           </div>
           <button
@@ -133,20 +136,24 @@ export default function StaffListPage({ defaultTab }: { defaultTab?: StaffCatego
 
       {/* Content */}
       {isLoading ? (
-        <div style={{ textAlign: 'center', padding: 80, color: '#94a3b8' }}>
-          <div style={{ fontSize: 32, marginBottom: 12, animation: 'spin 1s linear infinite' }}>⟳</div>
-          <p style={{ fontWeight: 600 }}>Loading {currentTabMeta.label.toLowerCase()}...</p>
-        </div>
+        viewMode === 'list' ? <TableSkeleton rows={itemsPerPage} columns={7} /> : (
+          <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
+            {Array.from({ length: itemsPerPage }).map((_, i) => (
+              <div key={i} className="shimmer-wrapper" style={{ height: 180, borderRadius: 18 }}></div>
+            ))}
+          </div>
+        )
       ) : staff.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 80, color: '#94a3b8', background: 'var(--bg-card)', border: '1px solid #e2e8f0', borderRadius: 14 }}>
           <p style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>No {currentTabMeta.label.toLowerCase()} found</p>
           <p style={{ fontSize: 14 }}>Add your first {currentTabMeta.label.toLowerCase().replace(/s$/, '')} to get started.</p>
         </div>
       ) : viewMode === 'list' ? (
-        <div className="table-responsive card" style={{ background: 'var(--bg-card)', overflow: 'hidden' }}>
+        <div className="table-responsive card" style={{ background: 'var(--bg-card)', overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700 }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border-light)' }}>
+                <th style={{ textAlign: 'left', padding: '14px 20px', fontSize: 11, fontWeight: 800, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.08em', width: 50 }}>#</th>
                 <th style={{ textAlign: 'left', padding: '14px 20px', fontSize: 11, fontWeight: 800, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Name</th>
                 <th style={{ textAlign: 'left', padding: '14px 16px', fontSize: 11, fontWeight: 800, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Contact</th>
                 {activeTab === 'doctor' && (
@@ -158,8 +165,11 @@ export default function StaffListPage({ defaultTab }: { defaultTab?: StaffCatego
               </tr>
             </thead>
             <tbody>
-              {staff.map((s: StaffSummary) => (
+              {staff.map((s: StaffSummary, idx: number) => (
                 <tr key={s.id} className="staff-row" style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.15s' }}>
+                  <td style={{ padding: '14px 20px', fontSize: 12, fontWeight: 700, color: '#94a3b8' }}>
+                    {((page - 1) * itemsPerPage) + idx + 1}
+                  </td>
                   <td style={{ padding: '14px 20px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       <div style={{
@@ -260,12 +270,14 @@ export default function StaffListPage({ defaultTab }: { defaultTab?: StaffCatego
       )}
 
       {/* Pagination */}
-      {totalPages > 1 && (
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 32 }}>
-          <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12, fontWeight: 700, cursor: page <= 1 ? 'default' : 'pointer', opacity: page <= 1 ? 0.4 : 1, background: 'var(--bg-card)', color: '#0f172a' }}>← Previous</button>
-          <span style={{ padding: '8px 16px', fontSize: 13, fontWeight: 700, color: '#64748b' }}>Page {page} of {totalPages}</span>
-          <button disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12, fontWeight: 700, cursor: page >= totalPages ? 'default' : 'pointer', opacity: page >= totalPages ? 0.4 : 1, background: 'var(--bg-card)', color: '#0f172a' }}>Next →</button>
-        </div>
+      {!isLoading && staff.length > 0 && (
+        <Pagination
+          totalItems={data?.total || 0}
+          itemsPerPage={itemsPerPage}
+          currentPage={page}
+          onPageChange={setPage}
+          onLimitChange={setItemsPerPage}
+        />
       )}
     </div>
   );

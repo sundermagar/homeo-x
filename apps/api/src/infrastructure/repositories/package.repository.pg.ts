@@ -138,6 +138,7 @@ export class PackageRepositoryPG implements PackageRepository {
   // ─── Analytics ──────────────────────────────────────────────────────────────
 
   async getExpiryAnalytics(fromDate: string, toDate: string): Promise<PackageExpiryRecord[]> {
+    const todayStr = new Date().toISOString().split('T')[0]!;
     const rows = await this.db
       .select({
         patientId:    schema.patientPackages.patientId,
@@ -147,14 +148,15 @@ export class PackageRepositoryPG implements PackageRepository {
         packageName:  schema.packagePlans.name,
         packagePrice: schema.packagePlans.price,
         colorCode:    schema.packagePlans.colorCode,
-        firstName:    sql<string>`''`,
-        surname:      sql<string>`''`,
-        phone:        sql<string | null>`null`,
-        daysRemaining: sql<number>`0`,
+        firstName:    schema.patients.firstName,
+        surname:      schema.patients.surname,
+        phone:        schema.patients.phone,
+        daysRemaining: sql<number>`(${schema.patientPackages.expiryDate}::date - ${todayStr}::date)`,
         status:       schema.patientPackages.status,
       })
       .from(schema.patientPackages)
       .leftJoin(schema.packagePlans, eq(schema.patientPackages.packageId, schema.packagePlans.id))
+      .leftJoin(schema.patients, eq(schema.patientPackages.patientId, schema.patients.id))
       .where(
         and(
           gte(schema.patientPackages.expiryDate, fromDate),

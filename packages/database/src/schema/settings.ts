@@ -96,6 +96,7 @@ export const medicines = pgTable('medicines', {
   stockLevel: integer('stock_level').default(0),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
+  deletedAt: timestamp('deleted_at'),
 });
 
 export const potencies = pgTable('potencies', {
@@ -104,6 +105,7 @@ export const potencies = pgTable('potencies', {
   detail: text('detail'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
+  deletedAt: timestamp('deleted_at'),
 });
 
 export const frequencies = pgTable('case_frequency', {

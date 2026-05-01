@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import {
   Bell, Filter, RotateCw, List, LayoutGrid, MessageSquare,
   AlertCircle, CalendarClock, Search, ChevronRight, Clock,
-  CheckCircle2, User, Calendar, ArrowLeft, MoreVertical
+  CheckCircle2, User, Calendar, MoreVertical
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { apiClient } from '@/infrastructure/api-client';
 import { useDoctors } from '@/features/appointments/hooks/use-doctors';
-import { Pagination } from '@/components/shared/pagination';
+import { TableSkeleton } from '@/shared/components/TableSkeleton';
+import { Pagination } from '@/shared/components/Pagination';
+
 export default function FollowupsPage() {
   const navigate = useNavigate();
   const [followups, setFollowups] = useState<any[]>([]);
@@ -21,27 +23,30 @@ export default function FollowupsPage() {
     to_date: '',
     doctor_id: ''
   });
-
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(30);
-  const [totalItems, setTotalItems] = useState(0);
+  const [limit, setLimit] = useState(25);
+  const [total, setTotal] = useState(0);
 
   const { data: doctors = [] } = useDoctors();
 
   useEffect(() => {
     fetchFollowups();
-  }, [filters, page, pageSize]);
+  }, [filters, page, limit]);
 
   const fetchFollowups = async () => {
     setLoading(true);
     try {
-      const params: any = { ...filters, page, limit: pageSize };
+      const params: any = { 
+        ...filters,
+        page,
+        limit
+      };
       if (search) params.search = search;
 
       const res = await apiClient.get('/appointments/followups', { params });
       if (res.data?.data) {
         setFollowups(res.data.data.data || []);
-        setTotalItems(res.data.data.total || res.data.data.data?.length || 0);
+        setTotal(res.data.data.total || 0);
       }
     } catch (error) {
       console.error("Failed to load followups", error);
@@ -52,7 +57,6 @@ export default function FollowupsPage() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setPage(1);
     fetchFollowups();
   };
 
@@ -74,9 +78,6 @@ export default function FollowupsPage() {
       {/* Header Section */}
       <header className="pp-page-header mb-8">
         <div className="flex items-center gap-4">
-          {/* <button className="fu-back-btn" onClick={() => navigate(-1)} title="Go Back">
-            <ArrowLeft size={18} strokeWidth={2} />
-          </button> */}
           <div>
             <h1 className="text-title pp-text-gradient">Follow-up Dues</h1>
             <p className="text-subtitle">{followups.length} clinical encounters pending attention</p>
@@ -177,10 +178,7 @@ export default function FollowupsPage() {
               <select
                 className="pp-select"
                 value={filters.doctor_id}
-                onChange={e => {
-                  setFilters(prev => ({ ...prev, doctor_id: e.target.value }));
-                  setPage(1);
-                }}
+                onChange={e => setFilters(prev => ({ ...prev, doctor_id: e.target.value }))}
               >
                 <option value="">All Doctors</option>
                 {doctors.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
@@ -192,10 +190,7 @@ export default function FollowupsPage() {
                 type="date"
                 className="pp-input"
                 value={filters.from_date}
-                onChange={e => {
-                  setFilters(prev => ({ ...prev, from_date: e.target.value }));
-                  setPage(1);
-                }}
+                onChange={e => setFilters(prev => ({ ...prev, from_date: e.target.value }))}
               />
             </div>
             <div className="fu-field">
@@ -204,10 +199,7 @@ export default function FollowupsPage() {
                 type="date"
                 className="pp-input"
                 value={filters.to_date}
-                onChange={e => {
-                  setFilters(prev => ({ ...prev, to_date: e.target.value }));
-                  setPage(1);
-                }}
+                onChange={e => setFilters(prev => ({ ...prev, to_date: e.target.value }))}
               />
             </div>
           </div>
@@ -217,10 +209,22 @@ export default function FollowupsPage() {
       {/* Main Content Area */}
       <main className="fu-main">
         {loading ? (
-          <div className="fu-loading-state">
-            <div className="fu-loader-circle" />
-            <p className="text-subtitle">Retrieving clinical records...</p>
-          </div>
+          viewMode === 'list' ? (
+            <TableSkeleton rows={limit} columns={6} />
+          ) : (
+            <div className="pp-patient-grid">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="pp-card-premium" style={{ height: 280, padding: 24 }}>
+                  <div className="skeleton-box skeleton-text" style={{ width: '40%', height: 20, marginBottom: 20 }} />
+                  <div className="flex flex-col items-center mb-5">
+                    <div className="skeleton-box" style={{ width: 64, height: 64, borderRadius: 20, marginBottom: 12 }} />
+                    <div className="skeleton-box skeleton-text" style={{ width: '60%', height: 18 }} />
+                  </div>
+                  <div className="skeleton-box skeleton-text" style={{ height: 60, borderRadius: 12 }} />
+                </div>
+              ))}
+            </div>
+          )
         ) : followups.length === 0 ? (
           <div className="fu-empty-state pp-card">
             <div className="fu-empty-icon">
@@ -345,17 +349,14 @@ export default function FollowupsPage() {
         )}
       </main>
 
-      {totalItems > 0 && Math.ceil(totalItems / pageSize) > 1 && (
+      {/* Pagination Bar */}
+      {!loading && total > 0 && (
         <Pagination
+          totalItems={total}
+          itemsPerPage={limit}
           currentPage={page}
-          totalPages={Math.ceil(totalItems / pageSize)}
-          pageSize={pageSize}
-          totalItems={totalItems}
           onPageChange={setPage}
-          onPageSizeChange={(newSize) => {
-            setPageSize(newSize);
-            setPage(1);
-          }}
+          onLimitChange={setLimit}
         />
       )}
 

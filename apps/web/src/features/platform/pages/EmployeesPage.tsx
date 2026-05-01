@@ -6,9 +6,11 @@ import type { StaffSummary, StaffMember } from '@mmc/types';
 import type { CreateStaffInput, UpdateStaffInput } from '@mmc/validation';
 import { createStaffSchema, updateStaffSchema } from '@mmc/validation';
 import { apiClient } from '@/infrastructure/api-client';
-import { TableSkeleton } from '@/components/shared/table-skeleton';
-import { Pagination } from '@/components/shared/pagination';
 import '../styles/platform.css';
+
+import { Pagination } from '@/shared/components/Pagination';
+import { TableSkeleton } from '@/shared/components/TableSkeleton';
+import { Drawer } from '@/shared/components/drawer';
 
 function FileInputRow({
   label,
@@ -68,7 +70,7 @@ type StaffFormErrors = {
 
 const CATEGORY = 'employee' as const;
 const META = { label: 'Employees', description: 'Manage your support staff and office employees.' };
-const PAGE_SIZE = 30;
+const PAGE_SIZE = 10;
 
 function getDefaultStaffForm(): CreateStaffInput {
   return {
@@ -290,15 +292,13 @@ function StaffModal({
   const isEdit = mode === 'edit';
 
   return (
-    <div className="plat-modal-backdrop" onClick={onClose}>
-      <div className="plat-modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="plat-modal-header">
-          <h3 className="plat-modal-title">{isEdit ? 'Update Employee Record' : 'Register New Employee'}</h3>
-          <button className="plat-btn plat-btn-icon plat-btn-ghost" onClick={onClose}>
-            <X size={14} />
-          </button>
-        </div>
-
+    <Drawer
+      isOpen={true}
+      onClose={onClose}
+      title={isEdit ? 'Update Employee Record' : 'Register New Employee'}
+      maxWidth="600px"
+    >
+      <div className="plat-modal-content" style={{ border: 'none', boxShadow: 'none', margin: 0, padding: 0 }}>
         <form onSubmit={handleSubmit} className="plat-modal-body">
           {errors['general'] && (
             <div className="plat-error-banner mb-4">
@@ -485,7 +485,7 @@ function StaffModal({
           </div>
         </form>
       </div>
-    </div>
+    </Drawer>
   );
 }
 
@@ -493,17 +493,26 @@ export default function EmployeesPage() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [sortBy, setSortBy] = useState('id');
+  const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('DESC');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
+  const [itemsPerPage, setItemsPerPage] = useState(PAGE_SIZE);
 
-  const { data, isLoading } = useStaffList(CATEGORY, { page, limit: PAGE_SIZE, search: debouncedSearch });
+  const { data, isLoading } = useStaffList(CATEGORY, { 
+    page, 
+    limit: itemsPerPage, 
+    search: debouncedSearch,
+    sortBy,
+    sortOrder
+  });
   const deleteMutation = useDeleteStaff();
   const { data: editingStaff, isLoading: isLoadingStaff } = useStaffMember(CATEGORY, editingId ?? 0);
 
   const staff = data?.data || [];
   const totalPages = Math.ceil((data?.total || 0) / PAGE_SIZE);
-  const activeCount = useMemo(() => (staff as StaffSummary[]).filter((s: StaffSummary) => s.isActive).length, [staff]);
+  const activeCount = data?.activeCount ?? 0;
 
   const openCreate = () => {
     setModalMode('create');
@@ -559,24 +568,55 @@ export default function EmployeesPage() {
       </div>
 
       <div className="plat-filters">
-        <div className="plat-search-wrap">
-          <Search className="plat-search-icon" size={14} />
-          <input
-            type="text"
-            className="plat-form-input plat-search-input"
-            placeholder={`Search ${META.label.toLowerCase()} names...`}
-            value={search}
-            onChange={(e) => handleSearchChange(e.target.value)}
-          />
+        <div className="flex gap-4 flex-1">
+          <div className="plat-search-wrap">
+            <Search className="plat-search-icon" size={14} />
+            <input
+              type="text"
+              className="plat-form-input plat-search-input"
+              placeholder={`Search ${META.label.toLowerCase()} names...`}
+              value={search}
+              onChange={(e) => handleSearchChange(e.target.value)}
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-bold color-muted uppercase tracking-wider">Sort:</span>
+            <select 
+              className="plat-form-input !py-1 !text-xs !w-auto min-w-[140px]"
+              value={`${sortBy}-${sortOrder}`}
+              onChange={(e) => {
+                const [col, order] = e.target.value.split('-');
+                setSortBy(col ?? 'id');
+                setSortOrder((order ?? 'DESC') as 'ASC' | 'DESC');
+                setPage(1);
+              }}
+            >
+              <option value="id-DESC">Newest First</option>
+              <option value="id-ASC">Oldest First</option>
+              <option value="name-ASC">A-Z</option>
+              <option value="name-DESC">Z-A</option>
+            </select>
+          </div>
         </div>
-        <button className="plat-btn plat-btn-ghost plat-btn-sm" onClick={() => { setSearch(''); setDebouncedSearch(''); setPage(1); }}>
+
+        <button 
+          className="plat-btn plat-btn-ghost plat-btn-sm" 
+          onClick={() => { 
+            setSearch(''); 
+            setDebouncedSearch(''); 
+            setPage(1); 
+            setSortBy('id');
+            setSortOrder('DESC');
+          }}
+        >
           Reset
         </button>
       </div>
 
       <div className="plat-card">
         {isLoading ? (
-          <TableSkeleton rows={5} cols={6} />
+          <TableSkeleton rows={itemsPerPage} columns={6} />
         ) : staff.length === 0 ? (
           <div className="plat-empty" style={{ minHeight: 400 }}>
             <div className="plat-empty-icon-wrap mb-6">
@@ -591,7 +631,8 @@ export default function EmployeesPage() {
             </button>
           </div>
         ) : (
-          <div className="plat-table-container">
+          <>
+            <div className="plat-table-container">
             <table className="plat-table">
               <thead>
                 <tr>
@@ -643,19 +684,17 @@ export default function EmployeesPage() {
               </tbody>
             </table>
           </div>
+          <Pagination
+            totalItems={data?.total || 0}
+            itemsPerPage={itemsPerPage}
+            currentPage={page}
+            onPageChange={setPage}
+            onLimitChange={setItemsPerPage}
+          />
+        </>
         )}
       </div>
 
-      {totalPages > 1 && (
-        <Pagination
-          currentPage={page}
-          totalPages={totalPages}
-          pageSize={PAGE_SIZE}
-          totalItems={data?.total || 0}
-          onPageChange={setPage}
-          onPageSizeChange={() => {}}
-        />
-      )}
 
       {modalOpen && (
         <StaffModal

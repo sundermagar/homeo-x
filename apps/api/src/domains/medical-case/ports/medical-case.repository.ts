@@ -184,4 +184,15 @@ export interface MedicalCaseRepository {
   getReminders(regid: number): Promise<CaseReminder[]>;
   saveReminder(data: Partial<CaseReminder>): Promise<void>;
   deleteReminder(id: number): Promise<void>;
+
+  // Examinations
+  getExaminations(regid: number): Promise<CaseExamination[]>;
+
+  // Package History
+  getPackageHistory(regid: number): Promise<any[]>;
+
+  // Additional Charges
+  getAdditionalCharges(regid: number): Promise<any[]>;
+  saveAdditionalCharge(data: Partial<any>): Promise<void>;
+  deleteAdditionalCharge(id: number): Promise<void>;
 }

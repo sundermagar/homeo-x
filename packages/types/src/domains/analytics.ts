@@ -129,6 +129,7 @@ export interface RevenueSeries {
 export interface PlatformStats {
   totalClinics: number;
   totalStaff: number;
+  totalClinicAdmins?: number;
 }
 
 export interface IntelligenceInsight {

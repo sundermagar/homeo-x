@@ -1,8 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
   Search, BookOpen, ChevronRight, Activity,
-  FlaskConical, Save, Trash2, Calendar, FileText, Printer, Plus, X,
-  ChevronLeft
+  FlaskConical, Save, Trash2, Calendar, FileText, Printer, Plus, X
 } from 'lucide-react';
 import { useManageClinicalRecords } from '../hooks/use-medical-cases';
 import {
@@ -172,7 +171,7 @@ export function RemedyChartSession({ regid }: { regid?: number }) {
 
   useEffect(() => {
     if (history && history.length > 0) {
-      const mode = history[0].deliveryMode;
+      const mode = history[0]?.deliveryMode;
       if (mode && ['clinic', 'courier', 'pickup'].includes(mode)) {
         setDelivery(mode);
       }
@@ -248,19 +247,19 @@ export function RemedyChartSession({ regid }: { regid?: number }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap' }}>
           {/* Action Tabs */}
           <div style={{ display: 'flex', gap: '8px' }}>
-            <button 
+            <button
               onClick={() => setActiveTab('rx')}
               style={{ padding: '8px 24px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 700, border: 'none', cursor: 'pointer', background: activeTab === 'rx' ? '#1e3a8a' : '#f8fafc', color: activeTab === 'rx' ? 'white' : '#64748b' }}
             >
               Rx
             </button>
-            <button 
+            <button
               onClick={() => handleRepeat()}
               style={{ padding: '8px 24px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 700, border: 'none', cursor: 'pointer', background: activeTab === 'repeat' ? '#1e3a8a' : '#f8fafc', color: activeTab === 'repeat' ? 'white' : '#64748b' }}
             >
               Repeat
             </button>
-            <button 
+            <button
               onClick={() => setActiveTab('image')}
               style={{ padding: '8px 24px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 700, border: 'none', cursor: 'pointer', background: activeTab === 'image' ? '#1e3a8a' : '#f8fafc', color: activeTab === 'image' ? 'white' : '#64748b' }}
             >

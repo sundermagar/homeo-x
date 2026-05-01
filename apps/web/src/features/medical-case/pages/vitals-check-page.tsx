@@ -171,7 +171,7 @@ export default function VitalsCheckPage() {
   };
 
   return (
-    <div className="ghub-page-wrapper fade-in">
+    <div className="pp-page-container ghub-page-wrapper animate-fade-in">
       {/* ─── Header ─── */}
       <div className="ghub-content-header">
         <div className="ghub-title-area">

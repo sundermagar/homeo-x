@@ -630,4 +630,68 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
   async deleteReminder(id: number) {
     await this.db.delete(schema.caseReminders).where(eq(schema.caseReminders.id, id));
   }
+
+  // ─── Examinations ───
+  async getExaminations(regid: number) {
+    const rows = await this.db
+      .select()
+      .from(schema.caseExamination)
+      .where(eq(schema.caseExamination.regid, regid))
+      .orderBy(desc(schema.caseExamination.createdAt));
+    return rows as CaseExamination[];
+  }
+
+  // ─── Package History ───
+  async getPackageHistory(regid: number) {
+    const rows = await this.db
+      .select({
+        id: schema.patientPackages.id,
+        regid: schema.patientPackages.regid,
+        packageId: schema.patientPackages.packageId,
+        startDate: schema.patientPackages.startDate,
+        expiryDate: schema.patientPackages.expiryDate,
+        status: schema.patientPackages.status,
+        packageName: schema.packagePlans.name,
+        amount: schema.packagePlans.price,
+      })
+      .from(schema.patientPackages)
+      .leftJoin(schema.packagePlans, eq(schema.patientPackages.packageId, schema.packagePlans.id))
+      .where(eq(schema.patientPackages.regid, regid))
+      .orderBy(desc(schema.patientPackages.startDate));
+    return rows as any[];
+  }
+
+  // ─── Additional Charges ───
+  async getAdditionalCharges(regid: number) {
+    const rows = await this.db
+      .select({
+        id: schema.additionalChargesLegacy.id,
+        regid: schema.additionalChargesLegacy.regid,
+        randId: schema.additionalChargesLegacy.randId,
+        name: schema.additionalChargesLegacy.additionalName,
+        amount: schema.additionalChargesLegacy.additionalPrice,
+        createdAt: schema.additionalChargesLegacy.createdAt,
+      })
+      .from(schema.additionalChargesLegacy)
+      .where(eq(schema.additionalChargesLegacy.regid, regid))
+      .orderBy(desc(schema.additionalChargesLegacy.createdAt));
+    return rows as any[];
+  }
+
+  async saveAdditionalCharge(data: Partial<any>) {
+    if (data.id) {
+      await this.db.update(schema.additionalChargesLegacy).set(data).where(eq(schema.additionalChargesLegacy.id, data.id));
+    } else {
+      await this.db.insert(schema.additionalChargesLegacy).values({
+        regid: data.regid!,
+        randId: data.randId,
+        additionalName: data.name!,
+        additionalPrice: data.amount!,
+      });
+    }
+  }
+
+  async deleteAdditionalCharge(id: number) {
+    await this.db.delete(schema.additionalChargesLegacy).where(eq(schema.additionalChargesLegacy.id, id));
+  }
 }

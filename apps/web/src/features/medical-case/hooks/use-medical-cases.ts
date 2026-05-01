@@ -24,6 +24,42 @@ export function useMasterVaccines() {
   });
 }
 
+export function useExaminations(regid: number) {
+  const api = useApi();
+  return useQuery({
+    queryKey: ['medical-case', 'examinations', regid],
+    queryFn: async () => {
+      const res = await api.get<{ success: boolean; data: any[] }>(`/medical-cases/examination/${regid}`);
+      return res.data.data;
+    },
+    enabled: !!regid,
+  });
+}
+
+export function usePackageHistory(regid: number) {
+  const api = useApi();
+  return useQuery({
+    queryKey: ['medical-case', 'packages', regid],
+    queryFn: async () => {
+      const res = await api.get<{ success: boolean; data: any[] }>(`/medical-cases/packages/${regid}`);
+      return res.data.data;
+    },
+    enabled: !!regid,
+  });
+}
+
+export function useAdditionalCharges(regid: number) {
+  const api = useApi();
+  return useQuery({
+    queryKey: ['medical-case', 'additional-charges', regid],
+    queryFn: async () => {
+      const res = await api.get<{ success: boolean; data: any[] }>(`/medical-cases/additional-charges/${regid}`);
+      return res.data.data;
+    },
+    enabled: !!regid,
+  });
+}
+
 export function useManageClinicalRecords() {
   const api = useApi();
   const queryClient = useQueryClient();
@@ -97,6 +133,35 @@ export function useManageClinicalRecords() {
       queryClient.invalidateQueries({ queryKey: ['medical-case', 'full', variables.regid] });
     },
   });
+
+  const saveExamination = useMutation({
+    mutationFn: (data: any) => api.post('/medical-cases/records/examination', data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['medical-case', 'examinations', variables.regid] });
+    },
+  });
+
+  const deleteExamination = useMutation({
+    mutationFn: (id: number) => api.delete(`/medical-cases/records/examination/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['medical-case', 'examinations'] });
+    },
+  });
+
+  const saveAdditionalCharge = useMutation({
+    mutationFn: (data: any) => api.post('/medical-cases/additional-charges', data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['medical-case', 'additional-charges', variables.regid] });
+    },
+  });
+
+  const deleteAdditionalCharge = useMutation({
+    mutationFn: (id: number) => api.delete(`/medical-cases/additional-charges/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['medical-case', 'additional-charges'] });
+    },
+  });
+
   const saveImage = useMutation({
     mutationFn: (data: FormData) => api.post('/medical-cases/records/images', data),
     onSuccess: (_, variables) => {
@@ -112,9 +177,13 @@ export function useManageClinicalRecords() {
     savePrescription,
     saveHomeoDetails,
     saveInvestigation,
+    saveExamination,
+    deleteExamination,
     saveImage,
     saveVaccine,
     saveReminder,
+    saveAdditionalCharge,
+    deleteAdditionalCharge,
     deleteRecord,
     finalizeConsultation,
   };

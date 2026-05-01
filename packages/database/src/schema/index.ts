@@ -15,6 +15,7 @@ export * from './platform';
 export * from './settings';
 export * from './crm';
 export * from './logistics';
+export * from './clinical-codes';
 export * from './records';
 export * from './knowledge';
 export * from './legacy-public-manifest';

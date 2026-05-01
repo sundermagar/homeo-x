@@ -1,14 +1,19 @@
 import React, { useState } from 'react';
-import { FileText, Plus, X, RefreshCw, ArrowLeft, Trash2, Edit2, Layout, CheckCircle2, Search, Printer, Eye, Settings, ShieldCheck, MapPin, Globe, Mail, Clock, Image as ImageIcon, Phone } from 'lucide-react';
+import { FileText, Plus, X, RefreshCw, Trash2, Edit2, Layout, CheckCircle2, Search, Printer, Eye, Settings, ShieldCheck, MapPin, Globe, Mail, Clock, Image as ImageIcon, Phone } from 'lucide-react';
 
 import { Link } from 'react-router-dom';
 import { usePdfSettings, useCreatePdfSetting, useUpdatePdfSetting, useDeletePdfSetting } from '../hooks/use-settings';
+import { Drawer } from '@/shared/components/drawer';
 import { useOrganizations, useUpdateOrganization } from '../../platform/hooks/use-organizations';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { NumericInput } from '@/shared/components/NumericInput';
 import '../../platform/styles/platform.css';
 
 import '../styles/settings.css';
+
+import { Pagination } from '@/shared/components/Pagination';
+import { usePagination } from '@/shared/hooks/use-pagination';
+import { TableSkeleton } from '@/shared/components/TableSkeleton';
 
 const EMPTY_FORM = { templateName: '', headerHtml: '', footerHtml: '', margin: '20mm', isDefault: false };
 
@@ -100,6 +105,15 @@ export default function PdfSettingsPage() {
   const filteredConfigs = configs.filter((c: any) =>
     c.templateName.toLowerCase().includes(search.toLowerCase())
   );
+
+  const {
+    currentPage,
+    setCurrentPage,
+    itemsPerPage,
+    setItemsPerPage,
+    paginatedData,
+    totalItems
+  } = usePagination(filteredConfigs);
 
   const handlePrintList = () => {
     const printWindow = window.open('', '_blank');
@@ -291,15 +305,14 @@ export default function PdfSettingsPage() {
 
           <div className="plat-card">
             {isLoading ? (
-              <div className="plat-empty">
-                <RefreshCw size={22} className="animate-spin opacity-30" />
-              </div>
+              <TableSkeleton rows={5} columns={5} />
             ) : filteredConfigs.length === 0 ? (
               <div className="plat-empty">
                 <Layout size={40} className="plat-empty-icon" />
                 <p className="plat-empty-text">No configurations found.</p>
               </div>
             ) : (
+              <>
               <div className="plat-table-container">
                 <table className="plat-table">
                   <thead>
@@ -312,7 +325,7 @@ export default function PdfSettingsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredConfigs.map((config: any) => (
+                    {paginatedData.map((config: any) => (
                       <tr key={config.id} className="plat-table-row">
                         <td data-label="ID" className="plat-table-cell font-mono text-xs color-muted">{config.id}</td>
                         <td data-label="Name" className="plat-table-cell font-semibold">
@@ -371,6 +384,14 @@ export default function PdfSettingsPage() {
                   </tbody>
                 </table>
               </div>
+              <Pagination
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                currentPage={currentPage}
+                onPageChange={setCurrentPage}
+                onLimitChange={setItemsPerPage}
+              />
+              </>
             )}
           </div>
         </>
@@ -756,83 +777,77 @@ export default function PdfSettingsPage() {
           </div>
         </div>
       )}
-
-      {isModalOpen && (
-        <div className="plat-modal-backdrop" onClick={() => setIsModalOpen(false)}>
-          <div className="plat-modal-content max-w-4xl" onClick={e => e.stopPropagation()}>
-            <div className="plat-modal-header">
-              <h2 className="plat-modal-title">{editingId ? 'Edit Configuration' : 'Add PDF Configuration'}</h2>
-              <button className="plat-btn plat-btn-icon" onClick={() => setIsModalOpen(false)}>
-                <X size={16} />
-              </button>
-            </div>
-            <form onSubmit={handleSubmit}>
-              <div className="plat-modal-body">
-                <div className="plat-form-section">
-                  <div className="plat-form-grid-multi">
-                    <div className="plat-form-group">
-                      <label className="plat-form-label font-bold">Template Name *</label>
-                      <input
-                        className="plat-form-input"
-                        value={form.templateName}
-                        onChange={e => setForm(f => ({ ...f, templateName: e.target.value }))}
-                        required
-                        placeholder="e.g. Standard Prescription"
-                      />
-                    </div>
-                    <div className="plat-form-group">
-                      <label className="plat-form-label font-bold">Margin (CSS value)</label>
-                      <input
-                        className="plat-form-input"
-                        value={form.margin}
-                        onChange={e => setForm(f => ({ ...f, margin: e.target.value }))}
-                        placeholder="e.g. 20mm, 1in"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="plat-form-group mt-4">
-                    <label className="plat-form-label font-bold">Header HTML</label>
-                    <textarea
-                      className="plat-form-input font-mono text-xs leading-relaxed"
-                      style={{ minHeight: '140px' }}
-                      value={form.headerHtml}
-                      onChange={e => setForm(f => ({ ...f, headerHtml: e.target.value }))}
-                      placeholder="<div>Clinic Header...</div>"
-                    />
-                  </div>
-
-                  <div className="plat-form-group mt-4">
-                    <label className="plat-form-label font-bold">Footer HTML</label>
-                    <textarea
-                      className="plat-form-input font-mono text-xs leading-relaxed"
-                      style={{ minHeight: '140px' }}
-                      value={form.footerHtml}
-                      onChange={e => setForm(f => ({ ...f, footerHtml: e.target.value }))}
-                      placeholder="<div>Reg No: 12345...</div>"
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-2 py-4 mt-2">
-                    <input
-                      type="checkbox"
-                      className="w-4 h-4 accent-primary"
-                      id="isDefaultPdf"
-                      checked={form.isDefault}
-                      onChange={e => setForm(f => ({ ...f, isDefault: e.target.checked }))}
-                    />
-                    <label htmlFor="isDefaultPdf" className="plat-form-label mb-0 cursor-pointer font-bold">Set as default configuration</label>
-                  </div>
+      <Drawer
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={editingId ? 'Edit Configuration' : 'Add PDF Configuration'}
+        maxWidth="500px"
+      >
+        <form onSubmit={handleSubmit}>
+          <div className="plat-modal-body" style={{ padding: 0 }}>
+            <div className="plat-form-section" style={{ border: 'none', boxShadow: 'none', padding: 0 }}>
+              <div className="plat-form-grid-multi">
+                <div className="plat-form-group">
+                  <label className="plat-form-label font-bold">Template Name *</label>
+                  <input
+                    className="plat-form-input"
+                    value={form.templateName}
+                    onChange={e => setForm(f => ({ ...f, templateName: e.target.value }))}
+                    required
+                    placeholder="e.g. Standard Prescription"
+                  />
+                </div>
+                <div className="plat-form-group">
+                  <label className="plat-form-label font-bold">Margin (CSS value)</label>
+                  <input
+                    className="plat-form-input"
+                    value={form.margin}
+                    onChange={e => setForm(f => ({ ...f, margin: e.target.value }))}
+                    placeholder="e.g. 20mm, 1in"
+                  />
                 </div>
               </div>
-              <div className="plat-modal-footer">
-                <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                <button type="submit" className="plat-btn plat-btn-primary px-8">Save Configuration</button>
+
+              <div className="plat-form-group mt-6">
+                <label className="plat-form-label font-bold">Header HTML</label>
+                <textarea
+                  className="plat-form-input font-mono text-xs leading-relaxed"
+                  style={{ minHeight: '180px' }}
+                  value={form.headerHtml}
+                  onChange={e => setForm(f => ({ ...f, headerHtml: e.target.value }))}
+                  placeholder="<div>Clinic Header...</div>"
+                />
               </div>
-            </form>
+
+              <div className="plat-form-group mt-6">
+                <label className="plat-form-label font-bold">Footer HTML</label>
+                <textarea
+                  className="plat-form-input font-mono text-xs leading-relaxed"
+                  style={{ minHeight: '180px' }}
+                  value={form.footerHtml}
+                  onChange={e => setForm(f => ({ ...f, footerHtml: e.target.value }))}
+                  placeholder="<div>Reg No: 12345...</div>"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 py-4 mt-2">
+                <input
+                  type="checkbox"
+                  className="w-4 h-4 accent-primary"
+                  id="isDefaultPdf"
+                  checked={form.isDefault}
+                  onChange={e => setForm(f => ({ ...f, isDefault: e.target.checked }))}
+                />
+                <label htmlFor="isDefaultPdf" className="plat-form-label mb-0 cursor-pointer font-bold">Set as default configuration</label>
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+          <div className="plat-modal-footer" style={{ padding: '24px 0 0 0', marginTop: '24px' }}>
+            <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
+            <button type="submit" className="plat-btn plat-btn-primary px-8">Save Configuration</button>
+          </div>
+        </form>
+      </Drawer>
     </div>
   );
 }

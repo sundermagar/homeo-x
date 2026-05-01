@@ -5,16 +5,18 @@ import {
 } from '../hooks/use-communications';
 import { SmsType } from '@mmc/types';
 import type { SmsTemplate, CreateSmsTemplateDto } from '@mmc/types';
+import { Drawer } from '@/shared/components/drawer';
 import '../styles/communications.css';
 
 const SMS_TYPES = Object.values(SmsType);
 
-function TemplateFormModal({
-  initial, onClose, onSave,
+function TemplateDrawer({
+  initial, onClose, onSave, isOpen
 }: {
   initial?: SmsTemplate;
   onClose: () => void;
   onSave: (data: CreateSmsTemplateDto) => void;
+  isOpen: boolean;
 }) {
   const [form, setForm] = useState({
     name:     initial?.name     ?? '',
@@ -24,66 +26,76 @@ function TemplateFormModal({
   });
 
   const set = (k: string, v: unknown) => setForm(f => ({ ...f, [k]: v }));
-
   const charCount = form.message.length;
   const preview = form.message
     .replace(/{#name#}/gi, 'Rajesh Kumar')
     .replace(/{#date#}/gi, new Date().toLocaleDateString('en-IN'));
 
   return (
-    <div className="comm-modal-overlay" onClick={onClose}>
-      <div className="comm-modal" onClick={e => e.stopPropagation()}>
-        <div className="comm-modal-header">
-          <h2 className="comm-modal-title">
-            {initial ? 'Edit Template' : 'New SMS Template'}
-          </h2>
-          <button className="comm-btn comm-btn-icon" onClick={onClose}><X size={16} /></button>
-        </div>
-        <form onSubmit={e => { e.preventDefault(); onSave(form as CreateSmsTemplateDto); }}>
-          <div className="comm-modal-body">
-            <div className="comm-form-group">
-              <label className="comm-form-label">Template Name *</label>
-              <input className="comm-form-input" placeholder="e.g. Appointment Reminder"
-                value={form.name} onChange={e => set('name', e.target.value)} required />
-            </div>
-            <div className="comm-form-group">
-              <label className="comm-form-label">Category</label>
-              <select className="comm-form-select" value={form.smsType} onChange={e => set('smsType', e.target.value)}>
-                {SMS_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </div>
-            <div className="comm-form-group">
-              <label className="comm-form-label">Message Body *</label>
-              <textarea className="comm-form-textarea" placeholder="Enter your message..."
-                value={form.message} onChange={e => set('message', e.target.value)} required />
-              <div className={`comm-char-count${charCount > 160 ? ' over' : ''}`}>
-                {charCount} / 160 (SMS segment)
-              </div>
-            </div>
-            <div className="comm-placeholder-hint">
-              Available placeholders: <code>{'{#name#}'}</code> <code>{'{#date#}'}</code> <code>{'{#clinic#}'}</code>
-            </div>
-            {preview && (
-              <div className="comm-form-group">
-                <label className="comm-form-label">Preview</label>
-                <div className="comm-preview-box">{preview}</div>
-              </div>
-            )}
-            <div className="comm-form-group">
-              <label className="comm-form-checkbox">
-                <input type="checkbox" checked={form.isActive} onChange={e => set('isActive', e.target.checked)} />
-                Active (available for sending)
-              </label>
-            </div>
-          </div>
-          <div className="comm-modal-footer">
-            <button type="button" className="comm-btn" onClick={onClose}>Cancel</button>
-            <button type="submit" className="comm-btn comm-btn-primary">
-              <CheckCircle2 size={14} /> {initial ? 'Save Changes' : 'Create Template'}
-            </button>
-          </div>
-        </form>
+    <Drawer 
+      isOpen={isOpen} 
+      onClose={onClose} 
+      title={initial ? 'Edit Template' : 'New SMS Template'}
+      maxWidth="540px"
+    >
+      <div className="comm-form-group">
+        <label className="comm-form-label">Template Name *</label>
+        <input className="comm-form-input" placeholder="e.g. Appointment Reminder"
+          value={form.name} onChange={e => set('name', e.target.value)} required />
       </div>
+      <div className="comm-form-group">
+        <label className="comm-form-label">Category</label>
+        <select className="comm-form-select" value={form.smsType} onChange={e => set('smsType', e.target.value)}>
+          {SMS_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+        </select>
+      </div>
+      <div className="comm-form-group">
+        <label className="comm-form-label">Message Body *</label>
+        <textarea className="comm-form-textarea" style={{ minHeight: '120px' }}
+          placeholder="Enter your message..."
+          value={form.message} onChange={e => set('message', e.target.value)} required />
+        <div className={`comm-char-count${charCount > 160 ? ' over' : ''}`} style={{ marginTop: '4px' }}>
+          {charCount} / 160 (SMS segment)
+        </div>
+      </div>
+      <div className="comm-placeholder-hint">
+        Available: <code>{'{#name#}'}</code> <code>{'{#date#}'}</code> <code>{'{#clinic#}'}</code>
+      </div>
+      {preview && (
+        <div className="comm-form-group" style={{ marginTop: '16px' }}>
+          <label className="comm-form-label">Preview</label>
+          <div className="comm-preview-box" style={{ background: 'var(--pp-warm-1)', border: '1.5px dashed var(--pp-warm-4)', borderRadius: '12px' }}>
+            {preview}
+          </div>
+        </div>
+      )}
+      <div className="comm-form-group" style={{ marginTop: '12px' }}>
+        <label className="comm-form-checkbox">
+          <input type="checkbox" checked={form.isActive} onChange={e => set('isActive', e.target.checked)} />
+          Active (available for sending)
+        </label>
+      </div>
+      <div className="plat-modal-footer" style={{ padding: '24px 0 0 0', marginTop: '24px', borderTop: '1px solid var(--pp-warm-4)', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+        <button type="button" className="pp-btn pp-btn-secondary" onClick={onClose}>Cancel</button>
+        <button className="pp-btn pp-btn-primary" onClick={() => onSave(form as CreateSmsTemplateDto)}>
+          <CheckCircle2 size={14} /> {initial ? 'Save Changes' : 'Create Template'}
+        </button>
+      </div>
+    </Drawer>
+  );
+}
+
+function TemplateSkeleton() {
+  return (
+    <div className="comm-template-item">
+      <div className="comm-template-item-header">
+        <div style={{ width: '100%' }}>
+          <div className="pp-skeleton pp-skeleton-title" style={{ width: '40%' }}></div>
+          <div className="pp-skeleton pp-skeleton-text" style={{ width: '20%', height: '16px' }}></div>
+        </div>
+      </div>
+      <div className="pp-skeleton pp-skeleton-text" style={{ height: '40px', marginTop: '12px' }}></div>
+      <div className="pp-skeleton pp-skeleton-text" style={{ width: '30%', marginTop: '8px' }}></div>
     </div>
   );
 }
@@ -118,7 +130,7 @@ export default function SmsTemplatesPage() {
   };
 
   return (
-    <div className="comm-page">
+    <div className="pp-page-container comm-page animate-fade-in">
       {/* Header */}
       <header className="comm-header">
         <div>
@@ -155,7 +167,9 @@ export default function SmsTemplatesPage() {
       {/* Grid */}
       <div className="comm-card">
         {isLoading ? (
-          <div className="comm-loading"><RefreshCw size={22} className="comm-spin" /></div>
+          <div className="comm-template-grid">
+            {[1, 2, 3, 4].map(i => <TemplateSkeleton key={i} />)}
+          </div>
         ) : filtered.length === 0 ? (
           <div className="comm-empty">
             <MessageSquare size={36} className="comm-empty-icon" />
@@ -192,16 +206,29 @@ export default function SmsTemplatesPage() {
             ))}
           </div>
         )}
+        
+        {/* Pagination */}
+        {!isLoading && filtered.length > 0 && (
+          <div className="pp-pagination-bar">
+            <div className="pp-pagination-info-wrap">
+              <span className="pp-pagination-info">Showing 1-{filtered.length} of {templates.length}</span>
+            </div>
+            <div className="pp-pagination-controls">
+              <button className="pp-pagination-btn" disabled><RefreshCw size={14} /></button>
+              <button className="pp-pagination-page is-active">1</button>
+              <button className="pp-pagination-btn" disabled><RefreshCw size={14} /></button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Modal */}
-      {modal && (
-        <TemplateFormModal
-          initial={typeof modal === 'object' ? modal : undefined}
-          onClose={() => setModal(null)}
-          onSave={handleSave}
-        />
-      )}
+      <TemplateDrawer
+        isOpen={!!modal}
+        initial={(modal && typeof modal === 'object') ? modal : undefined}
+        onClose={() => setModal(null)}
+        onSave={handleSave}
+      />
     </div>
   );
 }

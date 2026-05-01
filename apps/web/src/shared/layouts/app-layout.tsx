@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, Infinity, ArrowLeft, Search } from 'lucide-react';
+import { Menu, Infinity, Search } from 'lucide-react';
 import { Sidebar } from '../components/sidebar';
 import { DashboardHeader } from '../components/dashboard-header';
 import { CommandPalette } from '../components/command-palette';

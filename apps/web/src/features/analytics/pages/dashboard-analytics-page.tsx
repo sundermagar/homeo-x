@@ -9,9 +9,13 @@ export function DashboardAnalyticsPage() {
 
   if (isLoadingSummary || isLoadingTrends) {
     return (
-      <div className="plat-page animate-fade-in">
-        <div className="plat-empty">
-          <div className="plat-empty-text">Loading dashboard analytics...</div>
+      <div className="pp-page-container plat-page animate-fade-in">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, marginBottom: 40 }}>
+          {[1,2,3].map(i => <div key={i} className="skeleton-box" style={{ height: 100, borderRadius: 16 }} />)}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+          <div className="skeleton-box" style={{ height: 400, borderRadius: 24 }} />
+          <div className="skeleton-box" style={{ height: 400, borderRadius: 24 }} />
         </div>
       </div>
     );
@@ -24,7 +28,7 @@ export function DashboardAnalyticsPage() {
   ];
 
   return (
-    <div className="plat-page animate-fade-in">
+    <div className="pp-page-container plat-page animate-fade-in">
       {/* Header */}
       <div className="plat-header">
         <div className="plat-header-left">
@@ -39,7 +43,7 @@ export function DashboardAnalyticsPage() {
       {/* KPI Stats Bar */}
       <div className="plat-stats-bar">
         {kpis.map((kpi, i) => (
-          <div key={i} className="plat-stat-card">
+          <div key={i} className="plat-stat-card" style={{ boxShadow: 'var(--pp-premium-shadow)' }}>
             <div className="plat-stat-label">{kpi.title}</div>
             <div className={`plat-stat-value plat-stat-value-${kpi.variant}`}>
               {kpi.value}
@@ -51,7 +55,7 @@ export function DashboardAnalyticsPage() {
       {/* Charts Responsive Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px', marginBottom: '20px' }}>
         {/* Revenue Trend */}
-        <div className="plat-card">
+        <div className="plat-card" style={{ boxShadow: 'var(--pp-premium-shadow)' }}>
           <div className="plat-card-header">
             <h3><IndianRupee size={14} style={{ marginRight: 8, verticalAlign: 'middle' }} /> Revenue Trends (Last 6 Months)</h3>
           </div>
@@ -101,7 +105,7 @@ export function DashboardAnalyticsPage() {
         </div>
 
         {/* New Patients Bar Chart */}
-        <div className="plat-card">
+        <div className="plat-card" style={{ boxShadow: 'var(--pp-premium-shadow)' }}>
           <div className="plat-card-header">
             <h3><Users size={14} style={{ marginRight: 8, verticalAlign: 'middle' }} /> New Patients (Last 6 Months)</h3>
           </div>
@@ -140,7 +144,7 @@ export function DashboardAnalyticsPage() {
       </div>
 
       {/* Top Diagnoses Section */}
-      <div className="plat-card">
+      <div className="plat-card" style={{ boxShadow: 'var(--pp-premium-shadow)' }}>
         <div className="plat-card-header">
           <h3>Common Diagnoses</h3>
         </div>

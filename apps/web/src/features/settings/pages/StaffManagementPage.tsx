@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, ShieldCheck, ArrowLeft, UserPlus } from 'lucide-react';
+import { Users, ShieldCheck, UserPlus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import '../../platform/styles/platform.css';
 import '../styles/settings.css';

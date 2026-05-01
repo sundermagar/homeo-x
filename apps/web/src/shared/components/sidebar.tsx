@@ -137,7 +137,6 @@ const NAV_STRUCTURE: NavItem[] = [
       label: 'Clinical Hub',
       icon: Stethoscope,
       roles: CLINICAL,
-      defaultPath: '/clinical-hub',
       children: [
         { path: '/vitals-check', label: 'Height & Weight Check', icon: Scale },
         // { path: '/medical-cases', label: 'Medical Cases', icon: Stethoscope },
@@ -398,10 +397,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               {!sidebarCollapsed && <span>{child.label}</span>}
             </div>
             {!sidebarCollapsed && (
-              <ChevronDown 
-                size={14} 
-                strokeWidth={2.5} 
-                className={`sidebar-chevron ${isSubOpen ? 'open' : ''}`} 
+              <ChevronDown
+                size={14}
+                strokeWidth={2.5}
+                className={`sidebar-chevron ${isSubOpen ? 'open' : ''}`}
                 style={{ opacity: 0.5 }}
               />
             )}
@@ -528,7 +527,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 <div className="user-role">{getRoleLabel(userRole) || (user as any)?.type || 'Doctor'}</div>
               </div>
             )}
-            
+
             <button className="theme-toggle-btn" onClick={toggleDarkMode}>
               {darkMode ? <Sun size={16} strokeWidth={2} /> : <Moon size={16} strokeWidth={2} />}
             </button>

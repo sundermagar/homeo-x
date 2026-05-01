@@ -57,6 +57,7 @@ import { setupTranscriptionGateway } from './gateways/transcription.gateway';
 import { setupVideoCallGateway } from './gateways/video-call.gateway';
 import { TranslatorEngine } from '../../domains/consultation/engines/translator.engine';
 import { getAiProviderChain } from '../ai/ai-provider-chain';
+import { createTerminologyRouter } from './routes/terminology.router';
 
 const logger = createLogger('http');
 
@@ -144,9 +145,12 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   // Temporary unauthenticated route for backfilling
   app.use('/api/public-clinicadmins', createClinicAdminsRouter());
   app.use('/api/clinicadmins', authMiddleware, createClinicAdminsRouter());
-
+  
   // Our modules — Settings & Configuration
   app.use('/api/settings', authMiddleware, createSettingsRouter());
+  
+  // Clinical Terminology
+  app.use('/api/terminology', createTerminologyRouter());
 
   // ─── Operations & Logistics (JWT required) ───
   app.use('/api/crm', authMiddleware, crmRouter);

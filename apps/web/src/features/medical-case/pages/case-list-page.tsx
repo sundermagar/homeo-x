@@ -7,6 +7,8 @@ import {
   Grid, List
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { TableSkeleton } from '@/shared/components/TableSkeleton';
+import { Pagination } from '@/shared/components/Pagination';
 import '../styles/medical-case.css';
 
 export default function MedicalCaseListPage() {
@@ -92,8 +94,10 @@ export default function MedicalCaseListPage() {
             </thead>
             <tbody>
               {isLoading ? (
-                <tr className="mc-loading-row">
-                  <td colSpan={5}>Loading records...</td>
+                <tr>
+                  <td colSpan={5} style={{ padding: 0 }}>
+                    <TableSkeleton rows={10} columns={5} />
+                  </td>
                 </tr>
               ) : !records?.data?.length ? (
                 <tr className="mc-empty-row">

@@ -453,6 +453,39 @@
 .pat-pagination-btn {
   width: 32px;
   height: 32px;
+  border-radius: 8px;
+  background: var(--pp-warm-3);
+  flex-shrink: 0;
+  animation: pat-skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+.pat-skeleton-content {
+  flex: 1;
+}
+
+.pat-skeleton-line {
+  height: 12px;
+  border-radius: 6px;
+  background: var(--pp-warm-3);
+  animation: pat-skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes pat-skeleton-pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.4;
+  }
+}
+
+/* ─── Pagination ──────────────────────────────────────────────────────────── */
+
+.pat-pagination {
+  margin-top: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -498,7 +531,8 @@
 }
 
 .pat-pagination-page.is-active {
-  background: #334155; /* Dark color from reference */
+  background: #334155;
+  /* Dark color from reference */
   color: #ffffff;
   border-color: #334155;
 }
@@ -512,7 +546,7 @@
     width: 100% !important;
     box-sizing: border-box !important;
   }
-  
+
   .pat-pagination-info-wrap {
     flex-direction: column !important;
     gap: 12px !important;
@@ -557,9 +591,11 @@
 .drawer-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(17, 24, 39, 0.6); /* Deeper gray matching the reference image */
+  background: rgba(17, 24, 39, 0.6);
+  /* Deeper gray matching the reference image */
   z-index: 9999;
-  backdrop-filter: blur(4px); /* Stronger blur to blur the sidebar */
+  backdrop-filter: blur(4px);
+  /* Stronger blur to blur the sidebar */
   animation: fadeIn 0.2s ease-out;
 }
 
@@ -579,13 +615,23 @@
 }
 
 @keyframes slideInRight {
-  from { transform: translateX(100%); }
-  to { transform: translateX(0); }
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .drawer-header {
@@ -716,15 +762,15 @@
   .drawer-grid-2 {
     grid-template-columns: 1fr 1fr;
   }
-  
+
   .drawer-grid-3 {
     grid-template-columns: 1fr 1fr 1fr;
   }
-  
+
   .drawer-name-row {
     flex-direction: row;
   }
-  
+
   .drawer-name-row select {
     width: 90px !important;
   }
@@ -815,7 +861,7 @@
   border-radius: 12px;
   padding: 12px 16px;
   margin-bottom: 16px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   flex-shrink: 0;
 }
 
@@ -849,7 +895,7 @@
 .mmc-pl-search-input:focus {
   border-color: var(--pp-blue);
   background: white;
-  box-shadow: 0 0 0 3px rgba(15,188,188,0.12);
+  box-shadow: 0 0 0 3px rgba(15, 188, 188, 0.12);
 }
 
 .mmc-pl-filter-right {
@@ -899,7 +945,7 @@
   background: white;
   border-radius: 14px;
   border: 1px solid var(--pp-warm-4);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
   overflow: hidden;
   flex: 1;
   display: flex;
@@ -940,7 +986,7 @@
 }
 
 .mmc-pl-table thead th:hover {
-  background: rgba(255,255,255,0.15);
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .mmc-pl-table thead th:last-child {
@@ -1044,7 +1090,7 @@
   background: white;
   border: 1px solid var(--pp-warm-4);
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   padding: 4px 0;
   min-width: 160px;
   z-index: 100;
@@ -1058,8 +1104,15 @@
 }
 
 @keyframes mmc-fade-in {
-  from { opacity: 0; transform: translateX(5px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .mmc-pl-dropdown-item {
@@ -1108,8 +1161,15 @@
 }
 
 @keyframes mmc-skeleton-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.4;
+  }
 }
 
 /* ─── Empty State ─── */
@@ -1210,34 +1270,3 @@
   color: var(--pp-text-3);
   padding: 0 4px;
 }
-
-/* ─── Clickable Links (Navigation via Name/ID) ────────────────────────────── */
-
-.clickable-link {
-  text-decoration: none;
-  color: inherit;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: inline-block;
-}
-
-.clickable-link:hover {
-  color: var(--pp-blue) !important;
-  text-decoration: underline !important;
-}
-
-.pat-regid-pill {
-  background: var(--pp-warm-2);
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--pp-text-2);
-  border: 1px solid var(--pp-warm-4);
-}
-
-.pat-regid-pill:hover {
-  background: var(--pp-blue-tint);
-  border-color: var(--pp-blue-border);
-}
-

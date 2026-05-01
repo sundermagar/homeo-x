@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import { format } from 'date-fns';
 import { useLocation } from 'react-router-dom';
+import { Download, Gift, Users, Activity, CreditCard, PieChart, MessageCircle, Send, CheckSquare, Square } from 'lucide-react';
 import {
   useCaseMonthWise,
   useMonthWiseDues,
@@ -7,7 +9,9 @@ import {
   useBirthdayList,
   useReferenceListing
 } from '../hooks/use-analytics';
-import { Download, Gift, Users, Activity, CreditCard, PieChart } from 'lucide-react';
+import { useSendWhatsApp, useSmsTemplates } from '@/features/communications/hooks/use-communications';
+import { TableSkeleton } from '@/shared/components/TableSkeleton';
+import { Pagination } from '@/shared/components/Pagination';
 import '../../platform/styles/platform.css';
 
 export function ReportsPage() {
@@ -42,7 +46,7 @@ export function ReportsPage() {
   const { title, icon, component } = getPageInfo();
 
   return (
-    <div className="plat-page animate-fade-in">
+    <div className="pp-page-container plat-page animate-fade-in">
       {/* Header */}
       <div className="plat-header">
         <div className="plat-header-left">
@@ -65,14 +69,21 @@ export function ReportsPage() {
 // ─── Sub Components ──────────────────────────────────────────────────────────
 
 function CaseMonthWiseTab({ onExport }: { onExport: (filename: string, headers: string[], data: unknown[]) => void }) {
+  const [page, setPage] = useState(1);
+  const itemsPerPage = 10;
   const year = new Date().getFullYear();
   const { data, isLoading } = useCaseMonthWise(`${year}-01`, `${year}-12`);
 
   if (isLoading) return (
-    <div className="plat-empty">
-      <div className="plat-empty-text">Loading financial grid...</div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+        {[1,2,3].map(i => <div key={i} className="skeleton-box" style={{ height: 100, borderRadius: 16 }} />)}
+      </div>
+      <TableSkeleton rows={10} columns={5} />
     </div>
   );
+
+  const paginatedData = (data ?? []).slice((page - 1) * itemsPerPage, page * itemsPerPage);
 
   return (
     <div className="plat-card">
@@ -120,14 +131,50 @@ function CaseMonthWiseTab({ onExport }: { onExport: (filename: string, headers: 
                   ₹{Number(r['expenses'] ?? 0).toLocaleString()}
                 </td>
               </tr>
-              );
-            })}
-            {(!data || data.length === 0) && (
-              <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: 'var(--pp-text-3)' }}>No data found</td></tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {paginatedData.map((row, i) => {
+                const r = row as unknown as Record<string, unknown>;
+                const collection = Number(r['collection'] ?? 0);
+                const expenses = Number(r['expenses'] ?? 0);
+                return (
+                <tr key={i} className="plat-table-row">
+                  <td data-label="Month" style={{ fontWeight: 800, color: 'var(--pp-blue)' }}>{String(r['displaydate'] ?? '')}</td>
+                  <td data-label="Case Load" style={{ textAlign: 'right' }}>
+                    <div style={{ fontWeight: 700, color: 'var(--pp-ink)' }}>{String(r['new_cases'] ?? 0)} New</div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--pp-text-3)' }}>{String(r['followups'] ?? 0)} Followups</div>
+                  </td>
+                  <td data-label="Gross Collection" style={{ textAlign: 'right' }}>
+                    <div style={{ fontWeight: 900, color: 'var(--pp-success-fg)', fontSize: '1rem' }}>₹{collection.toLocaleString()}</div>
+                    <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', opacity: 0.6 }}>Cleared</div>
+                  </td>
+                  <td data-label="Cash / Digital" style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>₹{Number(r['cash'] ?? 0).toLocaleString()} (C)</div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--pp-blue)', fontWeight: 600 }}>
+                      ₹{((Number(r['online']) || 0) + (Number(r['card']) || 0)).toLocaleString()} (D)
+                    </div>
+                  </td>
+                  <td data-label="Operational Exp." style={{ textAlign: 'right' }}>
+                    <div style={{ fontWeight: 800, color: 'var(--pp-danger-fg)' }}>₹{expenses.toLocaleString()}</div>
+                    <div style={{ fontSize: '0.65rem', color: 'var(--pp-text-4)' }}>Margin: {collection > 0 ? (((collection - expenses) / collection) * 100).toFixed(1) : 0}%</div>
+                  </td>
+                </tr>
+                );
+              })}
+              {(!data || data.length === 0) && (
+                <tr><td colSpan={5} style={{ textAlign: 'center', padding: '60px', color: 'var(--pp-text-3)' }}>No financial records found</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
+      <Pagination 
+        totalItems={(data ?? []).length} 
+        itemsPerPage={itemsPerPage} 
+        currentPage={page} 
+        onPageChange={setPage} 
+        onLimitChange={() => {}}
+      />
     </div>
   );
 }
@@ -136,13 +183,30 @@ function MonthWiseDueTab({ onExport }: { onExport: (filename: string, headers: s
   const year = new Date().getFullYear();
   const { data: summary, isLoading } = useMonthWiseDues(year);
   const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
+  const [page, setPage] = useState(1);
+  const itemsPerPage = 10;
   const { data: details, isLoading: isDetailsLoading } = useDueDetails(year, selectedMonth ?? 0);
+  const sendWa = useSendWhatsApp();
+  const [showDuesModal, setShowDuesModal] = useState(false);
+  const [duePatient, setDuePatient] = useState<any>(null);
+  const [dueMessage, setDueMessage] = useState('');
 
-  if (isLoading) return (
-    <div className="plat-empty">
-      <div className="plat-empty-text">Loading outstanding dues...</div>
-    </div>
-  );
+  if (isLoading) return <TableSkeleton rows={10} columns={4} />;
+
+  const paginatedDetails = (details ?? []).slice((page - 1) * itemsPerPage, page * itemsPerPage);
+
+  const openDueWhatsApp = (patient: any) => {
+    setDuePatient(patient);
+    setDueMessage(`Dear ${patient.first_name || ''} ${patient.surname || ''}, you have an outstanding balance of ₹${Number(patient.total_due || 0).toLocaleString()} against your treatment. Please visit us to clear the dues. - Kreed.health`);
+    setShowDuesModal(true);
+  };
+
+  const sendDueMessage = async () => {
+    if (!duePatient?.mobile1 || !dueMessage.trim()) return;
+    await sendWa.mutateAsync({ phone: String(duePatient.mobile1), message: dueMessage });
+    setShowDuesModal(false);
+    alert('WhatsApp message sent!');
+  };
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }} className="plat-dues-mobile-grid">
@@ -157,11 +221,11 @@ function MonthWiseDueTab({ onExport }: { onExport: (filename: string, headers: s
         <div className="plat-card-header">
           <h3>Months ({year})</h3>
         </div>
-        <div style={{ maxHeight: '600px', overflowY: 'auto' }}>
+        <div>
           {(summary ?? []).map((s: any) => (
             <button
               key={String(s.month)}
-              onClick={() => setSelectedMonth(Number(s.month))}
+              onClick={() => { setSelectedMonth(Number(s.month)); setPage(1); }}
               style={{
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -205,11 +269,7 @@ function MonthWiseDueTab({ onExport }: { onExport: (filename: string, headers: s
           )}
         </div>
         <div style={{ minHeight: '400px', padding: '16px' }}>
-          {isDetailsLoading && (
-            <div className="plat-empty">
-              <div className="plat-empty-text">Loading patient details...</div>
-            </div>
-          )}
+          {isDetailsLoading && <TableSkeleton rows={10} columns={3} />}
           {!selectedMonth && !isDetailsLoading && (
             <div className="plat-empty">
               <CreditCard size={32} style={{ opacity: 0.2, marginBottom: 12 }} />
@@ -222,21 +282,26 @@ function MonthWiseDueTab({ onExport }: { onExport: (filename: string, headers: s
               <div className="plat-empty-text">No outstanding dues for this month.</div>
             </div>
           )}
-          <div style={{ display: 'grid', gap: '12px' }}>
-            {(details ?? []).map((d: any) => (
-              <div key={String(d.regid)} style={{ 
-                padding: '16px', 
-                border: '1px solid var(--pp-warm-4)', 
-                borderRadius: '12px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: '16px',
-                background: 'var(--bg-card)'
-              }}>
-                <div style={{ flex: 1, minWidth: '200px' }}>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--pp-ink)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div className="plat-dues-list">
+            <style>{`
+              .plat-dues-list { display: grid; gap: 12px; }
+              .plat-due-item { 
+                padding: 16px; 
+                border: 1px solid var(--pp-warm-4); 
+                border-radius: 12px;
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                background: var(--bg-card);
+              }
+              @media (min-width: 640px) {
+                .plat-due-item { flex-direction: row; justify-content: space-between; align-items: center; }
+              }
+            `}</style>
+            {paginatedDetails.map((d: any) => (
+              <div key={String(d.regid)} className="plat-due-item">
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--pp-ink)', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     {String(d.first_name ?? '')} {String(d.surname ?? '')}
                     <span className="plat-badge plat-badge-default">#{String(d.regid ?? '')}</span>
                   </div>
@@ -255,26 +320,132 @@ function MonthWiseDueTab({ onExport }: { onExport: (filename: string, headers: s
                       ₹{Number(d.total_due ?? 0).toLocaleString()}
                     </div>
                   </div>
+                  {d.mobile1 && (
+                    <button onClick={() => openDueWhatsApp(d)}
+                      style={{ background: '#25D366', border: 'none', borderRadius: 8, padding: '6px 14px', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', color: 'white', fontSize: '0.75rem', fontWeight: 700, flexShrink: 0 }}>
+                      <MessageCircle size={12} /> WhatsApp
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
           </div>
+          {details && details.length > itemsPerPage && (
+            <div style={{ marginTop: 24 }}>
+              <Pagination 
+                totalItems={details.length} 
+                itemsPerPage={itemsPerPage} 
+                currentPage={page} 
+                onPageChange={setPage} 
+                onLimitChange={() => {}}
+              />
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Due Reminder WhatsApp Modal */}
+      {showDuesModal && duePatient && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: 'white', borderRadius: 16, padding: 24, width: '100%', maxWidth: 480 }}>
+            <h3 style={{ margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <MessageCircle size={18} style={{ color: '#25D366' }} /> Send Due Reminder
+            </h3>
+            <div style={{ marginBottom: 12 }}>
+              <input type="text" value={`#${duePatient.regid} - ${duePatient.first_name || ''} ${duePatient.surname || ''}`} readOnly
+                style={{ width: '100%', padding: '10px 12px', border: '1.5px solid var(--pp-warm-4)', borderRadius: 10, fontSize: '0.85rem', background: 'var(--pp-warm-1)', fontWeight: 600 }} />
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <input type="text" value={duePatient.mobile1 || ''} readOnly
+                style={{ width: '100%', padding: '10px 12px', border: '1.5px solid var(--pp-warm-4)', borderRadius: 10, fontSize: '0.85rem', background: 'var(--pp-warm-1)' }} />
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 700, display: 'block', marginBottom: 6 }}>Outstanding Balance</label>
+              <div style={{ padding: '10px 12px', background: 'var(--pp-danger-bg)', border: '1px solid var(--pp-danger-fg)', borderRadius: 10, fontWeight: 800, color: 'var(--pp-danger-fg)', fontSize: '1.1rem' }}>
+                ₹{Number(duePatient.total_due || 0).toLocaleString()}
+              </div>
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 700, display: 'block', marginBottom: 6 }}>Message</label>
+              <textarea className="comm-form-textarea" value={dueMessage} onChange={e => setDueMessage(e.target.value)} rows={4}
+                style={{ width: '100%', padding: '10px 12px', border: '1.5px solid var(--pp-warm-4)', borderRadius: 10, fontSize: '0.85rem', resize: 'vertical' }} />
+            </div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button className="plat-btn plat-btn-sm" onClick={() => setShowDuesModal(false)}>Cancel</button>
+              <button style={{ background: '#25D366', color: 'white', border: 'none', borderRadius: 8, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem' }} onClick={sendDueMessage} disabled={sendWa.isPending}>
+                <Send size={12} /> {sendWa.isPending ? 'Sending...' : 'Send Reminder'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 function BirthdaysTab({ onExport }: { onExport: (filename: string, headers: string[], data: unknown[]) => void }) {
+  const [page, setPage] = useState(1);
+  const itemsPerPage = 8;
   const { data, isLoading } = useBirthdayList();
+  const { data: templates = [] } = useSmsTemplates();
+  const sendWa = useSendWhatsApp();
 
-  if (isLoading) return (
-    <div className="plat-empty">
-      <div className="plat-empty-text">Loading birthdays...</div>
-    </div>
-  );
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const [bulkMessage, setBulkMessage] = useState('');
+  const [showSingleModal, setShowSingleModal] = useState(false);
+  const [singlePatient, setSinglePatient] = useState<any>(null);
+  const [singleMessage, setSingleMessage] = useState('');
+
+  if (isLoading) return <TableSkeleton rows={10} columns={4} />;
 
   const { patients = [], smsSentIds = [] } = data ?? {};
+  const paginatedPatients = patients.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+
+  const toggleSelect = (id: number) => {
+    const next = new Set(selectedIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelectedIds(next);
+  };
+
+  const toggleAll = () => {
+    if (selectedIds.size === patients.length) setSelectedIds(new Set());
+    else setSelectedIds(new Set(patients.map((p: any) => Number(p.id))));
+  };
+
+  const openSingleModal = (patient: any) => {
+    setSinglePatient(patient);
+    const tpl = templates.find((t: any) => t.smsType === 'Birthday');
+    const name = `${patient.first_name} ${patient.surname || ''}`;
+    setSingleMessage(tpl?.message?.replace(/\{#name#\}/gi, name) || `Happy Birthday, ${name}! Wishing you good health and happiness. - Kreed.health`);
+    setShowSingleModal(true);
+  };
+
+  const sendSingle = async () => {
+    if (!singlePatient?.mobile1 || !singleMessage.trim()) return;
+    await sendWa.mutateAsync({ phone: String(singlePatient.mobile1), message: singleMessage });
+    setShowSingleModal(false);
+    alert('WhatsApp message sent!');
+  };
+
+  const sendBulk = async () => {
+    if (!bulkMessage.trim()) return;
+    const ids = Array.from(selectedIds);
+    for (const id of ids) {
+      const p = patients.find((x: any) => x.id === id);
+      if (p?.mobile1) {
+        await sendWa.mutateAsync({
+          phone: String(p.mobile1),
+          message: bulkMessage.replace(/\{#name#\}/gi, `${p.first_name} ${p.surname || ''}`)
+        });
+      }
+    }
+    setShowBulkModal(false);
+    setBulkMessage('');
+    setSelectedIds(new Set());
+    alert('WhatsApp messages sent!');
+  };
 
   return (
     <div className="plat-card">
@@ -283,11 +454,23 @@ function BirthdaysTab({ onExport }: { onExport: (filename: string, headers: stri
           <Gift size={20} style={{ color: 'var(--pp-blue)' }} />
           <h3>Today&apos;s Birthdays</h3>
         </div>
-        <button className="plat-btn plat-btn-sm"
-          onClick={() => onExport('Birthday_List', ['regid', 'first_name', 'surname', 'mobile1', 'date_birth'], patients)}
-        >
-          <Download size={14} /> Export CSV
-        </button>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {selectedIds.size > 0 && (
+            <button className="plat-btn plat-btn-sm" style={{ background: '#25D366', color: 'white', border: 'none' }}
+              onClick={() => setShowBulkModal(true)}>
+              <MessageCircle size={12} /> Send ({selectedIds.size})
+            </button>
+          )}
+          <button className="plat-btn plat-btn-sm" onClick={() => setSelectedIds(new Set())}>Clear</button>
+          <button className="plat-btn plat-btn-sm" onClick={toggleAll}>
+            {selectedIds.size === patients.length && patients.length > 0 ? <CheckSquare size={14} /> : <Square size={14} />} Select All
+          </button>
+          <button className="plat-btn plat-btn-sm"
+            onClick={() => onExport('Birthday_List', ['regid', 'first_name', 'surname', 'mobile1', 'date_birth'], patients)}
+          >
+            <Download size={14} /> Export CSV
+          </button>
+        </div>
       </div>
       <div style={{ padding: '20px' }}>
         {patients.length === 0 ? (
@@ -296,65 +479,159 @@ function BirthdaysTab({ onExport }: { onExport: (filename: string, headers: stri
             <p>No birthdays found for today.</p>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
-            {(patients as any[]).map((p) => {
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+            {(paginatedPatients as any[]).map((p) => {
               const smsSent = smsSentIds.includes(Number(p.regid));
+              const isSelected = selectedIds.has(Number(p.id));
               return (
-                <div key={String(p.id)} style={{ 
-                   padding: '16px', 
-                   border: '1px solid var(--pp-warm-4)', 
-                   borderRadius: '12px',
-                   background: 'var(--bg-card)',
+                <div key={String(p.id)} style={{
+                   padding: '20px',
+                   border: isSelected ? '2px solid var(--pp-blue)' : '1px solid var(--pp-warm-4)',
+                   borderRadius: '16px',
+                   background: isSelected ? 'var(--pp-blue-tint)' : 'var(--bg-card)',
                    display: 'flex',
                    justifyContent: 'space-between',
-                   alignItems: 'center'
+                   alignItems: 'center',
+                   boxShadow: 'var(--pp-shadow-sm)',
+                   transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                   cursor: 'default',
+                   flexDirection: 'column',
+                   gap: 12,
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ 
-                      width: '40px', 
-                      height: '40px', 
-                      borderRadius: '50%', 
-                      background: 'var(--pp-blue-tint)', 
-                      display: 'flex', 
-                      alignItems: 'center', 
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', width: '100%' }}>
+                    <button onClick={() => toggleSelect(Number(p.id))}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, flexShrink: 0 }}>
+                      {isSelected ? <CheckSquare size={16} style={{ color: 'var(--pp-blue)' }} /> : <Square size={16} style={{ color: 'var(--pp-text-3)' }} />}
+                    </button>
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '14px',
+                      background: 'linear-gradient(135deg, var(--pp-blue) 0%, #4F46E5 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
                       justifyContent: 'center',
-                      color: 'var(--pp-blue)',
-                      fontWeight: 800,
-                      fontSize: '0.85rem'
+                      color: 'white',
+                      fontWeight: 900,
+                      fontSize: '1rem',
+                      boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)',
+                      flexShrink: 0,
                     }}>
                       {String(p.first_name ?? '').charAt(0)}{String(p.surname ?? '').charAt(0)}
                     </div>
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{String(p.first_name ?? '')} {String(p.surname ?? '')}</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--pp-text-3)' }}>{p.mobile1 ? String(p.mobile1) : '—'}</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--pp-ink)', letterSpacing: '-0.01em' }}>{String(p.first_name ?? '')} {String(p.surname ?? '')}</div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--pp-text-3)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <Activity size={12} style={{ color: 'var(--pp-blue)' }} /> ID #{String(p.regid ?? '')}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{
+                        fontSize: '0.65rem',
+                        fontWeight: 900,
+                        padding: '4px 10px',
+                        borderRadius: '20px',
+                        background: smsSent ? 'var(--pp-success-bg)' : 'var(--pp-warm-2)',
+                        color: smsSent ? 'var(--pp-success-fg)' : 'var(--pp-text-3)',
+                        textTransform: 'uppercase',
+                        border: '1px solid ' + (smsSent ? 'var(--pp-success-border)' : 'var(--pp-warm-4)'),
+                        marginBottom: 8
+                      }}>
+                        {smsSent ? 'Wish Sent' : 'Queued'}
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--pp-blue)', fontWeight: 800 }}>
+                        {p.mobile1 ? String(p.mobile1) : '—'}
+                      </div>
                     </div>
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div className={`plat-badge ${smsSent ? 'plat-badge-staff' : 'plat-badge-warning'}`} style={{ marginBottom: 4 }}>
-                      {smsSent ? 'SMS Sent' : 'SMS Pending'}
-                    </div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--pp-text-3)', fontWeight: 600 }}>
-                      {p.date_birth ? new Date(String(p.date_birth)).toLocaleDateString() : '—'}
-                    </div>
+                  <div style={{ display: 'flex', gap: 8, width: '100%', justifyContent: 'flex-end', paddingLeft: 28 }}>
+                    <button onClick={() => openSingleModal(p)}
+                      style={{ background: '#25D366', border: 'none', borderRadius: 8, padding: '6px 14px', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', color: 'white', fontSize: '0.78rem', fontWeight: 700 }}>
+                      <MessageCircle size={12} /> WhatsApp
+                    </button>
                   </div>
                 </div>
               );
             })}
           </div>
         )}
+        {patients.length > itemsPerPage && (
+          <div style={{ marginTop: 24 }}>
+            <Pagination
+              totalItems={patients.length}
+              itemsPerPage={itemsPerPage}
+              currentPage={page}
+              onPageChange={setPage}
+              onLimitChange={() => {}}
+            />
+          </div>
+        )}
       </div>
+
+      {/* Single WhatsApp Modal */}
+      {showSingleModal && singlePatient && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: 'white', borderRadius: 16, padding: 24, width: '100%', maxWidth: 480 }}>
+            <h3 style={{ margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <MessageCircle size={18} style={{ color: '#25D366' }} /> Send Birthday Wish
+            </h3>
+            <div style={{ marginBottom: 12 }}>
+              <input type="text" value={`#${singlePatient.regid} - ${singlePatient.first_name} ${singlePatient.surname || ''}`} readOnly
+                style={{ width: '100%', padding: '10px 12px', border: '1.5px solid var(--pp-warm-4)', borderRadius: 10, fontSize: '0.85rem', background: 'var(--pp-warm-1)', fontWeight: 600 }} />
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <input type="text" value={singlePatient.mobile1 || ''} readOnly
+                style={{ width: '100%', padding: '10px 12px', border: '1.5px solid var(--pp-warm-4)', borderRadius: 10, fontSize: '0.85rem', background: 'var(--pp-warm-1)' }} />
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 700, display: 'block', marginBottom: 6 }}>Message</label>
+              <textarea className="comm-form-textarea" value={singleMessage} onChange={e => setSingleMessage(e.target.value)} rows={4}
+                style={{ width: '100%', padding: '10px 12px', border: '1.5px solid var(--pp-warm-4)', borderRadius: 10, fontSize: '0.85rem', resize: 'vertical' }} />
+            </div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button className="plat-btn plat-btn-sm" onClick={() => setShowSingleModal(false)}>Cancel</button>
+              <button style={{ background: '#25D366', color: 'white', border: 'none', borderRadius: 8, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem' }} onClick={sendSingle} disabled={sendWa.isPending}>
+                <Send size={12} /> {sendWa.isPending ? 'Sending...' : 'Send'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk WhatsApp Modal */}
+      {showBulkModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: 'white', borderRadius: 16, padding: 24, width: '100%', maxWidth: 480 }}>
+            <h3 style={{ margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <MessageCircle size={18} style={{ color: '#25D366' }} /> Bulk Birthday Wishes ({selectedIds.size})
+            </h3>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 700, display: 'block', marginBottom: 6 }}>Message (use {"{#name#}"} for patient name)</label>
+              <textarea className="comm-form-textarea" placeholder="Happy Birthday, {#name#}! Wishing you good health. - Kreed.health"
+                value={bulkMessage} onChange={e => setBulkMessage(e.target.value)} rows={4}
+                style={{ width: '100%', padding: '10px 12px', border: '1.5px solid var(--pp-warm-4)', borderRadius: 10, fontSize: '0.85rem', resize: 'vertical' }} />
+            </div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button className="plat-btn plat-btn-sm" onClick={() => { setShowBulkModal(false); setBulkMessage(''); }}>Cancel</button>
+              <button style={{ background: '#25D366', color: 'white', border: 'none', borderRadius: 8, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem' }} onClick={sendBulk} disabled={sendWa.isPending}>
+                <Send size={12} /> {sendWa.isPending ? 'Sending...' : `Send to ${selectedIds.size}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 function ReferencesTab({ onExport }: { onExport: (filename: string, headers: string[], data: unknown[]) => void }) {
+  const [page, setPage] = useState(1);
+  const itemsPerPage = 10;
   const { data, isLoading } = useReferenceListing();
 
-  if (isLoading) return (
-    <div className="plat-empty">
-      <div className="plat-empty-text">Loading statistics...</div>
-    </div>
-  );
+  if (isLoading) return <TableSkeleton rows={10} columns={3} />;
+
+  const paginatedData = (data ?? []).slice((page - 1) * itemsPerPage, page * itemsPerPage);
 
   return (
     <div className="plat-card">
@@ -376,7 +653,7 @@ function ReferencesTab({ onExport }: { onExport: (filename: string, headers: str
             </tr>
           </thead>
           <tbody>
-            {(data ?? []).map((row: any, i: number) => (
+            {paginatedData.map((row: any, i: number) => (
               <tr key={i}>
                 <td data-label="Source / Referral" style={{ fontWeight: 700, color: 'var(--pp-ink)' }}>{String(row.reference ?? '—')}</td>
                 <td data-label="Patients Brought" style={{ textAlign: 'center' }}>
@@ -401,6 +678,15 @@ function ReferencesTab({ onExport }: { onExport: (filename: string, headers: str
           </tbody>
         </table>
       </div>
+      {(data ?? []).length > itemsPerPage && (
+        <Pagination 
+          totalItems={(data ?? []).length} 
+          itemsPerPage={itemsPerPage} 
+          currentPage={page} 
+          onPageChange={setPage} 
+          onLimitChange={() => {}}
+        />
+      )}
     </div>
   );
 }

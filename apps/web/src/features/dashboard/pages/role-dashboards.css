@@ -6,10 +6,41 @@
 
 .dash-root {
   padding: 0;
-  padding-bottom: var(--pp-space-8);
+  /* Control padding via global .page-content-area wrapper */
   display: flex;
   flex-direction: column;
   gap: var(--pp-space-6);
+}
+
+/* 0. Main Dashboard Header */
+.dash-header {
+  margin-bottom: var(--pp-space-6);
+}
+
+.dash-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--pp-ink);
+  margin: 0 0 4px;
+  letter-spacing: -0.01em;
+}
+
+.dash-subtitle {
+  font-size: 13px;
+  color: var(--pp-text-3);
+  font-weight: 500;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dash-subtitle::before {
+  content: '';
+  width: 10px;
+  height: 1px;
+  background: var(--pp-blue);
+  opacity: 0.4;
 }
 
 /* 1. KPI Strip (Top Row) */
@@ -788,15 +819,84 @@ button.pp-link:hover {
   padding: 2px 6px;
   border-radius: 4px;
   font-family: var(--pp-font-mono);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   display: inline-block;
 }
 
+.dark .dash-kpi-item {
+  background: rgba(30, 41, 59, 0.4);
+  border-color: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+}
+
+.dark .dash-kpi-item:hover {
+  background: rgba(30, 41, 59, 0.6);
+  border-color: var(--pp-blue);
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
+}
+
+.dark .dash-card {
+  background: rgba(15, 23, 42, 0.6);
+  border-color: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+}
+
+.dark .dash-card-header {
+  background: rgba(30, 41, 59, 0.3);
+  border-bottom-color: rgba(255, 255, 255, 0.05);
+}
+
+.dark .dd-active-head-up {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.8) 100%);
+  border-color: rgba(59, 130, 246, 0.3);
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.4), inset 0 0 20px rgba(59, 130, 246, 0.05);
+}
+
+.dark .dd-hud-header {
+  background: rgba(59, 130, 246, 0.1);
+  border-bottom-color: rgba(59, 130, 246, 0.2);
+}
+
+.dark .dash-row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.dark .dash-row.active {
+  background: rgba(59, 130, 246, 0.1);
+  border-left-color: var(--pp-blue);
+}
+
+.dark .dash-intel-item {
+  background: rgba(30, 41, 59, 0.4);
+  border-color: rgba(255, 255, 255, 0.03);
+}
+
+.dark .dash-intel-item:hover {
+  background: rgba(30, 41, 59, 0.6);
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+.dark .dd-token-pill {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60A5FA;
+}
+
+.dark .modal-overlay {
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(12px);
+}
+
+.dark .modal-box {
+  background: #0F172A;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+}
+
 .dash-action-btn {
-  padding: 4px 14px;
+  padding: 4px 12px;
   border-radius: 6px;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.2s;
   border: 1.5px solid transparent;
@@ -832,81 +932,79 @@ button.pp-link:hover {
   cursor: not-allowed;
 }
 
-/* ─── DOCTOR DASHBOARD PANEL UI OVERRIDES (Matched to Reference) ─── */
-.doctor-dashboard-panel .dash-kpi-item,
-.doctor-dashboard-panel .dash-card,
-.doctor-dashboard-panel .dash-sidebar-card,
-.doctor-dashboard-panel .dd-active-head-up {
-  background: #ffffff;
-  border: 1px solid #e5e7eb; /* Soft light gray border */
-  border-radius: 12px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); /* Soft, professional shadow */
-  transition: all 0.3s ease;
-}
-
-.doctor-dashboard-panel .dash-card-header,
-.doctor-dashboard-panel .dd-hud-header {
-  background: transparent; /* Remove background fill to match reference */
-  border-bottom: 1px solid #f1f5f9;
-  padding: 16px 20px;
-}
-
-.doctor-dashboard-panel .dd-hud-header {
-  border-radius: 12px 12px 0 0;
-}
-
-.doctor-dashboard-panel .dash-section-title,
-.doctor-dashboard-panel .dash-kpi-label {
-  color: #64748b; /* Slate 500 */
-  font-weight: 600;
-  letter-spacing: 0.04em;
-}
-
-.doctor-dashboard-panel .dash-kpi-value {
-  color: #0f172a; /* Slate 900 */
-}
-
-.doctor-dashboard-panel .dash-kpi-item:hover {
-  border-color: #cbd5e1;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
-  transform: translateY(-2px);
-}
-
-.doctor-dashboard-panel .dash-row {
-  border-bottom: 1px solid #f1f5f9;
-}
-
-.doctor-dashboard-panel .dash-row:hover {
+/* ─── OpLink Styles ─── */
+.hover-op {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
   background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: all 0.15s;
 }
 
-.doctor-dashboard-panel .dash-row.active {
+.hover-op-icon {
+  color: #2563eb;
+  display: flex;
+}
+
+.hover-op-label {
+  font-size: 12px;
+  font-weight: 700;
+  flex: 1;
+  color: #475569;
+}
+
+.hover-op-arrow {
+  color: #94a3b8;
+}
+
+.hover-op:hover {
   background: #f1f5f9;
-  border-left: 3px solid #0f172a;
+  border-color: #e2e8f0;
 }
 
-.doctor-dashboard-panel .dash-row-details {
-  background: #f8fafc;
-  border-bottom: 1px solid #f1f5f9;
+/* ─── Dark Theme Overrides for Buttons & OpLinks ─── */
+.dark .dash-view-btn {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border-color: rgba(59, 130, 246, 0.25);
 }
 
-/* Standardized skeletons are now in shared.css */
-
-
-.skeleton-text {
-  height: 12px;
-  margin-bottom: 8px;
-  border-radius: 4px;
+.dark .dash-view-btn:hover {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
 }
 
-.skeleton-text.title {
-  height: 24px;
-  width: 40%;
-  margin-bottom: 16px;
+.dark .btn-checkin {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+  border-color: rgba(34, 197, 94, 0.25);
 }
 
-.skeleton-circle {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-}
+.dark .btn-call {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.25);
+}
+
+.dark .hover-op {
+  background: rgba(30, 41, 59, 0.5);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.dark .hover-op:hover {
+  background: rgba(30, 41, 59, 0.8);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .hover-op-label {
+  color: #cbd5e1;
+}
+
+.dark .hover-op-icon {
+  color: #60a5fa;
+}

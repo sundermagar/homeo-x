@@ -1,21 +1,16 @@
 import { useState } from 'react';
 import {
-  Building2,
-  Users,
   TrendingUp,
   TrendingDown,
   Activity,
   CreditCard,
-  Clock,
-  CheckCircle,
+  AlertCircle,
   ArrowRight,
   BarChart3,
-  ChevronRight,
-  ChevronDown,
-  DollarSign,
-  Plus,
-  MoreVertical,
-  Zap,
+  CalendarClock,
+  Ticket,
+  Building2,
+  Users,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -41,10 +36,9 @@ export function AdminDashboard() {
 
   const isLoading = dashLoading && clinicLoading;
   const revenueSeries = clinicData?.revenueSeries || dashData?.revenueSeries || [];
-  
+
   const platformStats = dashData?.platformStats;
   const clinicCount = platformStats?.totalClinics ?? 0;
-  const activeStaff = platformStats?.totalStaff ?? 0;
 
   if (isLoading) {
     return (
@@ -72,27 +66,27 @@ export function AdminDashboard() {
         </div>
 
         <div className="sa-main-grid">
-           <div className="sa-chart-card" style={{ height: '320px' }}>
-              <div className="sa-chart-header">
-                <div className="skeleton-box skeleton-text" style={{ width: '150px', marginBottom: 0 }} />
-              </div>
-              <div className="sa-chart-body" style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', padding: '24px' }}>
-                 <div className="skeleton-box" style={{ width: '100%', height: '80%', borderRadius: '8px 8px 0 0', opacity: 0.1 }} />
-              </div>
-           </div>
-           <div className="sa-intel-card" style={{ height: '320px' }}>
-              <div className="sa-intel-header">
-                <div className="skeleton-box skeleton-text" style={{ width: '120px', marginBottom: 0 }} />
-              </div>
-              <div className="sa-intel-list">
-                 {[1, 2, 3].map(i => (
-                    <div key={i} className="sa-intel-item">
-                       <div className="skeleton-box skeleton-circle" style={{ width: '8px', height: '8px' }} />
-                       <div className="skeleton-box skeleton-text" style={{ width: '100%' }} />
-                    </div>
-                 ))}
-              </div>
-           </div>
+          <div className="sa-chart-card" style={{ height: '320px' }}>
+            <div className="sa-chart-header">
+              <div className="skeleton-box skeleton-text" style={{ width: '150px', marginBottom: 0 }} />
+            </div>
+            <div className="sa-chart-body" style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', padding: '24px' }}>
+              <div className="skeleton-box" style={{ width: '100%', height: '80%', borderRadius: '8px 8px 0 0', opacity: 0.1 }} />
+            </div>
+          </div>
+          <div className="sa-intel-card" style={{ height: '320px' }}>
+            <div className="sa-intel-header">
+              <div className="skeleton-box skeleton-text" style={{ width: '120px', marginBottom: 0 }} />
+            </div>
+            <div className="sa-intel-list">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="sa-intel-item">
+                  <div className="skeleton-box skeleton-circle" style={{ width: '8px', height: '8px' }} />
+                  <div className="skeleton-box skeleton-text" style={{ width: '100%' }} />
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -129,32 +123,26 @@ export function AdminDashboard() {
           iconBg="rgba(139, 92, 246, 0.1)"
           iconColor="#8b5cf6"
         />
-        <KPIItem
-          label="Collection Rate"
-          value={`${dashData?.collectionRate || 0}%`}
-          trend={`${dashData?.collectionRateTrend || 0}% vs prev.`}
-          positive={Number(dashData?.collectionRateTrend || 0) >= 0}
-          icon={<CheckCircle size={20} />}
-          iconBg="rgba(16, 185, 129, 0.1)"
-          iconColor="#10b981"
+        <PrimaryKPICard
+          label="REVENUE / PATIENT"
+          value={fmt(clinicData?.revenueBreakdown?.perPatient || 0)}
+          trend={0}
+          icon={<BarChart3 size={18} />}
+          color="var(--pp-blue)"
         />
-        <KPIItem
-          label="Avg Wait Time"
-          value={`${dashData?.avgWaitTime || 0}m`}
-          trend={`${dashData?.avgWaitTimeTrend || 0}% vs prev.`}
-          positive={Number(dashData?.avgWaitTimeTrend || 0) <= 0}
-          icon={<Clock size={20} />}
-          iconBg="rgba(245, 158, 11, 0.1)"
-          iconColor="#f59e0b"
+        <PrimaryKPICard
+          label="PENDING DUES"
+          value={fmt(clinicData?.revenueBreakdown?.pending || 0)}
+          trend={0}
+          icon={<AlertCircle size={18} />}
+          color="var(--pp-blue)"
         />
       </div>
 
-      {/* ── Secondary Stats Row ────────────────────────────────────────── */}
-      <div className="sa-stats-row">
-        <StatCard label="Active Clinics" value={String(clinicCount)} icon={<Building2 size={16} />} color="#2563eb" onClick={() => navigate('/platform/clinics')} />
-        <StatCard label="Active Staff" value={String(activeStaff)} icon={<Users size={16} />} color="#7c3aed" onClick={() => navigate('/staff')} />
-        <StatCard label="Revenue / Patient" value={fmt(clinicData?.revenueBreakdown?.perPatient || 0)} icon={<BarChart3 size={16} />} color="#16a34a" />
-        <StatCard label="Pending Dues" value={fmt(clinicData?.revenueBreakdown?.pending || 0)} icon={<Activity size={16} />} color="#dc2626" onClick={() => navigate('/billing')} />
+      {/* ── Platform Stats Row ────────────────────────────────────────── */}
+      <div className="sa-stats-row" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+        <StatCard label="Active Clinics" value={String(clinicCount)} icon={<Building2 size={16} />} color="var(--pp-blue)" onClick={() => navigate('/platform/clinics')} />
+        <StatCard label="Clinic Admins" value={String(platformStats?.totalClinicAdmins ?? 0)} icon={<Users size={16} />} color="var(--pp-blue)" onClick={() => navigate('/platform/clinicadmins')} />
       </div>
 
       <div className="sa-main-grid">
@@ -178,35 +166,35 @@ export function AdminDashboard() {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="6 6" vertical={false} stroke="#f1f5f9" />
-                  <XAxis 
-                    dataKey="month" 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 600 }} 
+                  <XAxis
+                    dataKey="month"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 600 }}
                     dy={10}
                   />
                   <YAxis hide={true} />
-                  <Tooltip 
+                  <Tooltip
                     cursor={{ stroke: 'rgba(37, 99, 235, 0.1)', strokeWidth: 2 }}
-                    contentStyle={{ 
-                      borderRadius: 12, 
-                      border: '1px solid #e2e8f0', 
-                      background: '#fff', 
-                      fontSize: 12, 
+                    contentStyle={{
+                      borderRadius: 12,
+                      border: '1px solid #e2e8f0',
+                      background: '#fff',
+                      fontSize: 12,
                       fontWeight: 700,
                       boxShadow: '0 10px 25px rgba(0,0,0,0.05)'
-                    }} 
-                    formatter={(v: any) => [fmt(Number(v)), 'Revenue']} 
+                    }}
+                    formatter={(v: any) => [fmt(Number(v)), 'Revenue']}
                   />
-                  <Area 
-                    type="monotone" 
-                    dataKey="revenue" 
-                    stroke="#2563eb" 
-                    strokeWidth={3} 
-                    fill="url(#saRevGrad)" 
+                  <Area
+                    type="monotone"
+                    dataKey="revenue"
+                    stroke="#2563eb"
+                    strokeWidth={3}
+                    fill="url(#saRevGrad)"
                     dot={{ r: 4, fill: '#fff', strokeWidth: 2, stroke: '#2563eb' }}
                     activeDot={{ r: 6, fill: '#2563eb', stroke: '#fff', strokeWidth: 3 }}
-                    isAnimationActive={true} 
+                    isAnimationActive={true}
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -250,8 +238,8 @@ export function AdminDashboard() {
 
       {/* ── Quick Actions ─────────────────────────────────────────────── */}
       <div className="sa-actions-grid">
-        <QuickAction icon={<Building2 size={18} />} label="Manage Clinics" sub="Add, edit or view clinics" onClick={() => navigate('/platform/clinics')} />
-        <QuickAction icon={<Users size={18} />} label="Staff Management" sub="Doctors, receptionists & roles" onClick={() => navigate('/staff')} />
+        <QuickAction icon={<CalendarClock size={18} />} label="Appointments" sub="Today's schedule & bookings" onClick={() => navigate('/appointments')} />
+        <QuickAction icon={<Ticket size={18} />} label="Patient Queue" sub="Live token & waitlist status" onClick={() => navigate('/patients/queue')} />
         <QuickAction icon={<CreditCard size={18} />} label="Billing & Payments" sub="Invoices, receipts & dues" onClick={() => navigate('/billing')} />
         <QuickAction icon={<BarChart3 size={18} />} label="Analytics" sub="Reports & revenue insights" onClick={() => navigate('/analytics')} />
       </div>

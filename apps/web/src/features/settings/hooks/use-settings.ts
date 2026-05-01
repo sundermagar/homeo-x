@@ -74,6 +74,32 @@ export function useStockLogs(medicineId?: number) {
   });
 }
 
+export function useAddStock() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: { medicineId: number; quantity: number; changeType: string; reason?: string }) => {
+      const { data } = await apiClient.post('/settings/stock-logs', payload);
+      return data.data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['settings', 'stock-logs'] });
+      qc.invalidateQueries({ queryKey: ['settings', 'medicines'] });
+    }
+  });
+}
+
+export function useDeleteStockLog() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      await apiClient.delete(`/settings/stock-logs/${id}`);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['settings', 'stock-logs'] });
+    }
+  });
+}
+
 // ─── Named convenience exports (recommended way to use) ───────────────────────
 export const { useList: useDepartments, useCreate: useCreateDepartment, useUpdate: useUpdateDepartment, useRemove: useDeleteDepartment } = departmentHooks;
 export const { useList: useDispensaries, useCreate: useCreateDispensary, useUpdate: useUpdateDispensary, useRemove: useDeleteDispensary } = dispensaryHooks;

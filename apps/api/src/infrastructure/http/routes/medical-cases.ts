@@ -15,6 +15,8 @@ import { AnalyzeVitalsUseCase } from '../../../domains/medical-case/use-cases/an
 import { ManageSoapNotesUseCase } from '../../../domains/medical-case/use-cases/manage-soap-notes.use-case';
 import { ManageClinicalRecordsUseCase } from '../../../domains/medical-case/use-cases/manage-clinical-records.use-case';
 import { aiAnalysisUseCase } from '../../../domains/medical-case/use-cases/ai-analysis.use-case';
+import { validate } from '../middleware/validate';
+import { saveInvestigationSchema } from '@mmc/validation';
 
 const router = Router();
 router.use(authMiddleware);
@@ -169,7 +171,7 @@ router.delete('/records/prescriptions/:id', asyncHandler(async (req, res) => {
   sendSuccess(res, null, 'Prescription removed');
 }));
 
-router.post('/records/investigations', asyncHandler(async (req, res) => {
+router.post('/records/investigations', validate(saveInvestigationSchema), asyncHandler(async (req, res) => {
   const useCase = new ManageClinicalRecordsUseCase(getRepo(req));
   await useCase.saveInvestigation(req.body);
   sendSuccess(res, null, 'Investigation recorded');
@@ -179,6 +181,51 @@ router.post('/records/homeo-details', asyncHandler(async (req, res) => {
   const useCase = new ManageClinicalRecordsUseCase(getRepo(req));
   await useCase.saveHomeoDetails(req.body);
   sendSuccess(res, null, 'Homeopathic details saved');
+}));
+
+// ─── Examination Records ───
+router.get('/examination/:regid', asyncHandler(async (req, res) => {
+  const repo = getRepo(req);
+  const exams = await repo.getExaminations(Number(req.params.regid));
+  sendSuccess(res, exams);
+}));
+
+router.post('/records/examination', asyncHandler(async (req, res) => {
+  const useCase = new ManageClinicalRecordsUseCase(getRepo(req));
+  await useCase.saveExamination(req.body);
+  sendSuccess(res, null, 'Examination recorded');
+}));
+
+router.delete('/records/examination/:id', asyncHandler(async (req, res) => {
+  const useCase = new ManageClinicalRecordsUseCase(getRepo(req));
+  await useCase.deleteExamination(Number(req.params.id));
+  sendSuccess(res, null, 'Examination deleted');
+}));
+
+// ─── Package History ───
+router.get('/packages/:regid', asyncHandler(async (req, res) => {
+  const repo = getRepo(req);
+  const packages = await repo.getPackageHistory(Number(req.params.regid));
+  sendSuccess(res, packages);
+}));
+
+// ─── Additional Charges ───
+router.get('/additional-charges/:regid', asyncHandler(async (req, res) => {
+  const repo = getRepo(req);
+  const charges = await repo.getAdditionalCharges(Number(req.params.regid));
+  sendSuccess(res, charges);
+}));
+
+router.post('/additional-charges', asyncHandler(async (req, res) => {
+  const repo = getRepo(req);
+  await repo.saveAdditionalCharge(req.body);
+  sendSuccess(res, null, 'Additional charge saved');
+}));
+
+router.delete('/additional-charges/:id', asyncHandler(async (req, res) => {
+  const repo = getRepo(req);
+  await repo.deleteAdditionalCharge(Number(req.params.id));
+  sendSuccess(res, null, 'Additional charge deleted');
 }));
 
 import { upload } from '../middleware/upload';

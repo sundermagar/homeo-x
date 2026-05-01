@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Download, FileText, Users, CreditCard, Calendar, ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react';
+import { Download, FileText, Users, CreditCard, Calendar, Loader2, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import '../../platform/styles/platform.css';
 import '../styles/settings.css';

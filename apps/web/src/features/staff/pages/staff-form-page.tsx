@@ -6,6 +6,7 @@ import type { CreateStaffInput, UpdateStaffInput } from '@mmc/validation';
 import { createStaffSchema, updateStaffSchema } from '@mmc/validation';
 import { User, Mail, Phone, MapPin, Briefcase, IndianRupee, ShieldCheck } from 'lucide-react';
 import { NumericInput } from '@/shared/components/NumericInput';
+import { Drawer } from '@/shared/components/drawer';
 
 const CATEGORY_META: Record<StaffCategory, string> = {
   doctor: 'Doctor',
@@ -172,25 +173,13 @@ export default function StaffFormPage() {
   const groupStyle = { marginBottom: 18 };
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: '24px 16px' }}>
-      
-      {/* Page Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 32 }}>
-        <button 
-          onClick={() => navigate('/staff')}
-          style={{ width: 40, height: 40, borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-muted)' }}
-        >
-          ←
-        </button>
-        <div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, margin: '0 0 4px', color: 'var(--text-main)' }}>
-            {isEditing ? `Edit ${categoryName}` : `Add New ${categoryName}`}
-          </h1>
-          <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 13 }}>
-            {isEditing ? 'Update staff credentials and details.' : 'Provision a new staff member into the system.'}
-          </p>
-        </div>
-      </div>
+    <Drawer
+      isOpen={true}
+      onClose={() => navigate('/staff')}
+      title={isEditing ? `Edit ${categoryName}` : `Add New ${categoryName}`}
+      maxWidth="600px"
+    >
+      <div className="plat-modal-content" style={{ border: 'none', boxShadow: 'none', margin: 0, padding: 0 }}>
 
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
         
@@ -360,28 +349,16 @@ export default function StaffFormPage() {
           </div>
         </div>
 
-        {/* Submit Actions */}
-        <div style={{ display: 'flex', gap: 16, marginTop: 16 }}>
-          <button 
-            type="button" 
-            onClick={() => navigate('/staff')}
-            className="btn btn-ghost" 
-            style={{ flex: 1, height: 48, borderRadius: 12, border: '1px solid var(--border)' }}
-            disabled={isSubmitting}
-          >
-            Cancel
+        <div className="plat-modal-footer" style={{ marginTop: '24px' }}>
+          <button type="button" className="plat-btn plat-btn-ghost" onClick={() => navigate('/staff')} disabled={isSubmitting}>
+            Discard
           </button>
-          <button 
-            type="submit" 
-            className="btn btn-primary" 
-            style={{ flex: 2, height: 48, borderRadius: 12 }}
-            disabled={isSubmitting}
-          >
+          <button type="submit" className="plat-btn plat-btn-primary" disabled={isSubmitting}>
             {isSubmitting ? 'Saving...' : (isEditing ? `Update ${categoryName}` : `Add ${categoryName}`)}
           </button>
         </div>
-
-      </form>
-    </div>
+        </form>
+      </div>
+    </Drawer>
   );
 }

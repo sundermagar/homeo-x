@@ -630,10 +630,19 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         ) as total
       `),
       this.db.execute(sql`
-        SELECT (
-          COALESCE((SELECT sum(received) FROM bills WHERE bill_date >= ${start}::date AND bill_date < ${boundary}::date AND LOWER(COALESCE(payment_mode, '')) IN ('upi', 'card', 'online', 'bank', 'gpay', 'phonepe', 'paytm') AND (deleted_at IS NULL OR deleted_at::text = '')), 0) +
-          COALESCE((SELECT sum(CAST(NULLIF(amount::text, '') AS numeric)) FROM receipt WHERE created_at >= ${start}::timestamp AND created_at < ${boundary}::timestamp AND LOWER(COALESCE(mode, '')) IN ('upi', 'card', 'online', 'bank', 'gpay', 'phonepe', 'paytm') AND (deleted_at IS NULL OR deleted_at::text = '')), 0)
-        ) as total
+        SELECT COALESCE(sum(CAST(NULLIF(${sql.identifier(amountCol)}::text, '') AS numeric)), 0) as total
+        FROM ${sql.identifier(revInfo.name)}
+        WHERE ${sql.identifier(dateCol)} >= ${start} AND ${sql.identifier(dateCol)} < ${boundary}
+          AND LOWER(COALESCE(${sql.identifier(modeCol)}, '')) IN ('upi', 'card', 'online', 'bank', 'gpay', 'phonepe', 'paytm')
+          AND (deleted_at IS NULL OR deleted_at::text = '')
+      `),
+      this.db.execute(sql`
+        SELECT
+          COALESCE(sum(CAST(NULLIF(charges::text, '') AS numeric)), 0)::int as total_charges,
+          COALESCE(sum(CAST(NULLIF(received::text, '') AS numeric)), 0)::int as total_received,
+          count(*)::int as invoice_count
+        FROM bills
+        WHERE (deleted_at IS NULL OR deleted_at::text = '')
       `)
     ]);
 
@@ -871,9 +880,18 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       SELECT count(*)::int as count FROM users WHERE (deleted_at IS NULL OR deleted_at::text = '') AND is_active = true
     `) as any[];
 
+    const [adminCount] = await this.db.execute(sql`
+      SELECT count(*)::int as count 
+      FROM public.users 
+      WHERE (deleted_at IS NULL OR deleted_at::text = '') 
+        AND is_active = true 
+        AND type = 'Clinicadmin'
+    `) as any[];
+
     return {
       totalClinics: orgCount?.count || 0,
       totalStaff: userCount?.count || 0,
+      totalClinicAdmins: adminCount?.count || 0,
     };
   }
 }

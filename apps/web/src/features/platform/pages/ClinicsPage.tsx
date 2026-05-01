@@ -1,10 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Building2, Plus, X, RefreshCw, Edit2, Trash2 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useOrganizations, useCreateOrganization, useDeleteOrganization, useUpdateOrganization } from '../hooks/use-organizations';
 import type { CreateOrganizationInput } from '@mmc/types';
 import { NumericInput } from '@/shared/components/NumericInput';
 import '../styles/platform.css';
+
+import { Pagination } from '@/shared/components/Pagination';
+import { usePagination } from '@/shared/hooks/use-pagination';
+import { TableSkeleton } from '@/shared/components/TableSkeleton';
+import { Drawer } from '@/shared/components/drawer';
 
 const EMPTY_FORM: any = {
   name: '', email: '', phone: '', city: '', website: '', description: '', connectSince: '',
@@ -18,11 +24,31 @@ export default function ClinicsPage() {
   const deleteOrg = useDeleteOrganization();
   const updateOrg = useUpdateOrganization();
 
-  const sortedOrgs = [...orgs].sort((a, b) => a.id - b.id);
+  const {
+    currentPage,
+    setCurrentPage,
+    itemsPerPage,
+    setItemsPerPage,
+    paginatedData,
+    totalItems
+  } = usePagination(orgs);
 
   const [isCreating, setIsCreating] = useState(false);
   const [editingOrg, setEditingOrg] = useState<any>(null);
   const [form, setForm] = useState<CreateOrganizationInput>(EMPTY_FORM);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get('add') === 'true') {
+      setIsCreating(true);
+      setEditingOrg(null);
+      setForm(EMPTY_FORM);
+      // Clean up the URL
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('add');
+      setSearchParams(newParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,91 +149,95 @@ export default function ClinicsPage() {
       {/* ─── Table ─── */}
       <div className="plat-card">
         {isLoading ? (
-          <div className="plat-empty">
-            <RefreshCw size={22} style={{ animation: 'spin 1s linear infinite', opacity: 0.3 }} />
-          </div>
+          <TableSkeleton rows={8} columns={7} />
         ) : orgs.length === 0 ? (
           <div className="plat-empty">
             <Building2 size={28} className="plat-empty-icon" />
             <p className="plat-empty-text">No clinics registered. Add your first clinic.</p>
           </div>
         ) : (
-          <div className="plat-table-container">
-            <table className="plat-table">
-              <thead>
-                <tr>
-                  <th style={{ width: '50px' }}>ID</th>
-                  <th>Clinic Name</th>
-                  <th style={{ width: '120px' }}>City</th>
-                  <th style={{ width: '140px' }}>Phone</th>
-                  <th style={{ width: '180px' }}>Website</th>
-                  <th style={{ width: '110px' }}>Connected</th>
-                  <th style={{ width: '80px' }}>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedOrgs.map((org, index) => (
-                  <tr key={index}>
-                    <td data-label="ID" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      {index + 1}
-                    </td>
-                    <td data-label="Clinic Name">
-                      <div style={{ fontWeight: 600 }}>{org.name}</div>
-                      {org.description && (
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '1px' }}>
-                          {org.description}
-                        </div>
-                      )}
-                    </td>
-                    <td data-label="City" style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{org.city || '—'}</td>
-                    <td data-label="Phone" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                      {org.phone || '—'}
-                    </td>
-                    <td data-label="Website" style={{ fontSize: '0.75rem' }}>
-                      {org.website ? (
-                        <a href={org.website} target="_blank" rel="noreferrer"
-                          style={{ color: 'var(--primary)', textDecoration: 'none' }}>
-                          {org.website.replace(/^https?:\/\//, '')}
-                        </a>
-                      ) : '—'}
-                    </td>
-                    <td data-label="Connected" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      {org.connectSince || '—'}
-                    </td>
-                    <td data-label="Action">
-                      <div className="flex justify-center gap-2">
-                        <button className="plat-btn plat-btn-icon plat-btn-ghost" onClick={() => handleEdit(org)} title="Edit">
-                          <Edit2 size={13} />
-                        </button>
-                        <button
-                          className="plat-btn plat-btn-icon plat-btn-danger"
-                          onClick={() => handleDelete(org.id, org.name)}
-                          title="Delete"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </td>
+          <>
+            <div className="plat-table-container">
+              <table className="plat-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '50px' }}>ID</th>
+                    <th>Clinic Name</th>
+                    <th style={{ width: '120px' }}>City</th>
+                    <th style={{ width: '140px' }}>Phone</th>
+                    <th style={{ width: '180px' }}>Website</th>
+                    <th style={{ width: '110px' }}>Connected</th>
+                    <th style={{ width: '80px' }}>Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {paginatedData.map((org: any, index: number) => (
+                    <tr key={org.id}>
+                      <td data-label="ID" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        {(currentPage - 1) * itemsPerPage + index + 1}
+                      </td>
+                      <td data-label="Clinic Name">
+                        <div style={{ fontWeight: 600 }}>{org.name}</div>
+                        {org.description && (
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '1px' }}>
+                            {org.description}
+                          </div>
+                        )}
+                      </td>
+                      <td data-label="City" style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{org.city || '—'}</td>
+                      <td data-label="Phone" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                        {org.phone || '—'}
+                      </td>
+                      <td data-label="Website" style={{ fontSize: '0.75rem' }}>
+                        {org.website ? (
+                          <a href={org.website} target="_blank" rel="noreferrer"
+                            style={{ color: 'var(--primary)', textDecoration: 'none' }}>
+                            {org.website.replace(/^https?:\/\//, '')}
+                          </a>
+                        ) : '—'}
+                      </td>
+                      <td data-label="Connected" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        {org.connectSince || '—'}
+                      </td>
+                      <td data-label="Action">
+                        <div className="flex justify-center gap-2">
+                          <button className="plat-btn plat-btn-icon plat-btn-ghost" onClick={() => handleEdit(org)} title="Edit">
+                            <Edit2 size={13} />
+                          </button>
+                          <button
+                            className="plat-btn plat-btn-icon plat-btn-danger"
+                            onClick={() => handleDelete(org.id, org.name)}
+                            title="Delete"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <Pagination
+              totalItems={totalItems}
+              itemsPerPage={itemsPerPage}
+              currentPage={currentPage}
+              onPageChange={setCurrentPage}
+              onLimitChange={setItemsPerPage}
+            />
+          </>
         )}
       </div>
 
-      {/* ─── Create/Edit Modal ─── */}
       {isCreating && (
-        <div className="plat-modal-backdrop" onClick={() => { setIsCreating(false); setEditingOrg(null); setForm(EMPTY_FORM); }}>
-          <div className="plat-modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="plat-modal-header">
-              <h3 className="plat-modal-title">{editingOrg ? 'Edit Clinic' : 'Register New Clinic'}</h3>
-              <button className="plat-btn plat-btn-icon plat-btn-ghost" onClick={() => { setIsCreating(false); setEditingOrg(null); setForm(EMPTY_FORM); }}>
-                <X size={14} />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreate} className="plat-modal-body">
+    <Drawer
+      isOpen={true}
+      onClose={() => { setIsCreating(false); setEditingOrg(null); setForm(EMPTY_FORM); }}
+      title={editingOrg ? 'Edit Clinic' : 'Register New Clinic'}
+      maxWidth="600px"
+    >
+      <div className="plat-modal-content" style={{ border: 'none', boxShadow: 'none', margin: 0, padding: 0 }}>
+        <form onSubmit={handleCreate} className="plat-modal-body">
               <div className="plat-form-section">
                 <h4 className="plat-form-section-title">Clinic Identity</h4>
                 <div className="plat-form-grid-multi">
@@ -331,7 +361,7 @@ export default function ClinicsPage() {
               </div>
             </form>
           </div>
-        </div>
+        </Drawer>
       )}
 
     </div>

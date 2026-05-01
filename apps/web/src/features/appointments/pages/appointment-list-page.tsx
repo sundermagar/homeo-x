@@ -123,7 +123,7 @@ export default function AppointmentListPage() {
         patientName: a.patientNameFromCase ?? a.patientName ?? 'Patient',
         phone: a.phone ?? '',
         doctorName: a.doctorName ?? 'N/A',
-        bookingDate: a.bookingDate ?? today,
+        bookingDate: (a.bookingDate || today) as string,
         bookingTime: a.bookingTime ?? '',
         consultationFee: String(a.consultationFee ?? 0),
         visitType: a.visitType as any,
