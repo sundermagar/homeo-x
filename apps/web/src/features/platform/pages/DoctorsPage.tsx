@@ -110,6 +110,7 @@ function FileInputRow({
   field,
   value,
   onChange,
+  onRemove,
   error,
   accept = "image/*,application/pdf",
   className = "",
@@ -119,6 +120,7 @@ function FileInputRow({
   field: string;
   value?: string | null;
   onChange: (f: string, e: React.ChangeEvent<HTMLInputElement>) => void;
+  onRemove?: (f: string) => void;
   error?: string;
   accept?: string;
   className?: string;
@@ -138,12 +140,24 @@ function FileInputRow({
         />
       </div>
       {value && (
-        <div className="plat-file-preview">
-          <span className="plat-file-preview-name" title={value}>{value.split('/').pop() || 'Uploaded File'}</span>
-          {value.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
-            <img src={value} alt="Preview" className="plat-file-preview-image" />
-          ) : (
-            <FileText size={16} className="color-muted" />
+        <div className="plat-file-preview" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+            <span className="plat-file-preview-name" title={value}>{value.split('/').pop() || 'Uploaded File'}</span>
+            {value.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
+              <img src={value} alt="Preview" className="plat-file-preview-image" />
+            ) : (
+              <FileText size={16} className="color-muted" />
+            )}
+          </div>
+          {onRemove && (
+            <button
+              type="button"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: 'var(--pp-danger-fg)' }}
+              onClick={() => onRemove(field)}
+              title="Remove file"
+            >
+              <Trash2 size={14} />
+            </button>
           )}
         </div>
       )}
@@ -252,6 +266,10 @@ function StaffModal({
     }
   };
 
+  const handleFileRemove = (field: string) => {
+    updateForm(field, '');
+  };
+
   const isPending = createMutation.isPending || updateMutation.isPending;
   const isEdit = mode === 'edit';
 
@@ -349,6 +367,7 @@ function StaffModal({
                 field="profilepic"
                 value={form.profilepic}
                 onChange={handleFileUpload}
+                onRemove={handleFileRemove}
                 error={errors['profilepic']}
                 accept="image/*"
                 style={{ gridColumn: 'span 2' }}
@@ -558,6 +577,7 @@ function StaffModal({
                 field="aadharCard"
                 value={form.aadharCard}
                 onChange={handleFileUpload}
+                onRemove={handleFileRemove}
                 error={errors['aadharCard']}
               />
 
@@ -577,6 +597,7 @@ function StaffModal({
                 field="panCard"
                 value={form.panCard}
                 onChange={handleFileUpload}
+                onRemove={handleFileRemove}
                 error={errors['panCard']}
               />
 
@@ -585,6 +606,7 @@ function StaffModal({
                 field="registrationCertificate"
                 value={form.registrationCertificate}
                 onChange={handleFileUpload}
+                onRemove={handleFileRemove}
                 error={errors['registrationCertificate']}
               />
 
@@ -593,13 +615,14 @@ function StaffModal({
                 field="appointmentLetter"
                 value={form.appointmentLetter}
                 onChange={handleFileUpload}
+                onRemove={handleFileRemove}
                 error={errors['appointmentLetter']}
               />
 
-              <FileInputRow label="10th Marksheet" field="col10Document" value={form.col10Document} onChange={handleFileUpload} error={errors['col10Document']} />
-              <FileInputRow label="12th Marksheet" field="col12Document" value={form.col12Document} onChange={handleFileUpload} error={errors['col12Document']} />
-              <FileInputRow label="BHMS Document" field="bhmsDocument" value={form.bhmsDocument} onChange={handleFileUpload} error={errors['bhmsDocument']} style={{ gridColumn: 'span 2' }} />
-              <FileInputRow label="MD Document" field="mdDocument" value={form.mdDocument} onChange={handleFileUpload} error={errors['mdDocument']} style={{ gridColumn: 'span 2' }} />
+              <FileInputRow label="10th Marksheet" field="col10Document" value={form.col10Document} onChange={handleFileUpload} onRemove={handleFileRemove} error={errors['col10Document']} />
+              <FileInputRow label="12th Marksheet" field="col12Document" value={form.col12Document} onChange={handleFileUpload} onRemove={handleFileRemove} error={errors['col12Document']} />
+              <FileInputRow label="BHMS Document" field="bhmsDocument" value={form.bhmsDocument} onChange={handleFileUpload} onRemove={handleFileRemove} error={errors['bhmsDocument']} style={{ gridColumn: 'span 2' }} />
+              <FileInputRow label="MD Document" field="mdDocument" value={form.mdDocument} onChange={handleFileUpload} onRemove={handleFileRemove} error={errors['mdDocument']} style={{ gridColumn: 'span 2' }} />
             </div>
           </div>
 
