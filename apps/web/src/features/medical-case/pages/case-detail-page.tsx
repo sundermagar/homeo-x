@@ -530,7 +530,9 @@ function MediaView({ images, regid }: { images: any[], regid: number }) {
                   value={f.desc} 
                   onChange={e => {
                     const next = [...pendingFiles];
-                    next[i].desc = e.target.value;
+                    if (next[i]) {
+                      next[i].desc = e.target.value;
+                    }
                     setPendingFiles(next);
                   }}
                 />
@@ -816,7 +818,8 @@ function LabsView({ investigations, regid }: { investigations: any[]; regid: num
       formData.append('regid', String(regid));
       formData.append('description', entry.desc || entry.file.name);
       try {
-        const res = await fetch('/api/medical-cases/records/images', {
+        const baseURL = apiClient.defaults.baseURL || '/api';
+        const res = await fetch(`${baseURL}/medical-cases/records/images`, {
           method: 'POST',
           headers: token ? { Authorization: `Bearer ${token}` } : {},
           body: formData,

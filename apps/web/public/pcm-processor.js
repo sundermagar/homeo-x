@@ -16,11 +16,27 @@ class PcmProcessor extends AudioWorkletProcessor {
     const input = inputs[0]?.[0];
     if (!input || input.length === 0) return true;
 
+    // 1. Calculate RMS energy to detect silence vs speech
+    let sumSquares = 0;
     for (let i = 0; i < input.length; i++) {
-      // Apply gain BEFORE clipping so we don't waste headroom on quiet input.
-      let s = (input[i] || 0) * GAIN;
-      if (s > 1) s = 1;
-      else if (s < -1) s = -1;
+      sumSquares += input[i] * input[i];
+    }
+    const rms = Math.sqrt(sumSquares / input.length);
+
+    // 2. Noise Gate Threshold
+    // If energy is below 0.005, it's just background hum/static.
+    // We send pure zeros instead of amplified noise to prevent Google STT from hallucinating.
+    const isSilence = rms < 0.005;
+
+    for (let i = 0; i < input.length; i++) {
+      let s = 0;
+      if (!isSilence) {
+        // Apply gain BEFORE clipping so we don't waste headroom on quiet input.
+        s = (input[i] || 0) * GAIN;
+        if (s > 1) s = 1;
+        else if (s < -1) s = -1;
+      }
+
       this.buffer[this.offset++] = s < 0 ? s * 0x8000 : s * 0x7FFF;
 
       // When buffer is full (4096 samples = ~256ms at 16kHz), send it
