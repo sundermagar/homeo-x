@@ -343,15 +343,33 @@ export function setupTranscriptionGateway(io: Server, translator: TranslatorEngi
     
     function isHallucination(tStr: string): boolean {
       const t = tStr.trim().toLowerCase();
-      const fixed = /^(thank you|bye bye|bye-bye|please subscribe|subscribe|hey guys|goodbye|thank you for watching|thanks for watching|amen|amend|testing 1 2 3|1 to 10|1 to 100|1 to 100 counting|counting)\.?$/i;
+      if (!t || t.length < 2) return true;
+
+      // ── Fixed known phantom phrases ──
+      const fixed = /^(thank you|bye bye|bye-bye|please subscribe|subscribe|hey guys|goodbye|thank you for watching|thanks for watching|amen|amend|testing 1 2 3|1 to 10|1 to 100|1 to 100 counting|counting|i'm going to|i'm gonna|i'm going to go to the bathroom|i'm going to go ahead|i'm going to go ahead and put this|let's go|okay so|so yeah|yeah so|yeah|so|you|hmm|hm|um|uh|oh|okay|ok|right|alright|well|anyway|hello|hi|hey)\\.?$/i;
       if (fixed.test(t)) return true;
 
+      // ── Counting sequences ──
       const cleanStr = t.replace(/[,\.]/g, '');
       if (/1 to 100/i.test(cleanStr) || /1 2 3 4/i.test(cleanStr) || /one two three/i.test(cleanStr)) return true;
-
       const isOnlyNumbers = /^[\d\s]+$/.test(cleanStr);
       if (isOnlyNumbers && cleanStr.split(/\s+/).length >= 2) return true;
-      
+
+      // ── Very short non-medical filler ──
+      // Single words under 4 chars that aren't Hindi/medical terms
+      const words = t.split(/\s+/);
+      if (words.length === 1 && t.length <= 4 && /^[a-z]+$/.test(t)) return true;
+
+      // ── Repetition detector ──
+      // "so so so" or "yeah yeah" — repeated single words
+      if (words.length >= 2 && words.every(w => w === words[0])) return true;
+
+      // ── Common chirp_2 hallucination patterns ──
+      // These are English filler sentences the model generates during silence
+      if (/^i'?m going to (go|put|do|make|get|take|try)/i.test(t) && words.length <= 12) return true;
+      if (/^(let me|let's) (go|do|see|try|put|check)/i.test(t) && words.length <= 8) return true;
+      if (/^(so|and|but|or|well) (i'?m|we|let|the|this|that)$/i.test(t)) return true;
+
       return false;
     }
 
