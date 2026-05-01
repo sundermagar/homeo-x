@@ -1,12 +1,12 @@
 /* ─── Login Page — Paperplane Design System ──────────────────────────────── */
 
 .login-container {
-  min-height: 100vh;
+  height: 100vh;
+  overflow-y: auto;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
   background: radial-gradient(circle at top left, var(--pp-warm-1) 0%, var(--pp-warm-1) 50%, var(--pp-warm-2) 100%);
-  padding: 16px;
+  padding: 40px 16px;
 }
 
 .dark .login-container {
@@ -17,6 +17,7 @@
   width: 100%;
   max-width: 420px;
   padding: 24px;
+  margin: auto;
   border-radius: var(--pp-radius-card);
   box-shadow: var(--pp-shadow-lg);
   display: flex;

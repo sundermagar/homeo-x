@@ -95,22 +95,22 @@ export function BillingUpdateModal({ regid, patientName, onClose, currentConsult
   const isLoading = updatePatient.isPending || createCustomBill.isPending || recordPayment.isPending;
 
   return (
-    <div className="mc-modal-overlay">
-      <div className="mc-modal fade-in" style={{ maxWidth: '450px' }}>
-        <div className="mc-modal-header">
-          <div className="mc-modal-title-group">
-            <div className="mc-modal-icon-bg" style={{ background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)' }}>
-              <CreditCard size={20} />
-            </div>
-            <div>
-              <h3 className="mc-modal-title">Manage Billing</h3>
-              <p className="mc-modal-sub">{regid} — {patientName}</p>
-            </div>
+    <>
+      <div className="mc-drawer-backdrop" onClick={onClose} />
+      <div className="mc-drawer">
+        <div className="mc-drawer-header">
+          <div className="mc-drawer-header-title">
+            <CreditCard size={18} /> Manage Billing
           </div>
-          <button className="mc-modal-close" onClick={onClose}><X size={20} /></button>
+          <button className="mc-drawer-close" onClick={onClose}><X size={16} /></button>
         </div>
 
-        <div className="mc-tab-nav" style={{ padding: '0 12px', background: 'transparent', borderBottom: '1px solid var(--border-main)' }}>
+        <div style={{ padding: '16px 20px', background: 'white', borderBottom: '1px solid #e2e8f0' }}>
+          <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, marginBottom: '2px' }}>PATIENT #{regid}</div>
+          <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b' }}>{patientName}</div>
+        </div>
+
+        <div className="mc-tab-nav" style={{ padding: '0 12px', background: 'white', borderBottom: '1px solid #f1f5f9' }}>
           <button 
             className={`mc-tab-btn ${activeTab === 'regular' ? 'active' : ''}`}
             onClick={() => { setActiveTab('regular'); setAmount(currentConsultationFee?.toString() || ''); }}
@@ -131,31 +131,29 @@ export function BillingUpdateModal({ regid, patientName, onClose, currentConsult
           </button>
         </div>
 
-        <div className="mc-modal-body" style={{ minHeight: '220px' }}>
+        <div className="mc-drawer-body" style={{ flex: 1, padding: '24px' }}>
           {activeTab === 'regular' && (
             <div className="animate-fade-in">
-              <p style={{ fontSize: '0.85rem', color: 'var(--pp-text-3)', marginBottom: '16px' }}>
+              <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '20px' }}>
                 Update the default consultation fee for this patient.
               </p>
-              <div className="mc-input-group">
+              <div className="mc-legacy-input-group">
                 <label>Regular Charges (₹)</label>
-                <div className="mc-input-wrap">
-                  <IndianRupee size={16} className="mc-input-icon" />
-                  <input 
-                    type="number" 
-                    value={amount} 
-                    onChange={e => setAmount(e.target.value)}
-                    placeholder="Enter amount"
-                    autoFocus
-                  />
-                </div>
+                <input 
+                  type="number" 
+                  value={amount} 
+                  onChange={e => setAmount(e.target.value)}
+                  placeholder="Enter amount"
+                  className="mc-legacy-input"
+                  autoFocus
+                />
               </div>
             </div>
           )}
 
           {activeTab === 'custom' && (
             <div className="animate-fade-in">
-              <div className="mc-input-group" style={{ marginBottom: '12px' }}>
+              <div className="mc-legacy-input-group" style={{ marginBottom: '16px' }}>
                 <label>Charge Title</label>
                 <input 
                   type="text" 
@@ -163,47 +161,41 @@ export function BillingUpdateModal({ regid, patientName, onClose, currentConsult
                   onChange={e => setCustomTitle(e.target.value)}
                   placeholder="e.g. Lab Tests, Special Remedy"
                   className="mc-legacy-input"
-                  style={{ padding: '10px 12px' }}
                   autoFocus
                 />
               </div>
-              <div className="mc-input-group">
+              <div className="mc-legacy-input-group">
                 <label>Amount (₹)</label>
-                <div className="mc-input-wrap">
-                  <IndianRupee size={16} className="mc-input-icon" />
-                  <input 
-                    type="number" 
-                    value={amount} 
-                    onChange={e => setAmount(e.target.value)}
-                    placeholder="Enter amount"
-                  />
-                </div>
+                <input 
+                  type="number" 
+                  value={amount} 
+                  onChange={e => setAmount(e.target.value)}
+                  placeholder="Enter amount"
+                  className="mc-legacy-input"
+                />
               </div>
             </div>
           )}
 
           {activeTab === 'payment' && (
             <div className="animate-fade-in">
-              <div className="mc-input-group" style={{ marginBottom: '12px' }}>
+              <div className="mc-legacy-input-group" style={{ marginBottom: '16px' }}>
                 <label>Amount Received (₹)</label>
-                <div className="mc-input-wrap">
-                  <IndianRupee size={16} className="mc-input-icon" />
-                  <input 
-                    type="number" 
-                    value={amount} 
-                    onChange={e => setAmount(e.target.value)}
-                    placeholder="Enter amount"
-                    autoFocus
-                  />
-                </div>
+                <input 
+                  type="number" 
+                  value={amount} 
+                  onChange={e => setAmount(e.target.value)}
+                  placeholder="Enter amount"
+                  className="mc-legacy-input"
+                  autoFocus
+                />
               </div>
-              <div className="mc-input-group">
+              <div className="mc-legacy-input-group">
                 <label>Payment Mode</label>
                 <select 
                   className="mc-legacy-select" 
                   value={paymentMode}
                   onChange={e => setPaymentMode(e.target.value as any)}
-                  style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-main)' }}
                 >
                   <option>Cash</option>
                   <option>UPI</option>
@@ -212,19 +204,19 @@ export function BillingUpdateModal({ regid, patientName, onClose, currentConsult
                 </select>
               </div>
               {bills?.totals.totalBalance === 0 && (
-                <div style={{ marginTop: '12px', padding: '8px 12px', background: '#f0fdf4', color: '#16a34a', borderRadius: '8px', fontSize: '0.75rem', display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <CheckCircle2 size={14} /> All balances are currently clear.
+                <div style={{ marginTop: '20px', padding: '12px', background: '#f0fdf4', color: '#16a34a', borderRadius: '10px', fontSize: '0.8rem', display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  <CheckCircle2 size={16} /> All balances are currently clear.
                 </div>
               )}
             </div>
           )}
         </div>
 
-        <div className="mc-modal-footer">
-          <button className="mc-btn-secondary" onClick={onClose} disabled={isLoading}>Cancel</button>
+        <div style={{ padding: '20px', background: 'white', borderTop: '1px solid #f1f5f9', display: 'flex', gap: '12px' }}>
+          <button className="mc-legacy-btn-secondary" style={{ flex: 1 }} onClick={onClose} disabled={isLoading}>Cancel</button>
           <button 
-            className="mc-btn-finalize" 
-            style={{ borderRadius: '8px' }}
+            className="mc-legacy-btn-primary" 
+            style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
             disabled={isLoading || !amount}
             onClick={() => {
               if (activeTab === 'regular') handleUpdateRegular();
@@ -237,6 +229,6 @@ export function BillingUpdateModal({ regid, patientName, onClose, currentConsult
           </button>
         </div>
       </div>
-    </div>
+    </>
   );
 }
