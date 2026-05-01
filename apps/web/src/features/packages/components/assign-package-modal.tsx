@@ -16,6 +16,7 @@ export function AssignPackageModal({ regid, patientId, onClose, onSuccess }: Ass
 
   const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]!);
+  const [startFrom, setStartFrom] = useState<'today' | 'expiry'>('today');
   const [notes, setNotes] = useState('');
 
   const selectedPlan = plans.find(p => p.id === selectedPlanId);
@@ -30,6 +31,7 @@ export function AssignPackageModal({ regid, patientId, onClose, onSuccess }: Ass
         patientId,
         packageId: selectedPlanId,
         startDate,
+        startFrom,
         notes,
       });
       if (onSuccess) onSuccess();
@@ -38,6 +40,7 @@ export function AssignPackageModal({ regid, patientId, onClose, onSuccess }: Ass
       console.error('Failed to assign package:', err);
     }
   };
+
 
   return (
     <div className="pkg-modal-overlay" onClick={onClose}>
@@ -104,33 +107,68 @@ export function AssignPackageModal({ regid, patientId, onClose, onSuccess }: Ass
               </div>
             </div>
 
+            <div className="pkg-form-group">
+              <label className="pkg-form-label">Plan Start Policy</label>
+              <div className="pkg-segmented-toggle" style={{ display: 'flex', background: '#F1F5F9', padding: 4, borderRadius: 8, gap: 4 }}>
+                <button 
+                  type="button"
+                  className={`pkg-toggle-btn ${startFrom === 'today' ? 'active' : ''}`}
+                  onClick={() => { setStartFrom('today'); setStartDate(new Date().toISOString().split('T')[0]!); }}
+                  style={{ 
+                    flex: 1, padding: '6px 12px', fontSize: '0.75rem', fontWeight: 600, borderRadius: 6, border: 'none',
+                    background: startFrom === 'today' ? 'white' : 'transparent',
+                    boxShadow: startFrom === 'today' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                    color: startFrom === 'today' ? 'var(--primary)' : 'var(--text-muted)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  From Today
+                </button>
+                <button 
+                  type="button"
+                  className={`pkg-toggle-btn ${startFrom === 'expiry' ? 'active' : ''}`}
+                  onClick={() => setStartFrom('expiry')}
+                  style={{ 
+                    flex: 1, padding: '6px 12px', fontSize: '0.75rem', fontWeight: 600, borderRadius: 6, border: 'none',
+                    background: startFrom === 'expiry' ? 'white' : 'transparent',
+                    boxShadow: startFrom === 'expiry' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                    color: startFrom === 'expiry' ? 'var(--primary)' : 'var(--text-muted)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  From Expiry
+                </button>
+              </div>
+            </div>
+
             <div className="pkg-form-row pkg-form-row-2">
               <div className="pkg-form-group">
-                <label className="pkg-form-label">Activation Date *</label>
+                <label className="pkg-form-label">Manual Start Date</label>
                 <div style={{ position: 'relative' }}>
                   <Calendar size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
                   <input 
                     type="date" 
                     className="pkg-form-input" 
-                    style={{ paddingLeft: 36 }}
+                    style={{ paddingLeft: 36, opacity: startFrom === 'expiry' ? 0.6 : 1 }}
                     value={startDate} 
                     onChange={e => setStartDate(e.target.value)}
+                    disabled={startFrom === 'expiry'}
                     required 
                   />
                 </div>
               </div>
               <div className="pkg-form-group">
-                <label className="pkg-form-label">Expiry Date</label>
+                <label className="pkg-form-label">Computed Expiry</label>
                 <div 
                   className="pkg-form-input" 
                   style={{ background: 'var(--bg-surface-2)', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}
                 >
-                  {selectedPlan ? (() => {
+                  {selectedPlan ? (startFrom === 'expiry' ? 'Auto-calculated' : (() => {
                     const start = new Date(startDate);
                     const expiry = new Date(start);
-                    expiry.setDate(expiry.getDate() + selectedPlan.durationDays);
+                    expiry.setDate(expiry.getDate() + selectedPlan.durationDays - 1);
                     return expiry.toISOString().split('T')[0];
-                  })() : '—'}
+                  })()) : '—'}
                 </div>
               </div>
             </div>

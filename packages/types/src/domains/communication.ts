@@ -117,22 +117,28 @@ export interface SendSmsResult {
 
 // ─── WhatsApp ──────────────────────────────────────────────────────────────────
 export interface SendWhatsAppDto {
-  phone:   string;
-  message: string;
-  regid?:  number;
+  phone:      string;
+  message:    string;
+  regid?:     number;
+  instanceId?: string;
+  tenantSlug?: string;
+  mediaUrl?:   string;
+  mediaType?:  string;
 }
 
 export interface BroadcastWhatsAppDto {
   patientIds?: number[];
-  phone?:     string[];
-  message:    string;
+  phone?:      string[];
+  message:     string;
+  instanceId?: string;
+  tenantSlug?: string;
 }
 
 export interface SendWhatsAppResult {
   success: boolean;
   sent:    number;
   failed:  number;
-  details?: Array<{ phone: string; deepLink: string }>;
+  details?: Array<{ phone: string; deepLink?: string; automated?: boolean }>;
 }
 
 // ─── OTP ────────────────────────────────────────────────────────────────────────

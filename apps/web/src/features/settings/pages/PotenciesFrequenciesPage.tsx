@@ -161,6 +161,24 @@ export default function PotenciesFrequenciesPage() {
         </div>
 
       </div>
+      <style>{`
+        @media (max-width: 1024px) {
+          .plat-header { flex-direction: column !important; align-items: stretch !important; gap: 16px !important; }
+          .plat-header-actions { width: 100%; }
+          .plat-header-actions .plat-btn { width: 100%; height: 44px; border-radius: 12px; justify-content: center; }
+          
+          .plat-stats-bar { grid-template-columns: 1fr !important; gap: 12px !important; }
+          .plat-stat-card { padding: 16px !important; }
+          
+          .grid.grid-cols-1.md:grid-cols-2 { gap: 16px !important; }
+          
+          .plat-card { border: 1px solid var(--border-main) !important; border-radius: 16px !important; margin-top: 0 !important; }
+          .divide-y.divide-main > div { padding: 16px !important; }
+          
+          .font-mono.font-bold.text-sm { font-size: 14px !important; }
+          .group-hover:opacity-100 { opacity: 1 !important; }
+        }
+      `}</style>
     </div>
   );
 }

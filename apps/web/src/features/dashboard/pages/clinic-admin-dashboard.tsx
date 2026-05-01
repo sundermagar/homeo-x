@@ -324,7 +324,7 @@ export function ClinicAdminDashboard() {
                     <ProgressBar
                       value={t.current}
                       max={t.target}
-                      color={t.status === 'success' ? '#16a34a' : t.status === 'warning' ? '#d97706' : '#dc2626'}
+                      color={t.status === 'success' ? 'var(--pp-success-fg)' : t.status === 'warning' ? '#d97706' : 'var(--pp-danger-fg)'}
                     />
                   </div>
                 ))}

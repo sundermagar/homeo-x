@@ -103,12 +103,12 @@ export default function StocksLogPage() {
           <p className="plat-stat-value plat-stat-value-primary">{(logs as any[]).length}</p>
         </div>
         <div className="plat-stat-card">
-          <p className="plat-stat-label">Total Stock In</p>
-          <p className="plat-stat-value" style={{ color: '#16a34a' }}>+{totalIn}</p>
+          <p className="plat-stat-label">Stock In</p>
+          <p className="plat-stat-value" style={{ color: 'var(--pp-success-fg)' }}>+{totalIn}</p>
         </div>
         <div className="plat-stat-card">
-          <p className="plat-stat-label">Total Stock Out</p>
-          <p className="plat-stat-value" style={{ color: '#dc2626' }}>-{totalOut}</p>
+          <p className="plat-stat-label">Stock Out</p>
+          <p className="plat-stat-value" style={{ color: 'var(--pp-danger-fg)' }}>-{totalOut}</p>
         </div>
       </div>
 
@@ -128,9 +128,6 @@ export default function StocksLogPage() {
             ))}
           </select>
         </div>
-        <button className="plat-btn" onClick={() => refetch()} style={{ marginLeft: 'auto' }}>
-          <RefreshCw size={13} /> Refresh
-        </button>
       </div>
 
       <div className="plat-card">
@@ -165,57 +162,69 @@ export default function StocksLogPage() {
                   const isPositive = log.changeType === 'INVENTORY_ADD';
                   return (
                     <tr key={log.id} className="plat-table-row">
-                      <td className="plat-table-cell" style={{ fontFamily: 'monospace', fontSize: '11px', color: 'var(--text-muted)' }}>
-                        {new Date(log.createdAt).toLocaleString('en-GB', {
-                          day: '2-digit', month: 'short', year: 'numeric',
-                          hour: '2-digit', minute: '2-digit'
-                        })}
-                      </td>
-                      <td className="plat-table-cell">
-                        <div style={{ fontWeight: 600, fontSize: '14px' }}>
-                          {medicine?.name || `Medicine #${log.medicineId}`}
-                        </div>
-                        <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                          Clinical Pharmacy
+                      <td data-label="DATE & TIME" className="plat-table-cell">
+                        <div style={{ fontFamily: 'monospace', fontSize: '11px', color: 'var(--text-muted)' }}>
+                          {new Date(log.createdAt).toLocaleString('en-GB', {
+                            day: '2-digit', month: 'short', year: 'numeric',
+                            hour: '2-digit', minute: '2-digit'
+                          })}
                         </div>
                       </td>
-                      <td className="plat-table-cell">
-                        <span className={`plat-badge ${isPositive ? 'plat-badge-staff' : ''}`}
-                          style={isPositive
-                            ? { display: 'flex', alignItems: 'center', gap: '4px', width: 'fit-content', fontSize: '10px' }
-                            : { display: 'flex', alignItems: 'center', gap: '4px', width: 'fit-content', fontSize: '10px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }
-                          }
-                        >
-                          {isPositive ? <ArrowUp size={10} /> : <ArrowDown size={10} />}
-                          {isPositive ? 'Stock In' : 'Stock Out'}
-                        </span>
+                      <td data-label="MEDICINE" className="plat-table-cell">
+                        <div className="plat-stock-info">
+                          <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--pp-ink)' }}>
+                            {medicine?.name || `Medicine #${log.medicineId}`}
+                          </div>
+                          <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            Clinical Pharmacy
+                          </div>
+                        </div>
                       </td>
-                      <td className="plat-table-cell"
-                        style={{ fontFamily: 'monospace', fontWeight: 900, color: isPositive ? '#16a34a' : '#dc2626' }}>
-                        {isPositive ? '+' : '-'}{log.quantity}
+                      <td data-label="MOVEMENT" className="plat-table-cell">
+                        <div className="plat-stock-badge-wrap">
+                          <span className={`plat-badge ${isPositive ? 'plat-badge-staff' : ''}`}
+                            style={isPositive
+                              ? { display: 'flex', alignItems: 'center', gap: '4px', width: 'fit-content', fontSize: '10px' }
+                              : { display: 'flex', alignItems: 'center', gap: '4px', width: 'fit-content', fontSize: '10px', background: '#fef2f2', color: 'var(--pp-danger-fg)', border: '1px solid #fecaca' }
+                            }
+                          >
+                            {isPositive ? <ArrowUp size={10} /> : <ArrowDown size={10} />}
+                            {isPositive ? 'Stock In' : 'Stock Out'}
+                          </span>
+                        </div>
                       </td>
-                      <td className="plat-table-cell">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'monospace', fontSize: '12px' }}>
+                      <td data-label="QTY" className="plat-table-cell">
+                        <div style={{ fontFamily: 'monospace', fontWeight: 900, color: isPositive ? 'var(--pp-success-fg)' : 'var(--pp-danger-fg)', fontSize: '15px' }}>
+                          {isPositive ? '+' : '-'}{log.quantity}
+                        </div>
+                      </td>
+                      <td data-label="SHIFT" className="plat-table-cell">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'monospace', fontSize: '12px', justifyContent: 'flex-end' }}>
                           <span style={{ color: 'var(--text-muted)' }}>{log.previousStock ?? '—'}</span>
                           <span style={{ opacity: 0.3 }}>→</span>
                           <span style={{ fontWeight: 700 }}>{log.newStock ?? '—'}</span>
                           <span style={{ fontSize: '9px', color: 'var(--text-muted)', opacity: 0.6 }}>units</span>
                         </div>
                       </td>
-                      <td className="plat-table-cell" style={{ fontSize: '12px', fontStyle: 'italic', color: 'var(--text-muted)' }}>
-                        {log.reason || 'System Auto-Adjustment'}
+                      <td data-label="REASON" className="plat-table-cell">
+                        <div style={{ fontSize: '12px', fontStyle: 'italic', color: 'var(--text-muted)', textAlign: 'right' }}>
+                          {log.reason || 'System Auto-Adjustment'}
+                        </div>
                       </td>
-                      <td className="plat-table-cell" style={{ textAlign: 'center' }}>
-                        <button
-                          className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger"
-                          title="Delete log entry"
-                          disabled={deletingId === log.id}
-                          onClick={() => handleDelete(log.id)}
-                        >
-                          {deletingId === log.id
-                            ? <RefreshCw size={12} className="animate-spin" />
-                            : <Trash2 size={12} />}
-                        </button>
+                      <td data-label="ACTION" className="plat-table-cell" style={{ textAlign: 'center' }}>
+                        <div className="plat-stock-actions">
+                          <button
+                            className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger"
+                            title="Delete log entry"
+                            disabled={deletingId === log.id}
+                            onClick={() => handleDelete(log.id)}
+                            style={{ width: 36, height: 36, borderRadius: 10 }}
+                          >
+                            {deletingId === log.id
+                              ? <RefreshCw size={14} className="animate-spin" />
+                              : <Trash2 size={14} />}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -243,7 +252,7 @@ export default function StocksLogPage() {
         <form onSubmit={handleSubmit}>
           <div className="plat-modal-body" style={{ padding: 0 }}>
             {successMsg && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', background: '#f0fdf4', color: '#16a34a', borderRadius: '8px', marginBottom: '16px', fontSize: '13px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', background: '#f0fdf4', color: 'var(--pp-success-fg)', borderRadius: '8px', marginBottom: '16px', fontSize: '13px' }}>
                 <CheckCircle size={16} /> {successMsg}
               </div>
             )}
@@ -320,6 +329,64 @@ export default function StocksLogPage() {
           </div>
         </form>
       </Drawer>
+      <style>{`
+        @media (max-width: 1024px) {
+          .plat-header { flex-direction: column !important; align-items: stretch !important; gap: 16px !important; }
+          .plat-header-actions { width: 100%; }
+          .plat-header-actions .plat-btn { width: 100%; height: 44px; border-radius: 12px; justify-content: center; }
+          
+          .plat-stats-bar { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
+          .plat-stat-card { padding: 12px !important; }
+          .plat-stat-value { font-size: 18px !important; }
+          
+          .plat-filters { flex-direction: column; align-items: stretch; gap: 12px; }
+          .plat-search-wrap { width: 100% !important; }
+          .plat-search-input { width: 100% !important; height: 44px !important; border-radius: 12px !important; }
+          
+          .plat-card { border: none !important; box-shadow: none !important; background: transparent !important; }
+          .plat-table-container { border: none !important; background: transparent !important; overflow: visible !important; }
+          .plat-table { display: block !important; width: 100% !important; min-width: 0 !important; }
+          .plat-table thead { display: none !important; }
+          .plat-table tbody { display: block !important; width: 100% !important; }
+          .plat-table tr { 
+            display: block !important; 
+            margin-bottom: 20px !important; 
+            background: var(--bg-card) !important; 
+            border: 1px solid var(--border-main) !important; 
+            border-radius: 16px !important; 
+            padding: 8px 0 !important;
+            box-shadow: var(--pp-shadow-sm) !important;
+          }
+          .plat-table td {
+            display: grid !important;
+            grid-template-columns: 110px 1fr !important;
+            gap: 12px !important;
+            align-items: center !important;
+            padding: 12px 20px !important;
+            border-bottom: 1px dashed var(--border-main) !important;
+            min-height: 48px;
+            text-align: right !important;
+            width: 100% !important;
+            height: auto !important;
+          }
+          .plat-table td:last-child { border-bottom: none !important; background: var(--bg-surface-2) !important; margin-top: 4px; padding-top: 16px !important; padding-bottom: 16px !important; }
+          
+          .plat-table td::before {
+            content: attr(data-label);
+            font-size: 10px !important;
+            font-weight: 800 !important;
+            color: var(--text-muted) !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.08em !important;
+            text-align: left !important;
+          }
+          
+          .plat-stock-info, .plat-stock-badge-wrap, .plat-stock-actions { display: flex !important; flex-direction: column !important; align-items: flex-end !important; width: 100% !important; }
+          .plat-stock-badge-wrap .plat-badge { margin: 0 !important; }
+          .plat-stock-actions { flex-direction: row !important; justify-content: flex-end !important; }
+          [data-label="DATE & TIME"] { background: var(--bg-surface-2) !important; border-bottom: 1px solid var(--border-main) !important; margin-bottom: 4px; }
+        }
+      `}</style>
     </div>
   );
 }

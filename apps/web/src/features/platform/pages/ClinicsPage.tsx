@@ -12,6 +12,81 @@ import { usePagination } from '@/shared/hooks/use-pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { Drawer } from '@/shared/components/drawer';
 
+const mobileStyles = `
+  @media (max-width: 1024px) {
+    .plat-header { flex-direction: column !important; align-items: stretch !important; gap: 16px !important; }
+    .plat-header-actions { width: 100% !important; margin-top: 8px; }
+    .plat-header-actions .plat-btn { width: 100% !important; height: 46px !important; border-radius: 12px !important; justify-content: center !important; }
+
+    .plat-stats-bar { grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; padding: 0 !important; }
+    .plat-stat-card { padding: 16px 12px !important; }
+    .plat-stat-value { font-size: 20px !important; }
+
+    .plat-filters { 
+      flex-direction: column !important; 
+      align-items: stretch !important; 
+      gap: 12px !important; 
+      background: var(--bg-surface-2) !important;
+      padding: 16px !important;
+      border-radius: 16px !important;
+      margin-bottom: 16px !important;
+      border: 1px solid var(--border-main) !important;
+    }
+    .plat-filters > .flex { flex-direction: column !important; width: 100% !important; gap: 12px !important; }
+    .plat-search-wrap { width: 100% !important; margin: 0 !important; }
+    .plat-search-input { width: 100% !important; height: 44px !important; border-radius: 12px !important; font-size: 14px !important; }
+    .plat-filters select { width: 100% !important; height: 44px !important; border-radius: 12px !important; font-size: 14px !important; }
+    .plat-filters .plat-btn-ghost { width: 100% !important; height: 40px !important; justify-content: center !important; }
+
+    .plat-card { border: none !important; box-shadow: none !important; background: transparent !important; padding: 0 !important; }
+    .plat-table-container { 
+      border: none !important; 
+      background: transparent !important; 
+      overflow: visible !important; 
+      width: 100% !important;
+      padding: 0 !important;
+    }
+    .plat-table { display: block !important; width: 100% !important; min-width: 0 !important; border: none !important; }
+    .plat-table thead { display: none !important; }
+    .plat-table tbody { display: block !important; width: 100% !important; }
+    .plat-table tr { 
+      display: block !important; 
+      margin-bottom: 24px !important; 
+      background: var(--bg-card) !important; 
+      border: 1px solid var(--border-main) !important; 
+      border-radius: 20px !important; 
+      padding: 0 !important;
+      box-shadow: var(--pp-shadow-md) !important;
+      overflow: hidden !important;
+    }
+    .plat-table td {
+      display: grid !important;
+      grid-template-columns: 100px 1fr !important;
+      gap: 12px !important;
+      align-items: center !important;
+      padding: 12px 20px !important;
+      border-bottom: 1px dashed var(--border-main) !important;
+      min-height: 52px;
+      text-align: right !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+    .plat-table td:last-child { border-bottom: none !important; background: var(--bg-surface-2) !important; padding-top: 16px !important; padding-bottom: 16px !important; }
+    
+    .plat-table td::before {
+      content: attr(data-label);
+      font-size: 10px !important;
+      font-weight: 800 !important;
+      color: var(--text-muted) !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.1em !important;
+      text-align: left !important;
+    }
+    .plat-cell-val { width: 100% !important; text-align: right !important; display: flex !important; flex-direction: column !important; align-items: flex-end !important; }
+    [data-label="#"], [data-label="ID"] { background: var(--bg-surface-2) !important; border-bottom: 1px solid var(--border-main) !important; padding: 12px 20px !important; }
+  }
+`;
+
 const EMPTY_FORM: any = {
   name: '', email: '', phone: '', city: '', website: '', description: '', connectSince: '',
   adminEmail: '', adminPassword: '',
@@ -122,9 +197,6 @@ export default function ClinicsPage() {
           <p className="plat-header-sub">Manage all {orgs.length} registered clinic organisations.</p>
         </div>
         <div className="plat-header-actions">
-          <button className="plat-btn plat-btn-ghost" onClick={() => refetch()} title="Refresh">
-            <RefreshCw size={14} />
-          </button>
           <button className="plat-btn plat-btn-primary" onClick={() => { setEditingOrg(null); setIsCreating(true); setForm(EMPTY_FORM); }}>
             <Plus size={14} strokeWidth={1.6} />
             Add Clinic
@@ -161,7 +233,7 @@ export default function ClinicsPage() {
               <table className="plat-table">
                 <thead>
                   <tr>
-                    <th style={{ width: '50px' }}>ID</th>
+                    <th style={{ width: '50px' }}>#</th>
                     <th>Clinic Name</th>
                     <th style={{ width: '120px' }}>City</th>
                     <th style={{ width: '140px' }}>Phone</th>
@@ -173,44 +245,65 @@ export default function ClinicsPage() {
                 <tbody>
                   {paginatedData.map((org: any, index: number) => (
                     <tr key={org.id}>
-                      <td data-label="ID" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                        {(currentPage - 1) * itemsPerPage + index + 1}
+                      <td data-label="#" className="plat-mono-data text-xs" style={{ width: 40 }}>
+                        <div>{(currentPage - 1) * itemsPerPage + index + 1}</div>
                       </td>
                       <td data-label="Clinic Name">
-                        <div style={{ fontWeight: 600 }}>{org.name}</div>
-                        {org.description && (
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '1px' }}>
-                            {org.description}
+                        <div className="plat-cell-val">
+                          <div style={{ fontWeight: 600 }}>{org.name}</div>
+                          {org.description && (
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '1px' }}>
+                              {org.description}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td data-label="City">
+                        <div className="plat-cell-val">
+                          <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{org.city || '—'}</div>
+                        </div>
+                      </td>
+                      <td data-label="Phone">
+                        <div className="plat-cell-val">
+                          <div className="plat-mono-data" style={{ fontSize: '0.78rem' }}>
+                            {org.phone || '—'}
                           </div>
-                        )}
+                        </div>
                       </td>
-                      <td data-label="City" style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{org.city || '—'}</td>
-                      <td data-label="Phone" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                        {org.phone || '—'}
+                      <td data-label="Website">
+                        <div className="plat-cell-val">
+                          <div style={{ fontSize: '0.75rem' }}>
+                            {org.website ? (
+                              <a href={org.website} target="_blank" rel="noreferrer"
+                                style={{ color: 'var(--primary)', textDecoration: 'none' }}>
+                                {org.website.replace(/^https?:\/\//, '')}
+                              </a>
+                            ) : '—'}
+                          </div>
+                        </div>
                       </td>
-                      <td data-label="Website" style={{ fontSize: '0.75rem' }}>
-                        {org.website ? (
-                          <a href={org.website} target="_blank" rel="noreferrer"
-                            style={{ color: 'var(--primary)', textDecoration: 'none' }}>
-                            {org.website.replace(/^https?:\/\//, '')}
-                          </a>
-                        ) : '—'}
-                      </td>
-                      <td data-label="Connected" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                        {org.connectSince || '—'}
+                      <td data-label="Connected">
+                        <div className="plat-cell-val">
+                          <div className="plat-mono-data text-xs" style={{ color: 'var(--text-muted)' }}>
+                            {org.connectSince || '—'}
+                          </div>
+                        </div>
                       </td>
                       <td data-label="Action">
-                        <div className="flex justify-center gap-2">
-                          <button className="plat-btn plat-btn-icon plat-btn-ghost" onClick={() => handleEdit(org)} title="Edit">
-                            <Edit2 size={13} />
-                          </button>
-                          <button
-                            className="plat-btn plat-btn-icon plat-btn-danger"
-                            onClick={() => handleDelete(org.id, org.name)}
-                            title="Delete"
-                          >
-                            <Trash2 size={13} />
-                          </button>
+                        <div className="plat-cell-val">
+                          <div className="flex justify-end gap-2" style={{ width: '100%' }}>
+                            <button className="plat-btn plat-btn-icon plat-btn-ghost" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={() => handleEdit(org)} title="Edit">
+                              <Edit2 size={13} />
+                            </button>
+                            <button
+                              className="plat-btn plat-btn-icon plat-btn-danger"
+                              style={{ width: 36, height: 36, borderRadius: 10 }}
+                              onClick={() => handleDelete(org.id, org.name)}
+                              title="Delete"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
                         </div>
                       </td>
                     </tr>
@@ -364,6 +457,7 @@ export default function ClinicsPage() {
         </Drawer>
       )}
 
+      <style>{mobileStyles}</style>
     </div>
   );
 }

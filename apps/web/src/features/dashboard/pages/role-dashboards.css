@@ -498,9 +498,9 @@
 .btn-skip {
   padding: 10px 24px;
   background: var(--bg-card);
-  border: 1.5px solid #f97316;
+  border: 1.5px solid var(--pp-warning-fg);
   /* Keep orange for specific warning/skip action */
-  color: #f97316;
+  color: var(--pp-warning-fg);
   font-weight: 800;
   font-size: 13px;
   border-radius: 10px;
@@ -510,7 +510,7 @@
 }
 
 .btn-skip:hover {
-  background: #fff7ed;
+  background: var(--pp-warning-bg);
   box-shadow: var(--pp-shadow-md);
 }
 
@@ -744,14 +744,14 @@ button.pp-link:hover {
 }
 
 .btn-danger:hover {
-  background: #fee2e2;
+  background: var(--pp-danger-bg);
   transform: translateY(-1px);
 }
 
 .dash-view-btn {
-  background: #eff6ff;
+  background: var(--pp-blue-tint);
   color: var(--pp-blue);
-  border: 1.5px solid #dbeafe;
+  border: 1.5px solid var(--pp-blue-border);
   padding: 4px 12px;
   border-radius: 6px;
   font-size: 11px;

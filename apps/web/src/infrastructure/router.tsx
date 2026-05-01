@@ -92,6 +92,7 @@ const SmsTemplatesPage = lazy(() => import('@/features/communications/pages/sms-
 const GroupSmsPage = lazy(() => import('@/features/communications/pages/group-sms-page'));
 const SmsReportsPage = lazy(() => import('@/features/communications/pages/sms-reports-page'));
 const WhatsAppPage = lazy(() => import('@/features/communications/pages/whatsapp-page'));
+const BirthdayBroadcastPage = lazy(() => import('@/features/communications/pages/birthday-broadcast-page'));
 
 // Analytics & Reports
 const DashboardAnalyticsPage = lazy(() => import('@/features/analytics/pages/dashboard-analytics-page').then(m => ({ default: m.DashboardAnalyticsPage })));
@@ -158,6 +159,7 @@ export function AppRouter() {
             <Route path="/communications/templates" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><SmsTemplatesPage /></RoleGuard>} />
             <Route path="/communications/reports" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><SmsReportsPage /></RoleGuard>} />
             <Route path="/communications/whatsapp" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><WhatsAppPage /></RoleGuard>} />
+            <Route path="/communications/birthdays" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><BirthdayBroadcastPage /></RoleGuard>} />
             <Route path="/communications" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><GroupSmsPage /></RoleGuard>} />
 
             {/* ─── Analytics ─── */}

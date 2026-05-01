@@ -230,23 +230,33 @@ export default function ExpensesPage() {
               <tbody>
                 {filtered.map(e => (
                   <tr key={e.id}>
-                    <td data-label="ID" style={{ fontFamily: 'var(--pp-font-mono)' }}>#{e.id}</td>
-                    <td data-label="Date" style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.78rem' }}>{e.expDate || '—'}</td>
+                    <td data-label="ID" style={{ fontFamily: 'var(--pp-font-mono)' }}>
+                      <div>#{e.id}</div>
+                    </td>
+                    <td data-label="Date" style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.78rem' }}>
+                      <div>{e.expDate || '—'}</div>
+                    </td>
                     <td data-label="Category">
-                      <span className="bill-badge bill-badge-staff">{e.headName || `Head #${e.head}`}</span>
+                      <div className="plat-cell-val">
+                        <span className="bill-badge bill-badge-staff">{e.headName || `Head #${e.head}`}</span>
+                      </div>
                     </td>
-                    <td data-label="Description">{e.detail || '—'}</td>
+                    <td data-label="Description">
+                      <div>{e.detail || '—'}</div>
+                    </td>
                     <td data-label="Amount" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 700, color: 'var(--pp-danger-fg)' }}>
-                      ₹{(e.amount ?? 0).toLocaleString()}
+                      <div className="plat-cell-val">₹{(e.amount ?? 0).toLocaleString()}</div>
                     </td>
-                    <td>
-                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                        <button className="bill-btn bill-btn-sm bill-btn-icon" onClick={() => handleOpenEdit(e)}>
-                          <Edit2 size={13} strokeWidth={2} />
-                        </button>
-                        <button type="button" className="bill-btn bill-btn-sm bill-btn-icon bill-btn-danger" onClick={(evt) => handleDelete(evt, e.id)}>
-                          <Trash2 size={13} strokeWidth={2} />
-                        </button>
+                    <td data-label="Actions">
+                      <div className="plat-cell-val">
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', width: '100%' }}>
+                          <button className="bill-btn bill-btn-sm bill-btn-icon" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={() => handleOpenEdit(e)}>
+                            <Edit2 size={13} strokeWidth={2} />
+                          </button>
+                          <button type="button" className="bill-btn bill-btn-sm bill-btn-icon bill-btn-danger" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={(evt) => handleDelete(evt, e.id)}>
+                            <Trash2 size={13} strokeWidth={2} />
+                          </button>
+                        </div>
                       </div>
                     </td>
                   </tr>
@@ -353,6 +363,61 @@ export default function ExpensesPage() {
           </div>
         </div>
       )}
+      <style>{`
+        @media (max-width: 1024px) {
+          .bill-header { flex-direction: column !important; align-items: stretch !important; gap: 16px !important; }
+          .bill-header-actions { width: 100%; }
+          .bill-header-actions .bill-btn { width: 100%; height: 44px; border-radius: 12px; justify-content: center; }
+
+          .bill-stats-bar { grid-template-columns: 1fr !important; gap: 12px !important; }
+          .bill-stat-card { padding: 16px !important; }
+          .bill-stat-value { font-size: 20px !important; }
+
+          .bill-filters { flex-direction: column !important; align-items: stretch !important; gap: 12px !important; }
+          .bill-search-wrap { width: 100% !important; }
+          .bill-search-input { width: 100% !important; height: 44px; border-radius: 12px; }
+          .bill-filter-input { width: 100% !important; height: 44px; border-radius: 12px; }
+
+          .bill-card { border: none !important; box-shadow: none !important; background: transparent !important; }
+          .bill-table-container { border: none !important; background: transparent !important; overflow: visible !important; }
+          .bill-table { display: block !important; width: 100% !important; min-width: 0 !important; }
+          .bill-table thead { display: none !important; }
+          .bill-table tbody { display: block !important; width: 100% !important; }
+          .bill-table tr { 
+            display: block !important; 
+            margin-bottom: 20px !important; 
+            background: var(--bg-card) !important; 
+            border: 1px solid var(--border-main) !important; 
+            border-radius: 16px !important; 
+            padding: 8px 0 !important;
+            box-shadow: var(--pp-shadow-sm) !important;
+          }
+          .bill-table td {
+            display: grid !important;
+            grid-template-columns: 110px 1fr !important;
+            gap: 12px !important;
+            align-items: center !important;
+            padding: 12px 20px !important;
+            border-bottom: 1px dashed var(--border-main) !important;
+            min-height: 48px;
+            text-align: right !important;
+            width: 100% !important;
+          }
+          .bill-table td:last-child { border-bottom: none !important; background: var(--bg-surface-2) !important; margin-top: 4px; padding-top: 16px !important; padding-bottom: 16px !important; }
+          
+          .bill-table td::before {
+            content: attr(data-label);
+            font-size: 10px !important;
+            font-weight: 800 !important;
+            color: var(--text-muted) !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.08em !important;
+            text-align: left !important;
+          }
+          .plat-cell-val { width: 100% !important; text-align: right !important; display: flex !important; flex-direction: column !important; align-items: flex-end !important; }
+          [data-label="ID"] { background: var(--bg-surface-2) !important; border-bottom: 1px solid var(--border-main) !important; margin-bottom: 4px; }
+        }
+      `}</style>
     </div>
   );
 }

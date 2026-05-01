@@ -189,28 +189,28 @@ export default function MedicinesPage() {
 
                   return (
                     <tr key={med.id} className="plat-table-row">
-                      <td className="plat-table-cell color-muted font-mono text-xs">{(currentPage - 1) * itemsPerPage + idx + 1}</td>
-                      <td className="plat-table-cell">
+                      <td data-label="#" className="plat-table-cell color-muted font-mono text-xs">{(currentPage - 1) * itemsPerPage + idx + 1}</td>
+                      <td data-label="REMEDY" className="plat-table-cell">
                         <div className="font-bold text-[14px]">{med.name}</div>
                         <div className="text-[11px] color-muted mt-0.5 flex items-center gap-1 italic">
                           <Info size={10} className="opacity-60" /> {med.disease || 'General Medical Remedy'}
                         </div>
                       </td>
-                      <td className="plat-table-cell">
-                        <div className="flex flex-wrap gap-1.5">
+                      <td data-label="CATEGORIES" className="plat-table-cell">
+                        <div className="flex flex-wrap gap-1.5 md:justify-start justify-end">
                           {med.category && <span className="plat-badge plat-badge-primary text-[9px]">{med.category}</span>}
                           {med.type && <span className="plat-badge plat-badge-default text-[9px]">{med.type}</span>}
                           <span className="plat-badge bg-faded text-[9px] border border-main color-muted italic">{potencyName}</span>
                         </div>
                       </td>
-                      <td className="plat-table-cell">
-                        <div className="flex items-center gap-1.5 font-mono text-xs font-bold">
+                      <td data-label="STOCK" className="plat-table-cell">
+                        <div className="flex items-center gap-1.5 font-mono text-xs font-bold md:justify-start justify-end">
                           <Package size={12} className="color-muted" />
                           <span className={isOutOfStock ? 'text-red-600' : isLowStock ? 'text-orange-500' : 'text-emerald-600'}>
                             {stock} Units
                           </span>
                         </div>
-                        <div className="mt-1">
+                        <div className="mt-1 flex md:justify-start justify-end">
                           {isOutOfStock ? (
                             <span className="text-[8px] font-black text-red-700 uppercase bg-red-50 px-1 border border-red-200 rounded">Depleted</span>
                           ) : isLowStock ? (
@@ -220,8 +220,8 @@ export default function MedicinesPage() {
                           )}
                         </div>
                       </td>
-                      <td className="plat-table-cell">
-                        <div className="flex items-center gap-1 font-mono font-bold text-primary">
+                      <td data-label="PRICE" className="plat-table-cell">
+                        <div className="flex items-center gap-1 font-mono font-bold text-primary md:justify-start justify-end">
                           <IndianRupee size={11} /> {med.price || '0.00'}
                         </div>
                       </td>
@@ -360,6 +360,57 @@ export default function MedicinesPage() {
           </div>
         </form>
       </Drawer>
+      <style>{`
+        @media (max-width: 1024px) {
+          .plat-header { flex-direction: column !important; align-items: stretch !important; gap: 16px !important; }
+          .plat-header-actions { width: 100%; }
+          .plat-header-actions .plat-btn { width: 100%; height: 44px; border-radius: 12px; justify-content: center; }
+          
+          .plat-stats-bar { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
+          .plat-stat-card { padding: 12px !important; }
+          .plat-stat-value { font-size: 18px !important; }
+          
+          .plat-filters { flex-direction: column; align-items: stretch; gap: 12px; }
+          .plat-search-wrap { width: 100% !important; }
+          .plat-search-input { width: 100% !important; height: 44px !important; border-radius: 12px !important; }
+          
+          .plat-card { border: none !important; box-shadow: none !important; background: transparent !important; padding: 0 !important; }
+          .plat-table-container { border: none !important; background: transparent !important; overflow: visible !important; }
+          .plat-table { display: block !important; width: 100% !important; }
+          .plat-table thead { display: none !important; }
+          .plat-table tbody { display: block !important; width: 100% !important; }
+          .plat-table tr { 
+            display: block !important; 
+            margin-bottom: 20px !important; 
+            background: var(--bg-card) !important; 
+            border: 1px solid var(--border-main) !important; 
+            border-radius: 16px !important; 
+            padding: 8px 0 !important;
+            box-shadow: var(--pp-shadow-sm) !important;
+          }
+          .plat-table td {
+            display: grid !important;
+            grid-template-columns: 110px 1fr !important;
+            gap: 12px !important;
+            align-items: center !important;
+            padding: 12px 20px !important;
+            border-bottom: 1px dashed var(--border-main) !important;
+            min-height: 48px;
+            text-align: right !important;
+            width: 100% !important;
+          }
+          .plat-table td:last-child { border-bottom: none !important; background: var(--bg-surface-2) !important; padding-top: 16px !important; padding-bottom: 16px !important; border-bottom-left-radius: 15px; border-bottom-right-radius: 15px; }
+          .plat-table td::before {
+            content: attr(data-label);
+            font-size: 10px !important;
+            font-weight: 800 !important;
+            color: var(--text-muted) !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.05em !important;
+            text-align: left !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

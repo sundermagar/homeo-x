@@ -96,6 +96,21 @@ patientRouter.get('/meta/form', authMiddleware, async (req: Request, res: Respon
   }
 });
 
+// GET /api/patients/meta/birthdays
+patientRouter.get('/meta/birthdays', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { date } = req.query; // Expects MM-DD format, defaults to today
+    const mmdd = (date as string) || new Date().toISOString().slice(5, 10);
+    
+    const repo = getRepo(req);
+    const clinicId = req.user?.contextId;
+    const data = await repo.findBirthdays(mmdd, clinicId);
+    res.json({ success: true, data });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // ─── Family Group Endpoints ───
 
 // GET /api/family-groups

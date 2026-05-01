@@ -159,7 +159,7 @@ export function PatientFormDrawer({ isOpen, onClose, regid, onSuccess }: Patient
           <form onSubmit={handleSubmit} className="drawer-form">
             {/* Name Details */}
             <div className="form-group">
-              <label className="drawer-label">Full Name <span style={{ color: '#ef4444' }}>*</span></label>
+              <label className="drawer-label">Full Name <span style={{ color: 'var(--pp-danger-fg)' }}>*</span></label>
               <div className="drawer-name-row">
                 <select className="drawer-input" name="title" value={form.title} onChange={handleChange}>
                   {(meta?.titles || ['Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Prof.', 'Master', 'Baby']).map(t => <option key={t} value={t}>{t}</option>)}
@@ -187,7 +187,7 @@ export function PatientFormDrawer({ isOpen, onClose, regid, onSuccess }: Patient
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                <div className="form-group">
-                  <label className="drawer-label">Mobile <span style={{ color: '#ef4444' }}>*</span></label>
+                  <label className="drawer-label">Mobile <span style={{ color: 'var(--pp-danger-fg)' }}>*</span></label>
                   <NumericInput className="drawer-input" name="phone" value={form.phone} onChange={handleChange} placeholder="Primary Mobile" />
                </div>
                <div className="form-group">

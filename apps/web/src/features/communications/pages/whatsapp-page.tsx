@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { MessageCircle, Send, RefreshCw, ExternalLink, CheckCircle2, AlertCircle, Clock } from 'lucide-react';
+import { MessageCircle, Send, RefreshCw, ExternalLink, CheckCircle2, AlertCircle, Clock, Link as LinkIcon, QrCode } from 'lucide-react';
 import { NumericInput } from '@/shared/components/NumericInput';
-import { useSendWhatsApp, useBroadcastWhatsApp, useWhatsAppLogs, useSmsTemplates } from '../hooks/use-communications';
+import { useSendWhatsApp, useBroadcastWhatsApp, useWhatsAppLogs, useSmsTemplates, useWhatsAppQr, useWhatsAppStatus } from '../hooks/use-communications';
 import type { WhatsAppLog } from '@mmc/types';
 import '../styles/communications.css';
 
@@ -15,8 +15,15 @@ export default function WhatsAppPage() {
   const [patientIds, setPatientIds] = useState('');
   const [message, setMessage]       = useState('');
   const [deepLink, setDeepLink]     = useState('');
-  const [result, setResult]         = useState<{ sent: number; failed: number } | null>(null);
+  const [result, setResult]         = useState<{ sent: number; failed: number; automated?: boolean } | null>(null);
   const [error, setError]           = useState('');
+  const [showQr, setShowQr]         = useState(false);
+  const [instanceId, setInstanceId] = useState<string | null>(localStorage.getItem('wa_instance_id'));
+
+  const { data: qrData, refetch: fetchQr, isFetching: isFetchingQr } = useWhatsAppQr();
+  const { data: status } = useWhatsAppStatus(instanceId);
+
+  const isConnected = !!status?.connected;
 
   const preview = message
     .replace(/{#name#}/gi, 'Rajesh Kumar')
@@ -29,12 +36,13 @@ export default function WhatsAppPage() {
     if (!message.trim()) { setError('Message is required'); return; }
     setError(''); setResult(null);
     try {
-      const res = await sendWa.mutateAsync({ phone: phone.trim(), message });
-      const d = res.data as { details?: Array<{ deepLink?: string }> };
-      setDeepLink(d.details?.[0]?.deepLink ?? '');
-      setResult({ sent: 1, failed: 0 });
+      const res = await sendWa.mutateAsync({ phone: phone.trim(), message, instanceId: instanceId || undefined });
+      const d = res.data?.data as { details?: Array<{ deepLink?: string; automated?: boolean }> };
+      const mainDetail = d.details?.[0];
+      setDeepLink(mainDetail?.deepLink ?? '');
+      setResult({ sent: 1, failed: 0, automated: mainDetail?.automated });
     } catch (err: unknown) {
-      setError((err as { response?: { data?: { error?: string } } }).response?.data?.error ?? 'Failed to generate WhatsApp link');
+      setError((err as { response?: { data?: { error?: string } } }).response?.data?.error ?? 'Failed to send WhatsApp');
     }
   };
 
@@ -45,10 +53,19 @@ export default function WhatsAppPage() {
       ? patientIds.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n))
       : [];
     try {
-      await broadcastWa.mutateAsync({ patientIds: ids.length ? ids : undefined, message });
-      setResult({ sent: ids.length || 1, failed: 0 });
+      await broadcastWa.mutateAsync({ patientIds: ids.length ? ids : undefined, message, instanceId: instanceId || undefined });
+      setResult({ sent: ids.length || 1, failed: 0, automated: !!instanceId });
     } catch (err: unknown) {
       setError((err as { response?: { data?: { error?: string } } }).response?.data?.error ?? 'Broadcast failed');
+    }
+  };
+
+  const handleConnect = async () => {
+    setShowQr(true);
+    const res = await fetchQr();
+    if (res.data?.instanceId) {
+      localStorage.setItem('wa_instance_id', res.data.instanceId);
+      setInstanceId(res.data.instanceId);
     }
   };
 
@@ -61,14 +78,47 @@ export default function WhatsAppPage() {
             <MessageCircle size={20} strokeWidth={1.6} className="comm-title-icon-green" />
             WhatsApp Messaging
           </h1>
-          <p className="comm-subtitle">Send WhatsApp messages via deep links · Log delivery</p>
+          <p className="comm-subtitle">
+            {isConnected 
+              ? <span style={{ color: '#10b981', display: 'inline-flex', alignItems: 'center', gap: 4 }}><CheckCircle2 size={12} /> Connected (Automatic Mode)</span>
+              : 'Send WhatsApp messages via deep links or connect account for automation'
+            }
+          </p>
         </div>
         <div className="comm-header-actions">
-          <button className="comm-btn comm-btn-sm" onClick={() => window.open(deepLink, '_blank')}>
+          {!isConnected ? (
+            <button className="comm-btn comm-btn-wa" onClick={handleConnect} disabled={isFetchingQr}>
+              <LinkIcon size={13} /> {isFetchingQr ? 'Fetching QR...' : 'Connect WhatsApp'}
+            </button>
+          ) : (
+            <button className="comm-btn comm-btn-wa-success" disabled>
+              <CheckCircle2 size={13} /> Linked: {instanceId?.substring(0, 8)}...
+            </button>
+          )}
+          <button className="comm-btn comm-btn-sm" onClick={() => window.open(deepLink, '_blank')} disabled={!deepLink}>
             <ExternalLink size={13} /> Open WhatsApp
           </button>
         </div>
       </header>
+
+      {showQr && !isConnected && qrData?.qrCode && (
+        <div className="wa-qr-overlay animate-fade-in">
+          <div className="wa-qr-card">
+            <h3>Link WhatsApp Account</h3>
+            <p>Scan this QR code from your WhatsApp App (Linked Devices)</p>
+            <div className="wa-qr-img-container">
+              <img src={qrData.qrCode} alt="WhatsApp QR" />
+              {isFetchingQr && <div className="wa-qr-loading"><RefreshCw className="comm-spin" /></div>}
+            </div>
+            <div className="wa-qr-footer">
+              <button className="comm-btn" onClick={() => setShowQr(false)}>Close</button>
+              <button className="comm-btn comm-btn-wa" onClick={() => fetchQr()}>
+                <RefreshCw size={13} /> Refresh QR
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="comm-two-col">
         {/* Composer */}
@@ -85,9 +135,12 @@ export default function WhatsAppPage() {
               </div>
             )}
             {result && (
-              <div className="comm-alert comm-alert-success">
-                <CheckCircle2 size={16} />
-                WhatsApp: {result.sent} sent · {result.failed ?? 0} failed
+              <div className={`comm-alert ${result.automated ? 'comm-alert-wa' : 'comm-alert-success'}`}>
+                {result.automated ? <CheckCircle2 size={16} /> : <QrCode size={16} />}
+                {result.automated 
+                  ? `Message Sent Automatically to ${result.sent} recipient(s)` 
+                  : `WhatsApp Link Generated for ${result.sent} recipient(s)`
+                }
               </div>
             )}
 
@@ -132,10 +185,13 @@ export default function WhatsAppPage() {
             )}
 
             <div style={{ display: 'flex', gap: 10 }}>
-              <button className="comm-btn" onClick={handleSend} disabled={sendWa.isPending}>
+              <button className="comm-btn comm-btn-wa" onClick={handleSend} disabled={sendWa.isPending}>
                 {sendWa.isPending
-                  ? <><RefreshCw size={13} className="comm-spin" /> Generating…</>
-                  : <><Send size={13} /> Generate Link</>}
+                  ? <><RefreshCw size={13} className="comm-spin" /> …</>
+                  : isConnected 
+                    ? <><Send size={13} /> Send Automatically</>
+                    : <><Send size={13} /> Generate Link</>
+                }
               </button>
               {patientIds && (
                 <button className="comm-btn comm-btn-wa"

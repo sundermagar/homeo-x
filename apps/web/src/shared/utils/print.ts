@@ -41,8 +41,8 @@ export const printBill = (bill: BillWithPatient, org: Organization, options: Pri
     bodyRows = `
       <tr><td class="label">Total Charges:</td><td class="right amount">₹${bill.charges.toLocaleString()}</td></tr>
       <tr><td class="label">Amount Received:</td><td class="right amount">₹${bill.received.toLocaleString()}</td></tr>
-      <tr><td class="label amount" style="color:${balance > 0 ? '#ef4444' : '#10b981'}">Balance Due:</td>
-          <td class="right amount" style="color:${balance > 0 ? '#ef4444' : '#10b981'}">₹${balance.toLocaleString()}</td></tr>`;
+      <tr><td class="label amount" style="color:${balance > 0 ? 'var(--pp-danger-fg)' : '#10b981'}">Balance Due:</td>
+          <td class="right amount" style="color:${balance > 0 ? 'var(--pp-danger-fg)' : '#10b981'}">₹${balance.toLocaleString()}</td></tr>`;
   }
 
   const html = `
@@ -58,7 +58,7 @@ export const printBill = (bill: BillWithPatient, org: Organization, options: Pri
           .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; border-bottom: 2px solid #f1f5f9; padding-bottom: 30px; }
           .clinic-info { flex: 1; }
           .clinic-name { font-size: 24px; font-weight: 800; color: #0f172a; margin-bottom: 4px; }
-          .clinic-tagline { font-size: 14px; color: #3b82f6; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; }
+          .clinic-tagline { font-size: 14px; color: var(--pp-blue); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; }
           .clinic-details { font-size: 12px; color: #64748b; font-weight: 500; }
           .logo { width: 80px; height: 80px; border-radius: 12px; object-fit: contain; }
           
@@ -88,7 +88,7 @@ export const printBill = (bill: BillWithPatient, org: Organization, options: Pri
       <body>
         <div class="container">
           <div class="no-print" style="margin-bottom: 20px; text-align: right;">
-            <button onclick="window.print()" style="padding: 10px 20px; background: #2563eb; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: 800; font-size: 13px;">Confirm Print</button>
+            <button onclick="window.print()" style="padding: 10px 20px; background: var(--pp-blue); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: 800; font-size: 13px;">Confirm Print</button>
           </div>
 
           <div class="header">
@@ -133,7 +133,7 @@ export const printBill = (bill: BillWithPatient, org: Organization, options: Pri
           <div style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 20px; borderRadius: 16px;">
              <div>
                 <h4 style="font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase;">Payment Status</h4>
-                <p style="font-size: 14px; font-weight: 800; color: ${isPaid ? '#16a34a' : '#ef4444'}">${isPaid ? 'NOMINALLY SETTLED' : 'PARTIAL SETTLEMENT'}</p>
+                <p style="font-size: 14px; font-weight: 800; color: ${isPaid ? 'var(--pp-success-fg)' : 'var(--pp-danger-fg)'}">${isPaid ? 'NOMINALLY SETTLED' : 'PARTIAL SETTLEMENT'}</p>
              </div>
              <div style="text-align: right;">
                 <h4 style="font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase;">Total Received</h4>
@@ -175,7 +175,7 @@ export const printPrescription = (caseData: any, org: Organization) => {
           .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; border-bottom: 2px solid #f1f5f9; padding-bottom: 30px; }
           .clinic-info { flex: 1; }
           .clinic-name { font-size: 24px; font-weight: 800; color: #0f172a; margin-bottom: 4px; }
-          .clinic-tagline { font-size: 14px; color: #3b82f6; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; }
+          .clinic-tagline { font-size: 14px; color: var(--pp-blue); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; }
           .clinic-details { font-size: 12px; color: #64748b; font-weight: 500; }
           .logo { width: 80px; height: 80px; border-radius: 12px; object-fit: contain; }
           
@@ -185,7 +185,7 @@ export const printPrescription = (caseData: any, org: Organization) => {
           
           .rx-symbol { font-size: 32px; font-weight: 800; color: #0f172a; margin-bottom: 20px; font-style: italic; }
           .content-section { margin-bottom: 30px; }
-          .section-title { font-size: 12px; font-weight: 800; color: #3b82f6; text-transform: uppercase; margin-bottom: 12px; border-left: 3px solid #3b82f6; padding-left: 10px; }
+          .section-title { font-size: 12px; font-weight: 800; color: var(--pp-blue); text-transform: uppercase; margin-bottom: 12px; border-left: 3px solid var(--pp-blue); padding-left: 10px; }
           .section-body { font-size: 14px; color: #334155; white-space: pre-wrap; padding-left: 13px; }
           
           .footer { margin-top: 80px; display: flex; justify-content: space-between; align-items: flex-end; border-top: 1px solid #f1f5f9; padding-top: 40px; }
@@ -329,7 +329,7 @@ export const printAppointmentSlip = (appointment: {
           .p-sub { font-size: 11px; color: #64748b; margin-top: 1px; font-weight: 500; }
           .token-box { text-align: right; }
           .token-label { font-size: 9px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; }
-          .token-value { font-size: 24px; font-weight: 800; color: #3b82f6; line-height: 1; margin-top: 2px; font-family: monospace; }
+          .token-value { font-size: 24px; font-weight: 800; color: var(--pp-blue); line-height: 1; margin-top: 2px; font-family: monospace; }
 
           .details-grid { border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; margin-bottom: 15px; }
           .detail-row { display: flex; border-bottom: 1px solid #f1f5f9; }
@@ -342,7 +342,7 @@ export const printAppointmentSlip = (appointment: {
           .fee-value { font-size: 24px; font-weight: 800; color: #ffffff; line-height: 1; }
           .fee-sub { font-size: 10px; color: #64748b; margin-top: 2px; font-weight: 500; }
 
-          .visit-badge { background: #3b82f6; color: white; padding: 4px 12px; border-radius: 100px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+          .visit-badge { background: var(--pp-blue); color: white; padding: 4px 12px; border-radius: 100px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
 
           .instructions { background: #fffbeb; border: 1px solid #fef3c7; border-radius: 10px; padding: 12px 16px; margin-bottom: 15px; }
           .instructions-title { font-size: 10px; font-weight: 800; color: #92400e; text-transform: uppercase; margin-bottom: 4px; }

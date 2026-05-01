@@ -17,7 +17,7 @@ const DEMO_USERS = [
     role: 'Doctor',       
     id: 101,
     icon: <Stethoscope size={18} strokeWidth={2} />,
-    color: '#3b82f6',
+    color: 'var(--pp-blue)',
     bg: '#eff6ff'
   },
   { 
@@ -27,7 +27,7 @@ const DEMO_USERS = [
     role: 'Admin',        
     id: 102,
     icon: <ShieldCheck size={18} strokeWidth={2} />,
-    color: '#ef4444',
+    color: 'var(--pp-danger-fg)',
     bg: '#fef2f2'
   },
   { 

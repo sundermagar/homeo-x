@@ -5,7 +5,7 @@ import {
   History, Camera, Zap, CreditCard, Clock,
   Phone, Calendar, MapPin, CheckCircle2, AlertCircle,
   Sparkles, MoreHorizontal, ChevronRight, Plus, Package,
-  MessageSquare, Send, BrainCircuit, ClipboardList, FlaskConical,
+  MessageSquare, Send, BrainCircuit, ClipboardList, FlaskConical, Microscope,
   Printer, Paperclip, Upload, X, Eye, Loader2, Trash2, Thermometer,
   TrendingUp, Stethoscope, Scale, Syringe, BarChart3, Pill, Check, User,
   ChevronLeft
@@ -48,7 +48,7 @@ export function AutoSaveNoteArea({ initialValue = '', onSave, placeholder = '' }
       {status !== 'idle' && (
         <div style={{
           position: 'absolute', bottom: '8px', right: '12px', fontSize: '0.75rem', fontWeight: 600,
-          color: status === 'saving' ? '#3b82f6' : status === 'error' ? '#ef4444' : '#10b981'
+          color: status === 'saving' ? 'var(--pp-blue)' : status === 'error' ? 'var(--pp-danger-fg)' : '#10b981'
         }}>
           {status === 'saving' ? 'Saving...' : status === 'error' ? 'Failed' : 'Saved'}
         </div>
@@ -101,6 +101,7 @@ export default function MedicalCaseDetailPage() {
 
   const TABS = [
     { id: 'summary', label: 'Prescription (Rx)', icon: Pill },
+    { id: 'matrix', label: 'Clinical Matrix', icon: Microscope },
     { id: 'homeo', label: 'Homeopathic', icon: Zap },
     { id: 'vitals', label: 'Vitals & Exam', icon: Stethoscope },
     { id: 'labs', label: 'Investigations', icon: FlaskConical },
@@ -115,6 +116,7 @@ export default function MedicalCaseDetailPage() {
   const renderActiveTabContent = () => {
     switch (activeTab) {
       case 'summary': return <RemedyChartSession regid={Number(regid)} />;
+      case 'matrix': return <div style={{ padding: 0 }}><AiRemedyView regid={Number(regid)} /></div>;
       case 'homeo': return <div style={{ padding: 20 }}><HomeoView regid={Number(regid)} initialData={homeo} /></div>;
       case 'vitals': return <div style={{ padding: 20 }}><VitalsView vitals={vitals} onRecord={() => setShowVitalsModal(true)} /></div>;
       case 'labs': return <div style={{ padding: 20 }}><LabsView investigations={investigations} regid={Number(regid)} visitId={medicalCase.id} /></div>;
@@ -518,7 +520,7 @@ function AnalyticsView({ vitals }: { vitals: any[] }) {
                 <XAxis dataKey="date" fontSize={12} tickLine={false} axisLine={false} />
                 <YAxis fontSize={12} tickLine={false} axisLine={false} domain={['dataMin - 5', 'dataMax + 5']} />
                 <RechartsTooltip />
-                <Line type="monotone" dataKey="weight" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                <Line type="monotone" dataKey="weight" stroke="var(--pp-blue)" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -534,7 +536,7 @@ function AnalyticsView({ vitals }: { vitals: any[] }) {
                 <YAxis fontSize={12} tickLine={false} axisLine={false} domain={['dataMin - 10', 'dataMax + 10']} />
                 <RechartsTooltip />
                 <Legend iconType="circle" />
-                <Line type="monotone" dataKey="systolic" name="Systolic" stroke="#ef4444" strokeWidth={2} dot={{ r: 3 }} />
+                <Line type="monotone" dataKey="systolic" name="Systolic" stroke="var(--pp-danger-fg)" strokeWidth={2} dot={{ r: 3 }} />
                 <Line type="monotone" dataKey="diastolic" name="Diastolic" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 3 }} />
               </LineChart>
             </ResponsiveContainer>
@@ -668,11 +670,11 @@ function VitalsView({ vitals, onRecord }: { vitals: any[]; onRecord: () => void 
       </div>
 
       <div className="mc-vitals-grid">
-        <VitalCard label="Blood Pressure" value={latest ? `${latest.systolicBp}/${latest.diastolicBp}` : '-'} unit="mmHg" icon={Activity} color="#ef4444" />
+        <VitalCard label="Blood Pressure" value={latest ? `${latest.systolicBp}/${latest.diastolicBp}` : '-'} unit="mmHg" icon={Activity} color="var(--pp-danger-fg)" />
         <VitalCard label="Heart Rate" value={latest ? latest.pulseRate : '-'} unit="bpm" icon={History} color="#ec4899" />
         <VitalCard label="Temperature" value={latest ? latest.temperatureF : '-'} unit="°F" icon={Thermometer} color="#f59e0b" />
         <VitalCard label="Oxygen Level" value={latest ? latest.oxygenSaturation : '-'} unit="%" icon={Zap} color="#10b981" />
-        <VitalCard label="Body Weight" value={latest ? latest.weightKg : '-'} unit="kg" icon={Calendar} color="#3b82f6" />
+        <VitalCard label="Body Weight" value={latest ? latest.weightKg : '-'} unit="kg" icon={Calendar} color="var(--pp-blue)" />
         <VitalCard label="BMI Index" value={latest ? latest.bmi : '-'} unit="" icon={Sparkles} color="#8b5cf6" />
       </div>
 
@@ -1038,7 +1040,7 @@ function LabsView({ investigations, regid, visitId }: { investigations: any[]; r
                             </div>
                           </td>
                           <td style={{ textAlign: 'center' }}>
-                            <button onClick={() => deleteRecord.mutateAsync({ type: 'investigations', id: inv.id })} className="btn-ghost" style={{ color: '#dc2626', padding: '4px 8px' }}>
+                            <button onClick={() => deleteRecord.mutateAsync({ type: 'investigations', id: inv.id })} className="btn-ghost" style={{ color: 'var(--pp-danger-fg)', padding: '4px 8px' }}>
                               <Trash2 size={14} />
                             </button>
                           </td>

@@ -272,10 +272,10 @@ export function DoctorDashboard() {
     <div className="dash-root doctor-dashboard-panel">
       {/* 1. KPI Strip */}
       <div className="dash-kpi-strip">
-        <KPIItem label="Daily Visits" value={todayAppts.length} trend={`${kpis?.patientTrend || 0}% vs yesterday`} color={Number(kpis?.patientTrend || 0) > 0 ? '#16a34a' : '#dc2626'} />
-        <KPIItem label="Collection" value={`₹${(kpis?.todaysCollection || 0).toLocaleString()}`} trend={`${kpis?.revenueTrend || 0}% vs yesterday`} color={Number(kpis?.revenueTrend || 0) > 0 ? '#16a34a' : '#dc2626'} />
-        <KPIItem label="Wait Rate" value={`${kpis?.collectionRate || 0}%`} trend="Target 95%" color="#16a34a" />
-        <KPIItem label="Avg Wait" value={`${kpis?.avgWaitTime || 0}m`} trend="In queue" color="#2563eb" />
+        <KPIItem label="Daily Visits" value={todayAppts.length} trend={`${kpis?.patientTrend || 0}% vs yesterday`} color={Number(kpis?.patientTrend || 0) > 0 ? 'var(--pp-success-fg)' : 'var(--pp-danger-fg)'} />
+        <KPIItem label="Collection" value={`₹${(kpis?.todaysCollection || 0).toLocaleString()}`} trend={`${kpis?.revenueTrend || 0}% vs yesterday`} color={Number(kpis?.revenueTrend || 0) > 0 ? 'var(--pp-success-fg)' : 'var(--pp-danger-fg)'} />
+        <KPIItem label="Wait Rate" value={`${kpis?.collectionRate || 0}%`} trend="Target 95%" color="var(--pp-success-fg)" />
+        <KPIItem label="Avg Wait" value={`${kpis?.avgWaitTime || 0}m`} trend="In queue" color="var(--pp-blue)" />
       </div>
 
       <div className="dash-grid">
@@ -303,8 +303,8 @@ export function DoctorDashboard() {
                     </p>
 
                     <div className="dd-vitals-strip" onClick={() => setShowVitalsModal(true)} style={{ cursor: 'pointer' }}>
-                      <VitalItem icon={<Heart size={12} />} label="BP" value={activeConsultation.vitals?.bp || '--'} color="#ef4444" />
-                      <VitalItem icon={<Scale size={12} />} label="Weight" value={activeConsultation.vitals?.weight ? `${activeConsultation.vitals.weight} kg` : '--'} color="#3b82f6" />
+                      <VitalItem icon={<Heart size={12} />} label="BP" value={activeConsultation.vitals?.bp || '--'} color="var(--pp-danger-fg)" />
+                      <VitalItem icon={<Scale size={12} />} label="Weight" value={activeConsultation.vitals?.weight ? `${activeConsultation.vitals.weight} kg` : '--'} color="var(--pp-blue)" />
                       <VitalItem icon={<Thermometer size={12} />} label="Temp" value={activeConsultation.vitals?.temp ? `${activeConsultation.vitals.temp}°F` : '--'} color="#f59e0b" />
                     </div>
 

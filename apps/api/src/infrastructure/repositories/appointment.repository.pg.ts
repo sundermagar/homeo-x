@@ -491,8 +491,10 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
         patientName: sql<string>`COALESCE((SELECT first_name || ' ' || surname FROM patients WHERE id = ${schema.waitlist.patientId}), (SELECT patient_name FROM appointments WHERE id = ${schema.waitlist.appointmentId}))`,
         doctorName: sql<string>`COALESCE((SELECT firstname || ' ' || surname FROM doctors WHERE id = ${schema.waitlist.doctorId}), (SELECT name FROM users WHERE id = ${schema.waitlist.doctorId}), 'Practitioner')`,
         balance: sql<string>`COALESCE((SELECT SUM(balance)::text FROM bills WHERE regid = (SELECT regid FROM patients WHERE id = ${schema.waitlist.patientId}) AND deleted_at IS NULL), '0')`,
+        latestBillId: sql<number>`(SELECT id FROM bills WHERE regid = (SELECT regid FROM patients WHERE id = ${schema.waitlist.patientId}) AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 1)`,
         packageName: sql<string>`COALESCE((SELECT name FROM package_plans WHERE id = (SELECT package_id FROM patient_packages WHERE patient_id = ${schema.waitlist.patientId} AND status = 'Active' AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 1)), 'Regular')`,
         packageExpiry: sql<string>`(SELECT expiry_date::text FROM patient_packages WHERE patient_id = ${schema.waitlist.patientId} AND status = 'Active' AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 1)`
+
       })
       .from(schema.waitlist)
       .where(and(...conditions))
@@ -504,9 +506,11 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
       doctorName: r.doctorName,
       clinicId: r.waitlist.clinicId,
       balance: r.balance,
+      billId: r.latestBillId,
       packageName: r.packageName,
       packageExpiry: r.packageExpiry,
       consultationFee: r.waitlist.consultationFee?.toString() || null,
+
       rowcolor: r.waitlist.rowcolor || 0,
     }));
   }

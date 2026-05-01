@@ -297,7 +297,7 @@
 
 .dark .ghub-action-button {
   background: var(--primary);
-  color: #FFFFFF;
+  color: var(--pp-ink);
 }
 
 .ghub-action-button:hover:not(:disabled) {
@@ -527,7 +527,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  border: 1px solid rgba(22, 163, 74, 0.15);
+  border: 1px solid var(--pp-success-border);
   margin-top: 4px;
 }
 

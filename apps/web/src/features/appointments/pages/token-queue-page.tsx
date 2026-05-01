@@ -1,9 +1,10 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { format } from 'date-fns';
 import {
   Clock, UserCheck, CheckCircle2, Users, RefreshCw, Plus, Ticket,
-  ChevronRight, Activity, IndianRupee, ChevronLeft, LayoutGrid, List, Search, X, MoreVertical
+  ChevronRight, Activity, IndianRupee, ChevronLeft, LayoutGrid, List, Search, X, MoreVertical, Printer, MessageCircle
 } from 'lucide-react';
+import { StickerPrint } from '@/shared/components/StickerPrint';
 import { useWaitlist, useCallNext, useCompleteVisit, useTodayAppointments, useIssueToken, useAddToWaitlist } from '../hooks/use-appointments';
 import { useDailyCollection } from '@/features/billing/hooks/use-billing';
 import { apiClient } from '@/infrastructure/api-client';
@@ -43,6 +44,8 @@ export default function TokenQueuePage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [openMenuId, setOpenMenuId] = useState<number | string | null>(null);
+  const [printData, setPrintData] = useState<any>(null);
+  const stickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -79,11 +82,22 @@ export default function TokenQueuePage() {
 
   // Data selection based on tab
   const currentDataList = useMemo(() => {
-    if (tab === 'queue') return [...inProgress, ...waiting];
-    if (tab === 'tokens') return todayAppts;
-    if (tab === 'collection') return collection?.records || [];
-    return [];
-  }, [tab, inProgress, waiting, todayAppts, collection]);
+    let base: any[] = [];
+    if (tab === 'queue') base = [...inProgress, ...waiting];
+    else if (tab === 'tokens') base = todayAppts;
+    else if (tab === 'collection') base = collection?.records || [];
+
+    if (!searchQuery) return base;
+    const q = searchQuery.toLowerCase();
+    return base.filter((item: any) => 
+      (item.patientName || '').toLowerCase().includes(q) ||
+      (item.patientNameFromCase || '').toLowerCase().includes(q) ||
+      (item.phone || '').toLowerCase().includes(q) ||
+      String(item.patientId || '').includes(q) ||
+      String(item.waitingNumber || '').includes(q) ||
+      String(item.tokenNo || '').includes(q)
+    );
+  }, [tab, inProgress, waiting, todayAppts, collection, searchQuery]);
 
   // Pagination Logic
   const totalItems = currentDataList.length;
@@ -96,6 +110,34 @@ export default function TokenQueuePage() {
   const handleCall      = async (id: number) => { await callNext.mutateAsync(id); wRefetch(); };
   const handleComplete  = async (id: number) => { await completeVisit.mutateAsync(id); wRefetch(); aRefetch(); };
   const handleIssueToken = async (appointmentId: number) => { await issueToken.mutateAsync(appointmentId); aRefetch(); };
+
+  const handlePrint = (token: any) => {
+    setPrintData({
+      patientName: token.patientName || 'N/A',
+      regId: token.regid,
+      date: new Date().toLocaleDateString(),
+      age: token.age,
+      gender: token.gender
+    });
+
+    setTimeout(() => {
+      if (stickerRef.current) {
+        const printContent = stickerRef.current.innerHTML;
+        const printWindow = window.open('', '_blank', 'width=600,height=600');
+        if (printWindow) {
+          printWindow.document.write('<html><head><title>Print Sticker</title>');
+          document.querySelectorAll('style').forEach(style => { printWindow.document.write(style.outerHTML); });
+          document.querySelectorAll('link[rel="stylesheet"]').forEach(link => { printWindow.document.write(link.outerHTML); });
+          printWindow.document.write('</head><body>');
+          printWindow.document.write(printContent);
+          printWindow.document.write('</body></html>');
+          printWindow.document.close();
+          printWindow.focus();
+          setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
+        }
+      }
+    }, 100);
+  };
 
   const handleStartConsult = (w: any) => {
     window.location.href = `/medical-case/entry?regid=${w.patientId}&visitId=${w.appointmentId || w.id}`;
@@ -235,19 +277,19 @@ export default function TokenQueuePage() {
           <div className="appt-token-actions-minimal">
             {w.status === 1 ? (
               <>
-                <button className="appt-btn appt-btn-sm appt-btn-primary" onClick={() => handleStartConsult(w)}>
+                <button className="appt-btn appt-btn-xs appt-btn-primary" onClick={() => handleStartConsult(w)}>
                   <Activity size={13} strokeWidth={2} /> Consult
                 </button>
-                <button className="appt-btn appt-btn-sm appt-btn-success" onClick={() => handleComplete(w.id)} disabled={completeVisit.isPending}>
+                <button className="appt-btn appt-btn-xs appt-btn-success" onClick={() => handleComplete(w.id)} disabled={completeVisit.isPending}>
                   <CheckCircle2 size={13} strokeWidth={1.6} /> Done
                 </button>
               </>
             ) : (
-              <button className="appt-btn appt-btn-sm appt-btn-primary" onClick={() => handleCall(w.id)} disabled={callNext.isPending}>
+              <button className="appt-btn appt-btn-xs appt-btn-primary" onClick={() => handleCall(w.id)} disabled={callNext.isPending}>
                 <ChevronRight size={13} strokeWidth={1.6} /> Call Next
               </button>
             )}
-            <button className="appt-btn appt-btn-sm appt-btn-purple" onClick={() => setActiveVitals({ visitId: w.appointmentId || w.id, regid: w.patientId ?? 0 })}>
+            <button className="appt-btn appt-btn-xs appt-btn-purple" onClick={() => setActiveVitals({ visitId: w.appointmentId || w.id, regid: w.patientId ?? 0 })}>
               <Activity size={13} strokeWidth={1.6} /> Vitals
             </button>
           </div>
@@ -262,53 +304,59 @@ export default function TokenQueuePage() {
         <table className="appt-table">
           <thead className="appt-table-header-minimal">
             <tr>
-              <th style={{ textAlign: 'left', paddingLeft: 24 }}>TOKEN</th>
-              <th style={{ textAlign: 'left' }}>PATIENT</th>
-              <th style={{ textAlign: 'left' }}>DOCTOR</th>
-              <th style={{ textAlign: 'left' }}>WAIT TIME</th>
-              <th style={{ textAlign: 'center' }}>STATUS</th>
-              <th style={{ textAlign: 'right', paddingRight: 24 }}>ACTION</th>
+              <th style={{ textAlign: 'left', paddingLeft: 16, width: 70 }}>TOKEN</th>
+              <th style={{ textAlign: 'left', width: 180 }}>PATIENT</th>
+              <th style={{ textAlign: 'left', width: 140 }}>DOCTOR</th>
+              <th style={{ textAlign: 'left', width: 100 }}>WAITING</th>
+              <th style={{ textAlign: 'center', width: 110 }}>PACKAGE</th>
+              <th style={{ textAlign: 'center', width: 90 }}>STATUS</th>
+              <th style={{ textAlign: 'left', width: 180 }}>ACTION</th>
             </tr>
           </thead>
           <tbody>
             {paginatedData.map((w: any) => (
               <tr key={w.id} className={`appt-table-row-minimal ${w.status === 1 ? 'is-active-row' : ''}`}>
-                <td style={{ paddingLeft: 24 }}>
+                <td data-label="TOKEN" style={{ paddingLeft: 16 }}>
                   <span className="appt-token-pill" style={{ color: WAIT_COLOR[w.status] }}>W{w.waitingNumber}</span>
                 </td>
-                <td>
-                  <div className="appt-patient-info">
-                    <div className="appt-cell-name" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      {w.patientName ?? `Patient #${w.patientId}`}
-                      {w.status === 1 && <span className="appt-calling-dot" style={{ position: 'static' }} />}
-                    </div>
+                <td data-label="PATIENT">
+                  <div style={{ fontWeight: 600, color: 'var(--pp-ink)' }}>{w.patientName || 'Unknown'}</div>
+                  <div style={{ fontSize: '11px', color: 'var(--pp-text-3)', fontWeight: 500 }}>
+                    {w.regid ? `ID: ${w.regid}` : '—'} • {w.mobile || 'No Mobile'}
                   </div>
                 </td>
-                <td className="appt-cell-muted">{w.doctorName ?? '—'}</td>
-                <td className="appt-cell-muted">{formatWaitTime(w.checkedInAt || w.createdAt)}</td>
-                <td style={{ textAlign: 'center' }}>
+                <td data-label="DOCTOR">
+                  <div style={{ fontWeight: 500 }}>{w.doctorName || 'General Staff'}</div>
+                </td>
+                <td data-label="WAIT TIME" className="appt-cell-muted">{formatWaitTime(w.checkedInAt || w.createdAt)}</td>
+                <td data-label="PACKAGE" style={{ textAlign: 'center' }}>
+                  <span className="appt-metadata-badge appt-metadata-package" style={{ display: 'inline-flex', justifyContent: 'center' }}>
+                    {w.packageName || 'Regular'}
+                  </span>
+                </td>
+                <td data-label="STATUS" style={{ textAlign: 'center' }}>
                   <span className={`appt-status-pill-minimal ${w.status === 1 ? 'success' : 'waiting'}`}>
                     {WAIT_STATUS[w.status]}
                   </span>
                 </td>
-                <td style={{ paddingRight: 24 }}>
+                <td data-label="ACTION" style={{ paddingRight: 24 }}>
                   <div className="appt-row-actions appt-row-actions-inline">
                     {w.status === 1 ? (
                       <>
-                        <button className="appt-btn appt-btn-sm" style={{ background: '#0f172a', color: 'white', borderColor: '#0f172a' }} onClick={() => handleStartConsult(w)}>
-                           <Activity size={13} strokeWidth={2} /> Consult
+                        <button className="appt-btn appt-btn-xs appt-btn-primary" onClick={() => handleStartConsult(w)}>
+                           Consult
                         </button>
-                        <button className="appt-btn appt-btn-sm appt-btn-success" onClick={() => handleComplete(w.id)} disabled={completeVisit.isPending}>
-                           <CheckCircle2 size={13} strokeWidth={1.6} /> Done
+                        <button className="appt-btn appt-btn-xs appt-btn-success" onClick={() => handleComplete(w.id)} disabled={completeVisit.isPending}>
+                           Done
                         </button>
                       </>
                     ) : (
-                      <button className="appt-btn appt-btn-sm" style={{ background: '#0f172a', color: 'white', borderColor: '#0f172a' }} onClick={() => handleCall(w.id)} disabled={callNext.isPending}>
-                         <ChevronRight size={13} strokeWidth={1.6} /> Call
+                      <button className="appt-btn appt-btn-xs appt-btn-primary" onClick={() => handleCall(w.id)} disabled={callNext.isPending}>
+                         Call Next
                       </button>
                     )}
-                    <button className="appt-btn appt-btn-sm appt-btn-purple" onClick={() => setActiveVitals({ visitId: w.appointmentId || w.id, regid: w.patientId ?? 0 })}>
-                      <Activity size={14} /> Vitals
+                    <button className="appt-btn appt-btn-xs appt-btn-purple" onClick={() => setActiveVitals({ visitId: w.appointmentId || w.id, regid: w.patientId ?? 0 })}>
+                      Vitals
                     </button>
                   </div>
                   <div className="appt-kebab-wrap">
@@ -379,19 +427,16 @@ export default function TokenQueuePage() {
               {doctors.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
             </select>
           )}
-          <button className="appt-btn appt-btn-sm" onClick={() => { wRefetch(); aRefetch(); cRefetch(); }}>
-            <RefreshCw size={14} strokeWidth={1.6} /> Refresh
-          </button>
         </div>
       </div>
 
       {/* Stats bar */}
       <div className="appt-stats-bar">
         {([
-          { label: 'Waiting',       value: waiting.length,    bg: 'rgba(245, 158, 11, 0.1)', ic: '#d97706', icon: <Clock size={20} strokeWidth={2} /> },
+          { label: 'Waiting',       value: waiting.length,    bg: 'var(--pp-warning-bg)', ic: '#d97706', icon: <Clock size={20} strokeWidth={2} /> },
           { label: 'In Progress',   value: inProgress.length, bg: 'rgba(124, 58, 237, 0.1)', ic: '#7c3aed', icon: <UserCheck size={20} strokeWidth={2} /> },
-          { label: 'Realized Revenue', value: `₹${totalReceived.toLocaleString()}`, bg: 'rgba(5, 150, 105, 0.1)',  ic: '#059669', icon: <IndianRupee size={20} strokeWidth={2} /> },
-          { label: 'Tokens Issued',value: withToken.length,  bg: 'rgba(37, 99, 235, 0.1)',  ic: '#2563eb', icon: <Ticket size={20} strokeWidth={2} /> },
+          { label: 'Realized Revenue', value: `₹${totalReceived.toLocaleString()}`, bg: 'var(--pp-success-bg)',  ic: '#059669', icon: <IndianRupee size={20} strokeWidth={2} /> },
+          { label: 'Tokens Issued',value: withToken.length,  bg: 'var(--pp-blue-tint)',  ic: 'var(--pp-blue)', icon: <Ticket size={20} strokeWidth={2} /> },
         ] as const).map(item => (
           <div key={item.label} className="appt-stat-card">
             <div className="appt-stat-icon-wrap" style={{ background: item.bg, color: item.ic }}>
@@ -419,11 +464,40 @@ export default function TokenQueuePage() {
       </div>
 
       {/* ─── LIVE QUEUE TAB ───────────────────────────────────────────────────── */}
-      {/* ─── LIVE QUEUE TAB ───────────────────────────────────────────────────── */}
       {tab === 'queue' && (
         <div className="animate-fade-in">
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-            <div className="appt-segmented-toggle">
+          <div className="appt-action-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, background: 'var(--bg-surface-2)', padding: '12px 16px', borderRadius: '12px', border: '1px solid var(--border-main)' }}>
+            <div className="appt-search-wrapper" style={{ position: 'relative', width: 320 }}>
+              <Search size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
+              <input 
+                type="text" 
+                placeholder="Search patient, ID, or phone..."
+                className="appt-filter-input"
+                style={{ 
+                  width: '100%', 
+                  padding: '10px 40px 10px 42px', 
+                  height: '42px', 
+                  borderRadius: '10px', 
+                  border: '1.5px solid var(--border-main)',
+                  background: 'var(--bg-card)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.88rem',
+                  fontWeight: 500,
+                  transition: 'all 0.2s ease',
+                  boxShadow: 'var(--pp-shadow-sm)'
+                }}
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+              />
+              {searchQuery && (
+                <X 
+                  size={16} 
+                  style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', cursor: 'pointer' }} 
+                  onClick={() => setSearchQuery('')}
+                />
+              )}
+            </div>
+            <div className="appt-segmented-toggle" style={{ background: 'var(--bg-card)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border-main)' }}>
               <button 
                 className={`appt-segmented-btn ${viewMode === 'list' ? 'active' : ''}`} 
                 onClick={() => setViewMode('list')}
@@ -472,38 +546,46 @@ export default function TokenQueuePage() {
                   <table className="appt-table">
                     <thead className="appt-table-header-minimal">
                       <tr>
-                        <th style={{ textAlign: 'left', paddingLeft: 24 }}>TOKEN</th>
-                        <th style={{ textAlign: 'left' }}>PATIENT</th>
-                        <th style={{ textAlign: 'left' }}>DOCTOR</th>
-                        <th style={{ textAlign: 'left' }}>TIME</th>
-                        <th style={{ textAlign: 'center' }}>STATUS</th>
-                        <th style={{ textAlign: 'right', paddingRight: 24 }}>ACTION</th>
+                        <th style={{ textAlign: 'left', paddingLeft: 24, width: 100 }}>TOKEN</th>
+                        <th style={{ textAlign: 'left', minWidth: 200 }}>PATIENT</th>
+                        <th style={{ textAlign: 'left', width: 160 }}>DOCTOR</th>
+                        <th style={{ textAlign: 'left', width: 140 }}>TIME</th>
+                        <th style={{ textAlign: 'center', width: 150 }}>PACKAGE</th>
+                        <th style={{ textAlign: 'center', width: 120 }}>STATUS</th>
+                        <th style={{ textAlign: 'left', paddingLeft: 14, width: 200 }}>ACTION</th>
                       </tr>
                     </thead>
                     <tbody>
                       {paginatedData.map((a: any) => (
                         <tr key={a.id} className="appt-table-row-minimal">
-                          <td style={{ paddingLeft: 24 }}>
+                          <td data-label="TOKEN" style={{ paddingLeft: 24 }}>
                             {a.tokenNo ? (
                               <span className="appt-token-pill">T{a.tokenNo}</span>
                             ) : (
                               <span className="appt-cell-slash">None</span>
                             )}
                           </td>
-                          <td>
-                            <div className="appt-patient-info">
-                              <div className="appt-cell-name">{a.patientNameFromCase ?? a.patientName ?? `#${a.patientId}`}</div>
-                              {a.phone && <div className="appt-cell-phone">{a.phone}</div>}
+                          <td data-label="PATIENT">
+                            <div style={{ fontWeight: 600, color: 'var(--pp-ink)' }}>{a.patientName || 'Unknown'}</div>
+                            <div style={{ fontSize: '11px', color: 'var(--pp-text-3)', fontWeight: 500 }}>
+                              {a.regid ? `ID: ${a.regid}` : '—'} • {a.mobile || 'No Mobile'}
                             </div>
                           </td>
-                          <td className="appt-cell-muted">{a.doctorName ?? '—'}</td>
-                          <td className="appt-cell-muted">{a.bookingTime ?? '—'}</td>
-                          <td style={{ textAlign: 'center' }}>
+                          <td data-label="DOCTOR">
+                            <div style={{ fontWeight: 500 }}>{a.doctorName || 'General Staff'}</div>
+                          </td>
+                          <td data-label="TIME" className="appt-cell-muted">{a.bookingTime ?? '—'}</td>
+                          <td data-label="PACKAGE" style={{ textAlign: 'center' }}>
+                            <span className="appt-metadata-badge appt-metadata-package" style={{ display: 'inline-flex', justifyContent: 'center' }}>
+                              {a.packageName || 'Regular'}
+                            </span>
+                          </td>
+                          <td data-label="STATUS" style={{ textAlign: 'center' }}>
                             <span className={`appt-status-pill-minimal ${a.status.toLowerCase()}`}>
                               {a.status}
                             </span>
                           </td>
-                          <td style={{ paddingRight: 24 }}>
+                          <td data-label="ACTION" style={{ paddingRight: 24 }}>
                             <div className="appt-row-actions appt-row-actions-inline">
                               {!a.tokenNo ? (
                                 <button className="appt-btn appt-btn-sm" style={{ background: '#0f172a', color: 'white', borderColor: '#0f172a' }} onClick={() => handleIssueToken(a.id)} disabled={issueToken.isPending}>
@@ -587,20 +669,20 @@ export default function TokenQueuePage() {
                     <>
                       {paginatedData.map((r: any) => (
                         <tr key={r.id} className="appt-ledger-row">
-                          <td style={{ padding: '12px 16px', textAlign: 'left' }}>
+                          <td data-label="RECEIPT ID" style={{ padding: '12px 16px', textAlign: 'left' }}>
                             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--pp-blue)' }}>#{r.billNo || r.id}</div>
                             <div style={{ fontSize: 10, color: 'var(--pp-text-3)', fontWeight: 600 }}>{r.billDate || 'Live Sync'}</div>
                           </td>
-                          <td style={{ textAlign: 'left' }}>
+                          <td data-label="PATIENT">
                             <div className="appt-cell-name">{r.patientName}</div>
                             <div className="appt-cell-phone">{r.phone || 'No Contact Linked'}</div>
                           </td>
-                          <td style={{ textAlign: 'center' }}>
+                          <td data-label="CHANNEL" style={{ textAlign: 'center' }}>
                             <span className={`appt-badge ${r.paymentMode === 'Cash' ? 'appt-badge-visited' : 'appt-badge-confirmed'}`} style={{ fontSize: 10 }}>
                               {r.paymentMode?.toUpperCase() || 'CASH'}
                             </span>
                           </td>
-                          <td style={{ textAlign: 'right', paddingRight: 16, fontWeight: 800, color: 'var(--pp-success-fg)', fontSize: 15 }}>
+                          <td data-label="NET VALUE" style={{ textAlign: 'right', paddingRight: 16, fontWeight: 800, color: 'var(--pp-success-fg)', fontSize: 15 }}>
                             ₹{Number(r.received).toLocaleString()}
                           </td>
                         </tr>
@@ -611,6 +693,12 @@ export default function TokenQueuePage() {
               </table>
             </div>
           </div>
+          {printData && (
+            <StickerPrint
+              ref={stickerRef}
+              {...printData}
+            />
+          )}
           {renderPagination()}
         </div>
       )}

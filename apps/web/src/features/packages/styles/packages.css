@@ -253,3 +253,110 @@
 .pkg-empty { padding: 60px 20px; text-align: center; color: var(--text-muted); }
 .pkg-empty-icon { margin-bottom: 12px; opacity: 0.25; }
 .pkg-empty-text { font-size: 0.875rem; color: var(--text-muted); margin-top: 8px; }
+
+/* ─── Responsive Adjustments (≤1024px) ─── */
+@media (max-width: 1024px) {
+  .pkg-stats { grid-template-columns: 1fr !important; }
+  .pkg-table-scroll { overflow-x: visible !important; }
+  .pkg-table { min-width: 0 !important; width: 100% !important; display: block !important; border: none !important; }
+  .pkg-table thead { display: none !important; }
+  .pkg-table tbody { display: block !important; width: 100% !important; }
+  .pkg-table tr { 
+    display: block !important; 
+    margin-bottom: 20px !important; 
+    background: var(--bg-card) !important; 
+    border: 1px solid var(--border-main) !important; 
+    border-radius: 16px !important; 
+    padding: 8px 0 !important;
+    box-shadow: var(--pp-shadow-sm) !important;
+  }
+  .pkg-table td {
+    display: grid !important;
+    grid-template-columns: 120px 1fr !important;
+    gap: 12px !important;
+    align-items: center !important;
+    padding: 12px 20px !important;
+    border-bottom: 1px dashed var(--border-main) !important;
+    min-height: 44px;
+    text-align: right !important;
+    width: 100% !important;
+  }
+  .pkg-table td:last-child { border-bottom: none !important; background: var(--bg-surface-2) !important; margin-top: 4px; padding-top: 16px !important; padding-bottom: 16px !important; }
+  
+  .pkg-table td::before {
+    content: attr(data-label);
+    font-size: 10px !important;
+    font-weight: 800 !important;
+    color: var(--text-muted) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.08em !important;
+    text-align: left !important;
+  }
+
+  .pkg-patient-cell, .pkg-plan-cell, .pkg-days-cell, .pkg-status-cell, .pkg-actions-cell {
+    display: flex !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    width: 100% !important;
+    text-align: right !important;
+  }
+  .pkg-patient-cell { gap: 10px; }
+  .pkg-avatar-sm { display: none !important; }
+  .pkg-patient-name { font-weight: 700 !important; font-size: 0.95rem !important; color: var(--text-main) !important; }
+  .pkg-patient-phone { font-size: 0.75rem !important; }
+  .pkg-plan-val { font-weight: 600 !important; color: var(--text-main) !important; }
+  .pkg-actions-cell { gap: 10px !important; }
+  .pkg-action-btn { flex: 1 !important; height: 38px !important; border-radius: 10px !important; }
+  
+  .pkg-filters { flex-direction: column; align-items: stretch; }
+  .pkg-date-input { width: 100% !important; }
+}
+
+/* Dark mode overrides for icons */
+.dark .pkg-stat-card { background: var(--bg-card); border-color: var(--border-main); }
+
+/* ─── Refining Stats for Mobile ─── */
+@media (max-width: 640px) {
+  .pkg-stats { grid-template-columns: 1fr !important; }
+  .pkg-stat-card { padding: 12px 16px !important; }
+  .pkg-stat-icon { width: 42px !important; height: 42px !important; border-radius: 12px !important; }
+  .pkg-stat-value { font-size: 1.3rem !important; }
+  
+  .pkg-header { align-items: stretch !important; }
+  .pkg-btn-primary { justify-content: center !important; height: 44px !important; border-radius: 12px !important; }
+}
+
+/* ─── Fix for Horizontal Cutoff ─── */
+.pkg-table-wrap {
+  width: 100% !important;
+  max-width: 100vw !important;
+  overflow: visible !important;
+}
+
+@media (max-width: 1024px) {
+  .pkg-table-wrap { border: none !important; box-shadow: none !important; }
+}
+
+/* ─── Action Button Colors ─── */
+.pkg-action-btn.wa { 
+  background: #25D366 !important; 
+  border: none !important; 
+  color: white !important; 
+}
+.pkg-action-btn.status { 
+  background: var(--pp-blue) !important; 
+  border: none !important; 
+  color: white !important; 
+}
+.pkg-action-btn svg {
+  color: white !important;
+}
+
+/* Ensure the button is visible on mobile */
+@media (max-width: 1024px) {
+  .pkg-actions-cell {
+    display: flex !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+}

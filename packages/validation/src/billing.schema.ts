@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 // ─── Shared Enums ─────────────────────────────────────────────────────────────
 
-export const PaymentModeEnum = z.enum(['Cash', 'Card', 'Cheque', 'UPI', 'Online', 'Bank Transfer']);
+export const PaymentModeEnum = z.enum(['Cash', 'Card', 'Cheque', 'UPI', 'Online', 'Bank Transfer', 'Referral Bonus']);
 
 // ─── Bill Schemas ─────────────────────────────────────────────────────────────
 
@@ -56,11 +56,20 @@ export const verifyPaymentSchema = z.object({
 export const recordManualPaymentSchema = z.object({
   regid: z.number().int().positive('Patient Reg ID is required'),
   billId: z.number().int().positive().optional(),
-  amount: z.number().positive('Amount must be greater than 0'),
-  paymentMode: PaymentModeEnum.default('Cash'),
+  amount: z.number().min(0, 'Amount must be non-negative').optional(),
+  paymentMode: PaymentModeEnum.default('Cash').optional(),
+  splitPayments: z.array(z.object({
+    amount: z.number().min(0),
+    paymentMode: PaymentModeEnum
+  })).optional(),
   receivedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   notes: z.string().optional(),
+}).refine(data => data.amount !== undefined || (data.splitPayments && data.splitPayments.length > 0), {
+  message: "Either amount or splitPayments must be provided",
+  path: ["amount"]
 });
+
+
 
 export const listPaymentsQuerySchema = z.object({
   regid: z.coerce.number().int().positive().optional(),

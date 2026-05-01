@@ -90,55 +90,69 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
             <tbody>
               {bills.map((bill) => (
                 <tr key={bill.id}>
-                  <td data-label="Bill #" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 600 }}>#{bill.billNo}</td>
-                  <td data-label="Date" style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.78rem', color: 'var(--pp-text-3)' }}>
-                    {bill.billDate ? format(new Date(bill.billDate), 'dd-MM-yyyy') : '—'}
+                  <td data-label="Bill #" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 600 }}>
+                    <div>#{bill.billNo}</div>
                   </td>
-                  <td data-label="Patient" style={{ fontWeight: 500 }}>{bill.patientName}</td>
+                  <td data-label="Date" style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.78rem', color: 'var(--pp-text-3)' }}>
+                    <div>{bill.billDate ? format(new Date(bill.billDate), 'dd-MM-yyyy') : '—'}</div>
+                  </td>
+                  <td data-label="Patient" style={{ fontWeight: 500 }}>
+                    <div>{bill.patientName}</div>
+                  </td>
                   <td data-label="Mode">
-                    <span
-                      className={`bill-badge ${bill.paymentMode === 'Online' ? 'bill-badge-primary' : 'bill-badge-default'}`}
-                    >
-                      {bill.paymentMode ?? '—'}
-                    </span>
+                    <div className="plat-cell-val">
+                      <span
+                        className={`bill-badge ${bill.paymentMode === 'Online' ? 'bill-badge-primary' : 'bill-badge-default'}`}
+                      >
+                        {bill.paymentMode ?? '—'}
+                      </span>
+                    </div>
                   </td>
                   <td data-label="Charges" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 600, color: 'var(--pp-blue)' }}>
-                    ₹{bill.charges.toLocaleString()}
+                    <div className="plat-cell-val">
+                      ₹{bill.charges.toLocaleString()}
+                    </div>
                   </td>
                   <td data-label="Received" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 600, color: 'var(--pp-success-fg)' }}>
-                    ₹{bill.received.toLocaleString()}
+                    <div className="plat-cell-val">
+                      ₹{bill.received.toLocaleString()}
+                    </div>
                   </td>
                   <td data-label="Balance" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 600, color: bill.balance > 0 ? 'var(--pp-danger-fg)' : 'var(--pp-text-3)' }}>
-                    {bill.balance > 0 ? `₹${bill.balance.toLocaleString()}` : '—'}
+                    <div className="plat-cell-val">
+                      {bill.balance > 0 ? `₹${bill.balance.toLocaleString()}` : '—'}
+                    </div>
                   </td>
-                  <td data-label="" style={{ textAlign: 'right' }}>
-                    <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center' }}>
-                      {bill.balance > 0 && (
+                  <td data-label="Action" style={{ textAlign: 'right' }}>
+                    <div className="plat-cell-val">
+                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center', width: '100%' }}>
+                        {bill.balance > 0 && (
+                          <button 
+                            className="bill-btn bill-btn-primary" 
+                            style={{ height: 32, padding: '0 12px', borderRadius: 8, fontSize: 11, fontWeight: 700 }}
+                            onClick={() => { setReceivingBill(bill); setReceiveAmount(bill.balance); }}
+                          >
+                            Receive
+                          </button>
+                        )}
+                        
                         <button 
-                          className="bill-btn bill-btn-primary" 
-                          style={{ height: 28, padding: '0 12px', borderRadius: 6, fontSize: 11, fontWeight: 700 }}
-                          onClick={() => { setReceivingBill(bill); setReceiveAmount(bill.balance); }}
+                          className="bill-btn bill-btn-sm" 
+                          style={{ height: 32, padding: '0 10px', borderRadius: 8, background: 'var(--bg-surface-2)', border: '1px solid var(--border-main)', display: 'flex', alignItems: 'center', gap: 4 }}
+                          onClick={() => setPrintingBill(bill)}
                         >
-                          Receive
+                          <Printer size={12} />
+                          <span style={{ fontSize: 11, fontWeight: 700 }}>Print</span>
                         </button>
-                      )}
-                      
-                      <button 
-                        className="bill-btn bill-btn-sm" 
-                        style={{ height: 28, padding: '0 10px', borderRadius: 6, background: 'var(--bg-surface-2)', border: '1px solid var(--border-main)', display: 'flex', alignItems: 'center', gap: 4 }}
-                        onClick={() => setPrintingBill(bill)}
-                      >
-                        <Printer size={12} />
-                        <span style={{ fontSize: 11, fontWeight: 700 }}>Print</span>
-                      </button>
-
-                      <button 
-                        className="bill-btn bill-btn-sm" 
-                        style={{ color: 'var(--pp-blue)', border: 'none', background: 'none', fontWeight: 600, cursor: 'pointer', fontSize: 11 }}
-                        onClick={() => window.location.href = `/patients/${bill.regid}`}
-                      >
-                        View
-                      </button>
+  
+                        <button 
+                          className="bill-btn bill-btn-sm" 
+                          style={{ color: 'var(--pp-blue)', border: 'none', background: 'none', fontWeight: 600, cursor: 'pointer', fontSize: 11, padding: '0 8px' }}
+                          onClick={() => window.location.href = `/patients/${bill.regid}`}
+                        >
+                          View
+                        </button>
+                      </div>
                     </div>
                   </td>
                 </tr>

@@ -34,16 +34,36 @@ export class SendWhatsAppUseCase {
 
       const phone = dto.phone.replace(/\D/g, '');
       const deepLink = this.buildDeepLink(phone, dto.message);
+      let status: 'sent' | 'failed' = 'sent';
+      let automated = false;
+
+      // Try automated send if gateway exists
+      if (this.whatsappGateway) {
+        const apiResult = await this.whatsappGateway.send({ 
+          phone, 
+          message: dto.message,
+          instanceId: dto.instanceId,
+          tenantSlug: dto.tenantSlug
+        });
+        status = apiResult.success ? 'sent' : 'failed';
+        automated = apiResult.success;
+      }
 
       await this.commRepo.logWhatsApp({
         regid:    dto.regid,
         phone:    `91${phone}`,
         message:  dto.message,
-        deepLink,
-        status:   'sent',
+        deepLink: automated ? undefined : deepLink, // No deep link needed if automated
+        status,
       });
 
-      return ok({ success: true, sent: 1, failed: 0, details: [{ phone: `91${phone}`, deepLink }] });
+      return ok({ 
+        success: status === 'sent', 
+        sent: status === 'sent' ? 1 : 0, 
+        failed: status === 'failed' ? 1 : 0, 
+        details: [{ phone: `91${phone}`, deepLink: automated ? undefined : deepLink, automated }] 
+      });
+
     } catch (err) {
       return fail(errMsg(err));
     }
@@ -76,7 +96,12 @@ export class SendWhatsAppUseCase {
           
           // Try automated send if gateway exists
           if (this.whatsappGateway) {
-            const apiResult = await this.whatsappGateway.send({ phone, message: dto.message });
+            const apiResult = await this.whatsappGateway.send({ 
+              phone, 
+              message: dto.message,
+              instanceId: dto.instanceId,
+              tenantSlug: dto.tenantSlug
+            });
             status = apiResult.success ? 'sent' : 'failed';
           }
 

@@ -242,7 +242,7 @@ export default function PdfSettingsPage() {
               style={{
                 background: activeTab === 'templates' ? '#fff' : 'transparent',
                 border: 'none',
-                color: activeTab === 'templates' ? '#2563eb' : '#64748b',
+                color: activeTab === 'templates' ? 'var(--pp-blue)' : '#64748b',
                 fontWeight: 600,
                 boxShadow: activeTab === 'templates' ? '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)' : 'none',
                 borderRadius: '8px',
@@ -258,7 +258,7 @@ export default function PdfSettingsPage() {
               style={{
                 background: activeTab === 'letterhead' ? '#fff' : 'transparent',
                 border: 'none',
-                color: activeTab === 'letterhead' ? '#2563eb' : '#64748b',
+                color: activeTab === 'letterhead' ? 'var(--pp-blue)' : '#64748b',
                 fontWeight: 600,
                 boxShadow: activeTab === 'letterhead' ? '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)' : 'none',
                 borderRadius: '8px',
@@ -371,7 +371,7 @@ export default function PdfSettingsPage() {
                                 background: '#fff', 
                                 border: '1px solid #fee2e2', 
                                 padding: '6px',
-                                color: '#ef4444' 
+                                color: 'var(--pp-danger-fg)' 
                               }} 
                               onClick={() => { if (confirm(`Delete config?`)) deletePdf.mutate(config.id) }}
                             >
@@ -848,6 +848,64 @@ export default function PdfSettingsPage() {
           </div>
         </form>
       </Drawer>
+      <style>{`
+        @media (max-width: 1024px) {
+          .plat-header { flex-direction: column !important; align-items: stretch !important; gap: 16px !important; }
+          .plat-header-actions { width: 100%; flex-direction: column !important; }
+          .plat-header-actions > div { width: 100% !important; justify-content: space-between; }
+          .plat-header-actions .plat-btn { width: 100%; height: 44px; border-radius: 12px; justify-content: center; }
+          
+          .plat-stats-bar { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
+          .plat-stat-card { padding: 12px !important; }
+          .plat-stat-value { font-size: 18px !important; }
+          
+          .plat-filters { flex-direction: column; align-items: stretch; gap: 12px; }
+          .plat-search-wrap { width: 100% !important; }
+          .plat-search-input { width: 100% !important; height: 44px !important; border-radius: 12px !important; }
+          
+          .plat-card { border: none !important; box-shadow: none !important; background: transparent !important; padding: 0 !important; }
+          .plat-table-container { border: none !important; background: transparent !important; overflow: visible !important; }
+          .plat-table { display: block !important; width: 100% !important; }
+          .plat-table thead { display: none !important; }
+          .plat-table tbody { display: block !important; width: 100% !important; }
+          .plat-table tr { 
+            display: block !important; 
+            margin-bottom: 20px !important; 
+            background: var(--bg-card) !important; 
+            border: 1px solid var(--border-main) !important; 
+            border-radius: 16px !important; 
+            padding: 8px 0 !important;
+            box-shadow: var(--pp-shadow-sm) !important;
+          }
+          .plat-table td {
+            display: grid !important;
+            grid-template-columns: 110px 1fr !important;
+            gap: 12px !important;
+            align-items: center !important;
+            padding: 12px 20px !important;
+            border-bottom: 1px dashed var(--border-main) !important;
+            min-height: 48px;
+            text-align: right !important;
+            width: 100% !important;
+          }
+          .plat-table td:last-child { border-bottom: none !important; background: var(--bg-surface-2) !important; padding-top: 16px !important; padding-bottom: 16px !important; border-bottom-left-radius: 15px; border-bottom-right-radius: 15px; }
+          .plat-table td::before {
+            content: attr(data-label);
+            font-size: 10px !important;
+            font-weight: 800 !important;
+            color: var(--text-muted) !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.05em !important;
+            text-align: left !important;
+          }
+
+          .plat-settings-grid { grid-template-columns: 1fr !important; }
+          .letterhead-designer-card { padding: 20px !important; border-radius: 16px !important; background: var(--bg-card) !important; border: 1px solid var(--border-main) !important; }
+          .letterhead-canvas-outer { padding: 30px 10px !important; border-radius: 20px !important; }
+          .letterhead-a4-sheet { padding: 25px 20px !important; min-height: 600px !important; }
+          .letterhead-canvas-header { padding: 12px !important; gap: 15px !important; }
+        }
+      `}</style>
     </div>
   );
 }

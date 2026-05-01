@@ -44,8 +44,8 @@ function StatCard({ icon: Icon, value, label, variant = 'default' }: {
   variant?: 'default' | 'warn' | 'danger' | 'success' | 'info';
 }) {
   return (
-    <div className="ops-stat-card" style={{ display: 'flex', alignItems: 'center', padding: '20px', background: 'white', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
-      <div className={`ops-stat-icon ${variant}`} style={{ width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '16px' }}>
+    <div className="ops-stat-card">
+      <div className={`ops-stat-icon ${variant}`}>
         <Icon size={20} strokeWidth={2} />
       </div>
       <div>
@@ -421,13 +421,13 @@ export default function OperationsDashboard() {
                       </div>
                       <StatusBadge status={s.status} />
                     </div>
-                    <div style={{ padding: '12px', background: 'var(--pp-warm-1)', borderRadius: 12, display: 'grid', gap: 8 }}>
+                    <div style={{ padding: '12px', background: 'var(--bg-surface-2)', borderRadius: 12, display: 'grid', gap: 8 }}>
                       <div style={{ fontSize: '12px', display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ color: 'var(--pp-muted)' }}>Courier</span>
+                        <span style={{ color: 'var(--text-muted)' }}>Courier</span>
                         <span style={{ fontWeight: 600 }}>{s.courier}</span>
                       </div>
                       <div style={{ fontSize: '12px', display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ color: 'var(--pp-muted)' }}>Tracking</span>
+                        <span style={{ color: 'var(--text-muted)' }}>Tracking</span>
                         <span className="mono">{s.tracking}</span>
                       </div>
                     </div>
@@ -520,9 +520,9 @@ export default function OperationsDashboard() {
                 {loading ? (
                   <TableSkeleton rows={5} columns={leadCols.length} />
                 ) : leads.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: 40, background: 'var(--pp-warm-1)', borderRadius: 12 }}>
-                    <UsersRound size={32} strokeWidth={1} style={{ color: 'var(--pp-warm-5)', marginBottom: 12 }} />
-                    <p style={{ color: 'var(--pp-ink)', fontWeight: 600 }}>No leads found</p>
+                  <div style={{ textAlign: 'center', padding: 40, background: 'var(--bg-surface-2)', borderRadius: 12 }}>
+                    <UsersRound size={32} strokeWidth={1} style={{ color: 'var(--text-muted)', marginBottom: 12 }} />
+                    <p style={{ color: 'var(--text-main)', fontWeight: 600 }}>No leads found</p>
                   </div>
                 ) : (
                   <div className="ops-table-wrapper">
@@ -714,8 +714,8 @@ export default function OperationsDashboard() {
             {loading ? (
               <TableSkeleton rows={5} columns={dictCols.length} />
             ) : dictionary.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: 40, background: 'var(--pp-warm-1)', borderRadius: 12 }}>
-                <p style={{ color: 'var(--pp-muted)' }}>No dictionary entries found.</p>
+              <div style={{ textAlign: 'center', padding: 40, background: 'var(--bg-surface-2)', borderRadius: 12 }}>
+                <p style={{ color: 'var(--text-muted)' }}>No dictionary entries found.</p>
               </div>
             ) : viewMode === 'list' ? (
               <div className="ops-table-wrapper">

@@ -22,6 +22,7 @@ export function VitalsFormModal({ visitId, regid, initialData, onClose, onSucces
     diastolicBp: initialData?.diastolicBp || '',
     respiratoryRate: initialData?.respiratoryRate || '',
     oxygenSaturation: initialData?.oxygenSaturation || '',
+    lmpDate: initialData?.lmpDate || '',
     notes: initialData?.notes || '',
   });
 
@@ -61,6 +62,7 @@ export function VitalsFormModal({ visitId, regid, initialData, onClose, onSucces
         diastolicBp: form.diastolicBp ? parseInt(form.diastolicBp) : null,
         respiratoryRate: form.respiratoryRate ? parseInt(form.respiratoryRate) : null,
         oxygenSaturation: form.oxygenSaturation ? parseFloat(form.oxygenSaturation) : null,
+        lmpDate: form.lmpDate || null,
         notes: form.notes || null,
       });
       onSuccess?.();
@@ -160,6 +162,12 @@ export function VitalsFormModal({ visitId, regid, initialData, onClose, onSucces
                   <div className="mc-input-wrap">
                     <Wind className="mc-input-icon" size={14} />
                     <input type="number" name="respiratoryRate" value={form.respiratoryRate} onChange={handleChange} placeholder="18" />
+                  </div>
+                </div>
+                <div className="mc-input-group">
+                  <label>LMP (Last Menstrual Period)</label>
+                  <div className="mc-input-wrap">
+                    <input type="date" name="lmpDate" value={form.lmpDate} onChange={handleChange} />
                   </div>
                 </div>
               </div>

@@ -104,9 +104,6 @@ export default function PackageTrackingPage() {
           </h1>
           <p className="pkg-subtitle">Monitor subscription validity · Follow up with patients</p>
         </div>
-        <button className="pkg-btn" onClick={() => refetch()}>
-          <RefreshCw size={14} strokeWidth={1.6} /> Refresh
-        </button>
       </header>
 
       {/* Filters */}
@@ -178,59 +175,67 @@ export default function PackageTrackingPage() {
                 <tbody>
                   {paginatedData.map((r: any, i: number) => (
                     <tr key={i} style={{ cursor: 'pointer', background: selectedIds.has(Number(r.regid)) ? 'var(--pp-blue-tint)' : undefined }}>
-                      <td onClick={(e) => { e.stopPropagation(); toggleSelect(Number(r.regid)); }}>
-                        <button style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 0 }}>
-                          {selectedIds.has(Number(r.regid)) ? <CheckSquare size={16} style={{ color: 'var(--pp-blue)' }} /> : <Square size={16} style={{ color: 'var(--pp-text-3)' }} />}
-                        </button>
-                      </td>
-                      <td onClick={() => setSelectedRecord(r)}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--primary-tint)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.8rem', flexShrink: 0 }}>
-                            {(r.firstName?.[0] ?? '?')}{r.surname?.[0] ?? ''}
-                          </div>
-                          <div>
-                            <div style={{ fontWeight: 700 }}>{r.firstName} {r.surname}</div>
-                            {r.phone && (
-                              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                <Phone size={10} strokeWidth={1.6} /> {r.phone}
-                              </div>
-                            )}
-                          </div>
+                  {paginatedData.map((r: any, i: number) => (
+                    <tr key={i} style={{ cursor: 'pointer', background: selectedIds.has(Number(r.regid)) ? 'var(--pp-blue-tint)' : undefined }}>
+                      <td data-label="SELECT" onClick={(e) => { e.stopPropagation(); toggleSelect(Number(r.regid)); }}>
+                        <div className="flex justify-end md:justify-start">
+                          <button style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 0 }}>
+                            {selectedIds.has(Number(r.regid)) ? <CheckSquare size={16} style={{ color: 'var(--pp-blue)' }} /> : <Square size={16} style={{ color: 'var(--pp-text-3)' }} />}
+                          </button>
                         </div>
                       </td>
-                      <td>
-                        <div style={{ fontWeight: 600 }}>{r.packageName}</div>
-                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>₹{r.packagePrice?.toLocaleString()}</div>
+                      <td data-label="PATIENT" className="pkg-patient-cell" onClick={() => setSelectedRecord(r)}>
+                        <div className="pkg-avatar-sm" style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--primary-tint)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.8rem', flexShrink: 0 }}>
+                          {(r.firstName?.[0] ?? '?')}{r.surname?.[0] ?? ''}
+                        </div>
+                        <div className="flex flex-col items-end md:items-start text-right md:text-left">
+                          <div className="pkg-patient-name" style={{ fontWeight: 700 }}>{r.firstName} {r.surname}</div>
+                          {r.phone && (
+                            <div className="pkg-patient-phone" style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                              <Phone size={10} strokeWidth={1.6} /> {r.phone}
+                            </div>
+                          )}
+                        </div>
                       </td>
-                      <td style={{ fontSize: '0.82rem' }}>{r.startDate}</td>
-                      <td style={{ fontSize: '0.82rem', fontWeight: 600 }}>{r.expiryDate}</td>
-                      <td>
+                      <td data-label="PACKAGE" className="pkg-plan-cell">
+                        <div className="flex flex-col items-end md:items-start text-right md:text-left">
+                          <div className="pkg-plan-val" style={{ fontWeight: 600 }}>{r.packageName}</div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>₹{r.packagePrice?.toLocaleString()}</div>
+                        </div>
+                      </td>
+                      <td data-label="START" style={{ fontSize: '0.82rem' }}>{r.startDate}</td>
+                      <td data-label="EXPIRY" style={{ fontSize: '0.82rem', fontWeight: 600 }}>{r.expiryDate}</td>
+                      <td data-label="DAYS" className="pkg-days-cell">
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', fontWeight: 600, color: r.daysRemaining < 0 ? 'var(--danger)' : r.daysRemaining <= 7 ? '#D97706' : 'var(--success)' }}>
                           <Clock size={12} strokeWidth={1.6} />
                           {getDaysLabel(r.daysRemaining)}
                         </div>
                       </td>
-                      <td>
+                      <td data-label="STATUS" className="pkg-status-cell">
                         <span className={`pkg-expiry-badge ${getStatusBadgeClass(r.status)}`}>
                           {getStatusIcon(r.status)} {r.status}
                         </span>
                       </td>
-                      <td>
-                        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      <td data-label="ACTION" className="pkg-actions-cell">
+                        <div className="flex gap-2 w-full justify-end">
                           <button
+                            className="pkg-action-btn wa"
                             title="Send WhatsApp"
                             onClick={(e) => { e.stopPropagation(); sendSingleWhatsApp(r); }}
-                            style={{ background: '#25D366', border: 'none', borderRadius: 6, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}>
-                            <MessageCircle size={13} color="white" />
+                            style={{ background: '#25D366', border: 'none', borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}>
+                            <MessageCircle size={14} color="white" />
                           </button>
                           <button
+                            className="pkg-action-btn status"
                             title="Update Status"
                             onClick={(e) => { e.stopPropagation(); setSelectedRecord(r); setShowStatusModal(true); }}
-                            style={{ background: 'var(--pp-blue)', border: 'none', borderRadius: 6, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}>
-                            <Phone size={13} color="white" />
+                            style={{ background: 'var(--pp-blue)', border: 'none', borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}>
+                            <Phone size={14} color="white" />
                           </button>
                         </div>
                       </td>
+                    </tr>
+                  ))}
                     </tr>
                   ))}
                 </tbody>

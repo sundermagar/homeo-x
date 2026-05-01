@@ -96,54 +96,43 @@ export default function PaymentsPage() {
 
       {/* ─── KPI Stats ─── */}
       <div className="bill-stats-bar">
-        <div className="bill-stat-card" data-type="default">
+        <div className="bill-stat-card">
           <div className="bill-stat-icon" style={{ background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)' }}>
             <TrendingUp size={22} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <p className="bill-stat-label" style={{ margin: '0 0 6px' }}>Total Collected</p>
-            <p style={{ margin: 0, lineHeight: 1, display: 'flex', alignItems: 'baseline', gap: 2 }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 700, opacity: 0.75, marginRight: 1 }}>₹</span>
-              <span className="bill-stat-value">{totalCollected.toLocaleString('en-IN')}</span>
-            </p>
+            <p className="bill-stat-label">Total Collected</p>
+            <div className="bill-stat-value">₹{totalCollected.toLocaleString('en-IN')}</div>
           </div>
         </div>
 
-        <div className="bill-stat-card" data-type="default">
+        <div className="bill-stat-card">
           <div className="bill-stat-icon" style={{ background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)' }}>
             <Clock size={22} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <p className="bill-stat-label" style={{ margin: '0 0 6px' }}>Pending Amount</p>
-            <p style={{ margin: 0, lineHeight: 1, display: 'flex', alignItems: 'baseline', gap: 2, color: 'var(--pp-blue)' }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 700, opacity: 0.75, marginRight: 1 }}>₹</span>
-              <span className="bill-stat-value">{totalPending.toLocaleString('en-IN')}</span>
-            </p>
+            <p className="bill-stat-label">Pending Amount</p>
+            <div className="bill-stat-value">₹{totalPending.toLocaleString('en-IN')}</div>
           </div>
         </div>
 
-        <div className="bill-stat-card" data-type="default">
+        <div className="bill-stat-card">
           <div className="bill-stat-icon" style={{ background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)' }}>
             <CheckCircle2 size={22} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <p className="bill-stat-label" style={{ margin: '0 0 6px' }}>Avg Ticket Size</p>
-            <p style={{ margin: 0, lineHeight: 1, display: 'flex', alignItems: 'baseline', gap: 2, color: 'var(--pp-blue)' }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 700, opacity: 0.75, marginRight: 1 }}>₹</span>
-              <span className="bill-stat-value">{avgTicket.toLocaleString('en-IN')}</span>
-            </p>
+            <p className="bill-stat-label">Avg Ticket Size</p>
+            <div className="bill-stat-value">₹{avgTicket.toLocaleString('en-IN')}</div>
           </div>
         </div>
 
-        <div className="bill-stat-card" data-type="default">
+        <div className="bill-stat-card">
           <div className="bill-stat-icon" style={{ background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)' }}>
             <Wallet size={22} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <p className="bill-stat-label" style={{ margin: '0 0 6px' }}>Counter / Manual</p>
-            <p style={{ margin: 0, lineHeight: 1, display: 'flex', alignItems: 'baseline', gap: 2, color: 'var(--pp-blue)' }}>
-              <span className="bill-stat-value">{manualCount}</span>
-            </p>
+            <p className="bill-stat-label">Counter / Manual</p>
+            <div className="bill-stat-value">{manualCount}</div>
           </div>
         </div>
       </div>
@@ -222,82 +211,86 @@ export default function PaymentsPage() {
               <tbody>
                 {filtered.map((payment) => (
                   <tr key={payment.id}>
-                    {/* ID */}
                     <td data-label="#" style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.75rem', color: 'var(--pp-text-3)' }}>
-                      #{payment.id}
+                      <div>#{payment.id}</div>
                     </td>
 
-                    {/* Date */}
                     <td data-label="Date">
-                      <div style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.8rem', fontWeight: 600, color: 'var(--pp-ink)' }}>
-                        {payment.paymentDate
-                          ? format(new Date(payment.paymentDate), 'dd MMM yyyy')
-                          : format(new Date(payment.createdAt), 'dd MMM yyyy')}
-                      </div>
-                      <div style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.7rem', color: 'var(--pp-text-3)', marginTop: 1 }}>
-                        {payment.paymentDate
-                          ? format(new Date(payment.paymentDate), 'hh:mm a')
-                          : format(new Date(payment.createdAt), 'hh:mm a')}
-                      </div>
-                    </td>
-
-                    {/* Patient */}
-                    <td data-label="Patient">
-                      <div style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--pp-ink)' }}>
-                        {payment.patientName || '—'}
-                      </div>
-                      {payment.regid && (
-                        <div style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.7rem', color: 'var(--pp-text-3)', marginTop: 1 }}>
-                          REG #{payment.regid}
+                      <div className="plat-cell-val">
+                        <div style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.8rem', fontWeight: 600, color: 'var(--pp-ink)' }}>
+                          {payment.paymentDate
+                            ? format(new Date(payment.paymentDate), 'dd MMM yyyy')
+                            : format(new Date(payment.createdAt), 'dd MMM yyyy')}
                         </div>
-                      )}
+                        <div style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.7rem', color: 'var(--pp-text-3)', marginTop: 1 }}>
+                          {payment.paymentDate
+                            ? format(new Date(payment.paymentDate), 'hh:mm a')
+                            : format(new Date(payment.createdAt), 'hh:mm a')}
+                        </div>
+                      </div>
                     </td>
 
-                    {/* Amount */}
+                    <td data-label="Patient">
+                      <div className="plat-cell-val">
+                        <div style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--pp-ink)' }}>
+                          {payment.patientName || '—'}
+                        </div>
+                        {payment.regid && (
+                          <div style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.7rem', color: 'var(--pp-text-3)', marginTop: 1 }}>
+                            REG #{payment.regid}
+                          </div>
+                        )}
+                      </div>
+                    </td>
+
                     <td data-label="Amount">
-                      <div style={{
-                        fontFamily: 'var(--pp-font-mono)',
-                        fontWeight: 700,
-                        fontSize: '1rem',
-                        color: 'var(--pp-blue)',
-                        letterSpacing: '-0.01em',
-                      }}>
-                        ₹{payment.amount.toLocaleString('en-IN')}
-                      </div>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--pp-text-3)', marginTop: 1 }}>
-                        {payment.currency}
+                      <div className="plat-cell-val">
+                        <div style={{
+                          fontFamily: 'var(--pp-font-mono)',
+                          fontWeight: 700,
+                          fontSize: '1rem',
+                          color: 'var(--pp-blue)',
+                          letterSpacing: '-0.01em',
+                        }}>
+                          ₹{payment.amount.toLocaleString('en-IN')}
+                        </div>
                       </div>
                     </td>
 
-                    {/* Mode */}
                     <td data-label="Mode">
-                      <span className={`bill-badge ${MODE_CLASS[payment.paymentMode] ?? 'bill-badge-default'}`}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                        {MODE_ICON[payment.paymentMode]}
-                        {payment.paymentMode}
-                      </span>
+                      <div className="plat-cell-val">
+                        <span className={`bill-badge ${MODE_CLASS[payment.paymentMode] ?? 'bill-badge-default'}`}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          {MODE_ICON[payment.paymentMode]}
+                          {payment.paymentMode}
+                        </span>
+                      </div>
                     </td>
 
-                    {/* Reference */}
-                    <td data-label="Reference" style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.7rem', color: 'var(--pp-text-3)', lineHeight: 1.5 }}>
-                      {payment.orderId   && <div title={payment.orderId}>ORD: {payment.orderId.slice(-8)}</div>}
-                      {payment.paymentId && <div title={payment.paymentId}>PAY: {payment.paymentId.slice(-8)}</div>}
-                      {!payment.orderId && !payment.paymentId && (
-                        <span className="bill-badge bill-badge-default" style={{ fontSize: '0.6rem' }}>COUNTER</span>
-                      )}
+                    <td data-label="Reference">
+                      <div className="plat-cell-val">
+                        <div style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.7rem', color: 'var(--pp-text-3)', lineHeight: 1.5, textAlign: 'right' }}>
+                          {payment.orderId   && <div title={payment.orderId}>ORD: {payment.orderId.slice(-8)}</div>}
+                          {payment.paymentId && <div title={payment.paymentId}>PAY: {payment.paymentId.slice(-8)}</div>}
+                          {!payment.orderId && !payment.paymentId && (
+                            <span className="bill-badge bill-badge-default" style={{ fontSize: '0.6rem' }}>COUNTER</span>
+                          )}
+                        </div>
+                      </div>
                     </td>
 
-                    {/* Status */}
                     <td data-label="Status">
-                      <span className={`bill-badge ${STATUS_CLASS[payment.status] ?? 'bill-badge-default'}`}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                        {payment.status === 'Success' || payment.status === 'Completed'
-                          ? <CheckCircle2 size={10} />
-                          : payment.status === 'Failed'
-                          ? <AlertTriangle size={10} />
-                          : <Clock size={10} />}
-                        {payment.status}
-                      </span>
+                      <div className="plat-cell-val">
+                        <span className={`bill-badge ${STATUS_CLASS[payment.status] ?? 'bill-badge-default'}`}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          {payment.status === 'Success' || payment.status === 'Completed'
+                            ? <CheckCircle2 size={10} />
+                            : payment.status === 'Failed'
+                            ? <AlertTriangle size={10} />
+                            : <Clock size={10} />}
+                          {payment.status}
+                        </span>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -323,6 +316,62 @@ export default function PaymentsPage() {
       >
         <ManualPaymentDrawerContent onClose={() => setIsModalOpen(false)} />
       </Drawer>
+
+      <style>{`
+        @media (max-width: 1024px) {
+          .bill-header { flex-direction: column !important; align-items: stretch !important; gap: 16px !important; }
+          .bill-header-actions { width: 100%; }
+          .bill-header-actions .bill-btn { width: 100%; height: 44px; border-radius: 12px; justify-content: center; }
+
+          .bill-stats-bar { grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; }
+          .bill-stat-card { padding: 12px !important; }
+          .bill-stat-value { font-size: 18px !important; }
+
+          .bill-filters { flex-direction: column !important; align-items: stretch !important; gap: 12px !important; }
+          .bill-search-wrap { width: 100% !important; }
+          .bill-search-input { width: 100% !important; height: 44px; border-radius: 12px; }
+          .bill-filter-input { width: 100% !important; height: 44px; border-radius: 12px; }
+
+          .bill-card { border: none !important; box-shadow: none !important; background: transparent !important; }
+          .bill-table-container { border: none !important; background: transparent !important; overflow: visible !important; }
+          .bill-table { display: block !important; width: 100% !important; min-width: 0 !important; }
+          .bill-table thead { display: none !important; }
+          .bill-table tbody { display: block !important; width: 100% !important; }
+          .bill-table tr { 
+            display: block !important; 
+            margin-bottom: 20px !important; 
+            background: var(--bg-card) !important; 
+            border: 1px solid var(--border-main) !important; 
+            border-radius: 16px !important; 
+            padding: 8px 0 !important;
+            box-shadow: var(--pp-shadow-sm) !important;
+          }
+          .bill-table td {
+            display: grid !important;
+            grid-template-columns: 120px 1fr !important;
+            gap: 12px !important;
+            align-items: center !important;
+            padding: 12px 20px !important;
+            border-bottom: 1px dashed var(--border-main) !important;
+            min-height: 48px;
+            text-align: right !important;
+            width: 100% !important;
+          }
+          .bill-table td:last-child { border-bottom: none !important; background: var(--bg-surface-2) !important; margin-top: 4px; }
+          
+          .bill-table td::before {
+            content: attr(data-label);
+            font-size: 10px !important;
+            font-weight: 800 !important;
+            color: var(--text-muted) !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.08em !important;
+            text-align: left !important;
+          }
+          .plat-cell-val { width: 100% !important; text-align: right !important; display: flex !important; flex-direction: column !important; align-items: flex-end !important; }
+          [data-label="#"] { background: var(--bg-surface-2) !important; border-bottom: 1px solid var(--border-main) !important; margin-bottom: 4px; }
+        }
+      `}</style>
     </div>
   );
 }

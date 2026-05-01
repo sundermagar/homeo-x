@@ -182,26 +182,26 @@ export default function StocksPage() {
               <tbody>
                 {paginatedData.map((item: Stock, idx: number) => (
                   <tr key={item.id} className="plat-table-row">
-                    <td className="plat-table-cell font-mono text-xs opacity-50">{(currentPage - 1) * itemsPerPage + idx + 1}</td>
-                    <td className="plat-table-cell">
+                    <td data-label="#" className="plat-table-cell font-mono text-xs opacity-50">{(currentPage - 1) * itemsPerPage + idx + 1}</td>
+                    <td data-label="MEDICINE" className="plat-table-cell">
                       <div className="font-bold">{item.name}</div>
                       {item.batchNumber && (
                         <div className="text-[10px] color-muted mt-0.5">Batch: {item.batchNumber}</div>
                       )}
                     </td>
-                    <td className="plat-table-cell">
+                    <td data-label="POTENCY" className="plat-table-cell">
                       <div className="text-sm">{item.potency || '—'}</div>
                       <div className="text-[11px] color-muted italic">{item.description || 'No description'}</div>
                     </td>
-                    <td className="plat-table-cell">
+                    <td data-label="CATEGORY" className="plat-table-cell">
                       <span className="plat-badge plat-badge-default text-[10px] uppercase">{item.category || 'General'}</span>
                     </td>
-                    <td className="plat-table-cell font-mono font-bold">
+                    <td data-label="QTY" className="plat-table-cell font-mono font-bold">
                       <span className={(item.quantity || 0) < 10 ? 'text-red-600' : ''}>
                         {item.quantity}
                       </span>
                     </td>
-                    <td className="plat-table-cell font-mono text-primary font-bold">
+                    <td data-label="PRICE" className="plat-table-cell font-mono text-primary font-bold">
                       ₹{item.unitPrice || '0'}
                     </td>
                     <td className="plat-table-cell">
@@ -328,6 +328,57 @@ export default function StocksPage() {
           </div>
         </form>
       </Drawer>
+      <style>{`
+        @media (max-width: 1024px) {
+          .plat-header { flex-direction: column !important; align-items: stretch !important; gap: 16px !important; }
+          .plat-header-actions { width: 100%; }
+          .plat-header-actions .plat-btn { width: 100%; height: 44px; border-radius: 12px; justify-content: center; }
+          
+          .plat-stats-bar { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
+          .plat-stat-card { padding: 12px !important; }
+          .plat-stat-value { font-size: 18px !important; }
+          
+          .plat-filters { flex-direction: column; align-items: stretch; gap: 12px; }
+          .plat-search-wrap { width: 100% !important; }
+          .plat-search-input { width: 100% !important; height: 44px !important; border-radius: 12px !important; }
+          
+          .plat-card { border: none !important; box-shadow: none !important; background: transparent !important; padding: 0 !important; }
+          .plat-table-container { border: none !important; background: transparent !important; overflow: visible !important; }
+          .plat-table { display: block !important; width: 100% !important; }
+          .plat-table thead { display: none !important; }
+          .plat-table tbody { display: block !important; width: 100% !important; }
+          .plat-table tr { 
+            display: block !important; 
+            margin-bottom: 20px !important; 
+            background: var(--bg-card) !important; 
+            border: 1px solid var(--border-main) !important; 
+            border-radius: 16px !important; 
+            padding: 8px 0 !important;
+            box-shadow: var(--pp-shadow-sm) !important;
+          }
+          .plat-table td {
+            display: grid !important;
+            grid-template-columns: 110px 1fr !important;
+            gap: 12px !important;
+            align-items: center !important;
+            padding: 12px 20px !important;
+            border-bottom: 1px dashed var(--border-main) !important;
+            min-height: 48px;
+            text-align: right !important;
+            width: 100% !important;
+          }
+          .plat-table td:last-child { border-bottom: none !important; background: var(--bg-surface-2) !important; padding-top: 16px !important; padding-bottom: 16px !important; border-bottom-left-radius: 15px; border-bottom-right-radius: 15px; }
+          .plat-table td::before {
+            content: attr(data-label);
+            font-size: 10px !important;
+            font-weight: 800 !important;
+            color: var(--text-muted) !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.05em !important;
+            text-align: left !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

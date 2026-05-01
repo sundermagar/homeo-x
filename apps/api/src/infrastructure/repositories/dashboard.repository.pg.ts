@@ -219,18 +219,31 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     const prevWait = Number(prevW.avg_wait) || 0;
     const waitTrend = prevWait > 0 ? ((currWait - prevWait) / prevWait * 100).toFixed(1) : '0.0';
 
+    const casesCount = Number(followUp.count) || 0; // In a real scenario, this might be total appointments
+    // We'll use total appointments as 'casesCount' for the Super Admin overview
+    const [currAppts, prevAppts] = await Promise.all([
+      this.db.execute(sql`SELECT count(*)::int as cnt FROM appointments WHERE booking_date >= ${start} AND booking_date < ${boundary} AND (deleted_at IS NULL OR deleted_at::text = '')`),
+      this.db.execute(sql`SELECT count(*)::int as cnt FROM appointments WHERE booking_date >= ${prevStart} AND booking_date < ${prevBoundary} AND (deleted_at IS NULL OR deleted_at::text = '')`)
+    ]) as any[];
+
+    const currA = currAppts[0]?.cnt || 0;
+    const prevA = prevAppts[0]?.cnt || 0;
+    const casesTrend = prevA > 0 ? (((currA - prevA) / prevA) * 100).toFixed(1) : '0.0';
+
     return {
       newPatientsCount: currP,
-      followUpsCount: followUp.count || 0,
-      todaysCollection: currE,
-      todaysExpenses: Number(exp.total) || 0,
-      revenueTrend: revTrend,
       patientTrend: patTrend,
+      casesCount: currA,
+      casesTrend: casesTrend,
+      todaysCollection: currE,
+      revenueTrend: revTrend,
+      followUpsCount: followUp.count || 0,
+      todaysExpenses: Number(exp.total) || 0,
       collectionRate: currRate,
       collectionRateTrend: collTrend,
       avgWaitTime: currWait,
       avgWaitTimeTrend: waitTrend
-    };
+    } as DashboardKpis;
   }
 
   async getTodayQueue(contextId: number, doctorId?: number): Promise<QueueItem[]> {
@@ -310,7 +323,6 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         LEFT JOIN patients p ON p.id = a.patient_id
         LEFT JOIN vitals v ON v.visit_id = a.id
         WHERE a.booking_date = ${today}::date
-        WHERE a.booking_date = ${today}
           AND a.clinic_id = ${contextId}
           AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
           AND NOT EXISTS (
@@ -892,10 +904,25 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         AND type = 'Clinicadmin'
     `) as any[];
 
+    const [revRes] = await this.db.execute(sql`
+      SELECT 
+        COALESCE(sum(received), 0)::numeric as total_rev,
+        COALESCE(sum(charges - received), 0)::numeric as pending_dues
+      FROM bills 
+      WHERE (deleted_at IS NULL OR deleted_at::text = '')
+    `) as any[];
+
+    const totalRev = Number(revRes?.total_rev) || 0;
+    const pendingDues = Number(revRes?.pending_dues) || 0;
+    const clinicCount = orgCount?.count || 1;
+    const revDensity = Math.round(totalRev / (clinicCount || 1));
+
     return {
       totalClinics: orgCount?.count || 0,
       totalStaff: userCount?.count || 0,
       totalClinicAdmins: adminCount?.count || 0,
-    };
+      revenueDensity: revDensity,
+      pendingDues: pendingDues
+    } as any;
   }
 }

@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Send, MessageSquare, Users, RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Send, MessageSquare, Users, RefreshCw, CheckCircle2, AlertCircle, MessageCircle } from 'lucide-react';
 import { NumericInput } from '@/shared/components/NumericInput';
-import { useSmsTemplates, useSendSms, useBroadcastSms } from '../hooks/use-communications';
+import { useSmsTemplates, useSendSms, useBroadcastSms, useSendWhatsApp } from '../hooks/use-communications';
 import '../styles/communications.css';
 
 const RECIPIENT_TYPES = [
@@ -14,6 +14,7 @@ export default function GroupSmsPage() {
   const { data: templates = [] } = useSmsTemplates();
   const sendSingle = useSendSms();
   const broadcast = useBroadcastSms();
+  const waSingle = useSendWhatsApp();
 
   const [mode, setMode] = useState<'single' | 'broadcast'>('single');
   const [recipientType, setRecipientType] = useState('manual');
@@ -35,6 +36,14 @@ export default function GroupSmsPage() {
     setSmsType(tpl.smsType);
   };
 
+  const parseError = (err: any) => {
+    const raw = (err as { response?: { data?: any } }).response?.data;
+    if (typeof raw === 'string' && raw.includes('<!DOCTYPE')) {
+      return 'Server returned 404/500 (Check if backend is running)';
+    }
+    return raw?.error ?? 'Failed to complete action';
+  };
+
   const handleSendSingle = async () => {
     if (!phone.trim()) { setError('Phone number is required'); return; }
     if (!message.trim()) { setError('Message is required'); return; }
@@ -43,7 +52,24 @@ export default function GroupSmsPage() {
       const res = await sendSingle.mutateAsync({ phone: phone.trim(), message, smsType });
       setResult(res.data as { sent: number; failed: number });
     } catch (err: unknown) {
-      setError((err as { response?: { data?: { error?: string } } }).response?.data?.error ?? 'Failed to send SMS');
+      setError(parseError(err));
+    }
+  };
+
+  const handleWhatsApp = async () => {
+    if (!phone.trim()) { setError('Phone number is required'); return; }
+    if (!message.trim()) { setError('Message is required'); return; }
+    setError('');
+    try {
+      const res = await waSingle.mutateAsync({ phone: phone.trim(), message });
+      const d = (res.data as any).data as { details?: Array<{ deepLink?: string }> };
+      const link = d.details?.[0]?.deepLink ?? `https://api.whatsapp.com/send?phone=${phone.trim()}&text=${encodeURIComponent(message)}`;
+      window.open(link, '_blank');
+      setResult({ sent: 1, failed: 0 });
+    } catch (err: unknown) {
+      setError(parseError(err));
+      // Fallback to direct link if API fails
+      window.open(`https://api.whatsapp.com/send?phone=${phone.trim()}&text=${encodeURIComponent(message)}`, '_blank');
     }
   };
 
@@ -57,7 +83,7 @@ export default function GroupSmsPage() {
       const res = await broadcast.mutateAsync({ patientIds: ids.length ? ids : undefined, message, smsType });
       setResult(res.data as { sent: number; failed: number });
     } catch (err: unknown) {
-      setError((err as { response?: { data?: { error?: string } } }).response?.data?.error ?? 'Broadcast failed');
+      setError(parseError(err));
     }
   };
 
@@ -179,16 +205,32 @@ export default function GroupSmsPage() {
                 </select>
               </div>
 
-              <button
-                className="comm-btn comm-btn-primary comm-btn-lg"
-                onClick={handleSubmit}
-                disabled={sendSingle.isPending || broadcast.isPending}
-              >
-                {sendSingle.isPending || broadcast.isPending
-                  ? <><RefreshCw size={14} className="comm-spin" /> Sending…</>
-                  : <><Send size={14} /> {mode === 'single' ? 'Send SMS' : 'Broadcast SMS'}</>
-                }
-              </button>
+              <div style={{ display: 'flex', gap: 12 }}>
+                <button
+                  className="comm-btn comm-btn-primary comm-btn-lg"
+                  onClick={handleSubmit}
+                  disabled={sendSingle.isPending || broadcast.isPending}
+                  style={{ flex: 1 }}
+                >
+                  {sendSingle.isPending || broadcast.isPending
+                    ? <><RefreshCw size={14} className="comm-spin" /> Sending…</>
+                    : <><Send size={14} /> {mode === 'single' ? 'Send SMS' : 'Broadcast SMS'}</>
+                  }
+                </button>
+                {mode === 'single' && (
+                  <button
+                    className="comm-btn comm-btn-wa comm-btn-lg"
+                    onClick={handleWhatsApp}
+                    disabled={waSingle.isPending}
+                    style={{ flex: 1 }}
+                  >
+                    {waSingle.isPending
+                      ? <><RefreshCw size={14} className="comm-spin" /> …</>
+                      : <><MessageCircle size={14} /> Send WhatsApp</>
+                    }
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>

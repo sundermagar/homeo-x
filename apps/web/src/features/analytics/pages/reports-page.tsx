@@ -62,6 +62,72 @@ export function ReportsPage() {
       <div className="animate-fade-in">
         {component}
       </div>
+
+      <style>{`
+        @media (max-width: 1024px) {
+          .plat-header { flex-direction: column !important; align-items: stretch !important; gap: 12px !important; margin-bottom: 20px !important; }
+          .plat-header-left { width: 100%; }
+          .plat-header-title { font-size: 16px !important; gap: 8px !important; }
+          
+          .plat-card { border: none !important; box-shadow: none !important; background: transparent !important; overflow: visible !important; }
+          .plat-card-header { 
+            flex-direction: column !important; 
+            align-items: stretch !important; 
+            gap: 12px !important; 
+            padding: 16px !important; 
+            background: var(--bg-surface-2) !important;
+            border: 1px solid var(--border-main) !important;
+            border-radius: 16px 16px 0 0 !important;
+          }
+          .plat-card-header h3 { font-size: 14px !important; font-weight: 700 !important; }
+          .plat-card-header .plat-btn { width: 100% !important; height: 40px !important; justify-content: center !important; }
+          
+          .plat-table-container { border: none !important; overflow: visible !important; background: transparent !important; }
+          .plat-table { display: block !important; width: 100% !important; min-width: 0 !important; }
+          .plat-table thead { display: none !important; }
+          .plat-table tbody { display: block !important; width: 100% !important; }
+          .plat-table tr { 
+            display: block !important; 
+            margin-bottom: 20px !important; 
+            background: var(--bg-card) !important; 
+            border: 1px solid var(--border-main) !important; 
+            border-radius: 0 0 16px 16px !important; 
+            padding: 8px 0 !important;
+            box-shadow: var(--pp-shadow-sm) !important;
+          }
+          /* Specialized rounding for monthly rows */
+          .plat-table-row { border-radius: 16px !important; margin-top: 4px !important; }
+          
+          .plat-table td {
+            display: grid !important;
+            grid-template-columns: 120px 1fr !important;
+            gap: 12px !important;
+            align-items: center !important;
+            padding: 12px 20px !important;
+            border-bottom: 1px dashed var(--border-main) !important;
+            min-height: 48px;
+            text-align: right !important;
+            width: 100% !important;
+            height: auto !important;
+          }
+          .plat-table td:last-child { border-bottom: none !important; }
+          
+          .plat-table td::before {
+            content: attr(data-label);
+            font-size: 10px !important;
+            font-weight: 800 !important;
+            color: var(--text-muted) !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.08em !important;
+            text-align: left !important;
+          }
+          
+          /* Financial module specific styling */
+          .plat-cell-val { width: 100% !important; text-align: right !important; display: flex !important; flex-direction: column !important; align-items: flex-end !important; }
+          [data-label="Month"] { background: var(--bg-surface-2) !important; border-bottom: 1px solid var(--border-main) !important; margin-bottom: 4px; }
+          [data-label="Month"] div { font-weight: 900 !important; font-size: 15px !important; }
+        }
+      `}</style>
     </div>
   );
 }
@@ -117,24 +183,34 @@ function CaseMonthWiseTab({ onExport }: { onExport: (filename: string, headers: 
                 const expenses = Number(r['expenses'] ?? 0);
                 return (
                 <tr key={i} className="plat-table-row">
-                  <td data-label="Month" style={{ fontWeight: 800, color: 'var(--pp-blue)' }}>{String(r['displaydate'] ?? '')}</td>
-                  <td data-label="Case Load" style={{ textAlign: 'right' }}>
-                    <div style={{ fontWeight: 700, color: 'var(--pp-ink)' }}>{String(r['new_cases'] ?? 0)} New</div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--pp-text-3)' }}>{String(r['followups'] ?? 0)} Followups</div>
+                  <td data-label="Month" style={{ fontWeight: 800, color: 'var(--pp-blue)' }}>
+                    <div>{String(r['displaydate'] ?? '')}</div>
                   </td>
-                  <td data-label="Gross Collection" style={{ textAlign: 'right' }}>
-                    <div style={{ fontWeight: 900, color: 'var(--pp-success-fg)', fontSize: '1rem' }}>₹{collection.toLocaleString()}</div>
-                    <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', opacity: 0.6 }}>Cleared</div>
-                  </td>
-                  <td data-label="Cash / Digital" style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>₹{Number(r['cash'] ?? 0).toLocaleString()} (C)</div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--pp-blue)', fontWeight: 600 }}>
-                      ₹{((Number(r['online']) || 0) + (Number(r['card']) || 0)).toLocaleString()} (D)
+                  <td data-label="CASE LOAD" style={{ textAlign: 'right' }}>
+                    <div className="plat-cell-val">
+                      <div style={{ fontWeight: 700, color: 'var(--pp-ink)' }}>{String(r['new_cases'] ?? 0)} New</div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--pp-text-3)' }}>{String(r['followups'] ?? 0)} Followups</div>
                     </div>
                   </td>
-                  <td data-label="Operational Exp." style={{ textAlign: 'right' }}>
-                    <div style={{ fontWeight: 800, color: 'var(--pp-danger-fg)' }}>₹{expenses.toLocaleString()}</div>
-                    <div style={{ fontSize: '0.65rem', color: 'var(--pp-text-4)' }}>Margin: {collection > 0 ? (((collection - expenses) / collection) * 100).toFixed(1) : 0}%</div>
+                  <td data-label="COLLECTION" style={{ textAlign: 'right' }}>
+                    <div className="plat-cell-val">
+                      <div style={{ fontWeight: 900, color: 'var(--pp-success-fg)', fontSize: '1rem' }}>₹{collection.toLocaleString()}</div>
+                      <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', opacity: 0.6 }}>Cleared</div>
+                    </div>
+                  </td>
+                  <td data-label="CASH/DIGITAL" style={{ textAlign: 'right' }}>
+                    <div className="plat-cell-val">
+                      <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>₹{Number(r['cash'] ?? 0).toLocaleString()} (C)</div>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--pp-blue)', fontWeight: 600 }}>
+                        ₹{((Number(r['online']) || 0) + (Number(r['card']) || 0)).toLocaleString()} (D)
+                      </div>
+                    </div>
+                  </td>
+                  <td data-label="OPERATIONAL" style={{ textAlign: 'right' }}>
+                    <div className="plat-cell-val">
+                      <div style={{ fontWeight: 800, color: 'var(--pp-danger-fg)' }}>₹{expenses.toLocaleString()}</div>
+                      <div style={{ fontSize: '0.65rem', color: 'var(--pp-text-4)' }}>Margin: {collection > 0 ? (((collection - expenses) / collection) * 100).toFixed(1) : 0}%</div>
+                    </div>
                   </td>
                 </tr>
                 );
@@ -634,21 +710,27 @@ function ReferencesTab({ onExport }: { onExport: (filename: string, headers: str
           </thead>
           <tbody>
             {paginatedData.map((row: any, i: number) => (
-              <tr key={i}>
-                <td data-label="Source / Referral" style={{ fontWeight: 700, color: 'var(--pp-ink)' }}>{String(row.reference ?? '—')}</td>
-                <td data-label="Patients Brought" style={{ textAlign: 'center' }}>
-                  <span style={{ 
-                    background: 'var(--pp-warm-1)', 
-                    padding: '4px 12px', 
-                    borderRadius: '100px', 
-                    fontWeight: 700,
-                    fontSize: '0.85rem'
-                  }}>
-                    {String(row.count ?? 0)}
-                  </span>
+              <tr key={i} className="plat-table-row">
+                <td data-label="SOURCE" style={{ fontWeight: 700, color: 'var(--pp-ink)' }}>
+                  <div>{String(row.reference ?? '—')}</div>
                 </td>
-                <td data-label="Revenue Generated" style={{ textAlign: 'right', fontWeight: 800, color: 'var(--pp-success-fg)' }}>
-                  ₹{Number(row.totalcollection ?? 0).toLocaleString()}
+                <td data-label="PATIENTS" style={{ textAlign: 'center' }}>
+                  <div className="plat-cell-val">
+                    <span style={{ 
+                      background: 'var(--pp-warm-1)', 
+                      padding: '4px 12px', 
+                      borderRadius: '100px', 
+                      fontWeight: 700,
+                      fontSize: '0.85rem'
+                    }}>
+                      {String(row.count ?? 0)}
+                    </span>
+                  </div>
+                </td>
+                <td data-label="REVENUE" style={{ textAlign: 'right', fontWeight: 800, color: 'var(--pp-success-fg)' }}>
+                  <div className="plat-cell-val">
+                    ₹{Number(row.totalcollection ?? 0).toLocaleString()}
+                  </div>
                 </td>
               </tr>
             ))}
