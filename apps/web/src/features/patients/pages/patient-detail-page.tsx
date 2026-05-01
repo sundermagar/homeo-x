@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { usePatient, useDeletePatient, useFamilyMembers, useAddFamilyMember, useRemoveFamilyMember, usePatientLookup, usePatientClinicalRecord } from '../hooks/use-patients';
-import { Edit2, Trash2, UserPlus, Users, X, MapPin, Phone, CheckCircle, Search, TrendingUp, Activity } from 'lucide-react';
+import { Edit2, Trash2, UserPlus, Users, X, MapPin, Phone, CheckCircle, Search, TrendingUp, Activity, MessageCircle } from 'lucide-react';
+import { useSendWhatsApp } from '../../communications/hooks/use-communications';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import type { PatientSummary, FamilyMember } from '@mmc/types';
 import { PageSkeleton } from '@/components/shared/page-skeleton';
@@ -47,6 +48,8 @@ export default function PatientDetailPage() {
     await removeFamilyMutation.mutateAsync({ regid: numRegid, id });
   };
 
+  const waMutation = useSendWhatsApp();
+
   if (isLoading) {
     return <PageSkeleton variant="detail" />;
   }
@@ -54,10 +57,34 @@ export default function PatientDetailPage() {
     return <div className="app-container" style={{ textAlign: 'center', padding: '80px', color: 'var(--pp-danger-fg)' }}>Patient not found</div>;
   }
 
-  const InfoRow = ({ label, value }: { label: string; value: string | null | undefined }) => (
+  const handleWhatsApp = async (phone: string) => {
+    if (!phone) return;
+    const msg = `Hello ${patient?.firstName || ''}, this is Homeo-X clinic.`;
+    try {
+      const res = await waMutation.mutateAsync({ phone, message: msg });
+      const deepLink = (res.data as any).data?.details?.[0]?.deepLink;
+      if (deepLink) window.open(deepLink, '_blank');
+      else window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(msg)}`, '_blank');
+    } catch (err) {
+      window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(msg)}`, '_blank');
+    }
+  };
+
+  const InfoRow = ({ label, value, isPhone }: { label: string; value: string | null | undefined; isPhone?: boolean }) => (
     <div className="pat-info-row">
       <span className="pat-info-label">{label}</span>
-      <span className="pat-info-value">{value || '—'}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <span className="pat-info-value">{value || '—'}</span>
+        {isPhone && value && (
+          <button 
+            onClick={() => handleWhatsApp(value)}
+            className="pat-wa-btn"
+            title="Send WhatsApp"
+          >
+            <MessageCircle size={12} />
+          </button>
+        )}
+      </div>
     </div>
   );
 
@@ -94,8 +121,8 @@ export default function PatientDetailPage() {
           <h3 className="pat-chart-title">
             <Phone size={16} className="pat-chart-title-icon"/> Contact Information
           </h3>
-          <InfoRow label="Mobile" value={patient.phone} />
-          <InfoRow label="Mobile 2" value={patient.mobile1} />
+          <InfoRow label="Mobile" value={patient.phone} isPhone={true} />
+          <InfoRow label="Mobile 2" value={patient.mobile1} isPhone={true} />
           <InfoRow label="Landline" value={patient.mobile2} />
           <InfoRow label="Email" value={patient.email} />
           <InfoRow label="Consultation Fee" value={patient.consultationFee ? `₹${patient.consultationFee}` : null} />

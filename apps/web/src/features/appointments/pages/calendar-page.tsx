@@ -75,9 +75,6 @@ export default function CalendarPage() {
           <p className="appt-header-sub">Manage practitioner schedules and availability</p>
         </div>
         <div className="appt-header-actions">
-          <button className="appt-btn appt-btn-sm" onClick={() => refetch()} title="Refresh">
-            <RefreshCw size={14} strokeWidth={1.6} />
-          </button>
           <Link
             to={`/appointments/add?date=${selectedDay ?? todayISO}`}
             className="appt-btn appt-btn-primary"

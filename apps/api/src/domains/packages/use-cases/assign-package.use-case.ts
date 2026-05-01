@@ -18,13 +18,26 @@ export class AssignPackageUseCase {
     if (!plan) return fail(`Package plan #${packageId} not found`, 'NOT_FOUND');
     if (!plan.isActive) return fail('This package plan is no longer active', 'VALIDATION');
 
-    const start = startDate ? new Date(startDate) : new Date();
+    let start = startDate ? new Date(startDate) : new Date();
+
+    // If 'expiry' is selected, check for an existing active package and start from its expiry
+    if (dto.startFrom === 'expiry') {
+      const activePkg = await this.repo.getActivePackage(regid);
+      if (activePkg && activePkg.expiryDate) {
+        const currentExpiry = new Date(activePkg.expiryDate);
+        // Start from next day of current expiry
+        start = new Date(currentExpiry);
+        start.setDate(start.getDate() + 1);
+      }
+    }
+
     const expiry = new Date(start);
-    expiry.setDate(expiry.getDate() + plan.durationDays);
+    expiry.setDate(expiry.getDate() + plan.durationDays - 1); // Subtract 1 to include start day
 
     const fmt = (d: Date) => d.toISOString().split('T')[0]!;
     const startDateStr  = fmt(start);
     const expiryDateStr = fmt(expiry);
+
 
     // Step 1: Create the billing record for this package
     const billNo = await this.billingRepo.nextBillNo();

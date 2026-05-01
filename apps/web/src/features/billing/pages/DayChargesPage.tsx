@@ -124,17 +124,25 @@ export default function DayChargesPage() {
               <tbody>
                 {paginated.map(c => (
                   <tr key={c.id}>
-                    <td data-label="ID" style={{ fontFamily: 'var(--pp-font-mono)' }}>#{c.id}</td>
-                    <td data-label="Days" style={{ fontWeight: 500 }}>{c.days}</td>
-                    <td data-label="Charges" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 600 }}>₹{(c.regularCharges ?? 0).toLocaleString()}</td>
-                    <td>
-                      <div className="flex justify-end gap-3">
-                        <button className="plat-btn plat-btn-sm plat-btn-icon" onClick={() => handleOpenEdit(c)}>
-                          <Edit2 size={13} />
-                        </button>
-                        <button type="button" className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" onClick={(e) => handleDelete(e, c.id)}>
-                          <Trash2 size={13} />
-                        </button>
+                    <td data-label="ID" style={{ fontFamily: 'var(--pp-font-mono)' }}>
+                      <div>#{c.id}</div>
+                    </td>
+                    <td data-label="Days" style={{ fontWeight: 500 }}>
+                      <div>{c.days}</div>
+                    </td>
+                    <td data-label="Charges" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 600 }}>
+                      <div className="plat-cell-val">₹{(c.regularCharges ?? 0).toLocaleString()}</div>
+                    </td>
+                    <td data-label="Actions">
+                      <div className="plat-cell-val">
+                        <div className="flex justify-end gap-3" style={{ width: '100%' }}>
+                          <button className="plat-btn plat-btn-sm plat-btn-icon" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={() => handleOpenEdit(c)}>
+                            <Edit2 size={13} />
+                          </button>
+                          <button type="button" className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={(e) => handleDelete(e, c.id)}>
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
                       </div>
                     </td>
                   </tr>
@@ -193,6 +201,57 @@ export default function DayChargesPage() {
           </div>
         </div>
       )}
+      <style>{`
+        @media (max-width: 1024px) {
+          .bill-header { flex-direction: column !important; align-items: stretch !important; gap: 16px !important; }
+          .bill-header-actions { width: 100%; }
+          .bill-header-actions .bill-btn { width: 100%; height: 44px; border-radius: 12px; justify-content: center; }
+          
+          .plat-stats-bar { grid-template-columns: 1fr !important; }
+          .plat-filters { flex-direction: column !important; align-items: stretch !important; gap: 12px !important; }
+          .plat-search-wrap { width: 100% !important; }
+          .plat-search-input { width: 100% !important; height: 44px; border-radius: 12px; }
+
+          .plat-card { border: none !important; box-shadow: none !important; background: transparent !important; }
+          .plat-table-container { border: none !important; background: transparent !important; overflow: visible !important; }
+          .plat-table { display: block !important; width: 100% !important; min-width: 0 !important; }
+          .plat-table thead { display: none !important; }
+          .plat-table tbody { display: block !important; width: 100% !important; }
+          .plat-table tr { 
+            display: block !important; 
+            margin-bottom: 20px !important; 
+            background: var(--bg-card) !important; 
+            border: 1px solid var(--border-main) !important; 
+            border-radius: 16px !important; 
+            padding: 8px 0 !important;
+            box-shadow: var(--pp-shadow-sm) !important;
+          }
+          .plat-table td {
+            display: grid !important;
+            grid-template-columns: 120px 1fr !important;
+            gap: 12px !important;
+            align-items: center !important;
+            padding: 12px 20px !important;
+            border-bottom: 1px dashed var(--border-main) !important;
+            min-height: 48px;
+            text-align: right !important;
+            width: 100% !important;
+          }
+          .plat-table td:last-child { border-bottom: none !important; background: var(--bg-surface-2) !important; margin-top: 4px; padding-top: 16px !important; padding-bottom: 16px !important; }
+          
+          .plat-table td::before {
+            content: attr(data-label);
+            font-size: 10px !important;
+            font-weight: 800 !important;
+            color: var(--text-muted) !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.08em !important;
+            text-align: left !important;
+          }
+          .plat-cell-val { width: 100% !important; text-align: right !important; display: flex !important; flex-direction: column !important; align-items: flex-end !important; }
+          [data-label="ID"] { background: var(--bg-surface-2) !important; border-bottom: 1px solid var(--border-main) !important; margin-bottom: 4px; }
+        }
+      `}</style>
     </div>
   );
 }

@@ -49,33 +49,38 @@ export interface SavePrescriptionDto {
 export class RemedyChartUseCase {
   constructor(private readonly db: any) { }
 
-  private async _executeWithFallback(primary: Promise<any>, backup: Promise<any>) {
+  private async _executeWithFallback(primary: () => Promise<any>, backup: () => Promise<any>) {
     try {
-      return await primary;
-    } catch {
+      return await primary();
+    } catch (err) {
+      console.warn('Primary query failed, falling back to legacy:', err);
       try {
-        return await backup;
-      } catch {
+        return await backup();
+      } catch (backupErr) {
+        console.error('Backup query failed too:', backupErr);
         return [];
       }
     }
   }
 
   // ── 1. Full hierarchical tree (optionally filtered by label) ──
-  async getRemedyTree(label?: string): Promise<RemedyTreeNode[]> {
+  async getRemedyTree(parentId: number = 0, label?: string): Promise<RemedyTreeNode[]> {
     const rows = await this._executeWithFallback(
-      this.db.execute(sql`
+      () => this.db.execute(sql`
         SELECT id, parent_id, label, description, node_type, sort_order,
                hindi_label, gujrati_label, marathi_label
         FROM remedy_tree_nodes
         WHERE is_active = true
+          ${label ? sql`AND label ILIKE ${'%' + label + '%'}` : sql`AND parent_id = ${parentId}`}
         ORDER BY label ASC
       `),
-      this.db.execute(sql`
+      () => this.db.execute(sql`
         SELECT id, parent_id, label, description,
                'RUBRIC' AS node_type, 0 AS sort_order,
                hindi_label, gujrati_label, marathi_label
         FROM managetreedatas
+        WHERE 1=1
+          ${label ? sql`AND label ILIKE ${'%' + label + '%'}` : sql`AND parent_id = ${parentId}`}
         ORDER BY label ASC
       `)
     );
@@ -92,30 +97,22 @@ export class RemedyChartUseCase {
       marathiLabel: r.marathi_label,
     }));
 
-    // Filter by label if provided
-    let needle = label?.trim() ?? '';
-    if (needle.includes('(')) {
-      const m = needle.match(/\(([^)]+)\)/);
-      if (m) needle = m[1] ?? needle;
-    }
-    const filtered = needle
-      ? flat.filter(n => n.label.toLowerCase() === needle.toLowerCase())
-      : flat;
-
-    return this._buildTree(filtered.length > 0 ? filtered : flat);
+    // For lazy loading, we don't build the tree deeply, 
+    // unless it's a search result (but for now we keep it simple)
+    return flat;
   }
 
   // ── 2. A-Z grouped index of root-level nodes ──
   async getTreeByAlphabet(): Promise<AlphabetGroup[]> {
     const rows = await this._executeWithFallback(
-      this.db.execute(sql`
+      () => this.db.execute(sql`
         SELECT id, parent_id, label, description, node_type, sort_order,
                hindi_label, gujrati_label, marathi_label
         FROM remedy_tree_nodes
         WHERE parent_id = 0 AND is_active = true
         ORDER BY label ASC
       `),
-      this.db.execute(sql`
+      () => this.db.execute(sql`
         SELECT id, parent_id, label, description,
                'RUBRIC' AS node_type, 0 AS sort_order,
                hindi_label, gujrati_label, marathi_label
@@ -152,13 +149,13 @@ export class RemedyChartUseCase {
   async filterTreeByLetter(letter: string): Promise<AlphabetGroup[]> {
     const safeLetter = letter.charAt(0).toUpperCase();
     const rows = await this._executeWithFallback(
-      this.db.execute(sql`
+      () => this.db.execute(sql`
         SELECT id, parent_id, label, description, node_type, sort_order
         FROM remedy_tree_nodes
         WHERE label ILIKE ${safeLetter + '%'} AND parent_id = 0 AND is_active = true
         ORDER BY label ASC
       `),
-      this.db.execute(sql`
+      () => this.db.execute(sql`
         SELECT id, parent_id, label, description,
                'RUBRIC' AS node_type, 0 AS sort_order
         FROM managetreedatas
@@ -182,13 +179,13 @@ export class RemedyChartUseCase {
   // ── 4. Alternative medicines for a tree node ──
   async getAlternatives(treeNodeId: number) {
     const rows = await this._executeWithFallback(
-      this.db.execute(sql`
+      () => this.db.execute(sql`
         SELECT id, tree_id, remedy, potency, notes, sort_order
         FROM remedy_alternatives
         WHERE tree_id = ${treeNodeId}
         ORDER BY remedy ASC
       `),
-      this.db.execute(sql`
+      () => this.db.execute(sql`
         SELECT id, tree_id, remedy, potency, notes, 0 AS sort_order
         FROM medicine_others
         WHERE tree_id = ${treeNodeId}
@@ -202,24 +199,24 @@ export class RemedyChartUseCase {
   async getRemedyLookups(): Promise<RemedyLookups> {
     const [medRows, potRows, freqRows] = await Promise.all([
       this._executeWithFallback(
-        this.db.execute(sql`
+        () => this.db.execute(sql`
           SELECT id, name FROM medicines WHERE deleted_at IS NULL ORDER BY name ASC
         `),
-        this.db.execute(sql`SELECT id, name FROM stocks WHERE deleted_at IS NULL ORDER BY name ASC`)
+        () => this.db.execute(sql`SELECT id, name FROM stocks WHERE deleted_at IS NULL ORDER BY name ASC`)
       ),
       this._executeWithFallback(
-        this.db.execute(sql`
+        () => this.db.execute(sql`
           SELECT id, name FROM potencies WHERE deleted_at IS NULL ORDER BY id ASC
         `),
-        this.db.execute(sql`SELECT id, name FROM potencies1 WHERE deleted_at IS NULL ORDER BY id ASC`)
+        () => this.db.execute(sql`SELECT id, name FROM potencies1 WHERE deleted_at IS NULL ORDER BY id ASC`)
       ),
       this._executeWithFallback(
-        this.db.execute(sql`
+        () => this.db.execute(sql`
           SELECT id, title, frequency
           FROM case_frequency
           ORDER BY id ASC
         `),
-        this.db.execute(sql`
+        () => this.db.execute(sql`
           SELECT id, title, frequency
           FROM case_frequency
           WHERE deleted_at IS NULL
@@ -231,10 +228,10 @@ export class RemedyChartUseCase {
     return {
       medicines: (medRows as any[]).map(r => ({ id: Number(r.id), name: String(r.name) })),
       potencies: (potRows as any[]).map(r => ({ id: Number(r.id), name: String(r.name) })),
-      frequencies: (freqRows as any[]).map(r => ({ 
-        id: Number(r.id), 
-        name: String(r.title || r.name || ''), 
-        instruction: String(r.frequency || r.instruction || '') 
+      frequencies: (freqRows as any[]).map(r => ({
+        id: Number(r.id),
+        name: String(r.title || r.name || ''),
+        instruction: String(r.frequency || r.instruction || '')
       })),
     };
   }
@@ -282,7 +279,7 @@ export class RemedyChartUseCase {
     if (dto.id) {
       const existing = await this.db.execute(sql`SELECT rand_id FROM case_potencies WHERE id = ${dto.id}`);
       randId = (existing as any[])[0]?.rand_id;
-      
+
       await this.db.execute(sql`
         UPDATE case_potencies SET
           rxremedy      = ${remedyName},
@@ -318,16 +315,16 @@ export class RemedyChartUseCase {
       if (deliveryMode === 'courier' || deliveryMode === 'pickup') {
         const postType = deliveryMode === 'courier' ? 'Courier' : 'Pickup';
         const isPickup = deliveryMode === 'pickup' ? 1 : 0;
-        
+
         const check = await this.db.execute(sql`SELECT id FROM courier_medicine WHERE rand_id = ${randId}`);
         if ((check as any[]) && (check as any[]).length > 0) {
-           await this.db.execute(sql`
+          await this.db.execute(sql`
              UPDATE courier_medicine 
              SET post_type = ${postType}, pickup = ${isPickup}, read_type = 'unread', updated_at = NOW() 
              WHERE rand_id = ${randId}
            `);
         } else {
-           await this.db.execute(sql`
+          await this.db.execute(sql`
              INSERT INTO courier_medicine (
                case_id, regid, rand_id, currentdate, post_type, pickup, read_type, is_assign, created_at, updated_at
              ) VALUES (
@@ -336,7 +333,7 @@ export class RemedyChartUseCase {
            `);
         }
       } else if (deliveryMode === 'clinic') {
-         await this.db.execute(sql`DELETE FROM courier_medicine WHERE rand_id = ${randId}`);
+        await this.db.execute(sql`DELETE FROM courier_medicine WHERE rand_id = ${randId}`);
       }
     }
 

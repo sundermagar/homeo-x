@@ -159,12 +159,6 @@ export default function AppointmentListPage() {
           <p className="appt-header-sub">{totalEntries} appointment{totalEntries !== 1 ? 's' : ''}</p>
         </div>
         <div className="appt-header-actions">
-          <Link to="/appointments/calendar" className="appt-btn">
-            <Calendar size={14} strokeWidth={1.6} /> Calendar
-          </Link>
-          <Link to="/appointments/queue" className="appt-btn">
-            <Clock size={14} strokeWidth={1.6} /> Queue
-          </Link>
           <div className="appt-segmented-toggle">
             <button type="button" className={`appt-segmented-btn ${viewMode === 'list' ? 'active' : ''}`} onClick={() => setViewMode('list')}>
               <ListIcon size={16} strokeWidth={1.6} /> List
@@ -189,7 +183,7 @@ export default function AppointmentListPage() {
       </div>
 
       {/* Filters */}
-      {tab !== 'today' && (
+      {tab !== 'pending' && (
         <div className="appt-filters">
           <div className="appt-search-wrap">
             <Search size={14} className="appt-search-icon" strokeWidth={1.6} />
@@ -213,10 +207,9 @@ export default function AppointmentListPage() {
       )}
 
       {/* Table / Grid */}
-      {/* Table / Grid */}
       <div className={viewMode === 'list' ? "appt-card" : "appt-grid-view-container"}>
         {isPending ? (
-          <TableSkeleton rows={10} cols={6} />
+          <TableSkeleton rows={10} cols={7} />
         ) : data.length === 0 ? (
           <div className="appt-empty">
             <Calendar size={28} className="appt-empty-icon" />
@@ -235,6 +228,7 @@ export default function AppointmentListPage() {
                   <th>Doctor</th>
                   <th>Date &amp; Time</th>
                   <th>Type</th>
+                  <th>Package</th>
                   <th>Status</th>
                   <th>Token</th>
                   <th>Actions</th>
@@ -243,28 +237,37 @@ export default function AppointmentListPage() {
               <tbody>
                 {data.map(a => (
                   <tr key={a.id}>
-                    <td><span className="appt-cell-id">#{a.id}</span></td>
-                    <td>
+                    <td data-label="#"><span className="appt-cell-id">#{a.id}</span></td>
+                    <td data-label="PATIENT">
                       <div className="appt-cell-name">{a.patientNameFromCase ?? a.patientName ?? '—'}</div>
                       {a.phone && <div className="appt-cell-phone">{a.phone}</div>}
                     </td>
-                    <td>
+                    <td data-label="DOCTOR">
                       {a.doctorName
                         ? <span className="appt-doctor-badge"><User size={11} strokeWidth={1.6} />{a.doctorName}</span>
                         : <span className="appt-cell-slash">—</span>}
                     </td>
-                    <td>
+                    <td data-label="DATE & TIME">
                       <div className="appt-cell-name">{a.bookingDate ?? '—'}</div>
                       {a.bookingTime && <div className="appt-cell-phone">{a.bookingTime}</div>}
                     </td>
-                    <td className="appt-cell-muted">{a.visitType ?? '—'}</td>
-                    <td><StatusBadge status={a.status} size="sm" /></td>
-                    <td>
+                    <td data-label="TYPE" className="appt-cell-muted">{a.visitType ?? '—'}</td>
+                    <td data-label="PACKAGE">
+                      {a.packageName ? (
+                        <span className="appt-metadata-badge appt-metadata-package" title={`Expires: ${a.packageExpiry ?? 'N/A'}`}>
+                          {a.packageName}
+                        </span>
+                      ) : (
+                        <span className="appt-cell-slash">—</span>
+                      )}
+                    </td>
+                    <td data-label="STATUS"><StatusBadge status={a.status} size="sm" /></td>
+                    <td data-label="TOKEN">
                       {a.tokenNo
                         ? <span className="appt-cell-token">T{a.tokenNo}</span>
                         : <span className="appt-cell-slash">—</span>}
                     </td>
-                    <td>
+                    <td data-label="ACTIONS">
                       {/* ── Inline buttons (≥1024px) ── */}
                       <div className="appt-row-actions appt-row-actions-inline">
                         {quickStatuses

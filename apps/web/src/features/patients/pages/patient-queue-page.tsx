@@ -301,18 +301,15 @@ export default function PatientQueuePage() {
               {doctors.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
             </select>
           )}
-          <button className="appt-btn appt-btn-sm" onClick={() => wRefetch()}>
-            <RefreshCw size={14} strokeWidth={1.6} /> Refresh
-          </button>
         </div>
       </div>
 
       {/* Quick Stats */}
       <div className="appt-stats-bar" style={{ marginBottom: '32px' }}>
         {[
-          { label: 'Waiting',    value: waiting.length,    bg: 'rgba(245, 158, 11, 0.1)', ic: '#d97706', icon: <Clock size={20} strokeWidth={2} /> },
-          { label: 'Consulting', value: inProgress.length, bg: 'rgba(37, 99, 235, 0.1)',  ic: '#2563eb', icon: <UserCheck size={20} strokeWidth={2} /> },
-          { label: 'Completed',  value: done.length,       bg: 'rgba(5, 150, 105, 0.1)',  ic: '#059669', icon: <CheckCircle2 size={20} strokeWidth={2} /> },
+          { label: 'Waiting',    value: waiting.length,    bg: 'var(--pp-warning-bg)', ic: '#d97706', icon: <Clock size={20} strokeWidth={2} /> },
+          { label: 'Consulting', value: inProgress.length, bg: 'var(--pp-blue-tint)',  ic: 'var(--pp-blue)', icon: <UserCheck size={20} strokeWidth={2} /> },
+          { label: 'Completed',  value: done.length,       bg: 'var(--pp-success-bg)',  ic: '#059669', icon: <CheckCircle2 size={20} strokeWidth={2} /> },
         ].map(item => (
           <div key={item.label} className="appt-stat-card">
             <div className="appt-stat-icon-wrap" style={{ background: item.bg, color: item.ic }}>
@@ -388,9 +385,9 @@ export default function PatientQueuePage() {
         {wLoading ? (
           viewMode === 'grid' ? renderSkeletonGrid() : renderSkeletonList()
         ) : waiting.length === 0 ? (
-          <div className="appt-card" style={{ padding: '40px', textAlign: 'center', background: 'var(--pp-warm-1)' }}>
-            <Users size={32} style={{ opacity: 0.2, marginBottom: 12 }} />
-            <p style={{ color: 'var(--pp-text-3)', fontSize: '14px' }}>The waiting room is currently empty.</p>
+          <div className="appt-card" style={{ padding: '60px 40px', background: 'var(--pp-warm-1)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            <Users size={36} style={{ opacity: 0.25, marginBottom: 16 }} />
+            <p style={{ color: 'var(--pp-text-3)', fontSize: '14px', fontWeight: 500, margin: 0 }}>The waiting room is currently empty.</p>
           </div>
         ) : (
           <>

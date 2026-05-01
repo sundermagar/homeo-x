@@ -454,7 +454,7 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
       {/* Chief Complaint — required, shown to the doctor on the consultation page */}
       <div className="appt-form-group">
         <label className="appt-form-label">
-          Chief Complaint <span style={{ color: '#dc2626' }}>*</span>
+          Chief Complaint <span style={{ color: 'var(--pp-danger-fg)' }}>*</span>
         </label>
         <textarea
           className="appt-form-input appt-form-textarea"

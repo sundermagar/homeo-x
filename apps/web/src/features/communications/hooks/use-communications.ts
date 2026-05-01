@@ -17,6 +17,8 @@ export const commKeys = {
   template:     (id: number) => [...ALL_KEY, 'template', id] as const,
   reports:      (f: Record<string, any>) => [...ALL_KEY, 'reports', f] as const,
   whatsappLogs: [...ALL_KEY, 'whatsapp-logs'] as const,
+  whatsappQr:   [...ALL_KEY, 'whatsapp-qr'] as const,
+  whatsappStatus: (id: string) => [...ALL_KEY, 'whatsapp-status', id] as const,
 };
 
 // ─── SMS Templates ────────────────────────────────────────────────────────────
@@ -113,5 +115,23 @@ export function useWhatsAppLogs() {
     queryKey: commKeys.whatsappLogs,
     queryFn: () => apiClient.get<{ success: boolean; data: WhatsAppLog[] }>('/communications/whatsapp/logs').then(r => r.data.data ?? []),
     staleTime: 60_000,
+  });
+}
+
+export function useWhatsAppQr() {
+  return useQuery({
+    queryKey: commKeys.whatsappQr,
+    queryFn: () => apiClient.get<{ success: boolean; data: { qrCode: string; instanceId: string } }>('/communications/whatsapp/qr').then(r => r.data.data),
+    staleTime: 0,
+    enabled: false, // Only manual refetch
+  });
+}
+
+export function useWhatsAppStatus(instanceId: string | null) {
+  return useQuery({
+    queryKey: commKeys.whatsappStatus(instanceId || ''),
+    queryFn: () => apiClient.get<{ success: boolean; data: { connected: boolean } }>(`/communications/whatsapp/status/${instanceId}`).then(r => r.data.data),
+    enabled: !!instanceId,
+    refetchInterval: 5000,
   });
 }

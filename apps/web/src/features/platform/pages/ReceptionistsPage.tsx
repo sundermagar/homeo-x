@@ -12,6 +12,81 @@ import { Pagination } from '@/shared/components/Pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { Drawer } from '@/shared/components/drawer';
 
+const mobileStyles = `
+  @media (max-width: 1024px) {
+    .plat-header { flex-direction: column !important; align-items: stretch !important; gap: 16px !important; }
+    .plat-header-actions { width: 100% !important; margin-top: 8px; }
+    .plat-header-actions .plat-btn { width: 100% !important; height: 46px !important; border-radius: 12px !important; justify-content: center !important; }
+
+    .plat-stats-bar { grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; padding: 0 !important; }
+    .plat-stat-card { padding: 16px 12px !important; }
+    .plat-stat-value { font-size: 20px !important; }
+
+    .plat-filters { 
+      flex-direction: column !important; 
+      align-items: stretch !important; 
+      gap: 12px !important; 
+      background: var(--bg-surface-2) !important;
+      padding: 16px !important;
+      border-radius: 16px !important;
+      margin-bottom: 16px !important;
+      border: 1px solid var(--border-main) !important;
+    }
+    .plat-filters > .flex { flex-direction: column !important; width: 100% !important; gap: 12px !important; }
+    .plat-search-wrap { width: 100% !important; margin: 0 !important; }
+    .plat-search-input { width: 100% !important; height: 44px !important; border-radius: 12px !important; font-size: 14px !important; }
+    .plat-filters select { width: 100% !important; height: 44px !important; border-radius: 12px !important; font-size: 14px !important; }
+    .plat-filters .plat-btn-ghost { width: 100% !important; height: 40px !important; justify-content: center !important; }
+
+    .plat-card { border: none !important; box-shadow: none !important; background: transparent !important; padding: 0 !important; }
+    .plat-table-container { 
+      border: none !important; 
+      background: transparent !important; 
+      overflow: visible !important; 
+      width: 100% !important;
+      padding: 0 !important;
+    }
+    .plat-table { display: block !important; width: 100% !important; min-width: 0 !important; border: none !important; }
+    .plat-table thead { display: none !important; }
+    .plat-table tbody { display: block !important; width: 100% !important; }
+    .plat-table tr { 
+      display: block !important; 
+      margin-bottom: 24px !important; 
+      background: var(--bg-card) !important; 
+      border: 1px solid var(--border-main) !important; 
+      border-radius: 20px !important; 
+      padding: 0 !important;
+      box-shadow: var(--pp-shadow-md) !important;
+      overflow: hidden !important;
+    }
+    .plat-table td {
+      display: grid !important;
+      grid-template-columns: 100px 1fr !important;
+      gap: 12px !important;
+      align-items: center !important;
+      padding: 12px 20px !important;
+      border-bottom: 1px dashed var(--border-main) !important;
+      min-height: 52px;
+      text-align: right !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+    .plat-table td:last-child { border-bottom: none !important; background: var(--bg-surface-2) !important; padding-top: 16px !important; padding-bottom: 16px !important; }
+    
+    .plat-table td::before {
+      content: attr(data-label);
+      font-size: 10px !important;
+      font-weight: 800 !important;
+      color: var(--text-muted) !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.1em !important;
+      text-align: left !important;
+    }
+    .plat-cell-val { width: 100% !important; text-align: right !important; display: flex !important; flex-direction: column !important; align-items: flex-end !important; }
+    [data-label="#"], [data-label="ID"] { background: var(--bg-surface-2) !important; border-bottom: 1px solid var(--border-main) !important; padding: 12px 20px !important; }
+  }
+`;
+
 function FileInputRow({
   label,
   field,
@@ -617,35 +692,49 @@ export default function ReceptionistsPage() {
               <tbody>
                 {staff.map((s: StaffSummary, i: number) => (
                   <tr key={s.id} className="plat-table-row">
-                    <td className="plat-mono-data text-xs" style={{ width: 40 }}>{(page - 1) * PAGE_SIZE + i + 1}</td>
-                    <td>
-                      <div className="font-semibold">{s.name}</div>
-                      <div className="text-[11px] color-muted font-medium">{s.email || 'No email provided'}</div>
+                    <td data-label="#" className="plat-mono-data text-xs" style={{ width: 40 }}>
+                      <div>{(page - 1) * PAGE_SIZE + i + 1}</div>
                     </td>
-                    <td>
-                      <div className="plat-mono-data">{s.mobile}</div>
-                      <div className="text-[10px] color-muted plat-capitalize flex items-center gap-1 font-medium">
-                        <MapPin size={10} /> {s.city || 'Station N/A'}
+                    <td data-label="Identity">
+                      <div className="plat-cell-val">
+                        <div className="font-semibold">{s.name}</div>
+                        <div className="text-[11px] color-muted font-medium">{s.email || 'No email provided'}</div>
                       </div>
                     </td>
-                    <td><div className="font-medium">{s.designation || 'Front Desk'}</div></td>
-                    <td>
-                      <span className={s.isActive ? 'plat-badge plat-badge-info' : 'plat-badge plat-badge-default'}>
-                        {s.isActive ? (
-                          <span className="flex items-center gap-1">
-                            <UserCheck size={10} /> Active
-                          </span>
-                        ) : 'Inactive'}
-                      </span>
+                    <td data-label="Contact">
+                      <div className="plat-cell-val">
+                        <div className="plat-mono-data">{s.mobile}</div>
+                        <div className="text-[10px] color-muted plat-capitalize flex items-center gap-1 font-medium">
+                          <MapPin size={10} /> {s.city || 'Station N/A'}
+                        </div>
+                      </div>
                     </td>
-                    <td>
-                      <div className="flex justify-end gap-2">
-                        <button className="plat-btn plat-btn-icon plat-btn-ghost" onClick={() => handleEdit(s)}>
-                          <Edit2 size={13} />
-                        </button>
-                        <button className="plat-btn plat-btn-icon plat-btn-danger" onClick={() => handleDelete(s.id)}>
-                          <Trash2 size={13} />
-                        </button>
+                    <td data-label="Role">
+                      <div className="plat-cell-val">
+                        <div className="font-medium">{s.designation || 'Front Desk'}</div>
+                      </div>
+                    </td>
+                    <td data-label="Status">
+                      <div className="plat-cell-val">
+                        <span className={s.isActive ? 'plat-badge plat-badge-info' : 'plat-badge plat-badge-default'}>
+                          {s.isActive ? (
+                            <span className="flex items-center gap-1">
+                              <UserCheck size={10} /> Active
+                            </span>
+                          ) : 'Inactive'}
+                        </span>
+                      </div>
+                    </td>
+                    <td data-label="Actions">
+                      <div className="plat-cell-val">
+                        <div className="flex justify-end gap-2" style={{ width: '100%' }}>
+                          <button className="plat-btn plat-btn-icon plat-btn-ghost" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={() => handleEdit(s)}>
+                            <Edit2 size={13} />
+                          </button>
+                          <button className="plat-btn plat-btn-icon plat-btn-danger" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={() => handleDelete(s.id)}>
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
                       </div>
                     </td>
                   </tr>
@@ -666,6 +755,7 @@ export default function ReceptionistsPage() {
 
 
       {modalOpen && <StaffModal mode={editingId ? 'edit' : 'create'} staff={editingStaff} isLoading={isLoadingStaff} onClose={() => { setModalOpen(false); setEditingId(null); }} onSuccess={() => setEditingId(null)} />}
+      <style>{mobileStyles}</style>
     </div>
   );
 }

@@ -134,9 +134,6 @@ export default function SmsTemplatesPage() {
           <p className="plat-header-sub">{templates.length} templates · Manage reusable message templates</p>
         </div>
         <div className="plat-header-actions">
-          <button className="plat-btn plat-btn-ghost plat-btn-sm" onClick={() => refetch()} disabled={isFetching}>
-            <RefreshCw size={13} className={isFetching ? 'comm-spin' : ''} /> Refresh
-          </button>
           <button className="plat-btn plat-btn-primary" onClick={() => setModal('create')}>
             <Plus size={14} /> New Template
           </button>
@@ -182,28 +179,28 @@ export default function SmsTemplatesPage() {
               <tbody>
                 {paginatedData.map((t, index) => (
                   <tr key={t.id} className="plat-table-row">
-                    <td className="plat-mono-data text-xs">{(page - 1) * itemsPerPage + index + 1}</td>
-                    <td>
-                      <div style={{ fontWeight: 700, color: 'var(--pp-ink)' }}>{t.name}</div>
+                    <td data-label="#" className="plat-mono-data text-xs">{(page - 1) * itemsPerPage + index + 1}</td>
+                    <td data-label="NAME">
+                      <div className="plat-tpl-name" style={{ fontWeight: 700, color: 'var(--pp-ink)' }}>{t.name}</div>
                     </td>
-                    <td>
+                    <td data-label="CATEGORY">
                       <span className="plat-badge plat-badge-default">{t.smsType}</span>
                     </td>
-                    <td>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--pp-text-2)', maxWidth: '360px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <td data-label="MESSAGE">
+                      <div className="plat-tpl-preview">
                         {t.message}
                       </div>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--pp-text-3)', marginTop: '2px' }}>
+                      <div className="plat-tpl-meta">
                         {t.message.length} chars · {Math.ceil(t.message.length / 160)} segment{Math.ceil(t.message.length / 160) > 1 ? 's' : ''}
                       </div>
                     </td>
-                    <td>
+                    <td data-label="STATUS">
                       <span className={t.isActive ? 'plat-badge plat-badge-info' : 'plat-badge plat-badge-default'}>
                         {t.isActive ? 'Active' : 'Inactive'}
                       </span>
                     </td>
-                    <td>
-                      <div style={{ display: 'flex', gap: '6px' }}>
+                    <td data-label="ACTIONS">
+                      <div className="plat-tpl-actions" style={{ display: 'flex', gap: '6px' }}>
                         <button className="plat-btn plat-btn-ghost plat-btn-sm" onClick={() => setModal(t)} title="Edit">
                           <Edit2 size={13} />
                         </button>
@@ -239,6 +236,71 @@ export default function SmsTemplatesPage() {
         onClose={() => setModal(null)}
         onSave={handleSave}
       />
+
+      <style>{`
+        @media (max-width: 1024px) {
+          .plat-header { flex-direction: column !important; align-items: stretch !important; gap: 16px !important; }
+          .plat-header-actions { width: 100%; }
+          .plat-header-actions .plat-btn { width: 100%; justify-content: center; height: 44px; border-radius: 12px; }
+          
+          .plat-table-container { border: none !important; background: transparent !important; overflow: visible !important; }
+          .plat-table { display: block !important; width: 100% !important; min-width: 0 !important; }
+          .plat-table thead { display: none !important; }
+          .plat-table tbody { display: block !important; width: 100% !important; }
+          .plat-table-row { 
+            display: block !important; 
+            margin-bottom: 20px !important; 
+            background: var(--bg-card) !important; 
+            border: 1px solid var(--border-main) !important; 
+            border-radius: 16px !important; 
+            padding: 8px 0 !important;
+            box-shadow: var(--pp-shadow-sm) !important;
+            overflow: hidden;
+          }
+          .plat-table td {
+            display: grid !important;
+            grid-template-columns: 100px 1fr !important;
+            gap: 12px !important;
+            align-items: center !important;
+            padding: 12px 20px !important;
+            border-bottom: 1px dashed var(--border-main) !important;
+            min-height: 44px;
+            text-align: right !important;
+            width: 100% !important;
+            height: auto !important;
+          }
+          .plat-table td:last-child { border-bottom: none !important; background: var(--bg-surface-2) !important; margin-top: 4px; padding-top: 16px !important; padding-bottom: 16px !important; }
+          
+          .plat-table td::before {
+            content: attr(data-label);
+            font-size: 10px !important;
+            font-weight: 800 !important;
+            color: var(--text-muted) !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.08em !important;
+            text-align: left !important;
+            opacity: 0.8;
+          }
+          
+          .plat-tpl-name { font-weight: 700 !important; color: var(--text-main) !important; font-size: 14px !important; line-height: 1.2; }
+          .plat-tpl-preview { 
+            color: var(--text-main) !important; 
+            font-size: 13px !important;
+            white-space: normal !important; 
+            text-align: right !important; 
+            width: 100% !important; 
+            word-break: break-word !important;
+            line-height: 1.4 !important;
+          }
+          .plat-tpl-meta { text-align: right !important; width: 100% !important; font-size: 11px !important; color: var(--text-muted) !important; margin-top: 4px !important; }
+          .plat-tpl-actions { justify-content: flex-end !important; width: 100% !important; gap: 12px !important; }
+          .plat-tpl-actions .plat-btn { flex: 1; height: 40px; border-radius: 10px; }
+          
+          .plat-filters { flex-direction: column; align-items: stretch; }
+          .plat-search-wrap { width: 100% !important; }
+          .plat-search-input { width: 100% !important; height: 44px !important; border-radius: 12px !important; }
+        }
+      `}</style>
     </div>
   );
 }

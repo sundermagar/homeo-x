@@ -241,28 +241,42 @@ export default function DepositsPage() {
               <tbody>
                 {filtered.map(d => (
                   <tr key={d.id}>
-                    <td data-label="ID" style={{ fontFamily: 'var(--pp-font-mono)' }}>#{d.id}</td>
-                    <td data-label="Date" style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.78rem' }}>{d.depositDate}</td>
-                    <td data-label="Amount" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 600 }}>₹{(parseFloat(d.amount ?? '0') || 0).toLocaleString()}</td>
-                    <td data-label="Bank">{d.bankdeposit || '—'}</td>
-                    <td data-label="Remark">{d.remark || '—'}</td>
-                    <td data-label="Status">
-                      <span className={`plat-badge ${d.submitted === 'Yes' ? 'plat-badge-success' : 'plat-badge-default'}`} style={{
-                        background: d.submitted === 'Yes' ? 'var(--pp-success-bg)' : 'rgba(255,255,255,0.05)',
-                        color: d.submitted === 'Yes' ? 'var(--pp-success-fg)' : 'var(--text-muted)',
-                        border: 'none',
-                        fontSize: '0.7rem',
-                        fontWeight: 600,
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.02em'
-                      }}>
-                        {d.submitted === 'Yes' ? 'Submitted' : 'Pending'}
-                      </span>
+                    <td data-label="ID" style={{ fontFamily: 'var(--pp-font-mono)' }}>
+                      <div>#{d.id}</div>
                     </td>
-                    <td>
-                      <button type="button" className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" onClick={(e) => handleDelete(e, d.id)}>
-                        <Trash2 size={13} />
-                      </button>
+                    <td data-label="Date" style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.78rem' }}>
+                      <div>{d.depositDate}</div>
+                    </td>
+                    <td data-label="Amount" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 600 }}>
+                      <div className="plat-cell-val">₹{(parseFloat(d.amount ?? '0') || 0).toLocaleString()}</div>
+                    </td>
+                    <td data-label="Bank">
+                      <div>{d.bankdeposit || '—'}</div>
+                    </td>
+                    <td data-label="Remark">
+                      <div>{d.remark || '—'}</div>
+                    </td>
+                    <td data-label="Status">
+                      <div className="plat-cell-val">
+                        <span className={`plat-badge ${d.submitted === 'Yes' ? 'plat-badge-success' : 'plat-badge-default'}`} style={{
+                          background: d.submitted === 'Yes' ? 'var(--pp-success-bg)' : 'rgba(255,255,255,0.05)',
+                          color: d.submitted === 'Yes' ? 'var(--pp-success-fg)' : 'var(--text-muted)',
+                          border: 'none',
+                          fontSize: '0.7rem',
+                          fontWeight: 600,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.02em'
+                        }}>
+                          {d.submitted === 'Yes' ? 'Submitted' : 'Pending'}
+                        </span>
+                      </div>
+                    </td>
+                    <td data-label="Actions">
+                      <div className="plat-cell-val">
+                        <button type="button" className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={(e) => handleDelete(e, d.id)}>
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -365,6 +379,63 @@ export default function DepositsPage() {
           </div>
         </div>
       )}
+      <style>{`
+        @media (max-width: 1024px) {
+          .bill-header { flex-direction: column !important; align-items: stretch !important; gap: 16px !important; }
+          .bill-header-actions { width: 100%; }
+          .bill-header-actions .bill-btn { width: 100%; height: 44px; border-radius: 12px; justify-content: center; }
+
+          .bill-view-toggle-group { width: 100%; display: flex; }
+          .bill-view-toggle-btn { flex: 1; justify-content: center; height: 44px; border-radius: 12px; }
+
+          .bill-stats-bar { grid-template-columns: 1fr !important; gap: 12px !important; }
+          .bill-stat-card { padding: 16px !important; }
+
+          .plat-filters { flex-direction: column !important; align-items: stretch !important; gap: 12px !important; }
+          .plat-search-wrap { width: 100% !important; }
+          .plat-search-input { width: 100% !important; height: 44px; border-radius: 12px; }
+          .plat-filter-input { width: 100% !important; height: 44px; border-radius: 12px; }
+
+          .plat-card { border: none !important; box-shadow: none !important; background: transparent !important; }
+          .plat-table-container { border: none !important; background: transparent !important; overflow: visible !important; }
+          .plat-table { display: block !important; width: 100% !important; min-width: 0 !important; }
+          .plat-table thead { display: none !important; }
+          .plat-table tbody { display: block !important; width: 100% !important; }
+          .plat-table tr { 
+            display: block !important; 
+            margin-bottom: 20px !important; 
+            background: var(--bg-card) !important; 
+            border: 1px solid var(--border-main) !important; 
+            border-radius: 16px !important; 
+            padding: 8px 0 !important;
+            box-shadow: var(--pp-shadow-sm) !important;
+          }
+          .plat-table td {
+            display: grid !important;
+            grid-template-columns: 120px 1fr !important;
+            gap: 12px !important;
+            align-items: center !important;
+            padding: 12px 20px !important;
+            border-bottom: 1px dashed var(--border-main) !important;
+            min-height: 48px;
+            text-align: right !important;
+            width: 100% !important;
+          }
+          .plat-table td:last-child { border-bottom: none !important; background: var(--bg-surface-2) !important; margin-top: 4px; padding-top: 16px !important; padding-bottom: 16px !important; }
+          
+          .plat-table td::before {
+            content: attr(data-label);
+            font-size: 10px !important;
+            font-weight: 800 !important;
+            color: var(--text-muted) !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.08em !important;
+            text-align: left !important;
+          }
+          .plat-cell-val { width: 100% !important; text-align: right !important; display: flex !important; flex-direction: column !important; align-items: flex-end !important; }
+          [data-label="ID"] { background: var(--bg-surface-2) !important; border-bottom: 1px solid var(--border-main) !important; margin-bottom: 4px; }
+        }
+      `}</style>
     </div>
   );
 }

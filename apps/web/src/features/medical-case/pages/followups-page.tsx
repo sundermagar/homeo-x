@@ -255,52 +255,54 @@ export default function FollowupsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {followups.map(f => (
-                      <tr key={f.id} className="hover-row">
-                        <td>
-                          <div className="fu-patient-info">
-                            <div className="fu-avatar-sm">{f.patientName?.[0]}</div>
-                            <div>
-                              <span className="fu-name">{f.patientName}</span>
-                              <span className="fu-phone">{f.phone || 'No Contact'}</span>
+                      {followups.map(f => (
+                        <tr key={f.id} className="hover-row">
+                          <td data-label="PATIENT">
+                            <div className="fu-patient-info">
+                              <div className="fu-avatar-sm">{f.patientName?.[0]}</div>
+                              <div>
+                                <span className="fu-name">{f.patientName}</span>
+                                <span className="fu-phone">{f.phone || 'No Contact'}</span>
+                              </div>
                             </div>
-                          </div>
-                        </td>
-                        <td>
-                          <span className={`db-badge ${f.visitType === 'Missed' ? 'db-badge-danger' : 'db-badge-success'}`}>
-                            {f.visitType}
-                          </span>
-                        </td>
-                        <td>
-                          <div className="fu-meta-cell">
-                            <Calendar size={12} />
-                            {new Date(f.bookingDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
-                          </div>
-                        </td>
-                        <td>
-                          <div className="fu-meta-cell">
-                            <Clock size={12} />
-                            {f.bookingTime || '—'}
-                          </div>
-                        </td>
-                        <td>
-                          <div className="fu-meta-cell">
-                            <User size={12} />
-                            {f.doctorName || 'General'}
-                          </div>
-                        </td>
-                        <td style={{ textAlign: 'right' }}>
-                          <div className="flex justify-end gap-2">
-                            <button className="fu-action-btn wa" onClick={() => openWhatsApp(f)}>
-                              <MessageSquare size={14} />
-                            </button>
-                            <Link to={`/medical-cases/${f.patientId}`} className="fu-action-btn">
-                              <ChevronRight size={14} />
-                            </Link>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                          <td data-label="ENC. TYPE">
+                            <div className="flex justify-end w-full">
+                              <span className={`db-badge ${f.visitType === 'Missed' ? 'db-badge-danger' : 'db-badge-success'}`}>
+                                {f.visitType}
+                              </span>
+                            </div>
+                          </td>
+                          <td data-label="DUE DATE">
+                            <div className="fu-meta-cell">
+                              <Calendar size={12} />
+                              {new Date(f.bookingDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                            </div>
+                          </td>
+                          <td data-label="TIME">
+                            <div className="fu-meta-cell">
+                              <Clock size={12} />
+                              {f.bookingTime || '—'}
+                            </div>
+                          </td>
+                          <td data-label="ASSIGNED TO">
+                            <div className="fu-meta-cell">
+                              <User size={12} />
+                              {f.doctorName || 'General'}
+                            </div>
+                          </td>
+                          <td data-label="ACTION" style={{ textAlign: 'right' }}>
+                            <div className="flex justify-end gap-2 fu-action-wrap">
+                              <button className="fu-action-btn wa" onClick={() => openWhatsApp(f)}>
+                                <MessageSquare size={14} />
+                              </button>
+                              <Link to={`/medical-cases/${f.patientId}`} className="fu-action-btn">
+                                <ChevronRight size={14} />
+                              </Link>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
                   </tbody>
                 </table>
               </div>
@@ -422,8 +424,8 @@ export default function FollowupsPage() {
           justify-content: center;
           box-shadow: 0 8px 20px rgba(37, 99, 235, 0.15);
         }
-        .fu-h2 { font-size: clamp(1.1rem, 3vw, 1.25rem); font-weight: 700; color: var(--pp-ink); margin: 0; }
-        .fu-p { color: var(--pp-text-3); font-size: clamp(0.75rem, 2vw, 0.85rem); margin-top: 4px; line-height: 1.4; }
+        .fu-h2 { font-size: clamp(1.1rem, 3vw, 1.25rem); font-weight: 700; color: var(--text-main); margin: 0; }
+        .fu-p { color: var(--text-muted); font-size: clamp(0.75rem, 2vw, 0.85rem); margin-top: 4px; line-height: 1.4; }
 
         .fu-insights-grid {
           display: grid;
@@ -437,17 +439,17 @@ export default function FollowupsPage() {
           display: flex;
           align-items: center;
           gap: 12px;
-          background: var(--pp-warm-1);
+          background: var(--bg-surface-2);
           padding: clamp(10px, 2vw, 14px);
           border-radius: 12px;
-          border: 1px solid var(--pp-warm-2);
+          border: 1px solid var(--border-main);
           transition: all 0.2s ease;
         }
         .fu-insight-item:hover {
           transform: translateY(-2px);
           box-shadow: var(--pp-shadow-sm);
-          background: white;
-          border-color: var(--pp-blue-border);
+          background: var(--bg-card);
+          border-color: var(--primary-border);
         }
         .fu-insight-icon {
           flex-shrink: 0;
@@ -458,12 +460,12 @@ export default function FollowupsPage() {
           align-items: center;
           justify-content: center;
         }
-        .fu-insight-icon.total { background: #eff6ff; color: #2563eb; }
-        .fu-insight-icon.missed { background: #fef2f2; color: #dc2626; }
-        .fu-insight-icon.next { background: #f0fdf4; color: #16a34a; }
+        .fu-insight-icon.total { background: #eff6ff; color: var(--pp-blue); }
+        .fu-insight-icon.missed { background: #fef2f2; color: var(--pp-danger-fg); }
+        .fu-insight-icon.next { background: #f0fdf4; color: var(--pp-success-fg); }
         
-        .fu-insight-label { display: block; font-size: 9px; font-weight: 700; color: var(--pp-text-3); text-transform: uppercase; letter-spacing: 0.05em; }
-        .fu-insight-value { display: block; font-size: clamp(1.1rem, 3vw, 1.25rem); font-weight: 800; color: var(--pp-ink); line-height: 1; margin-top: 2px; }
+        .fu-insight-label { display: block; font-size: 9px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+        .fu-insight-value { display: block; font-size: clamp(1.1rem, 3vw, 1.25rem); font-weight: 800; color: var(--text-main); line-height: 1; margin-top: 2px; }
 
         /* Action Bar */
         .fu-action-bar {
@@ -529,10 +531,10 @@ export default function FollowupsPage() {
           display: flex; align-items: center; justify-content: center;
           font-weight: 700; font-size: 12px;
         }
-        .fu-name { display: block; font-weight: 600; color: var(--pp-ink); font-size: 13px; }
-        .fu-phone { display: block; font-size: 11px; color: var(--pp-text-3); }
-        .fu-meta-cell { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--pp-text-2); }
-        .fu-meta-cell svg { color: var(--pp-text-4); }
+        .fu-name { display: block; font-weight: 700; color: var(--text-main); font-size: 14px; }
+        .fu-phone { display: block; font-size: 11px; color: var(--text-muted); }
+        .fu-meta-cell { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-main); }
+        .fu-meta-cell svg { color: var(--text-muted); }
 
         .fu-action-btn {
           width: 32px; height: 32px;
@@ -544,7 +546,7 @@ export default function FollowupsPage() {
           transition: all 0.2s;
         }
         .fu-action-btn:hover { background: var(--pp-warm-2); color: var(--pp-blue); border-color: var(--pp-blue-border); }
-        .fu-action-btn.wa:hover { background: #f0fdf4; color: #16a34a; border-color: #bbf7d0; }
+        .fu-action-btn.wa:hover { background: #f0fdf4; color: var(--pp-success-fg); border-color: #bbf7d0; }
 
         /* Card View */
         .fu-patient-card { padding: 24px; position: relative; }
@@ -604,8 +606,89 @@ export default function FollowupsPage() {
           .fu-hero-icon-blob { margin-top: 4px; }
         }
         
-        @media (max-width: 639px) {
-          .fu-list-view { display: none; }
+        @media (max-width: 1024px) {
+          .pp-table-scroll { 
+            overflow: visible !important; 
+            border: none !important; 
+            background: transparent !important;
+            width: 100% !important;
+            min-width: 0 !important;
+          }
+          .pp-table { 
+            min-width: 0 !important; 
+            width: 100% !important; 
+            display: block !important;
+          }
+          .pp-table thead { display: none; }
+          .pp-table tr { 
+            display: block !important; 
+            width: 100% !important;
+            margin-bottom: 24px !important; 
+            border: 1px solid var(--border-main) !important; 
+            border-radius: 16px !important; 
+            background: var(--bg-card) !important;
+            overflow: hidden !important;
+            box-shadow: var(--pp-shadow-sm) !important;
+          }
+          .pp-table td {
+            display: grid !important;
+            grid-template-columns: 110px 1fr !important;
+            gap: 12px !important;
+            align-items: flex-start !important;
+            padding: 14px 20px !important;
+            border-bottom: 1px dashed var(--border-main) !important;
+            text-align: right !important;
+            background: transparent !important;
+            min-height: 48px;
+            width: 100% !important;
+          }
+          .pp-table td:last-child {
+            background: var(--bg-surface-2) !important;
+            border-top: 1px solid var(--border-main) !important;
+            border-bottom: none !important;
+            padding-top: 18px !important;
+            padding-bottom: 18px !important;
+            margin-top: 4px;
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+          }
+
+          .pp-table td::before {
+            content: attr(data-label);
+            display: block !important;
+            font-weight: 800 !important;
+            font-size: 10px !important;
+            color: var(--text-muted) !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.1em !important;
+            text-align: left !important;
+            opacity: 0.8;
+          }
+          .fu-patient-info { 
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: flex-end !important;
+            text-align: right !important;
+            min-width: 0;
+            width: 100%;
+          }
+          .fu-avatar-sm { display: none; }
+          .fu-meta-cell { 
+            display: flex !important;
+            justify-content: flex-end !important; 
+            align-items: center !important;
+            color: var(--text-main) !important; 
+            font-weight: 700 !important; 
+            min-width: 0;
+            gap: 6px;
+            width: 100%;
+          }
+          .fu-name { color: var(--text-main) !important; font-size: 14px !important; line-height: 1.2; font-weight: 700 !important; }
+          .fu-phone { color: var(--text-muted) !important; font-size: 11px !important; }
+          .fu-meta-cell svg { color: var(--primary) !important; flex-shrink: 0; }
+          .fu-action-wrap { width: 100%; }
+          .fu-action-btn { flex: 1; height: 40px; border-radius: 12px; }
         }
       `}</style>
     </div>

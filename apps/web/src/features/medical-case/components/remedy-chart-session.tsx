@@ -103,7 +103,7 @@ function SearchableSelect({
               style={{
                 width: '100%',
                 padding: '6px',
-                border: '1px solid #3b82f6',
+                border: '1px solid var(--pp-blue)',
                 borderRadius: '4px',
                 boxSizing: 'border-box',
                 outline: 'none',
@@ -331,8 +331,8 @@ export function RemedyChartSession({ regid, onDayChargeChange }: { regid?: numbe
                 style={{
                   flex: 1, minWidth: '80px', padding: '10px', borderRadius: '10px', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', textTransform: 'capitalize',
                   background: 'white',
-                  border: delivery === mode ? '2px solid #2563eb' : '1px solid #e2e8f0',
-                  color: delivery === mode ? '#2563eb' : '#64748b',
+                  border: delivery === mode ? '2px solid var(--pp-blue)' : '1px solid var(--pp-warm-4)',
+                  color: delivery === mode ? 'var(--pp-blue)' : 'var(--pp-text-3)',
                   transition: 'all 0.2s'
                 }}
               >
@@ -341,13 +341,36 @@ export function RemedyChartSession({ regid, onDayChargeChange }: { regid?: numbe
             ))}
           </div>
         </div>
+        {/* Print Buttons */}
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            onClick={() => {
+              const authStorage = localStorage.getItem('auth-storage');
+              const token = authStorage ? JSON.parse(authStorage).state.token : '';
+              window.open(`/api/medical-cases/remedy-chart/pdf/${regid}?token=${token}`, '_blank');
+            }}
+            style={{ background: '#1e3a8a', color: 'white', border: 'none', borderRadius: '12px', padding: '10px 24px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 6px rgba(30,58,138,0.2)' }}
+          >
+            <Printer size={16} /> Print Prescription
+          </button>
+          <button
+            onClick={() => {
+              const authStorage = localStorage.getItem('auth-storage');
+              const token = authStorage ? JSON.parse(authStorage).state.token : '';
+              window.open(`/api/medical-cases/pdf/summary/${regid}?token=${token}`, '_blank');
+            }}
+            style={{ background: '#0891b2', color: 'white', border: 'none', borderRadius: '12px', padding: '10px 24px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 6px rgba(8,145,178,0.2)' }}
+          >
+            <FileText size={16} /> Print Summary
+          </button>
+        </div>
       </div>
 
       {activeTab === 'rx' && (
         <div style={{ padding: '16px 24px' }}>
           {/* Inline Form */}
           {editingId && (
-            <div style={{ padding: '6px 12px', marginBottom: '12px', background: '#eff6ff', borderLeft: '3px solid #3b82f6', borderRadius: '4px', fontSize: '0.75rem', color: '#1e40af' }}>
+            <div style={{ padding: '6px 12px', marginBottom: '12px', background: '#eff6ff', borderLeft: '3px solid var(--pp-blue)', borderRadius: '4px', fontSize: '0.75rem', color: '#1e40af' }}>
               ✏️ Editing prescription — make changes and click <strong>✓ Update</strong>
             </div>
           )}
@@ -484,7 +507,7 @@ export function RemedyChartSession({ regid, onDayChargeChange }: { regid?: numbe
                         </span>
                       </td>
                       <td>
-                        <span style={{ color: '#2563eb', fontWeight: 700, fontSize: '0.9rem' }}>{rx.frequency_name}</span>
+                        <span style={{ color: 'var(--pp-blue)', fontWeight: 700, fontSize: '0.9rem' }}>{rx.frequency_name}</span>
                       </td>
                       <td>
                         <span style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>{rx.days}</span>
@@ -589,14 +612,14 @@ function ImageUploadTab({ regid }: { regid: number }) {
             <img src={preview} style={{ maxWidth: '100%', maxHeight: '250px', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
             <button
               onClick={() => { setFile(null); setPreview(null); }}
-              style={{ position: 'absolute', top: '-10px', right: '-10px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '50%', width: '24px', height: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              style={{ position: 'absolute', top: '-10px', right: '-10px', background: 'var(--pp-danger-fg)', color: 'white', border: 'none', borderRadius: '50%', width: '24px', height: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
               <X size={14} />
             </button>
           </div>
         ) : (
           <div onClick={() => fileInputRef.current?.click()} style={{ cursor: 'pointer' }}>
-            <div style={{ background: '#eff6ff', color: '#3b82f6', width: '48px', height: '48px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+            <div style={{ background: '#eff6ff', color: 'var(--pp-blue)', width: '48px', height: '48px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
               <Plus size={24} />
             </div>
             <div style={{ color: '#0f172a', fontWeight: 600 }}>Click to upload clinical image</div>

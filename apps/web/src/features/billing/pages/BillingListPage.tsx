@@ -127,7 +127,7 @@ export default function BillingListPage() {
       <div className="bill-section-header">
         <div />
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <div className="bill-section-filters">
           <div className="bill-view-toggle-group">
             <button
               type="button"
@@ -219,6 +219,63 @@ export default function BillingListPage() {
         />
       </Drawer>
 
+      <style>{`
+        @media (max-width: 1024px) {
+          .bill-header { flex-direction: column !important; align-items: stretch !important; gap: 16px !important; }
+          .bill-header-actions { grid-template-columns: 1fr !important; gap: 8px !important; display: grid !important; }
+          .bill-header-actions .bill-btn { height: 44px; justify-content: center; border-radius: 12px; }
+          .bill-filter-input { width: 100% !important; height: 44px; border-radius: 12px; }
+
+          .bill-stats-bar { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
+          .bill-stat-card { padding: 12px !important; }
+          .bill-stat-value { font-size: 18px !important; }
+
+          .bill-section-header { flex-direction: column !important; align-items: stretch !important; gap: 12px !important; display: flex !important; }
+          .bill-section-filters { flex-direction: column !important; align-items: stretch !important; gap: 12px !important; width: 100%; display: flex !important; }
+          .bill-view-toggle-group { width: 100%; display: flex; }
+          .bill-view-toggle-btn { flex: 1; justify-content: center; height: 40px; }
+          .bill-search-wrap { width: 100% !important; }
+          .bill-search-input { width: 100% !important; }
+
+          .bill-card { border: none !important; box-shadow: none !important; background: transparent !important; }
+          .bill-table-container { border: none !important; background: transparent !important; overflow: visible !important; }
+          .bill-table { display: block !important; width: 100% !important; min-width: 0 !important; }
+          .bill-table thead { display: none !important; }
+          .bill-table tbody { display: block !important; width: 100% !important; }
+          .bill-table tr { 
+            display: block !important; 
+            margin-bottom: 20px !important; 
+            background: var(--bg-card) !important; 
+            border: 1px solid var(--border-main) !important; 
+            border-radius: 16px !important; 
+            padding: 8px 0 !important;
+            box-shadow: var(--pp-shadow-sm) !important;
+          }
+          .bill-table td {
+            display: grid !important;
+            grid-template-columns: 100px 1fr !important;
+            gap: 12px !important;
+            align-items: center !important;
+            padding: 12px 20px !important;
+            border-bottom: 1px dashed var(--border-main) !important;
+            min-height: 48px;
+            text-align: right !important;
+            width: 100% !important;
+          }
+          .bill-table td:last-child { border-bottom: none !important; background: var(--bg-surface-2) !important; margin-top: 4px; }
+          
+          .bill-table td::before {
+            content: attr(data-label);
+            font-size: 10px !important;
+            font-weight: 800 !important;
+            color: var(--text-muted) !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.08em !important;
+            text-align: left !important;
+          }
+          .plat-cell-val { width: 100% !important; text-align: right !important; display: flex !important; flex-direction: column !important; align-items: flex-end !important; }
+        }
+      `}</style>
     </div>
   );
 }

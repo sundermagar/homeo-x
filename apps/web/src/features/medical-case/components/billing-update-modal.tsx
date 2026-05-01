@@ -204,8 +204,8 @@ export function BillingUpdateModal({ regid, patientName, onClose, currentConsult
                 </select>
               </div>
               {bills?.totals.totalBalance === 0 && (
-                <div style={{ marginTop: '20px', padding: '12px', background: '#f0fdf4', color: '#16a34a', borderRadius: '10px', fontSize: '0.8rem', display: 'flex', gap: '10px', alignItems: 'center' }}>
-                  <CheckCircle2 size={16} /> All balances are currently clear.
+                <div style={{ marginTop: '12px', padding: '8px 12px', background: '#f0fdf4', color: 'var(--pp-success-fg)', borderRadius: '8px', fontSize: '0.75rem', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <CheckCircle2 size={14} /> All balances are currently clear.
                 </div>
               )}
             </div>

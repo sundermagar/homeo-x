@@ -112,17 +112,29 @@ communicationRouter.post('/sms/broadcast', asyncHandler(async (req, res) => {
 // POST /api/communications/whatsapp/send — single
 communicationRouter.post('/whatsapp/send', asyncHandler(async (req, res) => {
   const uc = new SendWhatsAppUseCase(getRepo(req), whatsappGateway);
-  const { phone, message, regid } = req.body;
-  const result = await uc.sendSingle({ phone, message, regid });
-  if (result.success) sendSuccess(res, result.data, 'WhatsApp link generated');
+  const { phone, message, regid, instanceId } = req.body;
+  const result = await uc.sendSingle({ 
+    phone, 
+    message, 
+    regid, 
+    instanceId,
+    tenantSlug: req.tenantSlug 
+  });
+  if (result.success) sendSuccess(res, result.data, 'WhatsApp sent');
   else throw new BadRequestError(String(result.error));
 }));
 
 // POST /api/communications/whatsapp/broadcast
 communicationRouter.post('/whatsapp/broadcast', asyncHandler(async (req, res) => {
   const uc = new SendWhatsAppUseCase(getRepo(req), whatsappGateway);
-  const { patientIds, phone, message } = req.body;
-  const result = await uc.broadcast({ patientIds, phone, message });
+  const { patientIds, phone, message, instanceId } = req.body;
+  const result = await uc.broadcast({ 
+    patientIds, 
+    phone, 
+    message, 
+    instanceId,
+    tenantSlug: req.tenantSlug 
+  });
   if (result.success) sendSuccess(res, result.data, `WhatsApp: ${result.data?.sent ?? 0} sent`);
   else throw new BadRequestError(String(result.error));
 }));
@@ -132,6 +144,21 @@ communicationRouter.get('/whatsapp/logs', asyncHandler(async (req, res) => {
   const repo = getRepo(req);
   const logs = await repo.listWhatsAppLogs(100);
   sendSuccess(res, logs);
+}));
+
+// GET /api/communications/whatsapp/qr
+communicationRouter.get('/whatsapp/qr', asyncHandler(async (req, res) => {
+  const result = await whatsappGateway.getQrCode();
+  if (result.success) sendSuccess(res, result);
+  else throw new BadRequestError(result.error ?? 'Failed to get QR code');
+}));
+
+// GET /api/communications/whatsapp/status/:instanceId
+communicationRouter.get('/whatsapp/status/:instanceId', asyncHandler(async (req, res) => {
+  const { instanceId } = req.params;
+  if (!instanceId) throw new BadRequestError('instanceId is required');
+  const result = await whatsappGateway.checkStatus(String(instanceId));
+  sendSuccess(res, result);
 }));
 
 // ─── OTP ────────────────────────────────────────────────────────────────────────

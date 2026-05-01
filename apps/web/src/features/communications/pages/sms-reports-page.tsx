@@ -53,9 +53,6 @@ export default function SmsReportsPage() {
           <p className="comm-subtitle">Delivery tracking and transmission ledger</p>
         </div>
         <div className="comm-header-actions">
-          <button className="comm-btn comm-btn-sm" onClick={() => refetch()} disabled={isFetching}>
-            <RefreshCw size={13} className={isFetching ? "comm-spin" : ""} /> Refresh
-          </button>
         </div>
       </header>
 
@@ -130,19 +127,21 @@ export default function SmsReportsPage() {
                 <tbody>
                   {reports.map((r: SmsReport) => (
                     <tr key={r.id}>
-                      <td className="comm-table-mono">#{r.id}</td>
-                      <td className="comm-table-date">
+                      <td data-label="#" className="comm-table-mono">#{r.id}</td>
+                      <td data-label="DATE & TIME" className="comm-table-date">
                         {new Date(r.sendDate).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}
                       </td>
-                      <td className="comm-table-phone">{r.phone ?? '—'}</td>
-                      <td className="comm-table-message" title={r.message}>{r.message}</td>
-                      <td><span className="comm-type-tag">{r.smsType}</span></td>
-                      <td>
+                      <td data-label="PHONE" className="comm-table-phone">{r.phone ?? '—'}</td>
+                      <td data-label="MESSAGE" className="comm-table-message" title={r.message}>
+                        <div className="comm-msg-text">{r.message}</div>
+                      </td>
+                      <td data-label="TYPE"><span className="comm-type-tag">{r.smsType}</span></td>
+                      <td data-label="STATUS">
                         <span className={getStatusClass(r.status)}>
                           {r.status?.charAt(0).toUpperCase()}{r.status?.slice(1)}
                         </span>
                       </td>
-                      <td className="comm-table-ref">{r.gatewayRef ?? '—'}</td>
+                      <td data-label="REF" className="comm-table-ref">{r.gatewayRef ?? '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -159,6 +158,76 @@ export default function SmsReportsPage() {
           </>
         )}
       </div>
+      <style>{`
+        @media (max-width: 1024px) {
+          .comm-header { flex-direction: column !important; align-items: stretch !important; gap: 12px !important; }
+          .comm-stats { grid-template-columns: 1fr !important; }
+          .comm-filters { flex-direction: column !important; align-items: stretch !important; }
+          .comm-filter-input { width: 100% !important; height: 44px !important; border-radius: 12px !important; }
+          .comm-search-wrap { width: 100% !important; }
+          
+          .comm-card { border: none !important; box-shadow: none !important; background: transparent !important; }
+          .comm-table-wrap { border: none !important; overflow: visible !important; }
+          .comm-table { display: block !important; width: 100% !important; min-width: 0 !important; }
+          .comm-table thead { display: none !important; }
+          .comm-table tbody { display: block !important; width: 100% !important; }
+          .comm-table tr { 
+            display: block !important; 
+            margin-bottom: 20px !important; 
+            background: var(--bg-card) !important; 
+            border: 1px solid var(--border-main) !important; 
+            border-radius: 16px !important; 
+            padding: 8px 0 !important;
+            box-shadow: var(--pp-shadow-sm) !important;
+            overflow: hidden;
+          }
+          .comm-table td {
+            display: grid !important;
+            grid-template-columns: 110px 1fr !important;
+            gap: 12px !important;
+            align-items: center !important;
+            padding: 12px 20px !important;
+            border-bottom: 1px dashed var(--border-main) !important;
+            min-height: 44px;
+            text-align: right !important;
+            width: 100% !important;
+          }
+          .comm-table td:last-child { border-bottom: none !important; }
+          
+          .comm-table td::before {
+            content: attr(data-label);
+            font-size: 10px !important;
+            font-weight: 800 !important;
+            color: var(--text-muted) !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.08em !important;
+            text-align: left !important;
+            opacity: 0.8;
+          }
+          
+          .comm-table-message { 
+            white-space: normal !important; 
+            text-align: right !important;
+            width: 100% !important;
+            min-width: 0 !important;
+          }
+          .comm-msg-text {
+            display: -webkit-box !important;
+            -webkit-line-clamp: 4 !important;
+            -webkit-box-orient: vertical !important;
+            overflow: hidden !important;
+            word-break: break-word !important;
+            line-height: 1.4 !important;
+            color: var(--text-main) !important;
+          }
+          .comm-table-date, .comm-table-phone, .comm-table-ref { 
+            font-weight: 700 !important; 
+            color: var(--text-main) !important; 
+            min-width: 0 !important;
+            word-break: break-all !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

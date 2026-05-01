@@ -133,33 +133,42 @@ export default function CmsManagePage() {
                   <tr key={page.id} className="plat-table-row">
                     <td data-label="ID" className="plat-table-cell font-mono text-xs color-muted">{page.id}</td>
                     <td data-label="Title" className="plat-table-cell">
-                      <div className="font-semibold">{page.title}</div>
-                      <div className="text-xs color-muted mt-0.5">Last updated: {new Date().toLocaleDateString()}</div>
+                      <div className="plat-cell-val">
+                        <div className="font-semibold">{page.title}</div>
+                        <div className="text-xs color-muted mt-0.5">Last updated: {new Date().toLocaleDateString()}</div>
+                      </div>
                     </td>
                     <td data-label="Slug" className="plat-table-cell">
-                      <div className="flex items-center gap-1.5 font-mono text-xs text-primary bg-faded px-2 py-0.5 rounded-md w-fit border border-main">
-                        /{page.slug}
-                        <ArrowUpRight size={10} className="opacity-50" />
+                      <div className="plat-cell-val">
+                        <div className="flex items-center gap-1.5 font-mono text-xs text-primary bg-faded px-2 py-0.5 rounded-md w-fit border border-main">
+                          /{page.slug}
+                          <ArrowUpRight size={10} className="opacity-50" />
+                        </div>
                       </div>
                     </td>
                     <td data-label="Status" className="plat-table-cell">
-                      {page.isActive ?
-                        <span className="plat-badge plat-badge-staff">Published</span> :
-                        <span className="plat-badge plat-badge-default">Draft Mode</span>
-                      }
+                      <div className="plat-cell-val">
+                        {page.isActive ?
+                          <span className="plat-badge plat-badge-staff">Published</span> :
+                          <span className="plat-badge plat-badge-default">Draft Mode</span>
+                        }
+                      </div>
                     </td>
-                    <td className="plat-table-cell">
-                      <div className="flex justify-end gap-3">
-                        <button className="plat-btn plat-btn-sm plat-btn-icon" onClick={() => handleEdit(page)} title="Edit Content">
-                          <Edit2 size={13} />
-                        </button>
-                        <button
-                          className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger"
-                          onClick={() => { if (confirm(`Archive page "${page.title}"?`)) deletePage.mutate(page.id) }}
-                          title="Delete Page"
-                        >
-                          <Trash2 size={13} />
-                        </button>
+                    <td data-label="Actions" className="plat-table-cell">
+                      <div className="plat-cell-val">
+                        <div className="flex justify-end gap-3" style={{ width: '100%' }}>
+                          <button className="plat-btn plat-btn-sm plat-btn-icon" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={() => handleEdit(page)} title="Edit Content">
+                            <Edit2 size={13} />
+                          </button>
+                          <button
+                            className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger"
+                            style={{ width: 36, height: 36, borderRadius: 10 }}
+                            onClick={() => { if (confirm(`Archive page "${page.title}"?`)) deletePage.mutate(page.id) }}
+                            title="Delete Page"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
                       </div>
                     </td>
                   </tr>
@@ -252,6 +261,59 @@ export default function CmsManagePage() {
           </div>
         </form>
       </Drawer>
+      <style>{`
+        @media (max-width: 1024px) {
+          .plat-header { flex-direction: column !important; align-items: stretch !important; gap: 16px !important; }
+          .plat-header-actions { width: 100%; }
+          .plat-header-actions .plat-btn { width: 100%; height: 44px; border-radius: 12px; justify-content: center; }
+          
+          .plat-stats-bar { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
+          .plat-stat-card { padding: 12px !important; }
+          .plat-stat-value { font-size: 18px !important; }
+          
+          .plat-filters { flex-direction: column; align-items: stretch; gap: 12px; }
+          .plat-search-wrap { width: 100% !important; }
+          .plat-search-input { width: 100% !important; height: 44px !important; border-radius: 12px !important; }
+          
+          .plat-card { border: none !important; box-shadow: none !important; background: transparent !important; padding: 0 !important; }
+          .plat-table-container { border: none !important; background: transparent !important; overflow: visible !important; }
+          .plat-table { display: block !important; width: 100% !important; }
+          .plat-table thead { display: none !important; }
+          .plat-table tbody { display: block !important; width: 100% !important; }
+          .plat-table tr { 
+            display: block !important; 
+            margin-bottom: 20px !important; 
+            background: var(--bg-card) !important; 
+            border: 1px solid var(--border-main) !important; 
+            border-radius: 16px !important; 
+            padding: 8px 0 !important;
+            box-shadow: var(--pp-shadow-sm) !important;
+          }
+          .plat-table td {
+            display: grid !important;
+            grid-template-columns: 110px 1fr !important;
+            gap: 12px !important;
+            align-items: center !important;
+            padding: 12px 20px !important;
+            border-bottom: 1px dashed var(--border-main) !important;
+            min-height: 48px;
+            text-align: right !important;
+            width: 100% !important;
+          }
+          .plat-table td:last-child { border-bottom: none !important; background: var(--bg-surface-2) !important; padding-top: 16px !important; padding-bottom: 16px !important; border-bottom-left-radius: 15px; border-bottom-right-radius: 15px; }
+    .plat-table td::before {
+      content: attr(data-label);
+      font-size: 10px !important;
+      font-weight: 800 !important;
+      color: var(--text-muted) !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.1em !important;
+      text-align: left !important;
+    }
+    .plat-cell-val { width: 100% !important; text-align: right !important; display: flex !important; flex-direction: column !important; align-items: flex-end !important; }
+    [data-label="ID"] { background: var(--bg-surface-2) !important; border-bottom: 1px solid var(--border-main) !important; padding: 12px 20px !important; }
+  }
+      `}</style>
     </div>
   );
 }

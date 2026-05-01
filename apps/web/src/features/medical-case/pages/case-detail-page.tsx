@@ -5,7 +5,7 @@ import {
   History, Camera, Zap, CreditCard, Clock,
   Phone, Calendar, MapPin, CheckCircle2, AlertCircle,
   Sparkles, MoreHorizontal, ChevronRight, Plus, Package,
-  MessageSquare, Send, BrainCircuit, ClipboardList, FlaskConical,
+  MessageSquare, Send, BrainCircuit, ClipboardList, FlaskConical, Microscope,
   Printer, Paperclip, Upload, X, Eye, Loader2, Trash2, Thermometer,
   TrendingUp, Stethoscope, Scale, Syringe, BarChart3, Pill, Check, User,
   ChevronLeft,
@@ -52,7 +52,7 @@ export function AutoSaveNoteArea({ initialValue = '', onSave, placeholder = '' }
       {status !== 'idle' && (
         <div style={{
           position: 'absolute', bottom: '8px', right: '12px', fontSize: '0.75rem', fontWeight: 600,
-          color: status === 'saving' ? '#3b82f6' : status === 'error' ? '#ef4444' : '#10b981'
+          color: status === 'saving' ? 'var(--pp-blue)' : status === 'error' ? 'var(--pp-danger-fg)' : '#10b981'
         }}>
           {status === 'saving' ? 'Saving...' : status === 'error' ? 'Failed' : 'Saved'}
         </div>
@@ -118,10 +118,14 @@ export default function MedicalCaseDetailPage() {
     { id: 'summary', label: 'Examination Report', icon: Pill },
     { id: 'diagnosis', label: 'Diagnosis', icon: Sparkles },
     { id: 'media', label: 'Media', icon: Camera },
-    { id: 'labs', label: 'Investigation Report', icon: FlaskConical },
-    { id: 'vitals', label: 'Vitals', icon: Stethoscope },
-    { id: 'homeo', label: 'Add Clinic Activity', icon: Zap },
-    { id: 'analytics', label: 'Graph (H/W)', icon: BarChart3 },
+    { id: 'matrix', label: 'Clinical Matrix', icon: Microscope },
+    { id: 'homeo', label: 'Homeopathic', icon: Zap },
+    { id: 'vitals', label: 'Vitals & Exam', icon: Stethoscope },
+    { id: 'labs', label: 'Investigations', icon: FlaskConical },
+    { id: 'vaccine', label: 'Vaccines', icon: Syringe },
+    { id: 'communication', label: 'Communication', icon: MessageSquare },
+    { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+    { id: 'reports', label: 'Reports', icon: ClipboardList },
   ];
 
   const renderActiveTabContent = () => {
@@ -129,10 +133,12 @@ export default function MedicalCaseDetailPage() {
       case 'summary': return <RemedyChartSession regid={Number(regid)} onDayChargeChange={setPendingCharge} />;
       case 'diagnosis': return <div style={{ padding: 20 }}><DiagnosisView regid={Number(regid)} visitId={medicalCase.id} medicalCase={medicalCase} soapRecords={soap} /></div>;
       case 'media': return <div style={{ padding: 20 }}><MediaView regid={Number(regid)} visitId={medicalCase.id} images={images} /></div>;
-      case 'labs': return <div style={{ padding: 20 }}><LabsView investigations={investigations} regid={Number(regid)} visitId={medicalCase.id} /></div>;
-      case 'vitals': return <div style={{ padding: 20 }}><VitalsView vitals={vitals} onRecord={() => setShowVitalsModal(true)} phone={medicalCase.phone || medicalCase.mobile || ''} name={medicalCase.patientName || ''} regid={Number(regid)} clinicName={clinicName} /></div>;
-      case 'communication': return <div style={{ padding: 20 }}><CommunicationView regid={Number(regid)} phone={medicalCase.phone || ''} name={medicalCase.patientName || ''} /></div>;
+      case 'matrix': return <div style={{ padding: 0 }}><AiRemedyView regid={Number(regid)} /></div>;
       case 'homeo': return <div style={{ padding: 20 }}><HomeoView regid={Number(regid)} initialData={homeo} /></div>;
+      case 'vitals': return <div style={{ padding: 20 }}><VitalsView vitals={vitals} onRecord={() => setShowVitalsModal(true)} phone={medicalCase.phone || medicalCase.mobile || ''} name={medicalCase.patientName || ''} regid={Number(regid)} clinicName={clinicName} /></div>;
+      case 'labs': return <div style={{ padding: 20 }}><LabsView investigations={investigations} regid={Number(regid)} visitId={medicalCase.id} /></div>;
+      case 'vaccine': return <div style={{ padding: 20 }}><VaccineView regid={Number(regid)} caseVaccines={vaccines || []} /></div>;
+      case 'communication': return <div style={{ padding: 20 }}><CommunicationView regid={Number(regid)} phone={medicalCase.phone || ''} name={medicalCase.patientName || ''} /></div>;
       case 'analytics': return <div style={{ padding: 20 }}><AnalyticsView vitals={vitals || []} regid={Number(regid)} visitId={medicalCase.id} name={medicalCase.patientName || ''} phone={medicalCase.phone || medicalCase.mobile || ''} clinicName={clinicName} /></div>;
       case 'reports': return <div style={{ padding: 20 }}><ReportsView regid={Number(regid)} investigations={investigations || []} /></div>;
       case 'ai-assist': return <div style={{ padding: 20 }}><AiConsultantView regid={Number(regid)} /></div>;
@@ -926,7 +932,11 @@ function AnalyticsView({ vitals, regid, visitId, name, phone, clinicName }: { vi
                 <RechartsTooltip />
                 <Legend iconType="circle" />
                 <Line type="monotone" dataKey="systolic" name="Systolic" stroke="var(--pp-danger-fg)" strokeWidth={2} dot={{ r: 3 }} />
+<<<<<<< Updated upstream
                 <Line type="monotone" dataKey="diastolic" name="Diastolic" stroke="#a855f7" strokeWidth={2} dot={{ r: 3 }} />
+=======
+                <Line type="monotone" dataKey="diastolic" name="Diastolic" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 3 }} />
+>>>>>>> Stashed changes
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -1108,12 +1118,21 @@ function VitalsView({ vitals, onRecord, phone, name, regid, clinicName }: { vita
       </div>
 
       <div className="mc-vitals-grid">
+<<<<<<< Updated upstream
         <VitalCard label="Height" value={latest ? latest.heightCm : '-'} unit="cm" icon={MoveVertical} color="#0ea5e9" />
         <VitalCard label="Body Weight" value={latest ? latest.weightKg : '-'} unit="kg" icon={Scale} color="#3b82f6" />
         <VitalCard label="BMI Index" value={latest ? latest.bmi : '-'} unit="" icon={Sparkles} color="#8b5cf6" />
         <VitalCard label="Blood Pressure" value={latest ? `${latest.systolicBp}/${latest.diastolicBp}` : '-'} unit="mmHg" icon={Activity} color="#ef4444" />
         <VitalCard label="Heart Rate" value={latest ? latest.pulseRate : '-'} unit="bpm" icon={History} color="#ec4899" />
         <VitalCard label="Temperature" value={latest ? latest.temperatureF : '-'} unit="°F" icon={Thermometer} color="#f59e0b" />
+=======
+        <VitalCard label="Blood Pressure" value={latest ? `${latest.systolicBp}/${latest.diastolicBp}` : '-'} unit="mmHg" icon={Activity} color="var(--pp-danger-fg)" />
+        <VitalCard label="Heart Rate" value={latest ? latest.pulseRate : '-'} unit="bpm" icon={History} color="#ec4899" />
+        <VitalCard label="Temperature" value={latest ? latest.temperatureF : '-'} unit="°F" icon={Thermometer} color="#f59e0b" />
+        <VitalCard label="Oxygen Level" value={latest ? latest.oxygenSaturation : '-'} unit="%" icon={Zap} color="#10b981" />
+        <VitalCard label="Body Weight" value={latest ? latest.weightKg : '-'} unit="kg" icon={Calendar} color="var(--pp-blue)" />
+        <VitalCard label="BMI Index" value={latest ? latest.bmi : '-'} unit="" icon={Sparkles} color="#8b5cf6" />
+>>>>>>> Stashed changes
       </div>
 
       <div style={{ marginTop: '32px' }}>
@@ -1468,7 +1487,7 @@ function LabsView({ investigations, regid, visitId }: { investigations: any[]; r
                             </div>
                           </td>
                           <td style={{ textAlign: 'center' }}>
-                            <button onClick={() => deleteRecord.mutateAsync({ type: 'investigations', id: inv.id })} className="btn-ghost" style={{ color: '#dc2626', padding: '4px 8px' }}>
+                            <button onClick={() => deleteRecord.mutateAsync({ type: 'investigations', id: inv.id })} className="btn-ghost" style={{ color: 'var(--pp-danger-fg)', padding: '4px 8px' }}>
                               <Trash2 size={14} />
                             </button>
                           </td>

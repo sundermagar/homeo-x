@@ -29,7 +29,7 @@ export function PrintOptionsModal({ bill, onClose, onPrint }: PrintOptionsModalP
               justifyContent: 'center',
               transition: 'all 0.2s'
             }}
-            onMouseOver={(e) => { e.currentTarget.style.background = '#fee2e2'; e.currentTarget.style.color = '#ef4444'; }}
+            onMouseOver={(e) => { e.currentTarget.style.background = '#fee2e2'; e.currentTarget.style.color = 'var(--pp-danger-fg)'; }}
             onMouseOut={(e) => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.color = '#64748b'; }}
           >
             <X size={18} />
@@ -120,13 +120,13 @@ function PrintOption({ icon, title, desc, onClick }: { icon: React.ReactNode, ti
       <style>{`
         .print-option-btn:hover {
           background: #f0f7ff !important;
-          border-color: #3b82f6 !important;
+          border-color: var(--pp-blue) !important;
           transform: translateY(-2px);
           box-shadow: 0 8px 20px -6px rgba(59, 130, 246, 0.15);
         }
         .print-option-btn:hover div:first-child {
           background: #fff !important;
-          color: #3b82f6 !important;
+          color: var(--pp-blue) !important;
           border-color: #bfdbfe !important;
           box-shadow: 0 4px 6px rgba(59, 130, 246, 0.05);
         }

@@ -71,7 +71,7 @@ export function Pagination({
             );
           }
           if (p === currentPage - 2 || p === currentPage + 2) {
-            return <span key={p} style={{ color: '#cbd5e1', padding: '0 4px', display: 'inline-flex', alignItems: 'center' }}>...</span>;
+            return <span key={p} style={{ color: 'var(--pp-text-3)', padding: '0 4px', display: 'inline-flex', alignItems: 'center' }}>...</span>;
           }
           return null;
         })}

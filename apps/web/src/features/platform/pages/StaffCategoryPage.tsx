@@ -1,11 +1,88 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Search, Edit2, Trash2, X, Users, UserCheck, Stethoscope, ClipboardList, ShieldCheck, UserCog } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, X, Users, UserCheck, Stethoscope, ClipboardList, ShieldCheck, UserCog, MapPin } from 'lucide-react';
 import { NumericInput } from '@/shared/components/NumericInput';
 import { useStaffList, useDeleteStaff, useCreateStaff, useUpdateStaff, useStaffMember } from '@/features/staff/hooks/use-staff';
 import type { StaffCategory, StaffSummary, StaffMember } from '@mmc/types';
 import type { CreateStaffInput, UpdateStaffInput } from '@mmc/validation';
 import { createStaffSchema, updateStaffSchema } from '@mmc/validation';
 import '../styles/platform.css';
+
+import { Drawer } from '@/shared/components/drawer';
+
+const mobileStyles = `
+  @media (max-width: 1024px) {
+    .plat-header { flex-direction: column !important; align-items: stretch !important; gap: 16px !important; }
+    .plat-header-actions { width: 100% !important; margin-top: 8px; }
+    .plat-header-actions .plat-btn { width: 100% !important; height: 46px !important; border-radius: 12px !important; justify-content: center !important; }
+
+    .plat-stats-bar { grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; padding: 0 !important; }
+    .plat-stat-card { padding: 16px 12px !important; }
+    .plat-stat-value { font-size: 20px !important; }
+
+    .plat-filters { 
+      flex-direction: column !important; 
+      align-items: stretch !important; 
+      gap: 12px !important; 
+      background: var(--bg-surface-2) !important;
+      padding: 16px !important;
+      border-radius: 16px !important;
+      margin-bottom: 16px !important;
+      border: 1px solid var(--border-main) !important;
+    }
+    .plat-filters > .flex { flex-direction: column !important; width: 100% !important; gap: 12px !important; }
+    .plat-search-wrap { width: 100% !important; margin: 0 !important; }
+    .plat-search-input { width: 100% !important; height: 44px !important; border-radius: 12px !important; font-size: 14px !important; }
+    .plat-filters select { width: 100% !important; height: 44px !important; border-radius: 12px !important; font-size: 14px !important; }
+    .plat-filters .plat-btn-ghost { width: 100% !important; height: 40px !important; justify-content: center !important; }
+
+    .plat-card { border: none !important; box-shadow: none !important; background: transparent !important; padding: 0 !important; }
+    .plat-table-container { 
+      border: none !important; 
+      background: transparent !important; 
+      overflow: visible !important; 
+      width: 100% !important;
+      padding: 0 !important;
+    }
+    .plat-table { display: block !important; width: 100% !important; min-width: 0 !important; border: none !important; }
+    .plat-table thead { display: none !important; }
+    .plat-table tbody { display: block !important; width: 100% !important; }
+    .plat-table tr { 
+      display: block !important; 
+      margin-bottom: 24px !important; 
+      background: var(--bg-card) !important; 
+      border: 1px solid var(--border-main) !important; 
+      border-radius: 20px !important; 
+      padding: 0 !important;
+      box-shadow: var(--pp-shadow-md) !important;
+      overflow: hidden !important;
+    }
+    .plat-table td {
+      display: grid !important;
+      grid-template-columns: 100px 1fr !important;
+      gap: 12px !important;
+      align-items: center !important;
+      padding: 12px 20px !important;
+      border-bottom: 1px dashed var(--border-main) !important;
+      min-height: 52px;
+      text-align: right !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+    .plat-table td:last-child { border-bottom: none !important; background: var(--bg-surface-2) !important; padding-top: 16px !important; padding-bottom: 16px !important; }
+    
+    .plat-table td::before {
+      content: attr(data-label);
+      font-size: 10px !important;
+      font-weight: 800 !important;
+      color: var(--text-muted) !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.1em !important;
+      text-align: left !important;
+    }
+    .plat-cell-val { width: 100% !important; text-align: right !important; display: flex !important; flex-direction: column !important; align-items: flex-end !important; }
+    [data-label="#"], [data-label="ID"] { background: var(--bg-surface-2) !important; border-bottom: 1px solid var(--border-main) !important; padding: 12px 20px !important; }
+  }
+`;
 
 const CATEGORY_META: Record<StaffCategory, { label: string; description: string; icon: any }> = {
   doctor: { label: 'Doctors', description: 'Clinical practitioners and specialized doctor profiles.', icon: Stethoscope },
@@ -186,22 +263,18 @@ function StaffModal({
   const isEdit = mode === 'edit';
 
   return (
-    <div className="plat-modal-overlay" onClick={onClose}>
-      <div className="plat-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="plat-modal-header">
-          <h3 className="plat-modal-title">
-            {isEdit ? `Update ${CATEGORY_META[category].label.replace(/s$/, '')}` : `Register New ${CATEGORY_META[category].label.replace(/s$/, '')}`}
-          </h3>
-          <button className="plat-btn plat-btn-icon" onClick={onClose}>
-            <X size={18} />
-          </button>
-        </div>
-
+    <Drawer
+      isOpen={true}
+      onClose={onClose}
+      title={isEdit ? `Update ${CATEGORY_META[category].label.replace(/s$/, '')}` : `Register New ${CATEGORY_META[category].label.replace(/s$/, '')}`}
+      maxWidth="600px"
+    >
+      <div className="plat-modal-content" style={{ border: 'none', boxShadow: 'none', margin: 0, padding: 0 }}>
         <form onSubmit={handleSubmit} className="plat-modal-body">
           {errors['general'] && <div className="plat-error-banner mb-4">{errors['general']}</div>}
 
-          <div className="plat-form-grid">
-            <div className="plat-form-group">
+          <div className="plat-form-grid-multi">
+            <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
               <label className="plat-form-label">Full Name *</label>
               <input
                 type="text"
@@ -273,15 +346,15 @@ function StaffModal({
             )}
           </div>
 
-          <div style={{ display: 'flex', gap: 12, marginTop: 32 }}>
-            <button type="button" className="plat-btn plat-btn-secondary" onClick={onClose} style={{ flex: 1 }}>Discard</button>
-            <button type="submit" className="plat-btn plat-btn-primary" style={{ flex: 1 }} disabled={isPending || isLoading}>
+          <div className="plat-modal-footer">
+            <button type="button" className="plat-btn plat-btn-ghost" onClick={onClose}>Discard</button>
+            <button type="submit" className="plat-btn plat-btn-primary" disabled={isPending || isLoading}>
               {isPending ? 'Processing…' : isEdit ? 'Update Details' : 'Register Entry'}
             </button>
           </div>
         </form>
       </div>
-    </div>
+    </Drawer>
   );
 }
 
@@ -358,16 +431,56 @@ export default function StaffCategoryPage({ category }: { category: StaffCategor
         ) : (
           <div className="plat-table-container">
             <table className="plat-table">
-              <thead><tr><th>#</th><th>Identity Profile</th><th>Contact</th><th>Designation</th><th>Status</th><th>Actions</th></tr></thead>
+              <thead><tr><th>#</th><th>Identity Profile</th><th>Contact Details</th><th>Professional Role</th><th>Status</th><th>Actions</th></tr></thead>
               <tbody>
                 {staff.map((s: StaffSummary, i: number) => (
                   <tr key={s.id} className="plat-table-row">
-                    <td className="plat-table-cell color-muted font-mono text-xs">{(page - 1) * PAGE_SIZE + i + 1}</td>
-                    <td className="plat-table-cell"><div className="font-bold plat-capitalize">{s.name}</div><div className="text-[11px] color-muted">{s.email}</div></td>
-                    <td className="plat-table-cell"><div className="font-mono text-sm">{s.mobile}</div><div className="text-[10px] color-muted plat-capitalize">{s.city || 'Station N/A'}</div></td>
-                    <td className="plat-table-cell text-sm color-secondary">{s.designation || 'General Staff'}</td>
-                    <td className="plat-table-cell"><span className={s.isActive ? 'plat-badge plat-badge-primary' : 'plat-badge plat-badge-default'}>{s.isActive ? 'Active' : 'Inactive'}</span></td>
-                    <td className="plat-table-cell"><div className="flex justify-end gap-2"><button className="plat-btn plat-btn-sm plat-btn-icon" onClick={() => handleEdit(s)}><Edit2 size={13} /></button><button className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" onClick={() => handleDelete(s.id)}><Trash2 size={13} /></button></div></td>
+                    <td data-label="#" className="plat-mono-data text-xs" style={{ width: 40 }}>
+                      <div>{(page - 1) * PAGE_SIZE + i + 1}</div>
+                    </td>
+                    <td data-label="Profile">
+                      <div className="plat-cell-val">
+                        <div className="font-bold plat-capitalize" style={{ fontSize: '13.5px', color: 'var(--pp-ink)' }}>{s.name}</div>
+                        <div className="text-[10px] uppercase tracking-wider font-bold opacity-60" style={{ color: s.gender === 'Female' ? '#db2777' : 'var(--pp-blue)' }}>{s.gender || 'Unknown'}</div>
+                      </div>
+                    </td>
+                    <td data-label="Contact">
+                      <div className="plat-cell-val">
+                        <div className="font-mono text-sm" style={{ fontWeight: 600 }}>{s.mobile}</div>
+                        <div className="text-[11px] color-muted font-medium plat-capitalize">{s.email || 'No email registered'}</div>
+                      </div>
+                    </td>
+                    <td data-label="Role">
+                      <div className="plat-cell-val">
+                        <div className="font-semibold text-xs plat-capitalize">{s.designation || 'General Staff'}</div>
+                        <div className="text-[10px] color-muted font-medium flex items-center gap-1">
+                          <MapPin size={10} /> {s.city || 'Station N/A'}
+                        </div>
+                      </div>
+                    </td>
+                    <td data-label="Status">
+                      <div className="plat-cell-val">
+                        <span className={s.isActive ? 'plat-badge plat-badge-info' : 'plat-badge plat-badge-default'}>
+                          {s.isActive ? (
+                            <span className="flex items-center gap-1">
+                              <UserCheck size={10} /> Active
+                            </span>
+                          ) : 'Inactive'}
+                        </span>
+                      </div>
+                    </td>
+                    <td data-label="Actions">
+                      <div className="plat-cell-val">
+                        <div className="flex justify-end gap-2" style={{ width: '100%' }}>
+                          <button className="plat-btn plat-btn-icon plat-btn-ghost" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={() => handleEdit(s)}>
+                            <Edit2 size={13} />
+                          </button>
+                          <button className="plat-btn plat-btn-icon plat-btn-danger" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={() => handleDelete(s.id)}>
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -377,6 +490,7 @@ export default function StaffCategoryPage({ category }: { category: StaffCategor
       </div>
 
       {modalOpen && <StaffModal category={category} mode={editingId ? 'edit' : 'create'} staff={editingStaff} isLoading={isLoadingStaff} onClose={() => { setModalOpen(false); setEditingId(null); }} onSuccess={() => setEditingId(null)} />}
+      <style>{mobileStyles}</style>
     </div>
   );
 }

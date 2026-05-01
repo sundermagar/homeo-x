@@ -187,19 +187,19 @@ export default function MedicalCaseListPage() {
           ) : records.data.map((record: any) => (
             <div
               key={record.id}
-              style={{ cursor: 'pointer', borderRadius: 18, border: '1px solid #e2e8f0', background: 'var(--bg-card)', padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}
+              style={{ cursor: 'pointer', borderRadius: 18, border: '1px solid var(--border-main)', background: 'var(--bg-card)', padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}
               onClick={() => navigate(`/medical-cases/${record.regid}`)}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
                 <div>
                   <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-main)' }}>{record.first_name} {record.surname}</div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, color: '#64748b', fontSize: 13 }}>
-                    <span className="mc-regid-badge" style={{ padding: '4px 8px', borderRadius: 999, background: '#f1f5f9', color: '#334155' }}>PT-{record.regid}</span>
+                    <span className="mc-regid-badge" style={{ padding: '4px 8px', borderRadius: 999, background: 'var(--bg-surface-2)', color: 'var(--text-main)' }}>PT-{record.regid}</span>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><User size={12} />{record.gender === 'M' ? 'Male' : 'Female'}</span>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Calendar size={12} />{record.age || '—'} yrs</span>
                   </div>
                 </div>
-                <div style={{ width: 48, height: 48, borderRadius: 14, background: '#eff6ff', display: 'grid', placeItems: 'center', color: '#2563EB', fontWeight: 800, fontSize: 16 }}>
+                <div style={{ width: 48, height: 48, borderRadius: 14, background: 'var(--pp-blue-tint)', display: 'grid', placeItems: 'center', color: 'var(--pp-blue)', fontWeight: 800, fontSize: 16 }}>
                   {record.first_name?.[0]}{record.surname?.[0]}
                 </div>
               </div>
@@ -209,8 +209,8 @@ export default function MedicalCaseListPage() {
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}><Activity size={13} />{record.bp ? record.bp : 'No BP data'}</div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
-                <span style={{ color: record.status !== 'Active' ? '#ef4444' : '#16a34a', fontWeight: 700 }}>{record.status || 'Active'}</span>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#64748b', fontSize: 13 }}>
+                <span style={{ color: record.status !== 'Active' ? 'var(--pp-danger-fg)' : 'var(--pp-success-fg)', fontWeight: 700 }}>{record.status || 'Active'}</span>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text-muted)', fontSize: 13 }}>
                   <Clock size={12} /> {record.last_followup || 'No visits yet'}
                 </div>
               </div>

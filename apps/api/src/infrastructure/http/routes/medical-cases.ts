@@ -325,11 +325,11 @@ router.get('/remedy-chart/tree/filter', asyncHandler(async (req, res) => {
   sendSuccess(res, data, 'Filtered tree loaded');
 }));
 
-// GET /api/medical-cases/remedy-chart/tree?label=  — full tree (optionally filtered)
+// GET /api/medical-cases/remedy-chart/tree?label=&parentId=  — full tree (optionally filtered or lazy loaded)
 router.get('/remedy-chart/tree', asyncHandler(async (req, res) => {
-  const { label } = req.query;
+  const { label, parentId } = req.query as { label?: string, parentId?: string };
   const uc = getRemedyChart(req);
-  const data = await uc.getRemedyTree(label as string | undefined);
+  const data = await uc.getRemedyTree(parentId ? parseInt(parentId) : 0, label);
   sendSuccess(res, data, 'Remedy tree loaded');
 }));
 

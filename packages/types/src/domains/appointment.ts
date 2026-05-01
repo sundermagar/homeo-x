@@ -19,6 +19,8 @@ export interface Appointment {
   doctorName?: string;
   patientNameFromCase?: string;
   patientMobile?: string;
+  packageName?: string;
+  packageExpiry?: string;
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
@@ -54,8 +56,10 @@ export interface WaitlistEntry {
   patientMobile?: string;
   doctorName?: string;
   balance?: string;
+  billId?: number;
   packageName?: string;
   packageExpiry?: string;
+
   rowcolor?: number;
   createdAt: Date;
   updatedAt: Date;

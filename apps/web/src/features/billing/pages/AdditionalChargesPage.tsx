@@ -161,20 +161,34 @@ export default function AdditionalChargesPage() {
               <tbody>
                 {filtered.map(c => (
                   <tr key={c.id}>
-                    <td data-label="ID" style={{ fontFamily: 'var(--pp-font-mono)' }}>#{c.id}</td>
-                    <td data-label="Patient" style={{ fontWeight: 500 }}>{c.patientName || `Reg ID: ${c.regid}` || '—'}</td>
-                    <td data-label="Name">{c.additionalName}</td>
-                    <td data-label="Qty" style={{ fontFamily: 'var(--pp-font-mono)' }}>{c.additionalQuantity}</td>
-                    <td data-label="Price" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 600 }}>₹{c.additionalPrice.toLocaleString()}</td>
-                    <td data-label="Received" style={{ fontFamily: 'var(--pp-font-mono)', color: 'var(--pp-success-fg)' }}>₹{c.receivedPrice.toLocaleString()}</td>
-                    <td>
-                      <div className="flex justify-end gap-3">
-                        <button className="plat-btn plat-btn-sm plat-btn-icon" onClick={() => handleOpenEdit(c)}>
-                          <Edit2 size={13} />
-                        </button>
-                        <button type="button" className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" onClick={(e) => handleDelete(e, c.id, c.additionalName ?? '')}>
-                          <Trash2 size={13} />
-                        </button>
+                    <td data-label="ID" style={{ fontFamily: 'var(--pp-font-mono)' }}>
+                      <div>#{c.id}</div>
+                    </td>
+                    <td data-label="Patient" style={{ fontWeight: 500 }}>
+                      <div>{c.patientName || `Reg ID: ${c.regid}` || '—'}</div>
+                    </td>
+                    <td data-label="Name">
+                      <div>{c.additionalName}</div>
+                    </td>
+                    <td data-label="Qty" style={{ fontFamily: 'var(--pp-font-mono)' }}>
+                      <div className="plat-cell-val">{c.additionalQuantity}</div>
+                    </td>
+                    <td data-label="Price" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 600 }}>
+                      <div className="plat-cell-val">₹{c.additionalPrice.toLocaleString()}</div>
+                    </td>
+                    <td data-label="Received" style={{ fontFamily: 'var(--pp-font-mono)', color: 'var(--pp-success-fg)' }}>
+                      <div className="plat-cell-val">₹{c.receivedPrice.toLocaleString()}</div>
+                    </td>
+                    <td data-label="Actions">
+                      <div className="plat-cell-val">
+                        <div className="flex justify-end gap-3" style={{ width: '100%' }}>
+                          <button className="plat-btn plat-btn-sm plat-btn-icon" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={() => handleOpenEdit(c)}>
+                            <Edit2 size={13} />
+                          </button>
+                          <button type="button" className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={(e) => handleDelete(e, c.id, c.additionalName ?? '')}>
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
                       </div>
                     </td>
                   </tr>
@@ -300,6 +314,57 @@ export default function AdditionalChargesPage() {
           </div>
         </div>
       )}
+      <style>{`
+        @media (max-width: 1024px) {
+          .plat-header { flex-direction: column !important; align-items: stretch !important; gap: 16px !important; }
+          .plat-header-actions { width: 100%; }
+          .plat-header-actions .plat-btn { width: 100%; height: 44px; border-radius: 12px; justify-content: center; }
+          
+          .plat-filters { flex-direction: column !important; align-items: stretch !important; gap: 12px !important; }
+          .plat-search-wrap { width: 100% !important; }
+          .plat-search-input { width: 100% !important; height: 44px; border-radius: 12px; }
+          .plat-filter-input { width: 100% !important; height: 44px; border-radius: 12px; }
+
+          .plat-card { border: none !important; box-shadow: none !important; background: transparent !important; }
+          .plat-table-container { border: none !important; background: transparent !important; overflow: visible !important; }
+          .plat-table { display: block !important; width: 100% !important; min-width: 0 !important; }
+          .plat-table thead { display: none !important; }
+          .plat-table tbody { display: block !important; width: 100% !important; }
+          .plat-table tr { 
+            display: block !important; 
+            margin-bottom: 20px !important; 
+            background: var(--bg-card) !important; 
+            border: 1px solid var(--border-main) !important; 
+            border-radius: 16px !important; 
+            padding: 8px 0 !important;
+            box-shadow: var(--pp-shadow-sm) !important;
+          }
+          .plat-table td {
+            display: grid !important;
+            grid-template-columns: 110px 1fr !important;
+            gap: 12px !important;
+            align-items: center !important;
+            padding: 12px 20px !important;
+            border-bottom: 1px dashed var(--border-main) !important;
+            min-height: 48px;
+            text-align: right !important;
+            width: 100% !important;
+          }
+          .plat-table td:last-child { border-bottom: none !important; background: var(--bg-surface-2) !important; margin-top: 4px; padding-top: 16px !important; padding-bottom: 16px !important; }
+          
+          .plat-table td::before {
+            content: attr(data-label);
+            font-size: 10px !important;
+            font-weight: 800 !important;
+            color: var(--text-muted) !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.08em !important;
+            text-align: left !important;
+          }
+          .plat-cell-val { width: 100% !important; text-align: right !important; display: flex !important; flex-direction: column !important; align-items: flex-end !important; }
+          [data-label="ID"] { background: var(--bg-surface-2) !important; border-bottom: 1px solid var(--border-main) !important; margin-bottom: 4px; }
+        }
+      `}</style>
     </div>
   );
 }

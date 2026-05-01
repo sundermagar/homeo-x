@@ -55,10 +55,10 @@ export function ReceptionistDashboard() {
     <div className="dash-root">
       {/* 1. KPI Strip */}
       <div className="dash-kpi-strip">
-        <KPIItem label="Today Intake" value={kpis?.newPatientsCount || 0} trend="+12% vs avg" color="#16a34a" />
+        <KPIItem label="Today Intake" value={kpis?.newPatientsCount || 0} trend="+12% vs avg" color="var(--pp-success-fg)" />
         <KPIItem label="Waitlist" value={todayAppts.filter(a => a.status === 'Waitlist').length} trend="Active queue" color="#d97706" />
-        <KPIItem label="Collection" value={`₹${(kpis?.todaysCollection || 0).toLocaleString('en-IN')}`} trend="Today" color="#16a34a" />
-        <KPIItem label="Completed" value={todayAppts.filter(a => a.status === 'Completed').length} trend="Visits done" color="#2563eb" />
+        <KPIItem label="Collection" value={`₹${(kpis?.todaysCollection || 0).toLocaleString('en-IN')}`} trend="Today" color="var(--pp-success-fg)" />
+        <KPIItem label="Completed" value={todayAppts.filter(a => a.status === 'Completed').length} trend="Visits done" color="var(--pp-blue)" />
       </div>
 
       <div className="dash-grid">
@@ -67,7 +67,7 @@ export function ReceptionistDashboard() {
           <div className="dash-card">
             <div className="dash-card-header">
               <h3 className="dash-section-title">
-                <Calendar size={16} style={{ marginRight: 8, color: '#2563eb' }} /> Today's Schedule
+                <Calendar size={16} style={{ marginRight: 8, color: 'var(--pp-blue)' }} /> Today's Schedule
               </h3>
               <span className="dash-badge badge-primary">{todayAppts.length} TOTAL</span>
             </div>
@@ -209,7 +209,7 @@ export function ReceptionistDashboard() {
 
           <div className="dash-sidebar-card">
             <h3 className="dash-section-title">
-              <Activity size={15} style={{ color: '#16a34a' }} /> Live Activity
+              <Activity size={15} style={{ color: 'var(--pp-success-fg)' }} /> Live Activity
             </h3>
             <div className="dash-list">
               {todayAppts.slice(0, 6).map((a: any, i: number) => (
@@ -218,7 +218,7 @@ export function ReceptionistDashboard() {
                     <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>{a.patientName}</div>
                     <div className="text-label" style={{ fontSize: 10 }}>{a.status} · {a.bookingTime || `Token ${a.tokenNo}`}</div>
                   </div>
-                  <div className="dash-status-dot" style={{ background: a.status === 'Consultation' ? '#16a34a' : '#e2e8f0' }} />
+                  <div className="dash-status-dot" style={{ background: a.status === 'Consultation' ? 'var(--pp-success-fg)' : '#e2e8f0' }} />
                 </div>
               ))}
               {todayAppts.length === 0 && (
@@ -262,7 +262,7 @@ function OpLink({ icon, label, path }: any) {
       color: '#475569',
       transition: 'all 0.15s'
     }} className="hover-op">
-      <span style={{ color: '#2563eb' }}>{icon}</span>
+      <span style={{ color: 'var(--pp-blue)' }}>{icon}</span>
       <span style={{ fontSize: 12, fontWeight: 700, flex: 1 }}>{label}</span>
       <ArrowUpRight size={13} style={{ color: '#94a3b8' }} />
     </Link>

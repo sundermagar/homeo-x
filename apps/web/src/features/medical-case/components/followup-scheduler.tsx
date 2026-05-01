@@ -248,7 +248,7 @@ export function FollowupScheduler({
           align-items: center;
           gap: 8px;
           background: #fef2f2;
-          color: #dc2626;
+          color: var(--pp-danger-fg);
           padding: 8px 12px;
           border-radius: 6px;
           font-size: 0.8rem;

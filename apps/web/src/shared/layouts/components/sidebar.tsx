@@ -3,7 +3,7 @@ import { useState } from 'react';
 import {
   LayoutDashboard, Users, UsersRound, Calendar, FileText,
   LogOut, X, Briefcase, ChevronDown, ChevronRight, Circle,
-  BarChart3, Stethoscope, Receipt, Settings
+  BarChart3, Stethoscope, Receipt, Settings, MessageCircle
 } from 'lucide-react';
 import { useAuthStore } from '@/shared/stores/auth-store';
 
@@ -75,6 +75,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       roles: CLINICAL_ROLES,
       subItems: [
         { label: 'Case History', path: '/consultation-history' },
+        { label: 'Remedy Matrix', path: '/clinical/remedy-chart' },
         { label: 'Height & Weight Check', path: '/vitals-check' },
         { label: 'Medical Case List', path: '/medical-cases' },
       ]
@@ -108,6 +109,16 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       icon: <BarChart3 size={20} />,
       path: '/analytics',
       roles: [...ADMIN_ROLES, 'Doctor'],
+    },
+    {
+      label: 'Communications',
+      icon: <MessageCircle size={20} />,
+      roles: ADMIN_ROLES,
+      subItems: [
+        { label: 'WhatsApp Messenger', path: '/communications/whatsapp' },
+        { label: 'Birthday Greetings', path: '/communications/birthdays' },
+        { label: 'SMS Reports', path: '/communications/reports' },
+      ]
     },
     {
       label: 'Operations Hub',
