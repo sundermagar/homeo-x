@@ -871,7 +871,8 @@ export default function OperationsDashboard() {
                     if (!selectedExport) return;
                     setExporting(true);
                     try {
-                      const response = await fetch(`/api/export/${selectedExport}`, {
+                      const baseURL = apiClient.defaults.baseURL || '/api';
+                      const response = await fetch(`${baseURL}/export/${selectedExport}`, {
                         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
                       });
                       if (!response.ok) throw new Error('Export failed');
@@ -918,7 +919,8 @@ export default function OperationsDashboard() {
                             setSelectedExport(e.id);
                             setExporting(true);
                             try {
-                              const response = await fetch(`/api/export/${e.id}`, {
+                              const baseURL = apiClient.defaults.baseURL || '/api';
+                              const response = await fetch(`${baseURL}/export/${e.id}`, {
                                 headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
                               });
                               if (!response.ok) throw new Error('Export failed');

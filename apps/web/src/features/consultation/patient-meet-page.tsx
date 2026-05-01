@@ -60,13 +60,15 @@ export default function PatientMeetPage() {
       // Join video call
       await video.join(credentials.appId, credentials.channel, credentials.token, credentials.uid);
       
+      const baseUrl = import.meta.env['VITE_API_URL'] || window.location.origin;
+
       // Connect to video-call socket for questions/sync
-      const socket = io(`${window.location.origin}/video-call`, {
+      const socket = io(`${baseUrl}/video-call`, {
         extraHeaders: { 'ngrok-skip-browser-warning': 'true' },
       });
       
       // Connect to transcription socket for live transcript
-      const transSocket = io(`${window.location.origin}/transcription`, {
+      const transSocket = io(`${baseUrl}/transcription`, {
         extraHeaders: { 'ngrok-skip-browser-warning': 'true' },
       });
 
@@ -91,6 +93,9 @@ export default function PatientMeetPage() {
               speaker: role,
               isFinal: true,
               timestamp: result.timestamp,
+              confidence: 1.0,
+              startTimeMs: Date.now(),
+              endTimeMs: Date.now(),
             };
             return [...prev, newSeg];
           });
@@ -116,7 +121,6 @@ export default function PatientMeetPage() {
         toast({
           title: 'Doctor is asking...',
           description: data.question,
-          duration: 10000,
         });
         // Add question to transcript as DOCTOR segment
         const qSeg: TranscriptSegmentLocal = {
@@ -126,6 +130,9 @@ export default function PatientMeetPage() {
           speaker: 'DOCTOR',
           isFinal: true,
           timestamp: Date.now(),
+          confidence: 1.0,
+          startTimeMs: Date.now(),
+          endTimeMs: Date.now(),
         };
         setTranscript(prev => [...prev, qSeg]);
       });

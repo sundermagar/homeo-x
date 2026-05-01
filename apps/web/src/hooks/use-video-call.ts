@@ -27,10 +27,5 @@ export function useVideoCallToken() {
  * Get Agora token for patient (public, no auth).
  */
 export async function fetchPatientToken(roomId: string): Promise<VideoCallToken> {
-  const response = await fetch(`${window.location.origin}${API.VIDEO_CALL.PATIENT_TOKEN(roomId)}`);
-  const body = await response.json();
-  if (!response.ok || !body.success) {
-    throw new Error(body.error?.message || 'Failed to join room');
-  }
-  return body.data;
+  return api.get<VideoCallToken>(API.VIDEO_CALL.PATIENT_TOKEN(roomId));
 }
