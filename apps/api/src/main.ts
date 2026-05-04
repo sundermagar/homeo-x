@@ -12,7 +12,7 @@ import { createSmsGateway } from './infrastructure/communication/msg91-sms-gatew
 import { JobScheduler } from './infrastructure/scheduler/job-scheduler';
 
 const logger = createLogger('main');
-logger.info('Reloading API server...');
+logger.info('Reloading API server... (port sync)');
 
 async function listenWithFallback(
   server: Server,

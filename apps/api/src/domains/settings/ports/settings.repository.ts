@@ -92,6 +92,23 @@ export interface Medicine {
   shortname?: string | null;
   description?: string | null;
   detail?: string | null;
+  snomedCodeId?: number | null;
+  snomedLabel?: string | null;
+}
+
+export interface Stock {
+  id: number;
+  name: string;
+  description?: string | null;
+  potency?: string | null;
+  category?: string | null;
+  quantity?: number | null;
+  unitPrice?: number | null;
+  batchNumber?: string | null;
+  snomedCodeId?: number | null;
+  snomedLabel?: string | null;
+  createdAt?: Date | null;
+  updatedAt?: Date | null;
 }
 
 export interface Potency {
@@ -231,6 +248,13 @@ export interface ISettingsRepository {
   createMedicine(data: Omit<Medicine, 'id'>): Promise<Medicine>;
   updateMedicine(id: number, data: Partial<Omit<Medicine, 'id'>>): Promise<Medicine>;
   deleteMedicine(id: number): Promise<void>;
+
+  // Stocks (Inventory)
+  listStocks(): Promise<Stock[]>;
+  getStock(id: number): Promise<Stock | undefined>;
+  createStock(data: Omit<Stock, 'id'>): Promise<Stock>;
+  updateStock(id: number, data: Partial<Omit<Stock, 'id'>>): Promise<Stock>;
+  deleteStock(id: number): Promise<void>;
 
   // Potencies
   listPotencies(): Promise<Potency[]>;

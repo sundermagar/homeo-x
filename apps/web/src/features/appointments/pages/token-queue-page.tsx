@@ -140,7 +140,7 @@ export default function TokenQueuePage() {
   };
 
   const handleStartConsult = (w: any) => {
-    window.location.href = `/medical-case/entry?regid=${w.patientId}&visitId=${w.appointmentId || w.id}`;
+    navigate(`/consultation/${w.appointmentId || w.id}`);
   };
 
   const renderPagination = () => {

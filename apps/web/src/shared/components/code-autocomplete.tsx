@@ -75,11 +75,21 @@ export function CodeAutocomplete({
   const snomedResults = useSearchSnomed(type === 'snomed' ? debouncedQuery : '', 15);
 
   const getResults = useCallback((): SelectedCode[] => {
-    if (type === 'icd') return icdResults.data || [];
-    if (type === 'loinc') return loincResults.data || [];
-    if (type === 'snomed') return snomedResults.data || [];
+    if (type === 'icd') {
+      if (icdResults.error) console.error('[Autocomplete] ICD Search Error:', icdResults.error);
+      return icdResults.data || [];
+    }
+    if (type === 'loinc') {
+      if (loincResults.error) console.error('[Autocomplete] LOINC Search Error:', loincResults.error);
+      return loincResults.data || [];
+    }
+    if (type === 'snomed') {
+      if (snomedResults.error) console.error('[Autocomplete] SNOMED Search Error:', snomedResults.error);
+      return snomedResults.data || [];
+    }
+    if (procResults.error) console.error('[Autocomplete] Proc Search Error:', procResults.error);
     return procResults.data || [];
-  }, [type, icdResults.data, loincResults.data, procResults.data, snomedResults.data]);
+  }, [type, icdResults.data, icdResults.error, loincResults.data, loincResults.error, procResults.data, procResults.error, snomedResults.data, snomedResults.error]);
 
   const isLoading = type === 'icd' ? icdResults.isLoading :
                     type === 'loinc' ? loincResults.isLoading :

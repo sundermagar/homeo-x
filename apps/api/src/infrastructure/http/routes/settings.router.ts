@@ -32,6 +32,7 @@ const createMedicineSchema = z.object({
   category: z.string().optional().nullable(),
   price: z.number().optional(),
   stockLevel: z.number().optional(),
+  snomedCodeId: z.number().optional().nullable(),
 });
 const updateMedicineSchema = createMedicineSchema.partial();
 
@@ -43,6 +44,7 @@ const createStockSchema = z.object({
   quantity: z.number().optional(),
   unitPrice: z.number().optional(),
   batchNumber: z.string().optional().nullable(),
+  snomedCodeId: z.number().optional().nullable(),
 });
 const updateStockSchema = createStockSchema.partial();
 
@@ -54,11 +56,37 @@ const createVaccineSchema = z.object({
 });
 const updateVaccineSchema = createVaccineSchema.partial();
 
+const ensuredTenants = new Set<string>();
+
+async function ensureSnomedColumnsExist(db: any, tenantId: string, logger: any) {
+  if (ensuredTenants.has(tenantId)) return;
+  try {
+    await db.execute(sql.raw(`
+      ALTER TABLE medicines ADD COLUMN IF NOT EXISTS snomed_code_id INTEGER;
+      ALTER TABLE stocks ADD COLUMN IF NOT EXISTS snomed_code_id INTEGER;
+    `));
+    ensuredTenants.add(tenantId);
+    logger.info({ tenantId }, 'SNOMED columns ensured in medicines and stocks');
+  } catch (err: any) {
+    logger.warn({ err: err.message, tenantId }, 'Failed to ensure SNOMED columns');
+    ensuredTenants.add(tenantId);
+  }
+}
+
 export function createSettingsRouter(): Router {
   const router = Router();
   router.use(authMiddleware);
 
   const logger = createLogger('settings-router');
+
+  // Self-healing: ensure SNOMED columns exist
+  router.use(asyncHandler(async (req: Request, _res: Response, next: any) => {
+    const db = (req as any).tenantDb;
+    const tenantId = (req as any).tenantId || (req as any).user?.contextId || 'default';
+    if (db) await ensureSnomedColumnsExist(db, tenantId, logger);
+    next();
+  }));
+
   const getRepo = (req: Request) => new SettingsRepositoryPg(req.tenantDb);
 
   // ─── Departments ─────────────────────────────────────────────────────────

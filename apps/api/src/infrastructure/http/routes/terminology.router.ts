@@ -124,6 +124,11 @@ export function createTerminologyRouter(): Router {
   const router = Router();
   router.use(authMiddleware);
 
+  router.use((req, res, next) => {
+    console.log(`[TerminologyRouter] Request: ${req.method} ${req.url}`);
+    next();
+  });
+
   // Ensure tables on every request (cached after first success per tenant)
   router.use(asyncHandler(async (req: Request, _res: Response, next: any) => {
     const db = (req as any).tenantDb;
