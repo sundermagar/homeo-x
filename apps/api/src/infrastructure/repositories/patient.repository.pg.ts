@@ -128,7 +128,7 @@ export class PatientRepositoryPg implements PatientRepository {
           doctorName: users.name
         })
         .from(patients)
-        .leftJoin(users, sql`CASE WHEN ${patients.assitantDoctor} ~ '^[0-9]+$' THEN CAST(${patients.assitantDoctor} AS INTEGER) ELSE NULL END = ${users.id}`)
+        .leftJoin(users, eq(patients.assitantDoctor, sql`CAST(${users.id} AS TEXT)`))
         .where(whereClause)
         .orderBy(orderBy)
         .limit(limit)
@@ -429,98 +429,73 @@ export class PatientRepositoryPg implements PatientRepository {
   }): Promise<{ data: FamilyGroupSummary[]; total: number }> {
     const { page, limit, search, clinicId } = params;
     const offset = (page - 1) * limit;
-    const fg = familygroupsLegacy;
 
-    const distinctHeads = await this.db
-      .selectDistinct({ regid: fg.regid })
-      .from(fg)
-      .where(isNull(fg.deletedAt))
-      .catch((err) => {
-        console.warn('[PatientRepositoryPg] Failed to fetch family groups (legacy table likely missing)', err.message);
-        return [];
-      });
-
-    if (!distinctHeads || distinctHeads.length === 0) return { data: [], total: 0 };
-
-    const headRegids = distinctHeads.map(h => h.regid);
-    const results: FamilyGroupSummary[] = [];
-
-    for (const headRegid of headRegids) {
-      if (!headRegid) continue;
-      const patientConditions = [eq(patients.regid, headRegid)];
-      if (clinicId) patientConditions.push(eq(patients.clinicId, clinicId));
-
-      const [patient] = await this.db
-        .select({ firstName: patients.firstName, surname: patients.surname })
-        .from(patients)
-        .where(and(...patientConditions))
-        .limit(1);
-
-      const [countRow] = await this.db
-        .select({ count: sql<number>`count(*)` })
-        .from(fg)
-        .where(and(eq(fg.regid, headRegid), isNull(fg.deletedAt)));
-
-      // If a clinicId filter is active and the patient wasn't found in this clinic, skip this family head
-      if (clinicId && !patient) continue;
-
-      results.push({
-        id: headRegid,
-        regid: headRegid,
-        familyRegid: headRegid,
-        name: patient?.firstName || '',
-        surname: patient?.surname || '',
-        totalMembers: Number(countRow?.count ?? 0),
-      });
+    const whereConditions = [sql`(fg.deleted_at IS NULL OR fg.deleted_at = '')` as any];
+    if (clinicId) {
+      whereConditions.push(sql`p.clinic_id = ${clinicId}`);
     }
-
-    let filtered = results;
     if (search) {
-      const s = search.toLowerCase();
-      filtered = results.filter(r =>
-        r.name.toLowerCase().includes(s) ||
-        r.surname.toLowerCase().includes(s) ||
-        String(r.regid).includes(s)
-      );
+      const s = `%${search}%`;
+      whereConditions.push(sql`(p.first_name ILIKE ${s} OR p.surname ILIKE ${s} OR CAST(fg.regid AS TEXT) LIKE ${s})`);
     }
 
-    filtered.sort((a, b) => b.regid - a.regid);
+    const whereClause = sql.join(whereConditions, sql` AND `);
+
+    const [data, countRes] = await Promise.all([
+      this.db.execute(sql`
+        SELECT 
+          fg.regid,
+          p.first_name as name,
+          p.surname,
+          count(*)::int as total_members
+        FROM familygroup fg
+        JOIN case_datas p ON p.regid = fg.regid
+        WHERE ${whereClause}
+        GROUP BY fg.regid, p.first_name, p.surname
+        ORDER BY fg.regid DESC
+        LIMIT ${limit} OFFSET ${offset}
+      `),
+      this.db.execute(sql`
+        SELECT count(DISTINCT fg.regid)::int as total
+        FROM familygroup fg
+        JOIN case_datas p ON p.regid = fg.regid
+        WHERE ${whereClause}
+      `)
+    ]);
+
     return {
-      data: filtered.slice(offset, offset + limit),
-      total: filtered.length
+      data: (data as any[]).map(r => ({
+        id: r.regid,
+        regid: r.regid,
+        familyRegid: r.regid,
+        name: r.name || '',
+        surname: r.surname || '',
+        totalMembers: r.total_members,
+      })),
+      total: (countRes as any[])[0]?.total || 0,
     };
   }
-
   async getFamilyMembers(regid: number): Promise<FamilyMember[]> {
-    const fg = familygroupsLegacy;
-    const rows = await this.db
-      .select({
-        id: fg.id,
-        regid: fg.regid,
-        memberRegid: fg.memberRegid,
-        relation: fg.relation,
-      })
-      .from(fg)
-      .where(and(eq(fg.regid, regid), isNull(fg.deletedAt)))
-      .catch(() => []);
+    const rows = await this.db.execute(sql`
+      SELECT 
+        fg.id,
+        fg.regid,
+        fg.family_regid as member_regid,
+        p.first_name || ' ' || p.surname as member_name,
+        COALESCE(p.mobile1, p.phone) as member_mobile
+      FROM familygroup fg
+      JOIN case_datas p ON p.regid = fg.family_regid
+      WHERE fg.regid = ${regid} AND (fg.deleted_at IS NULL OR fg.deleted_at = '')
+      ORDER BY p.first_name ASC
+    `);
 
-    if (!rows || rows.length === 0) return [];
-
-    return Promise.all(rows.map(async r => {
-      const [p] = await this.db
-        .select({ firstName: patients.firstName, surname: patients.surname, phone: patients.phone, mobile1: patients.mobile1 })
-        .from(patients)
-        .where(eq(patients.regid, r.memberRegid!))
-        .limit(1);
-
-      return {
-        id: r.id,
-        regid: r.regid!,
-        memberRegid: r.memberRegid!,
-        relation: r.relation || '',
-        memberName: p ? `${p.firstName} ${p.surname}`.trim() : null,
-        memberMobile: (p?.mobile1 || p?.phone) || null,
-      };
+    return (rows as any[]).map(r => ({
+      id: r.id,
+      regid: r.regid,
+      memberRegid: r.member_regid,
+      relation: 'Member', // Legacy table doesn't have relation column
+      memberName: r.member_name || '',
+      memberMobile: r.member_mobile || '',
     }));
   }
 

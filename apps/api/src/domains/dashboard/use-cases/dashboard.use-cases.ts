@@ -103,7 +103,7 @@ export class DashboardUseCases {
       const safe = <T>(fn: () => Promise<T>, fallback: T) =>
         fn().catch(() => fallback);
  
-      const [kpis, revenueBreakdown, topBilling, targets, staffOnDuty, recentActivity, queue, revenueSeries, cashSeries, upiSeries] =
+      const [kpis, revenueBreakdown, topBilling, targets, staffOnDuty, recentActivity, queue, multiSeries] =
         await Promise.all([
           safe(() => this.repository.getKpis(period, contextId), {
             newPatientsCount: 0, followUpsCount: 0, todaysCollection: 0,
@@ -120,10 +120,10 @@ export class DashboardUseCases {
           safe(() => this.repository.getStaffOnDuty(contextId), []),
           safe(() => this.repository.getRecentActivity(contextId, 5), []),
           safe(() => this.repository.getTodayQueue(contextId), []),
-          safe(() => this.repository.getRevenueSeries(period, contextId), []),
-          safe(() => this.repository.getRevenueSeries(period, contextId, 'Cash'), []),
-          safe(() => this.repository.getRevenueSeries(period, contextId, 'UPI/Card'), []),
+          safe(() => this.repository.getMultiRevenueSeries(period, contextId), { total: [], cash: [], upi: [] }),
         ]);
+ 
+      const { total: revenueSeries, cash: cashSeries, upi: upiSeries } = multiSeries;
  
       const now = new Date();
       let weekLabel = now.toLocaleString('default', { month: 'long', year: 'numeric' });

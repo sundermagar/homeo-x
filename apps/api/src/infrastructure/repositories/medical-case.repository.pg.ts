@@ -54,8 +54,8 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
     return age >= 0 ? age : undefined;
   }
 
-  async findMany(filters: { search?: string; page?: number; limit?: number }) {
-    const { search, page = 1, limit = 50 } = filters;
+  async findMany(filters: { search?: string; page?: number; limit?: number; clinicId?: number }) {
+    const { search, page = 1, limit = 50, clinicId } = filters;
     const offset = (page - 1) * limit;
 
     let query = this.db
@@ -77,12 +77,19 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
       .leftJoin(schema.patients, eq(schema.medicalCases.regid, schema.patients.regid))
       .$dynamic();
 
+    const conditions: any[] = [isNull(schema.medicalCases.deletedAt)];
+    if (clinicId) {
+      conditions.push(eq(schema.patients.clinicId, clinicId));
+    }
+
     if (search) {
       const searchTerms = `%${search}%`;
-      query = query.where(
+      conditions.push(
         sql`(${schema.patients.firstName} ILIKE ${searchTerms} OR ${schema.patients.surname} ILIKE ${searchTerms} OR ${schema.patients.phone} ILIKE ${searchTerms})`
       );
     }
+
+    query = query.where(and(...conditions));
 
     const rows = await query
       .orderBy(desc(schema.medicalCases.createdAt))
@@ -96,7 +103,9 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
 
     const [countRes] = await this.db
       .select({ count: sql<number>`count(*)::int` })
-      .from(schema.medicalCases);
+      .from(schema.medicalCases)
+      .leftJoin(schema.patients, eq(schema.medicalCases.regid, schema.patients.regid))
+      .where(and(...conditions));
 
     return { data: hydrated, total: countRes?.count ?? 0 };
   }

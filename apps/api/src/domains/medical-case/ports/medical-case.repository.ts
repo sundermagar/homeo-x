@@ -144,7 +144,7 @@ export interface MedicalCaseRepository {
   findByRegId(regid: number): Promise<MedicalCase[]>;
   create(data: Partial<MedicalCase>): Promise<number>;
   update(id: number, data: Partial<MedicalCase>): Promise<void>;
-  findMany(filters: { search?: string; page?: number; limit?: number }): Promise<{ data: any[]; total: number }>;
+  findMany(filters: { search?: string; page?: number; limit?: number; clinicId?: number }): Promise<{ data: any[]; total: number }>;
   
   // High-level clinical aggregate
   getUnifiedCaseData(regid: number): Promise<FullCaseData | null>;

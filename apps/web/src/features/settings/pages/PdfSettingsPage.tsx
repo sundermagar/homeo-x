@@ -228,26 +228,30 @@ export default function PdfSettingsPage() {
           </h1>
           <p className="plat-header-sub">Manage institutional branding and clinical document layouts.</p>
         </div>
-        <div className="plat-header-actions" style={{ flexWrap: 'wrap', gap: '12px' }}>
+        <div className="plat-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{ 
             display: 'flex', 
-            background: '#f8fafc', 
+            background: 'var(--bg-surface-2)', 
             padding: '4px', 
             borderRadius: '12px', 
-            border: '1px solid #e2e8f0',
+            border: '1px solid var(--border-main)',
             boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.02)'
           }}>
             <button
               className="plat-btn"
               style={{
-                background: activeTab === 'templates' ? '#fff' : 'transparent',
+                background: activeTab === 'templates' ? 'var(--bg-card)' : 'transparent',
                 border: 'none',
-                color: activeTab === 'templates' ? 'var(--pp-blue)' : '#64748b',
+                color: activeTab === 'templates' ? 'var(--pp-blue)' : 'var(--text-muted)',
                 fontWeight: 600,
-                boxShadow: activeTab === 'templates' ? '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)' : 'none',
+                boxShadow: activeTab === 'templates' ? 'var(--pp-shadow-sm)' : 'none',
                 borderRadius: '8px',
                 padding: '6px 16px',
-                transition: 'all 0.2s'
+                transition: 'all 0.2s',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
               }}
               onClick={() => setActiveTab('templates')}
             >
@@ -256,14 +260,18 @@ export default function PdfSettingsPage() {
             <button
               className="plat-btn"
               style={{
-                background: activeTab === 'letterhead' ? '#fff' : 'transparent',
+                background: activeTab === 'letterhead' ? 'var(--bg-card)' : 'transparent',
                 border: 'none',
-                color: activeTab === 'letterhead' ? 'var(--pp-blue)' : '#64748b',
+                color: activeTab === 'letterhead' ? 'var(--pp-blue)' : 'var(--text-muted)',
                 fontWeight: 600,
-                boxShadow: activeTab === 'letterhead' ? '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)' : 'none',
+                boxShadow: activeTab === 'letterhead' ? 'var(--pp-shadow-sm)' : 'none',
                 borderRadius: '8px',
                 padding: '6px 16px',
-                transition: 'all 0.2s'
+                transition: 'all 0.2s',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
               }}
               onClick={() => setActiveTab('letterhead')}
             >
@@ -271,7 +279,7 @@ export default function PdfSettingsPage() {
             </button>
           </div>
           {activeTab === 'templates' && (
-            <button className="plat-btn plat-btn-primary" onClick={handleOpenCreate}>
+            <button className="plat-btn plat-btn-primary" onClick={handleOpenCreate} style={{ height: '40px', borderRadius: '10px' }}>
               <Plus size={14} /> Add Template
             </button>
           )}
