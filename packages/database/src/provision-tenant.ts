@@ -1520,7 +1520,8 @@ END $$`,
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."medicines" (
   "ID" integer,
   "shortname" text,
-  "remedy" text
+  "remedy" text,
+  "snomed_code_id" integer
 )`,
   },
   {
@@ -2135,7 +2136,8 @@ END $$`,
   "updated_at" timestamp,
   "potency" text,
   "ml" text,
-  "status" text
+  "status" text,
+  "snomed_code_id" integer
 )`,
   },
   {

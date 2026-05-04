@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Package, Plus, X, RefreshCw, Trash2, Edit2, Info, IndianRupee, Search, Tag, Database } from 'lucide-react';
+import { Package, Plus, X, RefreshCw, Trash2, Edit2, Info, IndianRupee, Search, Tag, Database, CheckCircle2 } from 'lucide-react';
 import { useStocks, useCreateStock, useUpdateStock, useDeleteStock } from '../hooks/use-settings';
 import { Drawer } from '@/shared/components/drawer';
 import '../../platform/styles/platform.css';
@@ -8,6 +8,8 @@ import '../styles/settings.css';
 import { Pagination } from '@/shared/components/Pagination';
 import { usePagination } from '@/shared/hooks/use-pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { CodeAutocomplete } from '@/shared/components/code-autocomplete';
+import type { SnomedConceptResult } from '@/shared/hooks/use-terminology';
 
 interface Stock {
   id: number;
@@ -18,6 +20,8 @@ interface Stock {
   quantity?: number;
   unitPrice?: number;
   batchNumber?: string;
+  snomedCodeId?: number | null;
+  snomedLabel?: string | null;
 }
 
 const EMPTY_FORM = {
@@ -27,7 +31,8 @@ const EMPTY_FORM = {
   category: '',
   quantity: 0,
   unitPrice: 0,
-  batchNumber: ''
+  batchNumber: '',
+  snomedCodeId: null as number | null,
 };
 
 export default function StocksPage() {
@@ -46,7 +51,8 @@ export default function StocksPage() {
     s.name?.toLowerCase().includes(search.toLowerCase()) ||
     s.description?.toLowerCase().includes(search.toLowerCase()) ||
     s.category?.toLowerCase().includes(search.toLowerCase()) ||
-    s.potency?.toLowerCase().includes(search.toLowerCase())
+    s.potency?.toLowerCase().includes(search.toLowerCase()) ||
+    s.snomedLabel?.toLowerCase().includes(search.toLowerCase())
   ), [stocks, search]);
 
   const {
@@ -80,7 +86,8 @@ export default function StocksPage() {
       category: stock.category || '',
       quantity: stock.quantity || 0,
       unitPrice: stock.unitPrice || 0,
-      batchNumber: stock.batchNumber || ''
+      batchNumber: stock.batchNumber || '',
+      snomedCodeId: stock.snomedCodeId || null,
     });
     setIsModalOpen(true);
   };
@@ -188,6 +195,11 @@ export default function StocksPage() {
                       {item.batchNumber && (
                         <div className="text-[10px] color-muted mt-0.5">Batch: {item.batchNumber}</div>
                       )}
+                      {item.snomedLabel && (
+                        <div className="text-[9px] color-primary mt-1 font-medium flex items-center gap-1">
+                          <CheckCircle2 size={10} /> SNOMED: {item.snomedLabel}
+                        </div>
+                      )}
                     </td>
                     <td data-label="POTENCY" className="plat-table-cell">
                       <div className="text-sm">{item.potency || '—'}</div>
@@ -249,6 +261,24 @@ export default function StocksPage() {
                   placeholder="Enter medicine name"
                 />
               </div>
+
+              <div className="plat-form-group">
+                  <label className="plat-form-label">SNOMED Clinical Mapping</label>
+                  <CodeAutocomplete
+                    type="snomed"
+                    placeholder="Search clinical terminology..."
+                    value={form.snomedCodeId ? { id: form.snomedCodeId, term: stocks.find(s => s.snomedCodeId === form.snomedCodeId)?.snomedLabel || '' } as any : null}
+                    onSelect={(code) => {
+                      const snomed = code as SnomedConceptResult;
+                      setForm(f => ({ 
+                        ...f, 
+                        snomedCodeId: snomed ? Number(snomed.id) : null,
+                        name: f.name || (snomed ? snomed.term : '')
+                      }));
+                    }}
+                  />
+                  <p className="text-[10px] color-muted mt-1">Links inventory to standardized clinical terminology.</p>
+                </div>
 
               <div className="plat-form-grid-multi mt-4">
                 <div className="plat-form-group">

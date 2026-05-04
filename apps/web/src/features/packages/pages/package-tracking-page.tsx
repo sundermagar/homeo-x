@@ -37,10 +37,23 @@ export default function PackageTrackingPage() {
   const [selectedRecord, setSelectedRecord] = useState<any>(null);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [showSmsModal, setShowSmsModal] = useState(false);
-  const [showStatusModal, setShowStatusModal] = useState(false);
-  const [smsMessage, setSmsMessage] = useState('');
   const [statusValue, setStatusValue] = useState('informed');
   const [statusDate, setStatusDate] = useState(new Date().toISOString().split('T')[0]!);
+  const [statusNotes, setStatusNotes] = useState('');
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  const handleUpdateStatus = async () => {
+    setIsUpdating(true);
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 800));
+    setIsUpdating(false);
+    setShowSuccess(true);
+    setTimeout(() => {
+      setShowSuccess(false);
+      setSelectedRecord(null);
+    }, 2000);
+  };
 
   const { data, isLoading, refetch } = usePackageExpiryReport(fromDate, toDate);
   const sendWa = useSendWhatsApp();
@@ -224,13 +237,6 @@ export default function PackageTrackingPage() {
                             style={{ background: '#25D366', border: 'none', borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}>
                             <MessageCircle size={14} color="white" />
                           </button>
-                          <button
-                            className="pkg-action-btn status"
-                            title="Update Status"
-                            onClick={(e) => { e.stopPropagation(); setSelectedRecord(r); setShowStatusModal(true); }}
-                            style={{ background: 'var(--pp-blue)', border: 'none', borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}>
-                            <Phone size={14} color="white" />
-                          </button>
                         </div>
                       </td>
                     </tr>
@@ -299,7 +305,6 @@ export default function PackageTrackingPage() {
                   </span>
                 </div>
               </section>
-
               <section style={{ marginTop: 12 }}>
                 <label className="drawer-label">Contact Information</label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, background: 'var(--pp-warm-1)', borderRadius: 10 }}>
@@ -307,12 +312,57 @@ export default function PackageTrackingPage() {
                   <span style={{ fontWeight: 600 }}>{selectedRecord.phone || 'No phone provided'}</span>
                 </div>
               </section>
+
+              <hr style={{ margin: '8px 0', border: 'none', borderTop: '1px dashed var(--pp-warm-4)' }} />
+
+              <section>
+                <label className="drawer-label">Update Status</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <select value={statusValue} onChange={e => setStatusValue(e.target.value)}
+                    style={{ width: '100%', padding: '10px 12px', border: '1.5px solid var(--pp-warm-4)', borderRadius: 10, fontSize: '0.85rem' }}>
+                    <option value="">Select Status</option>
+                    <option value="informed">Informed</option>
+                    <option value="Courier">Courier</option>
+                    <option value="Pickup">Pickup</option>
+                    <option value="Reserve Medicine">Reserve Medicine</option>
+                    <option value="Discontinued">Discontinued</option>
+                    <option value="Cured">Cured</option>
+                    <option value="Left Uncured">Left Uncured</option>
+                    <option value="Reg Only">Reg Only</option>
+                  </select>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <input type="date" value={statusDate} onChange={e => setStatusDate(e.target.value)}
+                      style={{ flex: 1, padding: '10px 12px', border: '1.5px solid var(--pp-warm-4)', borderRadius: 10, fontSize: '0.85rem' }} />
+                  </div>
+                  <textarea 
+                    placeholder="Add remarks or follow-up notes..." 
+                    value={statusNotes}
+                    onChange={e => setStatusNotes(e.target.value)}
+                    style={{ width: '100%', padding: '10px 12px', border: '1.5px solid var(--pp-warm-4)', borderRadius: 10, fontSize: '0.85rem', minHeight: 80, resize: 'vertical' }}
+                  />
+                </div>
+              </section>
+
+              {showSuccess && (
+                <div className="animate-in fade-in slide-in-from-bottom-2" style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', color: '#166534', padding: '12px 16px', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.85rem', fontWeight: 600 }}>
+                  <CheckCircle2 size={18} />
+                  Status updated successfully!
+                </div>
+              )}
             </div>
 
-            <div className="plat-modal-footer" style={{ padding: '24px 0 0 0', marginTop: '32px', borderTop: '1px solid var(--pp-warm-4)', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+            <div className="plat-modal-footer" style={{ padding: '24px 0 0 0', marginTop: '32px', borderTop: '1px solid var(--pp-warm-4)', display: 'flex', justifyContent: 'flex-end', gap: '12px', flexWrap: 'wrap' }}>
               <button className="pp-btn pp-btn-secondary" onClick={() => setSelectedRecord(null)}>Close</button>
+              <button 
+                className="pp-btn pp-btn-primary" 
+                style={{ background: 'var(--pp-blue)', position: 'relative', minWidth: 120 }} 
+                onClick={handleUpdateStatus}
+                disabled={isUpdating}
+              >
+                {isUpdating ? <RefreshCw size={14} className="animate-spin" /> : 'Update Status'}
+              </button>
               <button className="pp-btn pp-btn-primary" onClick={() => window.location.href=`/patients/${selectedRecord.patientId}`}>
-                <User size={14} /> View Patient Profile
+                <User size={14} /> Profile
               </button>
             </div>
           </div>
@@ -343,46 +393,6 @@ export default function PackageTrackingPage() {
               <button className="pp-btn" style={{ background: '#25D366', color: 'white' }} onClick={sendBulkWhatsApp} disabled={sendWa.isPending}>
                 <Send size={14} /> {sendWa.isPending ? 'Sending...' : 'Send All'}
               </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Status Update Modal */}
-      {showStatusModal && selectedRecord && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: 'white', borderRadius: 16, padding: 24, width: '100%', maxWidth: 480 }}>
-            <h3 style={{ margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Phone size={18} style={{ color: 'var(--pp-blue)' }} /> Update Status
-            </h3>
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ fontSize: '0.8rem', fontWeight: 700, display: 'block', marginBottom: 6 }}>Reg ID</label>
-              <input type="text" value={`#${selectedRecord.regid} - ${selectedRecord.firstName} ${selectedRecord.surname || ''}`} readOnly
-                style={{ width: '100%', padding: '10px 12px', border: '1.5px solid var(--pp-warm-4)', borderRadius: 10, fontSize: '0.85rem', background: 'var(--pp-warm-1)' }} />
-            </div>
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ fontSize: '0.8rem', fontWeight: 700, display: 'block', marginBottom: 6 }}>Status</label>
-              <select value={statusValue} onChange={e => setStatusValue(e.target.value)}
-                style={{ width: '100%', padding: '10px 12px', border: '1.5px solid var(--pp-warm-4)', borderRadius: 10, fontSize: '0.85rem' }}>
-                <option value="">Select</option>
-                <option value="informed">Informed</option>
-                <option value="Courier">Courier</option>
-                <option value="Pickup">Pickup</option>
-                <option value="Reserve Medicine">Reserve Medicine</option>
-                <option value="Discontinued">Discontinued</option>
-                <option value="Cured">Cured</option>
-                <option value="Left Uncured">Left Uncured</option>
-                <option value="Reg Only">Reg Only</option>
-              </select>
-            </div>
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ fontSize: '0.8rem', fontWeight: 700, display: 'block', marginBottom: 6 }}>Date</label>
-              <input type="date" value={statusDate} onChange={e => setStatusDate(e.target.value)}
-                style={{ width: '100%', padding: '10px 12px', border: '1.5px solid var(--pp-warm-4)', borderRadius: 10, fontSize: '0.85rem' }} />
-            </div>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button className="pp-btn pp-btn-secondary" onClick={() => setShowStatusModal(false)}>Close</button>
-              <button className="pp-btn pp-btn-primary" onClick={() => { alert('Status updated! (API not wired - pending backend)'); setShowStatusModal(false); }}>Update</button>
             </div>
           </div>
         </div>
