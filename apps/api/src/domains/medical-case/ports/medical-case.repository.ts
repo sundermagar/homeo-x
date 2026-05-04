@@ -10,8 +10,15 @@ export interface MedicalCase {
   condition?: string | null;
   patientName?: string | null;
   phone?: string | null;
+  mobile?: string | null;
+  email?: string | null;
+  gender?: string | null;
+  address?: string | null;
   dateOfBirth?: string | null;
   city?: string | null;
+  state?: string | null;
+  doctorName?: string | null;
+  referedBy?: string | null;
   createdAt?: Date | null;
   updatedAt?: Date | null;
 }
@@ -145,17 +152,18 @@ export interface MedicalCaseRepository {
   create(data: Partial<MedicalCase>): Promise<number>;
   update(id: number, data: Partial<MedicalCase>): Promise<void>;
   findMany(filters: { search?: string; page?: number; limit?: number }): Promise<{ data: any[]; total: number }>;
-  
+
   // High-level clinical aggregate
   getUnifiedCaseData(regid: number): Promise<FullCaseData | null>;
 
   // Sub-entity operations
   saveVitals(data: Partial<Vitals>): Promise<void>;
   getVitals(visitId: number): Promise<Vitals | null>;
-  
+
   saveSoapNotes(data: Partial<SoapNotes>): Promise<void>;
   getSoapNotes(visitId: number): Promise<SoapNotes | null>;
-  
+  deleteSoapNote(id: number): Promise<void>;
+
   saveHomeoDetails(data: Partial<HomeoDetails>): Promise<void>;
   getHomeoDetails(regid: number): Promise<HomeoDetails | null>;
 

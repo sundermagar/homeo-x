@@ -51,6 +51,12 @@ export class ManageClinicalRecordsUseCase {
     return ok(undefined);
   }
 
+  // ─── SOAP / Diagnosis ───
+  async deleteSoapNote(id: number): Promise<Result<void>> {
+    await this.repository.deleteSoapNote(id);
+    return ok(undefined);
+  }
+
   // ─── Prescriptions ───
   async savePrescription(dto: Partial<Prescription>): Promise<Result<void>> {
     await this.repository.savePrescription(dto);
@@ -89,6 +95,10 @@ export class ManageClinicalRecordsUseCase {
   }
   async saveReminder(dto: Partial<any>): Promise<Result<void>> {
     await this.repository.saveReminder(dto);
+    return ok(undefined);
+  }
+  async deleteReminder(id: number): Promise<Result<void>> {
+    await this.repository.deleteReminder(id);
     return ok(undefined);
   }
 }
