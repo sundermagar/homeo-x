@@ -46,6 +46,14 @@ const createStockSchema = z.object({
 });
 const updateStockSchema = createStockSchema.partial();
 
+const createVaccineSchema = z.object({
+  label: z.string().min(1).max(255),
+  description: z.string().optional().nullable(),
+  months: z.number().optional().nullable(),
+  parentId: z.number().optional().nullable(),
+});
+const updateVaccineSchema = createVaccineSchema.partial();
+
 export function createSettingsRouter(): Router {
   const router = Router();
   router.use(authMiddleware);
@@ -487,6 +495,33 @@ export function createSettingsRouter(): Router {
 
   router.delete('/couriers/:id', asyncHandler(async (req: Request, res: Response) => {
     await getRepo(req).deleteCourier(Number(req.params.id));
+    res.json({ success: true });
+  }));
+
+  // ─── Vaccines ─────────────────────────────────────────────────────────────
+  router.get('/vaccines', asyncHandler(async (req: Request, res: Response) => {
+    const data = await getRepo(req).listVaccines();
+    res.json({ success: true, data });
+  }));
+
+  router.get('/vaccines/:id', asyncHandler(async (req: Request, res: Response) => {
+    const row = await getRepo(req).getVaccine(Number(req.params.id));
+    if (!row) { res.status(404).json({ success: false, error: 'Not found' }); return; }
+    res.json({ success: true, data: row });
+  }));
+
+  router.post('/vaccines', validate(createVaccineSchema), asyncHandler(async (req: Request, res: Response) => {
+    const data = await getRepo(req).createVaccine(req.body);
+    res.status(201).json({ success: true, data });
+  }));
+
+  router.put('/vaccines/:id', validate(updateVaccineSchema), asyncHandler(async (req: Request, res: Response) => {
+    const data = await getRepo(req).updateVaccine(Number(req.params.id), req.body);
+    res.json({ success: true, data });
+  }));
+
+  router.delete('/vaccines/:id', asyncHandler(async (req: Request, res: Response) => {
+    await getRepo(req).deleteVaccine(Number(req.params.id));
     res.json({ success: true });
   }));
 

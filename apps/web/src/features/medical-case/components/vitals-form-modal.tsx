@@ -204,6 +204,12 @@ export function VitalsFormModal({ visitId, regid, initialData, onClose, onSucces
                     <input type="date" name="lmpDate" value={form.lmpDate} onChange={handleChange} />
                   </div>
                 </div>
+                <div className="mc-input-group">
+                  <label>LMP (Last Menstrual Period)</label>
+                  <div className="mc-input-wrap">
+                    <input type="date" name="lmpDate" value={form.lmpDate} onChange={handleChange} />
+                  </div>
+                </div>
               </div>
             </div>
 

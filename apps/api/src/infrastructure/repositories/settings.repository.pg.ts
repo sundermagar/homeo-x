@@ -7,7 +7,7 @@ import type {
   Department, Dispensary, ReferralSource, Sticker,
   StaticPage, Faq, PdfSetting, Medicine, Potency, Frequency,
   MessageTemplate, StockLog, PackagePlan, Courier,
-  User
+  User, Vaccine
 } from '../../domains/settings/ports/settings.repository.js';
 
 export class SettingsRepositoryPg implements ISettingsRepository {
@@ -672,6 +672,38 @@ export class SettingsRepositoryPg implements ISettingsRepository {
   }
   async deleteStock(id: number): Promise<void> {
     await this.q('UPDATE stocks SET deleted_at = NOW() WHERE id = $1', [id]);
+  }
+
+  // ─── Vaccines ─────────────────────────────────────────────────────────────
+  async listVaccines(): Promise<Vaccine[]> {
+    const rows = await this.q<Vaccine>('SELECT * FROM vaccinedatas ORDER BY months ASC, id ASC');
+    this.logger.info({ count: rows.length }, 'Fetched vaccines from DB');
+    return rows;
+  }
+  async getVaccine(id: number): Promise<Vaccine | undefined> {
+    return this.q1('SELECT * FROM vaccinedatas WHERE id = $1', [id]);
+  }
+  async createVaccine(data: Omit<Vaccine, 'id' | 'createdAt' | 'updatedAt'>): Promise<Vaccine> {
+    return this.q1(
+      `INSERT INTO vaccinedatas (label, description, months, parent_id, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, NOW(), NOW()) RETURNING *`,
+      [data.label, data.description ?? null, data.months ?? null, data.parentId ?? 0]
+    ) as Promise<Vaccine>;
+  }
+  async updateVaccine(id: number, data: Partial<Omit<Vaccine, 'id'>>): Promise<Vaccine> {
+    return this.q1(
+      `UPDATE vaccinedatas SET 
+        label = COALESCE($1, label), 
+        description = COALESCE($2, description),
+        months = COALESCE($3, months),
+        parent_id = COALESCE($4, parent_id),
+        updated_at = NOW() 
+       WHERE id = $5 RETURNING *`,
+      [data.label ?? null, data.description ?? null, data.months ?? null, data.parentId ?? null, id]
+    ) as Promise<Vaccine>;
+  }
+  async deleteVaccine(id: number): Promise<void> {
+    await this.q('DELETE FROM vaccinedatas WHERE id = $1', [id]);
   }
 
   // ─── Practitioners (Doctors from users table) ──────────────────────────────
