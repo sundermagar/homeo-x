@@ -11,6 +11,15 @@
 }
 
 @media (min-width: 768px) { .pkg-page { padding: 0; } }
+@media (max-width: 767px) { 
+  .pkg-page { 
+    padding: 16px !important; 
+    width: 100% !important; 
+    max-width: 100% !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+  } 
+}
 
 .pkg-header {
   display: flex;
@@ -248,63 +257,7 @@
 .pkg-empty-icon { margin-bottom: 12px; opacity: 0.25; }
 .pkg-empty-text { font-size: 0.875rem; color: var(--text-muted); margin-top: 8px; }
 
-/* ─── Responsive Adjustments (≤1024px) ─── */
-@media (max-width: 1024px) {
-  .pkg-stats { grid-template-columns: 1fr !important; }
-  .pkg-table-scroll { overflow-x: visible !important; }
-  .pkg-table { min-width: 0 !important; width: 100% !important; display: block !important; border: none !important; }
-  .pkg-table thead { display: none !important; }
-  .pkg-table tbody { display: block !important; width: 100% !important; }
-  .pkg-table tr { 
-    display: block !important; 
-    margin-bottom: 20px !important; 
-    background: var(--bg-card) !important; 
-    border: 1px solid var(--border-main) !important; 
-    border-radius: 16px !important; 
-    padding: 8px 0 !important;
-    box-shadow: var(--pp-shadow-sm) !important;
-  }
-  .pkg-table td {
-    display: grid !important;
-    grid-template-columns: 120px 1fr !important;
-    gap: 12px !important;
-    align-items: center !important;
-    padding: 12px 20px !important;
-    border-bottom: 1px dashed var(--border-main) !important;
-    min-height: 44px;
-    text-align: right !important;
-    width: 100% !important;
-  }
-  .pkg-table td:last-child { border-bottom: none !important; background: var(--bg-surface-2) !important; margin-top: 4px; padding-top: 16px !important; padding-bottom: 16px !important; }
-  
-  .pkg-table td::before {
-    content: attr(data-label);
-    font-size: 10px !important;
-    font-weight: 800 !important;
-    color: var(--text-muted) !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.08em !important;
-    text-align: left !important;
-  }
 
-  .pkg-patient-cell, .pkg-plan-cell, .pkg-days-cell, .pkg-status-cell, .pkg-actions-cell {
-    display: flex !important;
-    justify-content: flex-end !important;
-    align-items: center !important;
-    width: 100% !important;
-    text-align: right !important;
-  }
-  .pkg-patient-cell { gap: 10px; }
-  .pkg-avatar-sm { display: none !important; }
-  .pkg-patient-name { font-weight: 700 !important; font-size: 0.95rem !important; color: var(--text-main) !important; }
-  .pkg-patient-phone { font-size: 0.75rem !important; }
-  .pkg-plan-val { font-weight: 600 !important; color: var(--text-main) !important; }
-  .pkg-actions-cell { gap: 10px !important; }
-  .pkg-action-btn { flex: 1 !important; height: 38px !important; border-radius: 10px !important; }
-  
-  .pkg-filters { flex-direction: column; align-items: stretch; }
-  .pkg-date-input { width: 100% !important; }
-}
 
 /* Dark mode overrides for icons */
 .dark .pkg-stat-card { background: var(--bg-card); border-color: var(--border-main); }
@@ -346,11 +299,132 @@
   color: white !important;
 }
 
-/* Ensure the button is visible on mobile */
+/* ─── Mobile: Stack table rows as cards (Standardized) ─── */
 @media (max-width: 1024px) {
-  .pkg-actions-cell {
+  .pkg-page {
+    padding: 12px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+
+  .pkg-stats {
+    grid-template-columns: 1fr !important;
+    gap: 10px;
+  }
+
+  /* Outer wrappers — no horizontal scroll */
+  .pkg-page .pp-card,
+  .pkg-page .pp-table-scroll {
+    overflow: visible !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    background: transparent !important;
+    width: 100% !important;
+  }
+
+  /* All table elements become blocks */
+  .pkg-page .pp-table,
+  .pkg-page .pp-table thead,
+  .pkg-page .pp-table tbody,
+  .pkg-page .pp-table tr,
+  .pkg-page .pp-table th,
+  .pkg-page .pp-table td {
+    display: block !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    min-width: 0 !important; /* Override global 540px */
+  }
+
+  .pkg-page .pp-table thead,
+  .pkg-page .pp-table th {
+    display: none !important;
+  }
+
+  /* Each row is a card */
+  .pkg-page .pp-table tr {
+    margin-bottom: 16px !important;
+    background: var(--bg-card) !important;
+    border: 1px solid var(--pp-warm-4) !important;
+    border-radius: 16px !important;
+    padding: 8px 0 !important;
+    box-shadow: var(--pp-shadow-sm) !important;
+    overflow: hidden !important;
+  }
+
+  /* Each cell: label on left, value on right using flex */
+  .pkg-page .pp-table td {
     display: flex !important;
-    gap: 8px !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 10px 16px !important;
+    border-bottom: 1px dashed var(--pp-warm-3) !important;
+    min-height: 44px !important;
+    gap: 12px !important;
+    width: 100% !important;
+  }
+
+  /* Label generated from data-label */
+  .pkg-page .pp-table td::before {
+    content: attr(data-label) !important;
+    font-size: 10px !important;
+    font-weight: 800 !important;
+    color: var(--pp-text-3) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.08em !important;
+    flex-shrink: 0 !important;
+    text-align: left !important;
+    width: 80px !important;
+  }
+
+  /* Cell value — text right */
+  .pkg-page .pp-table td > * {
+    text-align: right !important;
+    flex: 1 !important;
+    min-width: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-end !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  /* Hide avatar on mobile to save space */
+  .pkg-page .pkg-avatar-sm {
+    display: none !important;
+  }
+
+  /* Specific cell adjustments */
+  .pkg-page .pkg-patient-name {
+    font-size: 0.95rem !important;
+    font-weight: 700 !important;
+    color: var(--pp-ink) !important;
+  }
+
+  .pkg-page .pkg-actions-cell {
+    border-bottom: none !important;
+    background: var(--pp-warm-1) !important;
+    margin-top: 4px;
+    padding: 12px 16px !important;
+  }
+
+  .pkg-page .pkg-action-btn {
+    height: 36px !important;
+    width: 36px !important;
+    border-radius: 10px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .pkg-filters {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .pkg-date-input {
     width: 100% !important;
   }
 }

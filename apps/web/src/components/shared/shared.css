@@ -221,6 +221,7 @@
   cursor: pointer;
   outline: none;
   transition: all 0.2s;
+  font-family: inherit;
 }
 
 .pat-pagination-limit:hover {
@@ -234,14 +235,14 @@
 }
 
 .pat-pagination-btn {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
   border: 1px solid var(--border-main);
   border-radius: 8px;
-  background: var(--bg-card);
+  background: var(--bg-surface-2);
   color: var(--text-muted);
   cursor: pointer;
   transition: all 0.2s;
@@ -251,7 +252,19 @@
 .pat-pagination-btn:hover:not(:disabled) {
   background: var(--bg-surface-2);
   color: var(--text-main);
-  border-color: var(--pp-blue-border);
+  border-color: var(--pp-blue);
+  transform: translateY(-1px);
+}
+
+.dark .pat-pagination-btn {
+  background: var(--pp-warm-4);
+  border-color: transparent;
+  color: var(--text-secondary);
+}
+
+.dark .pat-pagination-btn:hover:not(:disabled) {
+  background: var(--pp-text-4);
+  color: var(--text-main);
 }
 
 .pat-pagination-btn:disabled {
@@ -260,36 +273,52 @@
 }
 
 .pat-pagination-page {
-  min-width: 34px;
-  height: 34px;
+  min-width: 36px;
+  height: 36px;
   padding: 0 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   border: 1px solid var(--border-main);
   border-radius: 8px;
-  background: var(--bg-card);
-  color: var(--text-main);
+  background: var(--bg-surface-2);
+  color: var(--text-secondary);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .pat-pagination-page:hover:not(.is-active) {
   background: var(--bg-surface-2);
-  border-color: var(--pp-blue-border);
+  border-color: var(--pp-blue);
+  color: var(--text-main);
+  transform: translateY(-1px);
+}
+
+.dark .pat-pagination-page {
+  background: var(--pp-warm-4);
+  border-color: transparent;
+  color: var(--text-secondary);
+}
+
+.dark .pat-pagination-page:hover:not(.is-active) {
+  background: var(--pp-text-4);
+  color: var(--text-main);
 }
 
 .pat-pagination-page.is-active {
   background: var(--pp-blue);
   color: white;
   border-color: var(--pp-blue);
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
 }
 
 .dark .pat-pagination-page.is-active {
-  box-shadow: var(--pp-accent-glow);
+  background: #314264; /* Specific deep blue from screenshot */
+  color: #c3daff;
+  border: 1px solid #4a6fa5;
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.2);
 }
 
 @media (max-width: 768px) {

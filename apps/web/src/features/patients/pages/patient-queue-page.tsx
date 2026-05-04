@@ -86,13 +86,13 @@ export default function PatientQueuePage() {
   const renderPagination = () => {
     if (totalItems === 0) return null;
     return (
-      <div className="appt-pagination-bar" style={{ marginTop: 24 }}>
-        <div className="appt-pagination-info-wrap">
-          <div className="appt-pagination-info">
+      <div className="pp-pagination-bar" style={{ marginTop: 24 }}>
+        <div className="pp-pagination-info-wrap">
+          <div className="pp-pagination-info">
             Showing {fromEntry}-{toEntry} of {totalItems}
           </div>
           <select
-            className="appt-pagination-limit"
+            className="pp-pagination-limit"
             value={limit}
             onChange={(e) => {
               setLimit(Number(e.target.value));
@@ -107,9 +107,9 @@ export default function PatientQueuePage() {
           </select>
         </div>
 
-        <div className="appt-pagination-controls">
+        <div className="pp-pagination-controls">
           <button
-            className="appt-pagination-btn"
+            className="pp-pagination-btn"
             disabled={page === 1}
             onClick={() => setPage((p) => p - 1)}
           >
@@ -122,7 +122,7 @@ export default function PatientQueuePage() {
               return (
                 <button
                   key={p}
-                  className={`appt-pagination-page ${page === p ? 'is-active' : ''}`}
+                  className={`pp-pagination-page ${page === p ? 'is-active' : ''}`}
                   onClick={() => setPage(p)}
                 >
                   {p}
@@ -136,7 +136,7 @@ export default function PatientQueuePage() {
           })}
 
           <button
-            className="appt-pagination-btn"
+            className="pp-pagination-btn"
             disabled={page === totalPages}
             onClick={() => setPage((p) => p + 1)}
           >
@@ -239,28 +239,28 @@ export default function PatientQueuePage() {
           <tbody>
             {paginatedWaiting.map(w => (
               <tr key={w.id} className="appt-table-row-minimal">
-                <td style={{ paddingLeft: 24 }}>
+                <td data-label="TOKEN" style={{ paddingLeft: 24 }}>
                   <span className="appt-token-pill" style={{ color: WAIT_COLOR[w.status] }}>W{w.waitingNumber}</span>
                 </td>
-                <td>
+                <td data-label="PATIENT">
                   <div className="appt-patient-info">
                     <div className="appt-cell-name">{w.patientName ?? `Patient #${w.patientId}`}</div>
                   </div>
                 </td>
-                <td className="appt-cell-muted">{w.doctorName ?? '—'}</td>
-                <td className="appt-cell-muted">{formatWaitTime(w.checkedInAt || w.createdAt)}</td>
-                <td style={{ textAlign: 'center' }}>
+                <td data-label="DOCTOR" className="appt-cell-muted">{w.doctorName ?? '—'}</td>
+                <td data-label="WAIT TIME" className="appt-cell-muted">{formatWaitTime(w.checkedInAt || w.createdAt)}</td>
+                <td data-label="STATUS" style={{ textAlign: 'center' }}>
                   <span className={`appt-status-pill-minimal waiting`}>
                     {WAIT_STATUS[w.status]}
                   </span>
                 </td>
-                <td style={{ paddingRight: 24 }}>
+                <td data-label="ACTION" style={{ paddingRight: 24 }}>
                   <div className="appt-row-actions-minimal">
-                    <button className="appt-btn-minimal primary" onClick={() => handleCall(w.id)} disabled={callNext.isPending}>
+                    <button className="appt-btn appt-btn-xs appt-btn-primary" onClick={() => handleCall(w.id)} disabled={callNext.isPending}>
                        Call
                     </button>
-                    <button className="appt-btn-minimal purple" onClick={() => setActiveVitals({ visitId: w.appointmentId || w.id, regid: w.patientId ?? 0 })}>
-                      <Activity size={14} /> Vitals
+                    <button className="appt-btn appt-btn-xs appt-btn-purple" onClick={() => setActiveVitals({ visitId: w.appointmentId || w.id, regid: w.patientId ?? 0 })}>
+                      <Activity size={12} /> Vitals
                     </button>
                   </div>
                 </td>
@@ -269,6 +269,7 @@ export default function PatientQueuePage() {
           </tbody>
         </table>
       </div>
+      {renderPagination()}
     </div>
   );
 
@@ -391,8 +392,12 @@ export default function PatientQueuePage() {
           </div>
         ) : (
           <>
-            {viewMode === 'grid' ? renderGridView() : renderListView()}
-            {renderPagination()}
+            {viewMode === 'grid' ? (
+              <>
+                {renderGridView()}
+                {renderPagination()}
+              </>
+            ) : renderListView()}
           </>
         )}
       </div>

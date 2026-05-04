@@ -1685,22 +1685,7 @@
   align-items: center;
 }
 
-/* ─── Pagination Bar ─── */
-.appt-pagination {
-  padding: var(--pp-space-3) var(--pp-space-5);
-  border-top: 1px solid var(--pp-warm-4);
-  display: flex;
-  gap: var(--pp-space-2);
-  justify-content: flex-end;
-  align-items: center;
-}
 
-.appt-page-info {
-  font-size: 0.8rem;
-  color: var(--pp-text-3);
-  font-family: var(--pp-font-mono);
-  font-weight: 600;
-}
 
 /* ─── Empty State ─── */
 .appt-empty {
@@ -2439,144 +2424,7 @@
   animation: shimmer 2s infinite;
 }
 
-/* ─── Pagination ──────────────────────────────────────────────────────────── */
 
-.appt-pagination-bar {
-  margin-top: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 24px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-main);
-  border-radius: 12px;
-  box-shadow: var(--pp-shadow-sm);
-}
-
-.dark .appt-pagination-bar {
-  background: rgba(24, 24, 27, 0.8);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-}
-
-.appt-pagination-info-wrap {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.appt-pagination-info {
-  font-size: 13px;
-  color: #64748b;
-  font-weight: 500;
-}
-
-.appt-pagination-limit {
-  padding: 6px 12px;
-  border: 1px solid var(--border-main);
-  border-radius: 8px;
-  font-size: 13px;
-  color: var(--pp-ink);
-  background: var(--bg-card);
-  cursor: pointer;
-  outline: none;
-}
-
-.appt-pagination-limit:focus {
-  border-color: #3b82f6;
-}
-
-.appt-pagination-controls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.appt-pagination-btn {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--border-main);
-  border-radius: 8px;
-  background: var(--bg-card);
-  color: var(--pp-text-3);
-  cursor: pointer;
-  transition: all 0.2s;
-  padding: 0;
-}
-
-.appt-pagination-btn:hover:not(:disabled) {
-  background: var(--bg-surface-2);
-  color: var(--pp-ink);
-  border-color: var(--pp-blue);
-}
-
-.appt-pagination-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.appt-pagination-page {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--border-main);
-  border-radius: 8px;
-  background: var(--bg-card);
-  color: var(--pp-ink);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.appt-pagination-page:hover {
-  background: #f8fafc;
-  border-color: #cbd5e1;
-}
-
-.appt-pagination-page.is-active {
-  background: var(--pp-blue);
-  color: #ffffff;
-  border-color: var(--pp-blue);
-}
-
-@media (max-width: 768px) {
-  .appt-pagination-bar {
-    flex-direction: column !important;
-    gap: 20px !important;
-    padding: 20px 16px !important;
-    align-items: center !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-  }
-
-  .appt-pagination-info-wrap {
-    flex-direction: column !important;
-    gap: 12px !important;
-    width: 100% !important;
-    align-items: center !important;
-  }
-
-  .appt-pagination-limit {
-    width: 100% !important;
-    max-width: 280px !important;
-  }
-
-  .appt-pagination-controls {
-    width: 100% !important;
-    justify-content: center !important;
-    gap: 8px !important;
-    flex-wrap: wrap !important;
-  }
-
-  .appt-pagination-info {
-    order: -1 !important;
-  }
-}
 
 /* ─── Drawer Panel ────────────────────────────────────────────────────────── */
 
@@ -3544,51 +3392,131 @@
   }
 }
 /* ─── Responsive Action Row ─── */
+.appt-row-actions-minimal {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+/* ─── Mobile Table Optimization (Patient Queue) ─── */
 @media (max-width: 768px) {
-  .appt-action-row {
+  .appt-page {
+    padding: 12px !important;
+  }
+
+  .appt-table-scroll {
+    overflow: visible !important;
+    border: none !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+
+  /* Each row is a card */
+  .appt-page .appt-table,
+  .appt-page .appt-table thead,
+  .appt-page .appt-table tbody,
+  .appt-page .appt-table tr,
+  .appt-page .appt-table th,
+  .appt-page .appt-table td {
+    display: block !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .appt-page .appt-table thead {
+    display: none !important;
+  }
+
+  .appt-page .appt-table tr {
+    margin-bottom: 16px !important;
+    background: var(--bg-card) !important;
+    border: 1px solid var(--pp-warm-4) !important;
+    border-radius: 16px !important;
+    padding: 8px 0 !important;
+    box-shadow: var(--pp-shadow-sm) !important;
+    overflow: hidden !important;
+  }
+
+  .appt-page .appt-table td {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 10px 16px !important;
+    border-bottom: 1px dashed var(--pp-warm-3) !important;
+    min-height: 44px !important;
+    gap: 12px !important;
+    width: 100% !important;
+    text-align: right !important;
+  }
+
+  .appt-page .appt-table td:last-child {
+    border-bottom: none !important;
+    background: var(--pp-warm-1) !important;
+    padding: 12px 16px !important;
+    margin-top: 4px;
+  }
+
+  .appt-page .appt-table td::before {
+    content: attr(data-label) !important;
+    font-size: 10px !important;
+    font-weight: 800 !important;
+    color: var(--pp-text-3) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.08em !important;
+    flex-shrink: 0 !important;
+    text-align: left !important;
+    width: 80px !important;
+  }
+
+  .appt-page .appt-table td > * {
+    flex: 1 !important;
+    text-align: right !important;
+    display: flex !important;
     flex-direction: column !important;
-    align-items: stretch !important;
-    gap: 16px;
+    align-items: flex-end !important;
+  }
+
+  .appt-token-pill {
+    font-weight: 800 !important;
+    font-size: 1rem !important;
+  }
+
+  .appt-cell-name {
+    font-size: 0.95rem !important;
+    font-weight: 700 !important;
+  }
+
+  .appt-row-actions-minimal {
+    width: 100% !important;
+    gap: 8px !important;
+  }
+
+  .appt-row-actions-minimal .appt-btn {
+    flex: 1 !important;
+    justify-content: center !important;
+    height: 38px !important;
+    border-radius: 10px !important;
+  }
+
+  /* Grid View Adjustments */
+  .appt-queue-board {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .appt-token-card-minimal {
     padding: 16px !important;
   }
-  
-  .appt-search-wrapper {
-    width: 100% !important;
-    max-width: none !important;
+
+  .appt-token-actions-minimal {
+    flex-direction: row !important;
+    gap: 8px !important;
   }
-  
-  .appt-segmented-toggle {
-    width: 100%;
-    justify-content: center;
-  }
-  
-  .appt-segmented-btn {
-    flex: 1;
+
+  .appt-token-actions-minimal .appt-btn {
+    flex: 1 !important;
   }
 }
 
-/* ─── Mobile Table Optimization ─── */
-@media (max-width: 768px) {
-  .appt-table-scroll {
-    margin: 0 -16px;
-    width: calc(100% + 32px);
-    border-radius: 0;
-    border-left: none;
-    border-right: none;
-  }
-  
-  .appt-table th, .appt-table td {
-    padding: 12px 14px !important;
-  }
-  
-  .appt-row-actions-inline {
-    flex-direction: column;
-    align-items: stretch;
-    width: 100%;
-  }
-  
-  .appt-btn-sm {
-    width: 100%;
-    justify-content: center;
-  }
-}
+

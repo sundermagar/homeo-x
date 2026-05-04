@@ -145,7 +145,7 @@ export default function PackageTrackingPage() {
       </div>
 
       {/* Table */}
-      <div className="pp-card pp-table-scroll" style={{ padding: 0, overflow: 'visible' }}>
+      <div className="pp-card pkg-table-card">
         {isLoading ? (
           <TableSkeleton rows={8} columns={6} />
         ) : records.length === 0 ? (
@@ -155,7 +155,7 @@ export default function PackageTrackingPage() {
           </div>
         ) : (
           <>
-            <div className="pp-table-scroll" style={{ borderRadius: '12px', overflow: 'hidden' }}>
+            <div className="pp-table-scroll">
               <table className="pp-table">
                 <thead>
                   <tr>
@@ -202,8 +202,8 @@ export default function PackageTrackingPage() {
                           <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>₹{r.packagePrice?.toLocaleString()}</div>
                         </div>
                       </td>
-                      <td data-label="START" style={{ fontSize: '0.82rem', whiteSpace: 'nowrap' }}>{r.startDate}</td>
-                      <td data-label="EXPIRY" style={{ fontSize: '0.82rem', fontWeight: 600, whiteSpace: 'nowrap', color: 'var(--pp-ink)' }}>{r.expiryDate}</td>
+                      <td data-label="START" style={{ fontSize: '0.82rem' }}>{r.startDate}</td>
+                      <td data-label="EXPIRY" style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--pp-ink)' }}>{r.expiryDate}</td>
                       <td data-label="DAYS" className="pkg-days-cell">
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', fontWeight: 600, color: r.daysRemaining < 0 ? 'var(--danger)' : r.daysRemaining <= 7 ? '#D97706' : 'var(--success)' }}>
                           <Clock size={12} strokeWidth={1.6} />
