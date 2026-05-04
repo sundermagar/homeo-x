@@ -88,7 +88,7 @@ export function PatientInfoStage({
 
 
   return (
-    <div className="space-y-8 pp-fade-in relative container mx-auto">
+    <div className="space-y-6 pp-fade-in relative">
       {/* Progress Bar */}
       <div className="w-full">
         <div className="flex items-center justify-between mb-2">
@@ -110,21 +110,23 @@ export function PatientInfoStage({
         <div className="text-[10px] font-extrabold text-[#888786] uppercase tracking-widest mb-4">
           Patient Details
         </div>
-        <div className="grid grid-cols-[1fr_80px_110px] gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_80px_110px] gap-4 mb-4">
           <div>
             <label className="text-[11px] font-bold text-[#4A4A47] mb-1.5 block">Full Name *</label>
             <input className="w-full h-9 border border-[#E3E2DF] rounded-md px-3 text-[13px] font-medium text-[#0F0F0E] outline-none bg-[#FAFAF8] cursor-not-allowed" value={patient ? `${patient.firstName} ${patient.lastName}` : ''} readOnly />
           </div>
-          <div>
-            <label className="text-[11px] font-bold text-[#4A4A47] mb-1.5 block">Age *</label>
-            <input className="w-full h-9 border border-[#E3E2DF] rounded-md px-3 text-[13px] font-medium text-[#0F0F0E] outline-none bg-[#FAFAF8] cursor-not-allowed" value={patientAge || ''} readOnly />
-          </div>
-          <div>
-            <label className="text-[11px] font-bold text-[#4A4A47] mb-1.5 block">Gender *</label>
-            <input className="w-full h-9 border border-[#E3E2DF] rounded-md px-3 text-[13px] font-medium text-[#0F0F0E] outline-none bg-[#FAFAF8] cursor-not-allowed" value={patient?.gender || ''} readOnly />
+          <div className="grid grid-cols-2 gap-4 md:contents">
+            <div>
+              <label className="text-[11px] font-bold text-[#4A4A47] mb-1.5 block">Age *</label>
+              <input className="w-full h-9 border border-[#E3E2DF] rounded-md px-3 text-[13px] font-medium text-[#0F0F0E] outline-none bg-[#FAFAF8] cursor-not-allowed" value={patientAge || ''} readOnly />
+            </div>
+            <div>
+              <label className="text-[11px] font-bold text-[#4A4A47] mb-1.5 block">Gender *</label>
+              <input className="w-full h-9 border border-[#E3E2DF] rounded-md px-3 text-[13px] font-medium text-[#0F0F0E] outline-none bg-[#FAFAF8] cursor-not-allowed" value={patient?.gender || ''} readOnly />
+            </div>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
             <label className="text-[11px] font-bold text-[#4A4A47] mb-1.5 block">MRN / Patient ID</label>
             <input className="w-full h-9 border border-[#E3E2DF] rounded-md px-3 text-[13px] font-medium text-[#0F0F0E] outline-none bg-[#FAFAF8] cursor-not-allowed pp-mono" value={patient?.mrn || patient?.id || ''} readOnly />
