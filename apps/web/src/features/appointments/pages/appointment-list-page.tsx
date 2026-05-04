@@ -70,11 +70,16 @@ export default function AppointmentListPage() {
     const onMouse = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) close();
     };
+    const onScroll = (e: Event) => {
+      // Don't close if scrolling inside the dropdown menu itself
+      if (menuRef.current && menuRef.current.contains(e.target as Node)) return;
+      close();
+    };
     document.addEventListener('mousedown', onMouse);
-    window.addEventListener('scroll', close, true);
+    window.addEventListener('scroll', onScroll, true);
     return () => {
       document.removeEventListener('mousedown', onMouse);
-      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('scroll', onScroll, true);
     };
   }, [openMenuId]);
 
@@ -268,43 +273,6 @@ export default function AppointmentListPage() {
                         : <span className="appt-cell-slash">—</span>}
                     </td>
                     <td data-label="ACTIONS">
-                      {/* ── Inline buttons (≥1024px) ── */}
-                      <div className="appt-row-actions appt-row-actions-inline">
-                        {quickStatuses
-                          .filter(q => q.s !== a.status)
-                          .slice(0, 2)
-                          .map(q => (
-                            <button
-                              key={q.s}
-                              className="appt-btn appt-btn-sm"
-                              style={{ fontSize: '0.7rem', padding: '3px 8px', color: q.color, borderColor: q.color + '44', background: q.color + '0F' }}
-                              onClick={() => handleStatusChange(a.id, q.s)}
-                            >
-                              {q.label}
-                            </button>
-                          ))}
-                        <button className="appt-btn appt-btn-icon appt-btn-sm" title="Print Slip" onClick={() => handlePrintSlip(a)}>
-                          <Printer size={13} strokeWidth={1.6} />
-                        </button>
-                        <button
-                          className="appt-btn appt-btn-icon appt-btn-sm"
-                          title="Edit"
-                          onClick={() => { setDrawerApptId(a.id); setIsDrawerOpen(true); }}
-                        >
-                          <Edit2 size={13} strokeWidth={1.6} />
-                        </button>
-                        {confirmDel === a.id ? (
-                          <>
-                            <button className="appt-btn appt-btn-sm appt-btn-danger" onClick={() => handleDelete(a.id)}>Confirm</button>
-                            <button className="appt-btn appt-btn-sm" onClick={() => setConfirmDel(null)}>✕</button>
-                          </>
-                        ) : (
-                          <button className="appt-btn appt-btn-icon appt-btn-sm" title="Delete" onClick={() => setConfirmDel(a.id)}>
-                            <Trash2 size={13} strokeWidth={1.6} className="appt-btn-danger-text" />
-                          </button>
-                        )}
-                      </div>
-
                       {/* ── Kebab trigger ── */}
                       <div className="appt-kebab-wrap">
                         <button
