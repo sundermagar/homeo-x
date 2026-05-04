@@ -9,6 +9,7 @@ export const stocks = pgTable('stocks', {
   quantity: integer('quantity').default(0),
   unitPrice: real('unit_price'),
   batchNumber: varchar('batch_number', { length: 100 }),
+  snomedCodeId: integer('snomed_code_id'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
   deletedAt: timestamp('deleted_at'),

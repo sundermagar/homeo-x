@@ -70,11 +70,16 @@ export default function AppointmentListPage() {
     const onMouse = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) close();
     };
+    const onScroll = (e: Event) => {
+      // Don't close if scrolling inside the dropdown menu itself
+      if (menuRef.current && menuRef.current.contains(e.target as Node)) return;
+      close();
+    };
     document.addEventListener('mousedown', onMouse);
-    window.addEventListener('scroll', close, true);
+    window.addEventListener('scroll', onScroll, true);
     return () => {
       document.removeEventListener('mousedown', onMouse);
-      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('scroll', onScroll, true);
     };
   }, [openMenuId]);
 
@@ -100,10 +105,22 @@ export default function AppointmentListPage() {
   let isPending = listQuery.isLoading;
 
   if (tab === 'today') {
-    totalEntries = todayData.length;
+    let filtered = todayData;
+    if (search) {
+      const s = search.toLowerCase();
+      filtered = filtered.filter(a => 
+        (a.patientName || '').toLowerCase().includes(s) || 
+        (a.patientNameFromCase || '').toLowerCase().includes(s) || 
+        (a.phone || '').includes(s)
+      );
+    }
+    if (status) {
+      filtered = filtered.filter(a => a.status === status);
+    }
+    totalEntries = filtered.length;
     isPending = todayQuery.isLoading;
     const startIndex = (page - 1) * pageSize;
-    data = todayData.slice(startIndex, startIndex + pageSize);
+    data = filtered.slice(startIndex, startIndex + pageSize);
   } else if (tab === 'pending') {
     const pendingData = todayData.filter(a => ['Pending', 'Waitlist', 'Scheduled'].includes(a.status));
     totalEntries = pendingData.length;
@@ -198,8 +215,16 @@ export default function AppointmentListPage() {
             <option value="">All Statuses</option>
             {STATUS_OPTIONS.filter(Boolean).map(s => <option key={s} value={s}>{s}</option>)}
           </select>
-          <input className="appt-filter-input" type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} title="From Date" />
-          <input className="appt-filter-input" type="date" value={toDate} onChange={e => setToDate(e.target.value)} title="To Date" />
+          <input className="appt-filter-input" type="date" value={fromDate} onChange={e => {
+            setFromDate(e.target.value);
+            if (tab === 'today') setTab('all');
+            setPage(1);
+          }} title="From Date" />
+          <input className="appt-filter-input" type="date" value={toDate} onChange={e => {
+            setToDate(e.target.value);
+            if (tab === 'today') setTab('all');
+            setPage(1);
+          }} title="To Date" />
           <button className="appt-btn appt-btn-sm" onClick={() => { setSearch(''); setStatus(''); setFromDate(''); setToDate(''); setPage(1); }}>
             <Filter size={13} strokeWidth={1.6} /> Clear
           </button>
@@ -268,43 +293,6 @@ export default function AppointmentListPage() {
                         : <span className="appt-cell-slash">—</span>}
                     </td>
                     <td data-label="ACTIONS">
-                      {/* ── Inline buttons (≥1024px) ── */}
-                      <div className="appt-row-actions appt-row-actions-inline">
-                        {quickStatuses
-                          .filter(q => q.s !== a.status)
-                          .slice(0, 2)
-                          .map(q => (
-                            <button
-                              key={q.s}
-                              className="appt-btn appt-btn-sm"
-                              style={{ fontSize: '0.7rem', padding: '3px 8px', color: q.color, borderColor: q.color + '44', background: q.color + '0F' }}
-                              onClick={() => handleStatusChange(a.id, q.s)}
-                            >
-                              {q.label}
-                            </button>
-                          ))}
-                        <button className="appt-btn appt-btn-icon appt-btn-sm" title="Print Slip" onClick={() => handlePrintSlip(a)}>
-                          <Printer size={13} strokeWidth={1.6} />
-                        </button>
-                        <button
-                          className="appt-btn appt-btn-icon appt-btn-sm"
-                          title="Edit"
-                          onClick={() => { setDrawerApptId(a.id); setIsDrawerOpen(true); }}
-                        >
-                          <Edit2 size={13} strokeWidth={1.6} />
-                        </button>
-                        {confirmDel === a.id ? (
-                          <>
-                            <button className="appt-btn appt-btn-sm appt-btn-danger" onClick={() => handleDelete(a.id)}>Confirm</button>
-                            <button className="appt-btn appt-btn-sm" onClick={() => setConfirmDel(null)}>✕</button>
-                          </>
-                        ) : (
-                          <button className="appt-btn appt-btn-icon appt-btn-sm" title="Delete" onClick={() => setConfirmDel(a.id)}>
-                            <Trash2 size={13} strokeWidth={1.6} className="appt-btn-danger-text" />
-                          </button>
-                        )}
-                      </div>
-
                       {/* ── Kebab trigger ── */}
                       <div className="appt-kebab-wrap">
                         <button

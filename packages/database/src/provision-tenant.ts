@@ -1520,7 +1520,8 @@ END $$`,
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."medicines" (
   "ID" integer,
   "shortname" text,
-  "remedy" text
+  "remedy" text,
+  "snomed_code_id" integer
 )`,
   },
   {
@@ -2135,7 +2136,8 @@ END $$`,
   "updated_at" timestamp,
   "potency" text,
   "ml" text,
-  "status" text
+  "status" text,
+  "snomed_code_id" integer
 )`,
   },
   {
@@ -2802,10 +2804,12 @@ END $$`,
     name: 'vaccinedatas',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."vaccinedatas" (
   "id" serial PRIMARY KEY,
-  "label" text,
-  "parent_id" integer,
-  "created_at" timestamp,
-  "updated_at" timestamp,
+  "label" text NOT NULL,
+  "description" text,
+  "months" integer,
+  "parent_id" integer DEFAULT 0,
+  "created_at" timestamp DEFAULT NOW(),
+  "updated_at" timestamp DEFAULT NOW(),
   "deleted_at" timestamp
 )`,
   },
@@ -2824,10 +2828,11 @@ END $$`,
   "respiratory_rate" integer,
   "oxygen_saturation" real,
   "blood_sugar" real,
+  "lmp_date" timestamp,
   "notes" text,
-  "recorded_at" timestamp,
-  "created_at" timestamp,
-  "updated_at" timestamp
+  "recorded_at" timestamp DEFAULT NOW(),
+  "created_at" timestamp DEFAULT NOW(),
+  "updated_at" timestamp DEFAULT NOW()
 )`,
   },
   {

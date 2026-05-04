@@ -94,6 +94,7 @@ export const medicines = pgTable('medicines', {
   category: varchar('category', { length: 100 }),
   price: real('price').default(0),
   stockLevel: integer('stock_level').default(0),
+  snomedCodeId: integer('snomed_code_id'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
   deletedAt: timestamp('deleted_at'),

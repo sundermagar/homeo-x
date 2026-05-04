@@ -342,28 +342,7 @@ export function RemedyChartSession({ regid, onDayChargeChange }: { regid?: numbe
           </div>
         </div>
         {/* Print Buttons */}
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button
-            onClick={() => {
-              const authStorage = localStorage.getItem('auth-storage');
-              const token = authStorage ? JSON.parse(authStorage).state.token : '';
-              window.open(`/api/medical-cases/remedy-chart/pdf/${regid}?token=${token}`, '_blank');
-            }}
-            style={{ background: '#1e3a8a', color: 'white', border: 'none', borderRadius: '12px', padding: '10px 24px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 6px rgba(30,58,138,0.2)' }}
-          >
-            <Printer size={16} /> Print Prescription
-          </button>
-          <button
-            onClick={() => {
-              const authStorage = localStorage.getItem('auth-storage');
-              const token = authStorage ? JSON.parse(authStorage).state.token : '';
-              window.open(`/api/medical-cases/pdf/summary/${regid}?token=${token}`, '_blank');
-            }}
-            style={{ background: '#0891b2', color: 'white', border: 'none', borderRadius: '12px', padding: '10px 24px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 6px rgba(8,145,178,0.2)' }}
-          >
-            <FileText size={16} /> Print Summary
-          </button>
-        </div>
+        
       </div>
 
       {activeTab === 'rx' && (

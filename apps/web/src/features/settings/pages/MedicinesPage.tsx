@@ -9,6 +9,8 @@ import '../styles/settings.css';
 import { Pagination } from '@/shared/components/Pagination';
 import { usePagination } from '@/shared/hooks/use-pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { CodeAutocomplete } from '@/shared/components/code-autocomplete';
+import type { SnomedConceptResult } from '@/shared/hooks/use-terminology';
 
 interface Medicine {
   id: number;
@@ -19,6 +21,8 @@ interface Medicine {
   category?: string | null;
   price?: number | null;
   stockLevel?: number | null;
+  snomedCodeId?: number | null;
+  snomedLabel?: string | null;
 }
 
 const EMPTY_FORM = {
@@ -28,7 +32,8 @@ const EMPTY_FORM = {
   type: '',
   category: '',
   price: 0,
-  stockLevel: 0
+  stockLevel: 0,
+  snomedCodeId: null as number | null,
 };
 
 export default function MedicinesPage() {
@@ -47,7 +52,8 @@ export default function MedicinesPage() {
   const filtered = useMemo(() => medicines.filter((m: Medicine) =>
     m.name?.toLowerCase().includes(search.toLowerCase()) ||
     m.disease?.toLowerCase().includes(search.toLowerCase()) ||
-    m.category?.toLowerCase().includes(search.toLowerCase())
+    m.category?.toLowerCase().includes(search.toLowerCase()) ||
+    m.snomedLabel?.toLowerCase().includes(search.toLowerCase())
   ), [medicines, search]);
 
   const {
@@ -77,7 +83,8 @@ export default function MedicinesPage() {
       type: med.type || '',
       category: med.category || '',
       price: med.price || 0,
-      stockLevel: med.stockLevel || 0
+      stockLevel: med.stockLevel || 0,
+      snomedCodeId: med.snomedCodeId || null,
     });
     setIsModalOpen(true);
   };
@@ -195,6 +202,11 @@ export default function MedicinesPage() {
                         <div className="text-[11px] color-muted mt-0.5 flex items-center gap-1 italic">
                           <Info size={10} className="opacity-60" /> {med.disease || 'General Medical Remedy'}
                         </div>
+                        {med.snomedLabel && (
+                          <div className="text-[10px] color-primary mt-1 font-medium flex items-center gap-1">
+                            <CheckCircle2 size={10} /> SNOMED: {med.snomedLabel}
+                          </div>
+                        )}
                       </td>
                       <td data-label="CATEGORIES" className="plat-table-cell">
                         <div className="flex flex-wrap gap-1.5 md:justify-start justify-end">
@@ -279,6 +291,24 @@ export default function MedicinesPage() {
                     onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                     placeholder="e.g. Aconite Napellus"
                   />
+                </div>
+
+                <div className="plat-form-group">
+                  <label className="plat-form-label">SNOMED Clinical Mapping</label>
+                  <CodeAutocomplete
+                    type="snomed"
+                    placeholder="Search clinical terminology..."
+                    value={form.snomedCodeId ? { id: form.snomedCodeId, term: medicines.find(m => m.snomedCodeId === form.snomedCodeId)?.snomedLabel || '' } as any : null}
+                    onSelect={(code) => {
+                      const snomed = code as SnomedConceptResult;
+                      setForm(f => ({ 
+                        ...f, 
+                        snomedCodeId: snomed ? Number(snomed.id) : null,
+                        name: f.name || (snomed ? snomed.term : '')
+                      }));
+                    }}
+                  />
+                  <p className="text-[10px] color-muted mt-1">Standardizes medicine coding for clinical interoperability.</p>
                 </div>
 
                 <div className="plat-form-group">

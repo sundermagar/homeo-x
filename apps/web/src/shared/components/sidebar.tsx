@@ -279,6 +279,7 @@ const NAV_STRUCTURE: NavItem[] = [
         { path: '/settings/pdf', label: 'PDF & Reports', icon: FileText },
         { path: '/settings/faqs', label: 'Help & FAQs', icon: HelpCircle },
         { path: '/settings/staff', label: 'Staff Management', icon: UserCircle },
+        { path: '/settings/vaccines', label: 'Vaccines', icon: Shield },
       ],
     },
   },

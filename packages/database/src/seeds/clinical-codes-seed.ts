@@ -432,6 +432,17 @@ const procedureSeed = [
   { code: 'A004', name: 'Prescription Issuance', category: 'Administration', description: 'Detailed prescription preparation' },
 ];
 
+// ─── SNOMED Sample Concepts ──────────────────────────────────────────────────
+const snomedSeed = [
+  { conceptId: '387494007', fsn: 'Paracetamol (substance)', term: 'Paracetamol' },
+  { conceptId: '10312003', fsn: 'Prednisone (substance)', term: 'Prednisone' },
+  { conceptId: '7092007', fsn: 'Amoxicillin (substance)', term: 'Amoxicillin' },
+  { conceptId: '387207008', fsn: 'Aspirin (substance)', term: 'Aspirin' },
+  { conceptId: '387124005', fsn: 'Ibuprofen (substance)', term: 'Ibuprofen' },
+  { conceptId: '4112009', fsn: 'Aconitum napellus (substance)', term: 'Aconite' },
+  { conceptId: '410942005', fsn: 'Arnica montana (substance)', term: 'Arnica' },
+];
+
 // ─── Lab Panels ────────────────────────────────────────────────────────────────
 const labPanelSeed = [
   { code: 'CBC', name: 'Complete Blood Count', description: 'Full blood count with differential' },
@@ -514,20 +525,17 @@ export async function seedClinicalCodes(db: DbClient) {
     }
   }
 
-  // Link CBC LOINCs to CBC panel
-  const cbcLoincs = loincSeed.filter(l => ['6690-2', '789-8', '718-7', '4544-3', '787-2', '785-6', '786-4', '788-0', '777-3'].includes(l.loincNum));
-  if (panelIds['CBC']) {
-    for (const lc of cbcLoincs) {
-      try {
-        const loincResult = await db.execute(sql`SELECT id FROM loinc_codes WHERE loinc_num = ${lc.loincNum}`);
-        if (loincResult && (loincResult as any)[0]) {
-          await db.execute(sql`
-            INSERT INTO lab_panel_loinc_links (lab_panel_id, loinc_code_id, sort_order)
-            VALUES (${panelIds['CBC']}, ${(loincResult as any)[0].id}, 0)
-            ON CONFLICT DO NOTHING
-          `);
-        }
-      } catch (e) { /* ignore duplicates */ }
+  // Seed SNOMED concepts
+  console.log(`[Seed] Inserting ${snomedSeed.length} SNOMED concepts...`);
+  for (const snomed of snomedSeed) {
+    try {
+      await db.execute(sql`
+        INSERT INTO snomed_concepts (concept_id, fsn, term, concept_type, active)
+        VALUES (${snomed.conceptId}, ${snomed.fsn}, ${snomed.term}, 'Substance', true)
+        ON CONFLICT (concept_id) DO NOTHING
+      `);
+    } catch (e) {
+      console.error(`[Seed] Failed SNOMED ${snomed.conceptId}:`, (e as Error).message);
     }
   }
 

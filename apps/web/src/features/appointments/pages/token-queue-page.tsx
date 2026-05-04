@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { format } from 'date-fns';
 import {
   Clock, UserCheck, CheckCircle2, Users, RefreshCw, Plus, Ticket,
@@ -10,6 +11,7 @@ import { useDailyCollection } from '@/features/billing/hooks/use-billing';
 import { apiClient } from '@/infrastructure/api-client';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { VitalsFormModal } from '../../medical-case/components/vitals-form-modal';
+import { Pagination } from '@/components/shared/pagination';
 import '../styles/appointments.css';
 
 const WAIT_STATUS = { 0: 'Waiting', 1: 'Called', 2: 'Done' } as Record<number, string>;
@@ -24,7 +26,10 @@ function formatWaitTime(checkedInAt: Date | string | null) {
   return `${Math.floor(diff / 60)}h ${diff % 60}m wait`;
 }
 
+import { useNavigate } from 'react-router-dom';
+
 export default function TokenQueuePage() {
+  const navigate = useNavigate();
   const today = new Date().toISOString().split('T')[0]!;
   const user = useAuthStore((s) => s.user);
   const rawRole = ((user as any)?.type || (user as any)?.role || (user as any)?.roleName || '').toLowerCase();
@@ -44,8 +49,44 @@ export default function TokenQueuePage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [openMenuId, setOpenMenuId] = useState<number | string | null>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
   const [printData, setPrintData] = useState<any>(null);
   const stickerRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const MENU_W = 180;
+  const MENU_H = 200;
+
+  const toggleMenu = useCallback((id: number | string, btn: HTMLButtonElement) => {
+    if (openMenuId === id) { setOpenMenuId(null); setMenuPos(null); return; }
+    const r = btn.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - r.bottom;
+    const top = spaceBelow >= MENU_H ? r.bottom + 4 : r.top - MENU_H - 4;
+    let left = r.right - MENU_W;
+    if (left < 8) left = 8;
+    if (left + MENU_W > window.innerWidth - 8) left = window.innerWidth - MENU_W - 8;
+    setMenuPos({ top: Math.max(8, top), left });
+    setOpenMenuId(id);
+  }, [openMenuId]);
+
+  useEffect(() => {
+    if (openMenuId === null) return;
+    const close = () => { setOpenMenuId(null); setMenuPos(null); };
+    const onMouse = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) close();
+    };
+    const onScroll = (e: Event) => {
+      // Don't close if scrolling inside the dropdown menu itself
+      if (menuRef.current && menuRef.current.contains(e.target as Node)) return;
+      close();
+    };
+    document.addEventListener('mousedown', onMouse);
+    window.addEventListener('scroll', onScroll, true);
+    return () => {
+      document.removeEventListener('mousedown', onMouse);
+      window.removeEventListener('scroll', onScroll, true);
+    };
+  }, [openMenuId]);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -140,70 +181,20 @@ export default function TokenQueuePage() {
   };
 
   const handleStartConsult = (w: any) => {
-    window.location.href = `/medical-case/entry?regid=${w.patientId}&visitId=${w.appointmentId || w.id}`;
+    navigate(`/consultation/${w.appointmentId || w.id}`);
   };
 
-  const renderPagination = () => {
+  const renderSharedPagination = () => {
     if (totalItems === 0) return null;
     return (
-      <div className="appt-pagination-bar" style={{ marginTop: 24 }}>
-        <div className="appt-pagination-info-wrap">
-          <div className="appt-pagination-info">
-            Showing {fromEntry}-{toEntry} of {totalItems}
-          </div>
-          <select
-            className="appt-pagination-limit"
-            value={limit}
-            onChange={(e) => {
-              setLimit(Number(e.target.value));
-              setPage(1);
-            }}
-          >
-            {[5, 10, 20, 50].map((l) => (
-              <option key={l} value={l}>
-                {l} per page
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="appt-pagination-controls">
-          <button
-            className="appt-pagination-btn"
-            disabled={page === 1}
-            onClick={() => setPage((p) => p - 1)}
-          >
-            <ChevronLeft size={16} />
-          </button>
-
-          {[...Array(totalPages)].map((_, i) => {
-            const p = i + 1;
-            if (p === 1 || p === totalPages || (p >= page - 1 && p <= page + 1)) {
-              return (
-                <button
-                  key={p}
-                  className={`appt-pagination-page ${page === p ? 'is-active' : ''}`}
-                  onClick={() => setPage(p)}
-                >
-                  {p}
-                </button>
-              );
-            }
-            if (p === page - 2 || p === page + 2) {
-              return <span key={p} style={{ color: '#cbd5e1' }}>...</span>;
-            }
-            return null;
-          })}
-
-          <button
-            className="appt-pagination-btn"
-            disabled={page === totalPages}
-            onClick={() => setPage((p) => p + 1)}
-          >
-            <ChevronRight size={16} />
-          </button>
-        </div>
-      </div>
+      <Pagination
+        currentPage={page}
+        totalPages={totalPages}
+        pageSize={limit}
+        totalItems={totalItems}
+        onPageChange={setPage}
+        onPageSizeChange={(size) => { setLimit(size); setPage(1); }}
+      />
     );
   };
 
@@ -340,55 +331,41 @@ export default function TokenQueuePage() {
                   </span>
                 </td>
                 <td data-label="ACTION" style={{ paddingRight: 24 }}>
-                  <div className="appt-row-actions appt-row-actions-inline">
-                    {w.status === 1 ? (
-                      <>
-                        <button className="appt-btn appt-btn-xs appt-btn-primary" onClick={() => handleStartConsult(w)}>
-                           Consult
-                        </button>
-                        <button className="appt-btn appt-btn-xs appt-btn-success" onClick={() => handleComplete(w.id)} disabled={completeVisit.isPending}>
-                           Done
-                        </button>
-                      </>
-                    ) : (
-                      <button className="appt-btn appt-btn-xs appt-btn-primary" onClick={() => handleCall(w.id)} disabled={callNext.isPending}>
-                         Call Next
-                      </button>
-                    )}
-                    <button className="appt-btn appt-btn-xs appt-btn-purple" onClick={() => setActiveVitals({ visitId: w.appointmentId || w.id, regid: w.patientId ?? 0 })}>
-                      Vitals
-                    </button>
-                  </div>
                   <div className="appt-kebab-wrap">
                     <button 
                       className="appt-kebab-btn"
-                      onClick={() => setOpenMenuId(openMenuId === w.id ? null : w.id)}
+                      onClick={(e) => toggleMenu(w.id, e.currentTarget)}
                     >
                       <MoreVertical size={16} />
                     </button>
-                    {openMenuId === w.id && (
-                      <div className="appt-kebab-menu" style={{ right: 24, top: '50%', transform: 'translateY(-50%)', position: 'absolute', zIndex: 100 }}>
-                        {w.status === 1 ? (
-                          <>
-                            <button className="appt-kebab-item" style={{ color: 'var(--pp-blue)' }} onClick={() => { handleStartConsult(w); setOpenMenuId(null); }}>
-                              <Activity size={14} /> Consult
-                            </button>
-                            <button className="appt-kebab-item" style={{ color: 'var(--pp-success-fg)' }} onClick={() => { handleComplete(w.id); setOpenMenuId(null); }} disabled={completeVisit.isPending}>
-                              <CheckCircle2 size={14} /> Done
-                            </button>
-                          </>
-                        ) : (
-                          <button className="appt-kebab-item" style={{ color: 'var(--pp-blue)' }} onClick={() => { handleCall(w.id); setOpenMenuId(null); }} disabled={callNext.isPending}>
-                            <ChevronRight size={14} /> Call
-                          </button>
-                        )}
-                        <div className="appt-kebab-divider" />
-                        <button className="appt-kebab-item" style={{ color: 'var(--pp-purple)' }} onClick={() => { setActiveVitals({ visitId: w.appointmentId || w.id, regid: w.patientId ?? 0 }); setOpenMenuId(null); }}>
-                          <Activity size={14} /> Vitals
-                        </button>
-                      </div>
-                    )}
                   </div>
+                  {openMenuId === w.id && menuPos && createPortal(
+                    <div
+                      ref={menuRef}
+                      className="appt-kebab-menu"
+                      style={{ position: 'fixed', top: menuPos.top, left: menuPos.left, zIndex: 9999 }}
+                    >
+                      {w.status === 1 ? (
+                        <>
+                          <button className="appt-kebab-item" style={{ color: 'var(--pp-blue)' }} onClick={() => { handleStartConsult(w); setOpenMenuId(null); setMenuPos(null); }}>
+                            <Activity size={14} /> Consult
+                          </button>
+                          <button className="appt-kebab-item" style={{ color: 'var(--pp-success-fg)' }} onClick={() => { handleComplete(w.id); setOpenMenuId(null); setMenuPos(null); }} disabled={completeVisit.isPending}>
+                            <CheckCircle2 size={14} /> Done
+                          </button>
+                        </>
+                      ) : (
+                        <button className="appt-kebab-item" style={{ color: 'var(--pp-blue)' }} onClick={() => { handleCall(w.id); setOpenMenuId(null); setMenuPos(null); }} disabled={callNext.isPending}>
+                          <ChevronRight size={14} /> Call
+                        </button>
+                      )}
+                      <div className="appt-kebab-divider" />
+                      <button className="appt-kebab-item" style={{ color: 'var(--pp-purple)' }} onClick={() => { setActiveVitals({ visitId: w.appointmentId || w.id, regid: w.patientId ?? 0 }); setOpenMenuId(null); setMenuPos(null); }}>
+                        <Activity size={14} /> Vitals
+                      </button>
+                    </div>,
+                    document.body
+                  )}
                 </td>
               </tr>
             ))}
@@ -523,7 +500,7 @@ export default function TokenQueuePage() {
           ) : (
             <>
               {viewMode === 'grid' ? renderGridView() : renderListView()}
-              {renderPagination()}
+              {renderSharedPagination()}
             </>
           )}
         </div>
@@ -586,45 +563,36 @@ export default function TokenQueuePage() {
                             </span>
                           </td>
                           <td data-label="ACTION" style={{ paddingRight: 24 }}>
-                            <div className="appt-row-actions appt-row-actions-inline">
-                              {!a.tokenNo ? (
-                                <button className="appt-btn appt-btn-sm" style={{ background: '#0f172a', color: 'white', borderColor: '#0f172a' }} onClick={() => handleIssueToken(a.id)} disabled={issueToken.isPending}>
-                                  <Ticket size={14} /> Issue Token
-                                </button>
-                              ) : (
-                                <button className="appt-btn appt-btn-sm appt-btn-success" onClick={() => addToWaitlist.mutateAsync({ patientId: a.patientId!, appointmentId: a.id, doctorId: a.doctorId ?? undefined })} disabled={addToWaitlist.isPending}>
-                                  <Plus size={14} /> Check In
-                                </button>
-                              )}
-                              <button className="appt-btn appt-btn-sm appt-btn-purple" onClick={() => setActiveVitals({ visitId: a.id, regid: a.patientId ?? 0 })}>
-                                <Activity size={14} /> Vitals
-                              </button>
-                            </div>
                             <div className="appt-kebab-wrap">
                               <button 
                                 className="appt-kebab-btn"
-                                onClick={() => setOpenMenuId(openMenuId === `token-${a.id}` ? null : `token-${a.id}`)}
+                                onClick={(e) => toggleMenu(`token-${a.id}`, e.currentTarget)}
                               >
                                 <MoreVertical size={16} />
                               </button>
-                              {openMenuId === `token-${a.id}` && (
-                                <div className="appt-kebab-menu" style={{ right: 24, top: '50%', transform: 'translateY(-50%)', position: 'absolute', zIndex: 100 }}>
-                                  {!a.tokenNo ? (
-                                    <button className="appt-kebab-item" style={{ color: 'var(--pp-blue)' }} onClick={() => { handleIssueToken(a.id); setOpenMenuId(null); }} disabled={issueToken.isPending}>
-                                      <Ticket size={14} /> Issue Token
-                                    </button>
-                                  ) : (
-                                    <button className="appt-kebab-item" style={{ color: 'var(--pp-success-fg)' }} onClick={() => { addToWaitlist.mutateAsync({ patientId: a.patientId!, appointmentId: a.id, doctorId: a.doctorId ?? undefined }); setOpenMenuId(null); }} disabled={addToWaitlist.isPending}>
-                                      <Plus size={14} /> Check In
-                                    </button>
-                                  )}
-                                  <div className="appt-kebab-divider" />
-                                  <button className="appt-kebab-item" style={{ color: 'var(--pp-purple)' }} onClick={() => { setActiveVitals({ visitId: a.id, regid: a.patientId ?? 0 }); setOpenMenuId(null); }}>
-                                    <Activity size={14} /> Vitals
-                                  </button>
-                                </div>
-                              )}
                             </div>
+                            {openMenuId === `token-${a.id}` && menuPos && createPortal(
+                              <div
+                                ref={menuRef}
+                                className="appt-kebab-menu"
+                                style={{ position: 'fixed', top: menuPos.top, left: menuPos.left, zIndex: 9999 }}
+                              >
+                                {!a.tokenNo ? (
+                                  <button className="appt-kebab-item" style={{ color: 'var(--pp-blue)' }} onClick={() => { handleIssueToken(a.id); setOpenMenuId(null); setMenuPos(null); }} disabled={issueToken.isPending}>
+                                    <Ticket size={14} /> Issue Token
+                                  </button>
+                                ) : (
+                                  <button className="appt-kebab-item" style={{ color: 'var(--pp-success-fg)' }} onClick={() => { addToWaitlist.mutateAsync({ patientId: a.patientId!, appointmentId: a.id, doctorId: a.doctorId ?? undefined }); setOpenMenuId(null); setMenuPos(null); }} disabled={addToWaitlist.isPending}>
+                                    <Plus size={14} /> Check In
+                                  </button>
+                                )}
+                                <div className="appt-kebab-divider" />
+                                <button className="appt-kebab-item" style={{ color: 'var(--pp-purple)' }} onClick={() => { setActiveVitals({ visitId: a.id, regid: a.patientId ?? 0 }); setOpenMenuId(null); setMenuPos(null); }}>
+                                  <Activity size={14} /> Vitals
+                                </button>
+                              </div>,
+                              document.body
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -632,7 +600,7 @@ export default function TokenQueuePage() {
                   </table>
                 </div>
               </div>
-              {renderPagination()}
+              {renderSharedPagination()}
             </>
           )}
         </div>
@@ -699,7 +667,7 @@ export default function TokenQueuePage() {
               {...printData}
             />
           )}
-          {renderPagination()}
+          {renderSharedPagination()}
         </div>
       )}
 

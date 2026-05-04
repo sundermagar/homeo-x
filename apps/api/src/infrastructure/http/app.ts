@@ -231,6 +231,41 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
  */
 async function ensureIndexes(db: any): Promise<void> {
   const { sql } = await import('drizzle-orm');
+
+  // Ensure case_reminders table exists (Added for Clinical Activity feature)
+  try {
+    await db.execute(sql.raw(`
+      CREATE TABLE IF NOT EXISTS "case_reminders" (
+        "id" serial PRIMARY KEY NOT NULL,
+        "regid" integer NOT NULL,
+        "reminder_date" timestamp,
+        "message" text,
+        "status" varchar(20) DEFAULT 'Pending',
+        "created_at" timestamp DEFAULT now()
+      );
+    `));
+    
+    // Ensure regid column exists in vitals (from Migration 0014)
+    await db.execute(sql.raw(`
+      DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'vitals' AND column_name = 'regid') THEN
+          ALTER TABLE vitals ADD COLUMN regid INTEGER;
+        END IF;
+      END $$;
+    `));
+
+    // Ensure regid column exists in soap_notes (from Migration 0014)
+    await db.execute(sql.raw(`
+      DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'soap_notes' AND column_name = 'regid') THEN
+          ALTER TABLE soap_notes ADD COLUMN regid INTEGER;
+        END IF;
+      END $$;
+    `));
+  } catch (err: any) {
+    logger.debug({ err: err.message }, 'Failed to ensure case_reminders table');
+  }
+
   const indexes: string[] = [
     `CREATE INDEX IF NOT EXISTS idx_patients_clinic_deleted ON patients (clinic_id) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
     `CREATE INDEX IF NOT EXISTS idx_patients_deleted ON patients (id) WHERE deleted_at IS NULL OR deleted_at::text = ''`,

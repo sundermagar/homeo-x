@@ -100,6 +100,8 @@ export function useDeleteStockLog() {
   });
 }
 
+export const vaccineHooks    = makeSettingsHooks<any>('vaccines');
+
 // ─── Named convenience exports (recommended way to use) ───────────────────────
 export const { useList: useDepartments, useCreate: useCreateDepartment, useUpdate: useUpdateDepartment, useRemove: useDeleteDepartment } = departmentHooks;
 export const { useList: useDispensaries, useCreate: useCreateDispensary, useUpdate: useUpdateDispensary, useRemove: useDeleteDispensary } = dispensaryHooks;
@@ -116,3 +118,4 @@ export const { useList: useMessageTemplates, useCreate: useCreateMessageTemplate
 export const { useList: usePackagePlans, useCreate: useCreatePackagePlan, useUpdate: useUpdatePackagePlan, useRemove: useDeletePackagePlan } = packageHooks;
 export const { useList: useCouriers, useCreate: useCreateCourier, useUpdate: useUpdateCourier, useRemove: useDeleteCourier } = courierHooks;
 export const { useList: useStocks, useCreate: useCreateStock, useUpdate: useUpdateStock, useRemove: useDeleteStock } = stockHooks;
+export const { useList: useVaccines, useCreate: useCreateVaccine, useUpdate: useUpdateVaccine, useRemove: useDeleteVaccine } = vaccineHooks;

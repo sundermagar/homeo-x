@@ -2,8 +2,7 @@
 
 .sa-root {
   padding: 0;
-  padding-bottom: var(--pp-space-8);
-  min-height: 100%;
+  min-height: auto;
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -18,33 +17,6 @@
   }
 }
 
-.sa-root::before {
-  content: '';
-  position: absolute;
-  top: -150px;
-  right: -150px;
-  width: 500px;
-  height: 500px;
-  background: radial-gradient(circle, rgba(37, 99, 235, 0.08) 0%, transparent 70%);
-  filter: blur(120px);
-  opacity: 0.2;
-  z-index: -1;
-  pointer-events: none;
-}
-
-.sa-root::after {
-  content: '';
-  position: absolute;
-  bottom: -150px;
-  left: -150px;
-  width: 500px;
-  height: 500px;
-  background: radial-gradient(circle, rgba(139, 92, 246, 0.05) 0%, transparent 70%);
-  filter: blur(120px);
-  opacity: 0.15;
-  z-index: -1;
-  pointer-events: none;
-}
 
 .sa-root.sa-loading-skeleton {
   pointer-events: none;

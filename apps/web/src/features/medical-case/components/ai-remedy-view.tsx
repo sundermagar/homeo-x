@@ -181,7 +181,7 @@ function MatrixNode({ node, depth = 0, regid, searchQuery, expandedIds, onToggle
             />
           ))}
 
-          {loadingAlts && <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', padding: '4px' }}>Querying clinical matrix...</div>}
+          {/* {loadingAlts && <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', padding: '4px' }}>Querying clinical matrix...</div>} */}
 
           {alternatives && alternatives.length > 0 && (
             <div style={{ padding: '8px', background: 'var(--bg-surface-2)', borderRadius: '10px' }}>

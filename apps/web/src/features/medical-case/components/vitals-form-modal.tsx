@@ -15,7 +15,7 @@ interface VitalsFormModalProps {
 export function VitalsFormModal({ visitId, regid, initialData, onClose, onSuccess }: VitalsFormModalProps) {
   const [weightUnit, setWeightUnit] = useState<'kg' | 'lbs'>('kg');
   const [heightUnit, setHeightUnit] = useState<'cm' | 'in'>('cm');
-  
+
   const [form, setForm] = useState({
     height: initialData?.heightCm || '',
     weight: initialData?.weightKg || '',
@@ -129,7 +129,7 @@ export function VitalsFormModal({ visitId, regid, initialData, onClose, onSucces
 
         <form onSubmit={handleSubmit} className="mc-drawer-body" style={{ display: 'flex', flexDirection: 'column', flex: 1, background: 'white' }}>
           <div style={{ padding: '24px', flex: 1, overflowY: 'auto' }}>
-            
+
             {/* Physical Stats Section */}
             <div style={{ marginBottom: '28px' }}>
               <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--pp-blue)', marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Physical Stats</div>
@@ -152,9 +152,9 @@ export function VitalsFormModal({ visitId, regid, initialData, onClose, onSucces
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--pp-text-2)' }}>BMI</label>
-                  <div style={{ 
-                    height: '42px', display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                    background: bmi && (bmi > 25 || bmi < 18.5) ? 'var(--pp-danger-bg)' : 'var(--pp-success-bg)', 
+                  <div style={{
+                    height: '42px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: bmi && (bmi > 25 || bmi < 18.5) ? 'var(--pp-danger-bg)' : 'var(--pp-success-bg)',
                     color: bmi && (bmi > 25 || bmi < 18.5) ? 'var(--pp-danger-fg)' : 'var(--pp-success-fg)',
                     borderRadius: '10px', fontWeight: 800, fontSize: '1rem', border: '1px solid currentColor'
                   }}>
@@ -204,17 +204,23 @@ export function VitalsFormModal({ visitId, regid, initialData, onClose, onSucces
                     <input type="date" name="lmpDate" value={form.lmpDate} onChange={handleChange} />
                   </div>
                 </div>
+                <div className="mc-input-group">
+                  <label>LMP (Last Menstrual Period)</label>
+                  <div className="mc-input-wrap">
+                    <input type="date" name="lmpDate" value={form.lmpDate} onChange={handleChange} />
+                  </div>
+                </div>
               </div>
             </div>
 
             {/* Notes Section */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--pp-text-2)' }}>Clinical Findings</label>
-              <textarea 
-                name="notes" 
-                value={form.notes} 
-                onChange={handleChange} 
-                placeholder="Observe physical appearance, patient complaints, etc." 
+              <textarea
+                name="notes"
+                value={form.notes}
+                onChange={handleChange}
+                placeholder="Observe physical appearance, patient complaints, etc."
                 className="pp-textarea"
                 style={{ minHeight: '100px' }}
               />

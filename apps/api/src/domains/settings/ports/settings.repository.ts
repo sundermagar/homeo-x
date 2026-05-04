@@ -92,6 +92,23 @@ export interface Medicine {
   shortname?: string | null;
   description?: string | null;
   detail?: string | null;
+  snomedCodeId?: number | null;
+  snomedLabel?: string | null;
+}
+
+export interface Stock {
+  id: number;
+  name: string;
+  description?: string | null;
+  potency?: string | null;
+  category?: string | null;
+  quantity?: number | null;
+  unitPrice?: number | null;
+  batchNumber?: string | null;
+  snomedCodeId?: number | null;
+  snomedLabel?: string | null;
+  createdAt?: Date | null;
+  updatedAt?: Date | null;
 }
 
 export interface Potency {
@@ -162,6 +179,16 @@ export interface User {
   isActive?: boolean | null;
 }
 
+export interface Vaccine {
+  id: number;
+  label: string;
+  description?: string | null;
+  months?: number | null;
+  parentId?: number | null;
+  createdAt?: Date | null;
+  updatedAt?: Date | null;
+}
+
 // ─── Port Interface ───────────────────────────────────────────────────────────
 
 export interface ISettingsRepository {
@@ -222,6 +249,13 @@ export interface ISettingsRepository {
   updateMedicine(id: number, data: Partial<Omit<Medicine, 'id'>>): Promise<Medicine>;
   deleteMedicine(id: number): Promise<void>;
 
+  // Stocks (Inventory)
+  listStocks(): Promise<Stock[]>;
+  getStock(id: number): Promise<Stock | undefined>;
+  createStock(data: Omit<Stock, 'id'>): Promise<Stock>;
+  updateStock(id: number, data: Partial<Omit<Stock, 'id'>>): Promise<Stock>;
+  deleteStock(id: number): Promise<void>;
+
   // Potencies
   listPotencies(): Promise<Potency[]>;
   getPotency(id: number): Promise<Potency | undefined>;
@@ -265,5 +299,12 @@ export interface ISettingsRepository {
 
   // Practitioners
   listPractitioners(): Promise<User[]>;
+
+  // Vaccines
+  listVaccines(): Promise<Vaccine[]>;
+  getVaccine(id: number): Promise<Vaccine | undefined>;
+  createVaccine(data: Omit<Vaccine, 'id' | 'createdAt' | 'updatedAt'>): Promise<Vaccine>;
+  updateVaccine(id: number, data: Partial<Omit<Vaccine, 'id'>>): Promise<Vaccine>;
+  deleteVaccine(id: number): Promise<void>;
 }
 

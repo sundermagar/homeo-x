@@ -16,6 +16,7 @@ import { seedTestData } from './test-data-seed';
 import { seedDoctorStaff } from './doctor-staff-seed';
 import { seedStaffRegistry } from './staff-registry-seed';
 import { seedRbac } from './rbac-seed';
+import { seedVaccines } from './vaccine-seed';
 import { TenantRegistry } from '../tenant-registry';
 import fs from 'fs';
 import path from 'path';
@@ -78,6 +79,7 @@ async function main() {
       await runSeed('Doctor Staff', seedDoctorStaff);
       await runSeed('Staff Registry', seedStaffRegistry);
       await runSeed('RBAC', seedRbac);
+      await runSeed('Vaccines', seedVaccines);
       await runSeed('Test Data', seedTestData);
     } catch (err) {
       console.error(`[Seed] ❌ Failed to seed tenant ${tenant.displayName} (${tenant.schemaName}):`, err);
