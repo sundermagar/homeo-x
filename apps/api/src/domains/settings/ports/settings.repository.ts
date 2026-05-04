@@ -162,6 +162,16 @@ export interface User {
   isActive?: boolean | null;
 }
 
+export interface Vaccine {
+  id: number;
+  label: string;
+  description?: string | null;
+  months?: number | null;
+  parentId?: number | null;
+  createdAt?: Date | null;
+  updatedAt?: Date | null;
+}
+
 // ─── Port Interface ───────────────────────────────────────────────────────────
 
 export interface ISettingsRepository {
@@ -265,5 +275,12 @@ export interface ISettingsRepository {
 
   // Practitioners
   listPractitioners(): Promise<User[]>;
+
+  // Vaccines
+  listVaccines(): Promise<Vaccine[]>;
+  getVaccine(id: number): Promise<Vaccine | undefined>;
+  createVaccine(data: Omit<Vaccine, 'id' | 'createdAt' | 'updatedAt'>): Promise<Vaccine>;
+  updateVaccine(id: number, data: Partial<Omit<Vaccine, 'id'>>): Promise<Vaccine>;
+  deleteVaccine(id: number): Promise<void>;
 }
 

@@ -86,6 +86,7 @@ const FaqsPage = lazy(() => import('@/features/settings/pages/FaqsPage'));
 const StaffManagementPage = lazy(() => import('@/features/settings/pages/StaffManagementPage'));
 const StocksPage = lazy(() => import('@/features/settings/pages/StocksPage'));
 const RemedyTreePage = lazy(() => import('@/features/settings/pages/RemedyTreePage'));
+const VaccinesPage = lazy(() => import('@/features/settings/pages/VaccinesPage'));
 
 // Communications
 const SmsTemplatesPage = lazy(() => import('@/features/communications/pages/sms-templates-page'));
@@ -220,6 +221,7 @@ export function AppRouter() {
             <Route path="/settings/faqs" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><FaqsPage /></RoleGuard>} />
             <Route path="/settings/staff" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><StaffManagementPage /></RoleGuard>} />
             <Route path="/settings/roles" element={<RoleGuard allowed={['SuperAdmin', 'Admin']}><RolesPermissionsPage /></RoleGuard>} />
+            <Route path="/settings/vaccines" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><VaccinesPage /></RoleGuard>} />
           </Route>
 
           {/* Full-screen (no layout shell) */}
