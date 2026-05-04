@@ -5,6 +5,7 @@ import { Edit2, Trash2, UserPlus, Users, X, MapPin, Phone, CheckCircle, Search, 
 import { useSendWhatsApp } from '../../communications/hooks/use-communications';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import type { PatientSummary, FamilyMember } from '@mmc/types';
+import { PageSkeleton } from '@/components/shared/page-skeleton';
 import '../styles/patients.css';
 
 export default function PatientDetailPage() {
@@ -50,7 +51,7 @@ export default function PatientDetailPage() {
   const waMutation = useSendWhatsApp();
 
   if (isLoading) {
-    return <PatientDetailSkeleton />;
+    return <PageSkeleton variant="detail" />;
   }
   if (!patient) {
     return <div className="app-container" style={{ textAlign: 'center', padding: '80px', color: 'var(--pp-danger-fg)' }}>Patient not found</div>;
@@ -334,49 +335,4 @@ function ClinicalTrends({ regid }: { regid: number }) {
   );
 }
 
-function PatientDetailSkeleton() {
-  return (
-    <div className="pp-page-container pp-fade-in">
-      {/* Header Skeleton - Match real pat-header layout */}
-      <div className="pat-header" style={{ alignItems: 'center' }}>
-        <div className="skeleton-box skeleton-circle" style={{ width: '64px', height: '64px', flexShrink: 0 }} />
-        <div className="pat-header-info">
-          <div className="skeleton-box skeleton-text title" style={{ width: 'min(300px, 100%)', height: '32px', marginBottom: '8px' }} />
-          <div className="pat-header-meta">
-            <div className="skeleton-box" style={{ width: '80px', height: '22px', borderRadius: '4px' }} />
-            <div className="skeleton-box" style={{ width: '100px', height: '22px', borderRadius: '12px' }} />
-          </div>
-        </div>
-        <div className="pat-header-actions">
-           <div className="skeleton-box" style={{ width: '80px', height: '36px', borderRadius: '8px' }} />
-           <div className="skeleton-box" style={{ width: '80px', height: '36px', borderRadius: '8px' }} />
-        </div>
-      </div>
 
-      <div className="pp-detail-grid" style={{ marginBottom: '24px' }}>
-        {[1, 2].map(i => (
-          <div key={i} className="pp-card" style={{ padding: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
-               <div className="skeleton-box" style={{ width: '20px', height: '20px', borderRadius: '4px' }} />
-               <div className="skeleton-box" style={{ width: '40%', height: '18px' }} />
-            </div>
-            {[1, 2, 3, 4].map(j => (
-              <div key={j} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                <div className="skeleton-box skeleton-text" style={{ width: '30%', marginBottom: 0 }} />
-                <div className="skeleton-box skeleton-text" style={{ width: '45%', marginBottom: 0 }} />
-              </div>
-            ))}
-          </div>
-        ))}
-      </div>
-
-      <div className="pp-card" style={{ padding: '24px' }}>
-         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-            <div className="skeleton-box skeleton-text" style={{ width: '150px', height: '20px', marginBottom: 0 }} />
-            <div className="skeleton-box" style={{ width: '200px', height: '32px', borderRadius: '8px' }} />
-         </div>
-         <div className="skeleton-box" style={{ width: '100%', height: '320px', borderRadius: '12px' }} />
-      </div>
-    </div>
-  );
-}

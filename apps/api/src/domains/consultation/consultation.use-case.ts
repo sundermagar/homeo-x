@@ -10,6 +10,8 @@ import { ClinicalExtractionEngine } from './engines/clinical-extraction.engine';
 import { RepertorizationEngine } from './engines/repertorization.engine';
 import { HomeopathyPrescriptionEngine } from './engines/homeopathy-prescription.engine';
 import { CaseSummaryEngine } from './engines/case-summary.engine';
+import { FollowUpAssessmentEngine } from './engines/followup-assessment.engine';
+import type { FollowUpAssessment } from './engines/followup-assessment.engine';
 import type { SoapSuggestion } from './engines/soap-structuring.engine';
 import type { ClinicalExtractionResult } from './engines/clinical-extraction.engine';
 import type { RubricExtractionResult, RepertorizationResult } from './engines/repertorization.engine';
@@ -40,6 +42,7 @@ export interface HomeopathyConsultResult {
   prescriptionDraft: HomeopathyPrescriptionDraft;
   gnmAnalysis?: any;
   caseSummary: string;
+  followUpAssessment?: FollowUpAssessment;
   pipeline: {
     phasesCompleted: number;
     totalPhases: number;
@@ -54,6 +57,7 @@ export class ConsultationUseCase {
   private repertorizationEngine: RepertorizationEngine;
   private prescriptionEngine: HomeopathyPrescriptionEngine;
   private summaryEngine: CaseSummaryEngine;
+  private followUpEngine: FollowUpAssessmentEngine;
 
   constructor(private providerChain?: AiProviderChain) {
     const chain = providerChain || getAiProviderChain();
@@ -63,6 +67,7 @@ export class ConsultationUseCase {
     this.repertorizationEngine = new RepertorizationEngine(chain);
     this.prescriptionEngine = new HomeopathyPrescriptionEngine(chain);
     this.summaryEngine = new CaseSummaryEngine(chain);
+    this.followUpEngine = new FollowUpAssessmentEngine(chain);
   }
 
   /**
@@ -95,6 +100,13 @@ export class ConsultationUseCase {
     if (!isMedical) {
       logger.info({ tenantId, transcriptLength: englishTranscript.length }, 'Pipeline short-circuited: no medical content detected');
       return this.buildEmptyConsultResult(start, phasesCompleted);
+    }
+
+    // ── Follow-up fork ──
+    // If the consultation mode is 'followup', run a specialized shorter pipeline
+    // that evaluates remedy response instead of doing full repertorization.
+    if (input.consultationMode === 'followup') {
+      return this.consultFollowUp(tenantId, userId, input, englishTranscript, start, phasesCompleted);
     }
 
     // Phase 2: Clinical extraction
@@ -275,6 +287,141 @@ Respond ONLY with a JSON array of objects with keys "q" (the question text) and 
     } catch (error) {
       return { questions: [] };
     }
+  }
+
+  /**
+   * Follow-up consultation pipeline (shorter, remedy-evaluation focused):
+   * 1. (Translation already done)
+   * 2. SOAP Structuring
+   * 3. Follow-Up Assessment (REPEAT / CHANGE / ADVICE_ONLY)
+   * 4. Case Summary
+   */
+  private async consultFollowUp(
+    tenantId: string,
+    userId: string,
+    input: HomeopathyConsultInput,
+    englishTranscript: string,
+    start: number,
+    phasesCompleted: number,
+  ): Promise<HomeopathyConsultResult> {
+    // Phase 2: SOAP generation
+    logger.info({ tenantId }, 'Follow-up Phase 2: SOAP structuring');
+    const soap = await this.soapEngine.generateSoap(tenantId, userId, {
+      transcript: englishTranscript,
+      chiefComplaint: input.chiefComplaint,
+      specialty: input.specialty || 'HOMEOPATHY',
+      patientAge: input.patientAge,
+      patientGender: input.patientGender,
+    });
+    phasesCompleted++;
+
+    // Phase 3: Follow-Up Assessment (replaces phases 4-6 of new-case pipeline)
+    logger.info({ tenantId }, 'Follow-up Phase 3: Follow-up assessment');
+    const assessment = await this.followUpEngine.assess(tenantId, userId, {
+      transcript: englishTranscript,
+      chiefComplaint: input.chiefComplaint,
+      patientAge: input.patientAge,
+      patientGender: input.patientGender,
+      soapData: {
+        subjective: soap.subjective,
+        objective: soap.objective,
+        assessment: soap.assessment,
+      },
+    });
+    phasesCompleted++;
+
+    // Phase 4: Case Summary
+    logger.info({ tenantId }, 'Follow-up Phase 4: Case summary');
+    const summary = await this.summaryEngine.generateSummary(tenantId, userId, {
+      observations: [],
+      clinicalFindings: [],
+      selectedRemedies: assessment.decision === 'CHANGE' && assessment.alternativeRemedy
+        ? [{ name: assessment.alternativeRemedy.name, score: assessment.confidence }]
+        : [],
+      soapData: {
+        subjective: soap.subjective,
+        objective: soap.objective,
+        assessment: soap.assessment,
+        plan: assessment.suggestedAction,
+      },
+    });
+    phasesCompleted++;
+
+    const totalLatencyMs = Date.now() - start;
+    logger.info(
+      { tenantId, totalLatencyMs, phasesCompleted, decision: assessment.decision },
+      'Follow-up pipeline complete'
+    );
+
+    // Build a prescription draft from the follow-up assessment
+    const prescriptionDraft: HomeopathyPrescriptionDraft = {
+      consultationSummary: assessment.clinicalNotes,
+      diagnosis: assessment.chiefComplaintStatus,
+      materiaMedicaValidation: assessment.currentRemedyReview,
+      suggestedRemedy: assessment.decision === 'CHANGE' && assessment.alternativeRemedy
+        ? assessment.alternativeRemedy.name
+        : '',
+      suggestedRemedies: assessment.decision === 'CHANGE' && assessment.alternativeRemedy
+        ? [{
+            remedyName: assessment.alternativeRemedy.name,
+            potency: assessment.alternativeRemedy.potency,
+            dosage: assessment.alternativeRemedy.dosage,
+          }]
+        : [],
+      potency: assessment.decision === 'CHANGE' && assessment.alternativeRemedy
+        ? assessment.alternativeRemedy.potency
+        : assessment.potencyAdjustment || '',
+      dosage: assessment.decision === 'CHANGE' && assessment.alternativeRemedy
+        ? assessment.alternativeRemedy.dosage
+        : '',
+      safetyWarnings: [],
+      missingInformation: [],
+      advice: [
+        ...assessment.dietaryAdvice,
+        ...assessment.lifestyleAdvice,
+      ],
+      followUp: assessment.followUpTimeline,
+      confidence: assessment.confidence,
+      gnmAnalysis: null,
+    };
+
+    return {
+      soap,
+      clinicalData: {
+        observations: [],
+        clinicalFindings: [],
+        mentalState: [],
+        emotionProfile: [],
+        physicalSymptoms: [],
+        generalSymptoms: [],
+        modalities: { aggravation: [], amelioration: [] },
+        confidence: assessment.confidence,
+      } as any,
+      diagnosisData: {
+        primaryDiagnosis: { name: assessment.chiefComplaintStatus, icdCode: '' },
+        differentials: [],
+        redFlags: [],
+        suggestedInvestigations: [],
+        confidence: assessment.confidence,
+        auditLogId: 'followup-assessment',
+      },
+      rubricsResult: {
+        suggestedRubrics: [],
+        provisionalDiagnosis: null,
+        differentials: [],
+        overallConfidence: assessment.confidence,
+      } as any,
+      remedyScores: { scoredRemedies: [] } as any,
+      prescriptionDraft,
+      gnmAnalysis: null,
+      caseSummary: summary.summary,
+      followUpAssessment: assessment,
+      pipeline: {
+        phasesCompleted,
+        totalPhases: 4,
+        totalLatencyMs,
+      },
+    };
   }
 
   async parseLabReport(tenantId: string, userId: string, input: { filename: string; mimeType: string; base64: string }) {

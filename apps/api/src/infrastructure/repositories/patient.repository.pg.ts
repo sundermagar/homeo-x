@@ -177,7 +177,6 @@ export class PatientRepositoryPg implements PatientRepository {
       state: input.state || '',
       dateOfBirth: input.dateOfBirth || null,
       dob: input.dateOfBirth || null,
-      clinicId: input.clinicId || null,
     };
 
     // Only add columns if they exist in the schema to avoid "column does not exist" errors
@@ -203,13 +202,29 @@ export class PatientRepositoryPg implements PatientRepository {
     if ((patients as any).referedBy) patientData.referedBy = (input as any).referredBy || '';
     if ((patients as any).status) patientData.status = (input as any).maritalStatus || '';
 
-    const [row] = await this.db
-      .insert(patients)
-      .values(patientData)
-      .returning();
-
-    return this.toDomain(row!);
+    // Try inserting WITH clinic_id first; if the column doesn't exist in the actual
+    // database (legacy schema not yet migrated), retry without it.
+    try {
+      const [row] = await this.db
+        .insert(patients)
+        .values({ ...patientData, clinicId: input.clinicId || null })
+        .returning();
+      return this.toDomain(row!);
+    } catch (err: any) {
+      // If the error is specifically about clinic_id column not existing,
+      // fall back to inserting without it so patient creation still works.
+      if (err?.message?.includes('clinic_id') && err?.message?.includes('does not exist')) {
+        console.warn('[PatientRepo] clinic_id column missing in case_datas — inserting without it. Run migration to add the column.');
+        const [row] = await this.db
+          .insert(patients)
+          .values(patientData)
+          .returning();
+        return this.toDomain(row!);
+      }
+      throw err;
+    }
   }
+
 
   async update(regid: number, input: UpdatePatientInput): Promise<Patient | null> {
     const updateData: Record<string, unknown> = {

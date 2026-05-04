@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Pill, Plus, X, RefreshCw, Trash2, Edit2, Info, Package, IndianRupee, Search, AlertCircle, CheckCircle2, History, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Pill, Plus, X, RefreshCw, Trash2, Edit2, Info, Package, IndianRupee, Search, AlertCircle, CheckCircle2, History, ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useMedicines, useCreateMedicine, useUpdateMedicine, useDeleteMedicine, usePotencies } from '../hooks/use-settings';
 import { Drawer } from '@/shared/components/drawer';
@@ -168,8 +168,8 @@ export default function MedicinesPage() {
           </div>
         ) : (
           <>
-          <div className="plat-table-container">
-            <table className="plat-table">
+          <div className="pp-card pp-table-scroll" style={{ padding: 0, overflow: 'visible' }}>
+            <table className="pp-table">
               <thead>
                 <tr>
                   <th style={{ width: '40px' }}>#</th>
@@ -177,7 +177,7 @@ export default function MedicinesPage() {
                   <th style={{ width: '240px' }}>Categorization</th>
                   <th style={{ width: '160px' }}>Stock Status</th>
                   <th style={{ width: '120px' }}>Unit Price</th>
-                  <th style={{ width: '100px' }}>Actions</th>
+                  <th style={{ width: '100px', textAlign: 'right' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -216,7 +216,7 @@ export default function MedicinesPage() {
                           ) : isLowStock ? (
                             <span className="text-[8px] font-black text-orange-700 uppercase bg-orange-50 px-1 border border-orange-200 rounded">Critically Low</span>
                           ) : (
-                            <span className="text-[8px] font-black text-emerald-700 uppercase bg-emerald-50 px-1 border border-emerald-200 rounded">In Stock</span>
+                            <span className="text-[8px] font-black text-emerald-700 uppercase bg-emerald-50 px-1 border border-orange-200 rounded">In Stock</span>
                           )}
                         </div>
                       </td>
@@ -225,14 +225,22 @@ export default function MedicinesPage() {
                           <IndianRupee size={11} /> {med.price || '0.00'}
                         </div>
                       </td>
-                      <td className="plat-table-cell">
-                        <div className="flex justify-end gap-2">
-                          <button className="plat-btn plat-btn-sm plat-btn-icon" onClick={() => handleOpenEdit(med)}>
-                            <Edit2 size={13} />
-                          </button>
-                          <button className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" onClick={() => handleDelete(med.id, med.name)}>
-                            <Trash2 size={13} />
-                          </button>
+                      <td style={{ textAlign: 'right' }}>
+                        <div className="mc-table-actions">
+                          {/* Desktop View Actions */}
+                          <div className="mc-desktop-actions">
+                            <button className="mc-action-btn" onClick={() => handleOpenEdit(med)} title="Edit"><Edit2 size={13} /></button>
+                            <button className="mc-action-btn danger" onClick={() => handleDelete(med.id, med.name)} title="Remove"><Trash2 size={13} /></button>
+                          </div>
+
+                          {/* Mobile 3-Dots Menu */}
+                          <div className="mc-mobile-actions">
+                            <button className="mc-dots-btn"><MoreHorizontal size={18} /></button>
+                            <div className="mc-dots-dropdown">
+                              <button onClick={() => handleOpenEdit(med)}><Edit2 size={14} /> Edit</button>
+                              <button onClick={() => handleDelete(med.id, med.name)} style={{ color: '#dc2626' }}><Trash2 size={14} /> Remove</button>
+                            </div>
+                          </div>
                         </div>
                       </td>
                     </tr>

@@ -1,7 +1,8 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Search, BookOpen, ChevronRight, Activity,
-  FlaskConical, Save, Trash2, Calendar, FileText, Printer, Plus, X
+  FlaskConical, Save, Trash2, Calendar, FileText, Printer, Plus, X,
+  History, Edit, MoreHorizontal
 } from 'lucide-react';
 import { useManageClinicalRecords } from '../hooks/use-medical-cases';
 import {
@@ -15,6 +16,7 @@ import {
   RemedyTreeNode,
   PrescriptionRow
 } from '../hooks/use-remedy-chart';
+import { useDayCharges } from '../../billing/hooks/use-accounts';
 import { Pagination } from '@/components/shared/pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
 
@@ -142,12 +144,14 @@ function SearchableSelect({
   );
 }
 
-export function RemedyChartSession({ regid }: { regid?: number }) {
+export function RemedyChartSession({ regid, onDayChargeChange }: { regid?: number, onDayChargeChange?: (amount: number) => void }) {
   const { data: lookups } = useRemedyLookups();
   const { data: history, isLoading } = usePatientPrescriptions(regid || 0);
+  const { data: dayCharges = [] } = useDayCharges();
 
   const [activeTab, setActiveTab] = useState('rx');
   const [delivery, setDelivery] = useState('clinic');
+  const [manualInstruction, setManualInstruction] = useState(false);
 
   const [form, setForm] = useState({
     remedyName: '',
@@ -168,6 +172,38 @@ export function RemedyChartSession({ regid }: { regid?: number }) {
   const totalPages = Math.ceil((history?.length || 0) / pageSize);
   const startIndex = (currentPage - 1) * pageSize;
   const currentHistory = history?.slice(startIndex, startIndex + pageSize) || [];
+
+  // Build day options from day-charges module
+  const dayOptions = useMemo(() => {
+    return dayCharges.map((dc: any) => String(dc.days)).filter(Boolean);
+  }, [dayCharges]);
+
+  // Get the amount for the selected days
+  const selectedDayCharge = useMemo(() => {
+    if (!form.days) return null;
+    return dayCharges.find((dc: any) => String(dc.days) === String(form.days));
+  }, [form.days, dayCharges]);
+
+  // Auto-build instructions when form fields change
+  useEffect(() => {
+    if (manualInstruction || editingId) return;
+    const parts: string[] = [];
+    if (form.remedyName) parts.push(`Remedy: ${form.remedyName}`);
+    if (form.potencyName) parts.push(`Potency: ${form.potencyName}`);
+    if (form.frequencyName) parts.push(`Frequency: ${form.frequencyName}`);
+    if (form.days) parts.push(`Days: ${form.days}`);
+    if (parts.length > 0) {
+      setForm(prev => ({ ...prev, instructions: parts.join('\n') }));
+    } else {
+      setForm(prev => ({ ...prev, instructions: '' }));
+    }
+  }, [form.remedyName, form.potencyName, form.frequencyName, form.days, manualInstruction, editingId]);
+
+  useEffect(() => {
+    if (onDayChargeChange) {
+      onDayChargeChange(selectedDayCharge?.regularCharges || 0);
+    }
+  }, [selectedDayCharge, onDayChargeChange]);
 
   useEffect(() => {
     if (history && history.length > 0) {
@@ -191,10 +227,12 @@ export function RemedyChartSession({ regid }: { regid?: number }) {
 
     setForm({ remedyName: '', potencyName: '', frequencyName: '', days: 0, instructions: '', notes: '' });
     setEditingId(null);
+    setManualInstruction(false);
   };
 
   const handleEdit = (rx: PrescriptionRow) => {
     setEditingId(rx.id);
+    setManualInstruction(true);
     setForm({
       remedyName: rx.remedy_name,
       potencyName: rx.potency_name,
@@ -207,25 +245,36 @@ export function RemedyChartSession({ regid }: { regid?: number }) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleRepeat = async () => {
+  const handleRepeat = () => {
     if (!history || history.length === 0) return alert('No previous prescription to repeat.');
     const lastRx = history[0];
     if (!lastRx) return;
-    try {
-      await saveMutation.mutateAsync({
-        regid: regid!,
-        remedyName: lastRx.remedy_name,
-        potencyName: lastRx.potency_name,
-        frequencyName: lastRx.frequency_name,
-        days: lastRx.days,
-        instructions: lastRx.prescription || lastRx.notes || '',
-        notes: lastRx.notes || '',
-        deliveryMode: delivery
-      });
-      setActiveTab('rx');
-    } catch (err) {
-      console.error('Failed to repeat:', err);
-    }
+    setManualInstruction(true);
+    setEditingId(null);
+    setForm({
+      remedyName: lastRx.remedy_name,
+      potencyName: lastRx.potency_name,
+      frequencyName: lastRx.frequency_name,
+      days: Number(lastRx.days) || 0,
+      instructions: lastRx.prescription || lastRx.notes || '',
+      notes: lastRx.notes || ''
+    });
+    setActiveTab('rx');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleRepeatRow = (rx: PrescriptionRow) => {
+    setManualInstruction(true);
+    setEditingId(null);
+    setForm({
+      remedyName: rx.remedy_name,
+      potencyName: rx.potency_name,
+      frequencyName: rx.frequency_name,
+      days: Number(rx.days) || 0,
+      instructions: rx.prescription || rx.notes || '',
+      notes: rx.notes || ''
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDelete = async (id: number, name?: string) => {
@@ -239,45 +288,52 @@ export function RemedyChartSession({ regid }: { regid?: number }) {
     }
   };
 
+  const handlePrintRow = (rx: PrescriptionRow) => {
+    const authStorage = localStorage.getItem('auth-storage');
+    const token = authStorage ? JSON.parse(authStorage).state.token : '';
+    window.open(`/api/medical-cases/remedy-chart/pdf/${regid}?token=${token}`, '_blank');
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '16px' }}>
 
       {/* Top Header Row Matching Image 2 */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px 0 24px', flexWrap: 'wrap', gap: '16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '16px 16px 0 16px', width: '100%', boxSizing: 'border-box' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '12px', flexWrap: 'wrap' }}>
           {/* Action Tabs */}
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '8px', flex: '1 1 300px', justifyContent: 'flex-start' }}>
             <button
               onClick={() => setActiveTab('rx')}
-              style={{ padding: '8px 24px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 700, border: 'none', cursor: 'pointer', background: activeTab === 'rx' ? '#1e3a8a' : '#f8fafc', color: activeTab === 'rx' ? 'white' : '#64748b' }}
+              style={{ flex: 1, minWidth: '80px', padding: '10px', borderRadius: '10px', fontSize: '0.85rem', fontWeight: 800, border: 'none', cursor: 'pointer', background: activeTab === 'rx' ? '#1e3a8a' : '#f1f5f9', color: activeTab === 'rx' ? 'white' : '#475569', transition: 'all 0.2s' }}
             >
               Rx
             </button>
             <button
               onClick={() => handleRepeat()}
-              style={{ padding: '8px 24px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 700, border: 'none', cursor: 'pointer', background: activeTab === 'repeat' ? '#1e3a8a' : '#f8fafc', color: activeTab === 'repeat' ? 'white' : '#64748b' }}
+              style={{ flex: 1, minWidth: '80px', padding: '10px', borderRadius: '10px', fontSize: '0.85rem', fontWeight: 800, border: 'none', cursor: 'pointer', background: '#f1f5f9', color: '#475569', transition: 'all 0.2s' }}
             >
               Repeat
             </button>
             <button
               onClick={() => setActiveTab('image')}
-              style={{ padding: '8px 24px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 700, border: 'none', cursor: 'pointer', background: activeTab === 'image' ? '#1e3a8a' : '#f8fafc', color: activeTab === 'image' ? 'white' : '#64748b' }}
+              style={{ flex: 1, minWidth: '100px', padding: '10px', borderRadius: '10px', fontSize: '0.85rem', fontWeight: 800, border: 'none', cursor: 'pointer', background: activeTab === 'image' ? '#1e3a8a' : '#f1f5f9', color: activeTab === 'image' ? 'white' : '#475569', transition: 'all 0.2s' }}
             >
               Add Image
             </button>
           </div>
 
           {/* Delivery Modes */}
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '8px', flex: '1 1 300px', justifyContent: 'flex-start' }}>
             {['clinic', 'courier', 'pickup'].map(mode => (
               <button
                 key={mode}
                 onClick={() => setDelivery(mode)}
                 style={{
-                  padding: '8px 24px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', textTransform: 'capitalize',
+                  flex: 1, minWidth: '80px', padding: '10px', borderRadius: '10px', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', textTransform: 'capitalize',
                   background: 'white',
-                  border: delivery === mode ? '1px solid var(--pp-blue)' : '1px solid #e2e8f0',
-                  color: delivery === mode ? 'var(--pp-blue)' : '#64748b'
+                  border: delivery === mode ? '2px solid var(--pp-blue)' : '1px solid var(--pp-warm-4)',
+                  color: delivery === mode ? 'var(--pp-blue)' : 'var(--pp-text-3)',
+                  transition: 'all 0.2s'
                 }}
               >
                 {mode}
@@ -285,7 +341,6 @@ export function RemedyChartSession({ regid }: { regid?: number }) {
             ))}
           </div>
         </div>
-
         {/* Print Buttons */}
         <div style={{ display: 'flex', gap: '8px' }}>
           <button
@@ -319,12 +374,15 @@ export function RemedyChartSession({ regid }: { regid?: number }) {
               ✏️ Editing prescription — make changes and click <strong>✓ Update</strong>
             </div>
           )}
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 2fr 2fr 1fr 2fr', gap: '16px', alignItems: 'end', marginBottom: '24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: '16px', alignItems: 'flex-start', marginBottom: '24px' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0f172a' }}>Remedy:</label>
               <SearchableSelect
                 value={form.remedyName}
-                onChange={val => setForm({ ...form, remedyName: val })}
+                onChange={val => {
+                  setManualInstruction(false);
+                  setForm({ ...form, remedyName: val });
+                }}
                 options={lookups?.medicines?.map(m => m.name) || []}
               />
             </div>
@@ -332,7 +390,10 @@ export function RemedyChartSession({ regid }: { regid?: number }) {
               <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0f172a' }}>Potency:</label>
               <SearchableSelect
                 value={form.potencyName}
-                onChange={val => setForm({ ...form, potencyName: val })}
+                onChange={val => {
+                  setManualInstruction(false);
+                  setForm({ ...form, potencyName: val });
+                }}
                 options={lookups?.potencies?.map(p => p.name) || []}
               />
             </div>
@@ -341,67 +402,86 @@ export function RemedyChartSession({ regid }: { regid?: number }) {
               <SearchableSelect
                 value={form.frequencyName}
                 onChange={val => {
-                  const freq = lookups?.frequencies?.find(f => f.name === val);
-                  setForm({
-                    ...form,
-                    frequencyName: val,
-                    instructions: freq?.instruction || form.instructions
-                  });
+                  setManualInstruction(false);
+                  setForm({ ...form, frequencyName: val });
                 }}
                 options={lookups?.frequencies?.map(f => f.name) || []}
               />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0f172a' }}>Days:</label>
-              <input
-                type="number"
-                style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.9rem' }}
-                value={form.days}
-                onChange={e => setForm({ ...form, days: parseInt(e.target.value) || 0 })}
-              />
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0f172a' }}>Instructions</label>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <input
-                  type="text"
-                  placeholder="Prescription"
-                  style={{ flex: 1, padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.9rem' }}
-                  value={form.instructions}
-                  onChange={e => setForm({ ...form, instructions: e.target.value })}
+              {dayOptions.length > 0 ? (
+                <SearchableSelect
+                  value={form.days ? String(form.days) : ''}
+                  onChange={val => {
+                    setManualInstruction(false);
+                    setForm({ ...form, days: parseInt(val) || 0 });
+                  }}
+                  options={dayOptions}
+                  placeholder="Select"
                 />
-                <button
-                  onClick={handleSave}
-                  disabled={saveMutation.isPending}
-                  style={{ background: 'var(--pp-blue)', color: 'white', border: 'none', borderRadius: '8px', width: '38px', height: '38px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
-                >
-                  {saveMutation.isPending ? '...' : editingId ? '✓' : <Plus size={20} />}
-                </button>
-                {editingId && (
+              ) : (
+                <input
+                  type="number"
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }}
+                  value={form.days}
+                  onChange={e => {
+                    setManualInstruction(false);
+                    setForm({ ...form, days: parseInt(e.target.value) || 0 });
+                  }}
+                />
+              )}
+              {selectedDayCharge && selectedDayCharge.regularCharges != null && (
+                <span style={{ fontSize: '0.7rem', color: '#059669', fontWeight: 700, marginTop: '2px' }}>
+                  ₹{selectedDayCharge.regularCharges}
+                </span>
+              )}
+            </div>
+            <div style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0f172a' }}>Instructions</label>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                <textarea
+                  placeholder="Auto-generated from selections"
+                  style={{ flex: 1, padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.9rem', minHeight: '80px', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                  value={form.instructions}
+                  onChange={e => {
+                    setManualInstruction(true);
+                    setForm({ ...form, instructions: e.target.value });
+                  }}
+                />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <button
-                    onClick={() => { setEditingId(null); setForm({ remedyName: '', potencyName: '', frequencyName: '', days: 0, instructions: '', notes: '' }); }}
-                    style={{ background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '8px', width: '38px', height: '38px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
+                    onClick={handleSave}
+                    disabled={saveMutation.isPending}
+                    style={{ background: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', width: '38px', height: '38px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
                   >
-                    ✕
+                    {saveMutation.isPending ? '...' : editingId ? '✓' : <Plus size={20} />}
                   </button>
-                )}
+                  {editingId && (
+                    <button
+                      onClick={() => { setEditingId(null); setManualInstruction(false); setForm({ remedyName: '', potencyName: '', frequencyName: '', days: 0, instructions: '', notes: '' }); }}
+                      style={{ background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '8px', width: '38px', height: '38px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
 
           <div className="pp-card pp-table-scroll" style={{ padding: 0 }}>
             {isLoading ? (
-              <TableSkeleton rows={5} cols={7} />
+              <TableSkeleton rows={5} cols={8} />
             ) : (
               <table className="pp-table">
-                <thead>
+                <thead style={{ position: 'sticky', top: 0, zIndex: 10, background: '#f8fafc' }}>
                   <tr>
                     <th>DATE</th>
                     <th>REMEDY</th>
                     <th>POTENCY</th>
                     <th>FREQUENCY</th>
                     <th>DAYS</th>
-                    <th>INSTRUCTIONS</th>
                     <th style={{ textAlign: 'right' }}>ACTION</th>
                   </tr>
                 </thead>
@@ -432,35 +512,35 @@ export function RemedyChartSession({ regid }: { regid?: number }) {
                       <td>
                         <span style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>{rx.days}</span>
                       </td>
-                      <td style={{ maxWidth: '200px' }}>
-                        <div className="text-small" style={{ color: '#64748b', fontStyle: 'italic', lineHeight: 1.4 }}>
-                          {rx.prescription || rx.notes || '—'}
-                        </div>
-                      </td>
                       <td style={{ textAlign: 'right' }}>
-                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                          <button
-                            onClick={() => handleEdit(rx)}
-                            className="dash-action-btn"
-                            style={{ background: '#eff6ff', color: 'var(--pp-blue)', border: 'none', borderRadius: '6px', padding: '4px 10px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleDelete(rx.id, rx.remedy_name)}
-                            disabled={deleteMutation.isPending}
-                            className="dash-action-btn"
-                            style={{ background: '#fef2f2', color: 'var(--pp-danger-fg)', border: 'none', borderRadius: '6px', padding: '4px 10px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
-                          >
-                            {deleteMutation.isPending ? '...' : 'Remove'}
-                          </button>
+                        <div className="mc-table-actions">
+                          {/* Desktop View Actions */}
+                          <div className="mc-desktop-actions">
+                            <button onClick={() => handleRepeatRow(rx)} className="mc-action-btn" title="Repeat"><History size={14} /></button>
+                            <button onClick={() => handlePrintRow(rx)} className="mc-action-btn" title="Print"><Printer size={14} /></button>
+                            <button onClick={() => handleEdit(rx)} className="mc-action-btn" title="Edit"><Edit size={14} /></button>
+                            <button onClick={() => handleDelete(rx.id, rx.remedy_name)} className="mc-action-btn danger" title="Remove"><Trash2 size={14} /></button>
+                          </div>
+
+                          {/* Mobile 3-Dots Menu */}
+                          <div className="mc-mobile-actions">
+                            <button className="mc-dots-btn"><MoreHorizontal size={18} /></button>
+                            <div className="mc-dots-dropdown">
+                              <button onClick={() => handleRepeatRow(rx)}><History size={14} /> Repeat</button>
+                              <button onClick={() => handlePrintRow(rx)}><Printer size={14} /> Print</button>
+                              <button onClick={() => handleEdit(rx)}><Edit size={14} /> Edit</button>
+                              <button onClick={() => handleDelete(rx.id, rx.remedy_name)} style={{ color: '#dc2626' }}><Trash2 size={14} /> Remove</button>
+                            </div>
+                          </div>
                         </div>
                       </td>
                     </tr>
                   ))}
                   {history?.length === 0 && (
                     <tr>
-                      <td colSpan={7} style={{ padding: '24px', color: 'var(--pp-text-3)', textAlign: 'center' }}>No prescriptions added.</td>
+                      <td colSpan={8} style={{ padding: '24px', color: 'var(--pp-text-3)', textAlign: 'center' }}>
+                        No previous prescriptions found for this patient. Add a new prescription above.
+                      </td>
                     </tr>
                   )}
                 </tbody>

@@ -260,6 +260,26 @@ router.delete('/records/images/:id', asyncHandler(async (req, res) => {
   sendSuccess(res, null, 'Image deleted');
 }));
 
+// ─── Diagnosis Update ───
+
+router.put('/:regid/diagnosis', asyncHandler(async (req, res) => {
+  const regid = Number(req.params.regid);
+  const { condition } = req.body;
+  const repo = getRepo(req);
+  
+  // Find the active medical case for this patient
+  const cases = await repo.findByRegId(regid);
+  const activeCase = cases.find((c: any) => c.status === 'Active') || cases[0];
+  
+  if (!activeCase) {
+    res.status(404).json({ success: false, error: 'No medical case found for this patient' });
+    return;
+  }
+  
+  await repo.update(activeCase.id, { condition });
+  sendSuccess(res, { condition }, 'Diagnosis updated successfully');
+}));
+
 // ─── Consultation Workflow ───
 
 router.post('/:regid/finalize', asyncHandler(async (req, res) => {

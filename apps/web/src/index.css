@@ -1888,35 +1888,48 @@ a {
 }
 
 
-/* ─── Pagination ─── */
+/* ─── Pagination (Global Unified) ─── */
 .pp-pagination-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 24px;
-  border-top: 1px solid var(--pp-warm-4);
-  background: white;
-  border-radius: 0 0 16px 16px;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 16px 20px;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border-main);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .pp-pagination-info-wrap {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
 }
 
 .pp-pagination-info {
-  font-size: 0.875rem;
-  color: var(--pp-text-3);
+  font-size: 0.825rem;
+  color: var(--text-muted);
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .pp-pagination-limit {
-  padding: 4px 8px;
-  border-radius: 6px;
-  border: 1px solid var(--pp-warm-4);
+  height: 34px;
+  padding: 0 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border-main);
   font-size: 0.8125rem;
-  color: var(--pp-text-2);
+  color: var(--text-main);
+  background: var(--bg-surface-2);
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.pp-pagination-limit:hover {
+  border-color: var(--pp-blue);
 }
 
 .pp-pagination-controls {
@@ -1925,44 +1938,68 @@ a {
   gap: 8px;
 }
 
-.pp-pagination-btn {
-  padding: 8px;
-  border-radius: 8px;
-  border: 1px solid var(--pp-warm-4);
-  background: white;
-  color: var(--pp-text-3);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.pp-pagination-btn:hover:not(:disabled) {
-  background: var(--pp-warm-2);
-  color: var(--pp-blue);
-  border-color: var(--pp-blue);
-}
-
+.pp-pagination-btn,
 .pp-pagination-page {
-  width: 36px;
+  min-width: 36px;
   height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 8px;
+  border: 1px solid var(--border-main);
+  background: var(--bg-surface-2);
+  color: var(--text-secondary);
   font-size: 0.875rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  border: 1px solid transparent;
   transition: all 0.2s ease;
+  padding: 0 8px;
 }
 
-.pp-pagination-page:hover {
-  background: var(--pp-warm-2);
+.pp-pagination-btn:hover:not(:disabled),
+.pp-pagination-page:hover:not(.is-active) {
+  background: var(--bg-surface-2);
+  color: var(--text-main);
+  border-color: var(--pp-blue);
+  transform: translateY(-1px);
+}
+
+.pp-pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .pp-pagination-page.is-active {
   background: var(--pp-blue);
   color: white;
   border-color: var(--pp-blue);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+/* Dark theme pagination overrides */
+.dark .pp-pagination-btn,
+.dark .pp-pagination-page {
+  background: var(--pp-warm-4);
+  border-color: transparent;
+  color: var(--text-secondary);
+}
+
+.dark .pp-pagination-btn:hover:not(:disabled),
+.dark .pp-pagination-page:hover:not(.is-active) {
+  background: var(--pp-text-4);
+  color: var(--text-main);
+}
+
+.dark .pp-pagination-page.is-active {
+  background: #314264;
+  color: #c3daff;
+  border: 1px solid #4a6fa5;
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.2);
+}
+
+.dark .pp-pagination-limit {
+  background: var(--pp-warm-3);
+  border-color: var(--pp-warm-4);
 }
 
 .gh-profile-name {
@@ -2260,81 +2297,7 @@ a {
   margin-bottom: 12px;
 }
 
-/* ─── Global Pagination (Unified v2.0) ─── */
-.pp-pagination-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  background: var(--bg-card);
-  border-top: 1px solid var(--pp-warm-4);
-}
 
-.pp-pagination-info-wrap {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.pp-pagination-info {
-  font-size: 13px;
-  color: var(--text-muted);
-  font-weight: 500;
-}
-
-.pp-pagination-limit {
-  height: 32px;
-  padding: 0 8px;
-  border: 1px solid var(--pp-warm-4);
-  border-radius: 6px;
-  font-size: 12px;
-  background: var(--pp-warm-1);
-  color: var(--pp-ink);
-  outline: none;
-  cursor: pointer;
-}
-
-.pp-pagination-controls {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.pp-pagination-btn,
-.pp-pagination-page {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  background: white;
-  color: #64748b;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  padding: 0;
-}
-
-.pp-pagination-btn:hover:not(:disabled),
-.pp-pagination-page:hover:not(.is-active) {
-  background: #f8fafc;
-  border-color: #cbd5e1;
-  color: #334155;
-}
-
-.pp-pagination-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.pp-pagination-page.is-active {
-  background: #334155;
-  border-color: #334155;
-  color: white;
-}
 
 /* ─── Shimmer Skeleton Loader ─── */
 @keyframes shimmer {
@@ -2379,4 +2342,157 @@ a {
   height: 36px;
   width: 100px;
   border-radius: var(--pp-radius-btn);
+}
+
+/* ──────────────────────────────────────────────────────────────────────────── */
+/* SHARED CLINICAL COMPONENTS (Migrated from Appointments)                      */
+/* ──────────────────────────────────────────────────────────────────────────── */
+
+.appt-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pp-space-3);
+  margin-bottom: var(--pp-space-6);
+}
+
+@media (min-width: 768px) {
+  .appt-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+}
+
+.appt-header-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--pp-ink);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+@media (min-width: 768px) {
+  .appt-header-title {
+    font-size: 1.35rem;
+  }
+}
+
+.appt-header-sub {
+  font-size: 0.82rem;
+  color: var(--pp-text-3);
+  margin: 4px 0 0;
+  font-weight: 500;
+}
+
+.appt-header-actions {
+  display: flex;
+  gap: var(--pp-space-2);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.appt-segmented-toggle {
+  display: inline-flex;
+  gap: 4px;
+  background: var(--pp-warm-1);
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid var(--pp-warm-4);
+}
+
+.appt-segmented-btn {
+  background: transparent;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pp-text-3);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.appt-segmented-btn:hover {
+  color: var(--pp-ink);
+}
+
+.appt-segmented-btn.active {
+  background: #ffffff;
+  color: var(--pp-ink);
+  box-shadow: var(--pp-shadow-sm);
+}
+
+.appt-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--pp-space-2);
+  padding: 8px var(--pp-space-4);
+  border-radius: var(--pp-radius-btn);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid var(--pp-warm-4);
+  background: #ffffff;
+  color: var(--pp-text-2);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.appt-btn:hover {
+  background: var(--pp-warm-2);
+}
+
+.appt-btn-primary {
+  background: var(--pp-blue);
+  color: white;
+  border: none;
+}
+
+.appt-btn-primary:hover {
+  background: var(--pp-blue-hover);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+.appt-cell-mono {
+  font-family: var(--pp-font-mono);
+  font-size: 12px;
+  color: var(--pp-text-3);
+  font-weight: 500;
+}
+
+.appt-cell-name {
+  font-weight: 700;
+  color: var(--pp-ink);
+  font-size: 14px;
+}
+
+.appt-cell-phone {
+  font-size: 12px;
+  color: var(--pp-text-3);
+  font-weight: 500;
+}
+
+.appt-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.appt-grid-card {
+  padding: 24px;
+  background: #ffffff;
+  border: 1px solid var(--pp-warm-4);
+  border-radius: 16px;
+  box-shadow: var(--pp-shadow-sm);
+  transition: all 0.2s ease;
+}
+
+.appt-grid-card:hover {
+  box-shadow: var(--pp-shadow-md);
+  transform: translateY(-2px);
+  border-color: var(--pp-blue-border);
 }

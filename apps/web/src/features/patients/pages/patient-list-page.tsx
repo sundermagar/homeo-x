@@ -1,12 +1,13 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
-import { usePatients, useDeletePatient } from '../hooks/use-patients';
-import { 
-  Search, Plus, List as ListIcon, Grid, Eye, Edit2, Phone, MapPin, Calendar, 
-  ChevronLeft, ChevronRight, MessageCircle, Printer, Download, MoreVertical, Trash2
+import { usePatients, useDeletePatient, usePatientFormMeta } from '../hooks/use-patients';
+import {
+  Search, Plus, List as ListIcon, Grid, Edit2, MapPin, Calendar,
+  MessageCircle, Printer, Download, MoreVertical, Trash2, Phone, User
 } from 'lucide-react';
 import { useAuthStore } from '@/shared/stores/auth-store';
-import { Role, type PatientSummary } from '@mmc/types';
+import { type PatientSummary } from '@mmc/types';
 import { PatientFormDrawer } from '../components/patient-form-drawer';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
 import '../../appointments/styles/appointments.css';
@@ -14,6 +15,7 @@ import '../../dashboard/pages/role-dashboards.css';
 import '../styles/patients.css';
 import { Pagination } from '@/components/shared/pagination';
 
+/* ─── Helpers ──────────────────────────────────────────────────────────────── */
 function formatDate(date: Date | string | null | undefined) {
   if (!date) return '—';
   const d = new Date(date);
@@ -28,6 +30,75 @@ function openWhatsApp(phone: string | null, name: string) {
   window.open(`https://wa.me/91${cleaned}?text=${msg}`, '_blank');
 }
 
+function getInitials(name: string) {
+  return (name || '?')[0].toUpperCase();
+}
+
+/* ─── Portal Kebab Menu ────────────────────────────────────────────────────── */
+interface KebabMenuPortalProps {
+  anchorEl: HTMLButtonElement | null;
+  onClose: () => void;
+  children: React.ReactNode;
+}
+
+function KebabMenuPortal({ anchorEl, onClose, children }: KebabMenuPortalProps) {
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [style, setStyle] = useState<React.CSSProperties>({
+    position: 'fixed', opacity: 0, pointerEvents: 'none',
+  });
+
+  useEffect(() => {
+    if (!anchorEl) return;
+
+    const position = () => {
+      const rect = anchorEl.getBoundingClientRect();
+      const menuH = menuRef.current?.offsetHeight ?? 240;
+      const menuW = menuRef.current?.offsetWidth ?? 200;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const spaceBelow = vh - rect.bottom;
+      const openUp = spaceBelow < menuH + 8 && rect.top > menuH + 8;
+      const alignRight = rect.right + 4 >= vw - menuW;
+      setStyle({
+        position: 'fixed',
+        top: openUp ? undefined : rect.bottom + 4,
+        bottom: openUp ? vh - rect.top + 4 : undefined,
+        left: alignRight ? undefined : rect.left,
+        right: alignRight ? vw - rect.right : undefined,
+        zIndex: 9999,
+        opacity: 1,
+        pointerEvents: 'auto',
+      });
+    };
+
+    const t = setTimeout(position, 10);
+    window.addEventListener('resize', position);
+    window.addEventListener('scroll', onClose, true);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener('resize', position);
+      window.removeEventListener('scroll', onClose, true);
+    };
+  }, [anchorEl, onClose]);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (
+        menuRef.current && !menuRef.current.contains(e.target as Node) &&
+        anchorEl && !anchorEl.contains(e.target as Node)
+      ) onClose();
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [anchorEl, onClose]);
+
+  return createPortal(
+    <div ref={menuRef} className="appt-kebab-menu" style={style}>{children}</div>,
+    document.body
+  );
+}
+
+/* ─── Page ─────────────────────────────────────────────────────────────────── */
 export default function PatientListPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
@@ -36,27 +107,23 @@ export default function PatientListPage() {
   const [pageSize, setPageSize] = useState(10);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [sortBy, setSortBy] = useState('newest');
-  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
-
-  // Drawer state
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [menuAnchor, setMenuAnchor] = useState<{ regid: number; el: HTMLButtonElement } | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [drawerRegid, setDrawerRegid] = useState<number | null>(null);
 
   const user = useAuthStore(s => s.user);
-  
+
   const { data, isLoading, refetch } = usePatients({
-    page,
-    limit: pageSize,
-    search: debouncedSearch,
+    page, limit: pageSize, search: debouncedSearch,
     clinicId: (user as any)?.contextId,
-    sortBy: sortBy,
-    sortOrder: sortBy === 'oldest' ? 'asc' : 'desc'
+    sortBy, sortOrder: sortBy === 'oldest' ? 'asc' : 'desc',
   });
+  const { data: meta } = usePatientFormMeta((user as any)?.contextId);
   const deleteMutation = useDeletePatient();
 
   const handleSearchChange = (val: string) => {
-    setSearch(val);
-    setPage(1);
+    setSearch(val); setPage(1);
     clearTimeout((window as any).__patientSearchTimer);
     (window as any).__patientSearchTimer = setTimeout(() => setDebouncedSearch(val), 300);
   };
@@ -65,73 +132,92 @@ export default function PatientListPage() {
   const totalEntries = data?.total || 0;
   const totalPages = Math.ceil(totalEntries / pageSize);
 
+  const closeMenu = useCallback(() => setMenuAnchor(null), []);
+  const toggleMenu = (regid: number, el: HTMLButtonElement) =>
+    setMenuAnchor(prev => (prev?.regid === regid ? null : { regid, el }));
+
   const handleDelete = async (regid: number, name: string) => {
+    closeMenu();
     if (!confirm(`Delete patient "${name}"? This cannot be undone.`)) return;
-    try {
-      await deleteMutation.mutateAsync(regid);
-      refetch();
-    } catch { alert('Failed to delete patient.'); }
+    setDeletingId(regid);
+    try { await deleteMutation.mutateAsync(regid); refetch(); }
+    catch { alert('Failed to delete patient.'); }
+    finally { setDeletingId(null); }
   };
 
-  const handleDownloadReport = (regid: number) => {
-    window.open(`/api/medical-cases/pdf/summary/${regid}`, '_blank');
-  };
+  const doctorName = (p: PatientSummary) =>
+    meta?.doctors?.find(d => String(d.id) === String(p.doctorName))?.name || p.doctorName || '—';
+
+  const renderMenuItems = (p: PatientSummary) => (
+    <>
+      <button className="appt-kebab-item" onClick={() => { setDrawerRegid(p.regid); setIsDrawerOpen(true); closeMenu(); }}>
+        <Edit2 size={14} /> Edit Patient
+      </button>
+      <button className="appt-kebab-item" onClick={() => { openWhatsApp(p.phone, p.fullName); closeMenu(); }}>
+        <MessageCircle size={14} /> WhatsApp
+      </button>
+      <button className="appt-kebab-item" onClick={() => { window.open(`/api/medical-cases/remedy-chart/pdf/${p.regid}`, '_blank'); closeMenu(); }}>
+        <Printer size={14} /> Print Prescription
+      </button>
+      <button className="appt-kebab-item" onClick={() => { window.open(`/api/medical-cases/pdf/summary/${p.regid}`, '_blank'); closeMenu(); }}>
+        <Download size={14} /> Download Report
+      </button>
+      <div className="appt-kebab-divider" />
+      <button className="appt-kebab-item is-danger" onClick={() => handleDelete(p.regid, p.fullName)}>
+        <Trash2 size={14} /> Delete
+      </button>
+    </>
+  );
 
   return (
     <div className="pp-page-container animate-fade-in">
-      <div className="pp-page-header pat-list-header">
-        <div className="pat-header-title-wrap">
-          <h1 className="text-title">Patient Registry</h1>
+      {/* Header */}
+      <div className="pp-page-header" style={{ marginBottom: '24px' }}>
+        <div>
+          <h1 className="text-title" style={{ fontSize: '24px' }}>Patient Registry</h1>
           <p className="text-subtitle">Access and manage comprehensive patient health records.</p>
         </div>
-        <div className="pat-header-actions-wrap">
-          <div className="appt-segmented-toggle pat-view-toggle">
-            <button
-              type="button"
-              className={`appt-segmented-btn ${viewMode === 'list' ? 'active' : ''}`}
-              onClick={() => setViewMode('list')}
-            >
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          <div className="appt-segmented-toggle">
+            <button type="button" className={`appt-segmented-btn ${viewMode === 'list' ? 'active' : ''}`} onClick={() => setViewMode('list')}>
               <ListIcon size={16} /> List
             </button>
-            <button
-              type="button"
-              className={`appt-segmented-btn ${viewMode === 'grid' ? 'active' : ''}`}
-              onClick={() => setViewMode('grid')}
-            >
+            <button type="button" className={`appt-segmented-btn ${viewMode === 'grid' ? 'active' : ''}`} onClick={() => setViewMode('grid')}>
               <Grid size={16} /> Grid
             </button>
           </div>
-          <button className="btn-primary pat-add-btn" onClick={() => { setDrawerRegid(null); setIsDrawerOpen(true); }}>
-            <Plus size={16} /> <span className="btn-text">New Patient</span>
+          <button className="btn-primary" onClick={() => { setDrawerRegid(null); setIsDrawerOpen(true); }}>
+            <Plus size={16} /> New Patient
           </button>
         </div>
       </div>
 
-      <div className="mmc-pl-filterbar pat-list-filterbar">
-        <div className="mmc-pl-search-wrap pat-search-container">
+      {/* Filters */}
+      <div className="mmc-pl-filterbar" style={{ marginBottom: '20px' }}>
+        <div className="mmc-pl-search-wrap">
           <Search size={15} className="mmc-pl-search-icon" />
           <input
-            className="mmc-pl-search-input pat-filter-input"
-            type="text"
+            className="mmc-pl-search-input" type="text"
             placeholder="Search by name, phone or Case ID..."
-            value={search}
-            onChange={e => handleSearchChange(e.target.value)}
+            value={search} onChange={e => handleSearchChange(e.target.value)}
           />
         </div>
-        <div className="mmc-pl-filter-right pat-sort-container">
+        <div className="mmc-pl-filter-right">
           <label className="mmc-pl-filter-label">Sort:</label>
-          <select className="mmc-pl-sort-select pat-sort-select" value={sortBy} onChange={e => setSortBy(e.target.value)}>
+          <select className="mmc-pl-sort-select" value={sortBy} onChange={e => setSortBy(e.target.value)}>
             <option value="newest">Newest First</option>
             <option value="oldest">Oldest First</option>
           </select>
         </div>
       </div>
 
+      {/* Stats row */}
       <div className="pat-stats-row">
         <span className="text-label">Registry Entries</span>
         <span className="text-small">Showing {patients.length} of {totalEntries}</span>
       </div>
 
+      {/* Content */}
       {isLoading ? (
         <TableSkeleton rows={10} cols={6} />
       ) : patients.length === 0 ? (
@@ -140,81 +226,125 @@ export default function PatientListPage() {
           <p className="text-small">Try adjusting your search filters</p>
         </div>
       ) : viewMode === 'list' ? (
-        <div className="pp-card pp-table-scroll pat-list-table-wrap" style={{ padding: 0 }}>
-          <table className="pp-table pat-main-table">
-            <thead>
-              <tr>
-                <th>RegID</th>
-                <th>Patient</th>
-                <th>Contact</th>
-                <th>City</th>
-                <th>Registered</th>
-                <th style={{ textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {patients.map((p: PatientSummary) => (
-                <tr key={p.regid} className="hover-row">
-                  <td data-label="REGID">
-                    <span className="pat-cell-value">
-                      <Link to={`/medical-cases/${p.regid}`} className="pp-mono pat-regid-pill clickable-link">
-                        {p.regid}
-                      </Link>
-                    </span>
-                  </td>
-                  <td data-label="PATIENT">
-                    <div className="pat-member-row">
-                      <div className="pat-avatar">
-                        {(p.fullName?.[0] || '?').toUpperCase()}
-                      </div>
-                      <div className="pat-member-info">
-                        <Link to={`/medical-cases/${p.regid}`} className="pat-member-name clickable-link">
-                          {p.fullName || 'Unknown'}
-                        </Link>
-                        <div className="pat-member-meta">
-                          {p.gender === 'M' ? 'Male' : p.gender === 'F' ? 'Female' : p.gender}
+        <>
+          {/* ── DESKTOP TABLE (hidden on mobile) ── */}
+          <div className="pat-desktop-table pp-card" style={{ padding: 0, overflow: 'hidden', borderRadius: 'var(--pp-radius-card)', border: '1px solid var(--pp-warm-4)' }}>
+            <div style={{ overflowX: 'auto', width: '100%' }}>
+              <table className="pp-table" style={{ minWidth: 640 }}>
+                <thead>
+                  <tr>
+                    <th>Patient</th>
+                    <th>RegID</th>
+                    <th>Contact</th>
+                    <th>Doctor Name</th>
+                    <th>Last Followup</th>
+                    <th style={{ textAlign: 'right' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {patients.map((p: PatientSummary) => (
+                    <tr key={p.regid} className="hover-row">
+                      <td>
+                        <div className="pat-member-row">
+                          <div className="pat-avatar">{getInitials(p.fullName)}</div>
+                          <div>
+                            <Link to={`/medical-cases/${p.regid}`} className="pat-member-name clickable-link">
+                              {p.fullName || 'Unknown'}
+                            </Link>
+                            <div className="text-small">{p.gender === 'M' ? 'Male' : p.gender === 'F' ? 'Female' : p.gender || '—'}</div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td data-label="CONTACT"><span className="pat-cell-value">{p.phone || '—'}</span></td>
-                  <td data-label="CITY"><span className="pat-cell-value">{p.city || '—'}</span></td>
-                  <td data-label="REGISTERED" className="text-small"><span className="pat-cell-value">{formatDate(p.createdAt)}</span></td>
-                  <td data-label="ACTION" style={{ textAlign: 'right' }}>
-                    <span className="pat-cell-value" style={{ justifyContent: 'flex-end' }}>
-                      <div className="appt-kebab-wrap" style={{ width: '100%' }}>
-                        <button 
-                          className="appt-kebab-btn pat-action-btn-mobile"
-                          onClick={() => setOpenMenuId(openMenuId === p.regid ? null : p.regid)}
+                      </td>
+                      <td>
+                        <Link to={`/medical-cases/${p.regid}`} className="pp-mono pat-regid-pill clickable-link">
+                          {p.regid}
+                        </Link>
+                      </td>
+                      <td>{p.phone || '—'}</td>
+                      <td>{doctorName(p)}</td>
+                      <td className="text-small">{formatDate(p.lastVisit || p.createdAt)}</td>
+                      <td style={{ textAlign: 'right' }}>
+                        <button
+                          className="appt-kebab-btn"
+                          onClick={e => toggleMenu(p.regid, e.currentTarget)}
+                          aria-label="Patient actions"
                         >
                           <MoreVertical size={16} />
                         </button>
-                        {openMenuId === p.regid && (
-                          <div className="appt-kebab-menu pat-menu-mobile-fix">
-                            <Link to={`/medical-cases/${p.regid}`} className="appt-kebab-item" onClick={() => setOpenMenuId(null)}>
-                              <Eye size={14} /> Case History
-                            </Link>
-                            <button className="appt-kebab-item" onClick={() => { setDrawerRegid(p.regid); setIsDrawerOpen(true); setOpenMenuId(null); }}>
-                              <Edit2 size={14} /> Edit Patient
-                            </button>
-                            <button className="appt-kebab-item" onClick={() => { handleDownloadReport(p.regid); setOpenMenuId(null); }}>
-                              <Download size={14} /> Download Report
-                            </button>
-                            <div className="appt-kebab-divider" />
-                            <button className="appt-kebab-item text-danger" onClick={() => { handleDelete(p.regid, p.fullName); setOpenMenuId(null); }}>
-                              <Trash2 size={14} /> Delete
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* ── MOBILE CARDS (hidden on desktop) ── */}
+          <div className="pat-mobile-cards">
+            {patients.map((p: PatientSummary) => (
+              <div key={p.regid} className="pat-mobile-card">
+                {/* Card header: avatar + name + actions */}
+                <div className="pat-mobile-card-header">
+                  <div className="pat-avatar pat-avatar--md">{getInitials(p.fullName)}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <Link to={`/medical-cases/${p.regid}`} className="pat-mobile-card-name clickable-link">
+                      {p.fullName || 'Unknown'}
+                    </Link>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
+                      <span className="pat-reg-badge">#{p.regid}</span>
+                      {(p.gender === 'M' || p.gender === 'F') && (
+                        <span className="text-small" style={{ color: 'var(--pp-text-3)' }}>
+                          {p.gender === 'M' ? 'Male' : 'Female'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    className="appt-kebab-btn"
+                    onClick={e => toggleMenu(p.regid, e.currentTarget)}
+                    aria-label="Patient actions"
+                    style={{ flexShrink: 0 }}
+                  >
+                    <MoreVertical size={16} />
+                  </button>
+                </div>
+
+                {/* Card body: details */}
+                <div className="pat-mobile-card-body">
+                  {p.phone && (
+                    <div className="pat-mobile-card-row">
+                      <Phone size={13} style={{ color: 'var(--pp-text-3)', flexShrink: 0 }} />
+                      <span>{p.phone}</span>
+                    </div>
+                  )}
+                  <div className="pat-mobile-card-row">
+                    <User size={13} style={{ color: 'var(--pp-text-3)', flexShrink: 0 }} />
+                    <span>{doctorName(p)}</span>
+                  </div>
+                  <div className="pat-mobile-card-row">
+                    <Calendar size={13} style={{ color: 'var(--pp-text-3)', flexShrink: 0 }} />
+                    <span>Last visit: {formatDate(p.lastVisit || p.createdAt)}</span>
+                  </div>
+                </div>
+
+                {/* Card footer: quick actions */}
+                <div className="pat-mobile-card-actions">
+                  <Link to={`/medical-cases/${p.regid}`} className="pat-mobile-action-btn pat-mobile-action-primary">
+                    View Records
+                  </Link>
+                  <button className="pat-mobile-action-btn pat-mobile-action-wa" onClick={() => openWhatsApp(p.phone, p.fullName)}>
+                    <MessageCircle size={14} />
+                  </button>
+                  <button className="pat-mobile-action-btn pat-mobile-action-edit" onClick={() => { setDrawerRegid(p.regid); setIsDrawerOpen(true); }}>
+                    <Edit2 size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       ) : (
+        /* ── GRID VIEW ── */
         <div className="appt-card-grid">
           {patients.map((p: PatientSummary) => (
             <div key={p.regid} className="appt-card appt-grid-card">
@@ -229,25 +359,21 @@ export default function PatientListPage() {
                     </Link> • {p.phone || 'No phone'}
                   </div>
                 </div>
-                <div className="appt-kebab-wrap">
-                  <button className="appt-kebab-btn" onClick={() => setOpenMenuId(openMenuId === p.regid ? null : p.regid)}>
-                    <MoreVertical size={16} />
-                  </button>
-                  {openMenuId === p.regid && (
-                    <div className="appt-kebab-menu" style={{ right: 0, top: '100%', position: 'absolute', zIndex: 100 }}>
-                      <button className="appt-kebab-item" onClick={() => { setDrawerRegid(p.regid); setIsDrawerOpen(true); setOpenMenuId(null); }}>
-                        <Edit2 size={14} /> Edit
-                      </button>
-                      <button className="appt-kebab-item" onClick={() => { handleDelete(p.regid, p.fullName); setOpenMenuId(null); }}>
-                        <Trash2 size={14} /> Delete
-                      </button>
-                    </div>
-                  )}
-                </div>
+                <button
+                  className="appt-kebab-btn"
+                  onClick={e => toggleMenu(p.regid, e.currentTarget)}
+                  aria-label="Patient actions"
+                >
+                  <MoreVertical size={16} />
+                </button>
               </div>
               <div className="appt-grid-card-detail">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><MapPin size={14} /> {p.city || '—'}</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Calendar size={14} /> Registered: {formatDate(p.createdAt)}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <MapPin size={14} /> {doctorName(p)}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Calendar size={14} /> Followup: {formatDate(p.lastVisit || p.createdAt)}
+                </div>
               </div>
               <div className="appt-grid-card-actions-minimal">
                 <button className="appt-btn-minimal white-pill" style={{ flex: 1 }} onClick={() => openWhatsApp(p.phone, p.fullName)}>
@@ -259,21 +385,25 @@ export default function PatientListPage() {
         </div>
       )}
 
+      {/* Portal dropdown — renders at body level, no clipping ever */}
+      {menuAnchor && (
+        <KebabMenuPortal anchorEl={menuAnchor.el} onClose={closeMenu}>
+          {renderMenuItems(patients.find((p: PatientSummary) => p.regid === menuAnchor.regid)!)}
+        </KebabMenuPortal>
+      )}
+
       {totalEntries > 0 && (
         <Pagination
-          currentPage={page}
-          totalPages={totalPages}
-          pageSize={pageSize}
-          totalItems={totalEntries}
-          onPageChange={setPage}
-          onPageSizeChange={setPageSize}
+          currentPage={page} totalPages={totalPages}
+          pageSize={pageSize} totalItems={totalEntries}
+          onPageChange={setPage} onPageSizeChange={setPageSize}
         />
       )}
 
-      <PatientFormDrawer 
-        isOpen={isDrawerOpen} 
-        onClose={() => setIsDrawerOpen(false)} 
-        regid={drawerRegid} 
+      <PatientFormDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        regid={drawerRegid}
         onSuccess={refetch}
       />
     </div>

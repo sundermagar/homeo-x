@@ -336,21 +336,52 @@ export function setupTranscriptionGateway(io: Server, translator: TranslatorEngi
     const isFinal = result.isFinal;
     if (!text?.trim()) return;
 
-    // ── Confidence threshold ──────────────────────────────────────────────────
-    // Google STT returns a confidence score (0.0–1.0) only for final results.
-    // Values below 0.70 are often hallucinations (background noise, distant chatter).
-    // For interim results, confidence is 0.0 — skip the check there.
+    // ── Confidence & Hallucination Filter ──────────────────────────────────────
+    // Google STT (especially chirp_2) returns a confidence score only for final results.
+    // It also frequently hallucinates during silence (e.g., counting, "thank you").
     const confidence: number = alternative?.confidence ?? 1.0;
     
-    // Hallucination patterns (phrases Google often "invents" in silence/noise)
-    const hallucinationPatterns = /^(thank you|bye bye|please subscribe|subscribe|hey guys|goodbye)\.?$/i;
+    function isHallucination(tStr: string): boolean {
+      const t = tStr.trim().toLowerCase();
+      if (!t || t.length < 2) return true;
 
-    if (isFinal) {
-      if (confidence < 0.70 || hallucinationPatterns.test(text.trim())) {
-        logger.warn({ confidence, text: text.slice(0, 60) }, '[STT] Dropped low-confidence or hallucinated result');
-        session.latestInterimText = undefined;
-        return;
-      }
+      // ── Fixed known phantom phrases ──
+      const fixed = /^(thank you|bye bye|bye-bye|please subscribe|subscribe|hey guys|goodbye|thank you for watching|thanks for watching|amen|amend|testing 1 2 3|1 to 10|1 to 100|1 to 100 counting|counting|i'm going to|i'm gonna|i'm going to go to the bathroom|i'm going to go ahead|i'm going to go ahead and put this|let's go|okay so|so yeah|yeah so|yeah|so|you|hmm|hm|um|uh|oh|okay|ok|right|alright|well|anyway|hello|hi|hey)\\.?$/i;
+      if (fixed.test(t)) return true;
+
+      // ── Counting sequences ──
+      const cleanStr = t.replace(/[,\.]/g, '');
+      if (/1 to 100/i.test(cleanStr) || /1 2 3 4/i.test(cleanStr) || /one two three/i.test(cleanStr)) return true;
+      const isOnlyNumbers = /^[\d\s]+$/.test(cleanStr);
+      if (isOnlyNumbers && cleanStr.split(/\s+/).length >= 2) return true;
+
+      // ── Very short non-medical filler ──
+      // Single words under 4 chars that aren't Hindi/medical terms
+      const words = t.split(/\s+/);
+      if (words.length === 1 && t.length <= 4 && /^[a-z]+$/.test(t)) return true;
+
+      // ── Repetition detector ──
+      // "so so so" or "yeah yeah" — repeated single words
+      if (words.length >= 2 && words.every(w => w === words[0])) return true;
+
+      // ── Common chirp_2 hallucination patterns ──
+      // These are English filler sentences the model generates during silence
+      if (/^i'?m going to (go|put|do|make|get|take|try)/i.test(t) && words.length <= 12) return true;
+      if (/^(let me|let's) (go|do|see|try|put|check)/i.test(t) && words.length <= 8) return true;
+      if (/^(so|and|but|or|well) (i'?m|we|let|the|this|that)$/i.test(t)) return true;
+
+      return false;
+    }
+
+    if (isHallucination(text)) {
+      if (isFinal) session.latestInterimText = undefined;
+      return;
+    }
+
+    if (isFinal && confidence < 0.70) {
+      logger.warn({ confidence, text: text.slice(0, 60) }, '[STT] Dropped low-confidence result');
+      session.latestInterimText = undefined;
+      return;
     }
 
     const resultTimestamp = Date.now();

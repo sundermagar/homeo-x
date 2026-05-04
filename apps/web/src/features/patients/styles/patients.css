@@ -1631,15 +1631,16 @@
 
 /* ─── Dark Theme Specific Enhancements ─────────────────────────────────────── */
 
-.dark .pat-list-filterbar {
+.dark .mmc-pl-filterbar {
   background: #18181b;
   border-color: #27272a;
 }
 
-.dark .pat-filter-input,
-.dark .pat-sort-select {
+.dark .mmc-pl-search-input,
+.dark .mmc-pl-sort-select {
   background: #09090b !important;
   border-color: #27272a !important;
+  color: #f8fafc !important;
 }
 
 .dark .pp-table tr.hover-row:hover {
@@ -1674,6 +1675,241 @@
   color: #94a3b8;
 }
 
-.dark .pat-list-filterbar {
+.dark .mmc-pl-filterbar {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
+
+/* ─── Mobile / Desktop visibility ─────────────────────────────────────────── */
+
+/* Desktop table: visible ≥ 769px, hidden on mobile */
+.pat-desktop-table { display: block; }
+.pat-mobile-cards  { display: none; }
+
+@media (max-width: 768px) {
+  .pat-desktop-table { display: none !important; }
+  .pat-mobile-cards  { display: flex; flex-direction: column; gap: 12px; }
+}
+
+/* ─── Mobile Patient Cards ────────────────────────────────────────────────── */
+
+.pat-mobile-card {
+  background: var(--bg-card);
+  border: 1px solid var(--pp-warm-4);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: var(--pp-shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.pat-mobile-card:hover {
+  box-shadow: var(--pp-shadow-md);
+  border-color: var(--pp-blue-border);
+}
+
+/* Card header: avatar + name + kebab */
+.pat-mobile-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pat-mobile-card-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--pp-ink);
+  text-decoration: none;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pat-mobile-card-name:hover {
+  color: var(--pp-blue);
+}
+
+/* Card body: contact details */
+.pat-mobile-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--pp-warm-1);
+  border-radius: 10px;
+}
+
+.pat-mobile-card-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--pp-text-2);
+  font-weight: 500;
+}
+
+/* Card footer: quick actions */
+.pat-mobile-card-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.pat-mobile-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--pp-warm-4);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  text-decoration: none;
+  background: var(--bg-card);
+  color: var(--pp-text-2);
+  white-space: nowrap;
+  font-family: var(--pp-font-sans);
+}
+
+.pat-mobile-action-primary {
+  flex: 1;
+  background: var(--pp-blue);
+  color: #ffffff;
+  border-color: var(--pp-blue);
+  font-weight: 700;
+}
+
+.pat-mobile-action-primary:hover {
+  background: var(--pp-blue-hover);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+.pat-mobile-action-wa {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #16a34a;
+  width: 40px;
+  padding: 9px;
+}
+
+.pat-mobile-action-wa:hover {
+  background: #dcfce7;
+}
+
+.pat-mobile-action-edit {
+  background: var(--pp-warm-2);
+  border-color: var(--pp-warm-4);
+  color: var(--pp-text-2);
+  width: 40px;
+  padding: 9px;
+}
+
+.pat-mobile-action-edit:hover {
+  background: var(--pp-warm-3);
+}
+
+/* Dark mode overrides */
+.dark .pat-mobile-card {
+  background: linear-gradient(145deg, rgba(39, 39, 42, 0.4) 0%, rgba(24, 24, 27, 0.6) 100%);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.dark .pat-mobile-card:hover {
+  border-color: rgba(96, 165, 250, 0.4); /* --pp-blue-border */
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.dark .pat-mobile-card-body {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.dark .pat-mobile-card-name {
+  color: var(--pp-ink);
+}
+
+.dark .pat-mobile-action-btn {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: var(--pp-text-2);
+}
+
+.dark .pat-mobile-action-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.dark .pat-mobile-action-wa {
+  background: rgba(22, 163, 74, 0.15);
+  border-color: rgba(74, 222, 128, 0.3);
+  color: #4ade80;
+}
+/* ─── Drawer Dark Mode Overrides ───────────────────────────────────────────── */
+
+.dark .drawer-panel {
+  background: var(--bg-card);
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.4);
+  border-left: 1px solid var(--border-main);
+}
+
+.dark .drawer-header {
+  border-bottom: 1px solid var(--border-main);
+}
+
+.dark .drawer-title {
+  color: var(--pp-ink);
+}
+
+.dark .drawer-close {
+  color: var(--pp-text-3);
+}
+
+.dark .drawer-close:hover {
+  background: var(--pp-warm-3);
+  color: var(--pp-ink);
+}
+
+.dark .drawer-label {
+  color: var(--pp-text-2);
+}
+
+.dark .drawer-input {
+  background: var(--pp-warm-2);
+  border-color: var(--pp-warm-4);
+  color: var(--pp-ink);
+}
+
+.dark .drawer-input:focus {
+  border-color: var(--pp-blue-border);
+  box-shadow: var(--pp-blue-glow);
+}
+
+.dark .drawer-submit-btn {
+  background: var(--pp-blue);
+  color: #ffffff;
+}
+
+.dark .drawer-submit-btn:hover:not(:disabled) {
+  background: var(--pp-blue-hover);
+}
+
+.dark .drawer-submit-btn:disabled {
+  background: var(--pp-warm-4);
+  color: var(--pp-text-3);
+}
+.dark .pat-mobile-action-wa:hover {
+  background: rgba(22, 163, 74, 0.25);
+}
+
+.dark .pat-mobile-action-edit {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.dark .pat-mobile-action-edit:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+

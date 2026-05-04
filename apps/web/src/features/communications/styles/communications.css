@@ -490,36 +490,7 @@
   color: var(--warning);
 }
 
-/* ─── Pagination ─── */
-.comm-pagination {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 12px 16px;
-  border-top: 1px solid var(--border-main);
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  flex-wrap: wrap;
-}
 
-.comm-pagination-controls {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.comm-page-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  border-top: 1px solid var(--border-main);
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  flex-wrap: wrap;
-  gap: 8px;
-}
 
 /* ─── Modal ─── */
 .comm-modal-overlay {

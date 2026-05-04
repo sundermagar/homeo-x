@@ -39,13 +39,14 @@ export default function BillingListPage() {
   const [page, setPage] = useState(1);
   const [regidFilter, setRegidFilter] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [pageSize, setPageSize] = useState(10);
   const [isNewBillOpen, setIsNewBillOpen] = useState(false);
   const [isCustomBillOpen, setIsCustomBillOpen] = useState(false);
 
   const parsedRegid = parseInt(regidFilter, 10);
   const billsQuery      = useBills({ 
     page, 
-    limit: 10, 
+    limit: pageSize, 
     regid: (!isNaN(parsedRegid) && regidFilter) ? parsedRegid : undefined, 
     date: date || undefined 
   });
@@ -125,14 +126,30 @@ export default function BillingListPage() {
 
       {/* ─── Table Section ─── */}
       <div className="bill-section-header">
-        <div />
+        <div className="bill-section-title-group">
+          <h2 className="bill-section-title">Billing Records</h2>
+          <p className="bill-section-sub">Daily invoices and transaction history</p>
+        </div>
 
-        <div className="bill-section-filters">
+        <div className="bill-section-controls">
+          {/* Search */}
+          <div className="bill-search-wrap">
+            <Search size={16} className="bill-search-icon" strokeWidth={2} />
+            <input
+              type="text"
+              className="bill-filter-input bill-search-input"
+              placeholder="Search by Reg ID…"
+              value={regidFilter}
+              onChange={(e) => { setRegidFilter(e.target.value); setPage(1); }}
+            />
+          </div>
+          {/* List / Grid toggle */}
           <div className="bill-view-toggle-group">
             <button
               type="button"
               onClick={() => setViewMode('list')}
               className={`bill-view-toggle-btn${viewMode === 'list' ? ' is-active' : ''}`}
+              title="List view"
             >
               <List size={14} /> List
             </button>
@@ -140,20 +157,10 @@ export default function BillingListPage() {
               type="button"
               onClick={() => setViewMode('grid')}
               className={`bill-view-toggle-btn${viewMode === 'grid' ? ' is-active' : ''}`}
+              title="Card view"
             >
-              <Grid size={14} /> Grid
+              <Grid size={14} /> Card
             </button>
-          </div>
-          <div className="bill-search-wrap">
-            <Search size={13} className="bill-search-icon" strokeWidth={2} />
-            <input
-              type="text"
-              className="bill-filter-input bill-search-input"
-              style={{ width: '180px', fontFamily: 'var(--pp-font-mono)' }}
-              placeholder="Search Reg ID…"
-              value={regidFilter}
-              onChange={(e) => { setRegidFilter(e.target.value); setPage(1); }}
-            />
           </div>
         </div>
       </div>
@@ -198,11 +205,14 @@ export default function BillingListPage() {
 
       <Pagination
         currentPage={page}
-        totalPages={Math.ceil(total / 10)}
-        pageSize={10}
+        totalPages={Math.ceil(total / pageSize)}
+        pageSize={pageSize}
         totalItems={total}
         onPageChange={(p) => setPage(p)}
-        onPageSizeChange={() => {}}
+        onPageSizeChange={(s) => {
+          setPageSize(s);
+          setPage(1);
+        }}
       />
 
       <Drawer isOpen={isNewBillOpen} onClose={() => setIsNewBillOpen(false)} title="Generate New Invoice" maxWidth="500px">
@@ -222,7 +232,7 @@ export default function BillingListPage() {
       <style>{`
         @media (max-width: 1024px) {
           .bill-header { flex-direction: column !important; align-items: stretch !important; gap: 16px !important; }
-          .bill-header-actions { grid-template-columns: 1fr !important; gap: 8px !important; display: grid !important; }
+          .bill-header-actions { grid-template-columns: 1fr 1fr !important; gap: 8px !important; display: grid !important; }
           .bill-header-actions .bill-btn { height: 44px; justify-content: center; border-radius: 12px; }
           .bill-filter-input { width: 100% !important; height: 44px; border-radius: 12px; }
 
@@ -230,11 +240,10 @@ export default function BillingListPage() {
           .bill-stat-card { padding: 12px !important; }
           .bill-stat-value { font-size: 18px !important; }
 
-          .bill-section-header { flex-direction: column !important; align-items: stretch !important; gap: 12px !important; display: flex !important; }
-          .bill-section-filters { flex-direction: column !important; align-items: stretch !important; gap: 12px !important; width: 100%; display: flex !important; }
-          .bill-view-toggle-group { width: 100%; display: flex; }
-          .bill-view-toggle-btn { flex: 1; justify-content: center; height: 40px; }
-          .bill-search-wrap { width: 100% !important; }
+          /* Section header: title left, controls right on tablet */
+          .bill-section-header { flex-wrap: wrap; gap: 12px; }
+          .bill-section-controls { width: 100%; }
+          .bill-search-wrap { flex: 1; min-width: 0; max-width: 100%; }
           .bill-search-input { width: 100% !important; }
 
           .bill-card { border: none !important; box-shadow: none !important; background: transparent !important; }

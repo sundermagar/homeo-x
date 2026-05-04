@@ -55,36 +55,22 @@ import { useAuthStore } from '../shared/stores/auth-store';
 export function useParseLabReport() {
   return useMutation({
     mutationFn: async (file: File) => {
-      // homeo-x's auth store uses `token`, not `accessToken`.
-      const token = useAuthStore.getState().token;
-      const baseUrl = import.meta.env.VITE_API_URL || '';
-      
       const base64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => {
           const result = reader.result as string;
-          // Extract just the base64 part, stripping the data:application/pdf;base64, prefix
           resolve(result.split(',')[1]);
         };
         reader.onerror = reject;
         reader.readAsDataURL(file);
       });
 
-      const res = await fetch(`${baseUrl}${API.AI.PARSE_LAB_REPORT}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          filename: file.name,
-          mimeType: file.type,
-          base64,
-        }),
+      const body = await api.post<any>(API.AI.PARSE_LAB_REPORT, {
+        filename: file.name,
+        mimeType: file.type,
+        base64,
       });
-      const body = await res.json();
-      if (!res.ok || !body.success) throw new Error(body.error?.message || 'Failed to parse lab report');
-      return body.data?.parsedText || body.parsedText as string;
+      return body?.parsedText || body as string;
     },
   });
 }

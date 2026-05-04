@@ -178,7 +178,6 @@ export function AdminDashboard() {
       {/* ── Secondary Stats Row ────────────────────────────────────────── */}
       <div className="sa-stats-row">
         <StatCard label="Active Clinics" value={String(platformStats?.totalClinics ?? 0)} icon={<Building2 size={16} />} color="var(--pp-blue)" onClick={() => navigate('/platform/clinics')} />
-        <StatCard label="Active Staff" value={String(platformStats?.totalStaff ?? 0)} icon={<Users size={16} />} color="#7c3aed" onClick={() => navigate('/staff')} />
         <StatCard label="Revenue Density" value={fmt(platformStats?.revenueDensity || 0)} icon={<BarChart3 size={16} />} color="var(--pp-success-fg)" />
         <StatCard label="Pending Dues" value={fmt(platformStats?.pendingDues || 0)} icon={<Activity size={16} />} color="var(--pp-danger-fg)" onClick={() => navigate('/billing')} />
       </div>
