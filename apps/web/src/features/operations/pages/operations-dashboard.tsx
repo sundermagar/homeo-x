@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { apiClient } from '@/infrastructure/api-client';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { Pagination } from '@/components/shared/pagination';
 import './operations-dashboard.css';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -61,66 +62,6 @@ function StatCard({ icon: Icon, value, label, variant = 'default' }: {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 
-function Pagination({ 
-  total, 
-  current, 
-  pageSize, 
-  onPageChange,
-  onPageSizeChange 
-}: { 
-  total: number; 
-  current: number; 
-  pageSize: number; 
-  onPageChange: (page: number) => void;
-  onPageSizeChange: (size: number) => void;
-}) {
-  const totalPages = Math.ceil(total / pageSize);
-  if (total === 0) return null;
-
-  return (
-    <div className="ops-pagination">
-      <div className="ops-pagination-info">
-        <span className="ops-pagination-text">
-          Showing {(current - 1) * pageSize + 1}-{Math.min(current * pageSize, total)} of {total}
-        </span>
-        <select 
-          value={pageSize}
-          onChange={(e) => onPageSizeChange(Number(e.target.value))}
-          className="ops-pagination-select"
-        >
-          {[8, 10, 20, 50].map(size => (
-            <option key={size} value={size}>{size} per page</option>
-          ))}
-        </select>
-      </div>
-      <div className="ops-pagination-controls">
-        <button 
-          onClick={() => onPageChange(current - 1)}
-          disabled={current === 1}
-          className="ops-pagination-btn"
-        >
-          <ChevronLeft size={16} />
-        </button>
-        {[...Array(totalPages)].map((_, i) => (
-          <button
-            key={i + 1}
-            onClick={() => onPageChange(i + 1)}
-            className={`ops-pagination-btn ${current === i + 1 ? 'active' : ''}`}
-          >
-            {i + 1}
-          </button>
-        ))}
-        <button 
-          onClick={() => onPageChange(current + 1)}
-          disabled={current === totalPages}
-          className="ops-pagination-btn"
-        >
-          <ChevronRight size={16} />
-        </button>
-      </div>
-    </div>
-  );
-}
 
 const shipmentCols = ['Reg ID', 'Patient', 'Courier', 'Tracking', 'Status', 'Date'];
 const leadCols = ['#', 'Name', 'Source', 'Status', 'Notes', 'Date', 'Action'];
@@ -441,9 +382,10 @@ export default function OperationsDashboard() {
             )}
 
             <Pagination 
-              total={mockShipments.length}
-              current={currentPage}
+              totalItems={mockShipments.length}
+              currentPage={currentPage}
               pageSize={itemsPerPage}
+              totalPages={Math.ceil(mockShipments.length / itemsPerPage)}
               onPageChange={setCurrentPage}
               onPageSizeChange={setItemsPerPage}
             />
@@ -572,13 +514,18 @@ export default function OperationsDashboard() {
                 )}
 
                 <Pagination 
-                  total={leads.filter(l => {
+                  totalItems={leads.filter(l => {
                     const matchesSearch = l.name?.toLowerCase().includes(crmSearch.toLowerCase());
                     const matchesFilter = crmFilter === 'all' || l.status?.toLowerCase() === crmFilter;
                     return matchesSearch && matchesFilter;
                   }).length}
-                  current={currentPage}
+                  currentPage={currentPage}
                   pageSize={itemsPerPage}
+                  totalPages={Math.ceil(leads.filter(l => {
+                    const matchesSearch = l.name?.toLowerCase().includes(crmSearch.toLowerCase());
+                    const matchesFilter = crmFilter === 'all' || l.status?.toLowerCase() === crmFilter;
+                    return matchesSearch && matchesFilter;
+                  }).length / itemsPerPage)}
                   onPageChange={setCurrentPage}
                   onPageSizeChange={setItemsPerPage}
                 />
@@ -626,9 +573,10 @@ export default function OperationsDashboard() {
                 )}
 
                 <Pagination 
-                  total={referrals.length}
-                  current={currentPage}
+                  totalItems={referrals.length}
+                  currentPage={currentPage}
                   pageSize={itemsPerPage}
+                  totalPages={Math.ceil(referrals.length / itemsPerPage)}
                   onPageChange={setCurrentPage}
                   onPageSizeChange={setItemsPerPage}
                 />
@@ -674,9 +622,10 @@ export default function OperationsDashboard() {
                 )}
 
                 <Pagination 
-                  total={reminders.length}
-                  current={currentPage}
+                  totalItems={reminders.length}
+                  currentPage={currentPage}
                   pageSize={itemsPerPage}
+                  totalPages={Math.ceil(reminders.length / itemsPerPage)}
                   onPageChange={setCurrentPage}
                   onPageSizeChange={setItemsPerPage}
                 />
@@ -750,9 +699,10 @@ export default function OperationsDashboard() {
               </div>
             )}
             <Pagination 
-              total={dictionary.length}
-              current={currentPage}
+              totalItems={dictionary.length}
+              currentPage={currentPage}
               pageSize={itemsPerPage}
+              totalPages={Math.ceil(dictionary.length / itemsPerPage)}
               onPageChange={setCurrentPage}
               onPageSizeChange={setItemsPerPage}
             />
@@ -835,9 +785,10 @@ export default function OperationsDashboard() {
               </div>
             )}
             <Pagination 
-              total={books.length}
-              current={currentPage}
+              totalItems={books.length}
+              currentPage={currentPage}
               pageSize={itemsPerPage}
+              totalPages={Math.ceil(books.length / itemsPerPage)}
               onPageChange={setCurrentPage}
               onPageSizeChange={setItemsPerPage}
             />
