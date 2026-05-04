@@ -95,29 +95,31 @@ export default function GroupSmsPage() {
   return (
     <div className="pp-page-container comm-page animate-fade-in">
       {/* Header */}
-      <header className="comm-header">
+      <div className="pp-page-hero">
         <div>
-          <h1 className="comm-title">
-            <Send size={20} strokeWidth={1.6} className="comm-title-icon-blue" />
+          <h1 className="pp-page-hero-title">
+            <Send size={22} style={{ color: 'var(--pp-blue)' }} strokeWidth={2} />
             Send SMS
           </h1>
-          <p className="comm-subtitle">Compose and send SMS messages to patients</p>
+          <p className="pp-page-hero-sub">Compose and send SMS messages to patients</p>
         </div>
-      </header>
+      </div>
 
       <div className="comm-two-col">
         {/* Composer */}
-        <div className="comm-card">
-          <div className="comm-card-header">
-            <h2 className="comm-card-title"><MessageSquare size={15} /> Compose Message</h2>
-            <div style={{ display: 'flex', gap: 8 }}>
+        <div className="pp-table-container-enhanced" style={{ padding: '24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+            <h2 className="comm-card-title" style={{ fontSize: '1rem' }}><MessageSquare size={16} /> Compose Message</h2>
+            <div className="pp-segmented-toggle">
               <button
-                className={`comm-btn comm-btn-sm${mode === 'single' ? ' comm-btn-primary' : ''}`}
+                type="button"
+                className={`pp-segmented-btn ${mode === 'single' ? 'active' : ''}`}
                 onClick={() => setMode('single')}>Single</button>
               <button
-                className={`comm-btn comm-btn-sm${mode === 'broadcast' ? ' comm-btn-primary' : ''}`}
+                type="button"
+                className={`pp-segmented-btn ${mode === 'broadcast' ? 'active' : ''}`}
                 onClick={() => setMode('broadcast')}>
-                <Users size={12} /> Group
+                <Users size={16} /> Group
               </button>
             </div>
           </div>
@@ -237,9 +239,9 @@ export default function GroupSmsPage() {
 
         {/* Right panel: Info */}
         <div className="comm-info-col">
-          <div className="comm-card">
-            <div className="comm-card-header">
-              <h2 className="comm-card-title">Quick Tips</h2>
+          <div className="pp-table-container-enhanced" style={{ padding: '24px' }}>
+            <div style={{ marginBottom: '20px' }}>
+              <h2 className="comm-card-title" style={{ fontSize: '1rem' }}>Quick Tips</h2>
             </div>
             <div className="comm-card-body">
               <div className="comm-info-text">

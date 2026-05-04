@@ -430,9 +430,9 @@ export class PatientRepositoryPg implements PatientRepository {
     const { page, limit, search, clinicId } = params;
     const offset = (page - 1) * limit;
 
-    const whereConditions = [sql`(fg.deleted_at IS NULL OR fg.deleted_at = '')` as any];
+    const whereConditions = [sql`(fg.deleted_at IS NULL OR fg.deleted_at::text = '')` as any];
     if (clinicId) {
-      whereConditions.push(sql`p.clinic_id = ${clinicId}`);
+      whereConditions.push(sql`(p.clinic_id = ${clinicId} OR p.clinic_id IS NULL)`);
     }
     if (search) {
       const s = `%${search}%`;
@@ -448,7 +448,7 @@ export class PatientRepositoryPg implements PatientRepository {
           p.first_name as name,
           p.surname,
           count(*)::int as total_members
-        FROM familygroup fg
+        FROM familygroups fg
         JOIN case_datas p ON p.regid = fg.regid
         WHERE ${whereClause}
         GROUP BY fg.regid, p.first_name, p.surname
@@ -457,7 +457,7 @@ export class PatientRepositoryPg implements PatientRepository {
       `),
       this.db.execute(sql`
         SELECT count(DISTINCT fg.regid)::int as total
-        FROM familygroup fg
+        FROM familygroups fg
         JOIN case_datas p ON p.regid = fg.regid
         WHERE ${whereClause}
       `)
@@ -480,12 +480,13 @@ export class PatientRepositoryPg implements PatientRepository {
       SELECT 
         fg.id,
         fg.regid,
-        fg.family_regid as member_regid,
-        p.first_name || ' ' || p.surname as member_name,
+        fg.member_regid,
+        fg.relation,
+        p.first_name || ' ' || COALESCE(p.surname, '') as member_name,
         COALESCE(p.mobile1, p.phone) as member_mobile
-      FROM familygroup fg
-      JOIN case_datas p ON p.regid = fg.family_regid
-      WHERE fg.regid = ${regid} AND (fg.deleted_at IS NULL OR fg.deleted_at = '')
+      FROM familygroups fg
+      JOIN case_datas p ON p.regid = fg.member_regid
+      WHERE fg.regid = ${regid} AND (fg.deleted_at IS NULL OR fg.deleted_at::text = '')
       ORDER BY p.first_name ASC
     `);
 
@@ -493,8 +494,8 @@ export class PatientRepositoryPg implements PatientRepository {
       id: r.id,
       regid: r.regid,
       memberRegid: r.member_regid,
-      relation: 'Member', // Legacy table doesn't have relation column
-      memberName: r.member_name || '',
+      relation: r.relation || 'Member',
+      memberName: r.member_name ? r.member_name.trim() : '',
       memberMobile: r.member_mobile || '',
     }));
   }

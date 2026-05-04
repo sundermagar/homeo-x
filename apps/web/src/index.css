@@ -158,7 +158,7 @@
 }
 
 .dark body {
-  background: 
+  background:
     radial-gradient(circle at 50% -20%, #1e1b4b 0%, transparent 70%),
     radial-gradient(circle at 0% 100%, #1e1b4b 0%, transparent 50%),
     radial-gradient(circle at 100% 100%, #1e1b4b 0%, transparent 50%),
@@ -478,43 +478,117 @@ a {
 /* Scrollable wrapper ensures table doesn't break layout on mobile */
 .pp-table-scroll {
   width: 100%;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  border-radius: var(--pp-radius-card);
-  border: 1px solid var(--pp-warm-4);
+  /* No overflow — table auto-fits container, no horizontal scroll */
 }
 
 .pp-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
-  min-width: 540px;
-  /* forces scroll on small screens */
+  /* NO min-width — table fits within its container on all screen sizes */
 }
 
+/* ── Standard TH — matches appointments page exactly ── */
 .pp-table th {
-  padding: var(--pp-space-2) var(--pp-space-4);
+  padding: 10px 16px;
   text-align: left;
   font-weight: 700;
   color: var(--pp-text-3);
   text-transform: uppercase;
   font-size: 10px;
   letter-spacing: 0.06em;
-  background: var(--pp-warm-2);
-  border-bottom: 1px solid var(--pp-warm-4);
+  background: var(--bg-surface-2);
+  border-bottom: 1.5px solid var(--border-main);
   white-space: nowrap;
 }
 
+/* ── Standard TD — matches appointments page exactly ── */
 .pp-table td {
-  padding: 12px var(--pp-space-4);
-  border-bottom: 1px solid var(--pp-warm-4);
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--pp-warm-3);
   color: var(--pp-text-2);
   vertical-align: middle;
+  font-size: 13px;
 }
 
 .pp-table tbody tr:last-child td {
   border-bottom: none;
 }
+
+/* ── Row hover ── */
+.pp-table tbody tr:hover td,
+.pp-table .pp-hover-row:hover td {
+  background: var(--pp-warm-1);
+  transition: background 0.15s ease;
+}
+
+.dark .pp-table tbody tr:hover td {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* ── Global Cell Utility Classes (match appointments page) ──────────────────
+   Use these on <td> elements across ALL pages for visual consistency:
+   appt-cell-name   → primary text (patient name, title)
+   appt-cell-phone  → secondary sub-text (phone, date sub-line)
+   appt-cell-muted  → muted info text
+   appt-cell-id     → monospace ID (RegID, #id)
+   appt-cell-token  → token number (T1, W3)
+   appt-cell-slash  → empty dash placeholder
+─────────────────────────────────────────────────────────────────────────── */
+.appt-cell-name {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--pp-ink);
+  line-height: 1.3;
+}
+
+.appt-cell-phone {
+  font-size: 11px;
+  color: var(--pp-text-3);
+  font-weight: 500;
+  margin-top: 2px;
+  line-height: 1.3;
+}
+
+.appt-cell-muted {
+  font-size: 12px;
+  color: var(--pp-text-2);
+  font-weight: 500;
+}
+
+.appt-cell-id {
+  font-family: var(--pp-font-mono, monospace);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pp-text-2);
+}
+
+.appt-cell-token {
+  font-family: var(--pp-font-mono, monospace);
+  font-weight: 800;
+  color: var(--pp-blue);
+  font-size: 13px;
+}
+
+.appt-cell-slash {
+  color: var(--pp-text-3);
+  font-size: 12px;
+}
+
+/* ── appt-card wrapper — same as used in appointments page ── */
+.appt-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-main);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.dark .appt-card {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+
 
 /* Responsive Stacking for Mobile */
 @media (max-width: 768px) {
@@ -523,22 +597,44 @@ a {
     overflow-x: visible;
   }
 
-  .pp-table thead {
-    display: none;
+  .pp-table thead,
+  .pp-table colgroup {
+    display: none !important;
   }
 
-  .pp-table, .pp-table tbody, .pp-table tr, .pp-table td {
-    display: block;
-    width: 100%;
+  /* BRUTE FORCE FULL WIDTH — No more blank right side */
+  .pp-table-container-enhanced,
+  .pp-table-scroll,
+  .pat-desktop-table,
+  .page-content-main,
+  .pp-table,
+  .plat-table,
+  .bill-table,
+  .appt-table,
+  .appt-ledger-table {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
   }
 
-  .pp-table tr {
-    margin-bottom: 16px;
-    background: var(--bg-card);
-    border: 1px solid var(--border-main);
-    border-radius: 16px;
-    padding: 16px;
-    box-shadow: var(--pp-shadow-sm);
+  .pp-table, .plat-table, .bill-table, .appt-table, .appt-ledger-table,
+  .pp-table tbody, .plat-table tbody, .bill-table tbody, .appt-table tbody,
+  .pp-table tr, .plat-table tr, .bill-table tr, .appt-table tr,
+  .pp-table td, .plat-table td, .bill-table td, .appt-table td {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  .pp-table tr, .plat-table tr, .bill-table tr, .appt-table tr {
+    margin-bottom: 20px !important;
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-main) !important;
+    border-radius: 18px !important;
+    padding: 16px !important;
+    box-shadow: var(--pp-shadow-sm) !important;
+    overflow: hidden !important;
   }
 
   .dark .pp-table tr {
@@ -546,29 +642,63 @@ a {
     border-color: rgba(255, 255, 255, 0.08);
   }
 
-  .pp-table td {
-    padding: 12px 0 !important;
+  .pp-table td, .plat-table td, .bill-table td, .appt-table td, .appt-ledger-table td {
+    padding: 12px 16px !important;
     border: none !important;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    min-height: 44px;
-    border-bottom: 1px dashed var(--border-main) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 4px !important;
+    min-height: auto !important;
+    border-bottom: 1px dashed var(--pp-warm-4) !important;
+    text-align: left !important;
+    background: transparent !important;
+    width: 100% !important;
+  }
+
+  .pp-table td:last-child, .plat-table td:last-child, .bill-table td:last-child, .appt-table td:last-child {
+    border-bottom: none !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    background: var(--pp-warm-2) !important;
+    padding: 14px 16px !important;
+    border-radius: 0 0 16px 16px;
+    margin-top: 4px;
+  }
+
+  .dark .pp-table td:last-child,
+  .dark .plat-table td:last-child,
+  .dark .bill-table td:last-child,
+  .dark .appt-table td:last-child {
+    background: rgba(255, 255, 255, 0.05) !important;
+  }
+
+  .pp-table td::before, .plat-table td::before, .bill-table td::before, .appt-table td::before {
+    content: attr(data-label);
+    display: block !important;
+    font-size: 10px !important;
+    font-weight: 850 !important;
+    color: var(--pp-text-3) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.1em !important;
+    margin-bottom: 2px !important;
+    opacity: 0.7;
+  }
+
+  .pp-table td:last-child::before {
+    margin-bottom: 0 !important;
+  }
+
+  /* Ensure content within td is visible and takes full width on mobile */
+  .pp-table td>*:not(::before) {
+    display: block !important;
+    width: 100% !important;
     text-align: left !important;
   }
 
-  .pp-table td:last-child {
-    border-bottom: none !important;
-  }
-
-  .pp-table td::before {
-    content: attr(data-label);
-    font-weight: 800;
-    font-size: 10px;
-    text-transform: uppercase;
-    color: var(--pp-text-3);
-    letter-spacing: 0.08em;
-    opacity: 0.8;
+  .pp-table td:last-child>*:not(::before) {
+    width: auto !important;
   }
 }
 
@@ -1180,7 +1310,7 @@ a {
 
 @media (min-width: 1024px) {
   .page-content-area {
-    padding: 40px;
+    padding: 32px; /* Reduced from 40px for better full-screen utility */
     /* 40px on all sides for desktop */
   }
 }
@@ -1196,17 +1326,25 @@ a {
   gap: 0;
 }
 
-@media (min-width: 768px) {
-  .page-content-row {
-    flex-direction: row;
-    align-items: flex-start;
-    gap: var(--pp-space-4);
-  }
-}
-
 .page-content-main {
   flex: 1;
   min-width: 0;
+  width: 100%; /* Guarantee full width */
+}
+
+/* Ensure no side gaps from empty widget areas */
+.page-content-row {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (min-width: 1280px) {
+  .page-content-row {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 24px;
+  }
 }
 
 
@@ -1752,26 +1890,31 @@ a {
 
 /* ─── Shimmer Skeleton Loader ─── */
 @keyframes shimmer {
-  0% { background-position: -1000px 0; }
-  100% { background-position: 1000px 0; }
+  0% {
+    background-position: -1000px 0;
+  }
+
+  100% {
+    background-position: 1000px 0;
+  }
 }
 
-.pp-skeleton, .skeleton-box {
+.pp-skeleton,
+.skeleton-box {
   background: #f6f7f8;
-  background-image: linear-gradient(
-    to right,
-    #f6f7f8 0%,
-    #edeef1 20%,
-    #f6f7f8 40%,
-    #f6f7f8 100%
-  );
+  background-image: linear-gradient(to right,
+      #f6f7f8 0%,
+      #edeef1 20%,
+      #f6f7f8 40%,
+      #f6f7f8 100%);
   background-repeat: no-repeat;
   background-size: 2000px 100%;
   animation: shimmer 2s infinite linear;
   border-radius: 4px;
 }
 
-.pp-skeleton-text, .skeleton-text {
+.pp-skeleton-text,
+.skeleton-text {
   height: 12px;
   width: 100%;
   margin-bottom: 8px;
@@ -2301,19 +2444,22 @@ a {
 
 /* ─── Shimmer Skeleton Loader ─── */
 @keyframes shimmer {
-  0% { background-position: -1000px 0; }
-  100% { background-position: 1000px 0; }
+  0% {
+    background-position: -1000px 0;
+  }
+
+  100% {
+    background-position: 1000px 0;
+  }
 }
 
 .pp-skeleton {
   background: #f6f7f8;
-  background-image: linear-gradient(
-    to right,
-    #f6f7f8 0%,
-    #edeef1 20%,
-    #f6f7f8 40%,
-    #f6f7f8 100%
-  );
+  background-image: linear-gradient(to right,
+      #f6f7f8 0%,
+      #edeef1 20%,
+      #f6f7f8 40%,
+      #f6f7f8 100%);
   background-repeat: no-repeat;
   background-size: 2000px 100%;
   animation: shimmer 2s infinite linear;
@@ -2396,33 +2542,37 @@ a {
   gap: 4px;
   background: var(--pp-warm-1);
   padding: 4px;
-  border-radius: 8px;
+  border-radius: 10px;
   border: 1px solid var(--pp-warm-4);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
 .appt-segmented-btn {
   background: transparent;
   border: none;
-  padding: 6px 14px;
-  border-radius: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--pp-text-3);
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  gap: 8px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
 }
 
 .appt-segmented-btn:hover {
   color: var(--pp-ink);
+  background: rgba(255, 255, 255, 0.4);
 }
 
 .appt-segmented-btn.active {
   background: #ffffff;
-  color: var(--pp-ink);
-  box-shadow: var(--pp-shadow-sm);
+  color: var(--pp-blue);
+  box-shadow: 0 4px 12px rgba(22, 101, 228, 0.08), 0 1px 2px rgba(22, 101, 228, 0.04);
 }
 
 .appt-btn {
@@ -2496,3 +2646,1067 @@ a {
   transform: translateY(-2px);
   border-color: var(--pp-blue-border);
 }
+
+/* ══════════════════════════════════════════════════════════════════════════════ */
+/* ENHANCED PAGE COMPONENTS — Premium Unified Design System v3                   */
+/* ══════════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Page Hero Header ─────────────────────────────────────────────────────── */
+
+.pp-page-hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pp-space-3);
+  margin-bottom: var(--pp-space-6);
+  padding-bottom: var(--pp-space-5);
+  border-bottom: 1px solid var(--pp-warm-4);
+  position: relative;
+}
+
+.pp-page-hero::before {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 80px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--pp-blue) 0%, transparent 100%);
+  border-radius: 2px;
+}
+
+@media (min-width: 640px) {
+  .pp-page-hero {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--pp-space-4);
+  }
+}
+
+.pp-page-hero-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--pp-ink);
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pp-page-hero-title svg {
+  color: var(--pp-blue);
+  flex-shrink: 0;
+}
+
+@media (min-width: 640px) {
+  .pp-page-hero-title {
+    font-size: 24px;
+  }
+}
+
+.pp-page-hero-sub {
+  font-size: 13px;
+  color: var(--pp-text-3);
+  margin-top: 4px;
+  line-height: 1.5;
+  max-width: 480px;
+}
+
+.pp-page-hero-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+@media (max-width: 639px) {
+  .pp-page-hero-actions {
+    width: 100%;
+  }
+
+  .pp-page-hero-actions>.btn-primary,
+  .pp-page-hero-actions>button:not(.appt-segmented-btn) {
+    flex: 1;
+    justify-content: center;
+    height: 44px;
+    border-radius: 12px;
+  }
+}
+
+/* ─── Filter Card ──────────────────────────────────────────────────────────── */
+
+.pp-filter-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pp-space-3);
+  background: var(--bg-card);
+  border: 1px solid var(--pp-warm-4);
+  border-radius: 14px;
+  padding: 14px 18px;
+  margin-bottom: var(--pp-space-5);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  transition: border-color 0.2s ease;
+}
+
+.pp-filter-card:focus-within {
+  border-color: var(--pp-blue-border);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.06);
+}
+
+@media (min-width: 640px) {
+  .pp-filter-card {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+}
+
+.dark .pp-filter-card {
+  background: var(--pp-warm-2);
+  border-color: var(--pp-warm-4);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.pp-filter-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  max-width: 440px;
+}
+
+.pp-filter-search-wrap svg {
+  position: absolute;
+  left: 14px;
+  color: var(--pp-text-3);
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.pp-filter-search-input {
+  width: 100%;
+  height: 40px;
+  padding: 0 14px 0 40px;
+  border: 1px solid var(--pp-warm-4);
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--pp-ink);
+  background: var(--pp-warm-1);
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.pp-filter-search-input:focus {
+  border-color: var(--pp-blue);
+  background: var(--bg-card);
+  box-shadow: 0 0 0 3px var(--pp-blue-tint);
+}
+
+.pp-filter-search-input::placeholder {
+  color: var(--pp-text-4);
+}
+
+.dark .pp-filter-search-input {
+  background: var(--pp-warm-3);
+  border-color: var(--pp-warm-4);
+}
+
+.pp-filter-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 639px) {
+  .pp-filter-search-wrap {
+    max-width: none;
+    width: 100%;
+  }
+
+  .pp-filter-controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+/* ─── Stat Grid ────────────────────────────────────────────────────────────── */
+
+.pp-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  margin-bottom: var(--pp-space-5);
+}
+
+@media (max-width: 639px) {
+  .pp-stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+}
+
+.pp-stat-card-enhanced {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 18px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--pp-warm-4);
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.pp-stat-card-enhanced::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 100%;
+  background: var(--stat-accent, var(--pp-blue));
+  border-radius: 0 3px 3px 0;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.pp-stat-card-enhanced:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.1);
+  border-color: var(--pp-blue-border);
+}
+
+.pp-stat-card-enhanced:hover::before {
+  opacity: 1;
+}
+
+.dark .pp-stat-card-enhanced {
+  background: var(--pp-warm-2);
+  border-color: var(--pp-warm-4);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.dark .pp-stat-card-enhanced:hover {
+  box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.6);
+  border-color: rgba(96, 165, 250, 0.3);
+}
+
+.pp-stat-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--stat-icon-bg, var(--pp-blue-tint));
+  color: var(--stat-icon-color, var(--pp-blue));
+  flex-shrink: 0;
+}
+
+.pp-stat-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--pp-text-3);
+}
+
+.pp-stat-value {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--pp-ink);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.pp-stat-value.is-primary {
+  color: var(--pp-blue);
+}
+
+.pp-stat-value.is-success {
+  color: var(--pp-success-fg);
+}
+
+.pp-stat-value.is-danger {
+  color: var(--pp-danger-fg);
+}
+
+.pp-stat-value.is-warning {
+  color: var(--pp-warning-fg);
+}
+
+.pp-stat-trend {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--pp-text-3);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ─── Enhanced Table Container ─────────────────────────────────────────────── */
+
+.pp-table-container-enhanced {
+  background: var(--bg-card);
+  border: 1px solid var(--border-main);
+  /* matches appt-card */
+  border-radius: 12px;
+  /* matches appt-card */
+  overflow: clip;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  /* matches appt-card */
+}
+
+.pp-table-container-enhanced .pp-table {
+  border: none;
+}
+
+.dark .pp-table-container-enhanced {
+  background: var(--pp-warm-2);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* Table count row between filter and table */
+.pp-table-meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px 16px 12px;
+}
+
+.pp-table-meta-label {
+  font-size: 11px;
+  font-weight: 850;
+  color: var(--pp-text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pp-table-meta-label::before {
+  content: '';
+  width: 4px;
+  height: 4px;
+  background: var(--pp-blue);
+  border-radius: 50%;
+}
+
+.pp-table-meta-stats {
+  font-size: 12.5px;
+  color: var(--pp-text-2);
+  font-weight: 500;
+}
+
+@media (max-width: 640px) {
+  .pp-table-meta-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 0 4px 16px 4px;
+  }
+}
+
+/* ─── Enhanced Empty State ─────────────────────────────────────────────────── */
+
+.pp-empty-enhanced {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 24px;
+  text-align: center;
+  animation: fadeIn 0.4s ease-out;
+}
+
+.pp-empty-icon-circle {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--pp-warm-2);
+  border: 2px dashed var(--pp-warm-4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  color: var(--pp-text-3);
+  transition: all 0.3s ease;
+}
+
+.pp-empty-enhanced:hover .pp-empty-icon-circle {
+  border-color: var(--pp-blue-border);
+  color: var(--pp-blue);
+  background: var(--pp-blue-tint);
+}
+
+.dark .pp-empty-icon-circle {
+  background: var(--pp-warm-3);
+  border-color: var(--pp-warm-4);
+}
+
+.pp-empty-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--pp-ink);
+  margin-bottom: 6px;
+}
+
+.pp-empty-sub {
+  font-size: 13px;
+  color: var(--pp-text-3);
+  max-width: 320px;
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+/* ─── Section Divider ──────────────────────────────────────────────────────── */
+
+.pp-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--pp-space-4);
+}
+
+.pp-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--pp-ink);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pp-section-title svg {
+  color: var(--pp-blue);
+}
+
+.pp-section-sub {
+  font-size: 12px;
+  color: var(--pp-text-3);
+  margin-top: 2px;
+}
+
+/* ─── Premium Hover Row ────────────────────────────────────────────────────── */
+
+.pp-hover-row {
+  transition: all 0.15s ease;
+}
+
+.pp-hover-row:hover {
+  background: var(--pp-blue-faded) !important;
+}
+
+.dark .pp-hover-row:hover {
+  background: rgba(59, 130, 246, 0.06) !important;
+}
+
+/* ─── Clickable Link Enhancement ───────────────────────────────────────────── */
+
+.pp-clickable-name {
+  color: var(--pp-ink);
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.pp-clickable-name:hover {
+  color: var(--pp-blue);
+}
+
+/* ─── RegID Pill ───────────────────────────────────────────────────────────── */
+
+.pp-regid-pill {
+  font-size: 12px;
+  color: var(--pp-blue);
+  background: var(--pp-blue-tint);
+  padding: 2px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--pp-blue-border);
+  font-family: var(--pp-font-mono);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+}
+
+.pp-regid-pill:hover {
+  background: var(--pp-blue);
+  color: white;
+  border-color: var(--pp-blue);
+}
+
+/* ─── Mobile Card Enhanced ─────────────────────────────────────────────────── */
+
+@media (max-width: 1024px) {
+  .pp-table-container-enhanced {
+    border: none;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .pp-table-container-enhanced .pp-table-scroll {
+    /* Allow horizontal scroll on tablet for tables that need it (billing, clinics etc.) */
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+
+/* ─── Responsive Filter Card ──────────────────────────────────────────────── */
+
+@media (max-width: 1024px) {
+  .pp-filter-card {
+    border-radius: 16px;
+    padding: 14px;
+  }
+
+  .pp-filter-search-input {
+    height: 44px;
+    border-radius: 12px;
+    font-size: 14px;
+  }
+}
+
+.pp-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pp-filter-label {
+  font-size: 11px;
+  font-weight: 750;
+  color: var(--pp-text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   RESPONSIVE FIXES v4 — Mobile-First Patches
+   All breakpoints use mobile-first or max-width media queries.
+   These supplement the existing design system and fix edge cases.
+════════════════════════════════════════════════════�/* ─── 11. Unified Global Mobile Engine (All Tables & Modules) ─────────────── */
+
+@media (max-width: 1024px) {
+  /* Force all tables to card stack mode */
+  .plat-table, .bill-table, .appt-table, .appt-ledger-table, .pp-table {
+    display: block !important;
+    width: 100% !important;
+    border: none !important;
+  }
+
+  .plat-table thead, .bill-table thead, .appt-table thead, .pp-table thead {
+    display: none !important;
+  }
+
+  .plat-table tr, .bill-table tr, .appt-table tr, .pp-table tr {
+    display: block !important;
+    width: 100% !important;
+    margin-bottom: 20px !important;
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-main) !important;
+    border-radius: 20px !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    box-shadow: var(--pp-shadow-md) !important;
+  }
+
+  .plat-table td, .bill-table td, .appt-table td, .pp-table td {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 4px !important;
+    padding: 12px 20px !important;
+    border-bottom: 1px dashed var(--border-main) !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .plat-table td:last-child, .bill-table td:last-child, .appt-table td:last-child, .pp-table td:last-child {
+    border-bottom: none !important;
+    background: var(--bg-surface-2) !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 14px 20px !important;
+    margin-top: 4px;
+  }
+
+  .dark .plat-table td:last-child, .dark .bill-table td:last-child, .dark .appt-table td:last-child, .dark .pp-table td:last-child {
+    background: rgba(255, 255, 255, 0.05) !important;
+  }
+
+  .plat-table td::before, .bill-table td::before, .appt-table td::before, .pp-table td::before {
+    content: attr(data-label);
+    display: block !important;
+    font-size: 10px !important;
+    font-weight: 850 !important;
+    color: var(--pp-text-3) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.1em !important;
+    opacity: 0.7;
+  }
+
+  .plat-cell-val {
+    width: 100% !important;
+    text-align: left !important;
+  }
+}
+
+/* ─── 12. Global UI Component Overrides (Small Screens) ─────────────────── */
+
+@media (max-width: 639px) {
+  .pp-page-hero {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 16px !important;
+  }
+  
+  .pp-page-hero-actions {
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+
+  .btn-primary, .btn-ghost, .plat-btn {
+    height: 44px !important;
+    justify-content: center !important;
+    border-radius: 12px !important;
+  }
+
+  .pp-stat-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  .pp-stat-card-enhanced {
+    padding: 16px 14px !important;
+  }
+}
+
+/* ─── END RESPONSIVE ENGINE v5 (MASTER) ─────────────────────────────────── */
+───────────────────── */
+
+@media (max-width: 767px) {
+  .sa-kpi-primary {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+    margin-bottom: 20px !important;
+  }
+
+  .sa-kpi-card {
+    padding: 14px !important;
+    gap: 8px !important;
+  }
+
+  .sa-kpi-value {
+    font-size: 1.4rem !important;
+  }
+
+  .sa-stats-row {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+  }
+
+  .sa-main-grid {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+
+  .sa-actions-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+}
+
+/* ─── 10. Receptionist Dashboard — Schedule Table Mobile Cards ───────────── */
+
+@media (max-width: 767px) {
+  .rd-table-wrap .pp-table-scroll {
+    overflow: visible !important;
+    border: none !important;
+  }
+
+  .rd-table-wrap .pp-table {
+    display: block !important;
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  .rd-table-wrap .pp-table thead {
+    display: none !important;
+  }
+
+  .rd-table-wrap .pp-table tbody,
+  .rd-table-wrap .pp-table tr,
+  .rd-table-wrap .pp-table td {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  .rd-table-wrap .pp-table tr {
+    margin-bottom: 16px !important;
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-main) !important;
+    border-radius: 16px !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    box-shadow: var(--pp-shadow-sm) !important;
+  }
+
+  .rd-table-wrap .pp-table td {
+    display: grid !important;
+    grid-template-columns: 110px 1fr !important;
+    gap: 10px !important;
+    align-items: center !important;
+    padding: 12px 16px !important;
+    border-bottom: 1px dashed var(--border-main) !important;
+    text-align: right !important;
+    min-height: 48px;
+  }
+
+  .rd-table-wrap .pp-table td:last-child {
+    border-bottom: none !important;
+    background: var(--bg-surface-2) !important;
+    padding: 14px 16px !important;
+    flex-direction: row !important;
+    justify-content: center !important;
+  }
+
+  .rd-table-wrap .pp-table td::before {
+    content: attr(data-label);
+    font-size: 10px !important;
+    font-weight: 800 !important;
+    color: var(--text-muted) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.08em !important;
+    text-align: left !important;
+  }
+}
+
+/* ─── 11. Platform Table (plat-table) — Mobile Cards ────────────────────── */
+
+@media (max-width: 767px) {
+  .pp-table-container-enhanced .plat-table {
+    display: block !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    border: none !important;
+  }
+
+  .pp-table-container-enhanced .plat-table thead {
+    display: none !important;
+  }
+
+  .pp-table-container-enhanced .plat-table tbody {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  .pp-table-container-enhanced .plat-table tr {
+    display: block !important;
+    margin-bottom: 20px !important;
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-main) !important;
+    border-radius: 18px !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    box-shadow: var(--pp-shadow-md) !important;
+  }
+
+  .pp-table-container-enhanced .plat-table td {
+    display: grid !important;
+    grid-template-columns: 100px 1fr !important;
+    gap: 10px !important;
+    align-items: center !important;
+    padding: 12px 16px !important;
+    border-bottom: 1px dashed var(--border-main) !important;
+    text-align: right !important;
+    width: 100% !important;
+    min-height: 48px;
+    box-sizing: border-box !important;
+  }
+
+  .pp-table-container-enhanced .plat-table td:last-child {
+    border-bottom: none !important;
+    background: var(--bg-surface-2) !important;
+    padding: 14px 16px !important;
+  }
+
+  .pp-table-container-enhanced .plat-table td::before {
+    content: attr(data-label);
+    font-size: 10px !important;
+    font-weight: 800 !important;
+    color: var(--text-muted) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.1em !important;
+    text-align: left !important;
+  }
+
+  .pp-table-container-enhanced .plat-cell-val {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-end !important;
+    text-align: right !important;
+  }
+}
+
+/* ─── 12. Medical Case List — Table Scroll Fix ───────────────────────────── */
+
+@media (max-width: 767px) {
+  .mc-page .pp-table-container-enhanced {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
+  .mc-page .pp-table {
+    display: block !important;
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  .mc-page .pp-table thead {
+    display: none !important;
+  }
+
+  .mc-page .pp-table tbody,
+  .mc-page .pp-table tr,
+  .mc-page .pp-table td {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  .mc-page .pp-table tr {
+    margin-bottom: 16px !important;
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-main) !important;
+    border-radius: 16px !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    box-shadow: var(--pp-shadow-sm) !important;
+  }
+
+  .mc-page .pp-table td {
+    display: grid !important;
+    grid-template-columns: 100px 1fr !important;
+    gap: 10px !important;
+    align-items: flex-start !important;
+    padding: 12px 16px !important;
+    border-bottom: 1px dashed var(--border-main) !important;
+    text-align: right !important;
+    min-height: 48px;
+  }
+
+  .mc-page .pp-table td:last-child {
+    border-bottom: none !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    background: var(--bg-surface-2) !important;
+    padding: 14px 16px !important;
+  }
+
+  .mc-page .pp-table td::before {
+    content: attr(data-label);
+    font-size: 10px !important;
+    font-weight: 800 !important;
+    color: var(--text-muted) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.08em !important;
+    text-align: left !important;
+  }
+}
+
+/* ─── 13. Login Page — Full Mobile Coverage ──────────────────────────────── */
+
+@media (max-width: 639px) {
+
+  .auth-page,
+  .login-page {
+    padding: 16px !important;
+  }
+
+  .login-card,
+  .auth-card {
+    padding: 24px 20px !important;
+    border-radius: 16px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+/* ─── 14. Sidebar — Mobile Slide Over ───────────────────────────────────── */
+
+/* Already handled in existing CSS but ensure no overflow issues */
+@media (max-width: 1023px) {
+  .sb-container {
+    transform: translateX(-100%) !important;
+    width: min(260px, 85vw) !important;
+  }
+
+  .sb-container.is-open {
+    transform: translateX(0) !important;
+  }
+}
+
+/* ─── 15. Global — Overflow Prevention ──────────────────────────────────── */
+
+/* Prevent horizontal scroll on very small screens */
+@media (max-width: 480px) {
+  .appt-card-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .bill-card-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Stats: always 2-col minimum */
+  .pp-stat-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  .pp-stat-card-enhanced {
+    padding: 14px 12px !important;
+  }
+
+  .pp-stat-value {
+    font-size: 20px !important;
+  }
+
+  /* Page hero title — smaller on very small */
+  .pp-page-hero-title {
+    font-size: 18px !important;
+  }
+
+  /* KPI strip 2-col always on very small */
+  .dash-kpi-strip {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  .dash-kpi-value {
+    font-size: 1.25rem !important;
+  }
+
+  /* Pagination — compact on tiny screens */
+  .pp-pagination-bar {
+    padding: 12px 14px !important;
+    gap: 10px !important;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .pp-pagination-info-wrap {
+    gap: 10px;
+  }
+}
+
+/* ─── 16. Tablet Layout Fixes (640px - 1023px) ───────────────────────────── */
+
+@media (min-width: 640px) and (max-width: 1023px) {
+
+  /* Hero title consistent */
+  .pp-page-hero-title {
+    font-size: 20px;
+  }
+
+  /* KPI strip 2-col on tablet (override if needed) */
+  .dash-kpi-strip {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--pp-space-3);
+  }
+
+  /* Stat grid 3-col on tablet */
+  .pp-stat-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  /* Dashboard sidebar stacks below on tablet */
+  .dash-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .dash-sidebar {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .dash-sidebar-card {
+    flex: 1 1 calc(50% - 12px);
+    min-width: 280px;
+  }
+}
+
+/* ─── 17. Safe min-width for Tables on Tablet ────────────────────────────── */
+
+/* On tablet (640-1023px) keep pp-table scrollable, don't break into cards */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .pp-table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Exception: appt-page, mc-page, bill-page use card layout from 768 onwards 
+     (they have their own overrides above) */
+}
+
+/* ─── 18. Dark Mode — Mobile Skeleton Overrides ─────────────────────────── */
+
+.dark .skeleton-box {
+  background: var(--pp-warm-3);
+  background-image: linear-gradient(to right,
+      var(--pp-warm-3) 0%,
+      var(--pp-warm-4) 20%,
+      var(--pp-warm-3) 40%,
+      var(--pp-warm-3) 100%);
+}
+
+/* ─── 19. Token Queue & Calendar Pages — Mobile ──────────────────────────── */
+
+@media (max-width: 767px) {
+
+  .token-queue-page,
+  .calendar-page {
+    overflow-x: hidden;
+  }
+
+  /* Calendar: ensure it doesn't overflow */
+  .calendar-page .fc,
+  .calendar-page [class*="rbc-"] {
+    min-width: 0 !important;
+    overflow-x: auto;
+  }
+}
+
+/* ─── 20. Communications / SMS / WhatsApp Pages ──────────────────────────── */
+
+@media (max-width: 639px) {
+  .comm-page .pp-page-hero-actions {
+    flex-direction: column;
+  }
+
+  .comm-page .pp-page-hero-actions>* {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ─── END RESPONSIVE FIXES v4 ────────────────────────────────────────────── */

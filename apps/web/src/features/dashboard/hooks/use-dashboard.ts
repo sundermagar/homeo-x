@@ -14,8 +14,8 @@ export function useDashboard(period: string = 'month') {
       const res = await apiClient.get<{ success: boolean; data: UnifiedDashboardData }>('/dashboard', { params: { period } });
       return res.data.data;
     },
-    staleTime: 60_000, // 1 minute stale time
-    refetchInterval: 300_000, // Auto refresh every 5 minutes
+    staleTime: 5 * 60_000,  // 5 min — dashboards don't change second-by-second
+    gcTime: 10 * 60_000,     // keep in cache 10 min after unmount
   });
 }
 

@@ -3412,91 +3412,119 @@
     width: 100% !important;
   }
 
-  /* Each row is a card */
-  .appt-page .appt-table,
-  .appt-page .appt-table thead,
-  .appt-page .appt-table tbody,
-  .appt-page .appt-table tr,
-  .appt-page .appt-table th,
-  .appt-page .appt-table td {
+  .appt-page .appt-table {
     display: block !important;
     width: 100% !important;
-    box-sizing: border-box !important;
   }
 
   .appt-page .appt-table thead {
     display: none !important;
   }
 
+  .appt-page .appt-table tbody {
+    display: block !important;
+    width: 100% !important;
+  }
+
   .appt-page .appt-table tr {
-    margin-bottom: 16px !important;
+    display: block !important;
+    margin-bottom: 20px !important;
     background: var(--bg-card) !important;
-    border: 1px solid var(--pp-warm-4) !important;
-    border-radius: 16px !important;
+    border: 1px solid var(--border-main) !important;
+    border-radius: 18px !important;
     padding: 8px 0 !important;
     box-shadow: var(--pp-shadow-sm) !important;
+    position: relative !important;
     overflow: hidden !important;
   }
 
   .appt-page .appt-table td {
     display: flex !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    padding: 10px 16px !important;
-    border-bottom: 1px dashed var(--pp-warm-3) !important;
-    min-height: 44px !important;
-    gap: 12px !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+    padding: 12px 20px !important;
+    border-bottom: 1px dashed var(--border-main) !important;
+    min-height: auto !important;
+    text-align: left !important;
     width: 100% !important;
-    text-align: right !important;
+    align-items: flex-start !important;
+    background: transparent !important;
+    box-sizing: border-box !important;
   }
 
   .appt-page .appt-table td:last-child {
     border-bottom: none !important;
-    background: var(--pp-warm-1) !important;
-    padding: 12px 16px !important;
-    margin-top: 4px;
+    background: var(--bg-surface-2) !important;
+    padding: 16px 20px !important;
+    margin-top: 0 !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    border-radius: 0 !important;
   }
 
   .appt-page .appt-table td::before {
     content: attr(data-label) !important;
+    display: block !important;
+    position: static !important;
+    transform: none !important;
+    width: auto !important;
     font-size: 10px !important;
     font-weight: 800 !important;
-    color: var(--pp-text-3) !important;
+    color: var(--text-muted) !important;
     text-transform: uppercase !important;
-    letter-spacing: 0.08em !important;
-    flex-shrink: 0 !important;
+    letter-spacing: 0.05em !important;
+    margin-bottom: 4px !important;
+  }
+
+  .appt-page .appt-table td:last-child::before {
+    content: 'QUICK ACTIONS' !important;
+    margin-bottom: 0 !important;
+  }
+
+  .appt-page .appt-table td > *:not(::before) {
+    display: block !important;
+    width: 100% !important;
     text-align: left !important;
-    width: 80px !important;
   }
 
-  .appt-page .appt-table td > * {
-    flex: 1 !important;
+  .appt-page .appt-table td:last-child > *:not(::before) {
+    width: auto !important;
     text-align: right !important;
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: flex-end !important;
-  }
-
-  .appt-token-pill {
-    font-weight: 800 !important;
-    font-size: 1rem !important;
   }
 
   .appt-cell-name {
     font-size: 0.95rem !important;
     font-weight: 700 !important;
+    color: var(--pp-ink) !important;
+    text-align: left !important;
   }
 
-  .appt-row-actions-minimal {
-    width: 100% !important;
-    gap: 8px !important;
+  .appt-cell-phone {
+    font-size: 0.8rem !important;
+    color: var(--pp-text-3) !important;
+    display: block !important;
+    margin-top: 2px !important;
+    text-align: left !important;
   }
 
-  .appt-row-actions-minimal .appt-btn {
-    flex: 1 !important;
-    justify-content: center !important;
-    height: 38px !important;
+  .appt-cell-token {
+    font-size: 1rem !important;
+    font-weight: 800 !important;
+    color: var(--pp-blue) !important;
+    display: block !important;
+    text-align: left !important;
+  }
+
+  .appt-kebab-btn {
+    width: 36px !important;
+    height: 36px !important;
     border-radius: 10px !important;
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-main) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
   }
 
   /* Grid View Adjustments */

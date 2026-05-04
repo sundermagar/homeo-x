@@ -74,38 +74,39 @@ export default function BirthdayBroadcastPage() {
   };
 
   return (
-    <div className="p-8 max-w-6xl mx-auto animate-fade-in">
-      <div className="flex justify-between items-center mb-8">
+    <div className="pp-page-container animate-fade-in">
+      <div className="pp-page-hero">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-3">
-            <Gift className="text-pink-500" /> Birthday Broadcast
+          <h1 className="pp-page-hero-title">
+            <Gift size={22} style={{ color: 'var(--pp-danger-fg)' }} /> Birthday Broadcast
           </h1>
-          <p className="text-slate-500 mt-1">Send personalized greetings to patients celebrating today ({format(new Date(), 'dd MMMM')})</p>
+          <p className="pp-page-hero-sub">Send personalized greetings to patients celebrating today ({format(new Date(), 'dd MMMM')})</p>
         </div>
         <button 
           onClick={fetchBirthdays} 
-          className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+          className="btn-secondary"
           disabled={loading}
+          style={{ borderRadius: '50%', width: 40, height: 40, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
-          <RefreshCw className={`w-5 h-5 text-slate-400 ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} style={{ color: 'var(--pp-text-3)' }} />
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 24 }} className="lg-grid-3">
         {/* Left: Message Editor */}
-        <div className="lg:col-span-1">
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-            <h3 className="font-semibold mb-4 flex items-center gap-2">
-              <MessageCircle size={18} className="text-blue-500" /> Greet Message
+        <div>
+          <div className="pp-stat-card-enhanced" style={{ padding: 24 }}>
+            <h3 style={{ fontWeight: 600, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8, color: 'var(--pp-ink)' }}>
+              <MessageCircle size={18} style={{ color: 'var(--pp-blue)' }} /> Greet Message
             </h3>
             <textarea
-              className="w-full h-40 p-4 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm resize-none"
+              style={{ width: '100%', height: 160, padding: 16, borderRadius: 12, background: 'var(--pp-warm-1)', border: '1px solid var(--pp-warm-4)', color: 'var(--pp-ink)', outline: 'none', resize: 'none', fontSize: 14 }}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Type your birthday message here..."
             />
-            <div className="mt-4 p-4 rounded-xl bg-blue-50 border border-blue-100">
-              <p className="text-xs text-blue-700 leading-relaxed">
+            <div style={{ marginTop: 16, padding: 16, borderRadius: 12, background: 'var(--pp-blue-tint)', border: '1px solid var(--pp-blue-border)' }}>
+              <p style={{ fontSize: 12, color: 'var(--pp-blue)', lineHeight: 1.6 }}>
                 <strong>Pro Tip:</strong> Keeping messages warm and personal improves patient loyalty and clinical engagement.
               </p>
             </div>
@@ -113,73 +114,76 @@ export default function BirthdayBroadcastPage() {
         </div>
 
         {/* Right: Patient List */}
-        <div className="lg:col-span-2">
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-            <div className="p-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
-              <div className="flex items-center gap-3">
+        <div style={{ gridColumn: 'span 2' }}>
+          <div className="pp-table-container-enhanced">
+            <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--pp-warm-4)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--pp-warm-1)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <input 
                   type="checkbox" 
-                  className="w-4 h-4 rounded" 
+                  style={{ width: 16, height: 16, borderRadius: 4 }} 
                   checked={selectedIds.size === patients.length && patients.length > 0}
                   onChange={toggleAll}
                 />
-                <span className="text-sm font-medium text-slate-700">
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--pp-ink)' }}>
                   {selectedIds.size} of {patients.length} Selected
                 </span>
               </div>
               <button
                 onClick={handleBroadcast}
                 disabled={sending || selectedIds.size === 0}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white px-6 py-2 rounded-xl text-sm font-semibold transition-all shadow-md active:scale-95"
+                className="btn-primary"
+                style={{ gap: 8 }}
               >
                 {sending ? 'Sending...' : <><Send size={16} /> Send Greetings</>}
               </button>
             </div>
 
-            <div className="max-h-[500px] overflow-y-auto">
+            <div style={{ maxHeight: 500, overflowY: 'auto' }}>
               {loading ? (
-                <div className="p-20 text-center text-slate-400">Loading birthdays...</div>
+                <div style={{ padding: 80, textAlign: 'center', color: 'var(--pp-text-3)' }}>Loading birthdays...</div>
               ) : patients.length === 0 ? (
-                <div className="p-20 text-center">
-                  <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <User className="text-slate-300" />
+                <div className="pp-empty-enhanced">
+                  <div className="pp-empty-icon-circle">
+                    <User size={28} style={{ color: 'var(--pp-text-3)' }} />
                   </div>
-                  <p className="text-slate-500">No birthdays identified for today.</p>
+                  <p className="pp-empty-title">No birthdays today</p>
+                  <p className="pp-empty-sub">No birthdays identified for today.</p>
                 </div>
               ) : (
-                <table className="w-full">
-                  <thead className="sticky top-0 bg-white shadow-sm">
-                    <tr className="text-left text-xs font-bold text-slate-400 uppercase tracking-wider">
-                      <th className="px-6 py-4 w-12"></th>
-                      <th className="px-6 py-4">Patient</th>
-                      <th className="px-6 py-4">RegID</th>
-                      <th className="px-6 py-4">Mobile</th>
-                      <th className="px-6 py-4">Status</th>
+                <table className="pp-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: 48 }}></th>
+                      <th>Patient</th>
+                      <th>RegID</th>
+                      <th>Mobile</th>
+                      <th>Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-50">
+                  <tbody>
                     {patients.map((p) => (
                       <tr 
                         key={p.id} 
-                        className={`hover:bg-slate-50 transition-colors cursor-pointer ${selectedIds.has(p.id) ? 'bg-blue-50/30' : ''}`}
+                        className="pp-hover-row"
+                        style={{ cursor: 'pointer' }}
                         onClick={() => toggleSelect(p.id)}
                       >
-                        <td className="px-6 py-4">
+                        <td data-label="Select" style={{ paddingLeft: 20 }}>
                           <input 
                             type="checkbox" 
-                            className="w-4 h-4 rounded" 
+                            style={{ width: 16, height: 16, borderRadius: 4 }} 
                             checked={selectedIds.has(p.id)}
                             readOnly
                           />
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="font-semibold text-slate-900">{p.fullName}</div>
-                          <div className="text-xs text-slate-500">{p.gender}, {p.age || 'N/A'} yrs</div>
+                        <td data-label="Patient">
+                          <div style={{ fontWeight: 600, color: 'var(--pp-ink)' }}>{p.fullName}</div>
+                          <div style={{ fontSize: 12, color: 'var(--pp-text-3)' }}>{p.gender}, {p.age || 'N/A'} yrs</div>
                         </td>
-                        <td className="px-6 py-4 text-sm text-slate-600 font-mono">{p.regid}</td>
-                        <td className="px-6 py-4 text-sm text-slate-600">{p.phone || p.mobile1 || '—'}</td>
-                        <td className="px-6 py-4">
-                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-green-50 text-green-600 text-xs font-bold uppercase">
+                        <td data-label="RegID"><span className="pp-regid-pill">{p.regid}</span></td>
+                        <td data-label="Mobile" style={{ fontSize: 13, color: 'var(--pp-text-2)' }}>{p.phone || p.mobile1 || '—'}</td>
+                        <td data-label="Status">
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 10px', borderRadius: 8, background: 'rgba(34,197,94,0.1)', color: 'var(--pp-success-fg)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase' as const }}>
                             <CheckCircle2 size={10} /> Ready
                           </span>
                         </td>

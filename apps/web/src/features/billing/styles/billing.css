@@ -4,7 +4,7 @@
 /* ─── Page Layout ─── */
 .bill-page {
   padding: 0;
-  max-width: var(--pp-container-width);
+  width: 100%;
   margin: 0 auto;
 }
 
@@ -441,7 +441,7 @@
   background: var(--bg-card);
   border-radius: var(--pp-radius-lg);
   width: 100%;
-  max-width: 500px;
+  max-width: 1200px;
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: var(--pp-shadow-lg);

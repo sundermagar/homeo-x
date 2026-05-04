@@ -29,33 +29,40 @@ export default function MedicalCaseListPage() {
 
   return (
     <div className="mc-page">
-      <header className="mc-header">
+      {/* Header */}
+      <div className="pp-page-hero">
         <div>
-          <h1 className="mc-title">Clinical Records</h1>
-          <p className="mc-subtitle">Patient cases, longitudinal records, and clinical findings.</p>
+          <h1 className="pp-page-hero-title">
+            <Activity size={22} strokeWidth={1.8} />
+            Clinical Records
+          </h1>
+          <p className="pp-page-hero-sub">Patient cases, longitudinal records, and clinical findings.</p>
         </div>
-        <button
-          onClick={() => navigate('/patients/new')}
-          className="mc-btn-primary"
-        >
-          <Plus size={16} strokeWidth={1.6} /> New Case
-        </button>
-      </header>
+        <div className="pp-page-hero-actions">
+          <button
+            onClick={() => navigate('/patients/new')}
+            className="btn-primary"
+          >
+            <Plus size={16} strokeWidth={1.6} /> New Case
+          </button>
+        </div>
+      </div>
 
       {/* Control Bar */}
-      <div className="mc-controls">
-        <div className="mc-search-wrap">
-          <Search className="mc-search-icon" size={15} strokeWidth={1.6} />
+      {/* Control Bar */}
+      <div className="pp-filter-card">
+        <div className="pp-filter-search-wrap">
+          <Search size={14} />
           <input
             type="text"
             placeholder="Search by name, RegID, or mobile..."
-            className="mc-search-input"
+            className="pp-filter-search-input"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           />
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <button className="mc-filter-btn">
+        <div className="pp-filter-controls">
+          <button className="btn-secondary">
             <Filter size={14} strokeWidth={1.6} /> Filters
           </button>
           <div className="appt-segmented-toggle">
@@ -74,7 +81,7 @@ export default function MedicalCaseListPage() {
               <Grid size={16} strokeWidth={1.6} /> Grid
             </button>
           </div>
-          <span className="mc-count">
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--pp-text-3)' }}>
             {records?.total ?? 0} records
           </span>
         </div>
@@ -82,8 +89,9 @@ export default function MedicalCaseListPage() {
 
       {/* Records Table */}
       {viewMode === 'list' ? (
-        <div className="mc-table-wrap">
-          <table className="mc-table">
+        <div className="pp-table-container-enhanced">
+          <div className="pp-table-scroll">
+          <table className="pp-table">
             <thead>
               <tr>
                 <th>Patient</th>
@@ -101,12 +109,22 @@ export default function MedicalCaseListPage() {
                   </td>
                 </tr>
               ) : !records?.data?.length ? (
-                <tr className="mc-empty-row">
-                  <td colSpan={5}>No records found.</td>
+                <tr>
+                  <td colSpan={5} style={{ padding: 40, textAlign: 'center' }}>
+                    <div className="pp-empty-enhanced" style={{ border: 'none', background: 'transparent' }}>
+                      <div className="pp-empty-icon-circle">
+                        <Activity size={32} />
+                      </div>
+                      <p className="pp-empty-title">No records found</p>
+                      <p className="pp-empty-sub">Adjust your search to find clinical cases.</p>
+                    </div>
+                  </td>
                 </tr>
               ) : records.data.map((record: any) => (
                 <tr
                   key={record.id}
+                  className="pp-hover-row"
+                  style={{ cursor: 'pointer' }}
                   onClick={() => navigate(`/medical-cases/${record.regid}`)}
                 >
                   <td data-label="Patient">
@@ -119,7 +137,7 @@ export default function MedicalCaseListPage() {
                           {record.first_name} {record.surname}
                         </div>
                         <div className="mc-patient-meta">
-                          <span className="mc-regid-badge">PT-{record.regid}</span>
+                          <span className="pp-regid-pill">PT-{record.regid}</span>
                           <span className="mc-meta-text">
                             <User size={11} strokeWidth={1.6} />
                             {record.gender === 'M' ? 'Male' : 'Female'}
@@ -177,7 +195,9 @@ export default function MedicalCaseListPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
+
       ) : (
         <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
           {isLoading ? (
@@ -194,7 +214,7 @@ export default function MedicalCaseListPage() {
                 <div>
                   <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-main)' }}>{record.first_name} {record.surname}</div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, color: '#64748b', fontSize: 13 }}>
-                    <span className="mc-regid-badge" style={{ padding: '4px 8px', borderRadius: 999, background: 'var(--bg-surface-2)', color: 'var(--text-main)' }}>PT-{record.regid}</span>
+                    <span className="pp-regid-pill">PT-{record.regid}</span>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><User size={12} />{record.gender === 'M' ? 'Male' : 'Female'}</span>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Calendar size={12} />{record.age || '—'} yrs</span>
                   </div>

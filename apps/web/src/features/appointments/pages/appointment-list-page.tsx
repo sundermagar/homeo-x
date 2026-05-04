@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Search, Plus, List as ListIcon, Grid, Edit2, Trash2, Calendar,
-  Clock, UserCheck, MoreVertical, X, Filter, Stethoscope, Activity, Tag, User, Printer, RefreshCw
+  Clock, UserCheck, MoreVertical, X, Filter, Stethoscope, Activity, Tag, User, Printer, RefreshCw, CalendarDays
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { AppointmentStatus } from '@mmc/types';
@@ -153,17 +153,17 @@ export default function AppointmentListPage() {
   ];
 
   return (
-    <div className="pp-page-container animate-fade-in">
-      {/* Header */}
-      <div className="appt-header">
+    <div className="pp-page-container appt-page animate-fade-in">
+      {/* Hero Header */}
+      <div className="pp-page-hero">
         <div>
-          <h1 className="appt-header-title">
-            <ListIcon size={20} strokeWidth={1.6} className="appt-panel-title-icon" />
+          <h1 className="pp-page-hero-title">
+            <CalendarDays size={22} strokeWidth={1.8} />
             Appointments
           </h1>
-          <p className="appt-header-sub">{totalEntries} appointment{totalEntries !== 1 ? 's' : ''}</p>
+          <p className="pp-page-hero-sub">{totalEntries} appointment{totalEntries !== 1 ? 's' : ''} managed</p>
         </div>
-        <div className="appt-header-actions">
+        <div className="pp-page-hero-actions">
           <div className="appt-segmented-toggle">
             <button type="button" className={`appt-segmented-btn ${viewMode === 'list' ? 'active' : ''}`} onClick={() => setViewMode('list')}>
               <ListIcon size={16} strokeWidth={1.6} /> List
@@ -172,7 +172,7 @@ export default function AppointmentListPage() {
               <Grid size={16} strokeWidth={1.6} /> Grid
             </button>
           </div>
-          <button className="appt-btn appt-btn-primary" onClick={() => { setDrawerApptId(null); setIsDrawerOpen(true); }}>
+          <button className="btn-primary" onClick={() => { setDrawerApptId(null); setIsDrawerOpen(true); }}>
             <Plus size={14} strokeWidth={1.6} /> New Booking
           </button>
         </div>
@@ -189,25 +189,27 @@ export default function AppointmentListPage() {
 
       {/* Filters */}
       {tab !== 'pending' && (
-        <div className="appt-filters">
-          <div className="appt-search-wrap">
-            <Search size={14} className="appt-search-icon" strokeWidth={1.6} />
+        <div className="pp-filter-card">
+          <div className="pp-filter-search-wrap">
+            <Search size={14} strokeWidth={1.6} />
             <input
-              className="appt-filter-input appt-search-input"
+              className="pp-filter-search-input"
               placeholder="Search patient / phone…"
               value={search}
               onChange={e => { setSearch(e.target.value); setPage(1); }}
             />
           </div>
-          <select className="appt-filter-input" value={status} onChange={e => { setStatus(e.target.value); setPage(1); }}>
-            <option value="">All Statuses</option>
-            {STATUS_OPTIONS.filter(Boolean).map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
-          <input className="appt-filter-input" type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} title="From Date" />
-          <input className="appt-filter-input" type="date" value={toDate} onChange={e => setToDate(e.target.value)} title="To Date" />
-          <button className="appt-btn appt-btn-sm" onClick={() => { setSearch(''); setStatus(''); setFromDate(''); setToDate(''); setPage(1); }}>
-            <Filter size={13} strokeWidth={1.6} /> Clear
-          </button>
+          <div className="pp-filter-controls">
+            <select className="pp-select" style={{ width: 'auto', minWidth: 130 }} value={status} onChange={e => { setStatus(e.target.value); setPage(1); }}>
+              <option value="">All Statuses</option>
+              {STATUS_OPTIONS.filter(Boolean).map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <input className="pp-input" style={{ width: 'auto' }} type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} title="From Date" />
+            <input className="pp-input" style={{ width: 'auto' }} type="date" value={toDate} onChange={e => setToDate(e.target.value)} title="To Date" />
+            <button className="btn-secondary" onClick={() => { setSearch(''); setStatus(''); setFromDate(''); setToDate(''); setPage(1); }}>
+              <Filter size={13} strokeWidth={1.6} /> Clear
+            </button>
+          </div>
         </div>
       )}
 
@@ -216,11 +218,14 @@ export default function AppointmentListPage() {
         {isPending ? (
           <TableSkeleton rows={10} cols={7} />
         ) : data.length === 0 ? (
-          <div className="appt-empty">
-            <Calendar size={28} className="appt-empty-icon" />
-            <p className="appt-empty-text">No appointments found</p>
-            <button className="appt-btn appt-btn-primary appt-btn-sm" style={{ marginTop: 12 }} onClick={() => { setDrawerApptId(null); setIsDrawerOpen(true); }}>
-              + New Booking
+          <div className="pp-empty-enhanced">
+            <div className="pp-empty-icon-circle">
+              <CalendarDays size={32} />
+            </div>
+            <p className="pp-empty-title">No appointments found</p>
+            <p className="pp-empty-sub">Try adjusting filters or create a new booking.</p>
+            <button className="btn-primary" onClick={() => { setDrawerApptId(null); setIsDrawerOpen(true); }}>
+              <Plus size={14} /> New Booking
             </button>
           </div>
         ) : viewMode === 'list' ? (
@@ -244,19 +249,19 @@ export default function AppointmentListPage() {
                   <tr key={a.id}>
                     <td data-label="#"><span className="appt-cell-id">#{a.id}</span></td>
                     <td data-label="PATIENT">
-                      <div className="appt-cell-name">{a.patientNameFromCase ?? a.patientName ?? '—'}</div>
+                      <div className="appt-cell-name">{(a.patientNameFromCase || a.patientName || '').trim() || '—'}</div>
                       {a.phone && <div className="appt-cell-phone">{a.phone}</div>}
                     </td>
                     <td data-label="DOCTOR">
-                      {a.doctorName
+                      {(a.doctorName || '').trim()
                         ? <span className="appt-doctor-badge"><User size={11} strokeWidth={1.6} />{a.doctorName}</span>
                         : <span className="appt-cell-slash">—</span>}
                     </td>
                     <td data-label="DATE & TIME">
-                      <div className="appt-cell-name">{a.bookingDate ?? '—'}</div>
+                      <div className="appt-cell-name">{(a.bookingDate || '').trim() || '—'}</div>
                       {a.bookingTime && <div className="appt-cell-phone">{a.bookingTime}</div>}
                     </td>
-                    <td data-label="TYPE" className="appt-cell-muted">{a.visitType ?? '—'}</td>
+                    <td data-label="TYPE" className="appt-cell-muted">{(a.visitType || '').trim() || '—'}</td>
                     <td data-label="PACKAGE">
                       {a.packageName ? (
                         <span className="appt-metadata-badge appt-metadata-package" title={`Expires: ${a.packageExpiry ?? 'N/A'}`}>
@@ -416,6 +421,93 @@ export default function AppointmentListPage() {
           todayQuery.refetch();
         }}
       />
+      <style>{`
+        @media (max-width: 768px) {
+          .appt-page .pp-table-scroll {
+            overflow: visible !important;
+            border: none !important;
+            background: transparent !important;
+          }
+          .appt-page .pp-table {
+            display: block !important;
+            width: 100% !important;
+          }
+          .appt-page .pp-table thead {
+            display: none !important;
+          }
+          .appt-page .pp-table tbody {
+            display: block !important;
+            width: 100% !important;
+          }
+          .appt-page .pp-table tr {
+            display: block !important;
+            margin-bottom: 20px !important;
+            background: var(--bg-card) !important;
+            border: 1px solid var(--border-main) !important;
+            border-radius: 18px !important;
+            padding: 8px 0 !important;
+            box-shadow: var(--pp-shadow-sm) !important;
+            position: relative !important;
+            overflow: hidden !important;
+          }
+          .appt-page .pp-table td {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 4px !important;
+            padding: 12px 20px !important;
+            border-bottom: 1px dashed var(--border-main) !important;
+            min-height: auto !important;
+            text-align: left !important;
+            width: 100% !important;
+            align-items: flex-start !important;
+            background: transparent !important;
+          }
+          .appt-page .pp-table td:last-child {
+            border-bottom: none !important;
+            background: var(--bg-surface-2) !important;
+            padding: 16px 20px !important;
+            margin-top: 0 !important;
+            flex-direction: row !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+          }
+          .appt-page .pp-table td::before {
+            content: attr(data-label) !important;
+            display: block !important;
+            font-size: 10px !important;
+            font-weight: 800 !important;
+            color: var(--text-muted) !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.05em !important;
+            margin-bottom: 4px !important;
+          }
+          .appt-page .pp-table td:last-child::before {
+            content: 'QUICK ACTIONS' !important;
+            margin-bottom: 0 !important;
+          }
+          .appt-page .pp-table td > *:not(::before) {
+            display: block !important;
+            width: 100% !important;
+            text-align: left !important;
+          }
+          .appt-page .pp-table td:last-child > *:not(::before) {
+            width: auto !important;
+            text-align: right !important;
+          }
+          .appt-cell-name {
+            font-size: 0.95rem !important;
+            font-weight: 700 !important;
+            color: var(--pp-ink) !important;
+            text-align: left !important;
+          }
+          .appt-cell-phone {
+            font-size: 0.8rem !important;
+            color: var(--pp-text-3) !important;
+            display: block !important;
+            text-align: left !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

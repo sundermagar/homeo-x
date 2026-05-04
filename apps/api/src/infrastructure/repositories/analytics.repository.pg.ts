@@ -67,7 +67,7 @@ export class AnalyticsRepositoryPg implements IAnalyticsRepository {
       newPatients = await this.db.execute(sql`
         SELECT to_char(created_at, 'Mon YYYY') as month, count(*)::int as count
         FROM case_datas
-        WHERE clinic_id = ${clinicId} AND created_at::date BETWEEN ${fromStr} AND ${toStr} AND (deleted_at IS NULL OR deleted_at::text = '')
+        WHERE (clinic_id = ${clinicId} OR clinic_id IS NULL) AND created_at::date BETWEEN ${fromStr} AND ${toStr} AND (deleted_at IS NULL OR deleted_at::text = '')
         GROUP BY to_char(created_at, 'YYYY-MM'), to_char(created_at, 'Mon YYYY')
         ORDER BY to_char(created_at, 'YYYY-MM') ASC
       `) as any[];
@@ -79,8 +79,8 @@ export class AnalyticsRepositoryPg implements IAnalyticsRepository {
       revenueByMonth = await this.db.execute(sql`
         SELECT to_char(r.created_at, 'Mon YYYY') as month, sum(CAST(NULLIF(r.amount, '') AS numeric))::int as total
         FROM receipt r
-        JOIN patients p ON p.regid = r.regid
-        WHERE p.clinic_id = ${clinicId} AND r.created_at::date BETWEEN ${fromStr} AND ${toStr} AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
+        JOIN case_datas p ON p.regid = r.regid
+        WHERE (p.clinic_id = ${clinicId} OR p.clinic_id IS NULL) AND r.created_at::date BETWEEN ${fromStr} AND ${toStr} AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
         GROUP BY to_char(r.created_at, 'YYYY-MM'), to_char(r.created_at, 'Mon YYYY')
         ORDER BY to_char(r.created_at, 'YYYY-MM') ASC
       `) as any[];
@@ -93,7 +93,7 @@ export class AnalyticsRepositoryPg implements IAnalyticsRepository {
         SELECT m.condition as diagnosis, count(*)::int as count
         FROM medicalcases m
         JOIN case_datas p ON p.regid = m.regid
-        WHERE p.clinic_id = ${clinicId} AND m.condition IS NOT NULL AND m.condition != '' AND (m.deleted_at IS NULL OR m.deleted_at::text = '')
+        WHERE (p.clinic_id = ${clinicId} OR p.clinic_id IS NULL) AND m.condition IS NOT NULL AND m.condition != '' AND (m.deleted_at IS NULL OR m.deleted_at::text = '')
         GROUP BY m.condition
         ORDER BY count DESC
         LIMIT 10

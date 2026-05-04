@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { usePatients, useDeletePatient, usePatientFormMeta } from '../hooks/use-patients';
 import {
   Search, Plus, List as ListIcon, Grid, Edit2, MapPin, Calendar,
-  MessageCircle, Printer, Download, MoreVertical, Trash2, Phone, User
+  MessageCircle, Printer, Download, MoreVertical, Trash2, Phone, User, Users, ClipboardList
 } from 'lucide-react';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { type PatientSummary } from '@mmc/types';
@@ -153,6 +153,9 @@ export default function PatientListPage() {
       <button className="appt-kebab-item" onClick={() => { setDrawerRegid(p.regid); setIsDrawerOpen(true); closeMenu(); }}>
         <Edit2 size={14} /> Edit Patient
       </button>
+      <button className="appt-kebab-item" onClick={() => { navigate(`/patients/${p.regid}`); closeMenu(); }}>
+        <Users size={14} /> Manage Family
+      </button>
       <button className="appt-kebab-item" onClick={() => { openWhatsApp(p.phone, p.fullName); closeMenu(); }}>
         <MessageCircle size={14} /> WhatsApp
       </button>
@@ -171,13 +174,16 @@ export default function PatientListPage() {
 
   return (
     <div className="pp-page-container animate-fade-in">
-      {/* Header */}
-      <div className="pp-page-header" style={{ marginBottom: '24px' }}>
+      {/* ── Hero Header ── */}
+      <div className="pp-page-hero">
         <div>
-          <h1 className="text-title" style={{ fontSize: '24px' }}>Patient Registry</h1>
-          <p className="text-subtitle">Access and manage comprehensive patient health records.</p>
+          <h1 className="pp-page-hero-title">
+            <ClipboardList size={22} strokeWidth={1.8} />
+            Patient Registry
+          </h1>
+          <p className="pp-page-hero-sub">Access and manage comprehensive patient health records.</p>
         </div>
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+        <div className="pp-page-hero-actions">
           <div className="appt-segmented-toggle">
             <button type="button" className={`appt-segmented-btn ${viewMode === 'list' ? 'active' : ''}`} onClick={() => setViewMode('list')}>
               <ListIcon size={16} /> List
@@ -192,78 +198,103 @@ export default function PatientListPage() {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="mmc-pl-filterbar" style={{ marginBottom: '20px' }}>
-        <div className="mmc-pl-search-wrap">
-          <Search size={15} className="mmc-pl-search-icon" />
+      {/* ── Filter Card ── */}
+      <div className="pp-filter-card">
+        <div className="pp-filter-search-wrap">
+          <Search size={16} />
           <input
-            className="mmc-pl-search-input" type="text"
-            placeholder="Search by name, phone or Case ID..."
+            className="pp-filter-search-input" type="text"
+            placeholder="Search patients by name, phone or registration ID..."
             value={search} onChange={e => handleSearchChange(e.target.value)}
           />
         </div>
-        <div className="mmc-pl-filter-right">
-          <label className="mmc-pl-filter-label">Sort:</label>
-          <select className="mmc-pl-sort-select" value={sortBy} onChange={e => setSortBy(e.target.value)}>
-            <option value="newest">Newest First</option>
-            <option value="oldest">Oldest First</option>
-          </select>
+        <div className="pp-filter-controls">
+          <div className="pp-filter-group">
+            <span className="pp-filter-label">Sort:</span>
+            <select className="pp-select" style={{ minWidth: 150 }} value={sortBy} onChange={e => setSortBy(e.target.value)}>
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      {/* Stats row */}
-      <div className="pat-stats-row">
-        <span className="text-label">Registry Entries</span>
-        <span className="text-small">Showing {patients.length} of {totalEntries}</span>
+      {/* ── Table Meta Row ── */}
+      <div className="pp-table-meta-row">
+        <div className="pp-table-meta-label">Registry Entries</div>
+        <div className="pp-table-meta-stats">Showing {patients.length} of {totalEntries} patients</div>
       </div>
 
       {/* Content */}
       {isLoading ? (
         <TableSkeleton rows={10} cols={6} />
       ) : patients.length === 0 ? (
-        <div className="pp-card pat-empty-state">
-          <p className="pat-empty-state-title">No patients found</p>
-          <p className="text-small">Try adjusting your search filters</p>
+        <div className="pp-empty-enhanced">
+          <div className="pp-empty-icon-circle">
+            <ClipboardList size={32} />
+          </div>
+          <p className="pp-empty-title">No patients found</p>
+          <p className="pp-empty-sub">Try adjusting your search filters or register a new patient.</p>
+          <button className="btn-primary" onClick={() => { setDrawerRegid(null); setIsDrawerOpen(true); }}>
+            <Plus size={16} /> Register Patient
+          </button>
         </div>
       ) : viewMode === 'list' ? (
         <>
           {/* ── DESKTOP TABLE (hidden on mobile) ── */}
-          <div className="pat-desktop-table pp-card" style={{ padding: 0, overflow: 'hidden', borderRadius: 'var(--pp-radius-card)', border: '1px solid var(--pp-warm-4)' }}>
-            <div style={{ overflowX: 'auto', width: '100%' }}>
-              <table className="pp-table" style={{ minWidth: 640 }}>
+          <div className="pat-desktop-table pp-table-container-enhanced">
+            <div className="pp-table-scroll">
+              <table className="pp-table pat-main-table" style={{ border: 'none', tableLayout: 'fixed', width: '100%' }}>
+                <colgroup>
+                  <col style={{ width: '28%' }} />  {/* Patient */}
+                  <col style={{ width: '10%' }} />  {/* RegID */}
+                  <col className="pat-col-contact" style={{ width: '16%' }} />  {/* Contact */}
+                  <col className="pat-col-doctor" style={{ width: '20%' }} />   {/* Doctor */}
+                  <col className="pat-col-followup" style={{ width: '18%' }} /> {/* Followup */}
+                  <col style={{ width: '8%' }} />   {/* Actions — always reserved */}
+                </colgroup>
                 <thead>
                   <tr>
                     <th>Patient</th>
                     <th>RegID</th>
-                    <th>Contact</th>
-                    <th>Doctor Name</th>
-                    <th>Last Followup</th>
+                    <th className="pat-col-contact">Contact</th>
+                    <th className="pat-col-doctor">Doctor Name</th>
+                    <th className="pat-col-followup">Last Followup</th>
                     <th style={{ textAlign: 'right' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {patients.map((p: PatientSummary) => (
-                    <tr key={p.regid} className="hover-row">
-                      <td>
+                    <tr key={p.regid} className="pp-hover-row">
+                      <td data-label="Patient">
                         <div className="pat-member-row">
-                          <div className="pat-avatar">{getInitials(p.fullName)}</div>
-                          <div>
-                            <Link to={`/medical-cases/${p.regid}`} className="pat-member-name clickable-link">
+                          <div className="pat-avatar pat-avatar--md" style={{ background: p.gender === 'F' ? 'var(--pp-danger-bg)' : 'var(--pp-blue-tint)', color: p.gender === 'F' ? 'var(--pp-danger-fg)' : 'var(--pp-blue)' }}>
+                            {getInitials(p.fullName)}
+                          </div>
+                          <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                            <Link to={`/medical-cases/${p.regid}`} className="appt-cell-name pp-clickable-name" style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {p.fullName || 'Unknown'}
                             </Link>
-                            <div className="text-small">{p.gender === 'M' ? 'Male' : p.gender === 'F' ? 'Female' : p.gender || '—'}</div>
+                            <div className="appt-cell-phone">{p.gender === 'M' ? 'Male' : p.gender === 'F' ? 'Female' : p.gender || '—'}</div>
                           </div>
                         </div>
                       </td>
-                      <td>
-                        <Link to={`/medical-cases/${p.regid}`} className="pp-mono pat-regid-pill clickable-link">
-                          {p.regid}
+                      <td data-label="RegID">
+                        <Link to={`/medical-cases/${p.regid}`} className="pp-regid-pill">
+                          #{p.regid}
                         </Link>
                       </td>
-                      <td>{p.phone || '—'}</td>
-                      <td>{doctorName(p)}</td>
-                      <td className="text-small">{formatDate(p.lastVisit || p.createdAt)}</td>
-                      <td style={{ textAlign: 'right' }}>
+                      <td data-label="Contact" className="pat-col-contact" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <span className="appt-cell-name">{p.phone || '—'}</span>
+                      </td>
+                      <td data-label="Doctor Name" className="pat-col-doctor" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <span className="appt-cell-muted">{doctorName(p)}</span>
+                      </td>
+                      <td data-label="Last Followup" className="pat-col-followup">
+                        <div className="appt-cell-name">{formatDate(p.lastVisit || p.createdAt)}</div>
+                        <div className="appt-cell-phone">Visit History</div>
+                      </td>
+                      <td data-label="Actions" style={{ textAlign: 'right' }}>
                         <button
                           className="appt-kebab-btn"
                           onClick={e => toggleMenu(p.regid, e.currentTarget)}
@@ -274,6 +305,7 @@ export default function PatientListPage() {
                       </td>
                     </tr>
                   ))}
+
                 </tbody>
               </table>
             </div>
@@ -285,15 +317,17 @@ export default function PatientListPage() {
               <div key={p.regid} className="pat-mobile-card">
                 {/* Card header: avatar + name + actions */}
                 <div className="pat-mobile-card-header">
-                  <div className="pat-avatar pat-avatar--md">{getInitials(p.fullName)}</div>
+                  <div className="pat-avatar pat-avatar--md" style={{ background: p.gender === 'F' ? 'var(--pp-danger-bg)' : 'var(--pp-blue-tint)', color: p.gender === 'F' ? 'var(--pp-danger-fg)' : 'var(--pp-blue)', flexShrink: 0 }}>
+                    {getInitials(p.fullName)}
+                  </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <Link to={`/medical-cases/${p.regid}`} className="pat-mobile-card-name clickable-link">
+                    <Link to={`/medical-cases/${p.regid}`} className="pat-mobile-card-name">
                       {p.fullName || 'Unknown'}
                     </Link>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
-                      <span className="pat-reg-badge">#{p.regid}</span>
+                      <span className="pp-regid-pill">#{p.regid}</span>
                       {(p.gender === 'M' || p.gender === 'F') && (
-                        <span className="text-small" style={{ color: 'var(--pp-text-3)' }}>
+                        <span className="text-small" style={{ color: 'var(--pp-text-3)', fontWeight: 600 }}>
                           {p.gender === 'M' ? 'Male' : 'Female'}
                         </span>
                       )}
@@ -313,30 +347,36 @@ export default function PatientListPage() {
                 <div className="pat-mobile-card-body">
                   {p.phone && (
                     <div className="pat-mobile-card-row">
-                      <Phone size={13} style={{ color: 'var(--pp-text-3)', flexShrink: 0 }} />
+                      <span className="pat-mobile-card-row-label">
+                        <Phone size={12} /> CONTACT
+                      </span>
                       <span>{p.phone}</span>
                     </div>
                   )}
                   <div className="pat-mobile-card-row">
-                    <User size={13} style={{ color: 'var(--pp-text-3)', flexShrink: 0 }} />
+                    <span className="pat-mobile-card-row-label">
+                      <User size={12} /> DOCTOR
+                    </span>
                     <span>{doctorName(p)}</span>
                   </div>
                   <div className="pat-mobile-card-row">
-                    <Calendar size={13} style={{ color: 'var(--pp-text-3)', flexShrink: 0 }} />
-                    <span>Last visit: {formatDate(p.lastVisit || p.createdAt)}</span>
+                    <span className="pat-mobile-card-row-label">
+                      <Calendar size={12} /> LAST VISIT
+                    </span>
+                    <span>{formatDate(p.lastVisit || p.createdAt)}</span>
                   </div>
                 </div>
 
                 {/* Card footer: quick actions */}
                 <div className="pat-mobile-card-actions">
-                  <Link to={`/medical-cases/${p.regid}`} className="pat-mobile-action-btn pat-mobile-action-primary">
+                  <Link to={`/medical-cases/${p.regid}`} className="btn-primary" style={{ flex: 1, height: 42, fontSize: '13px', justifyContent: 'center' }}>
                     View Records
                   </Link>
-                  <button className="pat-mobile-action-btn pat-mobile-action-wa" onClick={() => openWhatsApp(p.phone, p.fullName)}>
-                    <MessageCircle size={14} />
+                  <button className="btn-secondary" style={{ width: 42, height: 42, padding: 0, justifyContent: 'center' }} onClick={() => openWhatsApp(p.phone, p.fullName)}>
+                    <MessageCircle size={18} />
                   </button>
-                  <button className="pat-mobile-action-btn pat-mobile-action-edit" onClick={() => { setDrawerRegid(p.regid); setIsDrawerOpen(true); }}>
-                    <Edit2 size={14} />
+                  <button className="btn-secondary" style={{ width: 42, height: 42, padding: 0, justifyContent: 'center' }} onClick={() => { setDrawerRegid(p.regid); setIsDrawerOpen(true); }}>
+                    <Edit2 size={18} />
                   </button>
                 </div>
               </div>

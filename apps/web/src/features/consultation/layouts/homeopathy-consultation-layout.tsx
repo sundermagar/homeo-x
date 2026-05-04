@@ -580,7 +580,7 @@ export function HomeopathyConsultationLayout({
       {/* ═══ MAIN CONTENT ═══ */}
       <div className="flex-1 flex flex-col min-w-0">
         <div className="flex-1 overflow-auto">
-          <div className="max-w-[1200px] mx-auto px-5 py-5 pb-24">
+          <div className="max-w-[1600px] mx-auto px-5 py-5 pb-24">
             {renderStageContent()}
           </div>
         </div>

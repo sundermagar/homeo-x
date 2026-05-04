@@ -2,7 +2,7 @@
 
 /* ─── 1. Shared Layout & Core ─── */
 .mc-page {
-  max-width: 1400px;
+  width: 100%;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -902,7 +902,6 @@
   grid-template-columns: 1fr;
   gap: 24px;
   padding: 24px;
-  max-width: 1400px;
   margin: 0 auto;
   width: 100%;
 }

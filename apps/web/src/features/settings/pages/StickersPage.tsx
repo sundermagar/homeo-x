@@ -81,59 +81,59 @@ export default function StickersPage() {
     <div className="plat-page fade-in">
 
 
-      <div className="plat-header">
+      <div className="pp-page-hero">
         <div>
-          <h1 className="plat-header-title">
-            <StickyNote size={20} className="color-primary" />
+          <h1 className="pp-page-hero-title">
+            <StickyNote size={22} style={{ color: 'var(--pp-blue)' }} />
             Medicine Stickers
           </h1>
-          <p className="plat-header-sub">Configure templates for printing medicine dosage stickers.</p>
+          <p className="pp-page-hero-sub">Configure templates for printing medicine dosage stickers.</p>
         </div>
-        <div className="plat-header-actions">
-          <button className="plat-btn plat-btn-primary" onClick={handleOpenCreate}>
-            <Plus size={14} />
-            Add Template
+        <div className="pp-page-hero-actions">
+          <button className="btn-primary" onClick={handleOpenCreate}>
+            <Plus size={16} strokeWidth={1.8} /> Add Template
           </button>
         </div>
       </div>
 
-      <div className="plat-stats-bar">
-        <div className="plat-stat-card">
-          <p className="plat-stat-label">Sticker Templates</p>
-          <p className="plat-stat-value plat-stat-value-primary">{stickers.length}</p>
+      <div className="pp-stat-grid">
+        <div className="pp-stat-card-enhanced">
+          <div className="pp-stat-label">Sticker Templates</div>
+          <div className="pp-stat-value is-primary">{stickers.length}</div>
         </div>
-        <div className="plat-stat-card">
-          <p className="plat-stat-label">Filtered</p>
-          <p className="plat-stat-value plat-stat-value-success">
-            {filteredStickers.length}
-          </p>
+        <div className="pp-stat-card-enhanced">
+          <div className="pp-stat-label">Filtered Results</div>
+          <div className="pp-stat-value is-success">{filteredStickers.length}</div>
         </div>
       </div>
 
-      <div className="plat-filters">
-        <div className="plat-search-wrap">
-          <Search size={14} className="plat-search-icon" />
+      <div className="pp-filter-card">
+        <div className="pp-filter-search-wrap">
+          <Search size={14} />
           <input 
-            className="plat-form-input plat-search-input"
+            type="text"
             placeholder="Search sticker templates..."
+            className="pp-filter-search-input"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
       </div>
 
-      <div className="plat-card">
+      <div className="pp-table-container-enhanced">
         {isLoading ? (
           <TableSkeleton rows={5} columns={4} />
         ) : filteredStickers.length === 0 ? (
-          <div className="plat-empty">
-            <StickyNote size={40} className="plat-empty-icon" />
-            <p className="plat-empty-text">No sticker templates found.</p>
+          <div className="pp-empty-enhanced" style={{ border: 'none', background: 'transparent' }}>
+            <div className="pp-empty-icon-circle">
+              <StickyNote size={32} />
+            </div>
+            <p className="pp-empty-title">No templates found</p>
+            <p className="pp-empty-sub">Add a new sticker template to simplify your medicine dispensing workflow.</p>
           </div>
         ) : (
           <>
-          <div className="plat-table-container">
-            <table className="plat-table">
+            <table className="pp-table">
               <thead>
                 <tr>
                   <th style={{ width: '60px' }}>#</th>
@@ -144,7 +144,7 @@ export default function StickersPage() {
               </thead>
               <tbody>
                 {paginatedData.map((sticker: any, idx: number) => (
-                  <tr key={sticker.id} className="plat-table-row">
+                  <tr key={sticker.id} className="pp-hover-row" onClick={() => handleOpenEdit(sticker)} style={{ cursor: 'pointer' }}>
                     <td data-label="#" className="plat-table-cell font-mono text-xs color-muted">{(currentPage - 1) * itemsPerPage + idx + 1}</td>
                     <td data-label="Name" className="plat-table-cell font-semibold">{sticker.name}</td>
                     <td data-label="Detail" className="plat-table-cell text-secondary">
@@ -152,7 +152,7 @@ export default function StickersPage() {
                         {sticker.detail}
                       </div>
                     </td>
-                    <td className="plat-table-cell">
+                    <td data-label="Action" className="plat-table-cell">
                       <div className="flex justify-end gap-3">
                         <button className="plat-btn plat-btn-sm plat-btn-icon" onClick={() => handleOpenEdit(sticker)}>
                           <Edit2 size={13} />
@@ -166,14 +166,15 @@ export default function StickersPage() {
                 ))}
               </tbody>
             </table>
-          </div>
-          <Pagination
-            totalItems={totalItems}
-            itemsPerPage={itemsPerPage}
-            currentPage={currentPage}
-            onPageChange={setCurrentPage}
-            onLimitChange={setItemsPerPage}
-          />
+            <div style={{ padding: '0 20px 20px' }}>
+              <Pagination
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                currentPage={currentPage}
+                onPageChange={setCurrentPage}
+                onLimitChange={setItemsPerPage}
+              />
+            </div>
           </>
         )}
       </div>
@@ -218,64 +219,14 @@ export default function StickersPage() {
             </div>
           </div>
           <div className="plat-modal-footer" style={{ padding: '24px 0 0 0', marginTop: '24px' }}>
-            <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
-            <button type="submit" className="plat-btn plat-btn-primary" disabled={createSticker.isPending || updateSticker.isPending}>
+            <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
+            <button type="submit" className="btn-primary" disabled={createSticker.isPending || updateSticker.isPending}>
               {editingId ? 'Save Changes' : 'Create Template'}
             </button>
           </div>
         </form>
       </Drawer>
-      <style>{`
-        @media (max-width: 1024px) {
-          .plat-header { flex-direction: column !important; align-items: stretch !important; gap: 16px !important; }
-          .plat-header-actions { width: 100%; }
-          .plat-header-actions .plat-btn { width: 100%; height: 44px; border-radius: 12px; justify-content: center; }
-          
-          .plat-stats-bar { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
-          .plat-stat-card { padding: 12px !important; }
-          .plat-stat-value { font-size: 18px !important; }
-          
-          .plat-filters { flex-direction: column; align-items: stretch; gap: 12px; }
-          .plat-search-wrap { width: 100% !important; }
-          .plat-search-input { width: 100% !important; height: 44px !important; border-radius: 12px !important; }
-          
-          .plat-card { border: none !important; box-shadow: none !important; background: transparent !important; padding: 0 !important; }
-          .plat-table-container { border: none !important; background: transparent !important; overflow: visible !important; }
-          .plat-table { display: block !important; width: 100% !important; }
-          .plat-table thead { display: none !important; }
-          .plat-table tbody { display: block !important; width: 100% !important; }
-          .plat-table tr { 
-            display: block !important; 
-            margin-bottom: 20px !important; 
-            background: var(--bg-card) !important; 
-            border: 1px solid var(--border-main) !important; 
-            border-radius: 16px !important; 
-            padding: 8px 0 !important;
-            box-shadow: var(--pp-shadow-sm) !important;
-          }
-          .plat-table td {
-            display: grid !important;
-            grid-template-columns: 110px 1fr !important;
-            gap: 12px !important;
-            align-items: center !important;
-            padding: 12px 20px !important;
-            border-bottom: 1px dashed var(--border-main) !important;
-            min-height: 48px;
-            text-align: right !important;
-            width: 100% !important;
-          }
-          .plat-table td:last-child { border-bottom: none !important; background: var(--bg-surface-2) !important; padding-top: 16px !important; padding-bottom: 16px !important; border-bottom-left-radius: 15px; border-bottom-right-radius: 15px; }
-          .plat-table td::before {
-            content: attr(data-label);
-            font-size: 10px !important;
-            font-weight: 800 !important;
-            color: var(--text-muted) !important;
-            text-transform: uppercase !important;
-            letter-spacing: 0.05em !important;
-            text-align: left !important;
-          }
-        }
-      `}</style>
+
     </div>
   );
 }

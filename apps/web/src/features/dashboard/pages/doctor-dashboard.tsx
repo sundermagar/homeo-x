@@ -314,14 +314,14 @@ export function DoctorDashboard() {
                       
                       <div className={`dash-row-details ${isExpanded ? 'expanded' : ''}`}>
                         <div className="details-inner">
-                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                           <div className="dd-details-grid">
                               <div>
                                 <div className="text-label" style={{ fontSize: 9, textTransform: 'uppercase', marginBottom: 4 }}>Clinical Notes</div>
                                 <div style={{ fontSize: 12, color: '#475569', lineHeight: 1.5 }}>
                                   {a.notes || 'Routine follow-up. No specific symptoms recorded at registration.'}
                                 </div>
                               </div>
-                              <div style={{ paddingLeft: 16, borderLeft: '1px solid var(--pp-warm-2)' }}>
+                              <div className="dd-details-right">
                                 <div className="text-label" style={{ fontSize: 9, textTransform: 'uppercase', marginBottom: 4 }}>Patient Info</div>
                                 <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>PT-{a.regid}</div>
                                 <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
@@ -343,6 +343,7 @@ export function DoctorDashboard() {
                            </div>
                         </div>
                       </div>
+
                     </div>
                   );
                 })

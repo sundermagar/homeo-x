@@ -5,44 +5,48 @@
 .pat-avatar {
   width: 32px;
   height: 32px;
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--pp-blue-tint);
   color: var(--pp-blue);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   flex-shrink: 0;
+  border: 1px solid rgba(22, 101, 228, 0.1);
+  box-shadow: 0 2px 4px rgba(22, 101, 228, 0.05);
+  transition: all 0.3s ease;
 }
 
 .pat-avatar--lg {
-  width: 64px;
-  height: 64px;
-  border-radius: 12px;
-  font-size: 24px;
-  font-weight: 600;
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
+  font-size: 26px;
+  font-weight: 800;
 }
 
 .pat-avatar--md {
-  width: 42px;
-  height: 42px;
-  border-radius: 10px;
-  font-size: 16px;
-  font-weight: 700;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  font-size: 18px;
+  font-weight: 800;
 }
 
 .pat-avatar--sm {
   width: 32px;
   height: 32px;
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .pat-avatar--warm {
   background: var(--pp-warm-3);
   color: var(--pp-text-2);
+  border-color: var(--pp-warm-4);
 }
 
 /* ─── Info Row (detail page) ───────────────────────────────────────────────── */
@@ -1455,7 +1459,7 @@
   }
 
   .pat-search-container {
-    max-width: 420px;
+    width: 100%;
   }
 
   .pat-sort-container {
@@ -1464,119 +1468,13 @@
   }
 }
 
-/* ─── Mobile Table Tweaks (Token Queue Style) ─── */
-@media (max-width: 1024px) {
-  .pp-table thead {
-    display: none;
-  }
-
-  .pp-table tr {
-    display: block;
-    margin-bottom: 24px;
-    border: 1px solid var(--border-main);
-    border-radius: 16px;
-    background: var(--bg-card);
-    padding: 0; /* Padding handled by cells */
-    box-shadow: var(--pp-shadow-sm);
-    overflow: hidden;
-  }
-
-  .pp-table td {
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    padding: 14px 20px !important;
-    border-bottom: 1px dotted var(--border-main) !important;
-    text-align: right !important;
-    background: transparent !important;
-    min-height: 52px;
-  }
-
-  .pp-table td:last-child {
-    border-bottom: none !important;
-    background: rgba(0, 0, 0, 0.02) !important;
-    padding-top: 20px !important;
-    padding-bottom: 20px !important;
-    margin-top: 10px;
-    border-top: 1px solid var(--border-main) !important;
-  }
-
-  .dark .pp-table td:last-child {
-    background: rgba(255, 255, 255, 0.02) !important;
-  }
-
-  .pat-cell-value {
-    display: flex !important;
-    justify-content: flex-end !important;
-    color: var(--text-main) !important;
-    font-weight: 600 !important;
-    text-align: right !important;
-    font-size: 14px !important;
-    flex: 1;
-    word-break: break-all;
-  }
-
-  .pp-table td::before {
-    content: attr(data-label);
-    display: block !important;
-    font-weight: 600 !important;
-    font-size: 11px !important;
-    color: var(--text-muted) !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.08em !important;
-    text-align: left !important;
-    min-width: 100px;
-    flex-shrink: 0;
-    margin-right: 12px;
-  }
-
-  /* REGID Highlight (Like Token Num) */
-  .pp-table td[data-label="REGID"] .pat-cell-value {
-    color: var(--pp-blue) !important;
-    font-size: 16px !important;
-    font-family: var(--pp-font-mono, monospace);
-  }
-
-  /* Specific handling for Patient cell to handle meta info */
-  .pp-table td[data-label="PATIENT"] {
-    align-items: flex-start !important;
-  }
-
-  .pat-member-row {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: flex-end !important;
-    gap: 4px !important;
-  }
-
-  .pat-avatar {
-    display: none !important; /* Minimal style like Token Queue often hides avatar to save space */
-  }
-
-  .pat-member-info {
-    text-align: right;
-  }
-
-  .pat-member-name {
-    font-size: 15px !important;
-    font-weight: 700 !important;
-  }
-
-  .pat-member-meta {
-    font-size: 11px !important;
-    opacity: 0.7;
-  }
-
-  .pp-table-scroll {
-    overflow-x: hidden !important;
-    overflow-y: auto !important;
-  }
-
-  .pat-add-btn .btn-text {
-    display: none; 
-  }
-
-  .pat-action-btn-mobile {
+/* Local view styles */
+.pat-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+}
+.pat-action-btn-mobile {
     width: 100% !important;
     height: 40px !important;
     border-radius: 12px !important;
@@ -1591,37 +1489,70 @@
   .dark .pat-action-btn-mobile {
     background: rgba(255, 255, 255, 0.03) !important;
   }
+
+/* ─── Patient Desktop Table — Auto-fit, NO horizontal scroll ──────────────── */
+.pat-desktop-table {
+  display: block;
+  width: 100%;
 }
 
-/* ─── Desktop Table Compactness ─── */
-@media (min-width: 1025px) {
-  .pp-table th, .pp-table td {
-    padding: 10px 12px !important;
-    font-size: 13px;
+@media (min-width: 769px) {
+  .pat-desktop-table .pp-table.pat-main-table {
+    table-layout: fixed !important;
   }
 
-  .pat-main-table {
-    table-layout: fixed;
-    width: 100%;
-  }
-
-  .pat-main-table th:nth-child(1) { width: 30%; } /* Patient */
-  .pat-main-table th:nth-child(2) { width: 10%; } /* RegID */
-  .pat-main-table th:nth-child(3) { width: 15%; } /* Contact */
-  .pat-main-table th:nth-child(4) { width: 15%; } /* City */
-  .pat-main-table th:nth-child(5) { width: 15%; } /* Registered */
-  .pat-main-table th:nth-child(6) { width: 15%; } /* Actions */
-
-  .pp-table td {
+  /* Ensure text in cells can truncate on desktop */
+  .pat-desktop-table .pp-table td,
+  .pat-desktop-table .pp-table th {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
-  .pp-table-scroll {
-    overflow-x: hidden !important; /* Force no scroll on desktop */
+  /* Patient name cell — can wrap */
+  .pat-desktop-table .pp-table td[data-label="Patient"] {
+    white-space: normal;
+    overflow: visible;
   }
 }
+
+
+/* ─── Progressive Column Hiding (NO scroll, just hide columns) ────────────── */
+/* Uses both colgroup col (visibility: collapse) + th/td (display: none)      */
+
+/* At < 1100px: hide Doctor Name column */
+@media (max-width: 1100px) {
+  .pat-col-doctor { display: none !important; }
+  /* Redistribute: patient 32%, regid 12%, contact 18%, followup 30%, actions 8% */
+}
+
+/* At < 950px: hide Last Followup column too */
+@media (max-width: 950px) {
+  .pat-col-doctor { display: none !important; }
+  .pat-col-followup { display: none !important; }
+  /* Redistribute: patient 40%, regid 14%, contact 38%, actions 8% */
+}
+
+/* At < 800px: hide Contact column too */
+@media (max-width: 800px) {
+  .pat-col-doctor { display: none !important; }
+  .pat-col-followup { display: none !important; }
+  .pat-col-contact { display: none !important; }
+  /* Redistribute: patient 60%, regid 32%, actions 8% */
+}
+
+/* ─── Desktop Table Compactness ─── */
+@media (min-width: 769px) {
+  .pat-desktop-table .pp-table th,
+  .pat-desktop-table .pp-table td {
+    padding: 12px 14px;
+    font-size: 13px;
+  }
+}
+
+
+
+
 
 @media (min-width: 480px) and (max-width: 640px) {
   .pat-add-btn .btn-text {
@@ -1681,9 +1612,9 @@
 
 /* ─── Mobile / Desktop visibility ─────────────────────────────────────────── */
 
-/* Desktop table: visible ≥ 769px, hidden on mobile */
-.pat-desktop-table { display: block; }
-.pat-mobile-cards  { display: none; }
+/* Desktop table: visible ≥ 769px, hidden on mobile — see definition above */
+.pat-mobile-cards { display: none; }
+
 
 @media (max-width: 768px) {
   .pat-desktop-table { display: none !important; }
@@ -1695,16 +1626,17 @@
 .pat-mobile-card {
   background: var(--bg-card);
   border: 1px solid var(--pp-warm-4);
-  border-radius: 16px;
-  padding: 16px;
+  border-radius: 20px;
+  padding: 0;
   box-shadow: var(--pp-shadow-sm);
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  transition: box-shadow 0.2s, border-color 0.2s;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .pat-mobile-card:hover {
+  transform: translateY(-2px);
   box-shadow: var(--pp-shadow-md);
   border-color: var(--pp-blue-border);
 }
@@ -1714,17 +1646,19 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  padding: 16px 16px 12px;
 }
 
 .pat-mobile-card-name {
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: 850;
   color: var(--pp-ink);
   text-decoration: none;
   display: block;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  letter-spacing: -0.01em;
 }
 
 .pat-mobile-card-name:hover {
@@ -1735,39 +1669,53 @@
 .pat-mobile-card-body {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 10px 12px;
+  gap: 10px;
+  padding: 14px 16px;
   background: var(--pp-warm-1);
-  border-radius: 10px;
+  margin: 0 16px 16px;
+  border-radius: 14px;
 }
 
 .pat-mobile-card-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 12px;
   font-size: 13px;
   color: var(--pp-text-2);
-  font-weight: 500;
+  font-weight: 600;
+}
+
+.pat-mobile-card-row-label {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--pp-text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 /* Card footer: quick actions */
 .pat-mobile-card-actions {
   display: flex;
-  gap: 8px;
+  gap: 10px;
+  padding: 0 16px 16px;
 }
 
 .pat-mobile-action-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 9px 14px;
-  border-radius: 10px;
+  gap: 8px;
+  height: 42px;
+  border-radius: 12px;
   border: 1px solid var(--pp-warm-4);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: all 0.2s ease;
   text-decoration: none;
   background: var(--bg-card);
   color: var(--pp-text-2);

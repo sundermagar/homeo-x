@@ -12,6 +12,33 @@
   gap: var(--pp-space-6);
 }
 
+/* Queue Details Inner Grid — Responsive */
+.dd-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.dd-details-right {
+  padding-left: 16px;
+  border-left: 1px solid var(--pp-warm-2);
+}
+
+@media (max-width: 767px) {
+  .dd-details-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+
+  .dd-details-right {
+    padding-left: 0;
+    border-left: none;
+    padding-top: 12px;
+    border-top: 1px solid var(--pp-warm-2);
+  }
+}
+
+
 /* 0. Main Dashboard Header */
 .dash-header {
   margin-bottom: var(--pp-space-6);
@@ -1008,3 +1035,156 @@ button.pp-link:hover {
 .dark .hover-op-icon {
   color: #60a5fa;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   DASHBOARD MOBILE FIXES — Role Dashboard Responsive Patches
+════════════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Doctor Dashboard — HUD Body Mobile ────────────────────────────────── */
+
+@media (max-width: 767px) {
+  .doctor-dashboard-panel .dd-active-head-up {
+    border-radius: 12px;
+  }
+
+  /* Queue section — prevent horizontal overflow */
+  .dd-queue-section {
+    overflow: hidden;
+  }
+
+  /* Queue header — compact on mobile */
+  .dd-queue-header {
+    padding: var(--pp-space-2) var(--pp-space-4);
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* Queue item — 2-col on mobile (name + status) */
+  .dd-queue-item {
+    grid-template-columns: 1fr auto !important;
+    padding: 12px var(--pp-space-4) !important;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  /* Active Consult HUD — stack */
+  .dd-active-consult {
+    overflow: hidden;
+  }
+}
+
+/* ─── Receptionist Dashboard — Expansion Grid Mobile ────────────────────── */
+
+@media (max-width: 767px) {
+  .expansion-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .expansion-content.open {
+    padding: 14px 16px !important;
+  }
+
+  /* Expansion — full width spans */
+  .expansion-grid > div[style*="grid-column: span 2"] {
+    grid-column: span 1 !important;
+  }
+}
+
+/* ─── Dashboard Card Header — Mobile ─────────────────────────────────────── */
+
+@media (max-width: 767px) {
+  .dash-card-header {
+    padding: var(--pp-space-2) var(--pp-space-4) !important;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .dash-section-title {
+    font-size: 10px !important;
+  }
+
+  /* Tabs row — scrollable on mobile */
+  .dash-card-header > div[style*="display: flex; gap: 20px"] {
+    gap: 14px !important;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .dash-card-body {
+    padding: var(--pp-space-3) var(--pp-space-2) !important;
+  }
+}
+
+/* ─── OpLink — Full-width on Mobile ─────────────────────────────────────── */
+
+@media (max-width: 767px) {
+  .hover-op {
+    padding: 14px 16px;
+    border-radius: 12px;
+  }
+
+  .hover-op-label {
+    font-size: 13px !important;
+  }
+}
+
+/* ─── Sidebar Cards — Row on Tablet ─────────────────────────────────────── */
+
+@media (min-width: 640px) and (max-width: 1023px) {
+  .dash-sidebar {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--pp-space-4);
+  }
+
+  .dash-sidebar-card {
+    min-height: 0;
+  }
+}
+
+/* ─── KPI Strip — Responsive ─────────────────────────────────────────────── */
+
+@media (max-width: 480px) {
+  .dash-kpi-item {
+    padding: var(--pp-space-3) !important;
+  }
+
+  .dash-kpi-label {
+    font-size: 9px !important;
+  }
+
+  .dash-kpi-value {
+    font-size: 1.25rem !important;
+  }
+
+  .dash-kpi-trend {
+    font-size: 10px !important;
+  }
+}
+
+/* ─── Active Row Styling — Mobile ────────────────────────────────────────── */
+
+@media (max-width: 767px) {
+  .active-row {
+    border-left: 3px solid var(--pp-blue) !important;
+    background: var(--pp-blue-faded) !important;
+  }
+
+  /* Table rows on mobile — clear table layout */
+  .pp-table td.expansion-details-td {
+    grid-template-columns: 1fr !important;
+    padding: 0 !important;
+  }
+}
+
+/* ─── Scroll Fix — Dash Scroll Area ─────────────────────────────────────── */
+
+.db-scroll {
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ─── END DASHBOARD MOBILE FIXES ─────────────────────────────────────────── */

@@ -30,22 +30,22 @@ export function DashboardAnalyticsPage() {
   return (
     <div className="pp-page-container plat-page animate-fade-in">
       {/* Header */}
-      <div className="plat-header">
-        <div className="plat-header-left">
-          <h1 className="plat-header-title">
-            <TrendingUp size={24} style={{ color: 'var(--pp-blue)' }} />
+      <div className="pp-page-hero">
+        <div>
+          <h1 className="pp-page-hero-title">
+            <TrendingUp size={22} style={{ color: 'var(--pp-blue)' }} />
             Analytics Dashboard
           </h1>
-          <p className="plat-header-sub">Real-time overview of clinical case distributions and financial performance.</p>
+          <p className="pp-page-hero-sub">Real-time overview of clinical case distributions and financial performance.</p>
         </div>
       </div>
 
       {/* KPI Stats Bar */}
-      <div className="plat-stats-bar">
+      <div className="pp-stat-grid">
         {kpis.map((kpi, i) => (
-          <div key={i} className="plat-stat-card" style={{ boxShadow: 'var(--pp-premium-shadow)' }}>
-            <div className="plat-stat-label">{kpi.title}</div>
-            <div className={`plat-stat-value plat-stat-value-${kpi.variant}`}>
+          <div key={i} className="pp-stat-card-enhanced">
+            <div className="pp-stat-label">{kpi.title}</div>
+            <div className={`pp-stat-value is-${kpi.variant}`}>
               {kpi.value}
             </div>
           </div>
@@ -53,13 +53,13 @@ export function DashboardAnalyticsPage() {
       </div>
 
       {/* Charts Responsive Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px', marginBottom: '20px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginBottom: '20px' }}>
         {/* Revenue Trend */}
-        <div className="plat-card" style={{ boxShadow: 'var(--pp-premium-shadow)' }}>
-          <div className="plat-card-header">
+        <div className="pp-table-container-enhanced" style={{ overflow: 'visible' }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--pp-warm-4)' }}>
             <h3><IndianRupee size={14} style={{ marginRight: 8, verticalAlign: 'middle' }} /> Revenue Trends (Last 6 Months)</h3>
           </div>
-          <div style={{ padding: '24px 16px', height: '300px' }}>
+          <div style={{ padding: '24px 12px', height: '300px' }}>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={trends?.revenueByMonth ?? []}>
                 <defs>
@@ -105,11 +105,11 @@ export function DashboardAnalyticsPage() {
         </div>
 
         {/* New Patients Bar Chart */}
-        <div className="plat-card" style={{ boxShadow: 'var(--pp-premium-shadow)' }}>
-          <div className="plat-card-header">
+        <div className="pp-table-container-enhanced" style={{ overflow: 'visible' }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--pp-warm-4)' }}>
             <h3><Users size={14} style={{ marginRight: 8, verticalAlign: 'middle' }} /> New Patients (Last 6 Months)</h3>
           </div>
-          <div style={{ padding: '24px 16px', height: '300px' }}>
+          <div style={{ padding: '24px 12px', height: '300px' }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={trends?.newPatients ?? []}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--pp-warm-4)" />
@@ -144,14 +144,14 @@ export function DashboardAnalyticsPage() {
       </div>
 
       {/* Top Diagnoses Section */}
-      <div className="plat-card" style={{ boxShadow: 'var(--pp-premium-shadow)' }}>
-        <div className="plat-card-header">
+      <div className="pp-table-container-enhanced" style={{ overflow: 'visible' }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--pp-warm-4)' }}>
           <h3>Common Diagnoses</h3>
         </div>
         <div style={{ padding: '20px' }}>
           <div style={{ 
             display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', 
+            gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', 
             gap: '12px' 
           }}>
             {(trends?.topDiagnoses ?? []).map((d: any, i: number) => (

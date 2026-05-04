@@ -118,87 +118,68 @@ export default function MedicinesPage() {
   return (
     <div className="plat-page fade-in">
 
-      <div className="plat-header" style={{ marginBottom: '24px' }}>
+      <div className="pp-page-hero">
         <div>
-          <h1 className="plat-header-title" style={{ fontSize: '22px', fontWeight: 700, letterSpacing: '-0.01em' }}>
-            <Pill size={20} className="color-primary" style={{ strokeWidth: 2 }} />
+          <h1 className="pp-page-hero-title">
+            <Pill size={22} strokeWidth={1.8} />
             Clinical Medicine Catalog
           </h1>
-          <p className="plat-header-sub" style={{ fontSize: '13px', marginTop: '2px', opacity: 0.7 }}>
-            Manage clinical inventory, pricing strategies, and standardized disease indications.
-          </p>
+          <p className="pp-page-hero-sub">Manage clinical inventory, pricing strategies, and standardized disease indications.</p>
         </div>
-        <div className="plat-header-actions">
-          <button className="plat-btn plat-btn-primary" onClick={handleOpenCreate} style={{ padding: '8px 16px', borderRadius: '10px', fontWeight: 600 }}>
+        <div className="pp-page-hero-actions">
+          <button className="btn-primary" onClick={handleOpenCreate}>
             <Plus size={14} /> Add Medicine
           </button>
         </div>
       </div>
 
-      <div className="plat-stats-bar" style={{ marginBottom: '24px', gap: '16px' }}>
-        <div className="plat-stat-card med-stat-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '8px' }}>
-          <p className="plat-stat-label" style={{ fontSize: '10px', margin: 0, opacity: 0.6 }}>Total Catalog</p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div className="med-stat-icon-wrap" style={{ background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)', width: '32px', height: '32px' }}>
-              <Package size={16} />
-            </div>
-            <p className="plat-stat-value plat-stat-value-primary" style={{ fontSize: '22px', margin: 0 }}>{medicines.length}</p>
-          </div>
+      <div className="pp-stat-grid">
+        <div className="pp-stat-card-enhanced" style={{ '--stat-accent': 'var(--pp-blue)' } as React.CSSProperties}>
+          <div className="pp-stat-icon"><Package size={16} /></div>
+          <div className="pp-stat-label">Total Catalog</div>
+          <div className="pp-stat-value is-primary">{medicines.length}</div>
         </div>
-        <div className="plat-stat-card med-stat-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '8px' }}>
-          <p className="plat-stat-label" style={{ fontSize: '10px', margin: 0, opacity: 0.6 }}>Low Stock Alerts</p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div className="med-stat-icon-wrap" style={{ background: 'var(--pp-warm-1)', color: 'var(--pp-orange)', width: '32px', height: '32px' }}>
-              <AlertCircle size={16} />
-            </div>
-            <p className={`plat-stat-value ${lowStockCount > 0 ? 'plat-stat-value-warning' : ''}`} style={{ fontSize: '22px', margin: 0 }}>
-              {lowStockCount}
-            </p>
-          </div>
+        <div className="pp-stat-card-enhanced" style={{ '--stat-accent': 'var(--pp-warning-fg)' } as React.CSSProperties}>
+          <div className="pp-stat-icon" style={{ '--stat-icon-color': 'var(--pp-warning-fg)', '--stat-icon-bg': 'rgba(245,158,11,0.1)' } as React.CSSProperties}><AlertCircle size={16} /></div>
+          <div className="pp-stat-label">Low Stock Alerts</div>
+          <div className={`pp-stat-value ${lowStockCount > 0 ? 'is-warning' : ''}`}>{lowStockCount}</div>
         </div>
-        <div className="plat-stat-card med-stat-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '8px' }}>
-          <p className="plat-stat-label" style={{ fontSize: '10px', margin: 0, opacity: 0.6 }}>Depleted Stock</p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div className="med-stat-icon-wrap" style={{ background: 'rgba(220, 38, 38, 0.08)', color: '#dc2626', width: '32px', height: '32px' }}>
-              <Trash2 size={16} />
-            </div>
-            <p className={`plat-stat-value ${outOfStockCount > 0 ? 'plat-stat-value-danger' : ''}`} style={{ fontSize: '22px', margin: 0 }}>
-              {outOfStockCount}
-            </p>
-          </div>
+        <div className="pp-stat-card-enhanced" style={{ '--stat-accent': 'var(--pp-danger-fg)' } as React.CSSProperties}>
+          <div className="pp-stat-icon" style={{ '--stat-icon-color': 'var(--pp-danger-fg)', '--stat-icon-bg': 'rgba(220,38,38,0.08)' } as React.CSSProperties}><Trash2 size={16} /></div>
+          <div className="pp-stat-label">Depleted Stock</div>
+          <div className={`pp-stat-value ${outOfStockCount > 0 ? 'is-danger' : ''}`}>{outOfStockCount}</div>
         </div>
       </div>
 
-      <div className="plat-filters" style={{ marginBottom: '20px', background: 'var(--bg-card)', padding: '12px 16px', borderRadius: '12px', border: '1px solid var(--border-main)' }}>
-        <div className="plat-search-wrap" style={{ flex: 1 }}>
-          <Search size={14} className="plat-search-icon" style={{ left: '14px' }} />
+      <div className="pp-filter-card">
+        <div className="pp-filter-search-wrap">
+          <Search size={14} />
           <input
-            className="plat-form-input plat-search-input"
+            className="pp-filter-search-input"
             placeholder="Search by name, disease indication, or category..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            style={{ paddingLeft: '40px', background: 'var(--bg-surface-2)', border: 'none', height: '38px', fontSize: '13px' }}
           />
         </div>
         {search && (
-          <button onClick={() => setSearch('')} className="btn-secondary" style={{ borderRadius: '8px', padding: '0 12px', height: '38px', fontSize: '13px' }}>Reset</button>
+          <button onClick={() => setSearch('')} className="btn-secondary">Reset</button>
         )}
       </div>
 
-      <div className="plat-card" style={{ background: 'transparent', border: 'none', boxShadow: 'none' }}>
+      <div>
         {isLoading ? (
           <TableSkeleton rows={5} columns={6} />
         ) : filtered.length === 0 ? (
-          <div className="plat-empty" style={{ minHeight: 250, background: 'var(--bg-card)', borderRadius: '20px', border: '1px dashed var(--border-main)' }}>
-            <div className="med-empty-circle" style={{ width: '60px', height: '60px' }}>
-              <Pill size={32} className="plat-empty-icon" />
+          <div className="pp-empty-enhanced">
+            <div className="pp-empty-icon-circle">
+              <Pill size={32} />
             </div>
-            <p className="plat-empty-text" style={{ fontSize: '15px', fontWeight: 600 }}>No medicine matches your search</p>
-            <p className="text-small color-muted" style={{ marginTop: '2px' }}>Try searching by SnOMED label or category.</p>
+            <p className="pp-empty-title">No medicine matches your search</p>
+            <p className="pp-empty-sub">Try searching by SNOMED label or category.</p>
           </div>
         ) : (
           <>
-          <div className="pp-card pp-table-scroll" style={{ padding: 0, overflow: 'visible', borderRadius: '16px', border: '1px solid var(--border-main)' }}>
+          <div className="pp-table-container-enhanced">
             <table className="pp-table">
               <thead>
                 <tr>
@@ -265,7 +246,7 @@ export default function MedicinesPage() {
                           <IndianRupee size={11} /> {med.price?.toLocaleString('en-IN', { minimumFractionDigits: 2 }) || '0.00'}
                         </div>
                       </td>
-                      <td style={{ textAlign: 'right', paddingRight: '20px' }}>
+                      <td data-label="Action" style={{ textAlign: 'right', paddingRight: '20px' }}>
                         <div className="med-action-cluster">
                           <button className="med-btn-icon edit" onClick={() => handleOpenEdit(med)} title="Edit Medicine" style={{ width: '30px', height: '30px' }}>
                             <Edit2 size={13} />

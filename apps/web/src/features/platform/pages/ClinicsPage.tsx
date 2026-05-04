@@ -188,16 +188,16 @@ export default function ClinicsPage() {
     <div className="plat-page fade-in">
 
       {/* ─── Header ─── */}
-      <div className="plat-header">
+      <div className="pp-page-hero">
         <div>
-          <h1 className="plat-header-title">
-            <Building2 size={20} strokeWidth={1.6} style={{ color: 'var(--primary)' }} />
-            Clinics &amp; Organizations
+          <h1 className="pp-page-hero-title">
+            <Building2 size={22} strokeWidth={1.6} />
+            Clinics & Organizations
           </h1>
-          <p className="plat-header-sub">Manage all {orgs.length} registered clinic organisations.</p>
+          <p className="pp-page-hero-sub">Manage all {orgs.length} registered clinic organisations.</p>
         </div>
-        <div className="plat-header-actions">
-          <button className="plat-btn plat-btn-primary" onClick={() => { setEditingOrg(null); setIsCreating(true); setForm(EMPTY_FORM); }}>
+        <div className="pp-page-hero-actions">
+          <button className="btn-primary" onClick={() => { setEditingOrg(null); setIsCreating(true); setForm(EMPTY_FORM); }}>
             <Plus size={14} strokeWidth={1.6} />
             Add Clinic
           </button>
@@ -205,31 +205,34 @@ export default function ClinicsPage() {
       </div>
 
       {/* ─── KPI Stats ─── */}
-      <div className="plat-stats-bar">
+      <div className="pp-stat-grid">
         {[
-          { label: 'Total Clinics', value: orgs.length, cls: 'plat-stat-value-primary' },
-          { label: 'Active', value: orgs.filter(o => !o.deletedAt).length, cls: 'plat-stat-value-success' },
+          { label: 'Total Clinics', value: orgs.length, cls: 'is-primary' },
+          { label: 'Active', value: orgs.filter(o => !o.deletedAt).length, cls: 'is-success' },
           { label: 'Cities', value: activeCities, cls: '' },
         ].map(stat => (
-          <div key={stat.label} className="plat-stat-card">
-            <p className="plat-stat-label">{stat.label}</p>
-            <p className={`plat-stat-value ${stat.cls}`}>{stat.value}</p>
+          <div key={stat.label} className="pp-stat-card-enhanced">
+            <div className="pp-stat-label">{stat.label}</div>
+            <div className={`pp-stat-value ${stat.cls}`}>{stat.value}</div>
           </div>
         ))}
       </div>
 
       {/* ─── Table ─── */}
-      <div className="plat-card">
+      <div>
         {isLoading ? (
           <TableSkeleton rows={8} columns={7} />
         ) : orgs.length === 0 ? (
-          <div className="plat-empty">
-            <Building2 size={28} className="plat-empty-icon" />
-            <p className="plat-empty-text">No clinics registered. Add your first clinic.</p>
+          <div className="pp-empty-enhanced">
+            <div className="pp-empty-icon-circle">
+              <Building2 size={32} />
+            </div>
+            <p className="pp-empty-title">No clinics registered</p>
+            <p className="pp-empty-sub">Add your first clinic to get started.</p>
           </div>
         ) : (
           <>
-            <div className="plat-table-container">
+            <div className="pp-table-container-enhanced">
               <table className="plat-table">
                 <thead>
                   <tr>
