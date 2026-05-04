@@ -116,19 +116,30 @@ export default function MedicalCaseDetailPage() {
   const paidAmount = medicalCase.paidAmount || 0;
   const balance = displayTotal - paidAmount;
 
+  // const TABS = [
+  //   { id: 'summary', label: 'Examination Report', icon: Pill },
+  //   { id: 'diagnosis', label: 'Diagnosis', icon: Sparkles },
+  //   { id: 'media', label: 'Media', icon: Camera },
+  //   { id: 'matrix', label: 'Clinical Matrix', icon: Microscope },
+  //   { id: 'homeo', label: 'Homeopathic', icon: Zap },
+  //   { id: 'vitals', label: 'Vitals & Exam', icon: Stethoscope },
+  //   { id: 'labs', label: 'Investigations', icon: FlaskConical },
+  //   { id: 'vaccine', label: 'Vaccines', icon: Syringe },
+  //   { id: 'communication', label: 'Communication', icon: MessageSquare },
+  //   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+  //   { id: 'reports', label: 'Reports', icon: ClipboardList },
+  // ];
+
   const TABS = [
     { id: 'summary', label: 'Examination Report', icon: Pill },
     { id: 'diagnosis', label: 'Diagnosis', icon: Sparkles },
     { id: 'media', label: 'Media', icon: Camera },
-    { id: 'matrix', label: 'Clinical Matrix', icon: Microscope },
-    { id: 'homeo', label: 'Homeopathic', icon: Zap },
-    { id: 'vitals', label: 'Vitals & Exam', icon: Stethoscope },
-    { id: 'labs', label: 'Investigations', icon: FlaskConical },
-    { id: 'vaccine', label: 'Vaccines', icon: Syringe },
-    { id: 'communication', label: 'Communication', icon: MessageSquare },
-    { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-    { id: 'reports', label: 'Reports', icon: ClipboardList },
+    { id: 'labs', label: 'Investigation Report', icon: FlaskConical },
+    { id: 'vitals', label: 'Vitals', icon: Stethoscope },
+    { id: 'homeo', label: 'Add Clinic Activity', icon: Zap },
+    { id: 'analytics', label: 'Graph (H/W)', icon: BarChart3 },
   ];
+
 
   const renderActiveTabContent = () => {
     switch (activeTab) {
