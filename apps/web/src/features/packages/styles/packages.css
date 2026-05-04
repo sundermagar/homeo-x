@@ -155,13 +155,7 @@
 .pkg-btn-danger:hover { background: #FEE2E2; }
 
 /* ─── Table / Tracking View ─── */
-.pkg-table-wrap { background: var(--bg-card); border: 1px solid var(--border-main); border-radius: var(--radius-card); overflow: hidden; }
-.pkg-table { width: 100%; border-collapse: collapse; min-width: 700px; }
-.pkg-table th { padding: 11px 18px; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); background: var(--bg-surface-2); border-bottom: 1px solid var(--border-main); text-align: left; white-space: nowrap; }
-.pkg-table td { padding: 13px 18px; font-size: 0.84rem; border-bottom: 1px solid var(--bg-surface-2); color: var(--text-main); }
-.pkg-table tr:last-child td { border-bottom: none; }
-.pkg-table tr:hover td { background: var(--bg-surface-2); }
-.pkg-table-scroll { overflow-x: auto; }
+
 
 .pkg-expiry-badge { padding: 3px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; white-space: nowrap; }
 .pkg-expiry-badge.active        { background: var(--success-bg); color: var(--success); }

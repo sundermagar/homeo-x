@@ -145,7 +145,7 @@ export default function PackageTrackingPage() {
       </div>
 
       {/* Table */}
-      <div className="pkg-table-wrap" style={{ boxShadow: 'var(--pp-premium-shadow)', borderRadius: 'var(--radius-card)' }}>
+      <div className="pp-card pp-table-scroll" style={{ padding: 0, overflow: 'visible' }}>
         {isLoading ? (
           <TableSkeleton rows={8} columns={6} />
         ) : records.length === 0 ? (
@@ -155,8 +155,8 @@ export default function PackageTrackingPage() {
           </div>
         ) : (
           <>
-            <div className="pkg-table-scroll">
-              <table className="pkg-table">
+            <div className="pp-table-scroll" style={{ borderRadius: '12px', overflow: 'hidden' }}>
+              <table className="pp-table">
                 <thead>
                   <tr>
                     <th style={{ width: 40 }}>
@@ -170,13 +170,12 @@ export default function PackageTrackingPage() {
                     <th>Expiry Date</th>
                     <th>Days</th>
                     <th>Status</th>
+                    <th style={{ width: 80, textAlign: 'right' }}>Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {paginatedData.map((r: any, i: number) => (
-                    <tr key={i} style={{ cursor: 'pointer', background: selectedIds.has(Number(r.regid)) ? 'var(--pp-blue-tint)' : undefined }}>
-                  {paginatedData.map((r: any, i: number) => (
-                    <tr key={i} style={{ cursor: 'pointer', background: selectedIds.has(Number(r.regid)) ? 'var(--pp-blue-tint)' : undefined }}>
+                    <tr key={i} className="hover-row" style={{ cursor: 'pointer', background: selectedIds.has(Number(r.regid)) ? 'var(--pp-blue-tint)' : undefined }} onClick={() => setSelectedRecord(r)}>
                       <td data-label="SELECT" onClick={(e) => { e.stopPropagation(); toggleSelect(Number(r.regid)); }}>
                         <div className="flex justify-end md:justify-start">
                           <button style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 0 }}>
@@ -184,8 +183,8 @@ export default function PackageTrackingPage() {
                           </button>
                         </div>
                       </td>
-                      <td data-label="PATIENT" className="pkg-patient-cell" onClick={() => setSelectedRecord(r)}>
-                        <div className="pkg-avatar-sm" style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--primary-tint)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.8rem', flexShrink: 0 }}>
+                      <td data-label="PATIENT" className="pkg-patient-cell">
+                        <div className="pkg-avatar-sm" style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.8rem', flexShrink: 0 }}>
                           {(r.firstName?.[0] ?? '?')}{r.surname?.[0] ?? ''}
                         </div>
                         <div className="flex flex-col items-end md:items-start text-right md:text-left">
@@ -203,8 +202,8 @@ export default function PackageTrackingPage() {
                           <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>₹{r.packagePrice?.toLocaleString()}</div>
                         </div>
                       </td>
-                      <td data-label="START" style={{ fontSize: '0.82rem' }}>{r.startDate}</td>
-                      <td data-label="EXPIRY" style={{ fontSize: '0.82rem', fontWeight: 600 }}>{r.expiryDate}</td>
+                      <td data-label="START" style={{ fontSize: '0.82rem', whiteSpace: 'nowrap' }}>{r.startDate}</td>
+                      <td data-label="EXPIRY" style={{ fontSize: '0.82rem', fontWeight: 600, whiteSpace: 'nowrap', color: 'var(--pp-ink)' }}>{r.expiryDate}</td>
                       <td data-label="DAYS" className="pkg-days-cell">
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', fontWeight: 600, color: r.daysRemaining < 0 ? 'var(--danger)' : r.daysRemaining <= 7 ? '#D97706' : 'var(--success)' }}>
                           <Clock size={12} strokeWidth={1.6} />
@@ -234,8 +233,6 @@ export default function PackageTrackingPage() {
                           </button>
                         </div>
                       </td>
-                    </tr>
-                  ))}
                     </tr>
                   ))}
                 </tbody>
