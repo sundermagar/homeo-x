@@ -1701,40 +1701,50 @@ a {
   text-align: right;
 }
 
-/* ─── Shimmer Skeleton Loader ─── */
+/* ─── Shimmer Skeleton Loader (Unified v2.0) ─── */
 @keyframes shimmer {
-  0% { background-position: -1000px 0; }
-  100% { background-position: 1000px 0; }
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
 }
 
-.pp-skeleton, .skeleton-box {
+.pp-skeleton,
+.skeleton-box,
+.appt-shimmer,
+.mc-loading-shimmer,
+.appt-cal-shimmer-cell {
   background: #f6f7f8;
-  background-image: linear-gradient(
-    to right,
-    #f6f7f8 0%,
-    #edeef1 20%,
-    #f6f7f8 40%,
-    #f6f7f8 100%
-  );
-  background-repeat: no-repeat;
-  background-size: 2000px 100%;
-  animation: shimmer 2s infinite linear;
+  background-image: linear-gradient(90deg,
+      #f6f7f8 25%,
+      #edeef1 50%,
+      #f6f7f8 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
   border-radius: 4px;
+  position: relative;
+  overflow: hidden;
 }
 
-.pp-skeleton-text, .skeleton-text {
+.pp-skeleton-text,
+.skeleton-text {
   height: 12px;
   width: 100%;
   margin-bottom: 8px;
 }
 
-.pp-skeleton-title {
+.pp-skeleton-title,
+.skeleton-text.title {
   height: 20px;
   width: 60%;
   margin-bottom: 12px;
 }
 
-.pp-skeleton-circle {
+.pp-skeleton-circle,
+.skeleton-circle {
   height: 40px;
   width: 40px;
   border-radius: 50%;
@@ -2172,44 +2182,6 @@ a {
   color: #64748b;
 }
 
-/* ─── Global Shimmer Skeleton Loader ─── */
-@keyframes shimmer {
-  0% {
-    background-position: -1000px 0;
-  }
-
-  100% {
-    background-position: 1000px 0;
-  }
-}
-
-.skeleton-box {
-  background: #f6f7f8;
-  background-image: linear-gradient(to right,
-      #f6f7f8 0%,
-      #edeef1 20%,
-      #f6f7f8 40%,
-      #f6f7f8 100%);
-  background-repeat: no-repeat;
-  background-size: 1000px 100%;
-  display: inline-block;
-  position: relative;
-  animation: shimmer 2s infinite linear;
-  border-radius: 4px;
-}
-
-.skeleton-text {
-  height: 12px;
-  width: 100%;
-  margin-bottom: 8px;
-  border-radius: 2px;
-}
-
-.skeleton-text.title {
-  height: 24px;
-  width: 40%;
-  margin-bottom: 12px;
-}
 
 /* ─── Global Pagination (Unified v2.0) ─── */
 .pp-pagination-bar {
@@ -2287,50 +2259,6 @@ a {
   color: white;
 }
 
-/* ─── Shimmer Skeleton Loader ─── */
-@keyframes shimmer {
-  0% { background-position: -1000px 0; }
-  100% { background-position: 1000px 0; }
-}
-
-.pp-skeleton {
-  background: #f6f7f8;
-  background-image: linear-gradient(
-    to right,
-    #f6f7f8 0%,
-    #edeef1 20%,
-    #f6f7f8 40%,
-    #f6f7f8 100%
-  );
-  background-repeat: no-repeat;
-  background-size: 2000px 100%;
-  animation: shimmer 2s infinite linear;
-  border-radius: 4px;
-}
-
-.pp-skeleton-text {
-  height: 12px;
-  width: 100%;
-  margin-bottom: 8px;
-}
-
-.pp-skeleton-title {
-  height: 20px;
-  width: 60%;
-  margin-bottom: 12px;
-}
-
-.pp-skeleton-circle {
-  height: 40px;
-  width: 40px;
-  border-radius: 50%;
-}
-
-.pp-skeleton-btn {
-  height: 36px;
-  width: 100px;
-  border-radius: var(--pp-radius-btn);
-}
 
 /* ──────────────────────────────────────────────────────────────────────────── */
 /* SHARED CLINICAL COMPONENTS (Migrated from Appointments)                      */
@@ -2469,6 +2397,23 @@ a {
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 20px;
 }
+
+.appt-grid-card {
+  padding: 24px;
+  background: #ffffff;
+  border: 1px solid var(--pp-warm-4);
+  border-radius: 16px;
+  box-shadow: var(--pp-shadow-sm);
+  transition: all 0.2s ease;
+}
+
+.appt-grid-card:hover {
+  box-shadow: var(--pp-shadow-md);
+  transform: translateY(-2px);
+  border-color: var(--pp-blue-border);
+}
+
+
 
 .appt-grid-card {
   padding: 24px;

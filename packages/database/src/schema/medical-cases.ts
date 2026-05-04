@@ -24,7 +24,8 @@ export const medicalCases = pgTable('medicalcases', {
 
 export const vitals = pgTable('vitals', {
   id: serial('id').primaryKey(),
-  visitId: integer('visit_id').notNull().unique(),
+  regid: integer('regid'),
+  visitId: integer('visit_id'),
   heightCm: real('height_cm'),
   weightKg: real('weight_kg'),
   bmi: real('bmi'),
@@ -133,11 +134,11 @@ export const prescriptions = pgTable('case_potencies', {
 // ─── AI Remedy Chart Session ─────────────────────────────────────────────────
 // Migrated from legacy: medicine_others → remedy_alternatives
 export const remedyAlternatives = pgTable('remedy_alternatives', {
-  id:        serial('id').primaryKey(),
-  treeId:    integer('tree_id').notNull(),       // FK → remedy_tree_nodes.id
-  remedy:    varchar('remedy',  { length: 255 }),
-  potency:   varchar('potency', { length: 100 }),
-  notes:     text('notes'),
+  id: serial('id').primaryKey(),
+  treeId: integer('tree_id').notNull(),       // FK → remedy_tree_nodes.id
+  remedy: varchar('remedy', { length: 255 }),
+  potency: varchar('potency', { length: 100 }),
+  notes: text('notes'),
   sortOrder: integer('sort_order').default(0),
   createdAt: timestamp('created_at').defaultNow(),
 });

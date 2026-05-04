@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, FileText, Activity, Search, Edit, Save,
@@ -74,6 +75,7 @@ export default function MedicalCaseDetailPage() {
   const [diagnosisText, setDiagnosisText] = useState('');
   const [pendingCharge, setPendingCharge] = useState(0);
   const [mobileDrawer, setMobileDrawer] = useState<'followup' | 'billing' | 'contact' | 'package' | null>(null);
+  const [shortcutOpen, setShortcutOpen] = useState(false);
 
   const clinicName = useAuthStore(s => s.user?.clinicName || 'HomeoX Clinic');
 
@@ -132,7 +134,7 @@ export default function MedicalCaseDetailPage() {
       case 'labs': return <div style={{ padding: 20 }}><LabsView investigations={investigations} regid={Number(regid)} visitId={medicalCase.id} /></div>;
       case 'vitals': return <div style={{ padding: 20 }}><VitalsView vitals={vitals} onRecord={() => setShowVitalsModal(true)} phone={medicalCase.phone || medicalCase.mobile || ''} name={medicalCase.patientName || ''} regid={Number(regid)} clinicName={clinicName} /></div>;
       case 'communication': return <div style={{ padding: 20 }}><CommunicationView regid={Number(regid)} phone={medicalCase.phone || ''} name={medicalCase.patientName || ''} /></div>;
-      case 'homeo': return <div style={{ padding: 20 }}><HomeoView regid={Number(regid)} initialData={homeo} /></div>;
+      case 'homeo': return <div style={{ padding: 20 }}><HomeoView regid={Number(regid)} initialData={homeo} reminders={reminders} medicalCase={medicalCase} /></div>;
       case 'analytics': return <div style={{ padding: 20 }}><AnalyticsView vitals={vitals || []} regid={Number(regid)} visitId={medicalCase.id} name={medicalCase.patientName || ''} phone={medicalCase.phone || medicalCase.mobile || ''} clinicName={clinicName} /></div>;
       case 'reports': return <div style={{ padding: 20 }}><ReportsView regid={Number(regid)} investigations={investigations || []} /></div>;
       case 'ai-assist': return <div style={{ padding: 20 }}><AiConsultantView regid={Number(regid)} /></div>;
@@ -147,7 +149,7 @@ export default function MedicalCaseDetailPage() {
       <div className="patient-banner">
         <div className="banner-inner">
           <div className="banner-left">
-            <div style={{ marginRight: '4px' }}>
+            {/* <div style={{ marginRight: '4px' }}>
               <button
                 className="back-btn"
                 onClick={() => navigate('/dashboard/doctor')}
@@ -155,7 +157,7 @@ export default function MedicalCaseDetailPage() {
               >
                 <ChevronLeft size={20} />
               </button>
-            </div>
+            </div> */}
 
             <div className="pat-av">
               {medicalCase.patientName?.charAt(0).toUpperCase()}
@@ -177,22 +179,6 @@ export default function MedicalCaseDetailPage() {
           </div>
 
           <div className="banner-right" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <button
-              className="banner-btn"
-              onClick={() => window.open(`http://localhost:5174/consultation/${regid}`, '_blank')}
-              style={{
-                background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                color: 'white',
-                border: 'none',
-                fontWeight: 700,
-                boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)',
-                display: 'flex', alignItems: 'center', gap: '8px',
-                padding: '8px 16px', borderRadius: '10px', fontSize: '0.85rem',
-                cursor: 'pointer', transition: 'all 0.2s'
-              }}
-            >
-              <BrainCircuit size={16} /> AI Assist
-            </button>
             <button className={`banner-btn ${activeTab === 'communication' ? 'bb-active' : 'bb-outline'}`} onClick={() => setActiveTab('communication')}>
               <MessageSquare size={14} /> Message
             </button>
@@ -247,28 +233,25 @@ export default function MedicalCaseDetailPage() {
           {renderActiveTabContent()}
 
           {/* Patient Details Cards (Below Tab Content) */}
-          <div className="mc-details-footer-grid">
+          <div className="mc-details-footer-grid" style={{ gridTemplateColumns: '1fr' }}>
             <div className="mc-info-card">
               <div className="mc-info-card-header">
-                <div className="mc-info-card-title"><User size={16} /> Patient Contact</div>
-                <button className="mc-link-btn" style={{ fontSize: '0.8rem', color: 'var(--pp-blue)', background: 'none', border: 'none', cursor: 'pointer' }}>Edit</button>
+                <div className="mc-info-card-title"><User size={16} /> Patient Details</div>
+                {/* <button className="mc-link-btn" style={{ fontSize: '0.8rem', color: 'var(--pp-blue)', background: 'none', border: 'none', cursor: 'pointer' }}>Edit</button> */}
               </div>
-              <div className="mc-info-card-body">
-                <div className="mc-info-row"><span>Address</span> <strong>{medicalCase.address || '—'}</strong></div>
-                <div className="mc-info-row"><span>Mobile</span> <strong>{medicalCase.mobile || '—'}</strong></div>
-                <div className="mc-info-row"><span>Email</span> <strong>{medicalCase.email || '—'}</strong></div>
-              </div>
-            </div>
-
-            <div className="mc-info-card">
-              <div className="mc-info-card-header">
-                <div className="mc-info-card-title"><Package size={16} /> Package Info</div>
-                <span className="mc-badge-solid-green">Active</span>
-              </div>
-              <div className="mc-info-card-body">
-                <div className="mc-info-row"><span>Scheme</span> <strong>{activePackage?.packageName || 'REGULAR'}</strong></div>
-                <div className="mc-info-row"><span>Expiry</span> <strong>{activePackage?.expiryDate ? new Date(activePackage.expiryDate).toLocaleDateString() : '—'}</strong></div>
-                <div className="mc-info-row"><span>Status</span> <strong>{activePackage?.status || 'Active'}</strong></div>
+              <div className="mc-info-card-body mc-info-card-grid-body">
+                <div className="mc-info-col">
+                  <div className="mc-info-row"><span>Address</span> <strong>{medicalCase.address || '—'}</strong></div>
+                  <div className="mc-info-row"><span>Mobile</span> <strong>{medicalCase.mobile || '—'}</strong></div>
+                  <div className="mc-info-row"><span>Email</span> <strong>{medicalCase.email || '—'}</strong></div>
+                  <div className="mc-info-row"><span>Referred By</span> <strong>{medicalCase.referedBy || '—'}</strong></div>
+                </div>
+                <div className="mc-info-col">
+                  <div className="mc-info-row"><span>Case Taken By</span> <strong>{medicalCase.doctorName || '—'}</strong></div>
+                  <div className="mc-info-row"><span>Package</span> <strong>{activePackage?.packageName || 'REGULAR'}</strong></div>
+                  <div className="mc-info-row"><span>Expiry</span> <strong>{activePackage?.expiryDate ? new Date(activePackage.expiryDate).toLocaleDateString() : '—'}</strong></div>
+                  <div className="mc-info-row"><span>Package Status</span> <strong style={{ color: activePackage?.status === 'Active' ? 'var(--pp-blue)' : 'inherit' }}>{activePackage?.status || 'Active'}</strong></div>
+                </div>
               </div>
             </div>
           </div>
@@ -307,14 +290,14 @@ export default function MedicalCaseDetailPage() {
 
               {/* Timeline Area */}
               <div className="pp-custom-scrollbar" style={{ maxHeight: '260px', overflowY: 'auto', paddingRight: '4px' }}>
-                {(notes || []).filter((n: any) => 
-                  n.notesType === 'Followup' || 
-                  n.noteType === 'Followup' || 
+                {(notes || []).filter((n: any) =>
+                  n.notesType === 'Followup' ||
+                  n.noteType === 'Followup' ||
                   n.notes_type === 'Followup'
                 ).length > 0 ? (
-                  (notes || []).filter((n: any) => 
-                    n.notesType === 'Followup' || 
-                    n.noteType === 'Followup' || 
+                  (notes || []).filter((n: any) =>
+                    n.notesType === 'Followup' ||
+                    n.noteType === 'Followup' ||
                     n.notes_type === 'Followup'
                   )
                     .sort((a: any, b: any) => new Date(b.dateval || 0).getTime() - new Date(a.dateval || 0).getTime())
@@ -322,7 +305,10 @@ export default function MedicalCaseDetailPage() {
                       <div key={note.id} style={{ padding: '12px 0', borderBottom: '1px solid var(--pp-warm-1)', position: 'relative', paddingLeft: '16px' }}>
                         <div style={{ position: 'absolute', left: 0, top: '16px', bottom: 0, width: '2px', background: 'var(--pp-blue)', opacity: 0.3, borderRadius: '2px' }} />
                         <div style={{ fontSize: '0.65rem', color: 'var(--pp-text-3)', fontWeight: 700, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
-                          {note.dateval ? new Date(note.dateval).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+                          {(note.dateval || note.createdAt || note.created_at) ? new Date(note.dateval || note.createdAt || note.created_at).toLocaleDateString('en-GB', {
+                            day: '2-digit', month: 'short', year: 'numeric',
+                            hour: '2-digit', minute: '2-digit'
+                          }) : '—'}
                         </div>
                         <div style={{ fontSize: '0.82rem', color: 'var(--pp-ink)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{note.notes}</div>
                       </div>
@@ -345,7 +331,6 @@ export default function MedicalCaseDetailPage() {
           <div className="mc-side-card">
             <div className="mc-side-card-header">
               <div className="mc-side-card-title"><CreditCard size={16} /> Billing Summary</div>
-              <button className="mc-link-btn" onClick={() => setShowBillingModal(true)} style={{ fontSize: '0.8rem', color: 'var(--pp-blue)', background: 'none', border: 'none', cursor: 'pointer' }}>+ Add</button>
             </div>
             <div className="mc-side-card-body">
               <div className="mc-bill-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}><span>Total</span> <strong>₹{displayTotal}</strong></div>
@@ -355,43 +340,53 @@ export default function MedicalCaseDetailPage() {
                 <span>Outstanding</span>
                 <strong>₹{balance}</strong>
               </div>
-              <button className="mc-pay-btn" onClick={() => setShowBillingModal(true)} style={{ width: '100%', padding: '10px', background: '#F0FDF4', color: '#15803D', border: '1px solid #BBF7D0', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', marginTop: '12px' }}>Record Payment</button>
+              <button className="mc-pay-btn" onClick={() => setShowBillingModal(true)} style={{ width: '100%', padding: '10px', background: '#F0FDF4', color: '#15803D', border: '1px solid #BBF7D0', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', marginTop: '12px' }}>Update Payment</button>
             </div>
           </div>
 
         </aside>
 
-        {/* ─── Mobile Floating Action Bar ─── */}
-        <div className="mc-mobile-fab-bar">
+        {/* ─── Mobile Floating Action Bar (Collapsible) ─── */}
+        <div className={`mc-mobile-fab-bar ${shortcutOpen ? 'expanded' : 'collapsed'}`}>
           <button
-            className={`mc-fab-btn ${mobileDrawer === 'followup' ? 'active' : ''}`}
-            onClick={() => setMobileDrawer(mobileDrawer === 'followup' ? null : 'followup')}
+            className="mc-fab-toggle"
+            onClick={() => setShortcutOpen(!shortcutOpen)}
+            title={shortcutOpen ? "Collapse shortcuts" : "Expand shortcuts"}
           >
-            <FileText size={20} />
-            <span className="mc-fab-btn-label">Notes</span>
+            {shortcutOpen ? <X size={20} /> : <Zap size={20} className="animate-pulse" />}
           </button>
-          <button
-            className={`mc-fab-btn ${mobileDrawer === 'billing' ? 'active' : ''}`}
-            onClick={() => setMobileDrawer(mobileDrawer === 'billing' ? null : 'billing')}
-          >
-            <CreditCard size={20} />
-            <span className="mc-fab-btn-label">Billing</span>
-            {balance > 0 && <span className="mc-fab-badge" />}
-          </button>
-          <button
-            className={`mc-fab-btn ${mobileDrawer === 'contact' ? 'active' : ''}`}
-            onClick={() => setMobileDrawer(mobileDrawer === 'contact' ? null : 'contact')}
-          >
-            <Phone size={20} />
-            <span className="mc-fab-btn-label">Contact</span>
-          </button>
-          <button
-            className={`mc-fab-btn ${mobileDrawer === 'package' ? 'active' : ''}`}
-            onClick={() => setMobileDrawer(mobileDrawer === 'package' ? null : 'package')}
-          >
-            <Package size={20} />
-            <span className="mc-fab-btn-label">Package</span>
-          </button>
+
+          <div className="mc-fab-actions">
+            <button
+              className={`mc-fab-btn ${mobileDrawer === 'followup' ? 'active' : ''}`}
+              onClick={() => { setMobileDrawer('followup'); setShortcutOpen(false); }}
+            >
+              <FileText size={20} />
+              <span className="mc-fab-btn-label">Notes</span>
+            </button>
+            <button
+              className={`mc-fab-btn ${mobileDrawer === 'billing' ? 'active' : ''}`}
+              onClick={() => { setMobileDrawer('billing'); setShortcutOpen(false); }}
+            >
+              <CreditCard size={20} />
+              <span className="mc-fab-btn-label">Billing</span>
+              {balance > 0 && <span className="mc-fab-badge" />}
+            </button>
+            <button
+              className={`mc-fab-btn ${mobileDrawer === 'contact' ? 'active' : ''}`}
+              onClick={() => { setMobileDrawer('contact'); setShortcutOpen(false); }}
+            >
+              <Phone size={20} />
+              <span className="mc-fab-btn-label">Contact</span>
+            </button>
+            <button
+              className={`mc-fab-btn ${mobileDrawer === 'package' ? 'active' : ''}`}
+              onClick={() => { setMobileDrawer('package'); setShortcutOpen(false); }}
+            >
+              <Package size={20} />
+              <span className="mc-fab-btn-label">Package</span>
+            </button>
+          </div>
         </div>
 
         {/* ─── Mobile Drawer ─── */}
@@ -418,13 +413,16 @@ export default function MedicalCaseDetailPage() {
                         (notes || []).filter((n: any) => n.notesType === 'Followup' || n.noteType === 'Followup')
                           .sort((a: any, b: any) => new Date(b.dateval || 0).getTime() - new Date(a.dateval || 0).getTime())
                           .map((note: any) => (
-                          <div key={note.id} style={{ padding: '10px 0', borderBottom: '1px solid #f1f5f9', fontSize: '0.85rem' }}>
-                            <div style={{ color: '#94a3b8', fontSize: '0.7rem', marginBottom: '4px' }}>
-                              {note.dateval ? new Date(note.dateval).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+                            <div key={note.id} style={{ padding: '10px 0', borderBottom: '1px solid #f1f5f9', fontSize: '0.85rem' }}>
+                              <div style={{ color: '#94a3b8', fontSize: '0.7rem', marginBottom: '4px' }}>
+                                {(note.dateval || note.createdAt || note.created_at) ? new Date(note.dateval || note.createdAt || note.created_at).toLocaleDateString('en-GB', {
+                                  day: '2-digit', month: 'short', year: 'numeric',
+                                  hour: '2-digit', minute: '2-digit'
+                                }) : '—'}
+                              </div>
+                              <div style={{ color: '#334155', lineHeight: 1.5 }}>{note.notes}</div>
                             </div>
-                            <div style={{ color: '#334155', lineHeight: 1.5 }}>{note.notes}</div>
-                          </div>
-                        ))
+                          ))
                       ) : (
                         <div style={{ color: '#94a3b8', fontSize: '0.85rem', textAlign: 'center', padding: '24px 0' }}>
                           No follow-up notes yet. Add one below.
@@ -639,28 +637,28 @@ function MedicalCasePageSkeleton() {
             </div>
             <div className="skeleton-box" style={{ width: '100%', height: '240px', borderRadius: '16px' }} />
           </div>
-          
+
           {/* Footer Grid Skeleton */}
           <div className="mc-details-footer-grid">
             <div className="mc-info-card">
-               <div className="mc-info-card-header">
-                 <div className="skeleton-box skeleton-text title" style={{ width: '60%', margin: 0, height: '18px' }} />
-               </div>
-               <div className="mc-info-card-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                 <div className="skeleton-box skeleton-text" style={{ width: '100%' }} />
-                 <div className="skeleton-box skeleton-text" style={{ width: '80%' }} />
-                 <div className="skeleton-box skeleton-text" style={{ width: '90%' }} />
-               </div>
+              <div className="mc-info-card-header">
+                <div className="skeleton-box skeleton-text title" style={{ width: '60%', margin: 0, height: '18px' }} />
+              </div>
+              <div className="mc-info-card-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div className="skeleton-box skeleton-text" style={{ width: '100%' }} />
+                <div className="skeleton-box skeleton-text" style={{ width: '80%' }} />
+                <div className="skeleton-box skeleton-text" style={{ width: '90%' }} />
+              </div>
             </div>
             <div className="mc-info-card">
-               <div className="mc-info-card-header">
-                 <div className="skeleton-box skeleton-text title" style={{ width: '60%', margin: 0, height: '18px' }} />
-               </div>
-               <div className="mc-info-card-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                 <div className="skeleton-box skeleton-text" style={{ width: '100%' }} />
-                 <div className="skeleton-box skeleton-text" style={{ width: '80%' }} />
-                 <div className="skeleton-box skeleton-text" style={{ width: '90%' }} />
-               </div>
+              <div className="mc-info-card-header">
+                <div className="skeleton-box skeleton-text title" style={{ width: '60%', margin: 0, height: '18px' }} />
+              </div>
+              <div className="mc-info-card-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div className="skeleton-box skeleton-text" style={{ width: '100%' }} />
+                <div className="skeleton-box skeleton-text" style={{ width: '80%' }} />
+                <div className="skeleton-box skeleton-text" style={{ width: '90%' }} />
+              </div>
             </div>
           </div>
         </div>
@@ -791,7 +789,7 @@ function AnalyticsView({ vitals, regid, visitId, name, phone, clinicName }: { vi
   const [wVal, setWVal] = useState('');
   const [saving, setSaving] = useState(false);
   const [sending, setSending] = useState(false);
-  
+
   const { saveVitals } = useManageClinicalRecords();
   const sendSms = useSendSms();
 
@@ -803,7 +801,7 @@ function AnalyticsView({ vitals, regid, visitId, name, phone, clinicName }: { vi
       const w = parseFloat(wVal);
       const normalizedH = h ? (heightUnit === 'in' ? h * 2.54 : h) : null;
       const normalizedW = w ? (weightUnit === 'lbs' ? w / 2.20462 : w) : null;
-      
+
       let bmi = null;
       if (normalizedH && normalizedW) {
         bmi = parseFloat((normalizedW / ((normalizedH / 100) ** 2)).toFixed(1));
@@ -850,18 +848,7 @@ function AnalyticsView({ vitals, regid, visitId, name, phone, clinicName }: { vi
     }
   };
 
-  if (!vitals || vitals.length === 0) {
-    return (
-      <div className="pp-card" style={{ padding: '24px' }}>
-        <div className="mc-section-header" style={{ marginBottom: '20px' }}>Growth & Clinical Analytics</div>
-        <div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--pp-warm-1)', borderRadius: 'var(--pp-radius-card)', border: '1px dashed var(--pp-warm-4)' }}>
-          <span style={{ color: 'var(--pp-text-3)' }}>No vital records available to plot.</span>
-        </div>
-      </div>
-    );
-  }
-
-  const chartData = [...vitals].reverse().map(v => ({
+  const chartData = (vitals || []).slice().reverse().map(v => ({
     date: new Date(v.recordedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
     weight: v.weightKg,
     height: v.heightCm,
@@ -871,28 +858,28 @@ function AnalyticsView({ vitals, regid, visitId, name, phone, clinicName }: { vi
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      <div className="pp-card" style={{ padding: '20px' }}>
-        <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--pp-blue)', marginBottom: '16px', textTransform: 'uppercase' }}>Quick Record Height/Weight</div>
-        <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: '1 1 120px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--pp-text-3)' }}>Height</label>
-              <button onClick={() => setHeightUnit(h => h === 'cm' ? 'in' : 'cm')} style={{ fontSize: '0.6rem', border: 'none', background: 'none', color: 'var(--pp-blue)', cursor: 'pointer', fontWeight: 800 }}>{heightUnit.toUpperCase()}</button>
+      <div className="pp-card" style={{ padding: '24px', border: '1px solid #eef2f6' }}>
+        <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#3b82f6', marginBottom: '20px', textTransform: 'uppercase', letterSpacing: '0.025em' }}>Quick Record Height/Weight</div>
+        <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: '1 1 180px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>Height</label>
+              <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#3b82f6', cursor: 'pointer' }} onClick={() => setHeightUnit(h => h === 'cm' ? 'in' : 'cm')}>{heightUnit.toUpperCase()}</span>
             </div>
-            <input type="number" className="pp-input" style={{ width: '100%' }} value={hVal} onChange={e => setHVal(e.target.value)} placeholder={heightUnit} />
+            <input type="number" className="pp-input" style={{ width: '100%', borderRadius: '8px', padding: '10px 16px' }} value={hVal} onChange={e => setHVal(e.target.value)} placeholder={heightUnit} />
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: '1 1 120px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--pp-text-3)' }}>Weight</label>
-              <button onClick={() => setWeightUnit(w => w === 'kg' ? 'lbs' : 'kg')} style={{ fontSize: '0.6rem', border: 'none', background: 'none', color: 'var(--pp-blue)', cursor: 'pointer', fontWeight: 800 }}>{weightUnit.toUpperCase()}</button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: '1 1 180px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>Weight</label>
+              <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#3b82f6', cursor: 'pointer' }} onClick={() => setWeightUnit(w => w === 'kg' ? 'lbs' : 'kg')}>{weightUnit.toUpperCase()}</span>
             </div>
-            <input type="number" className="pp-input" style={{ width: '100%' }} value={wVal} onChange={e => setWVal(e.target.value)} placeholder={weightUnit} />
+            <input type="number" className="pp-input" style={{ width: '100%', borderRadius: '8px', padding: '10px 16px' }} value={wVal} onChange={e => setWVal(e.target.value)} placeholder={weightUnit} />
           </div>
-          <button className="btn-primary" onClick={handleSave} disabled={saving} style={{ padding: '10px 20px', height: '42px' }}>
-            {saving ? '...' : 'Save H/W'}
+          <button className="btn-primary" onClick={handleSave} disabled={saving} style={{ padding: '10px 24px', height: '44px', borderRadius: '8px', fontWeight: 700, background: '#2563eb' }}>
+            {saving ? 'Saving...' : 'Save H/W'}
           </button>
-          <button className="btn-secondary" onClick={handleShare} disabled={sending} style={{ padding: '10px 20px', height: '42px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Send size={14} /> {sending ? '...' : 'Share Latest'}
+          <button className="btn-secondary" onClick={handleShare} disabled={sending} style={{ padding: '10px 20px', height: '44px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #e2e8f0', background: 'white', color: '#64748b' }}>
+            <Send size={14} /> {sending ? 'Sending...' : 'Share Latest'}
           </button>
         </div>
       </div>
@@ -985,70 +972,233 @@ function SnapshotRow({ label, value }: { label: string, value: string }) {
   );
 }
 
-function HomeoView({ regid, initialData }: { regid: number; initialData?: any }) {
-  const [thermal, setThermal] = useState(initialData?.thermal || '');
-  const [constitutional, setConstitutional] = useState(initialData?.constitutional || '');
-  const [miasm, setMiasm] = useState(initialData?.miasm || '');
-  const [saved, setSaved] = useState(false);
-  const { saveHomeoDetails } = useManageClinicalRecords();
+function HomeoView({ regid, initialData, reminders, medicalCase }: { regid: number; initialData?: any; reminders?: any[]; medicalCase: any }) {
+  const { saveReminder, deleteReminder } = useManageClinicalRecords();
 
-  useEffect(() => {
-    if (initialData) {
-      setThermal(initialData.thermal || '');
-      setConstitutional(initialData.constitutional || '');
-      setMiasm(initialData.miasm || '');
-    }
-  }, [initialData]);
+  // Reminder / Activity State
+  const [showDrawer, setShowDrawer] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [remindDate, setRemindDate] = useState(new Date().toISOString().split('T')[0]);
+  const [remindTime, setRemindTime] = useState(new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }));
+  const [purpose, setPurpose] = useState('');
 
-  const handleSave = async () => {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
+
+
+  const handleSaveActivity = async () => {
+    if (!remindDate || !purpose) return;
     try {
-      await saveHomeoDetails.mutateAsync({ regid, thermal, constitutional, miasm });
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
+      // Combine date and time
+      const dateTime = new Date(`${remindDate}T${remindTime || '00:00'}:00`);
+
+      await saveReminder.mutateAsync({
+        id: editingId,
+        regid,
+        reminderDate: dateTime.toISOString(),
+        message: purpose,
+        status: 'Pending'
+      });
+
+      setShowDrawer(false);
+      resetActivityForm();
     } catch (err) { console.error(err); }
   };
 
+  const handleEditActivity = (reminder: any) => {
+    setEditingId(reminder.id);
+    const date = new Date(reminder.reminderDate);
+    setRemindDate(date.toISOString().split('T')[0]);
+    setRemindTime(date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }));
+    setPurpose(reminder.message || '');
+    setShowDrawer(true);
+  };
+
+  const handleDeleteActivity = async (id: number) => {
+    if (confirm('Delete this activity?')) {
+      try {
+        await deleteReminder.mutateAsync(id);
+      } catch (err) { console.error(err); }
+    }
+  };
+
+  const resetActivityForm = () => {
+    setEditingId(null);
+    setRemindDate(new Date().toISOString().split('T')[0]);
+    setRemindTime(new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }));
+    setPurpose('');
+  };
+
+  const sortedReminders = reminders ? [...reminders].sort((a, b) =>
+    new Date(b.reminderDate).getTime() - new Date(a.reminderDate).getTime()
+  ) : [];
+
+  const totalPages = Math.ceil(sortedReminders.length / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const currentReminders = sortedReminders.slice(startIndex, startIndex + pageSize);
+
   return (
-    <div className="pp-card animate-fade-in" style={{ padding: '24px' }}>
-      <div className="mc-section-header" style={{ marginBottom: '24px' }}>Clinical Activity Details</div>
-      
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-text-2)' }}>Thermal State</label>
-          <select className="pp-select" value={thermal} onChange={e => setThermal(e.target.value)}>
-            <option value="">Select Thermal...</option>
-            <option value="Hot">Hot</option>
-            <option value="Chilly">Chilly</option>
-            <option value="Ambithermal">Ambithermal</option>
-          </select>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-text-2)' }}>Miasm</label>
-          <select className="pp-select" value={miasm} onChange={e => setMiasm(e.target.value)}>
-            <option value="">Select Miasm...</option>
-            <option value="Psoric">Psoric</option>
-            <option value="Syphilitic">Syphilitic</option>
-            <option value="Sycotic">Sycotic</option>
-          </select>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', gridColumn: '1 / -1' }}>
-          <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-text-2)' }}>Constitutional Assessment</label>
-          <textarea className="pp-textarea" style={{ height: '100px' }} value={constitutional} onChange={e => setConstitutional(e.target.value)} placeholder="Describe physical and mental constitution..." />
-        </div>
+    <div className="animate-fade-in">
+      {/* ─── Header Row: Title + Add Button ─── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <div className="mc-section-header" style={{ margin: 0 }}>Clinic Activities</div>
+        <button className="btn-primary" style={{ padding: '8px 16px' }} onClick={() => { resetActivityForm(); setShowDrawer(true); }}>
+          <Plus size={16} style={{ marginRight: '6px' }} /> Add Clinic Activity
+        </button>
       </div>
 
-      <button 
-        className="btn-primary" 
-        style={{ marginTop: '24px', width: '100%', padding: '12px' }}
-        onClick={handleSave}
-      >
-        {saveHomeoDetails.isPending ? 'Saving...' : (saved ? 'Changes Saved!' : 'Update Activity Details')}
-      </button>
+      {/* ─── Table (default view) ─── */}
+      {!reminders ? (
+        <TableSkeleton rows={5} cols={5} />
+      ) : reminders.length === 0 ? (
+        <div className="pp-card" style={{ padding: '80px 48px', textAlign: 'center', background: 'white', border: '1px dashed #e2e8f0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ padding: '20px', background: '#f8fafc', borderRadius: '50%', marginBottom: '20px' }}>
+            <History size={48} style={{ color: '#94a3b8' }} />
+          </div>
+          <h3 style={{ color: '#1e293b', fontWeight: 700, fontSize: '1.25rem', marginBottom: '8px' }}>No clinic activities recorded yet</h3>
+          <p style={{ color: '#64748b', fontSize: '0.95rem', maxWidth: '400px', lineHeight: 1.6 }}>
+            Keep track of patient follow-ups, clinical attributes, and scheduled activities. Click the button above to add your first activity.
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="pp-card" style={{ padding: 0, overflow: 'hidden' }}>
+            <table className="pp-table">
+              <thead>
+                <tr>
+                  <th style={{ width: '170px' }}>Scheduled For</th>
+                  <th>Purpose / Message</th>
+                  <th style={{ width: '100px' }}>Status</th>
+                  <th style={{ width: '90px', textAlign: 'center' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {currentReminders.map((rem) => (
+                  <tr key={rem.id} className="hover-row">
+                    <td className="appt-cell-mono">
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ fontWeight: 700 }}>{new Date(rem.reminderDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                        <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>{new Date(rem.reminderDate).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
+                    </td>
+                    <td style={{ fontSize: '0.85rem' }}>{rem.message}</td>
+                    <td>
+                      <span className={`mc-badge-solid-${rem.status === 'Done' ? 'green' : 'blue'}`} style={{ fontSize: '0.7rem' }}>
+                        {rem.status}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      <div style={{ display: 'flex', justifyContent: 'center', gap: '4px' }}>
+                        <button className="btn-ghost" style={{ color: 'var(--pp-blue)', padding: '4px' }} onClick={() => handleEditActivity(rem)}>
+                          <Edit size={14} />
+                        </button>
+                        <button className="btn-ghost" style={{ color: '#dc2626', padding: '4px' }} onClick={() => handleDeleteActivity(rem.id)}>
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <Pagination currentPage={currentPage} totalPages={totalPages} pageSize={pageSize} totalItems={sortedReminders.length} onPageChange={setCurrentPage} onPageSizeChange={setPageSize} />
+        </>
+      )}
+
+      {/* ─── Drawer: Add/Edit Activity ─── */}
+      {showDrawer && ReactDOM.createPortal(
+        <>
+          <div className="mc-drawer-backdrop" onClick={() => setShowDrawer(false)} />
+          <div className="mc-drawer animate-slide-in-right" style={{ maxWidth: '480px' }}>
+            <header className="mc-drawer-header" style={{ background: 'var(--pp-blue)', color: 'white' }}>
+              <div className="mc-drawer-header-title">
+                <Zap size={18} /> {editingId ? 'Edit Activity' : 'Add Clinic Activity'}
+              </div>
+              <button className="mc-drawer-close" onClick={() => setShowDrawer(false)} style={{ color: 'white' }}>
+                <X size={18} />
+              </button>
+            </header>
+
+            <div className="mc-drawer-body" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto' }}>
+
+              {/* Patient Info (Read-only) */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '16px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Patient Id</label>
+                  <div className="pp-input" style={{ background: 'var(--pp-warm-1)', color: 'var(--pp-text-3)', fontWeight: 600 }}>{regid}</div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Patient Name</label>
+                  <div className="pp-input" style={{ background: 'var(--pp-warm-1)', color: 'var(--pp-text-3)', fontWeight: 600 }}>{medicalCase.patientName}</div>
+                </div>
+              </div>
+
+              {/* Remind On */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Remind On</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '12px' }}>
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <input
+                      type="date"
+                      className="pp-input"
+                      style={{ width: '100%', paddingRight: '40px' }}
+                      value={remindDate}
+                      onChange={e => setRemindDate(e.target.value)}
+                    />
+                    <Calendar size={16} style={{ position: 'absolute', right: '12px', color: 'var(--pp-text-3)' }} />
+                  </div>
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <input
+                      type="time"
+                      className="pp-input"
+                      style={{ width: '100%', paddingRight: '40px' }}
+                      value={remindTime}
+                      onChange={e => setRemindTime(e.target.value)}
+                    />
+                    <Clock size={16} style={{ position: 'absolute', right: '12px', color: 'var(--pp-text-3)' }} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Purpose */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Purpose / Message</label>
+                <textarea
+                  className="pp-textarea"
+                  style={{ minHeight: '100px' }}
+                  placeholder="Enter purpose or message for this activity..."
+                  value={purpose}
+                  onChange={e => setPurpose(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <footer className="mc-drawer-footer" style={{ padding: '16px 24px', background: 'var(--pp-warm-1)', borderTop: '1px solid var(--pp-warm-3)', display: 'flex', gap: '10px' }}>
+              <button
+                className="btn-secondary"
+                style={{ flex: 1 }}
+                onClick={() => setShowDrawer(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn-primary"
+                style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                onClick={handleSaveActivity}
+                disabled={saveReminder.isPending}
+              >
+                {saveReminder.isPending ? 'Submitting...' : (editingId ? 'Update Activity' : 'Save Activity')}
+              </button>
+            </footer>
+          </div>
+        </>,
+        document.body
+      )}
     </div>
   );
 }
+
 
 function VitalsView({ vitals, onRecord, phone, name, regid, clinicName }: { vitals: any[]; onRecord: () => void; phone: string; name: string; regid: number; clinicName: string }) {
   const latest = vitals && vitals.length > 0 ? vitals[0] : null;
@@ -1338,6 +1488,8 @@ function LabsView({ investigations, regid, visitId }: { investigations: any[]; r
   const [saved, setSaved] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [showDrawer, setShowDrawer] = useState(false);
+  const [editingInv, setEditingInv] = useState<any>(null);
 
   const { saveInvestigation, saveNote, deleteRecord } = useManageClinicalRecords();
 
@@ -1349,7 +1501,10 @@ function LabsView({ investigations, regid, visitId }: { investigations: any[]; r
   const handleSave = async (copyToFollowup = false) => {
     try {
       const investDate = new Date().toISOString().split('T')[0];
-      await saveInvestigation.mutateAsync({ regid, visitId, type: activeType, data: labData, investDate });
+      await saveInvestigation.mutateAsync({
+        id: editingInv?.id,
+        regid, visitId, type: activeType, data: labData, investDate
+      });
 
       if (copyToFollowup) {
         const summary = Object.entries(labData)
@@ -1366,8 +1521,24 @@ function LabsView({ investigations, regid, visitId }: { investigations: any[]; r
 
       setSaved(true);
       setLabData({});
+      setEditingInv(null);
+      setShowDrawer(false);
       setTimeout(() => setSaved(false), 2000);
     } catch (err) { console.error(err); }
+  };
+
+  const handleEdit = (inv: any) => {
+    setActiveType(inv.type || 'CBC');
+    setLabData(inv.data || {});
+    setEditingInv(inv);
+    setShowDrawer(true);
+  };
+
+  const handleAdd = () => {
+    setActiveType('CBC');
+    setLabData({});
+    setEditingInv(null);
+    setShowDrawer(true);
   };
 
   const fields = LAB_CONFIG[activeType as keyof typeof LAB_CONFIG] || [
@@ -1376,122 +1547,172 @@ function LabsView({ investigations, regid, visitId }: { investigations: any[]; r
 
   return (
     <div className="mc-labs-workspace animate-fade-in">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+      {/* ─── Header (matching Vitals layout) ─── */}
+      <div className="mc-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
         <div className="mc-section-header" style={{ margin: 0 }}>Clinical Investigations</div>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button onClick={handleAdd} className="btn-primary" style={{ padding: '8px 16px' }}>
+            <Plus size={16} style={{ marginRight: '6px' }} /> Add Investigation
+          </button>
+        </div>
       </div>
 
-      <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-text-2)', whiteSpace: 'nowrap' }}>Investigation Type :</label>
-            <select 
-              className="pp-select" 
-              value={activeType} 
-              onChange={(e) => { setActiveType(e.target.value); setLabData({}); }}
-              style={{ maxWidth: '300px' }}
-            >
-              {Object.keys(LAB_CONFIG).map((cat) => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
+      {/* ─── Investigation History Table (default view) ─── */}
+      {!investigations ? (
+        <TableSkeleton rows={5} cols={5} />
+      ) : investigations.length === 0 ? (
+        <div className="pp-card" style={{ padding: '80px 48px', textAlign: 'center', background: 'white', border: '1px dashed #e2e8f0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ padding: '20px', background: '#f8fafc', borderRadius: '50%', marginBottom: '20px' }}>
+            <FlaskConical size={48} style={{ color: '#94a3b8' }} />
+          </div>
+          <h3 style={{ color: '#1e293b', fontWeight: 700, fontSize: '1.25rem', marginBottom: '8px' }}>No investigations recorded yet</h3>
+          <p style={{ color: '#64748b', fontSize: '0.95rem', maxWidth: '400px', lineHeight: 1.6 }}>
+            Record lab results, radiological findings, and specialized tests to build a complete clinical picture.
+          </p>
+          <button className="pp-link" style={{ marginTop: '16px', fontWeight: 700 }} onClick={handleAdd}>Record the first investigation</button>
+        </div>
+      ) : (
+        <>
+          <div className="pp-card pp-table-scroll" style={{ padding: 0, borderRadius: '12px' }}>
+            <table className="pp-table">
+              <thead style={{ position: 'sticky', top: 0, zIndex: 1, background: '#f4f3f1' }}>
+                <tr>
+                  <th style={{ width: '110px' }}>Date</th>
+                  <th style={{ width: '130px' }}>Category</th>
+                  <th>Results</th>
+                  <th style={{ width: '100px', textAlign: 'center' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {currentInvs.map(inv => (
+                  <tr key={inv.id} className="hover-row">
+                    <td>{new Date(inv.investDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                    <td><span className="badge-primary">{inv.type}</span></td>
+                    <td>
+                      <div style={{ fontSize: '0.82rem', color: '#475569', display: 'flex', flexWrap: 'wrap', gap: '6px 12px' }}>
+                        {Object.entries(inv.data || {}).filter(([_, v]) => v).map(([k, v]) => (
+                          <span key={k} style={{ display: 'inline-flex', gap: '4px' }}>
+                            <strong style={{ color: 'var(--pp-ink)' }}>{k.toUpperCase()}:</strong> {String(v)}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      <div style={{ display: 'flex', justifyContent: 'center', gap: '4px' }}>
+                        <button
+                          onClick={() => handleEdit(inv)}
+                          className="btn-ghost"
+                          style={{ color: 'var(--pp-blue)', padding: '4px 8px' }}
+                          title="Edit"
+                        >
+                          <Edit size={14} />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (confirm('Delete this investigation?')) {
+                              deleteRecord.mutateAsync({ type: 'investigations', id: inv.id });
+                            }
+                          }}
+                          className="btn-ghost"
+                          style={{ color: '#dc2626', padding: '4px 8px' }}
+                          title="Delete"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
 
-          <div className="pp-card" style={{ padding: '24px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', gap: '20px' }}>
-              {fields.map(field => (
-                <div key={field.key} style={{ display: 'flex', flexDirection: 'column', gap: '6px', ...(field.type === 'full' ? { gridColumn: '1 / -1' } : {}) }}>
-                  <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{field.label}</label>
-                  {field.type === 'full' ? (
-                    <textarea
-                      className="pp-textarea"
-                      placeholder={`Enter ${field.label}...`}
-                      value={labData[field.key] || ''}
-                      onChange={e => setLabData({ ...labData, [field.key]: e.target.value })}
-                      style={{ minHeight: '100px' }}
-                    />
-                  ) : (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                      <input
-                        type="text"
-                        className="pp-input"
-                        placeholder="0.00"
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            pageSize={pageSize}
+            totalItems={sortedInvs.length}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={setPageSize}
+          />
+        </>
+      )}
+
+      {/* ─── Investigation Form Drawer (right-side popup) ─── */}
+      {showDrawer && ReactDOM.createPortal(
+        <>
+          <div className="mc-drawer-backdrop" onClick={() => { setShowDrawer(false); setEditingInv(null); }} />
+          <div className="mc-drawer animate-slide-in-right" style={{ maxWidth: '520px' }}>
+            <header className="mc-drawer-header" style={{ background: 'var(--pp-blue)', color: 'white' }}>
+              <div className="mc-drawer-header-title">
+                <FlaskConical size={18} /> {editingInv ? 'Edit Investigation' : 'New Investigation'}
+              </div>
+              <button className="mc-drawer-close" onClick={() => { setShowDrawer(false); setEditingInv(null); }} style={{ color: 'white', opacity: 0.8 }}>
+                <X size={16} />
+              </button>
+            </header>
+
+            <div style={{ padding: '16px 24px', background: 'var(--pp-warm-1)', borderBottom: '1px solid var(--pp-warm-3)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--pp-text-2)', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Investigation Type</label>
+                <select
+                  className="pp-select"
+                  value={activeType}
+                  onChange={(e) => { setActiveType(e.target.value); if (!editingInv) setLabData({}); }}
+                  style={{ flex: 1 }}
+                >
+                  {Object.keys(LAB_CONFIG).map((cat) => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div style={{ padding: '24px', flex: 1, overflowY: 'auto' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 220px), 1fr))', gap: '16px' }}>
+                {fields.map(field => (
+                  <div key={field.key} style={{ display: 'flex', flexDirection: 'column', gap: '6px', ...(field.type === 'full' ? { gridColumn: '1 / -1' } : {}) }}>
+                    <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{field.label}</label>
+                    {field.type === 'full' ? (
+                      <textarea
+                        className="pp-textarea"
+                        placeholder={`Enter ${field.label}...`}
                         value={labData[field.key] || ''}
                         onChange={e => setLabData({ ...labData, [field.key]: e.target.value })}
-                        style={{ flex: '1 1 120px' }}
+                        style={{ minHeight: '100px' }}
                       />
-                      {field.range && <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--pp-text-3)', background: 'var(--pp-warm-2)', padding: '4px 10px', borderRadius: '6px', whiteSpace: 'nowrap' }}>{field.range}</span>}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px', paddingTop: '20px', borderTop: '1px solid var(--pp-warm-3)' }}>
-              <button onClick={() => handleSave(false)} className="btn-primary">
-                {saved ? 'Saved!' : 'Save Report'}
-              </button>
-              <button onClick={() => handleSave(true)} className="btn-secondary" style={{ background: 'var(--pp-success-bg)', color: 'var(--pp-success-fg)', borderColor: '#a7f3d0' }}>
-                Save Copy To Followup
-              </button>
-            </div>
-          </div>
-
-          <div style={{ marginTop: 32 }}>
-            <div className="mc-section-header">Investigation History</div>
-
-            {!investigations ? (
-              <TableSkeleton rows={3} cols={4} />
-            ) : investigations.length === 0 ? (
-              <div className="pp-card" style={{ padding: '32px', textAlign: 'center', marginTop: '16px' }}>
-                <p style={{ color: 'var(--pp-text-3)' }}>No investigations recorded.</p>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <input
+                          type="text"
+                          className="pp-input"
+                          placeholder="0.00"
+                          value={labData[field.key] || ''}
+                          onChange={e => setLabData({ ...labData, [field.key]: e.target.value })}
+                          style={{ flex: 1 }}
+                        />
+                        {field.range && <span style={{ fontSize: '0.65rem', fontWeight: 600, color: 'var(--pp-text-3)', background: 'var(--pp-warm-2)', padding: '4px 8px', borderRadius: '6px', whiteSpace: 'nowrap' }}>{field.range}</span>}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
-            ) : (
-              <>
-                <div className="pp-card pp-table-scroll" style={{ marginTop: '16px', maxHeight: '400px', overflowY: 'auto', padding: 0 }}>
-                  <table className="pp-table">
-                    <thead style={{ position: 'sticky', top: 0, zIndex: 1, background: '#f4f3f1' }}>
-                      <tr>
-                        <th style={{ width: '100px' }}>Date</th>
-                        <th style={{ width: '120px' }}>Category</th>
-                        <th>Results</th>
-                        <th style={{ width: '80px', textAlign: 'center' }}>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {currentInvs.map(inv => (
-                        <tr key={inv.id} className="hover-row">
-                          <td>{new Date(inv.investDate).toLocaleDateString('en-GB')}</td>
-                          <td><span className="badge-primary">{inv.type}</span></td>
-                          <td>
-                            <div style={{ fontSize: '0.85rem', color: '#475569', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                              {Object.entries(inv.data || {}).map(([k, v]) => (
-                                <span key={k}><strong>{k.toUpperCase()}:</strong> {String(v)}</span>
-                              ))}
-                            </div>
-                          </td>
-                          <td style={{ textAlign: 'center' }}>
-                            <button onClick={() => deleteRecord.mutateAsync({ type: 'investigations', id: inv.id })} className="btn-ghost" style={{ color: '#dc2626', padding: '4px 8px' }}>
-                              <Trash2 size={14} />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+            </div>
 
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  pageSize={pageSize}
-                  totalItems={sortedInvs.length}
-                  onPageChange={setCurrentPage}
-                  onPageSizeChange={setPageSize}
-                />
-              </>
-            )}
-        </div>
+            <footer style={{ padding: '16px 24px', background: 'var(--pp-warm-1)', borderTop: '1px solid var(--pp-warm-3)', display: 'flex', gap: '10px' }}>
+              <button type="button" className="btn-secondary" style={{ flex: 1 }} onClick={() => { setShowDrawer(false); setEditingInv(null); }}>Cancel</button>
+              <button onClick={() => handleSave(false)} className="btn-primary" style={{ flex: 2, padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                <Save size={16} /> {saved ? 'Saved!' : (editingInv ? 'Update Report' : 'Save Report')}
+              </button>
+            </footer>
+          </div>
+        </>,
+        document.body
+      )}
     </div>
   );
 }
+
 
 
 
@@ -1513,16 +1734,16 @@ function CommunicationView({ regid, phone, name }: { regid: number; phone: strin
             <option value="Greeting from Homeo-X. How is your health today? Any improvements?">Health Check-in</option>
           </select>
         </div>
-        <textarea 
-          className="pp-textarea" 
-          style={{ height: '100px' }} 
-          value={message} 
-          onChange={e => setMessage(e.target.value)} 
-          placeholder="Type your message here..." 
+        <textarea
+          className="pp-textarea"
+          style={{ height: '100px' }}
+          value={message}
+          onChange={e => setMessage(e.target.value)}
+          placeholder="Type your message here..."
         />
-        <button 
-          className="btn-primary" 
-          style={{ width: '100%' }} 
+        <button
+          className="btn-primary"
+          style={{ width: '100%' }}
           onClick={() => sendSms.mutateAsync({ phone, message, regid })}
         >
           <Send size={16} style={{ marginRight: '8px' }} /> Send WhatsApp
@@ -1533,8 +1754,34 @@ function CommunicationView({ regid, phone, name }: { regid: number; phone: strin
 }
 
 function MediaView({ regid, visitId, images }: { regid: number; visitId: number; images: any[] }) {
-  const { saveImage } = useManageClinicalRecords();
+  const { saveImage, updateImage, deleteImage } = useManageClinicalRecords();
   const [uploading, setUploading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(8);
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+
+  const sortedImages = images ? [...images].sort((a, b) =>
+    new Date(b.createdAt || b.created_at || 0).getTime() -
+    new Date(a.createdAt || a.created_at || 0).getTime()
+  ) : [];
+
+  const totalPages = Math.ceil(sortedImages.length / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const currentImages = sortedImages.slice(startIndex, startIndex + pageSize);
+
+  const getImageUrl = (path: string) => {
+    if (!path) return '';
+    if (path.startsWith('http')) return path;
+
+    const envUrl = import.meta.env.VITE_API_URL;
+    if (envUrl) {
+      const baseUrl = envUrl.replace('/api', '');
+      return `${baseUrl}${path.startsWith('/') ? path : '/' + path}`;
+    }
+
+    // Fallback to relative path which should be handled by Vite proxy
+    return path.startsWith('/') ? path : '/' + path;
+  };
 
   const onFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files?.length) return;
@@ -1542,79 +1789,268 @@ function MediaView({ regid, visitId, images }: { regid: number; visitId: number;
     try {
       const file = e.target.files[0];
       const formData = new FormData();
-      formData.append('image', file);
+      formData.append('files', file);
       formData.append('regid', String(regid));
       formData.append('visitId', String(visitId));
-      formData.append('title', 'Clinical Evidence');
+      formData.append('description', 'Clinical Evidence');
       await saveImage.mutateAsync(formData);
     } catch (err) {
-      console.error(err);
+      console.error('Upload error:', err);
     } finally {
       setUploading(false);
     }
   };
 
+  const handleEditDescription = async (img: any) => {
+    const newDesc = prompt('Edit Clinical Note/Description:', img.description || '');
+    if (newDesc === null || newDesc === img.description) return;
+    try {
+      await updateImage.mutateAsync({ id: img.id, description: newDesc });
+    } catch (err) {
+      console.error('Update error:', err);
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this image?')) return;
+    try {
+      await deleteImage.mutateAsync(id);
+    } catch (err) {
+      console.error('Delete error:', err);
+    }
+  };
+
   return (
-    <div className="pp-card animate-fade-in" style={{ padding: '32px', maxWidth: '800px', margin: '0 auto' }}>
-      <div className="mc-section-header" style={{ marginBottom: '24px' }}>Clinical Evidence (Images)</div>
-      
-      <div 
-        style={{ 
-          border: '2px dashed var(--pp-warm-4)', borderRadius: '12px', padding: '48px', textAlign: 'center', 
-          background: 'var(--pp-warm-1)', position: 'relative', cursor: 'pointer', transition: 'all 0.2s',
-          marginBottom: '32px'
+    <div className="animate-fade-in" style={{ maxWidth: '1000px', margin: '0 auto' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <div className="mc-section-header" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <Camera size={20} /> Clinical Evidence
+        </div>
+        <div style={{ display: 'flex', gap: '8px', background: 'var(--pp-warm-1)', padding: '4px', borderRadius: '8px', border: '1px solid var(--pp-warm-3)' }}>
+          <button
+            onClick={() => setViewMode('grid')}
+            style={{
+              padding: '6px 12px', borderRadius: '6px', border: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', fontWeight: 600,
+              background: viewMode === 'grid' ? 'white' : 'transparent',
+              color: viewMode === 'grid' ? 'var(--pp-blue)' : 'var(--pp-text-3)',
+              boxShadow: viewMode === 'grid' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none'
+            }}
+          >
+            <LayoutGrid size={14} /> Grid
+          </button>
+          <button
+            onClick={() => setViewMode('table')}
+            style={{
+              padding: '6px 12px', borderRadius: '6px', border: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', fontWeight: 600,
+              background: viewMode === 'table' ? 'white' : 'transparent',
+              color: viewMode === 'table' ? 'var(--pp-blue)' : 'var(--pp-text-3)',
+              boxShadow: viewMode === 'table' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none'
+            }}
+          >
+            <LayoutList size={14} /> Table
+          </button>
+        </div>
+      </div>
+
+      <div
+        style={{
+          border: '2px dashed var(--pp-warm-4)', borderRadius: '16px', padding: '30px', textAlign: 'center',
+          background: 'white', position: 'relative', cursor: 'pointer', transition: 'all 0.2s',
+          marginBottom: '24px', boxShadow: 'var(--pp-shadow-sm)'
         }}
         onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--pp-blue)'}
         onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--pp-warm-4)'}
       >
-        <input 
-          type="file" 
+        <input
+          type="file"
           onChange={onFileUpload}
-          style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} 
+          style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }}
           disabled={uploading}
         />
-        {uploading ? <Loader2 size={40} className="animate-spin" style={{ color: 'var(--pp-blue)', margin: '0 auto' }} /> : <Camera size={40} style={{ color: 'var(--pp-text-3)', margin: '0 auto' }} />}
-        <div style={{ marginTop: '16px', fontWeight: 700, color: 'var(--pp-text-2)', fontSize: '1.1rem' }}>
-          {uploading ? 'Uploading Evidence...' : 'Click or Drag to Upload Image'}
-        </div>
-        <p style={{ fontSize: '0.85rem', color: 'var(--pp-text-3)', marginTop: '8px' }}>Supported Formats: JPG, PNG, WEBP (Max 5MB)</p>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '16px' }}>
-        {images?.map(img => (
-          <div key={img.id} style={{ borderRadius: '10px', overflow: 'hidden', border: '1px solid var(--pp-warm-2)', aspectRatio: '1/1', background: 'var(--pp-warm-1)', position: 'relative' }}>
-            <img src={img.picture} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Clinical Evidence" />
+        {uploading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+            <Loader2 size={32} className="animate-spin" style={{ color: 'var(--pp-blue)' }} />
+            <div style={{ fontWeight: 700, color: 'var(--pp-blue)' }}>Uploading...</div>
           </div>
-        ))}
-        {(!images || images.length === 0) && (
-          <div style={{ gridColumn: '1 / -1', padding: '32px', textAlign: 'center', color: 'var(--pp-text-3)', fontSize: '0.9rem', background: 'var(--pp-warm-1)', borderRadius: '10px' }}>
-            No clinical images have been uploaded yet.
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
+            <div style={{ background: 'var(--pp-warm-1)', padding: '10px', borderRadius: '50%' }}>
+              <Upload size={20} style={{ color: 'var(--pp-blue)' }} />
+            </div>
+            <div style={{ textAlign: 'left' }}>
+              <div style={{ fontWeight: 700, color: 'var(--pp-text-2)', fontSize: '0.95rem' }}>Upload Clinical Images</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--pp-text-3)' }}>JPG, PNG, WEBP up to 5MB</div>
+            </div>
           </div>
         )}
       </div>
+
+      {viewMode === 'grid' ? (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '20px' }}>
+          {currentImages.map(img => {
+            const imagePath = img.picture || img.picturePath || img.picture_path;
+            const timestamp = img.createdAt || img.created_at || img.recordedAt || img.recorded_at;
+            const resolvedUrl = imagePath ? getImageUrl(imagePath) : '';
+
+            return (
+              <div
+                key={img.id}
+                className="mc-image-card"
+                style={{
+                  borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--pp-warm-3)',
+                  background: 'white', position: 'relative', boxShadow: 'var(--pp-shadow-sm)',
+                  display: 'flex', flexDirection: 'column'
+                }}
+              >
+                <div style={{ aspectRatio: '4/3', position: 'relative', overflow: 'hidden', background: 'var(--pp-warm-1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {resolvedUrl ? (
+                    <img
+                      src={resolvedUrl}
+                      style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                      alt={img.description || 'Clinical Evidence'}
+                      onError={(e) => {
+                        const el = e.target as HTMLImageElement;
+                        el.style.display = 'none';
+                        el.parentElement!.innerHTML = '<div style="text-align:center;color:#999;padding:20px"><div style="font-size:2rem;margin-bottom:8px">🖼️</div><div style="font-size:0.8rem">Image missing</div></div>';
+                      }}
+                    />
+                  ) : (
+                    <div style={{ textAlign: 'center', color: 'var(--pp-text-3)', padding: '20px' }}>
+                      <Camera size={32} style={{ opacity: 0.3, marginBottom: '8px' }} />
+                      <div style={{ fontSize: '0.75rem' }}>Corrupt record</div>
+                    </div>
+                  )}
+                  <div style={{ position: 'absolute', top: '8px', right: '8px', display: 'flex', gap: '4px', zIndex: 10 }}>
+                    <button
+                      onClick={() => handleEditDescription(img)}
+                      style={{
+                        padding: '6px', borderRadius: '50%', background: 'rgba(59, 130, 246, 0.9)', color: 'white',
+                        border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center'
+                      }}
+                      title="Edit note"
+                    >
+                      <Edit size={14} />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(img.id)}
+                      style={{
+                        padding: '6px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.9)', color: 'white',
+                        border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center'
+                      }}
+                      title="Delete image"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+                <div style={{ padding: '12px', borderTop: '1px solid var(--pp-warm-2)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--pp-text-3)', fontSize: '0.75rem' }}>
+                    <Clock size={12} />
+                    {timestamp ? new Date(timestamp).toLocaleString('en-GB', {
+                      day: '2-digit', month: 'short', year: 'numeric'
+                    }) : '—'}
+                  </div>
+                  <div style={{ marginTop: '4px', fontSize: '0.8rem', fontWeight: 600, color: 'var(--pp-text-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {img.description || 'Clinical Evidence'}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="pp-card" style={{ padding: 0, overflow: 'hidden' }}>
+          <table className="pp-table">
+            <thead>
+              <tr>
+                <th style={{ width: '80px' }}>Preview</th>
+                <th style={{ width: '150px' }}>Date</th>
+                <th>Description / Notes</th>
+                <th style={{ width: '100px', textAlign: 'center' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {currentImages.map(img => {
+                const imagePath = img.picture || img.picturePath || img.picture_path;
+                const timestamp = img.createdAt || img.created_at || img.recordedAt || img.recorded_at;
+                const resolvedUrl = imagePath ? getImageUrl(imagePath) : '';
+                return (
+                  <tr key={img.id} className="hover-row">
+                    <td>
+                      <div style={{ width: '50px', height: '50px', borderRadius: '8px', overflow: 'hidden', background: 'var(--pp-warm-1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {resolvedUrl ? (
+                          <img src={resolvedUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onClick={() => window.open(resolvedUrl, '_blank')} />
+                        ) : <Camera size={20} style={{ opacity: 0.3 }} />}
+                      </div>
+                    </td>
+                    <td className="appt-cell-mono">
+                      {timestamp ? new Date(timestamp).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+                    </td>
+                    <td style={{ fontSize: '0.85rem' }}>{img.description || 'Clinical Evidence'}</td>
+                    <td style={{ textAlign: 'center' }}>
+                      <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
+                        <button className="btn-ghost" style={{ color: 'var(--pp-blue)' }} onClick={() => handleEditDescription(img)} title="Edit Notes">
+                          <Edit size={16} />
+                        </button>
+                        <button className="btn-ghost" style={{ color: 'var(--pp-blue)' }} onClick={() => resolvedUrl && window.open(resolvedUrl, '_blank')} title="View Full Image">
+                          <Eye size={16} />
+                        </button>
+                        <button className="btn-ghost" style={{ color: 'var(--pp-danger-fg)' }} onClick={() => handleDelete(img.id)} title="Delete Image">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {(!images || images.length === 0) && (
+        <div style={{ padding: '48px', textAlign: 'center', color: 'var(--pp-text-3)', background: 'white', borderRadius: '16px', border: '1px dashed var(--pp-warm-4)' }}>
+          <div style={{ marginBottom: '12px' }}><Camera size={32} style={{ opacity: 0.3 }} /></div>
+          No clinical images have been uploaded yet.
+        </div>
+      )}
+
+      {sortedImages.length > 0 && (
+        <div style={{ marginTop: '24px' }}>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            pageSize={pageSize}
+            totalItems={sortedImages.length}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={setPageSize}
+          />
+        </div>
+      )}
     </div>
   );
 }
 
 function DiagnosisView({ regid, visitId, medicalCase, soapRecords }: { regid: number; visitId: number; medicalCase: any; soapRecords: any[] }) {
-  const { updateDiagnosis, saveSoap } = useManageClinicalRecords();
+  const { updateDiagnosis, saveSoap, deleteRecord } = useManageClinicalRecords();
   const [diagnosis, setDiagnosis] = useState(medicalCase?.condition || '');
   const [complaint, setComplaint] = useState('');
   const [medication, setMedication] = useState('');
   const [investigationFindings, setInvestigationFindings] = useState('');
-  
+
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(5);
+  const [pageSize, setPageSize] = useState(10);
   const [showDrawer, setShowDrawer] = useState(false);
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
-  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
+  const [editingRecord, setEditingRecord] = useState<any>(null);
 
   const sortedSoap = soapRecords ? [...soapRecords].sort((a, b) => {
-    const timeA = new Date(a.createdAt).getTime();
-    const timeB = new Date(b.createdAt).getTime();
-    return sortOrder === 'desc' ? timeB - timeA : timeA - timeB;
+    const timeA = new Date(a.createdAt || 0).getTime();
+    const timeB = new Date(b.createdAt || 0).getTime();
+    return timeB - timeA;
   }) : [];
-  
+
   const totalPages = Math.ceil(sortedSoap.length / pageSize);
   const startIndex = (currentPage - 1) * pageSize;
   const currentSoap = sortedSoap.slice(startIndex, startIndex + pageSize);
@@ -1624,7 +2060,7 @@ function DiagnosisView({ regid, visitId, medicalCase, soapRecords }: { regid: nu
       if (diagnosis.trim()) {
         await updateDiagnosis.mutateAsync({ regid, condition: diagnosis.trim() });
       }
-      if (complaint || medication || investigationFindings) {
+      if (complaint || medication || investigationFindings || diagnosis) {
         await saveSoap.mutateAsync({
           regid,
           visitId,
@@ -1634,9 +2070,8 @@ function DiagnosisView({ regid, visitId, medicalCase, soapRecords }: { regid: nu
           plan: medication
         });
       }
-      alert('Clinical records updated successfully.');
       setShowDrawer(false);
-      // Clear form
+      setEditingRecord(null);
       setComplaint('');
       setMedication('');
       setInvestigationFindings('');
@@ -1645,222 +2080,183 @@ function DiagnosisView({ regid, visitId, medicalCase, soapRecords }: { regid: nu
     }
   };
 
+  const handleEdit = (record: any) => {
+    setDiagnosis(record.assessment || '');
+    setComplaint(record.subjective || '');
+    setMedication(record.plan || '');
+    setInvestigationFindings(record.objective || '');
+    setEditingRecord(record);
+    setShowDrawer(true);
+  };
+
+  const handleAdd = () => {
+    setDiagnosis(medicalCase?.condition || '');
+    setComplaint('');
+    setMedication('');
+    setInvestigationFindings('');
+    setEditingRecord(null);
+    setShowDrawer(true);
+  };
+
+  const handleDelete = async (id: number) => {
+    if (confirm('Delete this clinical assessment?')) {
+      try {
+        await deleteRecord.mutateAsync({ type: 'soap', id });
+      } catch (err) {
+        console.error('Failed to delete assessment:', err);
+      }
+    }
+  };
+
   return (
-    <div className="mc-diagnosis-workspace animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      
-      {/* ─── Assessment History Header & Controls ─── */}
-      <div className="appt-header" style={{ maxWidth: '1000px', margin: '0 auto', width: '100%' }}>
-        <div>
-          <h2 className="appt-header-title">Clinical Assessments</h2>
-          <p className="appt-header-sub">Previous diagnoses and clinical notes for this patient</p>
-        </div>
-        
-        <div className="appt-header-actions">
-          <div className="appt-segmented-toggle">
-            <button 
-              className={`appt-segmented-btn ${viewMode === 'list' ? 'active' : ''}`}
-              onClick={() => setViewMode('list')} 
-            >
-              <LayoutList size={16} /> <span className="hide-mobile">List</span>
-            </button>
-            <button 
-              className={`appt-segmented-btn ${viewMode === 'grid' ? 'active' : ''}`}
-              onClick={() => setViewMode('grid')} 
-            >
-              <LayoutGrid size={16} /> <span className="hide-mobile">Grid</span>
-            </button>
-          </div>
-
-          <button 
-            className="appt-btn" 
-            onClick={() => setSortOrder(s => s === 'desc' ? 'asc' : 'desc')}
-            title={`Sort by Date (${sortOrder === 'desc' ? 'Newest' : 'Oldest'})`}
-          >
-            <TrendingUp size={16} style={{ transform: sortOrder === 'asc' ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
-          </button>
-
-          <button 
-            className="appt-btn appt-btn-primary" 
-            onClick={() => setShowDrawer(true)}
-          >
-            <Plus size={16} /> <span className="hide-mobile">Add Diagnosis</span>
-            <span className="show-mobile">Add</span>
+    <div className="mc-diagnosis-workspace animate-fade-in">
+      {/* ─── Header (matching Vitals layout) ─── */}
+      <div className="mc-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+        <div className="mc-section-header" style={{ margin: 0 }}>Clinical Assessments</div>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button onClick={handleAdd} className="btn-primary" style={{ padding: '8px 16px' }}>
+            <Plus size={16} style={{ marginRight: '6px' }} /> Add Diagnosis
           </button>
         </div>
       </div>
 
-      {/* ─── History Content (Table or Grid) ─── */}
-      <div style={{ maxWidth: '1000px', margin: '0 auto', width: '100%' }}>
-        {!soapRecords || soapRecords.length === 0 ? (
-          <div className="pp-card" style={{ padding: '48px', textAlign: 'center', background: 'var(--pp-warm-1)' }}>
-            <History size={32} style={{ color: 'var(--pp-text-3)', marginBottom: '12px', opacity: 0.5 }} />
-            <p style={{ color: 'var(--pp-text-3)', fontWeight: 500 }}>No clinical assessments recorded yet.</p>
-            <button className="pp-link" style={{ marginTop: '12px' }} onClick={() => setShowDrawer(true)}>Create the first diagnosis</button>
+      {/* ─── Assessment History Table (default view) ─── */}
+      {!soapRecords ? (
+        <TableSkeleton rows={5} cols={5} />
+      ) : soapRecords.length === 0 ? (
+        <div className="pp-card" style={{ padding: '80px 48px', textAlign: 'center', background: 'white', border: '1px dashed #e2e8f0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ padding: '20px', background: '#f8fafc', borderRadius: '50%', marginBottom: '20px' }}>
+            <Sparkles size={48} style={{ color: '#94a3b8' }} />
           </div>
-        ) : (
-          <>
-            {viewMode === 'list' ? (
-              <div className="appt-card" style={{ padding: 0 }}>
-                <div className="pp-table-scroll">
-                  <table className="pp-table">
-                    <thead>
-                      <tr>
-                        <th style={{ width: '120px' }}>Date</th>
-                        <th style={{ width: '250px' }}>Diagnosis & Findings</th>
-                        <th>Complaints (S)</th>
-                        <th>Plan (P)</th>
-                        <th style={{ width: '80px', textAlign: 'center' }}>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {currentSoap.map((record) => (
-                        <tr key={record.id} className="hover-row">
-                          <td className="appt-cell-mono">
-                            {(record.createdAt || record.dateval) ? new Date(record.createdAt || record.dateval).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
-                          </td>
-                          <td>
-                            <div className="appt-cell-name" style={{ color: 'var(--pp-blue)', marginBottom: '4px' }}>{record.assessment || 'No Diagnosis'}</div>
-                            {record.objective && <div className="appt-cell-phone">Obj: {record.objective}</div>}
-                          </td>
-                          <td>
-                            <div style={{ fontSize: '0.85rem', color: 'var(--pp-ink)', lineHeight: 1.5 }}>
-                              {record.subjective || '—'}
-                            </div>
-                          </td>
-                          <td>
-                            <div style={{ fontSize: '0.85rem', color: 'var(--pp-text-2)' }}>{record.plan || '—'}</div>
-                          </td>
-                          <td style={{ textAlign: 'center' }}>
-                            <button className="pp-icon-btn" style={{ color: 'var(--pp-blue)' }} onClick={() => {
-                              setDiagnosis(record.assessment || '');
-                              setComplaint(record.subjective || '');
-                              setMedication(record.plan || '');
-                              setInvestigationFindings(record.objective || '');
-                              setShowDrawer(true);
-                            }}>
-                              <Edit size={14} />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            ) : (
-              <div className="appt-card-grid">
-                {currentSoap.map((record) => (
-                  <div key={record.id} className="appt-card appt-grid-card animate-scale-in" style={{ position: 'relative' }}>
-                    <div style={{ position: 'absolute', top: '16px', right: '16px' }}>
-                      <button className="pp-icon-btn" onClick={() => {
-                        setDiagnosis(record.assessment || '');
-                        setComplaint(record.subjective || '');
-                        setMedication(record.plan || '');
-                        setInvestigationFindings(record.objective || '');
-                        setShowDrawer(true);
-                      }}>
-                        <Edit size={14} />
-                      </button>
-                    </div>
-                    <div className="appt-grid-card-status" style={{ width: 'fit-content', marginBottom: '12px' }}>
-                      {(record.createdAt || record.dateval) ? new Date(record.createdAt || record.dateval).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Pending'}
-                    </div>
-                    <div className="appt-grid-card-patient" style={{ color: 'var(--pp-blue)', marginBottom: '16px', lineHeight: 1.3 }}>
-                      {record.assessment || 'Diagnosis Not Specified'}
-                    </div>
-                    
-                    <div className="appt-grid-card-detail">
-                      {record.subjective && (
-                        <div>
-                          <div className="appt-section-label" style={{ marginBottom: '4px' }}>Subjective</div>
-                          <div style={{ fontSize: '0.82rem', color: 'var(--pp-ink)', lineHeight: 1.4 }}>{record.subjective}</div>
-                        </div>
-                      )}
-                      {record.plan && (
-                        <div>
-                          <div className="appt-section-label" style={{ marginBottom: '4px' }}>Plan</div>
-                          <div style={{ fontSize: '0.82rem', color: 'var(--pp-ink)', lineHeight: 1.4 }}>{record.plan}</div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div style={{ marginTop: '20px' }}>
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                pageSize={pageSize}
-                totalItems={sortedSoap.length}
-                onPageChange={setCurrentPage}
-                onPageSizeChange={setPageSize}
-              />
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* ─── Diagnosis Form Side Drawer ─── */}
-      {showDrawer && (
+          <h3 style={{ color: '#1e293b', fontWeight: 700, fontSize: '1.25rem', marginBottom: '8px' }}>No clinical assessments recorded yet</h3>
+          <p style={{ color: '#64748b', fontSize: '0.95rem', maxWidth: '400px', lineHeight: 1.6 }}>
+            Start recording clinical findings, symptoms, and treatment plans for this patient to track their progress.
+          </p>
+          <button className="pp-link" style={{ marginTop: '16px', fontWeight: 700 }} onClick={handleAdd}>Create the first diagnosis</button>
+        </div>
+      ) : (
         <>
-          <div className="appt-drawer-overlay" onClick={() => setShowDrawer(false)} style={{ zIndex: 10001 }} />
-          <div className="appt-drawer-panel animate-slide-right" style={{ zIndex: 10002 }}>
-            <div className="appt-drawer-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ background: 'var(--pp-blue-bg)', color: 'var(--pp-blue)', width: '36px', height: '36px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Sparkles size={18} />
-                </div>
-                <div>
-                  <h3 className="appt-drawer-title">Record Assessment</h3>
-                  <p className="appt-header-sub" style={{ margin: 0 }}>Add clinical findings & diagnosis</p>
-                </div>
+          <div className="pp-card pp-table-scroll" style={{ padding: 0, borderRadius: '12px' }}>
+            <table className="pp-table">
+              <thead style={{ position: 'sticky', top: 0, zIndex: 1, background: '#f4f3f1' }}>
+                <tr>
+                  <th style={{ width: '120px' }}>Date</th>
+                  <th style={{ width: '220px' }}>Diagnosis</th>
+                  <th>Complaints (S)</th>
+                  <th>Plan (P)</th>
+                  <th style={{ width: '100px', textAlign: 'center' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {currentSoap.map((record) => (
+                  <tr key={record.id} className="hover-row">
+                    <td className="appt-cell-mono">
+                      {(record.createdAt || record.created_at || record.dateval || record.date_val)
+                        ? new Date(record.createdAt || record.created_at || record.dateval || record.date_val).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+                        : '—'}
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 700, color: 'var(--pp-blue)', fontSize: '0.85rem', marginBottom: '2px' }}>{record.assessment || 'No Diagnosis'}</div>
+                      {record.objective && <div style={{ fontSize: '0.75rem', color: 'var(--pp-text-3)' }}>Obj: {record.objective}</div>}
+                    </td>
+                    <td>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--pp-ink)', lineHeight: 1.5 }}>
+                        {record.subjective || '—'}
+                      </div>
+                    </td>
+                    <td>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--pp-text-2)' }}>{record.plan || '—'}</div>
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      <div style={{ display: 'flex', justifyContent: 'center', gap: '4px' }}>
+                        <button
+                          className="btn-ghost"
+                          style={{ color: 'var(--pp-blue)', padding: '4px 8px' }}
+                          title="Edit"
+                          onClick={() => handleEdit(record)}
+                        >
+                          <Edit size={14} />
+                        </button>
+                        <button
+                          className="btn-ghost"
+                          style={{ color: '#dc2626', padding: '4px 8px' }}
+                          title="Delete"
+                          onClick={() => handleDelete(record.id)}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            pageSize={pageSize}
+            totalItems={sortedSoap.length}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={setPageSize}
+          />
+        </>
+      )}
+
+      {/* ─── Diagnosis Form Drawer (right-side popup) ─── */}
+      {showDrawer && ReactDOM.createPortal(
+        <>
+          <div className="mc-drawer-backdrop" onClick={() => { setShowDrawer(false); setEditingRecord(null); }} />
+          <div className="mc-drawer animate-slide-in-right" style={{ maxWidth: '520px' }}>
+            <header className="mc-drawer-header" style={{ background: 'var(--pp-blue)', color: 'white' }}>
+              <div className="mc-drawer-header-title">
+                <Sparkles size={18} /> {editingRecord ? 'Edit Assessment' : 'New Assessment'}
               </div>
-              <button className="appt-drawer-close" onClick={() => setShowDrawer(false)}>
-                <X size={20} />
+              <button className="mc-drawer-close" onClick={() => { setShowDrawer(false); setEditingRecord(null); }} style={{ color: 'white', opacity: 0.8 }}>
+                <X size={16} />
               </button>
-            </div>
-            
-            <div className="appt-drawer-body" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label className="appt-section-label">Main Diagnosis</label>
-                <textarea 
-                  className="pp-textarea" 
-                  value={diagnosis} 
+            </header>
+
+            <div style={{ padding: '24px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Main Diagnosis</label>
+                <textarea
+                  className="pp-textarea"
+                  value={diagnosis}
                   onChange={e => setDiagnosis(e.target.value)}
                   placeholder="Final clinical assessment..."
                   style={{ minHeight: '60px', fontSize: '1rem', fontWeight: 700 }}
                 />
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label className="appt-section-label">Subjective (Complaints)</label>
-                <textarea 
-                  className="pp-textarea" 
-                  value={complaint} 
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Subjective (Complaints)</label>
+                <textarea
+                  className="pp-textarea"
+                  value={complaint}
                   onChange={e => setComplaint(e.target.value)}
                   placeholder="Patient symptoms & intensity..."
                   style={{ minHeight: '100px' }}
                 />
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label className="appt-section-label">Treatment Plan</label>
-                <textarea 
-                  className="pp-textarea" 
-                  value={medication} 
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Treatment Plan</label>
+                <textarea
+                  className="pp-textarea"
+                  value={medication}
                   onChange={e => setMedication(e.target.value)}
                   placeholder="Medications or next steps..."
                   style={{ minHeight: '80px' }}
                 />
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label className="appt-section-label">Objective Findings</label>
-                <textarea 
-                  className="pp-textarea" 
-                  value={investigationFindings} 
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Objective Findings</label>
+                <textarea
+                  className="pp-textarea"
+                  value={investigationFindings}
                   onChange={e => setInvestigationFindings(e.target.value)}
                   placeholder="Physical exam or lab summaries..."
                   style={{ minHeight: '80px' }}
@@ -1868,26 +2264,25 @@ function DiagnosisView({ regid, visitId, medicalCase, soapRecords }: { regid: nu
               </div>
             </div>
 
-            <div className="appt-drawer-footer">
-              <button 
-                className="appt-btn" 
-                style={{ flex: 1 }}
-                onClick={() => setShowDrawer(false)}
-              >
-                Cancel
-              </button>
-              <button 
-                className="appt-btn appt-btn-primary" 
-                style={{ flex: 2 }}
+            <footer style={{ padding: '16px 24px', background: 'var(--pp-warm-1)', borderTop: '1px solid var(--pp-warm-3)', display: 'flex', gap: '10px' }}>
+              <button type="button" className="btn-secondary" style={{ flex: 1 }} onClick={() => { setShowDrawer(false); setEditingRecord(null); }}>Cancel</button>
+              <button
                 onClick={handleUpdate}
+                className="btn-primary"
+                style={{ flex: 2, padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
                 disabled={updateDiagnosis.isPending}
               >
-                {updateDiagnosis.isPending ? <Loader2 size={18} className="animate-spin" /> : 'Save Clinical Assessment'}
+                {updateDiagnosis.isPending
+                  ? <Loader2 size={16} className="animate-spin" />
+                  : <Save size={16} />
+                } {editingRecord ? 'Update Assessment' : 'Save Assessment'}
               </button>
-            </div>
+            </footer>
           </div>
-        </>
+        </>,
+        document.body
       )}
     </div>
   );
 }
+

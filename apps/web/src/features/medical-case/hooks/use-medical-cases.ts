@@ -134,6 +134,13 @@ export function useManageClinicalRecords() {
     },
   });
 
+  const deleteReminder = useMutation({
+    mutationFn: (id: number) => api.delete(`/medical-cases/reminders/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['medical-case', 'full'] });
+    },
+  });
+
   const saveExamination = useMutation({
     mutationFn: (data: any) => api.post('/medical-cases/records/examination', data),
     onSuccess: (_, variables) => {
@@ -163,10 +170,26 @@ export function useManageClinicalRecords() {
   });
 
   const saveImage = useMutation({
-    mutationFn: (data: FormData) => api.post('/medical-cases/records/images', data),
+    mutationFn: (data: FormData) => api.post('/medical-cases/records/images', data, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
     onSuccess: (_, variables) => {
       const regid = (variables as any).get('regid');
       queryClient.invalidateQueries({ queryKey: ['medical-case', 'full', Number(regid)] });
+    },
+  });
+
+  const deleteImage = useMutation({
+    mutationFn: (id: number) => api.delete(`/medical-cases/records/images/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['medical-case', 'full'] });
+    },
+  });
+  
+  const updateImage = useMutation({
+    mutationFn: ({ id, ...data }: any) => api.put(`/medical-cases/records/images/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['medical-case', 'full'] });
     },
   });
 
@@ -188,8 +211,11 @@ export function useManageClinicalRecords() {
     saveExamination,
     deleteExamination,
     saveImage,
+    updateImage,
+    deleteImage,
     saveVaccine,
     saveReminder,
+    deleteReminder,
     saveAdditionalCharge,
     deleteAdditionalCharge,
     deleteRecord,

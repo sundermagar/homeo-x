@@ -92,7 +92,7 @@ export default function PatientDetailPage() {
         {/* Contact Info */}
         <div className="pp-card">
           <h3 className="pat-chart-title">
-            <Phone size={16} className="pat-chart-title-icon"/> Contact Information
+            <Phone size={16} className="pat-chart-title-icon" /> Contact Information
           </h3>
           <InfoRow label="Mobile" value={patient.phone} />
           <InfoRow label="Mobile 2" value={patient.mobile1} />
@@ -104,7 +104,7 @@ export default function PatientDetailPage() {
         {/* Address Info */}
         <div className="pp-card">
           <h3 className="pat-chart-title">
-            <MapPin size={16} className="pat-chart-title-icon"/> Address & Personal
+            <MapPin size={16} className="pat-chart-title-icon" /> Address & Personal
           </h3>
           <InfoRow label="Address" value={[patient.address, patient.road, patient.area].filter(Boolean).join(', ')} />
           <InfoRow label="City" value={patient.city} />
@@ -122,14 +122,14 @@ export default function PatientDetailPage() {
       <div className="pp-card" style={{ padding: 0, overflow: 'hidden' }}>
         <div className="pat-section-header">
           <h3 className="pat-section-title">
-            <Users size={16} className="pat-section-title-icon"/> Family Group
+            <Users size={16} className="pat-section-title-icon" /> Family Group
           </h3>
           <button
             onClick={() => setShowFamilyForm(!showFamilyForm)}
             className={`btn-secondary${showFamilyForm ? ' pat-btn-danger' : ''}`}
             style={{ padding: '6px 12px', fontSize: '12px' }}
           >
-            {showFamilyForm ? <><X size={14}/> Cancel</> : <><UserPlus size={14}/> Link Member</>}
+            {showFamilyForm ? <><X size={14} /> Cancel</> : <><UserPlus size={14} /> Link Member</>}
           </button>
         </div>
 
@@ -166,7 +166,7 @@ export default function PatientDetailPage() {
 
                 {familyForm.memberRegid && (
                   <div className="pat-lookup-selected">
-                    <span className="pat-lookup-check"><CheckCircle size={12}/> Selected: {searchQuery}</span>
+                    <span className="pat-lookup-check"><CheckCircle size={12} /> Selected: {searchQuery}</span>
                     <button type="button" onClick={() => { setFamilyForm(f => ({ ...f, memberRegid: '' })); setSearchQuery(''); }} style={{ border: 'none', background: 'transparent', color: 'var(--pp-danger-fg)', fontSize: '11px', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}>Change</button>
                   </div>
                 )}
@@ -250,7 +250,7 @@ function ClinicalTrends({ regid }: { regid: number }) {
     .map((v: any) => {
       const dateObj = new Date(v.recordedAt || v.recorded_at);
       const isInvalid = isNaN(dateObj.getTime());
-      
+
       return {
         date: isInvalid ? 'N/A' : dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
         weight: v.weightKg || v.weight_kg || 0,
@@ -265,7 +265,7 @@ function ClinicalTrends({ regid }: { regid: number }) {
     <div className="pp-detail-grid" style={{ marginBottom: '24px', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))' }}>
       <div className="pp-card">
         <h3 className="pat-chart-title">
-          <TrendingUp size={16} className="pat-chart-title-icon"/> Weight Trend (Kg)
+          <TrendingUp size={16} className="pat-chart-title-icon" /> Weight Trend (Kg)
         </h3>
         <div className="pat-chart-wrap">
           <ResponsiveContainer>
@@ -285,7 +285,7 @@ function ClinicalTrends({ regid }: { regid: number }) {
 
       <div className="pp-card">
         <h3 className="pat-chart-title">
-          <Activity size={16} className="pat-chart-title-icon"/> Blood Pressure Trend
+          <Activity size={16} className="pat-chart-title-icon" /> Blood Pressure Trend
         </h3>
         <div className="pat-chart-wrap">
           <ResponsiveContainer>

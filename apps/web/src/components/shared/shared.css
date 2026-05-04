@@ -284,33 +284,4 @@
   }
 }
 
-/* ── Skeleton Loading ── */
-@keyframes shimmer {
-  0% { background-position: -1000px 0; }
-  100% { background-position: 1000px 0; }
-}
-
-.skeleton-box {
-  animation: shimmer 2s infinite linear;
-  background: linear-gradient(to right, var(--pp-warm-2) 4%, var(--pp-warm-3) 25%, var(--pp-warm-2) 36%);
-  background-size: 1000px 100%;
-  border-radius: 4px;
-}
-
-.skeleton-circle {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-}
-
-.skeleton-text {
-  height: 12px;
-  margin-bottom: 8px;
-  border-radius: 4px;
-}
-
-.skeleton-text.title {
-  height: 24px;
-  width: 40%;
-  margin-bottom: 16px;
-}
+/* Skeleton styles moved to global index.css */

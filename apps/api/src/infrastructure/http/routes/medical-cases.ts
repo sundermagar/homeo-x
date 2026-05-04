@@ -7,6 +7,7 @@ import { InventoryRepositoryPg } from '../../repositories/inventory.repository.p
 import { BillingRepositoryPg } from '../../repositories/billing.repository.pg';
 import { AppointmentRepositoryPG } from '../../repositories/appointment.repository.pg';
 import { authMiddleware } from '../middleware/auth';
+import { SettingsRepositoryPg } from '../../repositories/settings.repository.pg';
 import { CreateMedicalCaseUseCase } from '../../../domains/medical-case/use-cases/create-medical-case.use-case';
 import { GetFullMedicalCaseUseCase } from '../../../domains/medical-case/use-cases/get-full-medical-case.use-case';
 import { FinalizeConsultationUseCase } from '../../../domains/medical-case/use-cases/finalize-consultation.use-case';
@@ -40,6 +41,7 @@ const getRepo = (req: any) => new MedicalCaseRepositoryPg(req.tenantDb);
 const getInvRepo = (req: any) => new InventoryRepositoryPg(req.tenantDb);
 const getBillRepo = (req: any) => new BillingRepositoryPg(req.tenantDb);
 const getApptRepo = (req: any) => new AppointmentRepositoryPG(req.tenantDb);
+const getSettingsRepo = (req: any) => new SettingsRepositoryPg(req.tenantDb);
 
 // ─── Case Management ───
 
@@ -139,6 +141,12 @@ router.post('/reminders', asyncHandler(async (req, res) => {
   sendSuccess(res, null, 'Reminder saved');
 }));
 
+router.delete('/reminders/:id', asyncHandler(async (req, res) => {
+  const useCase = new ManageClinicalRecordsUseCase(getRepo(req));
+  await useCase.deleteReminder(Number(req.params.id));
+  sendSuccess(res, null, 'Reminder deleted');
+}));
+
 router.post('/soap', asyncHandler(async (req, res) => {
   const useCase = new ManageSoapNotesUseCase(getRepo(req));
   await useCase.execute(req.body);
@@ -175,6 +183,12 @@ router.post('/records/investigations', validate(saveInvestigationSchema), asyncH
   const useCase = new ManageClinicalRecordsUseCase(getRepo(req));
   await useCase.saveInvestigation(req.body);
   sendSuccess(res, null, 'Investigation recorded');
+}));
+
+router.delete('/records/soap/:id', asyncHandler(async (req, res) => {
+  const useCase = new ManageClinicalRecordsUseCase(getRepo(req));
+  await useCase.deleteSoapNote(Number(req.params.id));
+  sendSuccess(res, null, 'Assessment deleted');
 }));
 
 router.post('/records/homeo-details', asyncHandler(async (req, res) => {
@@ -233,11 +247,11 @@ import { upload } from '../middleware/upload';
 // ─── Continued route wrappers ───
 router.post('/records/images', upload.array('files', 5), asyncHandler(async (req, res) => {
   const useCase = new ManageClinicalRecordsUseCase(getRepo(req));
-  
+
   // Basic implementation: grab the first file's path
   const fileArray = req.files as Express.Multer.File[];
   let picturePath = req.body.picture;
-  
+
   // If Multer processed files, map the local path to the DTO
   if (fileArray && fileArray.length > 0 && fileArray[0]) {
     // Relative path served by the static assets handler
@@ -260,22 +274,32 @@ router.delete('/records/images/:id', asyncHandler(async (req, res) => {
   sendSuccess(res, null, 'Image deleted');
 }));
 
+router.put('/records/images/:id', asyncHandler(async (req, res) => {
+  const useCase = new ManageClinicalRecordsUseCase(getRepo(req));
+  const result = await useCase.saveImage({
+    id: Number(req.params.id),
+    ...req.body
+  });
+  if (!result.success) throw new Error(result.error);
+  sendSuccess(res, result.data, 'Image updated');
+}));
+
 // ─── Diagnosis Update ───
 
 router.put('/:regid/diagnosis', asyncHandler(async (req, res) => {
   const regid = Number(req.params.regid);
   const { condition } = req.body;
   const repo = getRepo(req);
-  
+
   // Find the active medical case for this patient
   const cases = await repo.findByRegId(regid);
   const activeCase = cases.find((c: any) => c.status === 'Active') || cases[0];
-  
+
   if (!activeCase) {
     res.status(404).json({ success: false, error: 'No medical case found for this patient' });
     return;
   }
-  
+
   await repo.update(activeCase.id, { condition });
   sendSuccess(res, { condition }, 'Diagnosis updated successfully');
 }));
@@ -365,8 +389,18 @@ router.delete('/remedy-chart/:id', asyncHandler(async (req, res) => {
 router.get('/remedy-chart/pdf/:regid', asyncHandler(async (req, res) => {
   const regid = Number(req.params.regid);
   const uc = getRemedyChart(req);
-  const prescriptions = await uc.getPrescriptionsForPatient(regid);
-  
+  const repo = getRepo(req);
+  const settingsRepo = getSettingsRepo(req);
+
+  const [prescriptions, caseData, settings] = await Promise.all([
+    uc.getPrescriptionsForPatient(regid),
+    repo.getUnifiedCaseData(regid),
+    settingsRepo.listPdfSettings()
+  ]);
+
+  const defaultSetting = settings.find((s: any) => s.isDefault) || settings[0];
+  const patient = caseData?.medicalCase;
+
   const { PdfkitServiceAdapter } = await import('../../pdf/pdfkit.service.js');
   const pdfService = new PdfkitServiceAdapter();
 
@@ -374,16 +408,21 @@ router.get('/remedy-chart/pdf/:regid', asyncHandler(async (req, res) => {
   res.setHeader('Content-Disposition', `inline; filename="prescription-${regid}.pdf"`);
 
   await pdfService.generatePrescription(res, {
-    clinicName: (req as any).tenantDb?.schemaName || 'Homeo-X Clinic',
-    patientName: `Patient ${regid}`,
+    clinicName: defaultSetting?.templateName || (req as any).tenantDb?.schemaName || 'Homeo-X Clinic',
+    clinicAddress: patient?.city || '', // Placeholder or from settings
+    clinicPhone: patient?.phone || '',   // Placeholder or from settings
+    patientName: patient?.patientName || `Patient ${regid}`,
+    patientAge: (patient as any)?.age,
+    patientGender: patient?.gender || '',
     regid,
     potencies: prescriptions.map((p: any) => ({
-      medicine: p.remedy_name,
-      potency: p.potency_name,
-      frequency: p.frequency_name,
+      medicine: p.remedy_name || p.remedyName,
+      potency: p.potency_name || p.potencyName,
+      frequency: p.frequency_name || p.frequencyTitle,
       days: p.days,
-      createdAt: p.created_at
-    }))
+      createdAt: p.created_at || p.createdAt || p.dateval
+    })),
+    settings: defaultSetting
   });
 }));
 
@@ -392,7 +431,7 @@ router.get('/pdf/summary/:regid', asyncHandler(async (req, res) => {
   const regid = Number(req.params.regid);
   const useCase = new GetFullMedicalCaseUseCase(getRepo(req));
   const result = await useCase.execute(regid);
-  
+
   if (!result.success) {
     res.status(404).json({ success: false, error: 'Case not found' });
     return;
@@ -406,8 +445,12 @@ router.get('/pdf/summary/:regid', asyncHandler(async (req, res) => {
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
   const data = result.data;
+  const settingsRepo = getSettingsRepo(req);
+  const settings = await settingsRepo.listPdfSettings();
+  const defaultSetting = settings.find((s: any) => s.isDefault) || settings[0];
+
   await pdfService.generateClinicalSummary(res, {
-    clinicName: (req as any).tenantDb?.schemaName || 'Homeo-X Clinic',
+    clinicName: defaultSetting?.templateName || (req as any).tenantDb?.schemaName || 'Homeo-X Clinic',
     patient: {
       regid: data.medicalCase.regid,
       name: data.medicalCase.patientName || 'Patient',
@@ -418,7 +461,12 @@ router.get('/pdf/summary/:regid', asyncHandler(async (req, res) => {
     vitals: data.vitals || [],
     homeo: data.homeo,
     notes: data.notes || [],
-    prescriptions: data.prescriptions || [],
+    prescriptions: (data.prescriptions || []).map((p: any) => ({
+      medicine: p.medicineName || p.remedyName || p.remedy_name,
+      potency: p.potencyName || p.potency,
+      frequency: p.frequencyTitle || p.frequency,
+      days: p.days
+    })),
     investigations: data.investigations || []
   });
 }));
