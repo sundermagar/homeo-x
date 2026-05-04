@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Plus, Search, Edit2, Trash2, X, GraduationCap, Building2, Stethoscope, Mail, Phone, MapPin, Users, UserCheck, LayoutGrid, Award, Landmark, Upload, Image as ImageIcon, FileText } from 'lucide-react';
 import { NumericInput } from '@/shared/components/NumericInput';
 import { useStaffList, useDeleteStaff, useCreateStaff, useUpdateStaff, useStaffMember } from '@/features/staff/hooks/use-staff';
+import { useAuthStore } from '@/shared/stores/auth-store';
 import type { StaffSummary, StaffMember } from '@mmc/types';
 import type { CreateStaffInput, UpdateStaffInput } from '@mmc/validation';
 import { createStaffSchema, updateStaffSchema } from '@mmc/validation';
@@ -89,7 +90,7 @@ function staffMemberToForm(staff: StaffMember): CreateStaffInput {
     consultationFee: Number(staff.consultationFee) || 0,
     permanentAddress: staff.permanentAddress || '',
     password: '',
-    clinicId: staff.clinicId,
+    clinicId: (staff.clinicId && staff.clinicId !== 1) ? staff.clinicId : null,
     registrationCertificate: staff.registrationCertificate || '',
     aadharCard: staff.aadharCard || '',
     panCard: staff.panCard || '',
@@ -260,14 +261,24 @@ function StaffModal({
   const createMutation = useCreateStaff();
   const updateMutation = useUpdateStaff();
   const qc = useQueryClient();
+  const { user } = useAuthStore();
 
   useEffect(() => {
     if (mode === 'edit' && staff) {
-      setForm(staffMemberToForm(staff));
+      const editForm = staffMemberToForm(staff);
+      // If clinicId is missing or was default (1), use current admin's context
+      if (!editForm.clinicId && user?.contextId) {
+        editForm.clinicId = user.contextId;
+      }
+      setForm(editForm);
     } else if (mode === 'create') {
-      setForm(getDefaultStaffForm());
+      const defaultForm = getDefaultStaffForm();
+      if (user?.contextId) {
+        defaultForm.clinicId = user.contextId;
+      }
+      setForm(defaultForm);
     }
-  }, [mode, staff]);
+  }, [mode, staff, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

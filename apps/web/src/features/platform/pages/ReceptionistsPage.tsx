@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Plus, Search, Edit2, Trash2, X, ClipboardList, Mail, Phone, MapPin, Users, UserCheck, Calendar, Briefcase, Info, BadgeIndianRupee, RefreshCw, Upload, FileText } from 'lucide-react';
 import { NumericInput } from '@/shared/components/NumericInput';
 import { useStaffList, useDeleteStaff, useCreateStaff, useUpdateStaff, useStaffMember } from '@/features/staff/hooks/use-staff';
+import { useAuthStore } from '@/shared/stores/auth-store';
 import type { StaffSummary, StaffMember } from '@mmc/types';
 import type { CreateStaffInput, UpdateStaffInput } from '@mmc/validation';
 import { createStaffSchema, updateStaffSchema } from '@mmc/validation';
@@ -190,6 +191,7 @@ function staffMemberToForm(staff: StaffMember): CreateStaffInput {
     gender,
     mobile2: staff.mobile2 || '',
     dateBirth: staff.dateBirth ?? '',
+    clinicId: (staff.clinicId && staff.clinicId !== 1) ? staff.clinicId : null,
     consultationFee: Number(staff.consultationFee) || 0,
     password: '', // Keep blank on edit
   } as CreateStaffInput;
@@ -213,14 +215,23 @@ function StaffModal({
 
   const createMutation = useCreateStaff();
   const updateMutation = useUpdateStaff();
+  const { user } = useAuthStore();
 
   useEffect(() => {
     if (mode === 'edit' && staff) {
-      setForm(staffMemberToForm(staff));
+      const editForm = staffMemberToForm(staff);
+      if (!editForm.clinicId && user?.contextId) {
+        editForm.clinicId = user.contextId;
+      }
+      setForm(editForm);
     } else if (mode === 'create') {
-      setForm(getDefaultStaffForm());
+      const defaultForm = getDefaultStaffForm();
+      if (user?.contextId) {
+        defaultForm.clinicId = user.contextId;
+      }
+      setForm(defaultForm);
     }
-  }, [mode, staff]);
+  }, [mode, staff, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

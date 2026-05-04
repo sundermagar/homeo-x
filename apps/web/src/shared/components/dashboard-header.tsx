@@ -56,7 +56,7 @@ export function DashboardHeader({ onOpenPalette }: DashboardHeaderProps) {
   const formattedDate = useFormattedDate();
 
   const pageTitle = getPageTitle(location.pathname);
-  const clinicName = user?.clinicName || 'Kreed.health Clinic';
+  const clinicName = user?.clinicName || 'Kreed.health';
 
   const rawRole = ((user as any)?.type || (user as any)?.role || (user as any)?.roleName || '').toLowerCase();
   const isDoctor = rawRole === 'doctor' || rawRole === 'medical practitioner' || ((user as any)?.name || '').toLowerCase().startsWith('dr');

@@ -450,7 +450,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             <div className="sidebar-logo">
               <Infinity size={20} strokeWidth={2.5} />
             </div>
-            {!sidebarCollapsed && <span className="sidebar-brand">Kreed.health</span>}
+            {!sidebarCollapsed && <span className="sidebar-brand">{user?.clinicName || 'Kreed.health'}</span>}
           </div>
           <div className="sidebar-header-actions">
             <button className="collapse-toggle-btn" onClick={toggleSidebarCollapse}>

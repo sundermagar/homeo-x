@@ -7,6 +7,7 @@ import { CommandPalette } from '../components/command-palette';
 import { ScrollToTop } from '../components/scroll-to-top';
 import { useMobile } from '../hooks/use-mobile';
 import { useCallback, useEffect } from 'react';
+import { useAuthStore } from '../stores/auth-store';
 
 export function AppLayout() {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
@@ -14,6 +15,7 @@ export function AppLayout() {
   const isMobile = useMobile();
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuthStore();
 
   // ── Global ⌘K / Ctrl+K shortcut ──
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -46,7 +48,7 @@ export function AppLayout() {
               <div className="sidebar-logo" style={{ width: 28, height: 28 }}>
                 <Infinity size={18} strokeWidth={2.5} />
               </div>
-              <span className="sidebar-brand" style={{ fontSize: '1rem' }}>Kreed.health</span>
+              <span className="sidebar-brand" style={{ fontSize: '1rem' }}>{user?.clinicName || 'Kreed.health'}</span>
             </div>
           </div>
         </header>

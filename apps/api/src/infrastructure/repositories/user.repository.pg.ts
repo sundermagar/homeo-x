@@ -52,8 +52,10 @@ export class UserRepositoryPG implements UserRepository {
 
   async findById(id: number): Promise<User | null> {
     const rows = await this.db.execute(
-      sql`SELECT id, email, name, type, context_id, mobile, created_at, updated_at
-          FROM users WHERE id = ${id} AND deleted_at IS NULL LIMIT 1`
+      sql`SELECT u.id, u.email, u.name, u.type, u.context_id, u.mobile, u.created_at, u.updated_at, o.name as clinic_name
+          FROM users u 
+          LEFT JOIN public.organizations o ON o.id = u.context_id 
+          WHERE u.id = ${id} AND u.deleted_at IS NULL LIMIT 1`
     );
     const row = (rows as any[])[0];
     return row ? this.rowToUser(row) : null;

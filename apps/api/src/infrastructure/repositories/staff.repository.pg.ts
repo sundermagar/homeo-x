@@ -120,9 +120,10 @@ export class StaffRepositoryPg implements StaffRepository {
 
     try {
       const rows = await this.db.execute(sql`
-          SELECT ${colFragment}
-          FROM ${sql.identifier(table)}
-          WHERE id = ${id} AND (deleted_at IS NULL OR deleted_at::text = '')
+          SELECT s.*, u.context_id as user_context_id
+          FROM ${sql.identifier(table)} s
+          LEFT JOIN users u ON u.id = s.id
+          WHERE s.id = ${id} AND (s.deleted_at IS NULL OR s.deleted_at::text = '')
           LIMIT 1
         `);
 
@@ -174,6 +175,7 @@ export class StaffRepositoryPg implements StaffRepository {
     // This ensures consistency across the platform.
     // context_id is set to clinicId so login can resolve the correct tenant
     const contextId = (data as any).clinicId || 1;
+    logger.info(`StaffRepository: Mirroring to users table with contextId=${contextId} for ${data.email}`);
     const userMirrorResult = await this.db.execute(sql`
       INSERT INTO users (
         name, email, password, type, context_id,
@@ -320,6 +322,10 @@ export class StaffRepositoryPg implements StaffRepository {
       sql`email = ${data.email ?? existing.email}`,
       sql`updated_at = NOW()`
     ];
+
+    if ((data as any).clinicId) {
+      userUpdates.push(sql`context_id = ${(data as any).clinicId}`);
+    }
     if (data.password) {
       const hashed = await bcrypt.hash(data.password, 10);
       userUpdates.push(sql`password = ${hashed}`);
@@ -403,7 +409,7 @@ export class StaffRepositoryPg implements StaffRepository {
       registrationId: row.registrationId ?? row.registrationid ?? null,
       consultationFee: row.consultation_fee ?? null,
       permanentAddress: row.permanentaddress ?? null,
-      clinicId: row.clinic_id ?? null,
+      clinicId: row.clinic_id ?? row.user_context_id ?? null,
       aadharnumber: row.aadharnumber ?? null,
       pannumber: row.pannumber ?? null,
       aadharCard: row.aadhar_card ?? null,
