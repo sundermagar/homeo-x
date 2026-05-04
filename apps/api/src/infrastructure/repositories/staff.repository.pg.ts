@@ -5,6 +5,9 @@ import type { StaffMember, StaffSummary, StaffCategory } from '@mmc/types';
 import type { StaffRepository } from '../../domains/staff/ports/staff.repository';
 import type { CreateStaffInput, UpdateStaffInput } from '@mmc/validation';
 import { Role } from '@mmc/types';
+import { createLogger } from '../../shared/logger';
+
+const logger = createLogger('StaffRepository');
 
 /**
  * PostgreSQL adapter for StaffRepository port.

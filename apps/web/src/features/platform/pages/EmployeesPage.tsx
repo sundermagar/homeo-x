@@ -220,7 +220,6 @@ function staffMemberToForm(staff: StaffMember): CreateStaffInput {
     permanentAddress: staff.permanentAddress || '',
     password: '',
     clinicId: (staff.clinicId && staff.clinicId !== 1) ? staff.clinicId : null,
-    consultationFee: Number(staff.consultationFee) || 0,
     aadharnumber: staff.aadharnumber || '',
     pannumber: staff.pannumber || '',
     joiningdate: staff.joiningdate || '',
