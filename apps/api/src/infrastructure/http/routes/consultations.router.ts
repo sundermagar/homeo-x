@@ -201,6 +201,26 @@ consultationsRouter.post('/complete', async (req: Request, res: Response, next: 
             RETURNING *
           `)) as any[];
           if (Array.isArray(result) && result[0]) insertedItems.push(result[0]);
+
+          // Also insert into legacy case_potencies for the Patient Detail page (Remedy Chart)
+          const dateNow = new Date().toISOString().split('T')[0]!;
+          const randId = `${dateNow.replace(/-/g, '')}${regid}`;
+          const daysMatch = String(duration || '0').match(/(\d+)/);
+          const days = daysMatch ? daysMatch[1] : '0';
+
+          await tx.execute(sql`
+            INSERT INTO "case_potencies" (
+              "rand_id", "regid", 
+              "rxremedy", "rxpotency", "rxfrequency", "rxdays",
+              "rxprescription",
+              "dateval", "todate", "sdate", "created_at", "updated_at"
+            ) VALUES (
+              ${randId}, ${regid},
+              ${remedyName}, ${potency}, ${frequency}, ${days},
+              ${instructions},
+              ${dateNow}, ${dateNow}, ${dateNow}, NOW(), NOW()
+            )
+          `);
         }
 
         savedPrescription = {
@@ -213,7 +233,27 @@ consultationsRouter.post('/complete', async (req: Request, res: Response, next: 
         };
       }
 
-      // 3. Transition the appointment to Completed
+      // 3. Auto-save advice & follow-up to Clinical History (case_notes table)
+      // This ensures it appears in the "Clinical History" timeline on the Patient Detail page.
+      if (appt.patientId && (soap?.advice || soap?.followUp)) {
+        let noteContent = soap.advice || '';
+        if (soap.followUp) {
+          if (noteContent) noteContent += '\n\n';
+          noteContent += `Next Follow-up: ${soap.followUp}`;
+        }
+
+        if (noteContent.trim()) {
+          await tx.insert(schema.caseNotes).values({
+            regid: appt.patientId,
+            notes: noteContent,
+            notesType: 'Followup',
+            dateval: new Date().toISOString().split('T')[0],
+            createdAt: new Date(),
+          });
+        }
+      }
+
+      // 4. Transition the appointment to Completed
       await tx
         .update(schema.appointments)
         .set({ status: 'Completed', updatedAt: new Date() })

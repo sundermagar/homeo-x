@@ -192,6 +192,7 @@
 .pp-text-gradient {
   background: linear-gradient(135deg, var(--pp-blue) 0%, var(--pp-blue-deep) 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -401,11 +402,7 @@ a {
   padding: 0;
 }
 
-@media (min-width: 1024px) {
-  .pp-page-container {
-    /* padding-bottom: var(--pp-space-12); -- Removed */
-  }
-}
+
 
 /* Page Header — stacks on mobile, side-by-side on desktop */
 .pp-page-header {

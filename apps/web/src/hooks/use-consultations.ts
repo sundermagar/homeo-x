@@ -28,11 +28,22 @@ export function useCompleteConsultation() {
   return useMutation({
     mutationFn: (data: CompleteConsultationInput) =>
       api.post<CompleteConsultationResponse>(`${API.CONSULTATIONS}/complete`, data),
-    onSuccess: (_, variables) => {
+    onSuccess: (data, variables) => {
       qc.invalidateQueries({ queryKey: ['visit', variables.visitId] });
       qc.invalidateQueries({ queryKey: ['consultation-summary', variables.visitId] });
       qc.invalidateQueries({ queryKey: ['queue'] });
       qc.invalidateQueries({ queryKey: ['visits'] });
+      
+      // Invalidate remedy-chart prescriptions to update patient detail page history
+      if (data?.visit?.patientId) {
+        const regid = Number(data.visit.patientId);
+        qc.invalidateQueries({ 
+          queryKey: ['remedy-chart', 'prescriptions', regid] 
+        });
+        qc.invalidateQueries({ 
+          queryKey: ['medical-case', 'full', regid] 
+        });
+      }
     },
   });
 }

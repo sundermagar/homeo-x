@@ -35,6 +35,13 @@ import { useAppointments } from '../../appointments/hooks/use-appointments';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { Pagination } from '@/components/shared/pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { ClinicBrandingHeader } from '../components/clinic-branding-header';
+import { printHtml } from '@/lib/print';
+import { generatePrescriptionHtml } from '@/lib/print-templates';
+import type { PrescriptionPrintData } from '@/lib/print-templates';
+import { getClinicLetterhead, getDoctorLetterhead } from '@/lib/clinic-letterhead';
+import { useOrganizations } from '../../platform/hooks/use-organizations';
+import { usePdfSettings } from '../../settings/hooks/use-settings';
 import '../styles/medical-case.css';
 
 export function AutoSaveNoteArea({ initialValue = '', onSave, placeholder = '' }: { initialValue?: string, onSave: (val: string) => Promise<void>, placeholder?: string }) {
@@ -84,6 +91,9 @@ export default function MedicalCaseDetailPage() {
   const { data: summary } = usePatientBills(Number(regid));
   const { data: activePackage } = useActivePackage(Number(regid));
   const { data: dayCharges = [] } = useDayCharges();
+  const { data: orgs = [] } = useOrganizations();
+  const { data: pdfSettings = [] } = usePdfSettings();
+  const user = useAuthStore(s => s.user);
 
   if (isLoading) {
     return <MedicalCasePageSkeleton />;
@@ -136,6 +146,7 @@ export default function MedicalCaseDetailPage() {
     { id: 'media', label: 'Media', icon: Camera },
     { id: 'labs', label: 'Investigation Report', icon: FlaskConical },
     { id: 'vitals', label: 'Vitals', icon: Stethoscope },
+    { id: 'vaccine', label: 'Vaccines', icon: Syringe },
     { id: 'homeo', label: 'Add Clinic Activity', icon: Zap },
     { id: 'analytics', label: 'Graph (H/W)', icon: BarChart3 },
   ];
@@ -149,6 +160,7 @@ export default function MedicalCaseDetailPage() {
       case 'labs': return <div style={{ padding: 20 }}><LabsView investigations={investigations} regid={Number(regid)} visitId={medicalCase.id} /></div>;
       case 'vitals': return <div style={{ padding: 20 }}><VitalsView vitals={vitals} onRecord={() => setShowVitalsModal(true)} phone={medicalCase.phone || medicalCase.mobile || ''} name={medicalCase.patientName || ''} regid={Number(regid)} clinicName={clinicName} /></div>;
       case 'communication': return <div style={{ padding: 20 }}><CommunicationView regid={Number(regid)} phone={medicalCase.phone || ''} name={medicalCase.patientName || ''} /></div>;
+      case 'vaccine': return <div style={{ padding: 20 }}><VaccineView regid={Number(regid)} caseVaccines={vaccines || []} /></div>;
       case 'homeo': return <div style={{ padding: 20 }}><HomeoView regid={Number(regid)} initialData={homeo} reminders={reminders} medicalCase={medicalCase} /></div>;
       case 'analytics': return <div style={{ padding: 20 }}><AnalyticsView vitals={vitals || []} regid={Number(regid)} visitId={medicalCase.id} name={medicalCase.patientName || ''} phone={medicalCase.phone || medicalCase.mobile || ''} clinicName={clinicName} /></div>;
       case 'reports': return <div style={{ padding: 20 }}><ReportsView regid={Number(regid)} investigations={investigations || []} /></div>;
@@ -160,20 +172,13 @@ export default function MedicalCaseDetailPage() {
   return (
     <div className="mc-detail-container animate-fade-in">
 
+      {/* ─── Clinic Branding (Letterhead Format) ─── */}
+      <ClinicBrandingHeader />
+
       {/* ─── Redesigned Header Section ─── */}
       <div className="patient-banner">
         <div className="banner-inner">
           <div className="banner-left">
-            {/* <div style={{ marginRight: '4px' }}>
-              <button
-                className="back-btn"
-                onClick={() => navigate('/dashboard/doctor')}
-                title="Go back"
-              >
-                <ChevronLeft size={20} />
-              </button>
-            </div> */}
-
             <div className="pat-av">
               {medicalCase.patientName?.charAt(0).toUpperCase()}
             </div>
@@ -194,11 +199,92 @@ export default function MedicalCaseDetailPage() {
           </div>
 
           <div className="banner-right" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <button
+              className="banner-btn"
+              style={{ background: '#1e3a8a', color: 'white' }}
+              onClick={() => {
+                // Build clinic branding from Organization entity (same as AI consultation print)
+                const myOrg: any = orgs.find(o => o.id === user?.contextId) || orgs[0];
+                const defaultTemplate = pdfSettings.find((s: any) => s.isDefault) || pdfSettings[0];
+                const baseClinic = getClinicLetterhead();
+                const clinic = {
+                  ...baseClinic,
+                  name: myOrg?.name || baseClinic.name,
+                  tagline: myOrg?.tagLine || baseClinic.tagline,
+                  logoUrl: myOrg?.logo || baseClinic.logoUrl,
+                  address: myOrg?.address || baseClinic.address,
+                  address2: myOrg?.address2 || baseClinic.address2,
+                  phone: myOrg?.phone || baseClinic.phone,
+                  timing: myOrg?.timing || baseClinic.timing,
+                  email: myOrg?.email || baseClinic.email,
+                  website: myOrg?.website || baseClinic.website,
+                  registrationNo: myOrg?.registration || baseClinic.registrationNo,
+                  headerHtml: (defaultTemplate as any)?.headerHtml,
+                  footerHtml: (defaultTemplate as any)?.footerHtml,
+                };
+
+                const doctor = getDoctorLetterhead();
+
+                // Map prescriptions from medical case data into the print format
+                const medications = (prescriptions || []).map((p: any) => ({
+                  name: p.remedy_name || p.remedyName || p.medicine || '—',
+                  genericName: undefined,
+                  dosage: p.potency_name || p.potencyName || p.potency || '—',
+                  frequency: p.frequency_name || p.frequencyName || p.frequency || '—',
+                  duration: p.days ? `${p.days} days` : '—',
+                  route: undefined,
+                  instructions: p.prescription || p.notes || undefined,
+                  quantity: undefined,
+                }));
+
+                // Get follow-up note and diagnosis
+                const followUpEntry = notes?.find((n: any) => n.notesType === 'Followup');
+                const diagnosisNote = medicalCase.condition || soap?.find((s: any) => s.notesType === 'assessment')?.notes || '';
+
+                // Build vitals from latest data
+                const latestVitals = vitals?.[0];
+                const vitalsData = latestVitals ? {
+                  heightCm: latestVitals.heightCm ?? undefined,
+                  weightKg: latestVitals.weightKg ?? undefined,
+                  bmi: latestVitals.bmi ?? undefined,
+                  temperatureF: latestVitals.temperatureF ?? undefined,
+                  pulseRate: latestVitals.pulseRate ?? undefined,
+                  systolicBp: latestVitals.systolicBp ?? undefined,
+                  diastolicBp: latestVitals.diastolicBp ?? undefined,
+                  oxygenSaturation: latestVitals.oxygenSaturation ?? undefined,
+                } : undefined;
+
+                const printData: PrescriptionPrintData = {
+                  clinic: clinic as any,
+                  doctor,
+                  patient: {
+                    name: medicalCase.patientName || `Patient ${regid}`,
+                    age: ageString.replace(' Yrs', ''),
+                    gender: medicalCase.gender || undefined,
+                    mrn: String(regid),
+                    phone: medicalCase.phone || medicalCase.mobile || undefined,
+                  },
+                  visit: {
+                    visitNumber: String(regid),
+                    date: medicalCase.createdAt || new Date().toISOString(),
+                    chiefComplaint: medicalCase.condition || undefined,
+                  },
+                  vitals: vitalsData,
+                  diagnosis: diagnosisNote ? { assessment: diagnosisNote } : undefined,
+                  medications,
+                  advice: followUpEntry?.notes || undefined,
+                  followUp: followUpEntry?.notes ? undefined : undefined,
+                  prescriptionStrategy: 'REMEDY',
+                };
+
+                const html = generatePrescriptionHtml(printData);
+                printHtml(html, { title: `Prescription - ${medicalCase.patientName || regid}` });
+              }}
+            >
+              <Printer size={14} /> Print Prescription
+            </button>
             <button className={`banner-btn ${activeTab === 'communication' ? 'bb-active' : 'bb-outline'}`} onClick={() => setActiveTab('communication')}>
               <MessageSquare size={14} /> Message
-            </button>
-            <button className={`banner-btn ${activeTab === 'reports' ? 'bb-active' : 'bb-outline'}`} onClick={() => setActiveTab('reports')}>
-              <ClipboardList size={14} /> Downloads
             </button>
           </div>
         </div>
@@ -252,7 +338,6 @@ export default function MedicalCaseDetailPage() {
             <div className="mc-info-card">
               <div className="mc-info-card-header">
                 <div className="mc-info-card-title"><User size={16} /> Patient Details</div>
-                {/* <button className="mc-link-btn" style={{ fontSize: '0.8rem', color: 'var(--pp-blue)', background: 'none', border: 'none', cursor: 'pointer' }}>Edit</button> */}
               </div>
               <div className="mc-info-card-body mc-info-card-grid-body">
                 <div className="mc-info-col">
@@ -281,7 +366,7 @@ export default function MedicalCaseDetailPage() {
             </div>
             <div className="mc-side-card-body" style={{ padding: '16px' }}>
               {/* Input Area */}
-              <div style={{ marginBottom: '24px', paddingBottom: '16px', borderBottom: '1px solid var(--pp-warm-2)' }}>
+              <div style={{  paddingBottom: '16px', borderBottom: '1px solid var(--pp-warm-2)' }}>
                 <textarea
                   className="pp-textarea"
                   placeholder="Record patient follow-up or status..."
@@ -340,8 +425,6 @@ export default function MedicalCaseDetailPage() {
             </div>
           </div>
 
-
-
           {/* ─── Billing Summary ─── */}
           <div className="mc-side-card">
             <div className="mc-side-card-header">
@@ -360,227 +443,228 @@ export default function MedicalCaseDetailPage() {
           </div>
 
         </aside>
+      </div>
 
-        {/* ─── Mobile Floating Action Bar (Collapsible) ─── */}
-        <div className={`mc-mobile-fab-bar ${shortcutOpen ? 'expanded' : 'collapsed'}`}>
+      {/* ─── Mobile Floating Action Bar (Collapsible) ─── */}
+      <div className={`mc-mobile-fab-bar ${shortcutOpen ? 'expanded' : 'collapsed'}`}>
+        <button
+          className="mc-fab-toggle"
+          onClick={() => setShortcutOpen(!shortcutOpen)}
+          title={shortcutOpen ? "Collapse shortcuts" : "Expand shortcuts"}
+        >
+          {shortcutOpen ? <X size={20} /> : <Zap size={20} className="animate-pulse" />}
+        </button>
+
+        <div className="mc-fab-actions">
           <button
-            className="mc-fab-toggle"
-            onClick={() => setShortcutOpen(!shortcutOpen)}
-            title={shortcutOpen ? "Collapse shortcuts" : "Expand shortcuts"}
+            className={`mc-fab-btn ${mobileDrawer === 'followup' ? 'active' : ''}`}
+            onClick={() => { setMobileDrawer('followup'); setShortcutOpen(false); }}
           >
-            {shortcutOpen ? <X size={20} /> : <Zap size={20} className="animate-pulse" />}
+            <FileText size={20} />
+            <span className="mc-fab-btn-label">Notes</span>
           </button>
-
-          <div className="mc-fab-actions">
-            <button
-              className={`mc-fab-btn ${mobileDrawer === 'followup' ? 'active' : ''}`}
-              onClick={() => { setMobileDrawer('followup'); setShortcutOpen(false); }}
-            >
-              <FileText size={20} />
-              <span className="mc-fab-btn-label">Notes</span>
-            </button>
-            <button
-              className={`mc-fab-btn ${mobileDrawer === 'billing' ? 'active' : ''}`}
-              onClick={() => { setMobileDrawer('billing'); setShortcutOpen(false); }}
-            >
-              <CreditCard size={20} />
-              <span className="mc-fab-btn-label">Billing</span>
-              {balance > 0 && <span className="mc-fab-badge" />}
-            </button>
-            <button
-              className={`mc-fab-btn ${mobileDrawer === 'contact' ? 'active' : ''}`}
-              onClick={() => { setMobileDrawer('contact'); setShortcutOpen(false); }}
-            >
-              <Phone size={20} />
-              <span className="mc-fab-btn-label">Contact</span>
-            </button>
-            <button
-              className={`mc-fab-btn ${mobileDrawer === 'package' ? 'active' : ''}`}
-              onClick={() => { setMobileDrawer('package'); setShortcutOpen(false); }}
-            >
-              <Package size={20} />
-              <span className="mc-fab-btn-label">Package</span>
-            </button>
-          </div>
+          <button
+            className={`mc-fab-btn ${mobileDrawer === 'billing' ? 'active' : ''}`}
+            onClick={() => { setMobileDrawer('billing'); setShortcutOpen(false); }}
+          >
+            <CreditCard size={20} />
+            <span className="mc-fab-btn-label">Billing</span>
+            {balance > 0 && <span className="mc-fab-badge" />}
+          </button>
+          <button
+            className={`mc-fab-btn ${mobileDrawer === 'contact' ? 'active' : ''}`}
+            onClick={() => { setMobileDrawer('contact'); setShortcutOpen(false); }}
+          >
+            <Phone size={20} />
+            <span className="mc-fab-btn-label">Contact</span>
+          </button>
+          <button
+            className={`mc-fab-btn ${mobileDrawer === 'package' ? 'active' : ''}`}
+            onClick={() => { setMobileDrawer('package'); setShortcutOpen(false); }}
+          >
+            <Package size={20} />
+            <span className="mc-fab-btn-label">Package</span>
+          </button>
         </div>
+      </div>
 
-        {/* ─── Mobile Drawer ─── */}
-        {mobileDrawer && (
-          <>
-            <div className="mc-drawer-backdrop" onClick={() => setMobileDrawer(null)} />
-            <div className="mc-drawer">
-              <div className="mc-drawer-header">
-                <div className="mc-drawer-header-title">
-                  {mobileDrawer === 'followup' && <><FileText size={18} /> Follow-up Notes</>}
-                  {mobileDrawer === 'billing' && <><CreditCard size={18} /> Billing Summary</>}
-                  {mobileDrawer === 'contact' && <><Phone size={18} /> Patient Contact</>}
-                  {mobileDrawer === 'package' && <><Package size={18} /> Package Info</>}
-                </div>
-                <button className="mc-drawer-close" onClick={() => setMobileDrawer(null)}>
-                  <X size={16} />
-                </button>
+      {/* ─── Mobile Drawer ─── */}
+      {mobileDrawer && (
+        <>
+          <div className="mc-drawer-backdrop" onClick={() => setMobileDrawer(null)} />
+          <div className="mc-drawer">
+            <div className="mc-drawer-header">
+              <div className="mc-drawer-header-title">
+                {mobileDrawer === 'followup' && <><FileText size={18} /> Follow-up Notes</>}
+                {mobileDrawer === 'billing' && <><CreditCard size={18} /> Billing Summary</>}
+                {mobileDrawer === 'contact' && <><Phone size={18} /> Patient Contact</>}
+                {mobileDrawer === 'package' && <><Package size={18} /> Package Info</>}
               </div>
-              <div className="mc-drawer-body">
-                {mobileDrawer === 'followup' && (
-                  <>
-                    <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                      {(notes || []).filter((n: any) => n.notesType === 'Followup' || n.noteType === 'Followup').length > 0 ? (
-                        (notes || []).filter((n: any) => n.notesType === 'Followup' || n.noteType === 'Followup')
-                          .sort((a: any, b: any) => new Date(b.dateval || 0).getTime() - new Date(a.dateval || 0).getTime())
-                          .map((note: any) => (
-                            <div key={note.id} style={{ padding: '10px 0', borderBottom: '1px solid #f1f5f9', fontSize: '0.85rem' }}>
-                              <div style={{ color: '#94a3b8', fontSize: '0.7rem', marginBottom: '4px' }}>
-                                {(note.dateval || note.createdAt || note.created_at) ? new Date(note.dateval || note.createdAt || note.created_at).toLocaleDateString('en-GB', {
-                                  day: '2-digit', month: 'short', year: 'numeric',
-                                  hour: '2-digit', minute: '2-digit'
-                                }) : '—'}
-                              </div>
-                              <div style={{ color: '#334155', lineHeight: 1.5 }}>{note.notes}</div>
+              <button className="mc-drawer-close" onClick={() => setMobileDrawer(null)}>
+                <X size={16} />
+              </button>
+            </div>
+            <div className="mc-drawer-body">
+              {mobileDrawer === 'followup' && (
+                <>
+                  <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                    {(notes || []).filter((n: any) => n.notesType === 'Followup' || n.noteType === 'Followup').length > 0 ? (
+                      (notes || []).filter((n: any) => n.notesType === 'Followup' || n.noteType === 'Followup')
+                        .sort((a: any, b: any) => new Date(b.dateval || 0).getTime() - new Date(a.dateval || 0).getTime())
+                        .map((note: any) => (
+                          <div key={note.id} style={{ padding: '10px 0', borderBottom: '1px solid #f1f5f9', fontSize: '0.85rem' }}>
+                            <div style={{ color: '#94a3b8', fontSize: '0.7rem', marginBottom: '4px' }}>
+                              {(note.dateval || note.createdAt || note.created_at) ? new Date(note.dateval || note.createdAt || note.created_at).toLocaleDateString('en-GB', {
+                                day: '2-digit', month: 'short', year: 'numeric',
+                                hour: '2-digit', minute: '2-digit'
+                              }) : '—'}
                             </div>
-                          ))
-                      ) : (
-                        <div style={{ color: '#94a3b8', fontSize: '0.85rem', textAlign: 'center', padding: '24px 0' }}>
-                          No follow-up notes yet. Add one below.
-                        </div>
-                      )}
-                    </div>
-                    <textarea
-                      placeholder="Add follow-up notes here..."
-                      value={followUpNote}
-                      onChange={e => setFollowUpNote(e.target.value)}
-                      style={{
-                        width: '100%', minHeight: '100px', maxHeight: '200px', padding: '12px',
-                        border: '1px solid var(--pp-warm-4)', borderRadius: '10px', fontSize: '0.85rem',
-                        resize: 'vertical', fontFamily: 'inherit', color: '#334155',
-                        background: '#fafaf9', boxSizing: 'border-box'
-                      }}
-                    />
-                    <button
-                      onClick={async () => {
-                        if (!followUpNote.trim()) return;
-                        await handleSaveNote(followUpNote);
-                        setFollowUpNote('');
-                      }}
-                      style={{
-                        width: '100%', padding: '12px', background: '#2563eb', color: 'white',
-                        border: 'none', borderRadius: '10px', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer'
-                      }}
-                    >
-                      Save Note
-                    </button>
-                  </>
-                )}
+                            <div style={{ color: '#334155', lineHeight: 1.5 }}>{note.notes}</div>
+                          </div>
+                        ))
+                    ) : (
+                      <div style={{ color: '#94a3b8', fontSize: '0.85rem', textAlign: 'center', padding: '24px 0' }}>
+                        No follow-up notes yet. Add one below.
+                      </div>
+                    )}
+                  </div>
+                  <textarea
+                    placeholder="Add follow-up notes here..."
+                    value={followUpNote}
+                    onChange={e => setFollowUpNote(e.target.value)}
+                    style={{
+                      width: '100%', minHeight: '100px', maxHeight: '200px', padding: '12px',
+                      border: '1px solid var(--pp-warm-4)', borderRadius: '10px', fontSize: '0.85rem',
+                      resize: 'vertical', fontFamily: 'inherit', color: '#334155',
+                      background: '#fafaf9', boxSizing: 'border-box'
+                    }}
+                  />
+                  <button
+                    onClick={async () => {
+                      if (!followUpNote.trim()) return;
+                      await handleSaveNote(followUpNote);
+                      setFollowUpNote('');
+                    }}
+                    style={{
+                      width: '100%', padding: '12px', background: '#2563eb', color: 'white',
+                      border: 'none', borderRadius: '10px', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer'
+                    }}
+                  >
+                    Save Note
+                  </button>
+                </>
+              )}
 
-                {mobileDrawer === 'billing' && (
-                  <>
-                    <div className="mc-side-card" style={{ background: 'white' }}>
-                      <div className="mc-side-card-body">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', padding: '8px 0' }}>
-                          <span style={{ color: '#64748b' }}>Total</span>
-                          <strong>₹{displayTotal}</strong>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', padding: '8px 0' }}>
-                          <span style={{ color: '#64748b' }}>Received</span>
-                          <strong className="text-green">₹{paidAmount}</strong>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', padding: '8px 0' }}>
-                          <span style={{ color: '#64748b' }}>Balance</span>
-                          <strong className="text-red">₹{balance}</strong>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.1rem', fontWeight: 800, color: 'var(--pp-blue)', borderTop: '2px solid var(--pp-warm-2)', paddingTop: '14px', marginTop: '8px' }}>
-                          <span>Outstanding</span>
-                          <strong>₹{balance}</strong>
-                        </div>
+              {mobileDrawer === 'billing' && (
+                <>
+                  <div className="mc-side-card" style={{ background: 'white' }}>
+                    <div className="mc-side-card-body">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', padding: '8px 0' }}>
+                        <span style={{ color: '#64748b' }}>Total</span>
+                        <strong>₹{displayTotal}</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', padding: '8px 0' }}>
+                        <span style={{ color: '#64748b' }}>Received</span>
+                        <strong className="text-green">₹{paidAmount}</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', padding: '8px 0' }}>
+                        <span style={{ color: '#64748b' }}>Balance</span>
+                        <strong className="text-red">₹{balance}</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.1rem', fontWeight: 800, color: 'var(--pp-blue)', borderTop: '2px solid var(--pp-warm-2)', paddingTop: '14px', marginTop: '8px' }}>
+                        <span>Outstanding</span>
+                        <strong>₹{balance}</strong>
                       </div>
                     </div>
-                    <button
-                      onClick={() => { setMobileDrawer(null); setShowBillingModal(true); }}
-                      style={{
-                        width: '100%', padding: '14px', background: '#F0FDF4', color: '#15803D',
-                        border: '1px solid #BBF7D0', borderRadius: '10px', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer'
-                      }}
-                    >
-                      Record Payment
-                    </button>
-                  </>
-                )}
+                  </div>
+                  <button
+                    onClick={() => { setMobileDrawer(null); setShowBillingModal(true); }}
+                    style={{
+                      width: '100%', padding: '14px', background: '#F0FDF4', color: '#15803D',
+                      border: '1px solid #BBF7D0', borderRadius: '10px', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer'
+                    }}
+                  >
+                    Record Payment
+                  </button>
+                </>
+              )}
 
-                {mobileDrawer === 'contact' && (
+              {mobileDrawer === 'contact' && (
+                <div className="mc-side-card" style={{ background: 'white' }}>
+                  <div className="mc-side-card-body" style={{ gap: '14px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
+                      <span style={{ color: '#64748b' }}>Name</span>
+                      <strong>{medicalCase.patientName || '—'}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
+                      <span style={{ color: '#64748b' }}>Mobile</span>
+                      <strong>{medicalCase.mobile || '—'}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
+                      <span style={{ color: '#64748b' }}>Email</span>
+                      <strong>{medicalCase.email || '—'}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
+                      <span style={{ color: '#64748b' }}>Address</span>
+                      <strong style={{ textAlign: 'right', maxWidth: '60%' }}>{medicalCase.address || '—'}</strong>
+                    </div>
+                    {medicalCase.mobile && (
+                      <a
+                        href={`tel:${medicalCase.mobile}`}
+                        style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                          width: '100%', padding: '12px', background: '#2563eb', color: 'white',
+                          border: 'none', borderRadius: '10px', fontWeight: 700, fontSize: '0.9rem',
+                          textDecoration: 'none', marginTop: '8px'
+                        }}
+                      >
+                        <Phone size={16} /> Call Patient
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {mobileDrawer === 'package' && (
+                <>
                   <div className="mc-side-card" style={{ background: 'white' }}>
                     <div className="mc-side-card-body" style={{ gap: '14px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                        <span style={{ color: '#64748b' }}>Name</span>
-                        <strong>{medicalCase.patientName || '—'}</strong>
+                        <span style={{ color: '#64748b' }}>Scheme</span>
+                        <strong>{activePackage?.packageName || 'REGULAR'}</strong>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                        <span style={{ color: '#64748b' }}>Mobile</span>
-                        <strong>{medicalCase.mobile || '—'}</strong>
+                        <span style={{ color: '#64748b' }}>Status</span>
+                        <span style={{
+                          padding: '3px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700,
+                          background: activePackage?.status === 'Active' ? '#dcfce7' : '#fef3c7',
+                          color: activePackage?.status === 'Active' ? '#166534' : '#92400e'
+                        }}>
+                          {activePackage?.status || 'Active'}
+                        </span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                        <span style={{ color: '#64748b' }}>Email</span>
-                        <strong>{medicalCase.email || '—'}</strong>
+                        <span style={{ color: '#64748b' }}>Expiry</span>
+                        <strong>{activePackage?.expiryDate ? new Date(activePackage.expiryDate).toLocaleDateString() : '—'}</strong>
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                        <span style={{ color: '#64748b' }}>Address</span>
-                        <strong style={{ textAlign: 'right', maxWidth: '60%' }}>{medicalCase.address || '—'}</strong>
-                      </div>
-                      {medicalCase.mobile && (
-                        <a
-                          href={`tel:${medicalCase.mobile}`}
-                          style={{
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                            width: '100%', padding: '12px', background: '#2563eb', color: 'white',
-                            border: 'none', borderRadius: '10px', fontWeight: 700, fontSize: '0.9rem',
-                            textDecoration: 'none', marginTop: '8px'
-                          }}
-                        >
-                          <Phone size={16} /> Call Patient
-                        </a>
-                      )}
                     </div>
                   </div>
-                )}
-
-                {mobileDrawer === 'package' && (
-                  <>
-                    <div className="mc-side-card" style={{ background: 'white' }}>
-                      <div className="mc-side-card-body" style={{ gap: '14px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                          <span style={{ color: '#64748b' }}>Scheme</span>
-                          <strong>{activePackage?.packageName || 'REGULAR'}</strong>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                          <span style={{ color: '#64748b' }}>Status</span>
-                          <span style={{
-                            padding: '3px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700,
-                            background: activePackage?.status === 'Active' ? '#dcfce7' : '#fef3c7',
-                            color: activePackage?.status === 'Active' ? '#166534' : '#92400e'
-                          }}>
-                            {activePackage?.status || 'Active'}
-                          </span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                          <span style={{ color: '#64748b' }}>Expiry</span>
-                          <strong>{activePackage?.expiryDate ? new Date(activePackage.expiryDate).toLocaleDateString() : '—'}</strong>
-                        </div>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => { setMobileDrawer(null); setShowAssignModal(true); }}
-                      style={{
-                        width: '100%', padding: '14px', background: '#EEF2FF', color: '#4338CA',
-                        border: '1px solid #C7D2FE', borderRadius: '10px', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer'
-                      }}
-                    >
-                      Manage Package
-                    </button>
-                  </>
-                )}
-              </div>
+                  <button
+                    onClick={() => { setMobileDrawer(null); setShowAssignModal(true); }}
+                    style={{
+                      width: '100%', padding: '14px', background: '#EEF2FF', color: '#4338CA',
+                      border: '1px solid #C7D2FE', borderRadius: '10px', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer'
+                    }}
+                  >
+                    Manage Package
+                  </button>
+                </>
+              )}
             </div>
-          </>
-        )}
-      </div>
+          </div>
+        </>
+      )}
+
       {showVitalsModal && <VitalsFormModal visitId={medicalCase.id} regid={Number(regid)} onClose={() => setShowVitalsModal(false)} />}
       {showAssignModal && <AssignPackageModal regid={Number(regid)} patientId={medicalCase.patientId || 0} onClose={() => setShowAssignModal(false)} onSuccess={() => { }} />}
       {showFinalizeModal && (
@@ -700,81 +784,285 @@ function MedicalCasePageSkeleton() {
 /* ─── Internal Sub-Components ─── */
 
 function VaccineView({ regid, caseVaccines }: { regid: number; caseVaccines: any[] }) {
-  const { data: masterVaccines, isLoading } = useMasterVaccines();
-  const { saveVaccine } = useManageClinicalRecords();
+  const { data: masterVaccines = [], isLoading } = useMasterVaccines();
+  const { saveVaccine, deleteVaccine } = useManageClinicalRecords();
   const [savingId, setSavingId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [search, setSearch] = useState('');
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<any>(null); // null = add mode, object = edit mode
+  const [formVaccineId, setFormVaccineId] = useState<number | ''>('');
+  const [formNotes, setFormNotes] = useState('');
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [givenPage, setGivenPage] = useState(1);
+  const [givenPageSize, setGivenPageSize] = useState(5);
+
+  // Build grouped list (categories + children) like the settings page
+  const flatGrouped = React.useMemo(() => {
+    const catMap: Record<number, any> = {};
+    const childMap: Record<number, any[]> = {};
+    masterVaccines.forEach((v: any) => {
+      if (v.parentId === 0) catMap[v.id] = v;
+      else {
+        if (!childMap[v.parentId]) childMap[v.parentId] = [];
+        childMap[v.parentId]!.push(v);
+      }
+    });
+    const list: (any & { isHeader?: boolean })[] = [];
+    Object.values(catMap).sort((a: any, b: any) => (a.months || 0) - (b.months || 0)).forEach((cat: any) => {
+      list.push({ ...cat, isHeader: true });
+      (childMap[cat.id] || []).sort((a: any, b: any) => (a.months || 0) - (b.months || 0)).forEach((c: any) => list.push(c));
+    });
+    // Orphans
+    masterVaccines.filter((v: any) => v.parentId !== 0 && !catMap[v.parentId]).forEach((v: any) => list.push(v));
+
+    if (!search) return list;
+    return list.filter((v: any) => v.label?.toLowerCase().includes(search.toLowerCase()));
+  }, [masterVaccines, search]);
+
+  const totalPages = Math.ceil(flatGrouped.length / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const currentVaccines = flatGrouped.slice(startIndex, startIndex + pageSize);
+
+  // Only non-header vaccines for the dropdown
+  const vaccineOptions = masterVaccines.filter((v: any) => v.parentId !== 0);
 
   const handleMarkDone = async (vaccineId: number) => {
     setSavingId(vaccineId);
     try {
-      await saveVaccine.mutateAsync({ regid, vaccineId, notes: 'Done' });
-    } finally {
-      setSavingId(null);
-    }
+      await saveVaccine.mutateAsync({ regid, vaccineId, notes: 'Administered' });
+    } finally { setSavingId(null); }
   };
 
-  if (isLoading) {
-    return <TableSkeleton rows={5} cols={4} />;
-  }
-  const totalPages = Math.ceil((masterVaccines?.length || 0) / pageSize);
-  const startIndex = (currentPage - 1) * pageSize;
-  const currentVaccines = masterVaccines?.slice(startIndex, startIndex + pageSize) || [];
+  const handleOpenAdd = () => {
+    setEditingRecord(null);
+    setFormVaccineId('');
+    setFormNotes('');
+    setDrawerOpen(true);
+  };
+
+  const handleOpenEdit = (cv: any) => {
+    setEditingRecord(cv);
+    setFormVaccineId(cv.vaccineId);
+    setFormNotes(cv.notes || '');
+    setDrawerOpen(true);
+  };
+
+  const handleDelete = async (cv: any) => {
+    if (!window.confirm(`Delete vaccine record "${cv.vaccineName || 'Vaccine #' + cv.vaccineId}"?`)) return;
+    setDeletingId(cv.id);
+    try {
+      await deleteVaccine.mutateAsync(cv.id);
+    } finally { setDeletingId(null); }
+  };
+
+  const handleDrawerSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formVaccineId) return;
+    setSavingId(Number(formVaccineId));
+    try {
+      const payload: any = { regid, vaccineId: Number(formVaccineId), notes: formNotes || 'Administered' };
+      if (editingRecord) payload.id = editingRecord.id;
+      await saveVaccine.mutateAsync(payload);
+      setFormVaccineId('');
+      setFormNotes('');
+      setEditingRecord(null);
+      setDrawerOpen(false);
+    } finally { setSavingId(null); }
+  };
+
+  if (isLoading) return <TableSkeleton rows={6} cols={4} />;
 
   return (
-    <div className="mc-view-placeholder" style={{ animation: 'none' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <div className="mc-section-header" style={{ margin: 0 }}>Immunization Record</div>
+    <div style={{ animation: 'none' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Syringe size={18} style={{ color: '#3b82f6' }} />
+            <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>Immunization Record</span>
+          </div>
+          <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '2px' }}>Track patient vaccination schedule and administered doses</p>
+        </div>
+        <button
+          onClick={handleOpenAdd}
+          style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 20px', background: '#2563eb', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 8px rgba(37,99,235,0.18)' }}
+        >
+          <Plus size={15} /> Add Vaccine
+        </button>
       </div>
 
+      {/* ── Previously Administered Vaccines ── */}
+      {caseVaccines.length > 0 && (
+        <div className="pp-card" style={{ padding: 0, marginBottom: '20px', border: '1px solid #bbf7d0' }}>
+          <div style={{ padding: '12px 16px', background: '#f0fdf4', borderBottom: '1px solid #bbf7d0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <CheckCircle2 size={15} style={{ color: '#16a34a' }} />
+            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#15803d' }}>Previously Given Vaccines</span>
+            <span style={{ fontSize: '0.72rem', color: '#4ade80', fontWeight: 600, marginLeft: '4px' }}>({caseVaccines.length})</span>
+          </div>
+          <table className="pp-table" style={{ marginBottom: 0 }}>
+            <thead>
+              <tr>
+                <th style={{ width: '36px' }}>#</th>
+                <th>Vaccine Name</th>
+                <th style={{ width: '150px' }}>Date Given</th>
+                <th>Notes</th>
+                <th style={{ width: '100px', textAlign: 'right' }}>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {caseVaccines
+                .slice((givenPage - 1) * givenPageSize, givenPage * givenPageSize)
+                .map((cv: any, i: number) => (
+                <tr key={cv.id} className="hover-row">
+                  <td style={{ color: '#94a3b8', fontSize: '0.72rem', fontFamily: 'monospace' }}>{(givenPage - 1) * givenPageSize + i + 1}</td>
+                  <td>
+                    <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#0f172a' }}>{cv.vaccineName || `Vaccine #${cv.vaccineId}`}</div>
+                  </td>
+                  <td>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.78rem', fontWeight: 600, color: '#16a34a' }}>
+                      <Calendar size={12} />
+                      {cv.createdAt ? new Date(cv.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+                    </span>
+                  </td>
+                  <td style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                    {cv.notes || '—'}
+                  </td>
+                  <td style={{ textAlign: 'right' }}>
+                    <div style={{ display: 'flex', gap: '4px', justifyContent: 'flex-end' }}>
+                      <button
+                        title="Edit"
+                        onClick={() => handleOpenEdit(cv)}
+                        style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e2e8f0', borderRadius: '6px', background: '#fff', cursor: 'pointer', color: '#3b82f6' }}
+                      >
+                        <Edit size={13} />
+                      </button>
+                      <button
+                        title="Delete"
+                        onClick={() => handleDelete(cv)}
+                        disabled={deletingId === cv.id}
+                        style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #fecaca', borderRadius: '6px', background: '#fff', cursor: 'pointer', color: '#ef4444', opacity: deletingId === cv.id ? 0.5 : 1 }}
+                      >
+                        {deletingId === cv.id ? <Loader2 size={13} className="spin" /> : <Trash2 size={13} />}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <Pagination
+            currentPage={givenPage}
+            totalPages={Math.ceil(caseVaccines.length / givenPageSize)}
+            pageSize={givenPageSize}
+            totalItems={caseVaccines.length}
+            onPageChange={setGivenPage}
+            onPageSizeChange={setGivenPageSize}
+          />
+        </div>
+      )}
+
+      {/* Search */}
+      <div style={{ position: 'relative', marginBottom: '16px', maxWidth: '360px' }}>
+        <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+        <input
+          type="text"
+          placeholder="Search vaccine..."
+          value={search}
+          onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
+          style={{ width: '100%', padding: '10px 12px 10px 36px', border: '1.5px solid #e2e8f0', borderRadius: '10px', fontSize: '0.85rem', outline: 'none', background: '#f8fafc', boxSizing: 'border-box' }}
+        />
+      </div>
+
+      {/* Table */}
       <div className="pp-card pp-table-scroll" style={{ padding: 0 }}>
         <table className="pp-table">
           <thead>
             <tr>
-              <th>Vaccine Name</th>
-              <th>Recommended Age</th>
-              <th>Status</th>
-              <th style={{ textAlign: 'center' }}>Action</th>
+              <th style={{ width: '40px' }}>#</th>
+              <th>Vaccine & Description</th>
+              <th style={{ width: '160px' }}>Recommended Age</th>
+              <th style={{ width: '140px' }}>Status</th>
+              <th style={{ textAlign: 'right', width: '120px' }}>Action</th>
             </tr>
           </thead>
           <tbody>
-            {currentVaccines.map(vaccine => {
-              const isDone = caseVaccines.some(cv => cv.vaccineId === vaccine.id);
-              const doneRecord = caseVaccines.find(cv => cv.vaccineId === vaccine.id);
+            {currentVaccines.length === 0 && (
+              <tr><td colSpan={5} style={{ textAlign: 'center', padding: '32px', color: '#94a3b8' }}>
+                <Syringe size={32} style={{ opacity: 0.2, marginBottom: '8px' }} />
+                <p>No vaccine records found.</p>
+              </td></tr>
+            )}
+            {currentVaccines.map((vac: any, idx: number) => {
+              if (vac.isHeader) {
+                return (
+                  <tr key={`hdr-${vac.id}`} style={{ background: '#f0f9ff' }}>
+                    <td colSpan={5} style={{ padding: '10px 14px', borderBottom: '1px solid #dbeafe' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Calendar size={13} style={{ color: '#3b82f6' }} />
+                        <span style={{ fontWeight: 800, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#1e40af' }}>
+                          {vac.label}
+                        </span>
+                        {vac.months !== undefined && vac.months !== 999 && (
+                          <span style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 500 }}>(At {vac.months} Months)</span>
+                        )}
+                        <div style={{ flex: 1, borderTop: '1px dashed #cbd5e1', marginLeft: '8px', opacity: 0.5 }} />
+                      </div>
+                    </td>
+                  </tr>
+                );
+              }
+
+              const isDone = caseVaccines.some((cv: any) => cv.vaccineId === vac.id);
+              const doneRecord = caseVaccines.find((cv: any) => cv.vaccineId === vac.id);
 
               return (
-                <tr key={vaccine.id} className="hover-row">
+                <tr key={vac.id} className="hover-row">
+                  <td style={{ color: '#94a3b8', fontSize: '0.7rem', fontFamily: 'monospace' }}>
+                    {idx + 1 + startIndex}
+                  </td>
                   <td>
-                    <div style={{ fontWeight: 700, color: 'var(--pp-ink)' }}>{vaccine.label}</div>
-                    {isDone && (
-                      <div style={{ fontSize: '0.7rem', color: 'var(--pp-success-fg)', marginTop: '2px' }}>
-                        Recorded: {new Date(doneRecord.createdAt).toLocaleDateString()}
+                    <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0f172a' }}>{vac.label}</div>
+                    {vac.description && (
+                      <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '2px' }}>{vac.description}</div>
+                    )}
+                    {isDone && doneRecord?.createdAt && (
+                      <div style={{ fontSize: '0.68rem', color: '#22c55e', marginTop: '3px', fontWeight: 600 }}>
+                        ✓ Given on {new Date(doneRecord.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        {doneRecord.notes && doneRecord.notes !== 'Administered' && doneRecord.notes !== 'Done' ? ` — ${doneRecord.notes}` : ''}
                       </div>
                     )}
                   </td>
-                  <td style={{ color: 'var(--pp-text-3)', fontSize: '0.8rem' }}>
-                    {vaccine.months ? `${vaccine.months} months` : '—'}
+                  <td>
+                    {vac.months !== null && vac.months !== undefined ? (
+                      <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 700, background: vac.months === 0 ? '#f0fdf4' : '#eff6ff', color: vac.months === 0 ? '#16a34a' : '#2563eb', border: `1px solid ${vac.months === 0 ? '#bbf7d0' : '#bfdbfe'}` }}>
+                        {vac.months === 0 ? 'At Birth' : `${vac.months} Months`}
+                      </span>
+                    ) : (
+                      <span style={{ color: '#cbd5e1', fontSize: '0.75rem' }}>N/A</span>
+                    )}
                   </td>
                   <td>
                     {isDone ? (
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--pp-success-fg)', fontWeight: 700, fontSize: '0.8rem' }}>
-                        <Check size={14} /> Administered
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 10px', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 700, background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0' }}>
+                        <Check size={12} /> Administered
                       </span>
                     ) : (
-                      <span style={{ color: 'var(--pp-text-3)', fontSize: '0.8rem' }}>Pending</span>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 10px', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 600, background: '#fef9c3', color: '#a16207', border: '1px solid #fde68a' }}>
+                        <AlertCircle size={11} /> Pending
+                      </span>
                     )}
                   </td>
-                  <td style={{ textAlign: 'center' }}>
+                  <td style={{ textAlign: 'right' }}>
                     {!isDone && (
                       <button
-                        className="mc-legacy-mini-btn"
-                        style={{ padding: '4px 12px', fontSize: '0.75rem' }}
-                        onClick={() => handleMarkDone(vaccine.id)}
-                        disabled={savingId === vaccine.id}
+                        onClick={() => handleMarkDone(vac.id)}
+                        disabled={savingId === vac.id}
+                        style={{ padding: '6px 14px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700, border: '1px solid #e2e8f0', background: 'white', color: '#2563eb', cursor: 'pointer' }}
                       >
-                        {savingId === vaccine.id ? '...' : 'Mark Done'}
+                        {savingId === vac.id ? '...' : 'Mark Done'}
                       </button>
                     )}
                   </td>
@@ -789,10 +1077,100 @@ function VaccineView({ regid, caseVaccines }: { regid: number; caseVaccines: any
         currentPage={currentPage}
         totalPages={totalPages}
         pageSize={pageSize}
-        totalItems={masterVaccines?.length || 0}
+        totalItems={flatGrouped.length}
         onPageChange={setCurrentPage}
         onPageSizeChange={setPageSize}
       />
+
+      {/* ── Right-Side Drawer: Add Vaccine ── */}
+      {drawerOpen && ReactDOM.createPortal(
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', justifyContent: 'flex-end' }}>
+          {/* Backdrop */}
+          <div onClick={() => setDrawerOpen(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(2px)' }} />
+          {/* Panel */}
+          <div style={{ position: 'relative', width: '100%', maxWidth: '440px', background: '#fff', boxShadow: '-8px 0 30px rgba(0,0,0,0.12)', display: 'flex', flexDirection: 'column', animation: 'slideInRight 0.25s ease-out' }}>
+            {/* Drawer Header */}
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>{editingRecord ? 'Edit Vaccine Record' : 'Add Vaccine to Patient'}</h3>
+                <p style={{ fontSize: '0.72rem', color: '#94a3b8', margin: '2px 0 0' }}>{editingRecord ? 'Update notes for this vaccine record' : 'Select from master immunization list'}</p>
+              </div>
+              <button onClick={() => setDrawerOpen(false)} style={{ width: '32px', height: '32px', border: 'none', borderRadius: '8px', background: '#f1f5f9', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Drawer Body */}
+            <form onSubmit={handleDrawerSubmit} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <div style={{ flex: 1, padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {/* Vaccine Select */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#0f172a', marginBottom: '6px' }}>Vaccine *</label>
+                  <select
+                    required
+                    value={formVaccineId}
+                    onChange={e => setFormVaccineId(Number(e.target.value))}
+                    disabled={!!editingRecord}
+                    style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem', color: '#334155', background: editingRecord ? '#f1f5f9' : '#fff', outline: 'none', boxSizing: 'border-box' }}
+                  >
+                    <option value="">— Select a vaccine —</option>
+                    {vaccineOptions.map((v: any) => {
+                      const alreadyDone = caseVaccines.some((cv: any) => cv.vaccineId === v.id);
+                      return (
+                        <option key={v.id} value={v.id} disabled={alreadyDone}>
+                          {v.label}{v.months !== null && v.months !== undefined ? ` (${v.months === 0 ? 'Birth' : v.months + 'mo'})` : ''}{alreadyDone ? ' ✓' : ''}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                {/* Notes */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#0f172a', marginBottom: '6px' }}>Clinical Notes</label>
+                  <textarea
+                    placeholder="e.g. Batch #1234, administered by Dr. X..."
+                    value={formNotes}
+                    onChange={e => setFormNotes(e.target.value)}
+                    style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem', minHeight: '100px', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none' }}
+                  />
+                </div>
+
+                {/* Info tip */}
+                <div style={{ display: 'flex', gap: '8px', padding: '12px', background: '#f0f9ff', borderRadius: '8px', border: '1px solid #dbeafe' }}>
+                  <AlertCircle size={14} style={{ color: '#3b82f6', flexShrink: 0, marginTop: '1px' }} />
+                  <p style={{ fontSize: '0.75rem', color: '#1e40af', margin: 0, lineHeight: 1.5 }}>
+                    The vaccine will be recorded for <strong>Patient #{regid}</strong> with today's date. You can mark additional vaccines directly from the table.
+                  </p>
+                </div>
+              </div>
+
+              {/* Drawer Footer */}
+              <div style={{ padding: '16px 24px', borderTop: '1px solid #e2e8f0', display: 'flex', gap: '10px', justifyContent: 'flex-end', background: '#f8fafc' }}>
+                <button type="button" onClick={() => setDrawerOpen(false)} style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', fontSize: '0.85rem', fontWeight: 600, color: '#64748b', cursor: 'pointer' }}>
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!formVaccineId || savingId !== null}
+                  style={{ padding: '10px 24px', borderRadius: '8px', border: 'none', background: '#2563eb', color: 'white', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', opacity: !formVaccineId ? 0.5 : 1, boxShadow: '0 2px 8px rgba(37,99,235,0.18)' }}
+                >
+                  {savingId !== null ? 'Saving...' : editingRecord ? 'Update Vaccine' : 'Save Vaccine'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Slide-in animation */}
+      <style>{`
+        @keyframes slideInRight {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+      `}</style>
     </div>
   );
 }
@@ -1077,8 +1455,13 @@ function HomeoView({ regid, initialData, reminders, medicalCase }: { regid: numb
         </div>
       ) : (
         <>
-          <div className="pp-card" style={{ padding: 0, overflow: 'hidden' }}>
-            <table className="pp-table">
+          <div className="pp-card pp-table-scroll" style={{ padding: 0, marginBottom: '20px', border: '1px solid #c7d2fe' }}>
+            <div style={{ padding: '12px 16px', background: '#eef2ff', borderBottom: '1px solid #c7d2fe', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <History size={15} style={{ color: '#6366f1' }} />
+              <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#3730a3' }}>Activity History</span>
+              <span style={{ fontSize: '0.72rem', color: '#818cf8', fontWeight: 600, marginLeft: '4px' }}>({reminders.length})</span>
+            </div>
+            <table className="pp-table" style={{ marginBottom: 0 }}>
               <thead>
                 <tr>
                   <th style={{ width: '170px' }}>Scheduled For</th>
@@ -1116,8 +1499,8 @@ function HomeoView({ regid, initialData, reminders, medicalCase }: { regid: numb
                 ))}
               </tbody>
             </table>
+            <Pagination currentPage={currentPage} totalPages={totalPages} pageSize={pageSize} totalItems={sortedReminders.length} onPageChange={setCurrentPage} onPageSizeChange={setPageSize} />
           </div>
-          <Pagination currentPage={currentPage} totalPages={totalPages} pageSize={pageSize} totalItems={sortedReminders.length} onPageChange={setCurrentPage} onPageSizeChange={setPageSize} />
         </>
       )}
 
@@ -1283,9 +1666,13 @@ function VitalsView({ vitals, onRecord, phone, name, regid, clinicName }: { vita
       </div>
 
       <div style={{ marginTop: '32px' }}>
-        <div className="mc-section-header">Recent History</div>
-        <div className="pp-card pp-table-scroll" style={{ marginTop: '16px', padding: 0, borderRadius: '12px' }}>
-          <table className="pp-table">
+        <div className="pp-card pp-table-scroll" style={{ padding: 0, borderRadius: '12px', border: '1px solid #bfdbfe' }}>
+          <div style={{ padding: '12px 16px', background: '#eff6ff', borderBottom: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Activity size={15} style={{ color: '#3b82f6' }} />
+            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#1e40af' }}>Recent Vitals History</span>
+            <span style={{ fontSize: '0.72rem', color: '#60a5fa', fontWeight: 600, marginLeft: '4px' }}>({vitals.length})</span>
+          </div>
+          <table className="pp-table" style={{ marginBottom: 0 }}>
             <thead>
               <tr>
                 <th>Date</th>
@@ -1314,16 +1701,15 @@ function VitalsView({ vitals, onRecord, phone, name, regid, clinicName }: { vita
               )}
             </tbody>
           </table>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            pageSize={pageSize}
+            totalItems={vitals?.length || 0}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={setPageSize}
+          />
         </div>
-
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          pageSize={pageSize}
-          totalItems={vitals?.length || 0}
-          onPageChange={setCurrentPage}
-          onPageSizeChange={setPageSize}
-        />
       </div>
     </div>
   );
@@ -1589,8 +1975,13 @@ function LabsView({ investigations, regid, visitId }: { investigations: any[]; r
         </div>
       ) : (
         <>
-          <div className="pp-card pp-table-scroll" style={{ padding: 0, borderRadius: '12px' }}>
-            <table className="pp-table">
+          <div className="pp-card pp-table-scroll" style={{ padding: 0, borderRadius: '12px', border: '1px solid #ddd6fe', marginBottom: '20px' }}>
+            <div style={{ padding: '12px 16px', background: '#f5f3ff', borderBottom: '1px solid #ddd6fe', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <FlaskConical size={15} style={{ color: '#8b5cf6' }} />
+              <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#5b21b6' }}>Investigation History</span>
+              <span style={{ fontSize: '0.72rem', color: '#a78bfa', fontWeight: 600, marginLeft: '4px' }}>({investigations.length})</span>
+            </div>
+            <table className="pp-table" style={{ marginBottom: 0 }}>
               <thead style={{ position: 'sticky', top: 0, zIndex: 1, background: '#f4f3f1' }}>
                 <tr>
                   <th style={{ width: '110px' }}>Date</th>
@@ -1641,16 +2032,15 @@ function LabsView({ investigations, regid, visitId }: { investigations: any[]; r
                 ))}
               </tbody>
             </table>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              pageSize={pageSize}
+              totalItems={sortedInvs.length}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={setPageSize}
+            />
           </div>
-
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            pageSize={pageSize}
-            totalItems={sortedInvs.length}
-            onPageChange={setCurrentPage}
-            onPageSizeChange={setPageSize}
-          />
         </>
       )}
 
@@ -1789,9 +2179,9 @@ function MediaView({ regid, visitId, images }: { regid: number; visitId: number;
     if (!path) return '';
     if (path.startsWith('http')) return path;
 
-    const envUrl = import.meta.env.VITE_API_URL;
+    const envUrl = import.meta.env['VITE_API_URL'];
     if (envUrl) {
-      const baseUrl = envUrl.replace('/api', '');
+      const baseUrl = (envUrl as string).replace('/api', '');
       return `${baseUrl}${path.startsWith('/') ? path : '/' + path}`;
     }
 
@@ -1804,8 +2194,9 @@ function MediaView({ regid, visitId, images }: { regid: number; visitId: number;
     setUploading(true);
     try {
       const file = e.target.files[0];
+      if (!file) return;
       const formData = new FormData();
-      formData.append('files', file);
+      formData.append('files', file as Blob);
       formData.append('regid', String(regid));
       formData.append('visitId', String(visitId));
       formData.append('description', 'Clinical Evidence');
@@ -1977,8 +2368,13 @@ function MediaView({ regid, visitId, images }: { regid: number; visitId: number;
           })}
         </div>
       ) : (
-        <div className="pp-card" style={{ padding: 0, overflow: 'hidden' }}>
-          <table className="pp-table">
+        <div className="pp-card pp-table-scroll" style={{ padding: 0, borderRadius: '12px', border: '1px solid #99f6e4' }}>
+          <div style={{ padding: '12px 16px', background: '#f0fdfa', borderBottom: '1px solid #99f6e4', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Camera size={15} style={{ color: '#0d9488' }} />
+            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f766e' }}>Clinical Evidence List</span>
+            <span style={{ fontSize: '0.72rem', color: '#5eead4', fontWeight: 600, marginLeft: '4px' }}>({images.length})</span>
+          </div>
+          <table className="pp-table" style={{ marginBottom: 0 }}>
             <thead>
               <tr>
                 <th style={{ width: '80px' }}>Preview</th>
@@ -2152,8 +2548,13 @@ function DiagnosisView({ regid, visitId, medicalCase, soapRecords }: { regid: nu
         </div>
       ) : (
         <>
-          <div className="pp-card pp-table-scroll" style={{ padding: 0, borderRadius: '12px' }}>
-            <table className="pp-table">
+          <div className="pp-card pp-table-scroll" style={{ padding: 0, borderRadius: '12px', border: '1px solid #fde68a', marginBottom: '20px' }}>
+            <div style={{ padding: '12px 16px', background: '#fffbeb', borderBottom: '1px solid #fde68a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Sparkles size={15} style={{ color: '#d97706' }} />
+              <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#92400e' }}>Clinical Assessment History</span>
+              <span style={{ fontSize: '0.72rem', color: '#fbbf24', fontWeight: 600, marginLeft: '4px' }}>({soapRecords.length})</span>
+            </div>
+            <table className="pp-table" style={{ marginBottom: 0 }}>
               <thead style={{ position: 'sticky', top: 0, zIndex: 1, background: '#f4f3f1' }}>
                 <tr>
                   <th style={{ width: '120px' }}>Date</th>
@@ -2207,16 +2608,15 @@ function DiagnosisView({ regid, visitId, medicalCase, soapRecords }: { regid: nu
                 ))}
               </tbody>
             </table>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              pageSize={pageSize}
+              totalItems={sortedSoap.length}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={setPageSize}
+            />
           </div>
-
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            pageSize={pageSize}
-            totalItems={sortedSoap.length}
-            onPageChange={setCurrentPage}
-            onPageSizeChange={setPageSize}
-          />
         </>
       )}
 

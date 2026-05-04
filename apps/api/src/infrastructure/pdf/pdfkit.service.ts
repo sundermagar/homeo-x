@@ -1,6 +1,8 @@
 import PDFDocument from 'pdfkit';
 import { createLogger } from '../../shared/logger';
 import type { Writable } from 'stream';
+import path from 'path';
+import fs from 'fs';
 
 const logger = createLogger('pdfkit-service');
 
@@ -14,9 +16,19 @@ export class PdfkitServiceAdapter {
     clinicName: string;
     clinicAddress?: string;
     clinicPhone?: string;
+    clinicEmail?: string;
+    clinicWebsite?: string;
+    clinicLogo?: string;
+    clinicTagline?: string;
+    clinicRegistration?: string;
+    clinicTiming?: string;
     patientName: string;
     patientAge?: number;
     patientGender?: string;
+    patientPhone?: string;
+    patientAddress?: string;
+    diagnosis?: string;
+    followUpNote?: string;
     regid: number;
     potencies: any[];
     settings?: any;
@@ -26,52 +38,120 @@ export class PdfkitServiceAdapter {
         const doc = new PDFDocument({ size: 'A4', margin: 40 });
         doc.pipe(res);
 
-        // ─── Header (Letterhead Format) ───
-        doc.font('Helvetica-Bold').fontSize(22).fillColor('#1E1B4B').text(data.clinicName, { align: 'center' });
-        
-        if (data.clinicAddress || data.clinicPhone) {
-          doc.fontSize(10).font('Helvetica').fillColor('#4B5563').text(`${data.clinicAddress || ''}${data.clinicAddress && data.clinicPhone ? ' | ' : ''}${data.clinicPhone || ''}`, { align: 'center' });
+        // ─── Header (Letterhead Identity Designer Format) ───
+        const headerY = doc.y;
+        const leftPadding = 40;
+        const contentWidth = 515;
+
+        // 1. Logo & Clinic Identity (Left Side)
+        let logoOffset = 0;
+        if (data.clinicLogo) {
+          try {
+            let logoPath = data.clinicLogo;
+            if (logoPath.startsWith('/uploads')) {
+              logoPath = path.join(process.cwd(), logoPath);
+            }
+            if (fs.existsSync(logoPath)) {
+              doc.image(logoPath, leftPadding, headerY, { height: 50 });
+              logoOffset = 65;
+            }
+          } catch (err) {
+            logger.warn(`Failed to load logo: ${data.clinicLogo}`);
+          }
         }
-        
-        doc.moveDown(0.5);
-        doc.moveTo(40, doc.y).lineTo(555, doc.y).strokeColor('#E2E8F0').lineWidth(1).stroke();
+
+        const nameX = leftPadding + logoOffset;
+        doc.font('Helvetica-Bold').fontSize(18).fillColor('#0F172A').text(data.clinicName.toUpperCase(), nameX, headerY, { lineGap: -2 });
+
+        if (data.clinicTagline) {
+          doc.fontSize(9).font('Helvetica-Oblique').fillColor('#6366F1').text(data.clinicTagline, nameX, doc.y);
+        }
+
+        if (data.clinicRegistration) {
+          const badgeY = doc.y + 4;
+          const badgeText = data.clinicRegistration.toUpperCase();
+          const badgeWidth = doc.widthOfString(badgeText) + 12;
+
+          doc.roundedRect(nameX, badgeY, badgeWidth, 12, 3).fill('#F0FDF4');
+          doc.fillColor('#15803D').font('Helvetica-Bold').fontSize(6).text(badgeText, nameX + 6, badgeY + 3.5);
+          doc.y = badgeY + 15;
+        }
+
+        // 2. Contact Section (Right Side with Vertical Divider)
+        const contactX = 400;
+        const dividerX = contactX - 15;
+
+        doc.moveTo(dividerX, headerY).lineTo(dividerX, headerY + 60).strokeColor('#E2E8F0').lineWidth(1.5).stroke();
+
+        let rightY = headerY;
+        doc.fontSize(8).font('Helvetica').fillColor('#334155');
+
+        if (data.clinicAddress) {
+          doc.text(data.clinicAddress, contactX, rightY, { width: 155, align: 'left' });
+          rightY = doc.y + 3;
+        }
+
+        if (data.clinicPhone) {
+          doc.font('Helvetica-Bold').text(`Ph: ${data.clinicPhone}`, contactX, rightY, { width: 155, align: 'left' });
+          rightY = doc.y + 3;
+        }
+
+        if (data.clinicTiming) {
+          doc.font('Helvetica').text(`Hours: ${data.clinicTiming}`, contactX, rightY, { width: 155, align: 'left' });
+        }
+
+        doc.y = Math.max(doc.y, headerY + 70);
+
+        // 3. Signature Gradient Line
+        doc.moveTo(leftPadding, doc.y).lineTo(leftPadding + contentWidth, doc.y).strokeColor('#6366F1').lineWidth(2.5).stroke();
+        doc.moveTo(leftPadding, doc.y + 2.5).lineTo(leftPadding + contentWidth, doc.y + 2.5).strokeColor('#F1F5F9').lineWidth(1).stroke();
+
         doc.moveDown(1.5);
 
-        // ─── Patient Details Info Bar ───
-        doc.rect(40, doc.y, 515, 25).fill('#F8FAFC');
-        doc.fillColor('#1E293B').font('Helvetica-Bold').fontSize(10);
-        
-        const infoY = doc.y + 7;
-        doc.text('PATIENT:', 50, infoY, { continued: true });
-        doc.font('Helvetica').text(` ${data.patientName}`, { continued: true });
-        
-        doc.font('Helvetica-Bold').text('   |   AGE/GENDER:', { continued: true });
-        doc.font('Helvetica').text(` ${data.patientAge || '—'} / ${data.patientGender || '—'}`, { continued: true });
-        
-        doc.font('Helvetica-Bold').text('   |   REG ID:', { continued: true });
-        doc.font('Helvetica').text(` ${data.regid}`);
-        
+        // ─── Patient & Date Reference Blocks ───
+        const blockY = doc.y;
+
+        // Left Block: Patient Details
+        doc.fontSize(7).font('Helvetica-Bold').fillColor('#94A3B8').text('PATIENT DETAILS', leftPadding, blockY);
+        doc.fontSize(10).font('Helvetica-Bold').fillColor('#1E293B').text(data.patientName.toUpperCase(), leftPadding, doc.y + 2);
+        doc.fontSize(8).font('Helvetica').fillColor('#475569').text(`${data.patientAge || '??'} Yrs / ${data.patientGender || 'Unspecified'}`, leftPadding, doc.y + 1);
+
+        // Right Block: Date & Reference
+        const refX = 400;
+        doc.fontSize(7).font('Helvetica-Bold').fillColor('#94A3B8').text('DATE & REFERENCE', refX, blockY, { align: 'right', width: 155 });
+        doc.fontSize(9).font('Helvetica-Bold').fillColor('#1E293B').text(new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }), refX, doc.y + 2, { align: 'right', width: 155 });
+        doc.fontSize(8).font('Helvetica').fillColor('#475569').text(`REF: #RX-${data.regid}-${new Date().getTime().toString().slice(-4)}`, refX, doc.y + 1, { align: 'right', width: 155 });
+
+        doc.y = Math.max(doc.y, blockY + 45);
         doc.moveDown(2);
 
-        // ─── Rx Symbol ───
-        doc.font('Helvetica-Bold').fontSize(18).fillColor('#1E1B4B').text('Rx', 40, doc.y);
+        // ─── Diagnosis Section (if present) ───
+        if (data.diagnosis) {
+          doc.font('Helvetica-Bold').fontSize(9).fillColor('#1E293B').text('DIAGNOSIS:', leftPadding, doc.y, { continued: true });
+          doc.font('Helvetica').text(` ${data.diagnosis.toUpperCase()}`);
+          doc.moveDown(1);
+        }
+
+        // ─── Rx Section ───
+        doc.font('Helvetica-Bold').fontSize(24).fillColor('#CBD5E1').text('Rx', leftPadding);
+        doc.moveDown(0.5);
         doc.moveDown(0.5);
 
         // ─── Remedies Table ───
         const widths = [180, 100, 100, 60, 75];
         let y = doc.y;
-        
+
         // Table Header Background
         doc.rect(40, y, 515, 20).fill('#F1F5F9');
         doc.fillColor('#475569').font('Helvetica-Bold').fontSize(9);
-        
+
         const headers = ['MEDICINE / REMEDY', 'POTENCY', 'FREQUENCY', 'DAYS', 'DATE'];
         let x = 45;
         headers.forEach((h, i) => {
           doc.text(h, x, y + 6, { width: widths[i]!, align: 'left' });
           x += widths[i]!;
         });
-        
+
         y += 26;
         doc.font('Helvetica').fontSize(10).fillColor('#1E293B');
 
@@ -102,10 +182,22 @@ export class PdfkitServiceAdapter {
             doc.text(cell, x, y, { width: widths[i]!, align: 'left' });
             x += widths[i]!;
           });
-          
+
           y += 20;
           doc.moveTo(40, y - 4).lineTo(555, y - 4).strokeColor('#F1F5F9').lineWidth(0.5).stroke();
         });
+
+        // ─── Follow-up & Advice Section ───
+        if (data.followUpNote) {
+          doc.moveDown(2);
+          const currentY = doc.y;
+          if (currentY > 700) doc.addPage();
+
+          doc.font('Helvetica-Bold').fontSize(11).fillColor('#1E1B4B').text('FOLLOW-UP NOTES / ADVICE:');
+          doc.moveTo(40, doc.y).lineTo(200, doc.y).strokeColor('#E2E8F0').lineWidth(1).stroke();
+          doc.moveDown(0.5);
+          doc.font('Helvetica').fontSize(10).fillColor('#334155').text(data.followUpNote, { width: 515, align: 'left', lineGap: 2 });
+        }
 
         // ─── Footer ───
         const pageHeight = doc.page.height;

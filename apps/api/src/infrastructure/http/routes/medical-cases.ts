@@ -8,6 +8,7 @@ import { BillingRepositoryPg } from '../../repositories/billing.repository.pg';
 import { AppointmentRepositoryPG } from '../../repositories/appointment.repository.pg';
 import { authMiddleware } from '../middleware/auth';
 import { SettingsRepositoryPg } from '../../repositories/settings.repository.pg';
+import { OrganizationRepositoryPg } from '../../repositories/organization.repository.pg';
 import { CreateMedicalCaseUseCase } from '../../../domains/medical-case/use-cases/create-medical-case.use-case';
 import { GetFullMedicalCaseUseCase } from '../../../domains/medical-case/use-cases/get-full-medical-case.use-case';
 import { FinalizeConsultationUseCase } from '../../../domains/medical-case/use-cases/finalize-consultation.use-case';
@@ -125,6 +126,12 @@ router.post('/vaccines', asyncHandler(async (req, res) => {
   const useCase = new ManageClinicalRecordsUseCase(getRepo(req));
   await useCase.saveVaccine(req.body);
   sendSuccess(res, null, 'Vaccine recorded');
+}));
+
+router.delete('/vaccines/:id', asyncHandler(async (req, res) => {
+  const repo = getRepo(req);
+  await repo.deleteVaccine(Number(req.params.id));
+  sendSuccess(res, null, 'Vaccine record deleted');
 }));
 
 // ─── Reminders ───
@@ -392,10 +399,14 @@ router.get('/remedy-chart/pdf/:regid', asyncHandler(async (req, res) => {
   const repo = getRepo(req);
   const settingsRepo = getSettingsRepo(req);
 
-  const [prescriptions, caseData, settings] = await Promise.all([
+  const clinicId = (req as any).user?.contextId;
+  const orgRepo = new OrganizationRepositoryPg(req.publicDb);
+
+  const [prescriptions, caseData, settings, organization] = await Promise.all([
     uc.getPrescriptionsForPatient(regid),
-    repo.getUnifiedCaseData(regid),
-    settingsRepo.listPdfSettings()
+    repo.getCaseSummaryForPdf(regid),
+    settingsRepo.listPdfSettings(),
+    clinicId ? orgRepo.findById(clinicId) : Promise.resolve(null)
   ]);
 
   const defaultSetting = settings.find((s: any) => s.isDefault) || settings[0];
@@ -408,12 +419,22 @@ router.get('/remedy-chart/pdf/:regid', asyncHandler(async (req, res) => {
   res.setHeader('Content-Disposition', `inline; filename="prescription-${regid}.pdf"`);
 
   await pdfService.generatePrescription(res, {
-    clinicName: defaultSetting?.templateName || (req as any).tenantDb?.schemaName || 'Homeo-X Clinic',
-    clinicAddress: patient?.city || '', // Placeholder or from settings
-    clinicPhone: patient?.phone || '',   // Placeholder or from settings
+    clinicName: organization?.name || defaultSetting?.templateName || (req as any).tenantDb?.schemaName || 'Homeo-X Clinic',
+    clinicAddress: organization?.address || (defaultSetting as any)?.clinicAddress || '',
+    clinicPhone: organization?.phone || (defaultSetting as any)?.clinicPhone || '',
+    clinicEmail: organization?.email || '',
+    clinicWebsite: organization?.website || '',
+    clinicLogo: organization?.logo || '',
+    clinicTagline: organization?.tagLine || '',
+    clinicRegistration: organization?.registration || '',
+    clinicTiming: organization?.timing || '',
     patientName: patient?.patientName || `Patient ${regid}`,
     patientAge: (patient as any)?.age,
     patientGender: patient?.gender || '',
+    patientPhone: patient?.phone || patient?.mobile || '',
+    patientAddress: [patient?.address, patient?.city, patient?.state].filter(Boolean).join(', '),
+    diagnosis: patient?.condition || '',
+    followUpNote: caseData?.notes?.find((n: any) => n.notesType === 'Followup')?.notes || '',
     regid,
     potencies: prescriptions.map((p: any) => ({
       medicine: p.remedy_name || p.remedyName,

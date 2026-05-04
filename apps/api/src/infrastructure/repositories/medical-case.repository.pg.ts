@@ -126,6 +126,69 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
       .where(eq(schema.medicalCases.id, id));
   }
 
+  /**
+   * Lightweight fetcher for PDF generation to avoid connection overhead of getUnifiedCaseData.
+   */
+  async getCaseSummaryForPdf(regid: number): Promise<{ medicalCase: any; notes: any[] } | null> {
+    try {
+      const [medicalCase] = await this.db
+        .select({
+          id: schema.medicalCases.id,
+          regid: schema.medicalCases.regid,
+          condition: sql<string>`COALESCE(${schema.medicalCases.condition}, '')`,
+          patientName: sql<string>`${schema.patients.firstName} || ' ' || ${schema.patients.surname}`,
+          phone: schema.patients.phone,
+          mobile: schema.patients.mobile1,
+          gender: schema.patients.gender,
+          address: schema.patients.address,
+          dateOfBirth: schema.patients.dateOfBirth,
+          city: schema.patients.city,
+          state: schema.patients.state,
+        })
+        .from(schema.medicalCases)
+        .leftJoin(schema.patients, eq(schema.medicalCases.regid, schema.patients.regid))
+        .where(eq(schema.medicalCases.regid, regid))
+        .orderBy(desc(schema.medicalCases.createdAt))
+        .limit(1);
+
+      if (!medicalCase) {
+        // Fallback to patient only if no case
+        const [patient] = await this.db
+          .select()
+          .from(schema.patients)
+          .where(eq(schema.patients.regid, regid))
+          .limit(1);
+        
+        if (!patient) return null;
+        
+        return {
+          medicalCase: {
+            regid,
+            patientName: `${patient.firstName} ${patient.surname}`,
+            phone: patient.phone,
+            gender: patient.gender,
+            city: patient.city,
+          },
+          notes: []
+        };
+      }
+
+      const notes = await this.db
+        .select()
+        .from(schema.caseNotes)
+        .where(eq(schema.caseNotes.regid, regid))
+        .orderBy(desc(schema.caseNotes.createdAt))
+        .limit(5);
+
+      return { medicalCase, notes };
+    } catch (err) {
+      console.error('getCaseSummaryForPdf error:', err);
+      return null;
+    }
+  }
+
+
+
   async getUnifiedCaseData(regid: number): Promise<FullCaseData | null> {
     try {
       const medicalCases = await this.db
@@ -585,7 +648,8 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
       })
       .from(schema.caseVaccines)
       .leftJoin(schema.vaccineMaster, eq(schema.caseVaccines.vaccineId, schema.vaccineMaster.id))
-      .where(eq(schema.caseVaccines.regid, regid));
+      .where(eq(schema.caseVaccines.regid, regid))
+      .orderBy(desc(schema.caseVaccines.createdAt));
     return rows as any[];
   }
 
@@ -597,7 +661,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
     if (data.id) {
       await this.db.update(schema.caseVaccines).set(data).where(eq(schema.caseVaccines.id, data.id));
     } else {
-      await this.db.insert(schema.caseVaccines).values(data as any);
+      await this.db.insert(schema.caseVaccines).values({ ...data, createdAt: new Date() } as any);
     }
   }
 

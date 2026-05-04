@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Search, BookOpen, ChevronRight, Activity,
   FlaskConical, Save, Trash2, Calendar, FileText, Printer, Plus, X,
-  History, Edit, MoreHorizontal
+  History, Edit, MoreHorizontal, Truck, Home, Package
 } from 'lucide-react';
 import { useManageClinicalRecords } from '../hooks/use-medical-cases';
 import {
@@ -17,6 +17,7 @@ import {
   PrescriptionRow
 } from '../hooks/use-remedy-chart';
 import { useDayCharges } from '../../billing/hooks/use-accounts';
+import { useAuthStore } from '@/shared/stores/auth-store';
 import { Pagination } from '@/components/shared/pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
 
@@ -289,8 +290,7 @@ export function RemedyChartSession({ regid, onDayChargeChange }: { regid?: numbe
   };
 
   const handlePrintRow = (rx: PrescriptionRow) => {
-    const authStorage = localStorage.getItem('auth-storage');
-    const token = authStorage ? JSON.parse(authStorage).state.token : '';
+    const token = useAuthStore.getState().token;
     window.open(`/api/medical-cases/remedy-chart/pdf/${regid}?token=${token}`, '_blank');
   };
 
@@ -322,23 +322,41 @@ export function RemedyChartSession({ regid, onDayChargeChange }: { regid?: numbe
             </button>
           </div>
 
-          {/* Delivery Modes */}
-          <div style={{ display: 'flex', gap: '8px', flex: '1 1 300px', justifyContent: 'flex-start' }}>
-            {['clinic', 'courier', 'pickup'].map(mode => (
-              <button
-                key={mode}
-                onClick={() => setDelivery(mode)}
-                style={{
-                  flex: 1, minWidth: '80px', padding: '10px', borderRadius: '10px', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', textTransform: 'capitalize',
-                  background: 'white',
-                  border: delivery === mode ? '2px solid var(--pp-blue)' : '1px solid var(--pp-warm-4)',
-                  color: delivery === mode ? 'var(--pp-blue)' : 'var(--pp-text-3)',
-                  transition: 'all 0.2s'
-                }}
-              >
-                {mode}
-              </button>
-            ))}
+          {/* Delivery Mode Dropdown */}
+          <div style={{ flex: '0 0 220px', position: 'relative' }}>
+            <select
+              value={delivery}
+              onChange={(e) => setDelivery(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px 12px 10px 40px',
+                borderRadius: '10px',
+                fontSize: '0.85rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                appearance: 'none',
+                background: 'white',
+                border: '1px solid var(--pp-warm-4)',
+                color: 'var(--pp-text-2)',
+                outline: 'none',
+                transition: 'all 0.2s',
+                boxShadow: '0 2px 5px rgba(0,0,0,0.03)'
+              }}
+              onFocus={(e) => e.target.style.borderColor = 'var(--pp-blue)'}
+              onBlur={(e) => e.target.style.borderColor = 'var(--pp-warm-4)'}
+            >
+              <option value="clinic">Clinic Delivery</option>
+              <option value="courier">Courier Service</option>
+              <option value="pickup">Self Pickup</option>
+            </select>
+            <div style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--pp-blue)', pointerEvents: 'none', display: 'flex' }}>
+              {delivery === 'clinic' && <Home size={18} />}
+              {delivery === 'courier' && <Truck size={18} />}
+              {delivery === 'pickup' && <Package size={18} />}
+            </div>
+            <div style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none', display: 'flex' }}>
+              <ChevronRight size={14} style={{ transform: 'rotate(90deg)' }} />
+            </div>
           </div>
         </div>
         {/* Print Buttons */}
@@ -449,11 +467,16 @@ export function RemedyChartSession({ regid, onDayChargeChange }: { regid?: numbe
             </div>
           </div>
 
-          <div className="pp-card pp-table-scroll" style={{ padding: 0 }}>
+          <div className="pp-card pp-table-scroll" style={{ padding: 0, borderRadius: '12px', border: '1px solid #bfdbfe' }}>
+            <div style={{ padding: '12px 16px', background: '#eff6ff', borderBottom: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <BookOpen size={15} style={{ color: '#3b82f6' }} />
+              <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#1e40af' }}>Prescription History</span>
+              <span style={{ fontSize: '0.72rem', color: '#60a5fa', fontWeight: 600, marginLeft: '4px' }}>({history?.length || 0})</span>
+            </div>
             {isLoading ? (
               <TableSkeleton rows={5} cols={8} />
             ) : (
-              <table className="pp-table">
+              <table className="pp-table" style={{ marginBottom: 0 }}>
                 <thead style={{ position: 'sticky', top: 0, zIndex: 10, background: '#f8fafc' }}>
                   <tr>
                     <th>DATE</th>
@@ -477,7 +500,7 @@ export function RemedyChartSession({ regid, onDayChargeChange }: { regid?: numbe
                       </td>
                       <td>
                         <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1e293b', letterSpacing: '-0.01em' }}>
-                          {rx.remedy_name}
+                           {rx.remedy_name}
                         </div>
                       </td>
                       <td>
@@ -500,7 +523,7 @@ export function RemedyChartSession({ regid, onDayChargeChange }: { regid?: numbe
                             <button onClick={() => handleEdit(rx)} className="mc-action-btn" title="Edit"><Edit size={14} /></button>
                             <button onClick={() => handleDelete(rx.id, rx.remedy_name)} className="mc-action-btn danger" title="Remove"><Trash2 size={14} /></button>
                           </div>
-
+ 
                           {/* Mobile 3-Dots Menu */}
                           <div className="mc-mobile-actions">
                             <button className="mc-dots-btn"><MoreHorizontal size={18} /></button>

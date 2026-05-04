@@ -127,6 +127,13 @@ export function useManageClinicalRecords() {
     },
   });
 
+  const deleteVaccine = useMutation({
+    mutationFn: (id: number) => api.delete(`/medical-cases/vaccines/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['medical-case', 'full'] });
+    },
+  });
+
   const saveReminder = useMutation({
     mutationFn: (data: any) => api.post('/medical-cases/reminders', data),
     onSuccess: (_, variables) => {
@@ -214,6 +221,7 @@ export function useManageClinicalRecords() {
     updateImage,
     deleteImage,
     saveVaccine,
+    deleteVaccine,
     saveReminder,
     deleteReminder,
     saveAdditionalCharge,

@@ -113,6 +113,7 @@ export default function PatientListPage() {
   const [drawerRegid, setDrawerRegid] = useState<number | null>(null);
 
   const user = useAuthStore(s => s.user);
+  const token = useAuthStore(s => s.token);
 
   const { data, isLoading, refetch } = usePatients({
     page, limit: pageSize, search: debouncedSearch,
@@ -156,10 +157,10 @@ export default function PatientListPage() {
       <button className="appt-kebab-item" onClick={() => { openWhatsApp(p.phone, p.fullName); closeMenu(); }}>
         <MessageCircle size={14} /> WhatsApp
       </button>
-      <button className="appt-kebab-item" onClick={() => { window.open(`/api/medical-cases/remedy-chart/pdf/${p.regid}`, '_blank'); closeMenu(); }}>
+      <button className="appt-kebab-item" onClick={() => { window.open(`/api/medical-cases/remedy-chart/pdf/${p.regid}?token=${token}`, '_blank'); closeMenu(); }}>
         <Printer size={14} /> Print Prescription
       </button>
-      <button className="appt-kebab-item" onClick={() => { window.open(`/api/medical-cases/pdf/summary/${p.regid}`, '_blank'); closeMenu(); }}>
+      <button className="appt-kebab-item" onClick={() => { window.open(`/api/medical-cases/pdf/summary/${p.regid}?token=${token}`, '_blank'); closeMenu(); }}>
         <Download size={14} /> Download Report
       </button>
       <div className="appt-kebab-divider" />

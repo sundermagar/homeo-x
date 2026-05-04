@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { CheckCircle2, ArrowRight, Stethoscope, Brain, FlaskConical, UserCircle } from 'lucide-react';
+import { CheckCircle2, ArrowRight, Stethoscope, Brain, FlaskConical, UserCircle, History } from 'lucide-react';
 
 import type { VideoCallState, CallMode } from '../components/consultation-header';
 import { PatientInfoStage } from '../components/stages/patient-info-stage';
@@ -688,6 +688,13 @@ export function HomeopathyConsultationLayout({
                 className="w-full pp-btn-primary h-10 flex items-center justify-center"
               >
                 Next Patient <ArrowRight className="h-4 w-4 ml-2" />
+              </button>
+
+              <button
+                onClick={() => navigate(`/medical-cases/${patient?.regid || visit.patientId}`)}
+                className="w-full h-10 flex items-center justify-center text-sm font-bold text-[#4A4A47] border border-[#E3E2DF] bg-white rounded-md hover:bg-[#F4F3F1] transition-colors"
+              >
+                <History className="h-4 w-4 mr-2" /> View Patient History
               </button>
             </div>
 
