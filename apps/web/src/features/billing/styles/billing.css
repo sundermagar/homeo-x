@@ -392,13 +392,37 @@
 
 /* ─── Empty State ─── */
 .bill-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   text-align: center;
-  padding: 60px 20px;
-  color: var(--pp-text-4);
+  padding: 6rem 2rem;
+  color: var(--pp-text-3);
+  background: var(--bg-surface-1);
+  border-radius: var(--pp-radius-card);
+  margin: 1rem;
+  border: 1px dashed var(--pp-warm-4);
 }
 
-.bill-empty-icon { margin-bottom: 12px; opacity: 0.3; }
-.bill-empty-text { font-size: 0.875rem; color: var(--pp-text-3); margin-top: 6px; font-weight: 500; }
+.bill-empty-icon { 
+  color: var(--pp-blue);
+  opacity: 0.15; 
+  margin-bottom: 24px;
+  background: var(--pp-blue-tint);
+  padding: 20px;
+  border-radius: 50%;
+  width: 80px;
+  height: 80px;
+}
+
+.bill-empty-text { 
+  font-size: 1rem; 
+  color: var(--pp-text-3); 
+  font-weight: 600; 
+  margin: 0; 
+  letter-spacing: -0.01em;
+}
 
 /* ─── Modal ─── */
 .bill-modal-overlay {

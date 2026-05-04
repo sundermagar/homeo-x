@@ -167,6 +167,13 @@ export default function BillingListPage() {
 
       {billsQuery.isLoading ? (
         <TableSkeleton rows={8} columns={8} />
+      ) : bills.length === 0 ? (
+        <div className="bill-card">
+          <div className="bill-empty">
+            <Receipt size={32} className="bill-empty-icon" />
+            <p className="bill-empty-text">No billing records found for this date.</p>
+          </div>
+        </div>
       ) : viewMode === 'list' ? (
         <BillingTable bills={bills} isLoading={false} />
       ) : (

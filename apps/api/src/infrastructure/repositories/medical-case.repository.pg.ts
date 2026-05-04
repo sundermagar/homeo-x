@@ -218,7 +218,8 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
           })
           .from(schema.vitals)
           .innerJoin(schema.appointments, eq(schema.vitals.visitId, schema.appointments.id))
-          .where(eq(schema.appointments.patientId, regid))
+          .innerJoin(schema.patients, eq(schema.appointments.patientId, schema.patients.id))
+          .where(eq(schema.patients.regid, regid))
           .orderBy(desc(schema.vitals.recordedAt)),
 
         // SOAP: Fetch all SOAP notes recorded for this patient's visits
@@ -236,7 +237,8 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
           })
           .from(schema.legacySoapNotes)
           .innerJoin(schema.appointments, eq(schema.legacySoapNotes.visitId, schema.appointments.id))
-          .where(eq(schema.appointments.patientId, regid))
+          .innerJoin(schema.patients, eq(schema.appointments.patientId, schema.patients.id))
+          .where(eq(schema.patients.regid, regid))
           .orderBy(desc(schema.legacySoapNotes.id)),
 
         this.getHomeoDetails(regid),
@@ -269,8 +271,15 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
           .where(and(eq(schema.legacyPrescriptions.regid, regid), isNull(schema.legacyPrescriptions.deletedAt)))
           .orderBy(desc(schema.legacyPrescriptions.createdAt)),
         
-        // AI Prescriptions: Raw fetch for the newer text-based table
-        this.db.execute(sql`SELECT * FROM "prescriptions" WHERE "regid" = ${regid} ORDER BY "id" DESC`) as Promise<any[]>,
+        // AI Prescriptions: Resilient raw fetch for the newer text-based table
+        (async () => {
+          try {
+            return await this.db.execute(sql`SELECT * FROM "prescriptions" WHERE "regid" = ${regid} ORDER BY "id" DESC`) as any[];
+          } catch (e: any) {
+            console.warn(`⚠️ [MedicalCaseRepositoryPg] prescriptions table missing or error for regid ${regid}:`, e.message);
+            return [];
+          }
+        })(),
         
         this.getVaccines(regid),
         this.getReminders(regid)

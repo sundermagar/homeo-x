@@ -18,6 +18,7 @@ import {
   Building2,
   CalendarClock,
   Ticket,
+  Package,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -275,8 +276,7 @@ export function AdminDashboard() {
 
       {/* ── Quick Actions ─────────────────────────────────────────────── */}
       <div className="sa-actions-grid">
-        <QuickAction icon={<CalendarClock size={18} />} label="Appointments" sub="Schedule & bookings" onClick={() => navigate('/appointments')} />
-        <QuickAction icon={<Activity size={18} />} label="Medical Cases" sub="Clinical history & followups" onClick={() => navigate('/medical-cases')} />
+        <QuickAction icon={<Package size={18} />} label="Package Tracking" sub="Logistics & shipments" onClick={() => navigate('/packages/tracking')} />
         <QuickAction icon={<CreditCard size={18} />} label="Financials" sub="Ledger, payments & dues" onClick={() => navigate('/billing')} />
         <QuickAction icon={<BarChart3 size={18} />} label="Performance" sub="Registry & revenue insights" onClick={() => navigate('/analytics')} />
       </div>
