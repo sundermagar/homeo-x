@@ -26,7 +26,10 @@ function formatWaitTime(checkedInAt: Date | string | null) {
   return `${Math.floor(diff / 60)}h ${diff % 60}m wait`;
 }
 
+import { useNavigate } from 'react-router-dom';
+
 export default function TokenQueuePage() {
+  const navigate = useNavigate();
   const today = new Date().toISOString().split('T')[0]!;
   const user = useAuthStore((s) => s.user);
   const rawRole = ((user as any)?.type || (user as any)?.role || (user as any)?.roleName || '').toLowerCase();
