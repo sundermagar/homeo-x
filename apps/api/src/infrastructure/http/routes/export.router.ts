@@ -68,8 +68,8 @@ exportRouter.get('/:type', async (req: Request, res: Response) => {
         if (!tbl) { res.status(404).json({ success: false, message: 'Patients table not found' }); return; }
         const isLegacy = tbl === 'case_datas';
         data = await pgExport(db, isLegacy
-          ? `SELECT regid, CONCAT(first_name, ' ', COALESCE(surname, '')) AS name, mobile1 AS mobile, gender, dob, city, created_at FROM case_datas ORDER BY regid ASC`
-          : `SELECT regid, first_name, surname, gender, dob, phone, mobile1, email, address, city, state, created_at FROM patients WHERE deleted_at IS NULL ORDER BY regid ASC`
+          ? `SELECT regid, CONCAT(first_name, ' ', COALESCE(surname, '')) AS name, mobile1 AS mobile, gender, date_of_birth AS dob, city, created_at FROM case_datas ORDER BY regid ASC`
+          : `SELECT regid, first_name, surname, gender, date_of_birth AS dob, phone, mobile1, email, address, city, state, created_at FROM patients WHERE deleted_at IS NULL ORDER BY regid ASC`
         );
         filename = 'patient_registry.csv';
         break;
@@ -92,7 +92,16 @@ exportRouter.get('/:type', async (req: Request, res: Response) => {
       case 'billing': {
         const tbl = await detectTable(db, ['receipt', 'bill', 'bills']);
         if (!tbl) { res.status(404).json({ success: false, message: 'Billing table not found' }); return; }
-        data = await pgExport(db, `
+        const isLegacyBilling = tbl === 'receipt';
+        data = await pgExport(db, isLegacyBilling 
+          ? `
+          SELECT b.id, b.regid, b.receiptdate AS bill_date, '' AS charges, b.amount AS received, '' AS balance, b.mode AS payment_mode, b.created_at
+          FROM "receipt" b
+          WHERE b.deleted_at IS NULL OR b.deleted_at::text = ''
+          ORDER BY b.id DESC
+          LIMIT 5000
+          `
+          : `
           SELECT b.id, b.regid, b.bill_date, b.charges, b.received, b.balance, b.payment_mode, b.created_at
           FROM "${tbl}" b
           WHERE b.deleted_at IS NULL OR b.deleted_at::text = ''

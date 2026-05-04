@@ -685,7 +685,7 @@ export default function AccountManagersPage() {
                     </td>
                     <td data-label="Actions">
                       <div className="plat-cell-val">
-                        <div className="flex justify-end gap-2" style={{ width: '100%' }}>
+                        <div className="flex gap-2">
                           <button className="plat-btn plat-btn-icon plat-btn-ghost" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={() => handleEdit(s)}>
                             <Edit2 size={13} />
                           </button>

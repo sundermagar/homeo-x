@@ -105,10 +105,22 @@ export default function AppointmentListPage() {
   let isPending = listQuery.isLoading;
 
   if (tab === 'today') {
-    totalEntries = todayData.length;
+    let filtered = todayData;
+    if (search) {
+      const s = search.toLowerCase();
+      filtered = filtered.filter(a => 
+        (a.patientName || '').toLowerCase().includes(s) || 
+        (a.patientNameFromCase || '').toLowerCase().includes(s) || 
+        (a.phone || '').includes(s)
+      );
+    }
+    if (status) {
+      filtered = filtered.filter(a => a.status === status);
+    }
+    totalEntries = filtered.length;
     isPending = todayQuery.isLoading;
     const startIndex = (page - 1) * pageSize;
-    data = todayData.slice(startIndex, startIndex + pageSize);
+    data = filtered.slice(startIndex, startIndex + pageSize);
   } else if (tab === 'pending') {
     const pendingData = todayData.filter(a => ['Pending', 'Waitlist', 'Scheduled'].includes(a.status));
     totalEntries = pendingData.length;
@@ -203,8 +215,16 @@ export default function AppointmentListPage() {
             <option value="">All Statuses</option>
             {STATUS_OPTIONS.filter(Boolean).map(s => <option key={s} value={s}>{s}</option>)}
           </select>
-          <input className="appt-filter-input" type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} title="From Date" />
-          <input className="appt-filter-input" type="date" value={toDate} onChange={e => setToDate(e.target.value)} title="To Date" />
+          <input className="appt-filter-input" type="date" value={fromDate} onChange={e => {
+            setFromDate(e.target.value);
+            if (tab === 'today') setTab('all');
+            setPage(1);
+          }} title="From Date" />
+          <input className="appt-filter-input" type="date" value={toDate} onChange={e => {
+            setToDate(e.target.value);
+            if (tab === 'today') setTab('all');
+            setPage(1);
+          }} title="To Date" />
           <button className="appt-btn appt-btn-sm" onClick={() => { setSearch(''); setStatus(''); setFromDate(''); setToDate(''); setPage(1); }}>
             <Filter size={13} strokeWidth={1.6} /> Clear
           </button>

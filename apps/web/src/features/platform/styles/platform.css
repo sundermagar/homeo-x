@@ -283,6 +283,23 @@
   border-bottom: none;
 }
 
+/* ─── Actions Column Alignment ─── */
+.plat-table th:last-child,
+.plat-table td:last-child {
+  text-align: center;
+  width: 100px;
+}
+
+.plat-table td:last-child .plat-cell-val {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.plat-table td:last-child .plat-cell-val > div {
+  justify-content: center;
+}
+
 .plat-mono-data {
   font-family: var(--pp-font-mono);
   font-size: 12px;
