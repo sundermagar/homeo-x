@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import { TenantRegistry, createDbClient } from '@mmc/database';
-import { createLogger } from '../../../shared/logger';
+import { createLogger } from '../../../shared/logger.js';
 
 const logger = createLogger('tenant');
 
