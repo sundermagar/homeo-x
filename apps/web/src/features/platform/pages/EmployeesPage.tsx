@@ -59,7 +59,7 @@ function FileInputRow({
   );
 }
 
-const mobileStyles = ``;
+
 
 type StaffFormErrors = {
   general?: string;
@@ -715,7 +715,6 @@ export default function EmployeesPage() {
           onSuccess={() => { setEditingId(null); }}
         />
       )}
-      <style>{mobileStyles}</style>
     </div>
   );
 }

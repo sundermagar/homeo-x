@@ -158,76 +158,7 @@ export default function SmsReportsPage() {
           </>
         )}
       </div>
-      <style>{`
-        @media (max-width: 1024px) {
-          .comm-header { flex-direction: column !important; align-items: stretch !important; gap: 12px !important; }
-          .comm-stats { grid-template-columns: 1fr !important; }
-          .comm-filters { flex-direction: column !important; align-items: stretch !important; }
-          .comm-filter-input { width: 100% !important; height: 44px !important; border-radius: 12px !important; }
-          .comm-search-wrap { width: 100% !important; }
-          
-          .comm-card { border: none !important; box-shadow: none !important; background: transparent !important; }
-          .comm-table-wrap { border: none !important; overflow: visible !important; }
-          .comm-table { display: block !important; width: 100% !important; min-width: 0 !important; }
-          .comm-table thead { display: none !important; }
-          .comm-table tbody { display: block !important; width: 100% !important; }
-          .comm-table tr { 
-            display: block !important; 
-            margin-bottom: 20px !important; 
-            background: var(--bg-card) !important; 
-            border: 1px solid var(--border-main) !important; 
-            border-radius: 16px !important; 
-            padding: 8px 0 !important;
-            box-shadow: var(--pp-shadow-sm) !important;
-            overflow: hidden;
-          }
-          .comm-table td {
-            display: grid !important;
-            grid-template-columns: 110px 1fr !important;
-            gap: 12px !important;
-            align-items: center !important;
-            padding: 12px 20px !important;
-            border-bottom: 1px dashed var(--border-main) !important;
-            min-height: 44px;
-            text-align: right !important;
-            width: 100% !important;
-          }
-          .comm-table td:last-child { border-bottom: none !important; }
-          
-          .comm-table td::before {
-            content: attr(data-label);
-            font-size: 10px !important;
-            font-weight: 800 !important;
-            color: var(--text-muted) !important;
-            text-transform: uppercase !important;
-            letter-spacing: 0.08em !important;
-            text-align: left !important;
-            opacity: 0.8;
-          }
-          
-          .comm-table-message { 
-            white-space: normal !important; 
-            text-align: right !important;
-            width: 100% !important;
-            min-width: 0 !important;
-          }
-          .comm-msg-text {
-            display: -webkit-box !important;
-            -webkit-line-clamp: 4 !important;
-            -webkit-box-orient: vertical !important;
-            overflow: hidden !important;
-            word-break: break-word !important;
-            line-height: 1.4 !important;
-            color: var(--text-main) !important;
-          }
-          .comm-table-date, .comm-table-phone, .comm-table-ref { 
-            font-weight: 700 !important; 
-            color: var(--text-main) !important; 
-            min-width: 0 !important;
-            word-break: break-all !important;
-          }
-        }
-      `}</style>
+
     </div>
   );
 }

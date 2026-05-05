@@ -629,75 +629,7 @@ export default function MedicinesPage() {
           font-size: 15px;
         }
 
-        @media (max-width: 1024px) {
-          .plat-header { flex-direction: column !important; align-items: stretch !important; gap: 16px !important; margin-bottom: 24px !important; }
-          .plat-header-actions { width: 100%; }
-          .plat-header-actions .plat-btn { width: 100%; height: 44px; border-radius: 12px; justify-content: center; }
-          
-          .plat-stats-bar { grid-template-columns: 1fr !important; gap: 12px !important; margin-bottom: 24px !important; }
-          
-          .plat-filters { flex-direction: column; align-items: stretch; gap: 12px; border-radius: 16px !important; padding: 12px !important; }
-          .plat-search-wrap { width: 100% !important; }
-          .plat-search-input { width: 100% !important; height: 44px !important; border-radius: 12px !important; }
-          
-          .pp-card.pp-table-scroll { border: none !important; background: transparent !important; overflow: visible !important; }
-          .pp-table { display: block !important; width: 100% !important; }
-          .pp-table thead { display: none !important; }
-          .pp-table tbody { display: block !important; width: 100% !important; }
-          
-          .pp-table tr { 
-            display: block !important; 
-            margin-bottom: 20px !important; 
-            background: var(--bg-card) !important; 
-            border: 1px solid var(--border-main) !important; 
-            border-radius: 18px !important; 
-            padding: 8px 0 !important;
-            box-shadow: var(--pp-shadow-sm) !important;
-            position: relative;
-            overflow: hidden;
-          }
-          
-          .pp-table td {
-            display: flex !important;
-            flex-direction: column !important;
-            gap: 4px !important;
-            padding: 12px 20px !important;
-            border-bottom: 1px dashed var(--border-main) !important;
-            min-height: auto !important;
-            text-align: left !important;
-            width: 100% !important;
-            align-items: flex-start !important;
-          }
-          
-          .pp-table td::before {
-            content: attr(data-label);
-            font-size: 10px !important;
-            font-weight: 800 !important;
-            color: var(--text-muted) !important;
-            text-transform: uppercase !important;
-            letter-spacing: 0.05em !important;
-            margin-bottom: 4px;
-          }
-          
-          /* Special handling for Remedy & Indication */
-          .pp-table td:nth-child(2) { padding-top: 16px !important; }
-          .pp-table td:nth-child(2)::before { display: none; }
-          
-          .pp-table td:last-child { 
-            border-bottom: none !important; 
-            background: var(--bg-surface-2) !important; 
-            padding: 16px 20px !important; 
-            flex-direction: row !important;
-            justify-content: space-between !important;
-            align-items: center !important;
-          }
-          .pp-table td:last-child::before { content: 'QUICK ACTIONS'; margin-bottom: 0; }
-          
-          .med-action-cluster { justify-content: flex-end; width: auto; }
-          .med-avatar-icon { width: 44px; height: 44px; font-size: 18px; }
-          .med-stat-card { padding: 16px !important; }
-          .med-form-grid { grid-template-columns: 1fr; }
-        }
+
       `}</style>
     </div>
   );

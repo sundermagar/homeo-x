@@ -50,10 +50,18 @@
 /* ─── KPI Stats Bar ─── */
 .bill-stats-bar {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr;
   gap: var(--pp-space-3);
   margin-bottom: var(--pp-space-5);
 }
+
+@media (min-width: 480px) {
+  .bill-stats-bar {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+
 
 @media (min-width: 768px) {
   .bill-stats-bar {
@@ -173,61 +181,6 @@
 .bill-table-row:hover td { background: var(--pp-warm-1); }
 .bill-table tr:last-child td { border-bottom: none; }
 
-/* ─── Mobile Table Cards ─── */
-@media (max-width: 767px) {
-  .bill-table-container {
-    overflow-x: hidden;
-  }
-  
-  .bill-table, .bill-table tbody, .bill-table tr, .bill-table td {
-    display: block;
-    width: 100%;
-  }
-
-  .bill-table thead {
-    display: none;
-  }
-
-  .bill-table tr {
-    border-bottom: 1px solid var(--pp-warm-4);
-    padding: var(--pp-space-4);
-    background: var(--bg-card);
-  }
-  
-  .bill-table tr:last-child {
-    border-bottom: none;
-  }
-
-  .bill-table td {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 6px 0;
-    border-bottom: none;
-    font-size: 0.85rem;
-  }
-
-  .bill-table td::before {
-    content: attr(data-label);
-    font-size: 0.68rem;
-    font-weight: 800;
-    color: var(--pp-text-3);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    margin-right: 12px;
-  }
-  
-  .bill-table td:last-child {
-    margin-top: 8px;
-    padding-top: 10px;
-    border-top: 1px solid var(--pp-warm-2);
-    justify-content: flex-end;
-  }
-  
-  .bill-table td:last-child::before {
-    display: none;
-  }
-}
 
 /* ─── Buttons ─── */
 .bill-btn {

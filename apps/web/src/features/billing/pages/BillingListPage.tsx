@@ -245,9 +245,7 @@ export default function BillingListPage() {
           .bill-header-actions .bill-btn { height: 44px; justify-content: center; border-radius: 12px; }
           .bill-filter-input { width: 100% !important; height: 44px; border-radius: 12px; }
 
-          .bill-stats-bar { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
           .bill-stat-card { padding: 12px !important; }
-          .bill-stat-value { font-size: 18px !important; }
 
           .bill-section-header { flex-wrap: wrap; gap: 12px; }
           .bill-section-controls { width: 100%; }

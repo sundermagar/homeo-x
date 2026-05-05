@@ -4642,21 +4642,6 @@
   display: flex;
 }
 
-@media (max-width: 768px) {
-  .mc-desktop-actions {
-    display: none;
-  }
-  .mc-mobile-actions {
-    display: block;
-  }
-  
-  .pp-table th:nth-child(3),
-  .pp-table td:nth-child(3),
-  .pp-table th:nth-child(4),
-  .pp-table td:nth-child(4) {
-    display: none; /* Hide Potency & Frequency on small screens to fit date/name/action */
-  }
-}
 
 /* ─── AI Consultant Mobile Fixes ─── */
 @media (max-width: 640px) {

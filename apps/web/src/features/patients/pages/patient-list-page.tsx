@@ -31,7 +31,8 @@ function openWhatsApp(phone: string | null, name: string) {
 }
 
 function getInitials(name: string) {
-  return (name || '?')[0].toUpperCase();
+  if (!name) return '?';
+  return name.trim().charAt(0).toUpperCase();
 }
 
 /* ─── Portal Kebab Menu ────────────────────────────────────────────────────── */
@@ -225,7 +226,7 @@ export default function PatientListPage() {
         <div className="pp-table-meta-stats">Showing {patients.length} of {totalEntries} patients</div>
       </div>
 
-      {/* Content */}
+      {/* Table Content */}
       {isLoading ? (
         <TableSkeleton rows={10} cols={6} />
       ) : patients.length === 0 ? (
@@ -240,149 +241,75 @@ export default function PatientListPage() {
           </button>
         </div>
       ) : viewMode === 'list' ? (
-        <>
-          {/* ── DESKTOP TABLE (hidden on mobile) ── */}
-          <div className="pat-desktop-table pp-table-container-enhanced">
-            <div className="pp-table-scroll">
-              <table className="pp-table pat-main-table" style={{ border: 'none', tableLayout: 'fixed', width: '100%' }}>
-                <colgroup>
-                  <col style={{ width: '28%' }} />  {/* Patient */}
-                  <col style={{ width: '10%' }} />  {/* RegID */}
-                  <col className="pat-col-contact" style={{ width: '16%' }} />  {/* Contact */}
-                  <col className="pat-col-doctor" style={{ width: '20%' }} />   {/* Doctor */}
-                  <col className="pat-col-followup" style={{ width: '18%' }} /> {/* Followup */}
-                  <col style={{ width: '8%' }} />   {/* Actions — always reserved */}
-                </colgroup>
-                <thead>
-                  <tr>
-                    <th>Patient</th>
-                    <th>RegID</th>
-                    <th className="pat-col-contact">Contact</th>
-                    <th className="pat-col-doctor">Doctor Name</th>
-                    <th className="pat-col-followup">Last Followup</th>
-                    <th style={{ textAlign: 'right' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {patients.map((p: PatientSummary) => (
-                    <tr key={p.regid} className="pp-hover-row">
-                      <td data-label="Patient">
-                        <div className="pat-member-row">
-                          <div className="pat-avatar pat-avatar--md" style={{ background: p.gender === 'F' ? 'var(--pp-danger-bg)' : 'var(--pp-blue-tint)', color: p.gender === 'F' ? 'var(--pp-danger-fg)' : 'var(--pp-blue)' }}>
-                            {getInitials(p.fullName)}
-                          </div>
-                          <div style={{ minWidth: 0, overflow: 'hidden' }}>
-                            <Link to={`/medical-cases/${p.regid}`} className="appt-cell-name pp-clickable-name" style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {p.fullName || 'Unknown'}
-                            </Link>
-                            <div className="appt-cell-phone">{p.gender === 'M' ? 'Male' : p.gender === 'F' ? 'Female' : p.gender || '—'}</div>
-                          </div>
+        <div className="pp-table-container-enhanced">
+          <div className="pp-table-scroll">
+            <table className="pp-table pat-main-table">
+                <col style={{ width: '6%' }} />   {/* # */}
+                <col style={{ width: '22%' }} />  {/* Patient */}
+                <col style={{ width: '10%' }} />  {/* RegID */}
+                <col style={{ width: '16%' }} />  {/* Contact */}
+                <col style={{ width: '20%' }} />   {/* Doctor */}
+                <col style={{ width: '18%' }} /> {/* Followup */}
+                <col style={{ width: '8%' }} />   {/* Actions */}
+              <thead>
+                <tr>
+                  <th style={{ width: '40px' }}>#</th>
+                  <th>Patient</th>
+                  <th>RegID</th>
+                  <th>Contact</th>
+                  <th>Doctor Name</th>
+                  <th>Last Followup</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {patients.map((p: PatientSummary, idx: number) => (
+                  <tr key={p.regid} className="pp-hover-row">
+                    <td data-label="#">
+                      <div className="font-mono text-[11px] font-bold color-muted opacity-60">
+                        {idx + 1 + (page - 1) * pageSize}
+                      </div>
+                    </td>
+                    <td data-label="Patient">
+                      <div className="pat-member-row">
+                        <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                          <Link to={`/medical-cases/${p.regid}`} className="appt-cell-name pp-clickable-name" style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {p.fullName || 'Unknown'}
+                          </Link>
+                          <div className="appt-cell-phone">{p.gender === 'M' ? 'Male' : p.gender === 'F' ? 'Female' : p.gender || '—'}</div>
                         </div>
-                      </td>
-                      <td data-label="RegID">
-                        <Link to={`/medical-cases/${p.regid}`} className="pp-regid-pill">
-                          #{p.regid}
-                        </Link>
-                      </td>
-                      <td data-label="Contact" className="pat-col-contact" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        <span className="appt-cell-name">{p.phone || '—'}</span>
-                      </td>
-                      <td data-label="Doctor Name" className="pat-col-doctor" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        <span className="appt-cell-muted">{doctorName(p)}</span>
-                      </td>
-                      <td data-label="Last Followup" className="pat-col-followup">
-                        <div className="appt-cell-name">{formatDate(p.lastVisit || p.createdAt)}</div>
-                        <div className="appt-cell-phone">Visit History</div>
-                      </td>
-                      <td data-label="Actions" style={{ textAlign: 'right' }}>
-                        <button
-                          className="appt-kebab-btn"
-                          onClick={e => toggleMenu(p.regid, e.currentTarget)}
-                          aria-label="Patient actions"
-                        >
-                          <MoreVertical size={16} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-
-                </tbody>
-              </table>
-            </div>
+                      </div>
+                    </td>
+                    <td data-label="RegID">
+                      <Link to={`/medical-cases/${p.regid}`} className="pp-regid-pill">
+                        #{p.regid}
+                      </Link>
+                    </td>
+                    <td data-label="Contact">
+                      <span className="appt-cell-name">{p.phone || '—'}</span>
+                    </td>
+                    <td data-label="Doctor Name">
+                      <span className="appt-cell-muted">{doctorName(p)}</span>
+                    </td>
+                    <td data-label="Last Followup">
+                      <div className="appt-cell-name">{formatDate(p.lastVisit || p.createdAt)}</div>
+                      <div className="appt-cell-phone">Visit History</div>
+                    </td>
+                    <td data-label="Actions" style={{ textAlign: 'right' }}>
+                      <button
+                        className="appt-kebab-btn"
+                        onClick={e => toggleMenu(p.regid, e.currentTarget)}
+                        aria-label="Patient actions"
+                      >
+                        <MoreVertical size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-
-          {/* ── MOBILE CARDS (hidden on desktop) ── */}
-          <div className="pat-mobile-cards">
-            {patients.map((p: PatientSummary) => (
-              <div key={p.regid} className="pat-mobile-card">
-                {/* Card header: avatar + name + actions */}
-                <div className="pat-mobile-card-header">
-                  <div className="pat-avatar pat-avatar--md" style={{ background: p.gender === 'F' ? 'var(--pp-danger-bg)' : 'var(--pp-blue-tint)', color: p.gender === 'F' ? 'var(--pp-danger-fg)' : 'var(--pp-blue)', flexShrink: 0 }}>
-                    {getInitials(p.fullName)}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <Link to={`/medical-cases/${p.regid}`} className="pat-mobile-card-name">
-                      {p.fullName || 'Unknown'}
-                    </Link>
-                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
-                      <span className="pp-regid-pill">#{p.regid}</span>
-                      {(p.gender === 'M' || p.gender === 'F') && (
-                        <span className="text-small" style={{ color: 'var(--pp-text-3)', fontWeight: 600 }}>
-                          {p.gender === 'M' ? 'Male' : 'Female'}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <button
-                    className="appt-kebab-btn"
-                    onClick={e => toggleMenu(p.regid, e.currentTarget)}
-                    aria-label="Patient actions"
-                    style={{ flexShrink: 0 }}
-                  >
-                    <MoreVertical size={16} />
-                  </button>
-                </div>
-
-                {/* Card body: details */}
-                <div className="pat-mobile-card-body">
-                  {p.phone && (
-                    <div className="pat-mobile-card-row">
-                      <span className="pat-mobile-card-row-label">
-                        <Phone size={12} /> CONTACT
-                      </span>
-                      <span>{p.phone}</span>
-                    </div>
-                  )}
-                  <div className="pat-mobile-card-row">
-                    <span className="pat-mobile-card-row-label">
-                      <User size={12} /> DOCTOR
-                    </span>
-                    <span>{doctorName(p)}</span>
-                  </div>
-                  <div className="pat-mobile-card-row">
-                    <span className="pat-mobile-card-row-label">
-                      <Calendar size={12} /> LAST VISIT
-                    </span>
-                    <span>{formatDate(p.lastVisit || p.createdAt)}</span>
-                  </div>
-                </div>
-
-                {/* Card footer: quick actions */}
-                <div className="pat-mobile-card-actions">
-                  <Link to={`/medical-cases/${p.regid}`} className="btn-primary" style={{ flex: 1, height: 42, fontSize: '13px', justifyContent: 'center' }}>
-                    View Records
-                  </Link>
-                  <button className="btn-secondary" style={{ width: 42, height: 42, padding: 0, justifyContent: 'center' }} onClick={() => openWhatsApp(p.phone, p.fullName)}>
-                    <MessageCircle size={18} />
-                  </button>
-                  <button className="btn-secondary" style={{ width: 42, height: 42, padding: 0, justifyContent: 'center' }} onClick={() => { setDrawerRegid(p.regid); setIsDrawerOpen(true); }}>
-                    <Edit2 size={18} />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </>
+        </div>
       ) : (
         /* ── GRID VIEW ── */
         <div className="appt-card-grid">

@@ -96,18 +96,17 @@ export default function FamilyGroupListPage() {
           <p className="pp-empty-sub">Try adjusting your search criteria</p>
         </div>
       ) : viewMode === 'list' ? (
-          <div className="pp-table-container-enhanced">
-          {/* ── DESKTOP TABLE ── */}
-          <div className="pat-desktop-table pp-table-scroll">
-            <table className="pp-table" style={{ border: 'none', tableLayout: 'fixed', width: '100%' }}>
-              <colgroup>
-                <col style={{ width: '42%' }} />  {/* Family Head */}
-                <col style={{ width: '22%' }} />  {/* Head RegID */}
-                <col style={{ width: '26%' }} />  {/* Total Members */}
-                <col style={{ width: '10%' }} />  {/* Actions — always reserved */}
-              </colgroup>
+        <div className="pp-table-container-enhanced">
+          <div className="pp-table-scroll">
+            <table className="pp-table">
+                <col style={{ width: '6%' }} />
+                <col style={{ width: '38%' }} />
+                <col style={{ width: '20%' }} />
+                <col style={{ width: '26%' }} />
+                <col style={{ width: '10%' }} />
               <thead>
                 <tr>
+                  <th style={{ width: '40px' }}>#</th>
                   <th>Family Head</th>
                   <th>Head RegID</th>
                   <th>Total Members</th>
@@ -115,25 +114,27 @@ export default function FamilyGroupListPage() {
                 </tr>
               </thead>
               <tbody>
-                {families.map((f: any) => (
+                 {families.map((f: any, idx: number) => (
                   <tr key={f.id} className="pp-hover-row">
-                    <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      <div className="pat-member-row">
-                        <div className="pat-avatar pat-avatar--md">
-                          {((f.name?.[0] || f.surname?.[0] || 'F')).toUpperCase()}
-                        </div>
-                        <span className="appt-cell-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name} {f.surname}</span>
+                    <td data-label="#">
+                      <div className="font-mono text-[11px] font-bold color-muted opacity-60">
+                        {idx + 1 + (page - 1) * PAGE_SIZE}
                       </div>
                     </td>
-                    <td>
+                    <td data-label="Family Head">
+                      <div className="pat-member-row">
+                        <span className="appt-cell-name">{f.name} {f.surname}</span>
+                      </div>
+                    </td>
+                    <td data-label="Head RegID">
                       <span className="pp-regid-pill">#{f.regid}</span>
                     </td>
-                    <td>
+                    <td data-label="Total Members">
                       <span className="appt-cell-muted" style={{ fontWeight: 600 }}>
                         {f.totalMembers} Members
                       </span>
                     </td>
-                    <td style={{ textAlign: 'right' }}>
+                    <td data-label="Actions" style={{ textAlign: 'right' }}>
                       <button onClick={() => navigate(`/patients/${f.regid}`)} className="appt-kebab-btn" aria-label="Manage group">
                         <Settings size={15} />
                       </button>
@@ -142,42 +143,6 @@ export default function FamilyGroupListPage() {
                 ))}
               </tbody>
             </table>
-          </div>
-
-
-
-          {/* ── MOBILE CARDS ── */}
-          <div className="pat-mobile-cards">
-            {families.map((f: any) => (
-              <div key={f.id} className="pat-mobile-card">
-                <div className="pat-mobile-card-header">
-                  <div className="pat-avatar pat-avatar--md" style={{ flexShrink: 0 }}>
-                    {((f.name?.[0] || f.surname?.[0] || 'F')).toUpperCase()}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="pat-mobile-card-name">{f.name} {f.surname}</div>
-                    <div style={{ marginTop: 4 }}>
-                      <span className="pp-regid-pill">#{f.regid}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pat-mobile-card-body">
-                  <div className="pat-mobile-card-row">
-                    <span className="pat-mobile-card-row-label">
-                      <UsersIcon size={12} /> TOTAL MEMBERS
-                    </span>
-                    <span>{f.totalMembers} Members</span>
-                  </div>
-                </div>
-
-                <div className="pat-mobile-card-actions">
-                  <button onClick={() => navigate(`/patients/${f.regid}`)} className="btn-primary" style={{ flex: 1, height: 42, fontSize: '13px', justifyContent: 'center' }}>
-                    <Settings size={16} /> Manage Family Group
-                  </button>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       ) : (

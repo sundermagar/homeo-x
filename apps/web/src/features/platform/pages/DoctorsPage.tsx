@@ -166,7 +166,7 @@ function FileInputRow({
   );
 }
 
-const mobileStyles = ``;
+
 
 function StaffModal({
   mode,
@@ -799,8 +799,10 @@ export default function DoctorsPage() {
                       <div>{(page - 1) * PAGE_SIZE + index + 1}</div>
                     </td>
                     <td data-label="Profile">
-                      <div className="plat-cell-val">
-                        <div className="font-semibold">{s.name}</div>
+                      <div className="plat-cell-val" onClick={(e) => e.stopPropagation()}>
+                        <Link to={`/platform/doctors/${s.id}`} className="font-semibold pp-clickable-name">
+                          {s.name}
+                        </Link>
                         <div className="text-[11px] color-muted font-medium">{s.email || '—'}</div>
                       </div>
                     </td>
@@ -871,7 +873,6 @@ export default function DoctorsPage() {
           onSuccess={() => { setEditingId(null); }}
         />
       )}
-      <style>{mobileStyles}</style>
     </div>
   );
 }

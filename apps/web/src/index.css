@@ -192,6 +192,7 @@
 .pp-text-gradient {
   background: linear-gradient(135deg, var(--pp-blue) 0%, var(--pp-blue-deep) 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -401,11 +402,6 @@ a {
   padding: 0;
 }
 
-@media (min-width: 1024px) {
-  .pp-page-container {
-    /* padding-bottom: var(--pp-space-12); -- Removed */
-  }
-}
 
 /* Page Header — stacks on mobile, side-by-side on desktop */
 .pp-page-header {
@@ -591,116 +587,7 @@ a {
 
 
 /* Responsive Stacking for Mobile */
-@media (max-width: 768px) {
-  .pp-table-scroll {
-    border: none;
-    overflow-x: visible;
-  }
-
-  .pp-table thead,
-  .pp-table colgroup {
-    display: none !important;
-  }
-
-  /* BRUTE FORCE FULL WIDTH — No more blank right side */
-  .pp-table-container-enhanced,
-  .pp-table-scroll,
-  .pat-desktop-table,
-  .page-content-main,
-  .pp-table,
-  .plat-table,
-  .bill-table,
-  .appt-table,
-  .appt-ledger-table {
-    width: 100% !important;
-    max-width: none !important;
-    min-width: 0 !important;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-  }
-
-  .pp-table, .plat-table, .bill-table, .appt-table, .appt-ledger-table,
-  .pp-table tbody, .plat-table tbody, .bill-table tbody, .appt-table tbody,
-  .pp-table tr, .plat-table tr, .bill-table tr, .appt-table tr,
-  .pp-table td, .plat-table td, .bill-table td, .appt-table td {
-    display: block !important;
-    width: 100% !important;
-  }
-
-  .pp-table tr, .plat-table tr, .bill-table tr, .appt-table tr {
-    margin-bottom: 20px !important;
-    background: var(--bg-card) !important;
-    border: 1px solid var(--border-main) !important;
-    border-radius: 18px !important;
-    padding: 16px !important;
-    box-shadow: var(--pp-shadow-sm) !important;
-    overflow: hidden !important;
-  }
-
-  .dark .pp-table tr {
-    background: linear-gradient(145deg, rgba(39, 39, 42, 0.4) 0%, rgba(24, 24, 27, 0.6) 100%);
-    border-color: rgba(255, 255, 255, 0.08);
-  }
-
-  .pp-table td, .plat-table td, .bill-table td, .appt-table td, .appt-ledger-table td {
-    padding: 12px 16px !important;
-    border: none !important;
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: flex-start !important;
-    gap: 4px !important;
-    min-height: auto !important;
-    border-bottom: 1px dashed var(--pp-warm-4) !important;
-    text-align: left !important;
-    background: transparent !important;
-    width: 100% !important;
-  }
-
-  .pp-table td:last-child, .plat-table td:last-child, .bill-table td:last-child, .appt-table td:last-child {
-    border-bottom: none !important;
-    flex-direction: row !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    background: var(--pp-warm-2) !important;
-    padding: 14px 16px !important;
-    border-radius: 0 0 16px 16px;
-    margin-top: 4px;
-  }
-
-  .dark .pp-table td:last-child,
-  .dark .plat-table td:last-child,
-  .dark .bill-table td:last-child,
-  .dark .appt-table td:last-child {
-    background: rgba(255, 255, 255, 0.05) !important;
-  }
-
-  .pp-table td::before, .plat-table td::before, .bill-table td::before, .appt-table td::before {
-    content: attr(data-label);
-    display: block !important;
-    font-size: 10px !important;
-    font-weight: 850 !important;
-    color: var(--pp-text-3) !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.1em !important;
-    margin-bottom: 2px !important;
-    opacity: 0.7;
-  }
-
-  .pp-table td:last-child::before {
-    margin-bottom: 0 !important;
-  }
-
-  /* Ensure content within td is visible and takes full width on mobile */
-  .pp-table td>*:not(::before) {
-    display: block !important;
-    width: 100% !important;
-    text-align: left !important;
-  }
-
-  .pp-table td:last-child>*:not(::before) {
-    width: auto !important;
-  }
-}
+/* Legacy Card Stacking Media Queries Removed - Enforcing Horizontal Table Layout */
 
 /* ──────────────────────────────────────────────────────────────────────────── */
 /* FORM INPUTS                                                                   */
@@ -1310,7 +1197,8 @@ a {
 
 @media (min-width: 1024px) {
   .page-content-area {
-    padding: 32px; /* Reduced from 40px for better full-screen utility */
+    padding: 32px;
+    /* Reduced from 40px for better full-screen utility */
     /* 40px on all sides for desktop */
   }
 }
@@ -1329,7 +1217,8 @@ a {
 .page-content-main {
   flex: 1;
   min-width: 0;
-  width: 100%; /* Guarantee full width */
+  width: 100%;
+  /* Guarantee full width */
 }
 
 /* Ensure no side gaps from empty widget areas */
@@ -2758,6 +2647,18 @@ a {
 @media (min-width: 640px) {
   .pp-filter-card {
     flex-direction: row;
+    /* 
+      @media (max-width: 1024px) {
+        .pp-table-container-enhanced {
+          overflow-x: auto !important;
+          -webkit-overflow-scrolling: touch;
+        }
+        .pp-table {
+          min-width: 800px !important;
+        }
+        (Card stack styles removed to maintain horizontal table layout)
+      } 
+    */
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
@@ -2768,6 +2669,43 @@ a {
   background: var(--pp-warm-2);
   border-color: var(--pp-warm-4);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.pp-filter-select {
+  appearance: none;
+  background-color: var(--bg-card);
+  border: 1.5px solid var(--border-main);
+  border-radius: 10px;
+  padding: 8px 36px 8px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 14px;
+  box-shadow: var(--pp-shadow-sm);
+  min-width: 140px;
+}
+
+.pp-filter-select:hover {
+  border-color: var(--pp-blue);
+  background-color: var(--pp-blue-tint);
+}
+
+.pp-filter-select:focus {
+  outline: none;
+  border-color: var(--pp-blue);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.dark .pp-filter-select {
+  background-color: var(--pp-warm-3);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: var(--text-main);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 }
 
 .pp-filter-search-wrap {
@@ -2844,8 +2782,14 @@ a {
 
 @media (max-width: 639px) {
   .pp-stat-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
     gap: 10px;
+  }
+}
+
+@media (min-width: 420px) and (max-width: 639px) {
+  .pp-stat-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
@@ -3198,71 +3142,128 @@ a {
    RESPONSIVE FIXES v4 — Mobile-First Patches
    All breakpoints use mobile-first or max-width media queries.
    These supplement the existing design system and fix edge cases.
-════════════════════════════════════════════════════�/* ─── 11. Unified Global Mobile Engine (All Tables & Modules) ─────────────── */
+════════════════════════════════════════════════════�/* ─── 11. Unified Global Mobile Engine (All Tables & Modules) ─────────────── */
 
 @media (max-width: 1024px) {
-  /* Force all tables to card stack mode */
-  .plat-table, .bill-table, .appt-table, .appt-ledger-table, .pp-table {
+  /* ─── Master Horizontal Table Engine (Global Enforcement) ─── */
+  /* This overrides ALL local card-stacking implementations to ensure software-wide consistency */
+  
+  /* 1. Force Containers to Scroll */
+  html body .pp-table-container-enhanced, 
+  html body .plat-table-container, 
+  html body .pp-table-scroll,
+  html body .appt-table-scroll,
+  html body .bill-table-scroll,
+  html body .bill-table-container,
+  html body .rd-table-wrap .pp-table-scroll {
+    overflow-x: auto !important;
     display: block !important;
     width: 100% !important;
+    -webkit-overflow-scrolling: touch !important;
+    border-radius: 12px !important;
+    border: 1px solid var(--border-main) !important;
+    background: var(--bg-card) !important;
+    margin-bottom: 20px !important;
+  }
+  
+  /* 2. Force Table Structure */
+  html body .pp-table, 
+  html body .plat-table, 
+  html body .bill-table, 
+  html body .appt-table,
+  html body .appt-ledger-table {
+    display: table !important;
+    width: 100% !important;
+    min-width: 850px !important; /* Professional minimum width to prevent squishing */
+    border-collapse: collapse !important;
     border: none !important;
+    table-layout: auto !important;
+    background: var(--bg-card) !important;
   }
 
-  .plat-table thead, .bill-table thead, .appt-table thead, .pp-table thead {
+  /* 3. Force Header Visibility */
+  html body .pp-table thead, 
+  html body .plat-table thead,
+  html body .bill-table thead,
+  html body .appt-table thead {
+    display: table-header-group !important;
+  }
+
+  html body .pp-table thead th, 
+  html body .plat-table thead th,
+  html body .bill-table thead th,
+  html body .appt-table thead th {
+    background: var(--bg-surface-2) !important;
+    color: var(--pp-text-3) !important;
+    font-size: 10px !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.08em !important;
+    padding: 12px 15px !important;
+    border-bottom: 1.5px solid var(--border-main) !important;
+    text-align: left !important;
+    white-space: nowrap !important;
+  }
+
+  /* 4. Force Row & Cell Layout */
+  html body .pp-table tbody,
+  html body .plat-table tbody {
+    display: table-row-group !important;
+  }
+
+  html body .pp-table tr, 
+  html body .plat-table tr,
+  html body .bill-table tr,
+  html body .appt-table tr,
+  html body .appt-ledger-table tr {
+    display: table-row !important;
+    background: transparent !important;
+    border-radius: 0 !important;
+    margin-bottom: 0 !important;
+    box-shadow: none !important;
+    border-bottom: 1px solid var(--border-main) !important;
+    transition: background 0.2s ease !important;
+  }
+
+  html body .pp-table tr:hover,
+  html body .plat-table tr:hover {
+    background: var(--pp-warm-1) !important;
+  }
+
+  html body .pp-table td, 
+  html body .plat-table td, 
+  html body .bill-table td, 
+  html body .appt-table td, 
+  html body .appt-ledger-table td {
+    display: table-cell !important;
+    padding: 12px 15px !important;
+    font-size: 13px !important;
+    white-space: nowrap !important;
+    vertical-align: middle !important;
+    border: none !important;
+    border-bottom: 1px solid var(--border-main) !important;
+    width: auto !important;
+    text-align: left !important;
+    min-height: auto !important;
+    background: transparent !important;
+  }
+
+  /* 5. Hide Card-Specific Elements */
+  html body .pp-table td::before, 
+  html body .plat-table td::before,
+  html body .bill-table td::before,
+  html body .appt-table td::before,
+  html body .appt-ledger-table td::before {
     display: none !important;
   }
 
-  .plat-table tr, .bill-table tr, .appt-table tr, .pp-table tr {
-    display: block !important;
-    width: 100% !important;
-    margin-bottom: 20px !important;
-    background: var(--bg-card) !important;
-    border: 1px solid var(--border-main) !important;
-    border-radius: 20px !important;
-    padding: 0 !important;
-    overflow: hidden !important;
-    box-shadow: var(--pp-shadow-md) !important;
-  }
-
-  .plat-table td, .bill-table td, .appt-table td, .pp-table td {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: flex-start !important;
-    gap: 4px !important;
-    padding: 12px 20px !important;
-    border-bottom: 1px dashed var(--border-main) !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-  }
-
-  .plat-table td:last-child, .bill-table td:last-child, .appt-table td:last-child, .pp-table td:last-child {
-    border-bottom: none !important;
-    background: var(--bg-surface-2) !important;
-    flex-direction: row !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    padding: 14px 20px !important;
-    margin-top: 4px;
-  }
-
-  .dark .plat-table td:last-child, .dark .bill-table td:last-child, .dark .appt-table td:last-child, .dark .pp-table td:last-child {
-    background: rgba(255, 255, 255, 0.05) !important;
-  }
-
-  .plat-table td::before, .bill-table td::before, .appt-table td::before, .pp-table td::before {
-    content: attr(data-label);
-    display: block !important;
-    font-size: 10px !important;
-    font-weight: 850 !important;
-    color: var(--pp-text-3) !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.1em !important;
-    opacity: 0.7;
-  }
-
-  .plat-cell-val {
-    width: 100% !important;
-    text-align: left !important;
+  /* 6. Fix Action Columns on Mobile */
+  html body .pp-table td:last-child, 
+  html body .plat-table td:last-child {
+    background: transparent !important;
+    padding: 12px 15px !important;
+    margin-top: 0 !important;
+    text-align: right !important;
   }
 }
 
@@ -3274,7 +3275,7 @@ a {
     align-items: flex-start !important;
     gap: 16px !important;
   }
-  
+
   .pp-page-hero-actions {
     width: 100% !important;
     display: grid !important;
@@ -3282,7 +3283,9 @@ a {
     gap: 8px !important;
   }
 
-  .btn-primary, .btn-ghost, .plat-btn {
+  .btn-primary,
+  .btn-ghost,
+  .plat-btn {
     height: 44px !important;
     justify-content: center !important;
     border-radius: 12px !important;
@@ -3299,7 +3302,6 @@ a {
 }
 
 /* ─── END RESPONSIVE ENGINE v5 (MASTER) ─────────────────────────────────── */
-───────────────────── */
 
 @media (max-width: 767px) {
   .sa-kpi-primary {
@@ -3400,7 +3402,7 @@ a {
 
 /* ─── 11. Platform Table (plat-table) — Mobile Cards ────────────────────── */
 
-@media (max-width: 767px) {
+/* @media (max-width: 767px) {
   .pp-table-container-enhanced .plat-table {
     display: block !important;
     min-width: 0 !important;
@@ -3463,7 +3465,7 @@ a {
     align-items: flex-end !important;
     text-align: right !important;
   }
-}
+} */
 
 /* ─── 12. Medical Case List — Table Scroll Fix ───────────────────────────── */
 
