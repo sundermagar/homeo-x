@@ -1,5 +1,5 @@
 import { eq, sql } from 'drizzle-orm';
-import type { DbClient } from '../client';
+import type { DbClient } from '../client.js';
 import {
   icdCodes,
   loincCodes,
@@ -7,7 +7,7 @@ import {
   codeMappings,
   labPanels,
   labPanelLoincLinks,
-} from '../schema/clinical-codes';
+} from '../schema/clinical-codes.js';
 
 // ─── ICD-10 Common Codes ──────────────────────────────────────────────────────
 const icd10Seed = [

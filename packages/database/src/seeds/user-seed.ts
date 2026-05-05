@@ -1,6 +1,6 @@
 import { Role } from '@mmc/types';
-import { users } from '../schema/users';
-import type { DbClient } from '../client';
+import { users } from '../schema/users.js';
+import type { DbClient } from '../client.js';
 import { eq } from 'drizzle-orm';
 
 export async function seedUsers(db: DbClient) {

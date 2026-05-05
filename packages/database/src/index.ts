@@ -1,4 +1,4 @@
-export { createDbClient, type DbClient } from './client';
-export { TenantRegistry, type TenantConfig } from './tenant-registry';
-export { provisionTenant } from './provision-tenant';
-export * from './schema/index';
+export { createDbClient, type DbClient } from './client.js';
+export { TenantRegistry, type TenantConfig } from './tenant-registry.js';
+export { provisionTenant } from './provision-tenant.js';
+export * from './schema/index.js';

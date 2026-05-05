@@ -3,7 +3,7 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import path from 'path';
 import dotenv from 'dotenv';
-import { TenantRegistry } from './tenant-registry';
+import { TenantRegistry } from './tenant-registry.js';
 import fs from 'fs';
 
 // Load environment variables
@@ -27,7 +27,7 @@ console.log(`[DEBUG] Received DB URL: ${safeUrl}`);
 
 const migrationsFolder = path.join(process.cwd(), 'src', 'migrations');
 
-import { provisionTenant } from './provision-tenant';
+import { provisionTenant } from './provision-tenant.js';
 
 async function migrateTenant(schemaName: string) {
   console.log(`\n===========================================`);

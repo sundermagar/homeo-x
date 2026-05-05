@@ -1,5 +1,5 @@
-import { createDbClient } from '../client';
-import { seedClinicalCodes } from './clinical-codes-seed';
+import { createDbClient } from '../client.js';
+import { seedClinicalCodes } from './clinical-codes-seed.js';
 import fs from 'fs';
 import path from 'path';
 

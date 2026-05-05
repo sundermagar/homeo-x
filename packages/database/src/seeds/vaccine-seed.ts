@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
-import type { DbClient } from '../client';
-import { vaccineMaster } from '../schema/medical-cases';
+import type { DbClient } from '../client.js';
+import { vaccineMaster } from '../schema/medical-cases.js';
 
 const vaccineSeed = [
   // Categories (milestones)

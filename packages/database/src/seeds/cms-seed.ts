@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
-import { staticPages, faqs } from '../schema/settings';
-import type { DbClient } from '../client';
+import { staticPages, faqs } from '../schema/settings.js';
+import type { DbClient } from '../client.js';
 
 export async function seedCms(db: DbClient) {
   console.log('[Seed] Seeding CMS (Static Pages)...');

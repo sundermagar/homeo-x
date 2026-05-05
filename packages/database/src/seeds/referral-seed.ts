@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
-import { referralSources } from '../schema/settings';
-import type { DbClient } from '../client';
+import { referralSources } from '../schema/settings.js';
+import type { DbClient } from '../client.js';
 
 export async function seedReferrals(db: DbClient) {
   console.log('[Seed] Seeding Referral Sources...');

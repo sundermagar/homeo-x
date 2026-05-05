@@ -1,5 +1,5 @@
-import { remedyAlternatives } from '../schema/medical-cases';
-import { remedyTreeNodes } from '../schema/settings';
+import { remedyAlternatives } from '../schema/medical-cases.js';
+import { remedyTreeNodes } from '../schema/settings.js';
 import { sql } from 'drizzle-orm';
 import fs from 'node:fs';
 import path from 'node:path';

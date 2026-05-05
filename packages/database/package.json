@@ -3,20 +3,20 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "main": "./src/index.ts",
+  "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./src/index.ts",
-      "types": "./src/index.ts"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     },
     "./schema": {
-      "import": "./src/schema/index.ts",
-      "types": "./src/schema/index.ts"
+      "types": "./dist/schema/index.d.ts",
+      "import": "./dist/schema/index.js"
     },
     "./seeds/clinical-codes-seed": {
-      "import": "./src/seeds/clinical-codes-seed.ts",
-      "types": "./src/seeds/clinical-codes-seed.ts"
+      "types": "./dist/seeds/clinical-codes-seed.d.ts",
+      "import": "./dist/seeds/clinical-codes-seed.js"
     }
   },
   "scripts": {

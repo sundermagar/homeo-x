@@ -1,6 +1,6 @@
 import { eq, and, sql } from 'drizzle-orm';
-import type { DbClient } from '../client';
-import { medicines, potencies, frequencies } from '../schema/settings';
+import type { DbClient } from '../client.js';
+import { medicines, potencies, frequencies } from '../schema/settings.js';
 
 export async function seedCatalog(db: DbClient) {
   console.log('[Seed] Seeding Homeopathy Catalog...');

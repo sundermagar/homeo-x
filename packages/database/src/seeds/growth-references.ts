@@ -1,5 +1,5 @@
-import type { DbClient } from '../client';
-import { growthReferences } from '../schema/medical-cases';
+import type { DbClient } from '../client.js';
+import { growthReferences } from '../schema/medical-cases.js';
 
 export async function seedGrowthReferences(db: DbClient) {
   const data = [

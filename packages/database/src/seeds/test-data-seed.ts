@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
-import * as schema from '../schema';
-import type { DbClient } from '../client';
+import * as schema from '../schema/index.js';
+import type { DbClient } from '../client.js';
 
 export async function seedTestData(db: DbClient) {
   console.log('[Seed] Seeding expanded clinical test data...');
