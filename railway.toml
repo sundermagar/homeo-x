@@ -1,5 +1,3 @@
 [build]
-  command = "pnpm clean && pnpm install && pnpm build"
+  command = "pnpm install && pnpm exec turbo run build --filter=@mmc/api"
   builder = "NIXPACKS"
-  [deploy]
-    canary = false
