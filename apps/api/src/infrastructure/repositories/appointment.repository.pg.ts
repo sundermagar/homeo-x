@@ -23,6 +23,22 @@ function toMins(t: string): number {
   return h * 60 + m;
 }
 
+// Returns "YYYY-MM-DD" in the process's local timezone (not UTC).
+// `toISOString().split('T')[0]` returns the UTC date and rolls over wrong
+// between midnight and 05:30 IST.
+function todayLocalYMD(): string {
+  return new Date().toLocaleDateString('en-CA');
+}
+
+// Returns "hh:mm AM/PM" in the process's local timezone.
+function nowLocal12h(): string {
+  return new Date().toLocaleTimeString('en-US', {
+    hour12: true,
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 function mapRow(row: typeof schema.appointments.$inferSelect): Appointment {
   return {
     id:                   row.id,
@@ -115,7 +131,7 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
   async findFollowups(filters: AppointmentFilters) {
     const { fromDate, toDate, doctorId, clinicId, search, page = 1, limit = 50 } = filters;
     const offset = (page - 1) * limit;
-    const todayStr = new Date().toISOString().split('T')[0]!;
+    const todayStr = todayLocalYMD();
 
     // For appointments table: handle booking_date as text (may be YYYY-MM-DD or DD/MM/YYYY)
     // Helper to safely compare dates regardless of input format (YYYY-MM-DD or DD/MM/YYYY)
@@ -263,7 +279,7 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
   }
 
   async findToday(doctorId?: number, clinicId?: number) {
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayLocalYMD();
     
     // Using Drizzle select for automatic mapping
     const conditions: any[] = [
@@ -326,7 +342,7 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
       );
     const bookedTimes = new Set(booked.map(b => b.time).filter(Boolean));
 
-    const today = new Date().toISOString().split('T')[0] as string;
+    const today = todayLocalYMD();
     const isToday = date === today;
     const now = new Date();
     const currentMins = now.getHours() * 60 + now.getMinutes();
@@ -418,7 +434,7 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
   }
 
   async issueToken(appointmentId: number): Promise<number> {
-    const today = new Date().toISOString().split('T')[0] as string;
+    const today = todayLocalYMD();
 
     // Daily max token across both tokens and appointments table to ensure uniqueness
     const [tokenResult] = await this.db
@@ -554,7 +570,7 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
   }
 
   async addToWaitlist(dto: { patientId?: number; appointmentId?: number; doctorId?: number; consultationFee?: number; clinicId?: number }): Promise<number> {
-    const today = new Date().toISOString().split('T')[0] as string;
+    const today = todayLocalYMD();
     const cid = dto.clinicId;
 
     // Preventive check: Is this patient already in the waitlist for today?
@@ -630,9 +646,8 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
 
     // 4. Create an automatic appointment if this is a direct Token Queue addition (Walk-In)
     if (!finalAppointmentId) {
-      const now = new Date();
-      const timeStr = `${String(now.getHours() % 12 || 12).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} ${now.getHours() >= 12 ? 'PM' : 'AM'}`;
-      
+      const timeStr = nowLocal12h();
+
       const [newAppt] = await this.db.insert(schema.appointments).values({
         clinicId: cid ?? null,
         patientId: pid,
