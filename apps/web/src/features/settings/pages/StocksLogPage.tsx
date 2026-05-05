@@ -144,16 +144,16 @@ export default function StocksLogPage() {
         ) : (
           <>
           <div className="plat-table-container">
-            <table className="plat-table">
+            <table className="plat-table" style={{ tableLayout: 'fixed', width: '100%', minWidth: '900px' }}>
               <thead>
                 <tr>
-                  <th style={{ width: '180px' }}>Date & Time</th>
-                  <th>Medicine</th>
-                  <th style={{ width: '140px' }}>Movement</th>
-                  <th style={{ width: '90px' }}>Qty</th>
-                  <th style={{ width: '170px' }}>Stock Shift</th>
-                  <th>Reason / Note</th>
-                  <th style={{ width: '70px', textAlign: 'center' }}>Action</th>
+                  <th style={{ width: '160px' }}>Date & Time</th>
+                  <th style={{ width: 'auto' }}>Medicine</th>
+                  <th style={{ width: '120px' }}>Movement</th>
+                  <th style={{ width: '100px' }}>Qty</th>
+                  <th style={{ width: '160px', textAlign: 'right' }}>Stock Shift</th>
+                  <th style={{ width: 'auto', textAlign: 'right' }}>Reason / Note</th>
+                  <th style={{ width: '80px', textAlign: 'center' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -162,30 +162,30 @@ export default function StocksLogPage() {
                   const isPositive = log.changeType === 'INVENTORY_ADD';
                   return (
                     <tr key={log.id} className="plat-table-row">
-                      <td data-label="DATE & TIME" className="plat-table-cell">
-                        <div style={{ fontFamily: 'monospace', fontSize: '11px', color: 'var(--text-muted)' }}>
+                      <td data-label="DATE & TIME" className="plat-table-cell" style={{ width: '160px' }}>
+                        <div style={{ fontFamily: 'monospace', fontSize: '11px', color: 'var(--pp-text-3)' }}>
                           {new Date(log.createdAt).toLocaleString('en-GB', {
                             day: '2-digit', month: 'short', year: 'numeric',
                             hour: '2-digit', minute: '2-digit'
                           })}
                         </div>
                       </td>
-                      <td data-label="MEDICINE" className="plat-table-cell">
+                      <td data-label="MEDICINE" className="plat-table-cell" style={{ width: 'auto' }}>
                         <div className="plat-stock-info">
                           <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--pp-ink)' }}>
                             {medicine?.name || `Medicine #${log.medicineId}`}
                           </div>
-                          <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          <div style={{ fontSize: '10px', color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                             Clinical Pharmacy
                           </div>
                         </div>
                       </td>
-                      <td data-label="MOVEMENT" className="plat-table-cell">
+                      <td data-label="MOVEMENT" className="plat-table-cell" style={{ width: '120px' }}>
                         <div className="plat-stock-badge-wrap">
                           <span className={`plat-badge ${isPositive ? 'plat-badge-staff' : ''}`}
                             style={isPositive
                               ? { display: 'flex', alignItems: 'center', gap: '4px', width: 'fit-content', fontSize: '10px' }
-                              : { display: 'flex', alignItems: 'center', gap: '4px', width: 'fit-content', fontSize: '10px', background: '#fef2f2', color: 'var(--pp-danger-fg)', border: '1px solid #fecaca' }
+                              : { display: 'flex', alignItems: 'center', gap: '4px', width: 'fit-content', fontSize: '10px', background: 'var(--pp-danger-bg)', color: 'var(--pp-danger-fg)', border: '1px solid var(--pp-danger-border)' }
                             }
                           >
                             {isPositive ? <ArrowUp size={10} /> : <ArrowDown size={10} />}
@@ -193,26 +193,26 @@ export default function StocksLogPage() {
                           </span>
                         </div>
                       </td>
-                      <td data-label="QTY" className="plat-table-cell">
+                      <td data-label="QTY" className="plat-table-cell" style={{ width: '100px' }}>
                         <div style={{ fontFamily: 'monospace', fontWeight: 900, color: isPositive ? 'var(--pp-success-fg)' : 'var(--pp-danger-fg)', fontSize: '15px' }}>
                           {isPositive ? '+' : '-'}{log.quantity}
                         </div>
                       </td>
-                      <td data-label="SHIFT" className="plat-table-cell">
+                      <td data-label="SHIFT" className="plat-table-cell" style={{ width: '160px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'monospace', fontSize: '12px', justifyContent: 'flex-end' }}>
-                          <span style={{ color: 'var(--text-muted)' }}>{log.previousStock ?? '—'}</span>
-                          <span style={{ opacity: 0.3 }}>→</span>
-                          <span style={{ fontWeight: 700 }}>{log.newStock ?? '—'}</span>
-                          <span style={{ fontSize: '9px', color: 'var(--text-muted)', opacity: 0.6 }}>units</span>
+                          <span style={{ color: 'var(--pp-text-3)' }}>{log.previousStock ?? '—'}</span>
+                          <span style={{ opacity: 0.3, color: 'var(--pp-ink)' }}>→</span>
+                          <span style={{ fontWeight: 700, color: 'var(--pp-ink)' }}>{log.newStock ?? '—'}</span>
+                          <span style={{ fontSize: '9px', color: 'var(--pp-text-3)', opacity: 0.6 }}>units</span>
                         </div>
                       </td>
-                      <td data-label="REASON" className="plat-table-cell">
-                        <div style={{ fontSize: '12px', fontStyle: 'italic', color: 'var(--text-muted)', textAlign: 'right' }}>
+                      <td data-label="REASON" className="plat-table-cell" style={{ width: 'auto' }}>
+                        <div style={{ fontSize: '12px', fontStyle: 'italic', color: 'var(--pp-text-3)', textAlign: 'right' }}>
                           {log.reason || 'System Auto-Adjustment'}
                         </div>
                       </td>
-                      <td data-label="ACTION" className="plat-table-cell" style={{ textAlign: 'center' }}>
-                        <div className="plat-stock-actions">
+                      <td data-label="ACTION" className="plat-table-cell" style={{ width: '80px', textAlign: 'center' }}>
+                        <div className="plat-stock-actions" style={{ display: 'flex', justifyContent: 'center' }}>
                           <button
                             className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger"
                             title="Delete log entry"
@@ -252,7 +252,7 @@ export default function StocksLogPage() {
         <form onSubmit={handleSubmit}>
           <div className="plat-modal-body" style={{ padding: 0 }}>
             {successMsg && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', background: '#f0fdf4', color: 'var(--pp-success-fg)', borderRadius: '8px', marginBottom: '16px', fontSize: '13px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', background: 'var(--pp-success-bg)', color: 'var(--pp-success-fg)', borderRadius: '8px', marginBottom: '16px', fontSize: '13px' }}>
                 <CheckCircle size={16} /> {successMsg}
               </div>
             )}
@@ -313,7 +313,7 @@ export default function StocksLogPage() {
               </div>
 
               {form.changeType !== 'INVENTORY_ADD' && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', background: '#fefce8', color: '#92400e', borderRadius: '8px', marginTop: '16px', fontSize: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', background: 'var(--pp-warning-bg)', color: 'var(--pp-warning-fg)', borderRadius: '8px', marginTop: '16px', fontSize: '12px' }}>
                   <AlertCircle size={14} />
                   This will deduct the specified quantity from the current medicine stock level.
                 </div>

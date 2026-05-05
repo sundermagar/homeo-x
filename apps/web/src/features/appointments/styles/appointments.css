@@ -799,6 +799,78 @@
   text-overflow: ellipsis;
 }
 
+/* ─── Patient Autocomplete Dropdown ─── */
+.appt-autocomplete-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border-main);
+  border-radius: 12px;
+  box-shadow: var(--pp-shadow-lg);
+  z-index: 1000;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 8px;
+  margin-top: 6px;
+  list-style: none;
+  animation: apptFadeIn 0.2s ease-out;
+}
+
+@keyframes apptFadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.appt-autocomplete-item {
+  padding: 12px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-bottom: 1px solid var(--pp-warm-1);
+}
+
+.appt-autocomplete-item:last-child {
+  border-bottom: none;
+}
+
+.appt-autocomplete-item:hover {
+  background: var(--pp-warm-1);
+  transform: translateX(4px);
+}
+
+.appt-autocomplete-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--pp-ink);
+  margin-bottom: 2px;
+}
+
+.appt-autocomplete-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--pp-text-3);
+  font-weight: 600;
+}
+
+.appt-autocomplete-meta span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dark .appt-autocomplete-list {
+  background: #18181b;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .appt-autocomplete-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
 .appt-table .appt-metadata-package {
   background: #e0f2fe;
   color: #075985;
@@ -3197,7 +3269,95 @@
   background: var(--pp-blue-hover);
   transform: scale(1.05);
 }
-/* ─── Responsive Enhancements (Mobile First) ────────────────────────────── */
+/* ─── Appointment Search Enhancements ─── */
+.appt-search-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.appt-search-inputs {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 640px) {
+  .appt-search-inputs {
+    grid-template-columns: 1fr;
+  }
+}
+
+.appt-input-with-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.appt-input-prefix {
+  position: absolute;
+  left: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--pp-text-3);
+  pointer-events: none;
+}
+
+.appt-input-prefix-icon {
+  position: absolute;
+  left: 12px;
+  color: var(--pp-text-3);
+  pointer-events: none;
+}
+
+.appt-input-with-icon .appt-form-input {
+  padding-left: 38px !important;
+  width: 100%;
+}
+
+.appt-lookup-spinner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--pp-blue);
+  font-weight: 600;
+  margin-top: 8px;
+  padding: 4px 12px;
+  background: var(--pp-blue-tint);
+  width: fit-content;
+  border-radius: 6px;
+}
+
+.appt-autocomplete-empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--pp-text-3);
+  font-size: 13px;
+}
+
+.appt-followup-confirmed {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 10px 14px;
+  background: var(--pp-success-bg);
+  color: var(--pp-success-fg);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  border-radius: 10px;
+  font-size: 13px;
+  animation: apptSlideIn 0.3s ease-out;
+}
+
+@keyframes apptSlideIn {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.appt-followup-confirmed strong {
+  font-weight: 700;
+}
 
 
 

@@ -127,7 +127,7 @@ export function VitalsFormModal({ visitId, regid, initialData, onClose, onSucces
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="mc-drawer-body" style={{ display: 'flex', flexDirection: 'column', flex: 1, background: 'white' }}>
+        <form onSubmit={handleSubmit} className="mc-drawer-body" style={{ display: 'flex', flexDirection: 'column', flex: 1, background: 'var(--bg-card)' }}>
           <div style={{ padding: '24px', flex: 1, overflowY: 'auto' }}>
 
             {/* Physical Stats Section */}

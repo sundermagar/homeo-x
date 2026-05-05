@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, User, Calendar, Clock, Stethoscope, DollarSign, Loader2, Printer } from 'lucide-react';
+import { X, User, Calendar, Clock, Stethoscope, DollarSign, Loader2, Printer, Phone, CheckCircle } from 'lucide-react';
 import { VisitType, Role } from '@mmc/types';
 import type { Appointment, CreateAppointmentDto } from '@mmc/types';
 import { useCreateAppointment, useUpdateAppointment, useAvailableSlots } from '../hooks/use-appointments';
@@ -382,40 +382,53 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
       </div>
 
       {/* Patient Lookup */}
-      <div className="appt-form-group">
+      <div className="appt-form-group" style={{ position: 'relative' }}>
         <label className="appt-form-label">
           <User size={13} strokeWidth={1.6} />
-          Patient
+          Patient Selection
         </label>
-        <div className="appt-form-row appt-form-row-2 appt-form-row-start" style={{ position: 'relative' }}>
-          {form.visitType === VisitType.FollowUp ? (
-            <input
-              className="appt-form-input"
-              placeholder="Case ID / Reg No."
-              value={form.patientId}
-              onChange={e => { set('patientId', e.target.value); setActiveSearchField('id'); }}
-              onFocus={() => setActiveSearchField('id')}
-              onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-            />
-          ) : (
-            <input
-              className="appt-form-input"
-              placeholder="Patient Name"
-              value={form.patientName}
-              onChange={e => { set('patientName', e.target.value); setActiveSearchField('name'); }}
-              onFocus={() => setActiveSearchField('name')}
-              onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-              required
-            />
-          )}
-          <NumericInput
-            className="appt-form-input"
-            placeholder="Mobile Number"
-            value={form.phone}
-            onChange={e => { set('phone', e.target.value); setActiveSearchField('phone'); }}
-            onFocus={() => setActiveSearchField('phone')}
-            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-          />
+        
+        <div className="appt-search-container">
+          <div className="appt-search-inputs">
+            {form.visitType === VisitType.FollowUp ? (
+              <div className="appt-input-with-icon">
+                <span className="appt-input-prefix">#</span>
+                <input
+                  className="appt-form-input"
+                  placeholder="Enter Case ID / Reg No."
+                  value={form.patientId}
+                  onChange={e => { set('patientId', e.target.value); setActiveSearchField('id'); }}
+                  onFocus={() => setActiveSearchField('id')}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                />
+              </div>
+            ) : (
+              <div className="appt-input-with-icon">
+                <User size={14} className="appt-input-prefix-icon" />
+                <input
+                  className="appt-form-input"
+                  placeholder="Patient Full Name"
+                  value={form.patientName}
+                  onChange={e => { set('patientName', e.target.value); setActiveSearchField('name'); }}
+                  onFocus={() => setActiveSearchField('name')}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                  required
+                />
+              </div>
+            )}
+            
+            <div className="appt-input-with-icon">
+              <span className="appt-input-prefix">+91</span>
+              <NumericInput
+                className="appt-form-input"
+                placeholder="Mobile Number"
+                value={form.phone}
+                onChange={e => { set('phone', e.target.value); setActiveSearchField('phone'); }}
+                onFocus={() => setActiveSearchField('phone')}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+              />
+            </div>
+          </div>
 
           {/* Autocomplete Dropdown */}
           {showSuggestions && suggestions.length > 0 && (
@@ -430,22 +443,34 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
                     {p.fullName || `${p.firstName ?? ''} ${p.surname ?? ''}`.trim()}
                   </div>
                   <div className="appt-autocomplete-meta">
-                    <span>ID: {p.regid || p.id}</span>
-                    {(p.mobile1 || p.phone) && <span>📞 {p.mobile1 || p.phone}</span>}
+                    <span><strong>ID:</strong> {p.regid || p.id}</span>
+                    {(p.mobile1 || p.phone) && <span><Phone size={10} /> {p.mobile1 || p.phone}</span>}
+                    {p.lastVisit && <span style={{ opacity: 0.7 }}>Last Visit: {new Date(p.lastVisit).toLocaleDateString()}</span>}
                   </div>
                 </li>
               ))}
             </ul>
           )}
+
+          {showSuggestions && !lookupLoading && suggestions.length === 0 && (
+            <div className="appt-autocomplete-list appt-autocomplete-empty">
+              <p>No matching patients found. {form.visitType === VisitType.FollowUp ? 'Check the ID and try again.' : 'You can enter a new patient name.'}</p>
+            </div>
+          )}
         </div>
 
-        {lookupLoading && <div style={{ fontSize: 12, color: 'var(--pp-text-3)', marginTop: 4 }}>Looking up patient…</div>}
+        {lookupLoading && (
+          <div className="appt-lookup-spinner">
+            <Loader2 size={12} className="animate-spin" /> Looking up patient…
+          </div>
+        )}
 
         {/* If follow-up, show the name only after successful lookup if we have it */}
         {form.visitType === VisitType.FollowUp && form.patientName && !showSuggestions && (
           <div className="appt-followup-confirmed">
-            <span className="appt-followup-check">
-              ✓ Confirmed: {form.patientName} (ID: {form.patientId})
+            <CheckCircle size={14} />
+            <span>
+              Confirmed: <strong>{form.patientName}</strong> (ID: {form.patientId})
             </span>
           </div>
         )}

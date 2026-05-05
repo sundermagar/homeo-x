@@ -434,11 +434,11 @@ export default function MedicalCaseDetailPage() {
               <div className="mc-bill-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}><span>Total</span> <strong>₹{displayTotal}</strong></div>
               <div className="mc-bill-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}><span>Received</span> <strong className="text-green">₹{paidAmount}</strong></div>
               <div className="mc-bill-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}><span>Balance</span> <strong className="text-red">₹{balance}</strong></div>
-              <div className="mc-bill-total" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', fontWeight: 800, color: 'var(--pp-blue)', borderTop: '1px solid var(--pp-warm-2)', paddingTop: '12px', marginTop: '8px' }}>
+              <div className="mc-bill-total" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', fontWeight: 800, color: 'var(--pp-blue)', borderTop: '1px solid var(--border-main)', paddingTop: '12px', marginTop: '8px' }}>
                 <span>Outstanding</span>
                 <strong>₹{balance}</strong>
               </div>
-              <button className="mc-pay-btn" onClick={() => setShowBillingModal(true)} style={{ width: '100%', padding: '10px', background: '#F0FDF4', color: '#15803D', border: '1px solid #BBF7D0', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', marginTop: '12px' }}>Update Payment</button>
+              <button className="mc-pay-btn" onClick={() => setShowBillingModal(true)} style={{ width: '100%', padding: '10px', background: 'var(--pp-success-bg)', color: 'var(--pp-success-fg)', border: '1px solid var(--pp-success-border)', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', marginTop: '12px' }}>Update Payment</button>
             </div>
           </div>
 
@@ -512,32 +512,28 @@ export default function MedicalCaseDetailPage() {
                       (notes || []).filter((n: any) => n.notesType === 'Followup' || n.noteType === 'Followup')
                         .sort((a: any, b: any) => new Date(b.dateval || 0).getTime() - new Date(a.dateval || 0).getTime())
                         .map((note: any) => (
-                          <div key={note.id} style={{ padding: '10px 0', borderBottom: '1px solid #f1f5f9', fontSize: '0.85rem' }}>
-                            <div style={{ color: '#94a3b8', fontSize: '0.7rem', marginBottom: '4px' }}>
+                          <div key={note.id} style={{ padding: '10px 0', borderBottom: '1px solid var(--border-main)', fontSize: '0.85rem' }}>
+                            <div style={{ color: 'var(--pp-text-3)', fontSize: '0.7rem', marginBottom: '4px' }}>
                               {(note.dateval || note.createdAt || note.created_at) ? new Date(note.dateval || note.createdAt || note.created_at).toLocaleDateString('en-GB', {
                                 day: '2-digit', month: 'short', year: 'numeric',
                                 hour: '2-digit', minute: '2-digit'
                               }) : '—'}
                             </div>
-                            <div style={{ color: '#334155', lineHeight: 1.5 }}>{note.notes}</div>
+                            <div style={{ color: 'var(--pp-ink)', lineHeight: 1.5 }}>{note.notes}</div>
                           </div>
                         ))
                     ) : (
-                      <div style={{ color: '#94a3b8', fontSize: '0.85rem', textAlign: 'center', padding: '24px 0' }}>
+                      <div style={{ color: 'var(--pp-text-3)', fontSize: '0.85rem', textAlign: 'center', padding: '24px 0' }}>
                         No follow-up notes yet. Add one below.
                       </div>
                     )}
                   </div>
                   <textarea
+                    className="pp-textarea"
                     placeholder="Add follow-up notes here..."
                     value={followUpNote}
                     onChange={e => setFollowUpNote(e.target.value)}
-                    style={{
-                      width: '100%', minHeight: '100px', maxHeight: '200px', padding: '12px',
-                      border: '1px solid var(--pp-warm-4)', borderRadius: '10px', fontSize: '0.85rem',
-                      resize: 'vertical', fontFamily: 'inherit', color: '#334155',
-                      background: '#fafaf9', boxSizing: 'border-box'
-                    }}
+                    style={{ minHeight: '100px', fontSize: '0.85rem', background: 'var(--bg-surface-2)', color: 'var(--pp-ink)', border: '1px solid var(--border-main)', marginTop: '12px' }}
                   />
                   <button
                     onClick={async () => {
@@ -557,21 +553,21 @@ export default function MedicalCaseDetailPage() {
 
               {mobileDrawer === 'billing' && (
                 <>
-                  <div className="mc-side-card" style={{ background: 'white' }}>
+                  <div className="mc-side-card" style={{ background: 'var(--bg-card)' }}>
                     <div className="mc-side-card-body">
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', padding: '8px 0' }}>
-                        <span style={{ color: '#64748b' }}>Total</span>
-                        <strong>₹{displayTotal}</strong>
+                        <span style={{ color: 'var(--pp-text-3)' }}>Total</span>
+                        <strong style={{ color: 'var(--pp-ink)' }}>₹{displayTotal}</strong>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', padding: '8px 0' }}>
-                        <span style={{ color: '#64748b' }}>Received</span>
-                        <strong className="text-green">₹{paidAmount}</strong>
+                        <span style={{ color: 'var(--pp-text-3)' }}>Paid</span>
+                        <strong style={{ color: 'var(--pp-success-fg)' }}>₹{paidAmount}</strong>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', padding: '8px 0' }}>
-                        <span style={{ color: '#64748b' }}>Balance</span>
-                        <strong className="text-red">₹{balance}</strong>
+                        <span style={{ color: 'var(--pp-text-3)' }}>Balance</span>
+                        <strong style={{ color: 'var(--pp-danger-fg)' }}>₹{balance}</strong>
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.1rem', fontWeight: 800, color: 'var(--pp-blue)', borderTop: '2px solid var(--pp-warm-2)', paddingTop: '14px', marginTop: '8px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.1rem', fontWeight: 800, color: 'var(--pp-blue)', borderTop: '2px solid var(--border-main)', paddingTop: '14px', marginTop: '8px' }}>
                         <span>Outstanding</span>
                         <strong>₹{balance}</strong>
                       </div>
@@ -580,7 +576,7 @@ export default function MedicalCaseDetailPage() {
                   <button
                     onClick={() => { setMobileDrawer(null); setShowBillingModal(true); }}
                     style={{
-                      width: '100%', padding: '14px', background: '#F0FDF4', color: '#15803D',
+                      width: '100%', padding: '14px', background: 'var(--pp-success-bg)', color: 'var(--pp-success-fg)',
                       border: '1px solid #BBF7D0', borderRadius: '10px', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer'
                     }}
                   >
@@ -593,19 +589,19 @@ export default function MedicalCaseDetailPage() {
                 <div className="mc-side-card" style={{ background: 'white' }}>
                   <div className="mc-side-card-body" style={{ gap: '14px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                      <span style={{ color: '#64748b' }}>Name</span>
+                      <span style={{ color: 'var(--pp-text-3)' }}>Name</span>
                       <strong>{medicalCase.patientName || '—'}</strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                      <span style={{ color: '#64748b' }}>Mobile</span>
+                      <span style={{ color: 'var(--pp-text-3)' }}>Mobile</span>
                       <strong>{medicalCase.mobile || '—'}</strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                      <span style={{ color: '#64748b' }}>Email</span>
+                      <span style={{ color: 'var(--pp-text-3)' }}>Email</span>
                       <strong>{medicalCase.email || '—'}</strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                      <span style={{ color: '#64748b' }}>Address</span>
+                      <span style={{ color: 'var(--pp-text-3)' }}>Address</span>
                       <strong style={{ textAlign: 'right', maxWidth: '60%' }}>{medicalCase.address || '—'}</strong>
                     </div>
                     {medicalCase.mobile && (
@@ -630,11 +626,11 @@ export default function MedicalCaseDetailPage() {
                   <div className="mc-side-card" style={{ background: 'white' }}>
                     <div className="mc-side-card-body" style={{ gap: '14px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                        <span style={{ color: '#64748b' }}>Scheme</span>
+                        <span style={{ color: 'var(--pp-text-3)' }}>Scheme</span>
                         <strong>{activePackage?.packageName || 'REGULAR'}</strong>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                        <span style={{ color: '#64748b' }}>Status</span>
+                        <span style={{ color: 'var(--pp-text-3)' }}>Status</span>
                         <span style={{
                           padding: '3px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700,
                           background: activePackage?.status === 'Active' ? '#dcfce7' : '#fef3c7',
@@ -644,7 +640,7 @@ export default function MedicalCaseDetailPage() {
                         </span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                        <span style={{ color: '#64748b' }}>Expiry</span>
+                        <span style={{ color: 'var(--pp-text-3)' }}>Expiry</span>
                         <strong>{activePackage?.expiryDate ? new Date(activePackage.expiryDate).toLocaleDateString() : '—'}</strong>
                       </div>
                     </div>
@@ -652,7 +648,7 @@ export default function MedicalCaseDetailPage() {
                   <button
                     onClick={() => { setMobileDrawer(null); setShowAssignModal(true); }}
                     style={{
-                      width: '100%', padding: '14px', background: '#EEF2FF', color: '#4338CA',
+                      width: '100%', padding: '14px', background: 'var(--pp-blue-faded)', color: 'var(--pp-blue)',
                       border: '1px solid #C7D2FE', borderRadius: '10px', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer'
                     }}
                   >
@@ -881,10 +877,10 @@ function VaccineView({ regid, caseVaccines }: { regid: number; caseVaccines: any
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Syringe size={18} style={{ color: '#3b82f6' }} />
-            <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>Immunization Record</span>
+            <Syringe size={18} style={{ color: 'var(--pp-blue)' }} />
+            <span style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--pp-ink)' }}>Immunization Record</span>
           </div>
-          <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '2px' }}>Track patient vaccination schedule and administered doses</p>
+          <p style={{ fontSize: '0.75rem', color: 'var(--pp-text-3)', marginTop: '2px' }}>Track patient vaccination schedule and administered doses</p>
         </div>
         <button
           onClick={handleOpenAdd}
@@ -897,10 +893,10 @@ function VaccineView({ regid, caseVaccines }: { regid: number; caseVaccines: any
       {/* ── Previously Administered Vaccines ── */}
       {caseVaccines.length > 0 && (
         <div className="pp-card" style={{ padding: 0, marginBottom: '20px', border: '1px solid #bbf7d0' }}>
-          <div style={{ padding: '12px 16px', background: '#f0fdf4', borderBottom: '1px solid #bbf7d0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <CheckCircle2 size={15} style={{ color: '#16a34a' }} />
-            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#15803d' }}>Previously Given Vaccines</span>
-            <span style={{ fontSize: '0.72rem', color: '#4ade80', fontWeight: 600, marginLeft: '4px' }}>({caseVaccines.length})</span>
+          <div style={{ padding: '12px 16px', background: 'var(--pp-success-bg)', borderBottom: '1px solid var(--pp-success-border)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <CheckCircle2 size={15} style={{ color: 'var(--pp-success-fg)' }} />
+            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--pp-success-fg)' }}>Previously Given Vaccines</span>
+            <span style={{ fontSize: '0.72rem', color: 'var(--pp-success-fg)', fontWeight: 600, marginLeft: '4px' }}>({caseVaccines.length})</span>
           </div>
           <table className="pp-table" style={{ marginBottom: 0 }}>
             <thead>
@@ -917,17 +913,17 @@ function VaccineView({ regid, caseVaccines }: { regid: number; caseVaccines: any
                 .slice((givenPage - 1) * givenPageSize, givenPage * givenPageSize)
                 .map((cv: any, i: number) => (
                 <tr key={cv.id} className="hover-row">
-                  <td style={{ color: '#94a3b8', fontSize: '0.72rem', fontFamily: 'monospace' }}>{(givenPage - 1) * givenPageSize + i + 1}</td>
+                  <td style={{ color: 'var(--pp-text-3)', fontSize: '0.72rem', fontFamily: 'monospace' }}>{(givenPage - 1) * givenPageSize + i + 1}</td>
                   <td>
-                    <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#0f172a' }}>{cv.vaccineName || `Vaccine #${cv.vaccineId}`}</div>
+                    <div style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--pp-ink)' }}>{cv.vaccineName || `Vaccine #${cv.vaccineId}`}</div>
                   </td>
                   <td>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.78rem', fontWeight: 600, color: '#16a34a' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.78rem', fontWeight: 600, color: 'var(--pp-success-fg)' }}>
                       <Calendar size={12} />
                       {cv.createdAt ? new Date(cv.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
                     </span>
                   </td>
-                  <td style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                  <td style={{ fontSize: '0.78rem', color: 'var(--pp-text-3)' }}>
                     {cv.notes || '—'}
                   </td>
                   <td style={{ textAlign: 'right' }}>
@@ -935,7 +931,7 @@ function VaccineView({ regid, caseVaccines }: { regid: number; caseVaccines: any
                       <button
                         title="Edit"
                         onClick={() => handleOpenEdit(cv)}
-                        style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e2e8f0', borderRadius: '6px', background: '#fff', cursor: 'pointer', color: '#3b82f6' }}
+                        style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border-main)', borderRadius: '6px', background: 'var(--bg-card)', cursor: 'pointer', color: 'var(--pp-blue)' }}
                       >
                         <Edit size={13} />
                       </button>
@@ -943,7 +939,7 @@ function VaccineView({ regid, caseVaccines }: { regid: number; caseVaccines: any
                         title="Delete"
                         onClick={() => handleDelete(cv)}
                         disabled={deletingId === cv.id}
-                        style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #fecaca', borderRadius: '6px', background: '#fff', cursor: 'pointer', color: '#ef4444', opacity: deletingId === cv.id ? 0.5 : 1 }}
+                        style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #fecaca', borderRadius: '6px', background: 'var(--bg-card)', cursor: 'pointer', color: '#ef4444', opacity: deletingId === cv.id ? 0.5 : 1 }}
                       >
                         {deletingId === cv.id ? <Loader2 size={13} className="spin" /> : <Trash2 size={13} />}
                       </button>
@@ -966,13 +962,13 @@ function VaccineView({ regid, caseVaccines }: { regid: number; caseVaccines: any
 
       {/* Search */}
       <div style={{ position: 'relative', marginBottom: '16px', maxWidth: '360px' }}>
-        <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+        <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--pp-text-3)' }} />
         <input
           type="text"
           placeholder="Search vaccine..."
           value={search}
           onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
-          style={{ width: '100%', padding: '10px 12px 10px 36px', border: '1.5px solid #e2e8f0', borderRadius: '10px', fontSize: '0.85rem', outline: 'none', background: '#f8fafc', boxSizing: 'border-box' }}
+          style={{ width: '100%', padding: '10px 12px 10px 36px', border: '1.5px solid var(--border-main)', borderRadius: '10px', fontSize: '0.85rem', outline: 'none', background: 'var(--bg-surface-2)', boxSizing: 'border-box', color: 'var(--pp-ink)' }}
         />
       </div>
 
@@ -990,7 +986,7 @@ function VaccineView({ regid, caseVaccines }: { regid: number; caseVaccines: any
           </thead>
           <tbody>
             {currentVaccines.length === 0 && (
-              <tr><td colSpan={5} style={{ textAlign: 'center', padding: '32px', color: '#94a3b8' }}>
+              <tr><td colSpan={5} style={{ textAlign: 'center', padding: '32px', color: 'var(--pp-text-3)' }}>
                 <Syringe size={32} style={{ opacity: 0.2, marginBottom: '8px' }} />
                 <p>No vaccine records found.</p>
               </td></tr>
@@ -1001,12 +997,12 @@ function VaccineView({ regid, caseVaccines }: { regid: number; caseVaccines: any
                   <tr key={`hdr-${vac.id}`} style={{ background: '#f0f9ff' }}>
                     <td colSpan={5} style={{ padding: '10px 14px', borderBottom: '1px solid #dbeafe' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Calendar size={13} style={{ color: '#3b82f6' }} />
+                        <Calendar size={13} style={{ color: 'var(--pp-blue)' }} />
                         <span style={{ fontWeight: 800, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#1e40af' }}>
                           {vac.label}
                         </span>
                         {vac.months !== undefined && vac.months !== 999 && (
-                          <span style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 500 }}>(At {vac.months} Months)</span>
+                          <span style={{ fontSize: '0.65rem', color: 'var(--pp-text-3)', fontWeight: 500 }}>(At {vac.months} Months)</span>
                         )}
                         <div style={{ flex: 1, borderTop: '1px dashed #cbd5e1', marginLeft: '8px', opacity: 0.5 }} />
                       </div>
@@ -1020,13 +1016,13 @@ function VaccineView({ regid, caseVaccines }: { regid: number; caseVaccines: any
 
               return (
                 <tr key={vac.id} className="hover-row">
-                  <td style={{ color: '#94a3b8', fontSize: '0.7rem', fontFamily: 'monospace' }}>
+                  <td style={{ color: 'var(--pp-text-3)', fontSize: '0.7rem', fontFamily: 'monospace' }}>
                     {idx + 1 + startIndex}
                   </td>
                   <td>
-                    <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0f172a' }}>{vac.label}</div>
+                    <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--pp-ink)' }}>{vac.label}</div>
                     {vac.description && (
-                      <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '2px' }}>{vac.description}</div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--pp-text-3)', marginTop: '2px' }}>{vac.description}</div>
                     )}
                     {isDone && doneRecord?.createdAt && (
                       <div style={{ fontSize: '0.68rem', color: '#22c55e', marginTop: '3px', fontWeight: 600 }}>
@@ -1088,14 +1084,14 @@ function VaccineView({ regid, caseVaccines }: { regid: number; caseVaccines: any
           {/* Backdrop */}
           <div onClick={() => setDrawerOpen(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(2px)' }} />
           {/* Panel */}
-          <div style={{ position: 'relative', width: '100%', maxWidth: '440px', background: '#fff', boxShadow: '-8px 0 30px rgba(0,0,0,0.12)', display: 'flex', flexDirection: 'column', animation: 'slideInRight 0.25s ease-out' }}>
+          <div style={{ position: 'relative', width: '100%', maxWidth: '440px', background: 'var(--bg-card)', boxShadow: '-8px 0 30px rgba(0,0,0,0.12)', display: 'flex', flexDirection: 'column', animation: 'slideInRight 0.25s ease-out' }}>
             {/* Drawer Header */}
             <div style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>{editingRecord ? 'Edit Vaccine Record' : 'Add Vaccine to Patient'}</h3>
-                <p style={{ fontSize: '0.72rem', color: '#94a3b8', margin: '2px 0 0' }}>{editingRecord ? 'Update notes for this vaccine record' : 'Select from master immunization list'}</p>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--pp-ink)', margin: 0 }}>{editingRecord ? 'Edit Vaccine Record' : 'Add Vaccine to Patient'}</h3>
+                <p style={{ fontSize: '0.72rem', color: 'var(--pp-text-3)', margin: '2px 0 0' }}>{editingRecord ? 'Update notes for this vaccine record' : 'Select from master immunization list'}</p>
               </div>
-              <button onClick={() => setDrawerOpen(false)} style={{ width: '32px', height: '32px', border: 'none', borderRadius: '8px', background: '#f1f5f9', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+              <button onClick={() => setDrawerOpen(false)} style={{ width: '32px', height: '32px', border: 'none', borderRadius: '8px', background: '#f1f5f9', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--pp-text-3)' }}>
                 <X size={16} />
               </button>
             </div>
@@ -1105,13 +1101,13 @@ function VaccineView({ regid, caseVaccines }: { regid: number; caseVaccines: any
               <div style={{ flex: 1, padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 {/* Vaccine Select */}
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#0f172a', marginBottom: '6px' }}>Vaccine *</label>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-ink)', marginBottom: '6px' }}>Vaccine *</label>
                   <select
                     required
                     value={formVaccineId}
                     onChange={e => setFormVaccineId(Number(e.target.value))}
                     disabled={!!editingRecord}
-                    style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem', color: '#334155', background: editingRecord ? '#f1f5f9' : '#fff', outline: 'none', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem', color: '#334155', background: editingRecord ? '#f1f5f9' : 'var(--bg-card)', outline: 'none', boxSizing: 'border-box' }}
                   >
                     <option value="">— Select a vaccine —</option>
                     {vaccineOptions.map((v: any) => {
@@ -1127,7 +1123,7 @@ function VaccineView({ regid, caseVaccines }: { regid: number; caseVaccines: any
 
                 {/* Notes */}
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#0f172a', marginBottom: '6px' }}>Clinical Notes</label>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-ink)', marginBottom: '6px' }}>Clinical Notes</label>
                   <textarea
                     placeholder="e.g. Batch #1234, administered by Dr. X..."
                     value={formNotes}
@@ -1138,7 +1134,7 @@ function VaccineView({ regid, caseVaccines }: { regid: number; caseVaccines: any
 
                 {/* Info tip */}
                 <div style={{ display: 'flex', gap: '8px', padding: '12px', background: '#f0f9ff', borderRadius: '8px', border: '1px solid #dbeafe' }}>
-                  <AlertCircle size={14} style={{ color: '#3b82f6', flexShrink: 0, marginTop: '1px' }} />
+                  <AlertCircle size={14} style={{ color: 'var(--pp-blue)', flexShrink: 0, marginTop: '1px' }} />
                   <p style={{ fontSize: '0.75rem', color: '#1e40af', margin: 0, lineHeight: 1.5 }}>
                     The vaccine will be recorded for <strong>Patient #{regid}</strong> with today's date. You can mark additional vaccines directly from the table.
                   </p>
@@ -1146,8 +1142,8 @@ function VaccineView({ regid, caseVaccines }: { regid: number; caseVaccines: any
               </div>
 
               {/* Drawer Footer */}
-              <div style={{ padding: '16px 24px', borderTop: '1px solid #e2e8f0', display: 'flex', gap: '10px', justifyContent: 'flex-end', background: '#f8fafc' }}>
-                <button type="button" onClick={() => setDrawerOpen(false)} style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', fontSize: '0.85rem', fontWeight: 600, color: '#64748b', cursor: 'pointer' }}>
+              <div style={{ padding: '16px 24px', borderTop: '1px solid #e2e8f0', display: 'flex', gap: '10px', justifyContent: 'flex-end', background: 'var(--bg-surface-2)' }}>
+                <button type="button" onClick={() => setDrawerOpen(false)} style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', fontSize: '0.85rem', fontWeight: 600, color: 'var(--pp-text-3)', cursor: 'pointer' }}>
                   Cancel
                 </button>
                 <button
@@ -1252,26 +1248,26 @@ function AnalyticsView({ vitals, regid, visitId, name, phone, clinicName }: { vi
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       <div className="pp-card" style={{ padding: '24px', border: '1px solid #eef2f6' }}>
-        <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#3b82f6', marginBottom: '20px', textTransform: 'uppercase', letterSpacing: '0.025em' }}>Quick Record Height/Weight</div>
+        <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--pp-blue)', marginBottom: '20px', textTransform: 'uppercase', letterSpacing: '0.025em' }}>Quick Record Height/Weight</div>
         <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: '1 1 180px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>Height</label>
-              <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#3b82f6', cursor: 'pointer' }} onClick={() => setHeightUnit(h => h === 'cm' ? 'in' : 'cm')}>{heightUnit.toUpperCase()}</span>
+              <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--pp-text-3)' }}>Height</label>
+              <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-blue)', cursor: 'pointer' }} onClick={() => setHeightUnit(h => h === 'cm' ? 'in' : 'cm')}>{heightUnit.toUpperCase()}</span>
             </div>
             <input type="number" className="pp-input" style={{ width: '100%', borderRadius: '8px', padding: '10px 16px' }} value={hVal} onChange={e => setHVal(e.target.value)} placeholder={heightUnit} />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: '1 1 180px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>Weight</label>
-              <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#3b82f6', cursor: 'pointer' }} onClick={() => setWeightUnit(w => w === 'kg' ? 'lbs' : 'kg')}>{weightUnit.toUpperCase()}</span>
+              <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--pp-text-3)' }}>Weight</label>
+              <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-blue)', cursor: 'pointer' }} onClick={() => setWeightUnit(w => w === 'kg' ? 'lbs' : 'kg')}>{weightUnit.toUpperCase()}</span>
             </div>
             <input type="number" className="pp-input" style={{ width: '100%', borderRadius: '8px', padding: '10px 16px' }} value={wVal} onChange={e => setWVal(e.target.value)} placeholder={weightUnit} />
           </div>
           <button className="btn-primary" onClick={handleSave} disabled={saving} style={{ padding: '10px 24px', height: '44px', borderRadius: '8px', fontWeight: 700, background: '#2563eb' }}>
             {saving ? 'Saving...' : 'Save H/W'}
           </button>
-          <button className="btn-secondary" onClick={handleShare} disabled={sending} style={{ padding: '10px 20px', height: '44px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #e2e8f0', background: 'white', color: '#64748b' }}>
+          <button className="btn-secondary" onClick={handleShare} disabled={sending} style={{ padding: '10px 20px', height: '44px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #e2e8f0', background: 'white', color: 'var(--pp-text-3)' }}>
             <Send size={14} /> {sending ? 'Sending...' : 'Share Latest'}
           </button>
         </div>
@@ -1445,11 +1441,11 @@ function HomeoView({ regid, initialData, reminders, medicalCase }: { regid: numb
         <TableSkeleton rows={5} cols={5} />
       ) : reminders.length === 0 ? (
         <div className="pp-card" style={{ padding: '80px 48px', textAlign: 'center', background: 'white', border: '1px dashed #e2e8f0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ padding: '20px', background: '#f8fafc', borderRadius: '50%', marginBottom: '20px' }}>
-            <History size={48} style={{ color: '#94a3b8' }} />
+          <div style={{ padding: '20px', background: 'var(--bg-surface-2)', borderRadius: '50%', marginBottom: '20px' }}>
+            <History size={48} style={{ color: 'var(--pp-text-3)' }} />
           </div>
-          <h3 style={{ color: '#1e293b', fontWeight: 700, fontSize: '1.25rem', marginBottom: '8px' }}>No clinic activities recorded yet</h3>
-          <p style={{ color: '#64748b', fontSize: '0.95rem', maxWidth: '400px', lineHeight: 1.6 }}>
+          <h3 style={{ color: 'var(--pp-ink)', fontWeight: 700, fontSize: '1.25rem', marginBottom: '8px' }}>No clinic activities recorded yet</h3>
+          <p style={{ color: 'var(--pp-text-3)', fontSize: '0.95rem', maxWidth: '400px', lineHeight: 1.6 }}>
             Keep track of patient follow-ups, clinical attributes, and scheduled activities. Click the button above to add your first activity.
           </p>
         </div>
@@ -1668,7 +1664,7 @@ function VitalsView({ vitals, onRecord, phone, name, regid, clinicName }: { vita
       <div style={{ marginTop: '32px' }}>
         <div className="pp-card pp-table-scroll" style={{ padding: 0, borderRadius: '12px', border: '1px solid #bfdbfe' }}>
           <div style={{ padding: '12px 16px', background: '#eff6ff', borderBottom: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Activity size={15} style={{ color: '#3b82f6' }} />
+            <Activity size={15} style={{ color: 'var(--pp-blue)' }} />
             <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#1e40af' }}>Recent Vitals History</span>
             <span style={{ fontSize: '0.72rem', color: '#60a5fa', fontWeight: 600, marginLeft: '4px' }}>({vitals.length})</span>
           </div>
@@ -1964,11 +1960,11 @@ function LabsView({ investigations, regid, visitId }: { investigations: any[]; r
         <TableSkeleton rows={5} cols={5} />
       ) : investigations.length === 0 ? (
         <div className="pp-card" style={{ padding: '80px 48px', textAlign: 'center', background: 'white', border: '1px dashed #e2e8f0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ padding: '20px', background: '#f8fafc', borderRadius: '50%', marginBottom: '20px' }}>
-            <FlaskConical size={48} style={{ color: '#94a3b8' }} />
+          <div style={{ padding: '20px', background: 'var(--bg-surface-2)', borderRadius: '50%', marginBottom: '20px' }}>
+            <FlaskConical size={48} style={{ color: 'var(--pp-text-3)' }} />
           </div>
-          <h3 style={{ color: '#1e293b', fontWeight: 700, fontSize: '1.25rem', marginBottom: '8px' }}>No investigations recorded yet</h3>
-          <p style={{ color: '#64748b', fontSize: '0.95rem', maxWidth: '400px', lineHeight: 1.6 }}>
+          <h3 style={{ color: 'var(--pp-ink)', fontWeight: 700, fontSize: '1.25rem', marginBottom: '8px' }}>No investigations recorded yet</h3>
+          <p style={{ color: 'var(--pp-text-3)', fontSize: '0.95rem', maxWidth: '400px', lineHeight: 1.6 }}>
             Record lab results, radiological findings, and specialized tests to build a complete clinical picture.
           </p>
           <button className="pp-link" style={{ marginTop: '16px', fontWeight: 700 }} onClick={handleAdd}>Record the first investigation</button>
@@ -2537,11 +2533,11 @@ function DiagnosisView({ regid, visitId, medicalCase, soapRecords }: { regid: nu
         <TableSkeleton rows={5} cols={5} />
       ) : soapRecords.length === 0 ? (
         <div className="pp-card" style={{ padding: '80px 48px', textAlign: 'center', background: 'white', border: '1px dashed #e2e8f0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ padding: '20px', background: '#f8fafc', borderRadius: '50%', marginBottom: '20px' }}>
-            <Sparkles size={48} style={{ color: '#94a3b8' }} />
+          <div style={{ padding: '20px', background: 'var(--bg-surface-2)', borderRadius: '50%', marginBottom: '20px' }}>
+            <Sparkles size={48} style={{ color: 'var(--pp-text-3)' }} />
           </div>
-          <h3 style={{ color: '#1e293b', fontWeight: 700, fontSize: '1.25rem', marginBottom: '8px' }}>No clinical assessments recorded yet</h3>
-          <p style={{ color: '#64748b', fontSize: '0.95rem', maxWidth: '400px', lineHeight: 1.6 }}>
+          <h3 style={{ color: 'var(--pp-ink)', fontWeight: 700, fontSize: '1.25rem', marginBottom: '8px' }}>No clinical assessments recorded yet</h3>
+          <p style={{ color: 'var(--pp-text-3)', fontSize: '0.95rem', maxWidth: '400px', lineHeight: 1.6 }}>
             Start recording clinical findings, symptoms, and treatment plans for this patient to track their progress.
           </p>
           <button className="pp-link" style={{ marginTop: '16px', fontWeight: 700 }} onClick={handleAdd}>Create the first diagnosis</button>
@@ -2549,7 +2545,7 @@ function DiagnosisView({ regid, visitId, medicalCase, soapRecords }: { regid: nu
       ) : (
         <>
           <div className="pp-card pp-table-scroll" style={{ padding: 0, borderRadius: '12px', border: '1px solid #fde68a', marginBottom: '20px' }}>
-            <div style={{ padding: '12px 16px', background: '#fffbeb', borderBottom: '1px solid #fde68a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ padding: '12px 16px', background: 'var(--bg-card)beb', borderBottom: '1px solid #fde68a', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Sparkles size={15} style={{ color: '#d97706' }} />
               <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#92400e' }}>Clinical Assessment History</span>
               <span style={{ fontSize: '0.72rem', color: '#fbbf24', fontWeight: 600, marginLeft: '4px' }}>({soapRecords.length})</span>
