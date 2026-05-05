@@ -514,26 +514,28 @@ export function HomeopathyConsultationLayout({
   const typeIcon = { IN_PERSON: '🏥', AUDIO: '📞', VIDEO: '📹' }[callMode];
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#FAFAF8]">
+    <div className="flex flex-col lg:flex-row h-[100dvh] w-full overflow-hidden bg-[#FAFAF8]">
       {/* ═══ SIDEBAR ═══ */}
-      <aside className="w-64 bg-white border-r border-[#E3E2DF] flex flex-col shrink-0">
+      <aside className="w-full lg:w-64 bg-white border-b lg:border-b-0 lg:border-r border-[#E3E2DF] flex flex-col shrink-0 z-10">
         {/* Patient Card */}
-        <div className="px-5 py-4 border-b border-[#E3E2DF] bg-[#FAFAF8]">
-          <div className="w-10 h-10 rounded-lg bg-[#EFF6FF] text-[#2563EB] flex items-center justify-center font-bold text-lg mb-3 border border-[#BFDBFE]">
+        <div className="px-4 py-3 lg:px-5 lg:py-4 border-b border-[#E3E2DF] bg-[#FAFAF8] flex items-center lg:items-start lg:flex-col gap-3 lg:gap-0">
+          <div className="w-10 h-10 rounded-lg bg-[#EFF6FF] text-[#2563EB] flex items-center justify-center font-bold text-lg lg:mb-3 border border-[#BFDBFE] shrink-0">
             {patientInitials || '--'}
           </div>
-          <div className="text-sm font-bold text-[#0F0F0E]">{patientName}</div>
-          <div className="text-xs font-medium text-[#4A4A47] mt-0.5">
-            {patientAge ? `Age ${patientAge}` : 'Age —'} <span className="text-[#888786] px-1">•</span> {patient?.gender || '—'}
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-bold text-[#0F0F0E] truncate">{patientName}</div>
+            <div className="text-xs font-medium text-[#4A4A47] mt-0.5 truncate">
+              {patientAge ? `Age ${patientAge}` : 'Age —'} <span className="text-[#888786] px-1">•</span> {patient?.gender || '—'}
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2 mt-3">
+          <div className="flex flex-col lg:flex-row lg:flex-wrap gap-1 lg:gap-2 lg:mt-3 items-end lg:items-center shrink-0">
             <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-[4px] uppercase', modeColor)}>{modeLabel}</span>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-[4px] bg-white border border-[#E3E2DF] text-[#4A4A47] uppercase">{typeIcon} {typeLabel}</span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-[4px] bg-white border border-[#E3E2DF] text-[#4A4A47] uppercase whitespace-nowrap">{typeIcon} {typeLabel}</span>
           </div>
         </div>
 
         {/* Step Navigation */}
-        <nav className="flex-1 px-4 py-4 space-y-1">
+        <nav className="flex-none lg:flex-1 px-4 py-3 lg:py-4 flex flex-wrap lg:flex-col gap-2 lg:gap-0 lg:space-y-1 border-b lg:border-b-0 border-[#E3E2DF]">
           {STEPS.map((step, i) => {
             const isActive = step.key === state.consultStage;
             const isDone = i < currentStepIdx;
@@ -542,7 +544,7 @@ export function HomeopathyConsultationLayout({
                 key={step.key}
                 onClick={() => state.setConsultStage(step.key)}
                 className={cn(
-                  'w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-[13px] font-semibold transition-all duration-200',
+                  'flex-none lg:w-full flex items-center gap-2 lg:gap-3 px-3 py-2 lg:py-2.5 rounded-md text-[12px] lg:text-[13px] font-semibold transition-all duration-200 whitespace-nowrap',
                   isActive && 'bg-[#EFF6FF] text-[#2563EB]',
                   isDone && 'text-[#16A34A]',
                   !isActive && !isDone && 'text-[#4A4A47] hover:bg-[#F4F3F1]',
@@ -563,7 +565,7 @@ export function HomeopathyConsultationLayout({
         </nav>
 
         {/* Session Info */}
-        <div className="px-4 py-3 border-t border-[#E3E2DF] bg-[#FAFAF8]">
+        <div className="hidden lg:block px-4 py-3 border-t border-[#E3E2DF] bg-[#FAFAF8]">
           <div className="text-[10px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">Session</div>
           <div className="text-[11px] text-[#4A4A47]">
             {visit.chiefComplaint ? visit.chiefComplaint.slice(0, 50) + (visit.chiefComplaint.length > 50 ? '...' : '') : 'No chief complaint'}
@@ -578,9 +580,9 @@ export function HomeopathyConsultationLayout({
       </aside>
 
       {/* ═══ MAIN CONTENT ═══ */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <div className="flex-1 overflow-auto">
-          <div className="max-w-[1200px] mx-auto px-5 py-5 pb-24">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0 relative">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden w-full">
+          <div className="max-w-[1200px] mx-auto px-4 lg:px-5 py-5 pb-8">
             {renderStageContent()}
           </div>
         </div>

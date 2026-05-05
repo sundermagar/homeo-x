@@ -345,7 +345,7 @@ export function CallInterfacePanel({ callMode, ...props }: CallInterfacePanelPro
         </div>
 
         {/* Controls row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0, flexWrap: 'wrap' }}>
           <button
             onClick={props.onLeave}
             style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.4rem 0.625rem', background: 'transparent', border: 'none', color: '#EF4444', cursor: 'pointer', fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', borderRadius: '0.375rem' }}

@@ -73,7 +73,7 @@ export function TotalityStage({
   }, [onCategorizedSymptomsChange]);
 
   return (
-    <div className="space-y-8 pp-fade-in relative container mx-auto">
+    <div className="space-y-8 pp-fade-in relative">
       
       {/* ═══ 1. Progress Bar ═══ */}
       <div className="w-full">
@@ -321,7 +321,7 @@ export function TotalityStage({
 
           {/* Phases */}
           {phases && (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="rounded-md border border-[#FCA5A5] bg-[#FEF2F2] p-4">
                 <p className="text-[10px] font-bold text-[#DC2626] uppercase tracking-widest mb-1.5">Conflict-Active Phase</p>
                 <p className="text-[12px] text-[#7F1D1D] font-medium">{phases.conflictActive}</p>
@@ -347,7 +347,7 @@ export function TotalityStage({
           {aiRemedies.length > 0 && (
             <div className="space-y-2 pt-2 border-t border-[#E3E2DF]">
               <p className="text-[11px] font-bold text-[#888786] uppercase tracking-widest">AI Remedy Suggestions</p>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {aiRemedies.map((remedy, i) => (
                   <div key={i} className="rounded-md border border-[#E3E2DF] bg-white p-3">
                     <div className="flex items-center justify-between mb-1.5">

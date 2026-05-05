@@ -592,7 +592,7 @@ export function ConsultationStage({
   const progressPercent = 50;
 
   return (
-    <div className="space-y-6 pp-fade-in relative container mx-auto">
+    <div className="space-y-6 pp-fade-in relative">
       
       {/* 1. Progress bar at top */}
       <div className="w-full h-1.5 bg-[#E3E2DF] rounded-full overflow-hidden">
@@ -603,12 +603,12 @@ export function ConsultationStage({
       </div>
 
       {/* 2. Header row */}
-      <div className="flex items-center justify-between pb-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2">
         <div className="space-y-1">
           <h2 className="text-xl font-bold text-[#0F0F0E] tracking-tight">Clinical Consultation</h2>
           <p className="text-sm font-medium text-[#4A4A47]">Holistic Analysis & Symptom Extraction</p>
         </div>
-        <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-[#EFF6FF] border border-[#BFDBFE] text-xs font-bold text-[#2563EB] tracking-wider uppercase">
+        <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-[#EFF6FF] border border-[#BFDBFE] text-xs font-bold text-[#2563EB] tracking-wider uppercase w-fit">
           <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#3B82F6] opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-[#2563EB]"></span>

@@ -124,7 +124,7 @@ export function RepertoryStage({
   });
 
   return (
-    <div className="space-y-8 pp-fade-in relative container mx-auto">
+    <div className="space-y-8 pp-fade-in relative">
       
       {/* ── Progress bar ── */}
       <div className="w-full">
