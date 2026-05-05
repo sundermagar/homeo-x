@@ -65,6 +65,36 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     return info;
   }
 
+  /**
+   * Resolves the set of IDs that should match a doctor filter, accounting for
+   * legacy data where appointments.doctor_id may point at either users.id or
+   * doctors.id (different tables, same person, same name).
+   *
+   * Runs ONCE per dashboard call instead of as a correlated subquery per row,
+   * which is the difference between O(rows × 3 lookups) and O(1) lookup.
+   */
+  private async resolveDoctorIds(doctorId: number): Promise<number[]> {
+    const cacheKey = `docIds:${doctorId}`;
+    return this.getCached(cacheKey, 5 * 60_000, async () => {
+      const result = await this.db.execute(sql`
+        SELECT DISTINCT id FROM (
+          SELECT ${doctorId}::int AS id
+          UNION
+          SELECT d.id FROM doctors d
+          WHERE d.name = (SELECT name FROM users WHERE id = ${doctorId})
+          UNION
+          SELECT u.id FROM users u
+          WHERE u.name = (SELECT name FROM users WHERE id = ${doctorId})
+        ) t
+        WHERE id IS NOT NULL
+      `);
+      const ids = (result as any[])
+        .map(r => Number(r.id))
+        .filter(n => Number.isFinite(n) && n > 0);
+      return ids.length > 0 ? ids : [doctorId];
+    });
+  }
+
   private async getDoctorColumn(): Promise<string> {
     const schemaName = (this.db as any).session?.client?.options?.search_path || 'public';
     if (DashboardRepositoryPg.cachedDocCol[schemaName]) return DashboardRepositoryPg.cachedDocCol[schemaName];
@@ -144,27 +174,15 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       const { start, boundary, prevStart, prevBoundary } = this.getPeriodDates(period);
       const docCol = await this.getDoctorColumn();
       
-      const docApptFilter = doctorId ? sql` AND (
-        ${sql.identifier(docCol)} = ${doctorId}
-        OR (SELECT name FROM users WHERE id = ${doctorId}) IN (
-          SELECT name FROM doctors WHERE id = ${sql.identifier(docCol)}
-          UNION SELECT name FROM users WHERE id = ${sql.identifier(docCol)}
-        )
-      )` : sql``;
-      const docWaitFilter = doctorId ? sql` AND (
-        doctor_id = ${doctorId}
-        OR (SELECT name FROM users WHERE id = ${doctorId}) IN (
-          SELECT name FROM doctors WHERE id = doctor_id
-          UNION SELECT name FROM users WHERE id = doctor_id
-        )
-      )` : sql``;
-      const docBillFilter = doctorId ? sql` AND (
-        b.doctor_id = ${doctorId}
-        OR (SELECT name FROM users WHERE id = ${doctorId}) IN (
-          SELECT name FROM doctors WHERE id = b.doctor_id
-          UNION SELECT name FROM users WHERE id = b.doctor_id
-        )
-      )` : sql``;
+      // Pre-resolve doctor IDs ONCE (replaces 3× correlated subqueries that
+      // ran per row in every WHERE clause below).
+      const doctorIds = doctorId ? await this.resolveDoctorIds(doctorId) : [];
+      const idList = doctorIds.length
+        ? sql.join(doctorIds.map(id => sql`${id}`), sql`, `)
+        : null;
+      const docApptFilter = idList ? sql` AND ${sql.identifier(docCol)} IN (${idList})` : sql``;
+      const docWaitFilter = idList ? sql` AND doctor_id IN (${idList})` : sql``;
+      const docBillFilter = idList ? sql` AND b.doctor_id IN (${idList})` : sql``;
 
     // Single round-trip: 4 queries instead of 9 (merged prev/curr + eliminated duplicate bills scans)
     const [countsRes, financeRes, waitRes, followUpRes] = await Promise.all([
@@ -292,20 +310,13 @@ export class DashboardRepositoryPg implements IDashboardRepository {
   async getTodayQueue(contextId: number, doctorId?: number): Promise<QueueItem[]> {
     const today = new Date().toISOString().split('T')[0]!;
     return this.getCached(`queue:${contextId}:${today}:${doctorId ?? ''}`, 30_000, async () => {
-      const docCond = doctorId ? sql` AND (
-        w.doctor_id = ${doctorId} 
-        OR (SELECT name FROM users WHERE id = ${doctorId}) IN (
-          SELECT name FROM doctors WHERE id = w.doctor_id
-          UNION SELECT name FROM users WHERE id = w.doctor_id
-        )
-      )` : sql``;
-      const apptCond = doctorId ? sql` AND (
-        a.doctor_id = ${doctorId} 
-        OR (SELECT name FROM users WHERE id = ${doctorId}) IN (
-          SELECT name FROM doctors WHERE id = a.doctor_id
-          UNION SELECT name FROM users WHERE id = a.doctor_id
-        )
-      )` : sql``;
+      // Pre-resolve doctor IDs ONCE — flattens the per-row correlated subquery.
+      const doctorIds = doctorId ? await this.resolveDoctorIds(doctorId) : [];
+      const idList = doctorIds.length
+        ? sql.join(doctorIds.map(id => sql`${id}`), sql`, `)
+        : null;
+      const docCond = idList ? sql` AND w.doctor_id IN (${idList})` : sql``;
+      const apptCond = idList ? sql` AND a.doctor_id IN (${idList})` : sql``;
 
       const result = await this.db.execute(sql`
         WITH today_waitlist AS (
@@ -610,9 +621,13 @@ export class DashboardRepositoryPg implements IDashboardRepository {
   async getRecentTransactions(limit: number, contextId?: number): Promise<RecentTransaction[]> {
     return this.getCached(`recentTransactions:${contextId ?? 'all'}:${limit}`, 60_000, async () => {
       try {
+        // Bound the scan to the last 60 days. The widget only ever shows the
+        // top N "recent" rows — scanning the whole bills+receipt history just
+        // to throw away everything past `LIMIT 5` was the root cause of slow
+        // dashboard loads on clinics with deep history.
         const results = await this.db.execute(sql`
           WITH combined AS (
-            SELECT 
+            SELECT
               b.id::text,
               b.regid,
               COALESCE(b.bill_no::text, 'INV-' || b.id::text) AS invoice_no,
@@ -626,11 +641,12 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             FROM bills b
             JOIN patients pb ON pb.regid = b.regid
             WHERE (b.deleted_at IS NULL OR b.deleted_at::text = '')
+              AND b.created_at >= NOW() - interval '60 days'
               ${contextId ? sql`AND pb.clinic_id = ${contextId}` : sql``}
-            
+
             UNION ALL
-            
-            SELECT 
+
+            SELECT
               'R-' || r.id::text as id,
               r.regid,
               'RCT-' || r.id::text AS invoice_no,
@@ -640,9 +656,10 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             FROM receipt r
             JOIN patients pr ON pr.regid = r.regid
             WHERE (r.deleted_at IS NULL OR r.deleted_at::text = '')
+              AND r.created_at >= NOW() - interval '60 days'
               ${contextId ? sql`AND pr.clinic_id = ${contextId}` : sql``}
           )
-          SELECT 
+          SELECT
             c.*,
             COALESCE(p.first_name || ' ' || p.surname, 'Patient') AS patient_name
           FROM combined c
