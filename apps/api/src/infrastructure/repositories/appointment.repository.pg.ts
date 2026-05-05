@@ -263,7 +263,13 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
   }
 
   async findToday(doctorId?: number, clinicId?: number) {
-    const today = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const istString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+    const istDate = new Date(istString);
+    const y = istDate.getFullYear();
+    const mm = String(istDate.getMonth() + 1).padStart(2, '0');
+    const dd = String(istDate.getDate()).padStart(2, '0');
+    const today = `${y}-${mm}-${dd}`;
     
     // Using Drizzle select for automatic mapping
     const conditions: any[] = [
@@ -326,10 +332,20 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
       );
     const bookedTimes = new Set(booked.map(b => b.time).filter(Boolean));
 
-    const today = new Date().toISOString().split('T')[0] as string;
-    const isToday = date === today;
+    // Use India Standard Time (IST) for calculating 'isPast' and 'today'
+    // This ensures that even if the server is in UTC, we use the clinic's local time (IST)
     const now = new Date();
-    const currentMins = now.getHours() * 60 + now.getMinutes();
+    const istString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+    const istTime = new Date(istString);
+    
+    // Get YYYY-MM-DD in IST
+    const y = istTime.getFullYear();
+    const mm = String(istTime.getMonth() + 1).padStart(2, '0');
+    const dd = String(istTime.getDate()).padStart(2, '0');
+    const today = `${y}-${mm}-${dd}`;
+
+    const isToday = date === today;
+    const currentMins = istTime.getHours() * 60 + istTime.getMinutes();
 
     return ALL_TIME_SLOTS.map(time => {
       const tMins = toMins(time);
@@ -418,7 +434,13 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
   }
 
   async issueToken(appointmentId: number): Promise<number> {
-    const today = new Date().toISOString().split('T')[0] as string;
+    const now = new Date();
+    const istString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+    const istDate = new Date(istString);
+    const y = istDate.getFullYear();
+    const mm = String(istDate.getMonth() + 1).padStart(2, '0');
+    const dd = String(istDate.getDate()).padStart(2, '0');
+    const today = `${y}-${mm}-${dd}`;
 
     // Daily max token across both tokens and appointments table to ensure uniqueness
     const [tokenResult] = await this.db
@@ -554,7 +576,13 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
   }
 
   async addToWaitlist(dto: { patientId?: number; appointmentId?: number; doctorId?: number; consultationFee?: number; clinicId?: number }): Promise<number> {
-    const today = new Date().toISOString().split('T')[0] as string;
+    const now = new Date();
+    const istString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+    const istDate = new Date(istString);
+    const y = istDate.getFullYear();
+    const mm = String(istDate.getMonth() + 1).padStart(2, '0');
+    const dd = String(istDate.getDate()).padStart(2, '0');
+    const today = `${y}-${mm}-${dd}`;
     const cid = dto.clinicId;
 
     // Preventive check: Is this patient already in the waitlist for today?
@@ -769,7 +797,13 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
 
     // 2. Find the next waiting patient (status=0) for same doctor and date
     // Exclude the patient we JUST skipped, otherwise they get immediately re-promoted if they have the lowest waiting number
-    const today = new Date().toISOString().split('T')[0] as string;
+    const now = new Date();
+    const istString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+    const istDate = new Date(istString);
+    const y = istDate.getFullYear();
+    const mm = String(istDate.getMonth() + 1).padStart(2, '0');
+    const dd = String(istDate.getDate()).padStart(2, '0');
+    const today = `${y}-${mm}-${dd}`;
     const conditions: any[] = [
       sql`(${schema.waitlist.deletedAt} IS NULL OR ${schema.waitlist.deletedAt}::text = '')`,
       eq(schema.waitlist.status, 0),

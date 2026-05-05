@@ -319,7 +319,7 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
             className="appt-form-input"
             type="date"
             value={form.bookingDate}
-            min={new Date().toISOString().split('T')[0]}
+            min={new Date().toLocaleDateString('en-CA')} // YYYY-MM-DD in local time
             onChange={e => set('bookingDate', e.target.value)}
             required
           />
@@ -363,7 +363,9 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
           </div>
         ) : (
           <div className="appt-slots-grid">
-            {slots.map(slot => (
+            {slots
+              .filter(s => !s.isPast || s.booked || s.time === form.bookingTime)
+              .map(slot => (
               <button
                 key={slot.time}
                 type="button"

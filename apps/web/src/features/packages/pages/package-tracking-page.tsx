@@ -6,6 +6,7 @@ import { Drawer } from '@/shared/components/drawer';
 import { Pagination } from '@/components/shared/pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { usePagination } from '@/shared/hooks/use-pagination';
+import { AssignPackageModal } from '../components/assign-package-modal';
 import '../styles/packages.css';
 
 function getDaysLabel(days: number) {
@@ -42,6 +43,7 @@ export default function PackageTrackingPage() {
   const [statusNotes, setStatusNotes] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showAssignModal, setShowAssignModal] = useState(false);
 
   const handleUpdateStatus = async () => {
     setIsUpdating(true);
@@ -230,13 +232,20 @@ export default function PackageTrackingPage() {
                       </td>
                       <td data-label="ACTION" className="pkg-actions-cell">
                         <div className="flex gap-2 w-full justify-end">
-                          <button
-                            className="pkg-action-btn wa"
-                            title="Send WhatsApp"
-                            onClick={(e) => { e.stopPropagation(); sendSingleWhatsApp(r); }}
-                            style={{ background: '#25D366', border: 'none', borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}>
-                            <MessageCircle size={14} color="white" />
-                          </button>
+                           <button
+                             className="pkg-action-btn wa"
+                             title="Send WhatsApp"
+                             onClick={(e) => { e.stopPropagation(); sendSingleWhatsApp(r); }}
+                             style={{ background: '#25D366', border: 'none', borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}>
+                             <MessageCircle size={14} color="white" />
+                           </button>
+                           <button
+                             className="pkg-action-btn"
+                             title="Renew Package"
+                             onClick={(e) => { e.stopPropagation(); setSelectedRecord(r); setShowAssignModal(true); }}
+                             style={{ background: 'var(--primary)', border: 'none', borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}>
+                             <RefreshCw size={14} color="white" />
+                           </button>
                         </div>
                       </td>
                     </tr>
@@ -364,10 +373,26 @@ export default function PackageTrackingPage() {
               <button className="pp-btn pp-btn-primary" onClick={() => window.location.href=`/patients/${selectedRecord.patientId}`}>
                 <User size={14} /> Profile
               </button>
+              <button className="pp-btn pp-btn-primary" style={{ background: '#059669' }} onClick={() => setShowAssignModal(true)}>
+                <RefreshCw size={14} /> Renew Package
+              </button>
             </div>
           </div>
         )}
       </Drawer>
+
+      {/* Renew Modal */}
+      {showAssignModal && selectedRecord && (
+        <AssignPackageModal
+          regid={Number(selectedRecord.regid)}
+          patientId={Number(selectedRecord.patientId)}
+          onClose={() => setShowAssignModal(false)}
+          onSuccess={() => {
+            setShowAssignModal(false);
+            refetch();
+          }}
+        />
+      )}
 
       {/* Bulk SMS Modal */}
       {showSmsModal && (

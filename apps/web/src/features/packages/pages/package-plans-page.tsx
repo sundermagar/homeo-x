@@ -8,6 +8,7 @@ import {
 import { Drawer } from '@/shared/components/drawer';
 import { Pagination } from '@/components/shared/pagination';
 import { usePagination } from '@/shared/hooks/use-pagination';
+import { AssignPackageModal } from '../components/assign-package-modal';
 import '../styles/packages.css';
 
 const COLORS = ['#2563EB', '#7C3AED', '#059669', '#D97706', '#E11D48', '#0891B2', '#EA580C', '#6366F1'];
@@ -103,6 +104,7 @@ export default function PackagePlansPage() {
   const deletePlan = useDeletePackagePlan();
 
   const [modal, setModal] = useState<null | 'create' | { plan: any }>(null);
+  const [assignPlan, setAssignPlan] = useState<any | null>(null);
   const {
     currentPage,
     setCurrentPage,
@@ -192,6 +194,14 @@ export default function PackagePlansPage() {
                   >
                     <Trash2 size={13} strokeWidth={1.6} />
                   </button>
+                  <button
+                    className="pkg-btn pkg-btn-primary pkg-btn-sm"
+                    onClick={() => setAssignPlan(plan)}
+                    title="Assign to Patient"
+                    style={{ marginLeft: '4px', background: 'var(--pp-blue)', borderColor: 'var(--pp-blue)' }}
+                  >
+                    <Zap size={13} strokeWidth={1.6} />
+                  </button>
                 </div>
               </div>
             </div>
@@ -225,6 +235,14 @@ export default function PackagePlansPage() {
         onClose={() => setModal(null)}
         onSave={handleSave}
       />
+
+      {assignPlan && (
+        <AssignPackageModal
+          isOpen={!!assignPlan}
+          onClose={() => setAssignPlan(null)}
+          preselectedPlanId={assignPlan.id}
+        />
+      )}
 
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>

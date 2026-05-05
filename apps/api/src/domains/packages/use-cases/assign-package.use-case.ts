@@ -2,11 +2,15 @@ import type { PackageRepository } from '../ports/package.repository.js';
 import type { BillingRepository } from '../../billing/ports/billing.repository.js';
 import type { AssignPackageDto } from '@mmc/types';
 import { ok, type Result, fail } from '../../../shared/result.js';
+import type { MedicalCaseRepository } from '../../medical-case/ports/medical-case.repository.js';
+import type { SendSmsUseCase } from '../../communication/use-cases/send-sms.use-case.js';
 
 export class AssignPackageUseCase {
   constructor(
     private readonly repo: PackageRepository,
     private readonly billingRepo: BillingRepository,
+    private readonly patientRepo?: MedicalCaseRepository,
+    private readonly smsUseCase?: SendSmsUseCase,
   ) {}
 
   async execute(dto: AssignPackageDto & { patientId: number }): Promise<Result<{ subscriptionId: number; expiryDate: string; billId: number }>> {
@@ -64,6 +68,25 @@ export class AssignPackageUseCase {
       notes,
       billId: bill.id,
     });
+
+    // Step 3: Send SMS notification (matching legacy behavior)
+    if (this.patientRepo && this.smsUseCase) {
+      const fullData = await this.patientRepo.getUnifiedCaseData(regid);
+      if (fullData && fullData.medicalCase) {
+        const phone = (fullData.medicalCase as any).mobile || (fullData.medicalCase as any).phone;
+        if (phone) {
+          const patientName = (fullData.medicalCase as any).patientName || 'Patient';
+          // We intentionally don't await this to avoid blocking the API response
+          this.smsUseCase.sendPackageAssignment({
+            regid,
+            phone,
+            patientName,
+            date: startDateStr,
+            packageName: plan.name,
+          }).catch(console.error);
+        }
+      }
+    }
 
     return ok({ subscriptionId, expiryDate: expiryDateStr, billId: bill.id });
   }

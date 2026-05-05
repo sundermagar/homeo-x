@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { usePatient, useDeletePatient, useFamilyMembers, useAddFamilyMember, useRemoveFamilyMember, usePatientLookup, usePatientClinicalRecord } from '../hooks/use-patients';
-import { Edit2, Trash2, UserPlus, Users, X, MapPin, Phone, CheckCircle, Search, TrendingUp, Activity, MessageCircle } from 'lucide-react';
+import { useActivePackage } from '../../packages/hooks/use-packages';
+import { AssignPackageModal } from '../../packages/components/assign-package-modal';
+import { Edit2, Trash2, UserPlus, Users, X, MapPin, Phone, CheckCircle, Search, TrendingUp, Activity, MessageCircle, Zap, ShieldCheck, Clock } from 'lucide-react';
 import { useSendWhatsApp } from '../../communications/hooks/use-communications';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import type { PatientSummary, FamilyMember } from '@mmc/types';
@@ -24,7 +26,9 @@ export default function PatientDetailPage() {
   const [familyForm, setFamilyForm] = useState({ memberRegid: '', relation: 'Spouse' });
   const [searchQuery, setSearchQuery] = useState('');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [showAssignModal, setShowAssignModal] = useState(false);
   const { data: lookupResults = [] } = usePatientLookup(searchQuery);
+  const { data: activePkg, isLoading: pkgLoading } = useActivePackage(numRegid);
 
   const handleDelete = async () => {
     if (!confirm('Are you sure you want to delete this patient?')) return;
@@ -149,6 +153,35 @@ export default function PatientDetailPage() {
           <InfoRow label="Occupation" value={patient.occupation} />
           <InfoRow label="Marital Status" value={patient.maritalStatus} />
         </div>
+
+        {/* Package Membership */}
+        <div className="pp-card pkg-membership-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+            <h3 className="pat-chart-title" style={{ marginBottom: 0 }}>
+              <ShieldCheck size={16} className="pat-chart-title-icon" style={{ color: '#7C3AED' }} /> Membership Plan
+            </h3>
+            <button className="pat-wa-btn" onClick={() => setShowAssignModal(true)} title="Assign New Package" style={{ background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)' }}>
+              <Zap size={14} />
+            </button>
+          </div>
+
+          {pkgLoading ? (
+            <div className="pp-skeleton" style={{ height: '60px', width: '100%' }} />
+          ) : activePkg ? (
+            <div className="pkg-active-display animate-fade-in">
+              <div className="pkg-active-name">{activePkg.packageName}</div>
+              <div className="pkg-active-meta">
+                <span><Clock size={12} /> Ends: {new Date(activePkg.expiryDate).toLocaleDateString('en-GB')}</span>
+                <span className="pkg-plan-badge active">Active</span>
+              </div>
+            </div>
+          ) : (
+            <div className="pkg-none-display">
+              <p>No active membership plan.</p>
+              <button className="pp-link" style={{ fontSize: '12px' }} onClick={() => setShowAssignModal(true)}>Assign a package →</button>
+            </div>
+          )}
+        </div>
       </div>
 
       <ClinicalTrends regid={numRegid} />
@@ -272,6 +305,13 @@ export default function PatientDetailPage() {
       <div className="pat-back-link">
         <Link to="/patients" className="pp-link" style={{ fontSize: '13px', fontWeight: 600 }}>← Back to Patient Registry</Link>
       </div>
+
+      <AssignPackageModal
+        isOpen={showAssignModal}
+        onClose={() => setShowAssignModal(false)}
+        patientId={numRegid}
+        patientName={`${patient.firstName} ${patient.surname}`}
+      />
     </div>
   );
 }

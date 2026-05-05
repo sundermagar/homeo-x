@@ -4,12 +4,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { usePatients, useDeletePatient, usePatientFormMeta } from '../hooks/use-patients';
 import {
   Search, Plus, List as ListIcon, Grid, Edit2, MapPin, Calendar,
-  MessageCircle, Printer, Download, MoreVertical, Trash2, Phone, User, Users, ClipboardList
+  MessageCircle, Printer, Download, MoreVertical, Trash2, Phone, User, Users, ClipboardList, Zap
 } from 'lucide-react';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { type PatientSummary } from '@mmc/types';
 import { PatientFormDrawer } from '../components/patient-form-drawer';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { AssignPackageModal } from '../../packages/components/assign-package-modal';
 import '../../appointments/styles/appointments.css';
 import '../../dashboard/pages/role-dashboards.css';
 import '../styles/patients.css';
@@ -112,6 +113,7 @@ export default function PatientListPage() {
   const [menuAnchor, setMenuAnchor] = useState<{ regid: number; el: HTMLButtonElement } | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [drawerRegid, setDrawerRegid] = useState<number | null>(null);
+  const [assignPkgPatient, setAssignPkgPatient] = useState<{ regid: number; name: string } | null>(null);
 
   const user = useAuthStore(s => s.user);
   const token = useAuthStore(s => s.token);
@@ -166,6 +168,10 @@ export default function PatientListPage() {
       </button>
       <button className="appt-kebab-item" onClick={() => { window.open(`/api/medical-cases/pdf/summary/${p.regid}?token=${token}`, '_blank'); closeMenu(); }}>
         <Download size={14} /> Download Report
+      </button>
+      <div className="appt-kebab-divider" />
+      <button className="appt-kebab-item" style={{ color: 'var(--pp-blue)' }} onClick={() => { setAssignPkgPatient({ regid: p.regid, name: p.fullName }); closeMenu(); }}>
+        <Zap size={14} /> Assign Package
       </button>
       <div className="appt-kebab-divider" />
       <button className="appt-kebab-item is-danger" onClick={() => handleDelete(p.regid, p.fullName)}>
@@ -245,13 +251,15 @@ export default function PatientListPage() {
         <div className="pp-table-container-enhanced">
           <div className="pp-table-scroll">
             <table className="pp-table pat-main-table">
-                <col style={{ width: '6%' }} />   {/* # */}
-                <col style={{ width: '22%' }} />  {/* Patient */}
-                <col style={{ width: '10%' }} />  {/* RegID */}
-                <col style={{ width: '16%' }} />  {/* Contact */}
-                <col style={{ width: '20%' }} />   {/* Doctor */}
-                <col style={{ width: '18%' }} /> {/* Followup */}
-                <col style={{ width: '8%' }} />   {/* Actions */}
+              <colgroup>
+                <col style={{ width: '6%' }} />
+                <col style={{ width: '22%' }} />
+                <col style={{ width: '10%' }} />
+                <col style={{ width: '16%' }} />
+                <col style={{ width: '20%' }} />
+                <col style={{ width: '18%' }} />
+                <col style={{ width: '8%' }} />
+              </colgroup>
               <thead>
                 <tr>
                   <th style={{ width: '40px' }}>#</th>
@@ -374,6 +382,15 @@ export default function PatientListPage() {
         regid={drawerRegid}
         onSuccess={refetch}
       />
+
+      {assignPkgPatient && (
+        <AssignPackageModal
+          isOpen={!!assignPkgPatient}
+          onClose={() => setAssignPkgPatient(null)}
+          patientId={assignPkgPatient.regid}
+          patientName={assignPkgPatient.name}
+        />
+      )}
     </div>
   );
 }

@@ -21,15 +21,16 @@ export class SendSmsUseCase {
 
   private replacePlaceholders(
     message: string,
-    vars: { name?: string; date?: string; clinic?: string; time?: string; doctor?: string; fee?: string }
+    vars: { name?: string; date?: string; clinic?: string; time?: string; doctor?: string; fee?: string; package?: string }
   ): string {
     return message
-      .replace(/{#name#}/gi,    vars.name    ?? 'Patient')
-      .replace(/{#date#}/gi,     vars.date     ?? new Date().toLocaleDateString('en-IN'))
-      .replace(/{#clinic#}/gi,   vars.clinic   ?? 'Kreed.health Clinic')
-      .replace(/{#time#}/gi,     vars.time     ?? '')
-      .replace(/{#doctor#}/gi,   vars.doctor   ?? '')
-      .replace(/{#fee#}/gi,      vars.fee      ?? '');
+      .replace(/{#name#}/gi,     vars.name    ?? 'Patient')
+      .replace(/{#date#}/gi,     vars.date    ?? new Date().toLocaleDateString('en-IN'))
+      .replace(/{#clinic#}/gi,   vars.clinic  ?? 'Kreed.health Clinic')
+      .replace(/{#time#}/gi,     vars.time    ?? '')
+      .replace(/{#doctor#}/gi,   vars.doctor  ?? '')
+      .replace(/{#fee#}/gi,      vars.fee     ?? '')
+      .replace(/{#package#}/gi,  vars.package ?? '');
   }
 
   // ── Core send ─────────────────────────────────────────────────────────────
@@ -195,5 +196,24 @@ export class SendSmsUseCase {
       date: params.lastVisitDate,
     });
     return this.sendSingle({ phone: params.phone, message, smsType: 'Reminder' });
+  }
+
+  /**
+   * Package Assignment SMS.
+   */
+  async sendPackageAssignment(params: {
+    regid: number;
+    phone: string;
+    patientName: string;
+    date: string;
+    packageName: string;
+  }): Promise<Result<SendSmsResult>> {
+    const template = `Dear {#name#}, your {#package#} package starting on {#date#} has been successfully assigned. Thank you for choosing Kreed.health Clinic!`;
+    const message = this.replacePlaceholders(template, {
+      name: params.patientName,
+      date: params.date,
+      package: params.packageName,
+    });
+    return this.sendSingle({ phone: params.phone, message, smsType: 'Package Purchase', regid: params.regid });
   }
 }

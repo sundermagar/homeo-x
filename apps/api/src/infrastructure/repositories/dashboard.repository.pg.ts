@@ -80,9 +80,14 @@ export class DashboardRepositoryPg implements IDashboardRepository {
 
   private getPeriodDates(p: string) {
     const now = new Date();
-    const todayStr = now.toISOString().split('T')[0] || '';
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const istString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+    const istDate = new Date(istString);
+    const y = istDate.getFullYear();
+    const mm = String(istDate.getMonth() + 1).padStart(2, '0');
+    const dd = String(istDate.getDate()).padStart(2, '0');
+    const todayStr = `${y}-${mm}-${dd}`;
+    const year = y;
+    const month = mm;
 
     let range: { start: string; end: string };
 
@@ -263,8 +268,14 @@ export class DashboardRepositoryPg implements IDashboardRepository {
   }
 
   async getTodayQueue(contextId: number, doctorId?: number): Promise<QueueItem[]> {
-    const today = new Date().toISOString().split('T')[0]!;
-    return this.getCached(`queue:${contextId}:${today}:${doctorId ?? ''}`, 30_000, async () => {
+    const now = new Date();
+    const istString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+    const istDate = new Date(istString);
+    const y = istDate.getFullYear();
+    const mm = String(istDate.getMonth() + 1).padStart(2, '0');
+    const dd = String(istDate.getDate()).padStart(2, '0');
+    const today = `${y}-${mm}-${dd}`;
+    return this.getCached(`queue:${contextId}:${today}:${doctorId ?? ''}`, 0, async () => {
       const docCond = doctorId ? sql` AND w.doctor_id = ${doctorId}` : sql``;
       const apptCond = doctorId ? sql` AND a.doctor_id = ${doctorId}` : sql``;
 
@@ -320,7 +331,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             a.patient_id,
             a.doctor_id,
             a.token_no,
-            a.status,
+            CASE WHEN a.status IN ('In Progress', 'InProgress') THEN 'Consultation' ELSE a.status END as status,
             a.patient_name as manual_name,
             a.created_at,
             a.booking_time,
@@ -430,8 +441,10 @@ export class DashboardRepositoryPg implements IDashboardRepository {
 
   async getBirthdays(contextId: number): Promise<BirthdayPatient[]> {
     return this.getCached(`birthdays:${contextId}`, 60_000, async () => {
-      const today = new Date();
-      const mmdd = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      const now = new Date();
+      const istString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+      const istDate = new Date(istString);
+      const mmdd = `${String(istDate.getMonth() + 1).padStart(2, '0')}-${String(istDate.getDate()).padStart(2, '0')}`;
 
       const results = await this.db.execute(sql`
         SELECT id, regid, first_name, surname, phone, mobile1, dob

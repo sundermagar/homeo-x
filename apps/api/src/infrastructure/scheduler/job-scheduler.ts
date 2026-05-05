@@ -36,9 +36,18 @@ export class JobScheduler {
   private async runAppointmentReminders() {
     try {
       logger.info('[Job] Running Appointment Reminders...');
-      const tomorrow = new Date();
+      const now = new Date();
+      const istString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+      const istDate = new Date(istString);
+      
+      // Calculate tomorrow in IST
+      const tomorrow = new Date(istDate);
       tomorrow.setDate(tomorrow.getDate() + 1);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      
+      const y = tomorrow.getFullYear();
+      const mm = String(tomorrow.getMonth() + 1).padStart(2, '0');
+      const dd = String(tomorrow.getDate()).padStart(2, '0');
+      const dateStr = `${y}-${mm}-${dd}`;
 
       // Assuming findMany is available on repo. 
       // For now, let's use the execute method pattern if available.
@@ -69,12 +78,19 @@ export class JobScheduler {
 
   private async runBirthdayGreetings() {
     try {
-      const today = new Date();
-      const todayStr = today.toISOString().split('T')[0] || '';
-      const mmdd = todayStr.substring(5, 10); // "MM-DD"
-      const currentHour = today.getHours();
+      const now = new Date();
+      const istString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+      const istDate = new Date(istString);
+      
+      const y = istDate.getFullYear();
+      const mm = String(istDate.getMonth() + 1).padStart(2, '0');
+      const dd = String(istDate.getDate()).padStart(2, '0');
+      
+      const todayStr = `${y}-${mm}-${dd}`;
+      const mmdd = `${mm}-${dd}`; // "MM-DD"
+      const currentHour = istDate.getHours();
 
-      // Only run between 9 AM and 10 AM
+      // Only run between 9 AM and 10 AM IST
       if (currentHour < 9 || currentHour >= 10) return;
       if (this.lastBirthdayRunDate === todayStr) return;
 
