@@ -31,6 +31,14 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     });
   }
 
+  public static clearQueueCache(): void {
+    for (const key of DashboardRepositoryPg.cache.keys()) {
+      if (key.startsWith('queue:')) {
+        DashboardRepositoryPg.cache.delete(key);
+      }
+    }
+  }
+
   constructor(private readonly db: DbClient) { }
 
   private async getRevenueTableInfo(): Promise<{ name: string; amountCol: string; hasMode: boolean } | null> {
