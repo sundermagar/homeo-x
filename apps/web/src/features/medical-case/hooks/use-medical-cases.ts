@@ -71,6 +71,13 @@ export function useManageClinicalRecords() {
     },
   });
 
+  const deleteVitals = useMutation({
+    mutationFn: (id: number) => api.delete(`/medical-cases/vitals/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['medical-case', 'full'] });
+    },
+  });
+
   const saveSoap = useMutation({
     mutationFn: (data: any) => api.post('/medical-cases/soap', data),
     onSuccess: (_, variables) => {
@@ -210,6 +217,7 @@ export function useManageClinicalRecords() {
 
   return {
     saveVitals,
+    deleteVitals,
     saveSoap,
     saveNote,
     savePrescription,

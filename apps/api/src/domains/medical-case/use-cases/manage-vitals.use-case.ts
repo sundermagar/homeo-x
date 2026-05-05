@@ -13,4 +13,9 @@ export class ManageVitalsUseCase {
     const vitals = await this.repository.getVitals(visitId);
     return ok(vitals);
   }
+
+  async delete(id: number): Promise<Result<void>> {
+    await this.repository.deleteVitals(id);
+    return ok(undefined);
+  }
 }

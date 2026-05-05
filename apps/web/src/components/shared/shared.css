@@ -188,7 +188,8 @@
 
 /* ── Pagination ── */
 .pat-pagination-bar {
-  margin-top: 24px;
+  margin-top: 20px;
+  margin-bottom: 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;

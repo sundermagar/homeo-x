@@ -69,6 +69,25 @@ export function AutoSaveNoteArea({ initialValue = '', onSave, placeholder = '' }
   );
 }
 
+function EmptyState({ icon: Icon, title, description, actionLabel, onAction }: any) {
+  return (
+    <div className="pp-card" style={{ padding: '80px 48px', textAlign: 'center', background: 'white', border: '1px dashed #e2e8f0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ padding: '20px', background: 'var(--bg-surface-2)', borderRadius: '50%', marginBottom: '20px' }}>
+        <Icon size={48} style={{ color: 'var(--pp-text-3)' }} />
+      </div>
+      <h3 style={{ color: 'var(--pp-ink)', fontWeight: 700, fontSize: '1.25rem', marginBottom: '8px' }}>{title}</h3>
+      <p style={{ color: 'var(--pp-text-3)', fontSize: '0.95rem', maxWidth: '400px', lineHeight: 1.6 }}>
+        {description}
+      </p>
+      {actionLabel && onAction && (
+        <button className="pp-link" style={{ marginTop: '16px', fontWeight: 700 }} onClick={onAction}>
+          {actionLabel}
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function MedicalCaseDetailPage() {
   const { regid } = useParams();
   const navigate = useNavigate();
@@ -83,8 +102,55 @@ export default function MedicalCaseDetailPage() {
   const [pendingCharge, setPendingCharge] = useState(0);
   const [mobileDrawer, setMobileDrawer] = useState<'followup' | 'billing' | 'contact' | 'package' | null>(null);
   const [shortcutOpen, setShortcutOpen] = useState(false);
+  const [fabY, setFabY] = useState(180); // Default from CSS
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStartY, setDragStartY] = useState(0);
+  const hasMoved = useRef(false);
+  const [editingVitals, setEditingVitals] = useState<any>(null);
 
   const clinicName = useAuthStore(s => s.user?.clinicName || 'HomeoX Clinic');
+
+  const onDragStart = (e: React.MouseEvent | React.TouchEvent) => {
+    setIsDragging(true);
+    hasMoved.current = false;
+    const clientY = 'touches' in e 
+      ? (e.touches[0]?.clientY ?? 0) 
+      : (e as React.MouseEvent).clientY;
+    setDragStartY(clientY - fabY);
+  };
+
+  const onDrag = (e: MouseEvent | TouchEvent) => {
+    if (!isDragging) return;
+    hasMoved.current = true;
+    const clientY = 'touches' in e 
+      ? ((e as TouchEvent).touches[0]?.clientY ?? 0) 
+      : (e as MouseEvent).clientY;
+    setFabY(clientY - dragStartY);
+  };
+
+  const onDragEnd = () => {
+    setIsDragging(false);
+  };
+
+  useEffect(() => {
+    if (isDragging) {
+      window.addEventListener('mousemove', onDrag);
+      window.addEventListener('mouseup', onDragEnd);
+      window.addEventListener('touchmove', onDrag, { passive: false });
+      window.addEventListener('touchend', onDragEnd);
+    } else {
+      window.removeEventListener('mousemove', onDrag);
+      window.removeEventListener('mouseup', onDragEnd);
+      window.removeEventListener('touchmove', onDrag);
+      window.removeEventListener('touchend', onDragEnd);
+    }
+    return () => {
+      window.removeEventListener('mousemove', onDrag);
+      window.removeEventListener('mouseup', onDragEnd);
+      window.removeEventListener('touchmove', onDrag);
+      window.removeEventListener('touchend', onDragEnd);
+    };
+  }, [isDragging, dragStartY]);
 
   const { data: fullData, isLoading, error } = useFullMedicalCase(Number(regid));
   const { finalizeConsultation, saveNote, updateDiagnosis } = useManageClinicalRecords();
@@ -158,7 +224,10 @@ export default function MedicalCaseDetailPage() {
       case 'diagnosis': return <div style={{ padding: 20 }}><DiagnosisView regid={Number(regid)} visitId={medicalCase.id} medicalCase={medicalCase} soapRecords={soap} /></div>;
       case 'media': return <div style={{ padding: 20 }}><MediaView regid={Number(regid)} visitId={medicalCase.id} images={images} /></div>;
       case 'labs': return <div style={{ padding: 20 }}><LabsView investigations={investigations} regid={Number(regid)} visitId={medicalCase.id} /></div>;
-      case 'vitals': return <div style={{ padding: 20 }}><VitalsView vitals={vitals} onRecord={() => setShowVitalsModal(true)} phone={medicalCase.phone || medicalCase.mobile || ''} name={medicalCase.patientName || ''} regid={Number(regid)} clinicName={clinicName} /></div>;
+      case 'vitals': return <div style={{ padding: 20 }}><VitalsView vitals={vitals || []} onRecord={(data) => {
+                  setEditingVitals(data || null);
+                  setShowVitalsModal(true);
+                }} phone={medicalCase.phone || medicalCase.mobile || ''} name={medicalCase.patientName || ''} regid={Number(regid)} clinicName={clinicName} /></div>;
       case 'communication': return <div style={{ padding: 20 }}><CommunicationView regid={Number(regid)} phone={medicalCase.phone || ''} name={medicalCase.patientName || ''} /></div>;
       case 'vaccine': return <div style={{ padding: 20 }}><VaccineView regid={Number(regid)} caseVaccines={vaccines || []} /></div>;
       case 'homeo': return <div style={{ padding: 20 }}><HomeoView regid={Number(regid)} initialData={homeo} reminders={reminders} medicalCase={medicalCase} /></div>;
@@ -203,7 +272,6 @@ export default function MedicalCaseDetailPage() {
               className="banner-btn"
               style={{ background: '#1e3a8a', color: 'white' }}
               onClick={() => {
-                // Build clinic branding from Organization entity (same as AI consultation print)
                 const myOrg: any = orgs.find(o => o.id === user?.contextId) || orgs[0];
                 const defaultTemplate = pdfSettings.find((s: any) => s.isDefault) || pdfSettings[0];
                 const baseClinic = getClinicLetterhead();
@@ -225,7 +293,6 @@ export default function MedicalCaseDetailPage() {
 
                 const doctor = getDoctorLetterhead();
 
-                // Map prescriptions from medical case data into the print format
                 const medications = (prescriptions || [])
                   .filter((p: any) => p.remedy_name || p.remedyName || p.medicineName || p.medicine)
                   .map((p: any) => ({
@@ -239,11 +306,9 @@ export default function MedicalCaseDetailPage() {
                     quantity: undefined,
                   }));
 
-                // Get follow-up note and diagnosis
                 const followUpEntry = notes?.find((n: any) => n.notesType === 'Followup');
                 const diagnosisNote = medicalCase.condition || soap?.find((s: any) => s.notesType === 'assessment')?.notes || '';
 
-                // Build vitals from latest data
                 const latestVitals = vitals?.[0];
                 const vitalsData = latestVitals ? {
                   heightCm: latestVitals.heightCm ?? undefined,
@@ -368,7 +433,7 @@ export default function MedicalCaseDetailPage() {
             </div>
             <div className="mc-side-card-body" style={{ padding: '16px' }}>
               {/* Input Area */}
-              <div style={{  paddingBottom: '16px', borderBottom: '1px solid var(--pp-warm-2)' }}>
+              <div style={{ paddingBottom: '16px', borderBottom: '1px solid var(--pp-warm-2)' }}>
                 <textarea
                   className="pp-textarea"
                   placeholder="Record patient follow-up or status..."
@@ -448,10 +513,17 @@ export default function MedicalCaseDetailPage() {
       </div>
 
       {/* ─── Mobile Floating Action Bar (Collapsible) ─── */}
-      <div className={`mc-mobile-fab-bar ${shortcutOpen ? 'expanded' : 'collapsed'}`}>
+      <div 
+        className={`mc-mobile-fab-bar ${shortcutOpen ? 'expanded' : 'collapsed'}`}
+        style={{ top: `${fabY}px`, touchAction: 'none' }}
+      >
         <button
           className="mc-fab-toggle"
-          onClick={() => setShortcutOpen(!shortcutOpen)}
+          onMouseDown={onDragStart}
+          onTouchStart={onDragStart}
+          onClick={() => {
+            if (!hasMoved.current) setShortcutOpen(!shortcutOpen);
+          }}
           title={shortcutOpen ? "Collapse shortcuts" : "Expand shortcuts"}
         >
           {shortcutOpen ? <X size={20} /> : <Zap size={20} className="animate-pulse" />}
@@ -663,8 +735,19 @@ export default function MedicalCaseDetailPage() {
         </>
       )}
 
-      {showVitalsModal && <VitalsFormModal visitId={medicalCase.id} regid={Number(regid)} onClose={() => setShowVitalsModal(false)} />}
-      {showAssignModal && <AssignPackageModal regid={Number(regid)} patientId={medicalCase.patientId || 0} onClose={() => setShowAssignModal(false)} onSuccess={() => { }} />}
+      {showVitalsModal && <VitalsFormModal initialData={editingVitals} visitId={medicalCase.id} regid={Number(regid)} onClose={() => {
+            setShowVitalsModal(false);
+            setEditingVitals(null);
+          }} />}
+      {showAssignModal && (
+        <AssignPackageModal
+          isOpen={showAssignModal}
+          patientId={Number(regid)}
+          patientName={medicalCase.patientName || ''}
+          onClose={() => setShowAssignModal(false)}
+          onSuccess={() => { }}
+        />
+      )}
       {showFinalizeModal && (
         <FinalizeConsultationModal
           regid={Number(regid)}
@@ -893,64 +976,74 @@ function VaccineView({ regid, caseVaccines }: { regid: number; caseVaccines: any
       </div>
 
       {/* ── Previously Administered Vaccines ── */}
-      {caseVaccines.length > 0 && (
-        <div className="pp-card" style={{ padding: 0, marginBottom: '20px', border: '1px solid #bbf7d0' }}>
-          <div style={{ padding: '12px 16px', background: 'var(--pp-success-bg)', borderBottom: '1px solid var(--pp-success-border)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <CheckCircle2 size={15} style={{ color: 'var(--pp-success-fg)' }} />
-            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--pp-success-fg)' }}>Previously Given Vaccines</span>
-            <span style={{ fontSize: '0.72rem', color: 'var(--pp-success-fg)', fontWeight: 600, marginLeft: '4px' }}>({caseVaccines.length})</span>
-          </div>
-          <table className="pp-table" style={{ marginBottom: 0 }}>
-            <thead>
-              <tr>
-                <th style={{ width: '36px' }}>#</th>
-                <th>Vaccine Name</th>
-                <th style={{ width: '150px' }}>Date Given</th>
-                <th>Notes</th>
-                <th style={{ width: '100px', textAlign: 'right' }}>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {caseVaccines
-                .slice((givenPage - 1) * givenPageSize, givenPage * givenPageSize)
-                .map((cv: any, i: number) => (
-                <tr key={cv.id} className="hover-row">
-                  <td style={{ color: 'var(--pp-text-3)', fontSize: '0.72rem', fontFamily: 'monospace' }}>{(givenPage - 1) * givenPageSize + i + 1}</td>
-                  <td>
-                    <div style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--pp-ink)' }}>{cv.vaccineName || `Vaccine #${cv.vaccineId}`}</div>
-                  </td>
-                  <td>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.78rem', fontWeight: 600, color: 'var(--pp-success-fg)' }}>
-                      <Calendar size={12} />
-                      {cv.createdAt ? new Date(cv.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
-                    </span>
-                  </td>
-                  <td style={{ fontSize: '0.78rem', color: 'var(--pp-text-3)' }}>
-                    {cv.notes || '—'}
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    <div style={{ display: 'flex', gap: '4px', justifyContent: 'flex-end' }}>
-                      <button
-                        title="Edit"
-                        onClick={() => handleOpenEdit(cv)}
-                        style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border-main)', borderRadius: '6px', background: 'var(--bg-card)', cursor: 'pointer', color: 'var(--pp-blue)' }}
-                      >
-                        <Edit size={13} />
-                      </button>
-                      <button
-                        title="Delete"
-                        onClick={() => handleDelete(cv)}
-                        disabled={deletingId === cv.id}
-                        style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #fecaca', borderRadius: '6px', background: 'var(--bg-card)', cursor: 'pointer', color: '#ef4444', opacity: deletingId === cv.id ? 0.5 : 1 }}
-                      >
-                        {deletingId === cv.id ? <Loader2 size={13} className="spin" /> : <Trash2 size={13} />}
-                      </button>
-                    </div>
-                  </td>
+      {caseVaccines.length === 0 ? (
+        <EmptyState
+          icon={Syringe}
+          title="No vaccinations recorded yet"
+          description="Keep a record of the patient's immunization history to ensure they are up to date with their vaccination schedule."
+          actionLabel="Record the first vaccine"
+          onAction={handleOpenAdd}
+        />
+      ) : (
+        <>
+          <div className="pp-card pp-table-scroll" style={{ padding: 0, marginBottom: '20px', border: '1px solid #bbf7d0' }}>
+            <div style={{ padding: '12px 16px', background: 'var(--pp-success-bg)', borderBottom: '1px solid var(--pp-success-border)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <CheckCircle2 size={15} style={{ color: 'var(--pp-success-fg)' }} />
+              <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--pp-success-fg)' }}>Previously Given Vaccines</span>
+              <span style={{ fontSize: '0.72rem', color: 'var(--pp-success-fg)', fontWeight: 600, marginLeft: '4px' }}>({caseVaccines.length})</span>
+            </div>
+            <table className="pp-table" style={{ marginBottom: 0 }}>
+              <thead>
+                <tr>
+                  <th style={{ width: '36px' }}>#</th>
+                  <th>Vaccine Name</th>
+                  <th style={{ width: '150px' }}>Date Given</th>
+                  <th>Notes</th>
+                  <th style={{ width: '100px', textAlign: 'right' }}>Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {caseVaccines
+                  .slice((givenPage - 1) * givenPageSize, givenPage * givenPageSize)
+                  .map((cv: any, i: number) => (
+                    <tr key={cv.id} className="hover-row">
+                      <td style={{ color: 'var(--pp-text-3)', fontSize: '0.72rem', fontFamily: 'monospace' }}>{(givenPage - 1) * givenPageSize + i + 1}</td>
+                      <td>
+                        <div style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--pp-ink)' }}>{cv.vaccineName || `Vaccine #${cv.vaccineId}`}</div>
+                      </td>
+                      <td>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.78rem', fontWeight: 600, color: 'var(--pp-success-fg)' }}>
+                          <Calendar size={12} />
+                          {cv.createdAt ? new Date(cv.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+                        </span>
+                      </td>
+                      <td style={{ fontSize: '0.78rem', color: 'var(--pp-text-3)' }}>
+                        {cv.notes || '—'}
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'flex', gap: '4px', justifyContent: 'flex-end' }}>
+                          <button
+                            title="Edit"
+                            onClick={() => handleOpenEdit(cv)}
+                            style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border-main)', borderRadius: '6px', background: 'var(--bg-card)', cursor: 'pointer', color: 'var(--pp-blue)' }}
+                          >
+                            <Edit size={13} />
+                          </button>
+                          <button
+                            title="Delete"
+                            onClick={() => handleDelete(cv)}
+                            disabled={deletingId === cv.id}
+                            style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #fecaca', borderRadius: '6px', background: 'var(--bg-card)', cursor: 'pointer', color: '#ef4444', opacity: deletingId === cv.id ? 0.5 : 1 }}
+                          >
+                            {deletingId === cv.id ? <Loader2 size={13} className="spin" /> : <Trash2 size={13} />}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
           <Pagination
             currentPage={givenPage}
             totalPages={Math.ceil(caseVaccines.length / givenPageSize)}
@@ -959,7 +1052,7 @@ function VaccineView({ regid, caseVaccines }: { regid: number; caseVaccines: any
             onPageChange={setGivenPage}
             onPageSizeChange={setGivenPageSize}
           />
-        </div>
+        </>
       )}
 
       {/* Search */}
@@ -1294,17 +1387,15 @@ function AnalyticsView({ vitals, regid, visitId, name, phone, clinicName }: { vi
         </div>
 
         <div className="pp-card" style={{ padding: '16px' }}>
-          <h4 style={{ fontSize: '0.85rem', color: 'var(--pp-text-3)', marginBottom: '16px' }}>Blood Pressure Trend</h4>
+          <h4 style={{ fontSize: '0.85rem', color: 'var(--pp-text-3)', marginBottom: '16px' }}>Height Trend (cm)</h4>
           <div style={{ height: '250px' }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="date" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis fontSize={12} tickLine={false} axisLine={false} domain={['dataMin - 10', 'dataMax + 10']} />
+                <YAxis fontSize={12} tickLine={false} axisLine={false} domain={['dataMin - 5', 'dataMax + 5']} />
                 <RechartsTooltip />
-                <Legend iconType="circle" />
-                <Line type="monotone" dataKey="systolic" name="Systolic" stroke="var(--pp-danger-fg)" strokeWidth={2} dot={{ r: 3 }} />
-                <Line type="monotone" dataKey="diastolic" name="Diastolic" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 3 }} />
+                <Line type="monotone" dataKey="height" stroke="#8b5cf6" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -1322,9 +1413,11 @@ function ReportsView({ regid, investigations }: { regid: number; investigations:
       <div className="mc-section-header">Clinical Reports Summary</div>
 
       {reports.length === 0 ? (
-        <div className="pp-card" style={{ padding: '32px', textAlign: 'center' }}>
-          <p style={{ color: 'var(--pp-text-3)' }}>No radiological or specialized reports found.</p>
-        </div>
+        <EmptyState
+          icon={ClipboardList}
+          title="No clinical reports found"
+          description="Detailed clinical reports, radiological assessments, and specialized findings will appear here once recorded."
+        />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {reports.map((report) => (
@@ -1442,15 +1535,13 @@ function HomeoView({ regid, initialData, reminders, medicalCase }: { regid: numb
       {!reminders ? (
         <TableSkeleton rows={5} cols={5} />
       ) : reminders.length === 0 ? (
-        <div className="pp-card" style={{ padding: '80px 48px', textAlign: 'center', background: 'white', border: '1px dashed #e2e8f0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ padding: '20px', background: 'var(--bg-surface-2)', borderRadius: '50%', marginBottom: '20px' }}>
-            <History size={48} style={{ color: 'var(--pp-text-3)' }} />
-          </div>
-          <h3 style={{ color: 'var(--pp-ink)', fontWeight: 700, fontSize: '1.25rem', marginBottom: '8px' }}>No clinic activities recorded yet</h3>
-          <p style={{ color: 'var(--pp-text-3)', fontSize: '0.95rem', maxWidth: '400px', lineHeight: 1.6 }}>
-            Keep track of patient follow-ups, clinical attributes, and scheduled activities. Click the button above to add your first activity.
-          </p>
-        </div>
+        <EmptyState
+          icon={History}
+          title="No clinic activities recorded yet"
+          description="Keep track of patient follow-ups, clinical attributes, and scheduled activities."
+          actionLabel="Record the first activity"
+          onAction={() => { setEditingId(null); resetActivityForm(); setShowDrawer(true); }}
+        />
       ) : (
         <>
           <div className="pp-card pp-table-scroll" style={{ padding: 0, marginBottom: '20px', border: '1px solid #c7d2fe' }}>
@@ -1497,8 +1588,8 @@ function HomeoView({ regid, initialData, reminders, medicalCase }: { regid: numb
                 ))}
               </tbody>
             </table>
-            <Pagination currentPage={currentPage} totalPages={totalPages} pageSize={pageSize} totalItems={sortedReminders.length} onPageChange={setCurrentPage} onPageSizeChange={setPageSize} />
           </div>
+          <Pagination currentPage={currentPage} totalPages={totalPages} pageSize={pageSize} totalItems={sortedReminders.length} onPageChange={setCurrentPage} onPageSizeChange={setPageSize} />
         </>
       )}
 
@@ -1596,12 +1687,24 @@ function HomeoView({ regid, initialData, reminders, medicalCase }: { regid: numb
 }
 
 
-function VitalsView({ vitals, onRecord, phone, name, regid, clinicName }: { vitals: any[]; onRecord: () => void; phone: string; name: string; regid: number; clinicName: string }) {
+function VitalsView({ vitals, onRecord, phone, name, regid, clinicName }: { vitals: any[]; onRecord: (v?: any) => void; phone: string; name: string; regid: number; clinicName: string }) {
   const latest = vitals && vitals.length > 0 ? vitals[0] : null;
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const sendSms = useSendSms();
   const [sending, setSending] = useState(false);
+  const { deleteVitals } = useManageClinicalRecords();
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+
+  const handleDelete = async (v: any) => {
+    if (!window.confirm('Are you sure you want to delete this vitals record?')) return;
+    setDeletingId(v.id);
+    try {
+      await deleteVitals.mutateAsync(v.id);
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   if (!vitals) {
     return <TableSkeleton rows={5} cols={6} />;
@@ -1663,42 +1766,67 @@ function VitalsView({ vitals, onRecord, phone, name, regid, clinicName }: { vita
         <VitalCard label="BMI Index" value={latest ? latest.bmi : '-'} unit="" icon={Sparkles} color="#8b5cf6" />
       </div>
 
-      <div style={{ marginTop: '32px' }}>
-        <div className="pp-card pp-table-scroll" style={{ padding: 0, borderRadius: '12px', border: '1px solid #bfdbfe' }}>
-          <div style={{ padding: '12px 16px', background: '#eff6ff', borderBottom: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Activity size={15} style={{ color: 'var(--pp-blue)' }} />
-            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#1e40af' }}>Recent Vitals History</span>
-            <span style={{ fontSize: '0.72rem', color: '#60a5fa', fontWeight: 600, marginLeft: '4px' }}>({vitals.length})</span>
-          </div>
-          <table className="pp-table" style={{ marginBottom: 0 }}>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>BP</th>
-                <th>Pulse</th>
-                <th>Temp</th>
-                <th>Weight</th>
-                <th>BMI</th>
-              </tr>
-            </thead>
-            <tbody>
-              {currentVitals.map(v => (
-                <tr key={v.id} className="hover-row">
-                  <td>{new Date(v.recordedAt).toLocaleDateString('en-GB')}</td>
-                  <td style={{ fontWeight: 600 }}>{v.systolicBp}/{v.diastolicBp}</td>
-                  <td>{v.pulseRate} bpm</td>
-                  <td>{v.temperatureF}°F</td>
-                  <td>{v.weightKg} kg</td>
-                  <td>{v.bmi}</td>
-                </tr>
-              ))}
-              {vitals?.length === 0 && (
+      {vitals.length === 0 ? (
+        <EmptyState
+          icon={Stethoscope}
+          title="No vitals recorded yet"
+          description="Establish a clinical baseline by recording the patient's blood pressure, heart rate, temperature, and other key vitals."
+          actionLabel="Record the first vitals"
+          onAction={() => onRecord()}
+        />
+      ) : (
+        <div style={{ marginTop: '32px' }}>
+          <div className="pp-card pp-table-scroll" style={{ padding: 0, borderRadius: '12px', border: '1px solid #bfdbfe' }}>
+            <div style={{ padding: '12px 16px', background: '#eff6ff', borderBottom: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Activity size={15} style={{ color: 'var(--pp-blue)' }} />
+              <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#1e40af' }}>Recent Vitals History</span>
+              <span style={{ fontSize: '0.72rem', color: '#60a5fa', fontWeight: 600, marginLeft: '4px' }}>({vitals.length})</span>
+            </div>
+            <table className="pp-table" style={{ marginBottom: 0 }}>
+              <thead>
                 <tr>
-                  <td colSpan={6} style={{ padding: '24px', textAlign: 'center', color: 'var(--pp-text-3)' }}>No vitals recorded.</td>
+                  <th>Date</th>
+                  <th>BP</th>
+                  <th>Pulse</th>
+                  <th>Temp</th>
+                  <th>Weight</th>
+                  <th>BMI</th>
+                  <th style={{ width: '100px', textAlign: 'right' }}>Action</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {currentVitals.map(v => (
+                  <tr key={v.id} className="hover-row">
+                    <td>{new Date(v.recordedAt).toLocaleDateString('en-GB')}</td>
+                    <td style={{ fontWeight: 600 }}>{v.systolicBp}/{v.diastolicBp}</td>
+                    <td>{v.pulseRate} bpm</td>
+                    <td>{v.temperatureF}°F</td>
+                    <td>{v.weightKg} kg</td>
+                    <td>{v.bmi}</td>
+                    <td style={{ textAlign: 'right' }}>
+                      <div style={{ display: 'flex', gap: '4px', justifyContent: 'flex-end' }}>
+                        <button
+                          title="Edit"
+                          onClick={() => onRecord(v)}
+                          style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border-main)', borderRadius: '6px', background: 'var(--bg-card)', cursor: 'pointer', color: 'var(--pp-blue)' }}
+                        >
+                          <Edit size={13} />
+                        </button>
+                        <button
+                          title="Delete"
+                          onClick={() => handleDelete(v)}
+                          disabled={deletingId === v.id}
+                          style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #fecaca', borderRadius: '6px', background: 'var(--bg-card)', cursor: 'pointer', color: '#ef4444', opacity: deletingId === v.id ? 0.5 : 1 }}
+                        >
+                          {deletingId === v.id ? <Loader2 size={13} className="spin" /> : <Trash2 size={13} />}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
@@ -1708,8 +1836,9 @@ function VitalsView({ vitals, onRecord, phone, name, regid, clinicName }: { vita
             onPageSizeChange={setPageSize}
           />
         </div>
-      </div>
+      )}
     </div>
+
   );
 }
 
@@ -1961,16 +2090,13 @@ function LabsView({ investigations, regid, visitId }: { investigations: any[]; r
       {!investigations ? (
         <TableSkeleton rows={5} cols={5} />
       ) : investigations.length === 0 ? (
-        <div className="pp-card" style={{ padding: '80px 48px', textAlign: 'center', background: 'white', border: '1px dashed #e2e8f0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ padding: '20px', background: 'var(--bg-surface-2)', borderRadius: '50%', marginBottom: '20px' }}>
-            <FlaskConical size={48} style={{ color: 'var(--pp-text-3)' }} />
-          </div>
-          <h3 style={{ color: 'var(--pp-ink)', fontWeight: 700, fontSize: '1.25rem', marginBottom: '8px' }}>No investigations recorded yet</h3>
-          <p style={{ color: 'var(--pp-text-3)', fontSize: '0.95rem', maxWidth: '400px', lineHeight: 1.6 }}>
-            Record lab results, radiological findings, and specialized tests to build a complete clinical picture.
-          </p>
-          <button className="pp-link" style={{ marginTop: '16px', fontWeight: 700 }} onClick={handleAdd}>Record the first investigation</button>
-        </div>
+        <EmptyState
+          icon={FlaskConical}
+          title="No investigations recorded yet"
+          description="Record lab results, radiological findings, and specialized tests to build a complete clinical picture."
+          actionLabel="Record the first investigation"
+          onAction={handleAdd}
+        />
       ) : (
         <>
           <div className="pp-card pp-table-scroll" style={{ padding: 0, borderRadius: '12px', border: '1px solid #ddd6fe', marginBottom: '20px' }}>
@@ -2030,15 +2156,15 @@ function LabsView({ investigations, regid, visitId }: { investigations: any[]; r
                 ))}
               </tbody>
             </table>
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              pageSize={pageSize}
-              totalItems={sortedInvs.length}
-              onPageChange={setCurrentPage}
-              onPageSizeChange={setPageSize}
-            />
           </div>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            pageSize={pageSize}
+            totalItems={sortedInvs.length}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={setPageSize}
+          />
         </>
       )}
 
@@ -2421,10 +2547,11 @@ function MediaView({ regid, visitId, images }: { regid: number; visitId: number;
       )}
 
       {(!images || images.length === 0) && (
-        <div style={{ padding: '48px', textAlign: 'center', color: 'var(--pp-text-3)', background: 'white', borderRadius: '16px', border: '1px dashed var(--pp-warm-4)' }}>
-          <div style={{ marginBottom: '12px' }}><Camera size={32} style={{ opacity: 0.3 }} /></div>
-          No clinical images have been uploaded yet.
-        </div>
+        <EmptyState
+          icon={Camera}
+          title="No clinical images have been uploaded yet"
+          description="Capture and store clinical photographs, laboratory reports, and other visual evidence for this patient's medical case."
+        />
       )}
 
       {sortedImages.length > 0 && (
@@ -2534,16 +2661,13 @@ function DiagnosisView({ regid, visitId, medicalCase, soapRecords }: { regid: nu
       {!soapRecords ? (
         <TableSkeleton rows={5} cols={5} />
       ) : soapRecords.length === 0 ? (
-        <div className="pp-card" style={{ padding: '80px 48px', textAlign: 'center', background: 'white', border: '1px dashed #e2e8f0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ padding: '20px', background: 'var(--bg-surface-2)', borderRadius: '50%', marginBottom: '20px' }}>
-            <Sparkles size={48} style={{ color: 'var(--pp-text-3)' }} />
-          </div>
-          <h3 style={{ color: 'var(--pp-ink)', fontWeight: 700, fontSize: '1.25rem', marginBottom: '8px' }}>No clinical assessments recorded yet</h3>
-          <p style={{ color: 'var(--pp-text-3)', fontSize: '0.95rem', maxWidth: '400px', lineHeight: 1.6 }}>
-            Start recording clinical findings, symptoms, and treatment plans for this patient to track their progress.
-          </p>
-          <button className="pp-link" style={{ marginTop: '16px', fontWeight: 700 }} onClick={handleAdd}>Create the first diagnosis</button>
-        </div>
+        <EmptyState
+          icon={Sparkles}
+          title="No clinical assessments recorded yet"
+          description="Start recording clinical findings, symptoms, and treatment plans for this patient to track their progress."
+          actionLabel="Create the first diagnosis"
+          onAction={handleAdd}
+        />
       ) : (
         <>
           <div className="pp-card pp-table-scroll" style={{ padding: 0, borderRadius: '12px', border: '1px solid #fde68a', marginBottom: '20px' }}>
@@ -2566,8 +2690,8 @@ function DiagnosisView({ regid, visitId, medicalCase, soapRecords }: { regid: nu
                 {currentSoap.map((record) => (
                   <tr key={record.id} className="hover-row">
                     <td className="appt-cell-mono">
-                      {(record.createdAt || record.created_at || record.dateval || record.date_val)
-                        ? new Date(record.createdAt || record.created_at || record.dateval || record.date_val).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+                      {(record.createdAt || record.created_at || record.dateval || record.date_val || record.visitDate || record.visit_date)
+                        ? new Date(record.createdAt || record.created_at || record.dateval || record.date_val || record.visitDate || record.visit_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
                         : '—'}
                     </td>
                     <td>
@@ -2580,7 +2704,7 @@ function DiagnosisView({ regid, visitId, medicalCase, soapRecords }: { regid: nu
                       </div>
                     </td>
                     <td>
-                      <div style={{ fontSize: '0.85rem', color: 'var(--pp-text-2)' }}>{record.plan || '—'}</div>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--pp-text-2)' }}>{record.plan || record.advice || '—'}</div>
                     </td>
                     <td style={{ textAlign: 'center' }}>
                       <div style={{ display: 'flex', justifyContent: 'center', gap: '4px' }}>
@@ -2606,15 +2730,15 @@ function DiagnosisView({ regid, visitId, medicalCase, soapRecords }: { regid: nu
                 ))}
               </tbody>
             </table>
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              pageSize={pageSize}
-              totalItems={sortedSoap.length}
-              onPageChange={setCurrentPage}
-              onPageSizeChange={setPageSize}
-            />
           </div>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            pageSize={pageSize}
+            totalItems={sortedSoap.length}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={setPageSize}
+          />
         </>
       )}
 

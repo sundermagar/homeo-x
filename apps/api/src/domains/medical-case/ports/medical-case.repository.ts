@@ -158,6 +158,7 @@ export interface MedicalCaseRepository {
 
   // Sub-entity operations
   saveVitals(data: Partial<Vitals>): Promise<void>;
+  deleteVitals(id: number): Promise<void>;
   getVitals(visitId: number): Promise<Vitals | null>;
 
   saveSoapNotes(data: Partial<SoapNotes>): Promise<void>;

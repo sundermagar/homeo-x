@@ -104,7 +104,7 @@ export function VitalsFormModal({ visitId, regid, initialData, onClose, onSucces
   return ReactDOM.createPortal(
     <>
       <div className="mc-drawer-backdrop" onClick={onClose} />
-      <div className="mc-drawer animate-slide-in-right">
+      <div className="mc-drawer animate-slide-in-right" style={{ maxWidth: '520px' }}>
         <header className="mc-drawer-header" style={{ background: 'var(--pp-blue)', color: 'white' }}>
           <div className="mc-drawer-header-title">
             <Activity size={18} /> Record Clinical Vitals
@@ -178,7 +178,7 @@ export function VitalsFormModal({ visitId, regid, initialData, onClose, onSucces
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--pp-text-2)' }}>Pulse (bpm)</label>
                   <input type="number" name="pulseRate" value={form.pulseRate} onChange={handleChange} placeholder="72" className="pp-input" />
@@ -189,7 +189,7 @@ export function VitalsFormModal({ visitId, regid, initialData, onClose, onSucces
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--pp-text-2)' }}>SpO2 (%)</label>
                   <input type="number" step="0.1" name="oxygenSaturation" value={form.oxygenSaturation} onChange={handleChange} placeholder="98" className="pp-input" />
@@ -198,18 +198,11 @@ export function VitalsFormModal({ visitId, regid, initialData, onClose, onSucces
                   <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--pp-text-2)' }}>Resp. Rate</label>
                   <input type="number" name="respiratoryRate" value={form.respiratoryRate} onChange={handleChange} placeholder="18" className="pp-input" />
                 </div>
-                <div className="mc-input-group">
-                  <label>LMP (Last Menstrual Period)</label>
-                  <div className="mc-input-wrap">
-                    <input type="date" name="lmpDate" value={form.lmpDate} onChange={handleChange} />
-                  </div>
-                </div>
-                <div className="mc-input-group">
-                  <label>LMP (Last Menstrual Period)</label>
-                  <div className="mc-input-wrap">
-                    <input type="date" name="lmpDate" value={form.lmpDate} onChange={handleChange} />
-                  </div>
-                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--pp-text-2)' }}>LMP (Last Menstrual Period)</label>
+                <input type="date" name="lmpDate" value={form.lmpDate} onChange={handleChange} className="pp-input" />
               </div>
             </div>
 

@@ -305,6 +305,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
             followUp: schema.legacySoapNotes.followUp,
             icdCodes: schema.legacySoapNotes.icdCodes,
             createdAt: schema.legacySoapNotes.createdAt,
+            visitDate: schema.appointments.bookingDate,
           })
           .from(schema.legacySoapNotes)
           .innerJoin(schema.appointments, eq(schema.legacySoapNotes.visitId, schema.appointments.id))
@@ -450,6 +451,10 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
     return (row as Vitals) || null;
   }
 
+  async deleteVitals(id: number): Promise<void> {
+    await this.db.delete(schema.vitals).where(eq(schema.vitals.id, id));
+  }
+
   async saveSoapNotes(data: Partial<SoapNotes>): Promise<void> {
     const execute = () => this.db
       .insert(schema.legacySoapNotes)
@@ -462,6 +467,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
         advice: data.advice,
         followUp: data.followUp,
         icdCodes: data.icdCodes,
+        createdAt: new Date(),
       })
       .onConflictDoUpdate({
         target: schema.legacySoapNotes.visitId,
