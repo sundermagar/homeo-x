@@ -63,13 +63,13 @@ exportRouter.get('/:type', async (req: Request, res: Response) => {
 
     switch (type) {
       case 'patients': {
-        // Try patients table (new schema) or case_datas (legacy)
-        const tbl = await detectTable(db, ['patients', 'case_datas']);
+        // Prioritize legacy case_datas if it exists, otherwise use modern patients table
+        const tbl = await detectTable(db, ['case_datas', 'patients']);
         if (!tbl) { res.status(404).json({ success: false, message: 'Patients table not found' }); return; }
         const isLegacy = tbl === 'case_datas';
         data = await pgExport(db, isLegacy
           ? `SELECT regid, CONCAT(first_name, ' ', COALESCE(surname, '')) AS name, mobile1 AS mobile, gender, date_of_birth AS dob, city, created_at FROM case_datas ORDER BY regid ASC`
-          : `SELECT regid, first_name, surname, gender, date_of_birth AS dob, phone, mobile1, email, address, city, state, created_at FROM patients WHERE deleted_at IS NULL ORDER BY regid ASC`
+          : `SELECT regid, first_name, surname, gender, date_of_birth AS dob, phone, mobile1, email, address, city, state, created_at FROM patients WHERE (deleted_at IS NULL OR deleted_at::text = '') ORDER BY regid ASC`
         );
         filename = 'patient_registry.csv';
         break;
@@ -78,19 +78,17 @@ exportRouter.get('/:type', async (req: Request, res: Response) => {
       case 'cases': {
         const tbl = await detectTable(db, ['case_datas', 'patients']);
         if (!tbl) { res.status(404).json({ success: false, message: 'Cases table not found' }); return; }
-        data = await pgExport(db, `
-          SELECT cd.regid, CONCAT(cd.first_name, ' ', COALESCE(cd.surname, '')) AS patient_name,
-                 cd.mobile1 AS mobile, cd.city, cd.created_at
-          FROM case_datas cd
-          ORDER BY cd.regid DESC
-          LIMIT 5000
-        `);
+        const isLegacy = tbl === 'case_datas';
+        data = await pgExport(db, isLegacy
+          ? `SELECT cd.regid, CONCAT(cd.first_name, ' ', COALESCE(cd.surname, '')) AS patient_name, cd.mobile1 AS mobile, cd.city, cd.created_at FROM case_datas cd ORDER BY cd.regid DESC LIMIT 5000`
+          : `SELECT p.regid, CONCAT(p.first_name, ' ', p.surname) AS patient_name, p.mobile1 AS mobile, p.city, p.created_at FROM patients p WHERE (p.deleted_at IS NULL OR p.deleted_at::text = '') ORDER BY p.regid DESC LIMIT 5000`
+        );
         filename = 'case_history.csv';
         break;
       }
 
       case 'billing': {
-        const tbl = await detectTable(db, ['receipt', 'bill', 'bills']);
+        const tbl = await detectTable(db, ['receipt', 'bills', 'bill']);
         if (!tbl) { res.status(404).json({ success: false, message: 'Billing table not found' }); return; }
         const isLegacyBilling = tbl === 'receipt';
         data = await pgExport(db, isLegacyBilling 

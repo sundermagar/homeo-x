@@ -254,7 +254,7 @@ const NAV_STRUCTURE: NavItem[] = [
         { path: '/operations?tab=logistics', label: 'Logistics & Couriers', icon: Layers },
         { path: '/operations?tab=crm', label: 'Lead CRM & Promos', icon: Users },
         { path: '/operations?tab=knowledge', label: 'Medical Knowledge base', icon: BookOpen },
-        { path: '/operations?tab=tools', label: 'Global Data Tools', icon: Settings },
+        // { path: '/operations?tab=tools', label: 'Global Data Tools', icon: Settings },
       ],
     },
   },

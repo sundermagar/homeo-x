@@ -9,6 +9,7 @@ import {
 import { apiClient } from '@/infrastructure/api-client';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { Pagination } from '@/components/shared/pagination';
+import { useAuthStore } from '@/shared/stores/auth-store';
 import './operations-dashboard.css';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -93,6 +94,7 @@ function PageHeader({ title, desc, actions }: { title: string; desc: string; act
 export default function OperationsDashboard() {
   const [searchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as GenericTab) || 'logistics';
+  const { token } = useAuthStore();
   const [modalType, setModalType] = useState<'courier' | 'lead' | 'dictionary' | 'export' | 'referral' | 'reminder' | 'book' | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
@@ -265,7 +267,7 @@ export default function OperationsDashboard() {
     logistics: { title: 'Logistics & Couriers', desc: 'Manage shipping vendors and track active medicine deliveries.' },
     crm: { title: 'Lead CRM & Promos', desc: 'Capture new patient leads, track network referrals, and schedule reminders.' },
     knowledge: { title: 'Medical Knowledge Base', desc: 'Access global diagnosis terminology and uploaded reference books.' },
-    tools: { title: 'Global Data Tools', desc: 'Administer database exports and system-wide backups.' },
+    //   tools: { title: 'Global Data Tools', desc: 'Administer database exports and system-wide backups.' },
   };
 
   const actionMap: Record<GenericTab, { label: string; type: 'courier' | 'lead' | 'dictionary' | 'export' | null }> = {
@@ -381,7 +383,7 @@ export default function OperationsDashboard() {
               </div>
             )}
 
-            <Pagination 
+            <Pagination
               totalItems={mockShipments.length}
               currentPage={currentPage}
               pageSize={itemsPerPage}
@@ -513,7 +515,7 @@ export default function OperationsDashboard() {
                   </div>
                 )}
 
-                <Pagination 
+                <Pagination
                   totalItems={leads.filter(l => {
                     const matchesSearch = l.name?.toLowerCase().includes(crmSearch.toLowerCase());
                     const matchesFilter = crmFilter === 'all' || l.status?.toLowerCase() === crmFilter;
@@ -554,25 +556,25 @@ export default function OperationsDashboard() {
                         <tr>{referralCols.map(col => <th key={col}>{col}</th>)}</tr>
                       </thead>
                       <tbody>
-                      {referrals.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((r, idx) => (
-                        <tr key={idx}>
-                          <td data-label="Patient"><span className="cell-main">{r.first_name} {r.surname}</span></td>
-                          <td data-label="Referred"><span className="cell-sub">ID: {r.referral_id}</span></td>
-                          <td data-label="Total">
-                            <span style={{ color: 'var(--pp-success-fg)', fontWeight: 600 }}>₹{r.total_amount}</span>
-                          </td>
-                          <td data-label="Used">₹{r.used_amount}</td>
-                        </tr>
-                      ))}
-                      {referrals.length === 0 && !loading && (
-                        <tr><td colSpan={4} style={{ textAlign: 'center', padding: 20 }}>No referrals found.</td></tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                        {referrals.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((r, idx) => (
+                          <tr key={idx}>
+                            <td data-label="Patient"><span className="cell-main">{r.first_name} {r.surname}</span></td>
+                            <td data-label="Referred"><span className="cell-sub">ID: {r.referral_id}</span></td>
+                            <td data-label="Total">
+                              <span style={{ color: 'var(--pp-success-fg)', fontWeight: 600 }}>₹{r.total_amount}</span>
+                            </td>
+                            <td data-label="Used">₹{r.used_amount}</td>
+                          </tr>
+                        ))}
+                        {referrals.length === 0 && !loading && (
+                          <tr><td colSpan={4} style={{ textAlign: 'center', padding: 20 }}>No referrals found.</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
 
-                <Pagination 
+                <Pagination
                   totalItems={referrals.length}
                   currentPage={currentPage}
                   pageSize={itemsPerPage}
@@ -605,23 +607,23 @@ export default function OperationsDashboard() {
                         <tr>{reminderCols.map(col => <th key={col}>{col}</th>)}</tr>
                       </thead>
                       <tbody>
-                      {reminders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(r => (
-                        <tr key={r.id}>
-                          <td data-label="Patient"><span className="cell-main">{r.patient_name || 'Patient #' + r.patient_id}</span></td>
-                          <td data-label="Heading">{r.heading}</td>
-                          <td data-label="Date"><span className="cell-sub">{r.start_date} {r.remind_time}</span></td>
-                          <td data-label="Status"><StatusBadge status={r.status} /></td>
-                        </tr>
-                      ))}
-                      {reminders.length === 0 && !loading && (
-                        <tr><td colSpan={4} style={{ textAlign: 'center', padding: 20 }}>No reminders found.</td></tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                        {reminders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(r => (
+                          <tr key={r.id}>
+                            <td data-label="Patient"><span className="cell-main">{r.patient_name || 'Patient #' + r.patient_id}</span></td>
+                            <td data-label="Heading">{r.heading}</td>
+                            <td data-label="Date"><span className="cell-sub">{r.start_date} {r.remind_time}</span></td>
+                            <td data-label="Status"><StatusBadge status={r.status} /></td>
+                          </tr>
+                        ))}
+                        {reminders.length === 0 && !loading && (
+                          <tr><td colSpan={4} style={{ textAlign: 'center', padding: 20 }}>No reminders found.</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
 
-                <Pagination 
+                <Pagination
                   totalItems={reminders.length}
                   currentPage={currentPage}
                   pageSize={itemsPerPage}
@@ -698,7 +700,7 @@ export default function OperationsDashboard() {
                 ))}
               </div>
             )}
-            <Pagination 
+            <Pagination
               totalItems={dictionary.length}
               currentPage={currentPage}
               pageSize={itemsPerPage}
@@ -784,7 +786,7 @@ export default function OperationsDashboard() {
                 ))}
               </div>
             )}
-            <Pagination 
+            <Pagination
               totalItems={books.length}
               currentPage={currentPage}
               pageSize={itemsPerPage}
@@ -824,7 +826,7 @@ export default function OperationsDashboard() {
                     try {
                       const baseURL = apiClient.defaults.baseURL || '/api';
                       const response = await fetch(`${baseURL}/export/${selectedExport}`, {
-                        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                        headers: { Authorization: `Bearer ${token}` }
                       });
                       if (!response.ok) throw new Error('Export failed');
                       const blob = await response.blob();
@@ -872,7 +874,7 @@ export default function OperationsDashboard() {
                             try {
                               const baseURL = apiClient.defaults.baseURL || '/api';
                               const response = await fetch(`${baseURL}/export/${e.id}`, {
-                                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                                headers: { Authorization: `Bearer ${token}` }
                               });
                               if (!response.ok) throw new Error('Export failed');
                               const blob = await response.blob();
@@ -917,7 +919,7 @@ export default function OperationsDashboard() {
             </h2>
             <button className="ops-drawer-close" onClick={closeModal}><Plus style={{ transform: 'rotate(45deg)' }} /></button>
           </div>
-          
+
           <div className="ops-drawer-body">
             {modalType === 'lead' && (
               <>

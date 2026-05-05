@@ -98,6 +98,7 @@ export function DashboardAnalyticsPage() {
                   fillOpacity={1}
                   fill="url(#colorRevenue)"
                   strokeWidth={2.5}
+                  isAnimationActive={false}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -136,7 +137,7 @@ export function DashboardAnalyticsPage() {
                   }}
                   itemStyle={{ color: 'var(--pp-blue)', fontWeight: 700 }}
                 />
-                <Bar dataKey="count" fill="var(--pp-blue)" radius={[4, 4, 0, 0]} barSize={32} />
+                <Bar dataKey="count" fill="var(--pp-blue)" radius={[4, 4, 0, 0]} barSize={32} isAnimationActive={false} />
               </BarChart>
             </ResponsiveContainer>
           </div>

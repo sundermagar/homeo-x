@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
-import {
-  Calendar, ChevronLeft, ChevronRight, Plus, List,
-  Stethoscope, CalendarDays, Users, RefreshCw, CalendarPlus
-} from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Calendar, ChevronLeft, ChevronRight, Plus, List, Stethoscope, CalendarDays, Users, RefreshCw, CalendarPlus } from 'lucide-react';
 import { useAppointments } from '../hooks/use-appointments';
 import { StatusBadge, STATUS_COLOR } from '../components/status-badge';
+import { AppointmentForm } from '../components/appointment-form';
+import { Drawer } from '@/shared/components/drawer';
 import { apiClient } from '@/infrastructure/api-client';
 import '../styles/appointments.css';
 
@@ -25,6 +23,8 @@ export default function CalendarPage() {
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [doctorFilter, setDoctorFilter] = useState('');
   const [doctors, setDoctors]  = useState<Doctor[]>([]);
+  const [isBookingOpen, setIsBookingOpen] = useState(false);
+  const [bookingDate, setBookingDate] = useState<string | undefined>();
 
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const startDow    = new Date(year, month, 1).getDay();
@@ -75,13 +75,12 @@ export default function CalendarPage() {
           <p className="appt-header-sub">Manage practitioner schedules and availability</p>
         </div>
         <div className="appt-header-actions">
-          <Link
-            to={`/appointments/add?date=${selectedDay ?? todayISO}`}
+          <button
+            onClick={() => { setBookingDate(selectedDay ?? todayISO); setIsBookingOpen(true); }}
             className="appt-btn appt-btn-primary"
           >
             <Plus size={15} strokeWidth={1.6} /> New Booking
-          </Link>
-
+          </button>
         </div>
       </div>
 
@@ -196,13 +195,13 @@ export default function CalendarPage() {
                   <CalendarPlus size={32} strokeWidth={1} style={{ color: 'var(--pp-warm-5)', marginBottom: 12 }} />
                   <p className="appt-empty-text" style={{ fontWeight: 600, color: 'var(--pp-ink)' }}>No appointments scheduled</p>
                   <p className="appt-empty-sub" style={{ fontSize: 12, color: 'var(--pp-muted)', marginBottom: 16 }}>Tap the button below to book a new slot for this day.</p>
-                  <Link 
-                    to={`/appointments/add?date=${selectedDay}`}
+                  <button 
+                    onClick={() => { setBookingDate(selectedDay!); setIsBookingOpen(true); }}
                     className="appt-btn appt-btn-primary" 
                     style={{ padding: '10px 20px' }}
                   >
                     <Plus size={16} /> Add First Slot
-                  </Link>
+                  </button>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -219,13 +218,13 @@ export default function CalendarPage() {
                     ))}
                   </div>
                   <div style={{ position: 'sticky', bottom: 0, paddingTop: 12, background: 'linear-gradient(to top, #fff 80%, rgba(255,255,255,0))', marginTop: -4 }}>
-                    <Link 
-                      to={`/appointments/add?date=${selectedDay}`}
+                    <button 
+                      onClick={() => { setBookingDate(selectedDay!); setIsBookingOpen(true); }}
                       className="appt-btn appt-btn-primary" 
                       style={{ width: '100%', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.15)' }}
                     >
                       <Plus size={16} /> Add Slot
-                    </Link>
+                    </button>
                   </div>
                 </div>
               )}
@@ -268,6 +267,43 @@ export default function CalendarPage() {
           </div>
         </div>
       </div>
+
+      <Drawer
+        isOpen={isBookingOpen}
+        onClose={() => setIsBookingOpen(false)}
+        title="New Appointment"
+        maxWidth="500px"
+      >
+        <div style={{ padding: '20px' }}>
+          <AppointmentForm
+            initialDate={bookingDate}
+            onCancel={() => setIsBookingOpen(false)}
+            onSuccess={() => {
+              setIsBookingOpen(false);
+              refetch();
+            }}
+          />
+        </div>
+      </Drawer>
+
+      <style>{`
+        .appt-shimmer {
+          background: linear-gradient(90deg, var(--pp-warm-2) 25%, var(--pp-warm-3) 50%, var(--pp-warm-2) 75%);
+          background-size: 200% 100%;
+          animation: shimmer 1.5s infinite;
+        }
+        @keyframes shimmer {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+        .appt-cal-shimmer-cell {
+          height: 76px;
+          border-radius: 6px;
+          border: 1.5px solid var(--pp-warm-4);
+          background: var(--pp-warm-1);
+          opacity: 0.6;
+        }
+      `}</style>
     </div>
   );
 }

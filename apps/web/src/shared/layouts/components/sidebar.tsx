@@ -128,7 +128,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         { label: 'Logistics & Couriers', path: '/operations?tab=logistics' },
         { label: 'Lead CRM & Promos', path: '/operations?tab=crm' },
         { label: 'Medical Knowledge base', path: '/operations?tab=knowledge' },
-        { label: 'Global Data Tools', path: '/operations?tab=tools' },
+        // { label: 'Global Data Tools', path: '/operations?tab=tools' },
       ]
     },
   ];
@@ -189,7 +189,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                             // For paths with query params (like /operations?tab=), 
                             // we need a strict match of path + search.
                             const currentFull = location.pathname + location.search;
-                            const isMatch = subItem.path.includes('?') 
+                            const isMatch = subItem.path.includes('?')
                               ? currentFull === subItem.path
                               : isActive;
                             return `sb-sub-item${isMatch ? ' active' : ''}`;

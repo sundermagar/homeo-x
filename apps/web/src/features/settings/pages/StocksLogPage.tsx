@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { History, RefreshCw, Filter, Package, Plus, X, ArrowUp, ArrowDown, CheckCircle, AlertCircle, Trash2 } from 'lucide-react';
 import { useStockLogs, useMedicines, useAddStock, useDeleteStockLog } from '../hooks/use-settings';
 import { Drawer } from '@/shared/components/drawer';
+import { CustomSearchSelect } from '@/shared/components/custom-search-select';
 import '../../platform/styles/platform.css';
 import '../styles/settings.css';
 
@@ -258,20 +259,13 @@ export default function StocksLogPage() {
             )}
 
             <div className="plat-form-section" style={{ border: 'none', boxShadow: 'none', padding: 0 }}>
-              <div className="plat-form-group">
-                <label className="plat-form-label">Medicine *</label>
-                <select
-                  className="plat-form-input"
-                  required
-                  value={form.medicineId}
-                  onChange={e => setForm(f => ({ ...f, medicineId: e.target.value }))}
-                >
-                  <option value="">Select Medicine</option>
-                  {(medicines as any[]).map((m: any) => (
-                    <option key={m.id} value={m.id}>{m.name}</option>
-                  ))}
-                </select>
-              </div>
+              <CustomSearchSelect
+                label="Medicine *"
+                value={(medicines as any[]).find(m => m.id === Number(form.medicineId))?.name || ''}
+                options={medicines as any[]}
+                onChange={(name, id) => setForm(f => ({ ...f, medicineId: String(id) }))}
+                placeholder="Select Medicine"
+              />
 
               <div className="plat-form-grid-multi mt-4" style={{ gridTemplateColumns: '1fr 1fr' }}>
                 <div className="plat-form-group">

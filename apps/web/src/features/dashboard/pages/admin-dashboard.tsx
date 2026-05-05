@@ -232,7 +232,7 @@ export function AdminDashboard() {
                     fill="url(#saRevGrad)"
                     dot={{ r: 4, fill: '#fff', strokeWidth: 2, stroke: 'var(--pp-blue)' }}
                     activeDot={{ r: 6, fill: 'var(--pp-blue)', stroke: '#fff', strokeWidth: 3 }}
-                    isAnimationActive={true}
+                    isAnimationActive={false}
                   />
                 </AreaChart>
               </ResponsiveContainer>

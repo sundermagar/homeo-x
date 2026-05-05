@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { Package, Plus, X, RefreshCw, Trash2, Edit2, Info, IndianRupee, Search, Tag, Database, CheckCircle2 } from 'lucide-react';
-import { useStocks, useCreateStock, useUpdateStock, useDeleteStock } from '../hooks/use-settings';
+import { useStocks, useCreateStock, useUpdateStock, useDeleteStock, usePotencies } from '../hooks/use-settings';
 import { Drawer } from '@/shared/components/drawer';
+import { CustomSearchSelect } from '@/shared/components/custom-search-select';
 import '../../platform/styles/platform.css';
 import '../styles/settings.css';
 
@@ -37,6 +38,7 @@ const EMPTY_FORM = {
 
 export default function StocksPage() {
   const { data: stocks = [], isLoading } = useStocks();
+  const { data: potencies = [] } = usePotencies();
 
   const createStock = useCreateStock();
   const updateStock = useUpdateStock();
@@ -54,6 +56,24 @@ export default function StocksPage() {
     s.potency?.toLowerCase().includes(search.toLowerCase()) ||
     s.snomedLabel?.toLowerCase().includes(search.toLowerCase())
   ), [stocks, search]);
+
+  const sortedPotencies = useMemo(() => {
+    return [...potencies].sort((a: any, b: any) => {
+      const nameA = (a.name || '').toLowerCase();
+      const nameB = (b.name || '').toLowerCase();
+
+      // Logic: MT/Q first, then natural sort
+      const isSpec = (s: string) => s.includes('mt') || s.startsWith('q');
+      if (isSpec(nameA) && !isSpec(nameB)) return -1;
+      if (!isSpec(nameA) && isSpec(nameB)) return 1;
+
+      return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
+    });
+  }, [potencies]);
+
+  const filteredPotencies = useMemo(() => {
+    return sortedPotencies;
+  }, [sortedPotencies]);
 
   const {
     currentPage,
@@ -281,15 +301,13 @@ export default function StocksPage() {
                 </div>
 
               <div className="plat-form-grid-multi mt-4">
-                <div className="plat-form-group">
-                  <label className="plat-form-label">Potency</label>
-                  <input
-                    className="plat-form-input"
-                    value={form.potency}
-                    onChange={e => setForm(f => ({ ...f, potency: e.target.value }))}
-                    placeholder="e.g. 200C, 30CH"
-                  />
-                </div>
+                <CustomSearchSelect
+                  label="Potency"
+                  value={form.potency}
+                  options={sortedPotencies}
+                  onChange={(val) => setForm(f => ({ ...f, potency: val }))}
+                  placeholder="Select Potency"
+                />
                 <div className="plat-form-group">
                   <label className="plat-form-label">Category</label>
                   <select

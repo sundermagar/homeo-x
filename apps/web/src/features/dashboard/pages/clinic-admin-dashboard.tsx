@@ -141,12 +141,14 @@ export function ClinicAdminDashboard() {
           sublabel={sublabel}
           value={fmt(totalRevenue)}
           trend={revenueTrend}
+          onClick={() => navigate('/billing')}
         />
         <KPICard
           label="PATIENTS"
           sublabel={sublabel}
           value={patients > 0 ? String(patients) : '--'}
           trend={patientsTrend}
+          onClick={() => navigate('/patients')}
         />
         <KPICard
           label="COLLECTION RATE"
@@ -154,6 +156,7 @@ export function ClinicAdminDashboard() {
           value={`${collectionRate}%`}
           trend={collectionRateTrend}
           invertTrend
+          onClick={() => navigate('/billing')}
         />
         <KPICard
           label="AVG WAIT TIME"
@@ -161,6 +164,7 @@ export function ClinicAdminDashboard() {
           value={`${avgWaitTime}m`}
           trend={avgWaitTimeTrend}
           invertTrend
+          onClick={() => navigate('/appointments')}
         />
       </div>
 
@@ -386,7 +390,13 @@ export function ClinicAdminDashboard() {
 
           {sidebarTab === 'Queue' && (
             <div className="cad-sidebar-section">
-              <div className="cad-sidebar-section-title">TODAY'S QUEUE</div>
+              <div 
+                className="cad-sidebar-section-title clickable-title" 
+                onClick={() => navigate('/appointments')}
+                style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                TODAY'S QUEUE <ChevronRight size={10} />
+              </div>
               {queue.length > 0 ? (
                 <div className="cad-queue-list">
                   {queue.slice(0, 10).map((q: { id: number; regid: number; patientName: string; tokenNo: string | number | null; bookingTime: string | null; status: string }) => (
@@ -420,7 +430,13 @@ export function ClinicAdminDashboard() {
 
           {sidebarTab === 'Analytics' && (
             <div className="cad-sidebar-section">
-              <div className="cad-sidebar-section-title">ANALYTICS</div>
+              <div 
+                className="cad-sidebar-section-title clickable-title" 
+                onClick={() => navigate('/analytics')}
+                style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                ANALYTICS <ChevronRight size={10} />
+              </div>
               <div className="cad-sidebar-analytics">
                 <div className="cad-analytics-item">
                   <span className="cad-analytics-label">New Patients</span>
@@ -444,7 +460,13 @@ export function ClinicAdminDashboard() {
 
           {sidebarTab === 'Billing' && (
             <div className="cad-sidebar-section">
-              <div className="cad-sidebar-section-title">QUICK BILLING</div>
+              <div 
+                className="cad-sidebar-section-title clickable-title" 
+                onClick={() => navigate('/billing')}
+                style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                QUICK BILLING <ChevronRight size={10} />
+              </div>
               <div className="cad-sidebar-analytics">
                 <div className="cad-analytics-item">
                   <span className="cad-analytics-label">Collected</span>
@@ -479,7 +501,12 @@ export function ClinicAdminDashboard() {
             {staffOnDuty.length > 0 ? (
               <div className="cad-staff-list">
                 {staffOnDuty.slice(0, 4).map((s: { name: string; role: string; count?: number }, i: number) => (
-                  <div key={i} className="cad-staff-row">
+                  <div 
+                    key={i} 
+                    className="cad-staff-row clickable-row" 
+                    onClick={() => navigate('/platform/doctors')}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <div className="cad-staff-avatar">{s.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}</div>
                     <div className="cad-staff-info">
                       <div className="cad-staff-name">{s.name}</div>
@@ -509,16 +536,17 @@ export function ClinicAdminDashboard() {
 
 // ── Sub-components ──────────────────────────────────────────────────────────
 
-function KPICard({ label, sublabel, value, trend, invertTrend }: {
+function KPICard({ label, sublabel, value, trend, invertTrend, onClick }: {
   label: string;
   sublabel: string;
   value: string;
   trend: number;
   invertTrend?: boolean;
+  onClick?: () => void;
 }) {
   const positive = invertTrend ? trend <= 0 : trend >= 0;
   return (
-    <div className="cad-kpi-card">
+    <div className={`cad-kpi-card ${onClick ? 'clickable' : ''}`} onClick={onClick}>
       <div className="cad-kpi-label">{sublabel ? `${label} — ${sublabel}` : label}</div>
       <div className="cad-kpi-value">{value}</div>
       <div className={`cad-trend-badge ${positive ? 'cad-trend-up' : 'cad-trend-down'}`}>
