@@ -31,6 +31,15 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     });
   }
 
+  /** Bust queue + KPI cache so the next dashboard fetch returns fresh data after skip/call/complete */
+  static clearQueueCache(): void {
+    for (const key of DashboardRepositoryPg.cache.keys()) {
+      if (key.startsWith('queue:') || key.startsWith('kpis:')) {
+        DashboardRepositoryPg.cache.delete(key);
+      }
+    }
+  }
+
   constructor(private readonly db: DbClient) { }
 
   private async getRevenueTableInfo(): Promise<{ name: string; amountCol: string; hasMode: boolean } | null> {
@@ -135,9 +144,27 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       const { start, boundary, prevStart, prevBoundary } = this.getPeriodDates(period);
       const docCol = await this.getDoctorColumn();
       
-      const docApptFilter = doctorId ? sql` AND ${sql.identifier(docCol)} = ${doctorId}` : sql``;
-      const docWaitFilter = doctorId ? sql` AND doctor_id = ${doctorId}` : sql``;
-      const docBillFilter = doctorId ? sql` AND b.doctor_id = ${doctorId}` : sql``;
+      const docApptFilter = doctorId ? sql` AND (
+        ${sql.identifier(docCol)} = ${doctorId}
+        OR (SELECT name FROM users WHERE id = ${doctorId}) IN (
+          SELECT name FROM doctors WHERE id = ${sql.identifier(docCol)}
+          UNION SELECT name FROM users WHERE id = ${sql.identifier(docCol)}
+        )
+      )` : sql``;
+      const docWaitFilter = doctorId ? sql` AND (
+        doctor_id = ${doctorId}
+        OR (SELECT name FROM users WHERE id = ${doctorId}) IN (
+          SELECT name FROM doctors WHERE id = doctor_id
+          UNION SELECT name FROM users WHERE id = doctor_id
+        )
+      )` : sql``;
+      const docBillFilter = doctorId ? sql` AND (
+        b.doctor_id = ${doctorId}
+        OR (SELECT name FROM users WHERE id = ${doctorId}) IN (
+          SELECT name FROM doctors WHERE id = b.doctor_id
+          UNION SELECT name FROM users WHERE id = b.doctor_id
+        )
+      )` : sql``;
 
     // Single round-trip: 4 queries instead of 9 (merged prev/curr + eliminated duplicate bills scans)
     const [countsRes, financeRes, waitRes, followUpRes] = await Promise.all([
@@ -265,8 +292,20 @@ export class DashboardRepositoryPg implements IDashboardRepository {
   async getTodayQueue(contextId: number, doctorId?: number): Promise<QueueItem[]> {
     const today = new Date().toISOString().split('T')[0]!;
     return this.getCached(`queue:${contextId}:${today}:${doctorId ?? ''}`, 30_000, async () => {
-      const docCond = doctorId ? sql` AND w.doctor_id = ${doctorId}` : sql``;
-      const apptCond = doctorId ? sql` AND a.doctor_id = ${doctorId}` : sql``;
+      const docCond = doctorId ? sql` AND (
+        w.doctor_id = ${doctorId} 
+        OR (SELECT name FROM users WHERE id = ${doctorId}) IN (
+          SELECT name FROM doctors WHERE id = w.doctor_id
+          UNION SELECT name FROM users WHERE id = w.doctor_id
+        )
+      )` : sql``;
+      const apptCond = doctorId ? sql` AND (
+        a.doctor_id = ${doctorId} 
+        OR (SELECT name FROM users WHERE id = ${doctorId}) IN (
+          SELECT name FROM doctors WHERE id = a.doctor_id
+          UNION SELECT name FROM users WHERE id = a.doctor_id
+        )
+      )` : sql``;
 
       const result = await this.db.execute(sql`
         WITH today_waitlist AS (
@@ -279,7 +318,11 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             w.status,
             w.checked_in_at
           FROM waitlist w
-          WHERE w.date = ${today}::date AND w.clinic_id = ${contextId} AND (w.deleted_at IS NULL OR w.deleted_at::text = '')
+          WHERE (
+            w.date::text = ${today} 
+            OR w.date::text = TO_CHAR(${today}::date, 'DD/MM/YYYY')
+            OR w.date::text LIKE '%' || TO_CHAR(${today}::date, 'DD/MM/YYYY') || '%'
+          ) AND w.clinic_id = ${contextId} AND (w.deleted_at IS NULL OR w.deleted_at::text = '')
             ${docCond}
         )
         SELECT
@@ -326,7 +369,11 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             a.booking_time,
             a.id as visit_id
           FROM appointments a
-          WHERE a.booking_date = ${today}::date AND a.clinic_id = ${contextId} AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
+          WHERE (
+            a.booking_date::text = ${today}
+            OR a.booking_date::text = TO_CHAR(${today}::date, 'DD/MM/YYYY')
+            OR a.booking_date::text LIKE '%' || TO_CHAR(${today}::date, 'DD/MM/YYYY') || '%'
+          ) AND a.clinic_id = ${contextId} AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
             ${apptCond}
             AND NOT EXISTS (SELECT 1 FROM today_waitlist tw2 WHERE tw2.appointment_id = a.id OR tw2.patient_id = a.patient_id)
         ) q
@@ -351,6 +398,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       return allRows.map(r => ({
         id: r.id,
         wlId: r.wl_id,
+        visitId: r.visit_id,
         patientId: r.patient_id,
         regid: r.regid,
         patientName: r.patient_name,

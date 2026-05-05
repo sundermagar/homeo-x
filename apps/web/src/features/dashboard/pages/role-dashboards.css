@@ -262,6 +262,30 @@
   gap: 12px;
 }
 
+.dash-queue-scroll {
+  max-height: 350px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+}
+
+.dash-queue-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dash-queue-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dash-queue-scroll::-webkit-scrollbar-thumb {
+  background: var(--pp-warm-4);
+  border-radius: 10px;
+}
+
+.dash-queue-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--pp-text-4);
+}
+
 .dash-avatar {
   width: 32px;
   height: 32px;

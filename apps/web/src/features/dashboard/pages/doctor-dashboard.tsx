@@ -73,59 +73,63 @@ export function DoctorDashboard() {
   // Skip: sends current patient back to Waitlist, then calls the next waiting patient
   const handleSkip = async (item: QueueItem) => {
     setIsMoreMenuOpen(false);
+
+    // Optimistic: immediately clear HUD so the UI feels instant
+    setActivePatientId(null);
     setConsultationStartedAt(null);
     setConsultDuration('00:00');
-    try {
-      const realWlId = (item as any).wlId;
 
-      if (realWlId) {
-        // Backend skip: sets this entry to waiting, appointment to Waitlist, 
-        // AND promotes the next patient to Consultation.
-        await queueMgmt.skip.mutateAsync(realWlId);
-      } else {
-        // Fallback for patients not in the waitlist table
-        try {
-          await updateStatus.mutateAsync({ id: item.id, status: 'Waitlist' });
-        } catch { /* best-effort */ }
-      }
+    const realWlId = (item as any).wlId;
 
-      // Clear the actively pinned patient so the dashboard automatically 
-      // selects the new patient that backend promoted to 'Consultation'.
-      setActivePatientId(null);
+    // Fire-and-forget: don't await the backend call
+    const skipPromise = realWlId
+      ? queueMgmt.skip.mutateAsync(realWlId)
+      : updateStatus.mutateAsync({ id: item.id, status: 'Waitlist' }).catch(() => {});
 
-      // Refresh dashboard
-      await qc.refetchQueries({ queryKey: ['dashboard'] });
-      qc.invalidateQueries({ queryKey: apptKeys.all });
-    } catch (err) {
-      console.error('Skip failed', err);
-    }
+    // Invalidate cache immediately so React Query refetches in background
+    qc.invalidateQueries({ queryKey: ['dashboard'] });
+    qc.invalidateQueries({ queryKey: apptKeys.all });
+
+    // Log errors silently
+    skipPromise.catch((err) => console.error('Skip failed', err));
   };
 
   const handleMarkAbsent = (item: QueueItem) => {
+    setIsMoreMenuOpen(false);
+    // Optimistic: clear HUD immediately
+    setActivePatientId(null);
+    setConsultationStartedAt(null);
+    setConsultDuration('00:00');
+
+    const apptId = (item as any).visitId || item.id;
     updateStatus.mutate(
-      { id: item.id, status: 'Absent' },
+      { id: apptId, status: 'Absent' },
       { onSuccess: () => {
         qc.invalidateQueries({ queryKey: ['dashboard'] });
         qc.invalidateQueries({ queryKey: apptKeys.all });
       }}
     );
-    setIsMoreMenuOpen(false);
   };
 
   const handleCancel = (item: QueueItem) => {
+    setIsMoreMenuOpen(false);
+    // Optimistic: clear HUD immediately
+    setActivePatientId(null);
+    setConsultationStartedAt(null);
+    setConsultDuration('00:00');
+
+    const apptId = (item as any).visitId || item.id;
     updateStatus.mutate(
-      { id: item.id, status: 'Cancelled' },
+      { id: apptId, status: 'Cancelled' },
       { onSuccess: () => {
         qc.invalidateQueries({ queryKey: ['dashboard'] });
         qc.invalidateQueries({ queryKey: apptKeys.all });
       }}
     );
-    setIsMoreMenuOpen(false);
   };
 
   const handleReschedule = (item: QueueItem) => {
     setIsMoreMenuOpen(false);
-    // Navigate to appointments with pre-filled patient info
     navigate(`/appointments/calendar?patient=${item.regid || item.patientId}`);
   };
 
@@ -277,82 +281,84 @@ export function DoctorDashboard() {
               </div>
             </div>
             <div className="dash-card-body" style={{ padding: '0 8px' }}>
-              {filteredAppts.length > 0 ? (
-                filteredAppts.map((a, idx) => {
-                  const isExpanded = expandedId === a.id;
-                  return (
-                    <div key={`${a.id}-${idx}`}>
-                      <div 
-                        className={`dash-row ${isExpanded ? 'active' : ''}`} 
-                        onClick={() => setExpandedId(isExpanded ? null : a.id)} 
-                        style={{ cursor: 'pointer' }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
-                          <div className="dash-avatar">
-                            {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+              <div className="dash-queue-scroll">
+                {filteredAppts.length > 0 ? (
+                  filteredAppts.map((a, idx) => {
+                    const isExpanded = expandedId === a.id;
+                    return (
+                      <div key={`${a.id}-${idx}`}>
+                        <div 
+                          className={`dash-row ${isExpanded ? 'active' : ''}`} 
+                          onClick={() => setExpandedId(isExpanded ? null : a.id)} 
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
+                            <div className="dash-avatar">
+                              {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                            </div>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{a.patientName}</div>
+                              <div className="text-label" style={{ fontSize: 10 }}>{a.bookingTime || 'Scheduled'} · Token {a.tokenNo || '—'}</div>
+                            </div>
                           </div>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{a.patientName}</div>
-                            <div className="text-label" style={{ fontSize: 10 }}>{a.bookingTime || 'Scheduled'} · Token {a.tokenNo || '—'}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            {a.status === 'Waitlist' && (
+                              <button
+                                className="dash-view-btn"
+                                title="Start Consultation"
+                                onClick={(e) => { e.stopPropagation(); handleStartConsultation(a); }}
+                              >
+                                Call
+                              </button>
+                            )}
+                            <span className={`dash-badge badge-${a.status === 'Consultation' ? 'success' : a.status === 'Completed' ? 'primary' : 'warning'}`}>
+                              {a.status || 'Waitlist'}
+                            </span>
                           </div>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                          {a.status === 'Waitlist' && (
-                            <button
-                              className="dash-view-btn"
-                              title="Start Consultation"
-                              onClick={(e) => { e.stopPropagation(); handleStartConsultation(a); }}
-                            >
-                              Call
-                            </button>
-                          )}
-                          <span className={`dash-badge badge-${a.status === 'Consultation' ? 'success' : a.status === 'Completed' ? 'primary' : 'warning'}`}>
-                            {a.status || 'Waitlist'}
-                          </span>
+                        
+                        <div className={`dash-row-details ${isExpanded ? 'expanded' : ''}`}>
+                          <div className="details-inner">
+                             <div className="dd-details-grid">
+                                <div>
+                                  <div className="text-label" style={{ fontSize: 9, textTransform: 'uppercase', marginBottom: 4 }}>Clinical Notes</div>
+                                  <div style={{ fontSize: 12, color: '#475569', lineHeight: 1.5 }}>
+                                    {a.notes || 'Routine follow-up. No specific symptoms recorded at registration.'}
+                                  </div>
+                                </div>
+                                <div className="dd-details-right">
+                                  <div className="text-label" style={{ fontSize: 9, textTransform: 'uppercase', marginBottom: 4 }}>Patient Info</div>
+                                  <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>PT-{a.regid}</div>
+                                  <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+                                    {a.age || '--'} Yrs · {a.gender || '--'}
+                                  </div>
+                                  <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+                                    <button className="pp-link" onClick={(e) => { e.stopPropagation(); navigate(`/patients/${a.regid}`); }}>View Profile</button>
+                                    {(a.status === 'Waitlist' || a.status === 'Consultation') && (
+                                      <button
+                                        className="pp-link"
+                                        style={{ color: 'var(--pp-blue)' }}
+                                        onClick={(e) => { e.stopPropagation(); handleStartConsultation(a); }}
+                                      >
+                                        {a.status === 'Consultation' ? 'Enter Consult' : 'Start Consult'}
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                             </div>
+                          </div>
                         </div>
-                      </div>
-                      
-                      <div className={`dash-row-details ${isExpanded ? 'expanded' : ''}`}>
-                        <div className="details-inner">
-                           <div className="dd-details-grid">
-                              <div>
-                                <div className="text-label" style={{ fontSize: 9, textTransform: 'uppercase', marginBottom: 4 }}>Clinical Notes</div>
-                                <div style={{ fontSize: 12, color: '#475569', lineHeight: 1.5 }}>
-                                  {a.notes || 'Routine follow-up. No specific symptoms recorded at registration.'}
-                                </div>
-                              </div>
-                              <div className="dd-details-right">
-                                <div className="text-label" style={{ fontSize: 9, textTransform: 'uppercase', marginBottom: 4 }}>Patient Info</div>
-                                <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>PT-{a.regid}</div>
-                                <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
-                                  {a.age || '--'} Yrs · {a.gender || '--'}
-                                </div>
-                                <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
-                                  <button className="pp-link" onClick={(e) => { e.stopPropagation(); navigate(`/patients/${a.regid}`); }}>View Profile</button>
-                                  {(a.status === 'Waitlist' || a.status === 'Consultation') && (
-                                    <button
-                                      className="pp-link"
-                                      style={{ color: 'var(--pp-blue)' }}
-                                      onClick={(e) => { e.stopPropagation(); handleStartConsultation(a); }}
-                                    >
-                                      {a.status === 'Consultation' ? 'Enter Consult' : 'Start Consult'}
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-                           </div>
-                        </div>
-                      </div>
 
-                    </div>
-                  );
-                })
-              ) : (
-                <div style={{ padding: '48px 0', textAlign: 'center', color: '#94a3b8' }}>
-                  <Users size={24} style={{ marginBottom: 8, opacity: 0.5 }} />
-                  <p className="text-small">{queueFilter === 'ALL' ? 'Queue view is empty today.' : `No patients in '${queueFilter.toLowerCase()}' status.`}</p>
-                </div>
-              )}
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div style={{ padding: '48px 0', textAlign: 'center', color: '#94a3b8' }}>
+                    <Users size={24} style={{ marginBottom: 8, opacity: 0.5 }} />
+                    <p className="text-small">{queueFilter === 'ALL' ? 'Queue view is empty today.' : `No patients in '${queueFilter.toLowerCase()}' status.`}</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

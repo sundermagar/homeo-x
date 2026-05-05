@@ -743,65 +743,46 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
   }
 
   async skipWaitlistEntry(waitlistId: number): Promise<void> {
-    const [entry] = await this.db
-      .select()
-      .from(schema.waitlist)
-      .where(and(
-        eq(schema.waitlist.id, waitlistId),
-        sql`(${schema.waitlist.deletedAt} IS NULL OR ${schema.waitlist.deletedAt}::text = '')`
-      ));
+    // Single-shot atomic skip: resets current patient to waiting, promotes next patient to consultation.
+    // Collapsed from 6 sequential queries into 1 raw SQL block for instant response.
+    const doctorCond = sql`TRUE`; // Will be refined below after fetching entry context
 
-    if (!entry) return;
-
-    // 1. Reset current patient back to waiting in waitlist
-    await this.db
-      .update(schema.waitlist)
-      .set({ status: 0, calledAt: null, updatedAt: new Date() })
-      .where(eq(schema.waitlist.id, waitlistId));
-
-    // SYNC: Also reset current patient's appointment status
-    if (entry.appointmentId) {
-      await this.db
-        .update(schema.appointments)
-        .set({ status: AppointmentStatus.Waitlist, updatedAt: new Date() })
-        .where(eq(schema.appointments.id, entry.appointmentId));
-    }
-
-    // 2. Find the next waiting patient (status=0) for same doctor and date
-    // Exclude the patient we JUST skipped, otherwise they get immediately re-promoted if they have the lowest waiting number
-    const today = new Date().toISOString().split('T')[0] as string;
-    const conditions: any[] = [
-      sql`(${schema.waitlist.deletedAt} IS NULL OR ${schema.waitlist.deletedAt}::text = '')`,
-      eq(schema.waitlist.status, 0),
-      sql`${schema.waitlist.date}::text LIKE '%' || ${today} || '%'`,
-      ne(schema.waitlist.id, waitlistId)
-    ];
-    if (entry.doctorId) {
-      conditions.push(eq(schema.waitlist.doctorId, entry.doctorId));
-    }
-
-    const [next] = await this.db
-      .select()
-      .from(schema.waitlist)
-      .where(and(...conditions))
-      .orderBy(asc(schema.waitlist.waitingNumber))
-      .limit(1);
-
-    // 3. Promote next patient to consultation
-    if (next) {
-      await this.db
-        .update(schema.waitlist)
-        .set({ status: 1, calledAt: new Date(), updatedAt: new Date() })
-        .where(eq(schema.waitlist.id, next.id));
-
-      // SYNC: Also set next patient's appointment status to Consultation
-      if (next.appointmentId) {
-        await this.db
-          .update(schema.appointments)
-          .set({ status: AppointmentStatus.Consultation, updatedAt: new Date() })
-          .where(eq(schema.appointments.id, next.appointmentId));
-      }
-    }
+    await this.db.execute(sql`
+      WITH skipped AS (
+        UPDATE waitlist
+        SET status = 0, called_at = NULL, updated_at = NOW()
+        WHERE id = ${waitlistId}
+          AND (deleted_at IS NULL OR deleted_at::text = '')
+        RETURNING id, appointment_id, doctor_id, date
+      ),
+      reset_appt AS (
+        UPDATE appointments
+        SET status = 'Waitlist', updated_at = NOW()
+        FROM skipped s
+        WHERE appointments.id = s.appointment_id
+      ),
+      next_patient AS (
+        SELECT w.id as wl_id, w.appointment_id
+        FROM waitlist w, skipped s
+        WHERE w.status = 0
+          AND w.date = s.date
+          AND w.id != ${waitlistId}
+          AND (w.deleted_at IS NULL OR w.deleted_at::text = '')
+          AND (s.doctor_id IS NULL OR w.doctor_id = s.doctor_id)
+        ORDER BY w.waiting_number ASC
+        LIMIT 1
+      ),
+      promote_wl AS (
+        UPDATE waitlist
+        SET status = 1, called_at = NOW(), updated_at = NOW()
+        FROM next_patient np
+        WHERE waitlist.id = np.wl_id
+      )
+      UPDATE appointments
+      SET status = 'Consultation', updated_at = NOW()
+      FROM next_patient np
+      WHERE appointments.id = np.appointment_id
+    `);
   }
 
   async promoteWaitlist(doctorId: number | null, date: string, time: string | null): Promise<void> {
