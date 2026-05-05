@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   TrendingUp,
   TrendingDown,
@@ -69,6 +70,7 @@ export function ClinicAdminDashboard() {
   const [period, setPeriod] = useState<Period>('year');
   const [revTab, setRevTab] = useState<RevenueTab>('Cash');
   const [sidebarTab, setSidebarTab] = useState<'Queue' | 'Analytics' | 'Billing'>('Queue');
+  const navigate = useNavigate();
 
   const { data, isLoading } = useClinicAdminDashboard(period);
   useAuthStore((s) => s.user); // ensures auth store is initialised
@@ -466,10 +468,17 @@ export function ClinicAdminDashboard() {
 
           {/* Staff on Duty */}
           <div className="cad-staff-section">
-            <div className="cad-sidebar-section-title">STAFF ON DUTY</div>
+            <div className="cad-sidebar-section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              STAFF ON DUTY
+              {staffOnDuty.length > 4 && (
+                <a href="#" onClick={(e) => { e.preventDefault(); navigate('/platform/doctors'); }} style={{ fontSize: '10px', color: 'var(--pp-blue)', textTransform: 'none', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '2px', cursor: 'pointer' }}>
+                  View More <ChevronRight size={11} />
+                </a>
+              )}
+            </div>
             {staffOnDuty.length > 0 ? (
               <div className="cad-staff-list">
-                {staffOnDuty.map((s: { name: string; role: string; count?: number }, i: number) => (
+                {staffOnDuty.slice(0, 4).map((s: { name: string; role: string; count?: number }, i: number) => (
                   <div key={i} className="cad-staff-row">
                     <div className="cad-staff-avatar">{s.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}</div>
                     <div className="cad-staff-info">
