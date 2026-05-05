@@ -1,3 +1,5 @@
 [build]
-  command = "pnpm install && pnpm build"
+  command = "pnpm clean && pnpm install && pnpm build"
   builder = "NIXPACKS"
+  [deploy]
+    canary = false
