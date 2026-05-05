@@ -1,4 +1,4 @@
-import type { AppointmentStatus, VisitType, TokenStatus } from '../enums';
+import type { AppointmentStatus, VisitType, TokenStatus } from '../enums.js';
 
 export interface Appointment {
   id: number;

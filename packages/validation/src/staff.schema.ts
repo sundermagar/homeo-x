@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { phoneSchema, numericStringSchema } from './common.schema';
+import { phoneSchema, numericStringSchema } from './common.schema.js';
 
 /**
  * Staff validation schemas — unified create/update for all staff categories.

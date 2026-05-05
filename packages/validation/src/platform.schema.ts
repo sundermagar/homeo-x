@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { phoneSchema } from './common.schema';
+import { phoneSchema } from './common.schema.js';
 
 // ─── Organization Schemas ─────────────────────────────────────────────────────
 
