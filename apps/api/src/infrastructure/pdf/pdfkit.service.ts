@@ -1,5 +1,5 @@
 import PDFDocument from 'pdfkit';
-import { createLogger } from '../../shared/logger';
+import { createLogger } from '../../shared/logger.js';
 import type { Writable } from 'stream';
 import path from 'path';
 import fs from 'fs';

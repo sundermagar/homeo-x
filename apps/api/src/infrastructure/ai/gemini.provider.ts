@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { AiProvider, ChatMessage } from './ai-provider.interface';
+import { AiProvider, ChatMessage } from './ai-provider.interface.js';
 
 export class GeminiProvider implements AiProvider {
   readonly name = 'gemini';

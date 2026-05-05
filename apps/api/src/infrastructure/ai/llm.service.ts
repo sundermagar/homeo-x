@@ -1,5 +1,5 @@
-import { llmFacade, AIAnalysisRequestParams } from './llm.facade';
-import { ChatMessage } from './ai-provider.interface';
+import { llmFacade, AIAnalysisRequestParams } from './llm.facade.js';
+import { ChatMessage } from './ai-provider.interface.js';
 
 // Keep the old interfaces exported for backward compatibility
 export type { ChatMessage };

@@ -1,7 +1,7 @@
-import { createLogger } from '../../shared/logger';
-import type { AppointmentRepository } from '../../domains/appointment/ports/appointment.repository';
-import type { PatientRepository } from '../../domains/patient/ports/patient.repository';
-import type { SendSmsUseCase } from '../../domains/communication/use-cases/send-sms.use-case';
+import { createLogger } from '../../shared/logger.js';
+import type { AppointmentRepository } from '../../domains/appointment/ports/appointment.repository.js';
+import type { PatientRepository } from '../../domains/patient/ports/patient.repository.js';
+import type { SendSmsUseCase } from '../../domains/communication/use-cases/send-sms.use-case.js';
 
 const logger = createLogger('job-scheduler');
 

@@ -15,7 +15,7 @@ import type {
   RecentTransaction,
   IntelligenceInsight,
 } from '@mmc/types';
-import type { IDashboardRepository } from '../../domains/dashboard/ports/dashboard.repository';
+import type { IDashboardRepository } from '../../domains/dashboard/ports/dashboard.repository.js';
 
 export class DashboardRepositoryPg implements IDashboardRepository {
   private static cachedRevInfo: Record<string, any> = {};

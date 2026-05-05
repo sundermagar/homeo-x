@@ -6,10 +6,10 @@ import { Router } from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import path from 'node:path';
 import fs from 'node:fs';
-import { getConsultationUseCase } from '../../../domains/consultation/consultation.use-case';
-import { getAiProviderChain } from '../../ai/ai-provider-chain';
-import { sendSuccess } from '../../../shared/response-formatter';
-import { createLogger } from '../../../shared/logger';
+import { getConsultationUseCase } from '../../../domains/consultation/consultation.use-case.js';
+import { getAiProviderChain } from '../../ai/ai-provider-chain.js';
+import { sendSuccess } from '../../../shared/response-formatter.js';
+import { createLogger } from '../../../shared/logger.js';
 
 const logger = createLogger('ai-router');
 

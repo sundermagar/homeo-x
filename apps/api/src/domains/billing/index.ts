@@ -1,23 +1,23 @@
 // Ports
-export type { BillingRepository } from './ports/billing.repository';
-export type { PaymentRepository } from './ports/payment.repository';
+export type { BillingRepository } from './ports/billing.repository.js';
+export type { PaymentRepository } from './ports/payment.repository.js';
 export type {
   AdditionalChargeRepository,
   DayChargeRepository,
   DepositRepository,
   ExpenseRepository,
-} from './ports/accounts.repository';
+} from './ports/accounts.repository.js';
 
 // Use Cases
-export { CreateBillUseCase } from './use-cases/create-bill';
-export { CreateCustomBillUseCase } from './use-cases/create-custom-bill';
-export { ListBillsUseCase } from './use-cases/list-bills';
-export { GetDailyCollectionUseCase } from './use-cases/get-daily-collection';
-export { GetPatientBillsUseCase } from './use-cases/get-patient-bills';
-export { CreatePaymentOrderUseCase } from './use-cases/create-payment-order';
-export type { RazorpayService, RazorpayOrder } from './use-cases/create-payment-order';
-export { VerifyPaymentUseCase } from './use-cases/verify-payment';
-export { RecordManualPaymentUseCase } from './use-cases/record-manual-payment';
+export { CreateBillUseCase } from './use-cases/create-bill.js';
+export { CreateCustomBillUseCase } from './use-cases/create-custom-bill.js';
+export { ListBillsUseCase } from './use-cases/list-bills.js';
+export { GetDailyCollectionUseCase } from './use-cases/get-daily-collection.js';
+export { GetPatientBillsUseCase } from './use-cases/get-patient-bills.js';
+export { CreatePaymentOrderUseCase } from './use-cases/create-payment-order.js';
+export type { RazorpayService, RazorpayOrder } from './use-cases/create-payment-order.js';
+export { VerifyPaymentUseCase } from './use-cases/verify-payment.js';
+export { RecordManualPaymentUseCase } from './use-cases/record-manual-payment.js';
 // Additional Charges
 export {
   ListAdditionalChargesUseCase,
@@ -25,7 +25,7 @@ export {
   CreateAdditionalChargeUseCase,
   UpdateAdditionalChargeUseCase,
   DeleteAdditionalChargeUseCase,
-} from './use-cases/list-additional-charges';
+} from './use-cases/list-additional-charges.js';
 // Day Charges
 export {
   ListDayChargesUseCase,
@@ -33,7 +33,7 @@ export {
   CreateDayChargeUseCase,
   UpdateDayChargeUseCase,
   DeleteDayChargeUseCase,
-} from './use-cases/day-charges';
+} from './use-cases/day-charges.js';
 // Deposits
 export {
   ListBankDepositsUseCase,
@@ -44,7 +44,7 @@ export {
   CreateCashDepositUseCase,
   UpdateCashDepositUseCase,
   DeleteCashDepositUseCase,
-} from './use-cases/deposits';
+} from './use-cases/deposits.js';
 // Expenses
 export {
   ListExpensesUseCase,
@@ -57,5 +57,5 @@ export {
   CreateExpenseHeadUseCase,
   UpdateExpenseHeadUseCase,
   DeleteExpenseHeadUseCase,
-} from './use-cases/expenses';
+} from './use-cases/expenses.js';
 

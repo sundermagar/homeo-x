@@ -1,6 +1,6 @@
 import type { DbClient } from '@mmc/database';
 import type { Payment, PaymentWithPatient } from '@mmc/types';
-import type { PaymentRepository } from '../../domains/billing/ports/payment.repository';
+import type { PaymentRepository } from '../../domains/billing/ports/payment.repository.js';
 import type { ListPaymentsQuery } from '@mmc/validation';
 export declare class PaymentRepositoryPg implements PaymentRepository {
     private readonly db;

@@ -1,8 +1,8 @@
 import { Router, type Request, type Response } from 'express';
-import { asyncHandler } from '../middleware/async-handler';
-import { authMiddleware } from '../middleware/auth';
-import { validate, validateQuery } from '../middleware/validate';
-import { DepositRepositoryPg } from '../../repositories/accounts.repository.pg';
+import { asyncHandler } from '../middleware/async-handler.js';
+import { authMiddleware } from '../middleware/auth.js';
+import { validate, validateQuery } from '../middleware/validate.js';
+import { DepositRepositoryPg } from '../../repositories/accounts.repository.pg.js';
 import {
   ListBankDepositsUseCase,
   CreateBankDepositUseCase,
@@ -12,7 +12,7 @@ import {
   CreateCashDepositUseCase,
   UpdateCashDepositUseCase,
   DeleteCashDepositUseCase,
-} from '../../../domains/billing';
+} from '../../../domains/billing/index.js';
 import {
   createBankDepositSchema,
   updateBankDepositSchema,

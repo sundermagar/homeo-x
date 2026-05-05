@@ -1,7 +1,7 @@
 import { sql, eq, and, like, desc, isNull } from 'drizzle-orm';
 import type { DbClient } from '@mmc/database';
 import * as schema from '@mmc/database';
-import type { ILeadRepository } from '../../domains/crm/ports/lead.repository';
+import type { ILeadRepository } from '../../domains/crm/ports/lead.repository.js';
 
 export class CrmRepositoryPg implements ILeadRepository {
   constructor(private readonly db: DbClient) { }

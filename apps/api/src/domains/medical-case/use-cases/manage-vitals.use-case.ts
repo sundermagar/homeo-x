@@ -1,5 +1,5 @@
-import { type Result, ok } from '../../../shared/result';
-import type { MedicalCaseRepository, Vitals } from '../ports/medical-case.repository';
+import { type Result, ok } from '../../../shared/result.js';
+import type { MedicalCaseRepository, Vitals } from '../ports/medical-case.repository.js';
 
 export class ManageVitalsUseCase {
   constructor(private readonly repository: MedicalCaseRepository) {}

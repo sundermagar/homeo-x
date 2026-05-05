@@ -4,8 +4,8 @@
 // Primary path: Google Cloud Translation API (deterministic, purpose-built).
 // Fallback: returns original text as-is (no LLM fallback to save credits).
 
-import { createLogger } from '../../../shared/logger';
-import type { AiProviderChain } from '../../../infrastructure/ai/ai-provider-chain';
+import { createLogger } from '../../../shared/logger.js';
+import type { AiProviderChain } from '../../../infrastructure/ai/ai-provider-chain.js';
 
 const logger = createLogger('translator-engine');
 

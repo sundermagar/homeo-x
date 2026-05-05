@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import type { Router as ExpressRouter } from 'express';
-import { asyncHandler } from '../middleware/async-handler';
-import { sendSuccess } from '../../../shared/response-formatter';
-import { AnalyticsRepositoryPg } from '../../repositories/analytics.repository.pg';
-import { AnalyticsUseCases } from '../../../domains/analytics/use-cases/analytics.use-cases';
-import { authMiddleware } from '../middleware/auth';
+import { asyncHandler } from '../middleware/async-handler.js';
+import { sendSuccess } from '../../../shared/response-formatter.js';
+import { AnalyticsRepositoryPg } from '../../repositories/analytics.repository.pg.js';
+import { AnalyticsUseCases } from '../../../domains/analytics/use-cases/analytics.use-cases.js';
+import { authMiddleware } from '../middleware/auth.js';
 
 const router = Router();
 router.use(authMiddleware);

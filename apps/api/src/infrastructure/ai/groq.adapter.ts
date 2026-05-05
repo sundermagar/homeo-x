@@ -2,8 +2,8 @@
 // Implements AiProviderPort for Groq (Llama, Mixtral).
 // Translated from Ai-Counsultaion NestJS provider to plain class.
 
-import { createLogger } from '../../shared/logger';
-import type { AiProviderPort, AiCompletionRequest, AiCompletionResponse } from '../../domains/consultation/ports/ai-provider.port';
+import { createLogger } from '../../shared/logger.js';
+import type { AiProviderPort, AiCompletionRequest, AiCompletionResponse } from '../../domains/consultation/ports/ai-provider.port.js';
 
 const logger = createLogger('groq-adapter');
 

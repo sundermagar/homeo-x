@@ -1,22 +1,22 @@
 import { Router, type Request, type Response } from 'express';
-import { asyncHandler } from '../middleware/async-handler';
-import { authMiddleware } from '../middleware/auth';
-import { validate, validateQuery } from '../middleware/validate';
-import { PaymentRepositoryPg } from '../../repositories/payment.repository.pg';
-import { BillingRepositoryPg } from '../../repositories/billing.repository.pg';
-import { RazorpayServiceAdapter } from '../../payments/razorpay.service';
+import { asyncHandler } from '../middleware/async-handler.js';
+import { authMiddleware } from '../middleware/auth.js';
+import { validate, validateQuery } from '../middleware/validate.js';
+import { PaymentRepositoryPg } from '../../repositories/payment.repository.pg.js';
+import { BillingRepositoryPg } from '../../repositories/billing.repository.pg.js';
+import { RazorpayServiceAdapter } from '../../payments/razorpay.service.js';
 import {
   CreatePaymentOrderUseCase,
   VerifyPaymentUseCase,
   RecordManualPaymentUseCase,
-} from '../../../domains/billing';
+} from '../../../domains/billing/index.js';
 import {
   createPaymentOrderSchema,
   verifyPaymentSchema,
   recordManualPaymentSchema,
   listPaymentsQuerySchema,
 } from '@mmc/validation';
-import { appConfig } from '../../../shared/config/app-config';
+import { appConfig } from '../../../shared/config/app-config.js';
 import type { DbClient } from '@mmc/database';
 
 export function createPaymentRouter(): Router {

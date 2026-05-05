@@ -2,8 +2,8 @@
 // Module 2: Unified clinical extraction from conversation, labs, and notes.
 // Ported from: Ai-Counsultaion/apps/api/src/modules/ai/engines/clinical-extraction.engine.ts
 
-import { createLogger } from '../../../shared/logger';
-import type { AiProviderChain } from '../../../infrastructure/ai/ai-provider-chain';
+import { createLogger } from '../../../shared/logger.js';
+import type { AiProviderChain } from '../../../infrastructure/ai/ai-provider-chain.js';
 
 const logger = createLogger('clinical-extraction-engine');
 

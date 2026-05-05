@@ -1,5 +1,5 @@
-import { llmFacade } from '../../../infrastructure/ai/llm.facade';
-import { ChatMessage } from '../../../infrastructure/ai/ai-provider.interface';
+import { llmFacade } from '../../../infrastructure/ai/llm.facade.js';
+import { ChatMessage } from '../../../infrastructure/ai/ai-provider.interface.js';
 import * as crypto from 'crypto';
 
 export enum AnalysisTheory {

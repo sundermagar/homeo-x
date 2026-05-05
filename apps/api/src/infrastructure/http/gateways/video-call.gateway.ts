@@ -6,7 +6,7 @@
 //   - call:leave   → Doctor ends the call; patient is notified
 
 import type { Server } from 'socket.io';
-import { createLogger } from '../../../shared/logger';
+import { createLogger } from '../../../shared/logger.js';
 
 const logger = createLogger('video-call-gateway');
 

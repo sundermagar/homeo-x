@@ -1,6 +1,6 @@
 import { type DbClient, growthReferences } from '@mmc/database';
 import { and, eq } from 'drizzle-orm';
-import { AppError } from '../../../shared/errors';
+import { AppError } from '../../../shared/errors.js';
 
 export class AnalyzeVitalsUseCase {
   constructor(private readonly db: DbClient) { }

@@ -1,8 +1,8 @@
 import https from 'node:https';
 import http from 'node:http';
 import { URL } from 'node:url';
-import type { WhatsAppGateway, WhatsAppPayload, WhatsAppGatewayResult, WhatsAppQRResult, WhatsAppStatusResult } from '../../domains/communication/ports/whatsapp-gateway';
-import { createLogger } from '../../shared/logger';
+import type { WhatsAppGateway, WhatsAppPayload, WhatsAppGatewayResult, WhatsAppQRResult, WhatsAppStatusResult } from '../../domains/communication/ports/whatsapp-gateway.js';
+import { createLogger } from '../../shared/logger.js';
 
 const logger = createLogger('bulkshooters-whatsapp-gateway');
 

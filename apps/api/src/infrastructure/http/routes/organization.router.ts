@@ -1,9 +1,9 @@
 import { Router, type Request, type Response } from 'express';
-import { asyncHandler } from '../middleware/async-handler';
-import { validate } from '../middleware/validate';
+import { asyncHandler } from '../middleware/async-handler.js';
+import { validate } from '../middleware/validate.js';
 import { createOrganizationSchema, updateOrganizationSchema } from '@mmc/validation';
-import { OrganizationRepositoryPg } from '../../repositories/organization.repository.pg';
-import { createLogger } from '../../../shared/logger';
+import { OrganizationRepositoryPg } from '../../repositories/organization.repository.pg.js';
+import { createLogger } from '../../../shared/logger.js';
 import { sql } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 import {
@@ -11,8 +11,8 @@ import {
   CreateOrganizationUseCase,
   UpdateOrganizationUseCase,
   DeleteOrganizationUseCase,
-} from '../../../domains/platform';
-import { StaffRepositoryPg } from '../../repositories/staff.repository.pg';
+} from '../../../domains/platform/index.js';
+import { StaffRepositoryPg } from '../../repositories/staff.repository.pg.js';
 
 const logger = createLogger('organization-router');
 

@@ -1,5 +1,5 @@
-import { type Result, ok } from '../../../shared/result';
-import type { ILeadRepository } from '../ports/lead.repository';
+import { type Result, ok } from '../../../shared/result.js';
+import type { ILeadRepository } from '../ports/lead.repository.js';
 
 export class ManageReferralsUseCase {
   constructor(private readonly repo: ILeadRepository) {}

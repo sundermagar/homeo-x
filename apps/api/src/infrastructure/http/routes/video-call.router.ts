@@ -1,8 +1,8 @@
 // ─── Video Call Router ───────────────────────────────────────────────────────
 import { Router } from 'express';
 import type { Request, Response, NextFunction } from 'express';
-import { sendSuccess } from '../../../shared/response-formatter';
-import { createLogger } from '../../../shared/logger';
+import { sendSuccess } from '../../../shared/response-formatter.js';
+import { createLogger } from '../../../shared/logger.js';
 import { AccessToken } from 'livekit-server-sdk';
 
 const logger = createLogger('video-call-router');

@@ -1,6 +1,6 @@
-import type { PackageRepository } from '../ports/package.repository';
+import type { PackageRepository } from '../ports/package.repository.js';
 import type { CreatePackagePlanDto, UpdatePackagePlanDto } from '@mmc/types';
-import { ok, type Result, fail } from '../../../shared/result';
+import { ok, type Result, fail } from '../../../shared/result.js';
 
 export class ManagePackagePlansUseCase {
   constructor(private readonly repo: PackageRepository) {}

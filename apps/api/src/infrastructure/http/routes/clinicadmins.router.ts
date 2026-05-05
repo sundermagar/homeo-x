@@ -1,7 +1,7 @@
 import { Router, type Request, type Response } from 'express';
-import { asyncHandler } from '../middleware/async-handler';
-import { StaffRepositoryPg } from '../../repositories/staff.repository.pg';
-import { createLogger } from '../../../shared/logger';
+import { asyncHandler } from '../middleware/async-handler.js';
+import { StaffRepositoryPg } from '../../repositories/staff.repository.pg.js';
+import { createLogger } from '../../../shared/logger.js';
 
 const logger = createLogger('clinicadmins-router');
 

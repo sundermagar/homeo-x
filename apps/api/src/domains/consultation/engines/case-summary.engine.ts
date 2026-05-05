@@ -1,8 +1,8 @@
 // ─── Case Summary Engine ─────────────────────────────────────────────────────
 // Module 7: Generate editable clinical summary from all consultation data.
 
-import { createLogger } from '../../../shared/logger';
-import type { AiProviderChain } from '../../../infrastructure/ai/ai-provider-chain';
+import { createLogger } from '../../../shared/logger.js';
+import type { AiProviderChain } from '../../../infrastructure/ai/ai-provider-chain.js';
 
 const logger = createLogger('case-summary-engine');
 

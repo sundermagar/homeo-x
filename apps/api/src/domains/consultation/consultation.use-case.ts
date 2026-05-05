@@ -2,21 +2,21 @@
 // Orchestrates the complete AI consultation pipeline.
 // Hexagonal Architecture: Domain use case that depends on ports, not adapters.
 
-import { createLogger } from '../../shared/logger';
-import { AiProviderChain, getAiProviderChain } from '../../infrastructure/ai/ai-provider-chain';
-import { TranslatorEngine } from './engines/translator.engine';
-import { SoapStructuringEngine } from './engines/soap-structuring.engine';
-import { ClinicalExtractionEngine } from './engines/clinical-extraction.engine';
-import { RepertorizationEngine } from './engines/repertorization.engine';
-import { HomeopathyPrescriptionEngine } from './engines/homeopathy-prescription.engine';
-import { CaseSummaryEngine } from './engines/case-summary.engine';
-import { FollowUpAssessmentEngine } from './engines/followup-assessment.engine';
-import type { FollowUpAssessment } from './engines/followup-assessment.engine';
-import type { SoapSuggestion } from './engines/soap-structuring.engine';
-import type { ClinicalExtractionResult } from './engines/clinical-extraction.engine';
-import type { RubricExtractionResult, RepertorizationResult } from './engines/repertorization.engine';
-import type { HomeopathyPrescriptionDraft } from './engines/homeopathy-prescription.engine';
-import type { CaseSummary } from './engines/case-summary.engine';
+import { createLogger } from '../../shared/logger.js';
+import { AiProviderChain, getAiProviderChain } from '../../infrastructure/ai/ai-provider-chain.js';
+import { TranslatorEngine } from './engines/translator.engine.js';
+import { SoapStructuringEngine } from './engines/soap-structuring.engine.js';
+import { ClinicalExtractionEngine } from './engines/clinical-extraction.engine.js';
+import { RepertorizationEngine } from './engines/repertorization.engine.js';
+import { HomeopathyPrescriptionEngine } from './engines/homeopathy-prescription.engine.js';
+import { CaseSummaryEngine } from './engines/case-summary.engine.js';
+import { FollowUpAssessmentEngine } from './engines/followup-assessment.engine.js';
+import type { FollowUpAssessment } from './engines/followup-assessment.engine.js';
+import type { SoapSuggestion } from './engines/soap-structuring.engine.js';
+import type { ClinicalExtractionResult } from './engines/clinical-extraction.engine.js';
+import type { RubricExtractionResult, RepertorizationResult } from './engines/repertorization.engine.js';
+import type { HomeopathyPrescriptionDraft } from './engines/homeopathy-prescription.engine.js';
+import type { CaseSummary } from './engines/case-summary.engine.js';
 
 const logger = createLogger('consultation-use-case');
 

@@ -2,7 +2,7 @@ import { eq, isNull, and, desc } from 'drizzle-orm';
 import { organizations } from '@mmc/database/schema';
 import type { DbClient } from '@mmc/database';
 import type { Organization, CreateOrganizationInput, UpdateOrganizationInput } from '@mmc/types';
-import type { OrganizationRepository } from '../../domains/platform/ports/organization.repository';
+import type { OrganizationRepository } from '../../domains/platform/ports/organization.repository.js';
 
 export class OrganizationRepositoryPg implements OrganizationRepository {
   constructor(private readonly db: DbClient) { }

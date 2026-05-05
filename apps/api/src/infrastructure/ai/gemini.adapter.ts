@@ -3,8 +3,8 @@
 // Translated from Ai-Counsultaion NestJS provider to plain class.
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { createLogger } from '../../shared/logger';
-import type { AiProviderPort, AiCompletionRequest, AiCompletionResponse } from '../../domains/consultation/ports/ai-provider.port';
+import { createLogger } from '../../shared/logger.js';
+import type { AiProviderPort, AiCompletionRequest, AiCompletionResponse } from '../../domains/consultation/ports/ai-provider.port.js';
 
 const logger = createLogger('gemini-adapter');
 

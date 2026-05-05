@@ -6,9 +6,9 @@ import { Router } from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import { eq } from 'drizzle-orm';
 import * as schema from '@mmc/database/schema';
-import { sendSuccess } from '../../../shared/response-formatter';
-import { createLogger } from '../../../shared/logger';
-import { getConsultationUseCase } from '../../../domains/consultation/consultation.use-case';
+import { sendSuccess } from '../../../shared/response-formatter.js';
+import { createLogger } from '../../../shared/logger.js';
+import { getConsultationUseCase } from '../../../domains/consultation/consultation.use-case.js';
 
 const logger = createLogger('scribing-router');
 

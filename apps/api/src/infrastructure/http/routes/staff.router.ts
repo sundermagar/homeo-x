@@ -3,16 +3,16 @@ import type { Request, Response, Router as IRouter } from 'express';
 import { sql } from 'drizzle-orm';
 import { createStaffSchema, updateStaffSchema, staffCategoryEnum } from '@mmc/validation';
 import type { StaffCategory } from '@mmc/types';
-import { StaffRepositoryPg } from '../../repositories/staff.repository.pg';
+import { StaffRepositoryPg } from '../../repositories/staff.repository.pg.js';
 import {
   ListStaffUseCase,
   GetStaffUseCase,
   CreateStaffUseCase,
   UpdateStaffUseCase,
   DeleteStaffUseCase,
-} from '../../../domains/staff';
-import { createLogger } from '../../../shared/logger';
-import { upload } from '../middleware/upload';
+} from '../../../domains/staff/index.js';
+import { createLogger } from '../../../shared/logger.js';
+import { upload } from '../middleware/upload.js';
 import { Role } from '@mmc/types';
 import { eq } from 'drizzle-orm';
 import { accounts, users } from '@mmc/database/schema';

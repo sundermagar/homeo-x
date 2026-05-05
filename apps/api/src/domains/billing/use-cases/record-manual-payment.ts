@@ -1,8 +1,8 @@
 import type { Payment } from '@mmc/types';
-import type { PaymentRepository } from '../ports/payment.repository';
-import type { BillingRepository } from '../ports/billing.repository';
+import type { PaymentRepository } from '../ports/payment.repository.js';
+import type { BillingRepository } from '../ports/billing.repository.js';
 import type { RecordManualPaymentInput } from '@mmc/validation';
-import { type Result, ok, fail } from '../../../shared/result';
+import { type Result, ok, fail } from '../../../shared/result.js';
 
 export class RecordManualPaymentUseCase {
   constructor(

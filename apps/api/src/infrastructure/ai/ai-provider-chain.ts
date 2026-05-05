@@ -3,15 +3,15 @@
 // Caches responses in-memory (Redis optional) for dedup.
 // This is the single dependency that all AI engines receive.
 
-import { createLogger } from '../../shared/logger';
-import { GeminiAdapter } from './gemini.adapter';
-import { GroqAdapter } from './groq.adapter';
-import { AnthropicAdapter } from './anthropic.adapter';
+import { createLogger } from '../../shared/logger.js';
+import { GeminiAdapter } from './gemini.adapter.js';
+import { GroqAdapter } from './groq.adapter.js';
+import { AnthropicAdapter } from './anthropic.adapter.js';
 import type {
   AiProviderPort,
   AiCompletionRequest,
   AiCompletionResponse,
-} from '../../domains/consultation/ports/ai-provider.port';
+} from '../../domains/consultation/ports/ai-provider.port.js';
 
 const logger = createLogger('ai-provider-chain');
 

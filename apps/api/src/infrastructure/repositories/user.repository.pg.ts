@@ -3,7 +3,7 @@ import type { User } from '@mmc/types';
 import { Role } from '@mmc/types';
 import type { DbClient } from '@mmc/database';
 import * as schema from '@mmc/database';
-import type { UserRepository } from '../../domains/auth/ports/user.repository';
+import type { UserRepository } from '../../domains/auth/ports/user.repository.js';
 
 export class UserRepositoryPG implements UserRepository {
   constructor(private readonly db: DbClient) {}

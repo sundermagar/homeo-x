@@ -1,8 +1,8 @@
-import { type Result, ok, fail } from '../../../shared/result';
-import type { MedicalCaseRepository } from '../ports/medical-case.repository';
-import type { InventoryRepository } from '../../inventory/ports/inventory.repository';
-import type { BillingRepository } from '../../billing/ports/billing.repository';
-import type { AppointmentRepository } from '../../appointment/ports/appointment.repository';
+import { type Result, ok, fail } from '../../../shared/result.js';
+import type { MedicalCaseRepository } from '../ports/medical-case.repository.js';
+import type { InventoryRepository } from '../../inventory/ports/inventory.repository.js';
+import type { BillingRepository } from '../../billing/ports/billing.repository.js';
+import type { AppointmentRepository } from '../../appointment/ports/appointment.repository.js';
 import { AppointmentStatus } from '@mmc/types';
 
 export interface FinalizeConsultationDto {

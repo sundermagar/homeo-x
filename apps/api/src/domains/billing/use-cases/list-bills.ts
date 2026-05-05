@@ -1,7 +1,7 @@
 import type { BillWithPatient } from '@mmc/types';
-import type { BillingRepository } from '../ports/billing.repository';
+import type { BillingRepository } from '../ports/billing.repository.js';
 import type { ListBillsQuery } from '@mmc/validation';
-import { type Result, ok } from '../../../shared/result';
+import { type Result, ok } from '../../../shared/result.js';
 
 export class ListBillsUseCase {
   constructor(private readonly billingRepo: BillingRepository) {}

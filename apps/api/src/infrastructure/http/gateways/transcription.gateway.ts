@@ -4,8 +4,8 @@
 // Ported from: Ai-Counsultaion/apps/api/src/modules/video-call/transcription.gateway.ts
 
 import type { Server, Socket } from 'socket.io';
-import { createLogger } from '../../../shared/logger';
-import { TranslatorEngine } from '../../../domains/consultation/engines/translator.engine';
+import { createLogger } from '../../../shared/logger.js';
+import { TranslatorEngine } from '../../../domains/consultation/engines/translator.engine.js';
 
 const logger = createLogger('transcription-gateway');
 

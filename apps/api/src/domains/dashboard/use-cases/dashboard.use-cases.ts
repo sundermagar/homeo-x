@@ -1,6 +1,6 @@
 import type {
   IDashboardRepository
-} from '../ports/dashboard.repository';
+} from '../ports/dashboard.repository.js';
 import type {
   UnifiedDashboardData,
   ClinicAdminDashboardData,

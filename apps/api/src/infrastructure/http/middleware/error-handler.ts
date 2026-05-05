@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
-import { AppError } from '../../../shared/errors';
-import { createLogger } from '../../../shared/logger';
+import { AppError } from '../../../shared/errors.js';
+import { createLogger } from '../../../shared/logger.js';
 
 const logger = createLogger('error-handler');
 

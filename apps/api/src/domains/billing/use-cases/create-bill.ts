@@ -1,7 +1,7 @@
 import type { Bill } from '@mmc/types';
-import type { BillingRepository } from '../ports/billing.repository';
+import type { BillingRepository } from '../ports/billing.repository.js';
 import type { CreateBillInput } from '@mmc/validation';
-import { type Result, ok, fail } from '../../../shared/result';
+import { type Result, ok, fail } from '../../../shared/result.js';
 
 export class CreateBillUseCase {
   constructor(private readonly billingRepo: BillingRepository) {}

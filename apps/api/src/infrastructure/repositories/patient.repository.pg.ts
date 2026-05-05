@@ -18,7 +18,7 @@ import type {
   PatientFormMeta,
   FamilyGroupSummary
 } from '@mmc/types';
-import type { PatientRepository } from '../../domains/patient/ports/patient.repository';
+import type { PatientRepository } from '../../domains/patient/ports/patient.repository.js';
 import type {
   CreatePatientInput,
   UpdatePatientInput,

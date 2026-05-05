@@ -1,5 +1,5 @@
-import { createLogger } from '../../../shared/logger';
-import type { AiProviderChain } from '../../../infrastructure/ai/ai-provider-chain';
+import { createLogger } from '../../../shared/logger.js';
+import type { AiProviderChain } from '../../../infrastructure/ai/ai-provider-chain.js';
 
 const logger = createLogger('homeopathy-prescription-engine');
 

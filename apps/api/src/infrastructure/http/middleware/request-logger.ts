@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
-import { createLogger } from '../../../shared/logger';
+import { createLogger } from '../../../shared/logger.js';
 
 const logger = createLogger('http');
 

@@ -1,5 +1,5 @@
-import type { PatientRepository } from '../ports/patient.repository';
-import { type Result, ok, fail } from '../../../shared/result';
+import type { PatientRepository } from '../ports/patient.repository.js';
+import { type Result, ok, fail } from '../../../shared/result.js';
 
 export class DeletePatientUseCase {
   constructor(private readonly patientRepo: PatientRepository) {}

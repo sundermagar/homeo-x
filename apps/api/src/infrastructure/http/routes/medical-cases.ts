@@ -1,29 +1,29 @@
 import { Router } from 'express';
 import type { Router as ExpressRouter } from 'express';
-import { asyncHandler } from '../middleware/async-handler';
-import { sendSuccess } from '../../../shared/response-formatter';
-import { MedicalCaseRepositoryPg } from '../../repositories/medical-case.repository.pg';
-import { InventoryRepositoryPg } from '../../repositories/inventory.repository.pg';
-import { BillingRepositoryPg } from '../../repositories/billing.repository.pg';
-import { AppointmentRepositoryPG } from '../../repositories/appointment.repository.pg';
-import { authMiddleware } from '../middleware/auth';
-import { SettingsRepositoryPg } from '../../repositories/settings.repository.pg';
-import { OrganizationRepositoryPg } from '../../repositories/organization.repository.pg';
-import { CreateMedicalCaseUseCase } from '../../../domains/medical-case/use-cases/create-medical-case.use-case';
-import { GetFullMedicalCaseUseCase } from '../../../domains/medical-case/use-cases/get-full-medical-case.use-case';
-import { FinalizeConsultationUseCase } from '../../../domains/medical-case/use-cases/finalize-consultation.use-case';
-import { ManageVitalsUseCase } from '../../../domains/medical-case/use-cases/manage-vitals.use-case';
-import { AnalyzeVitalsUseCase } from '../../../domains/medical-case/use-cases/analyze-vitals.use-case';
-import { ManageSoapNotesUseCase } from '../../../domains/medical-case/use-cases/manage-soap-notes.use-case';
-import { ManageClinicalRecordsUseCase } from '../../../domains/medical-case/use-cases/manage-clinical-records.use-case';
-import { aiAnalysisUseCase } from '../../../domains/medical-case/use-cases/ai-analysis.use-case';
-import { validate } from '../middleware/validate';
+import { asyncHandler } from '../middleware/async-handler.js';
+import { sendSuccess } from '../../../shared/response-formatter.js';
+import { MedicalCaseRepositoryPg } from '../../repositories/medical-case.repository.pg.js';
+import { InventoryRepositoryPg } from '../../repositories/inventory.repository.pg.js';
+import { BillingRepositoryPg } from '../../repositories/billing.repository.pg.js';
+import { AppointmentRepositoryPG } from '../../repositories/appointment.repository.pg.js';
+import { authMiddleware } from '../middleware/auth.js';
+import { SettingsRepositoryPg } from '../../repositories/settings.repository.pg.js';
+import { OrganizationRepositoryPg } from '../../repositories/organization.repository.pg.js';
+import { CreateMedicalCaseUseCase } from '../../../domains/medical-case/use-cases/create-medical-case.use-case.js';
+import { GetFullMedicalCaseUseCase } from '../../../domains/medical-case/use-cases/get-full-medical-case.use-case.js';
+import { FinalizeConsultationUseCase } from '../../../domains/medical-case/use-cases/finalize-consultation.use-case.js';
+import { ManageVitalsUseCase } from '../../../domains/medical-case/use-cases/manage-vitals.use-case.js';
+import { AnalyzeVitalsUseCase } from '../../../domains/medical-case/use-cases/analyze-vitals.use-case.js';
+import { ManageSoapNotesUseCase } from '../../../domains/medical-case/use-cases/manage-soap-notes.use-case.js';
+import { ManageClinicalRecordsUseCase } from '../../../domains/medical-case/use-cases/manage-clinical-records.use-case.js';
+import { aiAnalysisUseCase } from '../../../domains/medical-case/use-cases/ai-analysis.use-case.js';
+import { validate } from '../middleware/validate.js';
 import { saveInvestigationSchema } from '@mmc/validation';
 
 const router = Router();
 router.use(authMiddleware);
 
-import { streamToSSE } from '../../../shared/sse';
+import { streamToSSE } from '../../../shared/sse.js';
 
 // ─── AI Clinical Consultant ───
 router.post('/ai-analysis', asyncHandler(async (req, res) => {
@@ -249,7 +249,7 @@ router.delete('/additional-charges/:id', asyncHandler(async (req, res) => {
   sendSuccess(res, null, 'Additional charge deleted');
 }));
 
-import { upload } from '../middleware/upload';
+import { upload } from '../middleware/upload.js';
 
 // ─── Continued route wrappers ───
 router.post('/records/images', upload.array('files', 5), asyncHandler(async (req, res) => {
@@ -327,7 +327,7 @@ router.post('/:regid/finalize', asyncHandler(async (req, res) => {
   sendSuccess(res, null, 'Consultation finalized successfully');
 }));
 
-import { RemedyChartUseCase } from '../../../domains/medical-case/use-cases/remedy-chart.use-case';
+import { RemedyChartUseCase } from '../../../domains/medical-case/use-cases/remedy-chart.use-case.js';
 
 // ─── Remedy Chart Session ────────────────────────────────────────────────────
 // Migrated from MMC legacy: remedychartAPI, addcasepotency, casepotencylisting, etc.

@@ -1,4 +1,4 @@
-import type { AdditionalChargeRepository } from '../ports/accounts.repository';
+import type { AdditionalChargeRepository } from '../ports/accounts.repository.js';
 import type { CreateAdditionalChargeInput, UpdateAdditionalChargeInput, ListAdditionalChargesQuery } from '@mmc/validation';
 import type { AdditionalCharge, AdditionalChargeWithPatient } from '@mmc/types';
 

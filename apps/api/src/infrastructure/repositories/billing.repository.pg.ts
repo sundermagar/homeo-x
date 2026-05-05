@@ -2,7 +2,7 @@ import { eq, and, sql, desc, isNull, gte, lt } from 'drizzle-orm';
 import { bills, patients } from '@mmc/database/schema';
 import type { DbClient } from '@mmc/database';
 import type { Bill, BillWithPatient, DailyCollectionSummary, PatientBillSummary } from '@mmc/types';
-import type { BillingRepository } from '../../domains/billing/ports/billing.repository';
+import type { BillingRepository } from '../../domains/billing/ports/billing.repository.js';
 import type { CreateBillInput, ListBillsQuery } from '@mmc/validation';
 
 /**

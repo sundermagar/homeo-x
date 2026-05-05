@@ -2,12 +2,12 @@
 // Implements AiProviderPort for Anthropic Claude.
 
 import Anthropic from '@anthropic-ai/sdk';
-import { createLogger } from '../../shared/logger';
+import { createLogger } from '../../shared/logger.js';
 import type {
   AiProviderPort,
   AiCompletionRequest,
   AiCompletionResponse,
-} from '../../domains/consultation/ports/ai-provider.port';
+} from '../../domains/consultation/ports/ai-provider.port.js';
 
 const logger = createLogger('anthropic-adapter');
 

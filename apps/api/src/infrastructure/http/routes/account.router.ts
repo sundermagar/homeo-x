@@ -1,15 +1,15 @@
 import { Router, type Request, type Response } from 'express';
-import { asyncHandler } from '../middleware/async-handler';
-import { validate } from '../middleware/validate';
+import { asyncHandler } from '../middleware/async-handler.js';
+import { validate } from '../middleware/validate.js';
 import { createAccountSchema, updateAccountSchema } from '@mmc/validation';
-import { AccountRepositoryPg } from '../../repositories/account.repository.pg';
-import { createLogger } from '../../../shared/logger';
+import { AccountRepositoryPg } from '../../repositories/account.repository.pg.js';
+import { createLogger } from '../../../shared/logger.js';
 const logger = createLogger('account-router');
 import {  ListAccountsUseCase,
   CreateAccountUseCase,
   UpdateAccountUseCase,
   DeleteAccountUseCase,
-} from '../../../domains/platform';
+} from '../../../domains/platform/index.js';
 
 export function createAccountRouter(): Router {
   const router = Router();

@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
-import type { UserRepository } from '../ports/user.repository';
-import { type Result, ok, fail } from '../../../shared/result';
+import type { UserRepository } from '../ports/user.repository.js';
+import { type Result, ok, fail } from '../../../shared/result.js';
 
 export class ChangePasswordUseCase {
   constructor(private readonly userRepository: UserRepository) {}

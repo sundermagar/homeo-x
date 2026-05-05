@@ -1,17 +1,17 @@
 import { Router } from 'express';
 import type { Request, Response, Router as IRouter } from 'express';
 import { createPatientSchema, updatePatientSchema, familyMemberSchema } from '@mmc/validation';
-import { PatientRepositoryPg } from '../../repositories/patient.repository.pg';
-import { OrganizationRepositoryPg } from '../../repositories/organization.repository.pg';
-import { BillingRepositoryPg } from '../../repositories/billing.repository.pg';
+import { PatientRepositoryPg } from '../../repositories/patient.repository.pg.js';
+import { OrganizationRepositoryPg } from '../../repositories/organization.repository.pg.js';
+import { BillingRepositoryPg } from '../../repositories/billing.repository.pg.js';
 import {
   ListPatientsUseCase,
   GetPatientUseCase,
   CreatePatientUseCase,
   UpdatePatientUseCase,
   DeletePatientUseCase,
-} from '../../../domains/patient';
-import { authMiddleware } from '../middleware/auth';
+} from '../../../domains/patient/index.js';
+import { authMiddleware } from '../middleware/auth.js';
 import { Role } from '@mmc/types';
 
 export const patientRouter: IRouter = Router();

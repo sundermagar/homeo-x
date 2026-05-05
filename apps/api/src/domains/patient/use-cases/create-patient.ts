@@ -1,8 +1,8 @@
 import type { Patient } from '@mmc/types';
-import type { PatientRepository } from '../ports/patient.repository';
-import type { BillingRepository } from '../../billing/ports/billing.repository';
-import type { OrganizationRepository } from '../../platform/ports/organization.repository';
-import { type Result, ok, fail } from '../../../shared/result';
+import type { PatientRepository } from '../ports/patient.repository.js';
+import type { BillingRepository } from '../../billing/ports/billing.repository.js';
+import type { OrganizationRepository } from '../../platform/ports/organization.repository.js';
+import { type Result, ok, fail } from '../../../shared/result.js';
 import type { CreatePatientInput } from '@mmc/validation';
 
 export class CreatePatientUseCase {

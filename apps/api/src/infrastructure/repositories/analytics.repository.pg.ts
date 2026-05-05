@@ -3,7 +3,7 @@ import type { DbClient } from '@mmc/database';
 import * as schema from '@mmc/database';
 import type {
   IAnalyticsRepository
-} from '../../domains/analytics/ports/analytics.repository';
+} from '../../domains/analytics/ports/analytics.repository.js';
 import type {
   AnalyticsSummary, PatientTrendResult, MonthWiseResult,
   MonthWiseDueSummary, MonthWiseDueDetail, BirthdayPatient,

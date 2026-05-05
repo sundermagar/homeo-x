@@ -1,6 +1,6 @@
-import type { AppointmentRepository } from '../ports/appointment.repository';
+import type { AppointmentRepository } from '../ports/appointment.repository.js';
 import type { WaitlistEntry } from '@mmc/types';
-import { type Result, ok } from '../../../shared/result';
+import { type Result, ok } from '../../../shared/result.js';
 
 export class QueueManagementUseCase {
   constructor(private readonly repo: AppointmentRepository) {}

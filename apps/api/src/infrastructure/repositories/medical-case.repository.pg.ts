@@ -15,7 +15,7 @@ import type {
   FullCaseData,
   VaccineMaster,
   CaseReminder
-} from '../../domains/medical-case/ports/medical-case.repository';
+} from '../../domains/medical-case/ports/medical-case.repository.js';
 
 export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
   constructor(private readonly db: DbClient) { }

@@ -5,7 +5,7 @@ import type {
   PackagePlan, PatientPackage, PackageExpiryRecord,
   CreatePackagePlanDto, UpdatePackagePlanDto, AssignPackageDto,
 } from '@mmc/types';
-import type { PackageRepository } from '../../domains/packages/ports/package.repository';
+import type { PackageRepository } from '../../domains/packages/ports/package.repository.js';
 
 export class PackageRepositoryPG implements PackageRepository {
   constructor(private readonly db: DbClient) {}

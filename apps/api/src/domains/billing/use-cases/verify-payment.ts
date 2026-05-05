@@ -1,9 +1,9 @@
 import crypto from 'node:crypto';
 import type { Payment } from '@mmc/types';
-import type { PaymentRepository } from '../ports/payment.repository';
-import type { BillingRepository } from '../ports/billing.repository';
+import type { PaymentRepository } from '../ports/payment.repository.js';
+import type { BillingRepository } from '../ports/billing.repository.js';
 import type { VerifyPaymentInput } from '@mmc/validation';
-import { type Result, ok, fail } from '../../../shared/result';
+import { type Result, ok, fail } from '../../../shared/result.js';
 
 export class VerifyPaymentUseCase {
   constructor(

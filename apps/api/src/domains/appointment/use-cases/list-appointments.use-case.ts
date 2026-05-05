@@ -1,6 +1,6 @@
-import type { AppointmentRepository, AppointmentFilters } from '../ports/appointment.repository';
+import type { AppointmentRepository, AppointmentFilters } from '../ports/appointment.repository.js';
 import type { Appointment } from '@mmc/types';
-import { type Result, ok } from '../../../shared/result';
+import { type Result, ok } from '../../../shared/result.js';
 
 export class ListAppointmentsUseCase {
   constructor(private readonly repo: AppointmentRepository) {}

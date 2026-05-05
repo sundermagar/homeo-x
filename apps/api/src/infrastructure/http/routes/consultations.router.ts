@@ -16,8 +16,8 @@ import { Router } from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import { sql, eq, and } from 'drizzle-orm';
 import * as schema from '@mmc/database/schema';
-import { sendSuccess } from '../../../shared/response-formatter';
-import { createLogger } from '../../../shared/logger';
+import { sendSuccess } from '../../../shared/response-formatter.js';
+import { createLogger } from '../../../shared/logger.js';
 
 const logger = createLogger('consultations-router');
 

@@ -23,7 +23,7 @@ import type {
   DayChargeRepository,
   DepositRepository,
   ExpenseRepository,
-} from '../../domains/billing/ports/accounts.repository';
+} from '../../domains/billing/ports/accounts.repository.js';
 import type {
   CreateAdditionalChargeInput,
   UpdateAdditionalChargeInput,

@@ -1,8 +1,8 @@
-import type { AppointmentRepository } from '../ports/appointment.repository';
-import type { PatientRepository } from '../../patient/ports/patient.repository';
+import type { AppointmentRepository } from '../ports/appointment.repository.js';
+import type { PatientRepository } from '../../patient/ports/patient.repository.js';
 import type { CreateAppointmentDto } from '@mmc/types';
-import { type Result, ok, fail } from '../../../shared/result';
-import type { SendSmsUseCase } from '../../communication/use-cases/send-sms.use-case';
+import { type Result, ok, fail } from '../../../shared/result.js';
+import type { SendSmsUseCase } from '../../communication/use-cases/send-sms.use-case.js';
 
 export class BookAppointmentUseCase {
   constructor(

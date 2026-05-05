@@ -1,6 +1,6 @@
 import type { StaffSummary, StaffCategory } from '@mmc/types';
-import type { StaffRepository } from '../ports/staff.repository';
-import { type Result, ok } from '../../../shared/result';
+import type { StaffRepository } from '../ports/staff.repository.js';
+import { type Result, ok } from '../../../shared/result.js';
 
 interface ListStaffInput {
   category: StaffCategory;

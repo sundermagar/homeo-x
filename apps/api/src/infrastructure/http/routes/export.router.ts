@@ -1,7 +1,7 @@
 
 import { Router, type Router as ExpressRouter } from 'express';
 import type { Request, Response } from 'express';
-import { createLogger } from '../../../shared/logger';
+import { createLogger } from '../../../shared/logger.js';
 
 const logger = createLogger('export');
 export const exportRouter: ExpressRouter = Router();

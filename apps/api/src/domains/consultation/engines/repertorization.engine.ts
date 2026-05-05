@@ -3,8 +3,8 @@
 // The core homeopathic analysis engine.
 // Ported from: Ai-Counsultaion/apps/api/src/modules/ai/engines/repertorization.engine.ts
 
-import { createLogger } from '../../../shared/logger';
-import type { AiProviderChain } from '../../../infrastructure/ai/ai-provider-chain';
+import { createLogger } from '../../../shared/logger.js';
+import type { AiProviderChain } from '../../../infrastructure/ai/ai-provider-chain.js';
 
 const logger = createLogger('repertorization-engine');
 

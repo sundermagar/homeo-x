@@ -1,7 +1,7 @@
-import type { PackageRepository } from '../ports/package.repository';
-import type { BillingRepository } from '../../billing/ports/billing.repository';
+import type { PackageRepository } from '../ports/package.repository.js';
+import type { BillingRepository } from '../../billing/ports/billing.repository.js';
 import type { AssignPackageDto } from '@mmc/types';
-import { ok, type Result, fail } from '../../../shared/result';
+import { ok, type Result, fail } from '../../../shared/result.js';
 
 export class AssignPackageUseCase {
   constructor(

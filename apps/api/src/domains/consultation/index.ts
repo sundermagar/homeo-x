@@ -1,3 +1,3 @@
-export { ConsultationUseCase, getConsultationUseCase } from './consultation.use-case';
-export type { HomeopathyConsultInput, HomeopathyConsultResult } from './consultation.use-case';
-export * from './engines';
+export { ConsultationUseCase, getConsultationUseCase } from './consultation.use-case.js';
+export type { HomeopathyConsultInput, HomeopathyConsultResult } from './consultation.use-case.js';
+export * from './engines/index.js';

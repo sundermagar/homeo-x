@@ -1,4 +1,4 @@
-import { AiProvider, ChatMessage } from './ai-provider.interface';
+import { AiProvider, ChatMessage } from './ai-provider.interface.js';
 
 export class StubProvider implements AiProvider {
   readonly name = 'stub';

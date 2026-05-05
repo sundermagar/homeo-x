@@ -1,6 +1,6 @@
 import multer from 'multer';
 import path from 'path';
-import { createLogger } from '../../../shared/logger';
+import { createLogger } from '../../../shared/logger.js';
 import crypto from 'crypto';
 import fs from 'fs';
 

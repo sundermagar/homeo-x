@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import type { AuthTokenPayload } from '@mmc/types';
 import { Role } from '@mmc/types';
 import { createDbClient } from '@mmc/database';
-import { UnauthorizedError } from '../../../shared/errors';
+import { UnauthorizedError } from '../../../shared/errors.js';
 
 declare global {
   namespace Express {

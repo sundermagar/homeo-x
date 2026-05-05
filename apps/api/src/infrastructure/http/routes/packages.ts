@@ -1,13 +1,13 @@
 import { Router } from 'express';
-import { PackageRepositoryPG } from '../../repositories/package.repository.pg';
-import { BillingRepositoryPg } from '../../repositories/billing.repository.pg';
-import { ManagePackagePlansUseCase } from '../../../domains/packages/use-cases/manage-package-plans.use-case';
-import { AssignPackageUseCase } from '../../../domains/packages/use-cases/assign-package.use-case';
-import { GetPackageAnalyticsUseCase } from '../../../domains/packages/use-cases/get-package-analytics.use-case';
-import { asyncHandler } from '../middleware/async-handler';
-import { authMiddleware } from '../middleware/auth';
-import { BadRequestError } from '../../../shared/errors';
-import { sendSuccess } from '../../../shared/response-formatter';
+import { PackageRepositoryPG } from '../../repositories/package.repository.pg.js';
+import { BillingRepositoryPg } from '../../repositories/billing.repository.pg.js';
+import { ManagePackagePlansUseCase } from '../../../domains/packages/use-cases/manage-package-plans.use-case.js';
+import { AssignPackageUseCase } from '../../../domains/packages/use-cases/assign-package.use-case.js';
+import { GetPackageAnalyticsUseCase } from '../../../domains/packages/use-cases/get-package-analytics.use-case.js';
+import { asyncHandler } from '../middleware/async-handler.js';
+import { authMiddleware } from '../middleware/auth.js';
+import { BadRequestError } from '../../../shared/errors.js';
+import { sendSuccess } from '../../../shared/response-formatter.js';
 
 export const packagesRouter: Router = Router();
 

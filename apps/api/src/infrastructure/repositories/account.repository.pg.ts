@@ -3,8 +3,8 @@ import bcrypt from 'bcryptjs';
 import { accounts, users } from '@mmc/database/schema';
 import type { DbClient } from '@mmc/database';
 import { Role, type Account, type CreateAccountInput, type UpdateAccountInput } from '@mmc/types';
-import type { AccountRepository } from '../../domains/platform/ports/account.repository';
-import { ConflictError } from '../../shared/errors';
+import type { AccountRepository } from '../../domains/platform/ports/account.repository.js';
+import { ConflictError } from '../../shared/errors.js';
 
 export class AccountRepositoryPg implements AccountRepository {
   constructor(private readonly db: DbClient) {}
