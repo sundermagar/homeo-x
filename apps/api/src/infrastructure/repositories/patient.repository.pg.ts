@@ -128,7 +128,7 @@ export class PatientRepositoryPg implements PatientRepository {
           doctorName: users.name
         })
         .from(patients)
-        .leftJoin(users, eq(patients.assitantDoctor, sql`CAST(${users.id} AS TEXT)`))
+        .leftJoin(users, eq(patients.assistantDoctor, sql`CAST(${users.id} AS TEXT)`))
         .where(whereClause)
         .orderBy(orderBy)
         .limit(limit)
@@ -196,7 +196,7 @@ export class PatientRepositoryPg implements PatientRepository {
     }
     patientData.reference = input.referenceType || '';
 
-    if ((patients as any).assitantDoctor) patientData.assitantDoctor = (input as any).assistantDoctor || '';
+    if ((patients as any).assistantDoctor) patientData.assistantDoctor = (input as any).assistantDoctor || '';
     if ((patients as any).consultationFee) patientData.consultationFee = (input as any).consultationFee || 0;
     if ((patients as any).courierOutstation) patientData.courierOutstation = input.courierOutstation ? '1' : '0';
     if ((patients as any).referedBy) patientData.referedBy = (input as any).referredBy || '';
@@ -263,7 +263,7 @@ export class PatientRepositoryPg implements PatientRepository {
     if (input.referenceType !== undefined) updateData.reference = input.referenceType;
     if ((input as any).maritalStatus !== undefined) updateData.status = (input as any).maritalStatus;
     if ((input as any).referredBy !== undefined) updateData.referedBy = (input as any).referredBy;
-    if ((input as any).assistantDoctor !== undefined) updateData.assitantDoctor = (input as any).assistantDoctor;
+    if ((input as any).assistantDoctor !== undefined) updateData.assistantDoctor = (input as any).assistantDoctor;
     if ((input as any).consultationFee !== undefined) updateData.consultationFee = (input as any).consultationFee;
 
     const [row] = await this.db
@@ -575,7 +575,7 @@ export class PatientRepositoryPg implements PatientRepository {
       // 'reference' is the actual DB column; domain calls it 'referenceType'
       referenceType: row.reference || null,
       referredBy: row.referedBy || null,
-      assistantDoctor: row.assitantDoctor || null,
+      assistantDoctor: row.assistantDoctor || null,
       consultationFee: row.consultationFee ? Number(row.consultationFee) : null,
       courierOutstation: row.courierOutstation === '1',
       createdAt: row.createdAt || new Date(),
@@ -597,7 +597,7 @@ export class PatientRepositoryPg implements PatientRepository {
       city: row.city || null,
       lastVisit: row.lastVisit || row.updatedAt || null,
       totalVisits: 0,
-      doctorName: row.assitantDoctor || row.assistantDoctor || null,
+      doctorName: row.assistantDoctor || row.assistantDoctor || null,
       createdAt: row.createdAt || new Date(),
     };
   }

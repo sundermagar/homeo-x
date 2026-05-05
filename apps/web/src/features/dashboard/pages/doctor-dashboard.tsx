@@ -349,7 +349,7 @@ export function DoctorDashboard() {
                 })
               ) : (
                 <div style={{ padding: '48px 0', textAlign: 'center', color: '#94a3b8' }}>
-                  <Users size={24} style={{ marginBottom: 8, opacity: 0.5 }} />
+                  <Users size={24} style={{ marginBottom: 8, opacity: 0.5, marginInline: "auto" }} />
                   <p className="text-small">{queueFilter === 'ALL' ? 'Queue view is empty today.' : `No patients in '${queueFilter.toLowerCase()}' status.`}</p>
                 </div>
               )}

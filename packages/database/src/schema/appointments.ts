@@ -1,6 +1,7 @@
 import {
-  pgTable, serial, integer, varchar, date, timestamp, text, real, boolean, decimal,
+  pgTable, serial, integer, varchar, date, timestamp, text, real, boolean, decimal, index,
 } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 
 // ─── Appointments ─────────────────────────────────────────────────────────────
 export const appointments = pgTable('appointments', {
@@ -21,6 +22,15 @@ export const appointments = pgTable('appointments', {
   createdAt:          timestamp('created_at').defaultNow().notNull(),
   updatedAt:          timestamp('updated_at').defaultNow().notNull(),
   deletedAt:          timestamp('deleted_at'),
+}, (table) => {
+  return {
+    dashboardIdx: index('idx_appointments_dashboard')
+      .on(table.clinicId, table.bookingDate)
+      .where(sql`deleted_at IS NULL`),
+    followupIdx: index('idx_appointments_followup')
+      .on(table.clinicId, table.visitType, table.bookingDate)
+      .where(sql`deleted_at IS NULL`),
+  };
 });
 
 // ─── Daily Tokens ─────────────────────────────────────────────────────────────
@@ -55,6 +65,15 @@ export const waitlist = pgTable('waitlist', {
   createdAt:       timestamp('created_at').defaultNow().notNull(),
   updatedAt:       timestamp('updated_at').defaultNow().notNull(),
   deletedAt:       timestamp('deleted_at'),
+}, (table) => {
+  return {
+    dashboardIdx: index('idx_waitlist_dashboard')
+      .on(table.clinicId, table.date, table.status)
+      .where(sql`deleted_at IS NULL`),
+    apptIdIdx: index('idx_waitlist_appointment_id')
+      .on(table.appointmentId)
+      .where(sql`deleted_at IS NULL`),
+  };
 });
 
 // ─── Doctor Availability ──────────────────────────────────────────────────────
