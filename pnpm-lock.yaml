@@ -287,6 +287,9 @@ importers:
 
   packages/database:
     dependencies:
+      '@mmc/types':
+        specifier: workspace:*
+        version: link:../types
       '@types/bcryptjs':
         specifier: ^2.4.0
         version: 2.4.6
@@ -309,9 +312,6 @@ importers:
         specifier: ^5.7.0
         version: 5.9.3
     devDependencies:
-      '@mmc/types':
-        specifier: workspace:*
-        version: link:../types
       drizzle-kit:
         specifier: ^0.30.0
         version: 0.30.6
