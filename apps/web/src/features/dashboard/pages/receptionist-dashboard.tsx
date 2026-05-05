@@ -11,12 +11,14 @@ import {
   CheckSquare,
   ChevronRight,
   ChevronDown,
+  Plus,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDashboard } from '../hooks/use-dashboard';
 import { useQueueMgmt } from '../hooks/use-queue-mgmt';
 import { Pagination } from '@/components/shared/pagination';
 import { DashboardSkeleton } from '@/components/shared/dashboard-skeleton';
+import { PatientFormDrawer } from '../../patients/components/patient-form-drawer';
 import './role-dashboards.css';
 
 export function ReceptionistDashboard() {
@@ -26,6 +28,7 @@ export function ReceptionistDashboard() {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [isPatientDrawerOpen, setIsPatientDrawerOpen] = useState(false);
   
   const todayAppts = dashData?.queue || [];
   const kpis = dashData?.kpis;
@@ -96,7 +99,7 @@ export function ReceptionistDashboard() {
                           onClick={() => setExpandedId(isExpanded ? null : a.id)}
                           style={{ cursor: 'pointer' }}
                         >
-                          <td data-label="TOKEN / TIME" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 700, color: '#64748b' }}>
+                          <td data-label="TOKEN / TIME" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 600, color: '#64748b' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                               {a.tokenNo ? (
                                 <div className="token-badge">{a.tokenNo}</div>
@@ -111,7 +114,7 @@ export function ReceptionistDashboard() {
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                               <div className="dash-avatar">{a.patientName?.charAt(0)}</div>
                               <div>
-                                <div style={{ fontWeight: 700, color: '#0f172a' }}>{a.patientName}</div>
+                                <div style={{ fontWeight: 600, color: '#0f172a' }}>{a.patientName}</div>
                                 <div className="text-label" style={{ fontSize: 10 }}>ID: PT-{a.regid || a.id}</div>
                               </div>
                             </div>
@@ -206,7 +209,29 @@ export function ReceptionistDashboard() {
               <OpLink icon={<Search size={15} />} label="Registry Lookup" path="/patients" />
               <OpLink icon={<Phone size={15} />} label="Confirm Appointments" path="/appointments" />
               <OpLink icon={<CreditCard size={15} />} label="Process Payments" path="/billing" />
-              <OpLink icon={<UserPlus size={15} />} label="Add New Patient" path="/patients/add" />
+              <button 
+                onClick={() => setIsPatientDrawerOpen(true)}
+                className="hover-op"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  padding: '12px 14px',
+                  background: '#f8fafc',
+                  border: '1px solid #f1f5f9',
+                  borderRadius: '8px',
+                  textDecoration: 'none',
+                  color: '#475569',
+                  transition: 'all 0.15s',
+                  width: '100%',
+                  textAlign: 'left',
+                  cursor: 'pointer'
+                }}
+              >
+                <span style={{ color: 'var(--pp-blue)' }}><UserPlus size={15} /></span>
+                <span style={{ fontSize: 12, fontWeight: 700, flex: 1 }}>Add New Patient</span>
+                <Plus size={13} style={{ color: '#94a3b8' }} />
+              </button>
             </div>
           </div>
 
@@ -233,6 +258,15 @@ export function ReceptionistDashboard() {
           </div>
         </aside>
       </div>
+
+      <PatientFormDrawer
+        isOpen={isPatientDrawerOpen}
+        onClose={() => setIsPatientDrawerOpen(false)}
+        onSuccess={() => {
+          setIsPatientDrawerOpen(false);
+          // Optional: refetch dashboard data if needed
+        }}
+      />
     </div>
   );
 }

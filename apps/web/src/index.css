@@ -532,7 +532,7 @@ a {
    appt-cell-slash  → empty dash placeholder
 ─────────────────────────────────────────────────────────────────────────── */
 .appt-cell-name {
-  font-weight: 600;
+  font-weight: 400;
   font-size: 13px;
   color: var(--pp-ink);
   line-height: 1.3;
@@ -2504,7 +2504,7 @@ a {
 }
 
 .appt-cell-name {
-  font-weight: 700;
+  font-weight: 600;
   color: var(--pp-ink);
   font-size: 14px;
 }
@@ -3058,7 +3058,7 @@ a {
 
 .pp-clickable-name {
   color: var(--pp-ink);
-  font-weight: 600;
+  font-weight: 400;
   text-decoration: none;
   transition: color 0.15s ease;
 }
@@ -3077,7 +3077,7 @@ a {
   border-radius: 6px;
   border: 1px solid var(--pp-blue-border);
   font-family: var(--pp-font-mono);
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.02em;
   display: inline-flex;
   align-items: center;

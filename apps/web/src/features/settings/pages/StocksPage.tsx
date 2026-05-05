@@ -211,7 +211,7 @@ export default function StocksPage() {
                   <tr key={item.id} className="plat-table-row">
                     <td data-label="#" className="plat-table-cell font-mono text-xs opacity-50">{(currentPage - 1) * itemsPerPage + idx + 1}</td>
                     <td data-label="MEDICINE" className="plat-table-cell">
-                      <div className="font-bold">{item.name}</div>
+                      <div className="font-semibold">{item.name}</div>
                       {item.batchNumber && (
                         <div className="text-[10px] color-muted mt-0.5">Batch: {item.batchNumber}</div>
                       )}
@@ -228,12 +228,12 @@ export default function StocksPage() {
                     <td data-label="CATEGORY" className="plat-table-cell">
                       <span className="plat-badge plat-badge-default text-[10px] uppercase">{item.category || 'General'}</span>
                     </td>
-                    <td data-label="QTY" className="plat-table-cell font-mono font-bold">
+                    <td data-label="QTY" className="plat-table-cell font-mono font-semibold">
                       <span className={(item.quantity || 0) < 10 ? 'text-red-600' : ''}>
                         {item.quantity}
                       </span>
                     </td>
-                    <td data-label="PRICE" className="plat-table-cell font-mono text-primary font-bold">
+                    <td data-label="PRICE" className="plat-table-cell font-mono text-primary font-semibold">
                       ₹{item.unitPrice || '0'}
                     </td>
                     <td className="plat-table-cell">

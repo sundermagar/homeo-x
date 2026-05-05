@@ -189,7 +189,7 @@ export default function FrequenciesPage() {
         <form onSubmit={handleSubmit}>
           <div className="plat-modal-body" style={{ padding: 0 }}>
             <div className="plat-form-section" style={{ border: 'none', boxShadow: 'none', padding: 0 }}>
-              <div className="plat-form-grid-multi" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
+              <div className="plat-form-grid-multi frequency-form-grid">
                 <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
                   <label className="plat-form-label">Title * (e.g. TDS)</label>
                   <input

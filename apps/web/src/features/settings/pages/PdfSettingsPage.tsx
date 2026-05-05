@@ -228,7 +228,32 @@ export default function PdfSettingsPage() {
           </h1>
           <p className="pp-page-hero-sub">Manage institutional branding and clinical document layouts.</p>
         </div>
-        <div className="pp-page-hero-actions">
+        <div className="pp-page-hero-actions pdf-hero-actions">
+          <style>{`
+            @media (max-width: 768px) {
+              .pdf-hero-actions { 
+                flex-direction: column !important; 
+                align-items: stretch !important; 
+                gap: 12px !important; 
+                width: 100% !important;
+              }
+              .pdf-hero-actions .appt-segmented-toggle { 
+                display: flex !important; 
+                width: 100% !important;
+              }
+              .pdf-hero-actions .appt-segmented-btn {
+                flex: 1 !important;
+                justify-content: center !important;
+              }
+              .pdf-hero-actions .btn-primary { 
+                width: 100% !important; 
+                justify-content: center !important;
+                padding: 12px !important;
+                height: 48px !important;
+                border-radius: 12px !important;
+              }
+            }
+          `}</style>
           <div className="appt-segmented-toggle">
             <button
               type="button"
@@ -365,10 +390,23 @@ export default function PdfSettingsPage() {
             @media (min-width: 1024px) { .plat-settings-grid { grid-template-columns: 1.2fr 0.8fr; } }
             .letterhead-designer-card { padding: 24px; }
             @media (min-width: 640px) { .letterhead-designer-card { padding: 32px; } }
+
+            /* Mobile letterhead responsive */
+            @media (max-width: 767px) {
+              .letterhead-designer-card { padding: 20px 16px; }
+              .plat-form-grid-multi { grid-template-columns: 1fr !important; gap: 12px; }
+              .plat-form-grid-multi > * { grid-column: span 1 !important; }
+              .letterhead-preview-sticky { margin-top: 24px; }
+              .letterhead-preview-sticky .plat-card { padding: 20px 16px !important; }
+            }
+            @media (max-width: 480px) {
+              .letterhead-designer-card h2 { font-size: 1.1rem !important; }
+              .letterhead-header-flex { flex-direction: column !important; align-items: center !important; text-align: center !important; }
+            }
           `}</style>
 
           {/* Letterhead Designer Form */}
-          <div className="pp-table-container-enhanced letterhead-designer-card" style={{ padding: '32px' }}>
+          <div className="pp-table-container-enhanced letterhead-designer-card" style={{ padding: '20px 16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 40 }}>
               <div className="pp-empty-icon-circle" style={{ width: 52, height: 52, marginBottom: 0, background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)' }}>
                 <ShieldCheck size={26} />
@@ -537,6 +575,10 @@ export default function PdfSettingsPage() {
                @media (min-width: 1024px) { .letterhead-preview-sticky { position: sticky; top: 24px; } }
                .letterhead-canvas-outer { padding: 40px 20px; }
                @media (min-width: 640px) { .letterhead-canvas-outer { padding: 60px 40px; } }
+               @media (max-width: 767px) {
+                 .letterhead-canvas-outer { padding: 20px 12px !important; min-height: auto !important; border-radius: 16px !important; }
+                 .letterhead-a4-sheet { padding: 24px 20px !important; min-height: 400px !important; max-width: 100% !important; border-radius: 8px !important; }
+               }
              `}</style>
             <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--pp-text-3)' }}>

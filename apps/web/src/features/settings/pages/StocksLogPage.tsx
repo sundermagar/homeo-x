@@ -173,7 +173,7 @@ export default function StocksLogPage() {
                       </td>
                       <td data-label="MEDICINE" className="plat-table-cell" style={{ width: 'auto' }}>
                         <div className="plat-stock-info">
-                          <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--pp-ink)' }}>
+                          <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--pp-ink)' }}>
                             {medicine?.name || `Medicine #${log.medicineId}`}
                           </div>
                           <div style={{ fontSize: '10px', color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -195,7 +195,7 @@ export default function StocksLogPage() {
                         </div>
                       </td>
                       <td data-label="QTY" className="plat-table-cell" style={{ width: '100px' }}>
-                        <div style={{ fontFamily: 'monospace', fontWeight: 900, color: isPositive ? 'var(--pp-success-fg)' : 'var(--pp-danger-fg)', fontSize: '15px' }}>
+                        <div style={{ fontFamily: 'monospace', fontWeight: 600, color: isPositive ? 'var(--pp-success-fg)' : 'var(--pp-danger-fg)', fontSize: '15px' }}>
                           {isPositive ? '+' : '-'}{log.quantity}
                         </div>
                       </td>
@@ -203,7 +203,7 @@ export default function StocksLogPage() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'monospace', fontSize: '12px', justifyContent: 'flex-end' }}>
                           <span style={{ color: 'var(--pp-text-3)' }}>{log.previousStock ?? '—'}</span>
                           <span style={{ opacity: 0.3, color: 'var(--pp-ink)' }}>→</span>
-                          <span style={{ fontWeight: 700, color: 'var(--pp-ink)' }}>{log.newStock ?? '—'}</span>
+                          <span style={{ fontWeight: 600, color: 'var(--pp-ink)' }}>{log.newStock ?? '—'}</span>
                           <span style={{ fontSize: '9px', color: 'var(--pp-text-3)', opacity: 0.6 }}>units</span>
                         </div>
                       </td>

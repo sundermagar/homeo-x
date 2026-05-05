@@ -275,7 +275,7 @@ export default function PatientListPage() {
                 {patients.map((p: PatientSummary, idx: number) => (
                   <tr key={p.regid} className="pp-hover-row">
                     <td data-label="#">
-                      <div className="font-mono text-[11px] font-bold color-muted opacity-60">
+                      <div className="font-mono text-[11px] font-semibold color-muted opacity-60">
                         {idx + 1 + (page - 1) * pageSize}
                       </div>
                     </td>
