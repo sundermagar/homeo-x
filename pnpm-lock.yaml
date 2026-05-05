@@ -45,6 +45,36 @@ importers:
       '@mmc/validation':
         specifier: workspace:*
         version: link:../../packages/validation
+      '@types/bcryptjs':
+        specifier: ^2.4.0
+        version: 2.4.6
+      '@types/compression':
+        specifier: ^1.7.0
+        version: 1.8.1
+      '@types/cors':
+        specifier: ^2.8.0
+        version: 2.8.19
+      '@types/express':
+        specifier: ^5.0.0
+        version: 5.0.6
+      '@types/jsonwebtoken':
+        specifier: ^9.0.0
+        version: 9.0.10
+      '@types/multer':
+        specifier: ^2.1.0
+        version: 2.1.0
+      '@types/node':
+        specifier: ^25.5.2
+        version: 25.5.2
+      '@types/nodemailer':
+        specifier: ^8.0.0
+        version: 8.0.0
+      '@types/pdf-parse':
+        specifier: ^1.1.5
+        version: 1.1.5
+      '@types/pdfkit':
+        specifier: ^0.17.5
+        version: 0.17.5
       '@upstash/redis':
         specifier: ^1.37.0
         version: 1.37.0
@@ -118,36 +148,6 @@ importers:
         specifier: ^3.24.0
         version: 3.25.76
     devDependencies:
-      '@types/bcryptjs':
-        specifier: ^2.4.0
-        version: 2.4.6
-      '@types/compression':
-        specifier: ^1.7.0
-        version: 1.8.1
-      '@types/cors':
-        specifier: ^2.8.0
-        version: 2.8.19
-      '@types/express':
-        specifier: ^5.0.0
-        version: 5.0.6
-      '@types/jsonwebtoken':
-        specifier: ^9.0.0
-        version: 9.0.10
-      '@types/multer':
-        specifier: ^2.1.0
-        version: 2.1.0
-      '@types/node':
-        specifier: ^25.5.2
-        version: 25.5.2
-      '@types/nodemailer':
-        specifier: ^8.0.0
-        version: 8.0.0
-      '@types/pdf-parse':
-        specifier: ^1.1.5
-        version: 1.1.5
-      '@types/pdfkit':
-        specifier: ^0.17.5
-        version: 0.17.5
       vitest:
         specifier: ^3.0.0
         version: 3.2.4(@types/node@25.5.2)(jiti@1.21.7)(jsdom@29.0.2(@noble/hashes@1.8.0))(tsx@4.21.0)
@@ -287,6 +287,12 @@ importers:
 
   packages/database:
     dependencies:
+      '@types/bcryptjs':
+        specifier: ^2.4.0
+        version: 2.4.6
+      '@types/node':
+        specifier: ^25.5.2
+        version: 25.5.2
       bcryptjs:
         specifier: ^2.4.3
         version: 2.4.3
@@ -306,12 +312,6 @@ importers:
       '@mmc/types':
         specifier: workspace:*
         version: link:../types
-      '@types/bcryptjs':
-        specifier: ^2.4.0
-        version: 2.4.6
-      '@types/node':
-        specifier: ^25.5.2
-        version: 25.5.2
       drizzle-kit:
         specifier: ^0.30.0
         version: 0.30.6
