@@ -304,6 +304,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
             advice: schema.legacySoapNotes.advice,
             followUp: schema.legacySoapNotes.followUp,
             icdCodes: schema.legacySoapNotes.icdCodes,
+            createdAt: schema.legacySoapNotes.createdAt,
           })
           .from(schema.legacySoapNotes)
           .innerJoin(schema.appointments, eq(schema.legacySoapNotes.visitId, schema.appointments.id))
@@ -332,12 +333,20 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
             days: schema.legacyPrescriptions.days,
             instructions: schema.legacyPrescriptions.instructions,
             createdAt: schema.legacyPrescriptions.createdAt,
+            remedy_name: schema.legacyPrescriptions.rxremedy,
+            potency_name: schema.legacyPrescriptions.rxpotency,
+            frequency_name: schema.legacyPrescriptions.rxfrequency,
+            rx_days: schema.legacyPrescriptions.rxdays,
+            prescription: schema.legacyPrescriptions.rxprescription,
           })
           .from(schema.legacyPrescriptions)
           .leftJoin(schema.medicines, eq(schema.legacyPrescriptions.medicineId, schema.medicines.id))
           .leftJoin(schema.potencies, eq(schema.legacyPrescriptions.potencyId, schema.potencies.id))
           .leftJoin(schema.frequencies, eq(schema.legacyPrescriptions.frequencyId, schema.frequencies.id))
-          .where(and(eq(schema.legacyPrescriptions.regid, regid), isNull(schema.legacyPrescriptions.deletedAt)))
+          .where(and(
+            eq(schema.legacyPrescriptions.regid, regid),
+            sql`(${schema.legacyPrescriptions.deletedAt} IS NULL OR ${schema.legacyPrescriptions.deletedAt} = '')`
+          ))
           .orderBy(desc(schema.legacyPrescriptions.createdAt)),
 
         // AI Prescriptions: Raw fetch for the newer text-based table
@@ -364,7 +373,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
         frequency: row.frequency,
       } as any));
 
-      const allPrescriptions = [...(legacyPrescriptions as Prescription[]), ...normalizedAiRx];
+      const allPrescriptions = [...(legacyPrescriptions as Prescription[])];
 
       return {
         medicalCase: (activeCase || { id: 0, regid, status: 'None' }) as MedicalCase, // Fallback for UI

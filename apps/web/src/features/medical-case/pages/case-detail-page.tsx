@@ -226,16 +226,18 @@ export default function MedicalCaseDetailPage() {
                 const doctor = getDoctorLetterhead();
 
                 // Map prescriptions from medical case data into the print format
-                const medications = (prescriptions || []).map((p: any) => ({
-                  name: p.remedy_name || p.remedyName || p.medicine || '—',
-                  genericName: undefined,
-                  dosage: p.potency_name || p.potencyName || p.potency || '—',
-                  frequency: p.frequency_name || p.frequencyName || p.frequency || '—',
-                  duration: p.days ? `${p.days} days` : '—',
-                  route: undefined,
-                  instructions: p.prescription || p.notes || undefined,
-                  quantity: undefined,
-                }));
+                const medications = (prescriptions || [])
+                  .filter((p: any) => p.remedy_name || p.remedyName || p.medicineName || p.medicine)
+                  .map((p: any) => ({
+                    name: p.remedy_name || p.remedyName || p.medicineName || p.medicine || '—',
+                    genericName: undefined,
+                    dosage: p.potency_name || p.potencyName || p.potency || '—',
+                    frequency: p.frequency_name || p.frequencyName || p.frequencyTitle || p.frequency || '—',
+                    duration: (p.days || p.rx_days || p.rxdays) ? `${p.days || p.rx_days || p.rxdays} days` : '—',
+                    route: undefined,
+                    instructions: p.prescription || p.rx_prescription || p.instructions || p.notes || undefined,
+                    quantity: undefined,
+                  }));
 
                 // Get follow-up note and diagnosis
                 const followUpEntry = notes?.find((n: any) => n.notesType === 'Followup');
@@ -348,9 +350,9 @@ export default function MedicalCaseDetailPage() {
                 </div>
                 <div className="mc-info-col">
                   <div className="mc-info-row"><span>Case Taken By</span> <strong>{medicalCase.doctorName || '—'}</strong></div>
-                  <div className="mc-info-row"><span>Package</span> <strong>{activePackage?.packageName || 'REGULAR'}</strong></div>
+                  <div className="mc-info-row"><span>Package</span> <strong>{activePackage?.packageName || '—'}</strong></div>
                   <div className="mc-info-row"><span>Expiry</span> <strong>{activePackage?.expiryDate ? new Date(activePackage.expiryDate).toLocaleDateString() : '—'}</strong></div>
-                  <div className="mc-info-row"><span>Package Status</span> <strong style={{ color: activePackage?.status === 'Active' ? 'var(--pp-blue)' : 'inherit' }}>{activePackage?.status || 'Active'}</strong></div>
+                  <div className="mc-info-row"><span>Package Status</span> <strong style={{ color: activePackage?.status === 'Active' ? 'var(--pp-blue)' : 'inherit' }}>{activePackage?.status || '—'}</strong></div>
                 </div>
               </div>
             </div>
@@ -400,12 +402,12 @@ export default function MedicalCaseDetailPage() {
                     n.noteType === 'Followup' ||
                     n.notes_type === 'Followup'
                   )
-                    .sort((a: any, b: any) => new Date(b.dateval || 0).getTime() - new Date(a.dateval || 0).getTime())
+                    .sort((a: any, b: any) => new Date(b.createdAt || b.created_at || b.dateval || 0).getTime() - new Date(a.createdAt || a.created_at || a.dateval || 0).getTime())
                     .map((note: any) => (
                       <div key={note.id} style={{ padding: '12px 0', borderBottom: '1px solid var(--pp-warm-1)', position: 'relative', paddingLeft: '16px' }}>
                         <div style={{ position: 'absolute', left: 0, top: '16px', bottom: 0, width: '2px', background: 'var(--pp-blue)', opacity: 0.3, borderRadius: '2px' }} />
                         <div style={{ fontSize: '0.65rem', color: 'var(--pp-text-3)', fontWeight: 700, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
-                          {(note.dateval || note.createdAt || note.created_at) ? new Date(note.dateval || note.createdAt || note.created_at).toLocaleDateString('en-GB', {
+                          {(note.createdAt || note.created_at || note.dateval) ? new Date(note.createdAt || note.created_at || note.dateval).toLocaleDateString('en-GB', {
                             day: '2-digit', month: 'short', year: 'numeric',
                             hour: '2-digit', minute: '2-digit'
                           }) : '—'}
@@ -510,11 +512,11 @@ export default function MedicalCaseDetailPage() {
                   <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
                     {(notes || []).filter((n: any) => n.notesType === 'Followup' || n.noteType === 'Followup').length > 0 ? (
                       (notes || []).filter((n: any) => n.notesType === 'Followup' || n.noteType === 'Followup')
-                        .sort((a: any, b: any) => new Date(b.dateval || 0).getTime() - new Date(a.dateval || 0).getTime())
+                        .sort((a: any, b: any) => new Date(b.createdAt || b.created_at || b.dateval || 0).getTime() - new Date(a.createdAt || a.created_at || a.dateval || 0).getTime())
                         .map((note: any) => (
                           <div key={note.id} style={{ padding: '10px 0', borderBottom: '1px solid var(--border-main)', fontSize: '0.85rem' }}>
                             <div style={{ color: 'var(--pp-text-3)', fontSize: '0.7rem', marginBottom: '4px' }}>
-                              {(note.dateval || note.createdAt || note.created_at) ? new Date(note.dateval || note.createdAt || note.created_at).toLocaleDateString('en-GB', {
+                              {(note.createdAt || note.created_at || note.dateval) ? new Date(note.createdAt || note.created_at || note.dateval).toLocaleDateString('en-GB', {
                                 day: '2-digit', month: 'short', year: 'numeric',
                                 hour: '2-digit', minute: '2-digit'
                               }) : '—'}
@@ -627,7 +629,7 @@ export default function MedicalCaseDetailPage() {
                     <div className="mc-side-card-body" style={{ gap: '14px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
                         <span style={{ color: 'var(--pp-text-3)' }}>Scheme</span>
-                        <strong>{activePackage?.packageName || 'REGULAR'}</strong>
+                        <strong>{activePackage?.packageName || '—'}</strong>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
                         <span style={{ color: 'var(--pp-text-3)' }}>Status</span>
@@ -636,7 +638,7 @@ export default function MedicalCaseDetailPage() {
                           background: activePackage?.status === 'Active' ? '#dcfce7' : '#fef3c7',
                           color: activePackage?.status === 'Active' ? '#166534' : '#92400e'
                         }}>
-                          {activePackage?.status || 'Active'}
+                          {activePackage?.status || '—'}
                         </span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
@@ -2498,7 +2500,7 @@ function DiagnosisView({ regid, visitId, medicalCase, soapRecords }: { regid: nu
   };
 
   const handleAdd = () => {
-    setDiagnosis(medicalCase?.condition || '');
+    setDiagnosis('');
     setComplaint('');
     setMedication('');
     setInvestigationFindings('');
@@ -2631,6 +2633,13 @@ function DiagnosisView({ regid, visitId, medicalCase, soapRecords }: { regid: nu
             </header>
 
             <div style={{ padding: '24px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div style={{ padding: '10px 14px', background: 'var(--pp-warm-1)', borderRadius: '8px', border: '1px solid var(--pp-warm-2)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Calendar size={14} style={{ color: 'var(--pp-blue)' }} />
+                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-ink)' }}>
+                  Record Date: {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                </span>
+              </div>
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Main Diagnosis</label>
                 <textarea

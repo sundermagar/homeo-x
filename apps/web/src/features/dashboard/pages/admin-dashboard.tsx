@@ -31,7 +31,6 @@ import {
 } from 'recharts';
 import { useNavigate } from 'react-router-dom';
 import { useDashboard } from '../hooks/use-dashboard';
-import { useClinicAdminDashboard } from '../hooks/use-clinic-admin-dashboard';
 import './role-dashboards.css';
 import './admin-dashboard.css';
 
@@ -62,11 +61,9 @@ export function AdminDashboard() {
   const navigate = useNavigate();
   const period = 'month';
 
-  const { data: dashData, isLoading: dashLoading } = useDashboard(period);
-  const { data: clinicData, isLoading: clinicLoading } = useClinicAdminDashboard(period);
+  const { data: dashData, isLoading } = useDashboard(period);
 
-  const isLoading = dashLoading && clinicLoading;
-  const revenueSeries = clinicData?.revenueSeries || dashData?.revenueSeries || [];
+  const revenueSeries = dashData?.revenueSeries || [];
 
   const platformStats = dashData?.platformStats;
   const clinicCount = platformStats?.totalClinics ?? 0;

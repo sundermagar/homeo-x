@@ -10,6 +10,9 @@ async function fetchOrganizations(): Promise<Organization[]> {
 }
 
 async function fetchOrganization(id: number): Promise<Organization> {
+  if (!id) {
+    throw new Error('Organization ID is required');
+  }
   const { data } = await apiClient.get<{ success: boolean; data: Organization }>(`/organizations/${id}`);
   return data.data;
 }

@@ -332,6 +332,15 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const [isMobile, setIsMobile] = React.useState(window.innerWidth < 1024);
+  React.useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const effectiveCollapsed = sidebarCollapsed && !isMobile;
+
   const userRole = normalizeRole((user as any)?.type || (user as any)?.role);
 
   const visibleNav = NAV_STRUCTURE.filter(item => {
@@ -395,9 +404,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
               <span className="sidebar-child-dot" />
               <ChildIcon className="sidebar-child-icon" strokeWidth={1.8} />
-              {!sidebarCollapsed && <span>{child.label}</span>}
+              {!effectiveCollapsed && <span>{child.label}</span>}
             </div>
-            {!sidebarCollapsed && (
+            {!effectiveCollapsed && (
               <ChevronDown
                 size={14}
                 strokeWidth={2.5}
@@ -432,7 +441,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       >
         <span className="sidebar-child-dot" />
         <ChildIcon className="sidebar-child-icon" strokeWidth={1.8} />
-        {!sidebarCollapsed && <span>{child.label}</span>}
+        {!effectiveCollapsed && <span>{child.label}</span>}
       </NavLink>
     );
   };
@@ -444,18 +453,20 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         onClick={onClose}
       />
 
-      <aside className={`sidebar ${isOpen ? 'is-open' : ''} ${sidebarCollapsed ? 'collapsed' : ''}`}>
+      <aside className={`sidebar ${isOpen ? 'is-open' : ''} ${effectiveCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-header">
           <div className="sidebar-logo-group">
             <div className="sidebar-logo">
               <Infinity size={20} strokeWidth={2.5} />
             </div>
-            {!sidebarCollapsed && <span className="sidebar-brand">{user?.clinicName || 'Kreed.health'}</span>}
+            {!effectiveCollapsed && <span className="sidebar-brand">{user?.clinicName || 'Kreed.health'}</span>}
           </div>
           <div className="sidebar-header-actions">
-            <button className="collapse-toggle-btn" onClick={toggleSidebarCollapse}>
-              {sidebarCollapsed ? <ChevronRight size={18} strokeWidth={2} /> : <ChevronRight size={18} strokeWidth={2} className="rotate-180" />}
-            </button>
+            {!isMobile && (
+              <button className="collapse-toggle-btn" onClick={toggleSidebarCollapse}>
+                {effectiveCollapsed ? <ChevronRight size={18} strokeWidth={2} /> : <ChevronRight size={18} strokeWidth={2} className="rotate-180" />}
+              </button>
+            )}
             <button className="mh-menu-btn sidebar-header-close" onClick={onClose}>
               <X size={20} strokeWidth={1.6} />
             </button>
@@ -475,7 +486,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                   onClick={handleNavClick}
                 >
                   <Icon className="sidebar-item-icon" strokeWidth={1.8} />
-                  {!sidebarCollapsed && <span>{item.label}</span>}
+                  {!effectiveCollapsed && <span>{item.label}</span>}
                 </NavLink>
               );
             }
@@ -496,9 +507,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 >
                   <div className="sidebar-group-trigger-left">
                     <GroupIcon className="sidebar-item-icon" strokeWidth={1.8} />
-                    {!sidebarCollapsed && <span>{group.label}</span>}
+                    {!effectiveCollapsed && <span>{group.label}</span>}
                   </div>
-                  {!sidebarCollapsed && (
+                  {!effectiveCollapsed && (
                     <span className={`sidebar-chevron ${isOpen_ ? 'open' : ''}`}>
                       <ChevronDown size={14} strokeWidth={2} />
                     </span>
@@ -522,7 +533,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 {user?.name?.substring(0, 2).toUpperCase() || 'UX'}
               </span>
             </div>
-            {!sidebarCollapsed && (
+            {!effectiveCollapsed && (
               <div className="user-info">
                 <div className="user-name">{user?.name || 'Practitioner'}</div>
                 <div className="user-role">{getRoleLabel(userRole) || (user as any)?.type || 'Doctor'}</div>

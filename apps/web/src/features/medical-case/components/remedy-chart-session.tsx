@@ -519,7 +519,6 @@ export function RemedyChartSession({ regid, onDayChargeChange }: { regid?: numbe
                           {/* Desktop View Actions */}
                           <div className="mc-desktop-actions">
                             <button onClick={() => handleRepeatRow(rx)} className="mc-action-btn" title="Repeat"><History size={14} /></button>
-                            <button onClick={() => handlePrintRow(rx)} className="mc-action-btn" title="Print"><Printer size={14} /></button>
                             <button onClick={() => handleEdit(rx)} className="mc-action-btn" title="Edit"><Edit size={14} /></button>
                             <button onClick={() => handleDelete(rx.id, rx.remedy_name)} className="mc-action-btn danger" title="Remove"><Trash2 size={14} /></button>
                           </div>
@@ -529,7 +528,6 @@ export function RemedyChartSession({ regid, onDayChargeChange }: { regid?: numbe
                             <button className="mc-dots-btn"><MoreHorizontal size={18} /></button>
                             <div className="mc-dots-dropdown">
                               <button onClick={() => handleRepeatRow(rx)}><History size={14} /> Repeat</button>
-                              <button onClick={() => handlePrintRow(rx)}><Printer size={14} /> Print</button>
                               <button onClick={() => handleEdit(rx)}><Edit size={14} /> Edit</button>
                               <button onClick={() => handleDelete(rx.id, rx.remedy_name)} style={{ color: '#dc2626' }}><Trash2 size={14} /> Remove</button>
                             </div>

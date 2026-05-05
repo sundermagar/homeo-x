@@ -14,6 +14,7 @@ declare global {
 }
 
 export function authMiddleware(req: Request, _res: Response, next: NextFunction) {
+  console.time('Middleware_Auth');
   let token: string | undefined;
 
   // 1. Check Authorization header
@@ -28,6 +29,7 @@ export function authMiddleware(req: Request, _res: Response, next: NextFunction)
   }
 
   if (!token) {
+    console.timeEnd('Middleware_Auth');
     throw new UnauthorizedError('Missing authentication token');
   }
 
@@ -44,27 +46,26 @@ export function authMiddleware(req: Request, _res: Response, next: NextFunction)
     const user = DEMO_USERS[token] as AuthTokenPayload;
     req.user = user;
 
-    // For demo users, always use public.users for doctor status checks
-    // Set publicDb so downstream routes can read is_active from public.users
     req.publicDb = createDbClient(process.env.DATABASE_URL!);
     req.publicdb = req.publicDb;
 
-    // Force demo schema for non-Admin demo users to satisfy user request
-    // This ensures data is fetched from 'tenant_demo' regardless of host header.
     if (user.type !== Role.Admin) {
       req.tenantSlug = 'demo';
       req.tenantDb = createDbClient(process.env.DATABASE_URL!, 'tenant_demo');
       req.db = req.tenantDb;
     }
 
+    console.timeEnd('Middleware_Auth');
     return next();
   }
 
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET || 'dev-secret') as AuthTokenPayload;
     req.user = payload;
+    console.timeEnd('Middleware_Auth');
     next();
   } catch {
+    console.timeEnd('Middleware_Auth');
     throw new UnauthorizedError('Invalid or expired token');
   }
 }
