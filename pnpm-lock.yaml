@@ -11,13 +11,13 @@ importers:
       turbo:
         specifier: ^2.4.0
         version: 2.9.5
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
     devDependencies:
       prettier:
         specifier: ^3.4.0
         version: 3.8.1
-      typescript:
-        specifier: ^5.7.0
-        version: 5.9.3
 
   apps/api:
     dependencies:
@@ -111,6 +111,9 @@ importers:
       tsx:
         specifier: ^4.19.0
         version: 4.21.0
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
       zod:
         specifier: ^3.24.0
         version: 3.25.76
@@ -145,9 +148,6 @@ importers:
       '@types/pdfkit':
         specifier: ^0.17.5
         version: 0.17.5
-      typescript:
-        specifier: ^5.7.0
-        version: 5.9.3
       vitest:
         specifier: ^3.0.0
         version: 3.2.4(@types/node@25.5.2)(jiti@1.21.7)(jsdom@29.0.2(@noble/hashes@1.8.0))(tsx@4.21.0)
@@ -299,6 +299,9 @@ importers:
       postgres:
         specifier: ^3.4.0
         version: 3.4.9
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
     devDependencies:
       '@mmc/types':
         specifier: workspace:*
@@ -315,25 +318,21 @@ importers:
       tsx:
         specifier: ^4.19.0
         version: 4.21.0
-      typescript:
-        specifier: ^5.7.0
-        version: 5.9.3
 
   packages/types:
-    devDependencies:
+    dependencies:
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
 
   packages/validation:
     dependencies:
-      zod:
-        specifier: ^3.24.0
-        version: 3.25.76
-    devDependencies:
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
+      zod:
+        specifier: ^3.24.0
+        version: 3.25.76
 
   tools/db-migrate:
     dependencies:
