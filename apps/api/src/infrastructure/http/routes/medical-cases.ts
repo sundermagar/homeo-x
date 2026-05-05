@@ -94,6 +94,12 @@ router.post('/vitals', asyncHandler(async (req, res) => {
   sendSuccess(res, null, 'Vitals recorded successfully');
 }));
 
+router.delete('/vitals/:id', asyncHandler(async (req, res) => {
+  const useCase = new ManageVitalsUseCase(getRepo(req));
+  await useCase.delete(Number(req.params.id));
+  sendSuccess(res, null, 'Vitals record deleted');
+}));
+
 router.post('/vitals/analyze', asyncHandler(async (req, res) => {
   const useCase = new AnalyzeVitalsUseCase(req.tenantDb);
   const result = await useCase.execute(req.body);

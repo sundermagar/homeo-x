@@ -154,6 +154,7 @@ consultationsRouter.post('/complete', async (req: Request, res: Response, next: 
           doctorApproved: !!autoApprove,
           approvedAt: autoApprove ? new Date() : null,
           updatedAt: new Date(),
+          createdAt: new Date(),
         };
 
         const [existing] = await tx
