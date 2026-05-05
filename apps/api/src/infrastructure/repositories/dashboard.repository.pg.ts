@@ -15,7 +15,7 @@ import type {
   RecentTransaction,
   IntelligenceInsight,
 } from '@mmc/types';
-import type { IDashboardRepository } from '../../domains/dashboard/ports/dashboard.repository';
+import type { IDashboardRepository } from '../../domains/dashboard/ports/dashboard.repository.js';
 
 export class DashboardRepositoryPg implements IDashboardRepository {
   private static cachedRevInfo: Record<string, any> = {};
@@ -29,15 +29,6 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       DashboardRepositoryPg.cache.set(key, { data, expires: Date.now() + ttlMs });
       return data;
     });
-  }
-
-  /** Bust queue + KPI cache so the next dashboard fetch returns fresh data after skip/call/complete */
-  static clearQueueCache(): void {
-    for (const key of DashboardRepositoryPg.cache.keys()) {
-      if (key.startsWith('queue:') || key.startsWith('kpis:')) {
-        DashboardRepositoryPg.cache.delete(key);
-      }
-    }
   }
 
   constructor(private readonly db: DbClient) { }
@@ -65,36 +56,6 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     return info;
   }
 
-  /**
-   * Resolves the set of IDs that should match a doctor filter, accounting for
-   * legacy data where appointments.doctor_id may point at either users.id or
-   * doctors.id (different tables, same person, same name).
-   *
-   * Runs ONCE per dashboard call instead of as a correlated subquery per row,
-   * which is the difference between O(rows × 3 lookups) and O(1) lookup.
-   */
-  private async resolveDoctorIds(doctorId: number): Promise<number[]> {
-    const cacheKey = `docIds:${doctorId}`;
-    return this.getCached(cacheKey, 5 * 60_000, async () => {
-      const result = await this.db.execute(sql`
-        SELECT DISTINCT id FROM (
-          SELECT ${doctorId}::int AS id
-          UNION
-          SELECT d.id FROM doctors d
-          WHERE d.name = (SELECT name FROM users WHERE id = ${doctorId})
-          UNION
-          SELECT u.id FROM users u
-          WHERE u.name = (SELECT name FROM users WHERE id = ${doctorId})
-        ) t
-        WHERE id IS NOT NULL
-      `);
-      const ids = (result as any[])
-        .map(r => Number(r.id))
-        .filter(n => Number.isFinite(n) && n > 0);
-      return ids.length > 0 ? ids : [doctorId];
-    });
-  }
-
   private async getDoctorColumn(): Promise<string> {
     const schemaName = (this.db as any).session?.client?.options?.search_path || 'public';
     if (DashboardRepositoryPg.cachedDocCol[schemaName]) return DashboardRepositoryPg.cachedDocCol[schemaName];
@@ -119,9 +80,14 @@ export class DashboardRepositoryPg implements IDashboardRepository {
 
   private getPeriodDates(p: string) {
     const now = new Date();
-    const todayStr = now.toISOString().split('T')[0] || '';
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const istString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+    const istDate = new Date(istString);
+    const y = istDate.getFullYear();
+    const mm = String(istDate.getMonth() + 1).padStart(2, '0');
+    const dd = String(istDate.getDate()).padStart(2, '0');
+    const todayStr = `${y}-${mm}-${dd}`;
+    const year = y;
+    const month = mm;
 
     let range: { start: string; end: string };
 
@@ -174,15 +140,9 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       const { start, boundary, prevStart, prevBoundary } = this.getPeriodDates(period);
       const docCol = await this.getDoctorColumn();
       
-      // Pre-resolve doctor IDs ONCE (replaces 3× correlated subqueries that
-      // ran per row in every WHERE clause below).
-      const doctorIds = doctorId ? await this.resolveDoctorIds(doctorId) : [];
-      const idList = doctorIds.length
-        ? sql.join(doctorIds.map(id => sql`${id}`), sql`, `)
-        : null;
-      const docApptFilter = idList ? sql` AND ${sql.identifier(docCol)} IN (${idList})` : sql``;
-      const docWaitFilter = idList ? sql` AND doctor_id IN (${idList})` : sql``;
-      const docBillFilter = idList ? sql` AND b.doctor_id IN (${idList})` : sql``;
+      const docApptFilter = doctorId ? sql` AND ${sql.identifier(docCol)} = ${doctorId}` : sql``;
+      const docWaitFilter = doctorId ? sql` AND doctor_id = ${doctorId}` : sql``;
+      const docBillFilter = doctorId ? sql` AND b.doctor_id = ${doctorId}` : sql``;
 
     // Single round-trip: 4 queries instead of 9 (merged prev/curr + eliminated duplicate bills scans)
     const [countsRes, financeRes, waitRes, followUpRes] = await Promise.all([
@@ -194,9 +154,9 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           count(*) FILTER (WHERE type = 'A' AND date >= ${start}::date AND date < ${boundary}::date)::int as curr_appts,
           count(*) FILTER (WHERE type = 'A' AND date >= ${prevStart}::date AND date < ${prevBoundary}::date)::int as prev_appts
         FROM (
-          SELECT 'P' as type, created_at, NULL::date as date FROM patients WHERE clinic_id = ${contextId} AND (deleted_at IS NULL OR deleted_at::text = '')
+          SELECT 'P' as type, created_at, NULL::date as date FROM case_datas WHERE (deleted_at IS NULL OR deleted_at::text = '')
           UNION ALL
-          SELECT 'A' as type, created_at, booking_date as date FROM appointments WHERE clinic_id = ${contextId} AND (deleted_at IS NULL OR deleted_at::text = '') ${docApptFilter}
+          SELECT 'A' as type, created_at, booking_date as date FROM appointments WHERE (deleted_at IS NULL OR deleted_at::text = '') ${docApptFilter}
         ) t
       `),
       // 2. All Financials (Revenue, Charges, Received, Expenses)
@@ -214,8 +174,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         FROM (
           -- Current Bills
           SELECT b.charges as curr_bill_charges, b.received as curr_bill_received, 0 as curr_receipt_amt, 0 as curr_expenses, 0 as prev_bill_charges, 0 as prev_bill_received, 0 as prev_receipt_amt 
-          FROM bills b JOIN patients pb ON pb.regid = b.regid
-          WHERE b.bill_date >= ${start}::date AND b.bill_date < ${boundary}::date AND pb.clinic_id = ${contextId} AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
+          FROM bills b JOIN case_datas pb ON pb.regid = b.regid
+          WHERE b.bill_date >= ${start}::date AND b.bill_date < ${boundary}::date AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
           ${docBillFilter}
 
           UNION ALL
@@ -223,29 +183,29 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           -- Current Receipts (Note: Receipts don't have doctor_id, so we keep them clinic-wide or filter by patient? 
           -- For now keeping them clinic-wide as per original logic, but allowing future expansion)
           SELECT 0, 0, CAST(NULLIF(r.amount::text, '') AS numeric), 0, 0, 0, 0 
-          FROM receipt r JOIN patients pr ON pr.regid = r.regid
-          WHERE r.created_at >= ${start}::timestamp AND r.created_at < ${boundary}::timestamp AND pr.clinic_id = ${contextId} AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
+          FROM receipt r JOIN case_datas pr ON pr.regid = r.regid
+          WHERE r.created_at >= ${start}::timestamp AND r.created_at < ${boundary}::timestamp AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
           
           UNION ALL
           
           -- Current Expenses
           SELECT 0, 0, 0, amount, 0, 0, 0 FROM expenses 
-          WHERE exp_date >= ${start}::date AND exp_date < ${boundary}::date AND clinic_id = ${contextId} AND (deleted_at IS NULL OR deleted_at::text = '')
+          WHERE exp_date >= ${start}::date AND exp_date < ${boundary}::date AND (deleted_at IS NULL OR deleted_at::text = '')
           
           UNION ALL
           
           -- Previous Bills
           SELECT 0, 0, 0, 0, b.charges, b.received, 0 
-          FROM bills b JOIN patients pb ON pb.regid = b.regid
-          WHERE b.bill_date >= ${prevStart}::date AND b.bill_date < ${prevBoundary}::date AND pb.clinic_id = ${contextId} AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
+          FROM bills b JOIN case_datas pb ON pb.regid = b.regid
+          WHERE b.bill_date >= ${prevStart}::date AND b.bill_date < ${prevBoundary}::date AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
           ${docBillFilter}
 
           UNION ALL
           
           -- Previous Receipts
           SELECT 0, 0, 0, 0, 0, 0, CAST(NULLIF(r.amount::text, '') AS numeric) 
-          FROM receipt r JOIN patients pr ON pr.regid = r.regid
-          WHERE r.created_at >= ${prevStart}::timestamp AND r.created_at < ${prevBoundary}::timestamp AND pr.clinic_id = ${contextId} AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
+          FROM receipt r JOIN case_datas pr ON pr.regid = r.regid
+          WHERE r.created_at >= ${prevStart}::timestamp AND r.created_at < ${prevBoundary}::timestamp AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
         ) f
       `),
       // 3. Wait Times (Current & Previous)
@@ -254,13 +214,13 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           COALESCE(avg(extract(epoch from (called_at - checked_in_at))/60) FILTER (WHERE date >= ${start}::date AND date < ${boundary}::date), 0)::int as curr_wait,
           COALESCE(avg(extract(epoch from (called_at - checked_in_at))/60) FILTER (WHERE date >= ${prevStart}::date AND date < ${prevBoundary}::date), 0)::int as prev_wait
         FROM waitlist
-        WHERE clinic_id = ${contextId} AND called_at IS NOT NULL AND checked_in_at IS NOT NULL AND (deleted_at IS NULL OR deleted_at::text = '')
+        WHERE called_at IS NOT NULL AND checked_in_at IS NOT NULL AND (deleted_at IS NULL OR deleted_at::text = '')
         ${docWaitFilter}
       `),
       // 4. Follow-ups (Current)
       this.db.execute(sql`
         SELECT count(*)::int as count FROM appointments
-        WHERE clinic_id = ${contextId} AND booking_date >= ${start} AND booking_date < ${boundary} AND visit_type = 'FollowUp' AND (deleted_at IS NULL OR deleted_at::text = '')
+        WHERE booking_date >= ${start} AND booking_date < ${boundary} AND visit_type = 'FollowUp' AND (deleted_at IS NULL OR deleted_at::text = '')
         ${docApptFilter}
       `),
     ]) as any[];
@@ -308,15 +268,16 @@ export class DashboardRepositoryPg implements IDashboardRepository {
   }
 
   async getTodayQueue(contextId: number, doctorId?: number): Promise<QueueItem[]> {
-    const today = new Date().toISOString().split('T')[0]!;
-    return this.getCached(`queue:${contextId}:${today}:${doctorId ?? ''}`, 30_000, async () => {
-      // Pre-resolve doctor IDs ONCE — flattens the per-row correlated subquery.
-      const doctorIds = doctorId ? await this.resolveDoctorIds(doctorId) : [];
-      const idList = doctorIds.length
-        ? sql.join(doctorIds.map(id => sql`${id}`), sql`, `)
-        : null;
-      const docCond = idList ? sql` AND w.doctor_id IN (${idList})` : sql``;
-      const apptCond = idList ? sql` AND a.doctor_id IN (${idList})` : sql``;
+    const now = new Date();
+    const istString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+    const istDate = new Date(istString);
+    const y = istDate.getFullYear();
+    const mm = String(istDate.getMonth() + 1).padStart(2, '0');
+    const dd = String(istDate.getDate()).padStart(2, '0');
+    const today = `${y}-${mm}-${dd}`;
+    return this.getCached(`queue:${contextId}:${today}:${doctorId ?? ''}`, 0, async () => {
+      const docCond = doctorId ? sql` AND w.doctor_id = ${doctorId}` : sql``;
+      const apptCond = doctorId ? sql` AND a.doctor_id = ${doctorId}` : sql``;
 
       const result = await this.db.execute(sql`
         WITH today_waitlist AS (
@@ -329,11 +290,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             w.status,
             w.checked_in_at
           FROM waitlist w
-          WHERE (
-            w.date::text = ${today} 
-            OR w.date::text = TO_CHAR(${today}::date, 'DD/MM/YYYY')
-            OR w.date::text LIKE '%' || TO_CHAR(${today}::date, 'DD/MM/YYYY') || '%'
-          ) AND w.clinic_id = ${contextId} AND (w.deleted_at IS NULL OR w.deleted_at::text = '')
+          WHERE w.date = ${today}::date AND (w.deleted_at IS NULL OR w.deleted_at::text = '')
             ${docCond}
         )
         SELECT
@@ -374,21 +331,17 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             a.patient_id,
             a.doctor_id,
             a.token_no,
-            a.status,
+            CASE WHEN a.status IN ('In Progress', 'InProgress') THEN 'Consultation' ELSE a.status END as status,
             a.patient_name as manual_name,
             a.created_at,
             a.booking_time,
             a.id as visit_id
           FROM appointments a
-          WHERE (
-            a.booking_date::text = ${today}
-            OR a.booking_date::text = TO_CHAR(${today}::date, 'DD/MM/YYYY')
-            OR a.booking_date::text LIKE '%' || TO_CHAR(${today}::date, 'DD/MM/YYYY') || '%'
-          ) AND a.clinic_id = ${contextId} AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
+          WHERE a.booking_date = ${today}::date AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
             ${apptCond}
             AND NOT EXISTS (SELECT 1 FROM today_waitlist tw2 WHERE tw2.appointment_id = a.id OR tw2.patient_id = a.patient_id)
         ) q
-        LEFT JOIN patients p ON p.id = q.patient_id
+        LEFT JOIN case_datas p ON p.id = q.patient_id
         LEFT JOIN doctors d ON d.id = q.doctor_id
         LEFT JOIN users u ON u.id = q.doctor_id
         ORDER BY q.token_no ASC NULLS LAST, q.id ASC
@@ -409,7 +362,6 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       return allRows.map(r => ({
         id: r.id,
         wlId: r.wl_id,
-        visitId: r.visit_id,
         patientId: r.patient_id,
         regid: r.regid,
         patientName: r.patient_name,
@@ -440,8 +392,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     // Always query appointments
     queries.push(this.db.execute(sql`
       SELECT 'appointment' as type, 'Appointment - ' || p.first_name as title, a.booking_date::text as subtitle, a.created_at
-      FROM appointments a JOIN patients p ON a.patient_id = p.id
-      WHERE a.clinic_id = ${contextId} AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
+      FROM appointments a JOIN case_datas p ON a.patient_id = p.id
+      WHERE (a.deleted_at IS NULL OR a.deleted_at::text = '')
       ORDER BY a.id DESC LIMIT ${limit}
     `));
 
@@ -450,9 +402,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       queries.push(this.db.execute(sql`
         SELECT 'payment' as type, 'Invoice paid - ' || p.first_name as title, 'Rs.' || r.${sql.identifier(revInfo.amountCol)} as subtitle, r.created_at, p.regid
         FROM ${sql.identifier(revInfo.name)} r 
-        JOIN patients p ON r.regid = p.regid
+        JOIN case_datas p ON r.regid = p.regid
         WHERE (r.deleted_at IS NULL OR r.deleted_at::text = '')
-          AND p.clinic_id = ${contextId}
         ORDER BY r.id DESC LIMIT ${limit}
       `));
     }
@@ -479,8 +430,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         SELECT cr.id, cr.patient_id, p.first_name || ' ' || p.surname as patient_name,
                cr.heading, cr.comments, cr.start_date, cr.status
         FROM case_reminder cr
-        JOIN patients p ON cr.patient_id = p.id
-        WHERE cr.clinic_id = ${contextId} AND cr.status = 'pending'
+        JOIN case_datas p ON cr.patient_id = p.id
+        WHERE cr.status = 'pending'
         ORDER BY cr.id DESC LIMIT ${limit}
       `);
       return results as any as SimpleReminder[];
@@ -489,15 +440,16 @@ export class DashboardRepositoryPg implements IDashboardRepository {
 
   async getBirthdays(contextId: number): Promise<BirthdayPatient[]> {
     return this.getCached(`birthdays:${contextId}`, 60_000, async () => {
-      const today = new Date();
-      const mmdd = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      const now = new Date();
+      const istString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+      const istDate = new Date(istString);
+      const mmdd = `${String(istDate.getMonth() + 1).padStart(2, '0')}-${String(istDate.getDate()).padStart(2, '0')}`;
 
       const results = await this.db.execute(sql`
         SELECT id, regid, first_name, surname, phone, mobile1, dob
-        FROM patients
-        WHERE clinic_id = ${contextId}
+        FROM case_datas
+        WHERE (deleted_at IS NULL OR deleted_at::text = '')
           AND to_char(dob, 'MM-DD') = ${mmdd}
-          AND (deleted_at IS NULL OR deleted_at::text = '')
       `);
       return results as any as BirthdayPatient[];
     });
@@ -505,8 +457,6 @@ export class DashboardRepositoryPg implements IDashboardRepository {
 
   async getRevenueSeries(period: string, contextId: number, paymentMode?: string): Promise<RevenueSeries[]> {
     return this.getCached(`revSeries:${contextId}:${period}:${paymentMode ?? ''}`, 60_000, async () => {
-      const revInfo = await this.getRevenueTableInfo();
-    if (!revInfo) return [];
 
     let modeFilter = '';
     if (paymentMode === 'Cash') {
@@ -524,11 +474,11 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         -- Bills
         SELECT date_trunc('month', b.bill_date)::date as m, sum(b.received) as amt 
         FROM bills b
-        JOIN patients pb ON pb.regid = b.regid
+        JOIN case_datas pb ON pb.regid = b.regid
         WHERE b.bill_date >= date_trunc('month', NOW()) - interval '6 months' 
           ${sql.raw(modeFilter ? modeFilter.replace('payment_mode', 'b.payment_mode') : "")}
           AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
-          AND pb.clinic_id = ${contextId}
+          AND pb.regid = b.regid
         GROUP BY 1
         
         UNION ALL
@@ -536,11 +486,11 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         -- Receipts
         SELECT date_trunc('month', r.created_at)::date as m, sum(CAST(NULLIF(r.amount::text, '') AS numeric)) as amt 
         FROM receipt r
-        JOIN patients pr ON pr.regid = r.regid
+        JOIN case_datas pr ON pr.regid = r.regid
         WHERE r.created_at >= date_trunc('month', NOW()) - interval '6 months'
           ${sql.raw(modeFilter ? modeFilter.replace('payment_mode', 'r.mode') : "")}
           AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
-          AND pr.clinic_id = ${contextId}
+          AND pr.regid = r.regid
         GROUP BY 1
       )
       SELECT to_char(months.m, 'Mon') as month, 
@@ -560,21 +510,82 @@ export class DashboardRepositoryPg implements IDashboardRepository {
 
   async getMultiRevenueSeries(period: string, contextId: number): Promise<{ total: RevenueSeries[]; cash: RevenueSeries[]; upi: RevenueSeries[] }> {
     return this.getCached(`multiRevSeries:${contextId}:${period}`, 60_000, async () => {
+      const { start, end } = this.getPeriodDates(period);
+      
+      let interval = '1 month';
+      let labelFormat = 'Mon';
+      let seriesStart = start;
+      let seriesEnd = end;
+
+      if (period === 'year') {
+        interval = '1 month';
+        labelFormat = 'Mon';
+      } else if (period === 'month') {
+        interval = '1 day';
+        labelFormat = 'DD';
+      } else if (period === 'week') {
+        interval = '1 day';
+        labelFormat = 'Dy';
+      } else {
+        // Fallback to rolling 6 months for 'day' or unknown
+        return this.db.execute(sql`
+          WITH months AS (
+            SELECT (date_trunc('month', NOW()) - (m || ' months')::interval)::date as m
+            FROM generate_series(0, 5) m
+          ),
+          rev_combined AS (
+            SELECT 
+              date_trunc('month', b.bill_date)::date as m,
+              b.received as amt,
+              CASE WHEN (LOWER(COALESCE(b.payment_mode, '')) = 'cash' OR b.payment_mode IS NULL OR b.payment_mode = '') THEN b.received ELSE 0 END as cash_amt,
+              CASE WHEN LOWER(COALESCE(b.payment_mode, '')) IN ('upi', 'card', 'online', 'bank', 'gpay', 'phonepe', 'paytm') THEN b.received ELSE 0 END as upi_amt
+            FROM bills b
+            JOIN case_datas pb ON pb.regid = b.regid
+            WHERE b.bill_date >= date_trunc('month', NOW()) - interval '6 months' 
+              AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
+              AND pb.clinic_id = ${contextId}
+            UNION ALL
+            SELECT 
+              date_trunc('month', r.created_at)::date as m,
+              CAST(NULLIF(r.amount::text, '') AS numeric) as amt,
+              CASE WHEN (LOWER(COALESCE(r.mode, '')) = 'cash' OR r.mode IS NULL OR r.mode = '') THEN CAST(NULLIF(r.amount::text, '') AS numeric) ELSE 0 END as cash_amt,
+              CASE WHEN LOWER(COALESCE(r.mode, '')) IN ('upi', 'card', 'online', 'bank', 'gpay', 'phonepe', 'paytm') THEN CAST(NULLIF(r.amount::text, '') AS numeric) ELSE 0 END as upi_amt
+            FROM receipt r
+            JOIN case_datas pr ON pr.regid = r.regid
+            WHERE r.created_at >= date_trunc('month', NOW()) - interval '6 months'
+              AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
+              AND pr.clinic_id = ${contextId}
+          )
+          SELECT 
+            to_char(months.m, 'Mon') as month, 
+            COALESCE(sum(rc.amt), 0)::int as total,
+            COALESCE(sum(rc.cash_amt), 0)::int as cash,
+            COALESCE(sum(rc.upi_amt), 0)::int as upi
+          FROM months
+          LEFT JOIN rev_combined rc ON rc.m = months.m
+          GROUP BY months.m
+          ORDER BY months.m ASC
+        `).then((results: any) => ({
+          total: results.map((r: any) => ({ month: r.month, revenue: r.total })),
+          cash: results.map((r: any) => ({ month: r.month, revenue: r.cash })),
+          upi: results.map((r: any) => ({ month: r.month, revenue: r.upi })),
+        }));
+      }
+
       const results = await this.db.execute(sql`
-      WITH months AS (
-        SELECT (date_trunc('month', NOW()) - (m || ' months')::interval)::date as m
-        FROM generate_series(0, 5) m
+      WITH periods AS (
+        SELECT generate_series(${seriesStart}::date, ${seriesEnd}::date, ${sql.raw(`'${interval}'`)}::interval)::date as p
       ),
       rev_combined AS (
         -- Bills
         SELECT 
-          date_trunc('month', b.bill_date)::date as m,
+          date_trunc(${period === 'year' ? 'month' : 'day'}, b.bill_date)::date as p,
           b.received as amt,
           CASE WHEN (LOWER(COALESCE(b.payment_mode, '')) = 'cash' OR b.payment_mode IS NULL OR b.payment_mode = '') THEN b.received ELSE 0 END as cash_amt,
           CASE WHEN LOWER(COALESCE(b.payment_mode, '')) IN ('upi', 'card', 'online', 'bank', 'gpay', 'phonepe', 'paytm') THEN b.received ELSE 0 END as upi_amt
         FROM bills b
-        JOIN patients pb ON pb.regid = b.regid
-        WHERE b.bill_date >= date_trunc('month', NOW()) - interval '6 months' 
+        JOIN case_datas pb ON pb.regid = b.regid
+        WHERE b.bill_date >= ${seriesStart}::date AND b.bill_date <= ${seriesEnd}::date
           AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
           AND pb.clinic_id = ${contextId}
         
@@ -582,25 +593,25 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         
         -- Receipts
         SELECT 
-          date_trunc('month', r.created_at)::date as m,
+          date_trunc(${period === 'year' ? 'month' : 'day'}, r.created_at)::date as p,
           CAST(NULLIF(r.amount::text, '') AS numeric) as amt,
           CASE WHEN (LOWER(COALESCE(r.mode, '')) = 'cash' OR r.mode IS NULL OR r.mode = '') THEN CAST(NULLIF(r.amount::text, '') AS numeric) ELSE 0 END as cash_amt,
           CASE WHEN LOWER(COALESCE(r.mode, '')) IN ('upi', 'card', 'online', 'bank', 'gpay', 'phonepe', 'paytm') THEN CAST(NULLIF(r.amount::text, '') AS numeric) ELSE 0 END as upi_amt
         FROM receipt r
-        JOIN patients pr ON pr.regid = r.regid
-        WHERE r.created_at >= date_trunc('month', NOW()) - interval '6 months'
+        JOIN case_datas pr ON pr.regid = r.regid
+        WHERE r.created_at >= ${seriesStart}::date AND r.created_at <= ${seriesEnd}::date
           AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
           AND pr.clinic_id = ${contextId}
       )
       SELECT 
-        to_char(months.m, 'Mon') as month, 
+        to_char(periods.p, ${labelFormat}) as month, 
         COALESCE(sum(rc.amt), 0)::int as total,
         COALESCE(sum(rc.cash_amt), 0)::int as cash,
         COALESCE(sum(rc.upi_amt), 0)::int as upi
-      FROM months
-      LEFT JOIN rev_combined rc ON rc.m = months.m
-      GROUP BY months.m
-      ORDER BY months.m ASC
+      FROM periods
+      LEFT JOIN rev_combined rc ON rc.p = periods.p
+      GROUP BY periods.p
+      ORDER BY periods.p ASC
     `);
 
     const data = results as any[];
@@ -621,13 +632,9 @@ export class DashboardRepositoryPg implements IDashboardRepository {
   async getRecentTransactions(limit: number, contextId?: number): Promise<RecentTransaction[]> {
     return this.getCached(`recentTransactions:${contextId ?? 'all'}:${limit}`, 60_000, async () => {
       try {
-        // Bound the scan to the last 60 days. The widget only ever shows the
-        // top N "recent" rows — scanning the whole bills+receipt history just
-        // to throw away everything past `LIMIT 5` was the root cause of slow
-        // dashboard loads on clinics with deep history.
         const results = await this.db.execute(sql`
           WITH combined AS (
-            SELECT
+            SELECT 
               b.id::text,
               b.regid,
               COALESCE(b.bill_no::text, 'INV-' || b.id::text) AS invoice_no,
@@ -639,14 +646,13 @@ export class DashboardRepositoryPg implements IDashboardRepository {
               END AS status,
               b.created_at
             FROM bills b
-            JOIN patients pb ON pb.regid = b.regid
+            JOIN case_datas pb ON pb.regid = b.regid
             WHERE (b.deleted_at IS NULL OR b.deleted_at::text = '')
-              AND b.created_at >= NOW() - interval '60 days'
-              ${contextId ? sql`AND pb.clinic_id = ${contextId}` : sql``}
-
+              AND (pb.deleted_at IS NULL OR pb.deleted_at::text = '')
+            
             UNION ALL
-
-            SELECT
+            
+            SELECT 
               'R-' || r.id::text as id,
               r.regid,
               'RCT-' || r.id::text AS invoice_no,
@@ -654,16 +660,15 @@ export class DashboardRepositoryPg implements IDashboardRepository {
               'paid' AS status,
               COALESCE(r.created_at, NOW()) as created_at
             FROM receipt r
-            JOIN patients pr ON pr.regid = r.regid
+            JOIN case_datas pr ON pr.regid = r.regid
             WHERE (r.deleted_at IS NULL OR r.deleted_at::text = '')
-              AND r.created_at >= NOW() - interval '60 days'
-              ${contextId ? sql`AND pr.clinic_id = ${contextId}` : sql``}
+              AND (pr.deleted_at IS NULL OR pr.deleted_at::text = '')
           )
-          SELECT
+          SELECT 
             c.*,
             COALESCE(p.first_name || ' ' || p.surname, 'Patient') AS patient_name
           FROM combined c
-          LEFT JOIN patients p ON c.regid = p.regid
+          LEFT JOIN case_datas p ON c.regid = p.regid
           ORDER BY c.created_at DESC
           LIMIT ${limit}
         `);
@@ -755,10 +760,9 @@ export class DashboardRepositoryPg implements IDashboardRepository {
               CAST(NULLIF(b.charges::text, '') AS numeric) as charges,
               CAST(NULLIF(b.received::text, '') AS numeric) as received
             FROM bills b
-            JOIN patients pb ON pb.regid = b.regid
+            JOIN case_datas pb ON pb.regid = b.regid
             WHERE b.bill_date >= ${start}::date AND b.bill_date < ${boundary}::date
               AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
-              AND pb.clinic_id = ${contextId}
 
             UNION ALL
 
@@ -768,16 +772,14 @@ export class DashboardRepositoryPg implements IDashboardRepository {
               CASE WHEN LOWER(COALESCE(r.mode, '')) IN ('upi', 'card', 'online', 'bank', 'gpay', 'phonepe', 'paytm') THEN CAST(NULLIF(r.amount::text, '') AS numeric) ELSE 0 END,
               0, 0
             FROM receipt r
-            JOIN patients pr ON pr.regid = r.regid
+            JOIN case_datas pr ON pr.regid = r.regid
             WHERE r.created_at >= ${start}::timestamp AND r.created_at < ${boundary}::timestamp
               AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
-              AND pr.clinic_id = ${contextId}
           ) t
         `),
         this.db.execute(sql`
-          SELECT count(*)::int as cnt FROM patients
-          WHERE clinic_id = ${contextId}
-            AND created_at::date BETWEEN ${start} AND ${boundary}
+          SELECT count(*)::int as cnt FROM case_datas
+          WHERE created_at::date BETWEEN ${start} AND ${boundary}
             AND (deleted_at IS NULL OR deleted_at::text = '')
         `)
       ]);
@@ -818,9 +820,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
                  ELSE 'Pending'
                END as status
         FROM bills b
-        LEFT JOIN patients p ON b.regid = p.regid
-        WHERE p.clinic_id = ${contextId}
-          AND b.bill_date::date >= ${start}::date AND b.bill_date::date < ${boundary}::date
+        LEFT JOIN case_datas p ON b.regid = p.regid
+        WHERE b.bill_date::date >= ${start}::date AND b.bill_date::date < ${boundary}::date
           AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
         ORDER BY b.charges DESC NULLS LAST
         LIMIT ${limit}
@@ -861,7 +862,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           SELECT 'R', true, CAST(NULLIF(amount::text, '') AS numeric), 0, 0, 0 FROM receipt WHERE created_at >= ${start} AND created_at < ${boundary} AND (deleted_at IS NULL OR deleted_at::text = '')
           UNION ALL
           -- Current Month Patients
-          SELECT 'P', true, 0, 0, 0, 0 FROM patients WHERE clinic_id = ${contextId} AND created_at >= ${start} AND created_at < ${boundary} AND (deleted_at IS NULL OR deleted_at::text = '')
+          SELECT 'P', true, 0, 0, 0, 0 FROM case_datas WHERE created_at >= ${start} AND created_at < ${boundary} AND (deleted_at IS NULL OR deleted_at::text = '')
           UNION ALL
           -- Current Month Collection Rate (Bills only)
           SELECT 'C', true, 0, CAST(NULLIF(charges::text, '') AS numeric), CAST(NULLIF(received::text, '') AS numeric), 0 FROM bills WHERE bill_date >= ${start} AND bill_date < ${boundary} AND (deleted_at IS NULL OR deleted_at::text = '')
@@ -872,15 +873,14 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           SELECT 'R', false, 0, 0, 0, CAST(NULLIF(amount::text, '') AS numeric) FROM receipt WHERE created_at >= ${prevStart} AND created_at < ${prevBoundary} AND (deleted_at IS NULL OR deleted_at::text = '')
           UNION ALL
           -- Previous Month Patients
-          SELECT 'P', false, 0, 0, 0, 0 FROM patients WHERE clinic_id = ${contextId} AND created_at >= ${prevStart} AND created_at < ${prevBoundary} AND (deleted_at IS NULL OR deleted_at::text = '')
+          SELECT 'P', false, 0, 0, 0, 0 FROM case_datas WHERE created_at >= ${prevStart} AND created_at < ${prevBoundary} AND (deleted_at IS NULL OR deleted_at::text = '')
         ) t
       `),
       // 2. Wait Time
       this.db.execute(sql`
         SELECT COALESCE(avg(extract(epoch from (called_at - checked_in_at))/60), 0)::int as avg_wait 
         FROM waitlist 
-        WHERE clinic_id = ${contextId} 
-          AND date >= ${start} AND date < ${boundary} AND called_at IS NOT NULL AND checked_in_at IS NOT NULL AND (deleted_at IS NULL OR deleted_at::text = '')
+        WHERE date >= ${start} AND date < ${boundary} AND called_at IS NOT NULL AND checked_in_at IS NOT NULL AND (deleted_at IS NULL OR deleted_at::text = '')
       `),
     ]);
 
@@ -942,9 +942,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       this.db.execute(sql`
         SELECT u.name, u.type as specialty, count(a.id)::int as visit_count
         FROM users u
-        LEFT JOIN appointments a ON a.clinic_id = ${contextId} AND a.${sql.identifier(docCol)} = u.id AND a.booking_date = ${today} AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
+        LEFT JOIN appointments a ON a.${sql.identifier(docCol)} = u.id AND a.booking_date = ${today} AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
         WHERE (u.deleted_at IS NULL OR u.deleted_at::text = '') 
-          AND (u.context_id = ${contextId} OR u.context_id::text = ${String(contextId)})
           AND u.type IN ('Doctor', 'Staff', 'Receptionist', 'Clinicadmin')
         GROUP BY u.name, u.type
         LIMIT 20
@@ -952,9 +951,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       this.db.execute(sql`
         SELECT d.name, d.designation as specialty, count(a.id)::int as visit_count
         FROM doctors d
-        LEFT JOIN appointments a ON a.clinic_id = ${contextId} AND a.${sql.identifier(docCol)} = d.id AND a.booking_date = ${today} AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
-        WHERE (d.deleted_at IS NULL OR d.deleted_at::text = '') 
-          AND (d.clinic_id = ${contextId} OR d.clinic_id::text = ${String(contextId)})
+        LEFT JOIN appointments a ON a.${sql.identifier(docCol)} = d.id AND a.booking_date = ${today} AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
+        WHERE (d.deleted_at IS NULL OR d.deleted_at::text = '')
         GROUP BY d.name, d.designation
         LIMIT 20
       `).catch(() => [])
