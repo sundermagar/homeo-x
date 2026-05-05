@@ -264,66 +264,6 @@ export default function ViewCollectionPage() {
           )}
         </div>
       )}
-      <style>{`
-        @media (max-width: 1024px) {
-          .billing-header { flex-direction: column !important; align-items: stretch !important; gap: 16px !important; }
-          .billing-header-actions { width: 100%; }
-          .billing-header-actions .billing-btn { width: 100%; height: 44px; justify-content: center; border-radius: 12px; }
-
-          .date-navigator { flex-wrap: wrap; gap: 8px !important; }
-          .date-nav-btn { flex: 1; min-width: 120px; height: 40px; justify-content: center; }
-          .date-input-group { width: 100% !important; order: -1; margin-bottom: 8px; height: 44px; }
-          .date-today-btn { width: 100%; height: 40px; justify-content: center; }
-
-          .collection-summary-cards { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
-          .summary-card { padding: 12px !important; }
-          .summary-card-icon { width: 36px !important; height: 36px !important; min-width: 36px !important; }
-          .summary-card-value { font-size: 16px !important; }
-
-          .quick-stats-row { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; padding: 12px !important; }
-          .quick-stat { padding: 0 !important; border: none !important; }
-
-          .view-tabs { width: 100%; display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
-          .view-tab { flex: 1; min-width: 110px; white-space: nowrap; height: 36px; padding: 0 12px !important; font-size: 12px !important; }
-
-          .billing-table-container { border: none !important; background: transparent !important; box-shadow: none !important; }
-          .billing-table { display: block !important; width: 100% !important; }
-          .billing-table thead { display: none !important; }
-          .billing-table tbody { display: block !important; width: 100% !important; }
-          .billing-table tr { 
-            display: block !important; 
-            margin-bottom: 20px !important; 
-            background: var(--bg-card) !important; 
-            border: 1px solid var(--border-main) !important; 
-            border-radius: 16px !important; 
-            padding: 8px 0 !important;
-            box-shadow: var(--pp-shadow-sm) !important;
-          }
-          .billing-table td {
-            display: grid !important;
-            grid-template-columns: 120px 1fr !important;
-            gap: 12px !important;
-            align-items: center !important;
-            padding: 12px 20px !important;
-            border-bottom: 1px dashed var(--border-main) !important;
-            min-height: 48px;
-            text-align: right !important;
-          }
-          .billing-table td:last-child { border-bottom: none !important; }
-          
-          .billing-table td::before {
-            content: attr(data-label);
-            font-size: 10px !important;
-            font-weight: 800 !important;
-            color: var(--text-muted) !important;
-            text-transform: uppercase !important;
-            letter-spacing: 0.08em !important;
-            text-align: left !important;
-          }
-          .plat-cell-val { width: 100% !important; text-align: right !important; display: flex !important; flex-direction: column !important; align-items: flex-end !important; }
-          [data-label="Bill No"] { background: var(--bg-surface-2) !important; border-bottom: 1px solid var(--border-main) !important; margin-bottom: 4px; }
-        }
-      `}</style>
     </div>
   );
 }

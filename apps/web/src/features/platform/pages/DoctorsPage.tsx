@@ -167,80 +167,7 @@ function FileInputRow({
   );
 }
 
-const mobileStyles = `
-  @media (max-width: 1024px) {
-    .plat-header { flex-direction: column !important; align-items: stretch !important; gap: 16px !important; }
-    .plat-header-actions { width: 100% !important; margin-top: 8px; }
-    .plat-header-actions .plat-btn { width: 100% !important; height: 46px !important; border-radius: 12px !important; justify-content: center !important; }
 
-    .plat-stats-bar { grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; padding: 0 !important; }
-    .plat-stat-card { padding: 16px 12px !important; }
-    .plat-stat-value { font-size: 20px !important; }
-
-    .plat-filters { 
-      flex-direction: column !important; 
-      align-items: stretch !important; 
-      gap: 12px !important; 
-      background: var(--bg-surface-2) !important;
-      padding: 16px !important;
-      border-radius: 16px !important;
-      margin-bottom: 16px !important;
-      border: 1px solid var(--border-main) !important;
-    }
-    .plat-filters > .flex { flex-direction: column !important; width: 100% !important; gap: 12px !important; }
-    .plat-search-wrap { width: 100% !important; margin: 0 !important; }
-    .plat-search-input { width: 100% !important; height: 44px !important; border-radius: 12px !important; font-size: 14px !important; }
-    .plat-filters select { width: 100% !important; height: 44px !important; border-radius: 12px !important; font-size: 14px !important; }
-    .plat-filters .plat-btn-ghost { width: 100% !important; height: 40px !important; justify-content: center !important; }
-
-    .plat-card { border: none !important; box-shadow: none !important; background: transparent !important; padding: 0 !important; }
-    .plat-table-container { 
-      border: none !important; 
-      background: transparent !important; 
-      overflow: visible !important; 
-      width: 100% !important;
-      padding: 0 !important;
-    }
-    .plat-table { display: block !important; width: 100% !important; min-width: 0 !important; border: none !important; }
-    .plat-table thead { display: none !important; }
-    .plat-table tbody { display: block !important; width: 100% !important; }
-    .plat-table tr { 
-      display: block !important; 
-      margin-bottom: 24px !important; 
-      background: var(--bg-card) !important; 
-      border: 1px solid var(--border-main) !important; 
-      border-radius: 20px !important; 
-      padding: 0 !important;
-      box-shadow: var(--pp-shadow-md) !important;
-      overflow: hidden !important;
-    }
-    .plat-table td {
-      display: grid !important;
-      grid-template-columns: 100px 1fr !important;
-      gap: 12px !important;
-      align-items: center !important;
-      padding: 12px 20px !important;
-      border-bottom: 1px dashed var(--border-main) !important;
-      min-height: 52px;
-      text-align: right !important;
-      width: 100% !important;
-      box-sizing: border-box !important;
-    }
-    .plat-table td:last-child { border-bottom: none !important; background: var(--bg-surface-2) !important; padding-top: 16px !important; padding-bottom: 16px !important; }
-    
-    .plat-table td::before {
-      content: attr(data-label);
-      font-size: 10px !important;
-      font-weight: 800 !important;
-      color: var(--text-muted) !important;
-      text-transform: uppercase !important;
-      letter-spacing: 0.1em !important;
-      text-align: left !important;
-    }
-    .plat-cell-val { width: 100% !important; text-align: right !important; display: flex !important; flex-direction: column !important; align-items: flex-end !important; }
-    [data-label="#"], [data-label="ID"] { background: var(--bg-surface-2) !important; border-bottom: 1px solid var(--border-main) !important; padding: 12px 20px !important; }
-  }
-`;
 
 function StaffModal({
   mode,
@@ -779,49 +706,49 @@ export default function DoctorsPage() {
   // return (
   return (
     <div className="plat-page">
-      <div className="plat-header">
+      <div className="pp-page-hero">
         <div>
-          <h1 className="plat-header-title">
-            <Stethoscope size={16} className="color-primary" />
+          <h1 className="pp-page-hero-title">
+            <Stethoscope size={22} style={{ color: 'var(--pp-blue)' }} />
             {META.label}
           </h1>
-          <p className="plat-header-sub">{META.description}</p>
+          <p className="pp-page-hero-sub">{META.description}</p>
         </div>
-        <div className="plat-header-actions">
-          <button className="plat-btn plat-btn-primary" onClick={openCreate}>
-            <Plus size={14} /> Register Doctor
+        <div className="pp-page-hero-actions">
+          <button className="btn-primary" onClick={openCreate}>
+            <Plus size={16} strokeWidth={1.8} /> Register Doctor
           </button>
         </div>
       </div>
 
-      <div className="plat-stats-bar">
-        <div className="plat-stat-card">
-          <p className="plat-stat-label">Total Practitioners</p>
-          <p className="plat-stat-value plat-stat-value-primary">{data?.total ?? 0}</p>
+      <div className="pp-stat-grid">
+        <div className="pp-stat-card-enhanced">
+          <div className="pp-stat-label">Total Practitioners</div>
+          <div className="pp-stat-value is-primary">{data?.total ?? 0}</div>
         </div>
-        <div className="plat-stat-card">
-          <p className="plat-stat-label">Active Registry</p>
-          <p className="plat-stat-value plat-stat-value-success">{activeCount}</p>
+        <div className="pp-stat-card-enhanced">
+          <div className="pp-stat-label">Active Registry</div>
+          <div className="pp-stat-value is-success">{activeCount}</div>
         </div>
       </div>
 
-      <div className="plat-filters">
-        <div className="flex gap-4 flex-1">
-          <div className="plat-search-wrap">
-            <Search className="plat-search-icon" size={14} />
-            <input
-              type="text"
-              className="plat-form-input plat-search-input"
-              placeholder="Search practitioners by name or ID..."
-              value={search}
-              onChange={(e) => handleSearchChange(e.target.value)}
-            />
-          </div>
-
+      <div className="pp-filter-card">
+        <div className="pp-filter-search-wrap">
+          <Search size={14} />
+          <input
+            type="text"
+            placeholder="Search practitioners by name or ID..."
+            className="pp-filter-search-input"
+            value={search}
+            onChange={(e) => handleSearchChange(e.target.value)}
+          />
+        </div>
+        <div className="pp-filter-controls">
           <div className="flex items-center gap-2">
             <span className="text-[11px] font-bold color-muted uppercase tracking-wider">Sort:</span>
             <select
-              className="plat-form-input !py-1 !text-xs !w-auto min-w-[140px]"
+              className="pp-filter-select"
+              style={{ minWidth: '140px' }}
               value={`${sortBy}-${sortOrder}`}
               onChange={(e) => {
                 const [col, order] = e.target.value.split('-');
@@ -836,34 +763,36 @@ export default function DoctorsPage() {
               <option value="name-DESC">Z-A</option>
             </select>
           </div>
+          <button
+            className="btn-ghost"
+            onClick={() => {
+              setSearch('');
+              setDebouncedSearch('');
+              setPage(1);
+              setSortBy('id');
+              setSortOrder('DESC');
+            }}
+          >
+            Reset
+          </button>
         </div>
-
-        <button
-          className="plat-btn plat-btn-ghost plat-btn-sm"
-          onClick={() => {
-            setSearch('');
-            setDebouncedSearch('');
-            setPage(1);
-            setSortBy('id');
-            setSortOrder('DESC');
-          }}
-        >
-          Reset
-        </button>
       </div>
 
-      <div className="plat-card">
+      <div>
         {isLoading ? (
           <TableSkeleton rows={itemsPerPage} columns={6} />
         ) : staff.length === 0 ? (
-          <div className="plat-empty" style={{ minHeight: 240 }}>
-            <Stethoscope size={40} className="plat-empty-icon" />
-            <p className="plat-empty-text">No doctors found.</p>
+          <div className="pp-empty-enhanced" style={{ minHeight: 300 }}>
+            <div className="pp-empty-icon-circle">
+              <Stethoscope size={32} />
+            </div>
+            <p className="pp-empty-title">No doctors found</p>
+            <p className="pp-empty-sub">Adjust your filters or add a new clinical practitioner to the registry.</p>
           </div>
         ) : (
           <>
-            <div className="plat-table-container">
-            <table className="plat-table">
+            <div className="pp-table-container-enhanced">
+            <table className="pp-table">
               <thead>
                 <tr>
                   <th style={{ width: '50px' }}>#</th>
@@ -876,13 +805,15 @@ export default function DoctorsPage() {
               </thead>
               <tbody>
                 {staff.map((s: StaffSummary, index: number) => (
-                  <tr key={s.id} className="plat-table-row">
+                  <tr key={s.id} className="pp-hover-row" onClick={() => openEdit(s)} style={{ cursor: 'pointer' }}>
                     <td data-label="#" className="plat-mono-data text-xs" style={{ width: 40 }}>
                       <div>{(page - 1) * PAGE_SIZE + index + 1}</div>
                     </td>
                     <td data-label="Profile">
-                      <div className="plat-cell-val">
-                        <div className="font-semibold">{s.name}</div>
+                      <div className="plat-cell-val" onClick={(e) => e.stopPropagation()}>
+                        <Link to={`/platform/doctors/${s.id}`} className="font-semibold pp-clickable-name">
+                          {s.name}
+                        </Link>
                         <div className="text-[11px] color-muted font-medium">{s.email || '—'}</div>
                       </div>
                     </td>
@@ -907,7 +838,7 @@ export default function DoctorsPage() {
                     </td>
                     <td data-label="Status">
                       <div className="plat-cell-val">
-                        <span className={s.isActive ? 'plat-badge plat-badge-info' : 'plat-badge plat-badge-default'}>
+                        <span className={s.isActive ? 'pp-status-pill is-success' : 'pp-status-pill is-default'}>
                           {s.isActive ? (
                             <span className="flex items-center gap-1"><UserCheck size={10} /> Active</span>
                           ) : 'Inactive'}
@@ -953,7 +884,6 @@ export default function DoctorsPage() {
           onSuccess={() => { setEditingId(null); }}
         />
       )}
-      <style>{mobileStyles}</style>
     </div>
   );
 }

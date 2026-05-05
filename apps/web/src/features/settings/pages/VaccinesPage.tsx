@@ -217,14 +217,14 @@ export default function VaccinesPage() {
                         {idx + 1 + (currentPage - 1) * itemsPerPage}
                       </td>
                       <td data-label="VACCINE" className="plat-table-cell">
-                        <div className="flex items-start gap-3 md:justify-start justify-end">
+                        <div className="flex items-start gap-3 justify-start">
                           <div className="mt-1 p-1.5 rounded-md bg-blue-50 text-blue-500 md:block hidden">
                             <Shield size={14} />
                           </div>
-                          <div className="md:text-left text-right">
+                          <div className="text-left">
                             <div className="font-semibold text-[14px] color-main">{vac.label}</div>
                             {vac.description && (
-                              <div className="text-[12px] color-muted mt-0.5 flex items-start gap-1.5 leading-relaxed md:justify-start justify-end">
+                              <div className="text-[12px] color-muted mt-0.5 flex items-start gap-1.5 leading-relaxed justify-start">
                                 <Info size={11} className="mt-0.5 opacity-40 shrink-0" />
                                 <span>{vac.description}</span>
                               </div>
@@ -233,7 +233,7 @@ export default function VaccinesPage() {
                         </div>
                       </td>
                       <td data-label="AGE" className="plat-table-cell">
-                        <div className="flex md:justify-start justify-end">
+                        <div className="flex justify-start">
                           {vac.months !== null && vac.months !== undefined ? (
                             <div className={`plat-badge ${vac.months === 0 ? 'plat-badge-success' : 'plat-badge-info'}`}>
                                {vac.months === 0 ? 'At Birth' : `${vac.months} Months`}
@@ -355,136 +355,8 @@ export default function VaccinesPage() {
         </form>
       </Drawer>
 
-      <style>{`
-        @media (max-width: 1024px) {
-          .plat-page { padding: 12px !important; }
-          .plat-header { flex-direction: column !important; align-items: flex-start !important; gap: 20px !important; margin-bottom: 24px !important; }
-          .plat-header-title { font-size: 20px !important; }
-          .plat-header-actions { width: 100%; }
-          .plat-header-actions .plat-btn { 
-            width: 100%; 
-            height: 48px; 
-            border-radius: 14px; 
-            justify-content: center; 
-            font-size: 15px;
-            font-weight: 600;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
-          }
-          
-          .plat-filters { margin-bottom: 16px !important; }
-          .plat-search-wrap { width: 100% !important; }
-          .plat-search-input { 
-            width: 100% !important; 
-            height: 46px !important; 
-            border-radius: 14px !important; 
-            font-size: 14px !important;
-            background: #f8fafc !important;
-          }
-          
-          .plat-card { border: none !important; box-shadow: none !important; background: transparent !important; padding: 0 !important; }
-          .plat-table-container { border: none !important; background: transparent !important; overflow: visible !important; }
-          .plat-table { display: block !important; width: 100% !important; }
-          .plat-table thead { display: none !important; }
-          .plat-table tbody { display: block !important; width: 100% !important; }
-          
-          .plat-table tr.plat-table-row-group {
-            display: block !important;
-            margin: 28px 0 14px 0 !important;
-            border: none !important;
-            background: transparent !important;
-            position: relative !important;
-          }
-          
-          .plat-table td.plat-table-milestone-cell {
-            display: block !important;
-            width: 100% !important;
-            padding: 0 !important;
-            background: transparent !important;
-            border: none !important;
-          }
-          
-          .plat-table td.plat-table-milestone-cell .flex {
-            background: #eff6ff !important;
-            padding: 10px 14px !important;
-            border-radius: 12px !important;
-            border: 1px solid #dbeafe !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: space-between !important;
-          }
+      {/* style removed */}
 
-          .plat-table tr.plat-table-row { 
-            display: block !important; 
-            margin-bottom: 20px !important; 
-            background: #ffffff !important; 
-            border: 1px solid #e2e8f0 !important; 
-            border-radius: 18px !important; 
-            padding: 4px 0 !important;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05) !important;
-            overflow: hidden !important;
-          }
-          
-          .plat-table td.plat-table-cell {
-            display: grid !important;
-            grid-template-columns: 90px 1fr !important;
-            gap: 16px !important;
-            align-items: start !important;
-            padding: 14px 20px !important;
-            border-bottom: 1px dashed #f1f5f9 !important;
-            min-height: 52px;
-            text-align: right !important;
-            width: 100% !important;
-          }
-          
-          .plat-table td.plat-table-cell:last-child { 
-            border-bottom: none !important; 
-            background: #f8fafc !important; 
-            padding-top: 14px !important; 
-            padding-bottom: 14px !important; 
-          }
-          
-          .plat-table td.plat-table-cell::before {
-            content: attr(data-label);
-            font-size: 10px !important;
-            font-weight: 800 !important;
-            color: #94a3b8 !important;
-            text-transform: uppercase !important;
-            letter-spacing: 0.05em !important;
-            text-align: left !important;
-            margin-top: 3px !important;
-          }
-
-          /* Vaccine Name specifically on mobile */
-          .plat-table td[data-label="VACCINE"] .font-semibold {
-            font-size: 15px !important;
-            color: #0f172a !important;
-            line-height: 1.4 !important;
-            word-break: break-word !important;
-          }
-          
-          .plat-table td[data-label="VACCINE"] .color-muted {
-            font-size: 11px !important;
-            line-height: 1.6 !important;
-            margin-top: 6px !important;
-          }
-
-          .plat-badge {
-            padding: 6px 12px !important;
-            font-size: 11px !important;
-            border-radius: 10px !important;
-            font-weight: 700 !important;
-          }
-          
-          .plat-btn-icon {
-            width: 40px !important;
-            height: 40px !important;
-            background: #ffffff !important;
-            border: 1px solid #e2e8f0 !important;
-            border-radius: 12px !important;
-            flex-shrink: 0 !important;
-          }
-        }
-      `}</style>
     </div>
   );
 }

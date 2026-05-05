@@ -6,6 +6,7 @@ import { useSendWhatsApp } from '../../communications/hooks/use-communications';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import type { PatientSummary, FamilyMember } from '@mmc/types';
 import { PageSkeleton } from '@/components/shared/page-skeleton';
+import { PatientFormDrawer } from '../components/patient-form-drawer';
 import '../styles/patients.css';
 
 export default function PatientDetailPage() {
@@ -22,6 +23,7 @@ export default function PatientDetailPage() {
   const [showFamilyForm, setShowFamilyForm] = useState(false);
   const [familyForm, setFamilyForm] = useState({ memberRegid: '', relation: 'Spouse' });
   const [searchQuery, setSearchQuery] = useState('');
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const { data: lookupResults = [] } = usePatientLookup(searchQuery);
 
   const handleDelete = async () => {
@@ -106,14 +108,20 @@ export default function PatientDetailPage() {
           </div>
         </div>
         <div className="pat-header-actions">
-          <Link to={`/patients/${regid}/edit`} className="btn-secondary" style={{ display: 'flex', alignItems: 'center' }}>
+          <button onClick={() => setIsDrawerOpen(true)} className="btn-secondary" style={{ display: 'flex', alignItems: 'center' }}>
             <Edit2 size={14} /> Edit
-          </Link>
+          </button>
           <button onClick={handleDelete} className="btn-secondary pat-btn-danger">
             <Trash2 size={14} /> Delete
           </button>
         </div>
       </div>
+
+      <PatientFormDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        regid={numRegid}
+      />
 
       <div className="pp-detail-grid" style={{ marginBottom: '24px' }}>
         {/* Contact Info */}

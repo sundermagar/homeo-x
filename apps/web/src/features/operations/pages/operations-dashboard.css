@@ -1,7 +1,7 @@
 /* ─── Operations Hub — Mobile-First Design System Refactor ───────────────── */
 
 .operations-dashboard {
-  max-width: 1280px;
+  width: 100%;
   margin: 0 auto;
   padding-bottom: 80px;
 }

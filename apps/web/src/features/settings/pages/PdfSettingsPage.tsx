@@ -220,59 +220,34 @@ export default function PdfSettingsPage() {
 
   return (
     <div className="plat-page fade-in">
-      <div className="plat-header">
+      <div className="pp-page-hero">
         <div>
-          <h1 className="plat-header-title">
-            <Layout size={20} className="color-primary" />
+          <h1 className="pp-page-hero-title">
+            <Layout size={22} style={{ color: 'var(--pp-blue)' }} />
             PDF & Report Designer
           </h1>
-          <p className="plat-header-sub">Manage institutional branding and clinical document layouts.</p>
+          <p className="pp-page-hero-sub">Manage institutional branding and clinical document layouts.</p>
         </div>
-        <div className="plat-header-actions" style={{ flexWrap: 'wrap', gap: '12px' }}>
-          <div style={{ 
-            display: 'flex', 
-            background: '#f8fafc', 
-            padding: '4px', 
-            borderRadius: '12px', 
-            border: '1px solid #e2e8f0',
-            boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.02)'
-          }}>
+        <div className="pp-page-hero-actions">
+          <div className="appt-segmented-toggle">
             <button
-              className="plat-btn"
-              style={{
-                background: activeTab === 'templates' ? '#fff' : 'transparent',
-                border: 'none',
-                color: activeTab === 'templates' ? 'var(--pp-blue)' : '#64748b',
-                fontWeight: 600,
-                boxShadow: activeTab === 'templates' ? '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)' : 'none',
-                borderRadius: '8px',
-                padding: '6px 16px',
-                transition: 'all 0.2s'
-              }}
+              type="button"
+              className={`appt-segmented-btn ${activeTab === 'templates' ? 'active' : ''}`}
               onClick={() => setActiveTab('templates')}
             >
-              <FileText size={14} /> Templates
+              <FileText size={16} /> Templates
             </button>
             <button
-              className="plat-btn"
-              style={{
-                background: activeTab === 'letterhead' ? '#fff' : 'transparent',
-                border: 'none',
-                color: activeTab === 'letterhead' ? 'var(--pp-blue)' : '#64748b',
-                fontWeight: 600,
-                boxShadow: activeTab === 'letterhead' ? '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)' : 'none',
-                borderRadius: '8px',
-                padding: '6px 16px',
-                transition: 'all 0.2s'
-              }}
+              type="button"
+              className={`appt-segmented-btn ${activeTab === 'letterhead' ? 'active' : ''}`}
               onClick={() => setActiveTab('letterhead')}
             >
-              <Printer size={14} /> Letterhead
+              <Printer size={16} /> Letterhead
             </button>
           </div>
           {activeTab === 'templates' && (
-            <button className="plat-btn plat-btn-primary" onClick={handleOpenCreate}>
-              <Plus size={14} /> Add Template
+            <button className="btn-primary" onClick={handleOpenCreate}>
+              <Plus size={16} strokeWidth={1.8} /> Add Template
             </button>
           )}
         </div>
@@ -280,41 +255,44 @@ export default function PdfSettingsPage() {
 
       {activeTab === 'templates' ? (
         <>
-          <div className="plat-stats-bar" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))' }}>
-            <div className="plat-stat-card">
-              <p className="plat-stat-label">Total Templates</p>
-              <p className="plat-stat-value plat-stat-value-primary">{configs.length}</p>
+          <div className="pp-stat-grid">
+            <div className="pp-stat-card-enhanced">
+              <div className="pp-stat-label">Total Templates</div>
+              <div className="pp-stat-value is-primary">{configs.length}</div>
             </div>
-            <div className="plat-stat-card">
-              <p className="plat-stat-label">Active Listing</p>
-              <p className="plat-stat-value plat-stat-value-primary">{filteredConfigs.length}</p>
+            <div className="pp-stat-card-enhanced">
+              <div className="pp-stat-label">Active Listing</div>
+              <div className="pp-stat-value is-primary">{filteredConfigs.length}</div>
             </div>
           </div>
 
-          <div className="plat-filters">
-            <div className="plat-search-wrap">
-              <Search size={14} className="plat-search-icon" />
+          <div className="pp-filter-card">
+            <div className="pp-filter-search-wrap">
+              <Search size={14} />
               <input
-                className="plat-form-input plat-search-input"
+                type="text"
                 placeholder="Search templates..."
+                className="pp-filter-search-input"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
           </div>
 
-          <div className="plat-card">
+          <div className="pp-table-container-enhanced">
             {isLoading ? (
               <TableSkeleton rows={5} columns={5} />
             ) : filteredConfigs.length === 0 ? (
-              <div className="plat-empty">
-                <Layout size={40} className="plat-empty-icon" />
-                <p className="plat-empty-text">No configurations found.</p>
+              <div className="pp-empty-enhanced" style={{ border: 'none', background: 'transparent' }}>
+                <div className="pp-empty-icon-circle">
+                  <Layout size={32} />
+                </div>
+                <p className="pp-empty-title">No configurations found</p>
+                <p className="pp-empty-sub">Add a new PDF template to customize your clinical reports.</p>
               </div>
             ) : (
               <>
-              <div className="plat-table-container">
-                <table className="plat-table">
+                <table className="pp-table">
                   <thead>
                     <tr>
                       <th style={{ width: '80px' }}>ID</th>
@@ -326,7 +304,7 @@ export default function PdfSettingsPage() {
                   </thead>
                   <tbody>
                     {paginatedData.map((config: any) => (
-                      <tr key={config.id} className="plat-table-row">
+                      <tr key={config.id} className="pp-hover-row" onClick={() => handleOpenEdit(config)} style={{ cursor: 'pointer' }}>
                         <td data-label="ID" className="plat-table-cell font-mono text-xs color-muted">{config.id}</td>
                         <td data-label="Name" className="plat-table-cell font-semibold">
                           <div className="flex items-center gap-2">
@@ -338,42 +316,26 @@ export default function PdfSettingsPage() {
                         <td data-label="Type" className="plat-table-cell font-medium" style={{ color: '#64748b' }}>
                           {config.isDefault ? 'Default' : 'Custom'}
                         </td>
-                        <td className="plat-table-cell">
+                        <td data-label="Actions" className="plat-table-cell">
                           <div className="flex justify-end gap-2">
                             <button 
-                              className="plat-btn plat-btn-sm" 
-                              style={{ 
-                                background: '#fff', 
-                                border: '1px solid #e2e8f0', 
-                                padding: '6px',
-                                color: '#64748b' 
-                              }} 
-                              onClick={() => handlePrintPreview(config)} 
+                              className="plat-btn plat-btn-sm plat-btn-icon" 
+                              onClick={(e) => { e.stopPropagation(); handlePrintPreview(config); }} 
                               title="Preview & Print"
                             >
                               <Eye size={14} />
                             </button>
                             <button 
-                              className="plat-btn plat-btn-sm" 
-                              style={{ 
-                                background: '#fff', 
-                                border: '1px solid #e2e8f0', 
-                                padding: '6px',
-                                color: '#64748b' 
-                              }} 
-                              onClick={() => handleOpenEdit(config)}
+                              className="plat-btn plat-btn-sm plat-btn-icon" 
+                              onClick={(e) => { e.stopPropagation(); handleOpenEdit(config); }}
+                              title="Edit Template"
                             >
                               <Edit2 size={14} />
                             </button>
                             <button 
-                              className="plat-btn plat-btn-sm" 
-                              style={{ 
-                                background: '#fff', 
-                                border: '1px solid #fee2e2', 
-                                padding: '6px',
-                                color: 'var(--pp-danger-fg)' 
-                              }} 
-                              onClick={() => { if (confirm(`Delete config?`)) deletePdf.mutate(config.id) }}
+                              className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" 
+                              onClick={(e) => { e.stopPropagation(); if (confirm(`Delete config?`)) deletePdf.mutate(config.id); }}
+                              title="Delete"
                             >
                               <Trash2 size={14} />
                             </button>
@@ -383,14 +345,15 @@ export default function PdfSettingsPage() {
                     ))}
                   </tbody>
                 </table>
-              </div>
-              <Pagination
-                totalItems={totalItems}
-                itemsPerPage={itemsPerPage}
-                currentPage={currentPage}
-                onPageChange={setCurrentPage}
-                onLimitChange={setItemsPerPage}
-              />
+                <div style={{ padding: '0 20px 20px' }}>
+                  <Pagination
+                    totalItems={totalItems}
+                    itemsPerPage={itemsPerPage}
+                    currentPage={currentPage}
+                    onPageChange={setCurrentPage}
+                    onLimitChange={setItemsPerPage}
+                  />
+                </div>
               </>
             )}
           </div>
@@ -405,121 +368,161 @@ export default function PdfSettingsPage() {
           `}</style>
 
           {/* Letterhead Designer Form */}
-          <div className="plat-card letterhead-designer-card">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
-              <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <ShieldCheck size={22} />
+          <div className="pp-table-container-enhanced letterhead-designer-card" style={{ padding: '32px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 40 }}>
+              <div className="pp-empty-icon-circle" style={{ width: 52, height: 52, marginBottom: 0, background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)' }}>
+                <ShieldCheck size={26} />
               </div>
               <div>
-                <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--pp-ink)', margin: 0 }}>Letterhead Identity Designer</h2>
-                <p style={{ fontSize: '0.8rem', color: 'var(--pp-text-3)', margin: 0 }}>Configure the branding nodes used across all automated clinical documents.</p>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--pp-ink)', margin: 0, letterSpacing: '-0.02em' }}>Letterhead Identity Designer</h2>
+                <p style={{ fontSize: '0.85rem', color: 'var(--pp-text-3)', margin: '4px 0 0 0', fontWeight: 500 }}>Configure the branding nodes used across all automated clinical documents.</p>
               </div>
             </div>
 
             {clinicForm && (
               <form onSubmit={handleClinicSubmit}>
-                <div className="plat-form-grid-multi">
-                  <div className="plat-form-group">
-                    <label className="plat-form-label font-bold">CLINIC NAME*</label>
+                {/* Identity Section */}
+                <div style={{ marginBottom: 32 }}>
+                  <h4 style={{ fontSize: '0.7rem', fontWeight: 850, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Layout size={12} /> Institutional Identity
+                  </h4>
+                  <div className="plat-form-grid-multi">
+                    <div className="plat-form-group">
+                      <label className="plat-form-label font-bold">CLINIC NAME*</label>
+                      <input
+                        className="plat-form-input"
+                        value={clinicForm.name}
+                        onChange={e => setClinicForm((f: any) => ({ ...f, name: e.target.value }))}
+                        required
+                        placeholder="e.g. Hope Wellness Center"
+                      />
+                    </div>
+                    <div className="plat-form-group">
+                      <label className="plat-form-label font-bold">REGISTRATION / LICENSE</label>
+                      <input
+                        className="plat-form-input"
+                        value={clinicForm.registration}
+                        onChange={e => setClinicForm((f: any) => ({ ...f, registration: e.target.value }))}
+                        placeholder="e.g. Reg No: 1725-A"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="plat-form-group mt-6">
+                    <label className="plat-form-label font-bold">PRIMARY TAGLINE / SLOGAN</label>
                     <input
                       className="plat-form-input"
-                      value={clinicForm.name}
-                      onChange={e => setClinicForm((f: any) => ({ ...f, name: e.target.value }))}
-                      required
+                      value={clinicForm.tagLine}
+                      onChange={e => setClinicForm((f: any) => ({ ...f, tagLine: e.target.value }))}
+                      placeholder="e.g. Specialist in Chronic Diseases & Holistic Care"
                     />
                   </div>
-                  <div className="plat-form-group">
-                    <label className="plat-form-label font-bold">REGISTRATION / LICENSE</label>
-                    <input
-                      className="plat-form-input"
-                      value={clinicForm.registration}
-                      onChange={e => setClinicForm((f: any) => ({ ...f, registration: e.target.value }))}
-                      placeholder="e.g. Reg No: 1725-A"
-                    />
+
+                  <div className="plat-form-group mt-6">
+                    <label className="plat-form-label font-bold">LOGO ENDPOINT (URL)</label>
+                    <div style={{ position: 'relative' }}>
+                      <ImageIcon size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--pp-text-3)' }} />
+                      <input
+                        className="plat-form-input font-mono text-xs"
+                        style={{ paddingLeft: 36 }}
+                        value={clinicForm.logo}
+                        onChange={e => setClinicForm((f: any) => ({ ...f, logo: e.target.value }))}
+                        placeholder="https://example.com/logo.png"
+                      />
+                    </div>
                   </div>
                 </div>
 
-                <div className="plat-form-group mt-6">
-                  <label className="plat-form-label font-bold">PRIMARY TAGLINE / SLOGAN</label>
-                  <input
-                    className="plat-form-input"
-                    value={clinicForm.tagLine}
-                    onChange={e => setClinicForm((f: any) => ({ ...f, tagLine: e.target.value }))}
-                    placeholder="e.g. Specialist in Chronic Diseases"
-                  />
-                </div>
-
-                <div className="plat-form-group mt-6">
-                  <label className="plat-form-label font-bold">LOGO ENDPOINT (URL)</label>
-                  <input
-                    className="plat-form-input font-mono text-xs"
-                    value={clinicForm.logo}
-                    onChange={e => setClinicForm((f: any) => ({ ...f, logo: e.target.value }))}
-                    placeholder="https://example.com/logo.png"
-                  />
-                </div>
-
-                <div className="plat-form-grid-multi mt-6">
-                  <div className="plat-form-group">
-                    <label className="plat-form-label font-bold">ADDRESS LINE 1</label>
-                    <input
-                      className="plat-form-input"
-                      value={clinicForm.address}
-                      onChange={e => setClinicForm((f: any) => ({ ...f, address: e.target.value }))}
-                    />
-                  </div>
-                  <div className="plat-form-group">
-                    <label className="plat-form-label font-bold">ADDRESS LINE 2 / LANDMARK</label>
-                    <input
-                      className="plat-form-input"
-                      value={clinicForm.address2}
-                      onChange={e => setClinicForm((f: any) => ({ ...f, address2: e.target.value }))}
-                    />
+                {/* Location Section */}
+                <div style={{ marginBottom: 32 }}>
+                  <h4 style={{ fontSize: '0.7rem', fontWeight: 850, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <MapPin size={12} /> Physical Location
+                  </h4>
+                  <div className="plat-form-grid-multi">
+                    <div className="plat-form-group">
+                      <label className="plat-form-label font-bold">ADDRESS LINE 1</label>
+                      <input
+                        className="plat-form-input"
+                        value={clinicForm.address}
+                        onChange={e => setClinicForm((f: any) => ({ ...f, address: e.target.value }))}
+                        placeholder="House No, Street Name"
+                      />
+                    </div>
+                    <div className="plat-form-group">
+                      <label className="plat-form-label font-bold">ADDRESS LINE 2 / LANDMARK</label>
+                      <input
+                        className="plat-form-input"
+                        value={clinicForm.address2}
+                        onChange={e => setClinicForm((f: any) => ({ ...f, address2: e.target.value }))}
+                        placeholder="City, State, ZIP"
+                      />
+                    </div>
                   </div>
                 </div>
 
-                <div className="plat-form-grid-multi mt-6">
-                  <div className="plat-form-group">
-                    <label className="plat-form-label font-bold">CONTACT PHONE</label>
-                    <NumericInput
-                      className="plat-form-input"
-                      value={clinicForm.phone}
-                      onChange={e => setClinicForm((f: any) => ({ ...f, phone: e.target.value }))}
-                    />
+                {/* Contact & Hours Section */}
+                <div style={{ marginBottom: 40 }}>
+                  <h4 style={{ fontSize: '0.7rem', fontWeight: 850, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Phone size={12} /> Communication & Hours
+                  </h4>
+                  <div className="plat-form-grid-multi">
+                    <div className="plat-form-group">
+                      <label className="plat-form-label font-bold">CONTACT PHONE</label>
+                      <NumericInput
+                        className="plat-form-input"
+                        value={clinicForm.phone}
+                        onChange={e => setClinicForm((f: any) => ({ ...f, phone: e.target.value }))}
+                        placeholder="Phone number"
+                      />
+                    </div>
+                    <div className="plat-form-group">
+                      <label className="plat-form-label font-bold">CLINIC TIMINGS</label>
+                      <div style={{ position: 'relative' }}>
+                        <Clock size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--pp-text-3)' }} />
+                        <input
+                          className="plat-form-input"
+                          style={{ paddingLeft: 36 }}
+                          value={clinicForm.timing}
+                          onChange={e => setClinicForm((f: any) => ({ ...f, timing: e.target.value }))}
+                          placeholder="e.g. 10:00 AM - 8:00 PM"
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div className="plat-form-group">
-                    <label className="plat-form-label font-bold">CLINIC TIMINGS</label>
-                    <input
-                      className="plat-form-input"
-                      value={clinicForm.timing}
-                      onChange={e => setClinicForm((f: any) => ({ ...f, timing: e.target.value }))}
-                      placeholder="e.g. 10:00 AM - 8:00 PM"
-                    />
+
+                  <div className="plat-form-grid-multi mt-6">
+                    <div className="plat-form-group">
+                      <label className="plat-form-label font-bold">OFFICIAL EMAIL</label>
+                      <div style={{ position: 'relative' }}>
+                        <Mail size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--pp-text-3)' }} />
+                        <input
+                          className="plat-form-input"
+                          style={{ paddingLeft: 36 }}
+                          type="email"
+                          value={clinicForm.email}
+                          onChange={e => setClinicForm((f: any) => ({ ...f, email: e.target.value }))}
+                          placeholder="contact@clinic.com"
+                        />
+                      </div>
+                    </div>
+                    <div className="plat-form-group">
+                      <label className="plat-form-label font-bold">WEBSITE</label>
+                      <div style={{ position: 'relative' }}>
+                        <Globe size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--pp-text-3)' }} />
+                        <input
+                          className="plat-form-input"
+                          style={{ paddingLeft: 36 }}
+                          value={clinicForm.website}
+                          onChange={e => setClinicForm((f: any) => ({ ...f, website: e.target.value }))}
+                          placeholder="www.clinic.com"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div className="plat-form-grid-multi mt-6">
-                  <div className="plat-form-group">
-                    <label className="plat-form-label font-bold">OFFICIAL EMAIL</label>
-                    <input
-                      className="plat-form-input"
-                      type="email"
-                      value={clinicForm.email}
-                      onChange={e => setClinicForm((f: any) => ({ ...f, email: e.target.value }))}
-                    />
-                  </div>
-                  <div className="plat-form-group">
-                    <label className="plat-form-label font-bold">WEBSITE</label>
-                    <input
-                      className="plat-form-input"
-                      value={clinicForm.website}
-                      onChange={e => setClinicForm((f: any) => ({ ...f, website: e.target.value }))}
-                    />
-                  </div>
-                </div>
-
-                <div style={{ marginTop: 40 }}>
-                  <button type="submit" className="plat-btn plat-btn-primary px-12 h-12 text-base" disabled={updateOrg.isPending}>
+                <div>
+                  <button type="submit" className="btn-primary px-12 h-14 text-base w-full sm:w-auto" style={{ borderRadius: 16, boxShadow: 'var(--pp-shadow-md)' }} disabled={updateOrg.isPending}>
                     {updateOrg.isPending ? 'Synchronizing Identity...' : 'INITIALIZE BRAND PROTOCOL'}
                   </button>
                 </div>
@@ -848,64 +851,7 @@ export default function PdfSettingsPage() {
           </div>
         </form>
       </Drawer>
-      <style>{`
-        @media (max-width: 1024px) {
-          .plat-header { flex-direction: column !important; align-items: stretch !important; gap: 16px !important; }
-          .plat-header-actions { width: 100%; flex-direction: column !important; }
-          .plat-header-actions > div { width: 100% !important; justify-content: space-between; }
-          .plat-header-actions .plat-btn { width: 100%; height: 44px; border-radius: 12px; justify-content: center; }
-          
-          .plat-stats-bar { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
-          .plat-stat-card { padding: 12px !important; }
-          .plat-stat-value { font-size: 18px !important; }
-          
-          .plat-filters { flex-direction: column; align-items: stretch; gap: 12px; }
-          .plat-search-wrap { width: 100% !important; }
-          .plat-search-input { width: 100% !important; height: 44px !important; border-radius: 12px !important; }
-          
-          .plat-card { border: none !important; box-shadow: none !important; background: transparent !important; padding: 0 !important; }
-          .plat-table-container { border: none !important; background: transparent !important; overflow: visible !important; }
-          .plat-table { display: block !important; width: 100% !important; }
-          .plat-table thead { display: none !important; }
-          .plat-table tbody { display: block !important; width: 100% !important; }
-          .plat-table tr { 
-            display: block !important; 
-            margin-bottom: 20px !important; 
-            background: var(--bg-card) !important; 
-            border: 1px solid var(--border-main) !important; 
-            border-radius: 16px !important; 
-            padding: 8px 0 !important;
-            box-shadow: var(--pp-shadow-sm) !important;
-          }
-          .plat-table td {
-            display: grid !important;
-            grid-template-columns: 110px 1fr !important;
-            gap: 12px !important;
-            align-items: center !important;
-            padding: 12px 20px !important;
-            border-bottom: 1px dashed var(--border-main) !important;
-            min-height: 48px;
-            text-align: right !important;
-            width: 100% !important;
-          }
-          .plat-table td:last-child { border-bottom: none !important; background: var(--bg-surface-2) !important; padding-top: 16px !important; padding-bottom: 16px !important; border-bottom-left-radius: 15px; border-bottom-right-radius: 15px; }
-          .plat-table td::before {
-            content: attr(data-label);
-            font-size: 10px !important;
-            font-weight: 800 !important;
-            color: var(--text-muted) !important;
-            text-transform: uppercase !important;
-            letter-spacing: 0.05em !important;
-            text-align: left !important;
-          }
 
-          .plat-settings-grid { grid-template-columns: 1fr !important; }
-          .letterhead-designer-card { padding: 20px !important; border-radius: 16px !important; background: var(--bg-card) !important; border: 1px solid var(--border-main) !important; }
-          .letterhead-canvas-outer { padding: 30px 10px !important; border-radius: 20px !important; }
-          .letterhead-a4-sheet { padding: 25px 20px !important; min-height: 600px !important; }
-          .letterhead-canvas-header { padding: 12px !important; gap: 15px !important; }
-        }
-      `}</style>
     </div>
   );
 }

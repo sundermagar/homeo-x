@@ -363,61 +363,7 @@ export default function ExpensesPage() {
           </div>
         </div>
       )}
-      <style>{`
-        @media (max-width: 1024px) {
-          .bill-header { flex-direction: column !important; align-items: stretch !important; gap: 16px !important; }
-          .bill-header-actions { width: 100%; }
-          .bill-header-actions .bill-btn { width: 100%; height: 44px; border-radius: 12px; justify-content: center; }
 
-          .bill-stats-bar { grid-template-columns: 1fr !important; gap: 12px !important; }
-          .bill-stat-card { padding: 16px !important; }
-          .bill-stat-value { font-size: 20px !important; }
-
-          .bill-filters { flex-direction: column !important; align-items: stretch !important; gap: 12px !important; }
-          .bill-search-wrap { width: 100% !important; }
-          .bill-search-input { width: 100% !important; height: 44px; border-radius: 12px; }
-          .bill-filter-input { width: 100% !important; height: 44px; border-radius: 12px; }
-
-          .bill-card { border: none !important; box-shadow: none !important; background: transparent !important; }
-          .bill-table-container { border: none !important; background: transparent !important; overflow: visible !important; }
-          .bill-table { display: block !important; width: 100% !important; min-width: 0 !important; }
-          .bill-table thead { display: none !important; }
-          .bill-table tbody { display: block !important; width: 100% !important; }
-          .bill-table tr { 
-            display: block !important; 
-            margin-bottom: 20px !important; 
-            background: var(--bg-card) !important; 
-            border: 1px solid var(--border-main) !important; 
-            border-radius: 16px !important; 
-            padding: 8px 0 !important;
-            box-shadow: var(--pp-shadow-sm) !important;
-          }
-          .bill-table td {
-            display: grid !important;
-            grid-template-columns: 110px 1fr !important;
-            gap: 12px !important;
-            align-items: center !important;
-            padding: 12px 20px !important;
-            border-bottom: 1px dashed var(--border-main) !important;
-            min-height: 48px;
-            text-align: right !important;
-            width: 100% !important;
-          }
-          .bill-table td:last-child { border-bottom: none !important; background: var(--bg-surface-2) !important; margin-top: 4px; padding-top: 16px !important; padding-bottom: 16px !important; }
-          
-          .bill-table td::before {
-            content: attr(data-label);
-            font-size: 10px !important;
-            font-weight: 800 !important;
-            color: var(--text-muted) !important;
-            text-transform: uppercase !important;
-            letter-spacing: 0.08em !important;
-            text-align: left !important;
-          }
-          .plat-cell-val { width: 100% !important; text-align: right !important; display: flex !important; flex-direction: column !important; align-items: flex-end !important; }
-          [data-label="ID"] { background: var(--bg-surface-2) !important; border-bottom: 1px solid var(--border-main) !important; margin-bottom: 4px; }
-        }
-      `}</style>
     </div>
   );
 }

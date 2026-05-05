@@ -20,6 +20,16 @@ import type { IDashboardRepository } from '../../domains/dashboard/ports/dashboa
 export class DashboardRepositoryPg implements IDashboardRepository {
   private static cachedRevInfo: Record<string, any> = {};
   private static cachedDocCol: Record<string, string> = {};
+  private static cache = new Map<string, { data: unknown; expires: number }>();
+
+  private getCached<T>(key: string, ttlMs: number, fetch: () => Promise<T>): Promise<T> {
+    const entry = DashboardRepositoryPg.cache.get(key);
+    if (entry && entry.expires > Date.now()) return Promise.resolve(entry.data as T);
+    return fetch().then(data => {
+      DashboardRepositoryPg.cache.set(key, { data, expires: Date.now() + ttlMs });
+      return data;
+    });
+  }
 
   constructor(private readonly db: DbClient) { }
 
@@ -121,113 +131,118 @@ export class DashboardRepositoryPg implements IDashboardRepository {
   }
 
   async getKpis(period: string, contextId: number, doctorId?: number): Promise<DashboardKpis> {
-    const { start, boundary, prevStart, prevBoundary } = this.getPeriodDates(period);
+    return this.getCached(`kpis:${contextId}:${period}:${doctorId ?? ''}`, 30_000, async () => {
+      const { start, boundary, prevStart, prevBoundary } = this.getPeriodDates(period);
+      const docCol = await this.getDoctorColumn();
+      
+      const docApptFilter = doctorId ? sql` AND ${sql.identifier(docCol)} = ${doctorId}` : sql``;
+      const docWaitFilter = doctorId ? sql` AND doctor_id = ${doctorId}` : sql``;
+      const docBillFilter = doctorId ? sql` AND b.doctor_id = ${doctorId}` : sql``;
 
     // Single round-trip: 4 queries instead of 9 (merged prev/curr + eliminated duplicate bills scans)
-    const [patientsRes, expensesRes, currRes, prevRes, prevRecRes, followUpRes, currWaitRes, prevWaitRes] = await Promise.all([
-      // 0. Patients: current + previous
+    const [countsRes, financeRes, waitRes, followUpRes] = await Promise.all([
+      // 1. All Patient & Appointment Counts (Current & Previous)
       this.db.execute(sql`
         SELECT
-          count(*) FILTER (WHERE clinic_id = ${contextId} AND created_at >= ${start}::timestamp AND created_at < ${boundary}::timestamp AND (deleted_at IS NULL OR deleted_at::text = ''))::int as curr_patients,
-          count(*) FILTER (WHERE clinic_id = ${contextId} AND created_at >= ${prevStart}::timestamp AND created_at < ${prevBoundary}::timestamp AND (deleted_at IS NULL OR deleted_at::text = ''))::int as prev_patients
-        FROM patients
+          count(*) FILTER (WHERE type = 'P' AND created_at >= ${start}::timestamp AND created_at < ${boundary}::timestamp)::int as curr_patients,
+          count(*) FILTER (WHERE type = 'P' AND created_at >= ${prevStart}::timestamp AND created_at < ${prevBoundary}::timestamp)::int as prev_patients,
+          count(*) FILTER (WHERE type = 'A' AND date >= ${start}::date AND date < ${boundary}::date)::int as curr_appts,
+          count(*) FILTER (WHERE type = 'A' AND date >= ${prevStart}::date AND date < ${prevBoundary}::date)::int as prev_appts
+        FROM (
+          SELECT 'P' as type, created_at, NULL::date as date FROM patients WHERE clinic_id = ${contextId} AND (deleted_at IS NULL OR deleted_at::text = '')
+          UNION ALL
+          SELECT 'A' as type, created_at, booking_date as date FROM appointments WHERE clinic_id = ${contextId} AND (deleted_at IS NULL OR deleted_at::text = '') ${docApptFilter}
+        ) t
       `),
-      // 1. Expenses for current period
-      this.db.execute(sql`
-        SELECT COALESCE(sum(amount), 0)::int as total
-        FROM expenses
-        WHERE exp_date >= ${start}::date AND exp_date < ${boundary}::date
-          AND (deleted_at IS NULL OR deleted_at::text = '')
-      `),
-      // 2. Current period: bills charges/received + receipt total
-      this.db.execute(sql`
-        SELECT
-          COALESCE(sum(charges), 0)::numeric as charges,
-          COALESCE(sum(received), 0)::numeric as received,
-          COALESCE(sum(received), 0) + COALESCE((SELECT sum(CAST(NULLIF(amount::text, '') AS numeric)) FROM receipt WHERE created_at >= ${start}::timestamp AND created_at < ${boundary}::timestamp AND (deleted_at IS NULL OR deleted_at::text = '')), 0) as revenue
-        FROM bills
-        WHERE bill_date >= ${start}::date AND bill_date < ${boundary}::date
-          AND (deleted_at IS NULL OR deleted_at::text = '')
-      `),
-      // 3. Previous period bills
+      // 2. All Financials (Revenue, Charges, Received, Expenses)
       this.db.execute(sql`
         SELECT
-          COALESCE(sum(charges), 0)::numeric as charges,
-          COALESCE(sum(received), 0)::numeric as received
-        FROM bills
-        WHERE bill_date >= ${prevStart}::date AND bill_date < ${prevBoundary}::date
-          AND (deleted_at IS NULL OR deleted_at::text = '')
+          -- Current
+          COALESCE(sum(curr_bill_charges), 0)::numeric as curr_charges,
+          COALESCE(sum(curr_bill_received), 0)::numeric as curr_received,
+          COALESCE(sum(curr_bill_received), 0) + COALESCE(sum(curr_receipt_amt), 0) as curr_revenue,
+          COALESCE(sum(curr_expenses), 0)::int as curr_expenses,
+          -- Previous
+          COALESCE(sum(prev_bill_charges), 0)::numeric as prev_charges,
+          COALESCE(sum(prev_bill_received), 0)::numeric as prev_received,
+          COALESCE(sum(prev_bill_received), 0) + COALESCE(sum(prev_receipt_amt), 0) as prev_revenue
+        FROM (
+          -- Current Bills
+          SELECT b.charges as curr_bill_charges, b.received as curr_bill_received, 0 as curr_receipt_amt, 0 as curr_expenses, 0 as prev_bill_charges, 0 as prev_bill_received, 0 as prev_receipt_amt 
+          FROM bills b JOIN patients pb ON pb.regid = b.regid
+          WHERE b.bill_date >= ${start}::date AND b.bill_date < ${boundary}::date AND pb.clinic_id = ${contextId} AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
+          ${docBillFilter}
+
+          UNION ALL
+          
+          -- Current Receipts (Note: Receipts don't have doctor_id, so we keep them clinic-wide or filter by patient? 
+          -- For now keeping them clinic-wide as per original logic, but allowing future expansion)
+          SELECT 0, 0, CAST(NULLIF(r.amount::text, '') AS numeric), 0, 0, 0, 0 
+          FROM receipt r JOIN patients pr ON pr.regid = r.regid
+          WHERE r.created_at >= ${start}::timestamp AND r.created_at < ${boundary}::timestamp AND pr.clinic_id = ${contextId} AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
+          
+          UNION ALL
+          
+          -- Current Expenses
+          SELECT 0, 0, 0, amount, 0, 0, 0 FROM expenses 
+          WHERE exp_date >= ${start}::date AND exp_date < ${boundary}::date AND clinic_id = ${contextId} AND (deleted_at IS NULL OR deleted_at::text = '')
+          
+          UNION ALL
+          
+          -- Previous Bills
+          SELECT 0, 0, 0, 0, b.charges, b.received, 0 
+          FROM bills b JOIN patients pb ON pb.regid = b.regid
+          WHERE b.bill_date >= ${prevStart}::date AND b.bill_date < ${prevBoundary}::date AND pb.clinic_id = ${contextId} AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
+          ${docBillFilter}
+
+          UNION ALL
+          
+          -- Previous Receipts
+          SELECT 0, 0, 0, 0, 0, 0, CAST(NULLIF(r.amount::text, '') AS numeric) 
+          FROM receipt r JOIN patients pr ON pr.regid = r.regid
+          WHERE r.created_at >= ${prevStart}::timestamp AND r.created_at < ${prevBoundary}::timestamp AND pr.clinic_id = ${contextId} AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
+        ) f
       `),
-      // 4. Previous Receipts
+      // 3. Wait Times (Current & Previous)
       this.db.execute(sql`
-        SELECT COALESCE(sum(CAST(NULLIF(amount::text, '') AS numeric)), 0) as revenue
-        FROM receipt
-        WHERE created_at >= ${prevStart}::timestamp AND created_at < ${prevBoundary}::timestamp
-          AND (deleted_at IS NULL OR deleted_at::text = '')
-      `),
-      // 5. Follow-ups
-      this.db.execute(sql`
-        SELECT count(*)::int as count
-        FROM appointments
-        WHERE clinic_id = ${contextId}
-          AND booking_date >= ${start} AND booking_date < ${boundary}
-          AND visit_type = 'FollowUp'
-          AND (deleted_at IS NULL OR deleted_at::text = '')
-      `),
-      // 6. Wait Time: Current period
-      this.db.execute(sql`
-        SELECT COALESCE(avg(extract(epoch from (called_at - checked_in_at))/60), 0)::int as avg_wait
+        SELECT
+          COALESCE(avg(extract(epoch from (called_at - checked_in_at))/60) FILTER (WHERE date >= ${start}::date AND date < ${boundary}::date), 0)::int as curr_wait,
+          COALESCE(avg(extract(epoch from (called_at - checked_in_at))/60) FILTER (WHERE date >= ${prevStart}::date AND date < ${prevBoundary}::date), 0)::int as prev_wait
         FROM waitlist
-        WHERE clinic_id = ${contextId}
-          AND date >= ${start}::date AND date < ${boundary}::date
-          AND called_at IS NOT NULL AND checked_in_at IS NOT NULL
-          AND (deleted_at IS NULL OR deleted_at::text = '')
+        WHERE clinic_id = ${contextId} AND called_at IS NOT NULL AND checked_in_at IS NOT NULL AND (deleted_at IS NULL OR deleted_at::text = '')
+        ${docWaitFilter}
       `),
-      // 7. Wait Time: Previous period
+      // 4. Follow-ups (Current)
       this.db.execute(sql`
-        SELECT COALESCE(avg(extract(epoch from (called_at - checked_in_at))/60), 0)::int as avg_wait
-        FROM waitlist
-        WHERE clinic_id = ${contextId}
-          AND date >= ${prevStart}::date AND date < ${prevBoundary}::date
-          AND called_at IS NOT NULL AND checked_in_at IS NOT NULL
-          AND (deleted_at IS NULL OR deleted_at::text = '')
+        SELECT count(*)::int as count FROM appointments
+        WHERE clinic_id = ${contextId} AND booking_date >= ${start} AND booking_date < ${boundary} AND visit_type = 'FollowUp' AND (deleted_at IS NULL OR deleted_at::text = '')
+        ${docApptFilter}
       `),
     ]) as any[];
 
-    const curr = currRes[0] || { charges: 0, received: 0, revenue: 0 };
-    const prev = prevRes[0] || { charges: 0, received: 0 };
-    const prevRec = prevRecRes[0] || { revenue: 0 };
-    const pat = patientsRes[0] || { curr_patients: 0, prev_patients: 0 };
-    const exp = expensesRes[0] || { total: 0 };
+    const counts = countsRes[0] || { curr_patients: 0, prev_patients: 0, curr_appts: 0, prev_appts: 0 };
+    const finance = financeRes[0] || { curr_charges: 0, curr_received: 0, curr_revenue: 0, curr_expenses: 0, prev_charges: 0, prev_received: 0, prev_revenue: 0 };
+    const wait = waitRes[0] || { curr_wait: 0, prev_wait: 0 };
     const followUp = followUpRes[0] || { count: 0 };
-    const currW = currWaitRes[0] || { avg_wait: 0 };
-    const prevW = prevWaitRes[0] || { avg_wait: 0 };
 
-    const currE = Number(curr.revenue) || 0;
-    const prevE = (Number(prev.received) || 0) + (Number(prevRec.revenue) || 0);
-    const currP = pat.curr_patients || 0;
-    const prevP = pat.prev_patients || 0;
+    const currE = Number(finance.curr_revenue) || 0;
+    const prevE = Number(finance.prev_revenue) || 0;
+    const currP = counts.curr_patients || 0;
+    const prevP = counts.prev_patients || 0;
 
     const revTrend = prevE > 0 ? ((currE - prevE) / prevE * 100).toFixed(1) : '0.0';
     const patTrend = prevP > 0 ? ((currP - prevP) / prevP * 100).toFixed(1) : '0.0';
 
-    const currRate = Number(curr.charges) > 0 ? Math.round((Number(curr.received) / Number(curr.charges)) * 100) : 0;
-    const prevRate = Number(prev.charges) > 0 ? Math.round((Number(prev.received) / Number(prev.charges)) * 100) : 0;
+    const currRate = Number(finance.curr_charges) > 0 ? Math.round((Number(finance.curr_received) / Number(finance.curr_charges)) * 100) : 0;
+    const prevRate = Number(finance.prev_charges) > 0 ? Math.round((Number(finance.prev_received) / Number(finance.prev_charges)) * 100) : 0;
     const collTrend = prevRate > 0 ? ((currRate - prevRate) / prevRate * 100).toFixed(1) : '0.0';
 
-    const currWait = Number(currW.avg_wait) || 0;
-    const prevWait = Number(prevW.avg_wait) || 0;
+    const currWait = Number(wait.curr_wait) || 0;
+    const prevWait = Number(wait.prev_wait) || 0;
     const waitTrend = prevWait > 0 ? ((currWait - prevWait) / prevWait * 100).toFixed(1) : '0.0';
 
-    const casesCount = Number(followUp.count) || 0; // In a real scenario, this might be total appointments
-    // We'll use total appointments as 'casesCount' for the Super Admin overview
-    const [currAppts, prevAppts] = await Promise.all([
-      this.db.execute(sql`SELECT count(*)::int as cnt FROM appointments WHERE booking_date >= ${start} AND booking_date < ${boundary} AND (deleted_at IS NULL OR deleted_at::text = '')`),
-      this.db.execute(sql`SELECT count(*)::int as cnt FROM appointments WHERE booking_date >= ${prevStart} AND booking_date < ${prevBoundary} AND (deleted_at IS NULL OR deleted_at::text = '')`)
-    ]) as any[];
-
-    const currA = currAppts[0]?.cnt || 0;
-    const prevA = prevAppts[0]?.cnt || 0;
+    const currA = counts.curr_appts || 0;
+    const prevA = counts.prev_appts || 0;
     const casesTrend = prevA > 0 ? (((currA - prevA) / prevA) * 100).toFixed(1) : '0.0';
 
     return {
@@ -238,173 +253,127 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       todaysCollection: currE,
       revenueTrend: revTrend,
       followUpsCount: followUp.count || 0,
-      todaysExpenses: Number(exp.total) || 0,
+      todaysExpenses: Number(finance.curr_expenses) || 0,
       collectionRate: currRate,
       collectionRateTrend: collTrend,
       avgWaitTime: currWait,
       avgWaitTimeTrend: waitTrend
     } as DashboardKpis;
+    });
   }
 
   async getTodayQueue(contextId: number, doctorId?: number): Promise<QueueItem[]> {
     const today = new Date().toISOString().split('T')[0]!;
+    return this.getCached(`queue:${contextId}:${today}:${doctorId ?? ''}`, 30_000, async () => {
+      const docCond = doctorId ? sql` AND w.doctor_id = ${doctorId}` : sql``;
+      const apptCond = doctorId ? sql` AND a.doctor_id = ${doctorId}` : sql``;
 
-    // Step 1: Get today's waitlist (source of truth for Token Queue)
-    let waitlistRows: any[] = [];
-    try {
-      const wlResult = await this.db.execute(sql`
+      const result = await this.db.execute(sql`
+        WITH today_waitlist AS (
+          SELECT
+            w.id as wl_id,
+            w.appointment_id,
+            w.patient_id,
+            w.doctor_id,
+            w.waiting_number as token_no,
+            w.status,
+            w.checked_in_at
+          FROM waitlist w
+          WHERE w.date = ${today}::date AND w.clinic_id = ${contextId} AND (w.deleted_at IS NULL OR w.deleted_at::text = '')
+            ${docCond}
+        )
         SELECT
-          w.id                                    AS wl_id,
-          COALESCE(a.id, w.id * -1)               AS id,
-          COALESCE(w.patient_id, a.patient_id)    AS patient_id,
-          w.doctor_id,
-          w.waiting_number                        AS token_no,
-          CASE
-            WHEN w.status = 1 THEN 'Consultation'
-            WHEN w.status = 2 THEN 'Completed'
-            ELSE 'Waitlist'
-          END                                     AS status,
-          COALESCE(
-            p.first_name || ' ' || p.surname,
-            a.patient_name, 'Unknown Patient'
-          )                                       AS patient_name,
-          COALESCE(p.regid, p.id, w.patient_id)   AS regid,
-          w.checked_in_at                         AS created_at,
-          w.checked_in_at                         AS updated_at,
-          COALESCE(a.booking_time, '')            AS booking_time,
-          COALESCE(
-            (SELECT name FROM doctors WHERE id = w.doctor_id LIMIT 1),
-            (SELECT name FROM users   WHERE id = w.doctor_id LIMIT 1),
-            'Practitioner'
-          )                                       AS doctor_name,
-          v.systolic_bp,
-          v.diastolic_bp,
-          v.weight_kg,
-          v.temperature_f
-        FROM waitlist w
-        LEFT JOIN patients     p ON p.id = w.patient_id
-        LEFT JOIN appointments a ON a.id = w.appointment_id
-        LEFT JOIN vitals       v ON v.visit_id = COALESCE(a.id, w.appointment_id)
-        WHERE w.date = ${today}::date
-          AND w.clinic_id = ${contextId}
-          AND (w.deleted_at IS NULL OR w.deleted_at::text = '')
-        ORDER BY w.waiting_number ASC
+          q.wl_id,
+          q.id,
+          q.patient_id,
+          q.doctor_id,
+          q.token_no,
+          q.status,
+          q.manual_name,
+          q.created_at,
+          q.booking_time,
+          q.visit_id,
+          COALESCE(p.first_name || ' ' || p.surname, q.manual_name, 'Unknown Patient') as patient_name,
+          COALESCE(p.regid, p.id, q.patient_id) as regid,
+          COALESCE(d.name, u.name, 'Practitioner') as doctor_name
+        FROM (
+          SELECT
+            tw.wl_id,
+            COALESCE(a.id, tw.wl_id * -1) as id,
+            tw.patient_id,
+            tw.doctor_id,
+            tw.token_no,
+            CASE WHEN tw.status = 1 THEN 'Consultation' WHEN tw.status = 2 THEN 'Completed' ELSE 'Waitlist' END as status,
+            a.patient_name as manual_name,
+            tw.checked_in_at as created_at,
+            COALESCE(a.booking_time, '') as booking_time,
+            COALESCE(a.id, tw.appointment_id) as visit_id
+          FROM today_waitlist tw
+          LEFT JOIN appointments a ON a.id = tw.appointment_id
+            ${apptCond}
+
+          UNION ALL
+
+          SELECT
+            NULL as wl_id,
+            a.id,
+            a.patient_id,
+            a.doctor_id,
+            a.token_no,
+            a.status,
+            a.patient_name as manual_name,
+            a.created_at,
+            a.booking_time,
+            a.id as visit_id
+          FROM appointments a
+          WHERE a.booking_date = ${today}::date AND a.clinic_id = ${contextId} AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
+            ${apptCond}
+            AND NOT EXISTS (SELECT 1 FROM today_waitlist tw2 WHERE tw2.appointment_id = a.id OR tw2.patient_id = a.patient_id)
+        ) q
+        LEFT JOIN patients p ON p.id = q.patient_id
+        LEFT JOIN doctors d ON d.id = q.doctor_id
+        LEFT JOIN users u ON u.id = q.doctor_id
+        ORDER BY q.token_no ASC NULLS LAST, q.id ASC
       `);
-      waitlistRows = wlResult as any[];
-    } catch (e: any) {
-      console.error('[Dashboard] waitlist query failed:', e?.message);
-    }
 
-    // Step 2: Get appointments today NOT in waitlist
-    let apptRows: any[] = [];
-    try {
-      const apResult = await this.db.execute(sql`
-        SELECT
-          a.id,
-          a.patient_id,
-          a.token_no,
-          a.status,
-          COALESCE(p.first_name || ' ' || p.surname, a.patient_name, 'Unknown Patient') AS patient_name,
-          COALESCE(p.regid, p.id, a.patient_id) AS regid,
-          a.doctor_id,
-          a.booking_time,
-          a.created_at,
-          a.updated_at,
-          COALESCE(
-            (SELECT name FROM doctors WHERE id = a.doctor_id LIMIT 1),
-            (SELECT name FROM users   WHERE id = a.doctor_id LIMIT 1),
-            'Practitioner'
-          ) AS doctor_name,
-          v.systolic_bp,
-          v.diastolic_bp,
-          v.weight_kg,
-          v.temperature_f
-        FROM appointments a
-        LEFT JOIN patients p ON p.id = a.patient_id
-        LEFT JOIN vitals v ON v.visit_id = a.id
-        WHERE a.booking_date = ${today}::date
-          AND a.clinic_id = ${contextId}
-          AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
-          AND NOT EXISTS (
-            SELECT 1 FROM waitlist w2
-            WHERE (w2.appointment_id = a.id OR w2.patient_id = a.patient_id)
-              AND w2.date = ${today}::date
-              AND (w2.deleted_at IS NULL OR w2.deleted_at::text = '')
-          )
-        ORDER BY a.token_no ASC NULLS LAST, a.id ASC
-      `);
-      apptRows = apResult as any[];
-    } catch (e: any) {
-      console.error('[Dashboard] appointments query failed:', e?.message);
-    }
+      const allRows = result as any[];
 
-    let allRows = [...waitlistRows, ...apptRows];
-
-    // Filter by doctorId
-    if (doctorId) {
-      let doctorName = '';
-      try {
-        const dnRes = await this.db.execute(sql`
-          SELECT COALESCE(
-            (SELECT name FROM doctors WHERE id = ${doctorId} LIMIT 1),
-            (SELECT name FROM users   WHERE id = ${doctorId} LIMIT 1),
-            ''
-          ) AS dname
-        `);
-        doctorName = ((dnRes as any[])[0]?.dname || '').toLowerCase().trim();
-      } catch { }
-
-      allRows = allRows.filter(r => {
-        const rowDoctorId = Number(r.doctor_id);
-        if (rowDoctorId === doctorId) return true;
-        if (doctorName && r.doctor_name) {
-          const rowDoctorName = (r.doctor_name || '').toLowerCase().trim();
-          if (rowDoctorName === doctorName || rowDoctorName.includes(doctorName) || doctorName.includes(rowDoctorName)) {
-            return true;
-          }
-        }
-        return false;
+      allRows.sort((a, b) => {
+        const order: Record<string, number> = {
+          Consultation: 1, Confirmed: 2, Waitlist: 2, Pending: 3, Completed: 4,
+        };
+        const aOrd = order[a.status] ?? 5;
+        const bOrd = order[b.status] ?? 5;
+        if (aOrd !== bOrd) return aOrd - bOrd;
+        return (Number(a.token_no) || 999) - (Number(b.token_no) || 999);
       });
-    }
 
-    allRows.sort((a, b) => {
-      const order: Record<string, number> = {
-        Consultation: 1, Confirmed: 2, Waitlist: 2, Pending: 3, Completed: 4,
-      };
-      const aOrd = order[a.status] ?? 5;
-      const bOrd = order[b.status] ?? 5;
-      if (aOrd !== bOrd) return aOrd - bOrd;
-      return (Number(a.token_no) || 999) - (Number(b.token_no) || 999);
+      return allRows.map(r => ({
+        id: r.id,
+        wlId: r.wl_id,
+        patientId: r.patient_id,
+        regid: r.regid,
+        patientName: r.patient_name,
+        doctorName: r.doctor_name,
+        bookingTime: r.booking_time || '',
+        tokenNo: r.token_no,
+        status: r.status,
+        isUrgent: false,
+        age: undefined,
+        gender: undefined,
+        createdAt: r.created_at,
+        updatedAt: r.updated_at,
+        vitals: undefined,
+      }));
     });
-
-    return allRows.map(r => ({
-      id: r.id,
-      wlId: r.wl_id,
-      patientId: r.patient_id,
-      regid: r.regid,
-      patientName: r.patient_name,
-      doctorName: r.doctor_name,
-      bookingTime: r.booking_time || '',
-      tokenNo: r.token_no,
-      status: r.status,
-      isUrgent: false,
-      age: undefined,
-      gender: undefined,
-      createdAt: r.created_at,
-      updatedAt: r.updated_at,
-      vitals: r.systolic_bp || r.weight_kg || r.temperature_f ? {
-        bp: r.systolic_bp && r.diastolic_bp ? `${r.systolic_bp}/${r.diastolic_bp}` : undefined,
-        weight: r.weight_kg ? Number(r.weight_kg) : undefined,
-        temp: r.temperature_f ? Number(r.temperature_f) : undefined,
-      } : undefined,
-    }));
   }
 
 
 
 
   async getRecentActivity(contextId: number, limit: number): Promise<ActivityItem[]> {
-    const revInfo = await this.getRevenueTableInfo();
+    return this.getCached(`activity:${contextId}:${limit}`, 30_000, async () => {
+      const revInfo = await this.getRevenueTableInfo();
 
 
     const queries: any[] = [];
@@ -421,8 +390,10 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     if (revInfo) {
       queries.push(this.db.execute(sql`
         SELECT 'payment' as type, 'Invoice paid - ' || p.first_name as title, 'Rs.' || r.${sql.identifier(revInfo.amountCol)} as subtitle, r.created_at, p.regid
-        FROM ${sql.identifier(revInfo.name)} r JOIN patients p ON r.regid = p.regid
+        FROM ${sql.identifier(revInfo.name)} r 
+        JOIN patients p ON r.regid = p.regid
         WHERE (r.deleted_at IS NULL OR r.deleted_at::text = '')
+          AND p.clinic_id = ${contextId}
         ORDER BY r.id DESC LIMIT ${limit}
       `));
     }
@@ -440,38 +411,42 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       createdAt: a.created_at,
       regid: a.regid
     }));
+    });
   }
 
   async getPendingReminders(contextId: number, limit: number): Promise<SimpleReminder[]> {
-    const results = await this.db.execute(sql`
-      SELECT cr.id, cr.patient_id, p.first_name || ' ' || p.surname as patient_name,
-             cr.heading, cr.comments, cr.start_date, cr.status
-      FROM case_reminder cr
-      JOIN patients p ON cr.patient_id = p.id
-      WHERE cr.clinic_id = ${contextId} AND cr.status = 'pending'
-      ORDER BY cr.id DESC LIMIT ${limit}
-    `);
-
-    return results as any as SimpleReminder[];
+    return this.getCached(`reminders:${contextId}:${limit}`, 60_000, async () => {
+      const results = await this.db.execute(sql`
+        SELECT cr.id, cr.patient_id, p.first_name || ' ' || p.surname as patient_name,
+               cr.heading, cr.comments, cr.start_date, cr.status
+        FROM case_reminder cr
+        JOIN patients p ON cr.patient_id = p.id
+        WHERE cr.clinic_id = ${contextId} AND cr.status = 'pending'
+        ORDER BY cr.id DESC LIMIT ${limit}
+      `);
+      return results as any as SimpleReminder[];
+    });
   }
 
   async getBirthdays(contextId: number): Promise<BirthdayPatient[]> {
-    const today = new Date();
-    const mmdd = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    return this.getCached(`birthdays:${contextId}`, 60_000, async () => {
+      const today = new Date();
+      const mmdd = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
-    const results = await this.db.execute(sql`
-      SELECT id, regid, first_name, surname, phone, mobile1, dob
-      FROM patients
-      WHERE clinic_id = ${contextId}
-        AND to_char(dob, 'MM-DD') = ${mmdd}
-        AND (deleted_at IS NULL OR deleted_at::text = '')
-    `);
-
-    return results as any as BirthdayPatient[];
+      const results = await this.db.execute(sql`
+        SELECT id, regid, first_name, surname, phone, mobile1, dob
+        FROM patients
+        WHERE clinic_id = ${contextId}
+          AND to_char(dob, 'MM-DD') = ${mmdd}
+          AND (deleted_at IS NULL OR deleted_at::text = '')
+      `);
+      return results as any as BirthdayPatient[];
+    });
   }
 
   async getRevenueSeries(period: string, contextId: number, paymentMode?: string): Promise<RevenueSeries[]> {
-    const revInfo = await this.getRevenueTableInfo();
+    return this.getCached(`revSeries:${contextId}:${period}:${paymentMode ?? ''}`, 60_000, async () => {
+      const revInfo = await this.getRevenueTableInfo();
     if (!revInfo) return [];
 
     let modeFilter = '';
@@ -486,34 +461,34 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         SELECT (date_trunc('month', NOW()) - (m || ' months')::interval)::date as m
         FROM generate_series(0, 5) m
       ),
-      rev_bills AS (
-        SELECT date_trunc('month', bill_date)::date as m, sum(received) as amt FROM bills 
-        WHERE bill_date >= date_trunc('month', NOW()) - interval '6 months' 
-          ${sql.raw(modeFilter ? modeFilter : "")}
-          AND (deleted_at IS NULL OR deleted_at::text = '')
+      rev_combined AS (
+        -- Bills
+        SELECT date_trunc('month', b.bill_date)::date as m, sum(b.received) as amt 
+        FROM bills b
+        JOIN patients pb ON pb.regid = b.regid
+        WHERE b.bill_date >= date_trunc('month', NOW()) - interval '6 months' 
+          ${sql.raw(modeFilter ? modeFilter.replace('payment_mode', 'b.payment_mode') : "")}
+          AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
+          AND pb.clinic_id = ${contextId}
         GROUP BY 1
-      ),
-      rev_receipts AS (
-        SELECT date_trunc('month', created_at)::date as m, sum(CAST(NULLIF(amount::text, '') AS numeric)) as amt FROM receipt 
-        WHERE created_at >= date_trunc('month', NOW()) - interval '6 months'
-          ${sql.raw(modeFilter ? modeFilter.replace('payment_mode', 'mode') : "")}
-          AND (deleted_at IS NULL OR deleted_at::text = '')
-          AND (
-            regid IN (SELECT regid FROM patients WHERE clinic_id = ${contextId})
-            OR 
-            EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'receipt' AND column_name = 'clinic_id' AND clinic_id = ${contextId})
-          )
+        
+        UNION ALL
+        
+        -- Receipts
+        SELECT date_trunc('month', r.created_at)::date as m, sum(CAST(NULLIF(r.amount::text, '') AS numeric)) as amt 
+        FROM receipt r
+        JOIN patients pr ON pr.regid = r.regid
+        WHERE r.created_at >= date_trunc('month', NOW()) - interval '6 months'
+          ${sql.raw(modeFilter ? modeFilter.replace('payment_mode', 'r.mode') : "")}
+          AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
+          AND pr.clinic_id = ${contextId}
         GROUP BY 1
       )
       SELECT to_char(months.m, 'Mon') as month, 
-             COALESCE((
-               SELECT sum(amt) FROM (
-                 SELECT amt FROM rev_bills b WHERE b.m = months.m 
-                 UNION ALL 
-                 SELECT amt FROM rev_receipts r WHERE r.m = months.m
-               ) t
-             ), 0)::int as revenue
+             COALESCE(sum(rc.amt), 0)::int as revenue
       FROM months
+      LEFT JOIN rev_combined rc ON rc.m = months.m
+      GROUP BY months.m
       ORDER BY months.m ASC
     `);
 
@@ -521,6 +496,61 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       month: r.month,
       revenue: r.revenue
     }));
+    });
+  }
+
+  async getMultiRevenueSeries(period: string, contextId: number): Promise<{ total: RevenueSeries[]; cash: RevenueSeries[]; upi: RevenueSeries[] }> {
+    return this.getCached(`multiRevSeries:${contextId}:${period}`, 60_000, async () => {
+      const results = await this.db.execute(sql`
+      WITH months AS (
+        SELECT (date_trunc('month', NOW()) - (m || ' months')::interval)::date as m
+        FROM generate_series(0, 5) m
+      ),
+      rev_combined AS (
+        -- Bills
+        SELECT 
+          date_trunc('month', b.bill_date)::date as m,
+          b.received as amt,
+          CASE WHEN (LOWER(COALESCE(b.payment_mode, '')) = 'cash' OR b.payment_mode IS NULL OR b.payment_mode = '') THEN b.received ELSE 0 END as cash_amt,
+          CASE WHEN LOWER(COALESCE(b.payment_mode, '')) IN ('upi', 'card', 'online', 'bank', 'gpay', 'phonepe', 'paytm') THEN b.received ELSE 0 END as upi_amt
+        FROM bills b
+        JOIN patients pb ON pb.regid = b.regid
+        WHERE b.bill_date >= date_trunc('month', NOW()) - interval '6 months' 
+          AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
+          AND pb.clinic_id = ${contextId}
+        
+        UNION ALL
+        
+        -- Receipts
+        SELECT 
+          date_trunc('month', r.created_at)::date as m,
+          CAST(NULLIF(r.amount::text, '') AS numeric) as amt,
+          CASE WHEN (LOWER(COALESCE(r.mode, '')) = 'cash' OR r.mode IS NULL OR r.mode = '') THEN CAST(NULLIF(r.amount::text, '') AS numeric) ELSE 0 END as cash_amt,
+          CASE WHEN LOWER(COALESCE(r.mode, '')) IN ('upi', 'card', 'online', 'bank', 'gpay', 'phonepe', 'paytm') THEN CAST(NULLIF(r.amount::text, '') AS numeric) ELSE 0 END as upi_amt
+        FROM receipt r
+        JOIN patients pr ON pr.regid = r.regid
+        WHERE r.created_at >= date_trunc('month', NOW()) - interval '6 months'
+          AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
+          AND pr.clinic_id = ${contextId}
+      )
+      SELECT 
+        to_char(months.m, 'Mon') as month, 
+        COALESCE(sum(rc.amt), 0)::int as total,
+        COALESCE(sum(rc.cash_amt), 0)::int as cash,
+        COALESCE(sum(rc.upi_amt), 0)::int as upi
+      FROM months
+      LEFT JOIN rev_combined rc ON rc.m = months.m
+      GROUP BY months.m
+      ORDER BY months.m ASC
+    `);
+
+    const data = results as any[];
+    return {
+      total: data.map(r => ({ month: r.month, revenue: r.total })),
+      cash: data.map(r => ({ month: r.month, revenue: r.cash })),
+      upi: data.map(r => ({ month: r.month, revenue: r.upi })),
+    };
+    });
   }
 
   async markReminderDone(id: number): Promise<void> {
@@ -529,55 +559,61 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       .where(eq(schema.caseReminders.id, id));
   }
 
-  async getRecentTransactions(limit: number): Promise<RecentTransaction[]> {
-    try {
-      const results = await this.db.execute(sql`
-        WITH combined AS (
+  async getRecentTransactions(limit: number, contextId?: number): Promise<RecentTransaction[]> {
+    return this.getCached(`recentTransactions:${contextId ?? 'all'}:${limit}`, 60_000, async () => {
+      try {
+        const results = await this.db.execute(sql`
+          WITH combined AS (
+            SELECT 
+              b.id::text,
+              b.regid,
+              COALESCE(b.bill_no::text, 'INV-' || b.id::text) AS invoice_no,
+              COALESCE(CAST(NULLIF(b.charges::text, '') AS numeric), 0)::int AS amount,
+              CASE
+                WHEN COALESCE(CAST(NULLIF(b.balance::text, '') AS numeric), 0) <= 0 THEN 'paid'
+                WHEN COALESCE(CAST(NULLIF(b.received::text, '') AS numeric), 0) > 0 THEN 'partial'
+                ELSE 'due'
+              END AS status,
+              b.created_at
+            FROM bills b
+            JOIN patients pb ON pb.regid = b.regid
+            WHERE (b.deleted_at IS NULL OR b.deleted_at::text = '')
+              ${contextId ? sql`AND pb.clinic_id = ${contextId}` : sql``}
+            
+            UNION ALL
+            
+            SELECT 
+              'R-' || r.id::text as id,
+              r.regid,
+              'RCT-' || r.id::text AS invoice_no,
+              COALESCE(CAST(NULLIF(r.amount::text, '') AS numeric), 0)::int AS amount,
+              'paid' AS status,
+              COALESCE(r.created_at, NOW()) as created_at
+            FROM receipt r
+            JOIN patients pr ON pr.regid = r.regid
+            WHERE (r.deleted_at IS NULL OR r.deleted_at::text = '')
+              ${contextId ? sql`AND pr.clinic_id = ${contextId}` : sql``}
+          )
           SELECT 
-            b.id::text,
-            b.regid,
-            COALESCE(b.bill_no::text, 'INV-' || b.id::text) AS invoice_no,
-            COALESCE(CAST(NULLIF(b.charges::text, '') AS numeric), 0)::int AS amount,
-            CASE
-              WHEN COALESCE(CAST(NULLIF(b.balance::text, '') AS numeric), 0) <= 0 THEN 'paid'
-              WHEN COALESCE(CAST(NULLIF(b.received::text, '') AS numeric), 0) > 0 THEN 'partial'
-              ELSE 'due'
-            END AS status,
-            b.created_at
-          FROM bills b
-          WHERE (b.deleted_at IS NULL OR b.deleted_at::text = '')
-          
-          UNION ALL
-          
-          SELECT 
-            'R-' || r.id::text as id,
-            r.regid,
-            'RCT-' || r.id::text AS invoice_no,
-            COALESCE(CAST(NULLIF(r.amount::text, '') AS numeric), 0)::int AS amount,
-            'paid' AS status,
-            COALESCE(r.created_at, NOW()) as created_at
-          FROM receipt r
-          WHERE (r.deleted_at IS NULL OR r.deleted_at::text = '')
-        )
-        SELECT 
-          c.*,
-          COALESCE(p.first_name || ' ' || p.surname, 'Patient') AS patient_name
-        FROM combined c
-        LEFT JOIN patients p ON c.regid = p.regid
-        ORDER BY c.created_at DESC
-        LIMIT ${limit}
-      `);
-      return (results as any[]).map(r => ({
-        id: r.id,
-        patientName: r.patient_name || 'Patient',
-        invoiceNo: r.invoice_no,
-        amount: Number(r.amount) || 0,
-        status: r.status || 'due',
-      }));
-    } catch (e: any) {
-      console.error('[Dashboard] getRecentTransactions failed:', e?.message);
-      return [];
-    }
+            c.*,
+            COALESCE(p.first_name || ' ' || p.surname, 'Patient') AS patient_name
+          FROM combined c
+          LEFT JOIN patients p ON c.regid = p.regid
+          ORDER BY c.created_at DESC
+          LIMIT ${limit}
+        `);
+        return (results as any[]).map(r => ({
+          id: r.id,
+          patientName: r.patient_name || 'Patient',
+          invoiceNo: r.invoice_no,
+          amount: Number(r.amount) || 0,
+          status: r.status || 'due',
+        }));
+      } catch (e: any) {
+        console.error('[Dashboard] getRecentTransactions failed:', e?.message);
+        return [];
+      }
+    });
   }
 
 
@@ -625,173 +661,174 @@ export class DashboardRepositoryPg implements IDashboardRepository {
   // ─── Clinic Admin Dashboard ──────────────────────────────────────────────────
 
   async getRevenueBreakdown(period: string, contextId: number): Promise<RevenueBreakdown> {
-    const { start, boundary } = this.getPeriodDates(period);
+    return this.getCached(`revBreakdown:${contextId}:${period}`, 60_000, async () => {
+      const { start, boundary } = this.getPeriodDates(period);
 
-    const revInfo = await this.getRevenueTableInfo();
+      const revInfo = await this.getRevenueTableInfo();
 
-    if (!revInfo) {
-      return { physicalCurrency: 0, physicalCurrencyPct: 0, upiCard: 0, upiCardPct: 0, pending: 0, pendingCount: 0, perPatient: 0 };
-    }
+      if (!revInfo) {
+        return { physicalCurrency: 0, physicalCurrencyPct: 0, upiCard: 0, upiCardPct: 0, pending: 0, pendingCount: 0, perPatient: 0 };
+      }
 
-    const amountCol = revInfo.amountCol;
-    const dateCol = revInfo.name === 'receipt' ? 'created_at' : 'bill_date';
-    const modeCol = revInfo.name === 'receipt' ? 'mode' : 'payment_mode';
+      const amountCol = revInfo.amountCol;
+      const dateCol = revInfo.name === 'receipt' ? 'created_at' : 'bill_date';
+      const modeCol = revInfo.name === 'receipt' ? 'mode' : 'payment_mode';
 
-    // Consolidated Cash vs UPI/Card
-    const results = await Promise.all([
-      this.db.execute(sql`
-        SELECT (
-          COALESCE((SELECT sum(received) FROM bills WHERE bill_date >= ${start}::date AND bill_date < ${boundary}::date AND (LOWER(COALESCE(payment_mode, '')) = 'cash' OR payment_mode IS NULL OR payment_mode = '') AND (deleted_at IS NULL OR deleted_at::text = '')), 0) +
-          COALESCE((SELECT sum(CAST(NULLIF(amount::text, '') AS numeric)) FROM receipt WHERE created_at >= ${start}::timestamp AND created_at < ${boundary}::timestamp AND (LOWER(COALESCE(mode, '')) = 'cash' OR mode IS NULL OR mode = '') AND (deleted_at IS NULL OR deleted_at::text = '')), 0)
-        ) as total
-      `),
-      this.db.execute(sql`
-        SELECT COALESCE(sum(CAST(NULLIF(${sql.raw(amountCol)}::text, '') AS numeric)), 0) as total
-        FROM ${sql.raw(revInfo.name)}
-        WHERE ${sql.raw(dateCol)} >= ${start} AND ${sql.raw(dateCol)} < ${boundary}
-          AND LOWER(COALESCE(${sql.raw(modeCol)}, '')) IN ('upi', 'card', 'online', 'bank', 'gpay', 'phonepe', 'paytm')
-          AND (deleted_at IS NULL OR deleted_at::text = '')
-      `),
-      this.db.execute(sql`
-        SELECT
-          COALESCE(sum(CAST(NULLIF(charges::text, '') AS numeric)), 0)::int as total_charges,
-          COALESCE(sum(CAST(NULLIF(received::text, '') AS numeric)), 0)::int as total_received,
-          count(*)::int as invoice_count
-        FROM bills
-        WHERE (deleted_at IS NULL OR deleted_at::text = '')
-      `)
-    ]);
+      const [combinedRes, patCountRes] = await Promise.all([
+        this.db.execute(sql`
+          SELECT
+            COALESCE(sum(cash_amt), 0) as cash_total,
+            COALESCE(sum(upi_amt), 0) as upi_total,
+            COALESCE(sum(charges), 0) as pending_charges,
+            COALESCE(sum(received), 0) as pending_received,
+            count(*) FILTER (WHERE type = 'B') as pending_count
+          FROM (
+            SELECT
+              'B' as type,
+              CASE WHEN (LOWER(COALESCE(b.payment_mode, '')) = 'cash' OR b.payment_mode IS NULL OR b.payment_mode = '') THEN b.received ELSE 0 END as cash_amt,
+              CASE WHEN LOWER(COALESCE(b.payment_mode, '')) IN ('upi', 'card', 'online', 'bank', 'gpay', 'phonepe', 'paytm') THEN b.received ELSE 0 END as upi_amt,
+              CAST(NULLIF(b.charges::text, '') AS numeric) as charges,
+              CAST(NULLIF(b.received::text, '') AS numeric) as received
+            FROM bills b
+            JOIN patients pb ON pb.regid = b.regid
+            WHERE b.bill_date >= ${start}::date AND b.bill_date < ${boundary}::date
+              AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
+              AND pb.clinic_id = ${contextId}
 
-    const cashRes = (results[0] as any[]) || [];
-    const upiCardRes = (results[1] as any[]) || [];
+            UNION ALL
 
-    const pendingRes = await this.db.execute(sql`
-      SELECT
-        COALESCE(sum(CAST(NULLIF(charges::text, '') AS numeric)), 0)::int as total_charges,
-        COALESCE(sum(CAST(NULLIF(received::text, '') AS numeric)), 0)::int as total_received,
-        count(*)::int as invoice_count
-      FROM bills
-      WHERE bill_date::date BETWEEN ${start} AND ${boundary}
-        AND (deleted_at IS NULL OR deleted_at::text = '')
-    `) as any[];
+            SELECT
+              'R',
+              CASE WHEN (LOWER(COALESCE(r.mode, '')) = 'cash' OR r.mode IS NULL OR r.mode = '') THEN CAST(NULLIF(r.amount::text, '') AS numeric) ELSE 0 END,
+              CASE WHEN LOWER(COALESCE(r.mode, '')) IN ('upi', 'card', 'online', 'bank', 'gpay', 'phonepe', 'paytm') THEN CAST(NULLIF(r.amount::text, '') AS numeric) ELSE 0 END,
+              0, 0
+            FROM receipt r
+            JOIN patients pr ON pr.regid = r.regid
+            WHERE r.created_at >= ${start}::timestamp AND r.created_at < ${boundary}::timestamp
+              AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
+              AND pr.clinic_id = ${contextId}
+          ) t
+        `),
+        this.db.execute(sql`
+          SELECT count(*)::int as cnt FROM patients
+          WHERE clinic_id = ${contextId}
+            AND created_at::date BETWEEN ${start} AND ${boundary}
+            AND (deleted_at IS NULL OR deleted_at::text = '')
+        `)
+      ]);
 
-    const cashTotal = Number(cashRes?.[0]?.total || 0);
-    const upiCardTotal = Number(upiCardRes?.[0]?.total || 0);
-    const pendingCharges = (pendingRes[0] as any)?.total_charges || 0;
-    const pendingReceived = (pendingRes[0] as any)?.total_received || 0;
-    const pendingCount = (pendingRes[0] as any)?.invoice_count || 0;
-    const pendingTotal = Math.max(0, pendingCharges - pendingReceived);
+      const combined = (combinedRes as any[])[0] || {};
+      const cashTotal = Number(combined.cash_total) || 0;
+      const upiCardTotal = Number(combined.upi_total) || 0;
+      const pendingTotal = Math.max(0, (Number(combined.pending_charges) || 0) - (Number(combined.pending_received) || 0));
+      const pendingCount = Number(combined.pending_count) || 0;
 
-    const grandTotal = cashTotal + upiCardTotal || 1;
+      const grandTotal = cashTotal + upiCardTotal || 1;
+      const patCount = (patCountRes[0] as any)?.cnt || 1;
+      const perPatient = grandTotal / patCount;
 
-    // Per-patient avg
-    const patCountRes = await this.db.execute(sql`
-      SELECT count(*)::int as cnt FROM patients
-      WHERE clinic_id = ${contextId}
-        AND created_at::date BETWEEN ${start} AND ${boundary}
-        AND (deleted_at IS NULL OR deleted_at::text = '')
-    `) as any[];
-    const patCount = (patCountRes[0] as any)?.cnt || 1;
-    const perPatient = grandTotal / patCount;
-
-    return {
-      physicalCurrency: cashTotal,
-      physicalCurrencyPct: Math.round((cashTotal / grandTotal) * 1000) / 10,
-      upiCard: upiCardTotal,
-      upiCardPct: Math.round((upiCardTotal / grandTotal) * 1000) / 10,
-      pending: pendingTotal,
-      pendingCount,
-      perPatient: Math.round(perPatient),
-    };
+      return {
+        physicalCurrency: cashTotal,
+        physicalCurrencyPct: Math.round((cashTotal / grandTotal) * 1000) / 10,
+        upiCard: upiCardTotal,
+        upiCardPct: Math.round((upiCardTotal / grandTotal) * 1000) / 10,
+        pending: pendingTotal,
+        pendingCount,
+        perPatient: Math.round(perPatient),
+      };
+    });
   }
 
   async getTopBilling(period: string, limit: number, contextId: number): Promise<TopBillingItem[]> {
-    const { start, boundary } = this.getPeriodDates(period);
+    return this.getCached(`topBilling:${contextId}:${period}:${limit}`, 60_000, async () => {
+      const { start, boundary } = this.getPeriodDates(period);
 
-    const results = await this.db.execute(sql`
-      SELECT b.id, NULLIF(TRIM(COALESCE(p.first_name, '') || ' ' || COALESCE(p.surname, '')), '') as patient_name,
-             p.regid,
-             b.charges as total,
-             CASE
-               WHEN b.balance <= 0 THEN 'Paid'
-               WHEN b.received > 0 THEN 'Partial'
-               ELSE 'Pending'
-             END as status
-      FROM bills b
-      LEFT JOIN patients p ON b.regid = p.regid
-      WHERE b.bill_date >= ${start}::date AND b.bill_date < ${boundary}::date
-      WHERE p.clinic_id = ${contextId}
-        AND b.bill_date::date >= ${start}::date AND b.bill_date::date < ${boundary}::date
-        AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
-      ORDER BY b.charges DESC NULLS LAST
-      LIMIT ${limit}
-    `) as any[];
+      const results = await this.db.execute(sql`
+        SELECT b.id, NULLIF(TRIM(COALESCE(p.first_name, '') || ' ' || COALESCE(p.surname, '')), '') as patient_name,
+               p.regid,
+               b.charges as total,
+               CASE
+                 WHEN b.balance <= 0 THEN 'Paid'
+                 WHEN b.received > 0 THEN 'Partial'
+                 ELSE 'Pending'
+               END as status
+        FROM bills b
+        LEFT JOIN patients p ON b.regid = p.regid
+        WHERE p.clinic_id = ${contextId}
+          AND b.bill_date::date >= ${start}::date AND b.bill_date::date < ${boundary}::date
+          AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
+        ORDER BY b.charges DESC NULLS LAST
+        LIMIT ${limit}
+      `) as any[];
 
-    return (results as any[]).map(r => ({
-      id: r.id,
-      patientName: r.patient_name || 'Unknown',
-      regid: r.regid,
-      total: r.total || 0,
-      status: r.status,
-    }));
+      return (results as any[]).map(r => ({
+        id: r.id,
+        patientName: r.patient_name || 'Unknown',
+        regid: r.regid,
+        total: r.total || 0,
+        status: r.status,
+      }));
+    });
   }
 
   async getMonthlyTargets(period: string, contextId: number): Promise<MonthlyTarget[]> {
-    const { start, boundary, prevStart, prevBoundary } = this.getPeriodDates(period);
+    return this.getCached(`targets:${contextId}:${period}`, 60_000, async () => {
+      const { start, boundary, prevStart, prevBoundary } = this.getPeriodDates(period);
 
     // Current month actuals
     const revInfo = await this.getRevenueTableInfo();
     const amountCol = revInfo?.amountCol || 'charges';
 
-    const [revRes, patRes, collRes, waitRes, prevRevRes, prevPatRes] = await Promise.all([
-      this.db.execute(sql`
-        SELECT (
-          COALESCE((SELECT sum(received) FROM bills WHERE bill_date >= ${start} AND bill_date < ${boundary} AND (deleted_at IS NULL OR deleted_at::text = '')), 0) +
-          COALESCE((SELECT sum(CAST(NULLIF(amount::text, '') AS numeric)) FROM receipt WHERE created_at >= ${start} AND created_at < ${boundary} AND (deleted_at IS NULL OR deleted_at::text = '')), 0)
-        ) as total
-      `),
-      this.db.execute(sql`
-        SELECT count(*)::int as cnt FROM patients
-        WHERE clinic_id = ${contextId}
-          AND created_at >= ${start} AND created_at < ${boundary}
-          AND (deleted_at IS NULL OR deleted_at::text = '')
-      `),
+    const [combinedRes, waitRes] = await Promise.all([
+      // 1. Consolidated Revenue, Patients, and Collection Rate
       this.db.execute(sql`
         SELECT
-          COALESCE(sum(CAST(NULLIF(charges::text, '') AS numeric)), 0)::int as total_charges,
-          COALESCE(sum(CAST(NULLIF(received::text, '') AS numeric)), 0)::int as total_received
-        FROM bills
-        WHERE bill_date >= ${start} AND bill_date < ${boundary}
-          AND (deleted_at IS NULL OR deleted_at::text = '')
+          COALESCE(sum(curr_rev), 0) as curr_revenue,
+          count(*) FILTER (WHERE type = 'P' AND is_curr = true) as curr_patients,
+          COALESCE(sum(curr_charges), 0) as curr_charges,
+          COALESCE(sum(curr_received), 0) as curr_received,
+          COALESCE(sum(prev_rev), 0) as prev_revenue,
+          count(*) FILTER (WHERE type = 'P' AND is_curr = false) as prev_patients
+        FROM (
+          -- Current Month Revenue
+          SELECT 'R' as type, true as is_curr, received as curr_rev, 0 as curr_charges, 0 as curr_received, 0 as prev_rev FROM bills WHERE bill_date >= ${start} AND bill_date < ${boundary} AND (deleted_at IS NULL OR deleted_at::text = '')
+          UNION ALL
+          SELECT 'R', true, CAST(NULLIF(amount::text, '') AS numeric), 0, 0, 0 FROM receipt WHERE created_at >= ${start} AND created_at < ${boundary} AND (deleted_at IS NULL OR deleted_at::text = '')
+          UNION ALL
+          -- Current Month Patients
+          SELECT 'P', true, 0, 0, 0, 0 FROM patients WHERE clinic_id = ${contextId} AND created_at >= ${start} AND created_at < ${boundary} AND (deleted_at IS NULL OR deleted_at::text = '')
+          UNION ALL
+          -- Current Month Collection Rate (Bills only)
+          SELECT 'C', true, 0, CAST(NULLIF(charges::text, '') AS numeric), CAST(NULLIF(received::text, '') AS numeric), 0 FROM bills WHERE bill_date >= ${start} AND bill_date < ${boundary} AND (deleted_at IS NULL OR deleted_at::text = '')
+          UNION ALL
+          -- Previous Month Revenue
+          SELECT 'R', false, 0, 0, 0, received FROM bills WHERE bill_date >= ${prevStart} AND bill_date < ${prevBoundary} AND (deleted_at IS NULL OR deleted_at::text = '')
+          UNION ALL
+          SELECT 'R', false, 0, 0, 0, CAST(NULLIF(amount::text, '') AS numeric) FROM receipt WHERE created_at >= ${prevStart} AND created_at < ${prevBoundary} AND (deleted_at IS NULL OR deleted_at::text = '')
+          UNION ALL
+          -- Previous Month Patients
+          SELECT 'P', false, 0, 0, 0, 0 FROM patients WHERE clinic_id = ${contextId} AND created_at >= ${prevStart} AND created_at < ${prevBoundary} AND (deleted_at IS NULL OR deleted_at::text = '')
+        ) t
       `),
+      // 2. Wait Time
       this.db.execute(sql`
         SELECT COALESCE(avg(extract(epoch from (called_at - checked_in_at))/60), 0)::int as avg_wait 
         FROM waitlist 
         WHERE clinic_id = ${contextId} 
           AND date >= ${start} AND date < ${boundary} AND called_at IS NOT NULL AND checked_in_at IS NOT NULL AND (deleted_at IS NULL OR deleted_at::text = '')
       `),
-      this.db.execute(sql`
-        SELECT (
-          COALESCE((SELECT sum(received) FROM bills WHERE bill_date >= ${prevStart} AND bill_date < ${prevBoundary} AND (deleted_at IS NULL OR deleted_at::text = '')), 0) +
-          COALESCE((SELECT sum(CAST(NULLIF(amount::text, '') AS numeric)) FROM receipt WHERE created_at >= ${prevStart} AND created_at < ${prevBoundary} AND (deleted_at IS NULL OR deleted_at::text = '')), 0)
-        ) as total
-      `),
-      this.db.execute(sql`
-        SELECT count(*)::int as cnt FROM patients
-        WHERE clinic_id = ${contextId}
-          AND created_at >= ${prevStart} AND created_at < ${prevBoundary} AND (deleted_at IS NULL OR deleted_at::text = '')
-      `),
     ]);
 
-    const revenue = ((revRes as any[])[0] as any)?.total || 0;
-    const patients = ((patRes as any[])[0] as any)?.cnt || 0;
-    const totalCharges = ((collRes as any[])[0] as any)?.total_charges || 0;
-    const totalReceived = ((collRes as any[])[0] as any)?.total_received || 0;
+    const combined = (combinedRes as any[])[0] || {};
+    const revenue = Number(combined.curr_revenue) || 0;
+    const patients = Number(combined.curr_patients) || 0;
+    const totalCharges = Number(combined.curr_charges) || 0;
+    const totalReceived = Number(combined.curr_received) || 0;
     const avgWaitTime = ((waitRes as any[])[0] as any)?.avg_wait || 0;
     const collectionRate = totalCharges > 0 ? Math.round((totalReceived / totalCharges) * 100) : 0;
 
-    const prevRevenue = ((prevRevRes as any[])[0] as any)?.total || 0;
-    const prevPatients = ((prevPatRes as any[])[0] as any)?.cnt || 0;
+    const prevRevenue = Number(combined.prev_revenue) || 0;
+    const prevPatients = Number(combined.prev_patients) || 0;
 
     const revenueTarget = Math.max(Math.round((prevRevenue > 0 ? prevRevenue : revenue > 0 ? revenue : 1000) * 1.15), 5000);
     const patientsTarget = Math.max(Math.round((prevPatients > 0 ? prevPatients : patients > 0 ? patients : 5) * 1.15), 10);
@@ -828,43 +865,37 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         status: avgWaitTime <= waitTimeTarget ? 'success' : 'danger',
       },
     ];
+    });
   }
 
   async getStaffOnDuty(contextId: number): Promise<{ name: string; role: string; count?: number }[]> {
-    const docCol = await this.getDoctorColumn();
+    return this.getCached(`staff:${contextId}`, 60_000, async () => {
+      const docCol = await this.getDoctorColumn();
+      const today = new Date().toISOString().split('T')[0]!;
 
-    // Query 1: Modern Users table
-    const usersPromise = this.db.execute(sql`
-      SELECT 
-        name, 
-        type as specialty,
-        (SELECT count(id)::int FROM appointments a WHERE a.clinic_id = ${contextId} AND a.${sql.identifier(docCol)} = users.id AND a.booking_date = CURRENT_DATE::text AND (a.deleted_at IS NULL OR a.deleted_at::text = '' OR a.deleted_at::text = '0')) as visit_count
-      FROM users
-      WHERE (deleted_at IS NULL OR deleted_at::text = '') 
-        AND (context_id = ${contextId} OR context_id::text = ${String(contextId)})
-        AND LOWER(type) IN ('doctor', 'practitioner', 'practitioner_id')
-      LIMIT 20
-    `).catch((err) => {
-      console.error('[Dashboard] Users Duty Query Failed:', err.message);
-      return [] as any[];
-    });
+    const [uRes, dRes] = await Promise.all([
+      this.db.execute(sql`
+        SELECT u.name, u.type as specialty, count(a.id)::int as visit_count
+        FROM users u
+        LEFT JOIN appointments a ON a.clinic_id = ${contextId} AND a.${sql.identifier(docCol)} = u.id AND a.booking_date = ${today} AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
+        WHERE (u.deleted_at IS NULL OR u.deleted_at::text = '') 
+          AND (u.context_id = ${contextId} OR u.context_id::text = ${String(contextId)})
+          AND u.type IN ('Doctor', 'Staff', 'Receptionist', 'Clinicadmin')
+        GROUP BY u.name, u.type
+        LIMIT 20
+      `).catch(() => []),
+      this.db.execute(sql`
+        SELECT d.name, d.designation as specialty, count(a.id)::int as visit_count
+        FROM doctors d
+        LEFT JOIN appointments a ON a.clinic_id = ${contextId} AND a.${sql.identifier(docCol)} = d.id AND a.booking_date = ${today} AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
+        WHERE (d.deleted_at IS NULL OR d.deleted_at::text = '') 
+          AND (d.clinic_id = ${contextId} OR d.clinic_id::text = ${String(contextId)})
+        GROUP BY d.name, d.designation
+        LIMIT 20
+      `).catch(() => [])
+    ]);
 
-    // Query 2: Legacy Doctors table
-    const doctorsPromise = this.db.execute(sql`
-      SELECT 
-        name, 
-        designation as specialty,
-        (SELECT count(id)::int FROM appointments a WHERE a.clinic_id = ${contextId} AND a.${sql.identifier(docCol)} = doctors.id AND a.booking_date = CURRENT_DATE::text AND (a.deleted_at IS NULL OR a.deleted_at::text = '' OR a.deleted_at::text = '0')) as visit_count
-      FROM doctors
-      WHERE (deleted_at IS NULL OR deleted_at::text = '') 
-        AND (clinic_id = ${contextId} OR clinic_id::text = ${String(contextId)})
-      LIMIT 20
-    `).catch((err) => {
-      console.error('[Dashboard] Doctors Duty Query Failed:', err.message);
-      return [] as any[];
-    });
 
-    const [uRes, dRes] = await Promise.all([usersPromise, doctorsPromise]);
 
     const combined = [...(uRes as any[]), ...(dRes as any[])];
 
@@ -884,45 +915,33 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       role: r.specialty || 'Doctor',
       count: r.visit_count,
     }));
+    });
   }
 
   async getPlatformStats(): Promise<PlatformStats> {
-    // These tables always live in the public schema
-    const [orgCount] = await this.db.execute(sql`
-      SELECT count(*)::int as count FROM public.organizations WHERE deleted_at IS NULL
-    `) as any[];
+    return this.getCached('platformStats', 60_000, async () => {
+      const results = await this.db.execute(sql`
+        SELECT
+          (SELECT count(*)::int FROM public.organizations WHERE deleted_at IS NULL) as org_count,
+          (SELECT count(*)::int FROM users WHERE (deleted_at IS NULL OR deleted_at::text = '') AND is_active = true) as user_count,
+          (SELECT count(*)::int FROM public.users WHERE (deleted_at IS NULL OR deleted_at::text = '') AND is_active = true AND type = 'Clinicadmin') as admin_count,
+          (SELECT COALESCE(sum(received), 0)::numeric FROM bills WHERE (deleted_at IS NULL OR deleted_at::text = '')) as total_rev,
+          (SELECT COALESCE(sum(charges - received), 0)::numeric FROM bills WHERE (deleted_at IS NULL OR deleted_at::text = '')) as pending_dues
+      `) as any[];
 
-    const [userCount] = await this.db.execute(sql`
-      SELECT count(*)::int as count FROM users WHERE (deleted_at IS NULL OR deleted_at::text = '') AND is_active = true
-    `) as any[];
+      const res = results[0] || {};
+      const totalRev = Number(res.total_rev) || 0;
+      const pendingDues = Number(res.pending_dues) || 0;
+      const clinicCount = Number(res.org_count) || 1;
+      const revDensity = Math.round(totalRev / (clinicCount || 1));
 
-    const [adminCount] = await this.db.execute(sql`
-      SELECT count(*)::int as count 
-      FROM public.users 
-      WHERE (deleted_at IS NULL OR deleted_at::text = '') 
-        AND is_active = true 
-        AND type = 'Clinicadmin'
-    `) as any[];
-
-    const [revRes] = await this.db.execute(sql`
-      SELECT 
-        COALESCE(sum(received), 0)::numeric as total_rev,
-        COALESCE(sum(charges - received), 0)::numeric as pending_dues
-      FROM bills 
-      WHERE (deleted_at IS NULL OR deleted_at::text = '')
-    `) as any[];
-
-    const totalRev = Number(revRes?.total_rev) || 0;
-    const pendingDues = Number(revRes?.pending_dues) || 0;
-    const clinicCount = orgCount?.count || 1;
-    const revDensity = Math.round(totalRev / (clinicCount || 1));
-
-    return {
-      totalClinics: orgCount?.count || 0,
-      totalStaff: userCount?.count || 0,
-      totalClinicAdmins: adminCount?.count || 0,
-      revenueDensity: revDensity,
-      pendingDues: pendingDues
-    } as any;
+      return {
+        totalClinics: Number(res.org_count) || 0,
+        totalStaff: Number(res.user_count) || 0,
+        totalClinicAdmins: Number(res.admin_count) || 0,
+        revenueDensity: revDensity,
+        pendingDues: pendingDues
+      };
+    });
   }
 }

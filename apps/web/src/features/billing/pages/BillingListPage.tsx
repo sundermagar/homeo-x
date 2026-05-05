@@ -18,18 +18,19 @@ function DailyCollectionCard({ label, amount, count, icon, type = 'default' }: {
   icon: React.ReactNode;
   type?: 'success' | 'danger' | 'warning' | 'default';
 }) {
+  const accentMap: Record<string, string> = {
+    success: 'var(--pp-success-fg)', danger: 'var(--pp-danger-fg)',
+    warning: 'var(--pp-warning-fg)', default: 'var(--pp-blue)'
+  };
+  const valueClass = type === 'success' ? 'is-success' : type === 'danger' ? 'is-danger' : type === 'warning' ? 'is-warning' : 'is-primary';
   return (
-    <div className="bill-stat-card" data-type={type}>
-      <div className="bill-stat-icon">
+    <div className="pp-stat-card-enhanced" style={{ '--stat-accent': accentMap[type] } as React.CSSProperties}>
+      <div className="pp-stat-icon" style={{ '--stat-icon-color': accentMap[type], '--stat-icon-bg': `${accentMap[type]}15` } as React.CSSProperties}>
         {icon}
       </div>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <p className="bill-stat-label">{label}</p>
-          {count !== undefined && <span style={{ fontSize: '0.65rem', fontWeight: 800, opacity: 0.5 }}>{count} items</span>}
-        </div>
-        <div className="bill-stat-value">₹{amount.toLocaleString()}</div>
-      </div>
+      <div className="pp-stat-label">{label}</div>
+      <div className={`pp-stat-value ${valueClass}`}>₹{amount.toLocaleString()}</div>
+      {count !== undefined && <div className="pp-stat-trend">{count} items</div>}
     </div>
   );
 }
@@ -60,39 +61,39 @@ export default function BillingListPage() {
     <div className="pp-page-container bill-page animate-fade-in">
 
       {/* ─── Header ─── */}
-      <div className="bill-header">
+      <div className="pp-page-hero">
         <div>
-          <h1 className="bill-header-title">
-            <Receipt size={20} strokeWidth={1.6} style={{ color: 'var(--pp-blue)' }} />
-            Billing &amp; Finance
+          <h1 className="pp-page-hero-title">
+            <Receipt size={22} strokeWidth={1.6} />
+            Billing & Finance
           </h1>
-          <p className="bill-header-sub">Manage clinic invoices, daily collections, and patient accounts.</p>
+          <p className="pp-page-hero-sub">Manage clinic invoices, daily collections, and patient accounts.</p>
         </div>
-        <div className="bill-header-actions">
+        <div className="pp-page-hero-actions">
           <input
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="bill-filter-input"
+            className="pp-input"
+            style={{ width: 'auto' }}
           />
-          <button className="bill-btn bill-btn-default" onClick={() => window.print()}>
+          <button className="btn-secondary" onClick={() => window.print()}>
             <Printer size={14} />
             Print Report
           </button>
-          <button className="bill-btn bill-btn-primary" onClick={() => setIsNewBillOpen(true)}>
+          <button className="btn-primary" onClick={() => setIsNewBillOpen(true)}>
             <FilePlus size={14} strokeWidth={1.6} />
             New Bill
           </button>
-          <button className="bill-btn bill-btn-default" onClick={() => setIsCustomBillOpen(true)}>
+          <button className="btn-secondary" onClick={() => setIsCustomBillOpen(true)}>
             <FilePlus size={14} strokeWidth={1.6} />
             Custom Bill
           </button>
         </div>
-
       </div>
 
       {/* ─── KPI Stats ─── */}
-      <div className="bill-stats-bar">
+      <div className="pp-stat-grid">
         <DailyCollectionCard
           label="Total Charges"
           amount={collectionQuery.data?.totalCharges ?? 0}
@@ -125,30 +126,30 @@ export default function BillingListPage() {
       </div>
 
       {/* ─── Table Section ─── */}
-      <div className="bill-section-header">
-        <div className="bill-section-title-group">
-          <h2 className="bill-section-title">Billing Records</h2>
-          <p className="bill-section-sub">Daily invoices and transaction history</p>
+      <div className="pp-section-header">
+        <div>
+          <h2 className="pp-section-title">Billing Records</h2>
+          <p className="pp-section-sub">Daily invoices and transaction history</p>
         </div>
 
-        <div className="bill-section-controls">
+        <div className="pp-filter-controls">
           {/* Search */}
-          <div className="bill-search-wrap">
-            <Search size={16} className="bill-search-icon" strokeWidth={2} />
+          <div className="pp-filter-search-wrap" style={{ maxWidth: 220 }}>
+            <Search size={14} />
             <input
               type="text"
-              className="bill-filter-input bill-search-input"
+              className="pp-filter-search-input"
               placeholder="Search by Reg ID…"
               value={regidFilter}
               onChange={(e) => { setRegidFilter(e.target.value); setPage(1); }}
             />
           </div>
           {/* List / Grid toggle */}
-          <div className="bill-view-toggle-group">
+          <div className="appt-segmented-toggle">
             <button
               type="button"
               onClick={() => setViewMode('list')}
-              className={`bill-view-toggle-btn${viewMode === 'list' ? ' is-active' : ''}`}
+              className={`appt-segmented-btn ${viewMode === 'list' ? 'active' : ''}`}
               title="List view"
             >
               <List size={14} /> List
@@ -156,7 +157,7 @@ export default function BillingListPage() {
             <button
               type="button"
               onClick={() => setViewMode('grid')}
-              className={`bill-view-toggle-btn${viewMode === 'grid' ? ' is-active' : ''}`}
+              className={`appt-segmented-btn ${viewMode === 'grid' ? 'active' : ''}`}
               title="Card view"
             >
               <Grid size={14} /> Card
@@ -167,6 +168,13 @@ export default function BillingListPage() {
 
       {billsQuery.isLoading ? (
         <TableSkeleton rows={8} columns={8} />
+      ) : bills.length === 0 ? (
+        <div className="bill-card">
+          <div className="bill-empty">
+            <Receipt size={32} className="bill-empty-icon" />
+            <p className="bill-empty-text">No billing records found for this date.</p>
+          </div>
+        </div>
       ) : viewMode === 'list' ? (
         <BillingTable bills={bills} isLoading={false} />
       ) : (
@@ -230,62 +238,21 @@ export default function BillingListPage() {
       </Drawer>
 
       <style>{`
-        @media (max-width: 1024px) {
+        .bill-main { padding: 0; }
+        @media (max-width: 640px) {
           .bill-header { flex-direction: column !important; align-items: stretch !important; gap: 16px !important; }
           .bill-header-actions { grid-template-columns: 1fr 1fr !important; gap: 8px !important; display: grid !important; }
           .bill-header-actions .bill-btn { height: 44px; justify-content: center; border-radius: 12px; }
           .bill-filter-input { width: 100% !important; height: 44px; border-radius: 12px; }
 
-          .bill-stats-bar { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
           .bill-stat-card { padding: 12px !important; }
-          .bill-stat-value { font-size: 18px !important; }
 
-          /* Section header: title left, controls right on tablet */
           .bill-section-header { flex-wrap: wrap; gap: 12px; }
           .bill-section-controls { width: 100%; }
           .bill-search-wrap { flex: 1; min-width: 0; max-width: 100%; }
           .bill-search-input { width: 100% !important; }
-
-          .bill-card { border: none !important; box-shadow: none !important; background: transparent !important; }
-          .bill-table-container { border: none !important; background: transparent !important; overflow: visible !important; }
-          .bill-table { display: block !important; width: 100% !important; min-width: 0 !important; }
-          .bill-table thead { display: none !important; }
-          .bill-table tbody { display: block !important; width: 100% !important; }
-          .bill-table tr { 
-            display: block !important; 
-            margin-bottom: 20px !important; 
-            background: var(--bg-card) !important; 
-            border: 1px solid var(--border-main) !important; 
-            border-radius: 16px !important; 
-            padding: 8px 0 !important;
-            box-shadow: var(--pp-shadow-sm) !important;
-          }
-          .bill-table td {
-            display: grid !important;
-            grid-template-columns: 100px 1fr !important;
-            gap: 12px !important;
-            align-items: center !important;
-            padding: 12px 20px !important;
-            border-bottom: 1px dashed var(--border-main) !important;
-            min-height: 48px;
-            text-align: right !important;
-            width: 100% !important;
-          }
-          .bill-table td:last-child { border-bottom: none !important; background: var(--bg-surface-2) !important; margin-top: 4px; }
-          
-          .bill-table td::before {
-            content: attr(data-label);
-            font-size: 10px !important;
-            font-weight: 800 !important;
-            color: var(--text-muted) !important;
-            text-transform: uppercase !important;
-            letter-spacing: 0.08em !important;
-            text-align: left !important;
-          }
-          .plat-cell-val { width: 100% !important; text-align: right !important; display: flex !important; flex-direction: column !important; align-items: flex-end !important; }
         }
       `}</style>
     </div>
   );
 }
-

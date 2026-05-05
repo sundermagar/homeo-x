@@ -130,6 +130,8 @@ export interface PlatformStats {
   totalClinics: number;
   totalStaff: number;
   totalClinicAdmins?: number;
+  revenueDensity?: number;
+  pendingDues?: number;
 }
 
 export interface IntelligenceInsight {

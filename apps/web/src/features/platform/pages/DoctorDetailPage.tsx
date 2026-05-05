@@ -10,34 +10,7 @@ import '../styles/platform.css';
 
 const CATEGORY = 'doctor';
 
-const mobileStyles = `
-  @media (max-width: 1024px) {
-    .plat-profile-page { padding: 12px !important; }
-    .plat-profile-header { padding: 16px !important; border-radius: 16px !important; margin-bottom: 16px !important; }
-    .plat-profile-container { gap: 12px !important; }
-    
-    .plat-grid { display: flex !important; flex-direction: column !important; gap: 16px !important; }
-    .plat-sidebar { width: 100% !important; gap: 16px !important; }
-    .plat-main { width: 100% !important; gap: 16px !important; }
 
-    .plat-profile-card { padding: 20px !important; border-radius: 20px !important; }
-    
-    .plat-grid-2 { grid-template-columns: 1fr !important; }
-    .show-desktop { display: none !important; }
-    
-    /* Mobile-first Profile Sections */
-    .plat-profile-section-title { font-size: 14px !important; }
-    .plat-profile-label { font-size: 9px !important; margin-bottom: 4px !important; }
-    .plat-profile-value { font-size: 14px !important; }
-    
-    .plat-doc-item { 
-      padding: 12px !important; 
-      background: var(--bg-surface-2) !important;
-      border-radius: 12px !important;
-      border: 1px solid var(--border-main) !important;
-    }
-  }
-`;
 
 export default function DoctorDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -96,7 +69,6 @@ export default function DoctorDetailPage() {
 
   return (
     <div className="plat-profile-page animate-fade-in">
-      <style>{mobileStyles}</style>
       
       {/* ─── Premium Profile Header ─── */}
       <div className="plat-profile-header">

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFamilyGroups } from '../hooks/use-patients';
-import { Search, Settings, Grid, List as ListIcon } from 'lucide-react';
+import { Search, Settings, Grid, List as ListIcon, Users as UsersIcon } from 'lucide-react';
 import '../styles/patients.css';
 import { Pagination } from '@/components/shared/pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
@@ -29,27 +29,30 @@ export default function FamilyGroupListPage() {
 
   return (
     <div className="pp-page-container animate-fade-in">
-      {/* Header */}
-      <div className="pp-page-header" style={{ marginBottom: '24px' }}>
+      {/* Hero Header */}
+      <div className="pp-page-hero">
         <div>
-          <h1 className="text-title" style={{ fontSize: '24px' }}>Family Group Registry</h1>
-          <p className="text-subtitle">View and manage clinical family groups and relationship links.</p>
+          <h1 className="pp-page-hero-title">
+            <UsersIcon size={22} strokeWidth={1.8} />
+            Family Group Registry
+          </h1>
+          <p className="pp-page-hero-sub">View and manage clinical family groups and relationship links.</p>
         </div>
       </div>
 
-      {/* Filter Bar */}
-      <div className="pp-card pp-filter-bar" style={{ marginBottom: '24px', alignItems: 'center' }}>
-        <div className="pat-search-wrap">
-          <Search size={14} className="pat-search-icon" />
+      {/* Filter Card */}
+      <div className="pp-filter-card">
+        <div className="pp-filter-search-wrap">
+          <Search size={14} />
           <input
-            className="pp-input pat-search-input"
+            className="pp-filter-search-input"
             type="text"
             placeholder="Search family by head name or RegID..."
             value={search}
             onChange={(e) => handleSearchChange(e.target.value)}
           />
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div className="pp-filter-controls">
           <div className="appt-segmented-toggle">
             <button
               type="button"
@@ -75,80 +78,101 @@ export default function FamilyGroupListPage() {
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="pat-stats-row">
-        <span className="text-label">Family Units</span>
-        <span className="text-small">Showing {families.length} groups of {total}</span>
+      {/* Table Meta */}
+      <div className="pp-table-meta-row">
+        <div className="pp-table-meta-label">Family Units</div>
+        <div className="pp-table-meta-stats">Showing {families.length} units of {total}</div>
       </div>
 
       {/* Content */}
       {isLoading ? (
         <TableSkeleton rows={10} cols={4} />
       ) : families.length === 0 ? (
-        <div className="pp-card pat-empty-state">
-          <p className="pat-empty-state-title">No family groups found</p>
-          <p className="text-small">Try adjusting your search criteria</p>
+        <div className="pp-empty-enhanced">
+          <div className="pp-empty-icon-circle">
+            <UsersIcon size={32} />
+          </div>
+          <p className="pp-empty-title">No family groups found</p>
+          <p className="pp-empty-sub">Try adjusting your search criteria</p>
         </div>
       ) : viewMode === 'list' ? (
-        <div className="pp-card pp-table-scroll" style={{ padding: 0 }}>
-          <table className="pp-table">
-            <thead>
-              <tr>
-                <th>Family Head</th>
-                <th>Head RegID</th>
-                <th>Total Members</th>
-                <th style={{ textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {families.map((f: any) => (
-                <tr key={f.id} className="hover-row">
-                  <td>
-                    <div className="pat-member-row">
-                      <div className="pat-avatar">
-                        {((f.name?.[0] || f.surname?.[0] || 'F')).toUpperCase()}
-                      </div>
-                      <span className="pat-member-name">{f.name} {f.surname}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <span className="pat-reg-badge">{f.regid}</span>
-                  </td>
-                  <td>
-                    <span className="text-body" style={{ fontWeight: 600 }}>
-                      {f.totalMembers} Members
-                    </span>
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    <button onClick={() => navigate(`/patients/${f.regid}`)} className="btn-secondary" style={{ padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
-                      <Settings size={14} /> Manage
-                    </button>
-                  </td>
+        <div className="pp-table-container-enhanced">
+          <div className="pp-table-scroll">
+            <table className="pp-table">
+                <col style={{ width: '6%' }} />
+                <col style={{ width: '38%' }} />
+                <col style={{ width: '20%' }} />
+                <col style={{ width: '26%' }} />
+                <col style={{ width: '10%' }} />
+              <thead>
+                <tr>
+                  <th style={{ width: '40px' }}>#</th>
+                  <th>Family Head</th>
+                  <th>Head RegID</th>
+                  <th>Total Members</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                 {families.map((f: any, idx: number) => (
+                  <tr key={f.id} className="pp-hover-row">
+                    <td data-label="#">
+                      <div className="font-mono text-[11px] font-bold color-muted opacity-60">
+                        {idx + 1 + (page - 1) * PAGE_SIZE}
+                      </div>
+                    </td>
+                    <td data-label="Family Head">
+                      <div className="pat-member-row">
+                        <span className="appt-cell-name">{f.name} {f.surname}</span>
+                      </div>
+                    </td>
+                    <td data-label="Head RegID">
+                      <span className="pp-regid-pill">#{f.regid}</span>
+                    </td>
+                    <td data-label="Total Members">
+                      <span className="appt-cell-muted" style={{ fontWeight: 600 }}>
+                        {f.totalMembers} Members
+                      </span>
+                    </td>
+                    <td data-label="Actions" style={{ textAlign: 'right' }}>
+                      <button onClick={() => navigate(`/patients/${f.regid}`)} className="appt-kebab-btn" aria-label="Manage group">
+                        <Settings size={15} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       ) : (
         <div className="pp-patient-grid">
           {families.map((f: any) => (
-            <div key={f.id} className="pp-card pat-grid-card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
-                <div>
-                  <div className="pat-grid-card-name" style={{ fontSize: '16px', fontWeight: 700 }}>{f.name} {f.surname}</div>
-                  <div className="text-small" style={{ marginTop: '4px' }}>Head RegID: {f.regid}</div>
-                </div>
-                <div className="pat-avatar pat-avatar--md">
+            <div key={f.id} className="pat-mobile-card" style={{ height: '100%' }}>
+              <div className="pat-mobile-card-header">
+                <div className="pat-avatar pat-avatar--md" style={{ flexShrink: 0 }}>
                   {((f.name?.[0] || f.surname?.[0] || 'F')).toUpperCase()}
                 </div>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', padding: '12px', background: 'var(--pp-warm-1)', borderRadius: 12 }}>
-                <div>
-                  <div className="text-small">Members</div>
-                  <div style={{ fontWeight: 700 }}>{f.totalMembers}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="pat-mobile-card-name">{f.name} {f.surname}</div>
+                  <div style={{ marginTop: 4 }}>
+                    <span className="pp-regid-pill">#{f.regid}</span>
+                  </div>
                 </div>
-                <button onClick={() => navigate(`/patients/${f.regid}`)} className="btn-secondary" style={{ minWidth: 100 }}>
-                  Manage
+              </div>
+
+              <div className="pat-mobile-card-body" style={{ flex: 1 }}>
+                <div className="pat-mobile-card-row">
+                  <span className="pat-mobile-card-row-label">
+                    <UsersIcon size={12} /> TOTAL MEMBERS
+                  </span>
+                  <span>{f.totalMembers} Members</span>
+                </div>
+              </div>
+
+              <div className="pat-mobile-card-actions">
+                <button onClick={() => navigate(`/patients/${f.regid}`)} className="btn-primary" style={{ flex: 1, height: 42, fontSize: '13px', justifyContent: 'center' }}>
+                  <Settings size={16} /> Manage
                 </button>
               </div>
             </div>

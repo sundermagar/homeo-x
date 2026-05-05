@@ -485,33 +485,71 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
       )`);
     }
 
-    const rows = await this.db
-      .select({
-        waitlist: schema.waitlist,
-        patientName: sql<string>`COALESCE((SELECT first_name || ' ' || surname FROM patients WHERE id = ${schema.waitlist.patientId}), (SELECT patient_name FROM appointments WHERE id = ${schema.waitlist.appointmentId}))`,
-        doctorName: sql<string>`COALESCE((SELECT firstname || ' ' || surname FROM doctors WHERE id = ${schema.waitlist.doctorId}), (SELECT name FROM users WHERE id = ${schema.waitlist.doctorId}), 'Practitioner')`,
-        balance: sql<string>`COALESCE((SELECT SUM(balance)::text FROM bills WHERE regid = (SELECT regid FROM patients WHERE id = ${schema.waitlist.patientId}) AND deleted_at IS NULL), '0')`,
-        latestBillId: sql<number>`(SELECT id FROM bills WHERE regid = (SELECT regid FROM patients WHERE id = ${schema.waitlist.patientId}) AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 1)`,
-        packageName: sql<string>`COALESCE((SELECT name FROM package_plans WHERE id = (SELECT package_id FROM patient_packages WHERE patient_id = ${schema.waitlist.patientId} AND status = 'Active' AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 1)), 'Regular')`,
-        packageExpiry: sql<string>`(SELECT expiry_date::text FROM patient_packages WHERE patient_id = ${schema.waitlist.patientId} AND status = 'Active' AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 1)`
+    // Optimized Waitlist with single-trip joins
+    const rows = await this.db.execute(sql`
+      WITH patient_finances AS (
+        SELECT 
+          regid, 
+          sum(balance)::text as total_balance,
+          max(id) as last_bill_id
+        FROM bills 
+        WHERE deleted_at IS NULL
+        GROUP BY regid
+      ),
+      active_packages AS (
+        SELECT DISTINCT ON (patient_id)
+          patient_id,
+          pp.name as pkg_name,
+          pk.expiry_date
+        FROM patient_packages pk
+        JOIN package_plans pp ON pp.id = pk.package_id
+        WHERE pk.status = 'Active' AND pk.deleted_at IS NULL
+        ORDER BY patient_id, pk.created_at DESC
+      )
+      SELECT
+        w.*,
+        COALESCE(p.first_name || ' ' || p.surname, a.patient_name) as patient_name,
+        COALESCE(d.firstname || ' ' || d.surname, u.name, 'Practitioner') as doctor_name,
+        COALESCE(pf.total_balance, '0') as balance,
+        pf.last_bill_id as latest_bill_id,
+        COALESCE(ap.pkg_name, 'Regular') as package_name,
+        ap.expiry_date::text as package_expiry
+      FROM waitlist w
+      LEFT JOIN patients p ON p.id = w.patient_id
+      LEFT JOIN appointments a ON a.id = w.appointment_id
+      LEFT JOIN doctors d ON d.id = w.doctor_id
+      LEFT JOIN users u ON u.id = w.doctor_id
+      LEFT JOIN patient_finances pf ON pf.regid = p.regid
+      LEFT JOIN active_packages ap ON ap.patient_id = w.patient_id
+      WHERE (w.deleted_at IS NULL OR w.deleted_at::text = '')
+        AND (
+          w.date::text = ${date} 
+          OR w.date::text = TO_CHAR(${date}::date, 'DD/MM/YYYY')
+          OR w.date::text LIKE '%' || TO_CHAR(${date}::date, 'DD/MM/YYYY') || '%'
+        )
+        ${clinicId ? sql`AND w.clinic_id = ${clinicId}` : sql``}
+        ${doctorId ? sql`AND (w.doctor_id = ${doctorId} OR u.name = (SELECT name FROM users WHERE id = ${doctorId}))` : sql``}
+      ORDER BY w.waiting_number ASC
+    `);
 
-      })
-      .from(schema.waitlist)
-      .where(and(...conditions))
-      .orderBy(asc(schema.waitlist.waitingNumber));
-
-    return rows.map(r => ({
-      ...r.waitlist,
-      patientName: r.patientName,
-      doctorName: r.doctorName,
-      clinicId: r.waitlist.clinicId,
+    return (rows as any[]).map(r => ({
+      ...r,
+      id: r.id,
+      patientId: r.patient_id,
+      appointmentId: r.appointment_id,
+      doctorId: r.doctor_id,
+      waitingNumber: r.waiting_number,
+      patientName: r.patient_name,
+      doctorName: r.doctor_name,
+      clinicId: r.clinic_id,
       balance: r.balance,
-      billId: r.latestBillId,
-      packageName: r.packageName,
-      packageExpiry: r.packageExpiry,
-      consultationFee: r.waitlist.consultationFee?.toString() || null,
-
-      rowcolor: r.waitlist.rowcolor || 0,
+      billId: r.latest_bill_id,
+      packageName: r.package_name,
+      packageExpiry: r.package_expiry,
+      consultationFee: r.consultation_fee?.toString() || null,
+      rowcolor: r.rowcolor || 0,
+      status: r.status,
+      date: r.date
     }));
   }
 

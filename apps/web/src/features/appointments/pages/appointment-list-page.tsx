@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Search, Plus, List as ListIcon, Grid, Edit2, Trash2, Calendar,
-  Clock, UserCheck, MoreVertical, X, Filter, Stethoscope, Activity, Tag, User, Printer, RefreshCw
+  Clock, UserCheck, MoreVertical, X, Filter, Stethoscope, Activity, Tag, User, Printer, RefreshCw, CalendarDays
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { AppointmentStatus } from '@mmc/types';
@@ -99,7 +99,7 @@ export default function AppointmentListPage() {
 
   const todayData = todayQuery.data ?? [];
   const listData = listQuery.data?.data ?? [];
-  
+
   let data = listData;
   let totalEntries = listQuery.data?.total ?? 0;
   let isPending = listQuery.isLoading;
@@ -108,9 +108,9 @@ export default function AppointmentListPage() {
     let filtered = todayData;
     if (search) {
       const s = search.toLowerCase();
-      filtered = filtered.filter(a => 
-        (a.patientName || '').toLowerCase().includes(s) || 
-        (a.patientNameFromCase || '').toLowerCase().includes(s) || 
+      filtered = filtered.filter(a =>
+        (a.patientName || '').toLowerCase().includes(s) ||
+        (a.patientNameFromCase || '').toLowerCase().includes(s) ||
         (a.phone || '').includes(s)
       );
     }
@@ -165,17 +165,17 @@ export default function AppointmentListPage() {
   ];
 
   return (
-    <div className="pp-page-container animate-fade-in">
-      {/* Header */}
-      <div className="appt-header">
+    <div className="pp-page-container appt-page animate-fade-in">
+      {/* Hero Header */}
+      <div className="pp-page-hero">
         <div>
-          <h1 className="appt-header-title">
-            <ListIcon size={20} strokeWidth={1.6} className="appt-panel-title-icon" />
+          <h1 className="pp-page-hero-title">
+            <CalendarDays size={22} strokeWidth={1.8} />
             Appointments
           </h1>
-          <p className="appt-header-sub">{totalEntries} appointment{totalEntries !== 1 ? 's' : ''}</p>
+          <p className="pp-page-hero-sub">{totalEntries} appointment{totalEntries !== 1 ? 's' : ''} managed</p>
         </div>
-        <div className="appt-header-actions">
+        <div className="pp-page-hero-actions">
           <div className="appt-segmented-toggle">
             <button type="button" className={`appt-segmented-btn ${viewMode === 'list' ? 'active' : ''}`} onClick={() => setViewMode('list')}>
               <ListIcon size={16} strokeWidth={1.6} /> List
@@ -184,7 +184,7 @@ export default function AppointmentListPage() {
               <Grid size={16} strokeWidth={1.6} /> Grid
             </button>
           </div>
-          <button className="appt-btn appt-btn-primary" onClick={() => { setDrawerApptId(null); setIsDrawerOpen(true); }}>
+          <button className="btn-primary" onClick={() => { setDrawerApptId(null); setIsDrawerOpen(true); }}>
             <Plus size={14} strokeWidth={1.6} /> New Booking
           </button>
         </div>
@@ -201,33 +201,27 @@ export default function AppointmentListPage() {
 
       {/* Filters */}
       {tab !== 'pending' && (
-        <div className="appt-filters">
-          <div className="appt-search-wrap">
-            <Search size={14} className="appt-search-icon" strokeWidth={1.6} />
+        <div className="pp-filter-card">
+          <div className="pp-filter-search-wrap">
+            <Search size={14} strokeWidth={1.6} />
             <input
-              className="appt-filter-input appt-search-input"
+              className="pp-filter-search-input"
               placeholder="Search patient / phone…"
               value={search}
               onChange={e => { setSearch(e.target.value); setPage(1); }}
             />
           </div>
-          <select className="appt-filter-input" value={status} onChange={e => { setStatus(e.target.value); setPage(1); }}>
-            <option value="">All Statuses</option>
-            {STATUS_OPTIONS.filter(Boolean).map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
-          <input className="appt-filter-input" type="date" value={fromDate} onChange={e => {
-            setFromDate(e.target.value);
-            if (tab === 'today') setTab('all');
-            setPage(1);
-          }} title="From Date" />
-          <input className="appt-filter-input" type="date" value={toDate} onChange={e => {
-            setToDate(e.target.value);
-            if (tab === 'today') setTab('all');
-            setPage(1);
-          }} title="To Date" />
-          <button className="appt-btn appt-btn-sm" onClick={() => { setSearch(''); setStatus(''); setFromDate(''); setToDate(''); setPage(1); }}>
-            <Filter size={13} strokeWidth={1.6} /> Clear
-          </button>
+          <div className="pp-filter-controls">
+            <select className="pp-select" style={{ width: 'auto', minWidth: 130 }} value={status} onChange={e => { setStatus(e.target.value); setPage(1); }}>
+              <option value="">All Statuses</option>
+              {STATUS_OPTIONS.filter(Boolean).map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <input className="pp-input" style={{ width: 'auto' }} type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} title="From Date" />
+            <input className="pp-input" style={{ width: 'auto' }} type="date" value={toDate} onChange={e => setToDate(e.target.value)} title="To Date" />
+            <button className="btn-secondary" onClick={() => { setSearch(''); setStatus(''); setFromDate(''); setToDate(''); setPage(1); }}>
+              <Filter size={13} strokeWidth={1.6} /> Clear
+            </button>
+          </div>
         </div>
       )}
 
@@ -236,11 +230,14 @@ export default function AppointmentListPage() {
         {isPending ? (
           <TableSkeleton rows={10} cols={7} />
         ) : data.length === 0 ? (
-          <div className="appt-empty">
-            <Calendar size={28} className="appt-empty-icon" />
-            <p className="appt-empty-text">No appointments found</p>
-            <button className="appt-btn appt-btn-primary appt-btn-sm" style={{ marginTop: 12 }} onClick={() => { setDrawerApptId(null); setIsDrawerOpen(true); }}>
-              + New Booking
+          <div className="pp-empty-enhanced">
+            <div className="pp-empty-icon-circle">
+              <CalendarDays size={32} />
+            </div>
+            <p className="pp-empty-title">No appointments found</p>
+            <p className="pp-empty-sub">Try adjusting filters or create a new booking.</p>
+            <button className="btn-primary" onClick={() => { setDrawerApptId(null); setIsDrawerOpen(true); }}>
+              <Plus size={14} /> New Booking
             </button>
           </div>
         ) : viewMode === 'list' ? (
@@ -264,19 +261,19 @@ export default function AppointmentListPage() {
                   <tr key={a.id}>
                     <td data-label="#"><span className="appt-cell-id">#{a.id}</span></td>
                     <td data-label="PATIENT">
-                      <div className="appt-cell-name">{a.patientNameFromCase ?? a.patientName ?? '—'}</div>
+                      <div className="appt-cell-name">{(a.patientNameFromCase || a.patientName || '').trim() || '—'}</div>
                       {a.phone && <div className="appt-cell-phone">{a.phone}</div>}
                     </td>
                     <td data-label="DOCTOR">
-                      {a.doctorName
+                      {(a.doctorName || '').trim()
                         ? <span className="appt-doctor-badge"><User size={11} strokeWidth={1.6} />{a.doctorName}</span>
                         : <span className="appt-cell-slash">—</span>}
                     </td>
                     <td data-label="DATE & TIME">
-                      <div className="appt-cell-name">{a.bookingDate ?? '—'}</div>
+                      <div className="appt-cell-name">{(a.bookingDate || '').trim() || '—'}</div>
                       {a.bookingTime && <div className="appt-cell-phone">{a.bookingTime}</div>}
                     </td>
-                    <td data-label="TYPE" className="appt-cell-muted">{a.visitType ?? '—'}</td>
+                    <td data-label="TYPE" className="appt-cell-muted">{(a.visitType || '').trim() || '—'}</td>
                     <td data-label="PACKAGE">
                       {a.packageName ? (
                         <span className="appt-metadata-badge appt-metadata-package" title={`Expires: ${a.packageExpiry ?? 'N/A'}`}>
@@ -436,6 +433,7 @@ export default function AppointmentListPage() {
           todayQuery.refetch();
         }}
       />
+
     </div>
   );
 }

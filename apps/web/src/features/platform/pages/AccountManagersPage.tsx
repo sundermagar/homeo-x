@@ -12,80 +12,7 @@ import { Pagination } from '@/shared/components/Pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { Drawer } from '@/shared/components/drawer';
 
-const mobileStyles = `
-  @media (max-width: 1024px) {
-    .plat-header { flex-direction: column !important; align-items: stretch !important; gap: 16px !important; }
-    .plat-header-actions { width: 100% !important; margin-top: 8px; }
-    .plat-header-actions .plat-btn { width: 100% !important; height: 46px !important; border-radius: 12px !important; justify-content: center !important; }
 
-    .plat-stats-bar { grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; padding: 0 !important; }
-    .plat-stat-card { padding: 16px 12px !important; }
-    .plat-stat-value { font-size: 20px !important; }
-
-    .plat-filters { 
-      flex-direction: column !important; 
-      align-items: stretch !important; 
-      gap: 12px !important; 
-      background: var(--bg-surface-2) !important;
-      padding: 16px !important;
-      border-radius: 16px !important;
-      margin-bottom: 16px !important;
-      border: 1px solid var(--border-main) !important;
-    }
-    .plat-filters > .flex { flex-direction: column !important; width: 100% !important; gap: 12px !important; }
-    .plat-search-wrap { width: 100% !important; margin: 0 !important; }
-    .plat-search-input { width: 100% !important; height: 44px !important; border-radius: 12px !important; font-size: 14px !important; }
-    .plat-filters select { width: 100% !important; height: 44px !important; border-radius: 12px !important; font-size: 14px !important; }
-    .plat-filters .plat-btn-ghost { width: 100% !important; height: 40px !important; justify-content: center !important; }
-
-    .plat-card { border: none !important; box-shadow: none !important; background: transparent !important; padding: 0 !important; }
-    .plat-table-container { 
-      border: none !important; 
-      background: transparent !important; 
-      overflow: visible !important; 
-      width: 100% !important;
-      padding: 0 !important;
-    }
-    .plat-table { display: block !important; width: 100% !important; min-width: 0 !important; border: none !important; }
-    .plat-table thead { display: none !important; }
-    .plat-table tbody { display: block !important; width: 100% !important; }
-    .plat-table tr { 
-      display: block !important; 
-      margin-bottom: 24px !important; 
-      background: var(--bg-card) !important; 
-      border: 1px solid var(--border-main) !important; 
-      border-radius: 20px !important; 
-      padding: 0 !important;
-      box-shadow: var(--pp-shadow-md) !important;
-      overflow: hidden !important;
-    }
-    .plat-table td {
-      display: grid !important;
-      grid-template-columns: 100px 1fr !important;
-      gap: 12px !important;
-      align-items: center !important;
-      padding: 12px 20px !important;
-      border-bottom: 1px dashed var(--border-main) !important;
-      min-height: 52px;
-      text-align: right !important;
-      width: 100% !important;
-      box-sizing: border-box !important;
-    }
-    .plat-table td:last-child { border-bottom: none !important; background: var(--bg-surface-2) !important; padding-top: 16px !important; padding-bottom: 16px !important; }
-    
-    .plat-table td::before {
-      content: attr(data-label);
-      font-size: 10px !important;
-      font-weight: 800 !important;
-      color: var(--text-muted) !important;
-      text-transform: uppercase !important;
-      letter-spacing: 0.1em !important;
-      text-align: left !important;
-    }
-    .plat-cell-val { width: 100% !important; text-align: right !important; display: flex !important; flex-direction: column !important; align-items: flex-end !important; }
-    [data-label="#"], [data-label="ID"] { background: var(--bg-surface-2) !important; border-bottom: 1px solid var(--border-main) !important; padding: 12px 20px !important; }
-  }
-`;
 
 function FileInputRow({
   label,
@@ -713,7 +640,6 @@ export default function AccountManagersPage() {
 
 
       {modalOpen && <StaffModal mode={editingId ? 'edit' : 'create'} staff={editingStaff} isLoading={isLoadingStaff} onClose={() => { setModalOpen(false); setEditingId(null); }} onSuccess={() => setEditingId(null)} />}
-      <style>{mobileStyles}</style>
     </div>
   );
 }

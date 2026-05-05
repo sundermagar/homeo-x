@@ -10,8 +10,8 @@ export function TableSkeleton({ rows = 5, columns, cols }: TableSkeletonProps) {
   const colCount = columns || cols || 4;
   
   return (
-    <div className="pp-table-scroll pp-card-premium" style={{ padding: 0, overflow: 'hidden' }}>
-      <table className="pp-table" style={{ tableLayout: 'fixed' }}>
+    <div className="pp-table-scroll pp-card-premium" style={{ padding: 0 }}>
+      <table className="pp-table">
         <thead>
           <tr>
             {Array.from({ length: colCount }).map((_, i) => (

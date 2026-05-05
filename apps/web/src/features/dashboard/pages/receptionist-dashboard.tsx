@@ -72,6 +72,7 @@ export function ReceptionistDashboard() {
               <span className="dash-badge badge-primary">{todayAppts.length} TOTAL</span>
             </div>
 
+            <div className="rd-table-wrap">
             <div className="pp-table-scroll">
               <table className="pp-table">
                 <thead>
@@ -95,7 +96,7 @@ export function ReceptionistDashboard() {
                           onClick={() => setExpandedId(isExpanded ? null : a.id)}
                           style={{ cursor: 'pointer' }}
                         >
-                          <td style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 700, color: '#64748b' }}>
+                          <td data-label="TOKEN / TIME" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 700, color: '#64748b' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                               {a.tokenNo ? (
                                 <div className="token-badge">{a.tokenNo}</div>
@@ -105,7 +106,8 @@ export function ReceptionistDashboard() {
                               {a.bookingTime || 'Walk-in'}
                             </div>
                           </td>
-                          <td>
+                          <td data-label="PATIENT">
+
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                               <div className="dash-avatar">{a.patientName?.charAt(0)}</div>
                               <div>
@@ -114,12 +116,12 @@ export function ReceptionistDashboard() {
                               </div>
                             </div>
                           </td>
-                          <td>
+                          <td data-label="STATUS">
                             <span className={`dash-badge badge-${a.status === 'Consultation' ? 'success' : a.status === 'Waitlist' ? 'warning' : 'primary'}`}>
                               {a.status}
                             </span>
                           </td>
-                          <td style={{ textAlign: 'center' }}>
+                          <td data-label="ACTION" style={{ textAlign: 'center' }}>
                             <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
                               {canCheckIn && (
                                 <button 
@@ -177,6 +179,7 @@ export function ReceptionistDashboard() {
                   )}
                 </tbody>
               </table>
+            </div>
             </div>
 
             {todayAppts.length > 0 && totalPages > 1 && (

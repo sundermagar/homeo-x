@@ -36,7 +36,7 @@ export default function FollowupsPage() {
   const fetchFollowups = async () => {
     setLoading(true);
     try {
-      const params: any = { 
+      const params: any = {
         ...filters,
         page,
         limit
@@ -242,7 +242,7 @@ export default function FollowupsPage() {
         ) : (
           <div className={`animate-fade-in ${viewMode === 'list' ? 'fu-list-view' : 'fu-grid-view'}`}>
             {viewMode === 'list' ? (
-              <div className="pp-table-scroll pp-card-premium" style={{ padding: 0, overflow: 'hidden' }}>
+              <div className="pp-table-scroll pp-card-premium" style={{ padding: 0 }}>
                 <table className="pp-table">
                   <thead>
                     <tr>
@@ -255,92 +255,90 @@ export default function FollowupsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                      {followups.map(f => (
-                        <tr key={f.id} className="hover-row">
-                          <td data-label="PATIENT">
-                            <div className="fu-patient-info">
-                              <div className="fu-avatar-sm">{f.patientName?.[0]}</div>
-                              <div>
-                                <span className="fu-name">{f.patientName}</span>
-                                <span className="fu-phone">{f.phone || 'No Contact'}</span>
-                              </div>
+                    {followups.map(f => (
+                      <tr key={f.id} className="hover-row">
+                        <td data-label="Patient">
+                          <div className="fu-patient-info">
+                            <div className="fu-avatar-sm">{f.patientName?.[0]}</div>
+                            <div>
+                              <span className="fu-name">{f.patientName}</span>
+                              <span className="fu-phone">{f.phone || 'No Contact'}</span>
                             </div>
-                          </td>
-                          <td data-label="ENC. TYPE">
-                            <div className="flex justify-end w-full">
-                              <span className={`db-badge ${f.visitType === 'Missed' ? 'db-badge-danger' : 'db-badge-success'}`}>
-                                {f.visitType}
-                              </span>
-                            </div>
-                          </td>
-                          <td data-label="DUE DATE">
-                            <div className="fu-meta-cell">
-                              <Calendar size={12} />
-                              {new Date(f.bookingDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
-                            </div>
-                          </td>
-                          <td data-label="TIME">
-                            <div className="fu-meta-cell">
-                              <Clock size={12} />
-                              {f.bookingTime || '—'}
-                            </div>
-                          </td>
-                          <td data-label="ASSIGNED TO">
-                            <div className="fu-meta-cell">
-                              <User size={12} />
-                              {f.doctorName || 'General'}
-                            </div>
-                          </td>
-                          <td data-label="ACTION" style={{ textAlign: 'right' }}>
-                            <div className="flex justify-end gap-2 fu-action-wrap">
-                              <button className="fu-action-btn wa" onClick={() => openWhatsApp(f)}>
-                                <MessageSquare size={14} />
-                              </button>
-                              <Link to={`/medical-cases/${f.patientId}`} className="fu-action-btn">
-                                <ChevronRight size={14} />
-                              </Link>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
+                          </div>
+                        </td>
+                        <td data-label="Enc. Type">
+                          <span className={`db-badge ${f.visitType === 'Missed' ? 'db-badge-danger' : 'db-badge-success'}`}>
+                            {f.visitType}
+                          </span>
+                        </td>
+                        <td data-label="Due Date">
+                          <div className="fu-meta-cell">
+                            <Calendar size={12} />
+                            {new Date(f.bookingDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                          </div>
+                        </td>
+                        <td data-label="Time">
+                          <div className="fu-meta-cell">
+                            <Clock size={12} />
+                            {f.bookingTime || '—'}
+                          </div>
+                        </td>
+                        <td data-label="Assigned To">
+                          <div className="fu-meta-cell">
+                            <User size={12} />
+                            {f.doctorName || 'General'}
+                          </div>
+                        </td>
+                        <td data-label="Actions" style={{ textAlign: 'right' }}>
+                          <div className="flex justify-end gap-2 fu-action-wrap">
+                            <button className="fu-action-btn wa" onClick={() => openWhatsApp(f)}>
+                              <MessageSquare size={14} />
+                            </button>
+                            <Link to={`/medical-cases/${f.patientId}`} className="fu-action-btn">
+                              <ChevronRight size={14} />
+                            </Link>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
             ) : (
-              <div className="pp-patient-grid">
+              <div className="fu-grid-view-inner">
                 {followups.map(f => (
-                  <div key={f.id} className="pp-card-premium fu-patient-card">
+                  <div key={f.id} className="fu-patient-card pp-card-premium">
                     <div className="flex justify-between items-start mb-4">
+                      <div className="fu-avatar-lg">{f.patientName?.[0]}</div>
                       <span className={`db-badge ${f.visitType === 'Missed' ? 'db-badge-danger' : 'db-badge-success'}`}>
                         {f.visitType}
                       </span>
-                      <button className="btn-ghost" style={{ padding: 2 }}><MoreVertical size={14} /></button>
                     </div>
-                    <div className="flex flex-col items-center text-center mb-5">
-                      <div className="fu-avatar-lg mb-3">{f.patientName?.[0]}</div>
-                      <h4 className="fu-card-title">{f.patientName}</h4>
-                      <p className="text-small">{f.phone || 'No mobile number'}</p>
-                    </div>
-                    <div className="fu-card-meta mb-5">
+                    
+                    <h3 className="fu-card-title mb-1">{f.patientName}</h3>
+                    <p className="fu-phone mb-4">{f.phone || 'No Contact'}</p>
+                    
+                    <div className="fu-card-meta mb-4">
                       <div className="fu-meta-row">
                         <Calendar size={14} />
-                        <span>{new Date(f.bookingDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                        <span>Due: {new Date(f.bookingDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
                       </div>
                       <div className="fu-meta-row">
                         <Clock size={14} />
-                        <span>{f.bookingTime || 'Flexible Time'}</span>
+                        <span>Time: {f.bookingTime || 'Not set'}</span>
                       </div>
                       <div className="fu-meta-row">
                         <User size={14} />
-                        <span>{f.doctorName || 'General Practitioner'}</span>
+                        <span>Dr. {f.doctorName || 'General'}</span>
                       </div>
                     </div>
+
                     <div className="flex gap-2">
-                      <button className="btn-secondary flex-1" onClick={() => openWhatsApp(f)} style={{ fontSize: '12px' }}>
-                        <MessageSquare size={14} /> Reminder
+                      <button className="btn-secondary flex-1" onClick={() => openWhatsApp(f)} style={{ height: 40, fontSize: 12 }}>
+                        WhatsApp
                       </button>
-                      <Link to={`/medical-cases/${f.patientId}`} className="btn-primary flex-1" style={{ fontSize: '12px' }}>
-                        View Files
+                      <Link to={`/medical-cases/${f.patientId}`} className="btn-primary flex-1" style={{ height: 40, fontSize: 12 }}>
+                        View Case
                       </Link>
                     </div>
                   </div>
@@ -604,91 +602,6 @@ export default function FollowupsPage() {
           .fu-insights-grid { grid-template-columns: 1fr; }
           .fu-hero-content { align-items: flex-start; }
           .fu-hero-icon-blob { margin-top: 4px; }
-        }
-        
-        @media (max-width: 1024px) {
-          .pp-table-scroll { 
-            overflow: visible !important; 
-            border: none !important; 
-            background: transparent !important;
-            width: 100% !important;
-            min-width: 0 !important;
-          }
-          .pp-table { 
-            min-width: 0 !important; 
-            width: 100% !important; 
-            display: block !important;
-          }
-          .pp-table thead { display: none; }
-          .pp-table tr { 
-            display: block !important; 
-            width: 100% !important;
-            margin-bottom: 24px !important; 
-            border: 1px solid var(--border-main) !important; 
-            border-radius: 16px !important; 
-            background: var(--bg-card) !important;
-            overflow: hidden !important;
-            box-shadow: var(--pp-shadow-sm) !important;
-          }
-          .pp-table td {
-            display: grid !important;
-            grid-template-columns: 110px 1fr !important;
-            gap: 12px !important;
-            align-items: flex-start !important;
-            padding: 14px 20px !important;
-            border-bottom: 1px dashed var(--border-main) !important;
-            text-align: right !important;
-            background: transparent !important;
-            min-height: 48px;
-            width: 100% !important;
-          }
-          .pp-table td:last-child {
-            background: var(--bg-surface-2) !important;
-            border-top: 1px solid var(--border-main) !important;
-            border-bottom: none !important;
-            padding-top: 18px !important;
-            padding-bottom: 18px !important;
-            margin-top: 4px;
-            display: flex !important;
-            justify-content: space-between !important;
-            align-items: center !important;
-          }
-
-          .pp-table td::before {
-            content: attr(data-label);
-            display: block !important;
-            font-weight: 800 !important;
-            font-size: 10px !important;
-            color: var(--text-muted) !important;
-            text-transform: uppercase !important;
-            letter-spacing: 0.1em !important;
-            text-align: left !important;
-            opacity: 0.8;
-          }
-          .fu-patient-info { 
-            display: flex !important;
-            flex-direction: column !important;
-            align-items: flex-end !important;
-            text-align: right !important;
-            min-width: 0;
-            width: 100%;
-          }
-          .fu-avatar-sm { display: none; }
-          .fu-meta-cell { 
-            display: flex !important;
-            justify-content: flex-end !important; 
-            align-items: center !important;
-            color: var(--text-main) !important; 
-            font-weight: 700 !important; 
-            min-width: 0;
-            gap: 6px;
-            width: 100%;
-          }
-          .fu-name { color: var(--text-main) !important; font-size: 14px !important; line-height: 1.2; font-weight: 700 !important; }
-          .fu-phone { color: var(--text-muted) !important; font-size: 11px !important; }
-          .fu-meta-cell svg { color: var(--primary) !important; flex-shrink: 0; }
-          .fu-action-wrap { width: 100%; }
-          .fu-action-btn { flex: 1; height: 40px; border-radius: 12px; }
         }
       `}</style>
     </div>

@@ -269,16 +269,32 @@ async function ensureIndexes(db: any): Promise<void> {
   const indexes: string[] = [
     `CREATE INDEX IF NOT EXISTS idx_patients_clinic_deleted ON patients (clinic_id) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
     `CREATE INDEX IF NOT EXISTS idx_patients_deleted ON patients (id) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    // ── Dashboard-critical composite indexes ──────────────────────────────────
+    // appointments: used in KPI counts + revenue series (clinic_id + booking_date filter)
+    `CREATE INDEX IF NOT EXISTS idx_appts_clinic_date ON appointments (clinic_id, booking_date) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    `CREATE INDEX IF NOT EXISTS idx_appts_clinic_date_type ON appointments (clinic_id, booking_date) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    // patients: used in KPI (clinic_id + created_at range)
+    `CREATE INDEX IF NOT EXISTS idx_patients_clinic_created ON patients (clinic_id, created_at) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    // bills: used in KPI + revenue breakdown + top billing (clinic_id + bill_date)
+    `CREATE INDEX IF NOT EXISTS idx_bills_clinic_date ON bills (clinic_id, bill_date) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    `CREATE INDEX IF NOT EXISTS idx_bills_clinic_date_amt ON bills (clinic_id, bill_date, charges DESC) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    // waitlist: used in queue + KPI wait time (clinic_id + date)
+    `CREATE INDEX IF NOT EXISTS idx_waitlist_clinic_date ON waitlist (clinic_id, date) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    `CREATE INDEX IF NOT EXISTS idx_waitlist_clinic_date_called ON waitlist (clinic_id, date) WHERE called_at IS NOT NULL AND checked_in_at IS NOT NULL AND (deleted_at IS NULL OR deleted_at::text = '')`,
+    // receipt: used in KPI financials + revenue series (clinic_id join via patients)
+    `CREATE INDEX IF NOT EXISTS idx_receipt_regid ON receipt (regid) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    // doctors + users: used in staff-on-duty (clinic_id filter)
+    `CREATE INDEX IF NOT EXISTS idx_doctors_clinic ON doctors (clinic_id) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    `CREATE INDEX IF NOT EXISTS idx_users_context_active ON users (context_id) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    // ── Legacy / admin ────────────────────────────────────────────────────────
     `CREATE INDEX IF NOT EXISTS idx_appts_clinic ON appointments (clinic_id) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
     `CREATE INDEX IF NOT EXISTS idx_appts_date ON appointments (booking_date) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
     `CREATE INDEX IF NOT EXISTS idx_appts_doctor_clinic ON appointments (doctor_id, clinic_id) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
-    `CREATE INDEX IF NOT EXISTS idx_waitlist_clinic_date ON waitlist (clinic_id, date) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
-    `CREATE INDEX IF NOT EXISTS idx_bills_clinic_date ON bills (clinic_id, bill_date) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
-    `CREATE INDEX IF NOT EXISTS idx_doctors_clinic ON doctors (clinic_id) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
     `CREATE INDEX IF NOT EXISTS idx_receipt_created ON receipt (created_at) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
     `CREATE INDEX IF NOT EXISTS idx_users_email_active ON users (email) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
     `CREATE INDEX IF NOT EXISTS idx_users_type ON users (type) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
     `CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses (exp_date) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    `CREATE INDEX IF NOT EXISTS idx_case_reminders_clinic_status ON case_reminder (clinic_id, status) WHERE status = 'pending'`,
   ];
 
   for (const idxSql of indexes) {
