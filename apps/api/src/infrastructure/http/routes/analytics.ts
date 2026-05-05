@@ -26,7 +26,6 @@ router.get('/patients', asyncHandler(async (req: any, res) => {
   const from = req.query.from ? new Date(req.query.from as string) : undefined;
   const to = req.query.to ? new Date(req.query.to as string) : undefined;
   const clinicId = req.user?.contextId || req.user?.clinicId || (req.query.clinicId ? Number(req.query.clinicId) : undefined);
-  if (!clinicId) throw new Error('Clinic ID is required');
 
   const useCases = getUseCases(req);
   const result = await useCases.getPatientTrends(clinicId, from, to);
@@ -38,7 +37,6 @@ router.get('/casemonthwise', asyncHandler(async (req: any, res) => {
   const from = (req.query.from_date as string) || `${new Date().getFullYear()}-01`;
   const to = (req.query.to_date as string) || `${new Date().getFullYear()}-12`;
   const clinicId = req.user?.contextId || req.user?.clinicId || (req.query.clinicId ? Number(req.query.clinicId) : undefined);
-  if (!clinicId) throw new Error('Clinic ID is required');
 
   const useCases = getUseCases(req);
   const result = await useCases.getMonthWiseBreakdown(clinicId, from, to);
@@ -49,7 +47,6 @@ router.get('/casemonthwise', asyncHandler(async (req: any, res) => {
 router.get('/monthwisedue', asyncHandler(async (req: any, res) => {
   const year = req.query.year ? Number(req.query.year) : new Date().getFullYear();
   const clinicId = req.user?.contextId || req.user?.clinicId || (req.query.clinicId ? Number(req.query.clinicId) : undefined);
-  if (!clinicId) throw new Error('Clinic ID is required');
 
   const useCases = getUseCases(req);
   const result = await useCases.getMonthWiseDues(clinicId, year);
@@ -62,7 +59,6 @@ router.get('/monthwisedue/details', asyncHandler(async (req: any, res) => {
   const month = req.query.month !== undefined ? Number(req.query.month) : NaN;
   if (!year || isNaN(month)) throw new Error('Year and month are required');
   const clinicId = req.user?.contextId || req.user?.clinicId || (req.query.clinicId ? Number(req.query.clinicId) : undefined);
-  if (!clinicId) throw new Error('Clinic ID is required');
 
   const useCases = getUseCases(req);
   const result = await useCases.getDueDetails(clinicId, year, month);
@@ -76,7 +72,6 @@ router.get('/birthdaylist', asyncHandler(async (req: any, res) => {
   const from = (req.query.from_date as string) || defaultFilter;
   const to = (req.query.to_date as string) || defaultFilter;
   const clinicId = req.user?.contextId || req.user?.clinicId || (req.query.clinicId ? Number(req.query.clinicId) : undefined);
-  if (!clinicId) throw new Error('Clinic ID is required');
   
   const useCases = getUseCases(req);
   const result = await useCases.getBirthdays(clinicId, from, to);
@@ -94,8 +89,6 @@ router.get('/referencelisting', asyncHandler(async (req: any, res) => {
   const clinicId = req.user?.contextId || req.user?.clinicId || (req.query.clinicId ? Number(req.query.clinicId) : undefined);
   
   console.log('[Analytics] ReferenceListing request:', { userId: req.user?.id, contextId: req.user?.contextId, clinicId });
-  
-  if (!clinicId) throw new Error('Clinic ID is required');
 
   const useCases = getUseCases(req);
   const result = await useCases.getReferenceListing(clinicId, from, to);

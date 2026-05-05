@@ -22,7 +22,7 @@ export class AnalyticsUseCases {
     }
   }
 
-  async getPatientTrends(clinicId: number, from?: Date, to?: Date): Promise<Result<PatientTrendResult>> {
+  async getPatientTrends(clinicId?: number, from?: Date, to?: Date): Promise<Result<PatientTrendResult>> {
     try {
       const data = await this.repo.getPatientTrends(clinicId, from, to);
       return ok(data);
@@ -31,7 +31,7 @@ export class AnalyticsUseCases {
     }
   }
 
-  async getMonthWiseBreakdown(clinicId: number, fromYearMth: string, toYearMth: string): Promise<Result<MonthWiseResult[]>> {
+  async getMonthWiseBreakdown(clinicId?: number, fromYearMth?: string, toYearMth?: string): Promise<Result<MonthWiseResult[]>> {
     try {
       if (!fromYearMth || !toYearMth) return fail('Date range is required', 'VALIDATION');
       const data = await this.repo.getMonthWiseBreakdown(clinicId, fromYearMth, toYearMth);
@@ -41,7 +41,7 @@ export class AnalyticsUseCases {
     }
   }
 
-  async getMonthWiseDues(clinicId: number, year: number): Promise<Result<MonthWiseDueSummary[]>> {
+  async getMonthWiseDues(clinicId?: number, year?: number): Promise<Result<MonthWiseDueSummary[]>> {
     try {
       const data = await this.repo.getMonthWiseDues(clinicId, year);
       return ok(data);
@@ -50,7 +50,7 @@ export class AnalyticsUseCases {
     }
   }
 
-  async getDueDetails(clinicId: number, year: number, month: number): Promise<Result<MonthWiseDueDetail[]>> {
+  async getDueDetails(clinicId?: number, year?: number, month?: number): Promise<Result<MonthWiseDueDetail[]>> {
     try {
       const data = await this.repo.getDueDetails(clinicId, year, month);
       return ok(data);
@@ -59,7 +59,7 @@ export class AnalyticsUseCases {
     }
   }
 
-  async getBirthdays(clinicId: number, fromMonthDay: string, toMonthDay: string): Promise<Result<{ patients: BirthdayPatient[]; smsSentIds: number[] }>> {
+  async getBirthdays(clinicId?: number, fromMonthDay?: string, toMonthDay?: string): Promise<Result<{ patients: BirthdayPatient[]; smsSentIds: number[] }>> {
     try {
       const patients = await this.repo.getBirthdays(clinicId, fromMonthDay, toMonthDay);
       const smsSentIds = await this.repo.getSmsSentIds(clinicId, new Date(), 'birthday');
@@ -69,7 +69,7 @@ export class AnalyticsUseCases {
     }
   }
 
-  async getReferenceListing(clinicId: number, from: Date, to: Date): Promise<Result<ReferenceListResult[]>> {
+  async getReferenceListing(clinicId?: number, from?: Date, to?: Date): Promise<Result<ReferenceListResult[]>> {
     try {
       const data = await this.repo.getReferenceListing(clinicId, from, to);
       return ok(data);
