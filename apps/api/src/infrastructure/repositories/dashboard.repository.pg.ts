@@ -457,8 +457,6 @@ export class DashboardRepositoryPg implements IDashboardRepository {
 
   async getRevenueSeries(period: string, contextId: number, paymentMode?: string): Promise<RevenueSeries[]> {
     return this.getCached(`revSeries:${contextId}:${period}:${paymentMode ?? ''}`, 60_000, async () => {
-      const revInfo = await this.getRevenueTableInfo();
-    if (!revInfo) return [];
 
     let modeFilter = '';
     if (paymentMode === 'Cash') {
@@ -545,6 +543,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             JOIN case_datas pb ON pb.regid = b.regid
             WHERE b.bill_date >= date_trunc('month', NOW()) - interval '6 months' 
               AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
+              AND pb.clinic_id = ${contextId}
             UNION ALL
             SELECT 
               date_trunc('month', r.created_at)::date as m,
@@ -555,6 +554,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             JOIN case_datas pr ON pr.regid = r.regid
             WHERE r.created_at >= date_trunc('month', NOW()) - interval '6 months'
               AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
+              AND pr.clinic_id = ${contextId}
           )
           SELECT 
             to_char(months.m, 'Mon') as month, 
@@ -574,7 +574,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
 
       const results = await this.db.execute(sql`
       WITH periods AS (
-        SELECT generate_series(${seriesStart}::date, ${seriesEnd}::date, ${sql.raw(`'${interval}'`)})::date as p
+        SELECT generate_series(${seriesStart}::date, ${seriesEnd}::date, ${sql.raw(`'${interval}'`)}::interval)::date as p
       ),
       rev_combined AS (
         -- Bills
@@ -587,6 +587,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         JOIN case_datas pb ON pb.regid = b.regid
         WHERE b.bill_date >= ${seriesStart}::date AND b.bill_date <= ${seriesEnd}::date
           AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
+          AND pb.clinic_id = ${contextId}
         
         UNION ALL
         
@@ -600,6 +601,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         JOIN case_datas pr ON pr.regid = r.regid
         WHERE r.created_at >= ${seriesStart}::date AND r.created_at <= ${seriesEnd}::date
           AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
+          AND pr.clinic_id = ${contextId}
       )
       SELECT 
         to_char(periods.p, ${labelFormat}) as month, 
