@@ -90,13 +90,13 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       label: 'Billing',
       icon: <Receipt size={20} />,
       path: '/billing',
-      roles: [...ADMIN_ROLES, 'Doctor'],
+      roles: [...ADMIN_ROLES, 'Doctor', 'Receptionist'],
     },
     {
       label: 'Family Groups',
       icon: <UsersRound size={20} />,
       path: '/family-groups',
-      roles: CLINICAL_ROLES,
+      roles: ALL_ROLES,
     },
     {
       label: 'Staff & Admin',

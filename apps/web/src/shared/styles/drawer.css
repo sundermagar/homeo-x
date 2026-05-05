@@ -81,14 +81,72 @@
 @media (max-width: 640px) {
   .drawer-content {
     max-width: 100% !important;
+    width: 100%;
   }
-  
+
   .drawer-body {
     padding: 16px;
   }
-  
+
   .drawer-header {
     padding: 14px 16px;
+  }
+}
+
+/* Drawer form grid - force single column on mobile */
+@media (max-width: 480px) {
+  .drawer-body .plat-form-grid-multi {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+
+  .drawer-body .plat-form-grid-multi > * {
+    grid-column: span 1 !important;
+    grid-column-end: auto !important;
+  }
+
+  .drawer-body .plat-form-group {
+    min-height: auto;
+    margin-bottom: 4px;
+  }
+
+  .drawer-body .plat-modal-footer {
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px 0 0 0;
+  }
+
+  .drawer-body .plat-modal-footer .plat-btn {
+    width: 100%;
+  }
+}
+
+/* ─── Frequency Form Grid - 2 col on desktop, 1 col on mobile ─── */
+@media (min-width: 481px) {
+  .drawer-body .frequency-form-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .drawer-body .frequency-form-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .drawer-body .frequency-form-grid > * {
+    grid-column: span 1 !important;
+    grid-column-end: auto !important;
+  }
+
+  .drawer-body .plat-modal-footer {
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px 0 0 0;
+  }
+
+  .drawer-body .plat-modal-footer .plat-btn {
+    width: 100%;
   }
 }
 
@@ -122,4 +180,55 @@
     background: var(--bg-card);
     border-top: 1px solid var(--pp-warm-4);
     z-index: 5;
+}
+
+/* Drawer modal footer - buttons side by side on desktop, stacked on mobile */
+.plat-modal-footer {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.plat-modal-footer .btn-secondary,
+.plat-modal-footer .btn-primary,
+.plat-modal-footer .plat-btn {
+  flex: 0 0 auto;
+  min-width: 100px;
+}
+
+.plat-modal-footer .btn-secondary {
+  background: transparent;
+  border: 1px solid var(--pp-warm-4);
+  color: var(--pp-text-2);
+}
+
+.plat-modal-footer .btn-secondary:hover {
+  background: var(--pp-warm-1);
+  border-color: var(--pp-warm-3);
+}
+
+.plat-modal-footer .btn-primary {
+  flex: 1;
+  max-width: 200px;
+}
+
+@media (max-width: 480px) {
+  .plat-modal-footer {
+    flex-direction: column !important;
+    gap: 10px;
+  }
+
+  .plat-modal-footer .btn-secondary,
+  .plat-modal-footer .btn-primary,
+  .plat-modal-footer .plat-btn {
+    width: 100% !important;
+    flex: none !important;
+    justify-content: center;
+  }
+
+  .plat-modal-footer .btn-primary {
+    max-width: 100%;
+  }
 }
