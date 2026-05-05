@@ -16,12 +16,14 @@
   flex-direction: column;
   min-height: 100vh;
   background: var(--pp-warm-1);
-  margin: -24px; /* Counteracts page-content-area padding */
+  margin: -24px;
+  /* Counteracts page-content-area padding */
 }
 
 @media (min-width: 1024px) {
   .mc-detail-container {
-    margin: -40px; /* Counteracts desktop page-content-area padding */
+    margin: -40px;
+    /* Counteracts desktop page-content-area padding */
   }
 }
 
@@ -148,38 +150,38 @@
   .patient-banner {
     padding: 20px 16px;
   }
-  
+
   .banner-inner {
     flex-direction: column;
     align-items: flex-start;
     gap: 20px;
   }
-  
+
   .banner-left {
     gap: 12px;
   }
-  
+
   .pat-av {
     width: 48px;
     height: 48px;
     font-size: 18px;
   }
-  
+
   .pat-name {
     font-size: 18px;
   }
-  
+
   .banner-right {
     width: 100%;
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 8px;
   }
-  
+
   .banner-right .banner-btn:first-child {
     grid-column: 1 / -1;
   }
-  
+
   .banner-btn {
     justify-content: center;
     padding: 10px;
@@ -303,7 +305,8 @@
   display: flex;
   align-items: center;
   position: relative;
-  padding: 0 40px; /* Space for scroll buttons */
+  padding: 0 40px;
+  /* Space for scroll buttons */
   z-index: 20;
 }
 
@@ -317,7 +320,8 @@
 @media (max-width: 1024px) {
   .mc-top-tabs-container {
     position: sticky;
-    top: 55px; /* Offset for DashboardHeader (56px) - 1px for border overlap */
+    top: 55px;
+    /* Offset for DashboardHeader (56px) - 1px for border overlap */
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     z-index: 30;
   }
@@ -327,6 +331,7 @@
   .mc-top-tabs-container {
     padding: 0 16px;
   }
+
   .mc-scroll-btn {
     display: none;
   }
@@ -368,8 +373,15 @@
   background: var(--pp-warm-1);
 }
 
-.mc-scroll-btn.left { left: 0; border-right: 1px solid var(--border-main); }
-.mc-scroll-btn.right { right: 0; border-left: 1px solid var(--border-main); }
+.mc-scroll-btn.left {
+  left: 0;
+  border-right: 1px solid var(--border-main);
+}
+
+.mc-scroll-btn.right {
+  right: 0;
+  border-left: 1px solid var(--border-main);
+}
 
 .mc-top-tab {
   display: flex;
@@ -544,7 +556,8 @@
   position: relative;
 }
 
-.mc-fab-btn:hover, .mc-fab-btn.active {
+.mc-fab-btn:hover,
+.mc-fab-btn.active {
   background: rgba(255, 255, 255, 0.15);
   color: white;
   transform: scale(1.05);
@@ -586,8 +599,13 @@
 }
 
 @keyframes mc-fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .mc-drawer {
@@ -612,8 +630,13 @@
 }
 
 @keyframes mc-slideIn {
-  from { transform: translateX(100%); }
-  to { transform: translateX(0); }
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
 }
 
 .mc-drawer-header {
@@ -882,8 +905,14 @@
   box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
 }
 
-.text-green { color: #16A34A; }
-.text-red { color: #DC2626; }
+.text-green {
+  color: #16A34A;
+}
+
+.text-red {
+  color: #DC2626;
+}
+
 .mc-header-right {
   display: flex;
   align-items: center;
@@ -2695,8 +2724,15 @@
 }
 
 @keyframes mcFadeIn {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 
@@ -4161,7 +4197,9 @@
 }
 
 @media (min-width: 768px) {
-  .mc-search-shortcut { display: flex; }
+  .mc-search-shortcut {
+    display: flex;
+  }
 }
 
 /* Dark Mode Search */
@@ -4205,6 +4243,7 @@
   transition: all 0.2s;
   color: var(--pp-text-3);
 }
+
 .mc-legacy-mini-btn:hover {
   background: var(--pp-warm-1);
   color: var(--pp-blue);
@@ -4632,6 +4671,7 @@
     transform: translateY(0);
   }
 }
+
 /* ─── Responsive Table Actions ─── */
 .mc-table-actions {
   display: flex;
@@ -4762,7 +4802,8 @@
     height: 42px !important;
     padding: 0 12px !important;
     font-size: 14px !important;
-    min-width: 0 !important; /* Prevents overflow */
+    min-width: 0 !important;
+    /* Prevents overflow */
   }
 
   .mc-ai-theory-pills {

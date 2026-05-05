@@ -18,6 +18,7 @@ declare global {
 
 
 export function tenantMiddleware(req: Request, res: Response, next: NextFunction) {
+  console.time('Middleware_Tenant');
   const host = (req.headers['x-forwarded-host'] as string) || req.hostname || '';
   const tenant = TenantRegistry.resolve(host);
   
@@ -33,6 +34,7 @@ export function tenantMiddleware(req: Request, res: Response, next: NextFunction
     // Fallback to demo for development
     const fallback = TenantRegistry.resolve('demo');
     if (!fallback) {
+      console.timeEnd('Middleware_Tenant');
       res.status(400).json({ success: false, error: 'Unknown tenant' });
       return;
     }
@@ -44,5 +46,6 @@ export function tenantMiddleware(req: Request, res: Response, next: NextFunction
   }
 
   req.db = req.tenantDb;
+  console.timeEnd('Middleware_Tenant');
   next();
 }

@@ -437,10 +437,11 @@ router.get('/remedy-chart/pdf/:regid', asyncHandler(async (req, res) => {
     followUpNote: caseData?.notes?.find((n: any) => n.notesType === 'Followup')?.notes || '',
     regid,
     potencies: prescriptions.map((p: any) => ({
-      medicine: p.remedy_name || p.remedyName,
-      potency: p.potency_name || p.potencyName,
-      frequency: p.frequency_name || p.frequencyTitle,
+      medicine: p.remedy_name || p.remedyName || p.medicineName || p.medicine || '—',
+      potency: p.potency_name || p.potencyName || p.potency || '—',
+      frequency: p.frequency_name || p.frequencyTitle || p.frequency || '—',
       days: p.days,
+      instructions: p.instructions || p.prescription || p.notes || '—',
       createdAt: p.created_at || p.createdAt || p.dateval
     })),
     settings: defaultSetting

@@ -24,10 +24,11 @@ export class DashboardUseCases {
     };
 
     try {
-      console.log(`[Dashboard] Checking isDoctor. User payload:`, user);
-      const isDoctor = (user.type || '').toLowerCase() === 'doctor';
+      const isAdmin = ['superadmin', 'admin', 'clinicadmin'].includes((user.type || '').toLowerCase());
+      const isDoctor = !isAdmin && (user.type || '').toLowerCase() === 'doctor';
       const doctorId = isDoctor ? user.id : undefined;
 
+      console.time('Dashboard_DB_Parallel');
       const [
         kpis,
         queue,
@@ -60,6 +61,7 @@ export class DashboardUseCases {
           : Promise.resolve(undefined),
         safe(this.repository.getRecentTransactions.bind(this.repository, 5, contextId), []),
       ]);
+      console.timeEnd('Dashboard_DB_Parallel');
 
       const intelligenceInsights = await safe(
         this.repository.getIntelligenceInsights.bind(this.repository, kpis),
@@ -122,6 +124,7 @@ export class DashboardUseCases {
           safe(() => this.repository.getTodayQueue(contextId), []),
           safe(() => this.repository.getMultiRevenueSeries(period, contextId), { total: [], cash: [], upi: [] }),
         ]);
+      console.timeEnd('ClinicAdmin_DB_Parallel');
  
       const { total: revenueSeries, cash: cashSeries, upi: upiSeries } = multiSeries;
  

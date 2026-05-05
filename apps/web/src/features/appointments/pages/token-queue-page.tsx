@@ -53,38 +53,77 @@ export default function TokenQueuePage() {
   const [printData, setPrintData] = useState<any>(null);
   const stickerRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const triggerBtnRef = useRef<HTMLButtonElement | null>(null);
 
   const MENU_W = 180;
-  const MENU_H = 200;
 
   const toggleMenu = useCallback((id: number | string, btn: HTMLButtonElement) => {
-    if (openMenuId === id) { setOpenMenuId(null); setMenuPos(null); return; }
+    if (openMenuId === id) { setOpenMenuId(null); setMenuPos(null); triggerBtnRef.current = null; return; }
+    triggerBtnRef.current = btn;
     const r = btn.getBoundingClientRect();
-    const spaceBelow = window.innerHeight - r.bottom;
-    const top = spaceBelow >= MENU_H ? r.bottom + 4 : r.top - MENU_H - 4;
+
+    // Position right-aligned to button, below by default
     let left = r.right - MENU_W;
     if (left < 8) left = 8;
     if (left + MENU_W > window.innerWidth - 8) left = window.innerWidth - MENU_W - 8;
-    setMenuPos({ top: Math.max(8, top), left });
+
+    setMenuPos({ top: r.bottom + 4, left });
     setOpenMenuId(id);
   }, [openMenuId]);
+
+  // After the portal mounts, measure actual menu and clamp within viewport
+  useEffect(() => {
+    if (!menuRef.current || !menuPos) return;
+    const menu = menuRef.current;
+    const mRect = menu.getBoundingClientRect();
+    const vh = window.innerHeight;
+    const vw = window.innerWidth;
+
+    let { top, left } = menuPos;
+    let changed = false;
+
+    // If menu goes below viewport → flip above the button
+    if (mRect.bottom > vh - 8) {
+      if (triggerBtnRef.current) {
+        const br = triggerBtnRef.current.getBoundingClientRect();
+        top = br.top - mRect.height - 4;
+      } else {
+        top = vh - mRect.height - 8;
+      }
+      if (top < 8) top = 8;
+      changed = true;
+    }
+
+    // Clamp left within viewport
+    if (left + mRect.width > vw - 8) { left = vw - mRect.width - 8; changed = true; }
+    if (left < 8) { left = 8; changed = true; }
+
+    if (changed) setMenuPos({ top, left });
+  });
 
   useEffect(() => {
     if (openMenuId === null) return;
     const close = () => { setOpenMenuId(null); setMenuPos(null); };
     const onMouse = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) close();
+      const t = e.target as HTMLElement;
+      // Don't close if clicking inside the menu OR on a kebab trigger button
+      if (menuRef.current && menuRef.current.contains(t)) return;
+      if (t.closest('.appt-kebab-btn')) return;
+      close();
     };
     const onScroll = (e: Event) => {
       // Don't close if scrolling inside the dropdown menu itself
       if (menuRef.current && menuRef.current.contains(e.target as Node)) return;
       close();
     };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
     document.addEventListener('mousedown', onMouse);
     window.addEventListener('scroll', onScroll, true);
+    document.addEventListener('keydown', onKey);
     return () => {
       document.removeEventListener('mousedown', onMouse);
       window.removeEventListener('scroll', onScroll, true);
+      document.removeEventListener('keydown', onKey);
     };
   }, [openMenuId]);
 
@@ -334,7 +373,7 @@ export default function TokenQueuePage() {
                   <div className="appt-kebab-wrap">
                     <button 
                       className="appt-kebab-btn"
-                      onClick={(e) => toggleMenu(w.id, e.currentTarget)}
+                      onClick={(e) => { e.stopPropagation(); toggleMenu(w.id, e.currentTarget); }}
                     >
                       <MoreVertical size={16} />
                     </button>
@@ -566,7 +605,7 @@ export default function TokenQueuePage() {
                             <div className="appt-kebab-wrap">
                               <button 
                                 className="appt-kebab-btn"
-                                onClick={(e) => toggleMenu(`token-${a.id}`, e.currentTarget)}
+                                onClick={(e) => { e.stopPropagation(); toggleMenu(`token-${a.id}`, e.currentTarget); }}
                               >
                                 <MoreVertical size={16} />
                               </button>
@@ -581,6 +620,10 @@ export default function TokenQueuePage() {
                                   <button className="appt-kebab-item" style={{ color: 'var(--pp-blue)' }} onClick={() => { handleIssueToken(a.id); setOpenMenuId(null); setMenuPos(null); }} disabled={issueToken.isPending}>
                                     <Ticket size={14} /> Issue Token
                                   </button>
+                                ) : ['Completed', 'Consultation', 'Waitlist', 'Absent', 'Cancelled'].includes(a.status) ? (
+                                  <div className="appt-kebab-item" style={{ color: 'var(--pp-text-3)', cursor: 'default', opacity: 0.6 }}>
+                                    <CheckCircle2 size={14} /> {a.status === 'Completed' ? 'Done' : a.status}
+                                  </div>
                                 ) : (
                                   <button className="appt-kebab-item" style={{ color: 'var(--pp-success-fg)' }} onClick={() => { addToWaitlist.mutateAsync({ patientId: a.patientId!, appointmentId: a.id, doctorId: a.doctorId ?? undefined }); setOpenMenuId(null); setMenuPos(null); }} disabled={addToWaitlist.isPending}>
                                     <Plus size={14} /> Check In

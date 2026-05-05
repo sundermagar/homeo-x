@@ -901,8 +901,8 @@ ${PRINT_STYLES}
         <p class="rx-cell-value">${safe(data.patient.mrn) || '—'}</p>
       </div>
       <div class="rx-patient-cell">
-        <span class="rx-cell-label">${data.visit.chiefComplaint ? 'Chief Complaint' : 'Visit Date'}</span>
-        <p class="rx-cell-value">${data.visit.chiefComplaint ? safe(data.visit.chiefComplaint) : formattedDate}</p>
+        <span class="rx-cell-label">Visit Date</span>
+        <p class="rx-cell-value">${formattedDate}</p>
       </div>
     </div>
     ${vitalsCells}

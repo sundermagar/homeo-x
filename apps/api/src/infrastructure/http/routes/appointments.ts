@@ -1,19 +1,20 @@
 import { Router } from 'express';
-import { AppointmentRepositoryPG } from '../../repositories/appointment.repository.pg.js';
-import { PatientRepositoryPg } from '../../repositories/patient.repository.pg.js';
-import { ListAppointmentsUseCase } from '../../../domains/appointment/use-cases/list-appointments.use-case.js';
-import { GetAppointmentUseCase } from '../../../domains/appointment/use-cases/get-appointment.use-case.js';
-import { BookAppointmentUseCase } from '../../../domains/appointment/use-cases/book-appointment.use-case.js';
-import { ManageAppointmentUseCase } from '../../../domains/appointment/use-cases/manage-appointment.use-case.js';
-import { QueueManagementUseCase } from '../../../domains/appointment/use-cases/queue-management.use-case.js';
-import { SendSmsUseCase } from '../../../domains/communication/use-cases/send-sms.use-case.js';
-import { CommunicationRepositoryPG } from '../../repositories/communication.repository.pg.js';
-import { createSmsGateway } from '../../communication/msg91-sms-gateway.js';
-import { asyncHandler } from '../middleware/async-handler.js';
-import { authMiddleware } from '../middleware/auth.js';
-import { BadRequestError, ValidationError } from '../../../shared/errors.js';
-import { sendSuccess } from '../../../shared/response-formatter.js';
-import { createLogger } from '../../../shared/logger.js';
+import { AppointmentRepositoryPG } from '../../repositories/appointment.repository.pg';
+import { PatientRepositoryPg } from '../../repositories/patient.repository.pg';
+import { ListAppointmentsUseCase } from '../../../domains/appointment/use-cases/list-appointments.use-case';
+import { GetAppointmentUseCase } from '../../../domains/appointment/use-cases/get-appointment.use-case';
+import { BookAppointmentUseCase } from '../../../domains/appointment/use-cases/book-appointment.use-case';
+import { ManageAppointmentUseCase } from '../../../domains/appointment/use-cases/manage-appointment.use-case';
+import { QueueManagementUseCase } from '../../../domains/appointment/use-cases/queue-management.use-case';
+import { SendSmsUseCase } from '../../../domains/communication/use-cases/send-sms.use-case';
+import { CommunicationRepositoryPG } from '../../repositories/communication.repository.pg';
+import { createSmsGateway } from '../../communication/msg91-sms-gateway';
+import { DashboardRepositoryPg } from '../../repositories/dashboard.repository.pg';
+import { asyncHandler } from '../middleware/async-handler';
+import { authMiddleware } from '../middleware/auth';
+import { BadRequestError, ValidationError } from '../../../shared/errors';
+import { sendSuccess } from '../../../shared/response-formatter';
+import { createLogger } from '../../../shared/logger';
 import { z } from 'zod';
 import { sql } from 'drizzle-orm';
 
@@ -194,6 +195,7 @@ appointmentsRouter.post('/:id/status', asyncHandler(async (req, res) => {
   if (!status) throw new BadRequestError('status is required');
   const manageAppt = new ManageAppointmentUseCase(getRepo(req));
   await manageAppt.updateStatus(Number(req.params.id), status, cancellationReason);
+  DashboardRepositoryPg.clearQueueCache();
   sendSuccess(res, undefined, `Status updated to ${status}`);
 }));
 
@@ -236,6 +238,7 @@ appointmentsRouter.post('/waiting', asyncHandler(async (req, res) => {
 appointmentsRouter.post('/waiting/:id/call-next', asyncHandler(async (req, res) => {
   const queueMgmt = new QueueManagementUseCase(getRepo(req));
   await queueMgmt.callNext(Number(req.params.id));
+  DashboardRepositoryPg.clearQueueCache();
   const io = (req as any).io;
   if (io) io.emit('queueUpdated', { action: 'called', id: req.params.id });
   sendSuccess(res, undefined, 'Patient called in');
@@ -245,6 +248,7 @@ appointmentsRouter.post('/waiting/:id/call-next', asyncHandler(async (req, res) 
 appointmentsRouter.post('/waiting/:id/complete', asyncHandler(async (req, res) => {
   const queueMgmt = new QueueManagementUseCase(getRepo(req));
   await queueMgmt.completeVisit(Number(req.params.id));
+  DashboardRepositoryPg.clearQueueCache();
   const io = (req as any).io;
   if (io) io.emit('queueUpdated', { action: 'completed', id: req.params.id });
   sendSuccess(res, undefined, 'Consultation completed');
@@ -254,6 +258,7 @@ appointmentsRouter.post('/waiting/:id/complete', asyncHandler(async (req, res) =
 appointmentsRouter.post('/waiting/:id/skip', asyncHandler(async (req, res) => {
   const queueMgmt = new QueueManagementUseCase(getRepo(req));
   await queueMgmt.skipWaitlist(Number(req.params.id));
+  DashboardRepositoryPg.clearQueueCache();
   const io = (req as any).io;
   if (io) io.emit('queueUpdated', { action: 'skipped', id: req.params.id });
   sendSuccess(res, undefined, 'Patient skipped, next patient called in');

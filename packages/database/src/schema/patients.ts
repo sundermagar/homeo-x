@@ -44,7 +44,7 @@ export const patients = pgTable('case_datas', {
   referedName: text('refered_name'),
 
   // Doctor & Fees
-  assitantDoctor: text('assitant_doctor'),
+  assistantDoctor: text('assitant_doctor'),
   consultationFee: integer('consultation_fee'),
   courierOutstation: text('courier_outstation'),
 

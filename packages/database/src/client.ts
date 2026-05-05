@@ -20,9 +20,9 @@ export function createDbClient(databaseUrl: string, tenantSchema?: string): DbCl
   console.log(`🔌 Creating new DB client for schema: [${tenantSchema || 'public'}]`);
 
   const connectionOptions: Record<string, any> = {
-    max: Number(process.env['DB_MAX_CONNECTIONS'] || 10),
-    idle_timeout: Number(process.env['DB_IDLE_TIMEOUT'] || 20),
-    connect_timeout: Number(process.env['DB_CONNECT_TIMEOUT'] || 10),
+    max: Number(process.env['DB_MAX_CONNECTIONS'] || 25),
+    idle_timeout: Number(process.env['DB_IDLE_TIMEOUT'] || 30),
+    connect_timeout: Number(process.env['DB_CONNECT_TIMEOUT'] || 15),
   };
 
   let finalUrl = databaseUrl;

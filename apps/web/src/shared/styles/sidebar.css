@@ -164,6 +164,12 @@
   transition: all 0.15s ease;
 }
 
+@media (max-width: 768px) {
+  .collapse-toggle-btn {
+    display: none;
+  }
+}
+
 .collapse-toggle-btn:hover {
   background: var(--bg-surface-2);
   color: var(--primary);
@@ -595,6 +601,7 @@ body,
 .app-main {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 0;
   position: relative;
   background: var(--bg-main);
