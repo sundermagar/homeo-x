@@ -3402,3 +3402,58 @@
 .appt-followup-confirmed strong {
   font-weight: 700;
 }
+
+/* ─── Status Pills (High Fidelity) ─── */
+.appt-status-pill-minimal {
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  transition: all 0.2s ease;
+}
+
+/* Completed / Success */
+.appt-status-pill-minimal.success, 
+.appt-status-pill-minimal.completed,
+.appt-status-pill-minimal.done {
+  background: var(--pp-success-bg);
+  color: var(--pp-success-fg);
+  border: 1px solid rgba(5, 150, 105, 0.15);
+}
+
+/* Waiting / Confirmed / Waitlist */
+.appt-status-pill-minimal.waiting,
+.appt-status-pill-minimal.confirmed,
+.appt-status-pill-minimal.waitlist {
+  background: var(--pp-warning-bg);
+  color: var(--pp-warning-fg);
+  border: 1px solid rgba(217, 119, 6, 0.15);
+}
+
+/* Consultation / In-Progress / Called */
+.appt-status-pill-minimal.consultation,
+.appt-status-pill-minimal.in-progress,
+.appt-status-pill-minimal.called,
+.appt-status-pill-minimal.inprogress {
+  background: var(--pp-blue-tint);
+  color: var(--pp-blue);
+  border: 1px solid rgba(37, 99, 235, 0.15);
+}
+
+/* Absent */
+.appt-status-pill-minimal.absent {
+  background: var(--pp-warm-2);
+  color: var(--pp-text-3);
+  border: 1px solid var(--pp-warm-4);
+}
+
+/* Cancelled */
+.appt-status-pill-minimal.cancelled {
+  background: var(--pp-danger-bg);
+  color: var(--pp-danger-fg);
+  border: 1px solid rgba(220, 38, 38, 0.15);
+}

@@ -163,9 +163,24 @@ export default function TokenQueuePage() {
   // Data selection based on tab
   const currentDataList = useMemo(() => {
     let base: any[] = [];
-    if (tab === 'queue') base = [...inProgress, ...waiting];
-    else if (tab === 'tokens') base = todayAppts;
-    else if (tab === 'collection') base = collection?.records || [];
+    if (tab === 'queue') {
+      // Sort inProgress by waitingNumber, then waiting by waitingNumber
+      const sortedInProgress = [...inProgress].sort((a, b) => (Number(a.waitingNumber) || 0) - (Number(b.waitingNumber) || 0));
+      const sortedWaiting = [...waiting].sort((a, b) => (Number(a.waitingNumber) || 0) - (Number(b.waitingNumber) || 0));
+      base = [...sortedInProgress, ...sortedWaiting];
+    }
+    else if (tab === 'tokens') {
+      // Sort by Token Number (ascending)
+      base = [...todayAppts].sort((a, b) => {
+        if (!a.tokenNo) return 1;
+        if (!b.tokenNo) return -1;
+        return Number(a.tokenNo) - Number(b.tokenNo);
+      });
+    }
+    else if (tab === 'collection') {
+      // Sort by Receipt ID/Date (descending - latest first)
+      base = [...(collection?.records || [])].sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
+    }
 
     if (!searchQuery) return base;
     const q = searchQuery.toLowerCase();
@@ -365,7 +380,7 @@ export default function TokenQueuePage() {
                   </span>
                 </td>
                 <td data-label="STATUS" style={{ textAlign: 'center' }}>
-                  <span className={`appt-status-pill-minimal ${w.status === 1 ? 'success' : 'waiting'}`}>
+                  <span className={`appt-status-pill-minimal ${w.status === 1 ? 'consultation' : 'waiting'}`}>
                     {WAIT_STATUS[w.status]}
                   </span>
                 </td>
@@ -597,7 +612,7 @@ export default function TokenQueuePage() {
                             </span>
                           </td>
                           <td data-label="STATUS" style={{ textAlign: 'center' }}>
-                            <span className={`appt-status-pill-minimal ${a.status.toLowerCase()}`}>
+                            <span className={`appt-status-pill-minimal ${a.status.toLowerCase().replace(/\s+/g, '')}`}>
                               {a.status}
                             </span>
                           </td>
