@@ -14,6 +14,7 @@ import '../styles/settings.css';
 import { Pagination } from '@/shared/components/Pagination';
 import { usePagination } from '@/shared/hooks/use-pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
 
 const EMPTY_FORM = { templateName: '', headerHtml: '', footerHtml: '', margin: '20mm', isDefault: false };
 
@@ -231,12 +232,6 @@ export default function PdfSettingsPage() {
         <div className="pp-page-hero-actions pdf-hero-actions">
           <style>{`
             @media (max-width: 768px) {
-              .pdf-hero-actions { 
-                flex-direction: column !important; 
-                align-items: stretch !important; 
-                gap: 12px !important; 
-                width: 100% !important;
-              }
               .pdf-hero-actions .appt-segmented-toggle { 
                 display: flex !important; 
                 width: 100% !important;
@@ -308,13 +303,15 @@ export default function PdfSettingsPage() {
             {isLoading ? (
               <TableSkeleton rows={5} columns={5} />
             ) : filteredConfigs.length === 0 ? (
-              <div className="pp-empty-enhanced" style={{ border: 'none', background: 'transparent' }}>
-                <div className="pp-empty-icon-circle">
-                  <Layout size={32} />
-                </div>
-                <p className="pp-empty-title">No configurations found</p>
-                <p className="pp-empty-sub">Add a new PDF template to customize your clinical reports.</p>
-              </div>
+              <EmptyState 
+                icon={Layout}
+                title={search ? "No matches found" : "No configurations found"}
+                description={search ? `No PDF templates matching "${search}" were found.` : "Add a new PDF template to customize your clinical reports."}
+                actionLabel={search ? "Clear Search" : "Add Template"}
+                onAction={search ? () => setSearch('') : handleOpenCreate}
+                variant="card"
+                className="my-8"
+              />
             ) : (
               <>
                 <table className="pp-table">
@@ -343,22 +340,22 @@ export default function PdfSettingsPage() {
                         </td>
                         <td data-label="Actions" className="plat-table-cell">
                           <div className="flex justify-end gap-2">
-                            <button 
-                              className="plat-btn plat-btn-sm plat-btn-icon" 
-                              onClick={(e) => { e.stopPropagation(); handlePrintPreview(config); }} 
+                            <button
+                              className="plat-btn plat-btn-sm plat-btn-icon"
+                              onClick={(e) => { e.stopPropagation(); handlePrintPreview(config); }}
                               title="Preview & Print"
                             >
                               <Eye size={14} />
                             </button>
-                            <button 
-                              className="plat-btn plat-btn-sm plat-btn-icon" 
+                            <button
+                              className="plat-btn plat-btn-sm plat-btn-icon"
                               onClick={(e) => { e.stopPropagation(); handleOpenEdit(config); }}
                               title="Edit Template"
                             >
                               <Edit2 size={14} />
                             </button>
-                            <button 
-                              className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" 
+                            <button
+                              className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger"
                               onClick={(e) => { e.stopPropagation(); if (confirm(`Delete config?`)) deletePdf.mutate(config.id); }}
                               title="Delete"
                             >
@@ -370,18 +367,21 @@ export default function PdfSettingsPage() {
                     ))}
                   </tbody>
                 </table>
-                <div style={{ padding: '0 20px 20px' }}>
-                  <Pagination
-                    totalItems={totalItems}
-                    itemsPerPage={itemsPerPage}
-                    currentPage={currentPage}
-                    onPageChange={setCurrentPage}
-                    onLimitChange={setItemsPerPage}
-                  />
-                </div>
               </>
             )}
           </div>
+
+          {!isLoading && filteredConfigs.length > 0 && (
+            <div style={{ marginTop: '20px' }}>
+              <Pagination
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                currentPage={currentPage}
+                onPageChange={setCurrentPage}
+                onLimitChange={setItemsPerPage}
+              />
+            </div>
+          )}
         </>
       ) : (
         <div className="plat-settings-grid">

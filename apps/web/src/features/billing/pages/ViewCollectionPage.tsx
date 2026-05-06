@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useCollectionSummary, useDailyCollection } from '../hooks/use-billing';
 import { useAuthStore } from '@/shared/stores/auth-store';
+import { EmptyState } from '@/components/shared/empty-state';
 import '../styles/billing.css';
 
 export default function ViewCollectionPage() {
@@ -256,11 +257,15 @@ export default function ViewCollectionPage() {
               </tbody>
             </table>
           ) : (
-            <div className="billing-empty">
-              <DollarSign size={48} />
-              <h3>No collection records</h3>
-              <p>No billing records found for {selectedDate}</p>
-            </div>
+            <EmptyState 
+              icon={DollarSign}
+              title="No collection records"
+              description={`No billing records were found for ${new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}.`}
+              actionLabel="Go to Today"
+              onAction={handleToday}
+              variant="card"
+              className="my-8"
+            />
           )}
         </div>
       )}

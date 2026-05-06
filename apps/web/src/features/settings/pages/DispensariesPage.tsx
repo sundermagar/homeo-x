@@ -9,6 +9,7 @@ import '../styles/settings.css';
 import { Pagination } from '@/shared/components/Pagination';
 import { usePagination } from '@/shared/hooks/use-pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
 
 interface Dispensary {
   id: number;
@@ -167,10 +168,15 @@ export default function DispensariesPage() {
         {isLoading ? (
           <TableSkeleton rows={5} columns={6} />
         ) : filteredItems.length === 0 ? (
-          <div className="plat-empty" style={{ minHeight: 200 }}>
-            <MapPin size={40} className="plat-empty-icon" />
-            <p className="plat-empty-text">No registry entries found.</p>
-          </div>
+          <EmptyState 
+            icon={MapPin}
+            title={searchQuery ? "No matches found" : "No dispensary staff found"}
+            description={searchQuery ? `No pharmacy staff matching "${searchQuery}" were found.` : "Register your first pharmacy staff member to begin managing clinical dispensaries."}
+            actionLabel={searchQuery ? "Clear Search" : "Add Staff Account"}
+            onAction={searchQuery ? () => setSearchQuery('') : handleOpenCreate}
+            variant="card"
+            className="my-8"
+          />
         ) : (
           <>
           <div className="plat-table-container">
@@ -227,13 +233,15 @@ export default function DispensariesPage() {
               </tbody>
             </table>
           </div>
-          <Pagination
+          <div style={{ marginTop: '20px' }}>
+            <Pagination
             totalItems={totalItems}
             itemsPerPage={itemsPerPage}
             currentPage={currentPage}
             onPageChange={setCurrentPage}
             onLimitChange={setItemsPerPage}
           />
+          </div>
           </>
         )}
       </div>

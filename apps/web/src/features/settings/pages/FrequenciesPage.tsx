@@ -9,6 +9,7 @@ import '../styles/settings.css';
 import { Pagination } from '@/shared/components/Pagination';
 import { usePagination } from '@/shared/hooks/use-pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
 
 interface Frequency {
   id: number;
@@ -128,10 +129,15 @@ export default function FrequenciesPage() {
         {isLoading ? (
           <TableSkeleton rows={5} columns={6} />
         ) : filtered.length === 0 ? (
-          <div className="plat-empty">
-            <Clock size={40} className="plat-empty-icon" />
-            <p className="plat-empty-text">No frequencies found matching search.</p>
-          </div>
+          <EmptyState 
+            icon={Clock}
+            title={search ? "No matches found" : "No frequencies defined"}
+            description={search ? `No dosage frequencies matching "${search}" were found.` : "Define clinical dosage frequencies (e.g. TDS, BD, OD) to streamline prescriptions."}
+            actionLabel={search ? "Clear Search" : "Add Frequency"}
+            onAction={search ? () => setSearch('') : handleOpenCreate}
+            variant="card"
+            className="my-8"
+          />
         ) : (
           <>
           <div className="plat-table-container">
@@ -169,13 +175,15 @@ export default function FrequenciesPage() {
               </tbody>
             </table>
           </div>
-          <Pagination
+          <div style={{ marginTop: '20px' }}>
+            <Pagination
             totalItems={totalItems}
             itemsPerPage={itemsPerPage}
             currentPage={currentPage}
             onPageChange={setCurrentPage}
             onLimitChange={setItemsPerPage}
           />
+          </div>
           </>
         )}
       </div>

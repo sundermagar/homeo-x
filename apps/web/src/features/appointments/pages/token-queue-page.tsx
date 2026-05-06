@@ -12,10 +12,11 @@ import { apiClient } from '@/infrastructure/api-client';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { VitalsFormModal } from '../../medical-case/components/vitals-form-modal';
 import { Pagination } from '@/components/shared/pagination';
+import { EmptyState } from '@/components/shared/empty-state';
 import '../styles/appointments.css';
 
 const WAIT_STATUS = { 0: 'Waiting', 1: 'Called', 2: 'Done' } as Record<number, string>;
-const WAIT_COLOR  = { 0: 'var(--pp-warning-fg)', 1: 'var(--pp-blue)', 2: 'var(--pp-success-fg)' } as Record<number, string>;
+const WAIT_COLOR = { 0: 'var(--pp-warning-fg)', 1: 'var(--pp-blue)', 2: 'var(--pp-success-fg)' } as Record<number, string>;
 
 function formatWaitTime(checkedInAt: Date | string | null) {
   if (!checkedInAt) return null;
@@ -43,7 +44,7 @@ export default function TokenQueuePage() {
   const [activeVitals, setActiveVitals] = useState<{ visitId: number, regid: number } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentTime, setCurrentTime] = useState(new Date());
-  
+
   // View & Pagination State
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [page, setPage] = useState(1);
@@ -141,7 +142,7 @@ export default function TokenQueuePage() {
       apiClient.get('/doctors').then(({ data }) => {
         const list = Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
         setDoctors(list);
-      }).catch(() => {});
+      }).catch(() => { });
     }
   }, [isDoctor]);
 
@@ -149,27 +150,42 @@ export default function TokenQueuePage() {
   const { data: todayAppts = [], isLoading: aLoading, refetch: aRefetch } = useTodayAppointments(doctorFilter ? Number(doctorFilter) : undefined);
   const { data: collection, isLoading: cLoading, refetch: cRefetch } = useDailyCollection(today);
 
-  const callNext      = useCallNext();
+  const callNext = useCallNext();
   const completeVisit = useCompleteVisit();
-  const issueToken    = useIssueToken();
+  const issueToken = useIssueToken();
   const addToWaitlist = useAddToWaitlist();
 
   const totalReceived = collection?.totalReceived ?? 0;
-  
-  const waiting    = waitlist.filter(w => w.status === 0);
+
+  const waiting = waitlist.filter(w => w.status === 0);
   const inProgress = waitlist.filter(w => w.status === 1);
-  const withToken  = todayAppts.filter(a => a.tokenNo);
+  const withToken = todayAppts.filter(a => a.tokenNo);
 
   // Data selection based on tab
   const currentDataList = useMemo(() => {
     let base: any[] = [];
-    if (tab === 'queue') base = [...inProgress, ...waiting];
-    else if (tab === 'tokens') base = todayAppts;
-    else if (tab === 'collection') base = collection?.records || [];
+    if (tab === 'queue') {
+      // Sort inProgress by waitingNumber, then waiting by waitingNumber
+      const sortedInProgress = [...inProgress].sort((a, b) => (Number(a.waitingNumber) || 0) - (Number(b.waitingNumber) || 0));
+      const sortedWaiting = [...waiting].sort((a, b) => (Number(a.waitingNumber) || 0) - (Number(b.waitingNumber) || 0));
+      base = [...sortedInProgress, ...sortedWaiting];
+    }
+    else if (tab === 'tokens') {
+      // Sort by Token Number (ascending)
+      base = [...todayAppts].sort((a, b) => {
+        if (!a.tokenNo) return 1;
+        if (!b.tokenNo) return -1;
+        return Number(a.tokenNo) - Number(b.tokenNo);
+      });
+    }
+    else if (tab === 'collection') {
+      // Sort by Receipt ID/Date (descending - latest first)
+      base = [...(collection?.records || [])].sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
+    }
 
     if (!searchQuery) return base;
     const q = searchQuery.toLowerCase();
-    return base.filter((item: any) => 
+    return base.filter((item: any) =>
       (item.patientName || '').toLowerCase().includes(q) ||
       (item.patientNameFromCase || '').toLowerCase().includes(q) ||
       (item.phone || '').toLowerCase().includes(q) ||
@@ -187,8 +203,8 @@ export default function TokenQueuePage() {
   const fromEntry = totalItems === 0 ? 0 : (page - 1) * limit + 1;
   const toEntry = Math.min(page * limit, totalItems);
 
-  const handleCall      = async (id: number) => { await callNext.mutateAsync(id); wRefetch(); };
-  const handleComplete  = async (id: number) => { await completeVisit.mutateAsync(id); wRefetch(); aRefetch(); };
+  const handleCall = async (id: number) => { await callNext.mutateAsync(id); wRefetch(); };
+  const handleComplete = async (id: number) => { await completeVisit.mutateAsync(id); wRefetch(); aRefetch(); };
   const handleIssueToken = async (appointmentId: number) => { await issueToken.mutateAsync(appointmentId); aRefetch(); };
 
   const handlePrint = (token: any) => {
@@ -365,13 +381,13 @@ export default function TokenQueuePage() {
                   </span>
                 </td>
                 <td data-label="STATUS" style={{ textAlign: 'center' }}>
-                  <span className={`appt-status-pill-minimal ${w.status === 1 ? 'success' : 'waiting'}`}>
+                  <span className={`appt-status-pill-minimal ${w.status === 1 ? 'consultation' : 'waiting'}`}>
                     {WAIT_STATUS[w.status]}
                   </span>
                 </td>
                 <td data-label="ACTION" style={{ paddingRight: 24 }}>
                   <div className="appt-kebab-wrap">
-                    <button 
+                    <button
                       className="appt-kebab-btn"
                       onClick={(e) => { e.stopPropagation(); toggleMenu(w.id, e.currentTarget); }}
                     >
@@ -449,10 +465,10 @@ export default function TokenQueuePage() {
       {/* Stats bar */}
       <div className="appt-stats-bar">
         {([
-          { label: 'Waiting',       value: waiting.length,    bg: 'var(--pp-warning-bg)', ic: '#d97706', icon: <Clock size={20} strokeWidth={2} /> },
-          { label: 'In Progress',   value: inProgress.length, bg: 'rgba(124, 58, 237, 0.1)', ic: '#7c3aed', icon: <UserCheck size={20} strokeWidth={2} /> },
-          { label: 'Realized Revenue', value: `₹${totalReceived.toLocaleString()}`, bg: 'var(--pp-success-bg)',  ic: '#059669', icon: <IndianRupee size={20} strokeWidth={2} /> },
-          { label: 'Tokens Issued',value: withToken.length,  bg: 'var(--pp-blue-tint)',  ic: 'var(--pp-blue)', icon: <Ticket size={20} strokeWidth={2} /> },
+          { label: 'Waiting', value: waiting.length, bg: 'var(--pp-warning-bg)', ic: '#d97706', icon: <Clock size={20} strokeWidth={2} /> },
+          { label: 'In Progress', value: inProgress.length, bg: 'rgba(124, 58, 237, 0.1)', ic: '#7c3aed', icon: <UserCheck size={20} strokeWidth={2} /> },
+          { label: 'Realized Revenue', value: `₹${totalReceived.toLocaleString()}`, bg: 'var(--pp-success-bg)', ic: '#059669', icon: <IndianRupee size={20} strokeWidth={2} /> },
+          { label: 'Tokens Issued', value: withToken.length, bg: 'var(--pp-blue-tint)', ic: 'var(--pp-blue)', icon: <Ticket size={20} strokeWidth={2} /> },
         ] as const).map(item => (
           <div key={item.label} className="appt-stat-card">
             <div className="appt-stat-icon-wrap" style={{ background: item.bg, color: item.ic }}>
@@ -485,15 +501,15 @@ export default function TokenQueuePage() {
           <div className="appt-action-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, background: 'var(--bg-surface-2)', padding: '12px 16px', borderRadius: '12px', border: '1px solid var(--border-main)' }}>
             <div className="appt-search-wrapper" style={{ position: 'relative', width: 320 }}>
               <Search size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
-              <input 
-                type="text" 
+              <input
+                type="text"
                 placeholder="Search patient, ID, or phone..."
                 className="appt-filter-input"
-                style={{ 
-                  width: '100%', 
-                  padding: '10px 40px 10px 42px', 
-                  height: '42px', 
-                  borderRadius: '10px', 
+                style={{
+                  width: '100%',
+                  padding: '10px 40px 10px 42px',
+                  height: '42px',
+                  borderRadius: '10px',
                   border: '1.5px solid var(--border-main)',
                   background: 'var(--bg-card)',
                   color: 'var(--text-main)',
@@ -506,22 +522,22 @@ export default function TokenQueuePage() {
                 onChange={e => setSearchQuery(e.target.value)}
               />
               {searchQuery && (
-                <X 
-                  size={16} 
-                  style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', cursor: 'pointer' }} 
+                <X
+                  size={16}
+                  style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', cursor: 'pointer' }}
                   onClick={() => setSearchQuery('')}
                 />
               )}
             </div>
             <div className="appt-segmented-toggle" style={{ background: 'var(--bg-card)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border-main)' }}>
-              <button 
-                className={`appt-segmented-btn ${viewMode === 'list' ? 'active' : ''}`} 
+              <button
+                className={`appt-segmented-btn ${viewMode === 'list' ? 'active' : ''}`}
                 onClick={() => setViewMode('list')}
               >
                 <List size={16} /> List
               </button>
-              <button 
-                className={`appt-segmented-btn ${viewMode === 'grid' ? 'active' : ''}`} 
+              <button
+                className={`appt-segmented-btn ${viewMode === 'grid' ? 'active' : ''}`}
                 onClick={() => setViewMode('grid')}
               >
                 <LayoutGrid size={16} /> Grid
@@ -532,10 +548,13 @@ export default function TokenQueuePage() {
           {wLoading ? (
             viewMode === 'grid' ? renderSkeletonGrid() : renderSkeletonList()
           ) : (inProgress.length + waiting.length) === 0 ? (
-            <div className="appt-empty" style={{ padding: 60 }}>
-              <Users size={28} className="appt-empty-icon" />
-              <p className="appt-empty-text">No patients in the waiting room</p>
-            </div>
+            <EmptyState 
+              icon={Users}
+              title="Waiting room is empty"
+              description="No patients are currently in the active waiting queue for this practitioner."
+              variant="card"
+              className="my-8"
+            />
           ) : (
             <>
               {viewMode === 'grid' ? renderGridView() : renderListView()}
@@ -551,10 +570,13 @@ export default function TokenQueuePage() {
           {aLoading ? (
             renderSkeletonList()
           ) : todayAppts.length === 0 ? (
-            <div className="appt-empty">
-              <Ticket size={28} className="appt-empty-icon" />
-              <p className="appt-empty-text">No appointments found today</p>
-            </div>
+            <EmptyState 
+              icon={Ticket}
+              title="No tokens issued"
+              description="There are no appointments scheduled for today that require token management."
+              variant="card"
+              className="my-8"
+            />
           ) : (
             <>
               <div className="appt-card">
@@ -597,13 +619,13 @@ export default function TokenQueuePage() {
                             </span>
                           </td>
                           <td data-label="STATUS" style={{ textAlign: 'center' }}>
-                            <span className={`appt-status-pill-minimal ${a.status.toLowerCase()}`}>
+                            <span className={`appt-status-pill-minimal ${a.status.toLowerCase().replace(/\s+/g, '')}`}>
                               {a.status}
                             </span>
                           </td>
                           <td data-label="ACTION" style={{ paddingRight: 24 }}>
                             <div className="appt-kebab-wrap">
-                              <button 
+                              <button
                                 className="appt-kebab-btn"
                                 onClick={(e) => { e.stopPropagation(); toggleMenu(`token-${a.id}`, e.currentTarget); }}
                               >
@@ -675,7 +697,17 @@ export default function TokenQueuePage() {
                       </tr>
                     ))
                   ) : !collection || collection.records.length === 0 ? (
-                    <tr><td colSpan={4} style={{ padding: 80, textAlign: 'center', color: 'var(--pp-text-3)' }}>No clinical receipts identified for this target date.</td></tr>
+                    <tr>
+                      <td colSpan={4}>
+                        <EmptyState 
+                          icon={IndianRupee}
+                          title="No transactions yet"
+                          description="The collection ledger is currently empty for today. Receipts will appear here as payments are processed."
+                          variant="card"
+                          className="my-8"
+                        />
+                      </td>
+                    </tr>
                   ) : (
                     <>
                       {paginatedData.map((r: any) => (
@@ -734,10 +766,10 @@ function WaitlistCard({ entry, onStartConsult, onComplete, onVitals, isPending }
       </div>
       <div className="appt-token-num">W{entry.waitingNumber}</div>
       <div className="appt-token-label">In Consultation</div>
-      
+
       <div className="appt-token-patient">{entry.patientName ?? `Patient #${entry.patientId}`}</div>
       <div className="appt-token-doctor">{entry.doctorName ?? 'Practitioner'}</div>
-      
+
       <div className="appt-token-actions">
         <button className="appt-btn-icon" title="Start Consultation" onClick={() => onStartConsult(entry)}>
           <Activity size={16} />

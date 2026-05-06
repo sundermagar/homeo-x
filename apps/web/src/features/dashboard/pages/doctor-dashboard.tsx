@@ -84,7 +84,7 @@ export function DoctorDashboard() {
     // Fire-and-forget: don't await the backend call
     const skipPromise = realWlId
       ? queueMgmt.skip.mutateAsync(realWlId)
-      : updateStatus.mutateAsync({ id: item.id, status: 'Waitlist' }).catch(() => {});
+      : updateStatus.mutateAsync({ id: item.id, status: 'Waitlist' }).catch(() => { });
 
     // Invalidate cache immediately so React Query refetches in background
     qc.invalidateQueries({ queryKey: ['dashboard'] });
@@ -104,10 +104,12 @@ export function DoctorDashboard() {
     const apptId = (item as any).visitId || item.id;
     updateStatus.mutate(
       { id: apptId, status: 'Absent' },
-      { onSuccess: () => {
-        qc.invalidateQueries({ queryKey: ['dashboard'] });
-        qc.invalidateQueries({ queryKey: apptKeys.all });
-      }}
+      {
+        onSuccess: () => {
+          qc.invalidateQueries({ queryKey: ['dashboard'] });
+          qc.invalidateQueries({ queryKey: apptKeys.all });
+        }
+      }
     );
   };
 
@@ -121,10 +123,12 @@ export function DoctorDashboard() {
     const apptId = (item as any).visitId || item.id;
     updateStatus.mutate(
       { id: apptId, status: 'Cancelled' },
-      { onSuccess: () => {
-        qc.invalidateQueries({ queryKey: ['dashboard'] });
-        qc.invalidateQueries({ queryKey: apptKeys.all });
-      }}
+      {
+        onSuccess: () => {
+          qc.invalidateQueries({ queryKey: ['dashboard'] });
+          qc.invalidateQueries({ queryKey: apptKeys.all });
+        }
+      }
     );
   };
 
@@ -255,6 +259,7 @@ export function DoctorDashboard() {
                   </div>
 
                   <div className="dd-clinical-notes">
+                    <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--pp-blue)', textTransform: 'uppercase', marginBottom: 8, letterSpacing: '0.05em' }}>Chief Complaints</div>
                     <p>{activeConsultation.notes || 'Routine checkup. Documented symptoms pending triage.'}</p>
                   </div>
                 </>
@@ -287,9 +292,9 @@ export function DoctorDashboard() {
                     const isExpanded = expandedId === a.id;
                     return (
                       <div key={`${a.id}-${idx}`}>
-                        <div 
-                          className={`dash-row ${isExpanded ? 'active' : ''}`} 
-                          onClick={() => setExpandedId(isExpanded ? null : a.id)} 
+                        <div
+                          className={`dash-row ${isExpanded ? 'active' : ''}`}
+                          onClick={() => setExpandedId(isExpanded ? null : a.id)}
                           style={{ cursor: 'pointer' }}
                         >
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
@@ -298,7 +303,7 @@ export function DoctorDashboard() {
                             </div>
                             <div style={{ flex: 1 }}>
                               <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{a.patientName}</div>
-                              <div className="text-label" style={{ fontSize: 10 }}>{a.bookingTime || 'Scheduled'} · Token {a.tokenNo || '—'}</div>
+                              <div className="text-label" style={{ fontSize: 10 }}>{a.bookingTime || 'Scheduled'} · {a.wlId ? 'Waitlist' : 'Token'} {a.wlId ? `W${a.tokenNo}` : (a.tokenNo || '—')}</div>
                             </div>
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -316,36 +321,36 @@ export function DoctorDashboard() {
                             </span>
                           </div>
                         </div>
-                        
+
                         <div className={`dash-row-details ${isExpanded ? 'expanded' : ''}`}>
                           <div className="details-inner">
-                             <div className="dd-details-grid">
-                                <div>
-                                  <div className="text-label" style={{ fontSize: 9, textTransform: 'uppercase', marginBottom: 4 }}>Clinical Notes</div>
-                                  <div style={{ fontSize: 12, color: '#475569', lineHeight: 1.5 }}>
-                                    {a.notes || 'Routine follow-up. No specific symptoms recorded at registration.'}
-                                  </div>
+                            <div className="dd-details-grid">
+                              <div>
+                                <div className="text-label" style={{ fontSize: 9, textTransform: 'uppercase', marginBottom: 4 }}>Clinical Notes</div>
+                                <div style={{ fontSize: 12, color: '#475569', lineHeight: 1.5 }}>
+                                  {a.notes || 'Routine follow-up. No specific symptoms recorded at registration.'}
                                 </div>
-                                <div className="dd-details-right">
-                                  <div className="text-label" style={{ fontSize: 9, textTransform: 'uppercase', marginBottom: 4 }}>Patient Info</div>
-                                  <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>PT-{a.regid}</div>
-                                  <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
-                                    {a.age || '--'} Yrs · {a.gender || '--'}
-                                  </div>
-                                  <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
-                                    <button className="pp-link" onClick={(e) => { e.stopPropagation(); navigate(`/patients/${a.regid}`); }}>View Profile</button>
-                                    {(a.status === 'Waitlist' || a.status === 'Consultation') && (
-                                      <button
-                                        className="pp-link"
-                                        style={{ color: 'var(--pp-blue)' }}
-                                        onClick={(e) => { e.stopPropagation(); handleStartConsultation(a); }}
-                                      >
-                                        {a.status === 'Consultation' ? 'Enter Consult' : 'Start Consult'}
-                                      </button>
-                                    )}
-                                  </div>
+                              </div>
+                              <div className="dd-details-right">
+                                <div className="text-label" style={{ fontSize: 9, textTransform: 'uppercase', marginBottom: 4 }}>Patient Info</div>
+                                <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>PT-{a.regid}</div>
+                                <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+                                  {a.age || '--'} Yrs · {a.gender || '--'}
                                 </div>
-                             </div>
+                                <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+                                  <button className="pp-link" onClick={(e) => { e.stopPropagation(); navigate(`/patients/${a.regid}`); }}>View Profile</button>
+                                  {(a.status === 'Waitlist' || a.status === 'Consultation') && (
+                                    <button
+                                      className="pp-link"
+                                      style={{ color: 'var(--pp-blue)' }}
+                                      onClick={(e) => { e.stopPropagation(); handleStartConsultation(a); }}
+                                    >
+                                      {a.status === 'Consultation' ? 'Enter Consult' : 'Start Consult'}
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
                           </div>
                         </div>
 
@@ -415,7 +420,7 @@ export function DoctorDashboard() {
 
       {showVitalsModal && activeConsultation && (
         <VitalsFormModal
-          visitId={activeConsultation.id}
+          visitId={(activeConsultation as any).visitId || activeConsultation.id}
           regid={activeConsultation.regid || activeConsultation.patientId}
           initialData={activeConsultation.vitals}
           onClose={() => setShowVitalsModal(false)}

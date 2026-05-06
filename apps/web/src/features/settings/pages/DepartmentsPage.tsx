@@ -9,6 +9,7 @@ import '../styles/settings.css';
 import { Pagination } from '@/shared/components/Pagination';
 import { usePagination } from '@/shared/hooks/use-pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
 
 interface Department {
   id: number;
@@ -102,10 +103,15 @@ export default function DepartmentsPage() {
         {isLoading ? (
           <TableSkeleton rows={5} columns={5} />
         ) : depts.length === 0 ? (
-          <div className="plat-empty">
-            <Layers size={40} className="plat-empty-icon" />
-            <p className="plat-empty-text">No departments found. Add your first one.</p>
-          </div>
+          <EmptyState 
+            icon={Layers}
+            title="No departments found"
+            description="Add your first clinic department or medical specialization to organize your staff."
+            actionLabel="Add Department"
+            onAction={handleOpenCreate}
+            variant="card"
+            className="my-8"
+          />
         ) : (
           <>
           <div className="plat-table-container">
@@ -145,13 +151,15 @@ export default function DepartmentsPage() {
               </tbody>
             </table>
           </div>
-          <Pagination
+          <div style={{ marginTop: '20px' }}>
+            <Pagination
             totalItems={totalItems}
             itemsPerPage={itemsPerPage}
             currentPage={currentPage}
             onPageChange={setCurrentPage}
             onLimitChange={setItemsPerPage}
           />
+          </div>
           </>
         )}
       </div>

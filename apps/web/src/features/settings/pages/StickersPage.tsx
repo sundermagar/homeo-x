@@ -9,6 +9,7 @@ import '../styles/settings.css';
 import { Pagination } from '@/shared/components/Pagination';
 import { usePagination } from '@/shared/hooks/use-pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
 
 const EMPTY_FORM = { name: '', detail: '' };
 
@@ -124,13 +125,15 @@ export default function StickersPage() {
         {isLoading ? (
           <TableSkeleton rows={5} columns={4} />
         ) : filteredStickers.length === 0 ? (
-          <div className="pp-empty-enhanced" style={{ border: 'none', background: 'transparent' }}>
-            <div className="pp-empty-icon-circle">
-              <StickyNote size={32} />
-            </div>
-            <p className="pp-empty-title">No templates found</p>
-            <p className="pp-empty-sub">Add a new sticker template to simplify your medicine dispensing workflow.</p>
-          </div>
+          <EmptyState 
+            icon={StickyNote}
+            title={search ? "No matches found" : "No templates found"}
+            description={search ? `No sticker templates matching "${search}" were found.` : "Create a new sticker template to simplify your medicine dispensing workflow."}
+            actionLabel={search ? "Clear Search" : "Add Template"}
+            onAction={search ? () => setSearch('') : handleOpenCreate}
+            variant="card"
+            className="my-8"
+          />
         ) : (
           <>
             <table className="pp-table">
@@ -166,18 +169,21 @@ export default function StickersPage() {
                 ))}
               </tbody>
             </table>
-            <div style={{ padding: '0 20px 20px' }}>
-              <Pagination
+              </>
+            )}
+          </div>
+
+          {!isLoading && filteredStickers.length > 0 && (
+            <div style={{ marginTop: '20px' }}>
+            <Pagination
                 totalItems={totalItems}
                 itemsPerPage={itemsPerPage}
                 currentPage={currentPage}
                 onPageChange={setCurrentPage}
                 onLimitChange={setItemsPerPage}
               />
-            </div>
-          </>
-        )}
-      </div>
+          </div>
+          )}
 
       <Drawer
         isOpen={isModalOpen}

@@ -9,6 +9,7 @@ import '../styles/platform.css';
 import { Pagination } from '@/shared/components/Pagination';
 import { usePagination } from '@/shared/hooks/use-pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
 
 export default function AccountsPage() {
   const [clinicFilter, setClinicFilter] = useState<number | undefined>();
@@ -89,10 +90,15 @@ export default function AccountsPage() {
         {isLoading ? (
           <TableSkeleton rows={8} columns={7} />
         ) : accounts.length === 0 ? (
-          <div className="plat-empty">
-            <UserCog size={28} className="plat-empty-icon" />
-            <p className="plat-empty-text">No accounts found. Create the first account manager.</p>
-          </div>
+          <EmptyState 
+            icon={UserCog}
+            title="No accounts found"
+            description="Linked clinic admin accounts. Create the first account manager to enable clinical access."
+            actionLabel="New Account"
+            onAction={openCreate}
+            variant="card"
+            className="my-8"
+          />
         ) : (
           <>
             <div className="plat-table-container">

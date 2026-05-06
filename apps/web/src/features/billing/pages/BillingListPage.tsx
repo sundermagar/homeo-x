@@ -7,6 +7,7 @@ import { BillingTable } from '../components/BillingTable';
 import { Pagination } from '@/components/shared/pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { Drawer } from '@/shared/components/drawer';
+import { EmptyState } from '@/components/shared/empty-state';
 import { BillingForm } from './BillingFormPage';
 import { CustomBillForm } from './CustomBillPage';
 import '../styles/billing.css';
@@ -169,12 +170,15 @@ export default function BillingListPage() {
       {billsQuery.isLoading ? (
         <TableSkeleton rows={8} columns={8} />
       ) : bills.length === 0 ? (
-        <div className="bill-card">
-          <div className="bill-empty">
-            <Receipt size={32} className="bill-empty-icon" />
-            <p className="bill-empty-text">No billing records found for this date.</p>
-          </div>
-        </div>
+        <EmptyState 
+          icon={Receipt}
+          title={regidFilter ? "No billing records found" : "No transactions today"}
+          description={regidFilter ? `No bills matching Reg ID "${regidFilter}" were found.` : "Clinical billing is clean. Generate an invoice to start tracking today's collection."}
+          actionLabel={regidFilter ? "Clear Search" : "New Bill"}
+          onAction={regidFilter ? () => setRegidFilter('') : () => setIsNewBillOpen(true)}
+          variant="card"
+          className="my-8"
+        />
       ) : viewMode === 'list' ? (
         <BillingTable bills={bills} isLoading={false} />
       ) : (

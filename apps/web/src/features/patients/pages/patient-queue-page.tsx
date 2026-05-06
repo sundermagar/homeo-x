@@ -1,13 +1,14 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
   Clock, UserCheck, CheckCircle2, Users, RefreshCw, Ticket,
-  ChevronRight, Activity, ChevronLeft, LayoutGrid, List
+  ChevronRight, Activity, ChevronLeft, LayoutGrid, List, Volume2
 } from 'lucide-react';
 import { useWaitlist, useCallNext, useCompleteVisit } from '@/features/appointments/hooks/use-appointments';
 import { useDoctors } from '@/features/appointments/hooks/use-doctors';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { apiClient } from '@/infrastructure/api-client';
 import { VitalsFormModal } from '@/features/medical-case/components/vitals-form-modal';
+import { EmptyState } from '@/components/shared/empty-state';
 import '@/features/appointments/styles/appointments.css';
 
 const WAIT_STATUS = { 0: 'Waiting', 1: 'Called', 2: 'Done' } as Record<number, string>;
@@ -72,7 +73,7 @@ export default function PatientQueuePage() {
   const totalItems = waiting.length;
   const totalPages = Math.ceil(totalItems / limit);
   const paginatedWaiting = waiting.slice((page - 1) * limit, page * limit);
-  
+
   const fromEntry = totalItems === 0 ? 0 : (page - 1) * limit + 1;
   const toEntry = Math.min(page * limit, totalItems);
 
@@ -228,39 +229,39 @@ export default function PatientQueuePage() {
         <table className="appt-table">
           <thead className="appt-table-header-minimal">
             <tr>
-              <th style={{ textAlign: 'left', paddingLeft: 24 }}>TOKEN</th>
-              <th style={{ textAlign: 'left' }}>PATIENT</th>
-              <th style={{ textAlign: 'left' }}>DOCTOR</th>
-              <th style={{ textAlign: 'left' }}>WAIT TIME</th>
+              <th style={{ textAlign: 'center' }}>TOKEN</th>
+              <th style={{ textAlign: 'center' }}>PATIENT</th>
+              <th style={{ textAlign: 'center' }}>DOCTOR</th>
+              <th style={{ textAlign: 'center' }}>WAIT TIME</th>
               <th style={{ textAlign: 'center' }}>STATUS</th>
-              <th style={{ textAlign: 'right', paddingRight: 24 }}>ACTION</th>
+              <th style={{ textAlign: 'center' }}>ACTION</th>
             </tr>
           </thead>
           <tbody>
             {paginatedWaiting.map(w => (
               <tr key={w.id} className="appt-table-row-minimal">
-                <td data-label="TOKEN" style={{ paddingLeft: 24 }}>
+                <td data-label="TOKEN" style={{ textAlign: 'center' }}>
                   <span className="appt-token-pill" style={{ color: WAIT_COLOR[w.status] }}>W{w.waitingNumber}</span>
                 </td>
-                <td data-label="PATIENT">
-                  <div className="appt-patient-info">
+                <td data-label="PATIENT" style={{ textAlign: 'center' }}>
+                  <div className="appt-patient-info" style={{ display: 'flex', justifyContent: 'center' }}>
                     <div className="appt-cell-name">{w.patientName ?? `Patient #${w.patientId}`}</div>
                   </div>
                 </td>
-                <td data-label="DOCTOR" className="appt-cell-muted">{w.doctorName ?? '—'}</td>
-                <td data-label="WAIT TIME" className="appt-cell-muted">{formatWaitTime(w.checkedInAt || w.createdAt)}</td>
+                <td data-label="DOCTOR" className="appt-cell-muted" style={{ textAlign: 'center' }}>{w.doctorName ?? '—'}</td>
+                <td data-label="WAIT TIME" className="appt-cell-muted" style={{ textAlign: 'center' }}>{formatWaitTime(w.checkedInAt || w.createdAt)}</td>
                 <td data-label="STATUS" style={{ textAlign: 'center' }}>
                   <span className={`appt-status-pill-minimal waiting`}>
                     {WAIT_STATUS[w.status]}
                   </span>
                 </td>
-                <td data-label="ACTION" style={{ paddingRight: 24 }}>
-                  <div className="appt-row-actions-minimal">
+                <td data-label="ACTION" style={{ textAlign: 'center' }}>
+                  <div className="appt-row-actions-minimal" style={{ display: 'flex', justifyContent: 'center' }}>
                     <button className="appt-btn appt-btn-xs appt-btn-primary" onClick={() => handleCall(w.id)} disabled={callNext.isPending}>
-                       Call
+                      <Volume2 size={13} /> Call
                     </button>
                     <button className="appt-btn appt-btn-xs appt-btn-purple" onClick={() => setActiveVitals({ visitId: w.appointmentId || w.id, regid: w.patientId ?? 0 })}>
-                      <Activity size={12} /> Vitals
+                      <Activity size={13} /> Vitals
                     </button>
                   </div>
                 </td>
@@ -308,9 +309,9 @@ export default function PatientQueuePage() {
       {/* Quick Stats */}
       <div className="appt-stats-bar" style={{ marginBottom: '32px' }}>
         {[
-          { label: 'Waiting',    value: waiting.length,    bg: 'var(--pp-warning-bg)', ic: '#d97706', icon: <Clock size={20} strokeWidth={2} /> },
-          { label: 'Consulting', value: inProgress.length, bg: 'var(--pp-blue-tint)',  ic: 'var(--pp-blue)', icon: <UserCheck size={20} strokeWidth={2} /> },
-          { label: 'Completed',  value: done.length,       bg: 'var(--pp-success-bg)',  ic: '#059669', icon: <CheckCircle2 size={20} strokeWidth={2} /> },
+          { label: 'Waiting', value: waiting.length, bg: 'var(--pp-warning-bg)', ic: '#d97706', icon: <Clock size={20} strokeWidth={2} /> },
+          { label: 'Consulting', value: inProgress.length, bg: 'var(--pp-blue-tint)', ic: 'var(--pp-blue)', icon: <UserCheck size={20} strokeWidth={2} /> },
+          { label: 'Completed', value: done.length, bg: 'var(--pp-success-bg)', ic: '#059669', icon: <CheckCircle2 size={20} strokeWidth={2} /> },
         ].map(item => (
           <div key={item.label} className="appt-stat-card">
             <div className="appt-stat-icon-wrap" style={{ background: item.bg, color: item.ic }}>
@@ -368,28 +369,31 @@ export default function PatientQueuePage() {
         <div className="appt-section-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span>Waiting Queue ({waiting.length})</span>
           <div className="appt-segmented-toggle">
-            <button 
-              className={`appt-segmented-btn ${viewMode === 'list' ? 'active' : ''}`} 
+            <button
+              className={`appt-segmented-btn ${viewMode === 'list' ? 'active' : ''}`}
               onClick={() => setViewMode('list')}
             >
               <List size={16} /> List
             </button>
-            <button 
-              className={`appt-segmented-btn ${viewMode === 'grid' ? 'active' : ''}`} 
+            <button
+              className={`appt-segmented-btn ${viewMode === 'grid' ? 'active' : ''}`}
               onClick={() => setViewMode('grid')}
             >
               <LayoutGrid size={16} /> Grid
             </button>
           </div>
         </div>
-        
+
         {wLoading ? (
           viewMode === 'grid' ? renderSkeletonGrid() : renderSkeletonList()
         ) : waiting.length === 0 ? (
-          <div className="appt-card" style={{ padding: '60px 40px', background: 'var(--pp-warm-1)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-            <Users size={36} style={{ opacity: 0.25, marginBottom: 16 }} />
-            <p style={{ color: 'var(--pp-text-3)', fontSize: '14px', fontWeight: 500, margin: 0 }}>The waiting room is currently empty.</p>
-          </div>
+          <EmptyState 
+            icon={Users}
+            title="Waiting room is empty"
+            description="There are no patients currently in the waiting queue. All checked-in patients have been addressed."
+            variant="card"
+            className="my-8"
+          />
         ) : (
           <>
             {viewMode === 'grid' ? (

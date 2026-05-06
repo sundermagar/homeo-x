@@ -11,6 +11,7 @@ import '../styles/platform.css';
 
 import { Pagination } from '@/shared/components/Pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
 import { Drawer } from '@/shared/components/drawer';
 
 
@@ -606,18 +607,15 @@ export default function ClinicAdminsPage() {
         {isLoading ? (
           <TableSkeleton rows={itemsPerPage} columns={6} />
         ) : staff.length === 0 ? (
-          <div className="plat-empty" style={{ minHeight: 400 }}>
-            <div className="plat-empty-icon-wrap mb-6">
-              <ShieldCheck size={48} className="text-blue-500 opacity-20" />
-            </div>
-            <h3 className="text-lg font-semibold text-slate-800 mb-2">No Clinic Admins Registered</h3>
-            <p className="text-sm text-slate-500 max-w-xs text-center mb-8">
-              Clinical operations require strong leadership. Add your first clinical administrator to begin managing your facility.
-            </p>
-            <button className="plat-btn plat-btn-primary" onClick={() => { setEditingId(null); setModalOpen(true); }}>
-              <Plus size={14} /> Register First Admin
-            </button>
-          </div>
+          <EmptyState 
+            icon={ShieldCheck}
+            title="No Clinic Admins Registered"
+            description="Clinical operations require strong leadership. Add your first clinical administrator to begin managing your facility."
+            actionLabel="Register First Admin"
+            onAction={() => { setEditingId(null); setModalOpen(true); }}
+            variant="card"
+            className="my-8"
+          />
         ) : (
           <>
             <div className="plat-table-container">

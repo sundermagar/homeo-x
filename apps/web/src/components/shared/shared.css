@@ -66,39 +66,86 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 3rem 1.5rem;
+  padding: 4rem 2rem;
   text-align: center;
+  min-height: 320px;
 }
 
-.empty-state__icon {
+.empty-state--card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-main);
+  border-radius: 20px;
+  box-shadow: var(--pp-shadow-sm);
+}
+
+.empty-state__icon-wrapper {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 3rem;
-  height: 3rem;
-  border-radius: var(--radius-full);
-  background-color: var(--color-gray-100);
-  color: var(--text-tertiary);
-  margin-bottom: var(--space-4);
+  width: 80px;
+  height: 80px;
+  border-radius: 24px;
+  background-color: var(--bg-surface-2);
+  color: var(--pp-blue);
+  margin-bottom: 1.5rem;
+  transition: transform 0.3s var(--ease-out);
+}
+
+.empty-state:hover .empty-state__icon-wrapper {
+  transform: translateY(-4px) scale(1.05);
+}
+
+.empty-state__icon {
+  opacity: 0.8;
+}
+
+.empty-state__content {
+  max-width: 420px;
 }
 
 .empty-state__title {
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0 0 0.5rem 0;
+  letter-spacing: -0.01em;
 }
 
 .empty-state__description {
-  margin-top: 0.25rem;
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
-  max-width: 28rem;
-  line-height: 1.5;
+  font-size: 0.9375rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin: 0;
 }
 
 .empty-state__action {
-  margin-top: var(--space-4);
+  margin-top: 2rem;
+}
+
+.empty-state__button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--pp-blue);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s var(--ease-out);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+.empty-state__button:hover {
+  background: var(--pp-blue-deep);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3);
+}
+
+.empty-state__button:active {
+  transform: translateY(0);
 }
 
 /* ── PageHeader ── */

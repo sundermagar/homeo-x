@@ -12,6 +12,7 @@ import {
 import { useSendWhatsApp, useSmsTemplates } from '@/features/communications/hooks/use-communications';
 import { Pagination } from '@/components/shared/pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
 import '../../platform/styles/platform.css';
 
 export function ReportsPage() {
@@ -152,7 +153,17 @@ function CaseMonthWiseTab({ onExport }: { onExport: (filename: string, headers: 
                 );
               })}
               {(!data || data.length === 0) && (
-                <tr><td colSpan={5} style={{ textAlign: 'center', padding: '60px', color: 'var(--pp-text-3)' }}>No financial records found</td></tr>
+                <tr>
+                  <td colSpan={5}>
+                    <EmptyState 
+                      icon={Activity}
+                      title="No financial records found"
+                      description={`There are no case or collection records recorded for the year ${year}.`}
+                      variant="card"
+                      className="my-8"
+                    />
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
@@ -241,7 +252,13 @@ function MonthWiseDueTab({ onExport }: { onExport: (filename: string, headers: s
             </button>
           ))}
           {(!summary || summary.length === 0) && (
-            <div style={{ padding: '32px', textAlign: 'center', color: 'var(--pp-text-3)' }}>No dues found for {year}</div>
+            <EmptyState 
+              icon={CreditCard}
+              title="No dues found"
+              description={`The clinic accounts are clean for ${year}. No outstanding patient dues were found.`}
+              variant="card"
+              className="my-4"
+            />
           )}
         </div>
       </div>
@@ -261,16 +278,22 @@ function MonthWiseDueTab({ onExport }: { onExport: (filename: string, headers: s
         <div style={{ minHeight: '400px', padding: '16px' }}>
           {isDetailsLoading && <TableSkeleton rows={10} columns={3} />}
           {!selectedMonth && !isDetailsLoading && (
-            <div className="plat-empty">
-              <CreditCard size={32} style={{ opacity: 0.2, marginBottom: 12 }} />
-              <div className="plat-empty-text">Select a month from the list to view outstanding patient dues.</div>
-            </div>
+            <EmptyState 
+              icon={CreditCard}
+              title="Select a month"
+              description="Choose a month from the left panel to view detailed patient-wise outstanding dues."
+              variant="card"
+              className="my-8"
+            />
           )}
           {details && details.length === 0 && !isDetailsLoading && selectedMonth && (
-            <div className="plat-empty">
-              <Activity size={32} style={{ opacity: 0.2, marginBottom: 12 }} />
-              <div className="plat-empty-text">No outstanding dues for this month.</div>
-            </div>
+            <EmptyState 
+              icon={Activity}
+              title="No dues for this month"
+              description={`All patient accounts are cleared for ${new Date(year, selectedMonth - 1).toLocaleString('default', { month: 'long' })}.`}
+              variant="card"
+              className="my-8"
+            />
           )}
           <div className="plat-dues-list">
             <style>{`
@@ -470,10 +493,13 @@ function BirthdaysTab({ onExport }: { onExport: (filename: string, headers: stri
       </div>
       <div style={{ padding: '20px' }}>
         {patients.length === 0 ? (
-          <div className="plat-empty">
-            <Gift size={40} style={{ opacity: 0.1, marginBottom: 16 }} />
-            <p>No birthdays found for today.</p>
-          </div>
+          <EmptyState 
+            icon={Gift}
+            title="No birthdays today"
+            description="There are no patient birthdays recorded for today. Check back tomorrow to send clinical greetings."
+            variant="card"
+            className="my-8"
+          />
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
             {(paginatedPatients as any[]).map((p) => {
@@ -676,7 +702,17 @@ function ReferencesTab({ onExport }: { onExport: (filename: string, headers: str
               </tr>
             ))}
             {(!data || data.length === 0) && (
-              <tr><td colSpan={3} style={{ textAlign: 'center', padding: '40px', color: 'var(--pp-text-3)' }}>No direct references found this month.</td></tr>
+              <tr>
+                <td colSpan={3}>
+                  <EmptyState 
+                    icon={Users}
+                    title="No references found"
+                    description="No patient acquisitions or referral sources have been recorded in the current dataset."
+                    variant="card"
+                    className="my-8"
+                  />
+                </td>
+              </tr>
             )}
           </tbody>
         </table>

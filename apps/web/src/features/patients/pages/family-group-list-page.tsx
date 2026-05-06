@@ -5,6 +5,7 @@ import { Search, Settings, Grid, List as ListIcon, Users as UsersIcon } from 'lu
 import '../styles/patients.css';
 import { Pagination } from '@/components/shared/pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
 const PAGE_SIZE = 30;
 
 export default function FamilyGroupListPage() {
@@ -88,13 +89,15 @@ export default function FamilyGroupListPage() {
       {isLoading ? (
         <TableSkeleton rows={10} cols={4} />
       ) : families.length === 0 ? (
-        <div className="pp-empty-enhanced">
-          <div className="pp-empty-icon-circle">
-            <UsersIcon size={32} />
-          </div>
-          <p className="pp-empty-title">No family groups found</p>
-          <p className="pp-empty-sub">Try adjusting your search criteria</p>
-        </div>
+        <EmptyState 
+          icon={UsersIcon}
+          title={debouncedSearch ? "No matches found" : "No family groups"}
+          description={debouncedSearch ? `No family units matching "${debouncedSearch}" were found.` : "Organize your patients into family units to track clinical histories together."}
+          actionLabel={debouncedSearch ? "Clear Search" : "Register Patient"}
+          onAction={debouncedSearch ? () => handleSearchChange('') : () => navigate('/patients/add')}
+          variant="card"
+          className="my-8"
+        />
       ) : viewMode === 'list' ? (
         <div className="pp-table-container-enhanced">
           <div className="pp-table-scroll">

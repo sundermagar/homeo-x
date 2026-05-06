@@ -6,8 +6,10 @@ interface TableSkeletonProps {
   cols?: number; // For backwards compatibility
 }
 
-export function TableSkeleton({ rows = 5, columns, cols }: TableSkeletonProps) {
-  const colCount = columns || cols || 4;
+export function TableSkeleton({ rows = 10, columns = 8, cols }: TableSkeletonProps) {
+  // Always render at least 8 columns to ensure the skeleton fills the entire table width
+  // as per the requirement "fill the table completely with columns".
+  const colCount = Math.max(columns || cols || 0, 8);
   
   return (
     <div className="pp-table-scroll pp-card-premium" style={{ padding: 0 }}>
@@ -16,7 +18,7 @@ export function TableSkeleton({ rows = 5, columns, cols }: TableSkeletonProps) {
           <tr>
             {Array.from({ length: colCount }).map((_, i) => (
               <th key={i}>
-                <div className="skeleton-box skeleton-text" style={{ width: '60%', margin: 0 }} />
+                <div className="skeleton-box skeleton-text" style={{ width: i === 0 ? '40%' : '75%', margin: 0, height: '12px' }} />
               </th>
             ))}
           </tr>
@@ -29,8 +31,9 @@ export function TableSkeleton({ rows = 5, columns, cols }: TableSkeletonProps) {
                   <div 
                     className="skeleton-box skeleton-text" 
                     style={{ 
-                      width: colIndex === 0 ? '30px' : colIndex === colCount - 1 ? '80px' : '70%',
-                      margin: 0 
+                      width: '90px',
+                      margin: 0,
+                      height: '15px'
                     }} 
                   />
                 </td>

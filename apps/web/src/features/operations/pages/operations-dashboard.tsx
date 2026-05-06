@@ -4,11 +4,12 @@ import {
   Package, Clock, CheckCircle2, AlertCircle, Phone,
   UsersRound, BellRing, ExternalLink, LayoutGrid, List,
   ChevronLeft, ChevronRight, Search, Plus, Edit3, Trash2,
-  FileText, Users
+  FileText, Users, BookOpen, Gift, Library
 } from 'lucide-react';
 import { apiClient } from '@/infrastructure/api-client';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { Pagination } from '@/components/shared/pagination';
+import { EmptyState } from '@/components/shared/empty-state';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import './operations-dashboard.css';
 
@@ -22,9 +23,7 @@ type GenericTab = 'logistics' | 'crm' | 'knowledge' | 'tools';
 // MOCK DATA
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const mockShipments = [
-  { id: 1, regid: 1001, patient: 'Rahul Sharma', mobile: '9876543210', status: 'Dispatched', tracking: 'DLV-88712', courier: 'Delhivery Express', date: '2026-04-08' },
-];
+// Shipments are now fetched from the API — no more mock data
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // STATUS BADGE
@@ -109,6 +108,7 @@ export default function OperationsDashboard() {
   const [leads, setLeads] = useState<any[]>([]);
   const [referrals, setReferrals] = useState<any[]>([]);
   const [reminders, setReminders] = useState<any[]>([]);
+  const [shipments, setShipments] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   // ─── Knowledge Tab State ───
@@ -141,7 +141,14 @@ export default function OperationsDashboard() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      if (activeTab === 'crm') {
+      if (activeTab === 'logistics') {
+        try {
+          const couriersRes = await apiClient.get('/logistics/couriers');
+          setShipments(couriersRes.data.data || []);
+        } catch {
+          setShipments([]);
+        }
+      } else if (activeTab === 'crm') {
         const [leadsRes, refsRes, remsRes] = await Promise.all([
           apiClient.get('/crm/leads'),
           apiClient.get('/crm/referrals/summary'),
@@ -299,10 +306,10 @@ export default function OperationsDashboard() {
       {activeTab === 'logistics' && (
         <div className="slide-up">
           <div className="ops-stats-row">
-            <StatCard icon={Package} value={5} label="Total Shipments" variant="default" />
-            <StatCard icon={Clock} value={2} label="In Transit" variant="warn" />
-            <StatCard icon={CheckCircle2} value={1} label="Delivered" variant="success" />
-            <StatCard icon={AlertCircle} value={1} label="Pending" variant="danger" />
+            <StatCard icon={Package} value={shipments.length} label="Total Shipments" variant="default" />
+            <StatCard icon={Clock} value={shipments.filter(s => (s.status || '').toLowerCase() === 'dispatched' || (s.status || '').toLowerCase() === 'in transit').length} label="In Transit" variant="warn" />
+            <StatCard icon={CheckCircle2} value={shipments.filter(s => (s.status || '').toLowerCase() === 'delivered').length} label="Delivered" variant="success" />
+            <StatCard icon={AlertCircle} value={shipments.filter(s => (s.status || '').toLowerCase() === 'pending').length} label="Pending" variant="danger" />
           </div>
 
           <div className="ops-content card">
@@ -329,6 +336,14 @@ export default function OperationsDashboard() {
 
             {loading ? (
               <TableSkeleton rows={5} columns={shipmentCols.length} />
+            ) : shipments.length === 0 ? (
+              <EmptyState 
+                icon={Package}
+                title="No shipments found"
+                description="Assign a courier to start tracking medicine deliveries."
+                actionLabel="+ Assign Courier"
+                onAction={() => setModalType('courier')}
+              />
             ) : viewMode === 'list' ? (
               <div className="plat-table-container">
                 <table className="plat-table">
@@ -336,17 +351,17 @@ export default function OperationsDashboard() {
                     <tr>{shipmentCols.map(col => <th key={col}>{col}</th>)}</tr>
                   </thead>
                   <tbody>
-                    {mockShipments.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(s => (
+                    {shipments.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(s => (
                       <tr key={s.id} className="plat-table-row">
-                        <td><span className="reg-badge">#{s.regid}</span></td>
+                        <td><span className="reg-badge">#{s.regid || '-'}</span></td>
                         <td>
-                          <div className="cell-main">{s.patient}</div>
-                          <div className="cell-sub"><Phone size={11} /> {s.mobile}</div>
+                          <div className="cell-main">{s.patient_name || s.patient || `Patient #${s.regid || '-'}`}</div>
+                          <div className="cell-sub"><Phone size={11} /> {s.mobile || '-'}</div>
                         </td>
-                        <td><span className="courier-tag">{s.courier}</span></td>
-                        <td><span className="mono">{s.tracking}</span></td>
-                        <td><StatusBadge status={s.status} /></td>
-                        <td><span className="cell-sub">{s.date}</span></td>
+                        <td><span className="courier-tag">{s.courier_name || s.courier || '-'}</span></td>
+                        <td><span className="mono">{s.tracking_no || s.tracking || '-'}</span></td>
+                        <td><StatusBadge status={s.status || 'Pending'} /></td>
+                        <td><span className="cell-sub">{s.dispatch_date ? new Date(s.dispatch_date).toLocaleDateString() : s.created_at ? new Date(s.created_at).toLocaleDateString() : '-'}</span></td>
                       </tr>
                     ))}
                   </tbody>
@@ -354,28 +369,28 @@ export default function OperationsDashboard() {
               </div>
             ) : (
               <div className="ops-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
-                {mockShipments.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(s => (
+                {shipments.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(s => (
                   <div key={s.id} className="ops-card" style={{ padding: 16, borderRadius: 18 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
                       <div>
-                        <div className="reg-badge" style={{ marginBottom: 8, display: 'inline-block' }}>#{s.regid}</div>
-                        <div className="cell-main" style={{ fontSize: '15px' }}>{s.patient}</div>
-                        <div className="cell-sub"><Phone size={11} /> {s.mobile}</div>
+                        <div className="reg-badge" style={{ marginBottom: 8, display: 'inline-block' }}>#{s.regid || '-'}</div>
+                        <div className="cell-main" style={{ fontSize: '15px' }}>{s.patient_name || s.patient || `Patient #${s.regid || '-'}`}</div>
+                        <div className="cell-sub"><Phone size={11} /> {s.mobile || '-'}</div>
                       </div>
-                      <StatusBadge status={s.status} />
+                      <StatusBadge status={s.status || 'Pending'} />
                     </div>
                     <div style={{ padding: '12px', background: 'var(--bg-surface-2)', borderRadius: 12, display: 'grid', gap: 8 }}>
                       <div style={{ fontSize: '12px', display: 'flex', justifyContent: 'space-between' }}>
                         <span style={{ color: 'var(--text-muted)' }}>Courier</span>
-                        <span style={{ fontWeight: 600 }}>{s.courier}</span>
+                        <span style={{ fontWeight: 600 }}>{s.courier_name || s.courier || '-'}</span>
                       </div>
                       <div style={{ fontSize: '12px', display: 'flex', justifyContent: 'space-between' }}>
                         <span style={{ color: 'var(--text-muted)' }}>Tracking</span>
-                        <span className="mono">{s.tracking}</span>
+                        <span className="mono">{s.tracking_no || s.tracking || '-'}</span>
                       </div>
                     </div>
                     <div style={{ marginTop: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span className="cell-sub">{s.date}</span>
+                      <span className="cell-sub">{s.dispatch_date ? new Date(s.dispatch_date).toLocaleDateString() : '-'}</span>
                       <button className="ops-btn ops-btn-ghost" style={{ padding: '6px 12px', fontSize: '11px', borderRadius: 8 }}>Details</button>
                     </div>
                   </div>
@@ -384,10 +399,10 @@ export default function OperationsDashboard() {
             )}
 
             <Pagination
-              totalItems={mockShipments.length}
+              totalItems={shipments.length}
               currentPage={currentPage}
               pageSize={itemsPerPage}
-              totalPages={Math.ceil(mockShipments.length / itemsPerPage)}
+              totalPages={Math.ceil(shipments.length / itemsPerPage)}
               onPageChange={setCurrentPage}
               onPageSizeChange={setItemsPerPage}
             />
@@ -464,10 +479,13 @@ export default function OperationsDashboard() {
                 {loading ? (
                   <TableSkeleton rows={5} columns={leadCols.length} />
                 ) : leads.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: 40, background: 'var(--bg-surface-2)', borderRadius: 12 }}>
-                    <UsersRound size={32} strokeWidth={1} style={{ color: 'var(--text-muted)', marginBottom: 12 }} />
-                    <p style={{ color: 'var(--text-main)', fontWeight: 600 }}>No leads found</p>
-                  </div>
+                  <EmptyState 
+                    icon={UsersRound}
+                    title="No leads found"
+                    description="Capture patient inquiries to start building your clinical pipeline."
+                    variant="default"
+                    className="my-4"
+                  />
                 ) : (
                   <div className="plat-table-container">
                     <table className="plat-table">
@@ -567,7 +585,17 @@ export default function OperationsDashboard() {
                           </tr>
                         ))}
                         {referrals.length === 0 && !loading && (
-                          <tr><td colSpan={4} style={{ textAlign: 'center', padding: 20 }}>No referrals found.</td></tr>
+                          <tr>
+                            <td colSpan={4}>
+                              <EmptyState 
+                                icon={Gift}
+                                title="No referrals found"
+                                description="Log your first patient referral to track community growth."
+                                variant="default"
+                                className="my-4"
+                              />
+                            </td>
+                          </tr>
                         )}
                       </tbody>
                     </table>
@@ -665,9 +693,13 @@ export default function OperationsDashboard() {
             {loading ? (
               <TableSkeleton rows={5} columns={dictCols.length} />
             ) : dictionary.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: 40, background: 'var(--bg-surface-2)', borderRadius: 12 }}>
-                <p style={{ color: 'var(--text-muted)' }}>No dictionary entries found.</p>
-              </div>
+              <EmptyState 
+                icon={BookOpen}
+                title="No dictionary entries found"
+                description="Populate your clinical dictionary with terminologies for quick reference."
+                variant="default"
+                className="my-4"
+              />
             ) : viewMode === 'list' ? (
               <div className="plat-table-container">
                 <table className="plat-table">
@@ -740,9 +772,15 @@ export default function OperationsDashboard() {
             {loading ? (
               <TableSkeleton rows={5} columns={bookCols.length} />
             ) : books.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: 40, background: 'var(--pp-warm-1)', borderRadius: 12 }}>
-                <p style={{ color: 'var(--pp-muted)' }}>No library resources found.</p>
-              </div>
+              <EmptyState 
+                icon={Library}
+                title="No library resources found"
+                description="Upload medical books and PDFs to build your digital clinical library."
+                actionLabel="+ Upload Resource"
+                onAction={() => setModalType('book')}
+                variant="default"
+                className="my-4"
+              />
             ) : viewMode === 'list' ? (
               <div className="plat-table-container">
                 <table className="plat-table">

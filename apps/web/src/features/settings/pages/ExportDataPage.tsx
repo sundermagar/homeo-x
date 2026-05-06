@@ -22,12 +22,13 @@ function ExportCard({ title, description, icon, onExport, isExporting }: ExportC
           {icon}
         </div>
         <div>
-          <h3 className="export-nav-title">{title}</h3>
-          <p className="export-nav-desc">{description}</p>
+          <h3 className="settings-nav-title">{title}</h3>
+          <p className="settings-nav-desc">{description}</p>
         </div>
       </div>
       <button
-        className="export-btn"
+        className="btn-primary"
+        style={{ width: '100%', justifyContent: 'center', height: '44px' }}
         onClick={onExport}
         disabled={isExporting}
       >

@@ -9,6 +9,7 @@ import '../styles/settings.css';
 import { Pagination } from '@/shared/components/Pagination';
 import { usePagination } from '@/shared/hooks/use-pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
 
 interface Potency {
   id: number;
@@ -119,10 +120,15 @@ export default function PotenciesPage() {
         {isLoading ? (
           <TableSkeleton rows={5} columns={4} />
         ) : filtered.length === 0 ? (
-          <div className="plat-empty">
-            <Sparkles size={40} className="plat-empty-icon" />
-            <p className="plat-empty-text">No potencies found matching search.</p>
-          </div>
+          <EmptyState 
+            icon={Sparkles}
+            title={search ? "No matches found" : "No potencies defined"}
+            description={search ? `No potencies matching "${search}" were found in your clinic settings.` : "Add your first medicine potency (e.g. 30C, 200C) to begin organizing your catalog."}
+            actionLabel={search ? "Clear Search" : "Add Potency"}
+            onAction={search ? () => setSearch('') : handleOpenCreate}
+            variant="card"
+            className="my-8"
+          />
         ) : (
           <>
           <div className="plat-table-container">
@@ -156,13 +162,15 @@ export default function PotenciesPage() {
               </tbody>
             </table>
           </div>
-          <Pagination
+          <div style={{ marginTop: '20px' }}>
+            <Pagination
             totalItems={totalItems}
             itemsPerPage={itemsPerPage}
             currentPage={currentPage}
             onPageChange={setCurrentPage}
             onLimitChange={setItemsPerPage}
           />
+          </div>
           </>
         )}
       </div>

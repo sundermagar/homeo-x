@@ -10,6 +10,7 @@ import '../styles/platform.css';
 import { Pagination } from '@/shared/components/Pagination';
 import { usePagination } from '@/shared/hooks/use-pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
 import { Drawer } from '@/shared/components/drawer';
 
 
@@ -150,13 +151,15 @@ export default function ClinicsPage() {
         {isLoading ? (
           <TableSkeleton rows={8} columns={7} />
         ) : orgs.length === 0 ? (
-          <div className="pp-empty-enhanced">
-            <div className="pp-empty-icon-circle">
-              <Building2 size={32} />
-            </div>
-            <p className="pp-empty-title">No clinics registered</p>
-            <p className="pp-empty-sub">Add your first clinic to get started.</p>
-          </div>
+          <EmptyState 
+            icon={Building2}
+            title="No clinics registered"
+            description="Add your first clinic to get started with the multi-tenant clinical ecosystem."
+            actionLabel="Add Clinic"
+            onAction={() => { setEditingOrg(null); setIsCreating(true); setForm(EMPTY_FORM); }}
+            variant="card"
+            className="my-8"
+          />
         ) : (
           <>
             <div className="pp-table-container-enhanced">

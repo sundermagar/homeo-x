@@ -9,6 +9,7 @@ import '../styles/settings.css';
 import { Pagination } from '@/shared/components/Pagination';
 import { usePagination } from '@/shared/hooks/use-pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
 import { CodeAutocomplete } from '@/shared/components/code-autocomplete';
 import type { SnomedConceptResult } from '@/shared/hooks/use-terminology';
 
@@ -170,13 +171,15 @@ export default function MedicinesPage() {
         {isLoading ? (
           <TableSkeleton rows={5} columns={6} />
         ) : filtered.length === 0 ? (
-          <div className="pp-empty-enhanced">
-            <div className="pp-empty-icon-circle">
-              <Pill size={32} />
-            </div>
-            <p className="pp-empty-title">No medicine matches your search</p>
-            <p className="pp-empty-sub">Try searching by SNOMED label or category.</p>
-          </div>
+          <EmptyState 
+            icon={Pill}
+            title={search ? "No medicine matches your search" : "Medicine catalog is empty"}
+            description={search ? `No remedies matching "${search}" were found in your dispensary.` : "Start building your clinical pharmacy by adding your first medicine."}
+            actionLabel={search ? "Clear Search" : "Register Remedy"}
+            onAction={search ? () => setSearch('') : handleOpenCreate}
+            variant="card"
+            className="my-8"
+          />
         ) : (
           <>
           <div className="pp-table-container-enhanced">

@@ -7,6 +7,7 @@ import { Pagination } from '@/components/shared/pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { usePagination } from '@/shared/hooks/use-pagination';
 import { AssignPackageModal } from '../components/assign-package-modal';
+import { EmptyState } from '@/components/shared/empty-state';
 import '../styles/packages.css';
 
 function getDaysLabel(days: number) {
@@ -164,10 +165,13 @@ export default function PackageTrackingPage() {
         {isLoading ? (
           <TableSkeleton rows={8} columns={6} />
         ) : records.length === 0 ? (
-          <div className="pkg-empty">
-            <Calendar size={28} className="pkg-empty-icon" />
-            <p className="pkg-empty-text">No packages expiring in this date range.</p>
-          </div>
+          <EmptyState 
+            icon={Calendar}
+            title="No expirations found"
+            description={`No subscriptions are set to expire between ${new Date(fromDate).toLocaleDateString()} and ${new Date(toDate).toLocaleDateString()}.`}
+            variant="card"
+            className="my-8"
+          />
         ) : (
           <>
             <div className="pp-table-scroll">

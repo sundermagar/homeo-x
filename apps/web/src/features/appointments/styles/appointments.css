@@ -8,7 +8,7 @@
   --pp-cyan-tint: #ECFEFF;
   --pp-green-mid: #059669;
   --pp-blue-glow: rgba(37, 99, 235, 0.12);
-  
+
   /* Legacy row colors */
   --legacy-teal: #cbdceb;
   --legacy-yellow: #FFFF9F;
@@ -158,7 +158,7 @@
     width: 100%;
     margin-top: 12px;
   }
-  
+
   .appt-filter-input {
     flex: 1;
   }
@@ -257,15 +257,21 @@
 }
 
 .appt-btn-sm {
-  padding: 4px 10px;
-  font-size: 0.72rem;
-  height: 28px;
+  padding: 6px 14px;
+  font-size: 12px;
+  height: 32px;
+  border-radius: 8px;
 }
 
 .appt-btn-xs {
-  padding: 2px 8px;
-  font-size: 0.68rem;
-  height: 24px;
+  padding: 4px 12px;
+  font-size: 11px;
+  height: 28px;
+  border-radius: 6px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .appt-btn-icon {
@@ -285,34 +291,51 @@
 
 /* ─── Action buttons (done, vitals, call, check-in) ─── */
 .appt-btn-success {
-  background: var(--pp-success-bg);
-  color: var(--pp-success-fg);
-  border-color: var(--pp-success-fg);
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #dcfce7;
 }
 
 .appt-btn-success:hover {
-  background: #dcfce7;
-  border-color: var(--pp-success-fg);
+  background: #16a34a;
+  color: white;
+  border-color: #16a34a;
 }
 
 .appt-btn-purple {
-  background: var(--pp-purple-tint);
-  color: var(--pp-purple);
-  border-color: var(--pp-purple-border);
+  background: #f5f3ff;
+  color: #7c3aed;
+  border: 1px solid #ddd6fe;
 }
 
 .appt-btn-purple:hover {
-  background: #ede9fe;
+  background: #7c3aed;
+  color: white;
+  border-color: #7c3aed;
 }
 
 .appt-btn-danger {
-  background: var(--pp-danger-bg);
-  color: var(--pp-danger-fg);
-  border-color: var(--pp-danger-border);
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fee2e2;
 }
 
 .appt-btn-danger:hover {
-  background: #fee2e2;
+  background: #dc2626;
+  color: white;
+  border-color: #dc2626;
+}
+
+.appt-btn-primary {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #dbeafe;
+}
+
+.appt-btn-primary:hover {
+  background: #2563eb;
+  color: white;
+  border-color: #2563eb;
 }
 
 /* ─── Status Badges ─── */
@@ -819,8 +842,15 @@
 }
 
 @keyframes apptFadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .appt-autocomplete-item {
@@ -1069,7 +1099,7 @@
   font-weight: 800;
   font-size: 14px;
   border: 1px solid #e2e8f0;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .appt-token-badge-new.is-active {
@@ -1941,6 +1971,12 @@
   letter-spacing: -0.01em;
 }
 
+.appt-row-actions-minimal {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
 .appt-btn-primary svg {
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
 }
@@ -2283,7 +2319,7 @@
   color: rgba(255, 255, 255, 0.6);
 }
 
-.dark .appt-token-meta-minimal > div {
+.dark .appt-token-meta-minimal>div {
   color: rgba(255, 255, 255, 0.7);
 }
 
@@ -3269,6 +3305,7 @@
   background: var(--pp-blue-hover);
   transform: scale(1.05);
 }
+
 /* ─── Appointment Search Enhancements ─── */
 .appt-search-container {
   display: flex;
@@ -3351,13 +3388,72 @@
 }
 
 @keyframes apptSlideIn {
-  from { opacity: 0; transform: translateX(-10px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .appt-followup-confirmed strong {
   font-weight: 700;
 }
 
+/* ─── Status Pills (High Fidelity) ─── */
+.appt-status-pill-minimal {
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  transition: all 0.2s ease;
+}
 
+/* Completed / Success */
+.appt-status-pill-minimal.success, 
+.appt-status-pill-minimal.completed,
+.appt-status-pill-minimal.done {
+  background: var(--pp-success-bg);
+  color: var(--pp-success-fg);
+  border: 1px solid rgba(5, 150, 105, 0.15);
+}
 
+/* Waiting / Confirmed / Waitlist */
+.appt-status-pill-minimal.waiting,
+.appt-status-pill-minimal.confirmed,
+.appt-status-pill-minimal.waitlist {
+  background: var(--pp-warning-bg);
+  color: var(--pp-warning-fg);
+  border: 1px solid rgba(217, 119, 6, 0.15);
+}
+
+/* Consultation / In-Progress / Called */
+.appt-status-pill-minimal.consultation,
+.appt-status-pill-minimal.in-progress,
+.appt-status-pill-minimal.called,
+.appt-status-pill-minimal.inprogress {
+  background: var(--pp-blue-tint);
+  color: var(--pp-blue);
+  border: 1px solid rgba(37, 99, 235, 0.15);
+}
+
+/* Absent */
+.appt-status-pill-minimal.absent {
+  background: var(--pp-warm-2);
+  color: var(--pp-text-3);
+  border: 1px solid var(--pp-warm-4);
+}
+
+/* Cancelled */
+.appt-status-pill-minimal.cancelled {
+  background: var(--pp-danger-bg);
+  color: var(--pp-danger-fg);
+  border: 1px solid rgba(220, 38, 38, 0.15);
+}

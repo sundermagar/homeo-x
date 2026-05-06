@@ -9,6 +9,7 @@ import '../styles/settings.css';
 import { Pagination } from '@/shared/components/Pagination';
 import { usePagination } from '@/shared/hooks/use-pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
 
 const EMPTY_FORM = {
   medicineId: '',
@@ -135,13 +136,15 @@ export default function StocksLogPage() {
         {isLoading ? (
           <TableSkeleton rows={5} columns={7} />
         ) : (logs as any[]).length === 0 ? (
-          <div className="plat-empty" style={{ minHeight: 200 }}>
-            <Package size={40} className="plat-empty-icon" />
-            <p className="plat-empty-text">No inventory movements yet. Use the "Add Stock" button to get started.</p>
-            <button className="plat-btn plat-btn-primary" onClick={handleOpenAdd} style={{ marginTop: '12px' }}>
-              <Plus size={14} /> Add First Stock Entry
-            </button>
-          </div>
+          <EmptyState 
+            icon={Package}
+            title="No inventory movements yet"
+            description="Use the 'Add Stock' button to record your first medicine stock movement."
+            actionLabel="Add Stock"
+            onAction={handleOpenAdd}
+            variant="card"
+            className="my-8"
+          />
         ) : (
           <>
           <div className="plat-table-container">
@@ -233,13 +236,15 @@ export default function StocksLogPage() {
               </tbody>
             </table>
           </div>
-          <Pagination
+          <div style={{ marginTop: '20px' }}>
+            <Pagination
             totalItems={totalItems}
             itemsPerPage={itemsPerPage}
             currentPage={currentPage}
             onPageChange={setCurrentPage}
             onLimitChange={setItemsPerPage}
           />
+          </div>
           </>
         )}
       </div>

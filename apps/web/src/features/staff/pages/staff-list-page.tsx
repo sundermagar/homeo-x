@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useStaffList, useDeleteStaff } from '../hooks/use-staff';
-import { Grid, List, Search, Plus, UserCheck, MapPin, Phone, Edit2, Trash2 } from 'lucide-react';
+import { Grid, List, Search, Plus, UserCheck, MapPin, Phone, Edit2, Trash2, Stethoscope, Users, UserPlus, ShieldCheck, UserCog } from 'lucide-react';
 import type { StaffCategory, StaffSummary } from '@mmc/types';
 import { Pagination } from '@/shared/components/Pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
 
 
 
@@ -163,10 +164,21 @@ export default function StaffListPage({ defaultTab }: { defaultTab?: StaffCatego
         {isLoading ? (
           <TableSkeleton rows={itemsPerPage} columns={6} />
         ) : staff.length === 0 ? (
-          <div className="plat-empty" style={{ minHeight: 300 }}>
-            <div style={{ fontSize: 40, marginBottom: 16 }}>{currentTabMeta.icon}</div>
-            <p className="plat-empty-text">No {currentTabMeta.label.toLowerCase()} records found.</p>
-          </div>
+          <EmptyState 
+            icon={
+              activeTab === 'doctor' ? Stethoscope :
+              activeTab === 'employee' ? Users :
+              activeTab === 'receptionist' ? UserPlus :
+              activeTab === 'clinicadmin' ? ShieldCheck :
+              activeTab === 'account' ? UserCog : Users
+            }
+            title={`No ${currentTabMeta.label.toLowerCase()} records found.`}
+            description={`Adjust your search or register a new ${currentTabMeta.label.replace(/s$/, '').toLowerCase()} in the registry.`}
+            actionLabel={`Add ${currentTabMeta.label.replace(/s$/, '')}`}
+            onAction={() => navigate(`/staff/add?category=${activeTab}`)}
+            variant="card"
+            className="my-8"
+          />
         ) : viewMode === 'list' ? (
           <div className="plat-table-container">
             <table className="plat-table">

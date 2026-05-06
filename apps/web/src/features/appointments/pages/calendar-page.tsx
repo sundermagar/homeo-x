@@ -5,6 +5,7 @@ import { StatusBadge, STATUS_COLOR } from '../components/status-badge';
 import { AppointmentForm } from '../components/appointment-form';
 import { Drawer } from '@/shared/components/drawer';
 import { apiClient } from '@/infrastructure/api-client';
+import { EmptyState } from '@/components/shared/empty-state';
 import '../styles/appointments.css';
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -186,23 +187,23 @@ export default function CalendarPage() {
                   ))}
                 </div>
               ) : !selectedDay ? (
-                <div className="appt-empty" style={{ minHeight: 220, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                  <CalendarDays size={48} strokeWidth={1} style={{ color: '#e2e8f0', marginBottom: 16 }} />
-                  <p style={{ color: '#64748b', fontSize: 16, fontWeight: 500, margin: 0 }}>Select a date to view</p>
-                </div>
+                <EmptyState 
+                  icon={CalendarDays}
+                  title="Select a date"
+                  description="Choose a day from the calendar to view practitioner schedules and manage patient bookings."
+                  variant="card"
+                  className="my-8"
+                />
               ) : selectedAppts.length === 0 ? (
-                <div className="appt-empty" style={{ padding: '40px 20px', background: 'var(--pp-warm-1)', borderRadius: 12, border: '1px dashed var(--pp-warm-4)' }}>
-                  <CalendarPlus size={32} strokeWidth={1} style={{ color: 'var(--pp-warm-5)', marginBottom: 12 }} />
-                  <p className="appt-empty-text" style={{ fontWeight: 600, color: 'var(--pp-ink)' }}>No appointments scheduled</p>
-                  <p className="appt-empty-sub" style={{ fontSize: 12, color: 'var(--pp-muted)', marginBottom: 16 }}>Tap the button below to book a new slot for this day.</p>
-                  <button 
-                    onClick={() => { setBookingDate(selectedDay!); setIsBookingOpen(true); }}
-                    className="appt-btn appt-btn-primary" 
-                    style={{ padding: '10px 20px' }}
-                  >
-                    <Plus size={16} /> Add First Slot
-                  </button>
-                </div>
+                <EmptyState 
+                  icon={CalendarPlus}
+                  title="No appointments scheduled"
+                  description={`The schedule for ${new Date(selectedDay + 'T12:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })} is currently clear.`}
+                  actionLabel="Add First Slot"
+                  onAction={() => { setBookingDate(selectedDay!); setIsBookingOpen(true); }}
+                  variant="card"
+                  className="my-4"
+                />
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   <div className="appt-slot-list" style={{ maxHeight: 280, overflowY: 'auto', paddingRight: 4 }}>

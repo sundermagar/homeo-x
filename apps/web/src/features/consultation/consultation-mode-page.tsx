@@ -6,6 +6,7 @@ import { useStartConsultation, useConsultationSummary } from '../../hooks/use-co
 import { useSpecialtyConfig } from '../../hooks/use-specialties';
 import { usePatient } from '../../features/patients/hooks/use-patients';
 import { useConsultationState } from './hooks/use-consultation-state';
+import { ConsultationSkeleton } from './components/consultation-skeleton';
 import { useVideoService } from '../../hooks/use-video-service';
 import { HomeopathyConsultationLayout } from './layouts/homeopathy-consultation-layout';
 import { useAppointment } from '../../features/appointments/hooks/use-appointments';
@@ -35,7 +36,7 @@ export default function ConsultationModePage() {
   const isCoreLoading = !isCoreDataReady && (isVisitLoading || isApptLoading);
   
   if (isCoreLoading || (patientIdToFetch && isPatientLoading)) {
-    return <LoadingState message="Loading consultation details..." />;
+    return <ConsultationSkeleton />;
   }
 
   const effectiveVisit: Visit = (visit as Visit) ?? ({

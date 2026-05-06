@@ -23,7 +23,7 @@ export function tenantMiddleware(req: Request, res: Response, next: NextFunction
   const tenant = TenantRegistry.resolve(host);
   
   if (req.url.includes('/login')) {
-    console.log(`[TenantMiddleware] Host: ${host} -> Resolved: ${tenant?.slug || 'NONE (demo fallback)'}`);
+    console.log(`[TenantMiddleware] Host: ${host} -> Resolved: ${tenant?.slug || 'NONE (demo fallback)'} -> Schema: ${tenant?.schemaName || 'tenant_demo'}`);
   }
 
   // Always attach a public schema client (for organizations, accounts, etc.)

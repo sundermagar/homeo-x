@@ -9,6 +9,7 @@ import '../styles/settings.css';
 import { Pagination } from '@/shared/components/Pagination';
 import { usePagination } from '@/shared/hooks/use-pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
 
 const EMPTY_FORM = { name: '', contactPerson: '', phone: '', trackingUrl: '', isActive: true };
 
@@ -120,10 +121,15 @@ export default function CouriersPage() {
         {isLoading ? (
           <TableSkeleton rows={5} columns={5} />
         ) : filteredItems.length === 0 ? (
-          <div className="plat-empty">
-            <Truck size={40} className="plat-empty-icon" />
-            <p className="plat-empty-text">No courier partners found.</p>
-          </div>
+          <EmptyState 
+            icon={Truck}
+            title={searchQuery ? "No matches found" : "No courier partners found"}
+            description={searchQuery ? `No couriers matching "${searchQuery}" were found.` : "Manage your shipping partners by adding your first courier service."}
+            actionLabel={searchQuery ? "Clear Search" : "Add Courier"}
+            onAction={searchQuery ? () => setSearchQuery('') : handleOpenCreate}
+            variant="card"
+            className="my-8"
+          />
         ) : (
           <>
           <div className="plat-table-container">
@@ -174,13 +180,15 @@ export default function CouriersPage() {
               </tbody>
             </table>
           </div>
-          <Pagination
+          <div style={{ marginTop: '20px' }}>
+            <Pagination
             totalItems={totalItems}
             itemsPerPage={itemsPerPage}
             currentPage={currentPage}
             onPageChange={setCurrentPage}
             onLimitChange={setItemsPerPage}
           />
+          </div>
           </>
         )}
       </div>

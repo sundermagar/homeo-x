@@ -9,6 +9,7 @@ import '../styles/settings.css';
 import { Pagination } from '@/shared/components/Pagination';
 import { usePagination } from '@/shared/hooks/use-pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
 
 interface Faq {
   id: number;
@@ -141,10 +142,15 @@ export default function FaqsPage() {
         {isLoading ? (
           <TableSkeleton rows={5} columns={4} />
         ) : filtered.length === 0 ? (
-          <div className="plat-empty">
-            <MessageSquare size={40} className="plat-empty-icon" />
-            <p className="plat-empty-text">No matching entries found in the knowledge base.</p>
-          </div>
+          <EmptyState 
+            icon={MessageSquare}
+            title={search ? "No matches found" : "Knowledge base is empty"}
+            description={search ? `No entries matching "${search}" were found.` : "Populate your clinic's knowledge base with common questions and answers."}
+            actionLabel={search ? "Clear Search" : "Add Entry"}
+            onAction={search ? () => setSearch('') : handleOpenCreate}
+            variant="card"
+            className="my-8"
+          />
         ) : (
           <>
           <div className="plat-table-container">
@@ -201,13 +207,15 @@ export default function FaqsPage() {
               </tbody>
             </table>
           </div>
-          <Pagination
+          <div style={{ marginTop: '20px' }}>
+            <Pagination
             totalItems={totalItems}
             itemsPerPage={itemsPerPage}
             currentPage={currentPage}
             onPageChange={setCurrentPage}
             onLimitChange={setItemsPerPage}
           />
+          </div>
           </>
         )}
       </div>

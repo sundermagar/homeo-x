@@ -9,6 +9,7 @@ import { Drawer } from '@/shared/components/drawer';
 import { Pagination } from '@/components/shared/pagination';
 import { usePagination } from '@/shared/hooks/use-pagination';
 import { AssignPackageModal } from '../components/assign-package-modal';
+import { EmptyState } from '@/components/shared/empty-state';
 import '../styles/packages.css';
 
 const COLORS = ['#2563EB', '#7C3AED', '#059669', '#D97706', '#E11D48', '#0891B2', '#EA580C', '#6366F1'];
@@ -161,10 +162,16 @@ export default function PackagePlansPage() {
         {isLoading ? (
           [1, 2, 3].map(i => <PlanSkeleton key={i} />)
         ) : plans.length === 0 ? (
-          <div className="pkg-empty" style={{ gridColumn: '1/-1' }}>
-            <Package size={32} className="pkg-empty-icon" />
-            <p className="pkg-empty-text">No plans yet. Create your first membership package.</p>
-          </div>
+          <EmptyState 
+            icon={Package}
+            title="No membership plans"
+            description="You haven't defined any membership blueprints yet. Create your first plan to start assigning packages to patients."
+            actionLabel="Create Plan"
+            onAction={() => setModal('create')}
+            variant="card"
+            className="my-8"
+            style={{ gridColumn: '1/-1' }}
+          />
         ) : (
           paginatedData.map(plan => (
             <div key={plan.id} className={`pkg-plan-card ${!plan.isActive ? 'inactive' : ''}`}>

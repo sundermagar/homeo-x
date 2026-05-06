@@ -11,6 +11,7 @@ import '../styles/platform.css';
 
 import { Pagination } from '@/shared/components/Pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
 import { Drawer } from '@/shared/components/drawer';
 
 function FileInputRow({
@@ -629,16 +630,15 @@ export default function EmployeesPage() {
         {isLoading ? (
           <TableSkeleton rows={itemsPerPage} columns={6} />
         ) : staff.length === 0 ? (
-          <div className="plat-empty" style={{ minHeight: 400 }}>
-            <div className="pp-empty-icon-circle">
-              <Users size={32} />
-            </div>
-            <p className="pp-empty-title">No Employees Registered</p>
-            <p className="pp-empty-sub">Start building your clinical support force by registering your first employee record.</p>
-            <button className="plat-btn plat-btn-primary" onClick={openCreate} style={{ marginTop: '16px' }}>
-              <Plus size={16} /> Register First Employee
-            </button>
-          </div>
+          <EmptyState 
+            icon={Users}
+            title="No Employees Registered"
+            description="Start building your clinical support force by registering your first employee record."
+            actionLabel="Register First Employee"
+            onAction={openCreate}
+            variant="card"
+            className="my-8"
+          />
         ) : (
           <>
             <table className="plat-table">

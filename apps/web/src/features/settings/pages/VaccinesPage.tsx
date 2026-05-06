@@ -8,6 +8,7 @@ import '../styles/settings.css';
 import { Pagination } from '@/shared/components/Pagination';
 import { usePagination } from '@/shared/hooks/use-pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
 
 interface Vaccine {
   id: number;
@@ -162,13 +163,15 @@ export default function VaccinesPage() {
         {isLoading ? (
           <TableSkeleton rows={8} columns={4} />
         ) : flatGrouped.length === 0 ? (
-          <div className="plat-empty" style={{ minHeight: 300 }}>
-            <div className="plat-empty-icon-wrap" style={{ marginBottom: '16px' }}>
-              <Shield size={48} className="color-muted opacity-20" />
-            </div>
-            <p className="plat-empty-text">No vaccine records match your search.</p>
-            <button className="plat-btn plat-btn-sm mt-4" onClick={() => setSearch('')}>Clear Filters</button>
-          </div>
+          <EmptyState 
+            icon={Shield}
+            title={search ? "No matches found" : "Immunization master is empty"}
+            description={search ? `No vaccine records matching "${search}" were found.` : "Start building your clinical immunization schedule by adding your first vaccine."}
+            actionLabel={search ? "Clear Search" : "Add Vaccine"}
+            onAction={search ? () => setSearch('') : handleOpenCreate}
+            variant="card"
+            className="my-8"
+          />
         ) : (
           <>
           <div className="plat-table-container" style={{ border: 'none' }}>
@@ -268,7 +271,7 @@ export default function VaccinesPage() {
             </table>
           </div>
 
-          <div style={{ padding: '0 16px' }}>
+          <div style={{ marginTop: '20px' }}>
             <Pagination
               totalItems={totalItems}
               itemsPerPage={itemsPerPage}

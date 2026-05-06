@@ -27,8 +27,14 @@ export function createDbClient(databaseUrl: string, tenantSchema?: string): DbCl
 
   let finalUrl = databaseUrl;
   if (tenantSchema) {
+    // IMPORTANT: Only set the tenant schema in search_path — do NOT include 'public'.
+    // Including 'public' causes cross-tenant data leakage: when a table doesn't exist
+    // or is empty in the tenant schema, PostgreSQL falls through to public schema
+    // which contains data from other tenants (e.g. tenant_demo).
+    // Any queries needing public schema data (organizations, etc.) should use
+    // explicit 'public.' prefix or the dedicated publicDb client.
     const separator = finalUrl.includes('?') ? '&' : '?';
-    finalUrl += `${separator}options=-c%20search_path%3D${tenantSchema},public`;
+    finalUrl += `${separator}options=-c%20search_path%3D${tenantSchema}`;
   }
 
   const sql = postgres(finalUrl, connectionOptions);

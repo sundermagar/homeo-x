@@ -1,6 +1,7 @@
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { Activity, Users, IndianRupee, Calendar, TrendingUp } from 'lucide-react';
 import { useAnalyticsSummary, usePatientTrends } from '../hooks/use-analytics';
+import { EmptyState } from '@/components/shared/empty-state';
 import '../../platform/styles/platform.css';
 
 export function DashboardAnalyticsPage() {
@@ -155,7 +156,14 @@ export function DashboardAnalyticsPage() {
             gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', 
             gap: '12px' 
           }}>
-            {(trends?.topDiagnoses ?? []).map((d: any, i: number) => (
+            {(trends?.topDiagnoses ?? []).length === 0 ? (
+              <EmptyState 
+                icon={Activity}
+                title="No diagnoses recorded"
+                description="Clinical diagnosis trends will appear here once you start prescribing for patient visits."
+                variant="card"
+              />
+            ) : (trends?.topDiagnoses ?? []).map((d: any, i: number) => (
               <div key={i} style={{ 
                 padding: '16px', 
                 background: 'var(--pp-warm-1)', 

@@ -9,6 +9,7 @@ import { apiClient } from '@/infrastructure/api-client';
 import { useDoctors } from '@/features/appointments/hooks/use-doctors';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { Pagination } from '@/components/shared/pagination';
+import { EmptyState } from '@/components/shared/empty-state';
 
 export default function FollowupsPage() {
   const navigate = useNavigate();
@@ -226,19 +227,18 @@ export default function FollowupsPage() {
             </div>
           )
         ) : followups.length === 0 ? (
-          <div className="fu-empty-state pp-card">
-            <div className="fu-empty-icon">
-              <CalendarClock size={32} strokeWidth={1} />
-            </div>
-            <h3 className="text-title" style={{ fontSize: '1rem', fontWeight: 600 }}>No pending follow-ups</h3>
-            <p className="text-subtitle mb-4" style={{ fontSize: '0.75rem' }}>You're all caught up! No missed visits found for current criteria.</p>
-            <button className="btn-secondary" onClick={() => {
+          <EmptyState 
+            icon={CalendarClock}
+            title={search || filters.doctor_id || filters.from_date ? "No matches found" : "No pending follow-ups"}
+            description={search || filters.doctor_id || filters.from_date ? "Try adjusting your filters or search query to find specific clinical encounters." : "You're all caught up! No missed visits or scheduled follow-ups were found for this clinic."}
+            actionLabel={search || filters.doctor_id || filters.from_date ? "Reset Filters" : undefined}
+            onAction={search || filters.doctor_id || filters.from_date ? () => {
               setFilters({ from_date: '', to_date: '', doctor_id: '' });
               setSearch('');
-            }}>
-              Reset all filters
-            </button>
-          </div>
+            } : undefined}
+            variant="card"
+            className="my-8"
+          />
         ) : (
           <div className={`animate-fade-in ${viewMode === 'list' ? 'fu-list-view' : 'fu-grid-view'}`}>
             {viewMode === 'list' ? (
