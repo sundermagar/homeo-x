@@ -231,12 +231,6 @@ export default function PdfSettingsPage() {
         <div className="pp-page-hero-actions pdf-hero-actions">
           <style>{`
             @media (max-width: 768px) {
-              .pdf-hero-actions { 
-                flex-direction: column !important; 
-                align-items: stretch !important; 
-                gap: 12px !important; 
-                width: 100% !important;
-              }
               .pdf-hero-actions .appt-segmented-toggle { 
                 display: flex !important; 
                 width: 100% !important;
@@ -343,22 +337,22 @@ export default function PdfSettingsPage() {
                         </td>
                         <td data-label="Actions" className="plat-table-cell">
                           <div className="flex justify-end gap-2">
-                            <button 
-                              className="plat-btn plat-btn-sm plat-btn-icon" 
-                              onClick={(e) => { e.stopPropagation(); handlePrintPreview(config); }} 
+                            <button
+                              className="plat-btn plat-btn-sm plat-btn-icon"
+                              onClick={(e) => { e.stopPropagation(); handlePrintPreview(config); }}
                               title="Preview & Print"
                             >
                               <Eye size={14} />
                             </button>
-                            <button 
-                              className="plat-btn plat-btn-sm plat-btn-icon" 
+                            <button
+                              className="plat-btn plat-btn-sm plat-btn-icon"
                               onClick={(e) => { e.stopPropagation(); handleOpenEdit(config); }}
                               title="Edit Template"
                             >
                               <Edit2 size={14} />
                             </button>
-                            <button 
-                              className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" 
+                            <button
+                              className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger"
                               onClick={(e) => { e.stopPropagation(); if (confirm(`Delete config?`)) deletePdf.mutate(config.id); }}
                               title="Delete"
                             >
