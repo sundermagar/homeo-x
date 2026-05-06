@@ -506,9 +506,19 @@
   display: flex;
   gap: 32px;
   margin: 20px 0;
-  padding: 20px 0;
-  border-top: 1px solid var(--pp-warm-2);
-  border-bottom: 1px solid var(--pp-warm-2);
+  padding: 16px 20px;
+  background: var(--bg-card);
+  border: 1.5px solid var(--pp-warm-2);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0, 0, 0.2, 1);
+}
+
+.dd-vitals-strip:hover {
+  border-color: var(--pp-blue);
+  background: var(--pp-blue-tint);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.08);
 }
 
 .dd-vital-item {
@@ -1110,7 +1120,7 @@ button.pp-link:hover {
   }
 
   /* Expansion — full width spans */
-  .expansion-grid > div[style*="grid-column: span 2"] {
+  .expansion-grid>div[style*="grid-column: span 2"] {
     grid-column: span 1 !important;
   }
 }
@@ -1129,7 +1139,7 @@ button.pp-link:hover {
   }
 
   /* Tabs row — scrollable on mobile */
-  .dash-card-header > div[style*="display: flex; gap: 20px"] {
+  .dash-card-header>div[style*="display: flex; gap: 20px"] {
     gap: 14px !important;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;

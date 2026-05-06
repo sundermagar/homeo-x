@@ -315,9 +315,19 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           q.created_at,
           q.booking_time,
           q.visit_id,
+          q.notes,
           COALESCE(p.first_name || ' ' || p.surname, q.manual_name, 'Unknown Patient') as patient_name,
           COALESCE(p.regid, p.id, q.patient_id) as regid,
-          COALESCE(d.name, u.name, 'Practitioner') as doctor_name
+          COALESCE(d.name, u.name, 'Practitioner') as doctor_name,
+          v.systolic_bp,
+          v.diastolic_bp,
+          v.weight_kg,
+          v.temperature_f,
+          v.height_cm,
+          v.pulse_rate,
+          v.respiratory_rate,
+          v.oxygen_saturation,
+          v.notes as vital_notes
         FROM (
           SELECT
             tw.wl_id,
@@ -329,7 +339,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             a.patient_name as manual_name,
             tw.checked_in_at as created_at,
             COALESCE(a.booking_time, '') as booking_time,
-            COALESCE(a.id, tw.appointment_id) as visit_id
+            COALESCE(a.id, tw.appointment_id) as visit_id,
+            a.notes
           FROM today_waitlist tw
           LEFT JOIN appointments a ON a.id = tw.appointment_id
             ${apptCond}
@@ -346,7 +357,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             a.patient_name as manual_name,
             a.created_at,
             a.booking_time,
-            a.id as visit_id
+            a.id as visit_id,
+            a.notes
           FROM appointments a
           WHERE ${apptDateCond} AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
             AND (a.clinic_id = ${contextId} OR a.clinic_id IS NULL)
@@ -356,6 +368,12 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         LEFT JOIN case_datas p ON p.id = q.patient_id
         LEFT JOIN doctors d ON d.id = q.doctor_id
         LEFT JOIN users u ON u.id = q.doctor_id
+        LEFT JOIN (
+          SELECT DISTINCT ON (visit_id) 
+            visit_id, systolic_bp, diastolic_bp, weight_kg, temperature_f, height_cm, pulse_rate, respiratory_rate, oxygen_saturation, notes
+          FROM vitals
+          ORDER BY visit_id, recorded_at DESC
+        ) v ON v.visit_id = q.visit_id
         ORDER BY q.token_no ASC NULLS LAST, q.id ASC
       `);
 
@@ -386,7 +404,23 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         gender: undefined,
         createdAt: r.created_at,
         updatedAt: r.updated_at,
-        vitals: undefined,
+        visitId: r.visit_id,
+        notes: r.notes,
+        vitals: r.systolic_bp || r.weight_kg || r.temperature_f ? {
+          bp: r.systolic_bp && r.diastolic_bp ? `${r.systolic_bp}/${r.diastolic_bp}` : undefined,
+          weight: r.weight_kg,
+          temp: r.temperature_f,
+          // Full fields for VitalsFormModal
+          systolicBp: r.systolic_bp,
+          diastolicBp: r.diastolic_bp,
+          weightKg: r.weight_kg,
+          temperatureF: r.temperature_f,
+          heightCm: r.height_cm,
+          pulseRate: r.pulse_rate,
+          respiratoryRate: r.respiratory_rate,
+          oxygenSaturation: r.oxygen_saturation,
+          notes: r.vital_notes
+        } : undefined,
       }));
     });
   }
