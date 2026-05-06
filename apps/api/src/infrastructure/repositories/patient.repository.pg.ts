@@ -177,6 +177,8 @@ export class PatientRepositoryPg implements PatientRepository {
       state: input.state || '',
       dateOfBirth: input.dateOfBirth || null,
       dob: input.dateOfBirth || null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
 
     // Only add columns if they exist in the schema to avoid "column does not exist" errors

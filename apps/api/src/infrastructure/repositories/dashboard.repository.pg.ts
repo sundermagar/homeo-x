@@ -179,9 +179,9 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             count(*) FILTER (WHERE type = 'A' AND t.date >= ${start}::date AND t.date < ${boundary}::date)::int as curr_appts,
             count(*) FILTER (WHERE type = 'A' AND t.date >= ${prevStart}::date AND t.date < ${prevBoundary}::date)::int as prev_appts
           FROM (
-            SELECT 'P' as type, created_at, NULL::date as date FROM case_datas WHERE (deleted_at IS NULL OR deleted_at::text = '')
+            SELECT 'P' as type, created_at, NULL::date as date FROM case_datas WHERE (deleted_at IS NULL OR deleted_at::text = '') AND (clinic_id = ${contextId} OR clinic_id IS NULL)
             UNION ALL
-            SELECT 'A' as type, created_at, booking_date::text::date as date FROM appointments WHERE (deleted_at IS NULL OR deleted_at::text = '') ${docApptFilter}
+            SELECT 'A' as type, created_at, booking_date::text::date as date FROM appointments WHERE (deleted_at IS NULL OR deleted_at::text = '') AND (clinic_id = ${contextId} OR clinic_id IS NULL) ${docApptFilter}
           ) t
         `), { curr_patients: 0, prev_patients: 0, curr_appts: 0, prev_appts: 0 }),
   
@@ -196,26 +196,31 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             COALESCE(sum(prev_bill_received), 0) + COALESCE(sum(prev_receipt_amt), 0) as prev_revenue
           FROM (
             SELECT b.charges as curr_bill_charges, b.received as curr_bill_received, 0 as curr_receipt_amt, 0 as curr_expenses, 0 as prev_bill_charges, 0 as prev_bill_received, 0 as prev_receipt_amt 
-            FROM bills b JOIN case_datas pb ON pb.regid = b.regid
+            FROM bills b
             WHERE b.bill_date >= ${start}::date AND b.bill_date < ${boundary}::date AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
+            AND (b.clinic_id = ${contextId} OR b.clinic_id IS NULL)
             ${docBillFilter}
             UNION ALL
             SELECT 0, 0, CAST(NULLIF(r.amount::text, '') AS numeric), 0, 0, 0, 0 
-            FROM receipt r JOIN case_datas pr ON pr.regid = r.regid
+            FROM receipt r
             WHERE r.created_at >= ${start}::timestamp AND r.created_at < ${boundary}::timestamp AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
+            AND (r.clinic_id = ${contextId} OR r.clinic_id IS NULL)
             UNION ALL
             SELECT 0, 0, 0, amount, 0, 0, 0 FROM expenses 
             WHERE exp_date >= ${start}::date AND exp_date < ${boundary}::date AND (deleted_at IS NULL OR deleted_at::text = '')
+            AND (clinic_id = ${contextId} OR clinic_id IS NULL)
             UNION ALL
             SELECT 0, 0, 0, 0, b.charges, b.received, 0 
-            FROM bills b JOIN case_datas pb ON pb.regid = b.regid
+            FROM bills b
             WHERE b.bill_date >= ${prevStart}::date AND b.bill_date < ${prevBoundary}::date AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
+            AND (b.clinic_id = ${contextId} OR b.clinic_id IS NULL)
             ${docBillFilter}
             UNION ALL
             SELECT 0, 0, 0, 0, 0, 0, CAST(NULLIF(r.amount::text, '') AS numeric) 
-            FROM receipt r JOIN case_datas pr ON pr.regid = r.regid
+            FROM receipt r
             WHERE r.created_at >= ${prevStart}::timestamp AND r.created_at < ${prevBoundary}::timestamp AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
-          ) f
+            AND (r.clinic_id = ${contextId} OR r.clinic_id IS NULL)
+          ) t
         `), { curr_charges: 0, curr_received: 0, curr_revenue: 0, curr_expenses: 0, prev_charges: 0, prev_received: 0, prev_revenue: 0 }),
   
         safeQuery(this.db.execute(sql`
@@ -527,90 +532,60 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       
       let interval = '1 month';
       let labelFormat = 'Mon';
-      let seriesStart = start;
-      let seriesEnd = end;
+      let truncUnit = 'month';
+      let seriesStart: string | Date = start;
+      let seriesEnd: string | Date = end;
 
-      if (period === 'year') {
+      if (period === 'day') {
+        interval = '1 hour';
+        labelFormat = 'HH12 AM';
+        truncUnit = 'hour';
+        seriesStart = `${start} 00:00:00`;
+        seriesEnd = `${start} 23:00:00`;
+      } else if (period === 'year') {
         interval = '1 month';
         labelFormat = 'Mon';
+        truncUnit = 'month';
       } else if (period === 'month') {
         interval = '1 day';
         labelFormat = 'DD';
+        truncUnit = 'day';
       } else if (period === 'week') {
         interval = '1 day';
         labelFormat = 'Dy';
-      } else {
-        // Fallback to rolling 6 months for 'day' or unknown
-        return this.db.execute(sql`
-          WITH months AS (
-            SELECT (date_trunc('month', NOW()) - (m || ' months')::interval)::date as m
-            FROM generate_series(0, 5) m
-          ),
-          rev_combined AS (
-            SELECT 
-              date_trunc('month', b.bill_date)::date as m,
-              b.received as amt,
-              CASE WHEN (LOWER(COALESCE(b.payment_mode, '')) = 'cash' OR b.payment_mode IS NULL OR b.payment_mode = '') THEN b.received ELSE 0 END as cash_amt,
-              CASE WHEN LOWER(COALESCE(b.payment_mode, '')) IN ('upi', 'card', 'online', 'bank', 'gpay', 'phonepe', 'paytm') THEN b.received ELSE 0 END as upi_amt
-            FROM bills b
-            JOIN case_datas pb ON pb.regid = b.regid
-            WHERE b.bill_date >= date_trunc('month', NOW()) - interval '6 months' 
-              AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
-            UNION ALL
-            SELECT 
-              date_trunc('month', r.created_at)::date as m,
-              CAST(NULLIF(r.amount::text, '') AS numeric) as amt,
-              CASE WHEN (LOWER(COALESCE(r.mode, '')) = 'cash' OR r.mode IS NULL OR r.mode = '') THEN CAST(NULLIF(r.amount::text, '') AS numeric) ELSE 0 END as cash_amt,
-              CASE WHEN LOWER(COALESCE(r.mode, '')) IN ('upi', 'card', 'online', 'bank', 'gpay', 'phonepe', 'paytm') THEN CAST(NULLIF(r.amount::text, '') AS numeric) ELSE 0 END as upi_amt
-            FROM receipt r
-            JOIN case_datas pr ON pr.regid = r.regid
-            WHERE r.created_at >= date_trunc('month', NOW()) - interval '6 months'
-              AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
-          )
-          SELECT 
-            to_char(months.m, 'Mon') as month, 
-            COALESCE(sum(rc.amt), 0)::int as total,
-            COALESCE(sum(rc.cash_amt), 0)::int as cash,
-            COALESCE(sum(rc.upi_amt), 0)::int as upi
-          FROM months
-          LEFT JOIN rev_combined rc ON rc.m = months.m
-          GROUP BY months.m
-          ORDER BY months.m ASC
-        `).then((results: any) => ({
-          total: results.map((r: any) => ({ month: r.month, revenue: r.total })),
-          cash: results.map((r: any) => ({ month: r.month, revenue: r.cash })),
-          upi: results.map((r: any) => ({ month: r.month, revenue: r.upi })),
-        }));
+        truncUnit = 'day';
       }
 
       const results = await this.db.execute(sql`
       WITH periods AS (
-        SELECT generate_series(${seriesStart}::date, ${seriesEnd}::date, ${sql.raw(`'${interval}'`)}::interval)::date as p
+        SELECT generate_series(${seriesStart}::timestamp, ${seriesEnd}::timestamp, ${sql.raw(`'${interval}'`)}::interval)::timestamp as p
       ),
       rev_combined AS (
         -- Bills
         SELECT 
-          date_trunc(${period === 'year' ? 'month' : 'day'}, b.bill_date)::date as p,
+          date_trunc(${sql.raw(`'${truncUnit}'`)}, b.bill_date)::timestamp as p,
           b.received as amt,
           CASE WHEN (LOWER(COALESCE(b.payment_mode, '')) = 'cash' OR b.payment_mode IS NULL OR b.payment_mode = '') THEN b.received ELSE 0 END as cash_amt,
           CASE WHEN LOWER(COALESCE(b.payment_mode, '')) IN ('upi', 'card', 'online', 'bank', 'gpay', 'phonepe', 'paytm') THEN b.received ELSE 0 END as upi_amt
         FROM bills b
         JOIN case_datas pb ON pb.regid = b.regid
-        WHERE b.bill_date >= ${seriesStart}::date AND b.bill_date <= ${seriesEnd}::date
+        WHERE b.bill_date >= ${seriesStart}::timestamp AND b.bill_date <= ${seriesEnd}::timestamp
           AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
+          AND (pb.clinic_id = ${contextId} OR pb.clinic_id IS NULL)
         
         UNION ALL
         
         -- Receipts
         SELECT 
-          date_trunc(${period === 'year' ? 'month' : 'day'}, r.created_at)::date as p,
+          date_trunc(${sql.raw(`'${truncUnit}'`)}, r.created_at)::timestamp as p,
           CAST(NULLIF(r.amount::text, '') AS numeric) as amt,
           CASE WHEN (LOWER(COALESCE(r.mode, '')) = 'cash' OR r.mode IS NULL OR r.mode = '') THEN CAST(NULLIF(r.amount::text, '') AS numeric) ELSE 0 END as cash_amt,
           CASE WHEN LOWER(COALESCE(r.mode, '')) IN ('upi', 'card', 'online', 'bank', 'gpay', 'phonepe', 'paytm') THEN CAST(NULLIF(r.amount::text, '') AS numeric) ELSE 0 END as upi_amt
         FROM receipt r
         JOIN case_datas pr ON pr.regid = r.regid
-        WHERE r.created_at >= ${seriesStart}::date AND r.created_at <= ${seriesEnd}::date
+        WHERE r.created_at >= ${seriesStart}::timestamp AND r.created_at <= ${seriesEnd}::timestamp
           AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
+          AND (pr.clinic_id = ${contextId} OR pr.clinic_id IS NULL)
       )
       SELECT 
         to_char(periods.p, ${labelFormat}) as month, 
@@ -772,6 +747,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             JOIN case_datas pb ON pb.regid = b.regid
             WHERE b.bill_date >= ${start}::date AND b.bill_date < ${boundary}::date
               AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
+              AND (pb.clinic_id = ${contextId} OR pb.clinic_id IS NULL)
 
             UNION ALL
 
@@ -832,6 +808,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         LEFT JOIN case_datas p ON b.regid = p.regid
         WHERE b.bill_date::date >= ${start}::date AND b.bill_date::date < ${boundary}::date
           AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
+          AND (p.clinic_id = ${contextId} OR p.clinic_id IS NULL)
         ORDER BY b.charges DESC NULLS LAST
         LIMIT ${limit}
       `) as any[];
@@ -866,30 +843,30 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           count(*) FILTER (WHERE type = 'P' AND is_curr = false) as prev_patients
         FROM (
           -- Current Month Revenue
-          SELECT 'R' as type, true as is_curr, received as curr_rev, 0 as curr_charges, 0 as curr_received, 0 as prev_rev FROM bills WHERE bill_date >= ${start} AND bill_date < ${boundary} AND (deleted_at IS NULL OR deleted_at::text = '')
+          SELECT 'R' as type, true as is_curr, received as curr_rev, 0 as curr_charges, 0 as curr_received, 0 as prev_rev FROM bills WHERE bill_date >= ${start} AND bill_date < ${boundary} AND (deleted_at IS NULL OR deleted_at::text = '') AND (clinic_id = ${contextId} OR clinic_id IS NULL)
           UNION ALL
-          SELECT 'R', true, CAST(NULLIF(amount::text, '') AS numeric), 0, 0, 0 FROM receipt WHERE created_at >= ${start} AND created_at < ${boundary} AND (deleted_at IS NULL OR deleted_at::text = '')
+          SELECT 'R', true, CAST(NULLIF(amount::text, '') AS numeric), 0, 0, 0 FROM receipt WHERE created_at >= ${start} AND created_at < ${boundary} AND (deleted_at IS NULL OR deleted_at::text = '') AND (clinic_id = ${contextId} OR clinic_id IS NULL)
           UNION ALL
           -- Current Month Patients
-          SELECT 'P', true, 0, 0, 0, 0 FROM case_datas WHERE created_at >= ${start} AND created_at < ${boundary} AND (deleted_at IS NULL OR deleted_at::text = '')
+          SELECT 'P', true, 0, 0, 0, 0 FROM case_datas WHERE created_at >= ${start} AND created_at < ${boundary} AND (deleted_at IS NULL OR deleted_at::text = '') AND (clinic_id = ${contextId} OR clinic_id IS NULL)
           UNION ALL
           -- Current Month Collection Rate (Bills only)
-          SELECT 'C', true, 0, CAST(NULLIF(charges::text, '') AS numeric), CAST(NULLIF(received::text, '') AS numeric), 0 FROM bills WHERE bill_date >= ${start} AND bill_date < ${boundary} AND (deleted_at IS NULL OR deleted_at::text = '')
+          SELECT 'C', true, 0, CAST(NULLIF(charges::text, '') AS numeric), CAST(NULLIF(received::text, '') AS numeric), 0 FROM bills WHERE bill_date >= ${start} AND bill_date < ${boundary} AND (deleted_at IS NULL OR deleted_at::text = '') AND (clinic_id = ${contextId} OR clinic_id IS NULL)
           UNION ALL
           -- Previous Month Revenue
-          SELECT 'R', false, 0, 0, 0, received FROM bills WHERE bill_date >= ${prevStart} AND bill_date < ${prevBoundary} AND (deleted_at IS NULL OR deleted_at::text = '')
+          SELECT 'R', false, 0, 0, 0, received FROM bills WHERE bill_date >= ${prevStart} AND bill_date < ${prevBoundary} AND (deleted_at IS NULL OR deleted_at::text = '') AND (clinic_id = ${contextId} OR clinic_id IS NULL)
           UNION ALL
-          SELECT 'R', false, 0, 0, 0, CAST(NULLIF(amount::text, '') AS numeric) FROM receipt WHERE created_at >= ${prevStart} AND created_at < ${prevBoundary} AND (deleted_at IS NULL OR deleted_at::text = '')
+          SELECT 'R', false, 0, 0, 0, CAST(NULLIF(amount::text, '') AS numeric) FROM receipt WHERE created_at >= ${prevStart} AND created_at < ${prevBoundary} AND (deleted_at IS NULL OR deleted_at::text = '') AND (clinic_id = ${contextId} OR clinic_id IS NULL)
           UNION ALL
           -- Previous Month Patients
-          SELECT 'P', false, 0, 0, 0, 0 FROM case_datas WHERE created_at >= ${prevStart} AND created_at < ${prevBoundary} AND (deleted_at IS NULL OR deleted_at::text = '')
+          SELECT 'P', false, 0, 0, 0, 0 FROM case_datas WHERE created_at >= ${prevStart} AND created_at < ${prevBoundary} AND (deleted_at IS NULL OR deleted_at::text = '') AND (clinic_id = ${contextId} OR clinic_id IS NULL)
         ) t
       `),
       // 2. Wait Time
       this.db.execute(sql`
         SELECT COALESCE(avg(extract(epoch from (called_at - checked_in_at))/60), 0)::int as avg_wait 
         FROM waitlist 
-        WHERE date >= ${start} AND date < ${boundary} AND called_at IS NOT NULL AND checked_in_at IS NOT NULL AND (deleted_at IS NULL OR deleted_at::text = '')
+        WHERE date >= ${start} AND date < ${boundary} AND called_at IS NOT NULL AND checked_in_at IS NOT NULL AND (deleted_at IS NULL OR deleted_at::text = '') AND (clinic_id = ${contextId} OR clinic_id IS NULL)
       `),
     ]);
 

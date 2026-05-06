@@ -390,6 +390,8 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
         notes:           dto.notes ?? null,
         phone:           dto.phone ?? null,
         patientName:     dto.patientName ?? null,
+        createdAt:       new Date(),
+        updatedAt:       new Date(),
       })
       .returning({ id: schema.appointments.id });
     return row?.id ?? 0;
