@@ -298,7 +298,7 @@ export function DoctorDashboard() {
                             </div>
                             <div style={{ flex: 1 }}>
                               <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{a.patientName}</div>
-                              <div className="text-label" style={{ fontSize: 10 }}>{a.bookingTime || 'Scheduled'} · Token {a.tokenNo || '—'}</div>
+                              <div className="text-label" style={{ fontSize: 10 }}>{a.bookingTime || 'Scheduled'} · {a.wlId ? 'Waitlist' : 'Token'} {a.wlId ? `W${a.tokenNo}` : (a.tokenNo || '—')}</div>
                             </div>
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

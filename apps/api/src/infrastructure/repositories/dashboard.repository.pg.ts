@@ -284,8 +284,10 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     const dd = String(istDate.getDate()).padStart(2, '0');
     const today = `${y}-${mm}-${dd}`;
     return this.getCached(`queue:${contextId}:${today}:${doctorId ?? ''}`, 0, async () => {
-      const docCond = doctorId ? sql` AND w.doctor_id = ${doctorId}` : sql``;
-      const apptCond = doctorId ? sql` AND a.doctor_id = ${doctorId}` : sql``;
+      const docCond = doctorId ? sql` AND (w.doctor_id = ${doctorId} OR (SELECT name FROM users WHERE id = w.doctor_id) = (SELECT name FROM users WHERE id = ${doctorId}) OR (SELECT name FROM doctors WHERE id = w.doctor_id) = (SELECT name FROM users WHERE id = ${doctorId}))` : sql``;
+      const apptCond = doctorId ? sql` AND (a.doctor_id = ${doctorId} OR (SELECT name FROM users WHERE id = a.doctor_id) = (SELECT name FROM users WHERE id = ${doctorId}) OR (SELECT name FROM doctors WHERE id = a.doctor_id) = (SELECT name FROM users WHERE id = ${doctorId}))` : sql``;
+      const dateCond = sql`(w.date::text = ${today} OR w.date::text = TO_CHAR(${today}::date, 'DD/MM/YYYY') OR w.date::text LIKE '%' || TO_CHAR(${today}::date, 'DD/MM/YYYY') || '%')`;
+      const apptDateCond = sql`(a.booking_date::text = ${today} OR a.booking_date::text = TO_CHAR(${today}::date, 'DD/MM/YYYY') OR a.booking_date::text LIKE '%' || TO_CHAR(${today}::date, 'DD/MM/YYYY') || '%')`;
 
       const result = await this.db.execute(sql`
         WITH today_waitlist AS (
@@ -298,7 +300,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             w.status,
             w.checked_in_at
           FROM waitlist w
-          WHERE w.date = ${today}::date AND (w.deleted_at IS NULL OR w.deleted_at::text = '')
+          WHERE ${dateCond} AND (w.deleted_at IS NULL OR w.deleted_at::text = '')
+            AND (w.clinic_id = ${contextId} OR w.clinic_id IS NULL)
             ${docCond}
         )
         SELECT
@@ -345,7 +348,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             a.booking_time,
             a.id as visit_id
           FROM appointments a
-          WHERE a.booking_date = ${today}::date AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
+          WHERE ${apptDateCond} AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
+            AND (a.clinic_id = ${contextId} OR a.clinic_id IS NULL)
             ${apptCond}
             AND NOT EXISTS (SELECT 1 FROM today_waitlist tw2 WHERE tw2.appointment_id = a.id OR tw2.patient_id = a.patient_id)
         ) q
@@ -399,8 +403,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
 
     // Always query appointments
     queries.push(this.db.execute(sql`
-      SELECT 'appointment' as type, 'Appointment - ' || p.first_name as title, a.booking_date::text as subtitle, a.created_at
-      FROM appointments a JOIN case_datas p ON a.patient_id = p.id
+      SELECT 'appointment' as type, 'Appointment - ' || COALESCE(p.first_name, 'Unknown') as title, a.booking_date::text as subtitle, a.created_at
+      FROM appointments a LEFT JOIN case_datas p ON a.patient_id = p.id
       WHERE (a.deleted_at IS NULL OR a.deleted_at::text = '')
       ORDER BY a.id DESC LIMIT ${limit}
     `));
