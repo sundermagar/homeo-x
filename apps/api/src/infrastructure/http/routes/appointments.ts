@@ -8,6 +8,7 @@ import { ManageAppointmentUseCase } from '../../../domains/appointment/use-cases
 import { QueueManagementUseCase } from '../../../domains/appointment/use-cases/queue-management.use-case.js';
 import { SendSmsUseCase } from '../../../domains/communication/use-cases/send-sms.use-case.js';
 import { CommunicationRepositoryPG } from '../../repositories/communication.repository.pg.js';
+import { NotificationsRepositoryPg } from '../../repositories/notifications.repository.pg.js';
 import { createSmsGateway } from '../../communication/msg91-sms-gateway.js';
 import { DashboardRepositoryPg } from '../../repositories/dashboard.repository.pg.js';
 import { asyncHandler } from '../middleware/async-handler.js';
@@ -165,8 +166,9 @@ appointmentsRouter.post('/', asyncHandler(async (req, res) => {
 
   const commRepo = new CommunicationRepositoryPG(req.tenantDb);
   const patientRepo = new PatientRepositoryPg(req.tenantDb);
+  const notifRepo = new NotificationsRepositoryPg(req.tenantDb);
   const smsUc = new SendSmsUseCase(commRepo, smsGateway);
-  const bookAppt = new BookAppointmentUseCase(getRepo(req), smsUc, patientRepo);
+  const bookAppt = new BookAppointmentUseCase(getRepo(req), smsUc, patientRepo, notifRepo);
   const clinicId = (req as any).user?.contextId;
   const result = await bookAppt.execute({ ...req.body, clinicId });
 

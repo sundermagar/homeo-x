@@ -1,6 +1,7 @@
 import { useLocation } from 'react-router-dom';
-import { Bell, HelpCircle, Menu } from 'lucide-react';
+import { HelpCircle, Menu } from 'lucide-react';
 import { useAuthStore } from '@/shared/stores/auth-store';
+import { NotificationBell } from '@/components/shared/notification-bell';
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -38,7 +39,7 @@ export function GlobalHeader({ onMenuClick }: HeaderProps) {
       {/* Right: Actions & Profile */}
       <div className="gh-right">
         <div className="gh-icon-row">
-          <Bell size={20} className="gh-icon" />
+          <NotificationBell />
           <HelpCircle size={20} className="gh-icon" />
         </div>
 

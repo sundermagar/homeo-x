@@ -28,6 +28,7 @@ export * from './domains/staff.js';
 export * from './domains/crm.js';
 export * from './domains/logistics.js';
 export * from './domains/knowledge.js';
+export * from './domains/notification.js';
 
 // ─── API Contracts ───
 export * from './api/requests.js';

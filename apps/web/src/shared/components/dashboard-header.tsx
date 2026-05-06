@@ -4,6 +4,7 @@ import { Search, Plus, ChevronRight, Power } from 'lucide-react';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { apiClient } from '@/infrastructure/api-client';
 import { useDoctorStatus, useUpdateDoctorStatus } from '@/features/dashboard/hooks/use-doctor-status';
+import { NotificationBell } from '@/components/shared/notification-bell';
 
 interface DashboardHeaderProps {
   onOpenPalette: () => void;
@@ -96,9 +97,11 @@ export function DashboardHeader({ onOpenPalette }: DashboardHeaderProps) {
           </div>
         </div>
 
-        {/* ── Right: Date, Command Palette trigger, Actions ── */}
+        {/* ── Right: Date, Notification, Command Palette trigger, Actions ── */}
         <div className="dh-right">
           <span className="dh-date">{formattedDate}</span>
+
+          <NotificationBell />
 
           {/* Command Palette Trigger */}
           <button

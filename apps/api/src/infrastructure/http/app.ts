@@ -58,6 +58,8 @@ import { setupVideoCallGateway } from './gateways/video-call.gateway.js';
 import { TranslatorEngine } from '../../domains/consultation/engines/translator.engine.js';
 import { getAiProviderChain } from '../ai/ai-provider-chain.js';
 import { createTerminologyRouter } from './routes/terminology.router.js';
+import { createNotificationsRouter } from './routes/notifications.router.js';
+import { setupNotificationsGateway, setNotificationEmitters } from './gateways/notifications.gateway.js';
 
 const logger = createLogger('http');
 
@@ -158,6 +160,7 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   app.use('/api/knowledge', authMiddleware, knowledgeRouter);
   app.use('/api/records', authMiddleware, recordsRouter);
   app.use('/api/staff', authMiddleware, staffRouter);
+  app.use('/api/notifications', authMiddleware, createNotificationsRouter());
 
   // Roles & Permissions
   app.use('/api/roles', authMiddleware, rolesRouter);
@@ -195,6 +198,16 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
     setupVideoCallGateway(io);
   } catch (err: any) {
     logger.error({ err: err?.message }, 'Failed to initialize video-call gateway');
+  }
+
+  // ─── Notifications gateway (Socket.IO /notifications namespace) ───
+  // Pushes real-time notifications to authenticated users.
+  try {
+    const { emitToUser, emitToClinic } = setupNotificationsGateway(io);
+    setNotificationEmitters(emitToUser, emitToClinic);
+    logger.info('Notifications gateway initialized on /notifications namespace');
+  } catch (err: any) {
+    logger.error({ err: err?.message }, 'Failed to initialize notifications gateway');
   }
 
   // ─── Error Handling (must be last) ───
@@ -261,6 +274,22 @@ async function ensureIndexes(db: any): Promise<void> {
           ALTER TABLE soap_notes ADD COLUMN regid INTEGER;
         END IF;
       END $$;
+    `));
+
+    // Ensure notifications table exists
+    await db.execute(sql.raw(`
+      CREATE TABLE IF NOT EXISTS "notifications" (
+        "id" serial PRIMARY KEY NOT NULL,
+        "user_id" integer NOT NULL,
+        "clinic_id" integer,
+        "type" varchar(50) NOT NULL,
+        "title" text NOT NULL,
+        "message" text NOT NULL,
+        "is_read" boolean DEFAULT false NOT NULL,
+        "deleted_at" timestamp,
+        "created_at" timestamp DEFAULT now(),
+        "updated_at" timestamp DEFAULT now()
+      );
     `));
   } catch (err: any) {
     logger.debug({ err: err.message }, 'Failed to ensure case_reminders table');
