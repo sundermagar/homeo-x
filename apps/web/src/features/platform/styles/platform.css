@@ -863,10 +863,33 @@
 
   .plat-card-header {
     padding: 10px 14px;
+    flex-wrap: wrap;
+    gap: 12px;
   }
 
   .plat-card-title {
     font-size: 13px;
+  }
+
+  .hide-mobile {
+    display: none !important;
+  }
+
+  .show-mobile {
+    display: flex !important;
+  }
+}
+
+.plat-card-header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+@media (min-width: 641px) {
+  .show-mobile {
+    display: none !important;
   }
 }
 

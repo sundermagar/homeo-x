@@ -330,23 +330,23 @@ export default function OperationsDashboard() {
             {loading ? (
               <TableSkeleton rows={5} columns={shipmentCols.length} />
             ) : viewMode === 'list' ? (
-              <div className="ops-table-wrapper">
-                <table className="ops-table">
+              <div className="plat-table-container">
+                <table className="plat-table">
                   <thead>
                     <tr>{shipmentCols.map(col => <th key={col}>{col}</th>)}</tr>
                   </thead>
                   <tbody>
                     {mockShipments.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(s => (
-                      <tr key={s.id}>
-                        <td data-label="Reg ID"><span className="reg-badge">#{s.regid}</span></td>
-                        <td data-label="Patient">
+                      <tr key={s.id} className="plat-table-row">
+                        <td><span className="reg-badge">#{s.regid}</span></td>
+                        <td>
                           <div className="cell-main">{s.patient}</div>
                           <div className="cell-sub"><Phone size={11} /> {s.mobile}</div>
                         </td>
-                        <td data-label="Courier"><span className="courier-tag">{s.courier}</span></td>
-                        <td data-label="Tracking"><span className="mono">{s.tracking}</span></td>
-                        <td data-label="Status"><StatusBadge status={s.status} /></td>
-                        <td data-label="Date"><span className="cell-sub">{s.date}</span></td>
+                        <td><span className="courier-tag">{s.courier}</span></td>
+                        <td><span className="mono">{s.tracking}</span></td>
+                        <td><StatusBadge status={s.status} /></td>
+                        <td><span className="cell-sub">{s.date}</span></td>
                       </tr>
                     ))}
                   </tbody>
@@ -469,8 +469,8 @@ export default function OperationsDashboard() {
                     <p style={{ color: 'var(--text-main)', fontWeight: 600 }}>No leads found</p>
                   </div>
                 ) : (
-                  <div className="ops-table-wrapper">
-                    <table className="ops-table">
+                  <div className="plat-table-container">
+                    <table className="plat-table">
                       <thead>
                         <tr>{leadCols.map(col => <th key={col}>{col}</th>)}</tr>
                       </thead>
@@ -480,21 +480,21 @@ export default function OperationsDashboard() {
                           const matchesFilter = crmFilter === 'all' || l.status?.toLowerCase() === crmFilter;
                           return matchesSearch && matchesFilter;
                         }).slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(l => (
-                          <tr key={l.id}>
-                            <td data-label="#">{l.id}</td>
-                            <td data-label="Name">
+                          <tr key={l.id} className="plat-table-row">
+                            <td>{l.id}</td>
+                            <td>
                               <div className="cell-main">{l.name}</div>
                               <div className="cell-sub"><Phone size={11} /> {l.mobile || l.phone}</div>
                             </td>
-                            <td data-label="Source">{l.source}</td>
-                            <td data-label="Status"><StatusBadge status={l.status || 'New'} /></td>
-                            <td data-label="Notes">
+                            <td>{l.source}</td>
+                            <td><StatusBadge status={l.status || 'New'} /></td>
+                            <td>
                               <div className="cell-sub" style={{ maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                 {l.notes}
                               </div>
                             </td>
-                            <td data-label="Date"><span className="cell-sub">{l.created_at ? new Date(l.created_at).toLocaleDateString() : '-'}</span></td>
-                            <td data-label="Action">
+                            <td><span className="cell-sub">{l.created_at ? new Date(l.created_at).toLocaleDateString() : '-'}</span></td>
+                            <td>
                               <div style={{ display: 'flex', gap: 8 }}>
                                 {l.status?.toLowerCase() !== 'converted' && (
                                   <button
@@ -550,20 +550,20 @@ export default function OperationsDashboard() {
                 {loading ? (
                   <TableSkeleton rows={5} columns={referralCols.length} />
                 ) : (
-                  <div className="ops-table-wrapper">
-                    <table className="ops-table">
+                  <div className="plat-table-container">
+                    <table className="plat-table">
                       <thead>
                         <tr>{referralCols.map(col => <th key={col}>{col}</th>)}</tr>
                       </thead>
                       <tbody>
                         {referrals.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((r, idx) => (
-                          <tr key={idx}>
-                            <td data-label="Patient"><span className="cell-main">{r.first_name} {r.surname}</span></td>
-                            <td data-label="Referred"><span className="cell-sub">ID: {r.referral_id}</span></td>
-                            <td data-label="Total">
+                          <tr key={idx} className="plat-table-row">
+                            <td><span className="cell-main">{r.first_name} {r.surname}</span></td>
+                            <td><span className="cell-sub">ID: {r.referral_id}</span></td>
+                            <td>
                               <span style={{ color: 'var(--pp-success-fg)', fontWeight: 600 }}>₹{r.total_amount}</span>
                             </td>
-                            <td data-label="Used">₹{r.used_amount}</td>
+                            <td>₹{r.used_amount}</td>
                           </tr>
                         ))}
                         {referrals.length === 0 && !loading && (
@@ -601,18 +601,18 @@ export default function OperationsDashboard() {
                 {loading ? (
                   <TableSkeleton rows={5} columns={reminderCols.length} />
                 ) : (
-                  <div className="ops-table-wrapper">
-                    <table className="ops-table">
+                  <div className="plat-table-container">
+                    <table className="plat-table">
                       <thead>
                         <tr>{reminderCols.map(col => <th key={col}>{col}</th>)}</tr>
                       </thead>
                       <tbody>
                         {reminders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(r => (
-                          <tr key={r.id}>
-                            <td data-label="Patient"><span className="cell-main">{r.patient_name || 'Patient #' + r.patient_id}</span></td>
-                            <td data-label="Heading">{r.heading}</td>
-                            <td data-label="Date"><span className="cell-sub">{r.start_date} {r.remind_time}</span></td>
-                            <td data-label="Status"><StatusBadge status={r.status} /></td>
+                          <tr key={r.id} className="plat-table-row">
+                            <td><span className="cell-main">{r.patient_name || 'Patient #' + r.patient_id}</span></td>
+                            <td>{r.heading}</td>
+                            <td><span className="cell-sub">{r.start_date} {r.remind_time}</span></td>
+                            <td><StatusBadge status={r.status} /></td>
                           </tr>
                         ))}
                         {reminders.length === 0 && !loading && (
@@ -669,17 +669,17 @@ export default function OperationsDashboard() {
                 <p style={{ color: 'var(--text-muted)' }}>No dictionary entries found.</p>
               </div>
             ) : viewMode === 'list' ? (
-              <div className="ops-table-wrapper">
-                <table className="ops-table">
+              <div className="plat-table-container">
+                <table className="plat-table">
                   <thead>
                     <tr>{dictCols.map(col => <th key={col}>{col}</th>)}</tr>
                   </thead>
                   <tbody>
                     {dictionary.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(d => (
-                      <tr key={d.id}>
-                        <td data-label="Remedy"><span className="cell-main" style={{ fontWeight: 700 }}>{d.title}</span></td>
-                        <td data-label="Description"><span className="cell-sub" style={{ maxWidth: 300 }}>{d.text}</span></td>
-                        <td data-label="Cross"><span className="ops-cross-ref">{d.cross_ref || d.crossRef}</span></td>
+                      <tr key={d.id} className="plat-table-row">
+                        <td><span className="cell-main" style={{ fontWeight: 700 }}>{d.title}</span></td>
+                        <td><span className="cell-sub" style={{ maxWidth: 300 }}>{d.text}</span></td>
+                        <td><span className="ops-cross-ref">{d.cross_ref || d.crossRef}</span></td>
                       </tr>
                     ))}
                   </tbody>
@@ -744,18 +744,18 @@ export default function OperationsDashboard() {
                 <p style={{ color: 'var(--pp-muted)' }}>No library resources found.</p>
               </div>
             ) : viewMode === 'list' ? (
-              <div className="ops-table-wrapper">
-                <table className="ops-table">
+              <div className="plat-table-container">
+                <table className="plat-table">
                   <thead>
                     <tr>{bookCols.map(col => <th key={col}>{col}</th>)}</tr>
                   </thead>
                   <tbody>
                     {books.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(b => (
-                      <tr key={b.id}>
-                        <td data-label="Title"><span className="cell-main">{b.title}</span></td>
-                        <td data-label="Author">{b.author || 'Unknown'}</td>
-                        <td data-label="Type"><StatusBadge status={b.resource_type || 'Book'} /></td>
-                        <td data-label="Link">
+                      <tr key={b.id} className="plat-table-row">
+                        <td><span className="cell-main">{b.title}</span></td>
+                        <td>{b.author || 'Unknown'}</td>
+                        <td><StatusBadge status={b.resource_type || 'Book'} /></td>
+                        <td>
                           <button className="ops-icon-btn" aria-label="Open link">
                             <ExternalLink size={14} style={{ color: 'var(--primary)' }} />
                           </button>

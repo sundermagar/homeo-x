@@ -67,11 +67,16 @@ export class AnalyticsRepositoryPg implements IAnalyticsRepository {
       newPatients = await this.db.execute(sql`
         SELECT to_char(created_at, 'Mon YYYY') as month, count(*)::int as count
         FROM case_datas
-        WHERE (clinic_id = ${clinicId} OR clinic_id IS NULL) AND created_at::date BETWEEN ${fromStr} AND ${toStr} AND (deleted_at IS NULL OR deleted_at::text = '')
+        WHERE (deleted_at IS NULL OR deleted_at::text = '')
+          ${clinicId ? sql`AND clinic_id = ${clinicId}` : sql``}
+          AND created_at::date BETWEEN ${fromStr} AND ${toStr}
         GROUP BY to_char(created_at, 'YYYY-MM'), to_char(created_at, 'Mon YYYY')
         ORDER BY to_char(created_at, 'YYYY-MM') ASC
       `) as any[];
-    } catch { newPatients = []; }
+    } catch (err) { 
+      console.error("[getPatientTrends] NewPatients Error:", err);
+      newPatients = []; 
+    }
 
     // Revenue
     let revenueByMonth: any[] = [];
@@ -80,11 +85,17 @@ export class AnalyticsRepositoryPg implements IAnalyticsRepository {
         SELECT to_char(r.created_at, 'Mon YYYY') as month, sum(CAST(NULLIF(r.amount, '') AS numeric))::int as total
         FROM receipt r
         JOIN case_datas p ON p.regid = r.regid
-        WHERE (p.clinic_id = ${clinicId} OR p.clinic_id IS NULL) AND r.created_at::date BETWEEN ${fromStr} AND ${toStr} AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
+        WHERE (r.deleted_at IS NULL OR r.deleted_at::text = '')
+          AND r.mode != 'RB'
+          ${clinicId ? sql`AND p.clinic_id = ${clinicId}` : sql``}
+          AND r.created_at::date BETWEEN ${fromStr} AND ${toStr}
         GROUP BY to_char(r.created_at, 'YYYY-MM'), to_char(r.created_at, 'Mon YYYY')
         ORDER BY to_char(r.created_at, 'YYYY-MM') ASC
       `) as any[];
-    } catch { revenueByMonth = []; }
+    } catch (err) { 
+      console.error("[getPatientTrends] Revenue Error:", err);
+      revenueByMonth = []; 
+    }
 
     // Top Diagnoses
     let topDiagnoses: any[] = [];
@@ -93,12 +104,17 @@ export class AnalyticsRepositoryPg implements IAnalyticsRepository {
         SELECT m.condition as diagnosis, count(*)::int as count
         FROM medicalcases m
         JOIN case_datas p ON p.regid = m.regid
-        WHERE (p.clinic_id = ${clinicId} OR p.clinic_id IS NULL) AND m.condition IS NOT NULL AND m.condition != '' AND (m.deleted_at IS NULL OR m.deleted_at::text = '')
+        WHERE (m.deleted_at IS NULL OR m.deleted_at::text = '')
+          ${clinicId ? sql`AND p.clinic_id = ${clinicId}` : sql``}
+          AND m.condition IS NOT NULL AND m.condition != ''
         GROUP BY m.condition
         ORDER BY count DESC
         LIMIT 10
       `) as any[];
-    } catch { topDiagnoses = []; }
+    } catch (err) { 
+      console.error("[getPatientTrends] TopDiagnoses Error:", err);
+      topDiagnoses = []; 
+    }
 
     return { newPatients, revenueByMonth, topDiagnoses };
   }

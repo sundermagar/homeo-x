@@ -579,22 +579,22 @@ export default function EmployeesPage() {
         </div>
       </div>
 
-      <div className="pp-filter-card">
-        <div className="pp-filter-search-wrap">
-          <Search size={14} />
+      <div className="plat-filters">
+        <div className="plat-search-wrap">
+          <Search size={14} className="plat-search-icon" />
           <input
             type="text"
             placeholder={`Search ${META.label.toLowerCase()} names...`}
-            className="pp-filter-search-input"
+            className="plat-form-input plat-search-input"
             value={search}
             onChange={(e) => handleSearchChange(e.target.value)}
           />
         </div>
-        <div className="pp-filter-controls">
+        <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <span className="text-[11px] font-bold color-muted uppercase tracking-wider">Sort:</span>
             <select 
-              className="pp-filter-select"
+              className="plat-form-select"
               style={{ minWidth: '140px' }}
               value={`${sortBy}-${sortOrder}`}
               onChange={(e) => {
@@ -611,7 +611,7 @@ export default function EmployeesPage() {
             </select>
           </div>
           <button 
-            className="btn-ghost" 
+            className="plat-btn plat-btn-ghost" 
             onClick={() => { 
               setSearch(''); 
               setDebouncedSearch(''); 
@@ -625,23 +625,23 @@ export default function EmployeesPage() {
         </div>
       </div>
 
-      <div className="pp-table-container-enhanced">
+      <div className="plat-table-container">
         {isLoading ? (
           <TableSkeleton rows={itemsPerPage} columns={6} />
         ) : staff.length === 0 ? (
-          <div className="pp-empty-enhanced" style={{ border: 'none', background: 'transparent', minHeight: 400 }}>
+          <div className="plat-empty" style={{ minHeight: 400 }}>
             <div className="pp-empty-icon-circle">
               <Users size={32} />
             </div>
             <p className="pp-empty-title">No Employees Registered</p>
             <p className="pp-empty-sub">Start building your clinical support force by registering your first employee record.</p>
-            <button className="btn-primary" onClick={openCreate} style={{ marginTop: '16px' }}>
+            <button className="plat-btn plat-btn-primary" onClick={openCreate} style={{ marginTop: '16px' }}>
               <Plus size={16} /> Register First Employee
             </button>
           </div>
         ) : (
           <>
-            <table className="pp-table">
+            <table className="plat-table">
               <thead>
                 <tr>
                   <th style={{ width: '40px' }}>#</th>
@@ -702,17 +702,18 @@ export default function EmployeesPage() {
                 ))}
               </tbody>
             </table>
-            <div style={{ padding: '0 20px 20px' }}>
-              <Pagination
-                totalItems={data?.total || 0}
-                itemsPerPage={itemsPerPage}
-                currentPage={page}
-                onPageChange={setPage}
-                onLimitChange={setItemsPerPage}
-              />
-            </div>
           </>
         )}
+      </div>
+
+      <div style={{ marginTop: '20px' }}>
+        <Pagination
+          totalItems={data?.total || 0}
+          itemsPerPage={itemsPerPage}
+          currentPage={page}
+          onPageChange={setPage}
+          onLimitChange={setItemsPerPage}
+        />
       </div>
 
 

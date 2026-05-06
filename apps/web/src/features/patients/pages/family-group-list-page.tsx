@@ -99,11 +99,13 @@ export default function FamilyGroupListPage() {
         <div className="pp-table-container-enhanced">
           <div className="pp-table-scroll">
             <table className="pp-table">
+              <colgroup>
                 <col style={{ width: '6%' }} />
                 <col style={{ width: '38%' }} />
                 <col style={{ width: '20%' }} />
                 <col style={{ width: '26%' }} />
                 <col style={{ width: '10%' }} />
+              </colgroup>
               <thead>
                 <tr>
                   <th style={{ width: '40px' }}>#</th>

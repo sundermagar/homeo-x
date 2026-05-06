@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
 import { useLocation } from 'react-router-dom';
-import { Download, Gift, Users, Activity, CreditCard, PieChart, MessageCircle, Send, CheckSquare, Square } from 'lucide-react';
+import { Download, Gift, Users, Activity, CreditCard, PieChart, MessageCircle, Send, CheckSquare, Square, X } from 'lucide-react';
 import {
   useCaseMonthWise,
   useMonthWiseDues,
@@ -443,23 +443,28 @@ function BirthdaysTab({ onExport }: { onExport: (filename: string, headers: stri
       <div className="plat-card-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <Gift size={20} style={{ color: 'var(--pp-blue)' }} />
-          <h3>Today&apos;s Birthdays</h3>
+          <h3 className="plat-card-title" style={{ margin: 0 }}>Today&apos;s Birthdays</h3>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div className="plat-card-header-actions">
           {selectedIds.size > 0 && (
             <button className="plat-btn plat-btn-sm" style={{ background: '#25D366', color: 'white', border: 'none' }}
               onClick={() => setShowBulkModal(true)}>
-              <MessageCircle size={12} /> Send ({selectedIds.size})
+              <MessageCircle size={12} /> <span className="hide-mobile">Send</span> ({selectedIds.size})
             </button>
           )}
-          <button className="plat-btn plat-btn-sm" onClick={() => setSelectedIds(new Set())}>Clear</button>
-          <button className="plat-btn plat-btn-sm" onClick={toggleAll}>
-            {selectedIds.size === patients.length && patients.length > 0 ? <CheckSquare size={14} /> : <Square size={14} />} Select All
+          <button className="plat-btn plat-btn-sm" onClick={() => setSelectedIds(new Set())} title="Clear Selection">
+            <X size={14} className="show-mobile" />
+            <span className="hide-mobile">Clear</span>
+          </button>
+          <button className="plat-btn plat-btn-sm" onClick={toggleAll} title="Toggle Select All">
+            {selectedIds.size === patients.length && patients.length > 0 ? <CheckSquare size={14} /> : <Square size={14} />}
+            <span className="hide-mobile" style={{ marginLeft: 6 }}>Select All</span>
           </button>
           <button className="plat-btn plat-btn-sm"
             onClick={() => onExport('Birthday_List', ['regid', 'first_name', 'surname', 'mobile1', 'date_birth'], patients)}
+            title="Export to CSV"
           >
-            <Download size={14} /> Export CSV
+            <Download size={14} /> <span className="hide-mobile">Export CSV</span>
           </button>
         </div>
       </div>
