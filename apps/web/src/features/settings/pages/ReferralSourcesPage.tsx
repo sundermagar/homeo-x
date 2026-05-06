@@ -9,6 +9,7 @@ import '../styles/settings.css';
 import { Pagination } from '@/shared/components/Pagination';
 import { usePagination } from '@/shared/hooks/use-pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
 
 const EMPTY_FORM = { name: '', type: '', isActive: true };
 
@@ -118,10 +119,15 @@ export default function ReferralSourcesPage() {
         {isLoading ? (
           <TableSkeleton rows={5} columns={5} />
         ) : filteredItems.length === 0 ? (
-          <div className="plat-empty">
-            <Users size={40} className="plat-empty-icon" />
-            <p className="plat-empty-text">No referral sources found.</p>
-          </div>
+          <EmptyState 
+            icon={Users}
+            title={searchQuery ? "No matches found" : "No referral sources found"}
+            description={searchQuery ? `No sources matching "${searchQuery}" were found.` : "Track patient acquisition by adding your first referral source."}
+            actionLabel={searchQuery ? "Clear Search" : "Add Source"}
+            onAction={searchQuery ? () => setSearchQuery('') : handleOpenCreate}
+            variant="card"
+            className="my-8"
+          />
         ) : (
           <>
           <div className="plat-table-container">

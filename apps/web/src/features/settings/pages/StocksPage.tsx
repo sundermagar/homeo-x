@@ -9,6 +9,7 @@ import '../styles/settings.css';
 import { Pagination } from '@/shared/components/Pagination';
 import { usePagination } from '@/shared/hooks/use-pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
 import { CodeAutocomplete } from '@/shared/components/code-autocomplete';
 import type { SnomedConceptResult } from '@/shared/hooks/use-terminology';
 
@@ -187,10 +188,15 @@ export default function StocksPage() {
         {isLoading ? (
           <TableSkeleton rows={5} columns={7} />
         ) : filtered.length === 0 ? (
-          <div className="plat-empty" style={{ minHeight: 200 }}>
-            <Database size={40} className="plat-empty-icon" />
-            <p className="plat-empty-text">No inventory records found.</p>
-          </div>
+          <EmptyState 
+            icon={Database}
+            title="No inventory records found"
+            description="Start tracking your clinical medicine stock by adding your first inventory item."
+            actionLabel="Add Stock Item"
+            onAction={handleOpenCreate}
+            variant="card"
+            className="my-8"
+          />
         ) : (
           <>
           <div className="plat-table-container">

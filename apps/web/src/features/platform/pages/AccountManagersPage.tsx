@@ -10,6 +10,7 @@ import '../styles/platform.css';
 
 import { Pagination } from '@/shared/components/Pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
 import { Drawer } from '@/shared/components/drawer';
 
 
@@ -557,18 +558,15 @@ export default function AccountManagersPage() {
         {isLoading ? (
           <TableSkeleton rows={itemsPerPage} columns={6} />
         ) : staff.length === 0 ? (
-          <div className="plat-empty" style={{ minHeight: 400 }}>
-            <div className="plat-empty-icon-wrap mb-6">
-              <UserCog size={48} className="text-blue-500 opacity-20" />
-            </div>
-            <h3 className="text-lg font-semibold text-slate-800 mb-2">No Account Managers Registered</h3>
-            <p className="text-sm text-slate-500 max-w-xs text-center mb-8">
-              Financial coordination is key to clinic success. Register your first account manager to begin tracking clinical ledgers.
-            </p>
-            <button className="plat-btn plat-btn-primary" onClick={() => { setEditingId(null); setModalOpen(true); }}>
-              <Plus size={14} /> Register First Manager
-            </button>
-          </div>
+          <EmptyState 
+            icon={UserCog}
+            title="No Account Managers Registered"
+            description="Financial coordination is key to clinic success. Register your first account manager to begin tracking clinical ledgers."
+            actionLabel="Register First Manager"
+            onAction={() => { setEditingId(null); setModalOpen(true); }}
+            variant="card"
+            className="my-8"
+          />
         ) : (
           <>
             <div className="plat-table-container">

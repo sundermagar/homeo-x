@@ -9,6 +9,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import type { PatientSummary, FamilyMember } from '@mmc/types';
 import { PageSkeleton } from '@/components/shared/page-skeleton';
 import { PatientFormDrawer } from '../components/patient-form-drawer';
+import { EmptyState } from '@/components/shared/empty-state';
 import '../styles/patients.css';
 
 export default function PatientDetailPage() {
@@ -256,10 +257,15 @@ export default function PatientDetailPage() {
           {familyLoading ? (
             <div className="pat-loading-state">Loading family members...</div>
           ) : familyMembers.length === 0 ? (
-            <div className="pat-empty-state">
-              <p className="pat-empty-state-title">No family members linked</p>
-              <p className="text-small">Click "Link Member" to connect related patients</p>
-            </div>
+            <EmptyState 
+              icon={Users}
+              title="No family members linked"
+              description="This patient is not currently linked to any family group. Link related patients to see their clinical connections."
+              actionLabel="Link Member"
+              onAction={() => setShowFamilyForm(true)}
+              variant="card"
+              className="my-4"
+            />
           ) : (
             <table className="pp-table">
               <thead>

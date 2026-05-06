@@ -6,6 +6,7 @@ import type { CreateBankDepositInput, CreateCashDepositInput, ListDepositsQuery 
 import { Drawer } from '@/shared/components/drawer';
 import { Pagination } from '@/shared/components/Pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
 import '../../platform/styles/platform.css';
 import '../styles/billing.css';
 
@@ -220,10 +221,15 @@ export default function DepositsPage() {
         {isLoading ? (
           <TableSkeleton rows={5} columns={7} />
         ) : filtered.length === 0 ? (
-          <div className="plat-empty">
-            <Building size={40} className="plat-empty-icon" />
-            <p className="plat-empty-text">No {activeTab} deposits found.</p>
-          </div>
+          <EmptyState 
+            icon={Building}
+            title={search || dateFilter ? "No matches found" : `No ${activeTab} deposits found`}
+            description={search || dateFilter ? `No deposit records matching your search filters were found.` : `Clinical treasury is waiting. Record your first ${activeTab} deposit to track clinic funds.`}
+            actionLabel={search || dateFilter ? "Clear Filters" : "Add Deposit"}
+            onAction={search || dateFilter ? () => { setSearch(''); setDateFilter(''); } : () => setIsModalOpen(true)}
+            variant="card"
+            className="my-8"
+          />
         ) : (
           <div className="plat-table-container">
             <table className="plat-table">

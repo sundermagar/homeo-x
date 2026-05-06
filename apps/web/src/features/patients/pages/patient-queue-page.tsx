@@ -8,6 +8,7 @@ import { useDoctors } from '@/features/appointments/hooks/use-doctors';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { apiClient } from '@/infrastructure/api-client';
 import { VitalsFormModal } from '@/features/medical-case/components/vitals-form-modal';
+import { EmptyState } from '@/components/shared/empty-state';
 import '@/features/appointments/styles/appointments.css';
 
 const WAIT_STATUS = { 0: 'Waiting', 1: 'Called', 2: 'Done' } as Record<number, string>;
@@ -386,10 +387,13 @@ export default function PatientQueuePage() {
         {wLoading ? (
           viewMode === 'grid' ? renderSkeletonGrid() : renderSkeletonList()
         ) : waiting.length === 0 ? (
-          <div className="appt-card" style={{ padding: '60px 40px', background: 'var(--pp-warm-1)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-            <Users size={36} style={{ opacity: 0.25, marginBottom: 16 }} />
-            <p style={{ color: 'var(--pp-text-3)', fontSize: '14px', fontWeight: 500, margin: 0 }}>The waiting room is currently empty.</p>
-          </div>
+          <EmptyState 
+            icon={Users}
+            title="Waiting room is empty"
+            description="There are no patients currently in the waiting queue. All checked-in patients have been addressed."
+            variant="card"
+            className="my-8"
+          />
         ) : (
           <>
             {viewMode === 'grid' ? (

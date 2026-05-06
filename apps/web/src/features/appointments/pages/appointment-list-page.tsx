@@ -18,6 +18,7 @@ import { printAppointmentSlip } from '@/shared/utils/print';
 import { useOrganizations } from '@/features/platform/hooks/use-organizations';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { Pagination } from '@/components/shared/pagination';
+import { EmptyState } from '@/components/shared/empty-state';
 import '../styles/appointments.css';
 
 const STATUS_OPTIONS = ['', ...Object.values(AppointmentStatus)];
@@ -230,16 +231,15 @@ export default function AppointmentListPage() {
         {isPending ? (
           <TableSkeleton rows={10} cols={7} />
         ) : data.length === 0 ? (
-          <div className="pp-empty-enhanced">
-            <div className="pp-empty-icon-circle">
-              <CalendarDays size={32} />
-            </div>
-            <p className="pp-empty-title">No appointments found</p>
-            <p className="pp-empty-sub">Try adjusting filters or create a new booking.</p>
-            <button className="btn-primary" onClick={() => { setDrawerApptId(null); setIsDrawerOpen(true); }}>
-              <Plus size={14} /> New Booking
-            </button>
-          </div>
+          <EmptyState 
+            icon={CalendarDays}
+            title={search ? "No matches found" : tab === 'today' ? "No appointments today" : "No appointments found"}
+            description={search ? `We couldn't find any appointment matching "${search}".` : tab === 'today' ? "The clinic is quiet today. Schedule a new appointment to fill the queue." : "Your appointment history is currently empty."}
+            actionLabel={search ? "Clear Search" : "New Booking"}
+            onAction={search ? () => setSearch('') : () => { setDrawerApptId(null); setIsDrawerOpen(true); }}
+            variant="card"
+            className="my-8"
+          />
         ) : viewMode === 'list' ? (
           <div className="pp-table-scroll">
             <table className="pp-table">

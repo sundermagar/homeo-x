@@ -9,6 +9,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { Pagination } from '@/components/shared/pagination';
+import { EmptyState } from '@/components/shared/empty-state';
 import '../styles/medical-case.css';
 
 export default function MedicalCaseListPage() {
@@ -110,14 +111,16 @@ export default function MedicalCaseListPage() {
                 </tr>
               ) : !records?.data?.length ? (
                 <tr>
-                  <td colSpan={5} style={{ padding: 40, textAlign: 'center' }}>
-                    <div className="pp-empty-enhanced" style={{ border: 'none', background: 'transparent' }}>
-                      <div className="pp-empty-icon-circle">
-                        <Activity size={32} />
-                      </div>
-                      <p className="pp-empty-title">No records found</p>
-                      <p className="pp-empty-sub">Adjust your search to find clinical cases.</p>
-                    </div>
+                  <td colSpan={5}>
+                    <EmptyState 
+                      icon={Activity}
+                      title={search ? "No cases found" : "No clinical cases"}
+                      description={search ? `We couldn't find any clinical case matching "${search}".` : "Your clinical registry is currently empty. Cases will appear here as patients are registered and visits are recorded."}
+                      actionLabel={search ? "Clear Search" : "New Case"}
+                      onAction={search ? () => setSearch('') : () => navigate('/patients/new')}
+                      variant="card"
+                      className="my-8"
+                    />
                   </td>
                 </tr>
               ) : records.data.map((record: any) => (
@@ -203,7 +206,17 @@ export default function MedicalCaseListPage() {
           {isLoading ? (
             <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: 48, color: '#94a3b8' }}>Loading records...</div>
           ) : !records?.data?.length ? (
-            <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: 48, color: '#94a3b8' }}>No records found.</div>
+            <div style={{ gridColumn: '1/-1' }}>
+              <EmptyState 
+                icon={Activity}
+                title={search ? "No matches found" : "No clinical records"}
+                description={search ? `No records matching "${search}" were found.` : "The clinical registry is currently empty."}
+                actionLabel={search ? "Clear Search" : "New Case"}
+                onAction={search ? () => setSearch('') : () => navigate('/patients/new')}
+                variant="card"
+                className="my-8"
+              />
+            </div>
           ) : records.data.map((record: any) => (
             <div
               key={record.id}

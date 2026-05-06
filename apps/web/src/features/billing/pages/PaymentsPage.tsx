@@ -10,6 +10,7 @@ import { PaymentModeEnum } from '@mmc/validation';
 import type { PaymentWithPatient } from '@mmc/types';
 import { Pagination } from '@/shared/components/Pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
 import { Drawer } from '@/shared/components/drawer';
 import { format } from 'date-fns';
 import '../styles/billing.css';
@@ -184,15 +185,15 @@ export default function PaymentsPage() {
       {historyQuery.isLoading ? (
         <TableSkeleton rows={10} columns={7} />
       ) : filtered.length === 0 ? (
-        <div className="bill-card" style={{ boxShadow: 'var(--pp-premium-shadow)' }}>
-          <div className="bill-empty">
-            <Banknote size={36} className="bill-empty-icon" />
-            <p className="bill-empty-text">No payment records found.</p>
-            <p style={{ fontSize: '0.78rem', color: 'var(--pp-text-3)', marginTop: 4 }}>
-              {regidFilter ? 'Try a different Reg ID.' : 'Record a manual counter payment to get started.'}
-            </p>
-          </div>
-        </div>
+        <EmptyState 
+          icon={Banknote}
+          title={regidFilter || fromDate || toDate ? "No matches found" : "No payment records found"}
+          description={regidFilter || fromDate || toDate ? `No transactions matching your search filters were found.` : "The ledger is empty. Record a manual counter payment or check for online transactions."}
+          actionLabel={regidFilter || fromDate || toDate ? "Clear Filters" : "Record Payment"}
+          onAction={regidFilter || fromDate || toDate ? () => { setRegidFilter(''); setFromDate(''); setToDate(''); setPage(1); } : () => setIsModalOpen(true)}
+          variant="card"
+          className="my-8"
+        />
       ) : (
         <div className="bill-card fade-in" style={{ boxShadow: 'var(--pp-premium-shadow)' }}>
           <div className="bill-table-container">

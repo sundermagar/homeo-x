@@ -13,6 +13,7 @@ import type { CreateExpenseInput, ListExpensesQuery } from '@mmc/validation';
 import { Pagination } from '@/shared/components/Pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { Drawer } from '@/shared/components/drawer';
+import { EmptyState } from '@/components/shared/empty-state';
 import '../styles/billing.css';
 
 const EMPTY_FORM = {
@@ -210,10 +211,15 @@ export default function ExpensesPage() {
         {isLoading ? (
           <TableSkeleton rows={10} columns={6} />
         ) : filtered.length === 0 ? (
-          <div className="bill-empty">
-            <Wallet size={40} className="bill-empty-icon" />
-            <p className="bill-empty-text">No expenses recorded yet.</p>
-          </div>
+          <EmptyState 
+            icon={Wallet}
+            title={search || headFilter ? "No matches found" : "No expenses recorded"}
+            description={search || headFilter ? `No expense entries matching your search filters were found.` : "Maintain a healthy clinic by tracking your operational costs."}
+            actionLabel={search || headFilter ? "Clear Filters" : "Add Expense"}
+            onAction={search || headFilter ? () => { setSearch(''); setHeadFilter(''); } : handleOpenCreate}
+            variant="card"
+            className="my-8"
+          />
         ) : (
           <div className="bill-table-container">
             <table className="bill-table">

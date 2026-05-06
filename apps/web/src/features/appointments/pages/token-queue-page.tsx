@@ -12,6 +12,7 @@ import { apiClient } from '@/infrastructure/api-client';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { VitalsFormModal } from '../../medical-case/components/vitals-form-modal';
 import { Pagination } from '@/components/shared/pagination';
+import { EmptyState } from '@/components/shared/empty-state';
 import '../styles/appointments.css';
 
 const WAIT_STATUS = { 0: 'Waiting', 1: 'Called', 2: 'Done' } as Record<number, string>;
@@ -547,10 +548,13 @@ export default function TokenQueuePage() {
           {wLoading ? (
             viewMode === 'grid' ? renderSkeletonGrid() : renderSkeletonList()
           ) : (inProgress.length + waiting.length) === 0 ? (
-            <div className="appt-empty" style={{ padding: 60 }}>
-              <Users size={28} className="appt-empty-icon" />
-              <p className="appt-empty-text">No patients in the waiting room</p>
-            </div>
+            <EmptyState 
+              icon={Users}
+              title="Waiting room is empty"
+              description="No patients are currently in the active waiting queue for this practitioner."
+              variant="card"
+              className="my-8"
+            />
           ) : (
             <>
               {viewMode === 'grid' ? renderGridView() : renderListView()}
@@ -566,10 +570,13 @@ export default function TokenQueuePage() {
           {aLoading ? (
             renderSkeletonList()
           ) : todayAppts.length === 0 ? (
-            <div className="appt-empty">
-              <Ticket size={28} className="appt-empty-icon" />
-              <p className="appt-empty-text">No appointments found today</p>
-            </div>
+            <EmptyState 
+              icon={Ticket}
+              title="No tokens issued"
+              description="There are no appointments scheduled for today that require token management."
+              variant="card"
+              className="my-8"
+            />
           ) : (
             <>
               <div className="appt-card">
@@ -690,7 +697,17 @@ export default function TokenQueuePage() {
                       </tr>
                     ))
                   ) : !collection || collection.records.length === 0 ? (
-                    <tr><td colSpan={4} style={{ padding: 80, textAlign: 'center', color: 'var(--pp-text-3)' }}>No clinical receipts identified for this target date.</td></tr>
+                    <tr>
+                      <td colSpan={4}>
+                        <EmptyState 
+                          icon={IndianRupee}
+                          title="No transactions yet"
+                          description="The collection ledger is currently empty for today. Receipts will appear here as payments are processed."
+                          variant="card"
+                          className="my-8"
+                        />
+                      </td>
+                    </tr>
                   ) : (
                     <>
                       {paginatedData.map((r: any) => (

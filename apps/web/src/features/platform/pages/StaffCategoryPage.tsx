@@ -8,6 +8,8 @@ import { createStaffSchema, updateStaffSchema } from '@mmc/validation';
 import '../styles/platform.css';
 
 import { Drawer } from '@/shared/components/drawer';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
 
 
 
@@ -352,9 +354,17 @@ export default function StaffCategoryPage({ category }: { category: StaffCategor
 
       <div className="plat-card">
         {isLoading ? (
-          <div className="plat-empty"><p className="plat-empty-text">Loading...</p></div>
+          <TableSkeleton rows={10} columns={6} />
         ) : staff.length === 0 ? (
-          <div className="plat-empty"><Icon size={40} className="plat-empty-icon" /><p className="plat-empty-text">No records found.</p></div>
+          <EmptyState 
+            icon={Icon}
+            title={debouncedSearch ? "No matches found" : `No ${meta.label.toLowerCase()} found`}
+            description={debouncedSearch ? `No staff records matching "${debouncedSearch}" were found in this category.` : `Start building your clinic's ${meta.label.toLowerCase()} registry.`}
+            actionLabel={debouncedSearch ? "Clear Search" : `Add ${meta.label.replace(/s$/, '')}`}
+            onAction={debouncedSearch ? () => handleSearchChange('') : () => { setEditingId(null); setModalOpen(true); }}
+            variant="card"
+            className="my-8"
+          />
         ) : (
           <div className="plat-table-container">
             <table className="plat-table">

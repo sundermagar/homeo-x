@@ -7,6 +7,7 @@ import type { CreateAdditionalChargeInput } from '@mmc/validation';
 import { Pagination } from '@/shared/components/Pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { Drawer } from '@/shared/components/drawer';
+import { EmptyState } from '@/components/shared/empty-state';
 import '../styles/billing.css';
 import '../../platform/styles/platform.css';
 
@@ -140,10 +141,15 @@ export default function AdditionalChargesPage() {
         {isLoading ? (
           <TableSkeleton rows={8} columns={7} />
         ) : filtered.length === 0 ? (
-          <div className="plat-empty">
-            <PlusCircle size={40} className="plat-empty-icon" />
-            <p className="plat-empty-text">No additional charges found.</p>
-          </div>
+          <EmptyState 
+            icon={PlusCircle}
+            title={search || regidFilter ? "No matches found" : "No additional charges"}
+            description={search || regidFilter ? `No charges matching your search filters were found.` : "Manage extra clinical services by adding your first additional charge."}
+            actionLabel={search || regidFilter ? "Clear Filters" : "Add Charge"}
+            onAction={search || regidFilter ? () => { setSearch(''); setRegidFilter(''); } : handleOpenCreate}
+            variant="card"
+            className="my-8"
+          />
         ) : (
           <div className="plat-table-container" style={{ boxShadow: 'var(--pp-premium-shadow)' }}>
             <table className="plat-table">

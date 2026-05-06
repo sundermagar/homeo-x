@@ -15,6 +15,7 @@ import '../../appointments/styles/appointments.css';
 import '../../dashboard/pages/role-dashboards.css';
 import '../styles/patients.css';
 import { Pagination } from '@/components/shared/pagination';
+import { EmptyState } from '@/components/shared/empty-state';
 
 /* ─── Helpers ──────────────────────────────────────────────────────────────── */
 function formatDate(date: Date | string | null | undefined) {
@@ -237,16 +238,15 @@ export default function PatientListPage() {
       {isLoading ? (
         <TableSkeleton rows={10} cols={6} />
       ) : patients.length === 0 ? (
-        <div className="pp-empty-enhanced">
-          <div className="pp-empty-icon-circle">
-            <ClipboardList size={32} />
-          </div>
-          <p className="pp-empty-title">No patients found</p>
-          <p className="pp-empty-sub">Try adjusting your search filters or register a new patient.</p>
-          <button className="btn-primary" onClick={() => { setDrawerRegid(null); setIsDrawerOpen(true); }}>
-            <Plus size={16} /> Register Patient
-          </button>
-        </div>
+        <EmptyState 
+          icon={ClipboardList}
+          title={debouncedSearch ? "No matches found" : "No patients registered"}
+          description={debouncedSearch ? `We couldn't find any patient matching "${debouncedSearch}".` : "Your clinic's patient registry is empty. Register your first patient to begin tracking clinical records."}
+          actionLabel={debouncedSearch ? "Clear Search" : "Register Patient"}
+          onAction={debouncedSearch ? () => handleSearchChange('') : () => { setDrawerRegid(null); setIsDrawerOpen(true); }}
+          variant="card"
+          className="my-8"
+        />
       ) : viewMode === 'list' ? (
         <div className="pp-table-container-enhanced">
           <div className="pp-table-scroll">

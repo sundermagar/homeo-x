@@ -2,13 +2,15 @@ import React, { useState } from 'react';
 import { Wallet, Plus, X, RefreshCw, Trash2, Edit2, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useExpenseHeads, useCreateExpenseHead, useUpdateExpenseHead, useDeleteExpenseHead } from '@/features/billing/hooks/use-accounts';
-import { Drawer } from '@/shared/components/drawer';
+// import { Drawer } from '@/shared/components/drawer';
 import '../../platform/styles/platform.css';
 import '../styles/settings.css';
 
 import { Pagination } from '@/shared/components/Pagination';
 import { usePagination } from '@/shared/hooks/use-pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
+import { Drawer } from '@/shared/components/drawer';
 
 const EMPTY_FORM = { name: '', description: '', isActive: true };
 
@@ -113,10 +115,15 @@ export default function ExpensesHeadPage() {
         {isLoading ? (
           <TableSkeleton rows={5} columns={5} />
         ) : filtered.length === 0 ? (
-          <div className="plat-empty">
-            <Wallet size={40} className="plat-empty-icon" />
-            <p className="plat-empty-text">No expense categories found.</p>
-          </div>
+          <EmptyState 
+            icon={Wallet}
+            title={search ? "No matches found" : "No expense categories"}
+            description={search ? `No categories matching "${search}" were found.` : "Organize your clinic accounting by adding your first expense category."}
+            actionLabel={search ? "Clear Search" : "Add Category"}
+            onAction={search ? () => setSearch('') : handleOpenCreate}
+            variant="card"
+            className="my-8"
+          />
         ) : (
           <>
           <div className="plat-table-container">

@@ -4,11 +4,12 @@ import {
   Package, Clock, CheckCircle2, AlertCircle, Phone,
   UsersRound, BellRing, ExternalLink, LayoutGrid, List,
   ChevronLeft, ChevronRight, Search, Plus, Edit3, Trash2,
-  FileText, Users
+  FileText, Users, BookOpen, Gift, Library
 } from 'lucide-react';
 import { apiClient } from '@/infrastructure/api-client';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { Pagination } from '@/components/shared/pagination';
+import { EmptyState } from '@/components/shared/empty-state';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import './operations-dashboard.css';
 
@@ -336,11 +337,13 @@ export default function OperationsDashboard() {
             {loading ? (
               <TableSkeleton rows={5} columns={shipmentCols.length} />
             ) : shipments.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: 48, background: 'var(--bg-surface-2)', borderRadius: 12 }}>
-                <Package size={36} strokeWidth={1} style={{ color: 'var(--text-muted)', marginBottom: 12 }} />
-                <p style={{ color: 'var(--text-main)', fontWeight: 600, marginBottom: 4 }}>No shipments found</p>
-                <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Assign a courier to start tracking medicine deliveries.</p>
-              </div>
+              <EmptyState 
+                icon={Package}
+                title="No shipments found"
+                description="Assign a courier to start tracking medicine deliveries."
+                actionLabel="+ Assign Courier"
+                onAction={() => setModalType('courier')}
+              />
             ) : viewMode === 'list' ? (
               <div className="plat-table-container">
                 <table className="plat-table">
@@ -476,10 +479,13 @@ export default function OperationsDashboard() {
                 {loading ? (
                   <TableSkeleton rows={5} columns={leadCols.length} />
                 ) : leads.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: 40, background: 'var(--bg-surface-2)', borderRadius: 12 }}>
-                    <UsersRound size={32} strokeWidth={1} style={{ color: 'var(--text-muted)', marginBottom: 12 }} />
-                    <p style={{ color: 'var(--text-main)', fontWeight: 600 }}>No leads found</p>
-                  </div>
+                  <EmptyState 
+                    icon={UsersRound}
+                    title="No leads found"
+                    description="Capture patient inquiries to start building your clinical pipeline."
+                    variant="default"
+                    className="my-4"
+                  />
                 ) : (
                   <div className="plat-table-container">
                     <table className="plat-table">
@@ -579,7 +585,17 @@ export default function OperationsDashboard() {
                           </tr>
                         ))}
                         {referrals.length === 0 && !loading && (
-                          <tr><td colSpan={4} style={{ textAlign: 'center', padding: 20 }}>No referrals found.</td></tr>
+                          <tr>
+                            <td colSpan={4}>
+                              <EmptyState 
+                                icon={Gift}
+                                title="No referrals found"
+                                description="Log your first patient referral to track community growth."
+                                variant="default"
+                                className="my-4"
+                              />
+                            </td>
+                          </tr>
                         )}
                       </tbody>
                     </table>
@@ -677,9 +693,13 @@ export default function OperationsDashboard() {
             {loading ? (
               <TableSkeleton rows={5} columns={dictCols.length} />
             ) : dictionary.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: 40, background: 'var(--bg-surface-2)', borderRadius: 12 }}>
-                <p style={{ color: 'var(--text-muted)' }}>No dictionary entries found.</p>
-              </div>
+              <EmptyState 
+                icon={BookOpen}
+                title="No dictionary entries found"
+                description="Populate your clinical dictionary with terminologies for quick reference."
+                variant="default"
+                className="my-4"
+              />
             ) : viewMode === 'list' ? (
               <div className="plat-table-container">
                 <table className="plat-table">
@@ -752,9 +772,15 @@ export default function OperationsDashboard() {
             {loading ? (
               <TableSkeleton rows={5} columns={bookCols.length} />
             ) : books.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: 40, background: 'var(--pp-warm-1)', borderRadius: 12 }}>
-                <p style={{ color: 'var(--pp-muted)' }}>No library resources found.</p>
-              </div>
+              <EmptyState 
+                icon={Library}
+                title="No library resources found"
+                description="Upload medical books and PDFs to build your digital clinical library."
+                actionLabel="+ Upload Resource"
+                onAction={() => setModalType('book')}
+                variant="default"
+                className="my-4"
+              />
             ) : viewMode === 'list' ? (
               <div className="plat-table-container">
                 <table className="plat-table">

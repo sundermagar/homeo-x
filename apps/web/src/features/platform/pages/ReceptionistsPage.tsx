@@ -11,6 +11,7 @@ import '../styles/platform.css';
 
 import { Pagination } from '@/shared/components/Pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
 import { Drawer } from '@/shared/components/drawer';
 
 
@@ -610,18 +611,15 @@ export default function ReceptionistsPage() {
         {isLoading ? (
           <TableSkeleton rows={itemsPerPage} columns={6} />
         ) : staff.length === 0 ? (
-          <div className="plat-empty" style={{ minHeight: 400 }}>
-            <div className="plat-empty-icon-wrap mb-6">
-              <ClipboardList size={48} className="text-blue-500 opacity-20" />
-            </div>
-            <h3 className="text-lg font-semibold text-slate-800 mb-2">No Receptionists Registered</h3>
-            <p className="text-sm text-slate-500 max-w-xs text-center mb-8">
-              Front-desk operations start here. Add your first receptionist to begin coordinating patient intake.
-            </p>
-            <button className="plat-btn plat-btn-primary" onClick={() => { setEditingId(null); setModalOpen(true); }}>
-              <Plus size={14} /> Register First Receptionist
-            </button>
-          </div>
+          <EmptyState 
+            icon={ClipboardList}
+            title="No Receptionists Registered"
+            description="Front-desk operations start here. Add your first receptionist to begin coordinating patient intake."
+            actionLabel="Register First Receptionist"
+            onAction={() => { setEditingId(null); setModalOpen(true); }}
+            variant="card"
+            className="my-8"
+          />
         ) : (
           <>
             <div className="plat-table-container">

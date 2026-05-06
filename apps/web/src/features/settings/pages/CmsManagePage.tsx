@@ -9,6 +9,7 @@ import '../styles/settings.css';
 import { Pagination } from '@/shared/components/Pagination';
 import { usePagination } from '@/shared/hooks/use-pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
 
 export default function CmsManagePage() {
   // Static Pages Hooks
@@ -111,10 +112,15 @@ export default function CmsManagePage() {
         {isLoading ? (
           <TableSkeleton rows={5} columns={5} />
         ) : filteredPages.length === 0 ? (
-          <div className="plat-empty">
-            <Globe size={40} className="plat-empty-icon" />
-            <p className="plat-empty-text">No static pages found.</p>
-          </div>
+          <EmptyState 
+            icon={Globe}
+            title={search ? "No matches found" : "No static pages found"}
+            description={search ? `No pages matching "${search}" were found.` : "Start managing your clinical website content by adding your first static page."}
+            actionLabel={search ? "Clear Search" : "Add New Page"}
+            onAction={search ? () => setSearch('') : handleOpenCreate}
+            variant="card"
+            className="my-8"
+          />
         ) : (
           <>
           <div className="plat-table-container">

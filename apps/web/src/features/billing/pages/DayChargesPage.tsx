@@ -6,6 +6,7 @@ import type { CreateDayChargeInput } from '@mmc/validation';
 import { Drawer } from '@/shared/components/drawer';
 import { Pagination } from '@/shared/components/Pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
 import '../../platform/styles/platform.css';
 import '../styles/billing.css';
 
@@ -106,10 +107,15 @@ export default function DayChargesPage() {
         {isLoading ? (
           <TableSkeleton rows={5} columns={4} />
         ) : filtered.length === 0 ? (
-          <div className="plat-empty">
-            <Calendar size={40} className="plat-empty-icon" />
-            <p className="plat-empty-text">No day charges configured. Add your first plan.</p>
-          </div>
+          <EmptyState 
+            icon={Calendar}
+            title={search ? "No matches found" : "No day charges configured"}
+            description={search ? `No duration-based plans matching "${search}" were found.` : "Start configuring your clinical treatment pricing by adding your first day charge plan."}
+            actionLabel={search ? "Clear Search" : "Add Day Charge"}
+            onAction={search ? () => setSearch('') : handleOpenCreate}
+            variant="card"
+            className="my-8"
+          />
         ) : (
           <div className="plat-table-container">
             <table className="plat-table">

@@ -13,6 +13,7 @@ import '../styles/platform.css';
 
 import { Pagination } from '@/components/shared/pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
 import { Drawer } from '@/shared/components/drawer';
 
 const CATEGORY = 'doctor' as const;
@@ -782,13 +783,15 @@ export default function DoctorsPage() {
         {isLoading ? (
           <TableSkeleton rows={itemsPerPage} columns={6} />
         ) : staff.length === 0 ? (
-          <div className="pp-empty-enhanced" style={{ minHeight: 300 }}>
-            <div className="pp-empty-icon-circle">
-              <Stethoscope size={32} />
-            </div>
-            <p className="pp-empty-title">No doctors found</p>
-            <p className="pp-empty-sub">Adjust your filters or add a new clinical practitioner to the registry.</p>
-          </div>
+          <EmptyState 
+            icon={Stethoscope}
+            title="No doctors found"
+            description="Adjust your filters or add a new clinical practitioner to the registry."
+            actionLabel="Register New Doctor"
+            onAction={openCreate}
+            variant="card"
+            className="my-8"
+          />
         ) : (
           <>
             <div className="pp-table-container-enhanced">
