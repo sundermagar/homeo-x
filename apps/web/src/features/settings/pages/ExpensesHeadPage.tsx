@@ -166,13 +166,15 @@ export default function ExpensesHeadPage() {
               </tbody>
             </table>
           </div>
-          <Pagination
+          <div style={{ marginTop: '20px' }}>
+            <Pagination
             totalItems={totalItems}
             itemsPerPage={itemsPerPage}
             currentPage={currentPage}
             onPageChange={setCurrentPage}
             onLimitChange={setItemsPerPage}
           />
+          </div>
           </>
         )}
       </div>      <Drawer

@@ -364,18 +364,21 @@ export default function PdfSettingsPage() {
                     ))}
                   </tbody>
                 </table>
-                <div style={{ padding: '0 20px 20px' }}>
-                  <Pagination
-                    totalItems={totalItems}
-                    itemsPerPage={itemsPerPage}
-                    currentPage={currentPage}
-                    onPageChange={setCurrentPage}
-                    onLimitChange={setItemsPerPage}
-                  />
-                </div>
               </>
             )}
           </div>
+
+          {!isLoading && filteredConfigs.length > 0 && (
+            <div style={{ marginTop: '20px' }}>
+              <Pagination
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                currentPage={currentPage}
+                onPageChange={setCurrentPage}
+                onLimitChange={setItemsPerPage}
+              />
+            </div>
+          )}
         </>
       ) : (
         <div className="plat-settings-grid">

@@ -3616,11 +3616,14 @@ a {
     padding: 12px 14px !important;
     gap: 10px !important;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
   }
 
   .pp-pagination-info-wrap {
     gap: 10px;
+    justify-content: center;
   }
 }
 

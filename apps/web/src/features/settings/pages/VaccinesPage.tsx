@@ -268,7 +268,7 @@ export default function VaccinesPage() {
             </table>
           </div>
 
-          <div style={{ padding: '0 16px' }}>
+          <div style={{ marginTop: '20px' }}>
             <Pagination
               totalItems={totalItems}
               itemsPerPage={itemsPerPage}
