@@ -158,7 +158,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
 
       const { start, boundary, prevStart, prevBoundary } = this.getPeriodDates(period);
       const docCol = await this.getDoctorColumn();
-      
+
       const docApptFilter = doctorId ? sql` AND ${sql.identifier(docCol)} = ${doctorId}` : sql``;
       const docWaitFilter = doctorId ? sql` AND doctor_id = ${doctorId}` : sql``;
       const docBillFilter = doctorId ? sql` AND b.doctor_id = ${doctorId}` : sql``;
@@ -172,7 +172,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           return fallback;
         }
       };
-  
+
       const [counts, finance, wait, followUp] = await Promise.all([
         safeQuery(this.db.execute(sql`
           SELECT
@@ -183,10 +183,10 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           FROM (
             SELECT 'P' as type, created_at, NULL::text as date FROM case_datas WHERE (deleted_at IS NULL OR deleted_at::text = '') AND (clinic_id = ${contextId} OR clinic_id IS NULL)
             UNION ALL
-            SELECT 'A' as type, created_at, booking_date as date FROM appointments WHERE (deleted_at IS NULL OR deleted_at::text = '') AND (clinic_id = ${contextId} OR clinic_id IS NULL) ${docApptFilter}
+            SELECT 'A' as type, created_at, booking_date::text as date FROM appointments WHERE (deleted_at IS NULL OR deleted_at::text = '') AND (clinic_id = ${contextId} OR clinic_id IS NULL) ${docApptFilter}
           ) t
         `), { curr_patients: 0, prev_patients: 0, curr_appts: 0, prev_appts: 0 }),
-  
+
         safeQuery(this.db.execute(sql`
           SELECT
             COALESCE(sum(curr_bill_charges), 0)::numeric as curr_charges,
@@ -224,7 +224,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             AND (r.clinic_id = ${contextId} OR r.clinic_id IS NULL)
           ) t
         `), { curr_charges: 0, curr_received: 0, curr_revenue: 0, curr_expenses: 0, prev_charges: 0, prev_received: 0, prev_revenue: 0 }),
-  
+
         safeQuery(this.db.execute(sql`
           SELECT
             COALESCE(avg(extract(epoch from (called_at - checked_in_at))/60) FILTER (WHERE waitlist.date >= ${start}::date AND waitlist.date < ${boundary}::date), 0)::int as curr_wait,
@@ -233,7 +233,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           WHERE called_at IS NOT NULL AND checked_in_at IS NOT NULL AND (deleted_at IS NULL OR deleted_at::text = '')
           ${docWaitFilter}
         `), { curr_wait: 0, prev_wait: 0 }),
-  
+
         safeQuery(this.db.execute(sql`
           SELECT count(*)::int as count FROM appointments
           WHERE booking_date >= ${start}::text AND booking_date < ${boundary}::text AND visit_type = 'FollowUp' AND (deleted_at IS NULL OR deleted_at::text = '')
@@ -241,40 +241,40 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         `), { count: 0 }),
       ]);
 
-    const currE = Number(finance.curr_revenue) || 0;
-    const prevE = Number(finance.prev_revenue) || 0;
-    const currP = counts.curr_patients || 0;
-    const prevP = counts.prev_patients || 0;
+      const currE = Number(finance.curr_revenue) || 0;
+      const prevE = Number(finance.prev_revenue) || 0;
+      const currP = counts.curr_patients || 0;
+      const prevP = counts.prev_patients || 0;
 
-    const revTrend = prevE > 0 ? ((currE - prevE) / prevE * 100).toFixed(1) : '0.0';
-    const patTrend = prevP > 0 ? ((currP - prevP) / prevP * 100).toFixed(1) : '0.0';
+      const revTrend = prevE > 0 ? ((currE - prevE) / prevE * 100).toFixed(1) : '0.0';
+      const patTrend = prevP > 0 ? ((currP - prevP) / prevP * 100).toFixed(1) : '0.0';
 
-    const currRate = Number(finance.curr_charges) > 0 ? Math.round((Number(finance.curr_received) / Number(finance.curr_charges)) * 100) : 0;
-    const prevRate = Number(finance.prev_charges) > 0 ? Math.round((Number(finance.prev_received) / Number(finance.prev_charges)) * 100) : 0;
-    const collTrend = prevRate > 0 ? ((currRate - prevRate) / prevRate * 100).toFixed(1) : '0.0';
+      const currRate = Number(finance.curr_charges) > 0 ? Math.round((Number(finance.curr_received) / Number(finance.curr_charges)) * 100) : 0;
+      const prevRate = Number(finance.prev_charges) > 0 ? Math.round((Number(finance.prev_received) / Number(finance.prev_charges)) * 100) : 0;
+      const collTrend = prevRate > 0 ? ((currRate - prevRate) / prevRate * 100).toFixed(1) : '0.0';
 
-    const currWait = Number(wait.curr_wait) || 0;
-    const prevWait = Number(wait.prev_wait) || 0;
-    const waitTrend = prevWait > 0 ? ((currWait - prevWait) / prevWait * 100).toFixed(1) : '0.0';
+      const currWait = Number(wait.curr_wait) || 0;
+      const prevWait = Number(wait.prev_wait) || 0;
+      const waitTrend = prevWait > 0 ? ((currWait - prevWait) / prevWait * 100).toFixed(1) : '0.0';
 
-    const currA = counts.curr_appts || 0;
-    const prevA = counts.prev_appts || 0;
-    const casesTrend = prevA > 0 ? (((currA - prevA) / prevA) * 100).toFixed(1) : '0.0';
+      const currA = counts.curr_appts || 0;
+      const prevA = counts.prev_appts || 0;
+      const casesTrend = prevA > 0 ? (((currA - prevA) / prevA) * 100).toFixed(1) : '0.0';
 
-    return {
-      newPatientsCount: currP,
-      patientTrend: patTrend,
-      casesCount: currA,
-      casesTrend: casesTrend,
-      todaysCollection: currE,
-      revenueTrend: revTrend,
-      followUpsCount: followUp.count || 0,
-      todaysExpenses: Number(finance.curr_expenses) || 0,
-      collectionRate: currRate,
-      collectionRateTrend: collTrend,
-      avgWaitTime: currWait,
-      avgWaitTimeTrend: waitTrend
-    } as DashboardKpis;
+      return {
+        newPatientsCount: currP,
+        patientTrend: patTrend,
+        casesCount: currA,
+        casesTrend: casesTrend,
+        todaysCollection: currE,
+        revenueTrend: revTrend,
+        followUpsCount: followUp.count || 0,
+        todaysExpenses: Number(finance.curr_expenses) || 0,
+        collectionRate: currRate,
+        collectionRateTrend: collTrend,
+        avgWaitTime: currWait,
+        avgWaitTimeTrend: waitTrend
+      } as DashboardKpis;
     });
   }
 
@@ -287,8 +287,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     const dd = String(istDate.getDate()).padStart(2, '0');
     const today = `${y}-${mm}-${dd}`;
     return this.getCached(`queue:${contextId}:${today}:${doctorId ?? ''}`, 0, async () => {
-      // Direct doctor_id comparison - use 'a' since 'w' is not available in the main query scope
-      const docIdFilter = doctorId ? sql` AND a.doctor_id = ${doctorId}` : sql``;
+      const waitlistDocFilter = doctorId ? sql` AND w.doctor_id = ${doctorId}` : sql``;
+      const apptDocFilter = doctorId ? sql` AND a.doctor_id = ${doctorId}` : sql``;
       // Use proper date comparison
       const dateCond = sql`(w.date = ${today}::date OR w.date::text LIKE '%/%%/${dd}' || '%')`;
       const apptDateCond = sql`(a.booking_date = ${today}::text OR a.booking_date LIKE '%/%%/${dd}' || '%')`;
@@ -306,7 +306,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           FROM waitlist w
           WHERE ${dateCond} AND (w.deleted_at IS NULL OR w.deleted_at::text = '')
             AND (w.clinic_id = ${contextId} OR w.clinic_id IS NULL)
-            ${docIdFilter}
+            ${waitlistDocFilter}
         )
         SELECT
           q.wl_id,
@@ -365,7 +365,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           FROM appointments a
           WHERE ${apptDateCond} AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
             AND (a.clinic_id = ${contextId} OR a.clinic_id IS NULL)
-            ${docIdFilter}
+            ${apptDocFilter}
             AND NOT EXISTS (SELECT 1 FROM today_waitlist tw2 WHERE tw2.appointment_id = a.id)
         ) q
         LEFT JOIN case_datas p ON p.id = q.patient_id
@@ -436,40 +436,40 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       const revInfo = await this.getRevenueTableInfo();
 
 
-    const queries: any[] = [];
+      const queries: any[] = [];
 
-    // Always query appointments
-    queries.push(this.db.execute(sql`
+      // Always query appointments
+      queries.push(this.db.execute(sql`
       SELECT 'appointment' as type, 'Appointment - ' || COALESCE(p.first_name, 'Unknown') as title, a.booking_date::text as subtitle, a.created_at
       FROM appointments a LEFT JOIN case_datas p ON a.patient_id = p.id
       WHERE (a.deleted_at IS NULL OR a.deleted_at::text = '')
       ORDER BY a.id DESC LIMIT ${limit}
     `));
 
-    // Conditionally query revenue table
-    if (revInfo) {
-      queries.push(this.db.execute(sql`
+      // Conditionally query revenue table
+      if (revInfo) {
+        queries.push(this.db.execute(sql`
         SELECT 'payment' as type, 'Invoice paid - ' || p.first_name as title, 'Rs.' || r.${sql.identifier(revInfo.amountCol)} as subtitle, r.created_at, p.regid
         FROM ${sql.identifier(revInfo.name)} r 
         JOIN case_datas p ON r.regid = p.regid
         WHERE (r.deleted_at IS NULL OR r.deleted_at::text = '')
         ORDER BY r.id DESC LIMIT ${limit}
       `));
-    }
+      }
 
-    const results = await Promise.all(queries);
-    const combined = results.flatMap(res => res as any[]);
+      const results = await Promise.all(queries);
+      const combined = results.flatMap(res => res as any[]);
 
-    // Sort combined results by created_at desc
-    combined.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      // Sort combined results by created_at desc
+      combined.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-    return combined.slice(0, limit).map(a => ({
-      type: a.type,
-      title: a.title,
-      subtitle: a.subtitle,
-      createdAt: a.created_at,
-      regid: a.regid
-    }));
+      return combined.slice(0, limit).map(a => ({
+        type: a.type,
+        title: a.title,
+        subtitle: a.subtitle,
+        createdAt: a.created_at,
+        regid: a.regid
+      }));
     });
   }
 
@@ -506,21 +506,21 @@ export class DashboardRepositoryPg implements IDashboardRepository {
 
   async getRevenueSeries(period: string, contextId: number, paymentMode?: string): Promise<RevenueSeries[]> {
     return this.getCached(`revSeries:${contextId}:${period}:${paymentMode ?? ''}`, 60_000, async () => {
-      const isPlatformView = (this.db as any).session?.client?.options?.search_path?.includes('public') && 
-                            !(this.db as any).session?.client?.options?.search_path?.includes('tenant_');
+      const isPlatformView = (this.db as any).session?.client?.options?.search_path?.includes('public') &&
+        !(this.db as any).session?.client?.options?.search_path?.includes('tenant_');
 
       if (isPlatformView) {
         return this.getPlatformRevenueSeries(period);
       }
 
-    let modeFilter = '';
-    if (paymentMode === 'Cash') {
-      modeFilter = "AND (LOWER(COALESCE(payment_mode, '')) = 'cash' OR payment_mode IS NULL OR payment_mode = '')";
-    } else if (paymentMode === 'UPI/Card') {
-      modeFilter = "AND LOWER(COALESCE(payment_mode, '')) IN ('upi', 'card', 'online', 'bank', 'gpay', 'phonepe', 'paytm')";
-    }
+      let modeFilter = '';
+      if (paymentMode === 'Cash') {
+        modeFilter = "AND (LOWER(COALESCE(payment_mode, '')) = 'cash' OR payment_mode IS NULL OR payment_mode = '')";
+      } else if (paymentMode === 'UPI/Card') {
+        modeFilter = "AND LOWER(COALESCE(payment_mode, '')) IN ('upi', 'card', 'online', 'bank', 'gpay', 'phonepe', 'paytm')";
+      }
 
-    const results = await this.db.execute(sql`
+      const results = await this.db.execute(sql`
       WITH months AS (
         SELECT (date_trunc('month', NOW()) - (m || ' months')::interval)::date as m
         FROM generate_series(0, 5) m
@@ -556,17 +556,17 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       ORDER BY months.m ASC
     `);
 
-    return (results as any[]).map(r => ({
-      month: r.month,
-      revenue: r.revenue
-    }));
+      return (results as any[]).map(r => ({
+        month: r.month,
+        revenue: r.revenue
+      }));
     });
   }
 
   async getMultiRevenueSeries(period: string, contextId: number): Promise<{ total: RevenueSeries[]; cash: RevenueSeries[]; upi: RevenueSeries[] }> {
     return this.getCached(`multiRevSeries:${contextId}:${period}`, 60_000, async () => {
       const { start, end } = this.getPeriodDates(period);
-      
+
       let interval = '1 month';
       let labelFormat = 'Mon';
       let truncUnit = 'month';
@@ -635,12 +635,12 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       ORDER BY periods.p ASC
     `);
 
-    const data = results as any[];
-    return {
-      total: data.map(r => ({ month: r.month, revenue: r.total })),
-      cash: data.map(r => ({ month: r.month, revenue: r.cash })),
-      upi: data.map(r => ({ month: r.month, revenue: r.upi })),
-    };
+      const data = results as any[];
+      return {
+        total: data.map(r => ({ month: r.month, revenue: r.total })),
+        cash: data.map(r => ({ month: r.month, revenue: r.cash })),
+        upi: data.map(r => ({ month: r.month, revenue: r.upi })),
+      };
     });
   }
 
@@ -864,13 +864,13 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     return this.getCached(`targets:${contextId}:${period}`, 60_000, async () => {
       const { start, boundary, prevStart, prevBoundary } = this.getPeriodDates(period);
 
-    // Current month actuals
-    const revInfo = await this.getRevenueTableInfo();
-    const amountCol = revInfo?.amountCol || 'charges';
+      // Current month actuals
+      const revInfo = await this.getRevenueTableInfo();
+      const amountCol = revInfo?.amountCol || 'charges';
 
-    const [combinedRes, waitRes] = await Promise.all([
-      // 1. Consolidated Revenue, Patients, and Collection Rate
-      this.db.execute(sql`
+      const [combinedRes, waitRes] = await Promise.all([
+        // 1. Consolidated Revenue, Patients, and Collection Rate
+        this.db.execute(sql`
         SELECT
           COALESCE(sum(curr_rev), 0) as curr_revenue,
           count(*) FILTER (WHERE type = 'P' AND is_curr = true) as curr_patients,
@@ -899,60 +899,60 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           SELECT 'P', false, 0, 0, 0, 0 FROM case_datas WHERE created_at >= ${prevStart} AND created_at < ${prevBoundary} AND (deleted_at IS NULL OR deleted_at::text = '') AND (clinic_id = ${contextId} OR clinic_id IS NULL)
         ) t
       `),
-      // 2. Wait Time
-      this.db.execute(sql`
+        // 2. Wait Time
+        this.db.execute(sql`
         SELECT COALESCE(avg(extract(epoch from (called_at - checked_in_at))/60), 0)::int as avg_wait 
         FROM waitlist 
         WHERE date >= ${start} AND date < ${boundary} AND called_at IS NOT NULL AND checked_in_at IS NOT NULL AND (deleted_at IS NULL OR deleted_at::text = '') AND (clinic_id = ${contextId} OR clinic_id IS NULL)
       `),
-    ]);
+      ]);
 
-    const combined = (combinedRes as any[])[0] || {};
-    const revenue = Number(combined.curr_revenue) || 0;
-    const patients = Number(combined.curr_patients) || 0;
-    const totalCharges = Number(combined.curr_charges) || 0;
-    const totalReceived = Number(combined.curr_received) || 0;
-    const avgWaitTime = ((waitRes as any[])[0] as any)?.avg_wait || 0;
-    const collectionRate = totalCharges > 0 ? Math.round((totalReceived / totalCharges) * 100) : 0;
+      const combined = (combinedRes as any[])[0] || {};
+      const revenue = Number(combined.curr_revenue) || 0;
+      const patients = Number(combined.curr_patients) || 0;
+      const totalCharges = Number(combined.curr_charges) || 0;
+      const totalReceived = Number(combined.curr_received) || 0;
+      const avgWaitTime = ((waitRes as any[])[0] as any)?.avg_wait || 0;
+      const collectionRate = totalCharges > 0 ? Math.round((totalReceived / totalCharges) * 100) : 0;
 
-    const prevRevenue = Number(combined.prev_revenue) || 0;
-    const prevPatients = Number(combined.prev_patients) || 0;
+      const prevRevenue = Number(combined.prev_revenue) || 0;
+      const prevPatients = Number(combined.prev_patients) || 0;
 
-    const revenueTarget = Math.max(Math.round((prevRevenue > 0 ? prevRevenue : revenue > 0 ? revenue : 1000) * 1.15), 5000);
-    const patientsTarget = Math.max(Math.round((prevPatients > 0 ? prevPatients : patients > 0 ? patients : 5) * 1.15), 10);
-    const collectionTarget = 95;
-    const waitTimeTarget = 20;
+      const revenueTarget = Math.max(Math.round((prevRevenue > 0 ? prevRevenue : revenue > 0 ? revenue : 1000) * 1.15), 5000);
+      const patientsTarget = Math.max(Math.round((prevPatients > 0 ? prevPatients : patients > 0 ? patients : 5) * 1.15), 10);
+      const collectionTarget = 95;
+      const waitTimeTarget = 20;
 
-    return [
-      {
-        label: 'Revenue',
-        current: revenue,
-        target: revenueTarget,
-        unit: '₹',
-        status: revenue >= revenueTarget ? 'success' : revenue >= revenueTarget * 0.7 ? 'warning' : 'danger',
-      },
-      {
-        label: 'Patients seen',
-        current: patients,
-        target: patientsTarget,
-        unit: '',
-        status: patients >= patientsTarget ? 'success' : patients >= patientsTarget * 0.7 ? 'warning' : 'danger',
-      },
-      {
-        label: 'Collection rate',
-        current: collectionRate,
-        target: collectionTarget,
-        unit: '%',
-        status: collectionRate >= collectionTarget ? 'success' : collectionRate >= collectionTarget - 5 ? 'warning' : 'danger',
-      },
-      {
-        label: 'Avg wait time',
-        current: avgWaitTime,
-        target: waitTimeTarget,
-        unit: 'm',
-        status: avgWaitTime <= waitTimeTarget ? 'success' : 'danger',
-      },
-    ];
+      return [
+        {
+          label: 'Revenue',
+          current: revenue,
+          target: revenueTarget,
+          unit: '₹',
+          status: revenue >= revenueTarget ? 'success' : revenue >= revenueTarget * 0.7 ? 'warning' : 'danger',
+        },
+        {
+          label: 'Patients seen',
+          current: patients,
+          target: patientsTarget,
+          unit: '',
+          status: patients >= patientsTarget ? 'success' : patients >= patientsTarget * 0.7 ? 'warning' : 'danger',
+        },
+        {
+          label: 'Collection rate',
+          current: collectionRate,
+          target: collectionTarget,
+          unit: '%',
+          status: collectionRate >= collectionTarget ? 'success' : collectionRate >= collectionTarget - 5 ? 'warning' : 'danger',
+        },
+        {
+          label: 'Avg wait time',
+          current: avgWaitTime,
+          target: waitTimeTarget,
+          unit: 'm',
+          status: avgWaitTime <= waitTimeTarget ? 'success' : 'danger',
+        },
+      ];
     });
   }
 
@@ -961,8 +961,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       const docCol = await this.getDoctorColumn();
       const today = new Date().toISOString().split('T')[0]!;
 
-    const [uRes, dRes] = await Promise.all([
-      this.db.execute(sql`
+      const [uRes, dRes] = await Promise.all([
+        this.db.execute(sql`
         SELECT u.name, u.type as specialty, count(a.id)::int as visit_count
         FROM users u
         LEFT JOIN appointments a ON a.${sql.identifier(docCol)} = u.id AND a.booking_date = ${today} AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
@@ -971,7 +971,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         GROUP BY u.name, u.type
         LIMIT 20
       `).catch(() => []),
-      this.db.execute(sql`
+        this.db.execute(sql`
         SELECT d.name, d.designation as specialty, count(a.id)::int as visit_count
         FROM doctors d
         LEFT JOIN appointments a ON a.${sql.identifier(docCol)} = d.id AND a.booking_date = ${today} AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
@@ -979,28 +979,28 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         GROUP BY d.name, d.designation
         LIMIT 20
       `).catch(() => [])
-    ]);
+      ]);
 
 
 
-    const combined = [...(uRes as any[]), ...(dRes as any[])];
+      const combined = [...(uRes as any[]), ...(dRes as any[])];
 
-    // Sort and de-duplicate by name
-    const uniqueMap = new Map();
-    combined.forEach(r => {
-      if (!uniqueMap.has(r.name) || (Number(r.visit_count) > Number(uniqueMap.get(r.name).visit_count))) {
-        uniqueMap.set(r.name, r);
-      }
-    });
+      // Sort and de-duplicate by name
+      const uniqueMap = new Map();
+      combined.forEach(r => {
+        if (!uniqueMap.has(r.name) || (Number(r.visit_count) > Number(uniqueMap.get(r.name).visit_count))) {
+          uniqueMap.set(r.name, r);
+        }
+      });
 
-    const result = Array.from(uniqueMap.values());
-    result.sort((a, b) => (Number(b.visit_count) || 0) - (Number(a.visit_count) || 0));
+      const result = Array.from(uniqueMap.values());
+      result.sort((a, b) => (Number(b.visit_count) || 0) - (Number(a.visit_count) || 0));
 
-    return result.map(r => ({
-      name: r.name || 'Unknown',
-      role: r.specialty || 'Doctor',
-      count: r.visit_count,
-    }));
+      return result.map(r => ({
+        name: r.name || 'Unknown',
+        role: r.specialty || 'Doctor',
+        count: r.visit_count,
+      }));
     });
   }
 
@@ -1025,7 +1025,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             FROM ${sql.identifier(schema)}.bills
             WHERE (deleted_at IS NULL OR deleted_at::text = '')
           `) as any[];
-          
+
           if (stats[0]) {
             totalPlatformRev += Number(stats[0].rev) || 0;
             totalPlatformDues += Number(stats[0].dues) || 0;
@@ -1097,7 +1097,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
               WHERE date >= ${start}::date AND date < ${boundary}::date AND called_at IS NOT NULL
             `)
           ]);
-  
+
           return { schema, results };
         } catch (e: any) {
           console.error(`[Platform KPI] Schema ${schema} failed:`, e?.message);
@@ -1110,7 +1110,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         const [c, f, w] = res.results as [any[], any[], any[]];
         const c0: any = c[0] || {};
         const rev = Number(f[0]?.curr_rev) || 0;
-        
+
         if (c0.curr_p > 0 || rev > 0) {
           console.log(`[Platform KPI] Schema ${res.schema} - Patients: ${c0.curr_p}, Revenue: ${rev}`);
         }
@@ -1118,7 +1118,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         totalP += c0.curr_p || 0; prevP += c0.prev_p || 0;
         totalA += c0.curr_a || 0; prevA += c0.prev_a || 0;
         totalRev += rev;
-        
+
         const w0: any = w[0] || {};
         if (Number(w0.wait_time) > 0) {
           totalWait += Number(w0.wait_time);
