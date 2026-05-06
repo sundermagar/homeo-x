@@ -145,6 +145,15 @@ export class DashboardRepositoryPg implements IDashboardRepository {
 
   async getKpis(period: string, contextId: number, doctorId?: number): Promise<DashboardKpis> {
     return this.getCached(`kpis:${contextId}:${period}:${doctorId ?? ''}`, 30_000, async () => {
+      const sp = (this.db as any).session?.client?.options?.search_path || 'NONE';
+      const isPlatformView = sp.includes('public') && !sp.includes('tenant_');
+
+      console.log(`[Dashboard] Context: ${contextId}, Path: ${sp}, Platform: ${isPlatformView}`);
+
+      if (isPlatformView && !doctorId) {
+        return this.getPlatformKpis(period);
+      }
+
       const { start, boundary, prevStart, prevBoundary } = this.getPeriodDates(period);
       const docCol = await this.getDoctorColumn();
       
@@ -152,91 +161,78 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       const docWaitFilter = doctorId ? sql` AND doctor_id = ${doctorId}` : sql``;
       const docBillFilter = doctorId ? sql` AND b.doctor_id = ${doctorId}` : sql``;
 
-    // Single round-trip: 4 queries instead of 9 (merged prev/curr + eliminated duplicate bills scans)
-    const [countsRes, financeRes, waitRes, followUpRes] = await Promise.all([
-      // 1. All Patient & Appointment Counts (Current & Previous)
-      this.db.execute(sql`
-        SELECT
-          count(*) FILTER (WHERE type = 'P' AND created_at >= ${start}::timestamp AND created_at < ${boundary}::timestamp)::int as curr_patients,
-          count(*) FILTER (WHERE type = 'P' AND created_at >= ${prevStart}::timestamp AND created_at < ${prevBoundary}::timestamp)::int as prev_patients,
-          count(*) FILTER (WHERE type = 'A' AND date >= ${start}::date AND date < ${boundary}::date)::int as curr_appts,
-          count(*) FILTER (WHERE type = 'A' AND date >= ${prevStart}::date AND date < ${prevBoundary}::date)::int as prev_appts
-        FROM (
-          SELECT 'P' as type, created_at, NULL::date as date FROM case_datas WHERE (deleted_at IS NULL OR deleted_at::text = '')
-          UNION ALL
-          SELECT 'A' as type, created_at, booking_date as date FROM appointments WHERE (deleted_at IS NULL OR deleted_at::text = '') ${docApptFilter}
-        ) t
-      `),
-      // 2. All Financials (Revenue, Charges, Received, Expenses)
-      this.db.execute(sql`
-        SELECT
-          -- Current
-          COALESCE(sum(curr_bill_charges), 0)::numeric as curr_charges,
-          COALESCE(sum(curr_bill_received), 0)::numeric as curr_received,
-          COALESCE(sum(curr_bill_received), 0) + COALESCE(sum(curr_receipt_amt), 0) as curr_revenue,
-          COALESCE(sum(curr_expenses), 0)::int as curr_expenses,
-          -- Previous
-          COALESCE(sum(prev_bill_charges), 0)::numeric as prev_charges,
-          COALESCE(sum(prev_bill_received), 0)::numeric as prev_received,
-          COALESCE(sum(prev_bill_received), 0) + COALESCE(sum(prev_receipt_amt), 0) as prev_revenue
-        FROM (
-          -- Current Bills
-          SELECT b.charges as curr_bill_charges, b.received as curr_bill_received, 0 as curr_receipt_amt, 0 as curr_expenses, 0 as prev_bill_charges, 0 as prev_bill_received, 0 as prev_receipt_amt 
-          FROM bills b JOIN case_datas pb ON pb.regid = b.regid
-          WHERE b.bill_date >= ${start}::date AND b.bill_date < ${boundary}::date AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
-          ${docBillFilter}
-
-          UNION ALL
-          
-          -- Current Receipts (Note: Receipts don't have doctor_id, so we keep them clinic-wide or filter by patient? 
-          -- For now keeping them clinic-wide as per original logic, but allowing future expansion)
-          SELECT 0, 0, CAST(NULLIF(r.amount::text, '') AS numeric), 0, 0, 0, 0 
-          FROM receipt r JOIN case_datas pr ON pr.regid = r.regid
-          WHERE r.created_at >= ${start}::timestamp AND r.created_at < ${boundary}::timestamp AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
-          
-          UNION ALL
-          
-          -- Current Expenses
-          SELECT 0, 0, 0, amount, 0, 0, 0 FROM expenses 
-          WHERE exp_date >= ${start}::date AND exp_date < ${boundary}::date AND (deleted_at IS NULL OR deleted_at::text = '')
-          
-          UNION ALL
-          
-          -- Previous Bills
-          SELECT 0, 0, 0, 0, b.charges, b.received, 0 
-          FROM bills b JOIN case_datas pb ON pb.regid = b.regid
-          WHERE b.bill_date >= ${prevStart}::date AND b.bill_date < ${prevBoundary}::date AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
-          ${docBillFilter}
-
-          UNION ALL
-          
-          -- Previous Receipts
-          SELECT 0, 0, 0, 0, 0, 0, CAST(NULLIF(r.amount::text, '') AS numeric) 
-          FROM receipt r JOIN case_datas pr ON pr.regid = r.regid
-          WHERE r.created_at >= ${prevStart}::timestamp AND r.created_at < ${prevBoundary}::timestamp AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
-        ) f
-      `),
-      // 3. Wait Times (Current & Previous)
-      this.db.execute(sql`
-        SELECT
-          COALESCE(avg(extract(epoch from (called_at - checked_in_at))/60) FILTER (WHERE date >= ${start}::date AND date < ${boundary}::date), 0)::int as curr_wait,
-          COALESCE(avg(extract(epoch from (called_at - checked_in_at))/60) FILTER (WHERE date >= ${prevStart}::date AND date < ${prevBoundary}::date), 0)::int as prev_wait
-        FROM waitlist
-        WHERE called_at IS NOT NULL AND checked_in_at IS NOT NULL AND (deleted_at IS NULL OR deleted_at::text = '')
-        ${docWaitFilter}
-      `),
-      // 4. Follow-ups (Current)
-      this.db.execute(sql`
-        SELECT count(*)::int as count FROM appointments
-        WHERE booking_date >= ${start} AND booking_date < ${boundary} AND visit_type = 'FollowUp' AND (deleted_at IS NULL OR deleted_at::text = '')
-        ${docApptFilter}
-      `),
-    ]) as any[];
-
-    const counts = countsRes[0] || { curr_patients: 0, prev_patients: 0, curr_appts: 0, prev_appts: 0 };
-    const finance = financeRes[0] || { curr_charges: 0, curr_received: 0, curr_revenue: 0, curr_expenses: 0, prev_charges: 0, prev_received: 0, prev_revenue: 0 };
-    const wait = waitRes[0] || { curr_wait: 0, prev_wait: 0 };
-    const followUp = followUpRes[0] || { count: 0 };
+      const safeQuery = async <T>(query: any, fallback: T): Promise<T> => {
+        try {
+          const res = await query;
+          return (res[0] || fallback) as T;
+        } catch (e: any) {
+          console.error('[Dashboard] KPI Sub-query failed:', e?.message);
+          return fallback;
+        }
+      };
+  
+      const [counts, finance, wait, followUp] = await Promise.all([
+        safeQuery(this.db.execute(sql`
+          SELECT
+            count(*) FILTER (WHERE type = 'P' AND created_at >= ${start}::timestamp AND created_at < ${boundary}::timestamp)::int as curr_patients,
+            count(*) FILTER (WHERE type = 'P' AND created_at >= ${prevStart}::timestamp AND created_at < ${prevBoundary}::timestamp)::int as prev_patients,
+            count(*) FILTER (WHERE type = 'A' AND t.date >= ${start}::date AND t.date < ${boundary}::date)::int as curr_appts,
+            count(*) FILTER (WHERE type = 'A' AND t.date >= ${prevStart}::date AND t.date < ${prevBoundary}::date)::int as prev_appts
+          FROM (
+            SELECT 'P' as type, created_at, NULL::date as date FROM case_datas WHERE (deleted_at IS NULL OR deleted_at::text = '')
+            UNION ALL
+            SELECT 'A' as type, created_at, booking_date::text::date as date FROM appointments WHERE (deleted_at IS NULL OR deleted_at::text = '') ${docApptFilter}
+          ) t
+        `), { curr_patients: 0, prev_patients: 0, curr_appts: 0, prev_appts: 0 }),
+  
+        safeQuery(this.db.execute(sql`
+          SELECT
+            COALESCE(sum(curr_bill_charges), 0)::numeric as curr_charges,
+            COALESCE(sum(curr_bill_received), 0)::numeric as curr_received,
+            COALESCE(sum(curr_bill_received), 0) + COALESCE(sum(curr_receipt_amt), 0) as curr_revenue,
+            COALESCE(sum(curr_expenses), 0)::int as curr_expenses,
+            COALESCE(sum(prev_bill_charges), 0)::numeric as prev_charges,
+            COALESCE(sum(prev_bill_received), 0)::numeric as prev_received,
+            COALESCE(sum(prev_bill_received), 0) + COALESCE(sum(prev_receipt_amt), 0) as prev_revenue
+          FROM (
+            SELECT b.charges as curr_bill_charges, b.received as curr_bill_received, 0 as curr_receipt_amt, 0 as curr_expenses, 0 as prev_bill_charges, 0 as prev_bill_received, 0 as prev_receipt_amt 
+            FROM bills b JOIN case_datas pb ON pb.regid = b.regid
+            WHERE b.bill_date >= ${start}::date AND b.bill_date < ${boundary}::date AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
+            ${docBillFilter}
+            UNION ALL
+            SELECT 0, 0, CAST(NULLIF(r.amount::text, '') AS numeric), 0, 0, 0, 0 
+            FROM receipt r JOIN case_datas pr ON pr.regid = r.regid
+            WHERE r.created_at >= ${start}::timestamp AND r.created_at < ${boundary}::timestamp AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
+            UNION ALL
+            SELECT 0, 0, 0, amount, 0, 0, 0 FROM expenses 
+            WHERE exp_date >= ${start}::date AND exp_date < ${boundary}::date AND (deleted_at IS NULL OR deleted_at::text = '')
+            UNION ALL
+            SELECT 0, 0, 0, 0, b.charges, b.received, 0 
+            FROM bills b JOIN case_datas pb ON pb.regid = b.regid
+            WHERE b.bill_date >= ${prevStart}::date AND b.bill_date < ${prevBoundary}::date AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
+            ${docBillFilter}
+            UNION ALL
+            SELECT 0, 0, 0, 0, 0, 0, CAST(NULLIF(r.amount::text, '') AS numeric) 
+            FROM receipt r JOIN case_datas pr ON pr.regid = r.regid
+            WHERE r.created_at >= ${prevStart}::timestamp AND r.created_at < ${prevBoundary}::timestamp AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
+          ) f
+        `), { curr_charges: 0, curr_received: 0, curr_revenue: 0, curr_expenses: 0, prev_charges: 0, prev_received: 0, prev_revenue: 0 }),
+  
+        safeQuery(this.db.execute(sql`
+          SELECT
+            COALESCE(avg(extract(epoch from (called_at - checked_in_at))/60) FILTER (WHERE waitlist.date >= ${start}::date AND waitlist.date < ${boundary}::date), 0)::int as curr_wait,
+            COALESCE(avg(extract(epoch from (called_at - checked_in_at))/60) FILTER (WHERE waitlist.date >= ${prevStart}::date AND waitlist.date < ${prevBoundary}::date), 0)::int as prev_wait
+          FROM waitlist
+          WHERE called_at IS NOT NULL AND checked_in_at IS NOT NULL AND (deleted_at IS NULL OR deleted_at::text = '')
+          ${docWaitFilter}
+        `), { curr_wait: 0, prev_wait: 0 }),
+  
+        safeQuery(this.db.execute(sql`
+          SELECT count(*)::int as count FROM appointments
+          WHERE booking_date::text::date >= ${start}::date AND booking_date::text::date < ${boundary}::date AND visit_type = 'FollowUp' AND (deleted_at IS NULL OR deleted_at::text = '')
+          ${docApptFilter}
+        `), { count: 0 }),
+      ]);
 
     const currE = Number(finance.curr_revenue) || 0;
     const prevE = Number(finance.prev_revenue) || 0;
@@ -345,7 +341,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             a.booking_time,
             a.id as visit_id
           FROM appointments a
-          WHERE a.booking_date = ${today}::date AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
+          WHERE a.booking_date::text::date = ${today}::date AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
             ${apptCond}
             AND NOT EXISTS (SELECT 1 FROM today_waitlist tw2 WHERE tw2.appointment_id = a.id OR tw2.patient_id = a.patient_id)
         ) q
@@ -465,6 +461,12 @@ export class DashboardRepositoryPg implements IDashboardRepository {
 
   async getRevenueSeries(period: string, contextId: number, paymentMode?: string): Promise<RevenueSeries[]> {
     return this.getCached(`revSeries:${contextId}:${period}:${paymentMode ?? ''}`, 60_000, async () => {
+      const isPlatformView = (this.db as any).session?.client?.options?.search_path?.includes('public') && 
+                            !(this.db as any).session?.client?.options?.search_path?.includes('tenant_');
+
+      if (isPlatformView) {
+        return this.getPlatformRevenueSeries(period);
+      }
 
     let modeFilter = '';
     if (paymentMode === 'Cash') {
@@ -551,7 +553,6 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             JOIN case_datas pb ON pb.regid = b.regid
             WHERE b.bill_date >= date_trunc('month', NOW()) - interval '6 months' 
               AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
-              AND pb.clinic_id = ${contextId}
             UNION ALL
             SELECT 
               date_trunc('month', r.created_at)::date as m,
@@ -562,7 +563,6 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             JOIN case_datas pr ON pr.regid = r.regid
             WHERE r.created_at >= date_trunc('month', NOW()) - interval '6 months'
               AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
-              AND pr.clinic_id = ${contextId}
           )
           SELECT 
             to_char(months.m, 'Mon') as month, 
@@ -595,7 +595,6 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         JOIN case_datas pb ON pb.regid = b.regid
         WHERE b.bill_date >= ${seriesStart}::date AND b.bill_date <= ${seriesEnd}::date
           AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
-          AND pb.clinic_id = ${contextId}
         
         UNION ALL
         
@@ -609,7 +608,6 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         JOIN case_datas pr ON pr.regid = r.regid
         WHERE r.created_at >= ${seriesStart}::date AND r.created_at <= ${seriesEnd}::date
           AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
-          AND pr.clinic_id = ${contextId}
       )
       SELECT 
         to_char(periods.p, ${labelFormat}) as month, 
@@ -991,28 +989,161 @@ export class DashboardRepositoryPg implements IDashboardRepository {
 
   async getPlatformStats(): Promise<PlatformStats> {
     return this.getCached('platformStats', 60_000, async () => {
-      const results = await this.db.execute(sql`
-        SELECT
-          (SELECT count(*)::int FROM public.organizations WHERE deleted_at IS NULL) as org_count,
-          (SELECT count(*)::int FROM users WHERE (deleted_at IS NULL OR deleted_at::text = '') AND is_active = true) as user_count,
-          (SELECT count(*)::int FROM public.users WHERE (deleted_at IS NULL OR deleted_at::text = '') AND is_active = true AND type = 'Clinicadmin') as admin_count,
-          (SELECT COALESCE(sum(received), 0)::numeric FROM bills WHERE (deleted_at IS NULL OR deleted_at::text = '')) as total_rev,
-          (SELECT COALESCE(sum(charges - received), 0)::numeric FROM bills WHERE (deleted_at IS NULL OR deleted_at::text = '')) as pending_dues
+      // 1. Get all tenant schemas directly from the database catalog
+      const schemas = await this.db.execute(sql`
+        SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE 'tenant_%'
       `) as any[];
 
-      const res = results[0] || {};
-      const totalRev = Number(res.total_rev) || 0;
-      const pendingDues = Number(res.pending_dues) || 0;
-      const clinicCount = Number(res.org_count) || 1;
-      const revDensity = Math.round(totalRev / (clinicCount || 1));
+      let totalPlatformRev = 0;
+      let totalPlatformDues = 0;
+
+      // 2. Sum data across all discovered schemas
+      for (const s of schemas) {
+        const schema = s.schema_name;
+        try {
+          const stats = await this.db.execute(sql`
+            SELECT 
+              COALESCE(sum(received), 0)::numeric as rev,
+              COALESCE(sum(charges - received), 0)::numeric as dues
+            FROM ${sql.identifier(schema)}.bills
+            WHERE (deleted_at IS NULL OR deleted_at::text = '')
+          `) as any[];
+          
+          if (stats[0]) {
+            totalPlatformRev += Number(stats[0].rev) || 0;
+            totalPlatformDues += Number(stats[0].dues) || 0;
+          }
+        } catch (e) {
+          // Skip schemas that might not have the bills table or are inaccessible
+          continue;
+        }
+      }
+
+      const userStats = await this.db.execute(sql`
+        SELECT
+          (SELECT count(*)::int FROM public.users WHERE (deleted_at IS NULL OR deleted_at::text = '') AND is_active = true) as user_count,
+          (SELECT count(*)::int FROM public.users WHERE (deleted_at IS NULL OR deleted_at::text = '') AND is_active = true AND type = 'Clinicadmin') as admin_count
+      `) as any[];
+
+      const res = userStats[0] || {};
+      const clinicCount = schemas.length || 1;
+      const revDensity = Math.round(totalPlatformRev / clinicCount);
 
       return {
-        totalClinics: Number(res.org_count) || 0,
+        totalClinics: clinicCount,
         totalStaff: Number(res.user_count) || 0,
         totalClinicAdmins: Number(res.admin_count) || 0,
         revenueDensity: revDensity,
-        pendingDues: pendingDues
       };
+    });
+  }
+
+  async getPlatformKpis(period: string): Promise<DashboardKpis> {
+    return this.getCached(`platformKpis:${period}`, 60_000, async () => {
+      const schemas = await this.db.execute(sql`
+        SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE 'tenant_%'
+      `) as any[];
+
+      let totalP = 0, prevP = 0, totalA = 0, prevA = 0, totalRev = 0, prevRev = 0;
+      let totalWait = 0, waitCount = 0;
+
+      const { start, boundary, prevStart, prevBoundary } = this.getPeriodDates(period);
+
+      for (const s of schemas) {
+        const schema = s.schema_name;
+        try {
+          const results = await Promise.all([
+            this.db.execute(sql`
+              SELECT
+                count(*) FILTER (WHERE type = 'P' AND created_at >= ${start}::timestamp AND created_at < ${boundary}::timestamp)::int as curr_p,
+                count(*) FILTER (WHERE type = 'P' AND created_at >= ${prevStart}::timestamp AND created_at < ${prevBoundary}::timestamp)::int as prev_p,
+                count(*) FILTER (WHERE type = 'A' AND t.date >= ${start}::date AND t.date < ${boundary}::date)::int as curr_a,
+                count(*) FILTER (WHERE type = 'A' AND t.date >= ${prevStart}::date AND t.date < ${prevBoundary}::date)::int as prev_a
+              FROM (
+                SELECT 'P' as type, created_at, NULL::date as date FROM ${sql.identifier(schema)}.case_datas WHERE (deleted_at IS NULL OR deleted_at::text = '')
+                UNION ALL
+                SELECT 'A' as type, created_at, booking_date::text::date as date FROM ${sql.identifier(schema)}.appointments WHERE (deleted_at IS NULL OR deleted_at::text = '')
+              ) t
+            `),
+            this.db.execute(sql`
+              SELECT 
+                COALESCE(sum(received), 0)::numeric as curr_rev
+              FROM ${sql.identifier(schema)}.bills
+              WHERE bill_date >= ${start}::date AND bill_date < ${boundary}::date AND (deleted_at IS NULL OR deleted_at::text = '')
+            `),
+            this.db.execute(sql`
+              SELECT COALESCE(avg(extract(epoch from (called_at - checked_in_at))/60), 0)::int as wait_time
+              FROM ${sql.identifier(schema)}.waitlist
+              WHERE date >= ${start}::date AND date < ${boundary}::date AND called_at IS NOT NULL
+            `)
+          ]) as [any, any, any];
+
+          const [c, f, w] = results;
+          const c0 = c[0] || {};
+          totalP += c0.curr_p || 0; prevP += c0.prev_p || 0;
+          totalA += c0.curr_a || 0; prevA += c0.prev_a || 0;
+          totalRev += Number(f[0]?.curr_rev) || 0;
+          
+          const w0 = w[0] || {};
+          if (w0.wait_time > 0) {
+            totalWait += Number(w0.wait_time);
+            waitCount++;
+          }
+        } catch (e) { continue; }
+      }
+
+      return {
+        newPatientsCount: totalP,
+        patientTrend: prevP > 0 ? ((totalP - prevP) / prevP * 100).toFixed(1) : '0.0',
+        casesCount: totalA,
+        casesTrend: prevA > 0 ? ((totalA - prevA) / prevA * 100).toFixed(1) : '0.0',
+        todaysCollection: totalRev,
+        revenueTrend: '0.0', // Complex to calculate platform-wide prev period revenue in a loop
+        followUpsCount: 0,
+        todaysExpenses: 0,
+        collectionRate: 100,
+        collectionRateTrend: '0.0',
+        avgWaitTime: waitCount > 0 ? Math.round(totalWait / waitCount) : 0,
+        avgWaitTimeTrend: '0.0'
+      };
+    });
+  }
+
+  async getPlatformRevenueSeries(period: string): Promise<RevenueSeries[]> {
+    return this.getCached(`platformRevSeries:${period}`, 60_000, async () => {
+      const schemas = await this.db.execute(sql`
+        SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE 'tenant_%'
+      `) as any[];
+
+      const months = Array.from({ length: 6 }, (_, i) => {
+        const d = new Date();
+        d.setMonth(d.getMonth() - (5 - i));
+        return {
+          month: d.toLocaleString('default', { month: 'short' }),
+          revenue: 0,
+          date: d
+        };
+      });
+
+      for (const s of schemas) {
+        const schema = s.schema_name;
+        try {
+          const results = await this.db.execute(sql`
+            SELECT to_char(date_trunc('month', b.bill_date), 'Mon') as month, sum(b.received)::int as revenue
+            FROM ${sql.identifier(schema)}.bills b
+            WHERE b.bill_date >= date_trunc('month', NOW()) - interval '6 months'
+              AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
+            GROUP BY 1
+          `) as any[];
+
+          for (const r of results) {
+            const m = months.find(m => m.month === r.month);
+            if (m) m.revenue += r.revenue || 0;
+          }
+        } catch (e) { continue; }
+      }
+
+      return months.map(m => ({ month: m.month, revenue: m.revenue }));
     });
   }
 }

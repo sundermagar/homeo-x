@@ -9,6 +9,8 @@ import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { Drawer } from '@/shared/components/drawer';
 import { BillingForm } from './BillingFormPage';
 import { CustomBillForm } from './CustomBillPage';
+import { printBillingReport } from '@/shared/utils/print';
+import { useClinicLetterhead } from '@/lib/clinic-letterhead';
 import '../styles/billing.css';
 
 function DailyCollectionCard({ label, amount, count, icon, type = 'default' }: { 
@@ -43,6 +45,7 @@ export default function BillingListPage() {
   const [pageSize, setPageSize] = useState(10);
   const [isNewBillOpen, setIsNewBillOpen] = useState(false);
   const [isCustomBillOpen, setIsCustomBillOpen] = useState(false);
+  const clinic = useClinicLetterhead();
 
   const parsedRegid = parseInt(regidFilter, 10);
   const billsQuery      = useBills({ 
@@ -77,7 +80,19 @@ export default function BillingListPage() {
             className="pp-input"
             style={{ width: 'auto' }}
           />
-          <button className="btn-secondary" onClick={() => window.print()}>
+          <button 
+            className="btn-secondary" 
+            onClick={() => printBillingReport(
+              bills, 
+              clinic, 
+              { 
+                totalCharges: collectionQuery.data?.totalCharges || 0,
+                totalReceived: collectionQuery.data?.totalReceived || 0,
+                totalBalance: collectionQuery.data?.totalBalance || 0,
+                date 
+              }
+            )}
+          >
             <Printer size={14} />
             Print Report
           </button>

@@ -50,6 +50,8 @@ export class DashboardUseCases {
           collectionRateTrend: 0,
           avgWaitTime: 0,
           avgWaitTimeTrend: 0,
+          casesCount: 0,
+          casesTrend: 0,
         }),
         safe(this.repository.getTodayQueue.bind(this.repository, contextId, doctorId), []),
         safe(this.repository.getRecentActivity.bind(this.repository, contextId, 10), []),
@@ -112,6 +114,7 @@ export class DashboardUseCases {
             todaysExpenses: 0, revenueTrend: 0, patientTrend: 0,
             collectionRate: 0, collectionRateTrend: 0,
             avgWaitTime: 0, avgWaitTimeTrend: 0,
+            casesCount: 0, casesTrend: 0,
           }),
           safe(() => this.repository.getRevenueBreakdown(period, contextId), {
             physicalCurrency: 0, physicalCurrencyPct: 0, upiCard: 0,
@@ -143,8 +146,8 @@ export class DashboardUseCases {
         data: {
           totalRevenue: kpis.todaysCollection,
           revenueTrend: Number(kpis.revenueTrend) || 0,
-          patientsCount: kpis.newPatientsCount,
-          patientsTrend: Number(kpis.patientTrend) || 0,
+          patientsCount: kpis.casesCount,
+          patientsTrend: Number(kpis.casesTrend) || 0,
           collectionRate: kpis.collectionRate,
           collectionRateTrend: Number(kpis.collectionRateTrend) || 0,
           avgWaitTime: kpis.avgWaitTime,

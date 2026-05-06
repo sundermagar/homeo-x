@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   CreditCard,
   Calendar,
@@ -23,19 +23,33 @@ import './role-dashboards.css';
 
 export function ReceptionistDashboard() {
   const navigate = useNavigate();
-  const { data: dashData, isLoading } = useDashboard('day');
+  const { data: dashData, isLoading, refetch } = useDashboard('day');
   const queueMgmt = useQueueMgmt();
-  const [expandedId, setExpandedId] = useState<number | null>(null);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(5);
   const [isPatientDrawerOpen, setIsPatientDrawerOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   
   const todayAppts = dashData?.queue || [];
   const kpis = dashData?.kpis;
 
-  const totalPages = Math.ceil(todayAppts.length / pageSize);
+  // Local Search/Filter
+  const [searchTerm, setSearchTerm] = useState('');
+  const filteredAppts = todayAppts.filter((a: any) => 
+    a.patientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    a.regid?.toString().includes(searchTerm) ||
+    a.tokenNo?.toString().includes(searchTerm)
+  );
+
+  const totalPages = Math.ceil(filteredAppts.length / pageSize);
   const startIndex = (page - 1) * pageSize;
-  const currentAppts = todayAppts.slice(startIndex, startIndex + pageSize);
+  const currentAppts = filteredAppts.slice(startIndex, startIndex + pageSize);
 
   const handleAction = async (appt: any) => {
     if (appt.status === 'Scheduled') {
@@ -50,153 +64,166 @@ export function ReceptionistDashboard() {
     }
   };
 
-  if (isLoading) {
-    return <DashboardSkeleton />;
-  }
-
   return (
     <div className="dash-root">
       {/* 1. KPI Strip */}
       <div className="dash-kpi-strip">
-        <KPIItem label="Today Intake" value={kpis?.newPatientsCount || 0} trend="+12% vs avg" color="var(--pp-success-fg)" />
-        <KPIItem label="Waitlist" value={todayAppts.filter(a => a.status === 'Waitlist').length} trend="Active queue" color="#d97706" />
-        <KPIItem label="Collection" value={`₹${(kpis?.todaysCollection || 0).toLocaleString('en-IN')}`} trend="Today" color="var(--pp-success-fg)" />
-        <KPIItem label="Completed" value={todayAppts.filter(a => a.status === 'Completed').length} trend="Visits done" color="var(--pp-blue)" />
+        <KPIItem label="Today Intake" value={kpis?.newPatientsCount || 0} trend="+12% vs avg" color="var(--pp-success-fg)" loading={isLoading} />
+        <KPIItem label="Waitlist" value={todayAppts.filter(a => a.status === 'Waitlist').length} trend="Active queue" color="#d97706" loading={isLoading} />
+        <KPIItem label="Collection" value={`₹${(kpis?.todaysCollection || 0).toLocaleString('en-IN')}`} trend="Today" color="var(--pp-success-fg)" loading={isLoading} />
+        <KPIItem label="Completed" value={todayAppts.filter(a => a.status === 'Completed').length} trend="Visits done" color="var(--pp-blue)" loading={isLoading} />
       </div>
 
       <div className="dash-grid">
         {/* 2. Main Column — Schedule */}
         <div className="dash-main-col">
           <div className="dash-card">
-            <div className="dash-card-header">
-              <h3 className="dash-section-title">
-                <Calendar size={16} style={{ marginRight: 8, color: 'var(--pp-blue)' }} /> Today's Schedule
-              </h3>
-              <span className="dash-badge badge-primary">{todayAppts.length} TOTAL</span>
+            <div className="dash-card-header" style={{ padding: '8px 16px', minHeight: 60 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <Calendar size={18} style={{ color: 'var(--pp-blue)' }} />
+                <div>
+                  <h3 className="dash-section-title" style={{ margin: 0 }}>Today's Schedule</h3>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--pp-text-3)', marginTop: 2 }}>{todayAppts.length} TOTAL RECORDS</div>
+                </div>
+              </div>
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div className="dash-search-box" style={{ position: 'relative' }}>
+                  <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--pp-text-4)' }} />
+                  <input 
+                    type="text" 
+                    placeholder="Search schedule..." 
+                    className="pp-input"
+                    style={{ height: 32, paddingLeft: 30, fontSize: 12, width: 180, borderRadius: 8 }}
+                    value={searchTerm}
+                    onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
+                  />
+                </div>
+              </div>
             </div>
 
-            <div className="rd-table-wrap">
-            <div className="pp-table-scroll">
-              <table className="pp-table">
-                <thead>
-                  <tr>
-                    <th>TOKEN / TIME</th>
-                    <th>PATIENT</th>
-                    <th>STATUS</th>
-                    <th style={{ textAlign: 'center' }}>ACTION</th>
-                  </tr>
-                </thead>
-                <tbody className="dash-scroll">
-                  {currentAppts.map((a: any, i: number) => {
-                    const isExpanded = expandedId === a.id;
-                    const canCheckIn = a.status === 'Scheduled';
-                    const isWaitlist = a.status === 'Waitlist';
+            <div className="dash-content-area">
+              {isLoading ? (
+                <div style={{ padding: 16 }}>
+                  {[1, 2, 3, 4, 5].map(i => (
+                    <div key={i} className="dash-row" style={{ border: 'none', padding: '16px 0' }}>
+                      <div className="skeleton-box skeleton-circle" style={{ width: 32, height: 32 }} />
+                      <div style={{ flex: 1, marginLeft: 12 }}>
+                        <div className="skeleton-box skeleton-text" style={{ width: '40%', marginBottom: 8 }} />
+                        <div className="skeleton-box skeleton-text" style={{ width: '20%' }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <>
+                  {!isMobile ? (
+                    /* Desktop Table View */
+                    <div className="pp-table-container-enhanced">
+                      <div className="pp-table-scroll">
+                        <table className="pp-table">
+                          <thead>
+                            <tr>
+                              <th>TOKEN / TIME</th>
+                              <th>PATIENT</th>
+                              <th>STATUS</th>
+                              <th style={{ textAlign: 'center' }}>ACTION</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {currentAppts.map((a: any, i: number) => {
+                              const canCheckIn = a.status === 'Scheduled';
+                              const isWaitlist = a.status === 'Waitlist';
 
-                    return (
-                      <React.Fragment key={i}>
-                        <tr
-                          className={`hover-row ${isExpanded ? 'active-row' : ''}`}
-                          onClick={() => setExpandedId(isExpanded ? null : a.id)}
-                          style={{ cursor: 'pointer' }}
-                        >
-                          <td data-label="TOKEN / TIME" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 600, color: '#64748b' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              {a.tokenNo ? (
-                                <div className="token-badge">{a.tokenNo}</div>
-                              ) : (
-                                <Clock size={14} />
-                              )}
-                              {a.bookingTime || 'Walk-in'}
+                              return (
+                                <tr key={i} className={`pp-hover-row status-${(a.status || 'pending').toLowerCase().replace(/\s+/g, '-')}`}>
+                                  <td>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                      {a.tokenNo ? <div className="token-badge">{a.tokenNo}</div> : <Clock size={14} className="color-muted" />}
+                                      <span className="font-mono font-semibold color-muted">{a.bookingTime || 'Walk-in'}</span>
+                                    </div>
+                                  </td>
+                                  <td>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                      <div className="dash-avatar">{a.patientName?.charAt(0)}</div>
+                                      <div style={{ minWidth: 0 }}>
+                                        <div className="font-semibold color-main" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.patientName}</div>
+                                        <div className="text-label" style={{ fontSize: 10 }}>ID: PT-{a.regid || a.id}</div>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td>
+                                    <span className={`dash-badge badge-${a.status === 'Consultation' ? 'success' : a.status === 'Waitlist' ? 'warning' : 'primary'}`}>
+                                      {a.status}
+                                    </span>
+                                  </td>
+                                  <td>
+                                    <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                                      {canCheckIn && (
+                                        <button className="dash-action-btn btn-checkin" onClick={(e) => { e.stopPropagation(); handleAction(a); }}>
+                                          {queueMgmt.checkIn.isPending ? '...' : 'Check In'}
+                                        </button>
+                                      )}
+                                      {isWaitlist && (
+                                        <button className="dash-action-btn btn-call" onClick={(e) => { e.stopPropagation(); handleAction(a); }}>
+                                          Call
+                                        </button>
+                                      )}
+                                      <button className="dash-view-btn" onClick={(e) => { e.stopPropagation(); navigate(`/patients/${a.regid || a.patientId}`); }}>View</button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Mobile Card List View */
+                    <div className="pp-mobile-list">
+                      {currentAppts.map((a: any, i: number) => {
+                        const statusClass = `status-${(a.status || 'pending').toLowerCase().replace(/\s+/g, '-')}`;
+                        
+                        return (
+                          <div key={i} className={`pp-mobile-card ${statusClass}`} onClick={() => navigate(`/patients/${a.regid || a.patientId}`)}>
+                            <div className="pmc-header">
+                              <div className="pmc-time">
+                                {a.tokenNo ? <span className="pmc-token">{a.tokenNo}</span> : <Clock size={12} />}
+                                <span>{a.bookingTime || 'Walk-in'}</span>
+                              </div>
+                                <span className={`dash-badge badge-${a.status === 'Consultation' ? 'success' : a.status === 'Waitlist' ? 'warning' : 'primary'}`}>
+                                {a.status}
+                              </span>
                             </div>
-                          </td>
-                          <td data-label="PATIENT">
-
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <div className="pmc-body">
                               <div className="dash-avatar">{a.patientName?.charAt(0)}</div>
-                              <div>
-                                <div style={{ fontWeight: 600, color: '#0f172a' }}>{a.patientName}</div>
-                                <div className="text-label" style={{ fontSize: 10 }}>ID: PT-{a.regid || a.id}</div>
+                              <div className="pmc-info">
+                                <div className="pmc-name">{a.patientName}</div>
+                                <div className="pmc-regid">ID: PT-{a.regid || a.id}</div>
                               </div>
+                              <ChevronRight size={18} className="pmc-chevron" />
                             </div>
-                          </td>
-                          <td data-label="STATUS">
-                            <span className={`dash-badge badge-${a.status === 'Consultation' ? 'success' : a.status === 'Waitlist' ? 'warning' : 'primary'}`}>
-                              {a.status}
-                            </span>
-                          </td>
-                          <td data-label="ACTION" style={{ textAlign: 'center' }}>
-                            <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-                              {canCheckIn && (
-                                <button 
-                                  className="dash-action-btn btn-checkin" 
-                                  onClick={(e) => { e.stopPropagation(); handleAction(a); }}
-                                  disabled={queueMgmt.isLoading}
-                                >
-                                  {queueMgmt.checkIn.isPending ? '...' : 'Check In'}
-                                </button>
-                              )}
-                              {isWaitlist && (
-                                <button 
-                                  className="dash-action-btn btn-call" 
-                                  onClick={(e) => { e.stopPropagation(); handleAction(a); }}
-                                  disabled={queueMgmt.isLoading}
-                                >
-                                  Call
-                                </button>
-                              )}
-                              <button className="dash-view-btn" onClick={(e) => { e.stopPropagation(); navigate(`/patients/${a.regid || a.patientId}`); }}>View</button>
-                            </div>
-                          </td>
-                        </tr>
-                        <tr>
-                          <td colSpan={4} className="expansion-details-td">
-                            <div className={`expansion-content ${isExpanded ? 'open' : ''}`}>
-                              <div className="expansion-grid">
-                                <div>
-                                  <span className="expansion-label">Contact</span>
-                                  <div className="expansion-value">{a.phone || 'No phone recorded'}</div>
-                                </div>
-                                <div>
-                                  <span className="expansion-label">Demographics</span>
-                                  <div className="expansion-value">{a.age ? `${a.age} Yrs` : '--'} / {a.gender || '--'}</div>
-                                </div>
-                                <div style={{ gridColumn: 'span 2' }}>
-                                  <span className="expansion-label">Follow-up Notes</span>
-                                  <div className="expansion-value" style={{ fontStyle: 'italic', color: '#64748b' }}>
-                                    "{a.notes || 'No specific notes for this visit.'}"
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      </React.Fragment>
-                    );
-                  })}
-                  {todayAppts.length === 0 && (
-                    <tr>
-                      <td colSpan={4} style={{ padding: '48px', textAlign: 'center', color: '#94a3b8' }}>
-                        <p className="text-small">No appointments scheduled today.</p>
-                      </td>
-                    </tr>
+                          </div>
+                        );
+                      })}
+                    </div>
                   )}
-                </tbody>
-              </table>
-            </div>
+                </>
+              )}
             </div>
 
-            {todayAppts.length > 0 && totalPages > 1 && (
-              <Pagination
-                currentPage={page}
-                totalPages={totalPages}
-                pageSize={pageSize}
-                totalItems={todayAppts.length}
-                onPageChange={setPage}
-                onPageSizeChange={(newSize) => {
-                  setPageSize(newSize);
-                  setPage(1);
-                }}
-              />
+            {filteredAppts.length > 0 && (
+              <div className="dash-pagination-wrap">
+                <Pagination
+                  currentPage={page}
+                  totalPages={totalPages}
+                  pageSize={pageSize}
+                  totalItems={filteredAppts.length}
+                  onPageChange={setPage}
+                  onPageSizeChange={setPageSize}
+                />
+              </div>
             )}
           </div>
         </div>
@@ -271,7 +298,16 @@ export function ReceptionistDashboard() {
   );
 }
 
-function KPIItem({ label, value, trend, color }: any) {
+function KPIItem({ label, value, trend, color, loading }: any) {
+  if (loading) {
+    return (
+      <div className="dash-kpi-item" style={{ minHeight: '110px' }}>
+        <div className="skeleton-box skeleton-text" style={{ width: '40%' }} />
+        <div className="skeleton-box skeleton-text title" style={{ width: '60%', margin: '12px 0' }} />
+        <div className="skeleton-box skeleton-text" style={{ width: '30%', marginBottom: 0 }} />
+      </div>
+    );
+  }
   return (
     <div className="dash-kpi-item">
       <span className="dash-kpi-label">{label}</span>
