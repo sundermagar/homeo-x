@@ -145,12 +145,14 @@ export class DashboardRepositoryPg implements IDashboardRepository {
 
   async getKpis(period: string, contextId: number, doctorId?: number): Promise<DashboardKpis> {
     return this.getCached(`kpis:${contextId}:${period}:${doctorId ?? ''}`, 10_000, async () => {
-      const sp = (this.db as any).session?.client?.options?.search_path || 'NONE';
-      const isPlatformView = sp.includes('public') && !sp.includes('tenant_');
+      const spRes = await this.db.execute(sql`SHOW search_path`);
+      const sp = (spRes[0] as any)?.search_path || 'NONE';
+      const isPlatformView = (sp.includes('public') && !sp.includes('tenant_')) || !contextId || contextId === 0;
 
-      console.log(`[Dashboard] Context: ${contextId}, Path: ${sp}, Platform: ${isPlatformView}`);
+      console.log(`[Dashboard] Context: ${contextId} (${typeof contextId}), Path: ${sp}, Platform: ${isPlatformView}`);
 
       if (isPlatformView && !doctorId) {
+        console.log(`[Dashboard] Calling getPlatformKpis for period: ${period}`);
         return this.getPlatformKpis(period);
       }
 
@@ -176,12 +178,12 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           SELECT
             count(*) FILTER (WHERE type = 'P' AND created_at >= ${start}::timestamp AND created_at < ${boundary}::timestamp)::int as curr_patients,
             count(*) FILTER (WHERE type = 'P' AND created_at >= ${prevStart}::timestamp AND created_at < ${prevBoundary}::timestamp)::int as prev_patients,
-            count(*) FILTER (WHERE type = 'A' AND t.date >= ${start}::date AND t.date < ${boundary}::date)::int as curr_appts,
-            count(*) FILTER (WHERE type = 'A' AND t.date >= ${prevStart}::date AND t.date < ${prevBoundary}::date)::int as prev_appts
+            count(*) FILTER (WHERE type = 'A' AND t.date >= ${start}::text AND t.date < ${boundary}::text)::int as curr_appts,
+            count(*) FILTER (WHERE type = 'A' AND t.date >= ${prevStart}::text AND t.date < ${prevBoundary}::text)::int as prev_appts
           FROM (
-            SELECT 'P' as type, created_at, NULL::date as date FROM case_datas WHERE (deleted_at IS NULL OR deleted_at::text = '') AND (clinic_id = ${contextId} OR clinic_id IS NULL)
+            SELECT 'P' as type, created_at, NULL::text as date FROM case_datas WHERE (deleted_at IS NULL OR deleted_at::text = '') AND (clinic_id = ${contextId} OR clinic_id IS NULL)
             UNION ALL
-            SELECT 'A' as type, created_at, booking_date::text::date as date FROM appointments WHERE (deleted_at IS NULL OR deleted_at::text = '') AND (clinic_id = ${contextId} OR clinic_id IS NULL) ${docApptFilter}
+            SELECT 'A' as type, created_at, booking_date as date FROM appointments WHERE (deleted_at IS NULL OR deleted_at::text = '') AND (clinic_id = ${contextId} OR clinic_id IS NULL) ${docApptFilter}
           ) t
         `), { curr_patients: 0, prev_patients: 0, curr_appts: 0, prev_appts: 0 }),
   
@@ -234,7 +236,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
   
         safeQuery(this.db.execute(sql`
           SELECT count(*)::int as count FROM appointments
-          WHERE booking_date::text::date >= ${start}::date AND booking_date::text::date < ${boundary}::date AND visit_type = 'FollowUp' AND (deleted_at IS NULL OR deleted_at::text = '')
+          WHERE booking_date >= ${start}::text AND booking_date < ${boundary}::text AND visit_type = 'FollowUp' AND (deleted_at IS NULL OR deleted_at::text = '')
           ${docApptFilter}
         `), { count: 0 }),
       ]);
@@ -285,10 +287,11 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     const dd = String(istDate.getDate()).padStart(2, '0');
     const today = `${y}-${mm}-${dd}`;
     return this.getCached(`queue:${contextId}:${today}:${doctorId ?? ''}`, 0, async () => {
-      const docCond = doctorId ? sql` AND (w.doctor_id = ${doctorId} OR (SELECT name FROM users WHERE id = w.doctor_id) = (SELECT name FROM users WHERE id = ${doctorId}) OR (SELECT name FROM doctors WHERE id = w.doctor_id) = (SELECT name FROM users WHERE id = ${doctorId}))` : sql``;
-      const apptCond = doctorId ? sql` AND (a.doctor_id = ${doctorId} OR (SELECT name FROM users WHERE id = a.doctor_id) = (SELECT name FROM users WHERE id = ${doctorId}) OR (SELECT name FROM doctors WHERE id = a.doctor_id) = (SELECT name FROM users WHERE id = ${doctorId}))` : sql``;
-      const dateCond = sql`(w.date::text = ${today} OR w.date::text = TO_CHAR(${today}::date, 'DD/MM/YYYY') OR w.date::text LIKE '%' || TO_CHAR(${today}::date, 'DD/MM/YYYY') || '%')`;
-      const apptDateCond = sql`(a.booking_date::text = ${today} OR a.booking_date::text = TO_CHAR(${today}::date, 'DD/MM/YYYY') OR a.booking_date::text LIKE '%' || TO_CHAR(${today}::date, 'DD/MM/YYYY') || '%')`;
+      // Direct doctor_id comparison - use 'a' since 'w' is not available in the main query scope
+      const docIdFilter = doctorId ? sql` AND a.doctor_id = ${doctorId}` : sql``;
+      // Use proper date comparison
+      const dateCond = sql`(w.date = ${today}::date OR w.date::text LIKE '%/%%/${dd}' || '%')`;
+      const apptDateCond = sql`(a.booking_date = ${today}::text OR a.booking_date LIKE '%/%%/${dd}' || '%')`;
 
       const result = await this.db.execute(sql`
         WITH today_waitlist AS (
@@ -303,7 +306,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           FROM waitlist w
           WHERE ${dateCond} AND (w.deleted_at IS NULL OR w.deleted_at::text = '')
             AND (w.clinic_id = ${contextId} OR w.clinic_id IS NULL)
-            ${docCond}
+            ${docIdFilter}
         )
         SELECT
           q.wl_id,
@@ -344,7 +347,6 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             a.notes
           FROM today_waitlist tw
           LEFT JOIN appointments a ON a.id = tw.appointment_id
-            ${apptCond}
 
           UNION ALL
 
@@ -363,14 +365,14 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           FROM appointments a
           WHERE ${apptDateCond} AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
             AND (a.clinic_id = ${contextId} OR a.clinic_id IS NULL)
-            ${apptCond}
-            AND NOT EXISTS (SELECT 1 FROM today_waitlist tw2 WHERE tw2.appointment_id = a.id OR tw2.patient_id = a.patient_id)
+            ${docIdFilter}
+            AND NOT EXISTS (SELECT 1 FROM today_waitlist tw2 WHERE tw2.appointment_id = a.id)
         ) q
         LEFT JOIN case_datas p ON p.id = q.patient_id
         LEFT JOIN doctors d ON d.id = q.doctor_id
         LEFT JOIN users u ON u.id = q.doctor_id
         LEFT JOIN (
-          SELECT DISTINCT ON (visit_id) 
+          SELECT DISTINCT ON (visit_id)
             visit_id, systolic_bp, diastolic_bp, weight_kg, temperature_f, height_cm, pulse_rate, respiratory_rate, oxygen_saturation, notes
           FROM vitals
           ORDER BY visit_id, recorded_at DESC
@@ -1003,7 +1005,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
   }
 
   async getPlatformStats(): Promise<PlatformStats> {
-    return this.getCached('platformStats', 60_000, async () => {
+    return this.getCached('platformStats', 1000, async () => {
       // 1. Get all tenant schemas directly from the database catalog
       const schemas = await this.db.execute(sql`
         SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE 'tenant_%'
@@ -1054,7 +1056,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
   }
 
   async getPlatformKpis(period: string): Promise<DashboardKpis> {
-    return this.getCached(`platformKpis:${period}`, 60_000, async () => {
+    return this.getCached(`platformKpis:${period}`, 1000, async () => {
       const schemas = await this.db.execute(sql`
         SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE 'tenant_%'
       `) as any[];
@@ -1064,7 +1066,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
 
       const { start, boundary, prevStart, prevBoundary } = this.getPeriodDates(period);
 
-      for (const s of schemas) {
+      const schemaResults = await Promise.all(schemas.map(async (s) => {
         const schema = s.schema_name;
         try {
           const results = await Promise.all([
@@ -1072,12 +1074,12 @@ export class DashboardRepositoryPg implements IDashboardRepository {
               SELECT
                 count(*) FILTER (WHERE type = 'P' AND created_at >= ${start}::timestamp AND created_at < ${boundary}::timestamp)::int as curr_p,
                 count(*) FILTER (WHERE type = 'P' AND created_at >= ${prevStart}::timestamp AND created_at < ${prevBoundary}::timestamp)::int as prev_p,
-                count(*) FILTER (WHERE type = 'A' AND t.date >= ${start}::date AND t.date < ${boundary}::date)::int as curr_a,
-                count(*) FILTER (WHERE type = 'A' AND t.date >= ${prevStart}::date AND t.date < ${prevBoundary}::date)::int as prev_a
+                count(*) FILTER (WHERE type = 'A' AND t.date >= ${start}::text AND t.date < ${boundary}::text)::int as curr_a,
+                count(*) FILTER (WHERE type = 'A' AND t.date >= ${prevStart}::text AND t.date < ${prevBoundary}::text)::int as prev_a
               FROM (
-                SELECT 'P' as type, created_at, NULL::date as date FROM ${sql.identifier(schema)}.case_datas WHERE (deleted_at IS NULL OR deleted_at::text = '')
+                SELECT 'P' as type, created_at, NULL::text as date FROM ${sql.identifier(schema)}.case_datas WHERE (deleted_at IS NULL OR deleted_at::text = '')
                 UNION ALL
-                SELECT 'A' as type, created_at, booking_date::text::date as date FROM ${sql.identifier(schema)}.appointments WHERE (deleted_at IS NULL OR deleted_at::text = '')
+                SELECT 'A' as type, created_at, booking_date::text as date FROM ${sql.identifier(schema)}.appointments WHERE (deleted_at IS NULL OR deleted_at::text = '')
               ) t
             `),
             this.db.execute(sql`
@@ -1094,20 +1096,34 @@ export class DashboardRepositoryPg implements IDashboardRepository {
               FROM ${sql.identifier(schema)}.waitlist
               WHERE date >= ${start}::date AND date < ${boundary}::date AND called_at IS NOT NULL
             `)
-          ]) as [any, any, any];
+          ]);
+  
+          return { schema, results };
+        } catch (e: any) {
+          console.error(`[Platform KPI] Schema ${schema} failed:`, e?.message);
+          return null;
+        }
+      }));
 
-          const [c, f, w] = results;
-          const c0 = c[0] || {};
-          totalP += c0.curr_p || 0; prevP += c0.prev_p || 0;
-          totalA += c0.curr_a || 0; prevA += c0.prev_a || 0;
-          totalRev += Number(f[0]?.curr_rev) || 0;
-          
-          const w0 = w[0] || {};
-          if (w0.wait_time > 0) {
-            totalWait += Number(w0.wait_time);
-            waitCount++;
-          }
-        } catch (e) { continue; }
+      for (const res of schemaResults) {
+        if (!res) continue;
+        const [c, f, w] = res.results as [any[], any[], any[]];
+        const c0: any = c[0] || {};
+        const rev = Number(f[0]?.curr_rev) || 0;
+        
+        if (c0.curr_p > 0 || rev > 0) {
+          console.log(`[Platform KPI] Schema ${res.schema} - Patients: ${c0.curr_p}, Revenue: ${rev}`);
+        }
+
+        totalP += c0.curr_p || 0; prevP += c0.prev_p || 0;
+        totalA += c0.curr_a || 0; prevA += c0.prev_a || 0;
+        totalRev += rev;
+        
+        const w0: any = w[0] || {};
+        if (Number(w0.wait_time) > 0) {
+          totalWait += Number(w0.wait_time);
+          waitCount++;
+        }
       }
 
       return {
