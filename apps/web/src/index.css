@@ -2604,6 +2604,7 @@ a {
 
 .pp-page-hero-actions {
   display: flex;
+
   gap: 10px;
   flex-wrap: wrap;
   align-items: center;
@@ -2613,11 +2614,12 @@ a {
 @media (max-width: 639px) {
   .pp-page-hero-actions {
     width: 100%;
+    flex-direction: row;
   }
 
   .pp-page-hero-actions>.btn-primary,
   .pp-page-hero-actions>button:not(.appt-segmented-btn) {
-    flex: 1;
+    /* flex: 1; */
     justify-content: center;
     height: 44px;
     border-radius: 12px;
@@ -3147,10 +3149,10 @@ a {
 @media (max-width: 1024px) {
   /* ─── Master Horizontal Table Engine (Global Enforcement) ─── */
   /* This overrides ALL local card-stacking implementations to ensure software-wide consistency */
-  
+
   /* 1. Force Containers to Scroll */
-  html body .pp-table-container-enhanced, 
-  html body .plat-table-container, 
+  html body .pp-table-container-enhanced,
+  html body .plat-table-container,
   html body .pp-table-scroll,
   html body .appt-table-scroll,
   html body .bill-table-scroll,
@@ -3165,16 +3167,17 @@ a {
     background: var(--bg-card) !important;
     margin-bottom: 20px !important;
   }
-  
+
   /* 2. Force Table Structure */
-  html body .pp-table, 
-  html body .plat-table, 
-  html body .bill-table, 
+  html body .pp-table,
+  html body .plat-table,
+  html body .bill-table,
   html body .appt-table,
   html body .appt-ledger-table {
     display: table !important;
     width: 100% !important;
-    min-width: 850px !important; /* Professional minimum width to prevent squishing */
+    min-width: 850px !important;
+    /* Professional minimum width to prevent squishing */
     border-collapse: collapse !important;
     border: none !important;
     table-layout: auto !important;
@@ -3182,14 +3185,14 @@ a {
   }
 
   /* 3. Force Header Visibility */
-  html body .pp-table thead, 
+  html body .pp-table thead,
   html body .plat-table thead,
   html body .bill-table thead,
   html body .appt-table thead {
     display: table-header-group !important;
   }
 
-  html body .pp-table thead th, 
+  html body .pp-table thead th,
   html body .plat-table thead th,
   html body .bill-table thead th,
   html body .appt-table thead th {
@@ -3211,7 +3214,7 @@ a {
     display: table-row-group !important;
   }
 
-  html body .pp-table tr, 
+  html body .pp-table tr,
   html body .plat-table tr,
   html body .bill-table tr,
   html body .appt-table tr,
@@ -3230,10 +3233,10 @@ a {
     background: var(--pp-warm-1) !important;
   }
 
-  html body .pp-table td, 
-  html body .plat-table td, 
-  html body .bill-table td, 
-  html body .appt-table td, 
+  html body .pp-table td,
+  html body .plat-table td,
+  html body .bill-table td,
+  html body .appt-table td,
   html body .appt-ledger-table td {
     display: table-cell !important;
     padding: 12px 15px !important;
@@ -3249,7 +3252,7 @@ a {
   }
 
   /* 5. Hide Card-Specific Elements */
-  html body .pp-table td::before, 
+  html body .pp-table td::before,
   html body .plat-table td::before,
   html body .bill-table td::before,
   html body .appt-table td::before,
@@ -3258,7 +3261,7 @@ a {
   }
 
   /* 6. Fix Action Columns on Mobile */
-  html body .pp-table td:last-child, 
+  html body .pp-table td:last-child,
   html body .plat-table td:last-child {
     background: transparent !important;
     padding: 12px 15px !important;
@@ -3278,8 +3281,8 @@ a {
 
   .pp-page-hero-actions {
     width: 100% !important;
-    display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
+    /* display: grid !important; */
+    /* grid-template-columns: 1fr 1fr !important; */
     gap: 8px !important;
   }
 
