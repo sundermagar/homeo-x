@@ -78,8 +78,6 @@ export interface DashboardKpis {
   collectionRateTrend: number | string;
   avgWaitTime: number;
   avgWaitTimeTrend: number | string;
-  casesCount: number;
-  casesTrend: number | string;
 }
 
 export interface QueueItem {

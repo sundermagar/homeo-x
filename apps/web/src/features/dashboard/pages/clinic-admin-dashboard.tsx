@@ -5,7 +5,7 @@ import {
   TrendingDown,
   Users,
   Activity,
-  LineChart,
+  BarChart3,
   Inbox,
   ChevronRight,
 } from 'lucide-react';
@@ -146,7 +146,7 @@ export function ClinicAdminDashboard() {
         <KPICard
           label="PATIENTS"
           sublabel={sublabel}
-          value={String(patients)}
+          value={patients > 0 ? String(patients) : '--'}
           trend={patientsTrend}
           onClick={() => navigate('/patients')}
         />
@@ -177,7 +177,7 @@ export function ClinicAdminDashboard() {
             <div className="cad-card-header">
               <div>
                 <div className="cad-card-title">
-                  <LineChart size={14} />
+                  <BarChart3 size={14} />
                   REVENUE BREAKDOWN · TREND
                 </div>
               </div>
@@ -206,23 +206,13 @@ export function ClinicAdminDashboard() {
                     <AreaChart data={chartSeries} margin={{ top: 10, right: 10, bottom: 0, left: -10 }}>
                       <defs>
                         <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="var(--pp-blue)" stopOpacity={0.15}/>
+                          <stop offset="5%" stopColor="var(--pp-blue)" stopOpacity={0.1}/>
                           <stop offset="95%" stopColor="var(--pp-blue)" stopOpacity={0}/>
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                      <XAxis 
-                        dataKey="month" 
-                        axisLine={false} 
-                        tickLine={false} 
-                        tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 700 }} 
-                      />
-                      <YAxis 
-                        axisLine={false} 
-                        tickLine={false} 
-                        tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 700 }} 
-                        tickFormatter={fmtNum} 
-                      />
+                      <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 700 }} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 700 }} tickFormatter={fmtNum} />
                       <Tooltip 
                         contentStyle={{ borderRadius: 10, border: '1px solid #e2e8f0', background: '#fff', fontSize: 12, fontWeight: 600 }} 
                         formatter={(v) => [fmt(Number(v)), 'Revenue']} 
@@ -235,7 +225,6 @@ export function ClinicAdminDashboard() {
                         fillOpacity={1} 
                         fill="url(#colorRev)" 
                         isAnimationActive={true}
-                        animationDuration={1500}
                       />
                     </AreaChart>
                   </ResponsiveContainer>
@@ -411,7 +400,7 @@ export function ClinicAdminDashboard() {
               </div>
               {queue.length > 0 ? (
                 <div className="cad-queue-list">
-                  {queue.map((q: { id: number; regid: number; patientName: string; tokenNo: string | number | null; bookingTime: string | null; status: string }) => (
+                  {queue.slice(0, 10).map((q: { id: number; regid: number; patientName: string; tokenNo: string | number | null; bookingTime: string | null; status: string }) => (
                     <div 
                       key={q.id} 
                       className="cad-queue-item" 

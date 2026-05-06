@@ -137,36 +137,36 @@ export function AdminDashboard() {
       <div className="sa-kpi-primary">
         <KPIItem
           label="Total Revenue"
-          value={`₹${(dashData?.kpis?.todaysCollection || 0).toLocaleString()}`}
-          trend={`${dashData?.kpis?.revenueTrend || 0}% vs prev.`}
-          positive={Number(dashData?.kpis?.revenueTrend || 0) >= 0}
+          value={`₹${(dashData?.totalRevenue || 0).toLocaleString()}`}
+          trend={`${dashData?.revenueTrend || 0}% vs prev.`}
+          positive={Number(dashData?.revenueTrend || 0) >= 0}
           icon={<CreditCard size={20} />}
           iconBg="var(--pp-blue-tint)"
           iconColor="var(--pp-blue)"
         />
         <KPIItem
           label="Total Patients"
-          value={String(dashData?.kpis?.casesCount || 0)}
-          trend={`${dashData?.kpis?.casesTrend || 0}% vs prev.`}
-          positive={Number(dashData?.kpis?.casesTrend || 0) >= 0}
+          value={String(dashData?.patientsCount || 0)}
+          trend={`${dashData?.patientsTrend || 0}% vs prev.`}
+          positive={Number(dashData?.patientsTrend || 0) >= 0}
           icon={<Users size={20} />}
           iconBg="rgba(139, 92, 246, 0.1)"
           iconColor="#8b5cf6"
         />
         <KPIItem
           label="Medical Cases"
-          value={String(dashData?.kpis?.casesCount || 0)}
-          trend={`${dashData?.kpis?.casesTrend || 0}% vs prev.`}
-          positive={Number(dashData?.kpis?.casesTrend || 0) >= 0}
+          value={String(dashData?.casesCount || 0)}
+          trend={`${dashData?.casesTrend || 0}% vs prev.`}
+          positive={Number(dashData?.casesTrend || 0) >= 0}
           icon={<Activity size={20} />}
           iconBg="rgba(16, 185, 129, 0.1)"
           iconColor="#10b981"
         />
         <KPIItem
           label="Patient Intake"
-          value={String(dashData?.kpis?.newPatientsCount || 0)}
-          trend={`${dashData?.kpis?.patientTrend || 0}% vs prev.`}
-          positive={Number(dashData?.kpis?.patientTrend || 0) >= 0}
+          value={String(dashData?.newPatientsCount || 0)}
+          trend={`${dashData?.patientsTrend || 0}% vs prev.`}
+          positive={Number(dashData?.patientsTrend || 0) >= 0}
           icon={<Plus size={20} />}
           iconBg="rgba(245, 158, 11, 0.1)"
           iconColor="#f59e0b"

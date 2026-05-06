@@ -14,7 +14,7 @@ export function useClinicAdminDashboard(period: string = 'month') {
       const res = await apiClient.get<{ success: boolean; data: ClinicAdminDashboardData }>('/dashboard/clinic-admin', { params: { period } });
       return res.data.data;
     },
-    staleTime: 5 * 60_000,
-    gcTime: 10 * 60_000,
+    staleTime: 30 * 1000,
+    gcTime: 5 * 60 * 1000,
   });
 }

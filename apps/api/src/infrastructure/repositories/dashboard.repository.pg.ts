@@ -144,7 +144,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
   }
 
   async getKpis(period: string, contextId: number, doctorId?: number): Promise<DashboardKpis> {
-    return this.getCached(`kpis:${contextId}:${period}:${doctorId ?? ''}`, 30_000, async () => {
+    return this.getCached(`kpis:${contextId}:${period}:${doctorId ?? ''}`, 10_000, async () => {
       const sp = (this.db as any).session?.client?.options?.search_path || 'NONE';
       const isPlatformView = sp.includes('public') && !sp.includes('tenant_');
 
@@ -280,8 +280,10 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     const dd = String(istDate.getDate()).padStart(2, '0');
     const today = `${y}-${mm}-${dd}`;
     return this.getCached(`queue:${contextId}:${today}:${doctorId ?? ''}`, 0, async () => {
-      const docCond = doctorId ? sql` AND w.doctor_id = ${doctorId}` : sql``;
-      const apptCond = doctorId ? sql` AND a.doctor_id = ${doctorId}` : sql``;
+      const docCond = doctorId ? sql` AND (w.doctor_id = ${doctorId} OR (SELECT name FROM users WHERE id = w.doctor_id) = (SELECT name FROM users WHERE id = ${doctorId}) OR (SELECT name FROM doctors WHERE id = w.doctor_id) = (SELECT name FROM users WHERE id = ${doctorId}))` : sql``;
+      const apptCond = doctorId ? sql` AND (a.doctor_id = ${doctorId} OR (SELECT name FROM users WHERE id = a.doctor_id) = (SELECT name FROM users WHERE id = ${doctorId}) OR (SELECT name FROM doctors WHERE id = a.doctor_id) = (SELECT name FROM users WHERE id = ${doctorId}))` : sql``;
+      const dateCond = sql`(w.date::text = ${today} OR w.date::text = TO_CHAR(${today}::date, 'DD/MM/YYYY') OR w.date::text LIKE '%' || TO_CHAR(${today}::date, 'DD/MM/YYYY') || '%')`;
+      const apptDateCond = sql`(a.booking_date::text = ${today} OR a.booking_date::text = TO_CHAR(${today}::date, 'DD/MM/YYYY') OR a.booking_date::text LIKE '%' || TO_CHAR(${today}::date, 'DD/MM/YYYY') || '%')`;
 
       const result = await this.db.execute(sql`
         WITH today_waitlist AS (
@@ -294,7 +296,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             w.status,
             w.checked_in_at
           FROM waitlist w
-          WHERE w.date = ${today}::date AND (w.deleted_at IS NULL OR w.deleted_at::text = '')
+          WHERE ${dateCond} AND (w.deleted_at IS NULL OR w.deleted_at::text = '')
+            AND (w.clinic_id = ${contextId} OR w.clinic_id IS NULL)
             ${docCond}
         )
         SELECT
@@ -341,7 +344,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             a.booking_time,
             a.id as visit_id
           FROM appointments a
-          WHERE a.booking_date::text::date = ${today}::date AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
+          WHERE ${apptDateCond} AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
             ${apptCond}
             AND NOT EXISTS (SELECT 1 FROM today_waitlist tw2 WHERE tw2.appointment_id = a.id OR tw2.patient_id = a.patient_id)
         ) q
@@ -1067,9 +1070,12 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             `),
             this.db.execute(sql`
               SELECT 
-                COALESCE(sum(received), 0)::numeric as curr_rev
-              FROM ${sql.identifier(schema)}.bills
-              WHERE bill_date >= ${start}::date AND bill_date < ${boundary}::date AND (deleted_at IS NULL OR deleted_at::text = '')
+                COALESCE(sum(amount), 0)::numeric as curr_rev
+              FROM (
+                SELECT received as amount FROM ${sql.identifier(schema)}.bills WHERE bill_date >= ${start}::date AND bill_date < ${boundary}::date AND (deleted_at IS NULL OR deleted_at::text = '')
+                UNION ALL
+                SELECT CAST(NULLIF(amount::text, '') AS numeric) FROM ${sql.identifier(schema)}.receipt WHERE created_at >= ${start}::timestamp AND created_at < ${boundary}::timestamp AND (deleted_at IS NULL OR deleted_at::text = '')
+              ) r
             `),
             this.db.execute(sql`
               SELECT COALESCE(avg(extract(epoch from (called_at - checked_in_at))/60), 0)::int as wait_time
@@ -1129,10 +1135,12 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         const schema = s.schema_name;
         try {
           const results = await this.db.execute(sql`
-            SELECT to_char(date_trunc('month', b.bill_date), 'Mon') as month, sum(b.received)::int as revenue
-            FROM ${sql.identifier(schema)}.bills b
-            WHERE b.bill_date >= date_trunc('month', NOW()) - interval '6 months'
-              AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
+            SELECT to_char(date_trunc('month', r.date), 'Mon') as month, sum(r.amount)::int as revenue
+            FROM (
+              SELECT bill_date as date, received as amount FROM ${sql.identifier(schema)}.bills WHERE bill_date >= date_trunc('month', NOW()) - interval '6 months' AND (deleted_at IS NULL OR deleted_at::text = '')
+              UNION ALL
+              SELECT created_at::date as date, CAST(NULLIF(amount::text, '') AS numeric) as amount FROM ${sql.identifier(schema)}.receipt WHERE created_at >= date_trunc('month', NOW()) - interval '6 months' AND (deleted_at IS NULL OR deleted_at::text = '')
+            ) r
             GROUP BY 1
           `) as any[];
 

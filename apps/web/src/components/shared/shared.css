@@ -324,25 +324,10 @@
 
 @media (max-width: 768px) {
   .pat-pagination-bar {
-    flex-direction: column !important;
-    gap: 16px !important;
-    align-items: center !important;
-    padding: 16px !important;
-    text-align: center !important;
-  }
-
-  .pat-pagination-info-wrap {
-    width: 100% !important;
-    flex-direction: column !important;
-    gap: 8px !important;
-    align-items: center !important;
-  }
-
-  .pat-pagination-controls {
-    width: 100% !important;
-    justify-content: center !important;
-    flex-wrap: wrap !important;
-    gap: 6px !important;
+    flex-direction: column;
+    gap: 16px;
+    align-items: center;
+    padding: 16px;
   }
 }
 

@@ -1934,30 +1934,6 @@ a {
   box-sizing: border-box;
 }
 
-@media (max-width: 768px) {
-  .pp-pagination-bar {
-    flex-direction: column !important;
-    align-items: center !important;
-    text-align: center !important;
-    gap: 16px !important;
-    padding: 16px !important;
-  }
-
-  .pp-pagination-info-wrap {
-    width: 100% !important;
-    flex-direction: column !important;
-    gap: 8px !important;
-    align-items: center !important;
-  }
-
-  .pp-pagination-controls {
-    width: 100% !important;
-    justify-content: center !important;
-    flex-wrap: wrap !important;
-    gap: 6px !important;
-  }
-}
-
 .pp-pagination-info-wrap {
   display: flex;
   align-items: center;
@@ -3359,97 +3335,61 @@ a {
   }
 }
 
-/* ─── 10. Platform Adaptive Tables — Mobile Cards ────────────────────────── */
+/* ─── 10. Receptionist Dashboard — Schedule Table Mobile Cards ───────────── */
 
 @media (max-width: 767px) {
-  .pp-table-container-enhanced {
-    margin: 0 -12px !important;
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-  }
-
-  .pp-table-container-enhanced .pp-table-scroll {
+  .rd-table-wrap .pp-table-scroll {
     overflow: visible !important;
-  }
-
-  .pp-table-container-enhanced .pp-table {
-    display: block !important;
     border: none !important;
   }
 
-  .pp-table-container-enhanced .pp-table thead {
+  .rd-table-wrap .pp-table {
+    display: block !important;
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  .rd-table-wrap .pp-table thead {
     display: none !important;
   }
 
-  .pp-table-container-enhanced .pp-table tbody {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 12px !important;
+  .rd-table-wrap .pp-table tbody,
+  .rd-table-wrap .pp-table tr,
+  .rd-table-wrap .pp-table td {
+    display: block !important;
+    width: 100% !important;
   }
 
-  /* Adaptive Row — Premium Card Layout */
-  .pp-table-container-enhanced .pp-table tr:not(.expansion-details-row) {
-    display: block !important;
+  .rd-table-wrap .pp-table tr {
+    margin-bottom: 16px !important;
     background: var(--bg-card) !important;
     border: 1px solid var(--border-main) !important;
-    border-radius: 14px !important;
+    border-radius: 16px !important;
+    padding: 0 !important;
     overflow: hidden !important;
     box-shadow: var(--pp-shadow-sm) !important;
-    position: relative;
-    padding-bottom: 4px;
   }
 
-  /* Status Accent Bar */
-  .pp-table-container-enhanced .pp-table tr[class*="status-"]::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 4px;
-    background: var(--pp-blue);
-    z-index: 10;
-  }
-
-  .pp-table-container-enhanced .pp-table tr.status-consultation::before { background: var(--pp-success-fg); }
-  .pp-table-container-enhanced .pp-table tr.status-waitlist::before,
-  .pp-table-container-enhanced .pp-table tr.status-pending::before { background: var(--pp-warning-fg); }
-  .pp-table-container-enhanced .pp-table tr.status-completed::before { background: var(--pp-text-4); }
-  .pp-table-container-enhanced .pp-table tr.status-confirmed::before { background: var(--pp-blue); }
-
-  /* Expansion Row Styling — Seamlessly merged */
-  .pp-table-container-enhanced .pp-table tr.expansion-details-row {
-    display: block !important;
-    margin-top: -12px !important;
-    border: 1px solid var(--border-main) !important;
-    border-top: none !important;
-    border-radius: 0 0 14px 14px !important;
-    background: var(--pp-warm-1) !important;
-    overflow: hidden;
-  }
-
-  .pp-table-container-enhanced .pp-table td {
+  .rd-table-wrap .pp-table td {
     display: grid !important;
-    grid-template-columns: 100px 1fr !important;
-    gap: 12px !important;
-    align-items: center !important;
-    padding: 10px 16px !important;
-    border-bottom: 1px solid var(--pp-warm-2) !important;
-    text-align: right !important;
-    min-height: 44px;
-  }
-
-  .pp-table-container-enhanced .pp-table td:last-child {
-    border-bottom: none !important;
-    background: var(--pp-warm-1) !important;
-    padding: 12px 16px !important;
-    display: flex !important;
-    justify-content: flex-end !important;
+    grid-template-columns: 110px 1fr !important;
     gap: 10px !important;
+    align-items: center !important;
+    padding: 12px 16px !important;
+    border-bottom: 1px dashed var(--border-main) !important;
+    text-align: right !important;
+    min-height: 48px;
   }
 
-  .pp-table-container-enhanced .pp-table td::before {
+  .rd-table-wrap .pp-table td:last-child {
+    border-bottom: none !important;
+    background: var(--bg-surface-2) !important;
+    padding: 14px 16px !important;
+    flex-direction: row !important;
+    justify-content: center !important;
+  }
+
+  .rd-table-wrap .pp-table td::before {
     content: attr(data-label);
     font-size: 10px !important;
     font-weight: 800 !important;
@@ -3457,17 +3397,6 @@ a {
     text-transform: uppercase !important;
     letter-spacing: 0.08em !important;
     text-align: left !important;
-  }
-
-  .pp-table-container-enhanced .expansion-details-td {
-    padding: 0 !important;
-    border: none !important;
-    display: block !important;
-  }
-
-  .pp-table-container-enhanced .expansion-content {
-    padding: 16px !important;
-    background: var(--pp-warm-1) !important;
   }
 }
 
@@ -3679,65 +3608,52 @@ a {
     font-size: 1.25rem !important;
   }
 
-}
-
-@media (max-width: 768px) {
-  .dash-card-header {
-    flex-direction: column !important;
-    align-items: stretch !important;
-    gap: 14px !important;
-    padding: 16px !important;
-    height: auto !important;
+  /* Pagination — compact on tiny screens */
+  .pp-pagination-bar {
+    padding: 12px 14px !important;
+    gap: 10px !important;
+    flex-direction: column;
+    align-items: flex-start;
   }
 
-  .dash-search-box input {
-    width: 100% !important;
-    height: 38px !important;
-    font-size: 14px !important;
-    padding-left: 36px !important;
-  }
-
-  .dash-search-box svg {
-    width: 16px !important;
-    left: 12px !important;
-  }
-
-  .dash-avatar {
-    width: 36px !important;
-    height: 36px !important;
-    font-size: 14px !important;
-  }
-
-  .dash-kpi-item {
-    padding: 10px !important;
-  }
-
-  .dash-kpi-label {
-    font-size: 9px !important;
-    letter-spacing: 0.05em !important;
-  }
-
-  .dash-kpi-value {
-    font-size: 1.2rem !important;
+  .pp-pagination-info-wrap {
+    gap: 10px;
   }
 }
 
 /* ─── 16. Tablet Layout Fixes (640px - 1023px) ───────────────────────────── */
 
 @media (min-width: 640px) and (max-width: 1023px) {
+
+  /* Hero title consistent */
+  .pp-page-hero-title {
+    font-size: 20px;
+  }
+
+  /* KPI strip 2-col on tablet (override if needed) */
+  .dash-kpi-strip {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--pp-space-3);
+  }
+
+  /* Stat grid 3-col on tablet */
+  .pp-stat-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  /* Dashboard sidebar stacks below on tablet */
   .dash-grid {
     grid-template-columns: 1fr !important;
-    gap: 20px !important;
   }
 
   .dash-sidebar {
-    display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
-    gap: 20px !important;
+    flex-direction: row;
+    flex-wrap: wrap;
   }
 
   .dash-sidebar-card {
-    min-height: 0 !important;
+    flex: 1 1 calc(50% - 12px);
+    min-width: 280px;
   }
 }
 
@@ -3795,6 +3711,8 @@ a {
   }
 }
 
+/* ─── END RESPONSIVE FIXES v4 ────────────────────────────────────────────── */
+
 /* ─── 21. MASTER MOBILE OVERRIDES (FORCE STABILITY) ───────────────────────── */
 
 @media (max-width: 768px) {
@@ -3802,92 +3720,70 @@ a {
   body .pat-pagination-bar,
   body .pp-pagination-bar {
     flex-direction: column !important;
-    align-items: center !important;
-    gap: 14px !important;
-    padding: 16px !important;
+    align-items: stretch !important;
+    gap: 16px !important;
+    padding: 20px 16px !important;
     background: var(--bg-card) !important;
     border: 1px solid var(--border-main) !important;
-    border-radius: 12px !important;
+    border-radius: 14px !important;
     width: 100% !important;
     box-sizing: border-box !important;
     display: flex !important;
+    box-shadow: var(--pp-shadow-sm) !important;
   }
 
   body .pat-pagination-info-wrap,
   body .pp-pagination-info-wrap {
     flex-direction: column !important;
-    gap: 8px !important;
+    gap: 10px !important;
     align-items: center !important;
     width: 100% !important;
     display: flex !important;
+    text-align: center !important;
   }
 
   body .pat-pagination-controls,
   body .pp-pagination-controls {
     justify-content: center !important;
     width: 100% !important;
-    gap: 8px !important;
+    gap: 10px !important;
     display: flex !important;
     flex-wrap: wrap !important;
-  }
-
-  /* Force Expansion Row Visibility & Layout */
-  body .pp-table-container-enhanced .pp-table tr.expansion-details-row {
-    display: block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    height: auto !important;
-    min-height: 10px !important;
-    margin-top: -12px !important;
-    border: 1px solid var(--border-main) !important;
-    border-top: none !important;
-    background: var(--pp-warm-1) !important;
-    border-radius: 0 0 14px 14px !important;
-    overflow: visible !important;
-    z-index: 20 !important;
-    position: relative !important;
-  }
-
-  body .pp-table-container-enhanced .expansion-content {
-    display: block !important;
-    padding: 16px !important;
-    background: var(--pp-warm-1) !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-  }
-
-  body .pp-table-container-enhanced .expansion-grid {
-    display: grid !important;
-    grid-template-columns: 1fr !important;
-    gap: 16px !important;
   }
 
   /* ─── Mobile Card List (NEW Stable Architecture) ─── */
   .pp-mobile-list {
     display: flex !important;
     flex-direction: column !important;
-    gap: 12px !important;
-    padding: 4px 0 !important;
+    gap: 14px !important;
+    padding: 8px 0 !important;
   }
 
   .pp-mobile-card {
     background: var(--bg-card) !important;
     border: 1px solid var(--border-main) !important;
-    border-radius: 14px !important;
-    padding: 14px !important;
+    border-radius: 16px !important;
+    padding: 16px 18px !important; /* Increased right padding for better thumb reach */
     position: relative !important;
     overflow: hidden !important;
     box-shadow: var(--pp-shadow-sm) !important;
     transition: all 0.2s ease !important;
     display: flex !important;
     flex-direction: column !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+
+  .pp-mobile-card:active {
+    background: var(--pp-warm-1) !important;
+    transform: scale(0.98) !important;
+    box-shadow: none !important;
   }
 
   .pp-mobile-card::before {
     content: '' !important;
     position: absolute !important;
     left: 0 !important; top: 0 !important; bottom: 0 !important;
-    width: 4px !important;
+    width: 5px !important;
     background: var(--pp-blue) !important;
   }
 
@@ -3900,14 +3796,14 @@ a {
     display: flex !important;
     justify-content: space-between !important;
     align-items: center !important;
-    margin-bottom: 12px !important;
+    margin-bottom: 14px !important;
     width: 100% !important;
   }
 
   .pmc-time {
     display: flex !important;
     align-items: center !important;
-    gap: 6px !important;
+    gap: 8px !important;
     font-size: 11px !important;
     font-weight: 700 !important;
     color: var(--text-muted) !important;
@@ -3917,91 +3813,31 @@ a {
   .pmc-token {
     background: var(--pp-blue-tint) !important;
     color: var(--pp-blue) !important;
-    padding: 2px 6px !important;
-    border-radius: 4px !important;
+    padding: 2px 8px !important;
+    border-radius: 6px !important;
+    font-weight: 800 !important;
   }
 
   .pmc-body {
     display: flex !important;
     align-items: center !important;
-    gap: 12px !important;
+    gap: 14px !important;
     width: 100% !important;
   }
 
   .pmc-info { flex: 1 !important; min-width: 0 !important; }
-  .pmc-name { font-weight: 700 !important; color: var(--text-main) !important; font-size: 14px !important; margin-bottom: 2px !important; }
-  .pmc-regid { font-size: 10px !important; color: var(--text-muted) !important; font-weight: 600 !important; }
-  .pmc-chevron { color: var(--text-muted) !important; transition: transform 0.2s !important; }
-  .rotate-90 { transform: rotate(90deg) !important; }
-
-  .pmc-details {
-    margin-top: 16px !important;
-    padding-top: 16px !important;
-    border-top: 1px dashed var(--border-main) !important;
-    animation: slideDown 0.2s ease-out !important;
-    width: 100% !important;
-  }
-
-  .pmc-details-grid {
-    display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
-    gap: 12px !important;
-    margin-bottom: 16px !important;
-  }
-
-  .pmc-detail-item label {
-    display: block !important;
-    font-size: 9px !important;
-    text-transform: uppercase !important;
-    font-weight: 800 !important;
-    color: var(--text-muted) !important;
-    margin-bottom: 4px !important;
-    letter-spacing: 0.05em !important;
-  }
-
-  .pmc-detail-item span,
-  .pmc-detail-item p {
-    font-size: 12px !important;
-    color: var(--text-main) !important;
-    font-weight: 500 !important;
-  }
-
-  .pmc-detail-item.full { grid-column: span 2 !important; }
-  .pmc-detail-item p { font-style: italic !important; color: var(--text-muted) !important; line-height: 1.4 !important; }
-
-  .pmc-actions {
-    display: flex !important;
-    gap: 8px !important;
-    width: 100% !important;
-  }
-
-  .pmc-actions button {
-    flex: 1 !important;
-    height: 36px !important;
-    font-size: 12px !important;
-    font-weight: 600 !important;
-    border-radius: 8px !important;
-  }
+  .pmc-name { font-weight: 700 !important; color: var(--text-main) !important; font-size: 15px !important; margin-bottom: 3px !important; }
+  .pmc-regid { font-size: 11px !important; color: var(--text-muted) !important; font-weight: 600 !important; }
+  .pmc-chevron { color: var(--pp-text-4) !important; margin-left: auto !important; }
 }
 
+/* ─── Utility visibility ─── */
 .hide-mobile { display: block !important; }
 .visible-mobile { display: none !important; }
 
 @media (max-width: 768px) {
   .hide-mobile { display: none !important; }
   .visible-mobile { display: block !important; }
-  
-  .dash-pagination-wrap {
-    width: 100% !important;
-    display: flex !important;
-    justify-content: center !important;
-    padding: 16px 0 !important;
-  }
-}
-
-@keyframes slideDown {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
 }
 
 /* ─── END RESPONSIVE FIXES v5 ────────────────────────────────────────────── */
