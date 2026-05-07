@@ -222,12 +222,20 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             SELECT
               count(*) FILTER (WHERE type = 'P' AND created_at >= ${start}::timestamp AND created_at < ${boundary}::timestamp)::int as curr_patients,
               count(*) FILTER (WHERE type = 'P' AND created_at >= ${prevStart}::timestamp AND created_at < ${prevBoundary}::timestamp)::int as prev_patients,
-              count(*) FILTER (WHERE type = 'A' AND t.date >= ${start}::text AND t.date < ${boundary}::text)::int as curr_appts,
-              count(*) FILTER (WHERE type = 'A' AND t.date >= ${prevStart}::text AND t.date < ${prevBoundary}::text)::int as prev_appts
+              count(*) FILTER (WHERE type = 'A' AND t.date >= ${start}::date AND t.date < ${boundary}::date)::int as curr_appts,
+              count(*) FILTER (WHERE type = 'A' AND t.date >= ${prevStart}::date AND t.date < ${prevBoundary}::date)::int as prev_appts
             FROM (
-              SELECT 'P' as type, created_at, NULL::text as date FROM case_datas WHERE (deleted_at IS NULL OR deleted_at::text = '') AND (clinic_id = ${contextId} OR clinic_id IS NULL)
+              SELECT 'P' as type, created_at, NULL::date as date FROM case_datas WHERE (deleted_at IS NULL OR deleted_at::text = '') AND (clinic_id = ${contextId} OR clinic_id IS NULL OR clinic_id = 0 OR clinic_id = 1)
               UNION ALL
-              SELECT 'A' as type, created_at, booking_date::text as date FROM appointments WHERE (deleted_at IS NULL OR deleted_at::text = '') AND (clinic_id = ${contextId} OR clinic_id IS NULL) ${docApptFilter}
+              SELECT 'A' as type, created_at, 
+                (CASE 
+                  WHEN booking_date::text ~ '^\\d{2}/\\d{2}/\\d{4}' THEN TO_DATE(booking_date::text, 'DD/MM/YYYY')
+                  ELSE booking_date::date
+                END) as date 
+              FROM appointments 
+              WHERE (deleted_at IS NULL OR deleted_at::text = '') 
+              AND (clinic_id = ${contextId} OR clinic_id IS NULL OR clinic_id = 0 OR clinic_id = 1) 
+              ${docApptFilter}
             ) t
           ),
           finance_cte AS (
@@ -243,28 +251,28 @@ export class DashboardRepositoryPg implements IDashboardRepository {
               SELECT b.charges as curr_bill_charges, b.received as curr_bill_received, 0 as curr_receipt_amt, 0 as curr_expenses, 0 as prev_bill_charges, 0 as prev_bill_received, 0 as prev_receipt_amt
               FROM bills b
               WHERE b.bill_date >= ${start}::date AND b.bill_date < ${boundary}::date AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
-              AND (b.clinic_id = ${contextId} OR b.clinic_id IS NULL)
+              AND (b.clinic_id = ${contextId} OR b.clinic_id IS NULL OR b.clinic_id = 0 OR b.clinic_id = 1)
               ${docBillFilter}
               UNION ALL
               SELECT 0, 0, CAST(NULLIF(r.amount::text, '') AS numeric), 0, 0, 0, 0
               FROM receipt r
               WHERE r.created_at >= ${start}::timestamp AND r.created_at < ${boundary}::timestamp AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
-              AND (r.clinic_id = ${contextId} OR r.clinic_id IS NULL)
+              AND (r.clinic_id = ${contextId} OR r.clinic_id IS NULL OR r.clinic_id = 0 OR r.clinic_id = 1)
               UNION ALL
               SELECT 0, 0, 0, amount, 0, 0, 0 FROM expenses
               WHERE exp_date >= ${start}::date AND exp_date < ${boundary}::date AND (deleted_at IS NULL OR deleted_at::text = '')
-              AND (clinic_id = ${contextId} OR clinic_id IS NULL)
+              AND (clinic_id = ${contextId} OR clinic_id IS NULL OR clinic_id = 0 OR clinic_id = 1)
               UNION ALL
               SELECT 0, 0, 0, 0, b.charges, b.received, 0
               FROM bills b
               WHERE b.bill_date >= ${prevStart}::date AND b.bill_date < ${prevBoundary}::date AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
-              AND (b.clinic_id = ${contextId} OR b.clinic_id IS NULL)
+              AND (b.clinic_id = ${contextId} OR b.clinic_id IS NULL OR b.clinic_id = 0 OR b.clinic_id = 1)
               ${docBillFilter}
               UNION ALL
               SELECT 0, 0, 0, 0, 0, 0, CAST(NULLIF(r.amount::text, '') AS numeric)
               FROM receipt r
               WHERE r.created_at >= ${prevStart}::timestamp AND r.created_at < ${prevBoundary}::timestamp AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
-              AND (r.clinic_id = ${contextId} OR r.clinic_id IS NULL)
+              AND (r.clinic_id = ${contextId} OR r.clinic_id IS NULL OR r.clinic_id = 0 OR r.clinic_id = 1)
             ) t
           ),
           wait_cte AS (
@@ -360,11 +368,20 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     const dd = String(istDate.getDate()).padStart(2, '0');
     const today = `${y}-${mm}-${dd}`;
     return this.getCached(`queue:${contextId}:${today}:${doctorId ?? ''}`, 5_000, async () => {
-      const waitlistDocFilter = doctorId ? sql` AND w.doctor_id = ${doctorId}` : sql``;
-      const apptDocFilter = doctorId ? sql` AND a.doctor_id = ${doctorId}` : sql``;
-      // Use proper date comparison
-      const dateCond = sql`(w.date = ${today}::date OR w.date::text LIKE '%/%%/${dd}' || '%')`;
-      const apptDateCond = sql`(a.booking_date = ${today}::text OR a.booking_date LIKE '%/%%/${dd}' || '%')`;
+      const waitlistDocFilter = doctorId ? sql` AND (w.doctor_id = ${doctorId} OR (SELECT name FROM users WHERE id = ${doctorId}) = (SELECT name FROM doctors WHERE id = w.doctor_id))` : sql``;
+      const apptDocFilter = doctorId ? sql` AND (a.doctor_id = ${doctorId} OR (SELECT name FROM users WHERE id = ${doctorId}) = (SELECT name FROM doctors WHERE id = a.doctor_id))` : sql``;
+
+      // Robust date filtering that handles both YYYY-MM-DD and DD/MM/YYYY formats
+      const dateCond = sql`(
+        w.date::text = ${today}
+        OR w.date::text = TO_CHAR(${today}::date, 'DD/MM/YYYY')
+        OR w.date::text LIKE '%' || TO_CHAR(${today}::date, 'DD/MM/YYYY') || '%'
+      )`;
+      const apptDateCond = sql`(
+        a.booking_date::text = ${today}
+        OR a.booking_date::text = TO_CHAR(${today}::date, 'DD/MM/YYYY')
+        OR a.booking_date::text LIKE '%' || TO_CHAR(${today}::date, 'DD/MM/YYYY') || '%'
+      )`;
 
       const result = await this.db.execute(sql`
         WITH today_waitlist AS (
@@ -378,7 +395,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             w.checked_in_at
           FROM waitlist w
           WHERE ${dateCond} AND (w.deleted_at IS NULL OR w.deleted_at::text = '')
-            AND (w.clinic_id = ${contextId} OR w.clinic_id IS NULL)
+            AND (w.clinic_id = ${contextId} OR w.clinic_id IS NULL OR w.clinic_id = 0 OR w.clinic_id = 1)
             ${waitlistDocFilter}
         )
         SELECT
@@ -437,7 +454,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             a.notes
           FROM appointments a
           WHERE ${apptDateCond} AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
-            AND (a.clinic_id = ${contextId} OR a.clinic_id IS NULL)
+            AND (a.clinic_id = ${contextId} OR a.clinic_id IS NULL OR a.clinic_id = 0 OR a.clinic_id = 1)
             ${apptDocFilter}
             AND NOT EXISTS (SELECT 1 FROM today_waitlist tw2 WHERE tw2.appointment_id = a.id)
         ) q
@@ -516,6 +533,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       SELECT 'appointment' as type, 'Appointment - ' || COALESCE(p.first_name, 'Unknown') as title, a.booking_date::text as subtitle, a.created_at
       FROM appointments a LEFT JOIN case_datas p ON a.patient_id = p.id
       WHERE (a.deleted_at IS NULL OR a.deleted_at::text = '')
+      AND (a.clinic_id = ${contextId} OR a.clinic_id IS NULL OR a.clinic_id = 0 OR a.clinic_id = 1)
       ORDER BY a.id DESC LIMIT ${limit}
     `));
 
@@ -526,6 +544,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         FROM ${sql.identifier(revInfo.name)} r 
         JOIN case_datas p ON r.regid = p.regid
         WHERE (r.deleted_at IS NULL OR r.deleted_at::text = '')
+        AND (r.clinic_id = ${contextId} OR r.clinic_id IS NULL OR r.clinic_id = 0 OR r.clinic_id = 1)
         ORDER BY r.id DESC LIMIT ${limit}
       `));
       }
@@ -607,6 +626,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           ${sql.raw(modeFilter ? modeFilter.replace('payment_mode', 'b.payment_mode') : "")}
           AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
           AND pb.regid = b.regid
+          AND (b.clinic_id = ${contextId} OR b.clinic_id IS NULL OR b.clinic_id = 0 OR b.clinic_id = 1)
         GROUP BY 1
         
         UNION ALL
@@ -619,6 +639,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           ${sql.raw(modeFilter ? modeFilter.replace('payment_mode', 'r.mode') : "")}
           AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
           AND pr.regid = r.regid
+          AND (r.clinic_id = ${contextId} OR r.clinic_id IS NULL OR r.clinic_id = 0 OR r.clinic_id = 1)
         GROUP BY 1
       )
       SELECT to_char(months.m, 'Mon') as month, 
@@ -743,6 +764,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             JOIN case_datas pb ON pb.regid = b.regid
             WHERE (b.deleted_at IS NULL OR b.deleted_at::text = '')
               AND (pb.deleted_at IS NULL OR pb.deleted_at::text = '')
+              AND (b.clinic_id = ${contextId} OR b.clinic_id IS NULL OR b.clinic_id = 0 OR b.clinic_id = 1)
             
             UNION ALL
             
@@ -1147,12 +1169,18 @@ export class DashboardRepositoryPg implements IDashboardRepository {
               SELECT
                 count(*) FILTER (WHERE type = 'P' AND created_at >= ${start}::timestamp AND created_at < ${boundary}::timestamp)::int as curr_p,
                 count(*) FILTER (WHERE type = 'P' AND created_at >= ${prevStart}::timestamp AND created_at < ${prevBoundary}::timestamp)::int as prev_p,
-                count(*) FILTER (WHERE type = 'A' AND t.date >= ${start}::text AND t.date < ${boundary}::text)::int as curr_a,
-                count(*) FILTER (WHERE type = 'A' AND t.date >= ${prevStart}::text AND t.date < ${prevBoundary}::text)::int as prev_a
+                count(*) FILTER (WHERE type = 'A' AND t.date >= ${start}::date AND t.date < ${boundary}::date)::int as curr_a,
+                count(*) FILTER (WHERE type = 'A' AND t.date >= ${prevStart}::date AND t.date < ${prevBoundary}::date)::int as prev_a
               FROM (
-                SELECT 'P' as type, created_at, NULL::text as date FROM ${sql.identifier(schema)}.case_datas WHERE (deleted_at IS NULL OR deleted_at::text = '')
+                SELECT 'P' as type, created_at, NULL::date as date FROM ${sql.identifier(schema)}.case_datas WHERE (deleted_at IS NULL OR deleted_at::text = '')
                 UNION ALL
-                SELECT 'A' as type, created_at, booking_date::text as date FROM ${sql.identifier(schema)}.appointments WHERE (deleted_at IS NULL OR deleted_at::text = '')
+                SELECT 'A' as type, created_at, 
+                  (CASE 
+                    WHEN booking_date::text ~ '^\\d{2}/\\d{2}/\\d{4}' THEN TO_DATE(booking_date::text, 'DD/MM/YYYY')
+                    ELSE booking_date::date
+                  END) as date 
+                FROM ${sql.identifier(schema)}.appointments 
+                WHERE (deleted_at IS NULL OR deleted_at::text = '')
               ) t
             `),
             this.db.execute(sql`
