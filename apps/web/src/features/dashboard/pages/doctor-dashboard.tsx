@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, memo } from 'react';
 import {
   Activity,
   Zap,
@@ -470,7 +470,7 @@ export function DoctorDashboard() {
   );
 }
 
-function KPIItem({ label, value, trend, color }: any) {
+const KPIItem = memo(function KPIItem({ label, value, trend, color }: any) {
   return (
     <div className="dash-kpi-item">
       <span className="dash-kpi-label">{label}</span>
@@ -482,9 +482,9 @@ function KPIItem({ label, value, trend, color }: any) {
       </div>
     </div>
   );
-}
+});
 
-function VitalItem({ icon, label, value, color }: any) {
+const VitalItem = memo(function VitalItem({ icon, label, value, color }: any) {
   return (
     <div className="dd-vital-item">
       <span style={{ color, display: 'flex', alignItems: 'center' }}>{icon}</span>
@@ -492,18 +492,18 @@ function VitalItem({ icon, label, value, color }: any) {
       <span style={{ fontWeight: 800 }}>{value}</span>
     </div>
   );
-}
+});
 
-function IntelligenceItem({ color, text }: any) {
+const IntelligenceItem = memo(function IntelligenceItem({ color, text }: any) {
   return (
     <div className="dash-intel-item">
       <div className="dash-status-dot" style={{ background: color }} />
       <div className="dash-intel-content">{text}</div>
     </div>
   );
-}
+});
 
-function BillingItem({ patient, id, amount, status }: any) {
+const BillingItem = memo(function BillingItem({ patient, id, amount, status }: any) {
   return (
     <div className="dash-list-item">
       <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -516,4 +516,4 @@ function BillingItem({ patient, id, amount, status }: any) {
       </div>
     </div>
   );
-}
+});

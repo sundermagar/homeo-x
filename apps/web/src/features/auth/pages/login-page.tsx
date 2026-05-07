@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { Mail, Lock, Eye, EyeOff, Loader2, AlertCircle, Stethoscope, ShieldCheck, Clipboard, Building2 } from 'lucide-react';
 import { z } from 'zod';
 import { apiClient } from '@/infrastructure/api-client';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { LoginRequestSchema } from '@mmc/validation';
+import { prefetchDashboard } from '@/features/dashboard/hooks/use-dashboard';
 import '../styles/login-page.css';
 
 type LoginFields = z.infer<typeof LoginRequestSchema>;
@@ -18,6 +20,7 @@ export default function LoginPage() {
   const [fieldErrors, setFieldErrors]   = useState<Partial<Record<keyof LoginFields, string>>>({});
 
   const navigate        = useNavigate();
+  const queryClient     = useQueryClient();
   const setAuth         = useAuthStore((s) => s.setAuth);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
@@ -25,6 +28,20 @@ export default function LoginPage() {
   useEffect(() => {
     if (isAuthenticated) navigate('/', { replace: true });
   }, [isAuthenticated, navigate]);
+
+  // Warm up the dashboard chunk and the dashboard query while the user is reading
+  // the login form. Hides ~500-1500ms of perceived wait on first navigation to "/".
+  useEffect(() => {
+    const warmup = () => {
+      void import('@/features/dashboard/pages/dashboard-page');
+    };
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      const id = (window as any).requestIdleCallback(warmup, { timeout: 1500 });
+      return () => (window as any).cancelIdleCallback?.(id);
+    }
+    const timer = setTimeout(warmup, 800);
+    return () => clearTimeout(timer);
+  }, []);
 
   // ─── Real login — POST /api/auth/login ───────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
@@ -52,6 +69,13 @@ export default function LoginPage() {
       if (data.success && data.data?.token) {
         // Store token + user (with permissions) in Zustand persisted store
         setAuth(data.data.token, data.data.user);
+        // Fire ONE dashboard request matching this user's role so it's in flight by
+        // the time React mounts the dashboard route. Firing both 'month' and 'day'
+        // at once doubles connection-pool pressure on the remote DB and makes the
+        // first load slower, not faster.
+        const role = String(data.data.user?.type || '').toLowerCase();
+        const period = role === 'doctor' ? 'day' : 'month';
+        prefetchDashboard(queryClient, period);
         navigate('/', { replace: true });
       } else {
         setError(data.error || 'Invalid credentials. Please try again.');

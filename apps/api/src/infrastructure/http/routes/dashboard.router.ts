@@ -19,9 +19,15 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
   const period = (req.query.period as string) || 'month';
   if (!req.user) throw new Error('Unauthorized');
 
+  const t0 = Date.now();
   const result = await useCases.getUnifiedDashboard(period, req.user.contextId, req.user as any);
+  const elapsed = Date.now() - t0;
+  if (elapsed > 1000) {
+    console.warn(`[Dashboard] /dashboard?period=${period} took ${elapsed}ms (slow!)`);
+  } else {
+    console.log(`[Dashboard] /dashboard?period=${period} took ${elapsed}ms`);
+  }
   if (!result.success) throw new Error(result.error);
-  // Browser keeps the response for 30 s; can serve stale for another 60 s while revalidating.
   res.setHeader('Cache-Control', 'private, max-age=30, stale-while-revalidate=60');
   sendSuccess(res, result.data);
 }));
@@ -31,7 +37,14 @@ router.get('/clinic-admin', asyncHandler(async (req, res) => {
   const period = (req.query.period as string) || 'month';
   if (!req.user) throw new Error('Unauthorized');
 
+  const t0 = Date.now();
   const result = await useCases.getClinicAdminDashboard(period, req.user.contextId);
+  const elapsed = Date.now() - t0;
+  if (elapsed > 1000) {
+    console.warn(`[Dashboard] /clinic-admin?period=${period} took ${elapsed}ms (slow!)`);
+  } else {
+    console.log(`[Dashboard] /clinic-admin?period=${period} took ${elapsed}ms`);
+  }
   if (!result.success) throw new Error(result.error);
   res.setHeader('Cache-Control', 'private, max-age=30, stale-while-revalidate=60');
   sendSuccess(res, result.data);

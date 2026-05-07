@@ -63,7 +63,7 @@ import { setupNotificationsGateway, setNotificationEmitters } from './gateways/n
 
 const logger = createLogger('http');
 
-import { createDbClient, TenantRegistry } from '@mmc/database';
+import { createDbClient, warmDbPools, TenantRegistry } from '@mmc/database';
 
 export async function createApp(): Promise<{ app: Express; server: HttpServer; io: SocketIOServer; tenantDb: any; publicDb: any }> {
   const app: Express = express();
@@ -234,6 +234,13 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   ensureIndexes(publicDb).catch(err => logger.warn({ err }, 'Index creation skipped'));
   if (tenantDb) ensureIndexes(tenantDb).catch(err => logger.warn({ err }, 'Tenant index creation skipped'));
 
+  // Pre-spawn DB connections so the first user request doesn't wait on a ~3 s
+  // TCP+TLS handshake. Also kicks off a 4-min keep-alive ping so connections
+  // don't go cold when the app is idle.
+  warmDbPools()
+    .then(() => logger.info('DB pools warmed (idle keep-alive ping running)'))
+    .catch(err => logger.warn({ err: err?.message }, 'DB pool warmup skipped'));
+
   return { app, server, io, tenantDb, publicDb };
 }
 
@@ -324,6 +331,16 @@ async function ensureIndexes(db: any): Promise<void> {
     `CREATE INDEX IF NOT EXISTS idx_users_type ON users (type) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
     `CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses (exp_date) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
     `CREATE INDEX IF NOT EXISTS idx_case_reminders_clinic_status ON case_reminder (clinic_id, status) WHERE status = 'pending'`,
+    // ── Dashboard fan-out indexes ──
+    // deleted_at type drift across legacy tables: TEXT in some (use raw equality), TIMESTAMP in others (just IS NULL).
+    // Partial-index predicates must be IMMUTABLE — that's why ::text casts are avoided here.
+    `CREATE INDEX IF NOT EXISTS idx_appts_followup_date ON appointments (booking_date) WHERE visit_type = 'FollowUp' AND (deleted_at IS NULL OR deleted_at = '')`,
+    `CREATE INDEX IF NOT EXISTS idx_case_datas_dob_mmdd ON case_datas (EXTRACT(MONTH FROM dob), EXTRACT(DAY FROM dob)) WHERE dob IS NOT NULL AND deleted_at IS NULL`,
+    `CREATE INDEX IF NOT EXISTS idx_bills_regid ON bills (regid) WHERE deleted_at IS NULL`,
+    `CREATE INDEX IF NOT EXISTS idx_expenses_clinic_date ON expenses (clinic_id, exp_date) WHERE deleted_at IS NULL OR deleted_at = ''`,
+    `CREATE INDEX IF NOT EXISTS idx_waitlist_status_date ON waitlist (status, date) WHERE deleted_at IS NULL`,
+    `CREATE INDEX IF NOT EXISTS idx_doctors_email_lower ON doctors (LOWER(email)) WHERE deleted_at IS NULL`,
+    `CREATE INDEX IF NOT EXISTS idx_users_email_lower ON users (LOWER(email)) WHERE deleted_at IS NULL`,
   ];
 
   for (const idxSql of indexes) {

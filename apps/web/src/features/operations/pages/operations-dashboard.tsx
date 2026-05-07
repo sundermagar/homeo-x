@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Package, Clock, CheckCircle2, AlertCircle, Phone,
@@ -29,16 +29,16 @@ type GenericTab = 'logistics' | 'crm' | 'knowledge' | 'tools';
 // STATUS BADGE
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function StatusBadge({ status }: { status: string }) {
+const StatusBadge = memo(function StatusBadge({ status }: { status: string }) {
   const cls = status.toLowerCase().replace(' ', '-');
   return <span className={`ops-status-badge ${cls}`}>{status}</span>;
-}
+});
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // STAT CARD
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function StatCard({ icon: Icon, value, label, variant = 'default' }: {
+const StatCard = memo(function StatCard({ icon: Icon, value, label, variant = 'default' }: {
   icon: React.ElementType;
   value: string | number;
   label: string;
@@ -55,7 +55,7 @@ function StatCard({ icon: Icon, value, label, variant = 'default' }: {
       </div>
     </div>
   );
-}
+});
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // COMPONENTS
@@ -74,7 +74,7 @@ const bookCols = ['Title', 'Author', 'Type', 'Link'];
 // PAGE HEADER — back + title on same row, action buttons top-right
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function PageHeader({ title, desc, actions }: { title: string; desc: string; actions?: React.ReactNode }) {
+const PageHeader = memo(function PageHeader({ title, desc, actions }: { title: string; desc: string; actions?: React.ReactNode }) {
   return (
     <div className="ops-page-header">
       <div className="ops-page-header-text">
@@ -84,7 +84,7 @@ function PageHeader({ title, desc, actions }: { title: string; desc: string; act
       {actions && <div className="ops-page-header-actions">{actions}</div>}
     </div>
   );
-}
+});
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // DASHBOARD

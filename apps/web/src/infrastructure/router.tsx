@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from '@/shared/components/protected-route';
 import { RoleGuard } from '@/shared/components/role-guard';
 import { AppLayout } from '@/shared/layouts/app-layout';
+import { RouteErrorBoundary } from '@/components/shared/error-boundary';
 
 const Loading = () => (
   <div style={{ padding: '40px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -111,8 +112,9 @@ const PatientMeetPage = lazy(() => import('@/features/consultation/patient-meet-
 
 export function AppRouter() {
   return (
-    <Suspense fallback={<Loading />}>
-      <Routes>
+    <RouteErrorBoundary>
+      <Suspense fallback={<Loading />}>
+        <Routes>
         {/* Public */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/meet/:roomId" element={<PatientMeetPage />} />
@@ -228,8 +230,9 @@ export function AppRouter() {
           <Route path="/consultation/:visitId" element={<RoleGuard allowed={['Admin', 'Clinicadmin', 'Doctor']}><ConsultationPage /></RoleGuard>} />
         </Route>
 
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Suspense>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
+    </RouteErrorBoundary>
   );
 }

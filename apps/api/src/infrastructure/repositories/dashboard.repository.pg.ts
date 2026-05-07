@@ -209,83 +209,110 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       const docWaitFilter = doctorId ? sql` AND doctor_id = ${doctorId}` : sql``;
       const docBillFilter = doctorId ? sql` AND b.doctor_id = ${doctorId}` : sql``;
 
-      const safeQuery = async <T>(query: any, fallback: T): Promise<T> => {
-        try {
-          const res = await query;
-          return (res[0] || fallback) as T;
-        } catch (e: any) {
-          console.error('[Dashboard] KPI Sub-query failed:', e?.message);
-          return fallback;
-        }
+      // ── Single round-trip combining counts + finance + wait + followup ──
+      // Previously this was 4 parallel sub-queries via Promise.all, but each
+      // query incurs a fresh connection handshake (~500ms each on Railway from
+      // India) when the pool is cold. Combining into one CTE-backed SELECT
+      // turns 4 round-trips + 4 handshakes into a single round-trip.
+      let combined: any = {};
+      try {
+        const rows = await this.db.execute(sql`
+          WITH
+          counts_cte AS (
+            SELECT
+              count(*) FILTER (WHERE type = 'P' AND created_at >= ${start}::timestamp AND created_at < ${boundary}::timestamp)::int as curr_patients,
+              count(*) FILTER (WHERE type = 'P' AND created_at >= ${prevStart}::timestamp AND created_at < ${prevBoundary}::timestamp)::int as prev_patients,
+              count(*) FILTER (WHERE type = 'A' AND t.date >= ${start}::text AND t.date < ${boundary}::text)::int as curr_appts,
+              count(*) FILTER (WHERE type = 'A' AND t.date >= ${prevStart}::text AND t.date < ${prevBoundary}::text)::int as prev_appts
+            FROM (
+              SELECT 'P' as type, created_at, NULL::text as date FROM case_datas WHERE (deleted_at IS NULL OR deleted_at::text = '') AND (clinic_id = ${contextId} OR clinic_id IS NULL)
+              UNION ALL
+              SELECT 'A' as type, created_at, booking_date::text as date FROM appointments WHERE (deleted_at IS NULL OR deleted_at::text = '') AND (clinic_id = ${contextId} OR clinic_id IS NULL) ${docApptFilter}
+            ) t
+          ),
+          finance_cte AS (
+            SELECT
+              COALESCE(sum(curr_bill_charges), 0)::numeric as curr_charges,
+              COALESCE(sum(curr_bill_received), 0)::numeric as curr_received,
+              COALESCE(sum(curr_bill_received), 0) + COALESCE(sum(curr_receipt_amt), 0) as curr_revenue,
+              COALESCE(sum(curr_expenses), 0)::int as curr_expenses,
+              COALESCE(sum(prev_bill_charges), 0)::numeric as prev_charges,
+              COALESCE(sum(prev_bill_received), 0)::numeric as prev_received,
+              COALESCE(sum(prev_bill_received), 0) + COALESCE(sum(prev_receipt_amt), 0) as prev_revenue
+            FROM (
+              SELECT b.charges as curr_bill_charges, b.received as curr_bill_received, 0 as curr_receipt_amt, 0 as curr_expenses, 0 as prev_bill_charges, 0 as prev_bill_received, 0 as prev_receipt_amt
+              FROM bills b
+              WHERE b.bill_date >= ${start}::date AND b.bill_date < ${boundary}::date AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
+              AND (b.clinic_id = ${contextId} OR b.clinic_id IS NULL)
+              ${docBillFilter}
+              UNION ALL
+              SELECT 0, 0, CAST(NULLIF(r.amount::text, '') AS numeric), 0, 0, 0, 0
+              FROM receipt r
+              WHERE r.created_at >= ${start}::timestamp AND r.created_at < ${boundary}::timestamp AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
+              AND (r.clinic_id = ${contextId} OR r.clinic_id IS NULL)
+              UNION ALL
+              SELECT 0, 0, 0, amount, 0, 0, 0 FROM expenses
+              WHERE exp_date >= ${start}::date AND exp_date < ${boundary}::date AND (deleted_at IS NULL OR deleted_at::text = '')
+              AND (clinic_id = ${contextId} OR clinic_id IS NULL)
+              UNION ALL
+              SELECT 0, 0, 0, 0, b.charges, b.received, 0
+              FROM bills b
+              WHERE b.bill_date >= ${prevStart}::date AND b.bill_date < ${prevBoundary}::date AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
+              AND (b.clinic_id = ${contextId} OR b.clinic_id IS NULL)
+              ${docBillFilter}
+              UNION ALL
+              SELECT 0, 0, 0, 0, 0, 0, CAST(NULLIF(r.amount::text, '') AS numeric)
+              FROM receipt r
+              WHERE r.created_at >= ${prevStart}::timestamp AND r.created_at < ${prevBoundary}::timestamp AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
+              AND (r.clinic_id = ${contextId} OR r.clinic_id IS NULL)
+            ) t
+          ),
+          wait_cte AS (
+            SELECT
+              COALESCE(avg(extract(epoch from (called_at - checked_in_at))/60) FILTER (WHERE waitlist.date >= ${start}::date AND waitlist.date < ${boundary}::date), 0)::int as curr_wait,
+              COALESCE(avg(extract(epoch from (called_at - checked_in_at))/60) FILTER (WHERE waitlist.date >= ${prevStart}::date AND waitlist.date < ${prevBoundary}::date), 0)::int as prev_wait
+            FROM waitlist
+            WHERE called_at IS NOT NULL AND checked_in_at IS NOT NULL AND (deleted_at IS NULL OR deleted_at::text = '')
+            ${docWaitFilter}
+          ),
+          followup_cte AS (
+            SELECT count(*)::int as count FROM appointments
+            WHERE booking_date >= ${start}::text AND booking_date < ${boundary}::text AND visit_type = 'FollowUp' AND (deleted_at IS NULL OR deleted_at::text = '')
+            ${docApptFilter}
+          )
+          SELECT
+            c.curr_patients, c.prev_patients, c.curr_appts, c.prev_appts,
+            f.curr_charges, f.curr_received, f.curr_revenue, f.curr_expenses,
+            f.prev_charges, f.prev_received, f.prev_revenue,
+            w.curr_wait, w.prev_wait,
+            fu.count as followup_count
+          FROM counts_cte c, finance_cte f, wait_cte w, followup_cte fu
+        `);
+        combined = (rows as any[])[0] ?? {};
+      } catch (e: any) {
+        console.error('[Dashboard] Combined KPI query failed:', e?.message);
+      }
+
+      const counts = {
+        curr_patients: combined.curr_patients ?? 0,
+        prev_patients: combined.prev_patients ?? 0,
+        curr_appts: combined.curr_appts ?? 0,
+        prev_appts: combined.prev_appts ?? 0,
       };
-
-      const [counts, finance, wait, followUp] = await Promise.all([
-        safeQuery(this.db.execute(sql`
-          SELECT
-            count(*) FILTER (WHERE type = 'P' AND created_at >= ${start}::timestamp AND created_at < ${boundary}::timestamp)::int as curr_patients,
-            count(*) FILTER (WHERE type = 'P' AND created_at >= ${prevStart}::timestamp AND created_at < ${prevBoundary}::timestamp)::int as prev_patients,
-            count(*) FILTER (WHERE type = 'A' AND t.date >= ${start}::text AND t.date < ${boundary}::text)::int as curr_appts,
-            count(*) FILTER (WHERE type = 'A' AND t.date >= ${prevStart}::text AND t.date < ${prevBoundary}::text)::int as prev_appts
-          FROM (
-            SELECT 'P' as type, created_at, NULL::text as date FROM case_datas WHERE (deleted_at IS NULL OR deleted_at::text = '') AND (clinic_id = ${contextId} OR clinic_id IS NULL)
-            UNION ALL
-            SELECT 'A' as type, created_at, booking_date::text as date FROM appointments WHERE (deleted_at IS NULL OR deleted_at::text = '') AND (clinic_id = ${contextId} OR clinic_id IS NULL) ${docApptFilter}
-          ) t
-        `), { curr_patients: 0, prev_patients: 0, curr_appts: 0, prev_appts: 0 }),
-
-        safeQuery(this.db.execute(sql`
-          SELECT
-            COALESCE(sum(curr_bill_charges), 0)::numeric as curr_charges,
-            COALESCE(sum(curr_bill_received), 0)::numeric as curr_received,
-            COALESCE(sum(curr_bill_received), 0) + COALESCE(sum(curr_receipt_amt), 0) as curr_revenue,
-            COALESCE(sum(curr_expenses), 0)::int as curr_expenses,
-            COALESCE(sum(prev_bill_charges), 0)::numeric as prev_charges,
-            COALESCE(sum(prev_bill_received), 0)::numeric as prev_received,
-            COALESCE(sum(prev_bill_received), 0) + COALESCE(sum(prev_receipt_amt), 0) as prev_revenue
-          FROM (
-            SELECT b.charges as curr_bill_charges, b.received as curr_bill_received, 0 as curr_receipt_amt, 0 as curr_expenses, 0 as prev_bill_charges, 0 as prev_bill_received, 0 as prev_receipt_amt 
-            FROM bills b
-            WHERE b.bill_date >= ${start}::date AND b.bill_date < ${boundary}::date AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
-            AND (b.clinic_id = ${contextId} OR b.clinic_id IS NULL)
-            ${docBillFilter}
-            UNION ALL
-            SELECT 0, 0, CAST(NULLIF(r.amount::text, '') AS numeric), 0, 0, 0, 0 
-            FROM receipt r
-            WHERE r.created_at >= ${start}::timestamp AND r.created_at < ${boundary}::timestamp AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
-            AND (r.clinic_id = ${contextId} OR r.clinic_id IS NULL)
-            UNION ALL
-            SELECT 0, 0, 0, amount, 0, 0, 0 FROM expenses 
-            WHERE exp_date >= ${start}::date AND exp_date < ${boundary}::date AND (deleted_at IS NULL OR deleted_at::text = '')
-            AND (clinic_id = ${contextId} OR clinic_id IS NULL)
-            UNION ALL
-            SELECT 0, 0, 0, 0, b.charges, b.received, 0 
-            FROM bills b
-            WHERE b.bill_date >= ${prevStart}::date AND b.bill_date < ${prevBoundary}::date AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
-            AND (b.clinic_id = ${contextId} OR b.clinic_id IS NULL)
-            ${docBillFilter}
-            UNION ALL
-            SELECT 0, 0, 0, 0, 0, 0, CAST(NULLIF(r.amount::text, '') AS numeric) 
-            FROM receipt r
-            WHERE r.created_at >= ${prevStart}::timestamp AND r.created_at < ${prevBoundary}::timestamp AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
-            AND (r.clinic_id = ${contextId} OR r.clinic_id IS NULL)
-          ) t
-        `), { curr_charges: 0, curr_received: 0, curr_revenue: 0, curr_expenses: 0, prev_charges: 0, prev_received: 0, prev_revenue: 0 }),
-
-        safeQuery(this.db.execute(sql`
-          SELECT
-            COALESCE(avg(extract(epoch from (called_at - checked_in_at))/60) FILTER (WHERE waitlist.date >= ${start}::date AND waitlist.date < ${boundary}::date), 0)::int as curr_wait,
-            COALESCE(avg(extract(epoch from (called_at - checked_in_at))/60) FILTER (WHERE waitlist.date >= ${prevStart}::date AND waitlist.date < ${prevBoundary}::date), 0)::int as prev_wait
-          FROM waitlist
-          WHERE called_at IS NOT NULL AND checked_in_at IS NOT NULL AND (deleted_at IS NULL OR deleted_at::text = '')
-          ${docWaitFilter}
-        `), { curr_wait: 0, prev_wait: 0 }),
-
-        safeQuery(this.db.execute(sql`
-          SELECT count(*)::int as count FROM appointments
-          WHERE booking_date >= ${start}::text AND booking_date < ${boundary}::text AND visit_type = 'FollowUp' AND (deleted_at IS NULL OR deleted_at::text = '')
-          ${docApptFilter}
-        `), { count: 0 }),
-      ]);
+      const finance = {
+        curr_charges: combined.curr_charges ?? 0,
+        curr_received: combined.curr_received ?? 0,
+        curr_revenue: combined.curr_revenue ?? 0,
+        curr_expenses: combined.curr_expenses ?? 0,
+        prev_charges: combined.prev_charges ?? 0,
+        prev_received: combined.prev_received ?? 0,
+        prev_revenue: combined.prev_revenue ?? 0,
+      };
+      const wait = {
+        curr_wait: combined.curr_wait ?? 0,
+        prev_wait: combined.prev_wait ?? 0,
+      };
+      const followUp = { count: combined.followup_count ?? 0 };
 
       const currE = Number(finance.curr_revenue) || 0;
       const prevE = Number(finance.prev_revenue) || 0;
@@ -332,7 +359,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     const mm = String(istDate.getMonth() + 1).padStart(2, '0');
     const dd = String(istDate.getDate()).padStart(2, '0');
     const today = `${y}-${mm}-${dd}`;
-    return this.getCached(`queue:${contextId}:${today}:${doctorId ?? ''}`, 0, async () => {
+    return this.getCached(`queue:${contextId}:${today}:${doctorId ?? ''}`, 5_000, async () => {
       const waitlistDocFilter = doctorId ? sql` AND w.doctor_id = ${doctorId}` : sql``;
       const apptDocFilter = doctorId ? sql` AND a.doctor_id = ${doctorId}` : sql``;
       // Use proper date comparison
