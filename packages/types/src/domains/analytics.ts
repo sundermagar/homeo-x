@@ -78,6 +78,8 @@ export interface DashboardKpis {
   collectionRateTrend: number | string;
   avgWaitTime: number;
   avgWaitTimeTrend: number | string;
+  casesCount: number;
+  casesTrend: number | string;
 }
 
 export interface QueueItem {
@@ -182,9 +184,10 @@ export interface MonthlyTarget {
 
 export interface TopBillingItem {
   id: number;
+  regid: number;
   patientName: string;
   total: number;
-  status: 'Paid' | 'Pending' | 'Partial';
+  status: 'Paid' | 'Pending' | 'Partial' | string;
 }
 
 export interface ClinicAdminDashboardData {

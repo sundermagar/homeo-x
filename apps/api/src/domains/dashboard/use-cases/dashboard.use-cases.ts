@@ -26,7 +26,13 @@ export class DashboardUseCases {
     try {
       const isAdmin = ['superadmin', 'admin', 'clinicadmin'].includes((user.type || '').toLowerCase());
       const isDoctor = !isAdmin && (user.type || '').toLowerCase() === 'doctor';
-      const doctorId = isDoctor ? user.id : undefined;
+      // Appointments store the legacy doctors.id, which doesn't always match the logged-in users.id.
+      // Resolve to the correct id so queries return real data instead of empty results.
+      const doctorId = isDoctor
+        ? (this.repository.resolveDoctorIdForUser
+            ? await this.repository.resolveDoctorIdForUser(user.id)
+            : user.id)
+        : undefined;
 
       console.time('Dashboard_DB_Parallel');
       const [
@@ -50,6 +56,8 @@ export class DashboardUseCases {
           collectionRateTrend: 0,
           avgWaitTime: 0,
           avgWaitTimeTrend: 0,
+          casesCount: 0,
+          casesTrend: 0,
         }),
         safe(this.repository.getTodayQueue.bind(this.repository, contextId, doctorId), []),
         safe(this.repository.getRecentActivity.bind(this.repository, contextId, 10), []),
@@ -112,6 +120,7 @@ export class DashboardUseCases {
             todaysExpenses: 0, revenueTrend: 0, patientTrend: 0,
             collectionRate: 0, collectionRateTrend: 0,
             avgWaitTime: 0, avgWaitTimeTrend: 0,
+            casesCount: 0, casesTrend: 0,
           }),
           safe(() => this.repository.getRevenueBreakdown(period, contextId), {
             physicalCurrency: 0, physicalCurrencyPct: 0, upiCard: 0,

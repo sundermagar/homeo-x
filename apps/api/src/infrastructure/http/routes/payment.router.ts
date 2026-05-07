@@ -4,6 +4,8 @@ import { authMiddleware } from '../middleware/auth.js';
 import { validate, validateQuery } from '../middleware/validate.js';
 import { PaymentRepositoryPg } from '../../repositories/payment.repository.pg.js';
 import { BillingRepositoryPg } from '../../repositories/billing.repository.pg.js';
+import { NotificationsRepositoryPg } from '../../repositories/notifications.repository.pg.js';
+import { triggerNotificationToRoles } from '../notification-trigger.js';
 import { RazorpayServiceAdapter } from '../../payments/razorpay.service.js';
 import {
   CreatePaymentOrderUseCase,
@@ -65,6 +67,16 @@ export function createPaymentRouter(): Router {
         res.status(400).json({ success: false, error: result.error });
         return;
       }
+      const clinicId = (req as any).user?.contextId;
+      const amount = (result.data as any)?.amount ?? req.body?.amount;
+      void triggerNotificationToRoles({
+        roles: ['Account', 'Clinicadmin'],
+        clinicId,
+        type: 'PAYMENT_RECEIVED',
+        title: 'Online Payment Received',
+        message: `Razorpay payment confirmed${amount ? ` — ₹${amount}` : ''}.`,
+        repo: new NotificationsRepositoryPg(req.tenantDb),
+      });
       res.json({ success: true, data: result.data });
     })
   );
@@ -81,7 +93,19 @@ export function createPaymentRouter(): Router {
         res.status(400).json({ success: false, error: result.error });
         return;
       }
-      res.status(201).json({ success: true, data: result.data });
+      const payments = result.data;
+      const total = payments.reduce((sum, p) => sum + (p.amount ?? 0), 0);
+      const modes = Array.from(new Set(payments.map(p => p.paymentMode))).filter(Boolean).join(', ');
+      const clinicId = (req as any).user?.contextId;
+      void triggerNotificationToRoles({
+        roles: ['Account', 'Clinicadmin'],
+        clinicId,
+        type: 'PAYMENT_RECEIVED',
+        title: 'Payment Received',
+        message: `₹${total} received${modes ? ` via ${modes}` : ''}.`,
+        repo: new NotificationsRepositoryPg(req.tenantDb),
+      });
+      res.status(201).json({ success: true, data: payments });
     })
   );
 

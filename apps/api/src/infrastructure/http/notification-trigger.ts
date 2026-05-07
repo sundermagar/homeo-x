@@ -21,9 +21,8 @@ export async function triggerNotification(opts: TriggerOptions): Promise<void> {
   const { userId, clinicId, type, title, message, repo } = opts;
 
   try {
-    const create = repo.createNotification;
-    if (!create) { logger.warn('repo.createNotification not implemented'); return; }
-    const id = await create({ userId, clinicId, type, title, message });
+    if (!repo.createNotification) { logger.warn('repo.createNotification not implemented'); return; }
+    const id = await repo.createNotification({ userId, clinicId, type, title, message });
     if (id !== undefined) {
       emitNotificationToUser(userId, {
         id,
@@ -39,5 +38,33 @@ export async function triggerNotification(opts: TriggerOptions): Promise<void> {
     }
   } catch (err: any) {
     logger.error({ err: err.message }, `Failed to trigger notification for user ${userId}`);
+  }
+}
+
+interface BroadcastOptions {
+  roles: string[];
+  clinicId?: number;
+  type: NotificationType;
+  title: string;
+  message: string;
+  repo: NotificationsRepository;
+  excludeUserIds?: number[];
+}
+
+/**
+ * Fan-out a notification to every user with one of the given roles in the (optional) clinic.
+ * Useful for events like INVOICE_GENERATED that should reach all Account/ClinicAdmin staff.
+ */
+export async function triggerNotificationToRoles(opts: BroadcastOptions): Promise<void> {
+  const { roles, clinicId, type, title, message, repo, excludeUserIds = [] } = opts;
+  if (!repo.findUserIdsByRole) return;
+  try {
+    const userIds = await repo.findUserIdsByRole(roles, clinicId);
+    const targets = userIds.filter(id => !excludeUserIds.includes(id));
+    await Promise.all(targets.map(userId =>
+      triggerNotification({ userId, clinicId, type, title, message, repo })
+    ));
+  } catch (err: any) {
+    logger.error({ err: err.message }, `Failed to broadcast notification to roles ${roles.join(',')}`);
   }
 }

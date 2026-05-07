@@ -6,6 +6,7 @@ import { MedicalCaseRepositoryPg } from '../../repositories/medical-case.reposit
 import { InventoryRepositoryPg } from '../../repositories/inventory.repository.pg.js';
 import { BillingRepositoryPg } from '../../repositories/billing.repository.pg.js';
 import { AppointmentRepositoryPG } from '../../repositories/appointment.repository.pg.js';
+import { NotificationsRepositoryPg } from '../../repositories/notifications.repository.pg.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { SettingsRepositoryPg } from '../../repositories/settings.repository.pg.js';
 import { OrganizationRepositoryPg } from '../../repositories/organization.repository.pg.js';
@@ -324,10 +325,12 @@ router.post('/:regid/finalize', asyncHandler(async (req, res) => {
     getRepo(req),
     getInvRepo(req),
     getBillRepo(req),
-    getApptRepo(req)
+    getApptRepo(req),
+    new NotificationsRepositoryPg(req.tenantDb)
   );
   await useCase.execute({
     regid: Number(req.params.regid),
+    clinicId: (req as any).user?.contextId,
     ...req.body
   });
   sendSuccess(res, null, 'Consultation finalized successfully');

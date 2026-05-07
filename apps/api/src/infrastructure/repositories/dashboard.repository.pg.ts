@@ -20,7 +20,54 @@ import type { IDashboardRepository } from '../../domains/dashboard/ports/dashboa
 export class DashboardRepositoryPg implements IDashboardRepository {
   private static cachedRevInfo: Record<string, any> = {};
   private static cachedDocCol: Record<string, string> = {};
+  private static cachedSearchPath: WeakMap<object, string> = new WeakMap();
+  private static cachedDoctorIdByUser: Map<string, number> = new Map();
   private static cache = new Map<string, { data: unknown; expires: number }>();
+
+  /**
+   * Maps a `users.id` to the `doctors.id` used on appointment rows. Modern flows enforce equality,
+   * but legacy doctors created via the old PHP app can diverge — so we anchor on email when needed.
+   * If no email-matched doctor exists, returns -1 so callers naturally produce empty results
+   * instead of accidentally surfacing another doctor whose `doctors.id` happens to equal `users.id`.
+   * Cached statically per (schema, userId) pair since the mapping never changes at runtime.
+   */
+  async resolveDoctorIdForUser(userId: number): Promise<number> {
+    const schemaName = (this.db as any).session?.client?.options?.search_path || 'public';
+    const cacheKey = `${schemaName}:${userId}`;
+    const cached = DashboardRepositoryPg.cachedDoctorIdByUser.get(cacheKey);
+    if (cached !== undefined) return cached;
+    try {
+      const rows = await this.db.execute(sql`
+        SELECT d.id
+        FROM users u
+        JOIN doctors d ON LOWER(d.email) = LOWER(u.email)
+        WHERE u.id = ${userId} AND u.email IS NOT NULL AND u.email <> ''
+          AND (u.deleted_at IS NULL OR u.deleted_at::text = '')
+          AND (d.deleted_at IS NULL OR d.deleted_at::text = '')
+        LIMIT 1
+      `);
+      const resolved = (rows as any[])[0]?.id as number | undefined;
+      const finalId = typeof resolved === 'number' ? resolved : -1;
+      DashboardRepositoryPg.cachedDoctorIdByUser.set(cacheKey, finalId);
+      return finalId;
+    } catch {
+      return userId;
+    }
+  }
+
+  /** Reads search_path once per DbClient instance and caches it — saves a network RTT per request. */
+  private async getSearchPath(): Promise<string> {
+    const cached = DashboardRepositoryPg.cachedSearchPath.get(this.db as object);
+    if (cached) return cached;
+    try {
+      const res = await this.db.execute(sql`SHOW search_path`);
+      const sp = ((res as any[])[0]?.search_path as string) || 'public';
+      DashboardRepositoryPg.cachedSearchPath.set(this.db as object, sp);
+      return sp;
+    } catch {
+      return 'public';
+    }
+  }
 
   private getCached<T>(key: string, ttlMs: number, fetch: () => Promise<T>): Promise<T> {
     const entry = DashboardRepositoryPg.cache.get(key);
@@ -144,9 +191,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
   }
 
   async getKpis(period: string, contextId: number, doctorId?: number): Promise<DashboardKpis> {
-    return this.getCached(`kpis:${contextId}:${period}:${doctorId ?? ''}`, 10_000, async () => {
-      const spRes = await this.db.execute(sql`SHOW search_path`);
-      const sp = (spRes[0] as any)?.search_path || 'NONE';
+    return this.getCached(`kpis:${contextId}:${period}:${doctorId ?? ''}`, 60_000, async () => {
+      const sp = await this.getSearchPath();
       const isPlatformView = (sp.includes('public') && !sp.includes('tenant_')) || !contextId || contextId === 0;
 
       console.log(`[Dashboard] Context: ${contextId} (${typeof contextId}), Path: ${sp}, Platform: ${isPlatformView}`);
@@ -432,7 +478,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
 
 
   async getRecentActivity(contextId: number, limit: number): Promise<ActivityItem[]> {
-    return this.getCached(`activity:${contextId}:${limit}`, 30_000, async () => {
+    return this.getCached(`activity:${contextId}:${limit}`, 60_000, async () => {
       const revInfo = await this.getRevenueTableInfo();
 
 
@@ -488,7 +534,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
   }
 
   async getBirthdays(contextId: number): Promise<BirthdayPatient[]> {
-    return this.getCached(`birthdays:${contextId}`, 60_000, async () => {
+    return this.getCached(`birthdays:${contextId}`, 5 * 60_000, async () => {
       const now = new Date();
       const istString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
       const istDate = new Date(istString);
@@ -1005,7 +1051,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
   }
 
   async getPlatformStats(): Promise<PlatformStats> {
-    return this.getCached('platformStats', 1000, async () => {
+    return this.getCached('platformStats', 30_000, async () => {
       // 1. Get all tenant schemas directly from the database catalog
       const schemas = await this.db.execute(sql`
         SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE 'tenant_%'
@@ -1056,7 +1102,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
   }
 
   async getPlatformKpis(period: string): Promise<DashboardKpis> {
-    return this.getCached(`platformKpis:${period}`, 1000, async () => {
+    return this.getCached(`platformKpis:${period}`, 30_000, async () => {
       const schemas = await this.db.execute(sql`
         SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE 'tenant_%'
       `) as any[];

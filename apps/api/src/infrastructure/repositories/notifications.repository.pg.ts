@@ -113,4 +113,78 @@ export class NotificationsRepositoryPg implements NotificationsRepository {
       return undefined;
     }
   }
+
+  async findUserIdsByRole(roles: string[], clinicId?: number): Promise<number[]> {
+    if (roles.length === 0) return [];
+    try {
+      const lowerRoles = roles.map(r => r.toLowerCase());
+      const rows = await this.db.execute(sql`
+        SELECT id FROM users
+        WHERE LOWER(type) = ANY(${lowerRoles}::text[])
+          AND (deleted_at IS NULL OR deleted_at::text = '')
+          ${clinicId ? sql`AND (context_id = ${clinicId} OR context_id IS NULL)` : sql``}
+      `);
+      return (rows as any[]).map(r => r.id).filter((x): x is number => typeof x === 'number');
+    } catch (err: any) {
+      logger.error({ err: err.message }, `Failed to find users by role ${roles.join(',')}`);
+      return [];
+    }
+  }
+
+  async getWaitlistContext(waitlistId: number): Promise<{ doctorId: number | null; patientName: string | null; bookingTime: string | null } | null> {
+    try {
+      const rows = await this.db.execute(sql`
+        SELECT
+          w.doctor_id,
+          a.booking_time,
+          COALESCE(NULLIF(TRIM(p.first_name || ' ' || COALESCE(p.surname, '')), ''), 'Patient') AS patient_name
+        FROM waitlist w
+        LEFT JOIN appointments a ON a.id = w.appointment_id
+        LEFT JOIN patients p ON p.regid = w.patient_id
+        WHERE w.id = ${waitlistId}
+        LIMIT 1
+      `);
+      const row = (rows as any[])[0];
+      if (!row) return null;
+      return {
+        doctorId: row.doctor_id ?? null,
+        patientName: row.patient_name ?? null,
+        bookingTime: row.booking_time ?? null,
+      };
+    } catch (err: any) {
+      logger.error({ err: err.message }, `Failed to fetch waitlist context for ${waitlistId}`);
+      return null;
+    }
+  }
+
+  async resolveUserIdForDoctor(doctorId: number): Promise<number | null> {
+    try {
+      // The legacy `doctors` table and the `users` table can collide on id without
+      // representing the same person, so we always anchor on the doctor row's email.
+      const rows = await this.db.execute(sql`
+        SELECT
+          (SELECT id FROM users
+             WHERE id = ${doctorId}
+               AND (d.email IS NULL OR d.email = '' OR LOWER(email) = LOWER(d.email))
+               AND LOWER(type) IN ('doctor', 'medical practitioner')
+               AND (deleted_at IS NULL OR deleted_at::text = '')
+             LIMIT 1) AS direct_id,
+          (SELECT u.id FROM users u
+             WHERE d.email IS NOT NULL AND d.email <> ''
+               AND LOWER(u.email) = LOWER(d.email)
+               AND LOWER(u.type) IN ('doctor', 'medical practitioner')
+               AND (u.deleted_at IS NULL OR u.deleted_at::text = '')
+             LIMIT 1) AS email_id
+        FROM doctors d
+        WHERE d.id = ${doctorId}
+        LIMIT 1
+      `);
+      const row = (rows as any[])[0];
+      if (!row) return null;
+      return row.direct_id ?? row.email_id ?? null;
+    } catch (err: any) {
+      logger.error({ err: err.message }, `Failed to resolve userId for doctor ${doctorId}`);
+      return null;
+    }
+  }
 }

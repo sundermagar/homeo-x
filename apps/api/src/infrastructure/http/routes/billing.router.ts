@@ -3,6 +3,8 @@ import { asyncHandler } from '../middleware/async-handler.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { validate, validateQuery } from '../middleware/validate.js';
 import { BillingRepositoryPg } from '../../repositories/billing.repository.pg.js';
+import { NotificationsRepositoryPg } from '../../repositories/notifications.repository.pg.js';
+import { triggerNotificationToRoles } from '../notification-trigger.js';
 import {
   CreateBillUseCase,
   CreateCustomBillUseCase,
@@ -82,7 +84,17 @@ export function createBillingRouter(): Router {
         res.status(400).json({ success: false, error: result.error });
         return;
       }
-      res.status(201).json({ success: true, data: result.data });
+      const bill = result.data;
+      const clinicId = (req as any).user?.contextId;
+      void triggerNotificationToRoles({
+        roles: ['Account', 'Clinicadmin'],
+        clinicId,
+        type: 'INVOICE_GENERATED',
+        title: 'Invoice Generated',
+        message: `Bill #${bill.billNo ?? bill.id} — ₹${bill.charges} (received ₹${bill.received}).`,
+        repo: new NotificationsRepositoryPg(req.tenantDb),
+      });
+      res.status(201).json({ success: true, data: bill });
     }),
   );
 
@@ -97,7 +109,17 @@ export function createBillingRouter(): Router {
         res.status(400).json({ success: false, error: result.error });
         return;
       }
-      res.status(201).json({ success: true, data: result.data });
+      const bill = result.data;
+      const clinicId = (req as any).user?.contextId;
+      void triggerNotificationToRoles({
+        roles: ['Account', 'Clinicadmin'],
+        clinicId,
+        type: 'INVOICE_GENERATED',
+        title: 'Custom Invoice Generated',
+        message: `Bill #${bill.billNo ?? bill.id} (${(bill as any).customTitle ?? 'custom'}) — ₹${bill.charges}.`,
+        repo: new NotificationsRepositoryPg(req.tenantDb),
+      });
+      res.status(201).json({ success: true, data: bill });
     }),
   );
 

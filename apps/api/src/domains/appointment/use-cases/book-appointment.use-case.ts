@@ -52,17 +52,24 @@ export class BookAppointmentUseCase {
     }
 
     if (this.notifRepo && dto.doctorId) {
-      const patientNameDisplay = dto.patientName || 'New Patient';
-      const timeDisplay = dto.bookingTime ? ` at ${dto.bookingTime}` : '';
+      // Doctors row id may not align with users row id for legacy data — resolve to a real user id.
+      const resolvedUserId = this.notifRepo.resolveUserIdForDoctor
+        ? await this.notifRepo.resolveUserIdForDoctor(dto.doctorId)
+        : dto.doctorId;
 
-      await triggerNotification({
-        userId: dto.doctorId,
-        clinicId: dto.clinicId,
-        type: 'APPOINTMENT_REMINDER',
-        title: 'New Appointment Booked',
-        message: `${patientNameDisplay} has booked an appointment for ${dto.bookingDate}${timeDisplay}.`,
-        repo: this.notifRepo,
-      });
+      if (resolvedUserId) {
+        const patientNameDisplay = dto.patientName || 'New Patient';
+        const timeDisplay = dto.bookingTime ? ` at ${dto.bookingTime}` : '';
+
+        await triggerNotification({
+          userId: resolvedUserId,
+          clinicId: dto.clinicId,
+          type: 'APPOINTMENT_REMINDER',
+          title: 'New Appointment Booked',
+          message: `${patientNameDisplay} has booked an appointment for ${dto.bookingDate}${timeDisplay}.`,
+          repo: this.notifRepo,
+        });
+      }
     }
 
     return ok({ id });

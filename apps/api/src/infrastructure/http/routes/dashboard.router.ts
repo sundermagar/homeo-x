@@ -15,28 +15,26 @@ const getUseCases = (req: any) => {
 };
 
 router.get('/', asyncHandler(async (req: Request, res: Response) => {
-  console.log('\n' + '='.repeat(50) + ' NEW REQUEST ' + '='.repeat(50) + '\n');
-  console.time('Dashboard_Total');
   const useCases = getUseCases(req);
   const period = (req.query.period as string) || 'month';
   if (!req.user) throw new Error('Unauthorized');
-  
+
   const result = await useCases.getUnifiedDashboard(period, req.user.contextId, req.user as any);
   if (!result.success) throw new Error(result.error);
+  // Browser keeps the response for 30 s; can serve stale for another 60 s while revalidating.
+  res.setHeader('Cache-Control', 'private, max-age=30, stale-while-revalidate=60');
   sendSuccess(res, result.data);
-  console.timeEnd('Dashboard_Total');
 }));
 
 router.get('/clinic-admin', asyncHandler(async (req, res) => {
-  console.time('ClinicAdmin_Total');
   const useCases = getUseCases(req);
   const period = (req.query.period as string) || 'month';
   if (!req.user) throw new Error('Unauthorized');
 
   const result = await useCases.getClinicAdminDashboard(period, req.user.contextId);
   if (!result.success) throw new Error(result.error);
+  res.setHeader('Cache-Control', 'private, max-age=30, stale-while-revalidate=60');
   sendSuccess(res, result.data);
-  console.timeEnd('ClinicAdmin_Total');
 }));
 
 router.post('/reminder/:id/done', asyncHandler(async (req, res) => {

@@ -30,4 +30,10 @@ export interface IDashboardRepository {
   getMonthlyTargets(period: string, contextId: number): Promise<MonthlyTarget[]>;
   getStaffOnDuty(contextId: number): Promise<{ name: string; role: string; count?: number }[]>;
   getPlatformStats(): Promise<PlatformStats>;
+  /**
+   * Maps a logged-in `users.id` (Doctor type) to the `doctors.id` recorded on appointments.
+   * For modern doctors these are equal; for legacy data they can diverge — match by email.
+   * Returns the input id when no override is needed (so callers can pass through safely).
+   */
+  resolveDoctorIdForUser?(userId: number): Promise<number>;
 }
