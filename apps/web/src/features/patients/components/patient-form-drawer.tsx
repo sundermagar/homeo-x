@@ -42,7 +42,7 @@ export function PatientFormDrawer({ isOpen, onClose, regid, onSuccess }: Patient
   const [showRefDropdown, setShowRefDropdown] = useState(false);
 
   const { data: meta } = usePatientFormMeta(clinicId);
-  const { data: patient } = usePatient(Number(regid), { enabled: isEdit && !!regid } as any);
+  const { data: patient } = usePatient(isEdit && regid ? Number(regid) : 0);
   const { data: refResults = [] } = usePatientLookup(refSearch);
   const { data: referrals = [] } = useReferrals();
   const createMutation = useCreatePatient();

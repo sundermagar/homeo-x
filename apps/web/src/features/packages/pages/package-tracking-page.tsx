@@ -39,6 +39,7 @@ export default function PackageTrackingPage() {
   const [selectedRecord, setSelectedRecord] = useState<any>(null);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [showSmsModal, setShowSmsModal] = useState(false);
+  const [smsMessage, setSmsMessage] = useState('Dear {#name#}, your subscription is ending soon. Please visit us to renew. - Kreed.health');
   const [statusValue, setStatusValue] = useState('informed');
   const [statusDate, setStatusDate] = useState(new Date().toISOString().split('T')[0]!);
   const [statusNotes, setStatusNotes] = useState('');
@@ -388,8 +389,8 @@ export default function PackageTrackingPage() {
       {/* Renew Modal */}
       {showAssignModal && selectedRecord && (
         <AssignPackageModal
-          regid={Number(selectedRecord.regid)}
-          patientId={Number(selectedRecord.patientId)}
+          isOpen={showAssignModal}
+          patientId={Number(selectedRecord.regid ?? selectedRecord.patientId)}
           onClose={() => setShowAssignModal(false)}
           onSuccess={() => {
             setShowAssignModal(false);

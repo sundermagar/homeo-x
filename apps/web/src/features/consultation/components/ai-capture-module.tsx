@@ -150,7 +150,7 @@ export function AICaptureModule({
 
   const parseLabReport = useParseLabReport();
   const nextSequenceRef = useRef(0);
-  const timerRef = useRef<ReturnType<typeof setInterval>>();
+  const timerRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
   const sessionStartRef = useRef(0);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {

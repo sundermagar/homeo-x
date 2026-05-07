@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CheckCircle, CreditCard, DollarSign, X, Package } from 'lucide-react';
+import { CheckCircle, CreditCard, DollarSign, X, Package, Loader2 } from 'lucide-react';
 import { useManageClinicalRecords } from '../hooks/use-medical-cases';
 import { useRemedyLookups } from '../hooks/use-remedy-chart';
 import { useNavigate } from 'react-router-dom';

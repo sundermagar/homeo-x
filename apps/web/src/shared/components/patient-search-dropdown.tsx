@@ -116,7 +116,7 @@ export function PatientSearchDropdown({ onSelect, placeholder = "Search RegID, N
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold text-slate-900 truncate">
-                      {patient.firstName} {patient.surname}
+                      {patient.fullName}
                     </div>
                     <div className="flex items-center gap-3 mt-0.5">
                       <span className="flex items-center gap-1 text-[11px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">

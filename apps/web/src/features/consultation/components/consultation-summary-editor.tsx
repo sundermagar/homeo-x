@@ -24,7 +24,7 @@ export function ConsultationSummaryEditor({
   const subjectiveRef = useRef<HTMLTextAreaElement>(null);
   const notesRef = useRef<HTMLTextAreaElement>(null);
 
-  const autoResize = (ref: React.RefObject<HTMLTextAreaElement>) => {
+  const autoResize = (ref: React.RefObject<HTMLTextAreaElement | null>) => {
     if (ref.current) {
       ref.current.style.height = 'auto';
       ref.current.style.height = `${ref.current.scrollHeight}px`;

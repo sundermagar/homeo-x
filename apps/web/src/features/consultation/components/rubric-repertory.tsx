@@ -264,8 +264,8 @@ export function RubricRepertory({
             onScoredRemediesChange(result.scoredRemedies);
           }
           // Auto-suggest the top remedy to the prescription draft
-          if (result.scoredRemedies.length > 0) {
-            const bestRemedy = result.scoredRemedies[0];
+          const bestRemedy = result.scoredRemedies[0];
+          if (bestRemedy) {
             onAutoSuggestRemedy?.(bestRemedy.remedyName, bestRemedy.commonPotencies);
           }
         },

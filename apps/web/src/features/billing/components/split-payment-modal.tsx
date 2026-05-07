@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash2, IndianRupee, AlertCircle } from 'lucide-react';
-import { toast } from '@/components/ui/toast';
+import { toast } from '@/hooks/use-toast';
 
 interface SplitPayment {
   amount: number;
@@ -59,7 +59,8 @@ export const SplitPaymentModal: React.FC<SplitPaymentModalProps> = ({
 
   const updatePayment = (index: number, field: keyof SplitPayment, value: any) => {
     const newPayments = [...payments];
-    newPayments[index] = { ...newPayments[index], [field]: value };
+    const existing = newPayments[index] ?? { amount: 0, paymentMode: 'Cash' };
+    newPayments[index] = { ...existing, [field]: value };
     setPayments(newPayments);
   };
 
@@ -68,7 +69,7 @@ export const SplitPaymentModal: React.FC<SplitPaymentModalProps> = ({
       toast({
         title: "Invalid Amount",
         description: "Please enter a total amount greater than 0.",
-        variant: "destructive"
+        variant: "error"
       });
       return;
     }
@@ -82,7 +83,7 @@ export const SplitPaymentModal: React.FC<SplitPaymentModalProps> = ({
       toast({
         title: "Payment Failed",
         description: "There was an error recording the payment.",
-        variant: "destructive"
+        variant: "error"
       });
     } finally {
       setIsSubmitting(false);

@@ -162,16 +162,17 @@ export default function PackagePlansPage() {
         {isLoading ? (
           [1, 2, 3].map(i => <PlanSkeleton key={i} />)
         ) : plans.length === 0 ? (
-          <EmptyState 
-            icon={Package}
-            title="No membership plans"
-            description="You haven't defined any membership blueprints yet. Create your first plan to start assigning packages to patients."
-            actionLabel="Create Plan"
-            onAction={() => setModal('create')}
-            variant="card"
-            className="my-8"
-            style={{ gridColumn: '1/-1' }}
-          />
+          <div style={{ gridColumn: '1/-1' }}>
+            <EmptyState
+              icon={Package}
+              title="No membership plans"
+              description="You haven't defined any membership blueprints yet. Create your first plan to start assigning packages to patients."
+              actionLabel="Create Plan"
+              onAction={() => setModal('create')}
+              variant="card"
+              className="my-8"
+            />
+          </div>
         ) : (
           paginatedData.map(plan => (
             <div key={plan.id} className={`pkg-plan-card ${!plan.isActive ? 'inactive' : ''}`}>

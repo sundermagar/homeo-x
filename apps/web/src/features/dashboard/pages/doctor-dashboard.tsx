@@ -195,10 +195,46 @@ export function DoctorDashboard() {
     <div className="dash-root doctor-dashboard-panel">
       {/* 1. KPI Strip */}
       <div className="dash-kpi-strip">
-        <KPIItem label="Daily Visits" value={todayAppts.length} trend={`${kpis?.patientTrend || 0}% vs yesterday`} color={Number(kpis?.patientTrend || 0) > 0 ? 'var(--pp-success-fg)' : 'var(--pp-danger-fg)'} />
-        <KPIItem label="Collection" value={`₹${(kpis?.todaysCollection || 0).toLocaleString()}`} trend={`${kpis?.revenueTrend || 0}% vs yesterday`} color={Number(kpis?.revenueTrend || 0) > 0 ? 'var(--pp-success-fg)' : 'var(--pp-danger-fg)'} />
-        <KPIItem label="Wait Rate" value={`${kpis?.collectionRate || 0}%`} trend="Target 95%" color="var(--pp-success-fg)" />
-        <KPIItem label="Avg Wait" value={`${kpis?.avgWaitTime || 0}m`} trend="In queue" color="var(--pp-blue)" />
+        {(() => {
+          const visitsCount = todayAppts.length;
+          const waitingCount = todayAppts.filter(a => a.status === 'Waitlist').length;
+          const completedCount = todayAppts.filter(a => a.status === 'Completed').length;
+          const fmtTrend = (v: number | string | undefined) => {
+            const n = Number(v ?? 0);
+            const sign = n > 0 ? '+' : '';
+            return `${sign}${n}% vs prev`;
+          };
+          const trendColor = (v: number | string | undefined) =>
+            Number(v ?? 0) > 0 ? 'var(--pp-success-fg)' : Number(v ?? 0) < 0 ? 'var(--pp-danger-fg)' : 'var(--pp-muted-fg)';
+          return (
+            <>
+              <KPIItem
+                label="Daily Visits"
+                value={visitsCount}
+                trend={fmtTrend(kpis?.casesTrend)}
+                color={trendColor(kpis?.casesTrend)}
+              />
+              <KPIItem
+                label="Collection"
+                value={`₹${(kpis?.todaysCollection || 0).toLocaleString()}`}
+                trend={fmtTrend(kpis?.revenueTrend)}
+                color={trendColor(kpis?.revenueTrend)}
+              />
+              <KPIItem
+                label="Waiting"
+                value={`${waitingCount}/${visitsCount || 0}`}
+                trend={completedCount > 0 ? `${completedCount} completed` : 'No visits done'}
+                color={waitingCount > 0 ? 'var(--pp-warn-fg, #f59e0b)' : 'var(--pp-success-fg)'}
+              />
+              <KPIItem
+                label="Avg Wait"
+                value={`${kpis?.avgWaitTime || 0}m`}
+                trend={fmtTrend(kpis?.avgWaitTimeTrend)}
+                color={trendColor(kpis?.avgWaitTimeTrend)}
+              />
+            </>
+          );
+        })()}
       </div>
 
       <div className="dash-grid">

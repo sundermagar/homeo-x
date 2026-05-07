@@ -45,9 +45,10 @@ export default function AppointmentFormPage() {
         </div>
 
         <div style={{ padding: '20px' }}>
-          <AppointmentForm 
+          <AppointmentForm
             initialDate={initialDate}
             editAppointment={appointment}
+            onClose={handleCancel}
             onCancel={handleCancel}
             onSuccess={handleSuccess}
           />

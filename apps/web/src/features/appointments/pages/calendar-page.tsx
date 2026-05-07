@@ -278,6 +278,7 @@ export default function CalendarPage() {
         <div style={{ padding: '20px' }}>
           <AppointmentForm
             initialDate={bookingDate}
+            onClose={() => setIsBookingOpen(false)}
             onCancel={() => setIsBookingOpen(false)}
             onSuccess={() => {
               setIsBookingOpen(false);

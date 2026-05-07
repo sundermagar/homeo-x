@@ -61,7 +61,9 @@ export function PrescriptionReview({
 
   const handleUpdateItem = (index: number, field: keyof CreatePrescriptionItemInput, value: string) => {
     const next = [...rxItems];
-    next[index] = { ...next[index], [field]: value };
+    const existing = next[index];
+    if (!existing) return;
+    next[index] = { ...existing, [field]: value };
     onRxItemsChange(next);
   };
 

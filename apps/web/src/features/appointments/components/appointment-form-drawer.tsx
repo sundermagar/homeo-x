@@ -54,9 +54,10 @@ export function AppointmentFormDrawer({ isOpen, onClose, appointmentId, initialD
               Loading appointment details...
             </div>
           ) : (
-            <AppointmentForm 
+            <AppointmentForm
               initialDate={initialDate}
               editAppointment={editData}
+              onClose={onClose}
               onCancel={onClose}
               onSuccess={() => {
                 onSuccess?.();

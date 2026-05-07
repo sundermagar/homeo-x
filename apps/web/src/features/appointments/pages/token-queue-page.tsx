@@ -165,17 +165,18 @@ export default function TokenQueuePage() {
   const currentDataList = useMemo(() => {
     let base: any[] = [];
     if (tab === 'queue') {
-      // Sort inProgress by waitingNumber, then waiting by waitingNumber
-      const sortedInProgress = [...inProgress].sort((a, b) => (Number(a.waitingNumber) || 0) - (Number(b.waitingNumber) || 0));
-      const sortedWaiting = [...waiting].sort((a, b) => (Number(a.waitingNumber) || 0) - (Number(b.waitingNumber) || 0));
+      // Sort inProgress by waitingNumber (descending), then waiting by waitingNumber (descending)
+      const sortedInProgress = [...inProgress].sort((a, b) => (Number(b.waitingNumber) || 0) - (Number(a.waitingNumber) || 0));
+      const sortedWaiting = [...waiting].sort((a, b) => (Number(b.waitingNumber) || 0) - (Number(a.waitingNumber) || 0));
       base = [...sortedInProgress, ...sortedWaiting];
     }
     else if (tab === 'tokens') {
-      // Sort by Token Number (ascending)
+      // Sort by Token Number (descending) so new patients are at top
       base = [...todayAppts].sort((a, b) => {
-        if (!a.tokenNo) return 1;
-        if (!b.tokenNo) return -1;
-        return Number(a.tokenNo) - Number(b.tokenNo);
+        if (!a.tokenNo && !b.tokenNo) return (Number(b.id) || 0) - (Number(a.id) || 0);
+        if (!a.tokenNo) return -1;
+        if (!b.tokenNo) return 1;
+        return Number(b.tokenNo) - Number(a.tokenNo);
       });
     }
     else if (tab === 'collection') {

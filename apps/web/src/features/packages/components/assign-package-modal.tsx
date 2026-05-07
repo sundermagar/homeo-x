@@ -5,7 +5,7 @@ import { usePackagePlans, useAssignPackage } from '../hooks/use-packages';
 import '../styles/packages.css';
 
 interface AssignPackageModalProps {
-  patientId: number;
+  patientId?: number;
   patientName?: string;
   preselectedPlanId?: number;
   isOpen: boolean;
@@ -25,7 +25,7 @@ export function AssignPackageModal({
   const assignPackage = useAssignPackage();
 
   const [selectedPlanId, setSelectedPlanId] = useState<number | null>(preselectedPlanId ?? null);
-  const [startDate, setStartDate] = useState(new Date().toLocaleString("en-CA", { timeZone: "Asia/Kolkata" }).split(',')[0]);
+  const [startDate, setStartDate] = useState((new Date().toLocaleString("en-CA", { timeZone: "Asia/Kolkata" }).split(',')[0] ?? ''));
   const [startFrom, setStartFrom] = useState<'today' | 'expiry'>('today');
   const [notes, setNotes] = useState('');
 
@@ -33,7 +33,7 @@ export function AssignPackageModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedPlanId) return;
+    if (!selectedPlanId || !patientId) return;
 
     try {
       await assignPackage.mutateAsync({
@@ -102,7 +102,7 @@ export function AssignPackageModal({
             <button 
               type="button" 
               className={startFrom === 'today' ? 'active' : ''} 
-              onClick={() => { setStartFrom('today'); setStartDate(new Date().toLocaleString("en-CA", { timeZone: "Asia/Kolkata" }).split(',')[0]); }}
+              onClick={() => { setStartFrom('today'); setStartDate((new Date().toLocaleString("en-CA", { timeZone: "Asia/Kolkata" }).split(',')[0] ?? '')); }}
             >
               Start From Today
             </button>

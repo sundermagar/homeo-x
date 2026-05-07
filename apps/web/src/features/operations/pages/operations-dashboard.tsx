@@ -274,7 +274,7 @@ export default function OperationsDashboard() {
     logistics: { title: 'Logistics & Couriers', desc: 'Manage shipping vendors and track active medicine deliveries.' },
     crm: { title: 'Lead CRM & Promos', desc: 'Capture new patient leads, track network referrals, and schedule reminders.' },
     knowledge: { title: 'Medical Knowledge Base', desc: 'Access global diagnosis terminology and uploaded reference books.' },
-    //   tools: { title: 'Global Data Tools', desc: 'Administer database exports and system-wide backups.' },
+    tools: { title: 'Global Data Tools', desc: 'Administer database exports and system-wide backups.' },
   };
 
   const actionMap: Record<GenericTab, { label: string; type: 'courier' | 'lead' | 'dictionary' | 'export' | null }> = {

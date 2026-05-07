@@ -46,8 +46,9 @@ export default function VaccinesPage() {
       if (v.parentId === 0) {
         categoryMap[v.id] = v;
       } else {
-        if (!childrenMap[v.parentId]) childrenMap[v.parentId] = [];
-        childrenMap[v.parentId].push(v);
+        const bucket = childrenMap[v.parentId] ?? [];
+        bucket.push(v);
+        childrenMap[v.parentId] = bucket;
       }
     });
 

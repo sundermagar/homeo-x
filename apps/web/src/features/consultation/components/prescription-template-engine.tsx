@@ -184,7 +184,9 @@ export function PrescriptionTemplateEngine({
   const updateItem = useCallback(
     (index: number, field: keyof CreatePrescriptionItemInput, value: string) => {
       const updated = [...items];
-      updated[index] = { ...updated[index], [field]: value };
+      const existing = updated[index];
+      if (!existing) return;
+      updated[index] = { ...existing, [field]: value };
       onItemsChange(updated);
     },
     [items, onItemsChange],
