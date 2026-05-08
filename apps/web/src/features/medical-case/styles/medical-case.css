@@ -4810,3 +4810,101 @@
     padding: 0 16px 12px !important;
   }
 }
+
+.mc-tab-content-wrapper {
+  padding: 20px;
+}
+
+@media (max-width: 768px) {
+  .mc-tab-content-wrapper {
+    padding: 12px 0;
+  }
+}
+
+/* ─── Premium Follow-up / Auto-Save Note Area ─── */
+.mc-followup-editor {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  border-radius: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--pp-warm-3);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.mc-followup-editor:focus-within {
+  border-color: var(--pp-blue);
+  box-shadow: 0 0 0 3px var(--pp-blue-tint), 0 8px 24px rgba(0, 0, 0, 0.04);
+  background: #ffffff;
+}
+
+.dark .mc-followup-editor:focus-within {
+  background: var(--pp-warm-2);
+}
+
+.mc-fu-textarea {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 16px 16px 44px 16px; /* Extra padding at bottom for status */
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--pp-ink);
+  resize: vertical;
+  line-height: 1.6;
+  outline: none;
+  min-height: 120px;
+}
+
+.mc-fu-textarea::placeholder {
+  color: var(--pp-text-3);
+  opacity: 0.6;
+  font-style: italic;
+}
+
+.mc-save-status {
+  position: absolute;
+  bottom: 12px;
+  left: 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: var(--bg-surface-2);
+  color: var(--pp-text-3);
+  pointer-events: none;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  transition: all 0.3s ease;
+  backdrop-filter: blur(4px);
+  border: 1px solid var(--border-main);
+}
+
+.mc-save-status .status-saving {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--pp-blue);
+}
+
+.mc-save-status .status-saved {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #10B981; /* Premium Green */
+}
+
+.mc-save-status .status-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #EF4444; /* Premium Red */
+}
+

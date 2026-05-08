@@ -474,7 +474,8 @@ a {
 /* Scrollable wrapper ensures table doesn't break layout on mobile */
 .pp-table-scroll {
   width: 100%;
-  /* No overflow — table auto-fits container, no horizontal scroll */
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .pp-table {

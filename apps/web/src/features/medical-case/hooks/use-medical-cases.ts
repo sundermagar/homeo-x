@@ -239,3 +239,32 @@ export function useManageClinicalRecords() {
     updateDiagnosis,
   };
 }
+
+export function useCommunicationLogs(regid: number) {
+  const api = useApi();
+  return useQuery({
+    queryKey: ['medical-case', 'communication', regid],
+    queryFn: async () => {
+      try {
+        const res = await api.get<{ success: boolean; data: any[] }>(`/medical-cases/${regid}/communication`);
+        return res.data.data;
+      } catch {
+        // Backend route may not exist yet — gracefully return empty
+        return [];
+      }
+    },
+    enabled: !!regid,
+  });
+}
+
+export function useSendSms() {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { phone: string; message: string; regid: number }) => 
+      api.post('/medical-cases/communication/send-sms', data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['medical-case', 'communication', variables.regid] });
+    },
+  });
+}

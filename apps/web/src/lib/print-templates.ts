@@ -730,6 +730,7 @@ export interface PrescriptionPrintData {
     route?: string;
     instructions?: string;
     quantity?: number;
+    date?: string;
   }>;
   labOrders?: string[];
   advice?: string;
@@ -1007,13 +1008,15 @@ function renderMedicationsLetterhead(meds: PrescriptionPrintData['medications'],
   const isTitration = strategy === 'TITRATION';
 
   const headers = isRemedy
-    ? ['#', 'Remedy', 'Potency', 'Frequency', 'Duration', 'Instructions']
+    ? ['#', 'Date', 'Remedy', 'Potency', 'Frequency', 'Duration', 'Instructions']
     : isTitration
-      ? ['#', 'Medication', 'Current Dose', 'Frequency', 'Duration', 'Titration Notes']
-      : ['#', 'Medicine', 'Dose', 'Frequency', 'Duration', 'Instructions'];
+      ? ['#', 'Date', 'Medication', 'Current Dose', 'Frequency', 'Duration', 'Titration Notes']
+      : ['#', 'Date', 'Medicine', 'Dose', 'Frequency', 'Duration', 'Instructions'];
 
   const rows = meds.map((med, i) => {
     const numCell = `<td class="rx-md-num">${i + 1}.</td>`;
+    const dateStr = med.date ? new Date(med.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '—';
+    const dateCell = `<td style="white-space:nowrap; color:#6B7280; font-size:9.5px; font-weight:700;">${dateStr}</td>`;
     const nameCell = `
       <td class="rx-md-name">
         ${escapeHtml(med.name)}
@@ -1024,6 +1027,7 @@ function renderMedicationsLetterhead(meds: PrescriptionPrintData['medications'],
     if (isRemedy) {
       return `<tr>
         ${numCell}
+        ${dateCell}
         ${nameCell}
         <td>${escapeHtml(med.dosage) || '—'}</td>
         <td>${escapeHtml(med.frequency) || '—'}</td>
@@ -1034,6 +1038,7 @@ function renderMedicationsLetterhead(meds: PrescriptionPrintData['medications'],
 
     return `<tr>
       ${numCell}
+      ${dateCell}
       ${nameCell}
       <td>${escapeHtml(med.dosage) || '—'}</td>
       <td>${escapeHtml(med.frequency) || '—'}</td>

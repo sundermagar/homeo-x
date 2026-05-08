@@ -1,0 +1,154 @@
+/* Premium Buttons for Medical Case Tabs */
+.mc-tab-btn-premium {
+  flex: 1;
+  min-width: 80px;
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 800;
+  border: none;
+  cursor: pointer;
+  background: var(--pp-warm-2);
+  color: var(--pp-text-3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--pp-shadow-sm);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.mc-tab-btn-premium:hover {
+  background: linear-gradient(135deg, #7C3AED 0%, #2563EB 100%);
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.25);
+}
+
+.mc-tab-btn-premium.active {
+  background: linear-gradient(135deg, #7C3AED 0%, #2563EB 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+/* Beauty Alert Styles */
+.premium-alert-content {
+  background: var(--pp-glass-bg) !important;
+  backdrop-filter: var(--pp-glass-blur) !important;
+  -webkit-backdrop-filter: var(--pp-glass-blur) !important;
+  border: 1px solid var(--pp-glass-border) !important;
+  border-radius: 24px !important;
+  padding: 40px 32px !important;
+  max-width: 420px !important;
+  box-shadow: var(--pp-shadow-lg) !important;
+  text-align: center;
+  animation: modalIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: translate(-50%, -48%) scale(0.96); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+.premium-alert-icon-wrapper {
+  width: 72px;
+  height: 72px;
+  background: linear-gradient(135deg, #7C3AED 0%, #2563EB 100%);
+  border-radius: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px;
+  color: white;
+  box-shadow: 0 12px 24px rgba(124, 58, 237, 0.3);
+  position: relative;
+}
+
+.premium-alert-icon-wrapper::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 26px;
+  background: linear-gradient(135deg, #7C3AED 0%, #2563EB 100%);
+  opacity: 0.3;
+  filter: blur(8px);
+  z-index: -1;
+}
+
+.premium-alert-title {
+  font-size: 1.75rem !important;
+  font-weight: 800 !important;
+  color: var(--pp-ink) !important;
+  margin-bottom: 12px !important;
+  letter-spacing: -0.02em !important;
+}
+
+.premium-alert-description {
+  font-size: 1.05rem !important;
+  color: var(--pp-text-2) !important;
+  line-height: 1.6 !important;
+}
+
+.delivery-highlight {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--pp-blue);
+  background: var(--pp-blue-tint);
+  padding: 2px 10px;
+  border-radius: 8px;
+  font-weight: 700;
+  text-transform: capitalize;
+  margin: 0 4px;
+}
+
+.premium-alert-footer {
+  margin-top: 40px !important;
+  display: flex !important;
+  gap: 16px !important;
+  justify-content: center !important;
+}
+
+.btn-premium-cancel {
+  flex: 1;
+  padding: 14px 24px;
+  border-radius: 14px;
+  border: 1px solid var(--pp-warm-4);
+  background: var(--bg-card);
+  color: var(--pp-text-2);
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-premium-cancel:hover {
+  background: var(--pp-warm-2);
+  border-color: var(--pp-warm-3);
+  color: var(--pp-ink);
+}
+
+.btn-premium-confirm {
+  flex: 1.5;
+  padding: 14px 24px;
+  border-radius: 14px;
+  border: none;
+  background: linear-gradient(135deg, #7C3AED 0%, #2563EB 100%);
+  color: white;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 6px 15px rgba(37, 99, 235, 0.3);
+}
+
+.btn-premium-confirm:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4);
+}
+
+.btn-premium-confirm:active {
+  transform: translateY(0);
+}

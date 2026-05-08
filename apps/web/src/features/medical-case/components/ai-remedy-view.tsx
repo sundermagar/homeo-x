@@ -265,8 +265,11 @@ export function AiRemedyView({ regid }: { regid?: number }) {
         <html>
           <head><title>Remedy Path</title></head>
           <body style="font-family: sans-serif; padding: 40px;">
-            <h1>Clinical Remedy Selection</h1>
-            <p style="font-size: 1.2rem; border: 1px solid #ddd; padding: 20px; border-radius: 8px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #333; padding-bottom:10px; margin-bottom:20px;">
+              <h1 style="margin:0;">Clinical Remedy Selection</h1>
+              <p style="font-weight:bold; color:#666;">Date: ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+            </div>
+            <p style="font-size: 1.2rem; border: 1px solid #ddd; padding: 20px; border-radius: 8px; background:#f9f9f9;">
               ${selectedPath}
             </p>
             <p style="color: #666; font-size: 0.8rem;">Generated from Homeo-X Clinical Matrix</p>

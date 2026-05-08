@@ -1,4 +1,4 @@
-import { eq, and, sql, desc, isNull } from 'drizzle-orm';
+import { eq, and, or, sql, desc, isNull } from 'drizzle-orm';
 import type { DbClient } from '@mmc/database';
 import * as schema from '@mmc/database';
 import type {
@@ -151,7 +151,9 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
         .orderBy(desc(schema.medicalCases.createdAt))
         .limit(1);
 
-      if (!medicalCase) {
+      let finalMedicalCase = medicalCase;
+
+      if (!finalMedicalCase) {
         // Fallback to patient only if no case
         const [patient] = await this.db
           .select()
@@ -161,15 +163,18 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
         
         if (!patient) return null;
         
-        return {
-          medicalCase: {
-            regid,
-            patientName: `${patient.firstName} ${patient.surname}`,
-            phone: patient.phone,
-            gender: patient.gender,
-            city: patient.city,
-          },
-          notes: []
+        finalMedicalCase = {
+          id: 0,
+          regid,
+          condition: '',
+          patientName: `${patient.firstName} ${patient.surname}`,
+          phone: patient.phone,
+          mobile: patient.mobile1,
+          gender: patient.gender,
+          address: patient.address,
+          dateOfBirth: patient.dateOfBirth,
+          city: patient.city,
+          state: patient.state,
         };
       }
 
@@ -180,7 +185,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
         .orderBy(desc(schema.caseNotes.createdAt))
         .limit(5);
 
-      return { medicalCase, notes };
+      return { medicalCase: finalMedicalCase, notes };
     } catch (err) {
       console.error('getCaseSummaryForPdf error:', err);
       return null;
@@ -217,39 +222,52 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
         .where(eq(schema.medicalCases.regid, regid))
         .orderBy(desc(schema.medicalCases.createdAt));
 
-      const activeCase = medicalCases.find(c => c.status === 'Active') || medicalCases[0];
+      let activeCase = medicalCases.find(c => c.status === 'Active') || medicalCases[0];
 
-      // If no medical case exists, fetch patient info separately
+      // If no medical case exists, fetch patient info to build a fallback medicalCase object
+      // This allows clinical history (vitals, notes, prescriptions) to be visible even for patients without a visit record.
       if (!activeCase) {
         const [patient] = await this.db
-          .select()
+          .select({
+            id: schema.patients.id,
+            regid: schema.patients.regid,
+            firstName: schema.patients.firstName,
+            surname: schema.patients.surname,
+            phone: schema.patients.phone,
+            mobile: schema.patients.mobile1,
+            email: schema.patients.email,
+            gender: schema.patients.gender,
+            address: schema.patients.address,
+            dateOfBirth: schema.patients.dateOfBirth,
+            city: schema.patients.city,
+            state: schema.patients.state,
+            referedBy: schema.patients.referedBy,
+          })
           .from(schema.patients)
           .where(eq(schema.patients.regid, regid))
           .limit(1);
 
         if (!patient) return null;
 
-        return {
-          medicalCase: {
-            id: 0,
-            patientId: patient.id,
-            regid,
-            status: 'None',
-            patientName: `${patient.firstName} ${patient.surname}`,
-            phone: patient.phone,
-            dateOfBirth: patient.dateOfBirth ? new Date(patient.dateOfBirth).toISOString() : null,
-            city: patient.city,
-          } as MedicalCase,
-          vitals: [],
-          soap: [],
-          notes: [],
-          examination: [],
-          images: [],
-          investigations: [],
-          prescriptions: [],
-          vaccines: [],
-          reminders: [],
-        };
+        activeCase = {
+          id: 0,
+          patientId: patient.id,
+          regid,
+          status: 'None',
+          condition: '',
+          createdAt: new Date(),
+          patientName: `${patient.firstName} ${patient.surname}`,
+          phone: patient.phone,
+          mobile: patient.mobile,
+          email: patient.email,
+          gender: patient.gender,
+          address: patient.address,
+          dateOfBirth: patient.dateOfBirth,
+          city: patient.city,
+          state: patient.state,
+          doctorName: '—',
+          referedBy: patient.referedBy,
+        } as any;
       }
 
       // If no medical case exists, we still want to return patient-level data (notes, images, homeo)
@@ -308,8 +326,12 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
             visitDate: schema.appointments.bookingDate,
           })
           .from(schema.legacySoapNotes)
-          .innerJoin(schema.appointments, eq(schema.legacySoapNotes.visitId, schema.appointments.id))
-          .where(eq(schema.appointments.patientId, regid))
+          .leftJoin(schema.appointments, eq(schema.legacySoapNotes.visitId, schema.appointments.id))
+          .leftJoin(schema.medicalCases, eq(schema.legacySoapNotes.visitId, schema.medicalCases.id))
+          .where(or(
+            eq(schema.appointments.patientId, regid),
+            eq(schema.medicalCases.regid, regid)
+          ))
           .orderBy(desc(schema.legacySoapNotes.id)),
 
         this.getHomeoDetails(regid),
@@ -346,12 +368,14 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
           .leftJoin(schema.frequencies, eq(schema.legacyPrescriptions.frequencyId, schema.frequencies.id))
           .where(and(
             eq(schema.legacyPrescriptions.regid, regid),
-            sql`(${schema.legacyPrescriptions.deletedAt} IS NULL OR ${schema.legacyPrescriptions.deletedAt} = '')`
+            // deleted_at is varchar in legacy DB despite Drizzle schema saying timestamp
+            sql`(${schema.legacyPrescriptions.deletedAt} IS NULL OR CAST(${schema.legacyPrescriptions.deletedAt} AS text) = '')`
           ))
           .orderBy(desc(schema.legacyPrescriptions.createdAt)),
 
-        // AI Prescriptions: Raw fetch for the newer text-based table
-        this.db.execute(sql`SELECT * FROM "prescriptions" WHERE "regid" = ${regid} ORDER BY "id" DESC`) as Promise<any[]>,
+
+        // AI Prescriptions: Raw fetch for the newer text-based table (may not exist in all tenants)
+        this.db.execute(sql`SELECT * FROM "prescriptions" WHERE "regid" = ${regid} ORDER BY "id" DESC`).catch(() => []) as Promise<any[]>,
 
         this.getVaccines(regid),
         this.getReminders(regid)
@@ -456,43 +480,39 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
   }
 
   async saveSoapNotes(data: Partial<SoapNotes>): Promise<void> {
-    const execute = () => this.db
-      .insert(schema.legacySoapNotes)
-      .values({
-        visitId: data.visitId!,
-        subjective: data.subjective,
-        objective: data.objective,
-        assessment: data.assessment,
-        plan: data.plan,
-        advice: data.advice,
-        followUp: data.followUp,
-        icdCodes: data.icdCodes,
-        createdAt: new Date(),
-      })
-      .onConflictDoUpdate({
-        target: schema.legacySoapNotes.visitId,
-        set: {
-          subjective: data.subjective,
-          objective: data.objective,
-          assessment: data.assessment,
-          plan: data.plan,
-          advice: data.advice,
-          followUp: data.followUp,
-          icdCodes: data.icdCodes,
-          updatedAt: new Date(),
-        },
-      });
-
     try {
-      await execute();
-    } catch (err: any) {
-      if (err.message?.includes('ON CONFLICT specification') || err.code === '42P10') {
-        await this.patchConstraint('soap_notes', 'visit_id');
-        await execute();
+      if (data.id) {
+        await this.db
+          .update(schema.legacySoapNotes)
+          .set({
+            subjective: data.subjective,
+            objective: data.objective,
+            assessment: data.assessment,
+            plan: data.plan,
+            advice: data.advice,
+            followUp: data.followUp,
+            icdCodes: data.icdCodes,
+            updatedAt: new Date(),
+          })
+          .where(eq(schema.legacySoapNotes.id, data.id));
       } else {
-        console.error('💥 [MedicalCaseRepositoryPg] Error in saveSoapNotes:', err);
-        throw err;
+        await this.db
+          .insert(schema.legacySoapNotes)
+          .values({
+            visitId: data.visitId!,
+            subjective: data.subjective,
+            objective: data.objective,
+            assessment: data.assessment,
+            plan: data.plan,
+            advice: data.advice,
+            followUp: data.followUp,
+            icdCodes: data.icdCodes,
+            createdAt: new Date(),
+          });
       }
+    } catch (err: any) {
+      console.error('💥 [MedicalCaseRepositoryPg] Error in saveSoapNotes:', err);
+      throw err;
     }
   }
 

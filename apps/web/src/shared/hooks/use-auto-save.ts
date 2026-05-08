@@ -11,7 +11,9 @@ interface UseAutoSaveProps<T> {
 export function useAutoSave<T>({ value, onSave, delay = 1000 }: UseAutoSaveProps<T>) {
   const [status, setStatus] = useState<SaveStatus>('idle');
   const valueRef = useRef(value);
+  const lastSavedValue = useRef<T>(value);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isFirstRender = useRef(true);
 
   // Keep ref up to date to avoid dependency cycle in useCallback
   useEffect(() => {
@@ -19,9 +21,15 @@ export function useAutoSave<T>({ value, onSave, delay = 1000 }: UseAutoSaveProps
   }, [value]);
 
   const triggerSave = useCallback(async (currentValue: T) => {
+    // Don't save if value hasn't changed since last successful save
+    if (currentValue === lastSavedValue.current) {
+      return;
+    }
+
     try {
       setStatus('saving');
       await onSave(currentValue);
+      lastSavedValue.current = currentValue;
       setStatus('saved');
       
       // Reset back to idle after showing 'saved' for a bit
@@ -34,13 +42,22 @@ export function useAutoSave<T>({ value, onSave, delay = 1000 }: UseAutoSaveProps
 
   useEffect(() => {
     // Skip initial mount save
-    if (value === undefined) return;
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      lastSavedValue.current = value; // Initialize last saved value
+      return;
+    }
+
+    // Skip if value is undefined or matches last saved
+    if (value === undefined || value === lastSavedValue.current) {
+      return;
+    }
 
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
 
-    // Set saving status to idle if user starts typing again
+    // Set status to idle if user starts typing again
     if (status === 'saved' || status === 'error') {
       setStatus('idle');
     }

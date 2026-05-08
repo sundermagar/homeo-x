@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import ReactDOM from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -12,17 +12,25 @@ import {
   ChevronLeft,
   MoveVertical,
   LayoutList,
-  LayoutGrid
+  LayoutGrid,
+  RefreshCw,
+  Copy
 } from 'lucide-react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import { useAutoSave } from '@/shared/hooks/use-auto-save';
-import { useFullMedicalCase, useManageClinicalRecords, useMasterVaccines } from '../hooks/use-medical-cases';
+import { 
+  useFullMedicalCase, 
+  useManageClinicalRecords, 
+  useMasterVaccines, 
+  useCommunicationLogs,
+  useSendSms
+} from '../hooks/use-medical-cases';
+import { usePatientPrescriptions } from '../hooks/use-remedy-chart';
 import { useDayCharges } from '../../billing/hooks/use-accounts';
 import { AssignPackageModal } from '../../packages/components/assign-package-modal';
 import { VitalsFormModal } from '../components/vitals-form-modal';
 import { FinalizeConsultationModal } from '../components/finalize-consultation-modal';
 import { FollowupScheduler } from '../components/followup-scheduler';
-import { useSendSms } from '../../communications/hooks/use-communications';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/infrastructure/api-client';
 import { RemedyChartSession } from '../components/remedy-chart-session';
@@ -44,27 +52,28 @@ import { useOrganizations } from '../../platform/hooks/use-organizations';
 import { usePdfSettings } from '../../settings/hooks/use-settings';
 import '../styles/medical-case.css';
 
-export function AutoSaveNoteArea({ initialValue = '', onSave, placeholder = '' }: { initialValue?: string, onSave: (val: string) => Promise<void>, placeholder?: string }) {
-  const [val, setVal] = useState(initialValue);
-  const { status, forceSave } = useAutoSave({ value: val, onSave, delay: 1500 });
+export function AutoSaveNoteArea({ value, onChange, onSave, placeholder = '', minHeight = '120px' }: { value: string, onChange: (v: string) => void, onSave: (val: string) => Promise<void>, placeholder?: string, minHeight?: string }) {
+  const { status, forceSave } = useAutoSave({
+    value: value,
+    onSave: onSave,
+    delay: 1500
+  });
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div className="mc-followup-editor">
       <textarea
-        className="mc-legacy-textarea"
-        placeholder={placeholder}
-        value={val}
-        onChange={(e) => setVal(e.target.value)}
+        placeholder={placeholder || "Record patient follow-up or status..."}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
         onBlur={forceSave}
+        style={{ minHeight }}
+        className="mc-fu-textarea custom-scrollbar"
       />
-      {status !== 'idle' && (
-        <div style={{
-          position: 'absolute', bottom: '8px', right: '12px', fontSize: '0.75rem', fontWeight: 600,
-          color: status === 'saving' ? 'var(--pp-blue)' : status === 'error' ? 'var(--pp-danger-fg)' : '#10b981'
-        }}>
-          {status === 'saving' ? 'Saving...' : status === 'error' ? 'Failed' : 'Saved'}
-        </div>
-      )}
+      <div className="mc-save-status">
+        {status === 'saving' && <span className="status-saving"><RefreshCw size={12} className="animate-spin" /> Saving...</span>}
+        {status === 'saved' && <span className="status-saved"><Check size={12} /> Saved</span>}
+        {status === 'error' && <span className="status-error">Failed to save</span>}
+      </div>
     </div>
   );
 }
@@ -88,6 +97,64 @@ function EmptyState({ icon: Icon, title, description, actionLabel, onAction }: a
   );
 }
 
+export function useTableGrouping(data: any[], dateField: string = 'createdAt') {
+  const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
+  const toggleDate = (date: string) => {
+    setExpandedDates(prev => {
+      const next = new Set(prev);
+      if (next.has(date)) next.delete(date);
+      else next.add(date);
+      return next;
+    });
+  };
+
+  const groupedData = React.useMemo(() => {
+    const groups: Record<string, any[]> = {};
+    data.forEach(record => {
+      const dateVal = record[dateField] || record.createdAt || record.created_at || record.dateval || record.recordedAt || record.visitDate || record.reminderDate || 0;
+      const dateStr = new Date(dateVal).toDateString();
+      if (!groups[dateStr]) groups[dateStr] = [];
+      groups[dateStr].push(record);
+    });
+    return Object.entries(groups).map(([date, items]) => ({ date, items }));
+  }, [data, dateField]);
+
+  return { expandedDates, toggleDate, groupedData };
+}
+
+export function DateGroupCell({ dateVal, isFirst, isExpanded, itemsCount, onToggle }: any) {
+  if (isFirst) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+        <span style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--pp-text-2)' }}>
+          {new Date(dateVal).getDate()}
+        </span>
+        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--pp-text-3)', textTransform: 'uppercase' }}>
+          {new Date(dateVal).toLocaleString('default', { month: 'short' })} {new Date(dateVal).getFullYear()}
+        </span>
+        {itemsCount > 1 && (
+          <button 
+            onClick={(e) => { e.stopPropagation(); onToggle(); }}
+            style={{ 
+              background: 'var(--pp-blue-faded)', color: 'var(--pp-blue)', border: '1px solid var(--pp-blue-border)',
+              borderRadius: '12px', padding: '2px 8px', fontSize: '0.65rem', fontWeight: 700, cursor: 'pointer',
+              marginTop: '6px', alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '2px', transition: 'all 0.2s'
+            }}
+          >
+            <Plus size={10} style={{ transform: isExpanded ? 'rotate(45deg)' : 'none', transition: 'transform 0.2s' }} />
+            {isExpanded ? 'less' : `${itemsCount - 1} more`}
+          </button>
+        )}
+      </div>
+    );
+  }
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', opacity: 0.3 }}>
+      <div style={{ width: 2, height: 20, background: 'var(--pp-blue)', borderRadius: 2 }} />
+    </div>
+  );
+}
+
 export default function MedicalCaseDetailPage() {
   const { regid } = useParams();
   const navigate = useNavigate();
@@ -97,16 +164,15 @@ export default function MedicalCaseDetailPage() {
   const [showFinalizeModal, setShowFinalizeModal] = useState(false);
   const [showBillingModal, setShowBillingModal] = useState(false);
   const [followUpNote, setFollowUpNote] = useState('');
-  const [showDiagnosisInput, setShowDiagnosisInput] = useState(false);
-  const [diagnosisText, setDiagnosisText] = useState('');
   const [pendingCharge, setPendingCharge] = useState(0);
   const [mobileDrawer, setMobileDrawer] = useState<'followup' | 'billing' | 'contact' | 'package' | null>(null);
   const [shortcutOpen, setShortcutOpen] = useState(false);
-  const [fabY, setFabY] = useState(180); // Default from CSS
+  const [fabY, setFabY] = useState(180);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStartY, setDragStartY] = useState(0);
   const hasMoved = useRef(false);
   const [editingVitals, setEditingVitals] = useState<any>(null);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   const clinicName = useAuthStore(s => s.user?.clinicName || 'HomeoX Clinic');
 
@@ -153,6 +219,7 @@ export default function MedicalCaseDetailPage() {
   }, [isDragging, dragStartY]);
 
   const { data: fullData, isLoading, error } = useFullMedicalCase(Number(regid));
+  const { data: prescriptionsHistory } = usePatientPrescriptions(Number(regid));
   const { finalizeConsultation, saveNote, updateDiagnosis } = useManageClinicalRecords();
   const { data: summary } = usePatientBills(Number(regid));
   const { data: activePackage } = useActivePackage(Number(regid));
@@ -161,50 +228,114 @@ export default function MedicalCaseDetailPage() {
   const { data: pdfSettings = [] } = usePdfSettings();
   const user = useAuthStore(s => s.user);
 
-  if (isLoading) {
-    return <MedicalCasePageSkeleton />;
-  }
+  // Helper to safely parse dates from various backend formats
+  const parseSafeDate = (d: any) => {
+    if (!d) return null;
+    const date = new Date(d);
+    return isNaN(date.getTime()) ? null : date;
+  };
 
-  if (error || !fullData) return <div className="mc-error">Failed to load clinical records.</div>;
+  const filterByDate = (items: any[], date: Date | null) => {
+    if (!date || !items) return [];
+    return items.filter(item => {
+      const itemDate = parseSafeDate(item.createdAt || item.created_at || item.dateval || item.recordedAt || item.recorded_at || item.visitDate || item.visit_date || item.date_val);
+      return itemDate && itemDate.toDateString() === date.toDateString();
+    });
+  };
 
-  const { medicalCase, vitals, soap, notes, examination, images, investigations, prescriptions, homeo, vaccines, reminders } = fullData;
-  const ageString = medicalCase.dateOfBirth ? `${new Date().getFullYear() - new Date(medicalCase.dateOfBirth).getFullYear()} Yrs` : 'Unknown Age';
+  // Derived data with safety checks for loading states
+  const notes = fullData?.notes || [];
+  const medicalCase = fullData?.medicalCase;
+  const prescriptionsFromFull = fullData?.prescriptions || [];
+  
+  const followupNotes = React.useMemo(() => {
+    return (notes || []).filter((n: any) => 
+      n.notesType === 'Followup' || n.noteType === 'Followup' || n.notes_type === 'Followup'
+    ).sort((a: any, b: any) => new Date(b.createdAt || b.created_at || b.dateval || 0).getTime() - new Date(a.createdAt || a.created_at || a.dateval || 0).getTime());
+  }, [notes]);
 
-  const handleSaveNote = async (content: string) => {
-    if (!content.trim()) return;
+  const latestPrescriptionObj = React.useMemo(() => {
+    return (prescriptionsHistory || []).sort((a: any, b: any) => {
+      const d1 = parseSafeDate(b.created_at || b.createdAt || b.dateval)?.getTime() || 0;
+      const d2 = parseSafeDate(a.created_at || a.createdAt || a.dateval)?.getTime() || 0;
+      return d1 - d2;
+    })[0];
+  }, [prescriptionsHistory]);
+
+  const latestPrescriptionDateStr = latestPrescriptionObj?.created_at || latestPrescriptionObj?.createdAt || latestPrescriptionObj?.dateval;
+  const latestNoteDate = followupNotes[0] ? parseSafeDate(followupNotes[0].createdAt || followupNotes[0].created_at || followupNotes[0].dateval) : null;
+  const latestRxDate = parseSafeDate(latestPrescriptionDateStr);
+
+  const defaultEncounterDate = (latestNoteDate && latestRxDate)
+    ? (latestNoteDate > latestRxDate ? latestNoteDate : latestRxDate)
+    : (latestNoteDate || latestRxDate);
+
+  const displayDate = selectedDate ? new Date(selectedDate) : defaultEncounterDate;
+
+  const activeNote = React.useMemo(() => {
+    if (!displayDate) return null;
+    return followupNotes.find((n: any) => {
+      const d1 = parseSafeDate(n.createdAt || n.created_at || n.dateval);
+      return d1 && d1.toDateString() === displayDate.toDateString();
+    }) || null;
+  }, [followupNotes, displayDate]);
+
+  // Sync followUpNote with activeNote when activeNote changes
+  React.useEffect(() => {
+    setFollowUpNote(activeNote?.notes || '');
+  }, [activeNote]);
+
+
+  const appendNote = (text: string) => {
+    setFollowUpNote(prev => {
+      const separator = prev.trim() ? '\n\n' : '';
+      return prev + separator + text;
+    });
+  };
+
+  const handleSaveNote = React.useCallback(async (content: string) => {
+    if (!content.trim() || !medicalCase?.id) return;
     try {
+      // Use displayDate for dateval so notes are linked to the viewed encounter
+      const noteDate = displayDate ? displayDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
       await saveNote.mutateAsync({
         regid: Number(regid),
+        visitId: medicalCase.id,
+        id: activeNote?.id,
         notesType: 'Followup',
-        notes: content.trim()
+        notes: content.trim(),
+        dateval: noteDate
       });
     } catch (err) {
       console.error('Failed to save follow-up note', err);
+      throw err;
     }
-  };
+  }, [regid, medicalCase?.id, activeNote?.id, saveNote, displayDate]);
+ 
+  const latestRx = useMemo(() => {
+    const all = [...(prescriptionsHistory || []), ...(prescriptionsFromFull || [])];
+    if (all.length === 0) return null;
+    return all.sort((a, b) => new Date(b.created_at || b.dateval).getTime() - new Date(a.created_at || a.dateval).getTime())[0];
+  }, [prescriptionsHistory, prescriptionsFromFull]);
 
-  const latestRx = fullData?.prescriptions?.[0];
-  const savedCharge = latestRx ?
-    (dayCharges.find((dc: any) => String(dc.days) === String(latestRx.days))?.regularCharges || 0)
-    : 0;
+  const savedCharge = useMemo(() => {
+    if (!latestRx) return 0;
+    const days = latestRx.days || 0;
+    return dayCharges.find((dc: any) => String(dc.days) === String(days))?.regularCharges || 0;
+  }, [latestRx, dayCharges]);
+
+
+  // MOVE LOADING CHECKS HERE - AFTER ALL HOOKS
+  if (isLoading) return <MedicalCasePageSkeleton />;
+  if (error || !fullData) return <div className="mc-error">Failed to load clinical records.</div>;
+
+  const { vitals, soap, examination, images, investigations, homeo, vaccines, reminders } = fullData;
+  const ageString = medicalCase.dateOfBirth ? `${new Date().getFullYear() - new Date(medicalCase.dateOfBirth).getFullYear()} Yrs` : 'Unknown Age';
+
 
   const displayTotal = pendingCharge > 0 ? pendingCharge : (savedCharge > 0 ? savedCharge : (medicalCase.totalBill || 0));
   const paidAmount = medicalCase.paidAmount || 0;
   const balance = displayTotal - paidAmount;
-
-  // const TABS = [
-  //   { id: 'summary', label: 'Examination Report', icon: Pill },
-  //   { id: 'diagnosis', label: 'Diagnosis', icon: Sparkles },
-  //   { id: 'media', label: 'Media', icon: Camera },
-  //   { id: 'matrix', label: 'Clinical Matrix', icon: Microscope },
-  //   { id: 'homeo', label: 'Homeopathic', icon: Zap },
-  //   { id: 'vitals', label: 'Vitals & Exam', icon: Stethoscope },
-  //   { id: 'labs', label: 'Investigations', icon: FlaskConical },
-  //   { id: 'vaccine', label: 'Vaccines', icon: Syringe },
-  //   { id: 'communication', label: 'Communication', icon: MessageSquare },
-  //   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-  //   { id: 'reports', label: 'Reports', icon: ClipboardList },
-  // ];
 
   const TABS = [
     { id: 'summary', label: 'Examination Report', icon: Pill },
@@ -217,32 +348,36 @@ export default function MedicalCaseDetailPage() {
     { id: 'analytics', label: 'Graph (H/W)', icon: BarChart3 },
   ];
 
-
   const renderActiveTabContent = () => {
+    // Filter data for the specific displayDate; if no date, show all data
+    const filteredSoap = displayDate ? filterByDate(soap || [], displayDate) : (soap || []);
+    const filteredImages = displayDate ? filterByDate(images || [], displayDate) : (images || []);
+    const filteredInvestigations = displayDate ? filterByDate(investigations || [], displayDate) : (investigations || []);
+    const filteredVitals = displayDate ? filterByDate(vitals || [], displayDate) : (vitals || []);
+    const filteredVaccines = displayDate ? filterByDate(vaccines || [], displayDate) : (vaccines || []);
+    const filteredHomeo = displayDate ? filterByDate(homeo || [], displayDate) : (Array.isArray(homeo) ? homeo : []);
+
     switch (activeTab) {
-      case 'summary': return <RemedyChartSession regid={Number(regid)} onDayChargeChange={setPendingCharge} />;
-      case 'diagnosis': return <div style={{ padding: 20 }}><DiagnosisView regid={Number(regid)} visitId={medicalCase.id} medicalCase={medicalCase} soapRecords={soap} /></div>;
-      case 'media': return <div style={{ padding: 20 }}><MediaView regid={Number(regid)} visitId={medicalCase.id} images={images} /></div>;
-      case 'labs': return <div style={{ padding: 20 }}><LabsView investigations={investigations} regid={Number(regid)} visitId={medicalCase.id} /></div>;
-      case 'vitals': return <div style={{ padding: 20 }}><VitalsView vitals={vitals || []} onRecord={(data) => {
+      case 'summary': return <RemedyChartSession regid={Number(regid)} onDayChargeChange={setPendingCharge} onSelectDate={setSelectedDate} onStartRx={() => setSelectedDate(new Date().toISOString())} />;
+      case 'diagnosis': return <div className="mc-tab-content-wrapper"><DiagnosisView regid={Number(regid)} visitId={medicalCase.id} medicalCase={medicalCase} soapRecords={filteredSoap} onAppendNote={appendNote} /></div>;
+      case 'media': return <div className="mc-tab-content-wrapper"><MediaView regid={Number(regid)} visitId={medicalCase.id} images={filteredImages} /></div>;
+      case 'labs': return <div className="mc-tab-content-wrapper"><LabsView investigations={filteredInvestigations} regid={Number(regid)} visitId={medicalCase.id} onAppendNote={appendNote} /></div>;
+      case 'vitals': return <div className="mc-tab-content-wrapper"><VitalsView vitals={filteredVitals} onRecord={(data) => {
                   setEditingVitals(data || null);
                   setShowVitalsModal(true);
-                }} phone={medicalCase.phone || medicalCase.mobile || ''} name={medicalCase.patientName || ''} regid={Number(regid)} clinicName={clinicName} /></div>;
-      case 'communication': return <div style={{ padding: 20 }}><CommunicationView regid={Number(regid)} phone={medicalCase.phone || ''} name={medicalCase.patientName || ''} /></div>;
-      case 'vaccine': return <div style={{ padding: 20 }}><VaccineView regid={Number(regid)} caseVaccines={vaccines || []} /></div>;
-      case 'homeo': return <div style={{ padding: 20 }}><HomeoView regid={Number(regid)} initialData={homeo} reminders={reminders} medicalCase={medicalCase} /></div>;
-      case 'analytics': return <div style={{ padding: 20 }}><AnalyticsView vitals={vitals || []} regid={Number(regid)} visitId={medicalCase.id} name={medicalCase.patientName || ''} phone={medicalCase.phone || medicalCase.mobile || ''} clinicName={clinicName} /></div>;
-      case 'reports': return <div style={{ padding: 20 }}><ReportsView regid={Number(regid)} investigations={investigations || []} /></div>;
-      case 'ai-assist': return <div style={{ padding: 20 }}><AiConsultantView regid={Number(regid)} /></div>;
-      default: return <RemedyChartSession regid={Number(regid)} onDayChargeChange={setPendingCharge} />;
+                }} phone={medicalCase.phone || medicalCase.mobile || ''} name={medicalCase.patientName || ''} regid={Number(regid)} clinicName={clinicName} onAppendNote={appendNote} /></div>;
+      case 'communication': return <div className="mc-tab-content-wrapper"><CommunicationView regid={Number(regid)} phone={medicalCase.phone || ''} name={medicalCase.patientName || ''} onAppendNote={appendNote} /></div>;
+      case 'vaccine': return <div className="mc-tab-content-wrapper"><VaccineView regid={Number(regid)} caseVaccines={filteredVaccines} onAppendNote={appendNote} /></div>;
+      case 'homeo': return <div className="mc-tab-content-wrapper"><HomeoView regid={Number(regid)} initialData={filteredHomeo} reminders={reminders} medicalCase={medicalCase} onAppendNote={appendNote} /></div>;
+      case 'analytics': return <div className="mc-tab-content-wrapper"><AnalyticsView vitals={vitals || []} regid={Number(regid)} visitId={medicalCase.id} name={medicalCase.patientName || ''} phone={medicalCase.phone || medicalCase.mobile || ''} clinicName={clinicName} onAppendNote={appendNote} /></div>;
+      case 'reports': return <div className="mc-tab-content-wrapper"><ReportsView regid={Number(regid)} investigations={filteredInvestigations} /></div>;
+      case 'ai-assist': return <div className="mc-tab-content-wrapper"><AiConsultantView regid={Number(regid)} /></div>;
+      default: return <RemedyChartSession regid={Number(regid)} onDayChargeChange={setPendingCharge} onSelectDate={setSelectedDate} onStartRx={() => setSelectedDate(new Date().toISOString())} />;
     }
   };
 
   return (
     <div className="mc-detail-container animate-fade-in">
-
-      {/* ─── Clinic Branding (Letterhead Format) ─── */}
-      <ClinicBrandingHeader />
 
       {/* ─── Redesigned Header Section ─── */}
       <div className="patient-banner">
@@ -293,7 +428,7 @@ export default function MedicalCaseDetailPage() {
 
                 const doctor = getDoctorLetterhead();
 
-                const medications = (prescriptions || [])
+                const medications = (prescriptionsHistory?.length ? prescriptionsHistory : prescriptionsFromFull || [])
                   .filter((p: any) => p.remedy_name || p.remedyName || p.medicineName || p.medicine)
                   .map((p: any) => ({
                     name: p.remedy_name || p.remedyName || p.medicineName || p.medicine || '—',
@@ -304,6 +439,7 @@ export default function MedicalCaseDetailPage() {
                     route: undefined,
                     instructions: p.prescription || p.rx_prescription || p.instructions || p.notes || undefined,
                     quantity: undefined,
+                    date: p.created_at || p.createdAt || p.dateval,
                   }));
 
                 const followUpEntry = notes?.find((n: any) => n.notesType === 'Followup');
@@ -401,7 +537,7 @@ export default function MedicalCaseDetailPage() {
           {renderActiveTabContent()}
 
           {/* Patient Details Cards (Below Tab Content) */}
-          <div className="mc-details-footer-grid" style={{ gridTemplateColumns: '1fr' }}>
+          <div className="mc-details-footer-grid">
             <div className="mc-info-card">
               <div className="mc-info-card-header">
                 <div className="mc-info-card-title"><User size={16} /> Patient Details</div>
@@ -426,69 +562,26 @@ export default function MedicalCaseDetailPage() {
 
         <aside className="mc-body-side">
 
+
           {/* ─── Clinical History / Follow-up Timeline ─── */}
           <div className="mc-side-card">
             <div className="mc-side-card-header">
-              <div className="mc-side-card-title"><History size={16} /> Clinical History</div>
+              <div className="mc-side-card-title">
+                <History size={16} /> 
+                {displayDate 
+                  ? `Follow Up on ${displayDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`
+                  : "No Follow-up"
+                }
+              </div>
             </div>
             <div className="mc-side-card-body" style={{ padding: '16px' }}>
-              {/* Input Area */}
-              <div style={{ paddingBottom: '16px', borderBottom: '1px solid var(--pp-warm-2)' }}>
-                <textarea
-                  className="pp-textarea"
-                  placeholder="Record patient follow-up or status..."
-                  value={followUpNote}
-                  onChange={e => setFollowUpNote(e.target.value)}
-                  style={{ minHeight: '80px', fontSize: '0.8rem', background: 'var(--pp-warm-1)' }}
-                />
-                <button
-                  className="btn-primary"
-                  onClick={async () => {
-                    if (!followUpNote.trim()) return;
-                    await handleSaveNote(followUpNote);
-                    setFollowUpNote('');
-                  }}
-                  disabled={saveNote.isPending}
-                  style={{ width: '100%', marginTop: '12px', padding: '10px' }}
-                >
-                  {saveNote.isPending ? 'Saving Note...' : 'Add Follow-up Note'}
-                </button>
-              </div>
-
-              {/* Timeline Area */}
-              <div className="pp-custom-scrollbar" style={{ maxHeight: '260px', overflowY: 'auto', paddingRight: '4px' }}>
-                {(notes || []).filter((n: any) =>
-                  n.notesType === 'Followup' ||
-                  n.noteType === 'Followup' ||
-                  n.notes_type === 'Followup'
-                ).length > 0 ? (
-                  (notes || []).filter((n: any) =>
-                    n.notesType === 'Followup' ||
-                    n.noteType === 'Followup' ||
-                    n.notes_type === 'Followup'
-                  )
-                    .sort((a: any, b: any) => new Date(b.createdAt || b.created_at || b.dateval || 0).getTime() - new Date(a.createdAt || a.created_at || a.dateval || 0).getTime())
-                    .map((note: any) => (
-                      <div key={note.id} style={{ padding: '12px 0', borderBottom: '1px solid var(--pp-warm-1)', position: 'relative', paddingLeft: '16px' }}>
-                        <div style={{ position: 'absolute', left: 0, top: '16px', bottom: 0, width: '2px', background: 'var(--pp-blue)', opacity: 0.3, borderRadius: '2px' }} />
-                        <div style={{ fontSize: '0.65rem', color: 'var(--pp-text-3)', fontWeight: 700, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
-                          {(note.createdAt || note.created_at || note.dateval) ? new Date(note.createdAt || note.created_at || note.dateval).toLocaleDateString('en-GB', {
-                            day: '2-digit', month: 'short', year: 'numeric',
-                            hour: '2-digit', minute: '2-digit'
-                          }) : '—'}
-                        </div>
-                        <div style={{ fontSize: '0.82rem', color: 'var(--pp-ink)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{note.notes}</div>
-                      </div>
-                    ))
-                ) : (
-                  <div style={{ textAlign: 'center', padding: '32px 0' }}>
-                    <div style={{ background: 'var(--pp-warm-1)', width: '48px', height: '48px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
-                      <History size={20} style={{ color: 'var(--pp-text-3)', opacity: 0.5 }} />
-                    </div>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--pp-text-3)', fontWeight: 500 }}>No clinical history found.</p>
-                  </div>
-                )}
-              </div>
+              <AutoSaveNoteArea 
+                value={followUpNote}
+                onChange={setFollowUpNote}
+                placeholder={displayDate ? "Record patient follow-up or status..." : "No history available"}
+                onSave={handleSaveNote}
+                minHeight="250px"
+              />
             </div>
           </div>
 
@@ -498,7 +591,8 @@ export default function MedicalCaseDetailPage() {
               <div className="mc-side-card-title"><CreditCard size={16} /> Billing Summary</div>
             </div>
             <div className="mc-side-card-body">
-              <div className="mc-bill-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}><span>Total</span> <strong>₹{displayTotal}</strong></div>
+              <div className="mc-bill-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}><span>Regular Charge</span> <strong>₹{savedCharge || pendingCharge || 0}</strong></div>
+              <div className="mc-bill-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}><span>Total Bill</span> <strong>₹{displayTotal}</strong></div>
               <div className="mc-bill-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}><span>Received</span> <strong className="text-green">₹{paidAmount}</strong></div>
               <div className="mc-bill-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}><span>Balance</span> <strong className="text-red">₹{balance}</strong></div>
               <div className="mc-bill-total" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', fontWeight: 800, color: 'var(--pp-blue)', borderTop: '1px solid var(--border-main)', paddingTop: '12px', marginTop: '8px' }}>
@@ -581,7 +675,7 @@ export default function MedicalCaseDetailPage() {
             <div className="mc-drawer-body">
               {mobileDrawer === 'followup' && (
                 <>
-                  <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                  <div style={{ maxHeight: '300px', overflowY: 'auto', marginBottom: '12px' }}>
                     {(notes || []).filter((n: any) => n.notesType === 'Followup' || n.noteType === 'Followup').length > 0 ? (
                       (notes || []).filter((n: any) => n.notesType === 'Followup' || n.noteType === 'Followup')
                         .sort((a: any, b: any) => new Date(b.createdAt || b.created_at || b.dateval || 0).getTime() - new Date(a.createdAt || a.created_at || a.dateval || 0).getTime())
@@ -602,28 +696,16 @@ export default function MedicalCaseDetailPage() {
                       </div>
                     )}
                   </div>
-                  <textarea
-                    className="pp-textarea"
-                    placeholder="Add follow-up notes here..."
+                  <AutoSaveNoteArea 
                     value={followUpNote}
-                    onChange={e => setFollowUpNote(e.target.value)}
-                    style={{ minHeight: '100px', fontSize: '0.85rem', background: 'var(--bg-surface-2)', color: 'var(--pp-ink)', border: '1px solid var(--border-main)', marginTop: '12px' }}
+                    onChange={setFollowUpNote}
+                    onSave={handleSaveNote}
+                    placeholder="Add follow-up notes here..."
+                    minHeight="200px"
                   />
-                  <button
-                    onClick={async () => {
-                      if (!followUpNote.trim()) return;
-                      await handleSaveNote(followUpNote);
-                      setFollowUpNote('');
-                    }}
-                    style={{
-                      width: '100%', padding: '12px', background: '#2563eb', color: 'white',
-                      border: 'none', borderRadius: '10px', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer'
-                    }}
-                  >
-                    Save Note
-                  </button>
                 </>
               )}
+
 
               {mobileDrawer === 'billing' && (
                 <>
@@ -752,7 +834,7 @@ export default function MedicalCaseDetailPage() {
         <FinalizeConsultationModal
           regid={Number(regid)}
           visitId={medicalCase.id}
-          prescriptions={prescriptions}
+          prescriptions={prescriptionsHistory || []}
           onClose={() => setShowFinalizeModal(false)}
         />
       )}
@@ -864,7 +946,7 @@ function MedicalCasePageSkeleton() {
 
 /* ─── Internal Sub-Components ─── */
 
-function VaccineView({ regid, caseVaccines }: { regid: number; caseVaccines: any[] }) {
+function VaccineView({ regid, caseVaccines, onAppendNote }: { regid: number; caseVaccines: any[]; onAppendNote?: (text: string) => void }) {
   const { data: masterVaccines = [], isLoading } = useMasterVaccines();
   const { saveVaccine, deleteVaccine } = useManageClinicalRecords();
   const [savingId, setSavingId] = useState<number | null>(null);
@@ -879,6 +961,12 @@ function VaccineView({ regid, caseVaccines }: { regid: number; caseVaccines: any
   const [pageSize, setPageSize] = useState(10);
   const [givenPage, setGivenPage] = useState(1);
   const [givenPageSize, setGivenPageSize] = useState(5);
+
+  const currentGivenVaccines = React.useMemo(() => {
+    return caseVaccines.slice((givenPage - 1) * givenPageSize, givenPage * givenPageSize);
+  }, [caseVaccines, givenPage, givenPageSize]);
+
+  const { expandedDates, toggleDate, groupedData: groupedGivenVaccines } = useTableGrouping(currentGivenVaccines, 'createdAt');
 
   // Build grouped list (categories + children) like the settings page
   const flatGrouped = React.useMemo(() => {
@@ -929,6 +1017,11 @@ function VaccineView({ regid, caseVaccines }: { regid: number; caseVaccines: any
     setFormVaccineId(cv.vaccineId);
     setFormNotes(cv.notes || '');
     setDrawerOpen(true);
+  };
+
+  const handleCopyToFollowup = (cv: any) => {
+    if (!onAppendNote) return;
+    onAppendNote(`VACCINE (${new Date(cv.createdAt).toLocaleDateString()}): ${cv.vaccineName || `Vaccine #${cv.vaccineId}`}${cv.notes ? ` - ${cv.notes}` : ''}`);
   };
 
   const handleDelete = async (cv: any) => {
@@ -992,57 +1085,88 @@ function VaccineView({ regid, caseVaccines }: { regid: number; caseVaccines: any
               <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--pp-success-fg)' }}>Previously Given Vaccines</span>
               <span style={{ fontSize: '0.72rem', color: 'var(--pp-success-fg)', fontWeight: 600, marginLeft: '4px' }}>({caseVaccines.length})</span>
             </div>
-            <table className="pp-table" style={{ marginBottom: 0 }}>
+            <div className="mc-table-container">
+            <table className="pp-table mc-responsive-table" style={{ marginBottom: 0 }}>
               <thead>
                 <tr>
                   <th style={{ width: '36px' }}>#</th>
-                  <th>Vaccine Name</th>
-                  <th style={{ width: '150px' }}>Date Given</th>
-                  <th>Notes</th>
+                  <th style={{ width: '130px' }}>Date</th>
+                  <th>Vaccine & Notes</th>
                   <th style={{ width: '100px', textAlign: 'right' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
-                {caseVaccines
-                  .slice((givenPage - 1) * givenPageSize, givenPage * givenPageSize)
-                  .map((cv: any, i: number) => (
-                    <tr key={cv.id} className="hover-row">
-                      <td style={{ color: 'var(--pp-text-3)', fontSize: '0.72rem', fontFamily: 'monospace' }}>{(givenPage - 1) * givenPageSize + i + 1}</td>
-                      <td>
-                        <div style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--pp-ink)' }}>{cv.vaccineName || `Vaccine #${cv.vaccineId}`}</div>
-                      </td>
-                      <td>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.78rem', fontWeight: 600, color: 'var(--pp-success-fg)' }}>
-                          <Calendar size={12} />
-                          {cv.createdAt ? new Date(cv.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
-                        </span>
-                      </td>
-                      <td style={{ fontSize: '0.78rem', color: 'var(--pp-text-3)' }}>
-                        {cv.notes || '—'}
-                      </td>
-                      <td style={{ textAlign: 'right' }}>
-                        <div style={{ display: 'flex', gap: '4px', justifyContent: 'flex-end' }}>
-                          <button
-                            title="Edit"
-                            onClick={() => handleOpenEdit(cv)}
-                            style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border-main)', borderRadius: '6px', background: 'var(--bg-card)', cursor: 'pointer', color: 'var(--pp-blue)' }}
-                          >
-                            <Edit size={13} />
-                          </button>
-                          <button
-                            title="Delete"
-                            onClick={() => handleDelete(cv)}
-                            disabled={deletingId === cv.id}
-                            style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #fecaca', borderRadius: '6px', background: 'var(--bg-card)', cursor: 'pointer', color: '#ef4444', opacity: deletingId === cv.id ? 0.5 : 1 }}
-                          >
-                            {deletingId === cv.id ? <Loader2 size={13} className="spin" /> : <Trash2 size={13} />}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                {groupedGivenVaccines.map((group) => (
+                  <React.Fragment key={group.date}>
+                    {group.items.map((cv: any, idx: number) => {
+                      const isExpanded = expandedDates.has(group.date);
+                      if (idx > 0 && !isExpanded) return null;
+
+                      const dateVal = cv.createdAt || 0;
+
+                      return (
+                        <tr 
+                          key={cv.id} 
+                          className="hover-row"
+                          style={{ 
+                            background: idx > 0 ? '#f8fafc' : 'white',
+                            borderLeft: idx > 0 ? '3px solid #e2e8f0' : 'none'
+                          }}
+                        >
+                          <td style={{ color: 'var(--pp-text-3)', fontSize: '0.72rem', fontFamily: 'monospace' }}>
+                            {idx === 0 ? (givenPage - 1) * givenPageSize + caseVaccines.indexOf(cv) + 1 : ''}
+                          </td>
+                          <td className="appt-cell-mono">
+                            <DateGroupCell 
+                              dateVal={dateVal} 
+                              isFirst={idx === 0} 
+                              isExpanded={isExpanded} 
+                              itemsCount={group.items.length} 
+                              onToggle={() => toggleDate(group.date)} 
+                            />
+                          </td>
+                          <td>
+                            <div style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--pp-ink)' }}>{cv.vaccineName || `Vaccine #${cv.vaccineId}`}</div>
+                            <div style={{ fontSize: '0.78rem', color: 'var(--pp-text-3)', marginTop: '4px' }}>
+                              {cv.notes || '—'}
+                            </div>
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            <div style={{ display: 'flex', gap: '4px', justifyContent: 'flex-end' }}>
+                              {onAppendNote && (
+                                <button
+                                  title="Copy to Follow-up"
+                                  onClick={() => handleCopyToFollowup(cv)}
+                                  style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #dcfce7', borderRadius: '6px', background: 'var(--bg-card)', cursor: 'pointer', color: '#16a34a' }}
+                                >
+                                  <Copy size={13} />
+                                </button>
+                              )}
+                              <button
+                                title="Edit"
+                                onClick={() => handleOpenEdit(cv)}
+                                style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border-main)', borderRadius: '6px', background: 'var(--bg-card)', cursor: 'pointer', color: 'var(--pp-blue)' }}
+                              >
+                                <Edit size={13} />
+                              </button>
+                              <button
+                                title="Delete"
+                                onClick={() => handleDelete(cv)}
+                                disabled={deletingId === cv.id}
+                                style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #fecaca', borderRadius: '6px', background: 'var(--bg-card)', cursor: 'pointer', color: '#ef4444', opacity: deletingId === cv.id ? 0.5 : 1 }}
+                              >
+                                {deletingId === cv.id ? <Loader2 size={13} className="spin" /> : <Trash2 size={13} />}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </React.Fragment>
+                ))}
               </tbody>
             </table>
+            </div>
           </div>
           <Pagination
             currentPage={givenPage}
@@ -1069,7 +1193,8 @@ function VaccineView({ regid, caseVaccines }: { regid: number; caseVaccines: any
 
       {/* Table */}
       <div className="pp-card pp-table-scroll" style={{ padding: 0 }}>
-        <table className="pp-table">
+        <div className="mc-table-container">
+        <table className="pp-table mc-responsive-table">
           <thead>
             <tr>
               <th style={{ width: '40px' }}>#</th>
@@ -1162,6 +1287,7 @@ function VaccineView({ regid, caseVaccines }: { regid: number; caseVaccines: any
             })}
           </tbody>
         </table>
+        </div>
       </div>
 
       <Pagination
@@ -1266,7 +1392,7 @@ function VaccineView({ regid, caseVaccines }: { regid: number; caseVaccines: any
   );
 }
 
-function AnalyticsView({ vitals, regid, visitId, name, phone, clinicName }: { vitals: any[]; regid: number; visitId: number; name: string; phone: string; clinicName: string }) {
+function AnalyticsView({ vitals, regid, visitId, name, phone, clinicName, onAppendNote }: { vitals: any[]; regid: number; visitId: number; name: string; phone: string; clinicName: string; onAppendNote?: (text: string) => void }) {
   const [weightUnit, setWeightUnit] = useState<'kg' | 'lbs'>('kg');
   const [heightUnit, setHeightUnit] = useState<'cm' | 'in'>('cm');
   const [hVal, setHVal] = useState('');
@@ -1332,6 +1458,16 @@ function AnalyticsView({ vitals, regid, visitId, name, phone, clinicName }: { vi
     }
   };
 
+  const handleCopyToFollowup = () => {
+    if (!vitals?.length || !onAppendNote) return;
+    const latest = vitals[0];
+    const parts = [];
+    if (latest.heightCm) parts.push(`Height: ${latest.heightCm} cm`);
+    if (latest.weightKg) parts.push(`Weight: ${latest.weightKg} kg`);
+    if (latest.bmi) parts.push(`BMI: ${latest.bmi}`);
+    onAppendNote(`VITALS - H/W (${new Date(latest.recordedAt).toLocaleDateString()}): ${parts.join(', ')}`);
+  };
+
   const chartData = (vitals || []).slice().reverse().map(v => ({
     date: new Date(v.recordedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
     weight: v.weightKg,
@@ -1365,6 +1501,16 @@ function AnalyticsView({ vitals, regid, visitId, name, phone, clinicName }: { vi
           <button className="btn-secondary" onClick={handleShare} disabled={sending} style={{ padding: '10px 20px', height: '44px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #e2e8f0', background: 'white', color: 'var(--pp-text-3)' }}>
             <Send size={14} /> {sending ? 'Sending...' : 'Share Latest'}
           </button>
+          {onAppendNote && vitals?.length > 0 && (
+            <button 
+              className="btn-secondary" 
+              onClick={handleCopyToFollowup} 
+              style={{ padding: '10px 20px', height: '44px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #dcfce7', background: 'white', color: '#16a34a' }}
+              title="Copy Latest to Follow-up"
+            >
+              <Copy size={14} /> Copy Latest
+            </button>
+          )}
         </div>
       </div>
 
@@ -1456,7 +1602,7 @@ function SnapshotRow({ label, value }: { label: string, value: string }) {
   );
 }
 
-function HomeoView({ regid, initialData, reminders, medicalCase }: { regid: number; initialData?: any; reminders?: any[]; medicalCase: any }) {
+function HomeoView({ regid, initialData, reminders, medicalCase, onAppendNote }: { regid: number; initialData?: any; reminders?: any[]; medicalCase: any; onAppendNote?: (text: string) => void }) {
   const { saveReminder, deleteReminder } = useManageClinicalRecords();
 
   // Reminder / Activity State
@@ -1513,6 +1659,11 @@ function HomeoView({ regid, initialData, reminders, medicalCase }: { regid: numb
     setPurpose('');
   };
 
+  const handleCopyToFollowup = (rem: any) => {
+    if (!onAppendNote) return;
+    onAppendNote(`CLINIC ACTIVITY (${new Date(rem.reminderDate).toLocaleString()}): ${rem.message}`);
+  };
+
   const sortedReminders = reminders ? [...reminders].sort((a, b) =>
     new Date(b.reminderDate).getTime() - new Date(a.reminderDate).getTime()
   ) : [];
@@ -1520,6 +1671,8 @@ function HomeoView({ regid, initialData, reminders, medicalCase }: { regid: numb
   const totalPages = Math.ceil(sortedReminders.length / pageSize);
   const startIndex = (currentPage - 1) * pageSize;
   const currentReminders = sortedReminders.slice(startIndex, startIndex + pageSize);
+
+  const { expandedDates, toggleDate, groupedData: groupedReminders } = useTableGrouping(currentReminders, 'reminderDate');
 
   return (
     <div className="animate-fade-in">
@@ -1550,7 +1703,8 @@ function HomeoView({ regid, initialData, reminders, medicalCase }: { regid: numb
               <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#3730a3' }}>Activity History</span>
               <span style={{ fontSize: '0.72rem', color: '#818cf8', fontWeight: 600, marginLeft: '4px' }}>({reminders.length})</span>
             </div>
-            <table className="pp-table" style={{ marginBottom: 0 }}>
+            <div className="mc-table-container">
+            <table className="pp-table mc-responsive-table" style={{ marginBottom: 0 }}>
               <thead>
                 <tr>
                   <th style={{ width: '170px' }}>Scheduled For</th>
@@ -1560,34 +1714,71 @@ function HomeoView({ regid, initialData, reminders, medicalCase }: { regid: numb
                 </tr>
               </thead>
               <tbody>
-                {currentReminders.map((rem) => (
-                  <tr key={rem.id} className="hover-row">
-                    <td className="appt-cell-mono">
-                      <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <span style={{ fontWeight: 700 }}>{new Date(rem.reminderDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-                        <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>{new Date(rem.reminderDate).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
-                      </div>
-                    </td>
-                    <td style={{ fontSize: '0.85rem' }}>{rem.message}</td>
-                    <td>
-                      <span className={`mc-badge-solid-${rem.status === 'Done' ? 'green' : 'blue'}`} style={{ fontSize: '0.7rem' }}>
-                        {rem.status}
-                      </span>
-                    </td>
-                    <td style={{ textAlign: 'center' }}>
-                      <div style={{ display: 'flex', justifyContent: 'center', gap: '4px' }}>
-                        <button className="btn-ghost" style={{ color: 'var(--pp-blue)', padding: '4px' }} onClick={() => handleEditActivity(rem)}>
-                          <Edit size={14} />
-                        </button>
-                        <button className="btn-ghost" style={{ color: '#dc2626', padding: '4px' }} onClick={() => handleDeleteActivity(rem.id)}>
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                {groupedReminders.map((group) => (
+                  <React.Fragment key={group.date}>
+                    {group.items.map((rem, idx) => {
+                      const isExpanded = expandedDates.has(group.date);
+                      if (idx > 0 && !isExpanded) return null;
+
+                      const dateVal = rem.reminderDate || 0;
+
+                      return (
+                        <tr 
+                          key={rem.id} 
+                          className="hover-row"
+                          style={{ 
+                            background: idx > 0 ? '#f8fafc' : 'white',
+                            borderLeft: idx > 0 ? '3px solid #e2e8f0' : 'none'
+                          }}
+                        >
+                          <td className="appt-cell-mono">
+                            <DateGroupCell 
+                              dateVal={dateVal} 
+                              isFirst={idx === 0} 
+                              isExpanded={isExpanded} 
+                              itemsCount={group.items.length} 
+                              onToggle={() => toggleDate(group.date)} 
+                            />
+                            {idx === 0 && (
+                              <div style={{ fontSize: '0.75rem', opacity: 0.7, marginTop: '4px' }}>
+                                {new Date(dateVal).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                              </div>
+                            )}
+                          </td>
+                          <td style={{ fontSize: '0.85rem' }}>{rem.message}</td>
+                          <td>
+                            <span className={`mc-badge-solid-${rem.status === 'Done' ? 'green' : 'blue'}`} style={{ fontSize: '0.7rem' }}>
+                              {rem.status}
+                            </span>
+                          </td>
+                          <td style={{ textAlign: 'center' }}>
+                            <div style={{ display: 'flex', justifyContent: 'center', gap: '4px' }}>
+                              {onAppendNote && (
+                                <button
+                                  className="btn-ghost"
+                                  style={{ color: '#16a34a', padding: '4px' }}
+                                  title="Copy to Follow-up"
+                                  onClick={() => handleCopyToFollowup(rem)}
+                                >
+                                  <Copy size={14} />
+                                </button>
+                              )}
+                              <button className="btn-ghost" style={{ color: 'var(--pp-blue)', padding: '4px' }} onClick={() => handleEditActivity(rem)}>
+                                <Edit size={14} />
+                              </button>
+                              <button className="btn-ghost" style={{ color: '#dc2626', padding: '4px' }} onClick={() => handleDeleteActivity(rem.id)}>
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
           <Pagination currentPage={currentPage} totalPages={totalPages} pageSize={pageSize} totalItems={sortedReminders.length} onPageChange={setCurrentPage} onPageSizeChange={setPageSize} />
         </>
@@ -1687,7 +1878,7 @@ function HomeoView({ regid, initialData, reminders, medicalCase }: { regid: numb
 }
 
 
-function VitalsView({ vitals, onRecord, phone, name, regid, clinicName }: { vitals: any[]; onRecord: (v?: any) => void; phone: string; name: string; regid: number; clinicName: string }) {
+function VitalsView({ vitals, onRecord, phone, name, regid, clinicName, onAppendNote }: { vitals: any[]; onRecord: (v?: any) => void; phone: string; name: string; regid: number; clinicName: string; onAppendNote?: (text: string) => void }) {
   const latest = vitals && vitals.length > 0 ? vitals[0] : null;
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -1695,6 +1886,19 @@ function VitalsView({ vitals, onRecord, phone, name, regid, clinicName }: { vita
   const [sending, setSending] = useState(false);
   const { deleteVitals } = useManageClinicalRecords();
   const [deletingId, setDeletingId] = useState<number | null>(null);
+
+  const handleCopyToFollowup = (v: any) => {
+    if (!onAppendNote) return;
+    const parts = [];
+    if (v.systolicBp || v.diastolicBp) parts.push(`BP: ${v.systolicBp || '-'}/${v.diastolicBp || '-'}`);
+    if (v.pulseRate) parts.push(`Pulse: ${v.pulseRate} bpm`);
+    if (v.temperatureF) parts.push(`Temp: ${v.temperatureF}°F`);
+    if (v.weightKg) parts.push(`Weight: ${v.weightKg}kg`);
+    if (v.oxygenSaturation) parts.push(`SpO2: ${v.oxygenSaturation}%`);
+    if (v.bmi) parts.push(`BMI: ${v.bmi}`);
+    
+    onAppendNote(`VITALS (${new Date(v.recordedAt).toLocaleDateString()}): ${parts.join(', ')}`);
+  };
 
   const handleDelete = async (v: any) => {
     if (!window.confirm('Are you sure you want to delete this vitals record?')) return;
@@ -1713,6 +1917,8 @@ function VitalsView({ vitals, onRecord, phone, name, regid, clinicName }: { vita
   const totalPages = Math.ceil((vitals?.length || 0) / pageSize);
   const startIndex = (currentPage - 1) * pageSize;
   const currentVitals = vitals?.slice(startIndex, startIndex + pageSize) || [];
+
+  const { expandedDates, toggleDate, groupedData: groupedVitals } = useTableGrouping(currentVitals, 'recordedAt');
 
   const handleShareVitals = async () => {
     if (!latest || !phone) return;
@@ -1795,34 +2001,69 @@ function VitalsView({ vitals, onRecord, phone, name, regid, clinicName }: { vita
                 </tr>
               </thead>
               <tbody>
-                {currentVitals.map(v => (
-                  <tr key={v.id} className="hover-row">
-                    <td>{new Date(v.recordedAt).toLocaleDateString('en-GB')}</td>
-                    <td style={{ fontWeight: 600 }}>{v.systolicBp}/{v.diastolicBp}</td>
-                    <td>{v.pulseRate} bpm</td>
-                    <td>{v.temperatureF}°F</td>
-                    <td>{v.weightKg} kg</td>
-                    <td>{v.bmi}</td>
-                    <td style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'flex', gap: '4px', justifyContent: 'flex-end' }}>
-                        <button
-                          title="Edit"
-                          onClick={() => onRecord(v)}
-                          style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border-main)', borderRadius: '6px', background: 'var(--bg-card)', cursor: 'pointer', color: 'var(--pp-blue)' }}
+                {groupedVitals.map((group) => (
+                  <React.Fragment key={group.date}>
+                    {group.items.map((v, idx) => {
+                      const isExpanded = expandedDates.has(group.date);
+                      if (idx > 0 && !isExpanded) return null;
+
+                      const dateVal = v.recordedAt || 0;
+
+                      return (
+                        <tr 
+                          key={v.id} 
+                          className="hover-row"
+                          style={{ 
+                            background: idx > 0 ? '#f8fafc' : 'white',
+                            borderLeft: idx > 0 ? '3px solid #e2e8f0' : 'none'
+                          }}
                         >
-                          <Edit size={13} />
-                        </button>
-                        <button
-                          title="Delete"
-                          onClick={() => handleDelete(v)}
-                          disabled={deletingId === v.id}
-                          style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #fecaca', borderRadius: '6px', background: 'var(--bg-card)', cursor: 'pointer', color: '#ef4444', opacity: deletingId === v.id ? 0.5 : 1 }}
-                        >
-                          {deletingId === v.id ? <Loader2 size={13} className="spin" /> : <Trash2 size={13} />}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                          <td className="appt-cell-mono">
+                            <DateGroupCell 
+                              dateVal={dateVal} 
+                              isFirst={idx === 0} 
+                              isExpanded={isExpanded} 
+                              itemsCount={group.items.length} 
+                              onToggle={() => toggleDate(group.date)} 
+                            />
+                          </td>
+                          <td style={{ fontWeight: 600 }}>{v.systolicBp}/{v.diastolicBp}</td>
+                          <td>{v.pulseRate} bpm</td>
+                          <td>{v.temperatureF}°F</td>
+                          <td>{v.weightKg} kg</td>
+                          <td>{v.bmi}</td>
+                          <td style={{ textAlign: 'right' }}>
+                            <div style={{ display: 'flex', gap: '4px', justifyContent: 'flex-end' }}>
+                              {onAppendNote && (
+                                <button
+                                  title="Copy to Follow-up"
+                                  onClick={() => handleCopyToFollowup(v)}
+                                  style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #dcfce7', borderRadius: '6px', background: 'var(--bg-card)', cursor: 'pointer', color: '#16a34a' }}
+                                >
+                                  <Copy size={13} />
+                                </button>
+                              )}
+                              <button
+                                title="Edit"
+                                onClick={() => onRecord(v)}
+                                style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border-main)', borderRadius: '6px', background: 'var(--bg-card)', cursor: 'pointer', color: 'var(--pp-blue)' }}
+                              >
+                                <Edit size={13} />
+                              </button>
+                              <button
+                                title="Delete"
+                                onClick={() => handleDelete(v)}
+                                disabled={deletingId === v.id}
+                                style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #fecaca', borderRadius: '6px', background: 'var(--bg-card)', cursor: 'pointer', color: '#ef4444', opacity: deletingId === v.id ? 0.5 : 1 }}
+                              >
+                                {deletingId === v.id ? <Loader2 size={13} className="spin" /> : <Trash2 size={13} />}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>
@@ -2011,7 +2252,7 @@ const LAB_CONFIG: Record<string, any[]> = {
   ]
 };
 
-function LabsView({ investigations, regid, visitId }: { investigations: any[]; regid: number; visitId: number }) {
+function LabsView({ investigations, regid, visitId, onAppendNote }: { investigations: any[]; regid: number; visitId: number; onAppendNote?: (text: string) => void }) {
   const [activeType, setActiveType] = useState('CBC');
   const [labData, setLabData] = useState<any>({});
   const [saved, setSaved] = useState(false);
@@ -2022,10 +2263,21 @@ function LabsView({ investigations, regid, visitId }: { investigations: any[]; r
 
   const { saveInvestigation, saveNote, deleteRecord } = useManageClinicalRecords();
 
+  const handleCopyToFollowup = (inv: any) => {
+    if (!onAppendNote) return;
+    const summary = Object.entries(inv.data || {})
+      .filter(([_, v]) => v)
+      .map(([k, v]) => `${k.toUpperCase()}: ${v}`)
+      .join(', ');
+    onAppendNote(`INVESTIGATION (${inv.type} - ${new Date(inv.investDate).toLocaleDateString()}): ${summary}`);
+  };
+
   const sortedInvs = investigations ? [...investigations].sort((a, b) => new Date(b.investDate).getTime() - new Date(a.investDate).getTime()) : [];
   const totalPages = Math.ceil(sortedInvs.length / pageSize);
   const startIndex = (currentPage - 1) * pageSize;
   const currentInvs = sortedInvs.slice(startIndex, startIndex + pageSize);
+
+  const { expandedDates, toggleDate, groupedData: groupedInvs } = useTableGrouping(currentInvs, 'investDate');
 
   const handleSave = async (copyToFollowup = false) => {
     try {
@@ -2115,44 +2367,80 @@ function LabsView({ investigations, regid, visitId }: { investigations: any[]; r
                 </tr>
               </thead>
               <tbody>
-                {currentInvs.map(inv => (
-                  <tr key={inv.id} className="hover-row">
-                    <td>{new Date(inv.investDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
-                    <td><span className="badge-primary">{inv.type}</span></td>
-                    <td>
-                      <div style={{ fontSize: '0.82rem', color: '#475569', display: 'flex', flexWrap: 'wrap', gap: '6px 12px' }}>
-                        {Object.entries(inv.data || {}).filter(([_, v]) => v).map(([k, v]) => (
-                          <span key={k} style={{ display: 'inline-flex', gap: '4px' }}>
-                            <strong style={{ color: 'var(--pp-ink)' }}>{k.toUpperCase()}:</strong> {String(v)}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td style={{ textAlign: 'center' }}>
-                      <div style={{ display: 'flex', justifyContent: 'center', gap: '4px' }}>
-                        <button
-                          onClick={() => handleEdit(inv)}
-                          className="btn-ghost"
-                          style={{ color: 'var(--pp-blue)', padding: '4px 8px' }}
-                          title="Edit"
-                        >
-                          <Edit size={14} />
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (confirm('Delete this investigation?')) {
-                              deleteRecord.mutateAsync({ type: 'investigations', id: inv.id });
-                            }
+                {groupedInvs.map((group) => (
+                  <React.Fragment key={group.date}>
+                    {group.items.map((inv, idx) => {
+                      const isExpanded = expandedDates.has(group.date);
+                      if (idx > 0 && !isExpanded) return null;
+
+                      const dateVal = inv.investDate || 0;
+
+                      return (
+                        <tr 
+                          key={inv.id} 
+                          className="hover-row"
+                          style={{ 
+                            background: idx > 0 ? '#f8fafc' : 'white',
+                            borderLeft: idx > 0 ? '3px solid #e2e8f0' : 'none'
                           }}
-                          className="btn-ghost"
-                          style={{ color: '#dc2626', padding: '4px 8px' }}
-                          title="Delete"
                         >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                          <td className="appt-cell-mono">
+                            <DateGroupCell 
+                              dateVal={dateVal} 
+                              isFirst={idx === 0} 
+                              isExpanded={isExpanded} 
+                              itemsCount={group.items.length} 
+                              onToggle={() => toggleDate(group.date)} 
+                            />
+                          </td>
+                          <td><span className="badge-primary">{inv.type}</span></td>
+                          <td>
+                            <div style={{ fontSize: '0.82rem', color: '#475569', display: 'flex', flexWrap: 'wrap', gap: '6px 12px' }}>
+                              {Object.entries(inv.data || {}).filter(([_, v]) => v).map(([k, v]) => (
+                                <span key={k} style={{ display: 'inline-flex', gap: '4px' }}>
+                                  <strong style={{ color: 'var(--pp-ink)' }}>{k.toUpperCase()}:</strong> {String(v)}
+                                </span>
+                              ))}
+                            </div>
+                          </td>
+                          <td style={{ textAlign: 'center' }}>
+                            <div style={{ display: 'flex', justifyContent: 'center', gap: '4px' }}>
+                              {onAppendNote && (
+                                <button
+                                  onClick={() => handleCopyToFollowup(inv)}
+                                  className="btn-ghost"
+                                  style={{ color: '#16a34a', padding: '4px 8px' }}
+                                  title="Copy to Follow-up"
+                                >
+                                  <Copy size={14} />
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleEdit(inv)}
+                                className="btn-ghost"
+                                style={{ color: 'var(--pp-blue)', padding: '4px 8px' }}
+                                title="Edit"
+                              >
+                                <Edit size={14} />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (confirm('Delete this investigation?')) {
+                                    deleteRecord.mutateAsync({ type: 'investigations', id: inv.id });
+                                  }
+                                }}
+                                className="btn-ghost"
+                                style={{ color: '#dc2626', padding: '4px 8px' }}
+                                title="Delete"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>
@@ -2247,38 +2535,76 @@ function LabsView({ investigations, regid, visitId }: { investigations: any[]; r
 
 
 
-function CommunicationView({ regid, phone, name }: { regid: number; phone: string; name: string }) {
+function CommunicationView({ regid, phone, name, onAppendNote }: { regid: number; phone: string; name: string; onAppendNote?: (text: string) => void }) {
+  const { data: logs = [], isLoading } = useCommunicationLogs(regid);
   const [message, setMessage] = useState('');
   const sendSms = useSendSms();
+
+  const handleCopyToFollowup = (log: any) => {
+    if (!onAppendNote) return;
+    onAppendNote(`COMMUNICATION (${new Date(log.createdAt).toLocaleString()}): ${log.message}`);
+  };
+
   return (
-    <div className="pp-card" style={{ padding: '24px' }}>
-      <div className="mc-section-header" style={{ marginBottom: '20px' }}>Communication with {name}</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        <div>
-          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-text-2)', marginBottom: '6px' }}>Select Template</label>
-          <select className="pp-select" onChange={e => setMessage(e.target.value)} value="">
-            <option value="">Choose...</option>
-            <option value="Hello, Your medicine from Homeo-X is dispatched via courier. Tracking: ">Medicine Dispatched</option>
-            <option value="Reminder: Your follow-up consultation is scheduled for tomorrow. Please confirm.">Follow-up Reminder</option>
-            <option value="Hello, Your lab reports are ready. You can view them on the Homeo-X app.">Lab Reports Ready</option>
-            <option value="Greeting from Homeo-X. How is your health today? Any improvements?">Health Check-in</option>
-          </select>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <div className="pp-card" style={{ padding: '24px' }}>
+        <div className="mc-section-header" style={{ marginBottom: '20px' }}>Message {name}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-text-2)', marginBottom: '6px' }}>Select Template</label>
+            <select className="pp-select" onChange={e => setMessage(e.target.value)} value="">
+              <option value="">Choose...</option>
+              <option value="Hello, Your medicine from Homeo-X is dispatched via courier. Tracking: ">Medicine Dispatched</option>
+              <option value="Reminder: Your follow-up consultation is scheduled for tomorrow. Please confirm.">Follow-up Reminder</option>
+              <option value="Hello, Your lab reports are ready. You can view them on the Homeo-X app.">Lab Reports Ready</option>
+              <option value="Greeting from Homeo-X. How is your health today? Any improvements?">Health Check-in</option>
+            </select>
+          </div>
+          <textarea
+            className="pp-textarea"
+            style={{ height: '100px' }}
+            value={message}
+            onChange={e => setMessage(e.target.value)}
+            placeholder="Type your message here..."
+          />
+          <button
+            className="btn-primary"
+            style={{ width: '100%' }}
+            onClick={() => sendSms.mutateAsync({ phone, message, regid })}
+          >
+            <Send size={16} style={{ marginRight: '8px' }} /> Send WhatsApp
+          </button>
         </div>
-        <textarea
-          className="pp-textarea"
-          style={{ height: '100px' }}
-          value={message}
-          onChange={e => setMessage(e.target.value)}
-          placeholder="Type your message here..."
-        />
-        <button
-          className="btn-primary"
-          style={{ width: '100%' }}
-          onClick={() => sendSms.mutateAsync({ phone, message, regid })}
-        >
-          <Send size={16} style={{ marginRight: '8px' }} /> Send WhatsApp
-        </button>
       </div>
+
+      <div className="mc-section-header">Communication Logs</div>
+      {isLoading ? (
+        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--pp-text-3)' }}>Loading logs...</div>
+      ) : logs.length === 0 ? (
+        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--pp-text-3)', background: 'white', borderRadius: '12px', border: '1px dashed #e2e8f0' }}>No messages sent yet.</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {logs.map((log: any) => (
+            <div key={log.id} style={{ padding: '16px', background: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: log.status === 'sent' ? '#10b981' : '#f59e0b' }} />
+                  <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase' }}>{new Date(log.createdAt).toLocaleString()}</span>
+                </div>
+                {onAppendNote && (
+                  <button 
+                    onClick={() => handleCopyToFollowup(log)}
+                    style={{ padding: '4px', background: 'transparent', border: 'none', color: '#16a34a', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', fontWeight: 700 }}
+                  >
+                    <Copy size={12} /> Copy to Follow-up
+                  </button>
+                )}
+              </div>
+              <p style={{ fontSize: '0.85rem', color: 'var(--pp-ink)', margin: 0, lineHeight: 1.5 }}>{log.message}</p>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -2289,6 +2615,8 @@ function MediaView({ regid, visitId, images }: { regid: number; visitId: number;
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(8);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadDescription, setUploadDescription] = useState('');
 
   const sortedImages = images ? [...images].sort((a, b) =>
     new Date(b.createdAt || b.created_at || 0).getTime() -
@@ -2298,6 +2626,8 @@ function MediaView({ regid, visitId, images }: { regid: number; visitId: number;
   const totalPages = Math.ceil(sortedImages.length / pageSize);
   const startIndex = (currentPage - 1) * pageSize;
   const currentImages = sortedImages.slice(startIndex, startIndex + pageSize);
+
+  const { expandedDates, toggleDate, groupedData: groupedImages } = useTableGrouping(currentImages, 'createdAt');
 
   const getImageUrl = (path: string) => {
     if (!path) return '';
@@ -2313,18 +2643,24 @@ function MediaView({ regid, visitId, images }: { regid: number; visitId: number;
     return path.startsWith('/') ? path : '/' + path;
   };
 
-  const onFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files?.length) return;
+  const onFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.length) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!selectedFile) return;
     setUploading(true);
     try {
-      const file = e.target.files[0];
-      if (!file) return;
       const formData = new FormData();
-      formData.append('files', file as Blob);
+      formData.append('files', selectedFile as Blob);
       formData.append('regid', String(regid));
       formData.append('visitId', String(visitId));
-      formData.append('description', 'Clinical Evidence');
+      formData.append('description', uploadDescription || 'Clinical Evidence');
       await saveImage.mutateAsync(formData);
+      setSelectedFile(null);
+      setUploadDescription('');
     } catch (err) {
       console.error('Upload error:', err);
     } finally {
@@ -2385,37 +2721,71 @@ function MediaView({ regid, visitId, images }: { regid: number; visitId: number;
         </div>
       </div>
 
-      <div
-        style={{
-          border: '2px dashed var(--pp-warm-4)', borderRadius: '16px', padding: '30px', textAlign: 'center',
-          background: 'white', position: 'relative', cursor: 'pointer', transition: 'all 0.2s',
-          marginBottom: '24px', boxShadow: 'var(--pp-shadow-sm)'
-        }}
-        onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--pp-blue)'}
-        onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--pp-warm-4)'}
-      >
-        <input
-          type="file"
-          onChange={onFileUpload}
-          style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }}
-          disabled={uploading}
-        />
-        {uploading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-            <Loader2 size={32} className="animate-spin" style={{ color: 'var(--pp-blue)' }} />
-            <div style={{ fontWeight: 700, color: 'var(--pp-blue)' }}>Uploading...</div>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
-            <div style={{ background: 'var(--pp-warm-1)', padding: '10px', borderRadius: '50%' }}>
-              <Upload size={20} style={{ color: 'var(--pp-blue)' }} />
+      <div style={{ background: 'white', border: '1px solid var(--pp-warm-3)', borderRadius: '16px', padding: '24px', marginBottom: '32px', boxShadow: 'var(--pp-shadow-sm)' }}>
+        <div
+          style={{
+            border: '1.5px dashed var(--pp-warm-4)', borderRadius: '12px', padding: '40px 20px', textAlign: 'center',
+            background: 'var(--pp-warm-1)', position: 'relative', cursor: 'pointer', transition: 'all 0.2s',
+            marginBottom: '20px'
+          }}
+          onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--pp-blue)'}
+          onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--pp-warm-4)'}
+        >
+          <input
+            type="file"
+            onChange={onFileSelect}
+            style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }}
+            disabled={uploading}
+            accept="image/*,.pdf"
+          />
+          {uploading ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+              <Loader2 size={32} className="animate-spin" style={{ color: 'var(--pp-blue)' }} />
+              <div style={{ fontWeight: 700, color: 'var(--pp-blue)' }}>Processing Image...</div>
             </div>
-            <div style={{ textAlign: 'left' }}>
-              <div style={{ fontWeight: 700, color: 'var(--pp-text-2)', fontSize: '0.95rem' }}>Upload Clinical Images</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--pp-text-3)' }}>JPG, PNG, WEBP up to 5MB</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', color: 'var(--pp-blue)' }}>
+                <Plus size={24} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 700, color: 'var(--pp-ink)', fontSize: '1rem', marginBottom: '4px' }}>
+                  {selectedFile ? selectedFile.name : 'Click to upload clinical image'}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--pp-text-3)', fontWeight: 500 }}>
+                  PNG, JPG or PDF (Max 10MB)
+                </div>
+              </div>
             </div>
+          )}
+        </div>
+
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <div style={{ flex: 1, position: 'relative' }}>
+            <input 
+              type="text" 
+              className="pp-input"
+              placeholder="Enter image description (e.g. Scan 1, Notes...)"
+              value={uploadDescription}
+              onChange={e => setUploadDescription(e.target.value)}
+              style={{ padding: '12px 16px', fontSize: '0.9rem', width: '100%' }}
+            />
           </div>
-        )}
+          <button 
+            className="btn-primary" 
+            onClick={handleUpload}
+            disabled={!selectedFile || uploading}
+            style={{ padding: '12px 24px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '8px', opacity: !selectedFile ? 0.6 : 1 }}
+          >
+            {uploading ? <Loader2 size={16} className="spin" /> : <Upload size={16} />}
+            Upload Image
+          </button>
+        </div>
+
+        <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--pp-warm-2)', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--pp-text-3)', fontSize: '0.75rem' }}>
+          <span style={{ fontSize: '1rem' }}>💡</span>
+          <span>These images will also appear in the <strong>Media</strong> tab of the patient record.</span>
+        </div>
       </div>
 
       {viewMode === 'grid' ? (
@@ -2508,39 +2878,60 @@ function MediaView({ regid, visitId, images }: { regid: number; visitId: number;
               </tr>
             </thead>
             <tbody>
-              {currentImages.map(img => {
-                const imagePath = img.picture || img.picturePath || img.picture_path;
-                const timestamp = img.createdAt || img.created_at || img.recordedAt || img.recorded_at;
-                const resolvedUrl = imagePath ? getImageUrl(imagePath) : '';
-                return (
-                  <tr key={img.id} className="hover-row">
-                    <td>
-                      <div style={{ width: '50px', height: '50px', borderRadius: '8px', overflow: 'hidden', background: 'var(--pp-warm-1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        {resolvedUrl ? (
-                          <img src={resolvedUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onClick={() => window.open(resolvedUrl, '_blank')} />
-                        ) : <Camera size={20} style={{ opacity: 0.3 }} />}
-                      </div>
-                    </td>
-                    <td className="appt-cell-mono">
-                      {timestamp ? new Date(timestamp).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
-                    </td>
-                    <td style={{ fontSize: '0.85rem' }}>{img.description || 'Clinical Evidence'}</td>
-                    <td style={{ textAlign: 'center' }}>
-                      <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
-                        <button className="btn-ghost" style={{ color: 'var(--pp-blue)' }} onClick={() => handleEditDescription(img)} title="Edit Notes">
-                          <Edit size={16} />
-                        </button>
-                        <button className="btn-ghost" style={{ color: 'var(--pp-blue)' }} onClick={() => resolvedUrl && window.open(resolvedUrl, '_blank')} title="View Full Image">
-                          <Eye size={16} />
-                        </button>
-                        <button className="btn-ghost" style={{ color: 'var(--pp-danger-fg)' }} onClick={() => handleDelete(img.id)} title="Delete Image">
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
+                {groupedImages.map((group) => (
+                  <React.Fragment key={group.date}>
+                    {group.items.map((img: any, idx: number) => {
+                      const isExpanded = expandedDates.has(group.date);
+                      if (idx > 0 && !isExpanded) return null;
+
+                      const dateVal = img.createdAt || img.created_at || img.recordedAt || img.recorded_at || 0;
+                      const imagePath = img.picture || img.picturePath || img.picture_path;
+                      const resolvedUrl = imagePath ? getImageUrl(imagePath) : '';
+
+                      return (
+                        <tr 
+                          key={img.id} 
+                          className="hover-row"
+                          style={{ 
+                            background: idx > 0 ? '#f8fafc' : 'white',
+                            borderLeft: idx > 0 ? '3px solid #e2e8f0' : 'none'
+                          }}
+                        >
+                          <td style={{ width: '80px' }}>
+                            <div style={{ width: '50px', height: '50px', borderRadius: '8px', overflow: 'hidden', background: 'var(--pp-warm-1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              {resolvedUrl ? (
+                                <img src={resolvedUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onClick={() => window.open(resolvedUrl, '_blank')} />
+                              ) : <Camera size={20} style={{ opacity: 0.3 }} />}
+                            </div>
+                          </td>
+                          <td className="appt-cell-mono">
+                            <DateGroupCell 
+                              dateVal={dateVal} 
+                              isFirst={idx === 0} 
+                              isExpanded={isExpanded} 
+                              itemsCount={group.items.length} 
+                              onToggle={() => toggleDate(group.date)} 
+                            />
+                          </td>
+                          <td style={{ fontSize: '0.85rem' }}>{img.description || 'Clinical Evidence'}</td>
+                          <td style={{ textAlign: 'center' }}>
+                            <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
+                              <button className="btn-ghost" style={{ color: 'var(--pp-blue)' }} onClick={() => handleEditDescription(img)} title="Edit Notes">
+                                <Edit size={16} />
+                              </button>
+                              <button className="btn-ghost" style={{ color: 'var(--pp-blue)' }} onClick={() => resolvedUrl && window.open(resolvedUrl, '_blank')} title="View Full Image">
+                                <Eye size={16} />
+                              </button>
+                              <button className="btn-ghost" style={{ color: 'var(--pp-danger-fg)' }} onClick={() => handleDelete(img.id)} title="Delete Image">
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </React.Fragment>
+                ))}
             </tbody>
           </table>
         </div>
@@ -2570,7 +2961,7 @@ function MediaView({ regid, visitId, images }: { regid: number; visitId: number;
   );
 }
 
-function DiagnosisView({ regid, visitId, medicalCase, soapRecords }: { regid: number; visitId: number; medicalCase: any; soapRecords: any[] }) {
+function DiagnosisView({ regid, visitId, medicalCase, soapRecords, onAppendNote }: { regid: number; visitId: number; medicalCase: any; soapRecords: any[]; onAppendNote?: (text: string) => void }) {
   const { updateDiagnosis, saveSoap, deleteRecord } = useManageClinicalRecords();
   const [diagnosis, setDiagnosis] = useState(medicalCase?.condition || '');
   const [complaint, setComplaint] = useState('');
@@ -2588,9 +2979,22 @@ function DiagnosisView({ regid, visitId, medicalCase, soapRecords }: { regid: nu
     return timeB - timeA;
   }) : [];
 
+  const handleCopyToFollowup = (record: any) => {
+    if (!onAppendNote) return;
+    const parts = [];
+    if (record.assessment) parts.push(`Diagnosis: ${record.assessment}`);
+    if (record.subjective) parts.push(`S: ${record.subjective}`);
+    if (record.objective) parts.push(`O: ${record.objective}`);
+    if (record.plan) parts.push(`P: ${record.plan}`);
+    
+    onAppendNote(`DIAGNOSIS (${new Date(record.createdAt).toLocaleDateString()}): ${parts.join(' | ')}`);
+  };
+
   const totalPages = Math.ceil(sortedSoap.length / pageSize);
   const startIndex = (currentPage - 1) * pageSize;
   const currentSoap = sortedSoap.slice(startIndex, startIndex + pageSize);
+
+  const { expandedDates, toggleDate, groupedData: groupedSoap } = useTableGrouping(currentSoap, 'createdAt');
 
   const handleUpdate = async () => {
     try {
@@ -2599,6 +3003,7 @@ function DiagnosisView({ regid, visitId, medicalCase, soapRecords }: { regid: nu
       }
       if (complaint || medication || investigationFindings || diagnosis) {
         await saveSoap.mutateAsync({
+          id: editingRecord?.id,
           regid,
           visitId,
           subjective: complaint,
@@ -2687,46 +3092,78 @@ function DiagnosisView({ regid, visitId, medicalCase, soapRecords }: { regid: nu
                 </tr>
               </thead>
               <tbody>
-                {currentSoap.map((record) => (
-                  <tr key={record.id} className="hover-row">
-                    <td className="appt-cell-mono">
-                      {(record.createdAt || record.created_at || record.dateval || record.date_val || record.visitDate || record.visit_date)
-                        ? new Date(record.createdAt || record.created_at || record.dateval || record.date_val || record.visitDate || record.visit_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-                        : '—'}
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 700, color: 'var(--pp-blue)', fontSize: '0.85rem', marginBottom: '2px' }}>{record.assessment || 'No Diagnosis'}</div>
-                      {record.objective && <div style={{ fontSize: '0.75rem', color: 'var(--pp-text-3)' }}>Obj: {record.objective}</div>}
-                    </td>
-                    <td>
-                      <div style={{ fontSize: '0.85rem', color: 'var(--pp-ink)', lineHeight: 1.5 }}>
-                        {record.subjective || '—'}
-                      </div>
-                    </td>
-                    <td>
-                      <div style={{ fontSize: '0.85rem', color: 'var(--pp-text-2)' }}>{record.plan || record.advice || '—'}</div>
-                    </td>
-                    <td style={{ textAlign: 'center' }}>
-                      <div style={{ display: 'flex', justifyContent: 'center', gap: '4px' }}>
-                        <button
-                          className="btn-ghost"
-                          style={{ color: 'var(--pp-blue)', padding: '4px 8px' }}
-                          title="Edit"
-                          onClick={() => handleEdit(record)}
+                {groupedSoap.map((group) => (
+                  <React.Fragment key={group.date}>
+                    {group.items.map((record, idx) => {
+                      const isExpanded = expandedDates.has(group.date);
+                      if (idx > 0 && !isExpanded) return null;
+
+                      const dateVal = record.createdAt || record.created_at || record.dateval || record.visitDate || 0;
+
+                      return (
+                        <tr 
+                          key={record.id} 
+                          className="hover-row"
+                          style={{ 
+                            background: idx > 0 ? '#f8fafc' : 'white',
+                            borderLeft: idx > 0 ? '3px solid #e2e8f0' : 'none'
+                          }}
                         >
-                          <Edit size={14} />
-                        </button>
-                        <button
-                          className="btn-ghost"
-                          style={{ color: '#dc2626', padding: '4px 8px' }}
-                          title="Delete"
-                          onClick={() => handleDelete(record.id)}
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                          <td className="appt-cell-mono">
+                            <DateGroupCell 
+                              dateVal={dateVal} 
+                              isFirst={idx === 0} 
+                              isExpanded={isExpanded} 
+                              itemsCount={group.items.length} 
+                              onToggle={() => toggleDate(group.date)} 
+                            />
+                          </td>
+                          <td>
+                            <div style={{ fontWeight: 700, color: 'var(--pp-blue)', fontSize: '0.85rem', marginBottom: '2px' }}>{record.assessment || 'No Diagnosis'}</div>
+                            {record.objective && <div style={{ fontSize: '0.75rem', color: 'var(--pp-text-3)' }}>Obj: {record.objective}</div>}
+                          </td>
+                          <td>
+                            <div style={{ fontSize: '0.85rem', color: 'var(--pp-ink)', lineHeight: 1.5 }}>
+                              {record.subjective || '—'}
+                            </div>
+                          </td>
+                          <td>
+                            <div style={{ fontSize: '0.85rem', color: 'var(--pp-text-2)' }}>{record.plan || record.advice || '—'}</div>
+                          </td>
+                          <td style={{ textAlign: 'center' }}>
+                            <div style={{ display: 'flex', justifyContent: 'center', gap: '4px' }}>
+                              {onAppendNote && (
+                                <button
+                                  className="btn-ghost"
+                                  style={{ color: '#16a34a', padding: '4px 8px' }}
+                                  title="Copy to Follow-up"
+                                  onClick={() => handleCopyToFollowup(record)}
+                                >
+                                  <Copy size={14} />
+                                </button>
+                              )}
+                              <button
+                                className="btn-ghost"
+                                style={{ color: 'var(--pp-blue)', padding: '4px 8px' }}
+                                title="Edit"
+                                onClick={() => handleEdit(record)}
+                              >
+                                <Edit size={14} />
+                              </button>
+                              <button
+                                className="btn-ghost"
+                                style={{ color: '#dc2626', padding: '4px 8px' }}
+                                title="Delete"
+                                onClick={() => handleDelete(record.id)}
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>
