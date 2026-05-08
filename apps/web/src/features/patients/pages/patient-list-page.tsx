@@ -301,7 +301,7 @@ export default function PatientListPage() {
                       <span className="appt-cell-muted">{doctorName(p)}</span>
                     </td>
                     <td data-label="Last Followup">
-                      <div className="appt-cell-name">{formatDate(p.lastVisit || p.createdAt)}</div>
+                      <div className="appt-cell-name">{p.lastVisit ? formatDate(p.lastVisit) : "No Followup"}</div>
                       <div className="appt-cell-phone">Visit History</div>
                     </td>
                     <td data-label="Actions" style={{ textAlign: 'right' }}>
@@ -348,7 +348,7 @@ export default function PatientListPage() {
                   <MapPin size={14} /> {doctorName(p)}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Calendar size={14} /> Followup: {formatDate(p.lastVisit || p.createdAt)}
+                  <Calendar size={14} /> Followup: {p.lastVisit ? formatDate(p.lastVisit) : "No Followup"}
                 </div>
               </div>
               <div className="appt-grid-card-actions-minimal">

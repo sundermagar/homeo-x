@@ -8,7 +8,8 @@ import {
   refrencetypeLegacy,
   appointments,
   referralSources,
-  users
+  users,
+  medicalCases
 } from '@mmc/database/schema';
 import type { DbClient } from '@mmc/database';
 import type {
@@ -125,7 +126,18 @@ export class PatientRepositoryPg implements PatientRepository {
       this.db
         .select({
           patient: patients,
-          doctorName: users.name
+          doctorName: users.name,
+          lastVisit: sql<Date>`(
+            SELECT MAX(d) FROM (
+              SELECT created_at as d FROM medicalcases WHERE regid = ${patients.regid} AND created_at IS NOT NULL
+              UNION ALL
+              SELECT updated_at as d FROM medicalcases WHERE regid = ${patients.regid} AND updated_at IS NOT NULL
+              UNION ALL
+              SELECT recorded_at as d FROM vitals WHERE regid = ${patients.regid} AND recorded_at IS NOT NULL
+              UNION ALL
+              SELECT created_at as d FROM case_potencies WHERE regid = ${patients.regid} AND created_at IS NOT NULL
+            ) t
+          )`
         })
         .from(patients)
         .leftJoin(users, eq(patients.assistantDoctor, sql`CAST(${users.id} AS TEXT)`))
@@ -142,11 +154,11 @@ export class PatientRepositoryPg implements PatientRepository {
     return {
       data: data.map(row => {
         // Handle the joined structure
-        const summary = this.toSummary(row.patient || row);
-        if (row.doctorName) {
-          summary.doctorName = row.doctorName;
-        }
-        return summary;
+        return this.toSummary({ 
+          ...row.patient, 
+          doctorName: row.doctorName, 
+          lastVisit: row.lastVisit 
+        });
       }),
       total: Number(countRows[0]?.count ?? 0),
     };
@@ -597,9 +609,9 @@ export class PatientRepositoryPg implements PatientRepository {
       mobile1: row.mobile1 || null,
       dob: row.dob || row.dateOfBirth || null,
       city: row.city || null,
-      lastVisit: row.lastVisit || row.updatedAt || null,
+      lastVisit: row.lastVisit || null,
       totalVisits: 0,
-      doctorName: row.assistantDoctor || row.assistantDoctor || null,
+      doctorName: row.doctorName || row.assistantDoctor || null,
       createdAt: row.createdAt || new Date(),
     };
   }
