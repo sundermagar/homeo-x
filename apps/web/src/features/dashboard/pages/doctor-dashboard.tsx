@@ -31,6 +31,13 @@ function getWlId(item: QueueItem): number | undefined {
   return (item as any).wlId ?? (item as any).id;
 }
 
+function fmt(n: number): string {
+  if (!n && n !== 0) return '₹0';
+  if (n >= 100000) return `₹${(n / 100000).toFixed(1)}L`;
+  if (n >= 1000) return `₹${(n / 1000).toFixed(1)}k`;
+  return `₹${n}`;
+}
+
 export function DoctorDashboard() {
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -216,7 +223,7 @@ export function DoctorDashboard() {
               />
               <KPIItem
                 label="Collection"
-                value={`₹${(kpis?.todaysCollection || 0).toLocaleString()}`}
+                value={fmt(kpis?.todaysCollection || 0)}
                 trend={fmtTrend(kpis?.revenueTrend)}
                 color={trendColor(kpis?.revenueTrend)}
               />

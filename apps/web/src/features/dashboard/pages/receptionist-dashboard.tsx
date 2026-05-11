@@ -21,6 +21,13 @@ import { DashboardSkeleton } from '@/components/shared/dashboard-skeleton';
 import { PatientFormDrawer } from '../../patients/components/patient-form-drawer';
 import './role-dashboards.css';
 
+function fmt(n: number): string {
+  if (!n && n !== 0) return '₹0';
+  if (n >= 100000) return `₹${(n / 100000).toFixed(1)}L`;
+  if (n >= 1000) return `₹${(n / 1000).toFixed(1)}k`;
+  return `₹${n}`;
+}
+
 export function ReceptionistDashboard() {
   const navigate = useNavigate();
   const { data: dashData, isLoading } = useDashboard('day');
@@ -67,7 +74,7 @@ export function ReceptionistDashboard() {
       <div className="dash-kpi-strip">
         <KPIItem label="Today Intake" value={kpis?.newPatientsCount || 0} trend="+12% vs avg" color="var(--pp-success-fg)" />
         <KPIItem label="Waitlist" value={todayAppts.filter(a => a.status === 'Waitlist').length} trend="Active queue" color="#d97706" />
-        <KPIItem label="Collection" value={`₹${(kpis?.todaysCollection || 0).toLocaleString('en-IN')}`} trend="Today" color="var(--pp-success-fg)" />
+        <KPIItem label="Collection" value={fmt(kpis?.todaysCollection || 0)} trend="Today" color="var(--pp-success-fg)" />
         <KPIItem label="Completed" value={todayAppts.filter(a => a.status === 'Completed').length} trend="Visits done" color="var(--pp-blue)" />
       </div>
 

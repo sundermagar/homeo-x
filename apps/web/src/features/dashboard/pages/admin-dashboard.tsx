@@ -34,29 +34,6 @@ import { useDashboard } from '../hooks/use-dashboard';
 import './role-dashboards.css';
 import './admin-dashboard.css';
 
-const mobileStyles = `
-  @media (max-width: 1024px) {
-    .sa-root { padding: 16px !important; }
-    .sa-header { margin-bottom: 24px !important; }
-    .sa-title { font-size: 20px !important; }
-    
-    .sa-kpi-primary { grid-template-columns: 1fr !important; gap: 12px !important; margin-bottom: 24px !important; }
-    .sa-kpi-card { padding: 16px !important; }
-    
-    .sa-stats-row { grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; margin-bottom: 24px !important; }
-    .sa-stat-card { padding: 12px !important; flex-direction: column !important; align-items: flex-start !important; gap: 8px !important; }
-    .sa-stat-card .sa-stat-body { margin: 0 !important; }
-    .sa-stat-card svg:last-child { display: none !important; }
-
-    .sa-main-grid { grid-template-columns: 1fr !important; gap: 16px !important; }
-    .sa-chart-card { height: 320px !important; }
-    .sa-intel-card { height: auto !important; min-height: 200px !important; }
-    
-    .sa-actions-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
-    .sa-action-card { padding: 16px !important; }
-  }
-`;
-
 export function AdminDashboard() {
   const navigate = useNavigate();
   const period = 'month';
@@ -66,12 +43,10 @@ export function AdminDashboard() {
   const revenueSeries = dashData?.revenueSeries || [];
 
   const platformStats = dashData?.platformStats;
-  const clinicCount = platformStats?.totalClinics ?? 0;
 
   if (isLoading) {
     return (
       <div className="sa-root sa-loading-skeleton">
-        <style>{mobileStyles}</style>
         {/* Header Skeleton */}
         <div className="sa-header">
           <div>
@@ -123,8 +98,6 @@ export function AdminDashboard() {
 
   return (
     <div className="sa-root">
-      <style>{mobileStyles}</style>
-
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <div className="sa-header">
         <div>
@@ -137,7 +110,7 @@ export function AdminDashboard() {
       <div className="sa-kpi-primary">
         <KPIItem
           label="Total Revenue"
-          value={`₹${(dashData?.kpis?.todaysCollection || 0).toLocaleString()}`}
+          value={fmt(dashData?.kpis?.todaysCollection || 0)}
           trend={`${dashData?.kpis?.revenueTrend || 0}% vs prev.`}
           positive={Number(dashData?.kpis?.revenueTrend || 0) >= 0}
           icon={<CreditCard size={20} />}

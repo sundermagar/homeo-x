@@ -290,6 +290,7 @@ export function RemedyChartSession({
   };
 
   const handleEdit = (rx: PrescriptionRow) => {
+    setActiveTab('rx');
     setEditingId(rx.id);
     setManualInstruction(true);
     setForm({
@@ -331,6 +332,7 @@ export function RemedyChartSession({
       setShowRepeatWarning(true);
       return;
     }
+    setActiveTab('rx');
     setManualInstruction(true);
     setEditingId(null);
     setForm({

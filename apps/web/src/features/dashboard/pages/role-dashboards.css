@@ -5,11 +5,17 @@
 ────────────────────────────────────────────────────────────────────────────── */
 
 .dash-root {
-  padding: 0;
+  padding: 16px;
   /* Control padding via global .page-content-area wrapper */
   display: flex;
   flex-direction: column;
   gap: var(--pp-space-6);
+}
+
+@media (min-width: 768px) {
+  .dash-root {
+    padding: 0;
+  }
 }
 
 /* Queue Details Inner Grid — Responsive */
@@ -73,26 +79,42 @@
 /* 1. KPI Strip (Top Row) */
 .dash-kpi-strip {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--pp-space-4);
+  grid-template-columns: 1fr;
+  gap: 12px;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 480px) {
+  .dash-kpi-strip {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+}
+
+@media (min-width: 1280px) {
   .dash-kpi-strip {
     grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
   }
 }
 
 .dash-kpi-item {
   background: var(--bg-card);
-  padding: var(--pp-space-5);
+  padding: 16px;
   border-radius: var(--pp-radius-card);
   border: 1px solid var(--pp-warm-4);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   box-shadow: var(--pp-shadow-sm);
   transition: all var(--transition-normal);
+  min-width: 0;
+}
+
+@media (min-width: 768px) {
+  .dash-kpi-item {
+    padding: var(--pp-space-5);
+    gap: 4px;
+  }
 }
 
 .dash-kpi-item:hover {
@@ -102,29 +124,57 @@
 }
 
 .dash-kpi-label {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
   color: var(--pp-text-3);
   text-transform: uppercase;
   letter-spacing: 0.08em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (min-width: 768px) {
+  .dash-kpi-label {
+    font-size: 10px;
+  }
 }
 
 .dash-kpi-value-row {
   display: flex;
   align-items: baseline;
   gap: 8px;
+  min-width: 0;
 }
 
 .dash-kpi-value {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 800;
   color: var(--pp-ink);
   letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (min-width: 768px) {
+  .dash-kpi-value {
+    font-size: 1.5rem;
+  }
 }
 
 .dash-kpi-trend {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (min-width: 768px) {
+  .dash-kpi-trend {
+    font-size: 11px;
+  }
 }
 
 .trend-up {
