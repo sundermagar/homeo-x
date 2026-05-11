@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, FileText, Activity, Search, Edit, Save,
-  History, Camera, Zap, CreditCard, Clock,
+  History, Camera, Zap, CreditCard, Clock, Share2,
   Phone, Calendar, MapPin, CheckCircle2, AlertCircle,
   Sparkles, MoreHorizontal, ChevronRight, Plus, Package,
   MessageSquare, Send, BrainCircuit, ClipboardList, FlaskConical, Microscope,
@@ -39,6 +39,8 @@ import { AiConsultantView } from '../components/ai-consultant-view';
 import { usePatientBills } from '../../billing/hooks/use-billing';
 import { useActivePackage } from '../../packages/hooks/use-packages';
 import { BillingUpdateModal } from '../components/billing-update-modal';
+import { PaymentReceiptModal } from '../../billing/components/payment-receipt-modal';
+import { LogisticsSection } from '../../logistics/components/logistics-section';
 import { useAppointments } from '../../appointments/hooks/use-appointments';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { Pagination } from '@/components/shared/pagination';
@@ -161,8 +163,9 @@ export default function MedicalCaseDetailPage() {
   const [activeTab, setActiveTab] = useState('summary');
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showVitalsModal, setShowVitalsModal] = useState(false);
-  const [showFinalizeModal, setShowFinalizeModal] = useState(false);
   const [showBillingModal, setShowBillingModal] = useState(false);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [showFinalizeModal, setShowFinalizeModal] = useState(false);
   const [followUpNote, setFollowUpNote] = useState('');
   const [pendingCharge, setPendingCharge] = useState(0);
   const [mobileDrawer, setMobileDrawer] = useState<'followup' | 'billing' | 'contact' | 'package' | null>(null);
@@ -318,11 +321,7 @@ export default function MedicalCaseDetailPage() {
     return all.sort((a, b) => new Date(b.created_at || b.dateval).getTime() - new Date(a.created_at || a.dateval).getTime())[0];
   }, [prescriptionsHistory, prescriptionsFromFull]);
 
-  const savedCharge = useMemo(() => {
-    if (!latestRx) return 0;
-    const days = latestRx.days || 0;
-    return dayCharges.find((dc: any) => String(dc.days) === String(days))?.regularCharges || 0;
-  }, [latestRx, dayCharges]);
+  const regularCharge = medicalCase?.consultationFee || 0;
 
 
   // MOVE LOADING CHECKS HERE - AFTER ALL HOOKS
@@ -333,7 +332,12 @@ export default function MedicalCaseDetailPage() {
   const ageString = medicalCase.dateOfBirth ? `${new Date().getFullYear() - new Date(medicalCase.dateOfBirth).getFullYear()} Yrs` : 'Unknown Age';
 
 
-  const displayTotal = pendingCharge > 0 ? pendingCharge : (savedCharge > 0 ? savedCharge : (medicalCase.totalBill || 0));
+  // Total bill is calculated on backend as (regular + additional)
+  // If we have a pending change in the UI, we overlay it on top of additional charges
+  const displayTotal = pendingCharge > 0 
+    ? (pendingCharge + (medicalCase.totalAdditionalCharges || 0))
+    : (medicalCase.totalBill || 0);
+    
   const paidAmount = medicalCase.paidAmount || 0;
   const balance = displayTotal - paidAmount;
 
@@ -358,7 +362,7 @@ export default function MedicalCaseDetailPage() {
     const filteredHomeo = displayDate ? filterByDate(homeo || [], displayDate) : (Array.isArray(homeo) ? homeo : []);
 
     switch (activeTab) {
-      case 'summary': return <RemedyChartSession regid={Number(regid)} onDayChargeChange={setPendingCharge} onSelectDate={setSelectedDate} onStartRx={() => setSelectedDate(new Date().toISOString())} />;
+      case 'summary': return <RemedyChartSession regid={Number(regid)} visitId={medicalCase.id} onDayChargeChange={setPendingCharge} onSelectDate={setSelectedDate} onStartRx={() => setSelectedDate(new Date().toISOString())} />;
       case 'diagnosis': return <div className="mc-tab-content-wrapper"><DiagnosisView regid={Number(regid)} visitId={medicalCase.id} medicalCase={medicalCase} soapRecords={filteredSoap} onAppendNote={appendNote} /></div>;
       case 'media': return <div className="mc-tab-content-wrapper"><MediaView regid={Number(regid)} visitId={medicalCase.id} images={filteredImages} /></div>;
       case 'labs': return <div className="mc-tab-content-wrapper"><LabsView investigations={filteredInvestigations} regid={Number(regid)} visitId={medicalCase.id} onAppendNote={appendNote} /></div>;
@@ -372,7 +376,7 @@ export default function MedicalCaseDetailPage() {
       case 'analytics': return <div className="mc-tab-content-wrapper"><AnalyticsView vitals={vitals || []} regid={Number(regid)} visitId={medicalCase.id} name={medicalCase.patientName || ''} phone={medicalCase.phone || medicalCase.mobile || ''} clinicName={clinicName} onAppendNote={appendNote} /></div>;
       case 'reports': return <div className="mc-tab-content-wrapper"><ReportsView regid={Number(regid)} investigations={filteredInvestigations} /></div>;
       case 'ai-assist': return <div className="mc-tab-content-wrapper"><AiConsultantView regid={Number(regid)} /></div>;
-      default: return <RemedyChartSession regid={Number(regid)} onDayChargeChange={setPendingCharge} onSelectDate={setSelectedDate} onStartRx={() => setSelectedDate(new Date().toISOString())} />;
+      default: return <RemedyChartSession regid={Number(regid)} visitId={medicalCase.id} onDayChargeChange={setPendingCharge} onSelectDate={setSelectedDate} onStartRx={() => setSelectedDate(new Date().toISOString())} />;
     }
   };
 
@@ -591,7 +595,7 @@ export default function MedicalCaseDetailPage() {
               <div className="mc-side-card-title"><CreditCard size={16} /> Billing Summary</div>
             </div>
             <div className="mc-side-card-body">
-              <div className="mc-bill-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}><span>Regular Charge</span> <strong>₹{savedCharge || pendingCharge || 0}</strong></div>
+              <div className="mc-bill-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}><span>Regular Charge</span> <strong>₹{regularCharge || pendingCharge || 0}</strong></div>
               <div className="mc-bill-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}><span>Total Bill</span> <strong>₹{displayTotal}</strong></div>
               <div className="mc-bill-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}><span>Received</span> <strong className="text-green">₹{paidAmount}</strong></div>
               <div className="mc-bill-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}><span>Balance</span> <strong className="text-red">₹{balance}</strong></div>
@@ -599,9 +603,41 @@ export default function MedicalCaseDetailPage() {
                 <span>Outstanding</span>
                 <strong>₹{balance}</strong>
               </div>
-              <button className="mc-pay-btn" onClick={() => setShowBillingModal(true)} style={{ width: '100%', padding: '10px', background: 'var(--pp-success-bg)', color: 'var(--pp-success-fg)', border: '1px solid var(--pp-success-border)', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', marginTop: '12px' }}>Update Payment</button>
+              <div className="flex flex-col gap-2 mt-3">
+                <button 
+                  className="mc-pay-btn" 
+                  onClick={() => setShowBillingModal(true)} 
+                  style={{ width: '100%', padding: '10px', background: 'var(--pp-success-bg)', color: 'var(--pp-success-fg)', border: '1px solid var(--pp-success-border)', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}
+                >
+                  Update Payment
+                </button>
+                <button 
+                  className="mc-receipt-btn" 
+                  onClick={() => setShowReceiptModal(true)} 
+                  style={{ width: '100%', padding: '10px', background: 'var(--pp-blue-bg)', color: 'var(--pp-blue-fg)', border: '1px solid var(--pp-blue-border)', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                >
+                  <Share2 size={16} /> Share Payment Receipt
+                </button>
+              </div>
             </div>
           </div>
+
+          {/* ... */}
+          
+          <PaymentReceiptModal 
+            isOpen={showReceiptModal}
+            onClose={() => setShowReceiptModal(false)}
+            patientData={medicalCase}
+            billingData={{
+              regularCharges: regularCharge,
+              additionalCharges: fullData.additionalCharges || [],
+              totalBill: displayTotal,
+              paidAmount: paidAmount,
+              balance: balance
+            }}
+          />
+
+          <LogisticsSection regid={Number(regid)} />
 
         </aside>
       </div>

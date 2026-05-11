@@ -346,7 +346,7 @@ export default function OperationsDashboard() {
               />
             ) : viewMode === 'list' ? (
               <div className="plat-table-container">
-                <table className="plat-table">
+                <table className="plat-table ops-shipments-table">
                   <thead>
                     <tr>{shipmentCols.map(col => <th key={col}>{col}</th>)}</tr>
                   </thead>
@@ -488,7 +488,7 @@ export default function OperationsDashboard() {
                   />
                 ) : (
                   <div className="plat-table-container">
-                    <table className="plat-table">
+                    <table className="plat-table ops-leads-table">
                       <thead>
                         <tr>{leadCols.map(col => <th key={col}>{col}</th>)}</tr>
                       </thead>
@@ -507,7 +507,7 @@ export default function OperationsDashboard() {
                             <td>{l.source}</td>
                             <td><StatusBadge status={l.status || 'New'} /></td>
                             <td>
-                              <div className="cell-sub" style={{ maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              <div className="cell-sub" style={{ maxWidth: 500, lineHeight: 1.4 }}>
                                 {l.notes}
                               </div>
                             </td>
@@ -569,7 +569,7 @@ export default function OperationsDashboard() {
                   <TableSkeleton rows={5} columns={referralCols.length} />
                 ) : (
                   <div className="plat-table-container">
-                    <table className="plat-table">
+                    <table className="plat-table ops-referrals-table">
                       <thead>
                         <tr>{referralCols.map(col => <th key={col}>{col}</th>)}</tr>
                       </thead>
@@ -630,7 +630,7 @@ export default function OperationsDashboard() {
                   <TableSkeleton rows={5} columns={reminderCols.length} />
                 ) : (
                   <div className="plat-table-container">
-                    <table className="plat-table">
+                    <table className="plat-table ops-reminders-table">
                       <thead>
                         <tr>{reminderCols.map(col => <th key={col}>{col}</th>)}</tr>
                       </thead>
@@ -702,7 +702,7 @@ export default function OperationsDashboard() {
               />
             ) : viewMode === 'list' ? (
               <div className="plat-table-container">
-                <table className="plat-table">
+                <table className="plat-table ops-dict-table">
                   <thead>
                     <tr>{dictCols.map(col => <th key={col}>{col}</th>)}</tr>
                   </thead>
@@ -710,7 +710,7 @@ export default function OperationsDashboard() {
                     {dictionary.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(d => (
                       <tr key={d.id} className="plat-table-row">
                         <td><span className="cell-main" style={{ fontWeight: 700 }}>{d.title}</span></td>
-                        <td><span className="cell-sub" style={{ maxWidth: 300 }}>{d.text}</span></td>
+                        <td><span className="cell-sub">{d.text}</span></td>
                         <td><span className="ops-cross-ref">{d.cross_ref || d.crossRef}</span></td>
                       </tr>
                     ))}
@@ -783,7 +783,7 @@ export default function OperationsDashboard() {
               />
             ) : viewMode === 'list' ? (
               <div className="plat-table-container">
-                <table className="plat-table">
+                <table className="plat-table ops-books-table">
                   <thead>
                     <tr>{bookCols.map(col => <th key={col}>{col}</th>)}</tr>
                   </thead>

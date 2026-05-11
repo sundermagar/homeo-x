@@ -315,20 +315,34 @@ export class RemedyChartUseCase {
       if (deliveryMode === 'courier' || deliveryMode === 'pickup') {
         const postType = deliveryMode === 'courier' ? 'Courier' : 'Pickup';
         const isPickup = deliveryMode === 'pickup' ? 1 : 0;
+        
+        // Map columns correctly: case_id = patient regid, regid = internal case ID (visitId)
+        const patientRegid = regid;
+        const internalCaseId = visitId;
 
         const check = await this.db.execute(sql`SELECT id FROM courier_medicine WHERE rand_id = ${randId}`);
         if ((check as any[]) && (check as any[]).length > 0) {
           await this.db.execute(sql`
              UPDATE courier_medicine 
-             SET post_type = ${postType}, pickup = ${isPickup}, read_type = 'unread', updated_at = NOW() 
+             SET 
+               post_type = ${postType}, 
+               pickup = ${isPickup}, 
+               read_type = 'unread', 
+               remedy = ${remedyName},
+               potency = ${potencyName},
+               frequency = ${frequencyName},
+               days = ${String(days)},
+               updated_at = NOW() 
              WHERE rand_id = ${randId}
            `);
         } else {
           await this.db.execute(sql`
              INSERT INTO courier_medicine (
-               case_id, regid, rand_id, currentdate, post_type, pickup, read_type, is_assign, created_at, updated_at
+               case_id, regid, rand_id, currentdate, remedy, potency, frequency, days, post_type, pickup, read_type, is_assign, created_at, updated_at
              ) VALUES (
-               ${visitId}, ${regid}, ${randId}, ${dateNow}, ${postType}, ${isPickup}, 'unread', 0, NOW(), NOW()
+               ${patientRegid}, ${internalCaseId}, ${randId}, ${dateNow}, 
+               ${remedyName}, ${potencyName}, ${frequencyName}, ${String(days)},
+               ${postType}, ${isPickup}, 'unread', 0, NOW(), NOW()
              )
            `);
         }

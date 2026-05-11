@@ -916,8 +916,6 @@
 }
 
 .plat-profile-container {
-  max-width: var(--pp-container-width);
-  margin: 0 auto;
   padding: 0 var(--pp-space-4);
   width: 100%;
 }

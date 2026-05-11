@@ -2,7 +2,6 @@
 
 .operations-dashboard {
   width: 100%;
-  margin: 0 auto;
   padding-bottom: 80px;
 }
 
@@ -371,28 +370,84 @@
 
 /* ─── Mobile Card Transform (≤1024px) ─── */
 /* ─── Table Modernization (Plat-Table alignment) ─── */
-.plat-table-container {
+.operations-dashboard .plat-table-container {
   margin-top: 12px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-main);
-  border-radius: 12px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
 
-.plat-table td {
-  padding: 12px 16px !important;
-  font-size: 0.85rem !important;
+.operations-dashboard .plat-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
 }
 
-.plat-table th {
+.operations-dashboard .plat-table td {
+  padding: 14px 16px !important;
+  font-size: 0.85rem !important;
+  border-bottom: 1px solid var(--border-main);
+}
+
+.operations-dashboard .plat-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.operations-dashboard .plat-table th {
   background: var(--bg-surface-2) !important;
   padding: 10px 16px !important;
   font-size: 0.7rem !important;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-muted) !important;
+  border-bottom: 1px solid var(--border-main);
+  text-align: left;
 }
+
+/* --- Table Specific Column Widths --- */
+
+/* Shipments: ['Reg ID', 'Patient', 'Courier', 'Tracking', 'Status', 'Date'] */
+.ops-shipments-table th:nth-child(1), .ops-shipments-table td:nth-child(1) { width: 80px; }
+.ops-shipments-table th:nth-child(2), .ops-shipments-table td:nth-child(2) { width: auto; }
+.ops-shipments-table th:nth-child(3), .ops-shipments-table td:nth-child(3) { width: 140px; }
+.ops-shipments-table th:nth-child(4), .ops-shipments-table td:nth-child(4) { width: 160px; }
+.ops-shipments-table th:nth-child(5), .ops-shipments-table td:nth-child(5) { width: 110px; }
+.ops-shipments-table th:nth-child(6), .ops-shipments-table td:nth-child(6) { width: 110px; }
+
+/* Leads: ['#', 'Name', 'Source', 'Status', 'Notes', 'Date', 'Action'] */
+.ops-leads-table th:nth-child(1), .ops-leads-table td:nth-child(1) { width: 50px; }
+.ops-leads-table th:nth-child(2), .ops-leads-table td:nth-child(2) { width: 200px; }
+.ops-leads-table th:nth-child(3), .ops-leads-table td:nth-child(3) { width: 130px; }
+.ops-leads-table th:nth-child(4), .ops-leads-table td:nth-child(4) { width: 110px; }
+.ops-leads-table th:nth-child(5), .ops-leads-table td:nth-child(5) { width: auto; }
+.ops-leads-table th:nth-child(6), .ops-leads-table td:nth-child(6) { width: 110px; }
+.ops-leads-table th:nth-child(7), .ops-leads-table td:nth-child(7) { width: 120px; }
+
+/* Referrals: ['Patient', 'Referred', 'Total', 'Used'] */
+.ops-referrals-table th:nth-child(1), .ops-referrals-table td:nth-child(1) { width: auto; }
+.ops-referrals-table th:nth-child(2), .ops-referrals-table td:nth-child(2) { width: 140px; }
+.ops-referrals-table th:nth-child(3), .ops-referrals-table td:nth-child(3) { width: 120px; }
+.ops-referrals-table th:nth-child(4), .ops-referrals-table td:nth-child(4) { width: 120px; }
+
+/* Reminders: ['Patient', 'Heading', 'Date', 'Status'] */
+.ops-reminders-table th:nth-child(1), .ops-reminders-table td:nth-child(1) { width: 220px; }
+.ops-reminders-table th:nth-child(2), .ops-reminders-table td:nth-child(2) { width: auto; }
+.ops-reminders-table th:nth-child(3), .ops-reminders-table td:nth-child(3) { width: 180px; }
+.ops-reminders-table th:nth-child(4), .ops-reminders-table td:nth-child(4) { width: 120px; }
+
+/* Dictionary: ['Remedy', 'Description', 'Cross'] */
+.ops-dict-table th:nth-child(1), .ops-dict-table td:nth-child(1) { width: 25%; }
+.ops-dict-table th:nth-child(2), .ops-dict-table td:nth-child(2) { width: auto; }
+.ops-dict-table th:nth-child(3), .ops-dict-table td:nth-child(3) { width: 20%; }
+
+/* Books: ['Title', 'Author', 'Type', 'Link'] */
+.ops-books-table th:nth-child(1), .ops-books-table td:nth-child(1) { width: auto; }
+.ops-books-table th:nth-child(2), .ops-books-table td:nth-child(2) { width: 180px; }
+.ops-books-table th:nth-child(3), .ops-books-table td:nth-child(3) { width: 120px; }
+.ops-books-table th:nth-child(4), .ops-books-table td:nth-child(4) { width: 80px; text-align: center; }
+
 
 .cell-main {
   font-weight: 600;
@@ -948,6 +1003,21 @@ textarea.ops-input {
 }
 
 /* ─── Responsive Tables ────────────────────────────────────────────────── */
+/* Override global mobile engine that re-adds border/bg to plat-table-container */
+@media (max-width: 1024px) {
+  html body .operations-dashboard .plat-table-container {
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    margin-bottom: 0 !important;
+  }
+
+  html body .operations-dashboard .plat-table {
+    width: 100% !important;
+    min-width: 700px !important;
+  }
+}
 
 
 

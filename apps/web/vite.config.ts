@@ -19,7 +19,12 @@ export default defineConfig({
           if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/') || id.includes('node_modules/react-router-dom')) return 'react-vendor';
           if (id.includes('node_modules/@tanstack')) return 'query';
           if (id.includes('node_modules/lucide-react')) return 'icons';
-          if (id.includes('node_modules/recharts')) return 'charts';
+          if (id.includes('node_modules/recharts') || id.includes('node_modules/d3-')) return 'charts';
+          // ── Heavy feature-specific deps isolated into their own chunks ──
+          if (id.includes('node_modules/@fullcalendar')) return 'fullcalendar';
+          if (id.includes('node_modules/livekit-client') || id.includes('node_modules/livekit-')) return 'livekit';
+          if (id.includes('node_modules/date-fns')) return 'date-fns';
+          if (id.includes('node_modules/zod')) return 'zod';
         },
       },
     },

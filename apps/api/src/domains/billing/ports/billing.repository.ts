@@ -12,6 +12,7 @@ export interface BillingRepository {
   findDailyCollection(date: string, clinicId?: number): Promise<DailyCollectionSummary>;
   create(data: CreateBillInput & { billNo: number }): Promise<Bill>;
   updateReceived(id: number, amount: number, paymentMode: string): Promise<Bill | null>;
+  updateCharges(id: number, amount: number): Promise<Bill | null>;
   nextBillNo(): Promise<number>;
   softDelete(id: number): Promise<boolean>;
 }

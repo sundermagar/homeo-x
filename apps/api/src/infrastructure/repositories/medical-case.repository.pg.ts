@@ -215,6 +215,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
           state: schema.patients.state,
           doctorName: schema.users.name,
           referedBy: schema.patients.referedBy,
+          consultationFee: schema.patients.consultationFee,
         })
         .from(schema.medicalCases)
         .leftJoin(schema.patients, eq(schema.medicalCases.regid, schema.patients.regid))
@@ -242,6 +243,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
             city: schema.patients.city,
             state: schema.patients.state,
             referedBy: schema.patients.referedBy,
+            consultationFee: schema.patients.consultationFee,
           })
           .from(schema.patients)
           .where(eq(schema.patients.regid, regid))
@@ -267,6 +269,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
           state: patient.state,
           doctorName: '—',
           referedBy: patient.referedBy,
+          consultationFee: patient.consultationFee,
         } as any;
       }
 
@@ -285,7 +288,10 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
         legacyPrescriptions,
         aiPrescriptions,
         vaccines,
-        reminders
+        reminders,
+        additionalChargesRes,
+        paymentsRes,
+        modernPaymentsRes
       ] = await Promise.all([
         // Vitals: Fetch all vitals for this patient by regid
         this.db
@@ -378,9 +384,45 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
         this.db.execute(sql`SELECT * FROM "prescriptions" WHERE "regid" = ${regid} ORDER BY "id" DESC`).catch(() => []) as Promise<any[]>,
 
         this.getVaccines(regid),
-        this.getReminders(regid)
+        this.getReminders(regid),
+
+        this.getAdditionalCharges(regid),
+        
+        this.db.select({ 
+          totalCharges: sql<number>`SUM(${schema.billLegacy.charges})::int`,
+          totalReceived: sql<number>`SUM(${schema.billLegacy.received})::int`
+        })
+          .from(schema.billLegacy)
+          .where(and(
+            eq(schema.billLegacy.regid, regid), 
+            sql`(${schema.billLegacy.deletedAt} IS NULL OR CAST(${schema.billLegacy.deletedAt} AS text) = '')`
+          )),
+
+        // Billing Aggregation: Modern (Full rows for detailed breakdown)
+        this.db.select().from(schema.bills).where(and(eq(schema.bills.regid, regid), isNull(schema.bills.deletedAt)))
 
       ]);
+
+      const legacyAdditionalRows = additionalChargesRes as any[];
+      const modernBills = (modernPaymentsRes as any[]) || [];
+      const legacySums = (paymentsRes as any)[0];
+      
+      const modernRegularBills = modernBills.filter(b => b.billType !== 'Custom');
+      const modernCustomBills = modernBills.filter(b => b.billType === 'Custom');
+
+      const totalRegular = (legacySums?.totalCharges || 0) + modernRegularBills.reduce((sum, b) => sum + (Number(b.charges) || 0), 0);
+      
+      // Combine legacy additional and modern custom bills
+      const combinedAdditional = [
+        ...legacyAdditionalRows.map(r => ({ name: r.name, amount: r.amount, notes: null })),
+        ...modernCustomBills.map(b => ({ name: b.customTitle || 'Additional Charge', amount: b.charges, notes: b.notes }))
+      ];
+
+      const totalAdditional = combinedAdditional.reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
+      const totalBill = totalRegular + totalAdditional;
+      
+      const totalPaid = (legacySums?.totalReceived || 0) + modernBills.reduce((sum, b) => sum + (Number(b.received) || 0), 0);
+      const balance = totalBill - totalPaid;
 
       // Normalize AI prescriptions into the standard Prescription interface for UI consistency
       const normalizedAiRx: Prescription[] = (aiPrescriptions || []).map(row => ({
@@ -401,7 +443,14 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
       const allPrescriptions = [...(legacyPrescriptions as Prescription[])];
 
       return {
-        medicalCase: (activeCase || { id: 0, regid, status: 'None' }) as MedicalCase, // Fallback for UI
+        medicalCase: {
+          ...(activeCase || { id: 0, regid, status: 'None' }),
+          totalBill,
+          regularCharges: totalRegular,
+          totalAdditionalCharges: totalAdditional,
+          paidAmount: totalPaid,
+          outstandingBalance: balance
+        } as MedicalCase,
         vitals: vitalsRows as Vitals[],
         soap: soapRows as SoapNotes[],
         homeo,
@@ -412,6 +461,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
         prescriptions: allPrescriptions,
         vaccines: vaccines as any[],
         reminders: reminders as any[],
+        additionalCharges: combinedAdditional,
       };
     } catch (err: any) {
       console.error(`💥 [MedicalCaseRepositoryPg] Error in getUnifiedCaseData for regid ${regid}:`, err);

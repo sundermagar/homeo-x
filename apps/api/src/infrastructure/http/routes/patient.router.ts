@@ -184,7 +184,8 @@ patientRouter.put('/:regid', async (req: Request, res: Response) => {
       return;
     }
     const repo = getRepo(req);
-    const uc = new UpdatePatientUseCase(repo);
+    const billingRepo = new BillingRepositoryPg(req.tenantDb);
+    const uc = new UpdatePatientUseCase(repo, billingRepo);
     const result = await uc.execute(regid, parsed.data);
     if (result.success) {
       res.json({ success: true, data: result.data });

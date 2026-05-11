@@ -106,6 +106,9 @@ const RolesPermissionsPage = lazy(() => import('@/features/settings/pages/roles-
 // Operations & CRM
 const OperationsDashboard = lazy(() => import('@/features/operations/pages/operations-dashboard'));
 
+// Logistics
+const CourierQueuePage = lazy(() => import('@/features/logistics/pages/courier-queue-page').then(m => ({ default: m.CourierQueuePage })));
+
 // Clinical Hub
 const ClinicalHubPage = lazy(() => import('@/features/clinical-hub/pages/clinical-hub-page'));
 const PatientMeetPage = lazy(() => import('@/features/consultation/patient-meet-page'));
@@ -202,6 +205,7 @@ export function AppRouter() {
 
             {/* ─── Operations Hub ─── */}
             <Route path="/operations" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><OperationsDashboard /></RoleGuard>} />
+            <Route path="/courier-queue" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist']}><CourierQueuePage /></RoleGuard>} />
 
             {/* ─── Settings ─── */}
             <Route path="/settings" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><Navigate to="/settings/departments" replace /></RoleGuard>} />
