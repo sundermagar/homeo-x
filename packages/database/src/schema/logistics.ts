@@ -1,5 +1,5 @@
 import { pgTable, serial, integer, text, timestamp, pgEnum } from "drizzle-orm/pg-core";
-import { patients } from "./patients";
+import { patients } from "./patients.js";
 
 export const logisticsStatusEnum = pgEnum("logistics_status", ["PENDING", "DISPATCHED", "DELIVERED", "COLLECTED"]);
 export const logisticsTypeEnum = pgEnum("logistics_type", ["COURIER", "PICKUP"]);
