@@ -1,5 +1,6 @@
 import { eq, and, sql, desc, isNull, gte, lt } from 'drizzle-orm';
 import { bills, patients } from '@mmc/database/schema';
+import * as schema from '@mmc/database';
 import type { DbClient } from '@mmc/database';
 import type { Bill, BillWithPatient, DailyCollectionSummary, PatientBillSummary } from '@mmc/types';
 import type { BillingRepository } from '../../domains/billing/ports/billing.repository.js';
@@ -68,18 +69,33 @@ export class BillingRepositoryPg implements BillingRepository {
   }
 
   async findByRegid(regid: number): Promise<PatientBillSummary> {
-    const rows = await this.db
-      .select()
-      .from(bills)
-      .where(and(eq(bills.regid, regid), isNull(bills.deletedAt)))
-      .orderBy(desc(bills.id));
+    const [modernRows, legacyRows] = await Promise.all([
+      this.db
+        .select()
+        .from(bills)
+        .where(and(eq(bills.regid, regid), isNull(bills.deletedAt)))
+        .orderBy(desc(bills.id)),
+      this.db
+        .select()
+        .from(schema.billLegacy)
+        .where(and(
+          eq(schema.billLegacy.regid, regid), 
+          sql`(${schema.billLegacy.deletedAt} IS NULL OR CAST(${schema.billLegacy.deletedAt} AS text) = '')`
+        ))
+        .orderBy(desc(schema.billLegacy.id))
+    ]);
 
-    const totalCharges = rows.reduce((s, r) => s + (r.charges ?? 0), 0);
-    const totalReceived = rows.reduce((s, r) => s + (r.received ?? 0), 0);
-    const totalBalance = rows.reduce((s, r) => s + (r.balance ?? 0), 0);
+    const allBills = [
+      ...modernRows.map(this.toDomain.bind(this)),
+      ...legacyRows.map(this.toLegacyDomain.bind(this))
+    ].sort((a, b) => (b.id || 0) - (a.id || 0));
+
+    const totalCharges = allBills.reduce((s, r) => s + (r.charges ?? 0), 0);
+    const totalReceived = allBills.reduce((s, r) => s + (r.received ?? 0), 0);
+    const totalBalance = allBills.reduce((s, r) => s + (r.balance ?? 0), 0);
 
     return {
-      bills: rows.map(this.toDomain.bind(this)),
+      bills: allBills,
       totals: { totalCharges, totalReceived, totalBalance },
     };
   }
@@ -154,18 +170,70 @@ export class BillingRepositoryPg implements BillingRepository {
   }
 
   async updateReceived(id: number, amount: number, paymentMode: string): Promise<Bill | null> {
+    // Try modern bills table first
     const [existing] = await this.db.select().from(bills).where(eq(bills.id, id)).limit(1);
-    if (!existing) return null;
+    if (existing) {
+      const newReceived = (existing.received ?? 0) + amount;
+      const newBalance = (existing.charges ?? 0) - newReceived;
+      const [row] = await this.db
+        .update(bills)
+        .set({ received: newReceived, balance: newBalance, paymentMode, updatedAt: new Date() })
+        .where(eq(bills.id, id))
+        .returning();
+      return row ? this.toDomain(row) : null;
+    }
 
-    const newReceived = (existing.received ?? 0) + amount;
-    const newBalance = (existing.charges ?? 0) - newReceived;
+    // Try legacy bill table
+    const [legacyExisting] = await this.db.select().from(schema.billLegacy).where(eq(schema.billLegacy.id, id)).limit(1);
+    if (legacyExisting) {
+      const newReceived = (legacyExisting.received ?? 0) + amount;
+      const newBalance = (legacyExisting.charges ?? 0) - newReceived;
+      const [row] = await this.db
+        .update(schema.billLegacy)
+        .set({ 
+          received: newReceived, 
+          Balance: newBalance, // Capital B in legacy
+          paymentMode: paymentMode,
+          updatedAt: new Date() 
+        })
+        .where(eq(schema.billLegacy.id, id))
+        .returning();
+      return row ? this.toLegacyDomain(row) : null;
+    }
 
-    const [row] = await this.db
-      .update(bills)
-      .set({ received: newReceived, balance: newBalance, paymentMode, updatedAt: new Date() })
-      .where(eq(bills.id, id))
-      .returning();
-    return row ? this.toDomain(row) : null;
+    return null;
+  }
+
+  async updateCharges(id: number, amount: number): Promise<Bill | null> {
+    // Try modern bills table first
+    const [existing] = await this.db.select().from(bills).where(eq(bills.id, id)).limit(1);
+    if (existing) {
+      const newBalance = amount - (existing.received ?? 0);
+      const [row] = await this.db
+        .update(bills)
+        .set({ charges: amount, balance: newBalance, updatedAt: new Date() })
+        .where(eq(bills.id, id))
+        .returning();
+      return row ? this.toDomain(row) : null;
+    }
+
+    // Try legacy bill table
+    const [legacyExisting] = await this.db.select().from(schema.billLegacy).where(eq(schema.billLegacy.id, id)).limit(1);
+    if (legacyExisting) {
+      const newBalance = amount - (legacyExisting.received ?? 0);
+      const [row] = await this.db
+        .update(schema.billLegacy)
+        .set({ 
+          charges: amount, 
+          Balance: newBalance, // Capital B in legacy
+          updatedAt: new Date() 
+        })
+        .where(eq(schema.billLegacy.id, id))
+        .returning();
+      return row ? this.toLegacyDomain(row) : null;
+    }
+
+    return null;
   }
 
   async nextBillNo(): Promise<number> {
@@ -201,6 +269,31 @@ export class BillingRepositoryPg implements BillingRepository {
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
       deletedAt: row.deletedAt ?? null,
+    };
+  }
+
+  private toLegacyDomain(row: typeof schema.billLegacy.$inferSelect): Bill {
+    return {
+      id: row.id,
+      regid: row.regid ?? 0,
+      billNo: row.BillNo || row.id,
+      billDate: row.BillDate || (row.createdAt ? row.createdAt.toISOString() : new Date().toISOString()),
+      charges: row.charges || 0,
+      received: row.received || 0,
+      balance: row.Balance || 0,
+      paymentMode: (row.paymentMode as Bill['paymentMode']) || null,
+      treatment: row.Treatment || null,
+      disease: row.Disease || null,
+      fromDate: row.fromdate || null,
+      toDate: row.todate || null,
+      chargeId: row.chargeId || null,
+      doctorId: row.DoctorID || null,
+      notes: null,
+      billType: 'Consultation',
+      customTitle: null,
+      createdAt: row.createdAt || new Date(),
+      updatedAt: row.updatedAt || new Date(),
+      deletedAt: row.deletedAt || null,
     };
   }
 }

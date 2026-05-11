@@ -140,6 +140,8 @@ export function useCreateBill() {
       queryClient.invalidateQueries({ queryKey: ['bills'] });
       queryClient.invalidateQueries({ queryKey: ['billing', 'daily'] });
       queryClient.invalidateQueries({ queryKey: ['bills', 'patient', newBill.regid] });
+      queryClient.refetchQueries({ queryKey: ['medical-case', 'full', newBill.regid] });
+      queryClient.refetchQueries({ queryKey: ['medical-case', 'full', String(newBill.regid)] });
     },
   });
 }
@@ -155,6 +157,8 @@ export function useCreateCustomBill() {
       queryClient.invalidateQueries({ queryKey: ['bills'] });
       queryClient.invalidateQueries({ queryKey: ['billing', 'daily'] });
       queryClient.invalidateQueries({ queryKey: ['bills', 'patient', newBill.regid] });
+      queryClient.refetchQueries({ queryKey: ['medical-case', 'full', newBill.regid] });
+      queryClient.refetchQueries({ queryKey: ['medical-case', 'full', String(newBill.regid)] });
     },
   });
 }
@@ -170,6 +174,8 @@ export function useRecordPayment() {
       queryClient.invalidateQueries({ queryKey: ['bills'] });
       queryClient.invalidateQueries({ queryKey: ['billing', 'daily'] });
       queryClient.invalidateQueries({ queryKey: ['bills', 'patient', variables.regid] });
+      queryClient.refetchQueries({ queryKey: ['medical-case', 'full', variables.regid] });
+      queryClient.refetchQueries({ queryKey: ['medical-case', 'full', String(variables.regid)] });
     },
   });
 }

@@ -108,6 +108,8 @@ export function useUpdatePatient() {
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: [PATIENTS_KEY] });
       qc.invalidateQueries({ queryKey: [PATIENTS_KEY, vars.regid] });
+      qc.invalidateQueries({ queryKey: ['medical-case', 'full', vars.regid] });
+      qc.invalidateQueries({ queryKey: ['medical-case', 'full', String(vars.regid)] });
     },
   });
 }

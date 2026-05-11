@@ -157,11 +157,13 @@ function SearchableSelect({
 
 export function RemedyChartSession({ 
   regid, 
+  visitId,
   onDayChargeChange, 
   onSelectDate,
   onStartRx
 }: { 
   regid?: number, 
+  visitId?: number,
   onDayChargeChange?: (amount: number) => void,
   onSelectDate?: (date: string) => void,
   onStartRx?: () => void
@@ -276,6 +278,7 @@ export function RemedyChartSession({
 
     await saveMutation.mutateAsync({
       regid,
+      visitId,
       id: editingId ?? undefined,
       deliveryMode: delivery,
       ...form
@@ -410,7 +413,8 @@ export function RemedyChartSession({
                     await saveMutation.mutateAsync({
                       ...item,
                       deliveryMode: val,
-                      regid: regid || 0
+                      regid: regid || 0,
+                      visitId
                     });
                   }
                 }

@@ -19,6 +19,12 @@ export interface MedicalCase {
   state?: string | null;
   doctorName?: string | null;
   referedBy?: string | null;
+  totalBill?: number;
+  regularCharges?: number;
+  totalAdditionalCharges?: number;
+  consultationFee?: number;
+  paidAmount?: number;
+  outstandingBalance?: number;
   createdAt?: Date | null;
   updatedAt?: Date | null;
 }
@@ -144,6 +150,7 @@ export interface FullCaseData {
   prescriptions?: Prescription[];
   vaccines?: CaseVaccine[];
   reminders?: CaseReminder[];
+  additionalCharges?: any[];
 }
 
 export interface MedicalCaseRepository {

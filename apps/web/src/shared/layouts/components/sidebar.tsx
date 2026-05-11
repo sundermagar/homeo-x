@@ -3,9 +3,11 @@ import { useState } from 'react';
 import {
   LayoutDashboard, Users, UsersRound, Calendar, FileText,
   LogOut, X, Briefcase, ChevronDown, ChevronRight, Circle,
-  BarChart3, Stethoscope, Receipt, Settings, MessageCircle
+  BarChart3, Stethoscope, Receipt, Settings, MessageCircle, Truck
 } from 'lucide-react';
 import { useAuthStore } from '@/shared/stores/auth-store';
+import { useQuery } from '@tanstack/react-query';
+import { apiClient } from '@/infrastructure/api-client';
 
 interface SidebarProps {
   isOpen?: boolean;
@@ -17,6 +19,7 @@ type UserRole = 'SuperAdmin' | 'Admin' | 'Clinicadmin' | 'Doctor' | 'Receptionis
 interface NavSubItem {
   label: string;
   path: string;
+  badge?: number;
 }
 
 interface NavItem {
@@ -26,6 +29,7 @@ interface NavItem {
   subItems?: NavSubItem[];
   /** Roles allowed to see this item. If undefined, visible to all. */
   roles?: UserRole[];
+  badge?: number;
 }
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
@@ -35,6 +39,17 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({
     'Operations Hub': location.pathname.includes('/operations')
   });
+
+  const { data: unreadResponse } = useQuery({
+    queryKey: ['courier-unread-count'],
+    queryFn: async () => {
+      const { data } = await apiClient.get('/courier/unread-count');
+      return data.data as { count: number };
+    },
+    refetchInterval: 60000, // Refresh every minute
+    enabled: !!user
+  });
+  const unreadCount = unreadResponse?.count || 0;
 
   const toggleFolder = (label: string) => {
     setExpandedFolders(prev => ({ ...prev, [label]: !prev[label] }));
@@ -57,6 +72,13 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const CLINICAL_ROLES: UserRole[] = ['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor'];
 
   const menuItems: NavItem[] = [
+    {
+      label: 'Courier Queue',
+      icon: <Truck size={20} />,
+      path: '/courier-queue',
+      roles: ALL_ROLES,
+      badge: unreadCount > 0 ? unreadCount : undefined,
+    },
     {
       label: 'Dashboard',
       icon: <LayoutDashboard size={20} />,
@@ -196,7 +218,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                           }}
                         >
                           <Circle size={6} fill="currentColor" />
-                          {subItem.label}
+                          <span style={{ flex: 1 }}>{subItem.label}</span>
+                          {subItem.badge !== undefined && subItem.badge > 0 && (
+                            <span className="nav-badge">{subItem.badge}</span>
+                          )}
                         </NavLink>
                       ))}
                     </div>
@@ -212,7 +237,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                   }
                 >
                   {item.icon}
-                  {item.label}
+                  <span style={{ flex: 1 }}>{item.label}</span>
+                  {item.badge !== undefined && item.badge > 0 && (
+                    <span className="nav-badge">{item.badge}</span>
+                  )}
                 </NavLink>
               )}
             </div>
