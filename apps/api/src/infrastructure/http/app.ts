@@ -41,7 +41,8 @@ import { createClinicAdminsRouter } from './routes/clinicadmins.router.js';
 import { rolesRouter } from './routes/roles.router.js';
 import { permissionsRouter } from './routes/permissions.router.js';
 import { crmRouter } from './routes/crm.router.js';
-import { logisticsRouter } from './routes/logistics.router.js';
+import { createLogisticsRouter } from './routes/logistics.router.js';
+import { createCourierRouter } from './routes/courier.router.js';
 import { knowledgeRouter } from './routes/knowledge.router.js';
 import { recordsRouter } from './routes/records.router.js';
 import { staffRouter } from './routes/staff.router.js';
@@ -156,7 +157,8 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
 
   // ─── Operations & Logistics (JWT required) ───
   app.use('/api/crm', authMiddleware, crmRouter);
-  app.use('/api/logistics', authMiddleware, logisticsRouter);
+  app.use('/api/logistics', authMiddleware, createLogisticsRouter());
+  app.use('/api/courier', authMiddleware, createCourierRouter());
   app.use('/api/knowledge', authMiddleware, knowledgeRouter);
   app.use('/api/records', authMiddleware, recordsRouter);
   app.use('/api/staff', authMiddleware, staffRouter);
