@@ -17,6 +17,7 @@
   min-height: 100vh;
   background: var(--pp-warm-1);
   margin: -24px;
+  min-width: 490px;
   /* Counteracts page-content-area padding */
 }
 
@@ -299,136 +300,159 @@
   gap: 4px;
 }
 
-.mc-top-tabs-container {
-  background: var(--bg-card);
-  border-bottom: 1px solid var(--border-main);
+.mc-left-tabs-container {
+  background: var(--bg-surface-2);
+  border-right: 1px solid var(--border-main);
   display: flex;
-  align-items: center;
-  position: relative;
-  padding: 0 40px;
-  /* Space for scroll buttons */
+  flex-direction: column;
+  padding: 24px 12px;
+  width: 90px;
   z-index: 20;
+  transition: width 0.2s;
+  align-items: center;
+  flex-shrink: 0;
 }
 
-.dark .mc-top-tabs-container {
+.dark .mc-left-tabs-container {
   background: rgba(15, 15, 18, 0.8);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 @media (max-width: 1024px) {
-  .mc-top-tabs-container {
+  .mc-left-tabs-container {
     position: sticky;
-    top: 55px;
-    /* Offset for DashboardHeader (56px) - 1px for border overlap */
+    top: 0px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     z-index: 30;
   }
 }
 
 @media (max-width: 768px) {
-  .mc-top-tabs-container {
-    padding: 0 16px;
+  /* On mobile, make it a horizontal scrollable bar that sits at the top below header */
+  .mc-left-tabs-container {
+    flex-direction: row;
+    width: 100%;
+    padding: 12px 16px;
+    border-right: none;
+    border-bottom: 1px solid var(--border-main);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
-
-  .mc-scroll-btn {
+  .mc-left-tabs-container::-webkit-scrollbar {
     display: none;
   }
+  .mc-left-tabs {
+    flex-direction: row !important;
+    gap: 12px !important;
+    width: max-content !important;
+    flex-wrap: nowrap !important;
+  }
+  .mc-left-tab-label {
+    display: none !important; /* Hide tooltips on mobile */
+  }
 }
 
-.mc-top-tabs {
+.mc-left-tabs {
   display: flex;
-  align-items: center;
-  gap: 2px;
+  flex-direction: column;
+  gap: 16px;
   flex-shrink: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
-  scroll-behavior: smooth;
   width: 100%;
+  align-items: center;
 }
 
-.mc-top-tabs::-webkit-scrollbar {
-  display: none;
-}
-
-.mc-scroll-btn {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 40px;
+.mc-left-tab {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-card);
-  border: none;
-  cursor: pointer;
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
   color: var(--pp-text-3);
-  z-index: 10;
-  transition: all 0.2s;
-}
-
-.mc-scroll-btn:hover {
-  color: var(--pp-blue);
-  background: var(--pp-warm-1);
-}
-
-.mc-scroll-btn.left {
-  left: 0;
-  border-right: 1px solid var(--border-main);
-}
-
-.mc-scroll-btn.right {
-  right: 0;
-  border-left: 1px solid var(--border-main);
-}
-
-.mc-top-tab {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 14px 16px;
-  font-size: 13.5px;
-  font-weight: 500;
-  color: var(--pp-text-3);
-  cursor: pointer;
-  border: none;
   background: transparent;
-  border-bottom: 2.5px solid transparent;
-  transition: all 0.12s;
-  user-select: none;
-  white-space: nowrap;
-  margin-bottom: -1px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  flex-shrink: 0;
 }
 
-.mc-top-tab:hover {
-  color: var(--pp-ink);
-}
-
-.mc-top-tab.active {
+.mc-left-tab:hover {
   color: var(--pp-blue);
-  border-bottom-color: var(--pp-blue);
-  font-weight: 600;
+  background: var(--pp-blue-faded);
+  transform: translateY(-1px);
 }
 
-.dark .mc-top-tab:hover {
-  color: var(--pp-ink);
+.mc-left-tab.active {
+  color: #fff;
+  background: linear-gradient(135deg, #1E1B4B 0%, #312E81 40%, #3730A3 70%, #4338CA 100%);
+  box-shadow: 0 4px 12px rgba(49, 46, 129, 0.3);
+  transform: scale(1.05);
 }
 
-.dark .mc-top-tab.active {
-  color: var(--pp-blue);
-  border-bottom-color: var(--pp-blue);
-}
-
-.mc-top-tab svg {
-  width: 15px;
-  height: 15px;
+.mc-left-tab svg {
+  width: 20px;
+  height: 20px;
   stroke: currentColor;
   fill: none;
-  stroke-width: 1.8;
+  stroke-width: 2;
+}
+
+/* Tooltip styles */
+.mc-left-tab-label {
+  position: absolute;
+  left: 64px;
+  background: var(--pp-ink);
+  color: white;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  transform: translateX(-10px);
+}
+
+.mc-left-tab:hover .mc-left-tab-label {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0);
+}
+
+.mc-left-tab-label::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -4px;
+  transform: translateY(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: transparent var(--pp-ink) transparent transparent;
 }
 
 /* ─── Clinical Body Grid Layout ─── */
+.mc-layout-wrapper {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .mc-layout-wrapper {
+    flex-direction: column;
+  }
+}
+
 .mc-body-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -444,7 +468,7 @@
 }
 
 .mc-body-main {
-  padding: 24px;
+  padding: 10px;
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -454,7 +478,7 @@
 
 @media (max-width: 768px) {
   .mc-body-main {
-    padding: 12px;
+    padding: 10px;
   }
 }
 
@@ -4907,4 +4931,4 @@
   gap: 6px;
   color: #EF4444; /* Premium Red */
 }
-
+

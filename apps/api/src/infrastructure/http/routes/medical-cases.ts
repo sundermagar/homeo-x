@@ -108,8 +108,9 @@ router.post('/vitals/analyze', asyncHandler(async (req, res) => {
 }));
 
 router.get('/soap/:visitId', asyncHandler(async (req, res) => {
+  const { regid } = req.query;
   const useCase = new ManageSoapNotesUseCase(getRepo(req));
-  const result = await useCase.get(Number(req.params.visitId));
+  const result = await useCase.get(Number(regid), Number(req.params.visitId));
   if (!result.success) throw new Error(result.error);
   sendSuccess(res, result.data);
 }));

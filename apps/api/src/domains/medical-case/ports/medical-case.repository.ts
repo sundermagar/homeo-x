@@ -48,6 +48,7 @@ export interface Vitals {
 
 export interface SoapNotes {
   id: number;
+  regid?: number;
   visitId: number;
   subjective?: string | null;
   objective?: string | null;
@@ -169,7 +170,7 @@ export interface MedicalCaseRepository {
   getVitals(visitId: number): Promise<Vitals | null>;
 
   saveSoapNotes(data: Partial<SoapNotes>): Promise<void>;
-  getSoapNotes(visitId: number): Promise<SoapNotes | null>;
+  getSoapNotes(regid: number, visitId: number): Promise<SoapNotes | null>;
   deleteSoapNote(id: number): Promise<void>;
 
   saveHomeoDetails(data: Partial<HomeoDetails>): Promise<void>;

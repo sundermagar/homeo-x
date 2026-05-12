@@ -25,7 +25,9 @@ import {
   useCommunicationLogs,
   useSendSms
 } from '../hooks/use-medical-cases';
-import { usePatientPrescriptions } from '../hooks/use-remedy-chart';
+import { usePatientPrescriptions, useRemedyLookups } from '../hooks/use-remedy-chart';
+import { usePrescriptionWorkflow } from '../hooks/use-prescription-workflow';
+import { QuickRxForm } from '../components/quick-rx-form';
 import { useDayCharges } from '../../billing/hooks/use-accounts';
 import { AssignPackageModal } from '../../packages/components/assign-package-modal';
 import { VitalsFormModal } from '../components/vitals-form-modal';
@@ -166,6 +168,25 @@ export default function MedicalCaseDetailPage() {
   const [showBillingModal, setShowBillingModal] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [showFinalizeModal, setShowFinalizeModal] = useState(false);
+  const { data: fullData, isLoading, error } = useFullMedicalCase(Number(regid));
+  const medicalCase = fullData?.medicalCase;
+  const visitId = medicalCase?.id;
+  const { data: dayCharges = [] } = useDayCharges();
+
+  const { data: lookups } = useRemedyLookups();
+  const rxWorkflow = usePrescriptionWorkflow(Number(regid), visitId);
+
+  // Building day options from day-charges module
+  const dayOptions = useMemo(() => {
+    return dayCharges.map((dc: any) => String(dc.days)).filter(Boolean);
+  }, [dayCharges]);
+
+  // Get the amount for the selected days
+  const selectedDayCharge = useMemo(() => {
+    if (!rxWorkflow.form.days) return null;
+    return dayCharges.find((dc: any) => String(dc.days) === String(rxWorkflow.form.days));
+  }, [rxWorkflow.form.days, dayCharges]);
+
   const [followUpNote, setFollowUpNote] = useState('');
   const [pendingCharge, setPendingCharge] = useState(0);
   const [mobileDrawer, setMobileDrawer] = useState<'followup' | 'billing' | 'contact' | 'package' | null>(null);
@@ -221,15 +242,101 @@ export default function MedicalCaseDetailPage() {
     };
   }, [isDragging, dragStartY]);
 
-  const { data: fullData, isLoading, error } = useFullMedicalCase(Number(regid));
+  // Removed duplicate fullData declaration
   const { data: prescriptionsHistory } = usePatientPrescriptions(Number(regid));
-  const { finalizeConsultation, saveNote, updateDiagnosis } = useManageClinicalRecords();
+  const { finalizeConsultation, saveNote, updateDiagnosis, saveSoap, deleteRecord } = useManageClinicalRecords();
   const { data: summary } = usePatientBills(Number(regid));
   const { data: activePackage } = useActivePackage(Number(regid));
-  const { data: dayCharges = [] } = useDayCharges();
+  // Moved useDayCharges to top of component
   const { data: orgs = [] } = useOrganizations();
   const { data: pdfSettings = [] } = usePdfSettings();
   const user = useAuthStore(s => s.user);
+
+  // Initialize selectedDate to latest prescription date on load
+  useEffect(() => {
+    if (prescriptionsHistory?.length && !selectedDate) {
+      const sorted = [...prescriptionsHistory].sort((a, b) => 
+        new Date(b.created_at || b.dateval).getTime() - new Date(a.created_at || a.dateval).getTime()
+      );
+      if (sorted[0]) {
+        setSelectedDate(sorted[0].created_at || sorted[0].dateval);
+      }
+    }
+  }, [prescriptionsHistory]);
+
+  // Diagnosis State
+  const [showDiagnosisDrawer, setShowDiagnosisDrawer] = useState(false);
+  const [editingDiagnosisRecord, setEditingDiagnosisRecord] = useState<any>(null);
+  const [diagForm, setDiagForm] = useState({
+    diagnosis: '',
+    complaint: '',
+    medication: '',
+    investigationFindings: ''
+  });
+
+  // Consolidated with previous hook call above
+
+  const handleOpenDiagnosis = (record?: any) => {
+    // If a specific record is provided (from the history table), use it
+    if (record) {
+      setDiagForm({
+        diagnosis: record.assessment || '',
+        complaint: record.subjective || '',
+        medication: record.plan || '',
+        investigationFindings: record.objective || ''
+      });
+      setEditingDiagnosisRecord(record);
+    } else {
+      // If clicking "New Assessment" from sidebar, check if one already exists for this visit
+      const existingSoap = (soap || []).find((s: any) => (s.visitId === medicalCase?.id || s.visit_id === medicalCase?.id));
+      
+      if (existingSoap) {
+        setDiagForm({
+          diagnosis: existingSoap.assessment || '',
+          complaint: existingSoap.subjective || '',
+          medication: existingSoap.plan || '',
+          investigationFindings: existingSoap.objective || ''
+        });
+        setEditingDiagnosisRecord(existingSoap);
+      } else {
+        setDiagForm({
+          diagnosis: '',
+          complaint: '',
+          medication: '',
+          investigationFindings: ''
+        });
+        setEditingDiagnosisRecord(null);
+      }
+    }
+    setShowDiagnosisDrawer(true);
+  };
+
+  const handleSaveDiagnosis = async () => {
+    try {
+      if (diagForm.diagnosis.trim()) {
+        await updateDiagnosis.mutateAsync({ regid: Number(regid), condition: diagForm.diagnosis.trim() });
+      }
+      await saveSoap.mutateAsync({
+        id: editingDiagnosisRecord?.id,
+        regid: Number(regid),
+        visitId: medicalCase?.id,
+        subjective: diagForm.complaint,
+        objective: diagForm.investigationFindings,
+        assessment: diagForm.diagnosis,
+        plan: diagForm.medication
+      });
+      
+      // If it's a new diagnosis, switch view to today so it shows up immediately
+      if (!editingDiagnosisRecord) {
+        setSelectedDate(new Date().toISOString());
+      }
+      
+      setShowDiagnosisDrawer(false);
+      setEditingDiagnosisRecord(null);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   // Helper to safely parse dates from various backend formats
   const parseSafeDate = (d: any) => {
@@ -248,7 +355,7 @@ export default function MedicalCaseDetailPage() {
 
   // Derived data with safety checks for loading states
   const notes = fullData?.notes || [];
-  const medicalCase = fullData?.medicalCase;
+  // Removed redundant medicalCase declaration as it is already declared at the top level
   const prescriptionsFromFull = fullData?.prescriptions || [];
   
   const followupNotes = React.useMemo(() => {
@@ -328,7 +435,7 @@ export default function MedicalCaseDetailPage() {
   if (isLoading) return <MedicalCasePageSkeleton />;
   if (error || !fullData) return <div className="mc-error">Failed to load clinical records.</div>;
 
-  const { vitals, soap, examination, images, investigations, homeo, vaccines, reminders } = fullData;
+  const { vitals, soap, examination, images, investigations, vaccines } = fullData;
   const ageString = medicalCase.dateOfBirth ? `${new Date().getFullYear() - new Date(medicalCase.dateOfBirth).getFullYear()} Yrs` : 'Unknown Age';
 
 
@@ -342,13 +449,13 @@ export default function MedicalCaseDetailPage() {
   const balance = displayTotal - paidAmount;
 
   const TABS = [
-    { id: 'summary', label: 'Examination Report', icon: Pill },
+    { id: 'summary', label: 'Followup History', icon: History },
     { id: 'diagnosis', label: 'Diagnosis', icon: Sparkles },
     { id: 'media', label: 'Media', icon: Camera },
     { id: 'labs', label: 'Investigation Report', icon: FlaskConical },
     { id: 'vitals', label: 'Vitals', icon: Stethoscope },
     { id: 'vaccine', label: 'Vaccines', icon: Syringe },
-    { id: 'homeo', label: 'Add Clinic Activity', icon: Zap },
+
     { id: 'analytics', label: 'Graph (H/W)', icon: BarChart3 },
   ];
 
@@ -359,11 +466,29 @@ export default function MedicalCaseDetailPage() {
     const filteredInvestigations = displayDate ? filterByDate(investigations || [], displayDate) : (investigations || []);
     const filteredVitals = displayDate ? filterByDate(vitals || [], displayDate) : (vitals || []);
     const filteredVaccines = displayDate ? filterByDate(vaccines || [], displayDate) : (vaccines || []);
-    const filteredHomeo = displayDate ? filterByDate(homeo || [], displayDate) : (Array.isArray(homeo) ? homeo : []);
+
 
     switch (activeTab) {
-      case 'summary': return <RemedyChartSession regid={Number(regid)} visitId={medicalCase.id} onDayChargeChange={setPendingCharge} onSelectDate={setSelectedDate} onStartRx={() => setSelectedDate(new Date().toISOString())} />;
-      case 'diagnosis': return <div className="mc-tab-content-wrapper"><DiagnosisView regid={Number(regid)} visitId={medicalCase.id} medicalCase={medicalCase} soapRecords={filteredSoap} onAppendNote={appendNote} /></div>;
+      case 'summary': return <RemedyChartSession 
+        regid={Number(regid)} 
+        visitId={medicalCase.id} 
+        onDayChargeChange={setPendingCharge} 
+        onSelectDate={setSelectedDate} 
+        onStartRx={() => setSelectedDate(new Date().toISOString())}
+        workflow={rxWorkflow}
+        lookups={lookups}
+        dayCharges={dayCharges}
+        selectedDate={selectedDate}
+      />;
+      case 'diagnosis': return <div className="mc-tab-content-wrapper"><DiagnosisView 
+        regid={Number(regid)} 
+        visitId={medicalCase.id} 
+        medicalCase={medicalCase} 
+        soapRecords={filteredSoap} 
+        onAppendNote={appendNote}
+        onEditRecord={handleOpenDiagnosis}
+        onAddRecord={() => handleOpenDiagnosis()}
+      /></div>;
       case 'media': return <div className="mc-tab-content-wrapper"><MediaView regid={Number(regid)} visitId={medicalCase.id} images={filteredImages} /></div>;
       case 'labs': return <div className="mc-tab-content-wrapper"><LabsView investigations={filteredInvestigations} regid={Number(regid)} visitId={medicalCase.id} onAppendNote={appendNote} /></div>;
       case 'vitals': return <div className="mc-tab-content-wrapper"><VitalsView vitals={filteredVitals} onRecord={(data) => {
@@ -372,11 +497,20 @@ export default function MedicalCaseDetailPage() {
                 }} phone={medicalCase.phone || medicalCase.mobile || ''} name={medicalCase.patientName || ''} regid={Number(regid)} clinicName={clinicName} onAppendNote={appendNote} /></div>;
       case 'communication': return <div className="mc-tab-content-wrapper"><CommunicationView regid={Number(regid)} phone={medicalCase.phone || ''} name={medicalCase.patientName || ''} onAppendNote={appendNote} /></div>;
       case 'vaccine': return <div className="mc-tab-content-wrapper"><VaccineView regid={Number(regid)} caseVaccines={filteredVaccines} onAppendNote={appendNote} /></div>;
-      case 'homeo': return <div className="mc-tab-content-wrapper"><HomeoView regid={Number(regid)} initialData={filteredHomeo} reminders={reminders} medicalCase={medicalCase} onAppendNote={appendNote} /></div>;
+
       case 'analytics': return <div className="mc-tab-content-wrapper"><AnalyticsView vitals={vitals || []} regid={Number(regid)} visitId={medicalCase.id} name={medicalCase.patientName || ''} phone={medicalCase.phone || medicalCase.mobile || ''} clinicName={clinicName} onAppendNote={appendNote} /></div>;
       case 'reports': return <div className="mc-tab-content-wrapper"><ReportsView regid={Number(regid)} investigations={filteredInvestigations} /></div>;
       case 'ai-assist': return <div className="mc-tab-content-wrapper"><AiConsultantView regid={Number(regid)} /></div>;
-      default: return <RemedyChartSession regid={Number(regid)} visitId={medicalCase.id} onDayChargeChange={setPendingCharge} onSelectDate={setSelectedDate} onStartRx={() => setSelectedDate(new Date().toISOString())} />;
+      default: return <RemedyChartSession 
+        regid={Number(regid)} 
+        visitId={medicalCase.id} 
+        onDayChargeChange={setPendingCharge} 
+        onSelectDate={setSelectedDate} 
+        onStartRx={() => setSelectedDate(new Date().toISOString())}
+        workflow={rxWorkflow}
+        lookups={lookups}
+        dayCharges={dayCharges}
+      />;
     }
   };
 
@@ -497,47 +631,33 @@ export default function MedicalCaseDetailPage() {
         </div>
       </div>
 
-      {/* ─── Tab Navigation ─── */}
-      <div className="mc-top-tabs-container">
-        <button
-          className="mc-scroll-btn left"
-          onClick={() => {
-            const el = document.querySelector('.mc-top-tabs');
-            if (el) el.scrollBy({ left: -200, behavior: 'smooth' });
-          }}
-        >
-          <ChevronLeft size={18} />
-        </button>
-
-        <div className="mc-top-tabs">
-          {TABS.map(tab => {
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.id}
-                className={`mc-top-tab ${activeTab === tab.id ? 'active' : ''}`}
-                onClick={() => setActiveTab(tab.id)}
-              >
-                <Icon size={16} /> {tab.label}
-              </button>
-            );
-          })}
+      {/* ─── Layout with Left Tabs ─── */}
+      <div className="mc-layout-wrapper">
+        {/* ─── Tab Navigation ─── */}
+        <div className="mc-left-tabs-container">
+          <div className="mc-left-tabs">
+            {TABS.map(tab => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  className={`mc-left-tab ${activeTab === tab.id ? 'active' : ''}`}
+                  onClick={() => {
+                    setActiveTab(tab.id);
+                    if (tab.id === 'summary') rxWorkflow.setActiveTab(null);
+                  }}
+                >
+                  <Icon size={20} />
+                  <span className="mc-left-tab-label">{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        <button
-          className="mc-scroll-btn right"
-          onClick={() => {
-            const el = document.querySelector('.mc-top-tabs');
-            if (el) el.scrollBy({ left: 200, behavior: 'smooth' });
-          }}
-        >
-          <ChevronRight size={18} />
-        </button>
-      </div>
-
-      {/* ─── Main Content & Sidebar Grid ─── */}
-      <div className="mc-body-grid">
-        <div className="mc-body-main">
+        {/* ─── Main Content & Sidebar Grid ─── */}
+        <div className="mc-body-grid">
+          <div className="mc-body-main">
           {renderActiveTabContent()}
 
           {/* Patient Details Cards (Below Tab Content) */}
@@ -567,6 +687,27 @@ export default function MedicalCaseDetailPage() {
         <aside className="mc-body-side">
 
 
+          {/* ─── Diagnosis Shortcut Button ─── */}
+          <div style={{ marginBottom: '8px' }}>
+            <button 
+              onClick={() => handleOpenDiagnosis()}
+              className="premium-diagnosis-btn"
+              style={{ 
+                width: '100%', padding: '16px', borderRadius: '16px', border: 'none',
+                background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)', color: 'white', 
+                fontWeight: 800, cursor: 'pointer', boxShadow: '0 10px 15px -3px rgba(37, 99, 235, 0.2)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px',
+                transition: 'transform 0.2s, box-shadow 0.2s',
+                fontSize: '0.95rem'
+              }}
+            >
+              <div style={{ background: 'rgba(255,255,255,0.2)', padding: '8px', borderRadius: '12px' }}>
+                <Sparkles size={20} />
+              </div>
+              <span>New Assessment</span>
+            </button>
+          </div>
+
           {/* ─── Clinical History / Follow-up Timeline ─── */}
           <div className="mc-side-card">
             <div className="mc-side-card-header">
@@ -584,10 +725,12 @@ export default function MedicalCaseDetailPage() {
                 onChange={setFollowUpNote}
                 placeholder={displayDate ? "Record patient follow-up or status..." : "No history available"}
                 onSave={handleSaveNote}
-                minHeight="250px"
+                minHeight="180px"
               />
             </div>
           </div>
+
+          {/* Quick Prescription removed as requested */}
 
           {/* ─── Billing Summary ─── */}
           <div className="mc-side-card">
@@ -622,7 +765,108 @@ export default function MedicalCaseDetailPage() {
             </div>
           </div>
 
-          {/* ... */}
+          {/* ─── Global Diagnosis Form Drawer ─── */}
+      {showDiagnosisDrawer && ReactDOM.createPortal(
+        <>
+          <div className="mc-drawer-backdrop" onClick={() => setShowDiagnosisDrawer(false)} />
+          <div className="mc-drawer animate-slide-in-right" style={{ maxWidth: '520px' }}>
+            <header className="mc-drawer-header" style={{ background: 'var(--pp-blue)', color: 'white' }}>
+              <div className="mc-drawer-header-title">
+                <Sparkles size={18} /> {editingDiagnosisRecord ? 'Edit Assessment' : 'New Assessment'}
+              </div>
+              <button className="mc-drawer-close" onClick={() => setShowDiagnosisDrawer(false)} style={{ color: 'white', opacity: 0.8 }}>
+                <X size={16} />
+              </button>
+            </header>
+
+            <div style={{ padding: '24px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div style={{ padding: '10px 14px', background: 'var(--pp-warm-1)', borderRadius: '8px', border: '1px solid var(--pp-warm-2)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Calendar size={14} style={{ color: 'var(--pp-blue)' }} />
+                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-ink)' }}>
+                  Record Date: {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Main Diagnosis</label>
+                <textarea
+                  className="pp-textarea"
+                  value={diagForm.diagnosis}
+                  onChange={e => setDiagForm({ ...diagForm, diagnosis: e.target.value })}
+                  placeholder="Final clinical assessment..."
+                  style={{ minHeight: '60px', fontSize: '1rem', fontWeight: 700 }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Subjective (Complaints)</label>
+                <textarea
+                  className="pp-textarea"
+                  value={diagForm.complaint}
+                  onChange={e => setDiagForm({ ...diagForm, complaint: e.target.value })}
+                  placeholder="Patient symptoms & intensity..."
+                  style={{ minHeight: '100px' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Treatment Plan</label>
+                <textarea
+                  className="pp-textarea"
+                  value={diagForm.medication}
+                  onChange={e => setDiagForm({ ...diagForm, medication: e.target.value })}
+                  placeholder="Medications or next steps..."
+                  style={{ minHeight: '80px' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Objective Findings</label>
+                <textarea
+                  className="pp-textarea"
+                  value={diagForm.investigationFindings}
+                  onChange={e => setDiagForm({ ...diagForm, investigationFindings: e.target.value })}
+                  placeholder="Physical exam or lab summaries..."
+                  style={{ minHeight: '80px' }}
+                />
+              </div>
+            </div>
+
+            <footer style={{ 
+              padding: '20px 24px', 
+              background: '#f8fafc', 
+              borderTop: '1px solid #e2e8f0', 
+              display: 'flex', 
+              gap: '12px',
+              position: 'sticky',
+              bottom: 0,
+              zIndex: 10
+            }}>
+              <button 
+                onClick={() => setShowDiagnosisDrawer(false)}
+                style={{ 
+                  flex: 1, padding: '12px', borderRadius: '10px', border: '1px solid #cbd5e1',
+                  background: 'white', color: '#64748b', fontWeight: 600, cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleSaveDiagnosis}
+                style={{ 
+                  flex: 2, padding: '12px', borderRadius: '10px', border: 'none',
+                  background: 'var(--pp-blue)', color: 'white', fontWeight: 700, 
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', 
+                  justifyContent: 'center', gap: '8px',
+                  boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.1)'
+                }}
+              >
+                <Save size={18} /> Save Assessment
+              </button>
+            </footer>
+          </div>
+        </>
+      , document.body)}
           
           <PaymentReceiptModal 
             isOpen={showReceiptModal}
@@ -640,6 +884,7 @@ export default function MedicalCaseDetailPage() {
           <LogisticsSection regid={Number(regid)} />
 
         </aside>
+      </div>
       </div>
 
       {/* ─── Mobile Floating Action Bar (Collapsible) ─── */}
@@ -915,14 +1160,15 @@ function MedicalCasePageSkeleton() {
         </div>
       </div>
 
-      {/* Tabs Skeleton */}
-      <div className="mc-top-tabs-container">
-        <div className="mc-top-tabs" style={{ gap: '12px', padding: '16px 32px' }}>
-          {[1, 2, 3, 4, 5, 6].map(i => (
-            <div key={i} className="skeleton-box" style={{ width: '140px', height: '42px', borderRadius: '10px', flexShrink: 0 }} />
-          ))}
+      {/* Layout with Left Tabs Skeleton */}
+      <div className="mc-layout-wrapper">
+        <div className="mc-left-tabs-container">
+          <div className="mc-left-tabs">
+            {[1, 2, 3, 4, 5, 6, 7].map(i => (
+              <div key={i} className="skeleton-box" style={{ width: '46px', height: '46px', borderRadius: '12px', flexShrink: 0 }} />
+            ))}
+          </div>
         </div>
-      </div>
 
       {/* Main Grid Skeleton */}
       <div className="mc-body-grid">
@@ -975,6 +1221,7 @@ function MedicalCasePageSkeleton() {
             </div>
           ))}
         </aside>
+      </div>
       </div>
     </div>
   );
@@ -1638,280 +1885,7 @@ function SnapshotRow({ label, value }: { label: string, value: string }) {
   );
 }
 
-function HomeoView({ regid, initialData, reminders, medicalCase, onAppendNote }: { regid: number; initialData?: any; reminders?: any[]; medicalCase: any; onAppendNote?: (text: string) => void }) {
-  const { saveReminder, deleteReminder } = useManageClinicalRecords();
 
-  // Reminder / Activity State
-  const [showDrawer, setShowDrawer] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [remindDate, setRemindDate] = useState(new Date().toISOString().split('T')[0]);
-  const [remindTime, setRemindTime] = useState(new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }));
-  const [purpose, setPurpose] = useState('');
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(5);
-
-
-  const handleSaveActivity = async () => {
-    if (!remindDate || !purpose) return;
-    try {
-      // Combine date and time
-      const dateTime = new Date(`${remindDate}T${remindTime || '00:00'}:00`);
-
-      await saveReminder.mutateAsync({
-        id: editingId,
-        regid,
-        reminderDate: dateTime.toISOString(),
-        message: purpose,
-        status: 'Pending'
-      });
-
-      setShowDrawer(false);
-      resetActivityForm();
-    } catch (err) { console.error(err); }
-  };
-
-  const handleEditActivity = (reminder: any) => {
-    setEditingId(reminder.id);
-    const date = new Date(reminder.reminderDate);
-    setRemindDate(date.toISOString().split('T')[0]);
-    setRemindTime(date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }));
-    setPurpose(reminder.message || '');
-    setShowDrawer(true);
-  };
-
-  const handleDeleteActivity = async (id: number) => {
-    if (confirm('Delete this activity?')) {
-      try {
-        await deleteReminder.mutateAsync(id);
-      } catch (err) { console.error(err); }
-    }
-  };
-
-  const resetActivityForm = () => {
-    setEditingId(null);
-    setRemindDate(new Date().toISOString().split('T')[0]);
-    setRemindTime(new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }));
-    setPurpose('');
-  };
-
-  const handleCopyToFollowup = (rem: any) => {
-    if (!onAppendNote) return;
-    onAppendNote(`CLINIC ACTIVITY (${new Date(rem.reminderDate).toLocaleString()}): ${rem.message}`);
-  };
-
-  const sortedReminders = reminders ? [...reminders].sort((a, b) =>
-    new Date(b.reminderDate).getTime() - new Date(a.reminderDate).getTime()
-  ) : [];
-
-  const totalPages = Math.ceil(sortedReminders.length / pageSize);
-  const startIndex = (currentPage - 1) * pageSize;
-  const currentReminders = sortedReminders.slice(startIndex, startIndex + pageSize);
-
-  const { expandedDates, toggleDate, groupedData: groupedReminders } = useTableGrouping(currentReminders, 'reminderDate');
-
-  return (
-    <div className="animate-fade-in">
-      {/* ─── Header Row: Title + Add Button ─── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <div className="mc-section-header" style={{ margin: 0 }}>Clinic Activities</div>
-        <button className="btn-primary" style={{ padding: '8px 16px' }} onClick={() => { resetActivityForm(); setShowDrawer(true); }}>
-          <Plus size={16} style={{ marginRight: '6px' }} /> Add Clinic Activity
-        </button>
-      </div>
-
-      {/* ─── Table (default view) ─── */}
-      {!reminders ? (
-        <TableSkeleton rows={5} cols={5} />
-      ) : reminders.length === 0 ? (
-        <EmptyState
-          icon={History}
-          title="No clinic activities recorded yet"
-          description="Keep track of patient follow-ups, clinical attributes, and scheduled activities."
-          actionLabel="Record the first activity"
-          onAction={() => { setEditingId(null); resetActivityForm(); setShowDrawer(true); }}
-        />
-      ) : (
-        <>
-          <div className="pp-card pp-table-scroll" style={{ padding: 0, marginBottom: '20px', border: '1px solid #c7d2fe' }}>
-            <div style={{ padding: '12px 16px', background: '#eef2ff', borderBottom: '1px solid #c7d2fe', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <History size={15} style={{ color: '#6366f1' }} />
-              <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#3730a3' }}>Activity History</span>
-              <span style={{ fontSize: '0.72rem', color: '#818cf8', fontWeight: 600, marginLeft: '4px' }}>({reminders.length})</span>
-            </div>
-            <div className="mc-table-container">
-            <table className="pp-table mc-responsive-table" style={{ marginBottom: 0 }}>
-              <thead>
-                <tr>
-                  <th style={{ width: '170px' }}>Scheduled For</th>
-                  <th>Purpose / Message</th>
-                  <th style={{ width: '100px' }}>Status</th>
-                  <th style={{ width: '90px', textAlign: 'center' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {groupedReminders.map((group) => (
-                  <React.Fragment key={group.date}>
-                    {group.items.map((rem, idx) => {
-                      const isExpanded = expandedDates.has(group.date);
-                      if (idx > 0 && !isExpanded) return null;
-
-                      const dateVal = rem.reminderDate || 0;
-
-                      return (
-                        <tr 
-                          key={rem.id} 
-                          className="hover-row"
-                          style={{ 
-                            background: idx > 0 ? '#f8fafc' : 'white',
-                            borderLeft: idx > 0 ? '3px solid #e2e8f0' : 'none'
-                          }}
-                        >
-                          <td className="appt-cell-mono">
-                            <DateGroupCell 
-                              dateVal={dateVal} 
-                              isFirst={idx === 0} 
-                              isExpanded={isExpanded} 
-                              itemsCount={group.items.length} 
-                              onToggle={() => toggleDate(group.date)} 
-                            />
-                            {idx === 0 && (
-                              <div style={{ fontSize: '0.75rem', opacity: 0.7, marginTop: '4px' }}>
-                                {new Date(dateVal).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                              </div>
-                            )}
-                          </td>
-                          <td style={{ fontSize: '0.85rem' }}>{rem.message}</td>
-                          <td>
-                            <span className={`mc-badge-solid-${rem.status === 'Done' ? 'green' : 'blue'}`} style={{ fontSize: '0.7rem' }}>
-                              {rem.status}
-                            </span>
-                          </td>
-                          <td style={{ textAlign: 'center' }}>
-                            <div style={{ display: 'flex', justifyContent: 'center', gap: '4px' }}>
-                              {onAppendNote && (
-                                <button
-                                  className="btn-ghost"
-                                  style={{ color: '#16a34a', padding: '4px' }}
-                                  title="Copy to Follow-up"
-                                  onClick={() => handleCopyToFollowup(rem)}
-                                >
-                                  <Copy size={14} />
-                                </button>
-                              )}
-                              <button className="btn-ghost" style={{ color: 'var(--pp-blue)', padding: '4px' }} onClick={() => handleEditActivity(rem)}>
-                                <Edit size={14} />
-                              </button>
-                              <button className="btn-ghost" style={{ color: '#dc2626', padding: '4px' }} onClick={() => handleDeleteActivity(rem.id)}>
-                                <Trash2 size={14} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </React.Fragment>
-                ))}
-              </tbody>
-            </table>
-            </div>
-          </div>
-          <Pagination currentPage={currentPage} totalPages={totalPages} pageSize={pageSize} totalItems={sortedReminders.length} onPageChange={setCurrentPage} onPageSizeChange={setPageSize} />
-        </>
-      )}
-
-      {/* ─── Drawer: Add/Edit Activity ─── */}
-      {showDrawer && ReactDOM.createPortal(
-        <>
-          <div className="mc-drawer-backdrop" onClick={() => setShowDrawer(false)} />
-          <div className="mc-drawer animate-slide-in-right" style={{ maxWidth: '480px' }}>
-            <header className="mc-drawer-header" style={{ background: 'var(--pp-blue)', color: 'white' }}>
-              <div className="mc-drawer-header-title">
-                <Zap size={18} /> {editingId ? 'Edit Activity' : 'Add Clinic Activity'}
-              </div>
-              <button className="mc-drawer-close" onClick={() => setShowDrawer(false)} style={{ color: 'white' }}>
-                <X size={18} />
-              </button>
-            </header>
-
-            <div className="mc-drawer-body" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto' }}>
-
-              {/* Patient Info (Read-only) */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '16px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Patient Id</label>
-                  <div className="pp-input" style={{ background: 'var(--pp-warm-1)', color: 'var(--pp-text-3)', fontWeight: 600 }}>{regid}</div>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Patient Name</label>
-                  <div className="pp-input" style={{ background: 'var(--pp-warm-1)', color: 'var(--pp-text-3)', fontWeight: 600 }}>{medicalCase.patientName}</div>
-                </div>
-              </div>
-
-              {/* Remind On */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Remind On</label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '12px' }}>
-                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                    <input
-                      type="date"
-                      className="pp-input"
-                      style={{ width: '100%', paddingRight: '40px' }}
-                      value={remindDate}
-                      onChange={e => setRemindDate(e.target.value)}
-                    />
-                    <Calendar size={16} style={{ position: 'absolute', right: '12px', color: 'var(--pp-text-3)' }} />
-                  </div>
-                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                    <input
-                      type="time"
-                      className="pp-input"
-                      style={{ width: '100%', paddingRight: '40px' }}
-                      value={remindTime}
-                      onChange={e => setRemindTime(e.target.value)}
-                    />
-                    <Clock size={16} style={{ position: 'absolute', right: '12px', color: 'var(--pp-text-3)' }} />
-                  </div>
-                </div>
-              </div>
-
-              {/* Purpose */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Purpose / Message</label>
-                <textarea
-                  className="pp-textarea"
-                  style={{ minHeight: '100px' }}
-                  placeholder="Enter purpose or message for this activity..."
-                  value={purpose}
-                  onChange={e => setPurpose(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <footer className="mc-drawer-footer" style={{ padding: '16px 24px', background: 'var(--pp-warm-1)', borderTop: '1px solid var(--pp-warm-3)', display: 'flex', gap: '10px' }}>
-              <button
-                className="btn-secondary"
-                style={{ flex: 1 }}
-                onClick={() => setShowDrawer(false)}
-              >
-                Cancel
-              </button>
-              <button
-                className="btn-primary"
-                style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                onClick={handleSaveActivity}
-                disabled={saveReminder.isPending}
-              >
-                {saveReminder.isPending ? 'Submitting...' : (editingId ? 'Update Activity' : 'Save Activity')}
-              </button>
-            </footer>
-          </div>
-        </>,
-        document.body
-      )}
-    </div>
-  );
-}
 
 
 function VitalsView({ vitals, onRecord, phone, name, regid, clinicName, onAppendNote }: { vitals: any[]; onRecord: (v?: any) => void; phone: string; name: string; regid: number; clinicName: string; onAppendNote?: (text: string) => void }) {
@@ -2997,17 +2971,26 @@ function MediaView({ regid, visitId, images }: { regid: number; visitId: number;
   );
 }
 
-function DiagnosisView({ regid, visitId, medicalCase, soapRecords, onAppendNote }: { regid: number; visitId: number; medicalCase: any; soapRecords: any[]; onAppendNote?: (text: string) => void }) {
-  const { updateDiagnosis, saveSoap, deleteRecord } = useManageClinicalRecords();
-  const [diagnosis, setDiagnosis] = useState(medicalCase?.condition || '');
-  const [complaint, setComplaint] = useState('');
-  const [medication, setMedication] = useState('');
-  const [investigationFindings, setInvestigationFindings] = useState('');
-
+function DiagnosisView({ 
+  regid, 
+  visitId, 
+  medicalCase, 
+  soapRecords, 
+  onAppendNote,
+  onEditRecord,
+  onAddRecord
+}: { 
+  regid: number; 
+  visitId: number; 
+  medicalCase: any; 
+  soapRecords: any[]; 
+  onAppendNote?: (text: string) => void;
+  onEditRecord?: (record: any) => void;
+  onAddRecord?: () => void;
+}) {
+  const { deleteRecord } = useManageClinicalRecords();
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [showDrawer, setShowDrawer] = useState(false);
-  const [editingRecord, setEditingRecord] = useState<any>(null);
 
   const sortedSoap = soapRecords ? [...soapRecords].sort((a, b) => {
     const timeA = new Date(a.createdAt || 0).getTime();
@@ -3032,49 +3015,7 @@ function DiagnosisView({ regid, visitId, medicalCase, soapRecords, onAppendNote 
 
   const { expandedDates, toggleDate, groupedData: groupedSoap } = useTableGrouping(currentSoap, 'createdAt');
 
-  const handleUpdate = async () => {
-    try {
-      if (diagnosis.trim()) {
-        await updateDiagnosis.mutateAsync({ regid, condition: diagnosis.trim() });
-      }
-      if (complaint || medication || investigationFindings || diagnosis) {
-        await saveSoap.mutateAsync({
-          id: editingRecord?.id,
-          regid,
-          visitId,
-          subjective: complaint,
-          objective: investigationFindings,
-          assessment: diagnosis,
-          plan: medication
-        });
-      }
-      setShowDrawer(false);
-      setEditingRecord(null);
-      setComplaint('');
-      setMedication('');
-      setInvestigationFindings('');
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleEdit = (record: any) => {
-    setDiagnosis(record.assessment || '');
-    setComplaint(record.subjective || '');
-    setMedication(record.plan || '');
-    setInvestigationFindings(record.objective || '');
-    setEditingRecord(record);
-    setShowDrawer(true);
-  };
-
-  const handleAdd = () => {
-    setDiagnosis('');
-    setComplaint('');
-    setMedication('');
-    setInvestigationFindings('');
-    setEditingRecord(null);
-    setShowDrawer(true);
-  };
+  // Logic moved to parent component handleOpenDiagnosis
 
   const handleDelete = async (id: number) => {
     if (confirm('Delete this clinical assessment?')) {
@@ -3092,9 +3033,7 @@ function DiagnosisView({ regid, visitId, medicalCase, soapRecords, onAppendNote 
       <div className="mc-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
         <div className="mc-section-header" style={{ margin: 0 }}>Clinical Assessments</div>
         <div style={{ display: 'flex', gap: '10px' }}>
-          <button onClick={handleAdd} className="btn-primary" style={{ padding: '8px 16px' }}>
-            <Plus size={16} style={{ marginRight: '6px' }} /> Add Diagnosis
-          </button>
+          {/* Main tab 'Add Diagnosis' button removed as requested. User uses sidebar button instead. */}
         </div>
       </div>
 
@@ -3105,9 +3044,7 @@ function DiagnosisView({ regid, visitId, medicalCase, soapRecords, onAppendNote 
         <EmptyState
           icon={Sparkles}
           title="No clinical assessments recorded yet"
-          description="Start recording clinical findings, symptoms, and treatment plans for this patient to track their progress."
-          actionLabel="Create the first diagnosis"
-          onAction={handleAdd}
+          description="Use the New Assessment button in the sidebar to start recording clinical findings for this patient."
         />
       ) : (
         <>
@@ -3178,20 +3115,20 @@ function DiagnosisView({ regid, visitId, medicalCase, soapRecords, onAppendNote 
                                   <Copy size={14} />
                                 </button>
                               )}
-                              <button
-                                className="btn-ghost"
-                                style={{ color: 'var(--pp-blue)', padding: '4px 8px' }}
-                                title="Edit"
-                                onClick={() => handleEdit(record)}
-                              >
-                                <Edit size={14} />
-                              </button>
-                              <button
-                                className="btn-ghost"
-                                style={{ color: '#dc2626', padding: '4px 8px' }}
-                                title="Delete"
-                                onClick={() => handleDelete(record.id)}
-                              >
+                                <button
+                                  className="btn-ghost"
+                                  style={{ color: 'var(--pp-blue)', padding: '4px 8px' }}
+                                  title="Edit"
+                                  onClick={() => onEditRecord?.(record)}
+                                >
+                                  <Edit size={14} />
+                                </button>
+                                <button
+                                  className="btn-ghost"
+                                  style={{ color: '#dc2626', padding: '4px 8px' }}
+                                  title="Delete"
+                                  onClick={() => handleDelete(record.id)}
+                                >
                                 <Trash2 size={14} />
                               </button>
                             </div>
@@ -3215,91 +3152,6 @@ function DiagnosisView({ regid, visitId, medicalCase, soapRecords, onAppendNote 
         </>
       )}
 
-      {/* ─── Diagnosis Form Drawer (right-side popup) ─── */}
-      {showDrawer && ReactDOM.createPortal(
-        <>
-          <div className="mc-drawer-backdrop" onClick={() => { setShowDrawer(false); setEditingRecord(null); }} />
-          <div className="mc-drawer animate-slide-in-right" style={{ maxWidth: '520px' }}>
-            <header className="mc-drawer-header" style={{ background: 'var(--pp-blue)', color: 'white' }}>
-              <div className="mc-drawer-header-title">
-                <Sparkles size={18} /> {editingRecord ? 'Edit Assessment' : 'New Assessment'}
-              </div>
-              <button className="mc-drawer-close" onClick={() => { setShowDrawer(false); setEditingRecord(null); }} style={{ color: 'white', opacity: 0.8 }}>
-                <X size={16} />
-              </button>
-            </header>
-
-            <div style={{ padding: '24px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <div style={{ padding: '10px 14px', background: 'var(--pp-warm-1)', borderRadius: '8px', border: '1px solid var(--pp-warm-2)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Calendar size={14} style={{ color: 'var(--pp-blue)' }} />
-                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-ink)' }}>
-                  Record Date: {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Main Diagnosis</label>
-                <textarea
-                  className="pp-textarea"
-                  value={diagnosis}
-                  onChange={e => setDiagnosis(e.target.value)}
-                  placeholder="Final clinical assessment..."
-                  style={{ minHeight: '60px', fontSize: '1rem', fontWeight: 700 }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Subjective (Complaints)</label>
-                <textarea
-                  className="pp-textarea"
-                  value={complaint}
-                  onChange={e => setComplaint(e.target.value)}
-                  placeholder="Patient symptoms & intensity..."
-                  style={{ minHeight: '100px' }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Treatment Plan</label>
-                <textarea
-                  className="pp-textarea"
-                  value={medication}
-                  onChange={e => setMedication(e.target.value)}
-                  placeholder="Medications or next steps..."
-                  style={{ minHeight: '80px' }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Objective Findings</label>
-                <textarea
-                  className="pp-textarea"
-                  value={investigationFindings}
-                  onChange={e => setInvestigationFindings(e.target.value)}
-                  placeholder="Physical exam or lab summaries..."
-                  style={{ minHeight: '80px' }}
-                />
-              </div>
-            </div>
-
-            <footer style={{ padding: '16px 24px', background: 'var(--pp-warm-1)', borderTop: '1px solid var(--pp-warm-3)', display: 'flex', gap: '10px' }}>
-              <button type="button" className="btn-secondary" style={{ flex: 1 }} onClick={() => { setShowDrawer(false); setEditingRecord(null); }}>Cancel</button>
-              <button
-                onClick={handleUpdate}
-                className="btn-primary"
-                style={{ flex: 2, padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-                disabled={updateDiagnosis.isPending}
-              >
-                {updateDiagnosis.isPending
-                  ? <Loader2 size={16} className="animate-spin" />
-                  : <Save size={16} />
-                } {editingRecord ? 'Update Assessment' : 'Save Assessment'}
-              </button>
-            </footer>
-          </div>
-        </>,
-        document.body
-      )}
     </div>
   );
 }
