@@ -11,20 +11,45 @@ import {
   CheckSquare,
   ChevronRight,
   ChevronDown,
+  Plus,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDashboard } from '../hooks/use-dashboard';
 import { useQueueMgmt } from '../hooks/use-queue-mgmt';
+import { Pagination } from '@/components/shared/pagination';
+import { DashboardSkeleton } from '@/components/shared/dashboard-skeleton';
+import { PatientFormDrawer } from '../../patients/components/patient-form-drawer';
 import './role-dashboards.css';
+
+function fmt(n: number): string {
+  if (!n && n !== 0) return '₹0';
+  if (n >= 100000) return `₹${(n / 100000).toFixed(1)}L`;
+  if (n >= 1000) return `₹${(n / 1000).toFixed(1)}k`;
+  return `₹${n}`;
+}
 
 export function ReceptionistDashboard() {
   const navigate = useNavigate();
   const { data: dashData, isLoading } = useDashboard('day');
   const queueMgmt = useQueueMgmt();
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [isPatientDrawerOpen, setIsPatientDrawerOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  React.useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   
   const todayAppts = dashData?.queue || [];
   const kpis = dashData?.kpis;
+
+  const totalPages = Math.ceil(todayAppts.length / pageSize);
+  const startIndex = (page - 1) * pageSize;
+  const currentAppts = todayAppts.slice(startIndex, startIndex + pageSize);
 
   const handleAction = async (appt: any) => {
     if (appt.status === 'Scheduled') {
@@ -40,22 +65,17 @@ export function ReceptionistDashboard() {
   };
 
   if (isLoading) {
-    return (
-      <div className="dash-root" style={{ padding: '64px', textAlign: 'center', color: '#94a3b8' }}>
-        <Activity className="animate-pulse" style={{ margin: '0 auto 16px', color: 'var(--primary)' }} />
-        <p className="text-small">Connecting to Front-Desk Hub...</p>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (
     <div className="dash-root">
       {/* 1. KPI Strip */}
       <div className="dash-kpi-strip">
-        <KPIItem label="Today Intake" value={kpis?.newPatientsCount || 0} trend="+12% vs avg" color="#16a34a" />
+        <KPIItem label="Today Intake" value={kpis?.newPatientsCount || 0} trend="+12% vs avg" color="var(--pp-success-fg)" />
         <KPIItem label="Waitlist" value={todayAppts.filter(a => a.status === 'Waitlist').length} trend="Active queue" color="#d97706" />
-        <KPIItem label="Collection" value={`₹${(kpis?.todaysCollection || 0).toLocaleString('en-IN')}`} trend="Today" color="#16a34a" />
-        <KPIItem label="Completed" value={todayAppts.filter(a => a.status === 'Completed').length} trend="Visits done" color="#2563eb" />
+        <KPIItem label="Collection" value={fmt(kpis?.todaysCollection || 0)} trend="Today" color="var(--pp-success-fg)" />
+        <KPIItem label="Completed" value={todayAppts.filter(a => a.status === 'Completed').length} trend="Visits done" color="var(--pp-blue)" />
       </div>
 
       <div className="dash-grid">
@@ -64,35 +84,65 @@ export function ReceptionistDashboard() {
           <div className="dash-card">
             <div className="dash-card-header">
               <h3 className="dash-section-title">
-                <Calendar size={16} style={{ marginRight: 8, color: '#2563eb' }} /> Today's Schedule
+                <Calendar size={16} style={{ marginRight: 8, color: 'var(--pp-blue)' }} /> Today's Schedule
               </h3>
               <span className="dash-badge badge-primary">{todayAppts.length} TOTAL</span>
             </div>
 
-            <div className="pp-table-scroll">
-              <table className="pp-table">
-                <thead>
-                  <tr>
-                    <th>TOKEN / TIME</th>
-                    <th>PATIENT</th>
-                    <th>STATUS</th>
-                    <th style={{ textAlign: 'center' }}>ACTION</th>
-                  </tr>
-                </thead>
-                <tbody className="dash-scroll">
-                  {todayAppts.map((a: any, i: number) => {
-                    const isExpanded = expandedId === a.id;
-                    const canCheckIn = a.status === 'Scheduled';
-                    const isWaitlist = a.status === 'Waitlist';
+            <div className="rd-table-wrap">
+            {isMobile ? (
+              <div className="pp-mobile-list">
+                {currentAppts.map((a: any, i: number) => (
+                  <div 
+                    key={i} 
+                    className={`pp-mobile-card status-${(a.status || '').toLowerCase()}`}
+                    onClick={() => navigate(`/patients/${a.regid || a.patientId}`)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <div className="pmc-header">
+                      <div className="pmc-time">
+                        <Clock size={12} /> {a.bookingTime || 'Walk-in'}
+                        {a.tokenNo && <span className="pmc-token">T-{a.tokenNo}</span>}
+                      </div>
+                      <span className={`dash-badge badge-${(a.status || '').toLowerCase()}`}>
+                        {a.status}
+                      </span>
+                    </div>
+                    <div className="pmc-body">
+                      <div className="dash-avatar">{a.patientName?.charAt(0)}</div>
+                      <div className="pmc-info">
+                        <div className="pmc-name">{a.patientName}</div>
+                        <div className="pmc-regid">ID: PT-{a.regid || a.id}</div>
+                      </div>
+                      <ChevronRight size={16} className="pmc-chevron" />
+                    </div>
+                  </div>
+                ))}
+                {todayAppts.length === 0 && (
+                  <div className="dash-empty-state" style={{ padding: '40px', textAlign: 'center' }}>
+                    <p className="text-small">No appointments scheduled today.</p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="pp-table-container">
+                <table className="pp-table">
+                  <thead>
+                    <tr>
+                      <th>TOKEN / TIME</th>
+                      <th>PATIENT</th>
+                      <th>STATUS</th>
+                      <th style={{ textAlign: 'center' }}>ACTION</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {currentAppts.map((a: any, i: number) => {
+                      const canCheckIn = a.status === 'Scheduled';
+                      const isWaitlist = a.status === 'Waitlist';
 
-                    return (
-                      <React.Fragment key={i}>
-                        <tr
-                          className={`hover-row ${isExpanded ? 'active-row' : ''}`}
-                          onClick={() => setExpandedId(isExpanded ? null : a.id)}
-                          style={{ cursor: 'pointer' }}
-                        >
-                          <td style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 700, color: '#64748b' }}>
+                      return (
+                        <tr key={i} className="hover-row">
+                          <td style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 600, color: '#64748b' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                               {a.tokenNo ? (
                                 <div className="token-badge">{a.tokenNo}</div>
@@ -106,7 +156,7 @@ export function ReceptionistDashboard() {
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                               <div className="dash-avatar">{a.patientName?.charAt(0)}</div>
                               <div>
-                                <div style={{ fontWeight: 700, color: 'var(--pp-ink)' }}>{a.patientName}</div>
+                                <div style={{ fontWeight: 600, color: '#0f172a' }}>{a.patientName}</div>
                                 <div className="text-label" style={{ fontSize: 10 }}>ID: PT-{a.regid || a.id}</div>
                               </div>
                             </div>
@@ -140,41 +190,34 @@ export function ReceptionistDashboard() {
                             </div>
                           </td>
                         </tr>
-                        <tr>
-                          <td colSpan={4} className="expansion-details-td">
-                            <div className={`expansion-content ${isExpanded ? 'open' : ''}`}>
-                              <div className="expansion-grid">
-                                <div>
-                                  <span className="expansion-label">Contact</span>
-                                  <div className="expansion-value">{a.phone || 'No phone recorded'}</div>
-                                </div>
-                                <div>
-                                  <span className="expansion-label">Demographics</span>
-                                  <div className="expansion-value">{a.age ? `${a.age} Yrs` : '--'} / {a.gender || '--'}</div>
-                                </div>
-                                <div style={{ gridColumn: 'span 2' }}>
-                                  <span className="expansion-label">Follow-up Notes</span>
-                                  <div className="expansion-value" style={{ fontStyle: 'italic', color: '#64748b' }}>
-                                    "{a.notes || 'No specific notes for this visit.'}"
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      </React.Fragment>
-                    );
-                  })}
-                  {todayAppts.length === 0 && (
-                    <tr>
-                      <td colSpan={4} style={{ padding: '48px', textAlign: 'center', color: '#94a3b8' }}>
-                        <p className="text-small">No appointments scheduled today.</p>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                      );
+                    })}
+                    {todayAppts.length === 0 && (
+                      <tr>
+                        <td colSpan={4} style={{ padding: '48px', textAlign: 'center', color: '#94a3b8' }}>
+                          <p className="text-small">No appointments scheduled today.</p>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
             </div>
+
+            {todayAppts.length > 0 && totalPages > 1 && (
+              <Pagination
+                currentPage={page}
+                totalPages={totalPages}
+                pageSize={pageSize}
+                totalItems={todayAppts.length}
+                onPageChange={setPage}
+                onPageSizeChange={(newSize) => {
+                  setPageSize(newSize);
+                  setPage(1);
+                }}
+              />
+            )}
           </div>
         </div>
 
@@ -186,22 +229,44 @@ export function ReceptionistDashboard() {
               <OpLink icon={<Search size={15} />} label="Registry Lookup" path="/patients" />
               <OpLink icon={<Phone size={15} />} label="Confirm Appointments" path="/appointments" />
               <OpLink icon={<CreditCard size={15} />} label="Process Payments" path="/billing" />
-              <OpLink icon={<UserPlus size={15} />} label="Add New Patient" path="/patients/add" />
+              <button 
+                onClick={() => setIsPatientDrawerOpen(true)}
+                className="hover-op"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  padding: '12px 14px',
+                  background: '#f8fafc',
+                  border: '1px solid #f1f5f9',
+                  borderRadius: '8px',
+                  textDecoration: 'none',
+                  color: '#475569',
+                  transition: 'all 0.15s',
+                  width: '100%',
+                  textAlign: 'left',
+                  cursor: 'pointer'
+                }}
+              >
+                <span style={{ color: 'var(--pp-blue)' }}><UserPlus size={15} /></span>
+                <span style={{ fontSize: 12, fontWeight: 700, flex: 1 }}>Add New Patient</span>
+                <Plus size={13} style={{ color: '#94a3b8' }} />
+              </button>
             </div>
           </div>
 
           <div className="dash-sidebar-card">
             <h3 className="dash-section-title">
-              <Activity size={15} style={{ color: '#16a34a' }} /> Live Activity
+              <Activity size={15} style={{ color: 'var(--pp-success-fg)' }} /> Live Activity
             </h3>
             <div className="dash-list">
               {todayAppts.slice(0, 6).map((a: any, i: number) => (
                 <div key={i} className="dash-list-item">
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--pp-ink)' }}>{a.patientName}</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>{a.patientName}</div>
                     <div className="text-label" style={{ fontSize: 10 }}>{a.status} · {a.bookingTime || `Token ${a.tokenNo}`}</div>
                   </div>
-                  <div className="dash-status-dot" style={{ background: a.status === 'Consultation' ? '#16a34a' : '#e2e8f0' }} />
+                  <div className="dash-status-dot" style={{ background: a.status === 'Consultation' ? 'var(--pp-success-fg)' : '#e2e8f0' }} />
                 </div>
               ))}
               {todayAppts.length === 0 && (
@@ -213,6 +278,15 @@ export function ReceptionistDashboard() {
           </div>
         </aside>
       </div>
+
+      <PatientFormDrawer
+        isOpen={isPatientDrawerOpen}
+        onClose={() => setIsPatientDrawerOpen(false)}
+        onSuccess={() => {
+          setIsPatientDrawerOpen(false);
+          // Optional: refetch dashboard data if needed
+        }}
+      />
     </div>
   );
 }
@@ -233,10 +307,21 @@ function KPIItem({ label, value, trend, color }: any) {
 
 function OpLink({ icon, label, path }: any) {
   return (
-    <Link to={path} className="hover-op">
-      <span className="hover-op-icon">{icon}</span>
-      <span className="hover-op-label">{label}</span>
-      <ArrowUpRight size={13} className="hover-op-arrow" />
+    <Link to={path} style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 12,
+      padding: '12px 14px',
+      background: '#f8fafc',
+      border: '1px solid #f1f5f9',
+      borderRadius: '8px',
+      textDecoration: 'none',
+      color: '#475569',
+      transition: 'all 0.15s'
+    }} className="hover-op">
+      <span style={{ color: 'var(--pp-blue)' }}>{icon}</span>
+      <span style={{ fontSize: 12, fontWeight: 700, flex: 1 }}>{label}</span>
+      <ArrowUpRight size={13} style={{ color: '#94a3b8' }} />
     </Link>
   );
 }

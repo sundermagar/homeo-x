@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { ApiResponse } from './result';
+import { ApiResponse } from './result.js';
 
 /**
  * Standardizes successful API responses with nested data key.

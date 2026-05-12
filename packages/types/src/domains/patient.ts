@@ -2,6 +2,7 @@ export interface Patient {
   id: number;
   regid: number;
   tenantId: string;
+  clinicId: number | null;
   // Name
   title: string | null;
   firstName: string;
@@ -31,7 +32,6 @@ export interface Patient {
   bloodGroup: string | null;
   // Clinical
   referenceType: string | null;
-  referenceTypeId: number | null;
   referredBy: string | null;
   assistantDoctor: string | null;
   consultationFee: number | null;
@@ -43,6 +43,7 @@ export interface Patient {
 }
 
 export interface PatientSummary {
+  id: number;
   regid: number;
   fullName: string;
   gender: string;
@@ -53,6 +54,7 @@ export interface PatientSummary {
   city: string | null;
   lastVisit: Date | null;
   totalVisits: number;
+  doctorName?: string | null;
   createdAt: Date;
 }
 
@@ -68,7 +70,6 @@ export interface FamilyMember {
 export interface PatientFormMeta {
   doctors: Array<{ id: number; name: string; consultationFee: number | null }>;
   references: string[];
-  referenceTypes: Array<{ id: string | number; name: string }>;
   religions: string[];
   occupations: string[];
   statuses: string[];

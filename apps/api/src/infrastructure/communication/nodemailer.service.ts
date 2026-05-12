@@ -1,8 +1,8 @@
 import nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
-import type { EmailService, SendEmailDto } from '../../domains/communication/ports/email.service';
-import { appConfig } from '../../shared/config/app-config';
-import { createLogger } from '../../shared/logger';
+import type { EmailService, SendEmailDto } from '../../domains/communication/ports/email.service.js';
+import { appConfig } from '../../shared/config/app-config.js';
+import { createLogger } from '../../shared/logger.js';
 
 const logger = createLogger('nodemailer-service');
 

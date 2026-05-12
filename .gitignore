@@ -34,8 +34,6 @@ coverage/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-buildlog.txt
-*.buildlog
 
 # Environment
 .env
@@ -83,8 +81,6 @@ playwright-report/
 blob-report/
 test_*.js
 test_*.ts
-test_*.cjs
-test-*.cjs
 test.js
 test.ts
 debug_*.ts
@@ -94,9 +90,46 @@ verify_*.ts
 *.ours
 *.theirs
 
+# Cloud credentials — NEVER commit
+google-stt-credentials.json
+**/google-stt-credentials.json
+*-credentials.json
+service-account*.json
+
+# Local dev logs
+ts_errors.txt
+**/ts_errors.txt
+.turbo/
 # Build Artifacts
 *.cjs
 !*.config.cjs
 !*.config.js
 !*rc.js
 !*rc.cjs
+
+# AI Assistant & Tooling
+.gemini/
+.antigravity/
+antigravity.log
+
+# One-off Scripts & Recovery Files
+packages/database/src/migrate-*.ts
+check-*.ts
+verify-*.ts
+debug-*.ts
+main_*.ts
+main_*.tsx
+temp_*.ts
+temp_*.tsx
+scratch*.ts
+test-*.js
+test-*.ts
+test_*.js
+test_*.ts
+tsc_output*.txt
+vars.txt
+.token
+drop_schemas.sql
+fix-migration.js
+check-db.mjs
+

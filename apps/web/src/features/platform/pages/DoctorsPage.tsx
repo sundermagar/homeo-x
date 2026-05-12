@@ -4,11 +4,17 @@ import { Link } from 'react-router-dom';
 import { Plus, Search, Edit2, Trash2, X, GraduationCap, Building2, Stethoscope, Mail, Phone, MapPin, Users, UserCheck, LayoutGrid, Award, Landmark, Upload, Image as ImageIcon, FileText } from 'lucide-react';
 import { NumericInput } from '@/shared/components/NumericInput';
 import { useStaffList, useDeleteStaff, useCreateStaff, useUpdateStaff, useStaffMember } from '@/features/staff/hooks/use-staff';
+import { useAuthStore } from '@/shared/stores/auth-store';
 import type { StaffSummary, StaffMember } from '@mmc/types';
 import type { CreateStaffInput, UpdateStaffInput } from '@mmc/validation';
 import { createStaffSchema, updateStaffSchema } from '@mmc/validation';
 import { apiClient } from '@/infrastructure/api-client';
 import '../styles/platform.css';
+
+import { Pagination } from '@/components/shared/pagination';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
+import { Drawer } from '@/shared/components/drawer';
 
 const CATEGORY = 'doctor' as const;
 const META = { label: 'Doctors', description: 'Manage clinical practitioners and specialized doctor profiles.' };
@@ -85,7 +91,7 @@ function staffMemberToForm(staff: StaffMember): CreateStaffInput {
     consultationFee: Number(staff.consultationFee) || 0,
     permanentAddress: staff.permanentAddress || '',
     password: '',
-    clinicId: staff.clinicId,
+    clinicId: (staff.clinicId && staff.clinicId !== 1) ? staff.clinicId : null,
     registrationCertificate: staff.registrationCertificate || '',
     aadharCard: staff.aadharCard || '',
     panCard: staff.panCard || '',
@@ -101,21 +107,23 @@ function staffMemberToForm(staff: StaffMember): CreateStaffInput {
   };
 }
 
-function FileInputRow({ 
-  label, 
-  field, 
-  value, 
-  onChange, 
-  error, 
+function FileInputRow({
+  label,
+  field,
+  value,
+  onChange,
+  onRemove,
+  error,
   accept = "image/*,application/pdf",
   className = "",
   style = {}
-}: { 
+}: {
   label: string;
   field: string;
   value?: string | null;
   onChange: (f: string, e: React.ChangeEvent<HTMLInputElement>) => void;
-  error?: string; 
+  onRemove?: (f: string) => void;
+  error?: string;
   accept?: string;
   className?: string;
   style?: React.CSSProperties;
@@ -127,19 +135,31 @@ function FileInputRow({
         <div className="plat-file-trigger">
           <Upload size={14} /> Upload {label}
         </div>
-        <input 
-          type="file" 
+        <input
+          type="file"
           accept={accept}
-          onChange={(e) => onChange(field, e)} 
+          onChange={(e) => onChange(field, e)}
         />
       </div>
       {value && (
-        <div className="plat-file-preview">
-          <span className="plat-file-preview-name" title={value}>{value.split('/').pop() || 'Uploaded File'}</span>
-          {value.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
-            <img src={value} alt="Preview" className="plat-file-preview-image" />
-          ) : (
-            <FileText size={16} className="color-muted" />
+        <div className="plat-file-preview" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+            <span className="plat-file-preview-name" title={value}>{value.split('/').pop() || 'Uploaded File'}</span>
+            {value.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
+              <img src={value} alt="Preview" className="plat-file-preview-image" />
+            ) : (
+              <FileText size={16} className="color-muted" />
+            )}
+          </div>
+          {onRemove && (
+            <button
+              type="button"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: 'var(--pp-danger-fg)' }}
+              onClick={() => onRemove(field)}
+              title="Remove file"
+            >
+              <Trash2 size={14} />
+            </button>
           )}
         </div>
       )}
@@ -147,6 +167,8 @@ function FileInputRow({
     </div>
   );
 }
+
+
 
 function StaffModal({
   mode,
@@ -167,14 +189,24 @@ function StaffModal({
   const createMutation = useCreateStaff();
   const updateMutation = useUpdateStaff();
   const qc = useQueryClient();
+  const { user } = useAuthStore();
 
   useEffect(() => {
     if (mode === 'edit' && staff) {
-      setForm(staffMemberToForm(staff));
+      const editForm = staffMemberToForm(staff);
+      // If clinicId is missing or was default (1), use current admin's context
+      if (!editForm.clinicId && user?.contextId) {
+        editForm.clinicId = user.contextId;
+      }
+      setForm(editForm);
     } else if (mode === 'create') {
-      setForm(getDefaultStaffForm());
+      const defaultForm = getDefaultStaffForm();
+      if (user?.contextId) {
+        defaultForm.clinicId = user.contextId;
+      }
+      setForm(defaultForm);
     }
-  }, [mode, staff]);
+  }, [mode, staff, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -236,33 +268,33 @@ function StaffModal({
       const res = await apiClient.post('/staff/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      
+
       const resData = (res as any)._original ?? res.data;
       if (resData?.success && resData?.path) {
-         updateForm(field, resData.path);
+        updateForm(field, resData.path);
       } else {
-         setErrors((prev) => ({ ...prev, [field]: 'Upload failed' }));
+        setErrors((prev) => ({ ...prev, [field]: 'Upload failed' }));
       }
     } catch (err: any) {
       setErrors((prev) => ({ ...prev, [field]: err.message || 'Upload failed' }));
     }
   };
 
+  const handleFileRemove = (field: string) => {
+    updateForm(field, '');
+  };
+
   const isPending = createMutation.isPending || updateMutation.isPending;
   const isEdit = mode === 'edit';
 
   return (
-    <div className="plat-modal-backdrop" onClick={onClose}>
-      <div className="plat-modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="plat-modal-header">
-          <h3 className="plat-modal-title">
-            {isEdit ? 'Update Practitioner Record' : 'Register New Practitioner'}
-          </h3>
-          <button type="button" className="plat-btn plat-btn-icon plat-btn-ghost" onClick={onClose}>
-            <X size={14} />
-          </button>
-        </div>
-
+    <Drawer
+      isOpen={true}
+      onClose={onClose}
+      title={isEdit ? 'Update Practitioner Record' : 'Register New Practitioner'}
+      maxWidth="600px"
+    >
+      <div className="plat-modal-content" style={{ border: 'none', boxShadow: 'none', margin: 0, padding: 0 }}>
         <form onSubmit={handleSubmit} className="plat-modal-body">
           {errors['general'] && (
             <div className="plat-error-banner mb-4">{errors['general']}</div>
@@ -344,12 +376,13 @@ function StaffModal({
                 />
               </div>
 
-              <FileInputRow 
-                label="Profile Picture" 
-                field="profilepic" 
-                value={form.profilepic} 
-                onChange={handleFileUpload} 
-                error={errors['profilepic']} 
+              <FileInputRow
+                label="Profile Picture"
+                field="profilepic"
+                value={form.profilepic}
+                onChange={handleFileUpload}
+                onRemove={handleFileRemove}
+                error={errors['profilepic']}
                 accept="image/*"
                 style={{ gridColumn: 'span 2' }}
               />
@@ -552,13 +585,14 @@ function StaffModal({
                   disabled={isLoading}
                 />
               </div>
-              
-              <FileInputRow 
-                label="Aadhar Card" 
-                field="aadharCard" 
-                value={form.aadharCard} 
-                onChange={handleFileUpload} 
-                error={errors['aadharCard']} 
+
+              <FileInputRow
+                label="Aadhar Card"
+                field="aadharCard"
+                value={form.aadharCard}
+                onChange={handleFileUpload}
+                onRemove={handleFileRemove}
+                error={errors['aadharCard']}
               />
 
               <div className="plat-form-group">
@@ -571,35 +605,38 @@ function StaffModal({
                   disabled={isLoading}
                 />
               </div>
-              
-              <FileInputRow 
-                label="PAN Card" 
-                field="panCard" 
-                value={form.panCard} 
-                onChange={handleFileUpload} 
-                error={errors['panCard']} 
+
+              <FileInputRow
+                label="PAN Card"
+                field="panCard"
+                value={form.panCard}
+                onChange={handleFileUpload}
+                onRemove={handleFileRemove}
+                error={errors['panCard']}
               />
 
-              <FileInputRow 
-                label="Registration Certificate" 
-                field="registrationCertificate" 
-                value={form.registrationCertificate} 
-                onChange={handleFileUpload} 
-                error={errors['registrationCertificate']} 
+              <FileInputRow
+                label="Registration Certificate"
+                field="registrationCertificate"
+                value={form.registrationCertificate}
+                onChange={handleFileUpload}
+                onRemove={handleFileRemove}
+                error={errors['registrationCertificate']}
               />
 
-              <FileInputRow 
-                label="Appointment Letter" 
-                field="appointmentLetter" 
-                value={form.appointmentLetter} 
-                onChange={handleFileUpload} 
-                error={errors['appointmentLetter']} 
+              <FileInputRow
+                label="Appointment Letter"
+                field="appointmentLetter"
+                value={form.appointmentLetter}
+                onChange={handleFileUpload}
+                onRemove={handleFileRemove}
+                error={errors['appointmentLetter']}
               />
 
-              <FileInputRow label="10th Marksheet" field="col10Document" value={form.col10Document} onChange={handleFileUpload} error={errors['col10Document']} />
-              <FileInputRow label="12th Marksheet" field="col12Document" value={form.col12Document} onChange={handleFileUpload} error={errors['col12Document']} />
-              <FileInputRow label="BHMS Document" field="bhmsDocument" value={form.bhmsDocument} onChange={handleFileUpload} error={errors['bhmsDocument']} style={{ gridColumn: 'span 2' }} />
-              <FileInputRow label="MD Document" field="mdDocument" value={form.mdDocument} onChange={handleFileUpload} error={errors['mdDocument']} style={{ gridColumn: 'span 2' }} />
+              <FileInputRow label="10th Marksheet" field="col10Document" value={form.col10Document} onChange={handleFileUpload} onRemove={handleFileRemove} error={errors['col10Document']} />
+              <FileInputRow label="12th Marksheet" field="col12Document" value={form.col12Document} onChange={handleFileUpload} onRemove={handleFileRemove} error={errors['col12Document']} />
+              <FileInputRow label="BHMS Document" field="bhmsDocument" value={form.bhmsDocument} onChange={handleFileUpload} onRemove={handleFileRemove} error={errors['bhmsDocument']} style={{ gridColumn: 'span 2' }} />
+              <FileInputRow label="MD Document" field="mdDocument" value={form.mdDocument} onChange={handleFileUpload} onRemove={handleFileRemove} error={errors['mdDocument']} style={{ gridColumn: 'span 2' }} />
             </div>
           </div>
 
@@ -613,7 +650,7 @@ function StaffModal({
           </div>
         </form>
       </div>
-    </div>
+    </Drawer>
   );
 }
 
@@ -626,10 +663,11 @@ export default function DoctorsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
+  const [itemsPerPage, setItemsPerPage] = useState(PAGE_SIZE);
 
-  const { data, isLoading } = useStaffList(CATEGORY, { 
-    page, 
-    limit: PAGE_SIZE, 
+  const { data, isLoading } = useStaffList(CATEGORY, {
+    page,
+    limit: itemsPerPage,
     search: debouncedSearch,
     sortBy,
     sortOrder
@@ -669,49 +707,49 @@ export default function DoctorsPage() {
   // return (
   return (
     <div className="plat-page">
-      <div className="plat-header">
+      <div className="pp-page-hero">
         <div>
-          <h1 className="plat-header-title">
-            <Stethoscope size={16} className="color-primary" />
+          <h1 className="pp-page-hero-title">
+            <Stethoscope size={22} style={{ color: 'var(--pp-blue)' }} />
             {META.label}
           </h1>
-          <p className="plat-header-sub">{META.description}</p>
+          <p className="pp-page-hero-sub">{META.description}</p>
         </div>
-        <div className="plat-header-actions">
-          <button className="plat-btn plat-btn-primary" onClick={openCreate}>
-            <Plus size={14} /> Register Doctor
+        <div className="pp-page-hero-actions">
+          <button className="btn-primary" onClick={openCreate}>
+            <Plus size={16} strokeWidth={1.8} /> Register Doctor
           </button>
         </div>
       </div>
 
-      <div className="plat-stats-bar">
-        <div className="plat-stat-card">
-          <p className="plat-stat-label">Total Practitioners</p>
-          <p className="plat-stat-value plat-stat-value-primary">{data?.total ?? 0}</p>
+      <div className="pp-stat-grid">
+        <div className="pp-stat-card-enhanced">
+          <div className="pp-stat-label">Total Practitioners</div>
+          <div className="pp-stat-value is-primary">{data?.total ?? 0}</div>
         </div>
-        <div className="plat-stat-card">
-          <p className="plat-stat-label">Active Registry</p>
-          <p className="plat-stat-value plat-stat-value-success">{activeCount}</p>
+        <div className="pp-stat-card-enhanced">
+          <div className="pp-stat-label">Active Registry</div>
+          <div className="pp-stat-value is-success">{activeCount}</div>
         </div>
       </div>
 
-      <div className="plat-filters">
-        <div className="flex gap-4 flex-1">
-          <div className="plat-search-wrap">
-            <Search className="plat-search-icon" size={14} />
-            <input
-              type="text"
-              className="plat-form-input plat-search-input"
-              placeholder="Search practitioners by name or ID..."
-              value={search}
-              onChange={(e) => handleSearchChange(e.target.value)}
-            />
-          </div>
-
+      <div className="pp-filter-card">
+        <div className="pp-filter-search-wrap">
+          <Search size={14} />
+          <input
+            type="text"
+            placeholder="Search practitioners by name or ID..."
+            className="pp-filter-search-input"
+            value={search}
+            onChange={(e) => handleSearchChange(e.target.value)}
+          />
+        </div>
+        <div className="pp-filter-controls">
           <div className="flex items-center gap-2">
             <span className="text-[11px] font-bold color-muted uppercase tracking-wider">Sort:</span>
-            <select 
-              className="plat-form-input !py-1 !text-xs !w-auto min-w-[140px]"
+            <select
+              className="pp-filter-select"
+              style={{ minWidth: '140px' }}
               value={`${sortBy}-${sortOrder}`}
               onChange={(e) => {
                 const [col, order] = e.target.value.split('-');
@@ -726,36 +764,38 @@ export default function DoctorsPage() {
               <option value="name-DESC">Z-A</option>
             </select>
           </div>
+          <button
+            className="btn-ghost"
+            onClick={() => {
+              setSearch('');
+              setDebouncedSearch('');
+              setPage(1);
+              setSortBy('id');
+              setSortOrder('DESC');
+            }}
+          >
+            Reset
+          </button>
         </div>
-
-        <button 
-          className="plat-btn plat-btn-ghost plat-btn-sm" 
-          onClick={() => { 
-            setSearch(''); 
-            setDebouncedSearch(''); 
-            setPage(1); 
-            setSortBy('id');
-            setSortOrder('DESC');
-          }}
-        >
-          Reset
-        </button>
       </div>
 
-      <div className="plat-card">
+      <div>
         {isLoading ? (
-          <div className="plat-empty" style={{ minHeight: 240 }}>
-            <div className="animate-spin opacity-30 text-2xl mb-4">⟳</div>
-            <p className="plat-empty-text">Loading doctors...</p>
-          </div>
+          <TableSkeleton rows={itemsPerPage} columns={6} />
         ) : staff.length === 0 ? (
-          <div className="plat-empty" style={{ minHeight: 240 }}>
-            <Stethoscope size={40} className="plat-empty-icon" />
-            <p className="plat-empty-text">No doctors found.</p>
-          </div>
+          <EmptyState 
+            icon={Stethoscope}
+            title="No doctors found"
+            description="Adjust your filters or add a new clinical practitioner to the registry."
+            actionLabel="Register New Doctor"
+            onAction={openCreate}
+            variant="card"
+            className="my-8"
+          />
         ) : (
-          <div className="plat-table-container">
-            <table className="plat-table">
+          <>
+            <div className="pp-table-container-enhanced">
+            <table className="pp-table">
               <thead>
                 <tr>
                   <th style={{ width: '50px' }}>#</th>
@@ -768,46 +808,56 @@ export default function DoctorsPage() {
               </thead>
               <tbody>
                 {staff.map((s: StaffSummary, index: number) => (
-                  <tr key={s.id} className="plat-table-row">
-                    <td className="plat-mono-data text-xs" style={{ width: 40 }}>{(page - 1) * PAGE_SIZE + index + 1}</td>
-                    <td>
-                      <div className="font-semibold flex items-center gap-1.5">
-                        <Link to={`/platform/doctors/${s.id}`} className="hover:text-[var(--pp-blue)] transition-colors plat-capitalize">
-                          {s.name || 'Unknown'}
+                  <tr key={s.id} className="pp-hover-row" onClick={() => openEdit(s)} style={{ cursor: 'pointer' }}>
+                    <td data-label="#" className="plat-mono-data text-xs" style={{ width: 40 }}>
+                      <div>{(page - 1) * PAGE_SIZE + index + 1}</div>
+                    </td>
+                    <td data-label="Profile">
+                      <div className="plat-cell-val" onClick={(e) => e.stopPropagation()}>
+                        <Link to={`/platform/doctors/${s.id}`} className="font-semibold pp-clickable-name">
+                          {s.name}
                         </Link>
-                      </div>
-                      <div className="text-[11px] color-muted font-medium">{s.email || '—'}</div>
-                    </td>
-                    <td>
-                      <div className="plat-mono-data">{s.mobile || '—'}</div>
-                      <div className="text-[10px] color-muted plat-capitalize flex items-center gap-1 font-medium">
-                        <MapPin size={10} /> {s.city || 'Location N/A'}
+                        <div className="text-[11px] color-muted font-medium">{s.email || '—'}</div>
                       </div>
                     </td>
-                    <td>
-                      <div className="text-xs font-semibold flex items-center gap-1 plat-capitalize">
-                        <GraduationCap size={12} className="color-muted" />
-                        {s.qualification || 'General'}
-                      </div>
-                      <div className="text-[10px] color-muted font-medium italic plat-capitalize">
-                        {s.designation || 'Practitioner'}
+                    <td data-label="Contact">
+                      <div className="plat-cell-val">
+                        <div className="plat-mono-data">{s.mobile || '—'}</div>
+                        <div className="text-[10px] color-muted plat-capitalize flex items-center gap-1 font-medium">
+                          <MapPin size={10} /> {s.city || 'Location N/A'}
+                        </div>
                       </div>
                     </td>
-                    <td>
-                      <span className={s.isActive ? 'plat-badge plat-badge-info' : 'plat-badge plat-badge-default'}>
-                        {s.isActive ? (
-                          <span className="flex items-center gap-1"><UserCheck size={10} /> Active</span>
-                        ) : 'Deactivated'}
-                      </span>
+                    <td data-label="Credentials">
+                      <div className="plat-cell-val">
+                        <div className="text-xs font-semibold flex items-center gap-1 plat-capitalize">
+                          <GraduationCap size={12} className="color-muted" />
+                          {s.qualification || 'General'}
+                        </div>
+                        <div className="text-[10px] color-muted font-medium italic plat-capitalize">
+                          {s.designation || 'Practitioner'}
+                        </div>
+                      </div>
                     </td>
-                    <td>
-                      <div className="flex justify-end gap-2">
-                        <button className="plat-btn plat-btn-icon plat-btn-ghost" title="Edit" onClick={() => openEdit(s)}>
-                          <Edit2 size={13} />
-                        </button>
-                        <button className="plat-btn plat-btn-icon plat-btn-danger" title="Delete" onClick={() => handleDelete(s.id)} disabled={deleteMutation.isPending}>
-                          <Trash2 size={13} />
-                        </button>
+                    <td data-label="Status">
+                      <div className="plat-cell-val">
+                        <span className={s.isActive ? 'pp-status-pill is-success' : 'pp-status-pill is-default'}>
+                          {s.isActive ? (
+                            <span className="flex items-center gap-1"><UserCheck size={10} /> Active</span>
+                          ) : 'Inactive'}
+                        </span>
+                      </div>
+                    </td>
+                    <td data-label="Actions">
+                      <div className="plat-cell-val">
+                        <div className="flex justify-end gap-2" style={{ width: '100%' }}>
+                          <button className="plat-btn plat-btn-icon plat-btn-ghost" style={{ width: 36, height: 36, borderRadius: 10 }} title="Edit" onClick={() => openEdit(s)}>
+                            <Edit2 size={13} />
+                          </button>
+                          <button className="plat-btn plat-btn-icon plat-btn-danger" style={{ width: 36, height: 36, borderRadius: 10 }} title="Delete" onClick={() => handleDelete(s.id)} disabled={deleteMutation.isPending}>
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
                       </div>
                     </td>
                   </tr>
@@ -815,32 +865,18 @@ export default function DoctorsPage() {
               </tbody>
             </table>
           </div>
+          <Pagination
+            currentPage={page}
+            totalPages={Math.ceil((data?.total || 0) / itemsPerPage)}
+            pageSize={itemsPerPage}
+            totalItems={data?.total || 0}
+            onPageChange={setPage}
+            onPageSizeChange={setItemsPerPage}
+          />
+        </>
         )}
       </div>
 
-      {totalPages > 1 && (
-        <div className="plat-pagination-container">
-          <div className="plat-pagination-pill">
-            <button 
-              className="plat-pagination-btn" 
-              disabled={page <= 1} 
-              onClick={() => { setPage(p => p - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-            >
-              ← Previous
-            </button>
-            <div className="plat-pagination-info">
-              Page <b>{page}</b> of <b>{totalPages}</b>
-            </div>
-            <button 
-              className="plat-pagination-btn" 
-              disabled={page >= totalPages} 
-              onClick={() => { setPage(p => p + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-            >
-              Next →
-            </button>
-          </div>
-        </div>
-      )}
 
       {modalOpen && (
         <StaffModal

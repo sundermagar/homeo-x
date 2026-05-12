@@ -10,6 +10,8 @@ import '../styles/platform.css';
 
 const CATEGORY = 'doctor';
 
+
+
 export default function DoctorDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -37,7 +39,7 @@ export default function DoctorDetailPage() {
           <p style={{ color: 'var(--pp-text-2)', fontSize: 14, marginBottom: 32, lineHeight: 1.6 }}>
             The requested practitioner profile is currently unavailable or has been archived.
           </p>
-          <button className="btn-primary" onClick={() => navigate('/platform/doctors')}>
+          <button className="plat-btn plat-btn-primary" onClick={() => navigate('/platform/doctors')}>
             <ArrowLeft size={14} /> Return to Registry
           </button>
         </div>
@@ -48,7 +50,7 @@ export default function DoctorDetailPage() {
   const renderDocument = (label: string, value: string | null) => {
     if (!value) return null;
     return (
-      <div className="plat-doc-item">
+      <div className="plat-doc-item" key={label}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div className="plat-doc-icon">
             <Files size={14} />
@@ -67,6 +69,7 @@ export default function DoctorDetailPage() {
 
   return (
     <div className="plat-profile-page animate-fade-in">
+      
       {/* ─── Premium Profile Header ─── */}
       <div className="plat-profile-header">
         <div className="plat-profile-container" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
@@ -159,7 +162,7 @@ export default function DoctorDetailPage() {
           {/* Main Content */}
           <section className="plat-main" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
             
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 24 }} className="hide-mobile show-desktop">
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 24 }} className="hide-mobile">
               
               <div className="plat-profile-card">
                 <h3 className="plat-profile-section-title">

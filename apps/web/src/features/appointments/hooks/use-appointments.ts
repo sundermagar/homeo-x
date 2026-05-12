@@ -30,12 +30,31 @@ export function useAppointments(filters: {
       Object.entries(filters).forEach(([k, v]) => {
         if (v !== undefined && v !== '') params.set(k, String(v));
       });
-      const res = await apiClient.get<{ success: boolean; data: { data: Appointment[]; total: number } }>(`/appointments?${params}`);
-      // API returns { data: { data: Appointment[], total: N } } — extract the inner array
+      const res = await apiClient.get<{ success: boolean; data: { data: Appointment[]; total: number } | Appointment[] }>(`/appointments?${params}`);
+      
       const payload = res.data.data;
-      return Array.isArray(payload) ? payload : ((payload as any)?.data ?? []);
+      if (Array.isArray(payload)) {
+        return { data: payload, total: payload.length };
+      }
+      return { 
+        data: payload?.data ?? [], 
+        total: payload?.total ?? 0 
+      };
     },
     staleTime: 30_000,
+  });
+}
+
+// ─── Single Appointment ────────────────────────────────────────────────────────
+export function useAppointment(id: number | string | undefined) {
+  return useQuery({
+    queryKey: apptKeys.detail(Number(id)),
+    queryFn: async () => {
+      const res = await apiClient.get<{ success: boolean; data: Appointment }>(`/appointments/${id}`);
+      return res.data.data;
+    },
+    enabled: !!id,
+    retry: false,
   });
 }
 

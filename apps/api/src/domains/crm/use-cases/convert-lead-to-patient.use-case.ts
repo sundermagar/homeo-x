@@ -1,6 +1,6 @@
-import { type Result, ok, fail } from '../../../shared/result';
-import type { ILeadRepository } from '../ports/lead.repository';
-import type { PatientRepository } from '../../patient/ports/patient.repository';
+import { type Result, ok, fail } from '../../../shared/result.js';
+import type { ILeadRepository } from '../ports/lead.repository.js';
+import type { PatientRepository } from '../../patient/ports/patient.repository.js';
 
 export class ConvertLeadToPatientUseCase {
   constructor(

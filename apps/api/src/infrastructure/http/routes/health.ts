@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import type { Router as ExpressRouter } from 'express';
-import { aiConfig } from '../../../shared/config/ai-config';
-import { aiGeminiBreaker, aiGroqBreaker, deepgramBreaker } from '../../../shared/resilience/circuit-breaker';
-import { sendSuccess } from '../../../shared/response-formatter';
+import { aiConfig } from '../../../shared/config/ai-config.js';
+import { aiGeminiBreaker, aiGroqBreaker, deepgramBreaker } from '../../../shared/resilience/circuit-breaker.js';
+import { sendSuccess } from '../../../shared/response-formatter.js';
 import { sql } from 'drizzle-orm';
 
 export const healthRouter: ExpressRouter = Router();

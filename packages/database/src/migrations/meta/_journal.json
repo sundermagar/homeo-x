@@ -99,6 +99,27 @@
       "when": 1745366400000,
       "tag": "0013_add_knowledge_base_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1746107400000,
+      "tag": "0014_add_clinic_id_to_case_datas",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1746800000000,
+      "tag": "0016_query_performance_indexes",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1746810000000,
+      "tag": "0017_dashboard_query_indexes",
+      "breakpoints": true
     }
   ]
 }

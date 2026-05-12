@@ -7,71 +7,82 @@ import {
   Grid, List
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { Pagination } from '@/components/shared/pagination';
+import { EmptyState } from '@/components/shared/empty-state';
 import '../styles/medical-case.css';
 
 export default function MedicalCaseListPage() {
   const api = useApi();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
-  const [page] = useState(1);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   const { data: records, isLoading } = useQuery({
-    queryKey: ['medical-cases', search, page],
+    queryKey: ['medical-cases', search, page, pageSize],
     queryFn: async () => {
-      const res = await api.get(`/medical-cases?search=${search}&page=${page}`);
+      const res = await api.get(`/medical-cases?search=${search}&page=${page}&limit=${pageSize}`);
       return res.data;
     },
   });
 
   return (
     <div className="mc-page">
-      <header className="mc-header">
+      {/* Header */}
+      <div className="pp-page-hero">
         <div>
-          <h1 className="mc-title">Clinical Records</h1>
-          <p className="mc-subtitle">Patient cases, longitudinal records, and clinical findings.</p>
+          <h1 className="pp-page-hero-title">
+            <Activity size={22} strokeWidth={1.8} />
+            Clinical Records
+          </h1>
+          <p className="pp-page-hero-sub">Patient cases, longitudinal records, and clinical findings.</p>
         </div>
-        <button
-          onClick={() => navigate('/patients/new')}
-          className="mc-btn-primary"
-        >
-          <Plus size={16} strokeWidth={1.6} /> New Case
-        </button>
-      </header>
+        <div className="pp-page-hero-actions">
+          <button
+            onClick={() => navigate('/patients/new')}
+            className="btn-primary"
+          >
+            <Plus size={16} strokeWidth={1.6} /> New Case
+          </button>
+        </div>
+      </div>
 
       {/* Control Bar */}
-      <div className="mc-controls">
-        <div className="mc-search-wrap">
-          <Search className="mc-search-icon" size={15} strokeWidth={1.6} />
+      {/* Control Bar */}
+      <div className="pp-filter-card">
+        <div className="pp-filter-search-wrap">
+          <Search size={14} />
           <input
             type="text"
             placeholder="Search by name, RegID, or mobile..."
-            className="mc-search-input"
+            className="pp-filter-search-input"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           />
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <button className="mc-filter-btn">
+        <div className="pp-filter-controls">
+          <button className="btn-secondary">
             <Filter size={14} strokeWidth={1.6} /> Filters
           </button>
-          <div style={{ display: 'inline-flex', border: '1px solid #e2e8f0', borderRadius: 999, overflow: 'hidden', background: 'var(--bg-card)' }}>
+          <div className="appt-segmented-toggle">
             <button
               type="button"
               onClick={() => setViewMode('list')}
-              style={{ border: 'none', borderRadius: 0, minWidth: 78, padding: '8px 12px', background: viewMode === 'list' ? '#eff6ff' : 'transparent', color: viewMode === 'list' ? '#1d4ed8' : '#64748b', cursor: 'pointer' }}
+              className={`appt-segmented-btn ${viewMode === 'list' ? 'active' : ''}`}
             >
-              <List size={14} strokeWidth={1.6} /> List
+              <List size={16} strokeWidth={1.6} /> List
             </button>
             <button
               type="button"
               onClick={() => setViewMode('grid')}
-              style={{ border: 'none', borderRadius: 0, minWidth: 78, padding: '8px 12px', background: viewMode === 'grid' ? '#eff6ff' : 'transparent', color: viewMode === 'grid' ? '#1d4ed8' : '#64748b', cursor: 'pointer' }}
+              className={`appt-segmented-btn ${viewMode === 'grid' ? 'active' : ''}`}
             >
-              <Grid size={14} strokeWidth={1.6} /> Grid
+              <Grid size={16} strokeWidth={1.6} /> Grid
             </button>
           </div>
-          <span className="mc-count">
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--pp-text-3)' }}>
             {records?.total ?? 0} records
           </span>
         </div>
@@ -79,8 +90,9 @@ export default function MedicalCaseListPage() {
 
       {/* Records Table */}
       {viewMode === 'list' ? (
-        <div className="mc-table-wrap">
-          <table className="mc-table">
+        <div className="pp-table-container-enhanced">
+          <div className="pp-table-scroll">
+          <table className="pp-table">
             <thead>
               <tr>
                 <th>Patient</th>
@@ -92,16 +104,30 @@ export default function MedicalCaseListPage() {
             </thead>
             <tbody>
               {isLoading ? (
-                <tr className="mc-loading-row">
-                  <td colSpan={5}>Loading records...</td>
+                <tr>
+                  <td colSpan={5} style={{ padding: 0 }}>
+                    <TableSkeleton rows={10} columns={5} />
+                  </td>
                 </tr>
               ) : !records?.data?.length ? (
-                <tr className="mc-empty-row">
-                  <td colSpan={5}>No records found.</td>
+                <tr>
+                  <td colSpan={5}>
+                    <EmptyState 
+                      icon={Activity}
+                      title={search ? "No cases found" : "No clinical cases"}
+                      description={search ? `We couldn't find any clinical case matching "${search}".` : "Your clinical registry is currently empty. Cases will appear here as patients are registered and visits are recorded."}
+                      actionLabel={search ? "Clear Search" : "New Case"}
+                      onAction={search ? () => setSearch('') : () => navigate('/patients/new')}
+                      variant="card"
+                      className="my-8"
+                    />
+                  </td>
                 </tr>
               ) : records.data.map((record: any) => (
                 <tr
                   key={record.id}
+                  className="pp-hover-row"
+                  style={{ cursor: 'pointer' }}
                   onClick={() => navigate(`/medical-cases/${record.regid}`)}
                 >
                   <td data-label="Patient">
@@ -114,7 +140,7 @@ export default function MedicalCaseListPage() {
                           {record.first_name} {record.surname}
                         </div>
                         <div className="mc-patient-meta">
-                          <span className="mc-regid-badge">PT-{record.regid}</span>
+                          <span className="pp-regid-pill">PT-{record.regid}</span>
                           <span className="mc-meta-text">
                             <User size={11} strokeWidth={1.6} />
                             {record.gender === 'M' ? 'Male' : 'Female'}
@@ -172,29 +198,41 @@ export default function MedicalCaseListPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
+
       ) : (
         <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
           {isLoading ? (
             <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: 48, color: '#94a3b8' }}>Loading records...</div>
           ) : !records?.data?.length ? (
-            <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: 48, color: '#94a3b8' }}>No records found.</div>
+            <div style={{ gridColumn: '1/-1' }}>
+              <EmptyState 
+                icon={Activity}
+                title={search ? "No matches found" : "No clinical records"}
+                description={search ? `No records matching "${search}" were found.` : "The clinical registry is currently empty."}
+                actionLabel={search ? "Clear Search" : "New Case"}
+                onAction={search ? () => setSearch('') : () => navigate('/patients/new')}
+                variant="card"
+                className="my-8"
+              />
+            </div>
           ) : records.data.map((record: any) => (
             <div
               key={record.id}
-              style={{ cursor: 'pointer', borderRadius: 18, border: '1px solid #e2e8f0', background: 'var(--bg-card)', padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}
+              style={{ cursor: 'pointer', borderRadius: 18, border: '1px solid var(--border-main)', background: 'var(--bg-card)', padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}
               onClick={() => navigate(`/medical-cases/${record.regid}`)}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
                 <div>
                   <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-main)' }}>{record.first_name} {record.surname}</div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, color: '#64748b', fontSize: 13 }}>
-                    <span className="mc-regid-badge" style={{ padding: '4px 8px', borderRadius: 999, background: '#f1f5f9', color: '#334155' }}>PT-{record.regid}</span>
+                    <span className="pp-regid-pill">PT-{record.regid}</span>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><User size={12} />{record.gender === 'M' ? 'Male' : 'Female'}</span>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Calendar size={12} />{record.age || '—'} yrs</span>
                   </div>
                 </div>
-                <div style={{ width: 48, height: 48, borderRadius: 14, background: '#eff6ff', display: 'grid', placeItems: 'center', color: '#2563EB', fontWeight: 800, fontSize: 16 }}>
+                <div style={{ width: 48, height: 48, borderRadius: 14, background: 'var(--pp-blue-tint)', display: 'grid', placeItems: 'center', color: 'var(--pp-blue)', fontWeight: 800, fontSize: 16 }}>
                   {record.first_name?.[0]}{record.surname?.[0]}
                 </div>
               </div>
@@ -204,14 +242,24 @@ export default function MedicalCaseListPage() {
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}><Activity size={13} />{record.bp ? record.bp : 'No BP data'}</div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
-                <span style={{ color: record.status !== 'Active' ? '#ef4444' : '#16a34a', fontWeight: 700 }}>{record.status || 'Active'}</span>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#64748b', fontSize: 13 }}>
+                <span style={{ color: record.status !== 'Active' ? 'var(--pp-danger-fg)' : 'var(--pp-success-fg)', fontWeight: 700 }}>{record.status || 'Active'}</span>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text-muted)', fontSize: 13 }}>
                   <Clock size={12} /> {record.last_followup || 'No visits yet'}
                 </div>
               </div>
             </div>
           ))}
         </div>
+      )}
+      {!isLoading && (records?.total ?? 0) > 0 && (
+        <Pagination
+          currentPage={page}
+          totalPages={Math.ceil((records?.total ?? 0) / pageSize)}
+          pageSize={pageSize}
+          totalItems={records?.total ?? 0}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
+        />
       )}
     </div>
   );

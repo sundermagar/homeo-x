@@ -1,0 +1,3 @@
+[build]
+  command = "unset NODE_ENV && pnpm install --include=dev && pnpm exec turbo run build --filter=@mmc/api"
+  builder = "NIXPACKS"

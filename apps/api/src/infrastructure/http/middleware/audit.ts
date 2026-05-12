@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
-import { AuditLogger, AuditAction } from '../../../shared/audit/audit-logger';
+import { AuditLogger, AuditAction } from '../../../shared/audit/audit-logger.js';
 
 const auditLogger = new AuditLogger();
 

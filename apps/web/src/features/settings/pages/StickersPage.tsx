@@ -1,9 +1,15 @@
 import React, { useState } from 'react';
-import { StickyNote, Plus, X, RefreshCw, ArrowLeft, Trash2, Edit2, Search } from 'lucide-react';
+import { StickyNote, Plus, X, RefreshCw, Trash2, Edit2, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useStickers, useCreateSticker, useUpdateSticker, useDeleteSticker } from '../hooks/use-settings';
+import { Drawer } from '@/shared/components/drawer';
 import '../../platform/styles/platform.css';
 import '../styles/settings.css';
+
+import { Pagination } from '@/shared/components/Pagination';
+import { usePagination } from '@/shared/hooks/use-pagination';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
 
 const EMPTY_FORM = { name: '', detail: '' };
 
@@ -23,6 +29,15 @@ export default function StickersPage() {
     sticker.name?.toLowerCase().includes(search.toLowerCase()) ||
     sticker.detail?.toLowerCase().includes(search.toLowerCase())
   );
+
+  const {
+    currentPage,
+    setCurrentPage,
+    itemsPerPage,
+    setItemsPerPage,
+    paginatedData,
+    totalItems
+  } = usePagination(filteredStickers);
 
   const handleOpenCreate = () => {
     setEditingId(null);
@@ -67,60 +82,61 @@ export default function StickersPage() {
     <div className="plat-page fade-in">
 
 
-      <div className="plat-header">
+      <div className="pp-page-hero">
         <div>
-          <h1 className="plat-header-title">
-            <StickyNote size={20} className="color-primary" />
+          <h1 className="pp-page-hero-title">
+            <StickyNote size={22} style={{ color: 'var(--pp-blue)' }} />
             Medicine Stickers
           </h1>
-          <p className="plat-header-sub">Configure templates for printing medicine dosage stickers.</p>
+          <p className="pp-page-hero-sub">Configure templates for printing medicine dosage stickers.</p>
         </div>
-        <div className="plat-header-actions">
-          <button className="plat-btn plat-btn-primary" onClick={handleOpenCreate}>
-            <Plus size={14} />
-            Add Template
+        <div className="pp-page-hero-actions">
+          <button className="btn-primary" onClick={handleOpenCreate}>
+            <Plus size={16} strokeWidth={1.8} /> Add Template
           </button>
         </div>
       </div>
 
-      <div className="plat-stats-bar">
-        <div className="plat-stat-card">
-          <p className="plat-stat-label">Sticker Templates</p>
-          <p className="plat-stat-value plat-stat-value-primary">{stickers.length}</p>
+      <div className="pp-stat-grid">
+        <div className="pp-stat-card-enhanced">
+          <div className="pp-stat-label">Sticker Templates</div>
+          <div className="pp-stat-value is-primary">{stickers.length}</div>
         </div>
-        <div className="plat-stat-card">
-          <p className="plat-stat-label">Filtered</p>
-          <p className="plat-stat-value plat-stat-value-success">
-            {filteredStickers.length}
-          </p>
+        <div className="pp-stat-card-enhanced">
+          <div className="pp-stat-label">Filtered Results</div>
+          <div className="pp-stat-value is-success">{filteredStickers.length}</div>
         </div>
       </div>
 
-      <div className="plat-filters">
-        <div className="plat-search-wrap">
-          <Search size={14} className="plat-search-icon" />
+      <div className="pp-filter-card">
+        <div className="pp-filter-search-wrap">
+          <Search size={14} />
           <input 
-            className="plat-form-input plat-search-input"
+            type="text"
             placeholder="Search sticker templates..."
+            className="pp-filter-search-input"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
       </div>
 
-      <div className="plat-card">
+      <div className="pp-table-container-enhanced">
         {isLoading ? (
-          <div className="plat-empty">
-            <RefreshCw size={22} className="animate-spin opacity-30" />
-          </div>
+          <TableSkeleton rows={5} columns={4} />
         ) : filteredStickers.length === 0 ? (
-          <div className="plat-empty">
-            <StickyNote size={40} className="plat-empty-icon" />
-            <p className="plat-empty-text">No sticker templates found.</p>
-          </div>
+          <EmptyState 
+            icon={StickyNote}
+            title={search ? "No matches found" : "No templates found"}
+            description={search ? `No sticker templates matching "${search}" were found.` : "Create a new sticker template to simplify your medicine dispensing workflow."}
+            actionLabel={search ? "Clear Search" : "Add Template"}
+            onAction={search ? () => setSearch('') : handleOpenCreate}
+            variant="card"
+            className="my-8"
+          />
         ) : (
-          <div className="plat-table-container">
-            <table className="plat-table">
+          <>
+            <table className="pp-table">
               <thead>
                 <tr>
                   <th style={{ width: '60px' }}>#</th>
@@ -130,16 +146,16 @@ export default function StickersPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredStickers.map((sticker: any, idx: number) => (
-                  <tr key={sticker.id} className="plat-table-row">
-                    <td data-label="#" className="plat-table-cell font-mono text-xs color-muted">{idx + 1}</td>
+                {paginatedData.map((sticker: any, idx: number) => (
+                  <tr key={sticker.id} className="pp-hover-row" onClick={() => handleOpenEdit(sticker)} style={{ cursor: 'pointer' }}>
+                    <td data-label="#" className="plat-table-cell font-mono text-xs color-muted">{(currentPage - 1) * itemsPerPage + idx + 1}</td>
                     <td data-label="Name" className="plat-table-cell font-semibold">{sticker.name}</td>
                     <td data-label="Detail" className="plat-table-cell text-secondary">
                       <div className="truncate max-w-[280px]" title={sticker.detail}>
                         {sticker.detail}
                       </div>
                     </td>
-                    <td className="plat-table-cell">
+                    <td data-label="Action" className="plat-table-cell">
                       <div className="flex justify-end gap-3">
                         <button className="plat-btn plat-btn-sm plat-btn-icon" onClick={() => handleOpenEdit(sticker)}>
                           <Edit2 size={13} />
@@ -153,62 +169,70 @@ export default function StickersPage() {
                 ))}
               </tbody>
             </table>
+              </>
+            )}
           </div>
-        )}
-      </div>
 
-      {isModalOpen && (
-        <div className="plat-modal-backdrop" onClick={() => setIsModalOpen(false)}>
-          <div className="plat-modal-content max-w-lg" onClick={e => e.stopPropagation()}>
-            <div className="plat-modal-header">
-              <h2 className="plat-modal-title">{editingId ? 'Edit Template' : 'Add Sticker Template'}</h2>
-              <button className="plat-btn plat-btn-icon" onClick={() => setIsModalOpen(false)}>
-                <X size={16} />
-              </button>
-            </div>
-            <form onSubmit={handleSubmit}>
-              <div className="plat-modal-body">
-                <div className="plat-form-section">
-                  <div className="plat-form-grid-multi" style={{ gridTemplateColumns: '1fr' }}>
-                    {error && (
-                      <div className="plat-alert plat-alert-danger" style={{ marginBottom: '1rem', fontSize: '13px' }}>
-                        {error}
-                      </div>
-                    )}
-                    <div className="plat-form-group">
-                      <label className="plat-form-label">Template Name *</label>
-                      <input 
-                        className="plat-form-input" 
-                        value={form.name} 
-                        onChange={e => setForm(f => ({...f, name: e.target.value}))}
-                        required 
-                        placeholder="e.g. 5 drops 3 times a day"
-                      />
-                    </div>
-                    <div className="plat-form-group">
-                      <label className="plat-form-label">Default Content *</label>
-                      <textarea 
-                        className="plat-form-input" 
-                        style={{ minHeight: '120px' }}
-                        value={form.detail} 
-                        onChange={e => setForm(f => ({...f, detail: e.target.value}))}
-                        required
-                        placeholder="The text that will appear on the sticker..."
-                      />
-                    </div>
+          {!isLoading && filteredStickers.length > 0 && (
+            <div style={{ marginTop: '20px' }}>
+            <Pagination
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                currentPage={currentPage}
+                onPageChange={setCurrentPage}
+                onLimitChange={setItemsPerPage}
+              />
+          </div>
+          )}
+
+      <Drawer
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={editingId ? 'Edit Template' : 'Add Sticker Template'}
+        maxWidth="480px"
+      >
+        <form onSubmit={handleSubmit}>
+          <div className="plat-modal-body" style={{ padding: 0 }}>
+            <div className="plat-form-section" style={{ border: 'none', boxShadow: 'none', padding: 0 }}>
+              <div className="plat-form-grid-multi" style={{ gridTemplateColumns: '1fr' }}>
+                {error && (
+                  <div className="plat-alert plat-alert-danger" style={{ marginBottom: '1rem', fontSize: '13px' }}>
+                    {error}
                   </div>
+                )}
+                <div className="plat-form-group">
+                  <label className="plat-form-label">Template Name *</label>
+                  <input
+                    className="plat-form-input"
+                    value={form.name}
+                    onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                    required
+                    placeholder="e.g. 5 drops 3 times a day"
+                  />
+                </div>
+                <div className="plat-form-group">
+                  <label className="plat-form-label">Default Content *</label>
+                  <textarea
+                    className="plat-form-input"
+                    style={{ minHeight: '160px' }}
+                    value={form.detail}
+                    onChange={e => setForm(f => ({ ...f, detail: e.target.value }))}
+                    required
+                    placeholder="The text that will appear on the sticker..."
+                  />
                 </div>
               </div>
-              <div className="plat-modal-footer">
-                <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                <button type="submit" className="plat-btn plat-btn-primary" disabled={createSticker.isPending || updateSticker.isPending}>
-                  {editingId ? 'Save Changes' : 'Create Template'}
-                </button>
-              </div>
-            </form>
+            </div>
           </div>
-        </div>
-      )}
+          <div className="plat-modal-footer" style={{ padding: '24px 0 0 0', marginTop: '24px' }}>
+            <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
+            <button type="submit" className="btn-primary" disabled={createSticker.isPending || updateSticker.isPending}>
+              {editingId ? 'Save Changes' : 'Create Template'}
+            </button>
+          </div>
+        </form>
+      </Drawer>
+
     </div>
   );
 }

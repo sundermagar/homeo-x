@@ -1,0 +1,1081 @@
+---- LINE 122 ----
+    static get scopes(): string[];
+    getProjectId(): Promise<string>;
+    getProjectId(callback: Callback<string, undefined, undefined>): void;
+    /**
+     * Returns the requested
+     * {@link protos.google.cloud.speech.v2.Recognizer|Recognizer}. Fails with
+     * {@link protos.google.rpc.Code.NOT_FOUND|NOT_FOUND} if the requested Recognizer doesn't
+     * exist.
+     *
+     * @param {Object} request
+     *   The request object that will be sent.
+     * @param {string} request.name
+     *   Required. The name of the Recognizer to retrieve. The expected format is
+     *   `projects/{project}/locations/{location}/recognizers/{recognizer}`.
+     * @param {object} [options]
+     *   Call options. See {@link https://googleapis.dev/nodejs/google-gax/latest/interfaces/CallOptions.html|CallOptions} for more details.
+     * @returns {Promise} - The promise which resolves to an array.
+     *   The first element of the array is an object representing {@link protos.google.cloud.speech.v2.Recognizer|Recognizer}.
+     *   Please see the {@link https://github.com/googleapis/gax-nodejs/blob/master/client-libraries.md#regular-methods | documentation }
+     *   for more details and examples.
+     * @example <caption>include:samples/generated/v2/speech.get_recognizer.js</caption>
+     * region_tag:speech_v2_generated_Speech_GetRecognizer_async
+     */
+    getRecognizer(request?: protos.google.cloud.speech.v2.IGetRecognizerRequest, options?: CallOptions): Promise<[
+        protos.google.cloud.speech.v2.IRecognizer,
+        protos.google.cloud.speech.v2.IGetRecognizerRequest | undefined,
+---- LINE 123 ----
+    getProjectId(): Promise<string>;
+    getProjectId(callback: Callback<string, undefined, undefined>): void;
+    /**
+     * Returns the requested
+     * {@link protos.google.cloud.speech.v2.Recognizer|Recognizer}. Fails with
+     * {@link protos.google.rpc.Code.NOT_FOUND|NOT_FOUND} if the requested Recognizer doesn't
+     * exist.
+     *
+     * @param {Object} request
+     *   The request object that will be sent.
+     * @param {string} request.name
+     *   Required. The name of the Recognizer to retrieve. The expected format is
+     *   `projects/{project}/locations/{location}/recognizers/{recognizer}`.
+     * @param {object} [options]
+     *   Call options. See {@link https://googleapis.dev/nodejs/google-gax/latest/interfaces/CallOptions.html|CallOptions} for more details.
+     * @returns {Promise} - The promise which resolves to an array.
+     *   The first element of the array is an object representing {@link protos.google.cloud.speech.v2.Recognizer|Recognizer}.
+     *   Please see the {@link https://github.com/googleapis/gax-nodejs/blob/master/client-libraries.md#regular-methods | documentation }
+     *   for more details and examples.
+     * @example <caption>include:samples/generated/v2/speech.get_recognizer.js</caption>
+     * region_tag:speech_v2_generated_Speech_GetRecognizer_async
+     */
+    getRecognizer(request?: protos.google.cloud.speech.v2.IGetRecognizerRequest, options?: CallOptions): Promise<[
+        protos.google.cloud.speech.v2.IRecognizer,
+        protos.google.cloud.speech.v2.IGetRecognizerRequest | undefined,
+        {} | undefined
+---- LINE 129 ----
+     * exist.
+     *
+     * @param {Object} request
+     *   The request object that will be sent.
+     * @param {string} request.name
+     *   Required. The name of the Recognizer to retrieve. The expected format is
+     *   `projects/{project}/locations/{location}/recognizers/{recognizer}`.
+     * @param {object} [options]
+     *   Call options. See {@link https://googleapis.dev/nodejs/google-gax/latest/interfaces/CallOptions.html|CallOptions} for more details.
+     * @returns {Promise} - The promise which resolves to an array.
+     *   The first element of the array is an object representing {@link protos.google.cloud.speech.v2.Recognizer|Recognizer}.
+     *   Please see the {@link https://github.com/googleapis/gax-nodejs/blob/master/client-libraries.md#regular-methods | documentation }
+     *   for more details and examples.
+     * @example <caption>include:samples/generated/v2/speech.get_recognizer.js</caption>
+     * region_tag:speech_v2_generated_Speech_GetRecognizer_async
+     */
+    getRecognizer(request?: protos.google.cloud.speech.v2.IGetRecognizerRequest, options?: CallOptions): Promise<[
+        protos.google.cloud.speech.v2.IRecognizer,
+        protos.google.cloud.speech.v2.IGetRecognizerRequest | undefined,
+        {} | undefined
+    ]>;
+    getRecognizer(request: protos.google.cloud.speech.v2.IGetRecognizerRequest, options: CallOptions, callback: Callback<protos.google.cloud.speech.v2.IRecognizer, protos.google.cloud.speech.v2.IGetRecognizerRequest | null | undefined, {} | null | undefined>): void;
+    getRecognizer(request: protos.google.cloud.speech.v2.IGetRecognizerRequest, callback: Callback<protos.google.cloud.speech.v2.IRecognizer, protos.google.cloud.speech.v2.IGetRecognizerRequest | null | undefined, {} | null | undefined>): void;
+    /**
+     * Performs synchronous Speech recognition: receive results after all audio
+     * has been sent and processed.
+---- LINE 130 ----
+     *
+     * @param {Object} request
+     *   The request object that will be sent.
+     * @param {string} request.name
+     *   Required. The name of the Recognizer to retrieve. The expected format is
+     *   `projects/{project}/locations/{location}/recognizers/{recognizer}`.
+     * @param {object} [options]
+     *   Call options. See {@link https://googleapis.dev/nodejs/google-gax/latest/interfaces/CallOptions.html|CallOptions} for more details.
+     * @returns {Promise} - The promise which resolves to an array.
+     *   The first element of the array is an object representing {@link protos.google.cloud.speech.v2.Recognizer|Recognizer}.
+     *   Please see the {@link https://github.com/googleapis/gax-nodejs/blob/master/client-libraries.md#regular-methods | documentation }
+     *   for more details and examples.
+     * @example <caption>include:samples/generated/v2/speech.get_recognizer.js</caption>
+     * region_tag:speech_v2_generated_Speech_GetRecognizer_async
+     */
+    getRecognizer(request?: protos.google.cloud.speech.v2.IGetRecognizerRequest, options?: CallOptions): Promise<[
+        protos.google.cloud.speech.v2.IRecognizer,
+        protos.google.cloud.speech.v2.IGetRecognizerRequest | undefined,
+        {} | undefined
+    ]>;
+    getRecognizer(request: protos.google.cloud.speech.v2.IGetRecognizerRequest, options: CallOptions, callback: Callback<protos.google.cloud.speech.v2.IRecognizer, protos.google.cloud.speech.v2.IGetRecognizerRequest | null | undefined, {} | null | undefined>): void;
+    getRecognizer(request: protos.google.cloud.speech.v2.IGetRecognizerRequest, callback: Callback<protos.google.cloud.speech.v2.IRecognizer, protos.google.cloud.speech.v2.IGetRecognizerRequest | null | undefined, {} | null | undefined>): void;
+    /**
+     * Performs synchronous Speech recognition: receive results after all audio
+     * has been sent and processed.
+     *
+---- LINE 134 ----
+     *   Required. The name of the Recognizer to retrieve. The expected format is
+     *   `projects/{project}/locations/{location}/recognizers/{recognizer}`.
+     * @param {object} [options]
+     *   Call options. See {@link https://googleapis.dev/nodejs/google-gax/latest/interfaces/CallOptions.html|CallOptions} for more details.
+     * @returns {Promise} - The promise which resolves to an array.
+     *   The first element of the array is an object representing {@link protos.google.cloud.speech.v2.Recognizer|Recognizer}.
+     *   Please see the {@link https://github.com/googleapis/gax-nodejs/blob/master/client-libraries.md#regular-methods | documentation }
+     *   for more details and examples.
+     * @example <caption>include:samples/generated/v2/speech.get_recognizer.js</caption>
+     * region_tag:speech_v2_generated_Speech_GetRecognizer_async
+     */
+    getRecognizer(request?: protos.google.cloud.speech.v2.IGetRecognizerRequest, options?: CallOptions): Promise<[
+        protos.google.cloud.speech.v2.IRecognizer,
+        protos.google.cloud.speech.v2.IGetRecognizerRequest | undefined,
+        {} | undefined
+    ]>;
+    getRecognizer(request: protos.google.cloud.speech.v2.IGetRecognizerRequest, options: CallOptions, callback: Callback<protos.google.cloud.speech.v2.IRecognizer, protos.google.cloud.speech.v2.IGetRecognizerRequest | null | undefined, {} | null | undefined>): void;
+    getRecognizer(request: protos.google.cloud.speech.v2.IGetRecognizerRequest, callback: Callback<protos.google.cloud.speech.v2.IRecognizer, protos.google.cloud.speech.v2.IGetRecognizerRequest | null | undefined, {} | null | undefined>): void;
+    /**
+     * Performs synchronous Speech recognition: receive results after all audio
+     * has been sent and processed.
+     *
+     * @param {Object} request
+     *   The request object that will be sent.
+     * @param {string} request.recognizer
+     *   Required. The name of the Recognizer to use during recognition. The
+---- LINE 137 ----
+     *   Call options. See {@link https://googleapis.dev/nodejs/google-gax/latest/interfaces/CallOptions.html|CallOptions} for more details.
+     * @returns {Promise} - The promise which resolves to an array.
+     *   The first element of the array is an object representing {@link protos.google.cloud.speech.v2.Recognizer|Recognizer}.
+     *   Please see the {@link https://github.com/googleapis/gax-nodejs/blob/master/client-libraries.md#regular-methods | documentation }
+     *   for more details and examples.
+     * @example <caption>include:samples/generated/v2/speech.get_recognizer.js</caption>
+     * region_tag:speech_v2_generated_Speech_GetRecognizer_async
+     */
+    getRecognizer(request?: protos.google.cloud.speech.v2.IGetRecognizerRequest, options?: CallOptions): Promise<[
+        protos.google.cloud.speech.v2.IRecognizer,
+        protos.google.cloud.speech.v2.IGetRecognizerRequest | undefined,
+        {} | undefined
+    ]>;
+    getRecognizer(request: protos.google.cloud.speech.v2.IGetRecognizerRequest, options: CallOptions, callback: Callback<protos.google.cloud.speech.v2.IRecognizer, protos.google.cloud.speech.v2.IGetRecognizerRequest | null | undefined, {} | null | undefined>): void;
+    getRecognizer(request: protos.google.cloud.speech.v2.IGetRecognizerRequest, callback: Callback<protos.google.cloud.speech.v2.IRecognizer, protos.google.cloud.speech.v2.IGetRecognizerRequest | null | undefined, {} | null | undefined>): void;
+    /**
+     * Performs synchronous Speech recognition: receive results after all audio
+     * has been sent and processed.
+     *
+     * @param {Object} request
+     *   The request object that will be sent.
+     * @param {string} request.recognizer
+     *   Required. The name of the Recognizer to use during recognition. The
+     *   expected format is
+     *   `projects/{project}/locations/{location}/recognizers/{recognizer}`. The
+     *   {recognizer} segment may be set to `_` to use an empty implicit Recognizer.
+---- LINE 138 ----
+     * @returns {Promise} - The promise which resolves to an array.
+     *   The first element of the array is an object representing {@link protos.google.cloud.speech.v2.Recognizer|Recognizer}.
+     *   Please see the {@link https://github.com/googleapis/gax-nodejs/blob/master/client-libraries.md#regular-methods | documentation }
+     *   for more details and examples.
+     * @example <caption>include:samples/generated/v2/speech.get_recognizer.js</caption>
+     * region_tag:speech_v2_generated_Speech_GetRecognizer_async
+     */
+    getRecognizer(request?: protos.google.cloud.speech.v2.IGetRecognizerRequest, options?: CallOptions): Promise<[
+        protos.google.cloud.speech.v2.IRecognizer,
+        protos.google.cloud.speech.v2.IGetRecognizerRequest | undefined,
+        {} | undefined
+    ]>;
+    getRecognizer(request: protos.google.cloud.speech.v2.IGetRecognizerRequest, options: CallOptions, callback: Callback<protos.google.cloud.speech.v2.IRecognizer, protos.google.cloud.speech.v2.IGetRecognizerRequest | null | undefined, {} | null | undefined>): void;
+    getRecognizer(request: protos.google.cloud.speech.v2.IGetRecognizerRequest, callback: Callback<protos.google.cloud.speech.v2.IRecognizer, protos.google.cloud.speech.v2.IGetRecognizerRequest | null | undefined, {} | null | undefined>): void;
+    /**
+     * Performs synchronous Speech recognition: receive results after all audio
+     * has been sent and processed.
+     *
+     * @param {Object} request
+     *   The request object that will be sent.
+     * @param {string} request.recognizer
+     *   Required. The name of the Recognizer to use during recognition. The
+     *   expected format is
+     *   `projects/{project}/locations/{location}/recognizers/{recognizer}`. The
+     *   {recognizer} segment may be set to `_` to use an empty implicit Recognizer.
+     * @param {google.cloud.speech.v2.RecognitionConfig} request.config
+---- LINE 140 ----
+     *   Please see the {@link https://github.com/googleapis/gax-nodejs/blob/master/client-libraries.md#regular-methods | documentation }
+     *   for more details and examples.
+     * @example <caption>include:samples/generated/v2/speech.get_recognizer.js</caption>
+     * region_tag:speech_v2_generated_Speech_GetRecognizer_async
+     */
+    getRecognizer(request?: protos.google.cloud.speech.v2.IGetRecognizerRequest, options?: CallOptions): Promise<[
+        protos.google.cloud.speech.v2.IRecognizer,
+        protos.google.cloud.speech.v2.IGetRecognizerRequest | undefined,
+        {} | undefined
+    ]>;
+    getRecognizer(request: protos.google.cloud.speech.v2.IGetRecognizerRequest, options: CallOptions, callback: Callback<protos.google.cloud.speech.v2.IRecognizer, protos.google.cloud.speech.v2.IGetRecognizerRequest | null | undefined, {} | null | undefined>): void;
+    getRecognizer(request: protos.google.cloud.speech.v2.IGetRecognizerRequest, callback: Callback<protos.google.cloud.speech.v2.IRecognizer, protos.google.cloud.speech.v2.IGetRecognizerRequest | null | undefined, {} | null | undefined>): void;
+    /**
+     * Performs synchronous Speech recognition: receive results after all audio
+     * has been sent and processed.
+     *
+     * @param {Object} request
+     *   The request object that will be sent.
+     * @param {string} request.recognizer
+     *   Required. The name of the Recognizer to use during recognition. The
+     *   expected format is
+     *   `projects/{project}/locations/{location}/recognizers/{recognizer}`. The
+     *   {recognizer} segment may be set to `_` to use an empty implicit Recognizer.
+     * @param {google.cloud.speech.v2.RecognitionConfig} request.config
+     *   Features and audio metadata to use for the Automatic Speech Recognition.
+     *   This field in combination with the
+---- LINE 141 ----
+     *   for more details and examples.
+     * @example <caption>include:samples/generated/v2/speech.get_recognizer.js</caption>
+     * region_tag:speech_v2_generated_Speech_GetRecognizer_async
+     */
+    getRecognizer(request?: protos.google.cloud.speech.v2.IGetRecognizerRequest, options?: CallOptions): Promise<[
+        protos.google.cloud.speech.v2.IRecognizer,
+        protos.google.cloud.speech.v2.IGetRecognizerRequest | undefined,
+        {} | undefined
+    ]>;
+    getRecognizer(request: protos.google.cloud.speech.v2.IGetRecognizerRequest, options: CallOptions, callback: Callback<protos.google.cloud.speech.v2.IRecognizer, protos.google.cloud.speech.v2.IGetRecognizerRequest | null | undefined, {} | null | undefined>): void;
+    getRecognizer(request: protos.google.cloud.speech.v2.IGetRecognizerRequest, callback: Callback<protos.google.cloud.speech.v2.IRecognizer, protos.google.cloud.speech.v2.IGetRecognizerRequest | null | undefined, {} | null | undefined>): void;
+    /**
+     * Performs synchronous Speech recognition: receive results after all audio
+     * has been sent and processed.
+     *
+     * @param {Object} request
+     *   The request object that will be sent.
+     * @param {string} request.recognizer
+     *   Required. The name of the Recognizer to use during recognition. The
+     *   expected format is
+     *   `projects/{project}/locations/{location}/recognizers/{recognizer}`. The
+     *   {recognizer} segment may be set to `_` to use an empty implicit Recognizer.
+     * @param {google.cloud.speech.v2.RecognitionConfig} request.config
+     *   Features and audio metadata to use for the Automatic Speech Recognition.
+     *   This field in combination with the
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config_mask|config_mask} field
+---- LINE 142 ----
+     * @example <caption>include:samples/generated/v2/speech.get_recognizer.js</caption>
+     * region_tag:speech_v2_generated_Speech_GetRecognizer_async
+     */
+    getRecognizer(request?: protos.google.cloud.speech.v2.IGetRecognizerRequest, options?: CallOptions): Promise<[
+        protos.google.cloud.speech.v2.IRecognizer,
+        protos.google.cloud.speech.v2.IGetRecognizerRequest | undefined,
+        {} | undefined
+    ]>;
+    getRecognizer(request: protos.google.cloud.speech.v2.IGetRecognizerRequest, options: CallOptions, callback: Callback<protos.google.cloud.speech.v2.IRecognizer, protos.google.cloud.speech.v2.IGetRecognizerRequest | null | undefined, {} | null | undefined>): void;
+    getRecognizer(request: protos.google.cloud.speech.v2.IGetRecognizerRequest, callback: Callback<protos.google.cloud.speech.v2.IRecognizer, protos.google.cloud.speech.v2.IGetRecognizerRequest | null | undefined, {} | null | undefined>): void;
+    /**
+     * Performs synchronous Speech recognition: receive results after all audio
+     * has been sent and processed.
+     *
+     * @param {Object} request
+     *   The request object that will be sent.
+     * @param {string} request.recognizer
+     *   Required. The name of the Recognizer to use during recognition. The
+     *   expected format is
+     *   `projects/{project}/locations/{location}/recognizers/{recognizer}`. The
+     *   {recognizer} segment may be set to `_` to use an empty implicit Recognizer.
+     * @param {google.cloud.speech.v2.RecognitionConfig} request.config
+     *   Features and audio metadata to use for the Automatic Speech Recognition.
+     *   This field in combination with the
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config_mask|config_mask} field
+     *   can be used to override parts of the
+---- LINE 145 ----
+    getRecognizer(request?: protos.google.cloud.speech.v2.IGetRecognizerRequest, options?: CallOptions): Promise<[
+        protos.google.cloud.speech.v2.IRecognizer,
+        protos.google.cloud.speech.v2.IGetRecognizerRequest | undefined,
+        {} | undefined
+    ]>;
+    getRecognizer(request: protos.google.cloud.speech.v2.IGetRecognizerRequest, options: CallOptions, callback: Callback<protos.google.cloud.speech.v2.IRecognizer, protos.google.cloud.speech.v2.IGetRecognizerRequest | null | undefined, {} | null | undefined>): void;
+    getRecognizer(request: protos.google.cloud.speech.v2.IGetRecognizerRequest, callback: Callback<protos.google.cloud.speech.v2.IRecognizer, protos.google.cloud.speech.v2.IGetRecognizerRequest | null | undefined, {} | null | undefined>): void;
+    /**
+     * Performs synchronous Speech recognition: receive results after all audio
+     * has been sent and processed.
+     *
+     * @param {Object} request
+     *   The request object that will be sent.
+     * @param {string} request.recognizer
+     *   Required. The name of the Recognizer to use during recognition. The
+     *   expected format is
+     *   `projects/{project}/locations/{location}/recognizers/{recognizer}`. The
+     *   {recognizer} segment may be set to `_` to use an empty implicit Recognizer.
+     * @param {google.cloud.speech.v2.RecognitionConfig} request.config
+     *   Features and audio metadata to use for the Automatic Speech Recognition.
+     *   This field in combination with the
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config_mask|config_mask} field
+     *   can be used to override parts of the
+     *   {@link protos.google.cloud.speech.v2.Recognizer.default_recognition_config|default_recognition_config}
+     *   of the Recognizer resource.
+     * @param {google.protobuf.FieldMask} request.configMask
+---- LINE 146 ----
+        protos.google.cloud.speech.v2.IRecognizer,
+        protos.google.cloud.speech.v2.IGetRecognizerRequest | undefined,
+        {} | undefined
+    ]>;
+    getRecognizer(request: protos.google.cloud.speech.v2.IGetRecognizerRequest, options: CallOptions, callback: Callback<protos.google.cloud.speech.v2.IRecognizer, protos.google.cloud.speech.v2.IGetRecognizerRequest | null | undefined, {} | null | undefined>): void;
+    getRecognizer(request: protos.google.cloud.speech.v2.IGetRecognizerRequest, callback: Callback<protos.google.cloud.speech.v2.IRecognizer, protos.google.cloud.speech.v2.IGetRecognizerRequest | null | undefined, {} | null | undefined>): void;
+    /**
+     * Performs synchronous Speech recognition: receive results after all audio
+     * has been sent and processed.
+     *
+     * @param {Object} request
+     *   The request object that will be sent.
+     * @param {string} request.recognizer
+     *   Required. The name of the Recognizer to use during recognition. The
+     *   expected format is
+     *   `projects/{project}/locations/{location}/recognizers/{recognizer}`. The
+     *   {recognizer} segment may be set to `_` to use an empty implicit Recognizer.
+     * @param {google.cloud.speech.v2.RecognitionConfig} request.config
+     *   Features and audio metadata to use for the Automatic Speech Recognition.
+     *   This field in combination with the
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config_mask|config_mask} field
+     *   can be used to override parts of the
+     *   {@link protos.google.cloud.speech.v2.Recognizer.default_recognition_config|default_recognition_config}
+     *   of the Recognizer resource.
+     * @param {google.protobuf.FieldMask} request.configMask
+     *   The list of fields in
+---- LINE 153 ----
+     * Performs synchronous Speech recognition: receive results after all audio
+     * has been sent and processed.
+     *
+     * @param {Object} request
+     *   The request object that will be sent.
+     * @param {string} request.recognizer
+     *   Required. The name of the Recognizer to use during recognition. The
+     *   expected format is
+     *   `projects/{project}/locations/{location}/recognizers/{recognizer}`. The
+     *   {recognizer} segment may be set to `_` to use an empty implicit Recognizer.
+     * @param {google.cloud.speech.v2.RecognitionConfig} request.config
+     *   Features and audio metadata to use for the Automatic Speech Recognition.
+     *   This field in combination with the
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config_mask|config_mask} field
+     *   can be used to override parts of the
+     *   {@link protos.google.cloud.speech.v2.Recognizer.default_recognition_config|default_recognition_config}
+     *   of the Recognizer resource.
+     * @param {google.protobuf.FieldMask} request.configMask
+     *   The list of fields in
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config|config} that override the
+     *   values in the
+     *   {@link protos.google.cloud.speech.v2.Recognizer.default_recognition_config|default_recognition_config}
+     *   of the recognizer during this recognition request. If no mask is provided,
+     *   all non-default valued fields in
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config|config} override the
+     *   values in the recognizer for this recognition request. If a mask is
+---- LINE 154 ----
+     * has been sent and processed.
+     *
+     * @param {Object} request
+     *   The request object that will be sent.
+     * @param {string} request.recognizer
+     *   Required. The name of the Recognizer to use during recognition. The
+     *   expected format is
+     *   `projects/{project}/locations/{location}/recognizers/{recognizer}`. The
+     *   {recognizer} segment may be set to `_` to use an empty implicit Recognizer.
+     * @param {google.cloud.speech.v2.RecognitionConfig} request.config
+     *   Features and audio metadata to use for the Automatic Speech Recognition.
+     *   This field in combination with the
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config_mask|config_mask} field
+     *   can be used to override parts of the
+     *   {@link protos.google.cloud.speech.v2.Recognizer.default_recognition_config|default_recognition_config}
+     *   of the Recognizer resource.
+     * @param {google.protobuf.FieldMask} request.configMask
+     *   The list of fields in
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config|config} that override the
+     *   values in the
+     *   {@link protos.google.cloud.speech.v2.Recognizer.default_recognition_config|default_recognition_config}
+     *   of the recognizer during this recognition request. If no mask is provided,
+     *   all non-default valued fields in
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config|config} override the
+     *   values in the recognizer for this recognition request. If a mask is
+     *   provided, only the fields listed in the mask override the config in the
+---- LINE 156 ----
+     * @param {Object} request
+     *   The request object that will be sent.
+     * @param {string} request.recognizer
+     *   Required. The name of the Recognizer to use during recognition. The
+     *   expected format is
+     *   `projects/{project}/locations/{location}/recognizers/{recognizer}`. The
+     *   {recognizer} segment may be set to `_` to use an empty implicit Recognizer.
+     * @param {google.cloud.speech.v2.RecognitionConfig} request.config
+     *   Features and audio metadata to use for the Automatic Speech Recognition.
+     *   This field in combination with the
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config_mask|config_mask} field
+     *   can be used to override parts of the
+     *   {@link protos.google.cloud.speech.v2.Recognizer.default_recognition_config|default_recognition_config}
+     *   of the Recognizer resource.
+     * @param {google.protobuf.FieldMask} request.configMask
+     *   The list of fields in
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config|config} that override the
+     *   values in the
+     *   {@link protos.google.cloud.speech.v2.Recognizer.default_recognition_config|default_recognition_config}
+     *   of the recognizer during this recognition request. If no mask is provided,
+     *   all non-default valued fields in
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config|config} override the
+     *   values in the recognizer for this recognition request. If a mask is
+     *   provided, only the fields listed in the mask override the config in the
+     *   recognizer for this recognition request. If a wildcard (`*`) is provided,
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config|config} completely
+---- LINE 157 ----
+     *   The request object that will be sent.
+     * @param {string} request.recognizer
+     *   Required. The name of the Recognizer to use during recognition. The
+     *   expected format is
+     *   `projects/{project}/locations/{location}/recognizers/{recognizer}`. The
+     *   {recognizer} segment may be set to `_` to use an empty implicit Recognizer.
+     * @param {google.cloud.speech.v2.RecognitionConfig} request.config
+     *   Features and audio metadata to use for the Automatic Speech Recognition.
+     *   This field in combination with the
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config_mask|config_mask} field
+     *   can be used to override parts of the
+     *   {@link protos.google.cloud.speech.v2.Recognizer.default_recognition_config|default_recognition_config}
+     *   of the Recognizer resource.
+     * @param {google.protobuf.FieldMask} request.configMask
+     *   The list of fields in
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config|config} that override the
+     *   values in the
+     *   {@link protos.google.cloud.speech.v2.Recognizer.default_recognition_config|default_recognition_config}
+     *   of the recognizer during this recognition request. If no mask is provided,
+     *   all non-default valued fields in
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config|config} override the
+     *   values in the recognizer for this recognition request. If a mask is
+     *   provided, only the fields listed in the mask override the config in the
+     *   recognizer for this recognition request. If a wildcard (`*`) is provided,
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config|config} completely
+     *   overrides and replaces the config in the recognizer for this recognition
+---- LINE 161 ----
+     *   `projects/{project}/locations/{location}/recognizers/{recognizer}`. The
+     *   {recognizer} segment may be set to `_` to use an empty implicit Recognizer.
+     * @param {google.cloud.speech.v2.RecognitionConfig} request.config
+     *   Features and audio metadata to use for the Automatic Speech Recognition.
+     *   This field in combination with the
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config_mask|config_mask} field
+     *   can be used to override parts of the
+     *   {@link protos.google.cloud.speech.v2.Recognizer.default_recognition_config|default_recognition_config}
+     *   of the Recognizer resource.
+     * @param {google.protobuf.FieldMask} request.configMask
+     *   The list of fields in
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config|config} that override the
+     *   values in the
+     *   {@link protos.google.cloud.speech.v2.Recognizer.default_recognition_config|default_recognition_config}
+     *   of the recognizer during this recognition request. If no mask is provided,
+     *   all non-default valued fields in
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config|config} override the
+     *   values in the recognizer for this recognition request. If a mask is
+     *   provided, only the fields listed in the mask override the config in the
+     *   recognizer for this recognition request. If a wildcard (`*`) is provided,
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config|config} completely
+     *   overrides and replaces the config in the recognizer for this recognition
+     *   request.
+     * @param {Buffer} request.content
+     *   The audio data bytes encoded as specified in
+     *   {@link protos.google.cloud.speech.v2.RecognitionConfig|RecognitionConfig}. As
+---- LINE 163 ----
+     * @param {google.cloud.speech.v2.RecognitionConfig} request.config
+     *   Features and audio metadata to use for the Automatic Speech Recognition.
+     *   This field in combination with the
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config_mask|config_mask} field
+     *   can be used to override parts of the
+     *   {@link protos.google.cloud.speech.v2.Recognizer.default_recognition_config|default_recognition_config}
+     *   of the Recognizer resource.
+     * @param {google.protobuf.FieldMask} request.configMask
+     *   The list of fields in
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config|config} that override the
+     *   values in the
+     *   {@link protos.google.cloud.speech.v2.Recognizer.default_recognition_config|default_recognition_config}
+     *   of the recognizer during this recognition request. If no mask is provided,
+     *   all non-default valued fields in
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config|config} override the
+     *   values in the recognizer for this recognition request. If a mask is
+     *   provided, only the fields listed in the mask override the config in the
+     *   recognizer for this recognition request. If a wildcard (`*`) is provided,
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config|config} completely
+     *   overrides and replaces the config in the recognizer for this recognition
+     *   request.
+     * @param {Buffer} request.content
+     *   The audio data bytes encoded as specified in
+     *   {@link protos.google.cloud.speech.v2.RecognitionConfig|RecognitionConfig}. As
+     *   with all bytes fields, proto buffers use a pure binary representation,
+     *   whereas JSON representations use base64.
+---- LINE 164 ----
+     *   Features and audio metadata to use for the Automatic Speech Recognition.
+     *   This field in combination with the
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config_mask|config_mask} field
+     *   can be used to override parts of the
+     *   {@link protos.google.cloud.speech.v2.Recognizer.default_recognition_config|default_recognition_config}
+     *   of the Recognizer resource.
+     * @param {google.protobuf.FieldMask} request.configMask
+     *   The list of fields in
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config|config} that override the
+     *   values in the
+     *   {@link protos.google.cloud.speech.v2.Recognizer.default_recognition_config|default_recognition_config}
+     *   of the recognizer during this recognition request. If no mask is provided,
+     *   all non-default valued fields in
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config|config} override the
+     *   values in the recognizer for this recognition request. If a mask is
+     *   provided, only the fields listed in the mask override the config in the
+     *   recognizer for this recognition request. If a wildcard (`*`) is provided,
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config|config} completely
+     *   overrides and replaces the config in the recognizer for this recognition
+     *   request.
+     * @param {Buffer} request.content
+     *   The audio data bytes encoded as specified in
+     *   {@link protos.google.cloud.speech.v2.RecognitionConfig|RecognitionConfig}. As
+     *   with all bytes fields, proto buffers use a pure binary representation,
+     *   whereas JSON representations use base64.
+     * @param {string} request.uri
+---- LINE 167 ----
+     *   can be used to override parts of the
+     *   {@link protos.google.cloud.speech.v2.Recognizer.default_recognition_config|default_recognition_config}
+     *   of the Recognizer resource.
+     * @param {google.protobuf.FieldMask} request.configMask
+     *   The list of fields in
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config|config} that override the
+     *   values in the
+     *   {@link protos.google.cloud.speech.v2.Recognizer.default_recognition_config|default_recognition_config}
+     *   of the recognizer during this recognition request. If no mask is provided,
+     *   all non-default valued fields in
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config|config} override the
+     *   values in the recognizer for this recognition request. If a mask is
+     *   provided, only the fields listed in the mask override the config in the
+     *   recognizer for this recognition request. If a wildcard (`*`) is provided,
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config|config} completely
+     *   overrides and replaces the config in the recognizer for this recognition
+     *   request.
+     * @param {Buffer} request.content
+     *   The audio data bytes encoded as specified in
+     *   {@link protos.google.cloud.speech.v2.RecognitionConfig|RecognitionConfig}. As
+     *   with all bytes fields, proto buffers use a pure binary representation,
+     *   whereas JSON representations use base64.
+     * @param {string} request.uri
+     *   URI that points to a file that contains audio data bytes as specified in
+     *   {@link protos.google.cloud.speech.v2.RecognitionConfig|RecognitionConfig}. The file
+     *   must not be compressed (for example, gzip). Currently, only Google Cloud
+---- LINE 163 ----
+     * @param {google.cloud.speech.v2.RecognitionConfig} request.config
+     *   Features and audio metadata to use for the Automatic Speech Recognition.
+     *   This field in combination with the
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config_mask|config_mask} field
+     *   can be used to override parts of the
+     *   {@link protos.google.cloud.speech.v2.Recognizer.default_recognition_config|default_recognition_config}
+     *   of the Recognizer resource.
+     * @param {google.protobuf.FieldMask} request.configMask
+     *   The list of fields in
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config|config} that override the
+     *   values in the
+     *   {@link protos.google.cloud.speech.v2.Recognizer.default_recognition_config|default_recognition_config}
+     *   of the recognizer during this recognition request. If no mask is provided,
+     *   all non-default valued fields in
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config|config} override the
+     *   values in the recognizer for this recognition request. If a mask is
+     *   provided, only the fields listed in the mask override the config in the
+     *   recognizer for this recognition request. If a wildcard (`*`) is provided,
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config|config} completely
+     *   overrides and replaces the config in the recognizer for this recognition
+     *   request.
+     * @param {Buffer} request.content
+     *   The audio data bytes encoded as specified in
+     *   {@link protos.google.cloud.speech.v2.RecognitionConfig|RecognitionConfig}. As
+     *   with all bytes fields, proto buffers use a pure binary representation,
+     *   whereas JSON representations use base64.
+---- LINE 170 ----
+     * @param {google.protobuf.FieldMask} request.configMask
+     *   The list of fields in
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config|config} that override the
+     *   values in the
+     *   {@link protos.google.cloud.speech.v2.Recognizer.default_recognition_config|default_recognition_config}
+     *   of the recognizer during this recognition request. If no mask is provided,
+     *   all non-default valued fields in
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config|config} override the
+     *   values in the recognizer for this recognition request. If a mask is
+     *   provided, only the fields listed in the mask override the config in the
+     *   recognizer for this recognition request. If a wildcard (`*`) is provided,
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config|config} completely
+     *   overrides and replaces the config in the recognizer for this recognition
+     *   request.
+     * @param {Buffer} request.content
+     *   The audio data bytes encoded as specified in
+     *   {@link protos.google.cloud.speech.v2.RecognitionConfig|RecognitionConfig}. As
+     *   with all bytes fields, proto buffers use a pure binary representation,
+     *   whereas JSON representations use base64.
+     * @param {string} request.uri
+     *   URI that points to a file that contains audio data bytes as specified in
+     *   {@link protos.google.cloud.speech.v2.RecognitionConfig|RecognitionConfig}. The file
+     *   must not be compressed (for example, gzip). Currently, only Google Cloud
+     *   Storage URIs are supported, which must be specified in the following
+     *   format: `gs://bucket_name/object_name` (other URI formats return
+     *   {@link protos.google.rpc.Code.INVALID_ARGUMENT|INVALID_ARGUMENT}). For more
+---- LINE 172 ----
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config|config} that override the
+     *   values in the
+     *   {@link protos.google.cloud.speech.v2.Recognizer.default_recognition_config|default_recognition_config}
+     *   of the recognizer during this recognition request. If no mask is provided,
+     *   all non-default valued fields in
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config|config} override the
+     *   values in the recognizer for this recognition request. If a mask is
+     *   provided, only the fields listed in the mask override the config in the
+     *   recognizer for this recognition request. If a wildcard (`*`) is provided,
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config|config} completely
+     *   overrides and replaces the config in the recognizer for this recognition
+     *   request.
+     * @param {Buffer} request.content
+     *   The audio data bytes encoded as specified in
+     *   {@link protos.google.cloud.speech.v2.RecognitionConfig|RecognitionConfig}. As
+     *   with all bytes fields, proto buffers use a pure binary representation,
+     *   whereas JSON representations use base64.
+     * @param {string} request.uri
+     *   URI that points to a file that contains audio data bytes as specified in
+     *   {@link protos.google.cloud.speech.v2.RecognitionConfig|RecognitionConfig}. The file
+     *   must not be compressed (for example, gzip). Currently, only Google Cloud
+     *   Storage URIs are supported, which must be specified in the following
+     *   format: `gs://bucket_name/object_name` (other URI formats return
+     *   {@link protos.google.rpc.Code.INVALID_ARGUMENT|INVALID_ARGUMENT}). For more
+     *   information, see [Request
+     *   URIs](https://cloud.google.com/storage/docs/reference-uris).
+---- LINE 173 ----
+     *   values in the
+     *   {@link protos.google.cloud.speech.v2.Recognizer.default_recognition_config|default_recognition_config}
+     *   of the recognizer during this recognition request. If no mask is provided,
+     *   all non-default valued fields in
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config|config} override the
+     *   values in the recognizer for this recognition request. If a mask is
+     *   provided, only the fields listed in the mask override the config in the
+     *   recognizer for this recognition request. If a wildcard (`*`) is provided,
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config|config} completely
+     *   overrides and replaces the config in the recognizer for this recognition
+     *   request.
+     * @param {Buffer} request.content
+     *   The audio data bytes encoded as specified in
+     *   {@link protos.google.cloud.speech.v2.RecognitionConfig|RecognitionConfig}. As
+     *   with all bytes fields, proto buffers use a pure binary representation,
+     *   whereas JSON representations use base64.
+     * @param {string} request.uri
+     *   URI that points to a file that contains audio data bytes as specified in
+     *   {@link protos.google.cloud.speech.v2.RecognitionConfig|RecognitionConfig}. The file
+     *   must not be compressed (for example, gzip). Currently, only Google Cloud
+     *   Storage URIs are supported, which must be specified in the following
+     *   format: `gs://bucket_name/object_name` (other URI formats return
+     *   {@link protos.google.rpc.Code.INVALID_ARGUMENT|INVALID_ARGUMENT}). For more
+     *   information, see [Request
+     *   URIs](https://cloud.google.com/storage/docs/reference-uris).
+     * @param {object} [options]
+---- LINE 175 ----
+     *   of the recognizer during this recognition request. If no mask is provided,
+     *   all non-default valued fields in
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config|config} override the
+     *   values in the recognizer for this recognition request. If a mask is
+     *   provided, only the fields listed in the mask override the config in the
+     *   recognizer for this recognition request. If a wildcard (`*`) is provided,
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config|config} completely
+     *   overrides and replaces the config in the recognizer for this recognition
+     *   request.
+     * @param {Buffer} request.content
+     *   The audio data bytes encoded as specified in
+     *   {@link protos.google.cloud.speech.v2.RecognitionConfig|RecognitionConfig}. As
+     *   with all bytes fields, proto buffers use a pure binary representation,
+     *   whereas JSON representations use base64.
+     * @param {string} request.uri
+     *   URI that points to a file that contains audio data bytes as specified in
+     *   {@link protos.google.cloud.speech.v2.RecognitionConfig|RecognitionConfig}. The file
+     *   must not be compressed (for example, gzip). Currently, only Google Cloud
+     *   Storage URIs are supported, which must be specified in the following
+     *   format: `gs://bucket_name/object_name` (other URI formats return
+     *   {@link protos.google.rpc.Code.INVALID_ARGUMENT|INVALID_ARGUMENT}). For more
+     *   information, see [Request
+     *   URIs](https://cloud.google.com/storage/docs/reference-uris).
+     * @param {object} [options]
+     *   Call options. See {@link https://googleapis.dev/nodejs/google-gax/latest/interfaces/CallOptions.html|CallOptions} for more details.
+     * @returns {Promise} - The promise which resolves to an array.
+---- LINE 176 ----
+     *   all non-default valued fields in
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config|config} override the
+     *   values in the recognizer for this recognition request. If a mask is
+     *   provided, only the fields listed in the mask override the config in the
+     *   recognizer for this recognition request. If a wildcard (`*`) is provided,
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config|config} completely
+     *   overrides and replaces the config in the recognizer for this recognition
+     *   request.
+     * @param {Buffer} request.content
+     *   The audio data bytes encoded as specified in
+     *   {@link protos.google.cloud.speech.v2.RecognitionConfig|RecognitionConfig}. As
+     *   with all bytes fields, proto buffers use a pure binary representation,
+     *   whereas JSON representations use base64.
+     * @param {string} request.uri
+     *   URI that points to a file that contains audio data bytes as specified in
+     *   {@link protos.google.cloud.speech.v2.RecognitionConfig|RecognitionConfig}. The file
+     *   must not be compressed (for example, gzip). Currently, only Google Cloud
+     *   Storage URIs are supported, which must be specified in the following
+     *   format: `gs://bucket_name/object_name` (other URI formats return
+     *   {@link protos.google.rpc.Code.INVALID_ARGUMENT|INVALID_ARGUMENT}). For more
+     *   information, see [Request
+     *   URIs](https://cloud.google.com/storage/docs/reference-uris).
+     * @param {object} [options]
+     *   Call options. See {@link https://googleapis.dev/nodejs/google-gax/latest/interfaces/CallOptions.html|CallOptions} for more details.
+     * @returns {Promise} - The promise which resolves to an array.
+     *   The first element of the array is an object representing {@link protos.google.cloud.speech.v2.RecognizeResponse|RecognizeResponse}.
+---- LINE 177 ----
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config|config} override the
+     *   values in the recognizer for this recognition request. If a mask is
+     *   provided, only the fields listed in the mask override the config in the
+     *   recognizer for this recognition request. If a wildcard (`*`) is provided,
+     *   {@link protos.google.cloud.speech.v2.RecognizeRequest.config|config} completely
+     *   overrides and replaces the config in the recognizer for this recognition
+     *   request.
+     * @param {Buffer} request.content
+     *   The audio data bytes encoded as specified in
+     *   {@link protos.google.cloud.speech.v2.RecognitionConfig|RecognitionConfig}. As
+     *   with all bytes fields, proto buffers use a pure binary representation,
+     *   whereas JSON representations use base64.
+     * @param {string} request.uri
+     *   URI that points to a file that contains audio data bytes as specified in
+     *   {@link protos.google.cloud.speech.v2.RecognitionConfig|RecognitionConfig}. The file
+     *   must not be compressed (for example, gzip). Currently, only Google Cloud
+     *   Storage URIs are supported, which must be specified in the following
+     *   format: `gs://bucket_name/object_name` (other URI formats return
+     *   {@link protos.google.rpc.Code.INVALID_ARGUMENT|INVALID_ARGUMENT}). For more
+     *   information, see [Request
+     *   URIs](https://cloud.google.com/storage/docs/reference-uris).
+     * @param {object} [options]
+     *   Call options. See {@link https://googleapis.dev/nodejs/google-gax/latest/interfaces/CallOptions.html|CallOptions} for more details.
+     * @returns {Promise} - The promise which resolves to an array.
+     *   The first element of the array is an object representing {@link protos.google.cloud.speech.v2.RecognizeResponse|RecognizeResponse}.
+     *   Please see the {@link https://github.com/googleapis/gax-nodejs/blob/master/client-libraries.md#regular-methods | documentation }
+---- LINE 196 ----
+     *   information, see [Request
+     *   URIs](https://cloud.google.com/storage/docs/reference-uris).
+     * @param {object} [options]
+     *   Call options. See {@link https://googleapis.dev/nodejs/google-gax/latest/interfaces/CallOptions.html|CallOptions} for more details.
+     * @returns {Promise} - The promise which resolves to an array.
+     *   The first element of the array is an object representing {@link protos.google.cloud.speech.v2.RecognizeResponse|RecognizeResponse}.
+     *   Please see the {@link https://github.com/googleapis/gax-nodejs/blob/master/client-libraries.md#regular-methods | documentation }
+     *   for more details and examples.
+     * @example <caption>include:samples/generated/v2/speech.recognize.js</caption>
+     * region_tag:speech_v2_generated_Speech_Recognize_async
+     */
+    recognize(request?: protos.google.cloud.speech.v2.IRecognizeRequest, options?: CallOptions): Promise<[
+        protos.google.cloud.speech.v2.IRecognizeResponse,
+        protos.google.cloud.speech.v2.IRecognizeRequest | undefined,
+        {} | undefined
+    ]>;
+    recognize(request: protos.google.cloud.speech.v2.IRecognizeRequest, options: CallOptions, callback: Callback<protos.google.cloud.speech.v2.IRecognizeResponse, protos.google.cloud.speech.v2.IRecognizeRequest | null | undefined, {} | null | undefined>): void;
+    recognize(request: protos.google.cloud.speech.v2.IRecognizeRequest, callback: Callback<protos.google.cloud.speech.v2.IRecognizeResponse, protos.google.cloud.speech.v2.IRecognizeRequest | null | undefined, {} | null | undefined>): void;
+    /**
+     * Returns the requested {@link protos.google.cloud.speech.v2.Config|Config}.
+     *
+     * @param {Object} request
+     *   The request object that will be sent.
+     * @param {string} request.name
+     *   Required. The name of the config to retrieve. There is exactly one config
+     *   resource per project per location. The expected format is
+---- LINE 202 ----
+     *   Please see the {@link https://github.com/googleapis/gax-nodejs/blob/master/client-libraries.md#regular-methods | documentation }
+     *   for more details and examples.
+     * @example <caption>include:samples/generated/v2/speech.recognize.js</caption>
+     * region_tag:speech_v2_generated_Speech_Recognize_async
+     */
+    recognize(request?: protos.google.cloud.speech.v2.IRecognizeRequest, options?: CallOptions): Promise<[
+        protos.google.cloud.speech.v2.IRecognizeResponse,
+        protos.google.cloud.speech.v2.IRecognizeRequest | undefined,
+        {} | undefined
+    ]>;
+    recognize(request: protos.google.cloud.speech.v2.IRecognizeRequest, options: CallOptions, callback: Callback<protos.google.cloud.speech.v2.IRecognizeResponse, protos.google.cloud.speech.v2.IRecognizeRequest | null | undefined, {} | null | undefined>): void;
+    recognize(request: protos.google.cloud.speech.v2.IRecognizeRequest, callback: Callback<protos.google.cloud.speech.v2.IRecognizeResponse, protos.google.cloud.speech.v2.IRecognizeRequest | null | undefined, {} | null | undefined>): void;
+    /**
+     * Returns the requested {@link protos.google.cloud.speech.v2.Config|Config}.
+     *
+     * @param {Object} request
+     *   The request object that will be sent.
+     * @param {string} request.name
+     *   Required. The name of the config to retrieve. There is exactly one config
+     *   resource per project per location. The expected format is
+     *   `projects/{project}/locations/{location}/config`.
+     * @param {object} [options]
+     *   Call options. See {@link https://googleapis.dev/nodejs/google-gax/latest/interfaces/CallOptions.html|CallOptions} for more details.
+     * @returns {Promise} - The promise which resolves to an array.
+     *   The first element of the array is an object representing {@link protos.google.cloud.speech.v2.Config|Config}.
+     *   Please see the {@link https://github.com/googleapis/gax-nodejs/blob/master/client-libraries.md#regular-methods | documentation }
+---- LINE 203 ----
+     *   for more details and examples.
+     * @example <caption>include:samples/generated/v2/speech.recognize.js</caption>
+     * region_tag:speech_v2_generated_Speech_Recognize_async
+     */
+    recognize(request?: protos.google.cloud.speech.v2.IRecognizeRequest, options?: CallOptions): Promise<[
+        protos.google.cloud.speech.v2.IRecognizeResponse,
+        protos.google.cloud.speech.v2.IRecognizeRequest | undefined,
+        {} | undefined
+    ]>;
+    recognize(request: protos.google.cloud.speech.v2.IRecognizeRequest, options: CallOptions, callback: Callback<protos.google.cloud.speech.v2.IRecognizeResponse, protos.google.cloud.speech.v2.IRecognizeRequest | null | undefined, {} | null | undefined>): void;
+    recognize(request: protos.google.cloud.speech.v2.IRecognizeRequest, callback: Callback<protos.google.cloud.speech.v2.IRecognizeResponse, protos.google.cloud.speech.v2.IRecognizeRequest | null | undefined, {} | null | undefined>): void;
+    /**
+     * Returns the requested {@link protos.google.cloud.speech.v2.Config|Config}.
+     *
+     * @param {Object} request
+     *   The request object that will be sent.
+     * @param {string} request.name
+     *   Required. The name of the config to retrieve. There is exactly one config
+     *   resource per project per location. The expected format is
+     *   `projects/{project}/locations/{location}/config`.
+     * @param {object} [options]
+     *   Call options. See {@link https://googleapis.dev/nodejs/google-gax/latest/interfaces/CallOptions.html|CallOptions} for more details.
+     * @returns {Promise} - The promise which resolves to an array.
+     *   The first element of the array is an object representing {@link protos.google.cloud.speech.v2.Config|Config}.
+     *   Please see the {@link https://github.com/googleapis/gax-nodejs/blob/master/client-libraries.md#regular-methods | documentation }
+     *   for more details and examples.
+---- LINE 204 ----
+     * @example <caption>include:samples/generated/v2/speech.recognize.js</caption>
+     * region_tag:speech_v2_generated_Speech_Recognize_async
+     */
+    recognize(request?: protos.google.cloud.speech.v2.IRecognizeRequest, options?: CallOptions): Promise<[
+        protos.google.cloud.speech.v2.IRecognizeResponse,
+        protos.google.cloud.speech.v2.IRecognizeRequest | undefined,
+        {} | undefined
+    ]>;
+    recognize(request: protos.google.cloud.speech.v2.IRecognizeRequest, options: CallOptions, callback: Callback<protos.google.cloud.speech.v2.IRecognizeResponse, protos.google.cloud.speech.v2.IRecognizeRequest | null | undefined, {} | null | undefined>): void;
+    recognize(request: protos.google.cloud.speech.v2.IRecognizeRequest, callback: Callback<protos.google.cloud.speech.v2.IRecognizeResponse, protos.google.cloud.speech.v2.IRecognizeRequest | null | undefined, {} | null | undefined>): void;
+    /**
+     * Returns the requested {@link protos.google.cloud.speech.v2.Config|Config}.
+     *
+     * @param {Object} request
+     *   The request object that will be sent.
+     * @param {string} request.name
+     *   Required. The name of the config to retrieve. There is exactly one config
+     *   resource per project per location. The expected format is
+     *   `projects/{project}/locations/{location}/config`.
+     * @param {object} [options]
+     *   Call options. See {@link https://googleapis.dev/nodejs/google-gax/latest/interfaces/CallOptions.html|CallOptions} for more details.
+     * @returns {Promise} - The promise which resolves to an array.
+     *   The first element of the array is an object representing {@link protos.google.cloud.speech.v2.Config|Config}.
+     *   Please see the {@link https://github.com/googleapis/gax-nodejs/blob/master/client-libraries.md#regular-methods | documentation }
+     *   for more details and examples.
+     * @example <caption>include:samples/generated/v2/speech.get_config.js</caption>
+---- LINE 207 ----
+    recognize(request?: protos.google.cloud.speech.v2.IRecognizeRequest, options?: CallOptions): Promise<[
+        protos.google.cloud.speech.v2.IRecognizeResponse,
+        protos.google.cloud.speech.v2.IRecognizeRequest | undefined,
+        {} | undefined
+    ]>;
+    recognize(request: protos.google.cloud.speech.v2.IRecognizeRequest, options: CallOptions, callback: Callback<protos.google.cloud.speech.v2.IRecognizeResponse, protos.google.cloud.speech.v2.IRecognizeRequest | null | undefined, {} | null | undefined>): void;
+    recognize(request: protos.google.cloud.speech.v2.IRecognizeRequest, callback: Callback<protos.google.cloud.speech.v2.IRecognizeResponse, protos.google.cloud.speech.v2.IRecognizeRequest | null | undefined, {} | null | undefined>): void;
+    /**
+     * Returns the requested {@link protos.google.cloud.speech.v2.Config|Config}.
+     *
+     * @param {Object} request
+     *   The request object that will be sent.
+     * @param {string} request.name
+     *   Required. The name of the config to retrieve. There is exactly one config
+     *   resource per project per location. The expected format is
+     *   `projects/{project}/locations/{location}/config`.
+     * @param {object} [options]
+     *   Call options. See {@link https://googleapis.dev/nodejs/google-gax/latest/interfaces/CallOptions.html|CallOptions} for more details.
+     * @returns {Promise} - The promise which resolves to an array.
+     *   The first element of the array is an object representing {@link protos.google.cloud.speech.v2.Config|Config}.
+     *   Please see the {@link https://github.com/googleapis/gax-nodejs/blob/master/client-libraries.md#regular-methods | documentation }
+     *   for more details and examples.
+     * @example <caption>include:samples/generated/v2/speech.get_config.js</caption>
+     * region_tag:speech_v2_generated_Speech_GetConfig_async
+     */
+    getConfig(request?: protos.google.cloud.speech.v2.IGetConfigRequest, options?: CallOptions): Promise<[
+---- LINE 208 ----
+        protos.google.cloud.speech.v2.IRecognizeResponse,
+        protos.google.cloud.speech.v2.IRecognizeRequest | undefined,
+        {} | undefined
+    ]>;
+    recognize(request: protos.google.cloud.speech.v2.IRecognizeRequest, options: CallOptions, callback: Callback<protos.google.cloud.speech.v2.IRecognizeResponse, protos.google.cloud.speech.v2.IRecognizeRequest | null | undefined, {} | null | undefined>): void;
+    recognize(request: protos.google.cloud.speech.v2.IRecognizeRequest, callback: Callback<protos.google.cloud.speech.v2.IRecognizeResponse, protos.google.cloud.speech.v2.IRecognizeRequest | null | undefined, {} | null | undefined>): void;
+    /**
+     * Returns the requested {@link protos.google.cloud.speech.v2.Config|Config}.
+     *
+     * @param {Object} request
+     *   The request object that will be sent.
+     * @param {string} request.name
+     *   Required. The name of the config to retrieve. There is exactly one config
+     *   resource per project per location. The expected format is
+     *   `projects/{project}/locations/{location}/config`.
+     * @param {object} [options]
+     *   Call options. See {@link https://googleapis.dev/nodejs/google-gax/latest/interfaces/CallOptions.html|CallOptions} for more details.
+     * @returns {Promise} - The promise which resolves to an array.
+     *   The first element of the array is an object representing {@link protos.google.cloud.speech.v2.Config|Config}.
+     *   Please see the {@link https://github.com/googleapis/gax-nodejs/blob/master/client-libraries.md#regular-methods | documentation }
+     *   for more details and examples.
+     * @example <caption>include:samples/generated/v2/speech.get_config.js</caption>
+     * region_tag:speech_v2_generated_Speech_GetConfig_async
+     */
+    getConfig(request?: protos.google.cloud.speech.v2.IGetConfigRequest, options?: CallOptions): Promise<[
+        protos.google.cloud.speech.v2.IConfig,
+---- LINE 320 ----
+     *
+     * @param {object} [options]
+     *   Call options. See {@link https://googleapis.dev/nodejs/google-gax/latest/interfaces/CallOptions.html|CallOptions} for more details.
+     * @returns {Stream}
+     *   An object stream which is both readable and writable. It accepts objects
+     *   representing {@link protos.google.cloud.speech.v2.StreamingRecognizeRequest|StreamingRecognizeRequest} for write() method, and
+     *   will emit objects representing {@link protos.google.cloud.speech.v2.StreamingRecognizeResponse|StreamingRecognizeResponse} on 'data' event asynchronously.
+     *   Please see the {@link https://github.com/googleapis/gax-nodejs/blob/master/client-libraries.md#bi-directional-streaming | documentation }
+     *   for more details and examples.
+     * @example <caption>include:samples/generated/v2/speech.streaming_recognize.js</caption>
+     * region_tag:speech_v2_generated_Speech_StreamingRecognize_async
+     */
+    _streamingRecognize(options?: CallOptions): gax.CancellableStream;
+    /**
+     * Creates a {@link protos.google.cloud.speech.v2.Recognizer|Recognizer}.
+     *
+     * @param {Object} request
+     *   The request object that will be sent.
+     * @param {google.cloud.speech.v2.Recognizer} request.recognizer
+     *   Required. The Recognizer to create.
+     * @param {boolean} request.validateOnly
+     *   If set, validate the request and preview the Recognizer, but do not
+     *   actually create it.
+     * @param {string} request.recognizerId
+     *   The ID to use for the Recognizer, which will become the final component of
+     *   the Recognizer's resource name.
+---- LINE 321 ----
+     * @param {object} [options]
+     *   Call options. See {@link https://googleapis.dev/nodejs/google-gax/latest/interfaces/CallOptions.html|CallOptions} for more details.
+     * @returns {Stream}
+     *   An object stream which is both readable and writable. It accepts objects
+     *   representing {@link protos.google.cloud.speech.v2.StreamingRecognizeRequest|StreamingRecognizeRequest} for write() method, and
+     *   will emit objects representing {@link protos.google.cloud.speech.v2.StreamingRecognizeResponse|StreamingRecognizeResponse} on 'data' event asynchronously.
+     *   Please see the {@link https://github.com/googleapis/gax-nodejs/blob/master/client-libraries.md#bi-directional-streaming | documentation }
+     *   for more details and examples.
+     * @example <caption>include:samples/generated/v2/speech.streaming_recognize.js</caption>
+     * region_tag:speech_v2_generated_Speech_StreamingRecognize_async
+     */
+    _streamingRecognize(options?: CallOptions): gax.CancellableStream;
+    /**
+     * Creates a {@link protos.google.cloud.speech.v2.Recognizer|Recognizer}.
+     *
+     * @param {Object} request
+     *   The request object that will be sent.
+     * @param {google.cloud.speech.v2.Recognizer} request.recognizer
+     *   Required. The Recognizer to create.
+     * @param {boolean} request.validateOnly
+     *   If set, validate the request and preview the Recognizer, but do not
+     *   actually create it.
+     * @param {string} request.recognizerId
+     *   The ID to use for the Recognizer, which will become the final component of
+     *   the Recognizer's resource name.
+     *
+---- LINE 325 ----
+     *   representing {@link protos.google.cloud.speech.v2.StreamingRecognizeRequest|StreamingRecognizeRequest} for write() method, and
+     *   will emit objects representing {@link protos.google.cloud.speech.v2.StreamingRecognizeResponse|StreamingRecognizeResponse} on 'data' event asynchronously.
+     *   Please see the {@link https://github.com/googleapis/gax-nodejs/blob/master/client-libraries.md#bi-directional-streaming | documentation }
+     *   for more details and examples.
+     * @example <caption>include:samples/generated/v2/speech.streaming_recognize.js</caption>
+     * region_tag:speech_v2_generated_Speech_StreamingRecognize_async
+     */
+    _streamingRecognize(options?: CallOptions): gax.CancellableStream;
+    /**
+     * Creates a {@link protos.google.cloud.speech.v2.Recognizer|Recognizer}.
+     *
+     * @param {Object} request
+     *   The request object that will be sent.
+     * @param {google.cloud.speech.v2.Recognizer} request.recognizer
+     *   Required. The Recognizer to create.
+     * @param {boolean} request.validateOnly
+     *   If set, validate the request and preview the Recognizer, but do not
+     *   actually create it.
+     * @param {string} request.recognizerId
+     *   The ID to use for the Recognizer, which will become the final component of
+     *   the Recognizer's resource name.
+     *
+     *   This value should be 4-63 characters, and valid characters
+     *   are /{@link protos.0-9|a-z}-/.
+     * @param {string} request.parent
+     *   Required. The project and location where this Recognizer will be created.
+---- LINE 327 ----
+     *   Please see the {@link https://github.com/googleapis/gax-nodejs/blob/master/client-libraries.md#bi-directional-streaming | documentation }
+     *   for more details and examples.
+     * @example <caption>include:samples/generated/v2/speech.streaming_recognize.js</caption>
+     * region_tag:speech_v2_generated_Speech_StreamingRecognize_async
+     */
+    _streamingRecognize(options?: CallOptions): gax.CancellableStream;
+    /**
+     * Creates a {@link protos.google.cloud.speech.v2.Recognizer|Recognizer}.
+     *
+     * @param {Object} request
+     *   The request object that will be sent.
+     * @param {google.cloud.speech.v2.Recognizer} request.recognizer
+     *   Required. The Recognizer to create.
+     * @param {boolean} request.validateOnly
+     *   If set, validate the request and preview the Recognizer, but do not
+     *   actually create it.
+     * @param {string} request.recognizerId
+     *   The ID to use for the Recognizer, which will become the final component of
+     *   the Recognizer's resource name.
+     *
+     *   This value should be 4-63 characters, and valid characters
+     *   are /{@link protos.0-9|a-z}-/.
+     * @param {string} request.parent
+     *   Required. The project and location where this Recognizer will be created.
+     *   The expected format is `projects/{project}/locations/{location}`.
+     * @param {object} [options]
+---- LINE 329 ----
+     * @example <caption>include:samples/generated/v2/speech.streaming_recognize.js</caption>
+     * region_tag:speech_v2_generated_Speech_StreamingRecognize_async
+     */
+    _streamingRecognize(options?: CallOptions): gax.CancellableStream;
+    /**
+     * Creates a {@link protos.google.cloud.speech.v2.Recognizer|Recognizer}.
+     *
+     * @param {Object} request
+     *   The request object that will be sent.
+     * @param {google.cloud.speech.v2.Recognizer} request.recognizer
+     *   Required. The Recognizer to create.
+     * @param {boolean} request.validateOnly
+     *   If set, validate the request and preview the Recognizer, but do not
+     *   actually create it.
+     * @param {string} request.recognizerId
+     *   The ID to use for the Recognizer, which will become the final component of
+     *   the Recognizer's resource name.
+     *
+     *   This value should be 4-63 characters, and valid characters
+     *   are /{@link protos.0-9|a-z}-/.
+     * @param {string} request.parent
+     *   Required. The project and location where this Recognizer will be created.
+     *   The expected format is `projects/{project}/locations/{location}`.
+     * @param {object} [options]
+     *   Call options. See {@link https://googleapis.dev/nodejs/google-gax/latest/interfaces/CallOptions.html|CallOptions} for more details.
+     * @returns {Promise} - The promise which resolves to an array.
+---- LINE 333 ----
+    /**
+     * Creates a {@link protos.google.cloud.speech.v2.Recognizer|Recognizer}.
+     *
+     * @param {Object} request
+     *   The request object that will be sent.
+     * @param {google.cloud.speech.v2.Recognizer} request.recognizer
+     *   Required. The Recognizer to create.
+     * @param {boolean} request.validateOnly
+     *   If set, validate the request and preview the Recognizer, but do not
+     *   actually create it.
+     * @param {string} request.recognizerId
+     *   The ID to use for the Recognizer, which will become the final component of
+     *   the Recognizer's resource name.
+     *
+     *   This value should be 4-63 characters, and valid characters
+     *   are /{@link protos.0-9|a-z}-/.
+     * @param {string} request.parent
+     *   Required. The project and location where this Recognizer will be created.
+     *   The expected format is `projects/{project}/locations/{location}`.
+     * @param {object} [options]
+     *   Call options. See {@link https://googleapis.dev/nodejs/google-gax/latest/interfaces/CallOptions.html|CallOptions} for more details.
+     * @returns {Promise} - The promise which resolves to an array.
+     *   The first element of the array is an object representing
+     *   a long running operation. Its `promise()` method returns a promise
+     *   you can `await` for.
+     *   Please see the {@link https://github.com/googleapis/gax-nodejs/blob/master/client-libraries.md#long-running-operations | documentation }
+---- LINE 334 ----
+     * Creates a {@link protos.google.cloud.speech.v2.Recognizer|Recognizer}.
+     *
+     * @param {Object} request
+     *   The request object that will be sent.
+     * @param {google.cloud.speech.v2.Recognizer} request.recognizer
+     *   Required. The Recognizer to create.
+     * @param {boolean} request.validateOnly
+     *   If set, validate the request and preview the Recognizer, but do not
+     *   actually create it.
+     * @param {string} request.recognizerId
+     *   The ID to use for the Recognizer, which will become the final component of
+     *   the Recognizer's resource name.
+     *
+     *   This value should be 4-63 characters, and valid characters
+     *   are /{@link protos.0-9|a-z}-/.
+     * @param {string} request.parent
+     *   Required. The project and location where this Recognizer will be created.
+     *   The expected format is `projects/{project}/locations/{location}`.
+     * @param {object} [options]
+     *   Call options. See {@link https://googleapis.dev/nodejs/google-gax/latest/interfaces/CallOptions.html|CallOptions} for more details.
+     * @returns {Promise} - The promise which resolves to an array.
+     *   The first element of the array is an object representing
+     *   a long running operation. Its `promise()` method returns a promise
+     *   you can `await` for.
+     *   Please see the {@link https://github.com/googleapis/gax-nodejs/blob/master/client-libraries.md#long-running-operations | documentation }
+     *   for more details and examples.
+

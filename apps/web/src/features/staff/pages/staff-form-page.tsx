@@ -6,6 +6,7 @@ import type { CreateStaffInput, UpdateStaffInput } from '@mmc/validation';
 import { createStaffSchema, updateStaffSchema } from '@mmc/validation';
 import { User, Mail, Phone, MapPin, Briefcase, IndianRupee, ShieldCheck } from 'lucide-react';
 import { NumericInput } from '@/shared/components/NumericInput';
+import { Drawer } from '@/shared/components/drawer';
 
 const CATEGORY_META: Record<StaffCategory, string> = {
   doctor: 'Doctor',
@@ -14,6 +15,17 @@ const CATEGORY_META: Record<StaffCategory, string> = {
   clinicadmin: 'Clinic Admin',
   account: 'Account Manager',
 };
+
+const mobileStyles = `
+  @media (max-width: 1024px) {
+    .plat-form-grid-multi { grid-template-columns: 1fr !important; gap: 16px !important; }
+    .plat-form-group[style*="grid-column: span 2"] { grid-column: span 1 !important; }
+    .plat-form-group[style*="grid-template-columns: 80px 1fr 1fr"] { grid-template-columns: 1fr !important; }
+    .plat-form-section { padding: 20px !important; }
+    .plat-modal-footer { flex-direction: column !important; gap: 12px !important; }
+    .plat-modal-footer .plat-btn { width: 100% !important; height: 46px !important; border-radius: 12px !important; }
+  }
+`;
 
 export default function StaffFormPage() {
   const navigate = useNavigate();
@@ -158,230 +170,198 @@ export default function StaffFormPage() {
   };
 
   if (isEditing && isLoadingStaff) {
-    return <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>Loading staff details...</div>;
+    return <div className="plat-empty" style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>Loading staff details...</div>;
   }
 
   const categoryName = CATEGORY_META[category] || 'Staff';
 
-  const inputStyle = { 
-    width: '100%', height: 42, border: '1px solid var(--border)', borderRadius: 10, 
-    padding: '0 14px', fontSize: 13, color: 'var(--text-main)', outline: 'none', 
-    background: 'var(--bg-card)', transition: 'border-color 0.2s',
-  };
-  const labelStyle = { display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 6 };
-  const groupStyle = { marginBottom: 18 };
-
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: '24px 16px' }}>
-      
-      {/* Page Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 32 }}>
-        <button 
-          onClick={() => navigate('/staff')}
-          style={{ width: 40, height: 40, borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-muted)' }}
-        >
-          ←
-        </button>
-        <div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, margin: '0 0 4px', color: 'var(--text-main)' }}>
-            {isEditing ? `Edit ${categoryName}` : `Add New ${categoryName}`}
-          </h1>
-          <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 13 }}>
-            {isEditing ? 'Update staff credentials and details.' : 'Provision a new staff member into the system.'}
-          </p>
-        </div>
-      </div>
-
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-        
-        {/* Category Selection (Only when creating) */}
-        {!isEditing && (
-          <div className="card" style={{ padding: 24 }}>
-            <h3 style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Briefcase size={16} /> Staff Type
-            </h3>
-            <div style={groupStyle}>
-              <select style={inputStyle} name="category" value={category} onChange={handleCategoryChange} disabled={isEditing}>
-                {Object.entries(CATEGORY_META).map(([key, label]) => (
-                  <option key={key} value={key}>{label}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-        )}
-
-        {/* Identity & Basic Details */}
-        <div className="card" style={{ padding: 24 }}>
-          <h3 style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <User size={16} /> Identity Details
-          </h3>
+    <Drawer
+      isOpen={true}
+      onClose={() => navigate('/staff')}
+      title={isEditing ? `Edit ${categoryName}` : `Add New ${categoryName}`}
+      maxWidth="600px"
+    >
+      <style>{mobileStyles}</style>
+      <div className="plat-modal-content" style={{ border: 'none', boxShadow: 'none', margin: 0, padding: 0 }}>
+        <form onSubmit={handleSubmit} className="plat-modal-body">
           
-          {category === 'doctor' ? (
-            <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr 1fr', gap: 16, marginBottom: 16 }}>
-              <div style={groupStyle}>
-                <label style={labelStyle}>Title</label>
-                <select style={inputStyle} name="title" value={formData.title} onChange={handleChange}>
-                  <option value="Dr">Dr</option>
-                  <option value="Mr">Mr</option>
-                  <option value="Ms">Ms</option>
-                  <option value="Mrs">Mrs</option>
+          {/* Category Selection (Only when creating) */}
+          {!isEditing && (
+            <div className="plat-form-section">
+              <h4 className="plat-form-section-title">
+                <Briefcase size={16} /> Staff Category
+              </h4>
+              <div className="plat-form-group">
+                <select className="plat-form-input" name="category" value={category} onChange={handleCategoryChange} disabled={isEditing}>
+                  {Object.entries(CATEGORY_META).map(([key, label]) => (
+                    <option key={key} value={key}>{label}</option>
+                  ))}
                 </select>
               </div>
-              <div style={groupStyle}>
-                <label style={labelStyle}>First Name *</label>
-                <input style={inputStyle} name="firstname" value={formData.firstname} onChange={handleChange} placeholder="First Name" />
-                {errors['firstname'] && <span style={{ color: '#ef4444', fontSize: 11, fontWeight: 600 }}>{errors['firstname']}</span>}
-              </div>
-              <div style={groupStyle}>
-                <label style={labelStyle}>Surname *</label>
-                <input style={inputStyle} name="surname" value={formData.surname} onChange={handleChange} placeholder="Surname" />
-                {errors['surname'] && <span style={{ color: '#ef4444', fontSize: 11, fontWeight: 600 }}>{errors['surname']}</span>}
-              </div>
-            </div>
-          ) : (
-            <div style={groupStyle}>
-              <label style={labelStyle}>Full Name *</label>
-              <input style={inputStyle} name="name" value={formData.name} onChange={handleChange} placeholder="e.g. Jane Doe" />
-              {errors['name'] && <span style={{ color: '#ef4444', fontSize: 11, fontWeight: 600 }}>{errors['name']}</span>}
             </div>
           )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-            <div style={groupStyle}>
-              <label style={labelStyle}>Gender</label>
-              <select style={inputStyle} name="gender" value={formData.gender} onChange={handleChange}>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-            <div style={groupStyle}>
-              <label style={labelStyle}>Date of Birth</label>
-              <input type="date" style={inputStyle} name="dateBirth" value={formData.dateBirth} onChange={handleChange} />
-            </div>
-          </div>
-        </div>
-
-        {/* Contact Credentials */}
-        <div className="card" style={{ padding: 24 }}>
-          <h3 style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Phone size={16} /> Contact & Access
-          </h3>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(200px, 1fr) minmax(200px, 1fr)', gap: 16, marginBottom: 16 }}>
-            <div style={groupStyle}>
-              <label style={labelStyle}>Mobile Number *</label>
-              <NumericInput style={inputStyle} name="mobile" value={formData.mobile} onChange={handleChange} placeholder="+91" />
-              {errors['mobile'] && <span style={{ color: '#ef4444', fontSize: 11, fontWeight: 600 }}>{errors['mobile']}</span>}
-            </div>
-            <div style={groupStyle}>
-              <label style={labelStyle}>Alternate Mobile</label>
-              <NumericInput style={inputStyle} name="mobile2" value={formData.mobile2} onChange={handleChange} placeholder="+91" />
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-            <div style={groupStyle}>
-              <label style={labelStyle}>Login Email</label>
-              <input type="email" style={inputStyle} name="email" value={formData.email} onChange={handleChange} placeholder="user@clinic.com" />
-              {errors['email'] && <span style={{ color: '#ef4444', fontSize: 11, fontWeight: 600 }}>{errors['email']}</span>}
-            </div>
-            <div style={groupStyle}>
-              <label style={labelStyle}>Password {isEditing && '(leave blank to keep current)'}</label>
-              <input type="password" style={inputStyle} name="password" value={formData.password} onChange={handleChange} placeholder={isEditing ? '••••••••' : 'Setup password'} />
-            </div>
-          </div>
-        </div>
-
-        {/* Professional Details */}
-        <div className="card" style={{ padding: 24 }}>
-          <h3 style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <ShieldCheck size={16} /> Professional Details
-          </h3>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-            <div style={groupStyle}>
-              <label style={labelStyle}>Designation</label>
-              <input style={inputStyle} name="designation" value={formData.designation} onChange={handleChange} placeholder="e.g. Senior Nurse" />
-            </div>
-            <div style={groupStyle}>
-              <label style={labelStyle}>Status</label>
-              <select style={inputStyle} name="dateLeft" value={formData.dateLeft ? 'inactive' : ''} onChange={(e) => setFormData((p: any) => ({ ...p, dateLeft: e.target.value === 'inactive' ? new Date().toISOString().substring(0, 10) : '' }))}>
-                <option value="">Active</option>
-                <option value="inactive">Inactive / Left</option>
-              </select>
-            </div>
-          </div>
-
-          {category === 'doctor' && (
-             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-               <div style={groupStyle}>
-                 <label style={labelStyle}>Qualification</label>
-                 <input style={inputStyle} name="qualification" value={formData.qualification} onChange={handleChange} placeholder="MBBS, MD" />
-               </div>
-               <div style={groupStyle}>
-                 <label style={labelStyle}>Registration ID</label>
-                 <input style={inputStyle} name="registrationId" value={formData.registrationId} onChange={handleChange} placeholder="Medical Board Reg No" />
-               </div>
-               <div style={groupStyle}>
-                 <label style={labelStyle}>Institute</label>
-                 <input style={inputStyle} name="institute" value={formData.institute} onChange={handleChange} placeholder="University Name" />
-               </div>
-             </div>
-          )}
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-            <div style={groupStyle}>
-              <label style={labelStyle}>Base Salary (₹)</label>
-              <NumericInput style={inputStyle} name="salaryCur" value={formData.salaryCur} onChange={handleChange} placeholder="0" />
-            </div>
-            {category === 'doctor' && (
-              <div style={groupStyle}>
-                <label style={labelStyle}>Consultation Fee (₹)</label>
-                <NumericInput style={inputStyle} name="consultationFee" value={formData.consultationFee} onChange={handleChange} placeholder="0" />
+          {/* Identity & Basic Details */}
+          <div className="plat-form-section">
+            <h4 className="plat-form-section-title">
+              <User size={16} /> Identity Information
+            </h4>
+            
+            {category === 'doctor' ? (
+              <div className="plat-form-grid-multi" style={{ gridTemplateColumns: '80px 1fr 1fr' }}>
+                <div className="plat-form-group">
+                  <label className="plat-form-label">Title</label>
+                  <select className="plat-form-input" name="title" value={formData.title} onChange={handleChange}>
+                    <option value="Dr">Dr</option>
+                    <option value="Mr">Mr</option>
+                    <option value="Ms">Ms</option>
+                    <option value="Mrs">Mrs</option>
+                  </select>
+                </div>
+                <div className="plat-form-group">
+                  <label className="plat-form-label">First Name *</label>
+                  <input className="plat-form-input" name="firstname" value={formData.firstname} onChange={handleChange} placeholder="First Name" />
+                  {errors['firstname'] && <span className="plat-form-error">{errors['firstname']}</span>}
+                </div>
+                <div className="plat-form-group">
+                  <label className="plat-form-label">Surname *</label>
+                  <input className="plat-form-input" name="surname" value={formData.surname} onChange={handleChange} placeholder="Surname" />
+                  {errors['surname'] && <span className="plat-form-error">{errors['surname']}</span>}
+                </div>
+              </div>
+            ) : (
+              <div className="plat-form-group">
+                <label className="plat-form-label">Full Name *</label>
+                <input className="plat-form-input" name="name" value={formData.name} onChange={handleChange} placeholder="e.g. Jane Doe" />
+                {errors['name'] && <span className="plat-form-error">{errors['name']}</span>}
               </div>
             )}
-          </div>
-        </div>
 
-        {/* Address */}
-        <div className="card" style={{ padding: 24 }}>
-          <h3 style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <MapPin size={16} /> Location
-          </h3>
-          
-          <div style={groupStyle}>
-            <label style={labelStyle}>City</label>
-            <input style={inputStyle} name="city" value={formData.city} onChange={handleChange} placeholder="City name" />
+            <div className="plat-form-grid-multi">
+              <div className="plat-form-group">
+                <label className="plat-form-label">Gender</label>
+                <select className="plat-form-input" name="gender" value={formData.gender} onChange={handleChange}>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div className="plat-form-group">
+                <label className="plat-form-label">Date of Birth</label>
+                <input type="date" className="plat-form-input" name="dateBirth" value={formData.dateBirth} onChange={handleChange} />
+              </div>
+            </div>
           </div>
-          <div style={groupStyle}>
-            <label style={labelStyle}>Address</label>
-            <textarea style={{ ...inputStyle, height: 'auto', padding: '10px 14px' }} name="address" value={formData.address} onChange={handleChange} placeholder="Full address" rows={3}></textarea>
+
+          {/* Contact Credentials */}
+          <div className="plat-form-section">
+            <h4 className="plat-form-section-title">
+              <Phone size={16} /> Contact Gateway
+            </h4>
+            
+            <div className="plat-form-grid-multi">
+              <div className="plat-form-group">
+                <label className="plat-form-label">Primary Mobile *</label>
+                <NumericInput className="plat-form-input" name="mobile" value={formData.mobile} onChange={handleChange} placeholder="+91" />
+                {errors['mobile'] && <span className="plat-form-error">{errors['mobile']}</span>}
+              </div>
+              <div className="plat-form-group">
+                <label className="plat-form-label">Secondary Mobile</label>
+                <NumericInput className="plat-form-input" name="mobile2" value={formData.mobile2} onChange={handleChange} placeholder="+91" />
+              </div>
+            </div>
+
+            <div className="plat-form-grid-multi">
+              <div className="plat-form-group">
+                <label className="plat-form-label">Login Email</label>
+                <input type="email" className="plat-form-input" name="email" value={formData.email} onChange={handleChange} placeholder="user@clinic.com" />
+                {errors['email'] && <span className="plat-form-error">{errors['email']}</span>}
+              </div>
+              <div className="plat-form-group">
+                <label className="plat-form-label">Initial Password {isEditing && '(keep blank to retain current)'}</label>
+                <input type="password" className="plat-form-input" name="password" value={formData.password} onChange={handleChange} placeholder={isEditing ? '••••••••' : 'Setup password'} />
+              </div>
+            </div>
           </div>
-        </div>
 
-        {/* Submit Actions */}
-        <div style={{ display: 'flex', gap: 16, marginTop: 16 }}>
-          <button 
-            type="button" 
-            onClick={() => navigate('/staff')}
-            className="btn btn-ghost" 
-            style={{ flex: 1, height: 48, borderRadius: 12, border: '1px solid var(--border)' }}
-            disabled={isSubmitting}
-          >
-            Cancel
-          </button>
-          <button 
-            type="submit" 
-            className="btn btn-primary" 
-            style={{ flex: 2, height: 48, borderRadius: 12 }}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? 'Saving...' : (isEditing ? `Update ${categoryName}` : `Add ${categoryName}`)}
-          </button>
-        </div>
+          {/* Professional Details */}
+          <div className="plat-form-section">
+            <h4 className="plat-form-section-title">
+              <ShieldCheck size={16} /> Professional Registry
+            </h4>
+            
+            <div className="plat-form-grid-multi">
+              <div className="plat-form-group">
+                <label className="plat-form-label">Designation</label>
+                <input className="plat-form-input" name="designation" value={formData.designation} onChange={handleChange} placeholder="e.g. Senior Nurse" />
+              </div>
+              <div className="plat-form-group">
+                <label className="plat-form-label">Tenure Status</label>
+                <select className="plat-form-input" name="dateLeft" value={formData.dateLeft ? 'inactive' : ''} onChange={(e) => setFormData((p: any) => ({ ...p, dateLeft: e.target.value === 'inactive' ? new Date().toISOString().substring(0, 10) : '' }))}>
+                  <option value="">Active Service</option>
+                  <option value="inactive">Service Terminated</option>
+                </select>
+              </div>
+            </div>
 
-      </form>
-    </div>
+            {category === 'doctor' && (
+              <div className="plat-form-grid-multi">
+                <div className="plat-form-group">
+                  <label className="plat-form-label">Qualification</label>
+                  <input className="plat-form-input" name="qualification" value={formData.qualification} onChange={handleChange} placeholder="MBBS, MD" />
+                </div>
+                <div className="plat-form-group">
+                  <label className="plat-form-label">Registration ID</label>
+                  <input className="plat-form-input" name="registrationId" value={formData.registrationId} onChange={handleChange} placeholder="Medical Board ID" />
+                </div>
+                <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
+                  <label className="plat-form-label">Alma Mater / Institute</label>
+                  <input className="plat-form-input" name="institute" value={formData.institute} onChange={handleChange} placeholder="University Name" />
+                </div>
+              </div>
+            )}
+
+            <div className="plat-form-grid-multi">
+              <div className="plat-form-group">
+                <label className="plat-form-label">Monthly Retainer (₹)</label>
+                <NumericInput className="plat-form-input" name="salaryCur" value={formData.salaryCur} onChange={handleChange} placeholder="0" />
+              </div>
+              {category === 'doctor' && (
+                <div className="plat-form-group">
+                  <label className="plat-form-label">Consultation Fee (₹)</label>
+                  <NumericInput className="plat-form-input" name="consultationFee" value={formData.consultationFee} onChange={handleChange} placeholder="0" />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Address */}
+          <div className="plat-form-section">
+            <h4 className="plat-form-section-title">
+              <MapPin size={16} /> Residency & Station
+            </h4>
+            
+            <div className="plat-form-group">
+              <label className="plat-form-label">City Station</label>
+              <input className="plat-form-input" name="city" value={formData.city} onChange={handleChange} placeholder="City name" />
+            </div>
+            <div className="plat-form-group">
+              <label className="plat-form-label">Residential Address</label>
+              <textarea className="plat-form-input" name="address" value={formData.address} onChange={handleChange} placeholder="Full address" rows={3} style={{ height: 'auto', padding: '12px' }}></textarea>
+            </div>
+          </div>
+
+          <div className="plat-modal-footer">
+            <button type="button" className="plat-btn plat-btn-ghost" onClick={() => navigate('/staff')} disabled={isSubmitting}>
+              Discard
+            </button>
+            <button type="submit" className="plat-btn plat-btn-primary" disabled={isSubmitting}>
+              {isSubmitting ? 'Syncing...' : (isEditing ? `Update ${categoryName}` : `Register ${categoryName}`)}
+            </button>
+          </div>
+        </form>
+      </div>
+    </Drawer>
   );
 }

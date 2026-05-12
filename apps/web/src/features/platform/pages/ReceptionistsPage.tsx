@@ -2,11 +2,19 @@ import { useState, useEffect, useMemo } from 'react';
 import { Plus, Search, Edit2, Trash2, X, ClipboardList, Mail, Phone, MapPin, Users, UserCheck, Calendar, Briefcase, Info, BadgeIndianRupee, RefreshCw, Upload, FileText } from 'lucide-react';
 import { NumericInput } from '@/shared/components/NumericInput';
 import { useStaffList, useDeleteStaff, useCreateStaff, useUpdateStaff, useStaffMember } from '@/features/staff/hooks/use-staff';
+import { useAuthStore } from '@/shared/stores/auth-store';
 import type { StaffSummary, StaffMember } from '@mmc/types';
 import type { CreateStaffInput, UpdateStaffInput } from '@mmc/validation';
 import { createStaffSchema, updateStaffSchema } from '@mmc/validation';
 import { apiClient } from '@/infrastructure/api-client';
 import '../styles/platform.css';
+
+import { Pagination } from '@/shared/components/Pagination';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
+import { Drawer } from '@/shared/components/drawer';
+
+
 
 function FileInputRow({
   label,
@@ -111,6 +119,7 @@ function staffMemberToForm(staff: StaffMember): CreateStaffInput {
     gender,
     mobile2: staff.mobile2 || '',
     dateBirth: staff.dateBirth ?? '',
+    clinicId: (staff.clinicId && staff.clinicId !== 1) ? staff.clinicId : null,
     consultationFee: Number(staff.consultationFee) || 0,
     password: '', // Keep blank on edit
   } as CreateStaffInput;
@@ -134,14 +143,23 @@ function StaffModal({
 
   const createMutation = useCreateStaff();
   const updateMutation = useUpdateStaff();
+  const { user } = useAuthStore();
 
   useEffect(() => {
     if (mode === 'edit' && staff) {
-      setForm(staffMemberToForm(staff));
+      const editForm = staffMemberToForm(staff);
+      if (!editForm.clinicId && user?.contextId) {
+        editForm.clinicId = user.contextId;
+      }
+      setForm(editForm);
     } else if (mode === 'create') {
-      setForm(getDefaultStaffForm());
+      const defaultForm = getDefaultStaffForm();
+      if (user?.contextId) {
+        defaultForm.clinicId = user.contextId;
+      }
+      setForm(defaultForm);
     }
-  }, [mode, staff]);
+  }, [mode, staff, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -243,15 +261,13 @@ function StaffModal({
   const isEdit = mode === 'edit';
 
   return (
-    <div className="plat-modal-backdrop" onClick={onClose}>
-      <div className="plat-modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="plat-modal-header">
-          <h3 className="plat-modal-title">{isEdit ? 'Update Receptionist Profile' : 'Register New Receptionist'}</h3>
-          <button className="plat-btn plat-btn-icon plat-btn-ghost" onClick={onClose}>
-            <X size={14} />
-          </button>
-        </div>
-
+    <Drawer
+      isOpen={true}
+      onClose={onClose}
+      title={isEdit ? 'Update Receptionist Profile' : 'Register New Receptionist'}
+      maxWidth="600px"
+    >
+      <div className="plat-modal-content" style={{ border: 'none', boxShadow: 'none', margin: 0, padding: 0 }}>
         <form onSubmit={handleSubmit} className="plat-modal-body">
           {errors['general'] && <div className="plat-error-banner mb-4">{errors['general']}</div>}
 
@@ -470,7 +486,7 @@ function StaffModal({
           </div>
         </form>
       </div>
-    </div>
+    </Drawer>
   );
 }
 
@@ -482,10 +498,11 @@ export default function ReceptionistsPage() {
   const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('DESC');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [itemsPerPage, setItemsPerPage] = useState(PAGE_SIZE);
 
-  const { data, isLoading } = useStaffList(CATEGORY, { 
-    page, 
-    limit: PAGE_SIZE, 
+  const { data, isLoading } = useStaffList(CATEGORY, {
+    page,
+    limit: itemsPerPage,
     search: debouncedSearch,
     sortBy,
     sortOrder
@@ -558,7 +575,7 @@ export default function ReceptionistsPage() {
 
           <div className="flex items-center gap-2">
             <span className="text-[11px] font-bold color-muted uppercase tracking-wider">Sort:</span>
-            <select 
+            <select
               className="plat-form-input !py-1 !text-xs !w-auto min-w-[140px]"
               value={`${sortBy}-${sortOrder}`}
               onChange={(e) => {
@@ -576,12 +593,12 @@ export default function ReceptionistsPage() {
           </div>
         </div>
 
-        <button 
-          className="plat-btn plat-btn-ghost plat-btn-sm" 
-          onClick={() => { 
-            setSearch(''); 
-            setDebouncedSearch(''); 
-            setPage(1); 
+        <button
+          className="plat-btn plat-btn-ghost plat-btn-sm"
+          onClick={() => {
+            setSearch('');
+            setDebouncedSearch('');
+            setPage(1);
             setSortBy('id');
             setSortOrder('DESC');
           }}
@@ -592,56 +609,68 @@ export default function ReceptionistsPage() {
 
       <div className="plat-card">
         {isLoading ? (
-          <div className="plat-empty" style={{ minHeight: 400 }}><RefreshCw size={24} className="animate-spin opacity-20" /></div>
+          <TableSkeleton rows={itemsPerPage} columns={6} />
         ) : staff.length === 0 ? (
-          <div className="plat-empty" style={{ minHeight: 400 }}>
-            <div className="plat-empty-icon-wrap mb-6">
-              <ClipboardList size={48} className="text-blue-500 opacity-20" />
-            </div>
-            <h3 className="text-lg font-semibold text-slate-800 mb-2">No Receptionists Registered</h3>
-            <p className="text-sm text-slate-500 max-w-xs text-center mb-8">
-              Front-desk operations start here. Add your first receptionist to begin coordinating patient intake.
-            </p>
-            <button className="plat-btn plat-btn-primary" onClick={() => { setEditingId(null); setModalOpen(true); }}>
-              <Plus size={14} /> Register First Receptionist
-            </button>
-          </div>
+          <EmptyState 
+            icon={ClipboardList}
+            title="No Receptionists Registered"
+            description="Front-desk operations start here. Add your first receptionist to begin coordinating patient intake."
+            actionLabel="Register First Receptionist"
+            onAction={() => { setEditingId(null); setModalOpen(true); }}
+            variant="card"
+            className="my-8"
+          />
         ) : (
-          <div className="plat-table-container">
+          <>
+            <div className="plat-table-container">
             <table className="plat-table">
               <thead><tr><th>#</th><th>Staff Identity</th><th>Contact Information</th><th>Primary Role</th><th>Status</th><th>Actions</th></tr></thead>
               <tbody>
                 {staff.map((s: StaffSummary, i: number) => (
                   <tr key={s.id} className="plat-table-row">
-                    <td className="plat-mono-data text-xs" style={{ width: 40 }}>{(page - 1) * PAGE_SIZE + i + 1}</td>
-                    <td>
-                      <div className="font-semibold">{s.name}</div>
-                      <div className="text-[11px] color-muted font-medium">{s.email || 'No email provided'}</div>
+                    <td data-label="#" className="plat-mono-data text-xs" style={{ width: 40 }}>
+                      <div>{(page - 1) * PAGE_SIZE + i + 1}</div>
                     </td>
-                    <td>
-                      <div className="plat-mono-data">{s.mobile}</div>
-                      <div className="text-[10px] color-muted plat-capitalize flex items-center gap-1 font-medium">
-                        <MapPin size={10} /> {s.city || 'Station N/A'}
+                    <td data-label="Identity">
+                      <div className="plat-cell-val">
+                        <div className="font-semibold">{s.name}</div>
+                        <div className="text-[11px] color-muted font-medium">{s.email || 'No email provided'}</div>
                       </div>
                     </td>
-                    <td><div className="font-medium">{s.designation || 'Front Desk'}</div></td>
-                    <td>
-                      <span className={s.isActive ? 'plat-badge plat-badge-info' : 'plat-badge plat-badge-default'}>
-                        {s.isActive ? (
-                          <span className="flex items-center gap-1">
-                            <UserCheck size={10} /> Authorized
-                          </span>
-                        ) : 'Offline'}
-                      </span>
+                    <td data-label="Contact">
+                      <div className="plat-cell-val">
+                        <div className="plat-mono-data">{s.mobile}</div>
+                        <div className="text-[10px] color-muted plat-capitalize flex items-center gap-1 font-medium">
+                          <MapPin size={10} /> {s.city || 'Station N/A'}
+                        </div>
+                      </div>
                     </td>
-                    <td>
-                      <div className="flex justify-end gap-2">
-                        <button className="plat-btn plat-btn-icon plat-btn-ghost" onClick={() => handleEdit(s)}>
-                          <Edit2 size={13} />
-                        </button>
-                        <button className="plat-btn plat-btn-icon plat-btn-danger" onClick={() => handleDelete(s.id)}>
-                          <Trash2 size={13} />
-                        </button>
+                    <td data-label="Role">
+                      <div className="plat-cell-val">
+                        <div className="font-medium">{s.designation || 'Front Desk'}</div>
+                      </div>
+                    </td>
+                    <td data-label="Status">
+                      <div className="plat-cell-val">
+                        <span className={s.isActive ? 'plat-badge plat-badge-info' : 'plat-badge plat-badge-default'}>
+                          {s.isActive ? (
+                            <span className="flex items-center gap-1">
+                              <UserCheck size={10} /> Active
+                            </span>
+                          ) : 'Inactive'}
+                        </span>
+                      </div>
+                    </td>
+                    <td data-label="Actions">
+                      <div className="plat-cell-val">
+                        <div className="flex gap-2">
+                          <button className="plat-btn plat-btn-icon plat-btn-ghost" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={() => handleEdit(s)}>
+                            <Edit2 size={13} />
+                          </button>
+                          <button className="plat-btn plat-btn-icon plat-btn-danger" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={() => handleDelete(s.id)}>
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
                       </div>
                     </td>
                   </tr>
@@ -649,32 +678,17 @@ export default function ReceptionistsPage() {
               </tbody>
             </table>
           </div>
+          <Pagination
+            totalItems={data?.total || 0}
+            itemsPerPage={itemsPerPage}
+            currentPage={page}
+            onPageChange={setPage}
+            onLimitChange={setItemsPerPage}
+          />
+        </>
         )}
       </div>
 
-      {totalPages > 1 && (
-        <div className="plat-pagination-container">
-          <div className="plat-pagination-pill">
-            <button 
-              className="plat-pagination-btn" 
-              disabled={page <= 1} 
-              onClick={() => { setPage(p => p - 1); window.scrollTo(0, 0); }}
-            >
-              ← Previous
-            </button>
-            <div className="plat-pagination-info">
-              Page <b>{page}</b> of <b>{totalPages}</b>
-            </div>
-            <button 
-              className="plat-pagination-btn" 
-              disabled={page >= totalPages} 
-              onClick={() => { setPage(p => p + 1); window.scrollTo(0, 0); }}
-            >
-              Next →
-            </button>
-          </div>
-        </div>
-      )}
 
       {modalOpen && <StaffModal mode={editingId ? 'edit' : 'create'} staff={editingStaff} isLoading={isLoadingStaff} onClose={() => { setModalOpen(false); setEditingId(null); }} onSuccess={() => setEditingId(null)} />}
     </div>

@@ -24,7 +24,8 @@ export const medicalCases = pgTable('medicalcases', {
 
 export const vitals = pgTable('vitals', {
   id: serial('id').primaryKey(),
-  visitId: integer('visit_id').notNull().unique(),
+  regid: integer('regid'),
+  visitId: integer('visit_id'),
   heightCm: real('height_cm'),
   weightKg: real('weight_kg'),
   bmi: real('bmi'),
@@ -125,33 +126,51 @@ export const prescriptions = pgTable('case_potencies', {
   frequencyId: integer('frequency_id'),
   days: integer('days'),
   instructions: text('instructions'),
+  rxremedy: varchar('rxremedy', { length: 255 }),
+  rxpotency: varchar('rxpotency', { length: 100 }),
+  rxfrequency: varchar('rxfrequency', { length: 100 }),
+  rxdays: varchar('rxdays', { length: 50 }),
+  rxprescription: text('rxprescription'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
   deletedAt: timestamp('deleted_at'),
 });
 
 // ─── AI Remedy Chart Session ─────────────────────────────────────────────────
-// Migrated from legacy: managetreedatas → remedy_tree_nodes
-
-export const remedyTreeNodes = pgTable('remedy_tree_nodes', {
-  id:          serial('id').primaryKey(),
-  parentId:    integer('parent_id').default(0),
-  label:       varchar('label',       { length: 255 }).notNull(),
-  description: text('description'),
-  nodeType:    varchar('node_type',   { length: 50 }).default('RUBRIC'), // RUBRIC | REMEDY | CATEGORY
-  sortOrder:   integer('sort_order').default(0),
-  isActive:    boolean('is_active').default(true),
-  createdAt:   timestamp('created_at').defaultNow(),
-  updatedAt:   timestamp('updated_at').defaultNow(),
-});
-
 // Migrated from legacy: medicine_others → remedy_alternatives
 export const remedyAlternatives = pgTable('remedy_alternatives', {
-  id:        serial('id').primaryKey(),
-  treeId:    integer('tree_id').notNull(),       // FK → remedy_tree_nodes.id
-  remedy:    varchar('remedy',  { length: 255 }),
-  potency:   varchar('potency', { length: 100 }),
-  notes:     text('notes'),
+  id: serial('id').primaryKey(),
+  treeId: integer('tree_id').notNull(),       // FK → remedy_tree_nodes.id
+  remedy: varchar('remedy', { length: 255 }),
+  potency: varchar('potency', { length: 100 }),
+  notes: text('notes'),
   sortOrder: integer('sort_order').default(0),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// ─── Vaccines & Reminders ────────────────────────────────────────────────────
+
+export const vaccineMaster = pgTable('vaccinedatas', {
+  id: serial('id').primaryKey(),
+  label: varchar('label', { length: 255 }).notNull(),
+  description: text('description'),
+  months: integer('months'), // Recommended age in months
+  parentId: integer('parent_id').default(0),
+});
+
+export const caseVaccines = pgTable('case_vaccins', {
+  id: serial('id').primaryKey(),
+  regid: integer('regid').notNull(),
+  vaccineId: integer('vaccinee_id').notNull(),
+  notes: text('notes'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const caseReminders = pgTable('case_reminders', {
+  id: serial('id').primaryKey(),
+  regid: integer('regid').notNull(),
+  reminderDate: timestamp('reminder_date'),
+  message: text('message'),
+  status: varchar('status', { length: 20 }).default('Pending'),
   createdAt: timestamp('created_at').defaultNow(),
 });

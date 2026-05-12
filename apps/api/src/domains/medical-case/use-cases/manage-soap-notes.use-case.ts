@@ -1,5 +1,5 @@
-import { type Result, ok } from '../../../shared/result';
-import type { MedicalCaseRepository, SoapNotes } from '../ports/medical-case.repository';
+import { type Result, ok } from '../../../shared/result.js';
+import type { MedicalCaseRepository, SoapNotes } from '../ports/medical-case.repository.js';
 
 export class ManageSoapNotesUseCase {
   constructor(private readonly repository: MedicalCaseRepository) {}

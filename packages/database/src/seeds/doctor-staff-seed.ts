@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
-import { doctorsLegacy } from '../schema/legacy/doctors';
-import type { DbClient } from '../client';
+import { doctorsLegacy } from '../schema/legacy/doctors.js';
+import type { DbClient } from '../client.js';
 
 export async function seedDoctorStaff(db: DbClient) {
   console.log('[Seed] Seeding Doctor Staff...');

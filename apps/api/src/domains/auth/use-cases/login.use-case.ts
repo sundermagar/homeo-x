@@ -1,9 +1,9 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import type { AuthTokenPayload, Role } from '@mmc/types';
-import { appConfig } from '../../../shared/config/app-config';
-import type { UserRepository } from '../ports/user.repository';
-import { type Result, ok, fail } from '../../../shared/result';
+import { appConfig } from '../../../shared/config/app-config.js';
+import type { UserRepository } from '../ports/user.repository.js';
+import { type Result, ok, fail } from '../../../shared/result.js';
 
 export interface LoginResult {
   token: string;

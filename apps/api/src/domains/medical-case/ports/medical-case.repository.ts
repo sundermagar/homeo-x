@@ -1,12 +1,30 @@
-import type { Result } from '../../../shared/result';
+import type { Result } from '../../../shared/result.js';
 
 export interface MedicalCase {
   id: number;
+  patientId?: number | null;
   regid: number;
   clinicId?: number | null;
   doctorId?: number | null;
-  status: string;
+  status: string | null;
   condition?: string | null;
+  patientName?: string | null;
+  phone?: string | null;
+  mobile?: string | null;
+  email?: string | null;
+  gender?: string | null;
+  address?: string | null;
+  dateOfBirth?: string | null;
+  city?: string | null;
+  state?: string | null;
+  doctorName?: string | null;
+  referedBy?: string | null;
+  totalBill?: number;
+  regularCharges?: number;
+  totalAdditionalCharges?: number;
+  consultationFee?: number;
+  paidAmount?: number;
+  outstandingBalance?: number;
   createdAt?: Date | null;
   updatedAt?: Date | null;
 }
@@ -92,6 +110,32 @@ export interface Prescription {
   frequencyId?: number;
   days?: number;
   instructions?: string;
+  createdAt?: Date;
+}
+
+export interface CaseVaccine {
+  id: number;
+  regid: number;
+  vaccineId: number;
+  vaccineName?: string;
+  notes?: string;
+  createdAt?: Date;
+}
+
+export interface VaccineMaster {
+  id: number;
+  label: string;
+  description?: string | null;
+  months?: number | null;
+}
+
+export interface CaseReminder {
+  id: number;
+  regid: number;
+  reminderDate?: Date | null;
+  message?: string | null;
+  status?: string | null;
+  createdAt?: Date | null;
 }
 
 export interface FullCaseData {
@@ -104,6 +148,9 @@ export interface FullCaseData {
   images?: CaseImage[];
   investigations?: Investigation[];
   prescriptions?: Prescription[];
+  vaccines?: CaseVaccine[];
+  reminders?: CaseReminder[];
+  additionalCharges?: any[];
 }
 
 export interface MedicalCaseRepository {
@@ -112,17 +159,19 @@ export interface MedicalCaseRepository {
   create(data: Partial<MedicalCase>): Promise<number>;
   update(id: number, data: Partial<MedicalCase>): Promise<void>;
   findMany(filters: { search?: string; page?: number; limit?: number }): Promise<{ data: any[]; total: number }>;
-  
+
   // High-level clinical aggregate
   getUnifiedCaseData(regid: number): Promise<FullCaseData | null>;
 
   // Sub-entity operations
   saveVitals(data: Partial<Vitals>): Promise<void>;
+  deleteVitals(id: number): Promise<void>;
   getVitals(visitId: number): Promise<Vitals | null>;
-  
+
   saveSoapNotes(data: Partial<SoapNotes>): Promise<void>;
   getSoapNotes(visitId: number): Promise<SoapNotes | null>;
-  
+  deleteSoapNote(id: number): Promise<void>;
+
   saveHomeoDetails(data: Partial<HomeoDetails>): Promise<void>;
   getHomeoDetails(regid: number): Promise<HomeoDetails | null>;
 
@@ -140,4 +189,26 @@ export interface MedicalCaseRepository {
 
   savePrescription(data: Partial<Prescription>): Promise<void>;
   deletePrescription(id: number): Promise<void>;
+
+  // Vaccines
+  getVaccines(regid: number): Promise<CaseVaccine[]>;
+  getMasterVaccines(): Promise<VaccineMaster[]>;
+  saveVaccine(data: Partial<CaseVaccine>): Promise<void>;
+  deleteVaccine(id: number): Promise<void>;
+
+  // Reminders
+  getReminders(regid: number): Promise<CaseReminder[]>;
+  saveReminder(data: Partial<CaseReminder>): Promise<void>;
+  deleteReminder(id: number): Promise<void>;
+
+  // Examinations
+  getExaminations(regid: number): Promise<CaseExamination[]>;
+
+  // Package History
+  getPackageHistory(regid: number): Promise<any[]>;
+
+  // Additional Charges
+  getAdditionalCharges(regid: number): Promise<any[]>;
+  saveAdditionalCharge(data: Partial<any>): Promise<void>;
+  deleteAdditionalCharge(id: number): Promise<void>;
 }

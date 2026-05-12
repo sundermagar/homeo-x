@@ -3,6 +3,10 @@ import { PlusCircle, X, RefreshCw, Trash2, Edit2, Search, Building, Banknote } f
 import { useBankDeposits, useCashDeposits, useCreateBankDeposit, useCreateCashDeposit, useDeleteBankDeposit, useDeleteCashDeposit } from '../hooks/use-accounts';
 import type { BankDeposit, CashDeposit } from '@mmc/types';
 import type { CreateBankDepositInput, CreateCashDepositInput, ListDepositsQuery } from '@mmc/validation';
+import { Drawer } from '@/shared/components/drawer';
+import { Pagination } from '@/shared/components/Pagination';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
 import '../../platform/styles/platform.css';
 import '../styles/billing.css';
 
@@ -18,8 +22,8 @@ export default function DepositsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submissionError, setSubmissionError] = useState('');
 
-  const bankQuery: ListDepositsQuery = { page, limit: 30, date: dateFilter || undefined };
-  const cashQuery: ListDepositsQuery = { page, limit: 30, date: dateFilter || undefined };
+  const bankQuery: ListDepositsQuery = { page, limit: 10, date: dateFilter || undefined };
+  const cashQuery: ListDepositsQuery = { page, limit: 10, date: dateFilter || undefined };
 
   const bankQuery_ = useBankDeposits(bankQuery);
   const cashQuery_ = useCashDeposits(cashQuery);
@@ -148,17 +152,17 @@ export default function DepositsPage() {
   const isLoading = activeTab === 'bank' ? bankQuery_.isLoading : cashQuery_.isLoading;
 
   return (
-    <div className="plat-page animate-fade-in">
-      <div className="plat-header">
+    <div className="pp-page-container bill-page animate-fade-in">
+      <div className="bill-header">
         <div>
-          <h1 className="plat-header-title">
+          <h1 className="bill-header-title">
             <Building size={20} className="color-primary" />
             Deposits Management
           </h1>
-          <p className="plat-header-sub">Record and track bank and cash deposits.</p>
+          <p className="bill-header-sub">Record and track bank and cash deposits.</p>
         </div>
-        <div className="plat-header-actions">
-          <button className="plat-btn plat-btn-primary" onClick={() => setIsModalOpen(true)}>
+        <div className="bill-header-actions">
+          <button className="bill-btn bill-btn-primary" onClick={() => setIsModalOpen(true)}>
             <PlusCircle size={14} />
             Add Deposit
           </button>
@@ -186,7 +190,7 @@ export default function DepositsPage() {
 
       <div className="bill-stats-bar">
         <div className="bill-stat-card">
-          <div className="bill-stat-icon" style={{ background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)' }}>
+          <div className="bill-stat-icon" style={{ background: 'var(--pp-blue-bg)', color: 'var(--pp-blue)' }}>
             <Building size={22} />
           </div>
           <div style={{ flex: 1 }}>
@@ -194,8 +198,8 @@ export default function DepositsPage() {
             <div className="bill-stat-value">{total}</div>
           </div>
         </div>
-        <div className="bill-stat-card">
-          <div className="bill-stat-icon" style={{ background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)' }}>
+        <div className="bill-stat-card" data-type="success">
+          <div className="bill-stat-icon" style={{ background: 'var(--pp-success-bg)', color: 'var(--pp-success-fg)' }}>
             <Banknote size={22} />
           </div>
           <div style={{ flex: 1 }}>
@@ -215,12 +219,17 @@ export default function DepositsPage() {
 
       <div className="plat-card">
         {isLoading ? (
-          <div className="plat-empty"><RefreshCw size={22} className="animate-spin opacity-30" /></div>
+          <TableSkeleton rows={5} columns={7} />
         ) : filtered.length === 0 ? (
-          <div className="plat-empty">
-            <Building size={40} className="plat-empty-icon" />
-            <p className="plat-empty-text">No {activeTab} deposits found.</p>
-          </div>
+          <EmptyState 
+            icon={Building}
+            title={search || dateFilter ? "No matches found" : `No ${activeTab} deposits found`}
+            description={search || dateFilter ? `No deposit records matching your search filters were found.` : `Clinical treasury is waiting. Record your first ${activeTab} deposit to track clinic funds.`}
+            actionLabel={search || dateFilter ? "Clear Filters" : "Add Deposit"}
+            onAction={search || dateFilter ? () => { setSearch(''); setDateFilter(''); } : () => setIsModalOpen(true)}
+            variant="card"
+            className="my-8"
+          />
         ) : (
           <div className="plat-table-container">
             <table className="plat-table">
@@ -238,28 +247,42 @@ export default function DepositsPage() {
               <tbody>
                 {filtered.map(d => (
                   <tr key={d.id}>
-                    <td data-label="ID" style={{ fontFamily: 'var(--pp-font-mono)' }}>#{d.id}</td>
-                    <td data-label="Date" style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.78rem' }}>{d.depositDate}</td>
-                    <td data-label="Amount" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 600 }}>₹{(parseFloat(d.amount ?? '0') || 0).toLocaleString()}</td>
-                    <td data-label="Bank">{d.bankdeposit || '—'}</td>
-                    <td data-label="Remark">{d.remark || '—'}</td>
-                    <td data-label="Status">
-                      <span className={`plat-badge ${d.submitted === 'Yes' ? 'plat-badge-primary' : 'plat-badge-default'}`} style={{
-                        background: d.submitted === 'Yes' ? 'var(--pp-blue-tint)' : 'rgba(255,255,255,0.05)',
-                        color: d.submitted === 'Yes' ? 'var(--pp-blue)' : 'var(--text-muted)',
-                        border: 'none',
-                        fontSize: '0.7rem',
-                        fontWeight: 600,
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.02em'
-                      }}>
-                        {d.submitted === 'Yes' ? 'Submitted' : 'Pending'}
-                      </span>
+                    <td data-label="ID" style={{ fontFamily: 'var(--pp-font-mono)' }}>
+                      <div>#{d.id}</div>
                     </td>
-                    <td>
-                      <button type="button" className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" onClick={(e) => handleDelete(e, d.id)}>
-                        <Trash2 size={13} />
-                      </button>
+                    <td data-label="Date" style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.78rem' }}>
+                      <div>{d.depositDate}</div>
+                    </td>
+                    <td data-label="Amount" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 600 }}>
+                      <div className="plat-cell-val">₹{(parseFloat(d.amount ?? '0') || 0).toLocaleString()}</div>
+                    </td>
+                    <td data-label="Bank">
+                      <div>{d.bankdeposit || '—'}</div>
+                    </td>
+                    <td data-label="Remark">
+                      <div>{d.remark || '—'}</div>
+                    </td>
+                    <td data-label="Status">
+                      <div className="plat-cell-val">
+                        <span className={`plat-badge ${d.submitted === 'Yes' ? 'plat-badge-success' : 'plat-badge-default'}`} style={{
+                          background: d.submitted === 'Yes' ? 'var(--pp-success-bg)' : 'rgba(255,255,255,0.05)',
+                          color: d.submitted === 'Yes' ? 'var(--pp-success-fg)' : 'var(--text-muted)',
+                          border: 'none',
+                          fontSize: '0.7rem',
+                          fontWeight: 600,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.02em'
+                        }}>
+                          {d.submitted === 'Yes' ? 'Submitted' : 'Pending'}
+                        </span>
+                      </div>
+                    </td>
+                    <td data-label="Actions">
+                      <div className="plat-cell-val">
+                        <button type="button" className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={(e) => handleDelete(e, d.id)}>
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -269,80 +292,79 @@ export default function DepositsPage() {
         )}
       </div>
 
-      {isModalOpen && (
-        <div className="plat-modal-overlay animate-fade-in" onClick={e => e.target === e.currentTarget && setIsModalOpen(false)}>
-          <div className="plat-modal" style={{ maxWidth: 500 }}>
-            <div className="plat-modal-header">
-              <h2 className="plat-modal-title">Add {activeTab === 'bank' ? 'Bank' : 'Cash'} Deposit</h2>
-              <button type="button" className="plat-btn plat-btn-icon" onClick={() => setIsModalOpen(false)}><X size={16} /></button>
-            </div>
-            <div className="plat-modal-body" style={{ paddingBottom: 0 }}>
-              <div className="bill-view-toggle-group" style={{ width: '100%' }}>
-                <button 
-                  type="button" 
-                  className={`bill-view-toggle-btn${activeTab === 'bank' ? ' is-active' : ''}`} 
-                  onClick={() => setActiveTab('bank')}
-                  style={{ flex: 1, padding: '10px' }}
-                >
-                  <Building size={14} /> Bank
-                </button>
-                <button 
-                  type="button" 
-                  className={`bill-view-toggle-btn${activeTab === 'cash' ? ' is-active' : ''}`} 
-                  onClick={() => setActiveTab('cash')}
-                  style={{ flex: 1, padding: '10px' }}
-                >
-                  <Banknote size={14} /> Cash
-                </button>
-              </div>
-            </div>
-            <form onSubmit={activeTab === 'bank' ? handleSubmitBank : handleSubmitCash}>
-              <div className="plat-modal-body plat-form">
-                {submissionError && (
-                  <div style={{ color: '#B91C1C', marginBottom: 16, fontWeight: 600 }}>{submissionError}</div>
-                )}
-                <div className="plat-form-group">
-                  <label className="plat-form-label">Deposit Date <span className="plat-form-required">*</span></label>
-                  <input className="plat-form-input" name="depositDate" type="date" defaultValue={new Date().toISOString().split('T')[0]} required />
-                </div>
-                <div className="plat-form-group">
-                  <label className="plat-form-label">Amount <span className="plat-form-required">*</span></label>
-                  <input className="plat-form-input" name="amount" type="text" required placeholder="e.g. 5000" />
-                </div>
-                <div className="plat-form-group">
-                  <label className="plat-form-label">{activeTab === 'bank' ? 'Bank/Account' : 'Source/Category'}</label>
-                  <input 
-                    className="plat-form-input" 
-                    name="bankdeposit" 
-                    placeholder={activeTab === 'bank' ? "e.g. HDFC Bank - Acc ****1234" : "e.g. Cash in Hand, Counter Cash"} 
-                  />
-                </div>
-                <div className="plat-form-group plat-form-full">
-                  <label className="plat-form-label">Remark</label>
-                  <textarea className="plat-form-input" name="remark" rows={2} placeholder="Optional notes..." />
-                </div>
-                <div className="plat-form-group plat-form-full">
-                  <label className="plat-form-label">Comments</label>
-                  <textarea className="plat-form-input" name="comments" rows={2} />
-                </div>
-                <div className="plat-form-group">
-                  <label className="plat-form-label">Status</label>
-                  <select className="plat-form-input" name="submitted" defaultValue="No">
-                    <option value="No">Pending</option>
-                    <option value="Yes">Submitted</option>
-                  </select>
-                </div>
-              </div>
-              <div className="plat-modal-footer">
-                <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                <button type="submit" className="plat-btn plat-btn-primary" disabled={createBank.isPending || createCash.isPending}>
-                  Record Deposit
-                </button>
-              </div>
-            </form>
-          </div>
+      <Pagination
+        totalItems={total}
+        itemsPerPage={10}
+        currentPage={page}
+        onPageChange={setPage}
+        onLimitChange={() => {}}
+      />
+
+      <Drawer
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={`Add ${activeTab === 'bank' ? 'Bank' : 'Cash'} Deposit`}
+        maxWidth="480px"
+      >
+        <div className="bill-view-toggle-group" style={{ width: '100%', marginBottom: 24 }}>
+          <button 
+            type="button" 
+            className={`bill-view-toggle-btn${activeTab === 'bank' ? ' is-active' : ''}`} 
+            onClick={() => setActiveTab('bank')}
+            style={{ flex: 1, padding: '10px' }}
+          >
+            <Building size={14} /> Bank
+          </button>
+          <button 
+            type="button" 
+            className={`bill-view-toggle-btn${activeTab === 'cash' ? ' is-active' : ''}`} 
+            onClick={() => setActiveTab('cash')}
+            style={{ flex: 1, padding: '10px' }}
+          >
+            <Banknote size={14} /> Cash
+          </button>
         </div>
-      )}
+
+        <form onSubmit={activeTab === 'bank' ? handleSubmitBank : handleSubmitCash} className="bill-form">
+          {submissionError && (
+            <div style={{ color: '#B91C1C', marginBottom: 16, fontWeight: 600 }}>{submissionError}</div>
+          )}
+          <div className="bill-form-group">
+            <label className="bill-form-label">Deposit Date <span className="plat-form-required">*</span></label>
+            <input className="bill-form-input" name="depositDate" type="date" defaultValue={new Date().toISOString().split('T')[0]} required />
+          </div>
+          <div className="bill-form-group">
+            <label className="bill-form-label">Amount <span className="plat-form-required">*</span></label>
+            <input className="bill-form-input" name="amount" type="text" required placeholder="e.g. 5000" />
+          </div>
+          <div className="bill-form-group">
+            <label className="bill-form-label">{activeTab === 'bank' ? 'Bank/Account' : 'Source/Category'}</label>
+            <input 
+              className="bill-form-input" 
+              name="bankdeposit" 
+              placeholder={activeTab === 'bank' ? "e.g. HDFC Bank - Acc ****1234" : "e.g. Cash in Hand, Counter Cash"} 
+            />
+          </div>
+          <div className="bill-form-group">
+            <label className="bill-form-label">Remark</label>
+            <textarea className="bill-form-input" name="remark" rows={2} placeholder="Optional notes..." />
+          </div>
+          <div className="bill-form-group">
+            <label className="bill-form-label">Comments</label>
+            <textarea className="bill-form-input" name="comments" rows={2} />
+          </div>
+          <div className="bill-form-group">
+            <label className="bill-form-label">Status</label>
+            <select className="bill-form-input" name="submitted" defaultValue="No">
+              <option value="No">Pending</option>
+              <option value="Yes">Submitted</option>
+            </select>
+          </div>
+          <button type="submit" className="bill-btn bill-btn-primary" style={{ marginTop: 24, width: '100%', height: 44 }} disabled={createBank.isPending || createCash.isPending}>
+            Record Deposit
+          </button>
+        </form>
+      </Drawer>
       {deleteConfirmId && (
         <div className="plat-modal-overlay animate-fade-in" style={{ zIndex: 1100 }}>
           <div className="plat-modal" style={{ maxWidth: 400 }}>
@@ -363,6 +385,7 @@ export default function DepositsPage() {
           </div>
         </div>
       )}
+
     </div>
   );
 }

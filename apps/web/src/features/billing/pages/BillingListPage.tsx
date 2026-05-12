@@ -1,22 +1,54 @@
 import { useState } from 'react';
+import { format } from 'date-fns';
 import { Receipt, Search, ChevronLeft, ChevronRight, FilePlus, Grid, List, Printer } from 'lucide-react';
 
 import { useBills, useDailyCollection } from '../hooks/use-billing';
 import { BillingTable } from '../components/BillingTable';
-import { DailyCollectionCard } from '../components/DailyCollectionCard';
-import { format } from 'date-fns';
+import { Pagination } from '@/components/shared/pagination';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { Drawer } from '@/shared/components/drawer';
+import { EmptyState } from '@/components/shared/empty-state';
+import { BillingForm } from './BillingFormPage';
+import { CustomBillForm } from './CustomBillPage';
 import '../styles/billing.css';
+
+function DailyCollectionCard({ label, amount, count, icon, type = 'default' }: { 
+  label: string; 
+  amount: number; 
+  count?: number; 
+  icon: React.ReactNode;
+  type?: 'success' | 'danger' | 'warning' | 'default';
+}) {
+  const accentMap: Record<string, string> = {
+    success: 'var(--pp-success-fg)', danger: 'var(--pp-danger-fg)',
+    warning: 'var(--pp-warning-fg)', default: 'var(--pp-blue)'
+  };
+  const valueClass = type === 'success' ? 'is-success' : type === 'danger' ? 'is-danger' : type === 'warning' ? 'is-warning' : 'is-primary';
+  return (
+    <div className="pp-stat-card-enhanced" style={{ '--stat-accent': accentMap[type] } as React.CSSProperties}>
+      <div className="pp-stat-icon" style={{ '--stat-icon-color': accentMap[type], '--stat-icon-bg': `${accentMap[type]}15` } as React.CSSProperties}>
+        {icon}
+      </div>
+      <div className="pp-stat-label">{label}</div>
+      <div className={`pp-stat-value ${valueClass}`}>₹{amount.toLocaleString()}</div>
+      {count !== undefined && <div className="pp-stat-trend">{count} items</div>}
+    </div>
+  );
+}
 
 export default function BillingListPage() {
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [page, setPage] = useState(1);
   const [regidFilter, setRegidFilter] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [pageSize, setPageSize] = useState(10);
+  const [isNewBillOpen, setIsNewBillOpen] = useState(false);
+  const [isCustomBillOpen, setIsCustomBillOpen] = useState(false);
 
   const parsedRegid = parseInt(regidFilter, 10);
   const billsQuery      = useBills({ 
     page, 
-    limit: 30, 
+    limit: pageSize, 
     regid: (!isNaN(parsedRegid) && regidFilter) ? parsedRegid : undefined, 
     date: date || undefined 
   });
@@ -27,38 +59,42 @@ export default function BillingListPage() {
   const hasMore   = bills.length === 30;
 
   return (
-    <div className="bill-page fade-in">
+    <div className="pp-page-container bill-page animate-fade-in">
 
       {/* ─── Header ─── */}
-      <div className="bill-header">
+      <div className="pp-page-hero">
         <div>
-          <h1 className="bill-header-title">
-            <Receipt size={20} strokeWidth={1.6} style={{ color: 'var(--pp-blue)' }} />
-            Billing &amp; Finance
+          <h1 className="pp-page-hero-title">
+            <Receipt size={22} strokeWidth={1.6} />
+            Billing & Finance
           </h1>
-          <p className="bill-header-sub">Manage clinic invoices, daily collections, and patient accounts.</p>
+          <p className="pp-page-hero-sub">Manage clinic invoices, daily collections, and patient accounts.</p>
         </div>
-        <div className="bill-header-actions">
+        <div className="pp-page-hero-actions">
           <input
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="bill-filter-input"
+            className="pp-input"
+            style={{ width: 'auto' }}
           />
-          <button className="bill-btn bill-btn-default" onClick={() => window.print()}>
+          <button className="btn-secondary" onClick={() => window.print()}>
             <Printer size={14} />
             Print Report
           </button>
-          <button className="bill-btn bill-btn-primary" onClick={() => (window.location.href = '/billing/create')}>
+          <button className="btn-primary" onClick={() => setIsNewBillOpen(true)}>
             <FilePlus size={14} strokeWidth={1.6} />
             New Bill
           </button>
+          <button className="btn-secondary" onClick={() => setIsCustomBillOpen(true)}>
+            <FilePlus size={14} strokeWidth={1.6} />
+            Custom Bill
+          </button>
         </div>
-
       </div>
 
       {/* ─── KPI Stats ─── */}
-      <div className="bill-stats-bar">
+      <div className="pp-stat-grid">
         <DailyCollectionCard
           label="Total Charges"
           amount={collectionQuery.data?.totalCharges ?? 0}
@@ -91,42 +127,60 @@ export default function BillingListPage() {
       </div>
 
       {/* ─── Table Section ─── */}
-      <div className="bill-section-header">
-        <div />
+      <div className="pp-section-header">
+        <div>
+          <h2 className="pp-section-title">Billing Records</h2>
+          <p className="pp-section-sub">Daily invoices and transaction history</p>
+        </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <div className="bill-view-toggle-group">
+        <div className="pp-filter-controls">
+          {/* Search */}
+          <div className="pp-filter-search-wrap" style={{ maxWidth: 220 }}>
+            <Search size={14} />
+            <input
+              type="text"
+              className="pp-filter-search-input"
+              placeholder="Search by Reg ID…"
+              value={regidFilter}
+              onChange={(e) => { setRegidFilter(e.target.value); setPage(1); }}
+            />
+          </div>
+          {/* List / Grid toggle */}
+          <div className="appt-segmented-toggle">
             <button
               type="button"
               onClick={() => setViewMode('list')}
-              className={`bill-view-toggle-btn${viewMode === 'list' ? ' is-active' : ''}`}
+              className={`appt-segmented-btn ${viewMode === 'list' ? 'active' : ''}`}
+              title="List view"
             >
               <List size={14} /> List
             </button>
             <button
               type="button"
               onClick={() => setViewMode('grid')}
-              className={`bill-view-toggle-btn${viewMode === 'grid' ? ' is-active' : ''}`}
+              className={`appt-segmented-btn ${viewMode === 'grid' ? 'active' : ''}`}
+              title="Card view"
             >
-              <Grid size={14} /> Grid
+              <Grid size={14} /> Card
             </button>
-          </div>
-          <div className="bill-search-wrap">
-            <Search size={13} className="bill-search-icon" strokeWidth={2} />
-            <input
-              type="text"
-              className="bill-filter-input bill-search-input"
-              style={{ width: '180px', fontFamily: 'var(--pp-font-mono)' }}
-              placeholder="Search Reg ID…"
-              value={regidFilter}
-              onChange={(e) => { setRegidFilter(e.target.value); setPage(1); }}
-            />
           </div>
         </div>
       </div>
 
-      {viewMode === 'list' ? (
-        <BillingTable bills={bills} isLoading={billsQuery.isLoading} />
+      {billsQuery.isLoading ? (
+        <TableSkeleton rows={8} columns={8} />
+      ) : bills.length === 0 ? (
+        <EmptyState 
+          icon={Receipt}
+          title={regidFilter ? "No billing records found" : "No transactions today"}
+          description={regidFilter ? `No bills matching Reg ID "${regidFilter}" were found.` : "Clinical billing is clean. Generate an invoice to start tracking today's collection."}
+          actionLabel={regidFilter ? "Clear Search" : "New Bill"}
+          onAction={regidFilter ? () => setRegidFilter('') : () => setIsNewBillOpen(true)}
+          variant="card"
+          className="my-8"
+        />
+      ) : viewMode === 'list' ? (
+        <BillingTable bills={bills} isLoading={false} />
       ) : (
         <div className="bill-card-grid">
           {bills.map((bill) => (
@@ -161,17 +215,48 @@ export default function BillingListPage() {
         </div>
       )}
 
-      {/* ─── Pagination ─── */}
-      <div className="bill-pagination">
-        <span className="bill-page-info">Page {page} · {total} total</span>
-        <button className="bill-btn bill-btn-sm bill-btn-icon" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
-          <ChevronLeft size={14} strokeWidth={2} />
-        </button>
-        <button className="bill-btn bill-btn-sm bill-btn-icon" disabled={!hasMore} onClick={() => setPage(p => p + 1)}>
-          <ChevronRight size={14} strokeWidth={2} />
-        </button>
-      </div>
+      <Pagination
+        currentPage={page}
+        totalPages={Math.ceil(total / pageSize)}
+        pageSize={pageSize}
+        totalItems={total}
+        onPageChange={(p) => setPage(p)}
+        onPageSizeChange={(s) => {
+          setPageSize(s);
+          setPage(1);
+        }}
+      />
 
+      <Drawer isOpen={isNewBillOpen} onClose={() => setIsNewBillOpen(false)} title="Generate New Invoice" maxWidth="500px">
+        <BillingForm 
+          onSuccess={() => { setIsNewBillOpen(false); billsQuery.refetch(); collectionQuery.refetch(); }} 
+          onCancel={() => setIsNewBillOpen(false)} 
+        />
+      </Drawer>
+
+      <Drawer isOpen={isCustomBillOpen} onClose={() => setIsCustomBillOpen(false)} title="Custom Bill" maxWidth="500px">
+        <CustomBillForm 
+          onSuccess={() => { setIsCustomBillOpen(false); billsQuery.refetch(); collectionQuery.refetch(); }} 
+          onCancel={() => setIsCustomBillOpen(false)} 
+        />
+      </Drawer>
+
+      <style>{`
+        .bill-main { padding: 0; }
+        @media (max-width: 640px) {
+          .bill-header { flex-direction: column !important; align-items: stretch !important; gap: 16px !important; }
+          .bill-header-actions { grid-template-columns: 1fr 1fr !important; gap: 8px !important; display: grid !important; }
+          .bill-header-actions .bill-btn { height: 44px; justify-content: center; border-radius: 12px; }
+          .bill-filter-input { width: 100% !important; height: 44px; border-radius: 12px; }
+
+          .bill-stat-card { padding: 12px !important; }
+
+          .bill-section-header { flex-wrap: wrap; gap: 12px; }
+          .bill-section-controls { width: 100%; }
+          .bill-search-wrap { flex: 1; min-width: 0; max-width: 100%; }
+          .bill-search-input { width: 100% !important; }
+        }
+      `}</style>
     </div>
   );
 }

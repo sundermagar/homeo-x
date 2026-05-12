@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
-import { stickers } from '../schema/settings';
-import type { DbClient } from '../client';
+import { stickers } from '../schema/settings.js';
+import type { DbClient } from '../client.js';
 
 export async function seedStickers(db: DbClient) {
   console.log('[Seed] Seeding Stickers...');

@@ -1,18 +1,28 @@
 import { Router } from 'express';
-import { PackageRepositoryPG } from '../../repositories/package.repository.pg';
-import { ManagePackagePlansUseCase } from '../../../domains/packages/use-cases/manage-package-plans.use-case';
-import { AssignPackageUseCase } from '../../../domains/packages/use-cases/assign-package.use-case';
-import { GetPackageAnalyticsUseCase } from '../../../domains/packages/use-cases/get-package-analytics.use-case';
-import { asyncHandler } from '../middleware/async-handler';
-import { authMiddleware } from '../middleware/auth';
-import { BadRequestError } from '../../../shared/errors';
-import { sendSuccess } from '../../../shared/response-formatter';
+import { PackageRepositoryPG } from '../../repositories/package.repository.pg.js';
+import { BillingRepositoryPg } from '../../repositories/billing.repository.pg.js';
+import { ManagePackagePlansUseCase } from '../../../domains/packages/use-cases/manage-package-plans.use-case.js';
+import { AssignPackageUseCase } from '../../../domains/packages/use-cases/assign-package.use-case.js';
+import { GetPackageAnalyticsUseCase } from '../../../domains/packages/use-cases/get-package-analytics.use-case.js';
+import { asyncHandler } from '../middleware/async-handler.js';
+import { authMiddleware } from '../middleware/auth.js';
+import { BadRequestError } from '../../../shared/errors.js';
+import { sendSuccess } from '../../../shared/response-formatter.js';
+import { MedicalCaseRepositoryPg } from '../../repositories/medical-case.repository.pg.js';
+import { CommunicationRepositoryPG } from '../../repositories/communication.repository.pg.js';
+import { SendSmsUseCase } from '../../../domains/communication/use-cases/send-sms.use-case.js';
+import { createSmsGateway } from '../../communication/msg91-sms-gateway.js';
 
 export const packagesRouter: Router = Router();
 
 packagesRouter.use(authMiddleware);
 
-const getRepo = (req: any) => new PackageRepositoryPG(req.tenantDb);
+const getRepo     = (req: any) => new PackageRepositoryPG(req.tenantDb);
+const getBillingRepo = (req: any) => new BillingRepositoryPg(req.tenantDb);
+const getPatientRepo = (req: any) => new MedicalCaseRepositoryPg(req.tenantDb);
+const getCommRepo = (req: any) => new CommunicationRepositoryPG(req.tenantDb);
+const smsGateway = createSmsGateway();
+const getSmsUseCase = (req: any) => new SendSmsUseCase(getCommRepo(req), smsGateway);
 
 // ─── Package Plans ────────────────────────────────────────────────────────────
 
@@ -40,14 +50,14 @@ packagesRouter.get('/analytics/stats', asyncHandler(async (req, res) => {
 
 // GET /api/packages/patient/:regid — all packages for a patient
 packagesRouter.get('/patient/:regid', asyncHandler(async (req, res) => {
-  const uc = new AssignPackageUseCase(getRepo(req));
+  const uc = new AssignPackageUseCase(getRepo(req), getBillingRepo(req), getPatientRepo(req), getSmsUseCase(req));
   const result = await uc.getPatientPackages(Number(req.params.regid));
   if (result.success) sendSuccess(res, result.data);
 }));
 
 // GET /api/packages/patient/:regid/active — active package for a patient
 packagesRouter.get('/patient/:regid/active', asyncHandler(async (req, res) => {
-  const uc = new AssignPackageUseCase(getRepo(req));
+  const uc = new AssignPackageUseCase(getRepo(req), getBillingRepo(req), getPatientRepo(req), getSmsUseCase(req));
   const result = await uc.getActivePackage(Number(req.params.regid));
   if (result.success) sendSuccess(res, result.data);
 }));
@@ -88,14 +98,14 @@ packagesRouter.delete('/:id', asyncHandler(async (req, res) => {
 packagesRouter.post('/assign', asyncHandler(async (req, res) => {
   const { regid, packageId, patientId, startDate, notes } = req.body;
   if (!regid || !packageId || !patientId) throw new BadRequestError('regid, packageId, and patientId are required');
-  const uc = new AssignPackageUseCase(getRepo(req));
+  const uc = new AssignPackageUseCase(getRepo(req), getBillingRepo(req), getPatientRepo(req), getSmsUseCase(req));
   const result = await uc.execute({ regid, packageId, patientId, startDate, notes });
   if (result.success) sendSuccess(res, result.data, 'Package assigned successfully', 201);
 }));
 
 // DELETE /api/packages/subscription/:id — cancel subscription
 packagesRouter.delete('/subscription/:id', asyncHandler(async (req, res) => {
-  const uc = new AssignPackageUseCase(getRepo(req));
+  const uc = new AssignPackageUseCase(getRepo(req), getBillingRepo(req), getPatientRepo(req), getSmsUseCase(req));
   const result = await uc.cancelSubscription(Number(req.params.id));
   if (result.success) sendSuccess(res, undefined, 'Package subscription cancelled');
 }));

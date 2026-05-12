@@ -1,6 +1,6 @@
 import type { Patient } from '@mmc/types';
-import type { PatientRepository } from '../ports/patient.repository';
-import { type Result, ok, fail } from '../../../shared/result';
+import type { PatientRepository } from '../ports/patient.repository.js';
+import { type Result, ok, fail } from '../../../shared/result.js';
 
 export class GetPatientUseCase {
   constructor(private readonly patientRepo: PatientRepository) {}

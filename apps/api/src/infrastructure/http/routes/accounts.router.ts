@@ -1,8 +1,8 @@
 import { Router, type Request, type Response } from 'express';
-import { asyncHandler } from '../middleware/async-handler';
-import { authMiddleware } from '../middleware/auth';
-import { validate, validateQuery } from '../middleware/validate';
-import { AdditionalChargeRepositoryPg, ExpenseRepositoryPg } from '../../repositories/accounts.repository.pg';
+import { asyncHandler } from '../middleware/async-handler.js';
+import { authMiddleware } from '../middleware/auth.js';
+import { validate, validateQuery } from '../middleware/validate.js';
+import { AdditionalChargeRepositoryPg, ExpenseRepositoryPg } from '../../repositories/accounts.repository.pg.js';
 import {
   ListAdditionalChargesUseCase,
   GetAdditionalChargeUseCase,
@@ -14,7 +14,7 @@ import {
   CreateExpenseHeadUseCase,
   UpdateExpenseHeadUseCase,
   DeleteExpenseHeadUseCase,
-} from '../../../domains/billing';
+} from '../../../domains/billing/index.js';
 import {
   createAdditionalChargeSchema,
   updateAdditionalChargeSchema,

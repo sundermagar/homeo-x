@@ -1,9 +1,15 @@
 import React, { useMemo, useState } from 'react';
-import { MapPin, Plus, X, RefreshCw, ArrowLeft, Trash2, Edit2, Phone, Mail, User, Briefcase, Calendar, Info, Search, ShieldCheck } from 'lucide-react';
+import { MapPin, Plus, X, RefreshCw, Trash2, Edit2, Phone, Mail, User, Briefcase, Calendar, Info, Search, ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useDispensaries, useCreateDispensary, useUpdateDispensary, useDeleteDispensary } from '../hooks/use-settings';
+import { Drawer } from '@/shared/components/drawer';
 import '../../platform/styles/platform.css';
 import '../styles/settings.css';
+
+import { Pagination } from '@/shared/components/Pagination';
+import { usePagination } from '@/shared/hooks/use-pagination';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
 
 interface Dispensary {
   id: number;
@@ -57,6 +63,15 @@ export default function DispensariesPage() {
     (d.email && d.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
     (d.city && d.city.toLowerCase().includes(searchQuery.toLowerCase()))
   ), [dispensaries, searchQuery]);
+
+  const {
+    currentPage,
+    setCurrentPage,
+    itemsPerPage,
+    setItemsPerPage,
+    paginatedData,
+    totalItems
+  } = usePagination(filteredItems);
 
   const activeStaffCount = useMemo(() => dispensaries.filter((d: Dispensary) => d.isActive).length, [dispensaries]);
 
@@ -151,15 +166,19 @@ export default function DispensariesPage() {
 
       <div className="plat-card">
         {isLoading ? (
-          <div className="plat-empty" style={{ minHeight: 200 }}>
-            <RefreshCw size={22} className="animate-spin opacity-30" />
-          </div>
+          <TableSkeleton rows={5} columns={6} />
         ) : filteredItems.length === 0 ? (
-          <div className="plat-empty" style={{ minHeight: 200 }}>
-            <MapPin size={40} className="plat-empty-icon" />
-            <p className="plat-empty-text">No registry entries found.</p>
-          </div>
+          <EmptyState 
+            icon={MapPin}
+            title={searchQuery ? "No matches found" : "No dispensary staff found"}
+            description={searchQuery ? `No pharmacy staff matching "${searchQuery}" were found.` : "Register your first pharmacy staff member to begin managing clinical dispensaries."}
+            actionLabel={searchQuery ? "Clear Search" : "Add Staff Account"}
+            onAction={searchQuery ? () => setSearchQuery('') : handleOpenCreate}
+            variant="card"
+            className="my-8"
+          />
         ) : (
+          <>
           <div className="plat-table-container">
             <table className="plat-table">
               <thead>
@@ -173,9 +192,9 @@ export default function DispensariesPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredItems.map((disp: Dispensary, index: number) => (
+                {paginatedData.map((disp: Dispensary, index: number) => (
                   <tr key={disp.id} className="plat-table-row">
-                    <td className="plat-table-cell color-muted font-mono text-xs">{index + 1}</td>
+                    <td className="plat-table-cell color-muted font-mono text-xs">{(currentPage - 1) * itemsPerPage + index + 1}</td>
                     <td className="plat-table-cell">
                       <div className="font-bold text-[14px]">{disp.name}</div>
                       <div className="text-[11px] color-muted flex items-center gap-1 italic">
@@ -214,143 +233,146 @@ export default function DispensariesPage() {
               </tbody>
             </table>
           </div>
+          <div style={{ marginTop: '20px' }}>
+            <Pagination
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+            currentPage={currentPage}
+            onPageChange={setCurrentPage}
+            onLimitChange={setItemsPerPage}
+          />
+          </div>
+          </>
         )}
       </div>
 
-      {isModalOpen && (
-        <div className="plat-modal-backdrop" onClick={() => setIsModalOpen(false)}>
-          <div className="plat-modal-content max-w-2xl" onClick={e => e.stopPropagation()}>
-            <div className="plat-modal-header">
-              <h2 className="plat-modal-title">
-                {editingId ? 'Modify Access Credentials' : 'Register New Pharmacy Account'}
-              </h2>
-              <button className="plat-btn plat-btn-icon" onClick={() => setIsModalOpen(false)}>
-                <X size={16} />
-              </button>
-            </div>
-            <form onSubmit={handleSubmit}>
-              <div className="plat-modal-body">
-                <div className="plat-form-section">
-                  <div className="plat-form-grid-multi" style={{ gridTemplateColumns: '1fr' }}>
-                    <div className="plat-form-group">
-                      <label className="plat-form-label">Full Account Name *</label>
+      <Drawer
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={editingId ? 'Modify Access Credentials' : 'Register New Pharmacy Account'}
+        maxWidth="640px"
+      >
+        <form onSubmit={handleSubmit}>
+          <div className="plat-modal-body" style={{ padding: 0 }}>
+            <div className="plat-form-section" style={{ border: 'none', boxShadow: 'none', padding: 0 }}>
+              <div className="plat-form-grid-multi" style={{ gridTemplateColumns: '1fr' }}>
+                <div className="plat-form-group">
+                  <label className="plat-form-label">Full Account Name *</label>
+                  <input
+                    className="plat-form-input"
+                    value={form.name}
+                    onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                    required
+                    placeholder="e.g. Pharmacy Manager"
+                  />
+                </div>
+              </div>
+
+              <div className="plat-form-grid-multi mt-4" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
+                <div className="plat-form-group">
+                  <label className="plat-form-label">Official Email</label>
+                  <div className="plat-input-wrapper">
+                    <Mail size={14} className="plat-input-icon" />
+                    <input
+                      type="email"
+                      className="plat-form-input"
+                      value={form.email}
+                      onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                      placeholder="email@clinic.com"
+                    />
+                  </div>
+                </div>
+
+                {!editingId && (
+                  <div className="plat-form-group">
+                    <label className="plat-form-label">Initial Password *</label>
+                    <div className="plat-input-wrapper">
+                      <ShieldCheck size={14} className="plat-input-icon" />
                       <input
+                        type="password"
                         className="plat-form-input"
-                        value={form.name}
-                        onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                        required
-                        placeholder="e.g. Pharmacy Manager"
+                        value={form.password}
+                        onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                        required={!editingId}
+                        placeholder="Security credential"
                       />
                     </div>
                   </div>
+                )}
 
-                  <div className="plat-form-grid-multi mt-4" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
-                    <div className="plat-form-group">
-                      <label className="plat-form-label">Official Email</label>
-                      <div className="plat-input-wrapper">
-                        <Mail size={14} className="plat-input-icon" />
-                        <input
-                          type="email"
-                          className="plat-form-input"
-                          value={form.email}
-                          onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                          placeholder="email@clinic.com"
-                        />
-                      </div>
-                    </div>
+                <div className="plat-form-group">
+                  <label className="plat-form-label">Gender</label>
+                  <select
+                    className="plat-form-input"
+                    value={form.gender}
+                    onChange={e => setForm(f => ({ ...f, gender: e.target.value }))}
+                  >
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
 
-                    {!editingId && (
-                      <div className="plat-form-group">
-                        <label className="plat-form-label">Initial Password *</label>
-                        <div className="plat-input-wrapper">
-                          <ShieldCheck size={14} className="plat-input-icon" />
-                          <input
-                            type="password"
-                            className="plat-form-input"
-                            value={form.password}
-                            onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                            required={!editingId}
-                            placeholder="Security credential"
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="plat-form-group">
-                      <label className="plat-form-label">Gender</label>
-                      <select
-                        className="plat-form-input"
-                        value={form.gender}
-                        onChange={e => setForm(f => ({ ...f, gender: e.target.value }))}
-                      >
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                        <option value="Other">Other</option>
-                      </select>
-                    </div>
-
-                    <div className="plat-form-group">
-                      <label className="plat-form-label">Primary Mobile</label>
-                      <div className="plat-input-wrapper">
-                        <Phone size={14} className="plat-input-icon" />
-                        <input
-                          className="plat-form-input"
-                          value={form.mobile}
-                          onChange={e => setForm(f => ({ ...f, mobile: e.target.value }))}
-                          placeholder="Contact number"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="plat-form-group">
-                      <label className="plat-form-label">Station City</label>
-                      <div className="plat-input-wrapper">
-                        <MapPin size={14} className="plat-input-icon" />
-                        <input
-                          className="plat-form-input"
-                          value={form.city}
-                          onChange={e => setForm(f => ({ ...f, city: e.target.value }))}
-                          placeholder="City assigned"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="plat-form-group">
-                      <label className="plat-form-label">Designation</label>
-                      <div className="plat-input-wrapper">
-                        <Briefcase size={14} className="plat-input-icon" />
-                        <input
-                          className="plat-form-input"
-                          value={form.designation}
-                          onChange={e => setForm(f => ({ ...f, designation: e.target.value }))}
-                          placeholder="e.g. Pharmacist In-Charge"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 py-4">
+                <div className="plat-form-group">
+                  <label className="plat-form-label">Primary Mobile</label>
+                  <div className="plat-input-wrapper">
+                    <Phone size={14} className="plat-input-icon" />
                     <input
-                      type="checkbox"
-                      className="w-4 h-4 accent-primary"
-                      id="isActiveDisp"
-                      checked={form.isActive}
-                      onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))}
+                      className="plat-form-input"
+                      value={form.mobile}
+                      onChange={e => setForm(f => ({ ...f, mobile: e.target.value }))}
+                      placeholder="Contact number"
                     />
-                    <label htmlFor="isActiveDisp" className="plat-form-label mb-0 cursor-pointer">Authorized for System Access</label>
+                  </div>
+                </div>
+
+                <div className="plat-form-group">
+                  <label className="plat-form-label">Station City</label>
+                  <div className="plat-input-wrapper">
+                    <MapPin size={14} className="plat-input-icon" />
+                    <input
+                      className="plat-form-input"
+                      value={form.city}
+                      onChange={e => setForm(f => ({ ...f, city: e.target.value }))}
+                      placeholder="City assigned"
+                    />
+                  </div>
+                </div>
+
+                <div className="plat-form-group">
+                  <label className="plat-form-label">Designation</label>
+                  <div className="plat-input-wrapper">
+                    <Briefcase size={14} className="plat-input-icon" />
+                    <input
+                      className="plat-form-input"
+                      value={form.designation}
+                      onChange={e => setForm(f => ({ ...f, designation: e.target.value }))}
+                      placeholder="e.g. Pharmacist In-Charge"
+                    />
                   </div>
                 </div>
               </div>
-              <div className="plat-modal-footer">
-                <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                <button type="submit" className="plat-btn plat-btn-primary" disabled={createDisp.isPending || updateDisp.isPending}>
-                  {editingId ? 'Save Profile' : 'Register Account'}
-                </button>
+
+              <div className="flex items-center gap-2 py-4">
+                <input
+                  type="checkbox"
+                  className="w-4 h-4 accent-primary"
+                  id="isActiveDisp"
+                  checked={form.isActive}
+                  onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))}
+                />
+                <label htmlFor="isActiveDisp" className="plat-form-label mb-0 cursor-pointer">Authorized for System Access</label>
               </div>
-            </form>
+            </div>
           </div>
-        </div>
-      )}
+          <div className="plat-modal-footer" style={{ padding: '24px 0 0 0', marginTop: '24px' }}>
+            <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
+            <button type="submit" className="plat-btn plat-btn-primary" disabled={createDisp.isPending || updateDisp.isPending}>
+              {editingId ? 'Save Profile' : 'Register Account'}
+            </button>
+          </div>
+        </form>
+      </Drawer>
     </div>
   );
 }

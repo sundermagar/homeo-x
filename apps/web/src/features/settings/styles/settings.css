@@ -201,6 +201,7 @@
   padding: 1.5rem;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   gap: 1.25rem;
   transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
@@ -215,6 +216,7 @@
 .export-icon-wrap {
   width: 48px;
   height: 48px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -287,3 +289,24 @@
 .text-secondary { color: var(--text-secondary); }
 .color-muted { color: var(--text-muted); }
 .font-semibold { font-weight: 600; }
+
+
+
+@media (max-width: 640px) {
+  .plat-pagination-bar {
+    flex-direction: column;
+    gap: 16px;
+    padding: 20px;
+    text-align: center;
+  }
+  
+  .plat-pagination-info-wrap {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .plat-pagination-limit {
+    width: 100%;
+  }
+}
+

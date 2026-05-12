@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@tanstack/react-query', () => ({
   useQuery: vi.fn(),
@@ -26,73 +26,75 @@ import {
   useStockLogs,
 } from './use-settings';
 
-const mockedGet = apiClient.get as Mock;
-const mockedPost = apiClient.post as Mock;
-const mockedPut = apiClient.put as Mock;
-const mockedDelete = apiClient.delete as Mock;
-const mockedUseQuery = useQuery as Mock;
-const mockedUseMutation = useMutation as Mock;
-const mockedUseQueryClient = useQueryClient as Mock;
+const mockedUseQuery = vi.mocked(useQuery);
+const mockedUseMutation = vi.mocked(useMutation);
+const mockedUseQueryClient = vi.mocked(useQueryClient);
+const mockedApi = {
+  get: vi.mocked(apiClient.get),
+  post: vi.mocked(apiClient.post),
+  put: vi.mocked(apiClient.put),
+  delete: vi.mocked(apiClient.delete),
+};
 
 describe('settings hooks', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockedGet.mockResolvedValue({ data: [] });
-    mockedPost.mockResolvedValue({ data: [] });
-    mockedPut.mockResolvedValue({ data: [] });
-    mockedDelete.mockResolvedValue({ data: [] });
-    mockedUseQueryClient.mockReturnValue({ invalidateQueries: vi.fn() });
+    mockedApi.get.mockResolvedValue({ data: [] } as any);
+    mockedApi.post.mockResolvedValue({ data: [] } as any);
+    mockedApi.put.mockResolvedValue({ data: [] } as any);
+    mockedApi.delete.mockResolvedValue({ data: [] } as any);
+    mockedUseQueryClient.mockReturnValue({ invalidateQueries: vi.fn() } as any);
   });
 
   it('registers departments list query and fetches from correct endpoint', async () => {
     useDepartments();
 
     expect(mockedUseQuery).toHaveBeenCalled();
-    const queryOptions = mockedUseQuery.mock.calls[0]![0];
+    const queryOptions = mockedUseQuery.mock.calls[0]![0] as any;
     expect(queryOptions.queryKey).toEqual(['settings', 'departments']);
 
     await queryOptions.queryFn();
-    expect(mockedGet).toHaveBeenCalledWith('/settings/departments');
+    expect(mockedApi.get).toHaveBeenCalledWith('/settings/departments');
   });
 
   it('creates a department and invalidates the departments query key', async () => {
     const invalidateQueries = vi.fn();
-    mockedUseQueryClient.mockReturnValue({ invalidateQueries });
+    mockedUseQueryClient.mockReturnValue({ invalidateQueries } as any);
 
     useCreateDepartment();
     expect(mockedUseMutation).toHaveBeenCalled();
 
-    const mutationOptions = mockedUseMutation.mock.calls[0]![0];
+    const mutationOptions = mockedUseMutation.mock.calls[0]![0] as any;
     await mutationOptions.mutationFn({ name: 'Homeopathy' });
     mutationOptions.onSuccess?.();
 
-    expect(mockedPost).toHaveBeenCalledWith('/settings/departments', { name: 'Homeopathy' });
+    expect(mockedApi.post).toHaveBeenCalledWith('/settings/departments', { name: 'Homeopathy' });
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['settings', 'departments'] });
   });
 
   it('updates a department using PUT on the correct URL', async () => {
     const invalidateQueries = vi.fn();
-    mockedUseQueryClient.mockReturnValue({ invalidateQueries });
+    mockedUseQueryClient.mockReturnValue({ invalidateQueries } as any);
 
     useUpdateDepartment();
-    const mutationOptions = mockedUseMutation.mock.calls[0]![0];
+    const mutationOptions = mockedUseMutation.mock.calls[0]![0] as any;
     await mutationOptions.mutationFn({ id: 22, name: 'Updated Dept' });
     mutationOptions.onSuccess?.();
 
-    expect(mockedPut).toHaveBeenCalledWith('/settings/departments/22', { name: 'Updated Dept' });
+    expect(mockedApi.put).toHaveBeenCalledWith('/settings/departments/22', { name: 'Updated Dept' });
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['settings', 'departments'] });
   });
 
   it('deletes a department using DELETE on the correct URL', async () => {
     const invalidateQueries = vi.fn();
-    mockedUseQueryClient.mockReturnValue({ invalidateQueries });
+    mockedUseQueryClient.mockReturnValue({ invalidateQueries } as any);
 
     useDeleteDepartment();
-    const mutationOptions = mockedUseMutation.mock.calls[0]![0];
+    const mutationOptions = mockedUseMutation.mock.calls[0]![0] as any;
     await mutationOptions.mutationFn(44);
     mutationOptions.onSuccess?.();
 
-    expect(mockedDelete).toHaveBeenCalledWith('/settings/departments/44');
+    expect(mockedApi.delete).toHaveBeenCalledWith('/settings/departments/44');
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['settings', 'departments'] });
   });
 
@@ -100,10 +102,10 @@ describe('settings hooks', () => {
     useStockLogs(17);
 
     expect(mockedUseQuery).toHaveBeenCalled();
-    const queryOptions = mockedUseQuery.mock.calls[0]![0];
+    const queryOptions = mockedUseQuery.mock.calls[0]![0] as any;
     expect(queryOptions.queryKey).toEqual(['settings', 'stock-logs', 17]);
 
     await queryOptions.queryFn();
-    expect(mockedGet).toHaveBeenCalledWith('/settings/stock-logs?medicineId=17');
+    expect(mockedApi.get).toHaveBeenCalledWith('/settings/stock-logs?medicineId=17');
   });
 });

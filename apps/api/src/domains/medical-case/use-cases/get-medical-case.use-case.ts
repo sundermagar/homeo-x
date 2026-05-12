@@ -1,11 +1,11 @@
-import { type Result, ok, fail } from '../../../shared/result';
+import { type Result, ok, fail } from '../../../shared/result.js';
 import type {
   MedicalCaseRepository,
   MedicalCase,
   Vitals,
   SoapNotes,
   HomeoDetails
-} from '../ports/medical-case.repository';
+} from '../ports/medical-case.repository.js';
 
 export interface FullMedicalCase extends MedicalCase {
   vitals?: Vitals | null;

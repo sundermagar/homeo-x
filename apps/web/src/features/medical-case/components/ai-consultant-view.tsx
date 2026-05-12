@@ -259,14 +259,14 @@ export function AiConsultantView({ regid }: { regid?: number }) {
             <button
               type="button"
               className="mc-ai-submit-btn"
-              style={{ backgroundColor: '#ef4444' }}
+              style={{ backgroundColor: 'var(--pp-danger-fg)' }}
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 handleStop();
               }}
             >
-              Stop <Square size={14} fill="currentColor" />
+              <span className="btn-text">Stop</span> <Square size={14} fill="currentColor" />
             </button>
           ) : (
             <button
@@ -274,7 +274,7 @@ export function AiConsultantView({ regid }: { regid?: number }) {
               className="mc-ai-submit-btn"
               disabled={(!question.trim() && !attachment)}
             >
-              Analyze <Send size={14} />
+              <span className="btn-text">Analyze</span> <Send size={14} />
             </button>
           )}
         </div>
@@ -285,7 +285,7 @@ export function AiConsultantView({ regid }: { regid?: number }) {
           <div className="mc-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 480, animation: 'modalFadeIn 200ms ease-out' }}>
             <div className="mc-modal-header" style={{ borderBottomColor: '#fee2e2', backgroundColor: '#fef2f2', padding: '20px 24px' }}>
               <div className="mc-modal-title-group" style={{ alignItems: 'center' }}>
-                <div className="mc-modal-icon-bg" style={{ backgroundColor: '#fecaca', color: '#dc2626', width: 40, height: 40 }}>
+                <div className="mc-modal-icon-bg" style={{ backgroundColor: '#fecaca', color: 'var(--pp-danger-fg)', width: 40, height: 40 }}>
                   <AlertTriangle size={20} />
                 </div>
                 <div>
@@ -293,7 +293,7 @@ export function AiConsultantView({ regid }: { regid?: number }) {
                   <p className="mc-modal-sub" style={{ color: '#b91c1c', marginTop: 2 }}>High traffic volume detected.</p>
                 </div>
               </div>
-              <button className="mc-modal-close" onClick={handleCloseError} style={{ color: '#ef4444' }}>
+              <button className="mc-modal-close" onClick={handleCloseError} style={{ color: 'var(--pp-danger-fg)' }}>
                 <X size={20} />
               </button>
             </div>
@@ -313,7 +313,7 @@ export function AiConsultantView({ regid }: { regid?: number }) {
             </div>
             <div className="mc-modal-footer" style={{ padding: '16px 24px', backgroundColor: '#f8fafc' }}>
               <button type="button" className="mc-btn-secondary" onClick={handleCloseError}>Close</button>
-              <button type="button" className="mc-btn-primary" onClick={handleCloseError} style={{ backgroundColor: '#ef4444', boxShadow: '0 2px 8px rgba(239, 68, 68, 0.2)' }}>
+              <button type="button" className="mc-btn-primary" onClick={handleCloseError} style={{ backgroundColor: 'var(--pp-danger-fg)', boxShadow: '0 2px 8px rgba(239, 68, 68, 0.2)' }}>
                 Dismiss & Retry
               </button>
             </div>

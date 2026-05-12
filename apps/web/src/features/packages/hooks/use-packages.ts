@@ -78,6 +78,8 @@ export function useAssignPackage() {
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ['patient-packages', vars.regid] });
       qc.invalidateQueries({ queryKey: ['active-package', vars.regid] });
+      qc.invalidateQueries({ queryKey: ['bills'] });
+      qc.invalidateQueries({ queryKey: ['billing', 'daily'] });
     },
   });
 }

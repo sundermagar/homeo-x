@@ -1,22 +1,24 @@
 import { Router, type Request, type Response } from 'express';
-import { asyncHandler } from '../middleware/async-handler';
-import { authMiddleware } from '../middleware/auth';
-import { validate, validateQuery } from '../middleware/validate';
-import { PaymentRepositoryPg } from '../../repositories/payment.repository.pg';
-import { BillingRepositoryPg } from '../../repositories/billing.repository.pg';
-import { RazorpayServiceAdapter } from '../../payments/razorpay.service';
+import { asyncHandler } from '../middleware/async-handler.js';
+import { authMiddleware } from '../middleware/auth.js';
+import { validate, validateQuery } from '../middleware/validate.js';
+import { PaymentRepositoryPg } from '../../repositories/payment.repository.pg.js';
+import { BillingRepositoryPg } from '../../repositories/billing.repository.pg.js';
+import { NotificationsRepositoryPg } from '../../repositories/notifications.repository.pg.js';
+import { triggerNotificationToRoles } from '../notification-trigger.js';
+import { RazorpayServiceAdapter } from '../../payments/razorpay.service.js';
 import {
   CreatePaymentOrderUseCase,
   VerifyPaymentUseCase,
   RecordManualPaymentUseCase,
-} from '../../../domains/billing';
+} from '../../../domains/billing/index.js';
 import {
   createPaymentOrderSchema,
   verifyPaymentSchema,
   recordManualPaymentSchema,
   listPaymentsQuerySchema,
 } from '@mmc/validation';
-import { appConfig } from '../../../shared/config/app-config';
+import { appConfig } from '../../../shared/config/app-config.js';
 import type { DbClient } from '@mmc/database';
 
 export function createPaymentRouter(): Router {
@@ -65,6 +67,16 @@ export function createPaymentRouter(): Router {
         res.status(400).json({ success: false, error: result.error });
         return;
       }
+      const clinicId = (req as any).user?.contextId;
+      const amount = (result.data as any)?.amount ?? req.body?.amount;
+      void triggerNotificationToRoles({
+        roles: ['Account', 'Clinicadmin'],
+        clinicId,
+        type: 'PAYMENT_RECEIVED',
+        title: 'Online Payment Received',
+        message: `Razorpay payment confirmed${amount ? ` — ₹${amount}` : ''}.`,
+        repo: new NotificationsRepositoryPg(req.tenantDb),
+      });
       res.json({ success: true, data: result.data });
     })
   );
@@ -81,7 +93,19 @@ export function createPaymentRouter(): Router {
         res.status(400).json({ success: false, error: result.error });
         return;
       }
-      res.status(201).json({ success: true, data: result.data });
+      const payments = result.data;
+      const total = payments.reduce((sum, p) => sum + (p.amount ?? 0), 0);
+      const modes = Array.from(new Set(payments.map(p => p.paymentMode))).filter(Boolean).join(', ');
+      const clinicId = (req as any).user?.contextId;
+      void triggerNotificationToRoles({
+        roles: ['Account', 'Clinicadmin'],
+        clinicId,
+        type: 'PAYMENT_RECEIVED',
+        title: 'Payment Received',
+        message: `₹${total} received${modes ? ` via ${modes}` : ''}.`,
+        repo: new NotificationsRepositoryPg(req.tenantDb),
+      });
+      res.status(201).json({ success: true, data: payments });
     })
   );
 

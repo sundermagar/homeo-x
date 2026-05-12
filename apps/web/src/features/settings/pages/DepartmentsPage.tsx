@@ -1,9 +1,15 @@
 import React, { useState } from 'react';
-import { Layers, Plus, X, RefreshCw, ArrowLeft, Trash2, Edit2, CheckCircle2, XCircle } from 'lucide-react';
+import { Layers, Plus, X, RefreshCw, Trash2, Edit2, CheckCircle2, XCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useDepartments, useCreateDepartment, useUpdateDepartment, useDeleteDepartment } from '../hooks/use-settings';
+import { Drawer } from '@/shared/components/drawer';
 import '../../platform/styles/platform.css'; // Reusing platform styles
 import '../styles/settings.css';
+
+import { Pagination } from '@/shared/components/Pagination';
+import { usePagination } from '@/shared/hooks/use-pagination';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
 
 interface Department {
   id: number;
@@ -23,6 +29,15 @@ export default function DepartmentsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
+
+  const {
+    currentPage,
+    setCurrentPage,
+    itemsPerPage,
+    setItemsPerPage,
+    paginatedData,
+    totalItems
+  } = usePagination(depts);
 
   const handleOpenCreate = () => {
     setEditingId(null);
@@ -86,15 +101,19 @@ export default function DepartmentsPage() {
 
       <div className="plat-card">
         {isLoading ? (
-          <div className="plat-empty">
-            <RefreshCw size={22} className="animate-spin opacity-30" />
-          </div>
+          <TableSkeleton rows={5} columns={5} />
         ) : depts.length === 0 ? (
-          <div className="plat-empty">
-            <Layers size={40} className="plat-empty-icon" />
-            <p className="plat-empty-text">No departments found. Add your first one.</p>
-          </div>
+          <EmptyState 
+            icon={Layers}
+            title="No departments found"
+            description="Add your first clinic department or medical specialization to organize your staff."
+            actionLabel="Add Department"
+            onAction={handleOpenCreate}
+            variant="card"
+            className="my-8"
+          />
         ) : (
+          <>
           <div className="plat-table-container">
             <table className="plat-table">
               <thead>
@@ -107,9 +126,9 @@ export default function DepartmentsPage() {
                 </tr>
               </thead>
               <tbody>
-                {depts.map((dept: Department, idx: number) => (
+                {paginatedData.map((dept: Department, idx: number) => (
                   <tr key={dept.id} className="plat-table-row">
-                    <td data-label="ID" className="plat-table-cell font-mono text-xs color-muted">{idx + 1}</td>
+                    <td data-label="ID" className="plat-table-cell font-mono text-xs color-muted">{(currentPage - 1) * itemsPerPage + idx + 1}</td>
                     <td data-label="Name" className="plat-table-cell font-semibold">{dept.name}</td>
                     <td data-label="Detail" className="plat-table-cell text-secondary">{dept.description || '—'}</td>
                     <td data-label="Status" className="plat-table-cell">
@@ -132,65 +151,71 @@ export default function DepartmentsPage() {
               </tbody>
             </table>
           </div>
+          <div style={{ marginTop: '20px' }}>
+            <Pagination
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+            currentPage={currentPage}
+            onPageChange={setCurrentPage}
+            onLimitChange={setItemsPerPage}
+          />
+          </div>
+          </>
         )}
       </div>
 
-      {isModalOpen && (
-        <div className="plat-modal-backdrop" onClick={() => setIsModalOpen(false)}>
-          <div className="plat-modal-content max-w-lg" onClick={e => e.stopPropagation()}>
-            <div className="plat-modal-header">
-              <h2 className="plat-modal-title">{editingId ? 'Edit Department' : 'Add Department'}</h2>
-              <button className="plat-btn plat-btn-icon" onClick={() => setIsModalOpen(false)}>
-                <X size={16} />
-              </button>
-            </div>
-            <form onSubmit={handleSubmit}>
-              <div className="plat-modal-body">
-                <div className="plat-form-section">
-                  <div className="plat-form-grid-multi" style={{ gridTemplateColumns: '1fr' }}>
-                    <div className="plat-form-group">
-                      <label className="plat-form-label">Department Name *</label>
-                      <input
-                        className="plat-form-input"
-                        value={form.name}
-                        onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                        required
-                        placeholder="e.g. Homeopathy, General Medicine"
-                      />
-                    </div>
-                    <div className="plat-form-group">
-                      <label className="plat-form-label">Detail</label>
-                      <textarea
-                        className="plat-form-input"
-                        style={{ minHeight: '80px' }}
-                        value={form.description}
-                        onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                        placeholder="Describe the department's focus..."
-                      />
-                    </div>
-                    <div className="flex items-center gap-2 py-2">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 accent-primary"
-                        id="isActive"
-                        checked={form.isActive}
-                        onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))}
-                      />
-                      <label htmlFor="isActive" className="plat-form-label mb-0">Department is active</label>
-                    </div>
-                  </div>
+      <Drawer
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={editingId ? 'Edit Department' : 'Add Department'}
+        maxWidth="480px"
+      >
+        <form onSubmit={handleSubmit}>
+          <div className="plat-modal-body" style={{ padding: 0 }}>
+            <div className="plat-form-section" style={{ border: 'none', boxShadow: 'none', padding: 0 }}>
+              <div className="plat-form-grid-multi" style={{ gridTemplateColumns: '1fr' }}>
+                <div className="plat-form-group">
+                  <label className="plat-form-label">Department Name *</label>
+                  <input
+                    className="plat-form-input"
+                    value={form.name}
+                    onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                    required
+                    placeholder="e.g. Homeopathy, General Medicine"
+                  />
+                </div>
+                <div className="plat-form-group">
+                  <label className="plat-form-label">Detail</label>
+                  <textarea
+                    className="plat-form-input"
+                    style={{ minHeight: '120px' }}
+                    value={form.description}
+                    onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                    placeholder="Describe the department's focus..."
+                  />
+                </div>
+                <div className="flex items-center gap-2 py-2">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 accent-primary"
+                    id="isActive"
+                    checked={form.isActive}
+                    onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))}
+                  />
+                  <label htmlFor="isActive" className="plat-form-label mb-0 cursor-pointer">Department is active</label>
                 </div>
               </div>
-              <div className="plat-modal-footer">
-                <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                <button type="submit" className="plat-btn plat-btn-primary" disabled={createDept.isPending || updateDept.isPending}>
-                  {editingId ? 'Save Changes' : 'Create Department'}
-                </button>
-              </div>
-            </form>
+            </div>
           </div>
-        </div>
-      )}
+          <div className="plat-modal-footer" style={{ padding: '24px 0 0 0', marginTop: '24px' }}>
+            <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
+            <button type="submit" className="plat-btn plat-btn-primary" disabled={createDept.isPending || updateDept.isPending}>
+              {editingId ? 'Save Changes' : 'Create Department'}
+            </button>
+          </div>
+        </form>
+      </Drawer>
+
     </div>
   );
 }

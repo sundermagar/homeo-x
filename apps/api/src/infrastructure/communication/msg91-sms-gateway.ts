@@ -8,9 +8,9 @@
  *   MSG91_ROUTE       — 1=Transactional, 4=Promotional (default: 1)
  */
 
-import type { SmsGateway, SmsPayload, SmsGatewayResult } from '../../domains/communication/ports/sms-gateway';
-import { createLogger } from '../../shared/logger';
-import { BulkSmsPrimeGateway } from './bulk-sms-prime-gateway';
+import type { SmsGateway, SmsPayload, SmsGatewayResult } from '../../domains/communication/ports/sms-gateway.js';
+import { createLogger } from '../../shared/logger.js';
+import { BulkSmsPrimeGateway } from './bulk-sms-prime-gateway.js';
 
 const logger = createLogger('msg91-gateway');
 

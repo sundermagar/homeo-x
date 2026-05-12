@@ -1,9 +1,15 @@
 import React, { useState } from 'react';
-import { Truck, Plus, X, RefreshCw, ArrowLeft, Trash2, Edit2, Phone, User, Globe, Search } from 'lucide-react';
+import { Truck, Plus, X, RefreshCw, Trash2, Edit2, Phone, User, Globe, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useCouriers, useCreateCourier, useUpdateCourier, useDeleteCourier } from '../hooks/use-settings';
+import { Drawer } from '@/shared/components/drawer';
 import '../../platform/styles/platform.css';
 import '../styles/settings.css';
+
+import { Pagination } from '@/shared/components/Pagination';
+import { usePagination } from '@/shared/hooks/use-pagination';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
 
 const EMPTY_FORM = { name: '', contactPerson: '', phone: '', trackingUrl: '', isActive: true };
 
@@ -22,6 +28,15 @@ export default function CouriersPage() {
     c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (c.contactPerson && c.contactPerson.toLowerCase().includes(searchQuery.toLowerCase()))
   );
+
+  const {
+    currentPage,
+    setCurrentPage,
+    itemsPerPage,
+    setItemsPerPage,
+    paginatedData,
+    totalItems
+  } = usePagination(filteredItems);
 
   const handleOpenCreate = () => {
     setEditingId(null);
@@ -104,15 +119,19 @@ export default function CouriersPage() {
 
       <div className="plat-card">
         {isLoading ? (
-          <div className="plat-empty">
-            <RefreshCw size={22} className="animate-spin opacity-30" />
-          </div>
+          <TableSkeleton rows={5} columns={5} />
         ) : filteredItems.length === 0 ? (
-          <div className="plat-empty">
-            <Truck size={40} className="plat-empty-icon" />
-            <p className="plat-empty-text">No courier partners found.</p>
-          </div>
+          <EmptyState 
+            icon={Truck}
+            title={searchQuery ? "No matches found" : "No courier partners found"}
+            description={searchQuery ? `No couriers matching "${searchQuery}" were found.` : "Manage your shipping partners by adding your first courier service."}
+            actionLabel={searchQuery ? "Clear Search" : "Add Courier"}
+            onAction={searchQuery ? () => setSearchQuery('') : handleOpenCreate}
+            variant="card"
+            className="my-8"
+          />
         ) : (
+          <>
           <div className="plat-table-container">
             <table className="plat-table">
               <thead>
@@ -125,7 +144,7 @@ export default function CouriersPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredItems.map((c: any) => (
+                {paginatedData.map((c: any) => (
                   <tr key={c.id} className="plat-table-row">
                     <td data-label="Courier Name" className="plat-table-cell font-semibold">{c.name}</td>
                     <td data-label="Contact" className="plat-table-cell">
@@ -161,95 +180,99 @@ export default function CouriersPage() {
               </tbody>
             </table>
           </div>
+          <div style={{ marginTop: '20px' }}>
+            <Pagination
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+            currentPage={currentPage}
+            onPageChange={setCurrentPage}
+            onLimitChange={setItemsPerPage}
+          />
+          </div>
+          </>
         )}
       </div>
-
-      {isModalOpen && (
-        <div className="plat-modal-backdrop" onClick={() => setIsModalOpen(false)}>
-          <div className="plat-modal-content max-w-lg" onClick={e => e.stopPropagation()}>
-            <div className="plat-modal-header">
-              <h2 className="plat-modal-title">{editingId ? 'Edit Courier' : 'Add Courier'}</h2>
-              <button className="plat-btn plat-btn-icon" onClick={() => setIsModalOpen(false)}>
-                <X size={16} />
-              </button>
-            </div>
-            <form onSubmit={handleSubmit}>
-              <div className="plat-modal-body">
-                <div className="plat-form-section">
-                  <div className="plat-form-grid-multi" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
-                    <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
-                      <label className="plat-form-label">Courier Name *</label>
-                      <div className="plat-input-wrapper">
-                        <Truck size={16} className="plat-input-icon" />
-                        <input 
-                          className="plat-form-input" 
-                          value={form.name} 
-                          onChange={e => setForm(f => ({...f, name: e.target.value}))}
-                          required 
-                          placeholder="e.g. BlueDart, DTDC, FedEx"
-                        />
-                      </div>
-                    </div>
-                    <div className="plat-form-group">
-                      <label className="plat-form-label">Contact Person</label>
-                      <div className="plat-input-wrapper">
-                        <User size={16} className="plat-input-icon" />
-                        <input 
-                          className="plat-form-input" 
-                          value={form.contactPerson} 
-                          onChange={e => setForm(f => ({...f, contactPerson: e.target.value}))}
-                          placeholder="Billing / Ops contact"
-                        />
-                      </div>
-                    </div>
-                    <div className="plat-form-group">
-                      <label className="plat-form-label">Phone Number</label>
-                      <div className="plat-input-wrapper">
-                        <Phone size={16} className="plat-input-icon" />
-                        <input 
-                          className="plat-form-input" 
-                          value={form.phone} 
-                          onChange={e => setForm(f => ({...f, phone: e.target.value}))}
-                          placeholder="+91 00000 00000"
-                        />
-                      </div>
-                    </div>
-                    <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
-                      <label className="plat-form-label">Tracking Base URL</label>
-                      <div className="plat-input-wrapper">
-                        <Globe size={16} className="plat-input-icon" />
-                        <input 
-                          className="plat-form-input" 
-                          value={form.trackingUrl} 
-                          onChange={e => setForm(f => ({...f, trackingUrl: e.target.value}))}
-                          placeholder="https://tracker.service.com/..."
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 py-2" style={{ gridColumn: 'span 2' }}>
-                      <input 
-                         type="checkbox" 
-                         className="w-4 h-4 accent-primary"
-                         id="is_active"
-                         checked={form.isActive} 
-                         onChange={e => setForm(f => ({...f, isActive: e.target.checked}))}
-                      />
-                      <label htmlFor="is_active" className="plat-form-label mb-0 cursor-pointer">Courier is Active</label>
-                    </div>
+      <Drawer
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={editingId ? 'Edit Courier' : 'Add Courier'}
+        maxWidth="480px"
+      >
+        <form onSubmit={handleSubmit}>
+          <div className="plat-modal-body" style={{ padding: 0 }}>
+            <div className="plat-form-section" style={{ border: 'none', boxShadow: 'none', padding: 0 }}>
+              <div className="plat-form-grid-multi" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
+                <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
+                  <label className="plat-form-label">Courier Name *</label>
+                  <div className="plat-input-wrapper">
+                    <Truck size={16} className="plat-input-icon" />
+                    <input
+                      className="plat-form-input"
+                      value={form.name}
+                      onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                      required
+                      placeholder="e.g. BlueDart, DTDC, FedEx"
+                    />
                   </div>
                 </div>
+                <div className="plat-form-group">
+                  <label className="plat-form-label">Contact Person</label>
+                  <div className="plat-input-wrapper">
+                    <User size={16} className="plat-input-icon" />
+                    <input
+                      className="plat-form-input"
+                      value={form.contactPerson}
+                      onChange={e => setForm(f => ({ ...f, contactPerson: e.target.value }))}
+                      placeholder="Billing / Ops contact"
+                    />
+                  </div>
+                </div>
+                <div className="plat-form-group">
+                  <label className="plat-form-label">Phone Number</label>
+                  <div className="plat-input-wrapper">
+                    <Phone size={16} className="plat-input-icon" />
+                    <input
+                      className="plat-form-input"
+                      value={form.phone}
+                      onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
+                      placeholder="+91 00000 00000"
+                    />
+                  </div>
+                </div>
+                <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
+                  <label className="plat-form-label">Tracking Base URL</label>
+                  <div className="plat-input-wrapper">
+                    <Globe size={16} className="plat-input-icon" />
+                    <input
+                      className="plat-form-input"
+                      value={form.trackingUrl}
+                      onChange={e => setForm(f => ({ ...f, trackingUrl: e.target.value }))}
+                      placeholder="https://tracker.service.com/..."
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 py-2" style={{ gridColumn: 'span 2' }}>
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 accent-primary"
+                    id="is_active"
+                    checked={form.isActive}
+                    onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))}
+                  />
+                  <label htmlFor="is_active" className="plat-form-label mb-0 cursor-pointer">Courier is Active</label>
+                </div>
               </div>
-              <div className="plat-modal-footer">
-                <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                <button type="submit" className="plat-btn plat-btn-primary" disabled={createCourier.isPending || updateCourier.isPending}>
-                  {editingId ? 'Update Courier' : 'Add Courier'}
-                </button>
-              </div>
-            </form>
+            </div>
           </div>
-        </div>
-      )}
+          <div className="plat-modal-footer" style={{ padding: '24px 0 0 0', marginTop: '24px' }}>
+            <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
+            <button type="submit" className="plat-btn plat-btn-primary" disabled={createCourier.isPending || updateCourier.isPending}>
+              {editingId ? 'Update Courier' : 'Add Courier'}
+            </button>
+          </div>
+        </form>
+      </Drawer>
     </div>
   );
 }

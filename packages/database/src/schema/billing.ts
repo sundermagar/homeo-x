@@ -1,5 +1,6 @@
 import { pgTable, serial, varchar, integer, real, timestamp, text, date } from 'drizzle-orm/pg-core';
-import { patients } from './patients';
+import { patients } from './patients.js';
+import { procedureCodes } from './clinical-codes.js';
 
 export const bills = pgTable('bills', {
   id: serial('id').primaryKey(),
@@ -11,12 +12,15 @@ export const bills = pgTable('bills', {
   balance: real('balance').default(0).notNull(),
   paymentMode: varchar('payment_mode', { length: 50 }),
   treatment: varchar('treatment', { length: 255 }),
+  procedureCodeId: integer('procedure_code_id').references(() => procedureCodes.id),
   disease: varchar('disease', { length: 255 }),
   fromDate: date('from_date'),
   toDate: date('to_date'),
   chargeId: integer('charge_id'),
   doctorId: integer('doctor_id'),
   notes: text('notes'),
+  billType: varchar('bill_type', { length: 30 }).default('Consultation'),
+  customTitle: varchar('custom_title', { length: 255 }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   deletedAt: timestamp('deleted_at'),

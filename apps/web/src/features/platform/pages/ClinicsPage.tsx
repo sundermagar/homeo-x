@@ -1,10 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Building2, Plus, X, RefreshCw, Edit2, Trash2 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useOrganizations, useCreateOrganization, useDeleteOrganization, useUpdateOrganization } from '../hooks/use-organizations';
 import type { CreateOrganizationInput } from '@mmc/types';
 import { NumericInput } from '@/shared/components/NumericInput';
 import '../styles/platform.css';
+
+import { Pagination } from '@/shared/components/Pagination';
+import { usePagination } from '@/shared/hooks/use-pagination';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
+import { Drawer } from '@/shared/components/drawer';
+
+
 
 const EMPTY_FORM: any = {
   name: '', email: '', phone: '', city: '', website: '', description: '', connectSince: '',
@@ -18,11 +27,31 @@ export default function ClinicsPage() {
   const deleteOrg = useDeleteOrganization();
   const updateOrg = useUpdateOrganization();
 
-  const sortedOrgs = [...orgs].sort((a, b) => a.id - b.id);
+  const {
+    currentPage,
+    setCurrentPage,
+    itemsPerPage,
+    setItemsPerPage,
+    paginatedData,
+    totalItems
+  } = usePagination(orgs);
 
   const [isCreating, setIsCreating] = useState(false);
   const [editingOrg, setEditingOrg] = useState<any>(null);
   const [form, setForm] = useState<CreateOrganizationInput>(EMPTY_FORM);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get('add') === 'true') {
+      setIsCreating(true);
+      setEditingOrg(null);
+      setForm(EMPTY_FORM);
+      // Clean up the URL
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('add');
+      setSearchParams(newParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,19 +116,16 @@ export default function ClinicsPage() {
     <div className="plat-page fade-in">
 
       {/* ─── Header ─── */}
-      <div className="plat-header">
+      <div className="pp-page-hero">
         <div>
-          <h1 className="plat-header-title">
-            <Building2 size={20} strokeWidth={1.6} style={{ color: 'var(--primary)' }} />
-            Clinics &amp; Organizations
+          <h1 className="pp-page-hero-title">
+            <Building2 size={22} strokeWidth={1.6} />
+            Clinics & Organizations
           </h1>
-          <p className="plat-header-sub">Manage all {orgs.length} registered clinic organisations.</p>
+          <p className="pp-page-hero-sub">Manage all {orgs.length} registered clinic organisations.</p>
         </div>
-        <div className="plat-header-actions">
-          <button className="plat-btn plat-btn-ghost" onClick={() => refetch()} title="Refresh">
-            <RefreshCw size={14} />
-          </button>
-          <button className="plat-btn plat-btn-primary" onClick={() => { setEditingOrg(null); setIsCreating(true); setForm(EMPTY_FORM); }}>
+        <div className="pp-page-hero-actions">
+          <button className="btn-primary" onClick={() => { setEditingOrg(null); setIsCreating(true); setForm(EMPTY_FORM); }}>
             <Plus size={14} strokeWidth={1.6} />
             Add Clinic
           </button>
@@ -107,107 +133,137 @@ export default function ClinicsPage() {
       </div>
 
       {/* ─── KPI Stats ─── */}
-      <div className="plat-stats-bar">
+      <div className="pp-stat-grid">
         {[
-          { label: 'Total Clinics', value: orgs.length, cls: 'plat-stat-value-primary' },
-          { label: 'Active', value: orgs.filter(o => !o.deletedAt).length, cls: 'plat-stat-value-success' },
+          { label: 'Total Clinics', value: orgs.length, cls: 'is-primary' },
+          { label: 'Active', value: orgs.filter(o => !o.deletedAt).length, cls: 'is-success' },
           { label: 'Cities', value: activeCities, cls: '' },
         ].map(stat => (
-          <div key={stat.label} className="plat-stat-card">
-            <p className="plat-stat-label">{stat.label}</p>
-            <p className={`plat-stat-value ${stat.cls}`}>{stat.value}</p>
+          <div key={stat.label} className="pp-stat-card-enhanced">
+            <div className="pp-stat-label">{stat.label}</div>
+            <div className={`pp-stat-value ${stat.cls}`}>{stat.value}</div>
           </div>
         ))}
       </div>
 
       {/* ─── Table ─── */}
-      <div className="plat-card">
+      <div>
         {isLoading ? (
-          <div className="plat-empty">
-            <RefreshCw size={22} style={{ animation: 'spin 1s linear infinite', opacity: 0.3 }} />
-          </div>
+          <TableSkeleton rows={8} columns={7} />
         ) : orgs.length === 0 ? (
-          <div className="plat-empty">
-            <Building2 size={28} className="plat-empty-icon" />
-            <p className="plat-empty-text">No clinics registered. Add your first clinic.</p>
-          </div>
+          <EmptyState 
+            icon={Building2}
+            title="No clinics registered"
+            description="Add your first clinic to get started with the multi-tenant clinical ecosystem."
+            actionLabel="Add Clinic"
+            onAction={() => { setEditingOrg(null); setIsCreating(true); setForm(EMPTY_FORM); }}
+            variant="card"
+            className="my-8"
+          />
         ) : (
-          <div className="plat-table-container">
-            <table className="plat-table">
-              <thead>
-                <tr>
-                  <th style={{ width: '50px' }}>ID</th>
-                  <th>Clinic Name</th>
-                  <th style={{ width: '120px' }}>City</th>
-                  <th style={{ width: '140px' }}>Phone</th>
-                  <th style={{ width: '180px' }}>Website</th>
-                  <th style={{ width: '110px' }}>Connected</th>
-                  <th style={{ width: '80px' }}>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedOrgs.map((org, index) => (
-                  <tr key={index}>
-                    <td data-label="ID" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      {index + 1}
-                    </td>
-                    <td data-label="Clinic Name">
-                      <div style={{ fontWeight: 600 }}>{org.name}</div>
-                      {org.description && (
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '1px' }}>
-                          {org.description}
-                        </div>
-                      )}
-                    </td>
-                    <td data-label="City" style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{org.city || '—'}</td>
-                    <td data-label="Phone" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                      {org.phone || '—'}
-                    </td>
-                    <td data-label="Website" style={{ fontSize: '0.75rem' }}>
-                      {org.website ? (
-                        <a href={org.website} target="_blank" rel="noreferrer"
-                          style={{ color: 'var(--primary)', textDecoration: 'none' }}>
-                          {org.website.replace(/^https?:\/\//, '')}
-                        </a>
-                      ) : '—'}
-                    </td>
-                    <td data-label="Connected" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      {org.connectSince || '—'}
-                    </td>
-                    <td data-label="Action">
-                      <div className="flex justify-center gap-2">
-                        <button className="plat-btn plat-btn-icon plat-btn-ghost" onClick={() => handleEdit(org)} title="Edit">
-                          <Edit2 size={13} />
-                        </button>
-                        <button
-                          className="plat-btn plat-btn-icon plat-btn-danger"
-                          onClick={() => handleDelete(org.id, org.name)}
-                          title="Delete"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </td>
+          <>
+            <div className="pp-table-container-enhanced">
+              <table className="plat-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Clinic Name</th>
+                    <th>City</th>
+                    <th>Phone</th>
+                    <th>Website</th>
+                    <th>Connected</th>
+                    <th>Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {paginatedData.map((org: any, index: number) => (
+                    <tr key={org.id}>
+                      <td data-label="#" className="plat-mono-data text-xs" style={{ width: 40 }}>
+                        <div>{(currentPage - 1) * itemsPerPage + index + 1}</div>
+                      </td>
+                      <td data-label="Clinic Name">
+                        <div className="plat-cell-val">
+                          <div style={{ fontWeight: 600 }}>{org.name}</div>
+                          {org.description && (
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '1px' }}>
+                              {org.description}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td data-label="City">
+                        <div className="plat-cell-val">
+                          <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{org.city || '—'}</div>
+                        </div>
+                      </td>
+                      <td data-label="Phone">
+                        <div className="plat-cell-val">
+                          <div className="plat-mono-data" style={{ fontSize: '0.78rem' }}>
+                            {org.phone || '—'}
+                          </div>
+                        </div>
+                      </td>
+                      <td data-label="Website">
+                        <div className="plat-cell-val">
+                          <div style={{ fontSize: '0.75rem' }}>
+                            {org.website ? (
+                              <a href={org.website} target="_blank" rel="noreferrer"
+                                style={{ color: 'var(--primary)', textDecoration: 'none' }}>
+                                {org.website.replace(/^https?:\/\//, '')}
+                              </a>
+                            ) : '—'}
+                          </div>
+                        </div>
+                      </td>
+                      <td data-label="Connected">
+                        <div className="plat-cell-val">
+                          <div className="plat-mono-data text-xs" style={{ color: 'var(--text-muted)' }}>
+                            {org.connectSince || '—'}
+                          </div>
+                        </div>
+                      </td>
+                      <td data-label="Action">
+                        <div className="plat-cell-val">
+                          <div className="flex justify-end gap-2" style={{ width: '100%' }}>
+                            <button className="plat-btn plat-btn-icon plat-btn-ghost" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={() => handleEdit(org)} title="Edit">
+                              <Edit2 size={13} />
+                            </button>
+                            <button
+                              className="plat-btn plat-btn-icon plat-btn-danger"
+                              style={{ width: 36, height: 36, borderRadius: 10 }}
+                              onClick={() => handleDelete(org.id, org.name)}
+                              title="Delete"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <Pagination
+              totalItems={totalItems}
+              itemsPerPage={itemsPerPage}
+              currentPage={currentPage}
+              onPageChange={setCurrentPage}
+              onLimitChange={setItemsPerPage}
+            />
+          </>
         )}
       </div>
 
-      {/* ─── Create/Edit Modal ─── */}
       {isCreating && (
-        <div className="plat-modal-backdrop" onClick={() => { setIsCreating(false); setEditingOrg(null); setForm(EMPTY_FORM); }}>
-          <div className="plat-modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="plat-modal-header">
-              <h3 className="plat-modal-title">{editingOrg ? 'Edit Clinic' : 'Register New Clinic'}</h3>
-              <button className="plat-btn plat-btn-icon plat-btn-ghost" onClick={() => { setIsCreating(false); setEditingOrg(null); setForm(EMPTY_FORM); }}>
-                <X size={14} />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreate} className="plat-modal-body">
+    <Drawer
+      isOpen={true}
+      onClose={() => { setIsCreating(false); setEditingOrg(null); setForm(EMPTY_FORM); }}
+      title={editingOrg ? 'Edit Clinic' : 'Register New Clinic'}
+      maxWidth="600px"
+    >
+      <div className="plat-modal-content" style={{ border: 'none', boxShadow: 'none', margin: 0, padding: 0 }}>
+        <form onSubmit={handleCreate} className="plat-modal-body">
               <div className="plat-form-section">
                 <h4 className="plat-form-section-title">Clinic Identity</h4>
                 <div className="plat-form-grid-multi">
@@ -331,7 +387,7 @@ export default function ClinicsPage() {
               </div>
             </form>
           </div>
-        </div>
+        </Drawer>
       )}
 
     </div>

@@ -23,6 +23,7 @@ import {
 } from 'recharts';
 import { useClinicAdminDashboard } from '../hooks/use-clinic-admin-dashboard';
 import { useAuthStore } from '@/shared/stores/auth-store';
+import { DashboardSkeleton } from '@/components/shared/dashboard-skeleton';
 import './role-dashboards.css';
 import './clinic-admin-dashboard.css';
 
@@ -51,47 +52,37 @@ function TrendBadge({ value }: { value: number }) {
   );
 }
 
-function ProgressBar({ value, max }: { value: number; max: number; color?: string }) {
+function ProgressBar({ value, max, color }: { value: number; max: number; color: string }) {
   const pct = Math.min(100, Math.round((value / max) * 100));
   return (
     <div className="cad-progress-track">
-      <div className="cad-progress-fill" style={{ width: `${pct}%`, background: 'var(--pp-blue)' }} />
+      <div className="cad-progress-fill" style={{ width: `${pct}%`, background: color }} />
     </div>
   );
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const isNeutral = status === 'Pending' || status === 'Waiting';
-  const cls = isNeutral ? 'cad-badge-default' : 'cad-badge-primary';
-  return <span className={`cad-badge ${cls}`} style={{
-    background: isNeutral ? 'rgba(255,255,255,0.05)' : 'var(--pp-blue-tint)',
-    color: isNeutral ? 'var(--pp-text-3)' : 'var(--pp-blue)',
-    border: 'none'
-  }}>{status}</span>;
+  const cls = status === 'Paid' ? 'cad-badge-success' : status === 'Pending' ? 'cad-badge-danger' : 'cad-badge-warning';
+  return <span className={`cad-badge ${cls}`}>{status}</span>;
 }
 
 export function ClinicAdminDashboard() {
-  const navigate = useNavigate();
   const [period, setPeriod] = useState<Period>('year');
   const [revTab, setRevTab] = useState<RevenueTab>('Cash');
   const [sidebarTab, setSidebarTab] = useState<'Queue' | 'Analytics' | 'Billing'>('Queue');
+  const navigate = useNavigate();
 
   const { data, isLoading } = useClinicAdminDashboard(period);
   useAuthStore((s) => s.user); // ensures auth store is initialised
 
   if (isLoading || !data) {
-    return (
-      <div className="cad-root cad-loading">
-        <Activity size={28} style={{ color: 'var(--pp-blue)', animation: 'pulse 1.5s infinite' }} />
-        <p>Loading Clinic Analytics…</p>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   const {
     totalRevenue,
     revenueTrend,
-    patientsApril: patients,
+    patientsCount: patients,
     patientsTrend,
     collectionRate,
     collectionRateTrend,
@@ -150,12 +141,14 @@ export function ClinicAdminDashboard() {
           sublabel={sublabel}
           value={fmt(totalRevenue)}
           trend={revenueTrend}
+          onClick={() => navigate('/billing')}
         />
         <KPICard
           label="PATIENTS"
           sublabel={sublabel}
           value={patients > 0 ? String(patients) : '--'}
           trend={patientsTrend}
+          onClick={() => navigate('/patients')}
         />
         <KPICard
           label="COLLECTION RATE"
@@ -163,6 +156,7 @@ export function ClinicAdminDashboard() {
           value={`${collectionRate}%`}
           trend={collectionRateTrend}
           invertTrend
+          onClick={() => navigate('/billing')}
         />
         <KPICard
           label="AVG WAIT TIME"
@@ -170,6 +164,7 @@ export function ClinicAdminDashboard() {
           value={`${avgWaitTime}m`}
           trend={avgWaitTimeTrend}
           invertTrend
+          onClick={() => navigate('/appointments')}
         />
       </div>
 
@@ -211,7 +206,7 @@ export function ClinicAdminDashboard() {
                     <AreaChart data={chartSeries} margin={{ top: 10, right: 10, bottom: 0, left: -10 }}>
                       <defs>
                         <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="var(--pp-blue)" stopOpacity={0.15}/>
+                          <stop offset="5%" stopColor="var(--pp-blue)" stopOpacity={0.1}/>
                           <stop offset="95%" stopColor="var(--pp-blue)" stopOpacity={0}/>
                         </linearGradient>
                       </defs>
@@ -221,7 +216,6 @@ export function ClinicAdminDashboard() {
                       <Tooltip 
                         contentStyle={{ borderRadius: 10, border: '1px solid #e2e8f0', background: '#fff', fontSize: 12, fontWeight: 600 }} 
                         formatter={(v) => [fmt(Number(v)), 'Revenue']} 
-                        cursor={{ stroke: 'var(--pp-blue)', strokeWidth: 1 }}
                       />
                       <Area 
                         type="monotone" 
@@ -290,7 +284,7 @@ export function ClinicAdminDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {(topBilling as any[]).map((b) => (
+                      {topBilling.map((b: { id: number; regid: number; patientName: string; total: number; status: string }) => (
                         <tr key={b.id} onClick={() => navigate(`/patients/${b.regid}`)} style={{ cursor: 'pointer' }}>
                           <td className="cad-patient-cell">
                             <div className="cad-patient-avatar">{b.patientName.charAt(0)}</div>
@@ -333,6 +327,7 @@ export function ClinicAdminDashboard() {
                     <ProgressBar
                       value={t.current}
                       max={t.target}
+                      color={t.status === 'success' ? 'var(--pp-success-fg)' : t.status === 'warning' ? '#d97706' : 'var(--pp-danger-fg)'}
                     />
                   </div>
                 ))}
@@ -396,7 +391,13 @@ export function ClinicAdminDashboard() {
 
           {sidebarTab === 'Queue' && (
             <div className="cad-sidebar-section">
-              <div className="cad-sidebar-section-title">TODAY'S QUEUE</div>
+              <div 
+                className="cad-sidebar-section-title clickable-title" 
+                onClick={() => navigate('/appointments')}
+                style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                TODAY'S QUEUE <ChevronRight size={10} />
+              </div>
               {queue.length > 0 ? (
                 <div className="cad-queue-list">
                   {queue.slice(0, 10).map((q: { id: number; regid: number; patientName: string; tokenNo: string | number | null; bookingTime: string | null; status: string }) => (
@@ -430,7 +431,13 @@ export function ClinicAdminDashboard() {
 
           {sidebarTab === 'Analytics' && (
             <div className="cad-sidebar-section">
-              <div className="cad-sidebar-section-title">ANALYTICS</div>
+              <div 
+                className="cad-sidebar-section-title clickable-title" 
+                onClick={() => navigate('/analytics')}
+                style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                ANALYTICS <ChevronRight size={10} />
+              </div>
               <div className="cad-sidebar-analytics">
                 <div className="cad-analytics-item">
                   <span className="cad-analytics-label">New Patients</span>
@@ -454,7 +461,13 @@ export function ClinicAdminDashboard() {
 
           {sidebarTab === 'Billing' && (
             <div className="cad-sidebar-section">
-              <div className="cad-sidebar-section-title">QUICK BILLING</div>
+              <div 
+                className="cad-sidebar-section-title clickable-title" 
+                onClick={() => navigate('/billing')}
+                style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                QUICK BILLING <ChevronRight size={10} />
+              </div>
               <div className="cad-sidebar-analytics">
                 <div className="cad-analytics-item">
                   <span className="cad-analytics-label">Collected</span>
@@ -478,11 +491,23 @@ export function ClinicAdminDashboard() {
 
           {/* Staff on Duty */}
           <div className="cad-staff-section">
-            <div className="cad-sidebar-section-title">DOCTORS ON DUTY</div>
+            <div className="cad-sidebar-section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              STAFF ON DUTY
+              {staffOnDuty.length > 4 && (
+                <a href="#" onClick={(e) => { e.preventDefault(); navigate('/platform/doctors'); }} style={{ fontSize: '10px', color: 'var(--pp-blue)', textTransform: 'none', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '2px', cursor: 'pointer' }}>
+                  View More <ChevronRight size={11} />
+                </a>
+              )}
+            </div>
             {staffOnDuty.length > 0 ? (
               <div className="cad-staff-list">
-                {staffOnDuty.slice(0, 5).map((s: { name: string; role: string; count?: number }, i: number) => (
-                  <div key={i} className="cad-staff-row">
+                {staffOnDuty.slice(0, 4).map((s: { name: string; role: string; count?: number }, i: number) => (
+                  <div 
+                    key={i} 
+                    className="cad-staff-row clickable-row" 
+                    onClick={() => navigate('/platform/doctors')}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <div className="cad-staff-avatar">{s.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}</div>
                     <div className="cad-staff-info">
                       <div className="cad-staff-name">{s.name}</div>
@@ -496,14 +521,6 @@ export function ClinicAdminDashboard() {
                     )}
                   </div>
                 ))}
-                {staffOnDuty.length > 5 && (
-                  <button 
-                    className="cad-staff-view-all" 
-                    onClick={() => navigate('/platform/doctors')}
-                  >
-                    View All Doctors
-                  </button>
-                )}
               </div>
             ) : (
               <div className="cad-sidebar-empty">
@@ -520,16 +537,17 @@ export function ClinicAdminDashboard() {
 
 // ── Sub-components ──────────────────────────────────────────────────────────
 
-function KPICard({ label, sublabel, value, trend, invertTrend }: {
+function KPICard({ label, sublabel, value, trend, invertTrend, onClick }: {
   label: string;
   sublabel: string;
   value: string;
   trend: number;
   invertTrend?: boolean;
+  onClick?: () => void;
 }) {
   const positive = invertTrend ? trend <= 0 : trend >= 0;
   return (
-    <div className="cad-kpi-card">
+    <div className={`cad-kpi-card ${onClick ? 'clickable' : ''}`} onClick={onClick}>
       <div className="cad-kpi-label">{sublabel ? `${label} — ${sublabel}` : label}</div>
       <div className="cad-kpi-value">{value}</div>
       <div className={`cad-trend-badge ${positive ? 'cad-trend-up' : 'cad-trend-down'}`}>

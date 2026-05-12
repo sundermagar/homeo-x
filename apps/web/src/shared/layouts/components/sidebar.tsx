@@ -3,9 +3,11 @@ import { useState } from 'react';
 import {
   LayoutDashboard, Users, UsersRound, Calendar, FileText,
   LogOut, X, Briefcase, ChevronDown, ChevronRight, Circle,
-  BarChart3, Stethoscope, Receipt, Settings
+  BarChart3, Stethoscope, Receipt, Settings, MessageCircle, Truck
 } from 'lucide-react';
 import { useAuthStore } from '@/shared/stores/auth-store';
+import { useQuery } from '@tanstack/react-query';
+import { apiClient } from '@/infrastructure/api-client';
 
 interface SidebarProps {
   isOpen?: boolean;
@@ -17,6 +19,7 @@ type UserRole = 'SuperAdmin' | 'Admin' | 'Clinicadmin' | 'Doctor' | 'Receptionis
 interface NavSubItem {
   label: string;
   path: string;
+  badge?: number;
 }
 
 interface NavItem {
@@ -26,6 +29,7 @@ interface NavItem {
   subItems?: NavSubItem[];
   /** Roles allowed to see this item. If undefined, visible to all. */
   roles?: UserRole[];
+  badge?: number;
 }
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
@@ -35,6 +39,17 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({
     'Operations Hub': location.pathname.includes('/operations')
   });
+
+  const { data: unreadResponse } = useQuery({
+    queryKey: ['courier-unread-count'],
+    queryFn: async () => {
+      const { data } = await apiClient.get('/courier/unread-count');
+      return data.data as { count: number };
+    },
+    refetchInterval: 60000, // Refresh every minute
+    enabled: !!user
+  });
+  const unreadCount = unreadResponse?.count || 0;
 
   const toggleFolder = (label: string) => {
     setExpandedFolders(prev => ({ ...prev, [label]: !prev[label] }));
@@ -58,6 +73,13 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const menuItems: NavItem[] = [
     {
+      label: 'Courier Queue',
+      icon: <Truck size={20} />,
+      path: '/courier-queue',
+      roles: ALL_ROLES,
+      badge: unreadCount > 0 ? unreadCount : undefined,
+    },
+    {
       label: 'Dashboard',
       icon: <LayoutDashboard size={20} />,
       path: '/',
@@ -75,6 +97,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       roles: CLINICAL_ROLES,
       subItems: [
         { label: 'Case History', path: '/consultation-history' },
+        { label: 'Remedy Matrix', path: '/clinical/remedy-chart' },
         { label: 'Height & Weight Check', path: '/vitals-check' },
         { label: 'Medical Case List', path: '/medical-cases' },
       ]
@@ -89,13 +112,13 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       label: 'Billing',
       icon: <Receipt size={20} />,
       path: '/billing',
-      roles: [...ADMIN_ROLES, 'Doctor'],
+      roles: [...ADMIN_ROLES, 'Doctor', 'Receptionist'],
     },
     {
       label: 'Family Groups',
       icon: <UsersRound size={20} />,
       path: '/family-groups',
-      roles: CLINICAL_ROLES,
+      roles: ALL_ROLES,
     },
     {
       label: 'Staff & Admin',
@@ -110,6 +133,16 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       roles: [...ADMIN_ROLES, 'Doctor'],
     },
     {
+      label: 'Communications',
+      icon: <MessageCircle size={20} />,
+      roles: ADMIN_ROLES,
+      subItems: [
+        { label: 'WhatsApp Messenger', path: '/communications/whatsapp' },
+        { label: 'Birthday Greetings', path: '/communications/birthdays' },
+        { label: 'SMS Reports', path: '/communications/reports' },
+      ]
+    },
+    {
       label: 'Operations Hub',
       icon: <Settings size={20} />,
       roles: ['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor'],
@@ -117,7 +150,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         { label: 'Logistics & Couriers', path: '/operations?tab=logistics' },
         { label: 'Lead CRM & Promos', path: '/operations?tab=crm' },
         { label: 'Medical Knowledge base', path: '/operations?tab=knowledge' },
-        { label: 'Global Data Tools', path: '/operations?tab=tools' },
+        // { label: 'Global Data Tools', path: '/operations?tab=tools' },
       ]
     },
   ];
@@ -178,14 +211,17 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                             // For paths with query params (like /operations?tab=), 
                             // we need a strict match of path + search.
                             const currentFull = location.pathname + location.search;
-                            const isMatch = subItem.path.includes('?') 
+                            const isMatch = subItem.path.includes('?')
                               ? currentFull === subItem.path
                               : isActive;
                             return `sb-sub-item${isMatch ? ' active' : ''}`;
                           }}
                         >
                           <Circle size={6} fill="currentColor" />
-                          {subItem.label}
+                          <span style={{ flex: 1 }}>{subItem.label}</span>
+                          {subItem.badge !== undefined && subItem.badge > 0 && (
+                            <span className="nav-badge">{subItem.badge}</span>
+                          )}
                         </NavLink>
                       ))}
                     </div>
@@ -201,7 +237,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                   }
                 >
                   {item.icon}
-                  {item.label}
+                  <span style={{ flex: 1 }}>{item.label}</span>
+                  {item.badge !== undefined && item.badge > 0 && (
+                    <span className="nav-badge">{item.badge}</span>
+                  )}
                 </NavLink>
               )}
             </div>

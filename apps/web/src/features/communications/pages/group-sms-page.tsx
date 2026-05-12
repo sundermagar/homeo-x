@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Send, MessageSquare, Users, RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Send, MessageSquare, Users, RefreshCw, CheckCircle2, AlertCircle, MessageCircle } from 'lucide-react';
 import { NumericInput } from '@/shared/components/NumericInput';
-import { useSmsTemplates, useSendSms, useBroadcastSms } from '../hooks/use-communications';
+import { useSmsTemplates, useSendSms, useBroadcastSms, useSendWhatsApp } from '../hooks/use-communications';
 import '../styles/communications.css';
 
 const RECIPIENT_TYPES = [
@@ -14,6 +14,7 @@ export default function GroupSmsPage() {
   const { data: templates = [] } = useSmsTemplates();
   const sendSingle = useSendSms();
   const broadcast = useBroadcastSms();
+  const waSingle = useSendWhatsApp();
 
   const [mode, setMode] = useState<'single' | 'broadcast'>('single');
   const [recipientType, setRecipientType] = useState('manual');
@@ -35,6 +36,14 @@ export default function GroupSmsPage() {
     setSmsType(tpl.smsType);
   };
 
+  const parseError = (err: any) => {
+    const raw = (err as { response?: { data?: any } }).response?.data;
+    if (typeof raw === 'string' && raw.includes('<!DOCTYPE')) {
+      return 'Server returned 404/500 (Check if backend is running)';
+    }
+    return raw?.error ?? 'Failed to complete action';
+  };
+
   const handleSendSingle = async () => {
     if (!phone.trim()) { setError('Phone number is required'); return; }
     if (!message.trim()) { setError('Message is required'); return; }
@@ -43,7 +52,24 @@ export default function GroupSmsPage() {
       const res = await sendSingle.mutateAsync({ phone: phone.trim(), message, smsType });
       setResult(res.data as { sent: number; failed: number });
     } catch (err: unknown) {
-      setError((err as { response?: { data?: { error?: string } } }).response?.data?.error ?? 'Failed to send SMS');
+      setError(parseError(err));
+    }
+  };
+
+  const handleWhatsApp = async () => {
+    if (!phone.trim()) { setError('Phone number is required'); return; }
+    if (!message.trim()) { setError('Message is required'); return; }
+    setError('');
+    try {
+      const res = await waSingle.mutateAsync({ phone: phone.trim(), message });
+      const d = (res.data as any).data as { details?: Array<{ deepLink?: string }> };
+      const link = d.details?.[0]?.deepLink ?? `https://api.whatsapp.com/send?phone=${phone.trim()}&text=${encodeURIComponent(message)}`;
+      window.open(link, '_blank');
+      setResult({ sent: 1, failed: 0 });
+    } catch (err: unknown) {
+      setError(parseError(err));
+      // Fallback to direct link if API fails
+      window.open(`https://api.whatsapp.com/send?phone=${phone.trim()}&text=${encodeURIComponent(message)}`, '_blank');
     }
   };
 
@@ -57,7 +83,7 @@ export default function GroupSmsPage() {
       const res = await broadcast.mutateAsync({ patientIds: ids.length ? ids : undefined, message, smsType });
       setResult(res.data as { sent: number; failed: number });
     } catch (err: unknown) {
-      setError((err as { response?: { data?: { error?: string } } }).response?.data?.error ?? 'Broadcast failed');
+      setError(parseError(err));
     }
   };
 
@@ -67,31 +93,33 @@ export default function GroupSmsPage() {
   };
 
   return (
-    <div className="comm-page">
+    <div className="pp-page-container comm-page animate-fade-in">
       {/* Header */}
-      <header className="comm-header">
+      <div className="pp-page-hero">
         <div>
-          <h1 className="comm-title">
-            <Send size={20} strokeWidth={1.6} className="comm-title-icon-blue" />
+          <h1 className="pp-page-hero-title">
+            <Send size={22} style={{ color: 'var(--pp-blue)' }} strokeWidth={2} />
             Send SMS
           </h1>
-          <p className="comm-subtitle">Compose and send SMS messages to patients</p>
+          <p className="pp-page-hero-sub">Compose and send SMS messages to patients</p>
         </div>
-      </header>
+      </div>
 
       <div className="comm-two-col">
         {/* Composer */}
-        <div className="comm-card">
-          <div className="comm-card-header">
-            <h2 className="comm-card-title"><MessageSquare size={15} /> Compose Message</h2>
-            <div style={{ display: 'flex', gap: 8 }}>
+        <div className="pp-table-container-enhanced" style={{ padding: '24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+            <h2 className="comm-card-title" style={{ fontSize: '1rem' }}><MessageSquare size={16} /> Compose Message</h2>
+            <div className="pp-segmented-toggle">
               <button
-                className={`comm-btn comm-btn-sm${mode === 'single' ? ' comm-btn-primary' : ''}`}
+                type="button"
+                className={`pp-segmented-btn ${mode === 'single' ? 'active' : ''}`}
                 onClick={() => setMode('single')}>Single</button>
               <button
-                className={`comm-btn comm-btn-sm${mode === 'broadcast' ? ' comm-btn-primary' : ''}`}
+                type="button"
+                className={`pp-segmented-btn ${mode === 'broadcast' ? 'active' : ''}`}
                 onClick={() => setMode('broadcast')}>
-                <Users size={12} /> Group
+                <Users size={16} /> Group
               </button>
             </div>
           </div>
@@ -179,25 +207,41 @@ export default function GroupSmsPage() {
                 </select>
               </div>
 
-              <button
-                className="comm-btn comm-btn-primary comm-btn-lg"
-                onClick={handleSubmit}
-                disabled={sendSingle.isPending || broadcast.isPending}
-              >
-                {sendSingle.isPending || broadcast.isPending
-                  ? <><RefreshCw size={14} className="comm-spin" /> Sending…</>
-                  : <><Send size={14} /> {mode === 'single' ? 'Send SMS' : 'Broadcast SMS'}</>
-                }
-              </button>
+              <div style={{ display: 'flex', gap: 12 }}>
+                <button
+                  className="comm-btn comm-btn-primary comm-btn-lg"
+                  onClick={handleSubmit}
+                  disabled={sendSingle.isPending || broadcast.isPending}
+                  style={{ flex: 1 }}
+                >
+                  {sendSingle.isPending || broadcast.isPending
+                    ? <><RefreshCw size={14} className="comm-spin" /> Sending…</>
+                    : <><Send size={14} /> {mode === 'single' ? 'Send SMS' : 'Broadcast SMS'}</>
+                  }
+                </button>
+                {mode === 'single' && (
+                  <button
+                    className="comm-btn comm-btn-wa comm-btn-lg"
+                    onClick={handleWhatsApp}
+                    disabled={waSingle.isPending}
+                    style={{ flex: 1 }}
+                  >
+                    {waSingle.isPending
+                      ? <><RefreshCw size={14} className="comm-spin" /> …</>
+                      : <><MessageCircle size={14} /> Send WhatsApp</>
+                    }
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
 
         {/* Right panel: Info */}
         <div className="comm-info-col">
-          <div className="comm-card">
-            <div className="comm-card-header">
-              <h2 className="comm-card-title">Quick Tips</h2>
+          <div className="pp-table-container-enhanced" style={{ padding: '24px' }}>
+            <div style={{ marginBottom: '20px' }}>
+              <h2 className="comm-card-title" style={{ fontSize: '1rem' }}>Quick Tips</h2>
             </div>
             <div className="comm-card-body">
               <div className="comm-info-text">

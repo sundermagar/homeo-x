@@ -1,8 +1,8 @@
 import { eq, and } from 'drizzle-orm';
-import type { DbClient } from '../client';
-import { rolesLegacy } from '../schema/legacy/roles';
-import { permissionsLegacy } from '../schema/legacy/permissions';
-import { permissionRoleLegacy } from '../schema/legacy/permission_role';
+import type { DbClient } from '../client.js';
+import { rolesLegacy } from '../schema/legacy/roles.js';
+import { permissionsLegacy } from '../schema/legacy/permissions.js';
+import { permissionRoleLegacy } from '../schema/legacy/permission_role.js';
 
 import { sql } from 'drizzle-orm';
 

@@ -1,8 +1,8 @@
 import https from 'node:https';
 import http from 'node:http';
 import { URL } from 'node:url';
-import type { SmsGateway, SmsPayload, SmsGatewayResult } from '../../domains/communication/ports/sms-gateway';
-import { createLogger } from '../../shared/logger';
+import type { SmsGateway, SmsPayload, SmsGatewayResult } from '../../domains/communication/ports/sms-gateway.js';
+import { createLogger } from '../../shared/logger.js';
 
 const logger = createLogger('bulksmsprime-gateway');
 

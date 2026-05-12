@@ -6,16 +6,16 @@
 :root {
   --pp-transition-premium: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
   --pp-transition-fast: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  --pp-shadow-premium: 0 10px 30px -10px rgba(0,0,0,0.08), 0 4px 6px -2px rgba(0,0,0,0.03);
+  --pp-shadow-premium: 0 10px 30px -10px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
 }
 
 
 /* ─── Layout & Page Surface ─── */
 .plat-page {
-  padding: var(--pp-space-4);
-  max-width: var(--pp-container-width);
+  padding: 0;
+  width: 100%;
   margin: 0 auto;
-  min-height: 100vh;
+  min-height: auto;
   background-color: var(--pp-warm-1);
   color: var(--pp-ink);
   font-family: var(--pp-font-sans);
@@ -148,6 +148,34 @@
   padding-left: 34px !important;
 }
 
+/* ─── Form Input Wrappers (Icons Inside Inputs) ─── */
+.plat-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.plat-input-icon {
+  position: absolute;
+  left: 12px;
+  color: var(--pp-text-4);
+  pointer-events: none;
+  z-index: 1;
+  transition: color var(--transition-fast);
+}
+
+.plat-input-wrapper:focus-within .plat-input-icon {
+  color: var(--pp-blue);
+}
+
+.plat-input-wrapper .plat-form-input,
+.plat-input-wrapper .plat-form-select {
+  padding-left: 36px;
+  width: 100%;
+}
+
+
 .plat-form-input,
 .plat-form-select,
 .plat-filter-input {
@@ -255,6 +283,23 @@
   border-bottom: none;
 }
 
+/* ─── Actions Column Alignment ─── */
+.plat-table th:last-child,
+.plat-table td:last-child {
+  text-align: center;
+  width: 100px;
+}
+
+.plat-table td:last-child .plat-cell-val {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.plat-table td:last-child .plat-cell-val > div {
+  justify-content: center;
+}
+
 .plat-mono-data {
   font-family: var(--pp-font-mono);
   font-size: 12px;
@@ -360,7 +405,7 @@
   gap: 4px;
   height: 40px;
   align-items: center;
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.03);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.03);
 }
 
 .plat-view-toggle-btn {
@@ -389,7 +434,7 @@
 .plat-view-toggle-btn.is-active {
   background: var(--bg-card);
   color: var(--pp-blue);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
   transform: translateY(-0.5px);
 }
 
@@ -504,7 +549,7 @@
   background: var(--bg-card);
   border-radius: var(--pp-radius-card);
   width: 100%;
-  max-width: 1000px;
+  max-width: 1200px;
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: var(--pp-shadow-lg);
@@ -554,22 +599,10 @@
 /* ─── Grid Form Layouts ─── */
 .plat-form-grid-multi {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 14px 16px;
   margin-bottom: 8px;
   align-items: start;
-}
-
-@media (min-width: 640px) {
-  .plat-form-grid-multi {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (min-width: 1024px) {
-  .plat-form-grid-multi {
-    grid-template-columns: repeat(4, 1fr);
-  }
 }
 
 .plat-form-group {
@@ -830,10 +863,33 @@
 
   .plat-card-header {
     padding: 10px 14px;
+    flex-wrap: wrap;
+    gap: 12px;
   }
 
   .plat-card-title {
     font-size: 13px;
+  }
+
+  .hide-mobile {
+    display: none !important;
+  }
+
+  .show-mobile {
+    display: flex !important;
+  }
+}
+
+.plat-card-header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+@media (min-width: 641px) {
+  .show-mobile {
+    display: none !important;
   }
 }
 
@@ -860,8 +916,6 @@
 }
 
 .plat-profile-container {
-  max-width: var(--pp-container-width);
-  margin: 0 auto;
   padding: 0 var(--pp-space-4);
   width: 100%;
 }
@@ -1100,13 +1154,6 @@
 }
 
 /* ─── Pagination ─── */
-.plat-pagination-wrapper {
-  display: flex;
-  justify-content: center;
-  margin-top: var(--pp-space-6);
-  margin-bottom: var(--pp-space-4);
-  width: 100%;
-}
 
 .plat-pagination-center {
   display: flex;
@@ -1194,4 +1241,102 @@
 .plat-pagination-info b {
   color: #1e293b;
   font-weight: 700;
+}
+
+/* skeleton-box uses global background-position animation from index.css */
+.skeleton-box {
+  display: inline-block;
+  position: relative;
+  border-radius: 4px;
+}
+
+.skeleton-text {
+  height: 12px;
+  width: 100%;
+  margin-bottom: 8px;
+  border-radius: 2px;
+}
+
+.skeleton-text.title {
+  height: 24px;
+  width: 40%;
+  margin-bottom: 12px;
+}
+
+/* ─── Pagination (Unified v2.0) ────────────────────────────────────────────── */
+
+.plat-pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: var(--bg-card);
+  border-top: 1px solid var(--pp-warm-4);
+  border-radius: 0 0 14px 14px;
+}
+
+.plat-pagination-info-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.plat-pagination-info {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.plat-pagination-limit {
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--pp-warm-4);
+  border-radius: 6px;
+  font-size: 12px;
+  background: var(--pp-warm-1);
+  color: var(--pp-ink);
+  outline: none;
+  cursor: pointer;
+}
+
+.plat-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.plat-pagination-btn,
+.plat-pagination-page {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: white;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.plat-pagination-btn:hover:not(:disabled),
+.plat-pagination-page:hover:not(.is-active) {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+
+.plat-pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.plat-pagination-page.is-active {
+  background: #334155;
+  border-color: #334155;
+  color: white;
 }

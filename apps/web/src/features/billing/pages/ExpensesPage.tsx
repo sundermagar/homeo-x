@@ -10,6 +10,10 @@ import {
 } from '../hooks/use-accounts';
 import type { ExpenseWithHead } from '@mmc/types';
 import type { CreateExpenseInput, ListExpensesQuery } from '@mmc/validation';
+import { Pagination } from '@/shared/components/Pagination';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { Drawer } from '@/shared/components/drawer';
+import { EmptyState } from '@/components/shared/empty-state';
 import '../styles/billing.css';
 
 const EMPTY_FORM = {
@@ -34,7 +38,7 @@ export default function ExpensesPage() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
   const query: ListExpensesQuery = {
-    page, limit: 30,
+    page, limit: 10,
     head: headFilter ? parseInt(headFilter, 10) : undefined,
     fromDate: fromDate || undefined,
     toDate: toDate || undefined,
@@ -132,7 +136,7 @@ export default function ExpensesPage() {
   };
 
   return (
-    <div className="bill-page fade-in">
+    <div className="pp-page-container bill-page animate-fade-in">
       {/* ─── Header ─── */}
       <div className="bill-header">
         <div>
@@ -161,8 +165,8 @@ export default function ExpensesPage() {
             <div className="bill-stat-value">{total}</div>
           </div>
         </div>
-        <div className="bill-stat-card">
-          <div className="bill-stat-icon" style={{ background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)' }}>
+        <div className="bill-stat-card" data-type="danger">
+          <div className="bill-stat-icon" style={{ background: 'var(--pp-danger-bg)', color: 'var(--pp-danger-fg)' }}>
             <Wallet size={22} />
           </div>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -203,14 +207,19 @@ export default function ExpensesPage() {
         />
       </div>
 
-      <div className="bill-card">
+      <div className="bill-card" style={{ boxShadow: 'var(--pp-premium-shadow)' }}>
         {isLoading ? (
-          <div className="bill-empty"><RefreshCw size={22} className="animate-spin opacity-30" /></div>
+          <TableSkeleton rows={10} columns={6} />
         ) : filtered.length === 0 ? (
-          <div className="bill-empty">
-            <Wallet size={40} className="bill-empty-icon" />
-            <p className="bill-empty-text">No expenses recorded yet.</p>
-          </div>
+          <EmptyState 
+            icon={Wallet}
+            title={search || headFilter ? "No matches found" : "No expenses recorded"}
+            description={search || headFilter ? `No expense entries matching your search filters were found.` : "Maintain a healthy clinic by tracking your operational costs."}
+            actionLabel={search || headFilter ? "Clear Filters" : "Add Expense"}
+            onAction={search || headFilter ? () => { setSearch(''); setHeadFilter(''); } : handleOpenCreate}
+            variant="card"
+            className="my-8"
+          />
         ) : (
           <div className="bill-table-container">
             <table className="bill-table">
@@ -227,23 +236,33 @@ export default function ExpensesPage() {
               <tbody>
                 {filtered.map(e => (
                   <tr key={e.id}>
-                    <td data-label="ID" style={{ fontFamily: 'var(--pp-font-mono)' }}>#{e.id}</td>
-                    <td data-label="Date" style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.78rem' }}>{e.expDate || '—'}</td>
+                    <td data-label="ID" style={{ fontFamily: 'var(--pp-font-mono)' }}>
+                      <div>#{e.id}</div>
+                    </td>
+                    <td data-label="Date" style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.78rem' }}>
+                      <div>{e.expDate || '—'}</div>
+                    </td>
                     <td data-label="Category">
-                      <span className="bill-badge bill-badge-staff">{e.headName || `Head #${e.head}`}</span>
+                      <div className="plat-cell-val">
+                        <span className="bill-badge bill-badge-staff">{e.headName || `Head #${e.head}`}</span>
+                      </div>
                     </td>
-                    <td data-label="Description">{e.detail || '—'}</td>
-                    <td data-label="Amount" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 700, color: 'var(--pp-blue)' }}>
-                      ₹{(e.amount ?? 0).toLocaleString()}
+                    <td data-label="Description">
+                      <div>{e.detail || '—'}</div>
                     </td>
-                    <td>
-                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                        <button className="bill-btn bill-btn-sm bill-btn-icon" onClick={() => handleOpenEdit(e)}>
-                          <Edit2 size={13} strokeWidth={2} />
-                        </button>
-                        <button type="button" className="bill-btn bill-btn-sm bill-btn-icon bill-btn-danger" onClick={(evt) => handleDelete(evt, e.id)}>
-                          <Trash2 size={13} strokeWidth={2} />
-                        </button>
+                    <td data-label="Amount" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 700, color: 'var(--pp-danger-fg)' }}>
+                      <div className="plat-cell-val">₹{(e.amount ?? 0).toLocaleString()}</div>
+                    </td>
+                    <td data-label="Actions">
+                      <div className="plat-cell-val">
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', width: '100%' }}>
+                          <button className="bill-btn bill-btn-sm bill-btn-icon" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={() => handleOpenEdit(e)}>
+                            <Edit2 size={13} strokeWidth={2} />
+                          </button>
+                          <button type="button" className="bill-btn bill-btn-sm bill-btn-icon bill-btn-danger" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={(evt) => handleDelete(evt, e.id)}>
+                            <Trash2 size={13} strokeWidth={2} />
+                          </button>
+                        </div>
                       </div>
                     </td>
                   </tr>
@@ -253,75 +272,83 @@ export default function ExpensesPage() {
           </div>
         )}
       </div>
+      <Pagination
+        totalItems={total}
+        itemsPerPage={10}
+        currentPage={page}
+        onPageChange={(p) => setPage(p)}
+        onLimitChange={() => {}}
+      />
 
-      {isModalOpen && (
-        <div className="bill-modal-overlay fade-in" onClick={e => e.target === e.currentTarget && setIsModalOpen(false)}>
-          <div className="bill-modal" style={{ maxWidth: 500 }}>
-            <div className="bill-modal-header">
-              <h2 className="bill-modal-title">{editingId ? 'Edit Expense' : 'Add Expense Entry'}</h2>
-              <button className="bill-btn bill-btn-icon" onClick={() => setIsModalOpen(false)} style={{ border: 'none' }}><X size={16} /></button>
-            </div>
-            <form onSubmit={handleSubmit}>
-              <div className="bill-modal-body bill-form">
-                <div className="bill-form-group">
-                  <label className="bill-form-label">Expense Head <span className="bill-form-required">*</span></label>
-                  <select 
-                    className="bill-form-select" 
-                    value={isOtherSelected ? 'other' : (form.head ?? '')} 
-                    onChange={e => {
-                      if (e.target.value === 'other') {
-                        setIsOtherSelected(true);
-                        setForm(f => ({ ...f, head: undefined }));
-                      } else {
-                        setIsOtherSelected(false);
-                        setForm(f => ({ ...f, head: e.target.value ? parseInt(e.target.value) : undefined }));
-                      }
-                    }} 
-                    required
-                  >
-                    <option value="">Select category...</option>
-                    {heads.map((h: any) => <option key={h.id} value={h.id}>{h.name}</option>)}
-                    <option value="other" style={{ fontWeight: 700, color: 'var(--pp-blue)' }}>+ Other (Create New)</option>
-                  </select>
-                </div>
-                {isOtherSelected && (
-                  <div className="bill-form-group fade-in">
-                    <label className="bill-form-label">New Category Name <span className="bill-form-required">*</span></label>
-                    <input 
-                      className="bill-form-input" 
-                      placeholder="Enter manual category name..." 
-                      value={customHeadName} 
-                      onChange={e => setCustomHeadName(e.target.value)}
-                      required 
-                      autoFocus
-                    />
-                  </div>
-                )}
-                <div className="bill-form-row bill-form-row-2">
-                  <div className="bill-form-group">
-                    <label className="bill-form-label">Date</label>
-                    <input className="bill-form-input" type="date" value={form.expDate} onChange={e => setForm(f => ({ ...f, expDate: e.target.value }))} />
-                  </div>
-                  <div className="bill-form-group">
-                    <label className="bill-form-label">Amount (₹) <span className="bill-form-required">*</span></label>
-                    <input className="bill-form-input" type="number" min={0} value={form.amount} onChange={e => setForm(f => ({ ...f, amount: Number(e.target.value) }))} required />
-                  </div>
-                </div>
-                <div className="bill-form-group">
-                  <label className="bill-form-label">Description / Detail</label>
-                  <textarea className="bill-form-textarea" rows={3} value={form.detail} onChange={e => setForm(f => ({ ...f, detail: e.target.value }))} placeholder="e.g. Electricity bill for March 2026" />
-                </div>
-              </div>
-              <div className="bill-modal-footer">
-                <button type="button" className="bill-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                <button type="submit" className="bill-btn bill-btn-primary" disabled={createExpense.isPending || updateExpense.isPending} style={{ minWidth: '120px' }}>
-                  {editingId ? 'Save Changes' : 'Add Expense'}
-                </button>
-              </div>
-            </form>
+      <Drawer
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={editingId ? 'Edit Expense' : 'Add Expense Entry'}
+        maxWidth="500px"
+      >
+        <form onSubmit={handleSubmit} className="bill-form">
+          <div className="bill-form-group">
+            <label className="bill-form-label">Expense Head <span className="bill-form-required">*</span></label>
+            <select 
+              className="bill-form-select" 
+              value={isOtherSelected ? 'other' : (form.head ?? '')} 
+              onChange={e => {
+                if (e.target.value === 'other') {
+                  setIsOtherSelected(true);
+                  setForm(f => ({ ...f, head: undefined }));
+                } else {
+                  setIsOtherSelected(false);
+                  setForm(f => ({ ...f, head: e.target.value ? parseInt(e.target.value) : undefined }));
+                }
+              }} 
+              required
+              style={{ height: 44, borderRadius: 12 }}
+            >
+              <option value="">Select category...</option>
+              {heads.map((h: any) => <option key={h.id} value={h.id}>{h.name}</option>)}
+              <option value="other" style={{ fontWeight: 700, color: 'var(--pp-blue)' }}>+ Other (Create New)</option>
+            </select>
           </div>
-        </div>
-      )}
+          
+          {isOtherSelected && (
+            <div className="bill-form-group animate-fade-in">
+              <label className="bill-form-label">New Category Name <span className="bill-form-required">*</span></label>
+              <input 
+                className="bill-form-input" 
+                placeholder="Enter manual category name..." 
+                value={customHeadName} 
+                onChange={e => setCustomHeadName(e.target.value)}
+                required 
+                autoFocus
+                style={{ borderRadius: 12 }}
+              />
+            </div>
+          )}
+          
+          <div className="bill-form-row bill-form-row-2">
+            <div className="bill-form-group">
+              <label className="bill-form-label">Date</label>
+              <input className="bill-form-input" type="date" value={form.expDate} onChange={e => setForm(f => ({ ...f, expDate: e.target.value }))} style={{ borderRadius: 12 }} />
+            </div>
+            <div className="bill-form-group">
+              <label className="bill-form-label">Amount (₹) <span className="bill-form-required">*</span></label>
+              <input className="bill-form-input" type="number" min={0} value={form.amount} onChange={e => setForm(f => ({ ...f, amount: Number(e.target.value) }))} required style={{ borderRadius: 12, fontWeight: 800, fontSize: '1.1rem' }} />
+            </div>
+          </div>
+          
+          <div className="bill-form-group">
+            <label className="bill-form-label">Description / Detail</label>
+            <textarea className="bill-form-textarea" rows={4} value={form.detail} onChange={e => setForm(f => ({ ...f, detail: e.target.value }))} placeholder="e.g. Electricity bill for March 2026" style={{ borderRadius: 14 }} />
+          </div>
+
+          <div style={{ marginTop: 32, display: 'flex', gap: 12 }}>
+            <button type="button" className="bill-btn" style={{ flex: 1, height: 48, borderRadius: 14 }} onClick={() => setIsModalOpen(false)}>Cancel</button>
+            <button type="submit" className="bill-btn bill-btn-primary" style={{ flex: 2, height: 48, borderRadius: 14 }} disabled={createExpense.isPending || updateExpense.isPending}>
+              {editingId ? 'Save Changes' : 'Add Expense'}
+            </button>
+          </div>
+        </form>
+      </Drawer>
       {deleteConfirmId && (
         <div className="bill-modal-overlay fade-in" style={{ zIndex: 1100 }}>
           <div className="bill-modal" style={{ maxWidth: 400 }}>
@@ -342,6 +369,7 @@ export default function ExpensesPage() {
           </div>
         </div>
       )}
+
     </div>
   );
 }

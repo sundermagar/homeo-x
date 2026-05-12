@@ -6,6 +6,11 @@ import { AccountModal } from '../components/AccountModal';
 import type { Account } from '@mmc/types';
 import '../styles/platform.css';
 
+import { Pagination } from '@/shared/components/Pagination';
+import { usePagination } from '@/shared/hooks/use-pagination';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
+
 export default function AccountsPage() {
   const [clinicFilter, setClinicFilter] = useState<number | undefined>();
   const [modalOpen, setModalOpen]       = useState(false);
@@ -15,7 +20,14 @@ export default function AccountsPage() {
   const { data: orgs = [] }                = useOrganizations();
   const deleteAccount                      = useDeleteAccount();
 
-  const sortedAccounts = [...accounts].sort((a, b) => a.id - b.id);
+  const {
+    currentPage,
+    setCurrentPage,
+    itemsPerPage,
+    setItemsPerPage,
+    paginatedData,
+    totalItems
+  } = usePagination(accounts);
 
   const openCreate = () => { setEditing(undefined); setModalOpen(true); };
   const openEdit   = (a: Account) => { setEditing(a); setModalOpen(true); };
@@ -76,74 +88,105 @@ export default function AccountsPage() {
       {/* ─── Table ─── */}
       <div className="plat-card">
         {isLoading ? (
-          <div className="plat-empty">
-            <RefreshCw size={22} style={{ animation: 'spin 1s linear infinite', opacity: 0.3 }} />
-          </div>
+          <TableSkeleton rows={8} columns={7} />
         ) : accounts.length === 0 ? (
-          <div className="plat-empty">
-            <UserCog size={28} className="plat-empty-icon" />
-            <p className="plat-empty-text">No accounts found. Create the first account manager.</p>
-          </div>
+          <EmptyState 
+            icon={UserCog}
+            title="No accounts found"
+            description="Linked clinic admin accounts. Create the first account manager to enable clinical access."
+            actionLabel="New Account"
+            onAction={openCreate}
+            variant="card"
+            className="my-8"
+          />
         ) : (
-          <div className="plat-table-container">
-            <table className="plat-table">
-              <thead>
-                <tr>
-                  <th style={{ width: '40px' }}>ID</th>
-                  <th>Account Holder</th>
-                  <th style={{ width: '200px' }}>Linked Clinic</th>
-                  <th style={{ width: '130px' }}>Mobile</th>
-                  <th style={{ width: '120px' }}>Designation</th>
-                  <th style={{ width: '80px' }}>Gender</th>
-                  <th style={{ width: '90px' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedAccounts.map((account) => (
-                  <tr key={account.id}>
-                    <td data-label="ID" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      {account.id}
-                    </td>
-                    <td data-label="Account Holder">
-                      <div style={{ fontWeight: 600 }}>{account.name}</div>
-                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '1px' }}>
-                        {account.email || '—'}
-                      </div>
-                    </td>
-                    <td data-label="Linked Clinic" style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                      {getClinicName(account.clinicId)}
-                    </td>
-                    <td data-label="Mobile" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                      {account.mobile || '—'}
-                    </td>
-                    <td data-label="Designation" style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                      {account.designation || '—'}
-                    </td>
-                    <td data-label="Gender">
-                      <span className="plat-badge plat-badge-default">
-                        {account.gender || '—'}
-                      </span>
-                    </td>
-                    <td data-label="Actions">
-                      <div style={{ display: 'flex', gap: '6px' }}>
-                        <button className="plat-btn plat-btn-sm plat-btn-icon" title="Edit" onClick={() => openEdit(account)}>
-                          <Edit2 size={13} strokeWidth={1.6} />
-                        </button>
-                        <button
-                          className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger"
-                          title="Delete"
-                          onClick={() => handleDelete(account.id, account.name)}
-                          disabled={deleteAccount.isPending}
-                        >
-                          <Trash2 size={13} strokeWidth={1.6} />
-                        </button>
-                      </div>
-                    </td>
+          <>
+            <div className="plat-table-container">
+              <table className="plat-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '40px' }}>ID</th>
+                    <th>Account Holder</th>
+                    <th style={{ width: '200px' }}>Linked Clinic</th>
+                    <th style={{ width: '130px' }}>Mobile</th>
+                    <th style={{ width: '120px' }}>Designation</th>
+                    <th style={{ width: '80px' }}>Gender</th>
+                    <th style={{ width: '90px' }}>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {paginatedData.map((account: any) => (
+                    <tr key={account.id}>
+                      <td data-label="ID" className="plat-mono-data text-xs" style={{ width: 40 }}>
+                        <div>{account.id}</div>
+                      </td>
+                      <td data-label="Account Holder">
+                        <div className="plat-cell-val">
+                          <div style={{ fontWeight: 600 }}>{account.name}</div>
+                          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '1px' }}>
+                            {account.email || '—'}
+                          </div>
+                        </div>
+                      </td>
+                      <td data-label="Linked Clinic">
+                        <div className="plat-cell-val">
+                          <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                            {getClinicName(account.clinicId)}
+                          </div>
+                        </div>
+                      </td>
+                      <td data-label="Mobile">
+                        <div className="plat-cell-val">
+                          <div className="plat-mono-data" style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                            {account.mobile || '—'}
+                          </div>
+                        </div>
+                      </td>
+                      <td data-label="Designation">
+                        <div className="plat-cell-val">
+                          <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                            {account.designation || '—'}
+                          </div>
+                        </div>
+                      </td>
+                      <td data-label="Gender">
+                        <div className="plat-cell-val">
+                          <span className="plat-badge plat-badge-default">
+                            {account.gender || '—'}
+                          </span>
+                        </div>
+                      </td>
+                      <td data-label="Actions">
+                        <div className="plat-cell-val">
+                          <div className="flex justify-end gap-2" style={{ width: '100%' }}>
+                            <button className="plat-btn plat-btn-sm plat-btn-icon plat-btn-ghost" style={{ width: 36, height: 36, borderRadius: 10 }} title="Edit" onClick={() => openEdit(account)}>
+                              <Edit2 size={13} strokeWidth={1.6} />
+                            </button>
+                            <button
+                              className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger"
+                              style={{ width: 36, height: 36, borderRadius: 10 }}
+                              title="Delete"
+                              onClick={() => handleDelete(account.id, account.name)}
+                              disabled={deleteAccount.isPending}
+                            >
+                              <Trash2 size={13} strokeWidth={1.6} />
+                            </button>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <Pagination
+              totalItems={totalItems}
+              itemsPerPage={itemsPerPage}
+              currentPage={currentPage}
+              onPageChange={setCurrentPage}
+              onLimitChange={setItemsPerPage}
+            />
+          </>
         )}
       </div>
 

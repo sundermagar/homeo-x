@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
-import { faqs } from '../schema/settings';
-import type { DbClient } from '../client';
+import { faqs } from '../schema/settings.js';
+import type { DbClient } from '../client.js';
 
 export async function seedFaqs(db: DbClient) {
   console.log('[Seed] Seeding Clinical FAQs...');

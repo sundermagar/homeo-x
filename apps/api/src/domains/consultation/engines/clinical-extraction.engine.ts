@@ -1,0 +1,106 @@
+// ─── Clinical Extraction Engine ───────────────────────────────────────────────
+// Module 2: Unified clinical extraction from conversation, labs, and notes.
+// Ported from: Ai-Counsultaion/apps/api/src/modules/ai/engines/clinical-extraction.engine.ts
+
+import { createLogger } from '../../../shared/logger.js';
+import type { AiProviderChain } from '../../../infrastructure/ai/ai-provider-chain.js';
+
+const logger = createLogger('clinical-extraction-engine');
+
+export interface ClinicalExtractionInput {
+  transcript?: string;
+  labReports?: Record<string, string>;
+  chiefComplaint?: string;
+  patientAge?: number;
+  patientGender?: string;
+  specialty?: string;
+}
+
+export interface ClinicalExtractionResult {
+  observations: string[];
+  clinicalFindings: string[];
+  mentalState: string[];
+  emotionProfile: Array<{ emotion: string; intensity: number; context: string }>;
+  physicalSymptoms: string[];
+  generalSymptoms: string[];
+  modalities: { aggravation: string[]; amelioration: string[] };
+  thermalReaction?: string;
+  constitution?: string;
+  miasm?: string;
+  confidence: number;
+}
+
+export class ClinicalExtractionEngine {
+  constructor(private providerChain: AiProviderChain) {}
+
+  async extract(tenantId: string, userId: string, input: ClinicalExtractionInput): Promise<ClinicalExtractionResult> {
+    const systemPrompt = `You are an expert homeopathic clinical data extractor.
+Analyze the provided transcript and clinical data to extract structured findings.
+
+Extract these categories:
+1. observations: Doctor-observed clinical findings
+2. clinicalFindings: Physical examination results
+3. mentalState: Mental/emotional symptoms (key for homeopathy)
+4. emotionProfile: Emotions detected with intensity (0-10) and context
+5. physicalSymptoms: Specific physical complaints
+6. generalSymptoms: Constitutional/general symptoms (energy, sleep, appetite, thirst, thermal preference)
+7. modalities: What makes symptoms worse (aggravation) and better (amelioration)
+8. thermalReaction: HOT, CHILLY, or AMBITHERMAL
+9. constitution: Constitutional type if identifiable
+10. miasm: Predominant miasm if identifiable (PSORA, SYCOSIS, SYPHILIS, TUBERCULAR)
+
+IMPORTANT: Extract ONLY what is explicitly present. Do NOT fabricate.
+CRITICAL: Do NOT extract duplicate symptoms. If a symptom has already been mentioned or is a slight variation of an existing one, merge them into a single, comprehensive entry. Ensure all arrays contain strictly unique items.
+
+Respond in valid JSON matching the structure above.`;
+
+    const userPrompt = `Patient: Age ${input.patientAge || 'Unknown'}, Gender ${input.patientGender || 'Unknown'}
+Chief Complaint: ${input.chiefComplaint || 'Not specified'}
+Specialty: ${input.specialty || 'HOMEOPATHY'}
+
+${input.transcript ? `--- TRANSCRIPT ---\n${input.transcript}\n--- END TRANSCRIPT ---` : ''}
+${input.labReports ? `--- LAB REPORTS ---\n${JSON.stringify(input.labReports)}\n--- END LAB ---` : ''}
+
+Extract all clinical data:`;
+
+    try {
+      const response = await this.providerChain.complete({
+        systemPrompt,
+        userPrompt,
+        temperature: 0.1,
+        maxTokens: 2048,
+        responseFormat: 'json',
+      });
+
+      const jsonStr = response.content.substring(response.content.indexOf('{'), response.content.lastIndexOf('}') + 1);
+      const parsed = JSON.parse(jsonStr || response.content);
+
+      logger.info({ tenantId }, 'Clinical extraction complete');
+
+      return {
+        observations: Array.isArray(parsed.observations) ? [...new Set<string>(parsed.observations)] : [],
+        clinicalFindings: Array.isArray(parsed.clinicalFindings) ? [...new Set<string>(parsed.clinicalFindings)] : [],
+        mentalState: Array.isArray(parsed.mentalState) ? [...new Set<string>(parsed.mentalState)] : [],
+        emotionProfile: Array.isArray(parsed.emotionProfile) ? parsed.emotionProfile : [],
+        physicalSymptoms: Array.isArray(parsed.physicalSymptoms) ? [...new Set<string>(parsed.physicalSymptoms)] : [],
+        generalSymptoms: Array.isArray(parsed.generalSymptoms) ? [...new Set<string>(parsed.generalSymptoms)] : [],
+        modalities: {
+          aggravation: Array.isArray(parsed.modalities?.aggravation) ? [...new Set<string>(parsed.modalities.aggravation)] : [],
+          amelioration: Array.isArray(parsed.modalities?.amelioration) ? [...new Set<string>(parsed.modalities.amelioration)] : [],
+        },
+        thermalReaction: parsed.thermalReaction || undefined,
+        constitution: parsed.constitution || undefined,
+        miasm: parsed.miasm || undefined,
+        confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0.7,
+      };
+    } catch (error: any) {
+      logger.error({ error: error.message }, 'Clinical extraction failed');
+      return {
+        observations: [], clinicalFindings: [], mentalState: [],
+        emotionProfile: [], physicalSymptoms: [], generalSymptoms: [],
+        modalities: { aggravation: [], amelioration: [] },
+        confidence: 0,
+      };
+    }
+  }
+}

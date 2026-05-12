@@ -1,4 +1,4 @@
-import { AnalysisTheory, AIAnalysisParams } from './ai-analysis.use-case';
+import { AnalysisTheory, AIAnalysisParams } from './ai-analysis.use-case.js';
 
 const CANNED: Record<AnalysisTheory, string> = {
   [AnalysisTheory.HOMEOPATHY]: 'STUB: Sulphur 30C — presenting picture matches sulphur state...',

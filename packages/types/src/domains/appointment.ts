@@ -1,4 +1,4 @@
-import type { AppointmentStatus, VisitType, TokenStatus } from '../enums';
+import type { AppointmentStatus, VisitType, TokenStatus } from '../enums.js';
 
 export interface Appointment {
   id: number;
@@ -14,10 +14,13 @@ export interface Appointment {
   phone: string | null;
   patientName: string | null;
   cancellationReason: string | null;
+  clinicId: number | null;
   // Joined fields (from API)
   doctorName?: string;
   patientNameFromCase?: string;
   patientMobile?: string;
+  packageName?: string;
+  packageExpiry?: string;
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
@@ -30,6 +33,7 @@ export interface Token {
   tokenNo: number;
   date: string;                        // YYYY-MM-DD
   status: TokenStatus;
+  clinicId: number | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -46,10 +50,17 @@ export interface WaitlistEntry {
   checkedInAt: Date | null;
   calledAt: Date | null;
   completedAt: Date | null;
+  clinicId: number | null;
   // Joined fields
   patientName?: string;
   patientMobile?: string;
   doctorName?: string;
+  balance?: string;
+  billId?: number;
+  packageName?: string;
+  packageExpiry?: string;
+
+  rowcolor?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -72,6 +83,7 @@ export interface CreateAppointmentDto {
   consultationFee?: number;
   notes?: string;
   allowWaitlist?: boolean;
+  clinicId?: number;
 }
 
 export interface UpdateAppointmentDto {
@@ -83,4 +95,5 @@ export interface UpdateAppointmentDto {
   visitType?: VisitType;
   consultationFee?: number;
   cancellationReason?: string;
+  clinicId?: number;
 }

@@ -1,7 +1,7 @@
 import Razorpay from 'razorpay';
-import { razorpayBreaker } from '../../shared/resilience/circuit-breaker';
-import type { RazorpayService, RazorpayOrder } from '../../domains/billing';
-import { createLogger } from '../../shared/logger';
+import { razorpayBreaker } from '../../shared/resilience/circuit-breaker.js';
+import type { RazorpayService, RazorpayOrder } from '../../domains/billing/index.js';
+import { createLogger } from '../../shared/logger.js';
 
 const logger = createLogger('razorpay-service');
 

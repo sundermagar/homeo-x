@@ -19,9 +19,9 @@ export interface AlphabetGroup {
 }
 
 export interface RemedyLookups {
-  medicines:   { id: number; name: string }[];
-  potencies:   { id: number; name: string }[];
-  frequencies: { id: number; name: string }[];
+  medicines: { id: number; name: string }[];
+  potencies: { id: number; name: string }[];
+  frequencies: { id: number; name: string; instruction: string }[];
 }
 
 export interface RemedyAlternative {
@@ -29,7 +29,7 @@ export interface RemedyAlternative {
   treeId: number;
   remedy: string;
   potency: string | null;
-  notes:   string | null;
+  notes: string | null;
 }
 
 export interface PrescriptionRow {
@@ -44,31 +44,35 @@ export interface PrescriptionRow {
   notes: string;
   prescription: string;
   created_at: string;
+  deliveryMode?: string;
 }
 
 export interface SavePrescriptionDto {
-  id?:            number;
-  regid:          number;
-  visitId?:       number;
-  remedyName:     string;
-  potencyName:    string;
-  frequencyName:  string;
-  days:           number;
-  notes?:         string;
-  instructions?:  string;
+  id?: number;
+  regid: number;
+  visitId?: number;
+  remedyName: string;
+  potencyName: string;
+  frequencyName: string;
+  days: number;
+  notes?: string;
+  instructions?: string;
+  deliveryMode?: string;
 }
 
 // ─── Hooks ───────────────────────────────────────────────────────────────────
 
-/** Full hierarchical remedy tree, optionally filtered by label */
-export function useRemedyTree(label?: string) {
+/** Remedy tree nodes for a specific parent (lazy loading) or search */
+export function useRemedyTree(parentId: number = 0, label?: string) {
   return useQuery<RemedyTreeNode[]>({
-    queryKey: ['remedy-chart', 'tree', label ?? ''],
-    queryFn:  () =>
+    queryKey: ['remedy-chart', 'tree', parentId, label ?? ''],
+    queryFn: () =>
       apiClient
-        .get('/medical-cases/remedy-chart/tree', { params: label ? { label } : {} })
+        .get('/medical-cases/remedy-chart/tree', { 
+          params: { parentId, label } 
+        })
         .then(r => (r.data as any).data ?? r.data),
-    staleTime: 60_000,
+    staleTime: 5 * 60_000,
   });
 }
 
@@ -76,7 +80,7 @@ export function useRemedyTree(label?: string) {
 export function useAlphabetIndex() {
   return useQuery<AlphabetGroup[]>({
     queryKey: ['remedy-chart', 'alphabet'],
-    queryFn:  () =>
+    queryFn: () =>
       apiClient
         .get('/medical-cases/remedy-chart/tree/alphabet')
         .then(r => (r.data as any).data ?? r.data),
@@ -88,7 +92,7 @@ export function useAlphabetIndex() {
 export function useTreeByLetter(letter: string) {
   return useQuery<AlphabetGroup[]>({
     queryKey: ['remedy-chart', 'filter', letter],
-    queryFn:  () =>
+    queryFn: () =>
       apiClient
         .get('/medical-cases/remedy-chart/tree/filter', { params: { letter } })
         .then(r => (r.data as any).data ?? r.data),
@@ -100,7 +104,7 @@ export function useTreeByLetter(letter: string) {
 export function useRemedyLookups() {
   return useQuery<RemedyLookups>({
     queryKey: ['remedy-chart', 'lookups'],
-    queryFn:  () =>
+    queryFn: () =>
       apiClient
         .get('/medical-cases/remedy-chart/lookups')
         .then(r => (r.data as any).data ?? r.data),
@@ -112,7 +116,7 @@ export function useRemedyLookups() {
 export function useRemedyAlternatives(treeNodeId: number | null) {
   return useQuery<RemedyAlternative[]>({
     queryKey: ['remedy-chart', 'alternatives', treeNodeId],
-    queryFn:  () =>
+    queryFn: () =>
       apiClient
         .get(`/medical-cases/remedy-chart/alternatives/${treeNodeId}`)
         .then(r => (r.data as any).data ?? r.data),
@@ -124,7 +128,7 @@ export function useRemedyAlternatives(treeNodeId: number | null) {
 export function usePatientPrescriptions(regid: number) {
   return useQuery<PrescriptionRow[]>({
     queryKey: ['remedy-chart', 'prescriptions', regid],
-    queryFn:  () =>
+    queryFn: () =>
       apiClient
         .get(`/medical-cases/remedy-chart/${regid}`)
         .then(r => (r.data as any).data ?? r.data),

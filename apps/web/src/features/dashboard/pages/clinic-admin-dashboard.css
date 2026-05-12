@@ -2,8 +2,7 @@
 
 .cad-root {
   padding: 0;
-  padding-bottom: var(--pp-space-8);
-  min-height: 100%;
+  min-height: auto;
 }
 
 .cad-root.cad-loading {
@@ -30,17 +29,17 @@
 }
 
 .cad-title {
-  font-size: 22px;
-  font-weight: 700;
+  font-size: 1.5rem;
+  font-weight: 800;
   color: var(--pp-ink);
-  margin: 0 0 4px;
+  margin: 0 0 2px;
   letter-spacing: -0.01em;
 }
 
 .cad-subtitle {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--pp-text-3);
-  font-weight: 500;
+  font-weight: 600;
   margin: 0;
 }
 
@@ -79,41 +78,90 @@
 
 .cad-kpi-strip {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--pp-space-4);
+  grid-template-columns: 1fr;
+  gap: 12px;
   margin-bottom: var(--pp-space-6);
 }
 
-@media (min-width: 768px) {
+@media (min-width: 480px) {
+  .cad-kpi-strip {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+}
+
+@media (min-width: 1280px) {
   .cad-kpi-strip {
     grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
   }
 }
 
 .cad-kpi-card {
   background: var(--bg-card);
-  padding: var(--pp-space-5);
+  padding: 16px;
   border-radius: var(--pp-radius-card);
   border: 1px solid var(--pp-warm-4);
   display: flex;
   flex-direction: column;
   gap: 4px;
+  transition: all var(--transition-normal);
+  min-width: 0;
+}
+
+@media (min-width: 768px) {
+  .cad-kpi-card {
+    padding: var(--pp-space-5);
+  }
+}
+
+.cad-kpi-card.clickable {
+  cursor: pointer;
+}
+
+.cad-kpi-card.clickable:hover {
+  transform: translateY(-2px);
+  border-color: var(--pp-blue);
+  box-shadow: var(--pp-shadow-md);
+  background: var(--pp-warm-1);
+}
+
+.cad-kpi-card.clickable:active {
+  transform: translateY(0) scale(0.98);
 }
 
 .cad-kpi-label {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
   color: var(--pp-text-3);
   text-transform: uppercase;
   letter-spacing: 0.08em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (min-width: 768px) {
+  .cad-kpi-label {
+    font-size: 10px;
+  }
 }
 
 .cad-kpi-value {
-  font-size: 1.6rem;
+  font-size: 1.3rem;
   font-weight: 800;
   color: var(--pp-ink);
-  line-height: 1;
+  line-height: 1.2;
   letter-spacing: -0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (min-width: 768px) {
+  .cad-kpi-value {
+    font-size: 1.6rem;
+  }
 }
 
 .cad-trend-badge {
@@ -131,6 +179,20 @@
 
 .cad-trend-down {
   color: var(--pp-danger-fg);
+}
+
+.clickable-title:hover {
+  color: var(--pp-blue) !important;
+  transform: translateX(2px);
+}
+
+.clickable-row {
+  transition: all var(--transition-fast);
+}
+
+.clickable-row:hover {
+  background: var(--pp-warm-1);
+  transform: translateX(4px);
 }
 
 /* ─── Layout Grid ───────────────────────────────────────────────────────────── */
@@ -633,13 +695,29 @@
   display: flex;
   flex-direction: column;
   gap: 0;
+  max-height: 360px;
+  overflow-y: auto;
+  padding-right: 12px;
+}
+
+.cad-queue-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.cad-queue-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.cad-queue-list::-webkit-scrollbar-thumb {
+  background: var(--pp-warm-4);
+  border-radius: 10px;
 }
 
 .cad-queue-item {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 0;
+  padding: 8px 0;
   border-bottom: 1px solid var(--pp-warm-1);
 }
 
@@ -791,27 +869,4 @@
   color: #94a3b8;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-}
-
-.cad-staff-view-all {
-  width: 100%;
-  padding: 8px;
-  margin-top: 8px;
-  background: var(--pp-warm-1);
-  border: 1px dashed var(--pp-warm-4);
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--pp-blue);
-  cursor: pointer;
-  transition: all var(--transition-normal);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.cad-staff-view-all:hover {
-  background: var(--pp-blue-tint);
-  border-color: var(--pp-blue-border);
-  color: var(--pp-blue-hover);
 }

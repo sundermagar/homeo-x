@@ -7,7 +7,7 @@ import type {
   Department, Dispensary, ReferralSource, Sticker,
   StaticPage, Faq, PdfSetting, Medicine, Potency, Frequency,
   MessageTemplate, StockLog, PackagePlan, Courier,
-  User
+  User, Vaccine, Stock
 } from '../../domains/settings/ports/settings.repository.js';
 
 export class SettingsRepositoryPg implements ISettingsRepository {
@@ -381,13 +381,13 @@ export class SettingsRepositoryPg implements ISettingsRepository {
 
   // ─── Medicines ────────────────────────────────────────────────────────────
   async listMedicines(): Promise<Medicine[]> {
-    // Legacy check for ID vs id
-    try {
-      return await this.q<Medicine>('SELECT * FROM medicines ORDER BY id ASC');
-    } catch (err) {
-      this.logger.debug('Retrying medicines query with uppercase ID');
-      return await this.q<Medicine>('SELECT * FROM medicines ORDER BY "ID" ASC');
-    }
+    return this.q<Medicine>(`
+      SELECT m.*, s.term as snomed_label 
+      FROM medicines m 
+      LEFT JOIN snomed_concepts s ON m.snomed_code_id = s.id 
+      WHERE m.deleted_at IS NULL
+      ORDER BY m.id ASC
+    `);
   }
   async getMedicine(id: number): Promise<Medicine | undefined> {
     const r = await this.q1<any>('SELECT * FROM medicines WHERE id = $1', [id]);
@@ -403,11 +403,12 @@ export class SettingsRepositoryPg implements ISettingsRepository {
     const category = data.category || null;
     const price = data.price || 0;
     const stockLevel = data.stockLevel || 0;
+    const snomedCodeId = data.snomedCodeId || null;
 
     return await this.q1<any>(
-      `INSERT INTO medicines (name, disease, potency_id, type, category, price, stock_level, created_at, updated_at) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW()) RETURNING *`,
-      [name, disease ?? null, potencyId, type, category, price, stockLevel]
+      `INSERT INTO medicines (name, disease, potency_id, type, category, price, stock_level, snomed_code_id, created_at, updated_at) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW()) RETURNING *`,
+      [name, disease ?? null, potencyId, type, category, price, stockLevel, snomedCodeId]
     );
   }
   async updateMedicine(id: number, data: Partial<Omit<Medicine, 'id'>>): Promise<Medicine> {
@@ -419,6 +420,7 @@ export class SettingsRepositoryPg implements ISettingsRepository {
     const category = data.category !== undefined ? data.category : undefined;
     const price = data.price !== undefined ? data.price : undefined;
     const stockLevel = data.stockLevel !== undefined ? data.stockLevel : undefined;
+    const snomedCodeId = data.snomedCodeId !== undefined ? data.snomedCodeId : undefined;
 
     // Fetch current for logging
     const current = await this.getMedicine(id);
@@ -434,6 +436,7 @@ export class SettingsRepositoryPg implements ISettingsRepository {
           category = CASE WHEN $5::text IS NOT NULL OR $12::boolean THEN $5 ELSE category END,
           price = CASE WHEN $6::real IS NOT NULL OR $13::boolean THEN $6 ELSE price END,
           stock_level = CASE WHEN $7::integer IS NOT NULL OR $14::boolean THEN $7 ELSE stock_level END,
+          snomed_code_id = CASE WHEN $15::integer IS NOT NULL OR $16::boolean THEN $15 ELSE snomed_code_id END,
           updated_at = NOW() 
          WHERE id = $8 RETURNING *`,
         [
@@ -450,7 +453,9 @@ export class SettingsRepositoryPg implements ISettingsRepository {
           type === null,
           category === null,
           price === null,
-          stockLevel === null
+          stockLevel === null,
+          snomedCodeId ?? null,
+          snomedCodeId === null
         ]
       );
       this.logger.info({ medicineId: id }, 'Medicine updated successfully');
@@ -578,6 +583,15 @@ export class SettingsRepositoryPg implements ISettingsRepository {
       [data.medicineId, data.changeType, data.quantity, data.previousStock ?? null, data.newStock ?? null, data.reason ?? null]
     ) as Promise<StockLog>;
   }
+  async deleteStockLog(id: number): Promise<void> {
+    try {
+      await this.q('DELETE FROM stock_logs WHERE id = $1', [id]);
+    } catch (err) {
+      this.logger.warn({ err, id }, 'deleteStockLog failed');
+      throw err;
+    }
+  }
+
 
   // ─── Package Plans ────────────────────────────────────────────────────────
   async listPackagePlans(): Promise<PackagePlan[]> {
@@ -630,6 +644,78 @@ export class SettingsRepositoryPg implements ISettingsRepository {
   }
   async deleteCourier(id: number): Promise<void> {
     await this.q('DELETE FROM courier_masters WHERE id = $1', [id]);
+  }
+
+  // ─── Stocks (Inventory) ───────────────────────────────────────────────────
+  async listStocks(): Promise<Stock[]> {
+    return this.q<Stock>(`
+      SELECT s.*, c.term as snomed_label 
+      FROM stocks s 
+      LEFT JOIN snomed_concepts c ON s.snomed_code_id = c.id 
+      WHERE s.deleted_at IS NULL 
+      ORDER BY s.name ASC
+    `);
+  }
+  async getStock(id: number): Promise<any | undefined> {
+    return this.q1('SELECT * FROM stocks WHERE id = $1 AND deleted_at IS NULL', [id]);
+  }
+  async createStock(data: Partial<Stock>): Promise<Stock> {
+    return this.q1(
+      `INSERT INTO stocks (name, description, potency, category, quantity, unit_price, batch_number, snomed_code_id, created_at, updated_at) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW()) RETURNING *`,
+      [data.name, data.description ?? null, data.potency ?? null, data.category ?? null, data.quantity ?? 0, data.unitPrice ?? 0, data.batchNumber ?? null, data.snomedCodeId ?? null]
+    ) as Promise<Stock>;
+  }
+  async updateStock(id: number, data: Partial<Stock>): Promise<Stock> {
+    return this.q1(
+      `UPDATE stocks SET 
+        name = COALESCE($1, name), 
+        description = COALESCE($2, description),
+        potency = COALESCE($3, potency),
+        category = COALESCE($4, category),
+        quantity = COALESCE($5, quantity),
+        unit_price = COALESCE($6, unit_price),
+        batch_number = COALESCE($7, batch_number),
+        snomed_code_id = COALESCE($8, snomed_code_id),
+        updated_at = NOW() 
+       WHERE id = $9 RETURNING *`,
+      [data.name ?? null, data.description ?? null, data.potency ?? null, data.category ?? null, data.quantity ?? null, data.unitPrice ?? null, data.batchNumber ?? null, data.snomedCodeId ?? null, id]
+    ) as Promise<Stock>;
+  }
+  async deleteStock(id: number): Promise<void> {
+    await this.q('UPDATE stocks SET deleted_at = NOW() WHERE id = $1', [id]);
+  }
+
+  // ─── Vaccines ─────────────────────────────────────────────────────────────
+  async listVaccines(): Promise<Vaccine[]> {
+    const rows = await this.q<Vaccine>('SELECT * FROM vaccinedatas ORDER BY months ASC, id ASC');
+    this.logger.info({ count: rows.length }, 'Fetched vaccines from DB');
+    return rows;
+  }
+  async getVaccine(id: number): Promise<Vaccine | undefined> {
+    return this.q1('SELECT * FROM vaccinedatas WHERE id = $1', [id]);
+  }
+  async createVaccine(data: Omit<Vaccine, 'id' | 'createdAt' | 'updatedAt'>): Promise<Vaccine> {
+    return this.q1(
+      `INSERT INTO vaccinedatas (label, description, months, parent_id, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, NOW(), NOW()) RETURNING *`,
+      [data.label, data.description ?? null, data.months ?? null, data.parentId ?? 0]
+    ) as Promise<Vaccine>;
+  }
+  async updateVaccine(id: number, data: Partial<Omit<Vaccine, 'id'>>): Promise<Vaccine> {
+    return this.q1(
+      `UPDATE vaccinedatas SET 
+        label = COALESCE($1, label), 
+        description = COALESCE($2, description),
+        months = COALESCE($3, months),
+        parent_id = COALESCE($4, parent_id),
+        updated_at = NOW() 
+       WHERE id = $5 RETURNING *`,
+      [data.label ?? null, data.description ?? null, data.months ?? null, data.parentId ?? null, id]
+    ) as Promise<Vaccine>;
+  }
+  async deleteVaccine(id: number): Promise<void> {
+    await this.q('DELETE FROM vaccinedatas WHERE id = $1', [id]);
   }
 
   // ─── Practitioners (Doctors from users table) ──────────────────────────────

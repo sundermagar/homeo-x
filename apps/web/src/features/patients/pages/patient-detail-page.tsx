@@ -1,9 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { usePatient, useDeletePatient, useFamilyMembers, useAddFamilyMember, useRemoveFamilyMember, usePatientLookup, usePatientClinicalRecord, usePatientFormMeta } from '../hooks/use-patients';
-import { Edit2, Trash2, UserPlus, Users, X, MapPin, Phone, CheckCircle, Search, TrendingUp, Activity } from 'lucide-react';
+import { usePatient, useDeletePatient, useFamilyMembers, useAddFamilyMember, useRemoveFamilyMember, usePatientLookup, usePatientClinicalRecord } from '../hooks/use-patients';
+import { useActivePackage } from '../../packages/hooks/use-packages';
+import { AssignPackageModal } from '../../packages/components/assign-package-modal';
+import { Edit2, Trash2, UserPlus, Users, X, MapPin, Phone, CheckCircle, Search, TrendingUp, Activity, MessageCircle, Zap, ShieldCheck, Clock } from 'lucide-react';
+import { useSendWhatsApp } from '../../communications/hooks/use-communications';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import type { PatientSummary, FamilyMember } from '@mmc/types';
+import { PageSkeleton } from '@/components/shared/page-skeleton';
+import { PatientFormDrawer } from '../components/patient-form-drawer';
+import { EmptyState } from '@/components/shared/empty-state';
 import '../styles/patients.css';
 
 export default function PatientDetailPage() {
@@ -20,7 +26,10 @@ export default function PatientDetailPage() {
   const [showFamilyForm, setShowFamilyForm] = useState(false);
   const [familyForm, setFamilyForm] = useState({ memberRegid: '', relation: 'Spouse' });
   const [searchQuery, setSearchQuery] = useState('');
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [showAssignModal, setShowAssignModal] = useState(false);
   const { data: lookupResults = [] } = usePatientLookup(searchQuery);
+  const { data: activePkg, isLoading: pkgLoading } = useActivePackage(numRegid);
 
   const handleDelete = async () => {
     if (!confirm('Are you sure you want to delete this patient?')) return;
@@ -46,22 +55,48 @@ export default function PatientDetailPage() {
     await removeFamilyMutation.mutateAsync({ regid: numRegid, id });
   };
 
+  const waMutation = useSendWhatsApp();
+
   if (isLoading) {
-    return <div className="app-container" style={{ textAlign: 'center', padding: '80px', color: 'var(--pp-text-3)' }}>Loading patient details...</div>;
+    return <PageSkeleton variant="detail" />;
   }
   if (!patient) {
     return <div className="app-container" style={{ textAlign: 'center', padding: '80px', color: 'var(--pp-danger-fg)' }}>Patient not found</div>;
   }
 
-  const InfoRow = ({ label, value }: { label: string; value: string | null | undefined }) => (
+  const handleWhatsApp = async (phone: string) => {
+    if (!phone) return;
+    const msg = `Hello ${patient?.firstName || ''}, this is Homeo-X clinic.`;
+    try {
+      const res = await waMutation.mutateAsync({ phone, message: msg });
+      const deepLink = (res.data as any).data?.details?.[0]?.deepLink;
+      if (deepLink) window.open(deepLink, '_blank');
+      else window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(msg)}`, '_blank');
+    } catch (err) {
+      window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(msg)}`, '_blank');
+    }
+  };
+
+  const InfoRow = ({ label, value, isPhone }: { label: string; value: string | null | undefined; isPhone?: boolean }) => (
     <div className="pat-info-row">
       <span className="pat-info-label">{label}</span>
-      <span className="pat-info-value">{value || '—'}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <span className="pat-info-value">{value || '—'}</span>
+        {isPhone && value && (
+          <button 
+            onClick={() => handleWhatsApp(value)}
+            className="pat-wa-btn"
+            title="Send WhatsApp"
+          >
+            <MessageCircle size={12} />
+          </button>
+        )}
+      </div>
     </div>
   );
 
   return (
-    <div className="pp-page-container animate-fade-in">
+    <div className="pp-page-container pp-fade-in">
       {/* Header */}
       <div className="pat-header">
         <div className="pat-avatar pat-avatar--lg">
@@ -78,33 +113,38 @@ export default function PatientDetailPage() {
           </div>
         </div>
         <div className="pat-header-actions">
-          <Link to={`/patients/${regid}/edit`} className="btn-secondary" style={{ display: 'flex', alignItems: 'center' }}>
+          <button onClick={() => setIsDrawerOpen(true)} className="btn-secondary" style={{ display: 'flex', alignItems: 'center' }}>
             <Edit2 size={14} /> Edit
-          </Link>
+          </button>
           <button onClick={handleDelete} className="btn-secondary pat-btn-danger">
             <Trash2 size={14} /> Delete
           </button>
         </div>
       </div>
 
+      <PatientFormDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        regid={numRegid}
+      />
+
       <div className="pp-detail-grid" style={{ marginBottom: '24px' }}>
         {/* Contact Info */}
         <div className="pp-card">
           <h3 className="pat-chart-title">
-            <Phone size={16} className="pat-chart-title-icon"/> Contact Information
+            <Phone size={16} className="pat-chart-title-icon" /> Contact Information
           </h3>
-          <InfoRow label="Mobile" value={patient.phone} />
-          <InfoRow label="Mobile 2" value={patient.mobile1} />
+          <InfoRow label="Mobile" value={patient.phone} isPhone={true} />
+          <InfoRow label="Mobile 2" value={patient.mobile1} isPhone={true} />
           <InfoRow label="Landline" value={patient.mobile2} />
           <InfoRow label="Email" value={patient.email} />
           <InfoRow label="Consultation Fee" value={patient.consultationFee ? `₹${patient.consultationFee}` : null} />
-          <DoctorRow doctorId={patient.assistantDoctor} />
         </div>
 
         {/* Address Info */}
         <div className="pp-card">
           <h3 className="pat-chart-title">
-            <MapPin size={16} className="pat-chart-title-icon"/> Address & Personal
+            <MapPin size={16} className="pat-chart-title-icon" /> Address & Personal
           </h3>
           <InfoRow label="Address" value={[patient.address, patient.road, patient.area].filter(Boolean).join(', ')} />
           <InfoRow label="City" value={patient.city} />
@@ -113,8 +153,35 @@ export default function PatientDetailPage() {
           <InfoRow label="Religion" value={patient.religion} />
           <InfoRow label="Occupation" value={patient.occupation} />
           <InfoRow label="Marital Status" value={patient.maritalStatus} />
-          <InfoRow label="Reference" value={patient.referenceType} />
-          <ReferrerRow referredBy={patient.referredBy} />
+        </div>
+
+        {/* Package Membership */}
+        <div className="pp-card pkg-membership-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+            <h3 className="pat-chart-title" style={{ marginBottom: 0 }}>
+              <ShieldCheck size={16} className="pat-chart-title-icon" style={{ color: '#7C3AED' }} /> Membership Plan
+            </h3>
+            <button className="pat-wa-btn" onClick={() => setShowAssignModal(true)} title="Assign New Package" style={{ background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)' }}>
+              <Zap size={14} />
+            </button>
+          </div>
+
+          {pkgLoading ? (
+            <div className="pp-skeleton" style={{ height: '60px', width: '100%' }} />
+          ) : activePkg ? (
+            <div className="pkg-active-display animate-fade-in">
+              <div className="pkg-active-name">{activePkg.packageName}</div>
+              <div className="pkg-active-meta">
+                <span><Clock size={12} /> Ends: {new Date(activePkg.expiryDate).toLocaleDateString('en-GB')}</span>
+                <span className="pkg-plan-badge active">Active</span>
+              </div>
+            </div>
+          ) : (
+            <div className="pkg-none-display">
+              <p>No active membership plan.</p>
+              <button className="pp-link" style={{ fontSize: '12px' }} onClick={() => setShowAssignModal(true)}>Assign a package →</button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -124,14 +191,14 @@ export default function PatientDetailPage() {
       <div className="pp-card" style={{ padding: 0, overflow: 'hidden' }}>
         <div className="pat-section-header">
           <h3 className="pat-section-title">
-            <Users size={16} className="pat-section-title-icon"/> Family Group
+            <Users size={16} className="pat-section-title-icon" /> Family Group
           </h3>
           <button
             onClick={() => setShowFamilyForm(!showFamilyForm)}
             className={`btn-secondary${showFamilyForm ? ' pat-btn-danger' : ''}`}
             style={{ padding: '6px 12px', fontSize: '12px' }}
           >
-            {showFamilyForm ? <><X size={14}/> Cancel</> : <><UserPlus size={14}/> Link Member</>}
+            {showFamilyForm ? <><X size={14} /> Cancel</> : <><UserPlus size={14} /> Link Member</>}
           </button>
         </div>
 
@@ -168,7 +235,7 @@ export default function PatientDetailPage() {
 
                 {familyForm.memberRegid && (
                   <div className="pat-lookup-selected">
-                    <span className="pat-lookup-check"><CheckCircle size={12}/> Selected: {searchQuery}</span>
+                    <span className="pat-lookup-check"><CheckCircle size={12} /> Selected: {searchQuery}</span>
                     <button type="button" onClick={() => { setFamilyForm(f => ({ ...f, memberRegid: '' })); setSearchQuery(''); }} style={{ border: 'none', background: 'transparent', color: 'var(--pp-danger-fg)', fontSize: '11px', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}>Change</button>
                   </div>
                 )}
@@ -190,10 +257,15 @@ export default function PatientDetailPage() {
           {familyLoading ? (
             <div className="pat-loading-state">Loading family members...</div>
           ) : familyMembers.length === 0 ? (
-            <div className="pat-empty-state">
-              <p className="pat-empty-state-title">No family members linked</p>
-              <p className="text-small">Click "Link Member" to connect related patients</p>
-            </div>
+            <EmptyState 
+              icon={Users}
+              title="No family members linked"
+              description="This patient is not currently linked to any family group. Link related patients to see their clinical connections."
+              actionLabel="Link Member"
+              onAction={() => setShowFamilyForm(true)}
+              variant="card"
+              className="my-4"
+            />
           ) : (
             <table className="pp-table">
               <thead>
@@ -239,36 +311,13 @@ export default function PatientDetailPage() {
       <div className="pat-back-link">
         <Link to="/patients" className="pp-link" style={{ fontSize: '13px', fontWeight: 600 }}>← Back to Patient Registry</Link>
       </div>
-    </div>
-  );
-}
 
-function DoctorRow({ doctorId }: { doctorId: string | null | undefined }) {
-  const { data: meta } = usePatientFormMeta();
-  const doctor = meta?.doctors?.find(d => String(d.id) === String(doctorId));
-  const display = doctor ? doctor.name : (doctorId || null);
-  return (
-    <div className="pat-info-row">
-      <span className="pat-info-label">Doctor</span>
-      <span className="pat-info-value">{display || '—'}</span>
-    </div>
-  );
-}
-
-function ReferrerRow({ referredBy }: { referredBy: string | null | undefined }) {
-  const numId = Number(referredBy);
-  const { data: referrer } = usePatient(numId);
-  
-  return (
-    <div className="pat-info-row">
-      <span className="pat-info-label">Referred By</span>
-      <span className="pat-info-value">
-        {referrer ? (
-          <Link to={`/patients/${referrer.regid}`} className="pp-link" style={{ fontWeight: 600 }}>
-            {referrer.firstName} {referrer.surname} ({referrer.regid})
-          </Link>
-        ) : (referredBy || '—')}
-      </span>
+      <AssignPackageModal
+        isOpen={showAssignModal}
+        onClose={() => setShowAssignModal(false)}
+        patientId={numRegid}
+        patientName={`${patient.firstName} ${patient.surname}`}
+      />
     </div>
   );
 }
@@ -282,7 +331,7 @@ function ClinicalTrends({ regid }: { regid: number }) {
     .map((v: any) => {
       const dateObj = new Date(v.recordedAt || v.recorded_at);
       const isInvalid = isNaN(dateObj.getTime());
-      
+
       return {
         date: isInvalid ? 'N/A' : dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
         weight: v.weightKg || v.weight_kg || 0,
@@ -297,7 +346,7 @@ function ClinicalTrends({ regid }: { regid: number }) {
     <div className="pp-detail-grid" style={{ marginBottom: '24px', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))' }}>
       <div className="pp-card">
         <h3 className="pat-chart-title">
-          <TrendingUp size={16} className="pat-chart-title-icon"/> Weight Trend (Kg)
+          <TrendingUp size={16} className="pat-chart-title-icon" /> Weight Trend (Kg)
         </h3>
         <div className="pat-chart-wrap">
           <ResponsiveContainer>
@@ -317,7 +366,7 @@ function ClinicalTrends({ regid }: { regid: number }) {
 
       <div className="pp-card">
         <h3 className="pat-chart-title">
-          <Activity size={16} className="pat-chart-title-icon"/> Blood Pressure Trend
+          <Activity size={16} className="pat-chart-title-icon" /> Blood Pressure Trend
         </h3>
         <div className="pat-chart-wrap">
           <ResponsiveContainer>
@@ -339,3 +388,5 @@ function ClinicalTrends({ regid }: { regid: number }) {
     </div>
   );
 }
+
+

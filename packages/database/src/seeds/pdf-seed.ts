@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
-import { pdfSettings } from '../schema/settings';
-import type { DbClient } from '../client';
+import { pdfSettings } from '../schema/settings.js';
+import type { DbClient } from '../client.js';
 
 export async function seedPdfSettings(db: DbClient) {
   console.log('[Seed] Seeding PDF Settings...');

@@ -1,16 +1,18 @@
 import { Router, type Request, type Response } from 'express';
-import { asyncHandler } from '../middleware/async-handler';
-import { authMiddleware } from '../middleware/auth';
-import { validate, validateQuery } from '../middleware/validate';
-import { BillingRepositoryPg } from '../../repositories/billing.repository.pg';
-import { AppointmentRepositoryPG } from '../../repositories/appointment.repository.pg';
+import { asyncHandler } from '../middleware/async-handler.js';
+import { authMiddleware } from '../middleware/auth.js';
+import { validate, validateQuery } from '../middleware/validate.js';
+import { BillingRepositoryPg } from '../../repositories/billing.repository.pg.js';
+import { NotificationsRepositoryPg } from '../../repositories/notifications.repository.pg.js';
+import { triggerNotificationToRoles } from '../notification-trigger.js';
 import {
   CreateBillUseCase,
+  CreateCustomBillUseCase,
   ListBillsUseCase,
   GetDailyCollectionUseCase,
   GetPatientBillsUseCase,
-} from '../../../domains/billing';
-import { createBillSchema, listBillsQuerySchema } from '@mmc/validation';
+} from '../../../domains/billing/index.js';
+import { createBillSchema, listBillsQuerySchema, createCustomBillSchema } from '@mmc/validation';
 import type { DbClient } from '@mmc/database';
 
 export function createBillingRouter(): Router {
@@ -25,8 +27,9 @@ export function createBillingRouter(): Router {
     '/',
     validateQuery(listBillsQuerySchema),
     asyncHandler(async (req: Request, res: Response) => {
+      const clinicId = (req as any).user?.contextId;
       const useCase = new ListBillsUseCase(getRepo(req));
-      const result = await useCase.execute(req.query as any);
+      const result = await useCase.execute(req.query as any, clinicId);
       if (!result.success) {
         res.status(400).json({ success: false, error: result.error });
         return;
@@ -39,8 +42,9 @@ export function createBillingRouter(): Router {
   router.get(
     '/daily',
     asyncHandler(async (req: Request, res: Response) => {
+      const clinicId = (req as any).user?.contextId;
       const useCase = new GetDailyCollectionUseCase(getRepo(req));
-      const result = await useCase.execute(req.query.date as string | undefined);
+      const result = await useCase.execute(req.query.date as string | undefined, clinicId);
       if (!result.success) {
         res.status(400).json({ success: false, error: result.error });
         return;
@@ -74,16 +78,48 @@ export function createBillingRouter(): Router {
     '/',
     validate(createBillSchema),
     asyncHandler(async (req: Request, res: Response) => {
-      const useCase = new CreateBillUseCase(
-        getRepo(req),
-        new AppointmentRepositoryPG(req.tenantDb)
-      );
+      const useCase = new CreateBillUseCase(getRepo(req));
       const result = await useCase.execute(req.body);
       if (!result.success) {
         res.status(400).json({ success: false, error: result.error });
         return;
       }
-      res.status(201).json({ success: true, data: result.data });
+      const bill = result.data;
+      const clinicId = (req as any).user?.contextId;
+      void triggerNotificationToRoles({
+        roles: ['Account', 'Clinicadmin'],
+        clinicId,
+        type: 'INVOICE_GENERATED',
+        title: 'Invoice Generated',
+        message: `Bill #${bill.billNo ?? bill.id} — ₹${bill.charges} (received ₹${bill.received}).`,
+        repo: new NotificationsRepositoryPg(req.tenantDb),
+      });
+      res.status(201).json({ success: true, data: bill });
+    }),
+  );
+
+  // POST /api/billing/custom — create a custom/manual bill
+  router.post(
+    '/custom',
+    validate(createCustomBillSchema),
+    asyncHandler(async (req: Request, res: Response) => {
+      const useCase = new CreateCustomBillUseCase(getRepo(req));
+      const result = await useCase.execute(req.body);
+      if (!result.success) {
+        res.status(400).json({ success: false, error: result.error });
+        return;
+      }
+      const bill = result.data;
+      const clinicId = (req as any).user?.contextId;
+      void triggerNotificationToRoles({
+        roles: ['Account', 'Clinicadmin'],
+        clinicId,
+        type: 'INVOICE_GENERATED',
+        title: 'Custom Invoice Generated',
+        message: `Bill #${bill.billNo ?? bill.id} (${(bill as any).customTitle ?? 'custom'}) — ₹${bill.charges}.`,
+        repo: new NotificationsRepositoryPg(req.tenantDb),
+      });
+      res.status(201).json({ success: true, data: bill });
     }),
   );
 

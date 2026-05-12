@@ -3,7 +3,7 @@ import type { User } from '@mmc/types';
 import { Role } from '@mmc/types';
 import type { DbClient } from '@mmc/database';
 import * as schema from '@mmc/database';
-import type { UserRepository } from '../../domains/auth/ports/user.repository';
+import type { UserRepository } from '../../domains/auth/ports/user.repository.js';
 
 export class UserRepositoryPG implements UserRepository {
   constructor(private readonly db: DbClient) {}
@@ -52,8 +52,10 @@ export class UserRepositoryPG implements UserRepository {
 
   async findById(id: number): Promise<User | null> {
     const rows = await this.db.execute(
-      sql`SELECT id, email, name, type, context_id, mobile, created_at, updated_at
-          FROM public.users WHERE id = ${id} AND deleted_at IS NULL LIMIT 1`
+      sql`SELECT u.id, u.email, u.name, u.type, u.context_id, u.mobile, u.created_at, u.updated_at, o.name as clinic_name
+          FROM users u 
+          LEFT JOIN public.organizations o ON o.id = u.context_id 
+          WHERE u.id = ${id} AND u.deleted_at IS NULL LIMIT 1`
     );
     const row = (rows as any[])[0];
     return row ? this.rowToUser(row) : null;
@@ -62,7 +64,7 @@ export class UserRepositoryPG implements UserRepository {
   async findByEmail(email: string): Promise<User | null> {
     const rows = await this.db.execute(
       sql`SELECT u.*, o.name as clinic_name 
-          FROM public.users u 
+          FROM users u 
           LEFT JOIN public.organizations o ON o.id = u.context_id 
           WHERE u.email = ${email} AND u.deleted_at IS NULL 
           LIMIT 1`
@@ -73,7 +75,7 @@ export class UserRepositoryPG implements UserRepository {
 
   async getUserPassword(email: string): Promise<string | null> {
     const rows = await this.db.execute(
-      sql`SELECT password FROM public.users WHERE email = ${email} AND deleted_at IS NULL LIMIT 1`
+      sql`SELECT password FROM users WHERE email = ${email} AND deleted_at IS NULL LIMIT 1`
     );
     const row = (rows as any[])[0] as any;
     return row?.password || null;
@@ -81,7 +83,7 @@ export class UserRepositoryPG implements UserRepository {
 
   async updatePassword(userId: number, passwordHash: string): Promise<void> {
     await this.db.execute(
-      sql`UPDATE public.users SET password = ${passwordHash}, updated_at = NOW() WHERE id = ${userId}`
+      sql`UPDATE users SET password = ${passwordHash}, updated_at = NOW() WHERE id = ${userId}`
     );
   }
 
@@ -102,7 +104,7 @@ export class UserRepositoryPG implements UserRepository {
   async findPractitioners(): Promise<User[]> {
     const rows = await this.db.execute(
       sql`SELECT id, email, name, type, context_id, mobile, created_at, updated_at
-          FROM public.users WHERE type = 'Doctor' AND deleted_at IS NULL`
+          FROM users WHERE type = 'Doctor' AND deleted_at IS NULL`
     );
     return (rows as any[]).map(row => this.rowToUser(row));
   }

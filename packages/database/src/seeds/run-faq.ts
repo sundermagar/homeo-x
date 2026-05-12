@@ -1,6 +1,6 @@
-import { createDbClient } from '../client';
-import { seedFaqs } from './faq-seed';
-import { TenantRegistry } from '../tenant-registry';
+import { createDbClient } from '../client.js';
+import { seedFaqs } from './faq-seed.js';
+import { TenantRegistry } from '../tenant-registry.js';
 import fs from 'fs';
 import path from 'path';
 

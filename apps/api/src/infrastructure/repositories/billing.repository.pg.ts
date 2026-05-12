@@ -1,8 +1,9 @@
 import { eq, and, sql, desc, isNull, gte, lt } from 'drizzle-orm';
 import { bills, patients } from '@mmc/database/schema';
+import * as schema from '@mmc/database';
 import type { DbClient } from '@mmc/database';
 import type { Bill, BillWithPatient, DailyCollectionSummary, PatientBillSummary } from '@mmc/types';
-import type { BillingRepository } from '../../domains/billing/ports/billing.repository';
+import type { BillingRepository } from '../../domains/billing/ports/billing.repository.js';
 import type { CreateBillInput, ListBillsQuery } from '@mmc/validation';
 
 /**
@@ -17,13 +18,19 @@ export class BillingRepositoryPg implements BillingRepository {
     return row ? this.toDomain(row) : null;
   }
 
-  async findAll(params: ListBillsQuery): Promise<{ data: BillWithPatient[]; total: number }> {
+  async findAll(params: ListBillsQuery, clinicId?: number): Promise<{ data: BillWithPatient[]; total: number }> {
     const { page, limit, regid, date } = params;
     const offset = (page - 1) * limit;
 
     // Build where conditions
     const conditions = [isNull(bills.deletedAt)];
     if (regid) conditions.push(eq(bills.regid, regid));
+    
+    // Filter by clinicId on patients table safely
+    if (clinicId) {
+      conditions.push(eq(patients.clinicId, clinicId));
+    }
+
     if (date) {
       const start = new Date(date);
       const end = new Date(date);
@@ -33,8 +40,79 @@ export class BillingRepositoryPg implements BillingRepository {
     }
     const where = and(...conditions);
 
-    const [rows, countRows] = await Promise.all([
+    try {
+      const [rows, countRows] = await Promise.all([
+        this.db
+          .select({
+            bill: bills,
+            patientName: sql<string>`CONCAT(${patients.firstName}, ' ', ${patients.surname})`,
+            phone: patients.mobile1,
+          })
+          .from(bills)
+          .leftJoin(patients, eq(patients.regid, bills.regid))
+          .where(where)
+          .orderBy(desc(bills.id))
+          .limit(limit)
+          .offset(offset),
+        this.db.select({ count: sql<number>`count(*)` }).from(bills).leftJoin(patients, eq(patients.regid, bills.regid)).where(where),
+      ]);
+
+      const total = Number(countRows[0]?.count ?? 0);
+      return {
+        data: rows.map(r => ({ ...this.toDomain(r.bill), patientName: r.patientName ?? '', phone: r.phone ?? null })),
+        total,
+      };
+    } catch (err) {
+      console.error('[BillingRepositoryPg] Error in findAll:', err);
+      throw err;
+    }
+  }
+
+  async findByRegid(regid: number): Promise<PatientBillSummary> {
+    const [modernRows, legacyRows] = await Promise.all([
       this.db
+        .select()
+        .from(bills)
+        .where(and(eq(bills.regid, regid), isNull(bills.deletedAt)))
+        .orderBy(desc(bills.id)),
+      this.db
+        .select()
+        .from(schema.billLegacy)
+        .where(and(
+          eq(schema.billLegacy.regid, regid), 
+          sql`(${schema.billLegacy.deletedAt} IS NULL OR CAST(${schema.billLegacy.deletedAt} AS text) = '')`
+        ))
+        .orderBy(desc(schema.billLegacy.id))
+    ]);
+
+    const allBills = [
+      ...modernRows.map(this.toDomain.bind(this)),
+      ...legacyRows.map(this.toLegacyDomain.bind(this))
+    ].sort((a, b) => (b.id || 0) - (a.id || 0));
+
+    const totalCharges = allBills.reduce((s, r) => s + (r.charges ?? 0), 0);
+    const totalReceived = allBills.reduce((s, r) => s + (r.received ?? 0), 0);
+    const totalBalance = allBills.reduce((s, r) => s + (r.balance ?? 0), 0);
+
+    return {
+      bills: allBills,
+      totals: { totalCharges, totalReceived, totalBalance },
+    };
+  }
+
+  async findDailyCollection(date: string, clinicId?: number): Promise<DailyCollectionSummary> {
+    const start = new Date(date);
+    const end = new Date(date);
+    end.setDate(end.getDate() + 1);
+
+    const conditions = [isNull(bills.deletedAt), gte(bills.createdAt, start), lt(bills.createdAt, end)];
+    if (clinicId) {
+      conditions.push(eq(patients.clinicId, clinicId));
+    }
+    const where = and(...conditions);
+
+    try {
+      const rows = await this.db
         .select({
           bill: bills,
           patientName: sql<string>`CONCAT(${patients.firstName}, ' ', ${patients.surname})`,
@@ -43,66 +121,24 @@ export class BillingRepositoryPg implements BillingRepository {
         .from(bills)
         .leftJoin(patients, eq(patients.regid, bills.regid))
         .where(where)
-        .orderBy(desc(bills.id))
-        .limit(limit)
-        .offset(offset),
-      this.db.select({ count: sql<number>`count(*)` }).from(bills).where(where),
-    ]);
+        .orderBy(desc(bills.id));
 
-    const total = Number(countRows[0]?.count ?? 0);
-    return {
-      data: rows.map(r => ({ ...this.toDomain(r.bill), patientName: r.patientName ?? '', phone: r.phone ?? null })),
-      total,
-    };
-  }
+      const totalCharges = rows.reduce((s, r) => s + (r.bill.charges ?? 0), 0);
+      const totalReceived = rows.reduce((s, r) => s + (r.bill.received ?? 0), 0);
+      const totalBalance = rows.reduce((s, r) => s + (r.bill.balance ?? 0), 0);
 
-  async findByRegid(regid: number): Promise<PatientBillSummary> {
-    const rows = await this.db
-      .select()
-      .from(bills)
-      .where(and(eq(bills.regid, regid), isNull(bills.deletedAt)))
-      .orderBy(desc(bills.id));
-
-    const totalCharges = rows.reduce((s, r) => s + (r.charges ?? 0), 0);
-    const totalReceived = rows.reduce((s, r) => s + (r.received ?? 0), 0);
-    const totalBalance = rows.reduce((s, r) => s + (r.balance ?? 0), 0);
-
-    return {
-      bills: rows.map(this.toDomain.bind(this)),
-      totals: { totalCharges, totalReceived, totalBalance },
-    };
-  }
-
-  async findDailyCollection(date: string): Promise<DailyCollectionSummary> {
-    const start = new Date(date);
-    const end = new Date(date);
-    end.setDate(end.getDate() + 1);
-
-    const where = and(isNull(bills.deletedAt), gte(bills.createdAt, start), lt(bills.createdAt, end));
-
-    const rows = await this.db
-      .select({
-        bill: bills,
-        patientName: sql<string>`CONCAT(${patients.firstName}, ' ', ${patients.surname})`,
-        phone: patients.mobile1,
-      })
-      .from(bills)
-      .leftJoin(patients, eq(patients.regid, bills.regid))
-      .where(where)
-      .orderBy(desc(bills.id));
-
-    const totalCharges = rows.reduce((s, r) => s + (r.bill.charges ?? 0), 0);
-    const totalReceived = rows.reduce((s, r) => s + (r.bill.received ?? 0), 0);
-    const totalBalance = rows.reduce((s, r) => s + (r.bill.balance ?? 0), 0);
-
-    return {
-      date,
-      totalCharges,
-      totalReceived,
-      totalBalance,
-      recordCount: rows.length,
-      records: rows.map(r => ({ ...this.toDomain(r.bill), patientName: r.patientName ?? '', phone: r.phone ?? null })),
-    };
+      return {
+        date,
+        totalCharges,
+        totalReceived,
+        totalBalance,
+        recordCount: rows.length,
+        records: rows.map(r => ({ ...this.toDomain(r.bill), patientName: r.patientName ?? '', phone: r.phone ?? null })),
+      };
+    } catch (err) {
+      console.error('[BillingRepositoryPg] Error in findDailyCollection:', err);
+      throw err;
+    }
   }
 
   async create(data: CreateBillInput & { billNo: number }): Promise<Bill> {
@@ -124,6 +160,8 @@ export class BillingRepositoryPg implements BillingRepository {
         chargeId: data.chargeId,
         doctorId: data.doctorId,
         notes: data.notes || undefined,
+        billType: data.billType || undefined,
+        customTitle: data.customTitle || undefined,
         createdAt: new Date(),
         updatedAt: new Date(),
       })
@@ -132,23 +170,76 @@ export class BillingRepositoryPg implements BillingRepository {
   }
 
   async updateReceived(id: number, amount: number, paymentMode: string): Promise<Bill | null> {
+    // Try modern bills table first
     const [existing] = await this.db.select().from(bills).where(eq(bills.id, id)).limit(1);
-    if (!existing) return null;
+    if (existing) {
+      const newReceived = (existing.received ?? 0) + amount;
+      const newBalance = (existing.charges ?? 0) - newReceived;
+      const [row] = await this.db
+        .update(bills)
+        .set({ received: newReceived, balance: newBalance, paymentMode, updatedAt: new Date() })
+        .where(eq(bills.id, id))
+        .returning();
+      return row ? this.toDomain(row) : null;
+    }
 
-    const newReceived = (existing.received ?? 0) + amount;
-    const newBalance = (existing.charges ?? 0) - newReceived;
+    // Try legacy bill table
+    const [legacyExisting] = await this.db.select().from(schema.billLegacy).where(eq(schema.billLegacy.id, id)).limit(1);
+    if (legacyExisting) {
+      const newReceived = (legacyExisting.received ?? 0) + amount;
+      const newBalance = (legacyExisting.charges ?? 0) - newReceived;
+      const [row] = await this.db
+        .update(schema.billLegacy)
+        .set({ 
+          received: newReceived, 
+          Balance: newBalance, // Capital B in legacy
+          paymentMode: paymentMode,
+          updatedAt: new Date() 
+        })
+        .where(eq(schema.billLegacy.id, id))
+        .returning();
+      return row ? this.toLegacyDomain(row) : null;
+    }
 
-    const [row] = await this.db
-      .update(bills)
-      .set({ received: newReceived, balance: newBalance, paymentMode, updatedAt: new Date() })
-      .where(eq(bills.id, id))
-      .returning();
-    return row ? this.toDomain(row) : null;
+    return null;
+  }
+
+  async updateCharges(id: number, amount: number): Promise<Bill | null> {
+    // Try modern bills table first
+    const [existing] = await this.db.select().from(bills).where(eq(bills.id, id)).limit(1);
+    if (existing) {
+      const newBalance = amount - (existing.received ?? 0);
+      const [row] = await this.db
+        .update(bills)
+        .set({ charges: amount, balance: newBalance, updatedAt: new Date() })
+        .where(eq(bills.id, id))
+        .returning();
+      return row ? this.toDomain(row) : null;
+    }
+
+    // Try legacy bill table
+    const [legacyExisting] = await this.db.select().from(schema.billLegacy).where(eq(schema.billLegacy.id, id)).limit(1);
+    if (legacyExisting) {
+      const newBalance = amount - (legacyExisting.received ?? 0);
+      const [row] = await this.db
+        .update(schema.billLegacy)
+        .set({ 
+          charges: amount, 
+          Balance: newBalance, // Capital B in legacy
+          updatedAt: new Date() 
+        })
+        .where(eq(schema.billLegacy.id, id))
+        .returning();
+      return row ? this.toLegacyDomain(row) : null;
+    }
+
+    return null;
   }
 
   async nextBillNo(): Promise<number> {
-    const [res] = await this.db.select({ max: sql<number>`COALESCE(MAX(bill_no), 0)` }).from(bills);
-    return (Number(res?.max ?? 0)) + 1;
+    // Atomic sequence — safe under concurrent bill creation
+    const [res] = await this.db.execute(sql`SELECT nextval('bill_no_seq')`);
+    return Number(res?.nextval ?? 1);
   }
 
   async softDelete(id: number): Promise<boolean> {
@@ -173,9 +264,36 @@ export class BillingRepositoryPg implements BillingRepository {
       chargeId: row.chargeId ?? null,
       doctorId: row.doctorId ?? null,
       notes: row.notes ?? null,
+      billType: (row.billType as Bill['billType']) ?? undefined,
+      customTitle: row.customTitle ?? null,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
       deletedAt: row.deletedAt ?? null,
+    };
+  }
+
+  private toLegacyDomain(row: typeof schema.billLegacy.$inferSelect): Bill {
+    return {
+      id: row.id,
+      regid: row.regid ?? 0,
+      billNo: row.BillNo || row.id,
+      billDate: row.BillDate || (row.createdAt ? row.createdAt.toISOString() : new Date().toISOString()),
+      charges: row.charges || 0,
+      received: row.received || 0,
+      balance: row.Balance || 0,
+      paymentMode: (row.paymentMode as Bill['paymentMode']) || null,
+      treatment: row.Treatment || null,
+      disease: row.Disease || null,
+      fromDate: row.fromdate || null,
+      toDate: row.todate || null,
+      chargeId: row.chargeId || null,
+      doctorId: row.DoctorID || null,
+      notes: null,
+      billType: 'Consultation',
+      customTitle: null,
+      createdAt: row.createdAt || new Date(),
+      updatedAt: row.updatedAt || new Date(),
+      deletedAt: row.deletedAt || null,
     };
   }
 }

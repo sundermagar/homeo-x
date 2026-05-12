@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, Infinity, ArrowLeft, Search } from 'lucide-react';
+import { Menu, Infinity, Search } from 'lucide-react';
 import { Sidebar } from '../components/sidebar';
 import { DashboardHeader } from '../components/dashboard-header';
 import { CommandPalette } from '../components/command-palette';
 import { ScrollToTop } from '../components/scroll-to-top';
 import { useMobile } from '../hooks/use-mobile';
 import { useCallback, useEffect } from 'react';
+import { useAuthStore } from '../stores/auth-store';
 
 export function AppLayout() {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
@@ -14,6 +15,7 @@ export function AppLayout() {
   const isMobile = useMobile();
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuthStore();
 
   // ── Global ⌘K / Ctrl+K shortcut ──
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -46,7 +48,7 @@ export function AppLayout() {
               <div className="sidebar-logo" style={{ width: 28, height: 28 }}>
                 <Infinity size={18} strokeWidth={2.5} />
               </div>
-              <span className="sidebar-brand" style={{ fontSize: '1rem' }}>Kreed.health</span>
+              <span className="sidebar-brand" style={{ fontSize: '1rem' }}>{user?.clinicName || 'Kreed.health'}</span>
             </div>
           </div>
         </header>
@@ -62,7 +64,7 @@ export function AppLayout() {
         <DashboardHeader onOpenPalette={() => setPaletteOpen(true)} />
         <div className="page-content-area">
           <div className="page-content-row">
-            {location.pathname !== '/' && location.pathname !== '/login' && (
+            {/* {location.pathname !== '/' && location.pathname !== '/login' && (
               <div className="page-back-widget-area">
                 <button
                   className="page-back-widget"
@@ -72,7 +74,7 @@ export function AppLayout() {
                   <ArrowLeft size={16} strokeWidth={2.5} />
                 </button>
               </div>
-            )}
+            )} */}
             <div className="page-content-main">
               <Outlet />
             </div>

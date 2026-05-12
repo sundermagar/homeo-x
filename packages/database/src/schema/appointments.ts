@@ -1,11 +1,12 @@
 import {
-  pgTable, serial, integer, varchar, date, timestamp, text, real, boolean, decimal,
+  pgTable, serial, integer, varchar, date, timestamp, text, real, boolean, decimal, index,
 } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 
 // ─── Appointments ─────────────────────────────────────────────────────────────
 export const appointments = pgTable('appointments', {
   id:                 serial('id').primaryKey(),
-  // clinicId:           integer('clinic_id'),
+  clinicId:           integer('clinic_id'),
   patientId:          integer('patient_id'),
   doctorId:           integer('doctor_id'),
   bookingDate:        date('booking_date'),
@@ -17,16 +18,25 @@ export const appointments = pgTable('appointments', {
   notes:              text('notes'),
   phone:              varchar('phone', { length: 20 }),
   patientName:        varchar('patient_name', { length: 200 }),
-  // assistantDoctor:    text('assistant_doctor'),
   cancellationReason: text('cancellation_reason'),
   createdAt:          timestamp('created_at').defaultNow().notNull(),
   updatedAt:          timestamp('updated_at').defaultNow().notNull(),
   deletedAt:          timestamp('deleted_at'),
+}, (table) => {
+  return {
+    dashboardIdx: index('idx_appointments_dashboard')
+      .on(table.clinicId, table.bookingDate)
+      .where(sql`deleted_at IS NULL`),
+    followupIdx: index('idx_appointments_followup')
+      .on(table.clinicId, table.visitType, table.bookingDate)
+      .where(sql`deleted_at IS NULL`),
+  };
 });
 
 // ─── Daily Tokens ─────────────────────────────────────────────────────────────
 export const tokens = pgTable('tokens', {
   id:        serial('id').primaryKey(),
+  clinicId:  integer('clinic_id'),
   patientId: integer('patient_id'),
   doctorId:  integer('doctor_id'),
   tokenNo:   integer('token_no').notNull(),
@@ -40,6 +50,7 @@ export const tokens = pgTable('tokens', {
 // ─── Live Waiting Room ─────────────────────────────────────────────────────────
 export const waitlist = pgTable('waitlist', {
   id:              serial('id').primaryKey(),
+  clinicId:        integer('clinic_id'),
   patientId:       integer('patient_id'),
   appointmentId:   integer('appointment_id'),
   doctorId:        integer('doctor_id'),
@@ -50,9 +61,19 @@ export const waitlist = pgTable('waitlist', {
   checkedInAt:     timestamp('checked_in_at'),
   calledAt:        timestamp('called_at'),
   completedAt:     timestamp('completed_at'),
+  rowcolor:        integer('rowcolor').default(0),
   createdAt:       timestamp('created_at').defaultNow().notNull(),
   updatedAt:       timestamp('updated_at').defaultNow().notNull(),
   deletedAt:       timestamp('deleted_at'),
+}, (table) => {
+  return {
+    dashboardIdx: index('idx_waitlist_dashboard')
+      .on(table.clinicId, table.date, table.status)
+      .where(sql`deleted_at IS NULL`),
+    apptIdIdx: index('idx_waitlist_appointment_id')
+      .on(table.appointmentId)
+      .where(sql`deleted_at IS NULL`),
+  };
 });
 
 // ─── Doctor Availability ──────────────────────────────────────────────────────

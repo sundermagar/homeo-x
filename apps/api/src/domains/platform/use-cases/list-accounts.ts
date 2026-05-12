@@ -1,4 +1,4 @@
-import type { AccountRepository } from '../ports/account.repository';
+import type { AccountRepository } from '../ports/account.repository.js';
 import type { Account } from '@mmc/types';
 
 export class ListAccountsUseCase {

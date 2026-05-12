@@ -2,7 +2,7 @@ import { eq, isNull, and, desc } from 'drizzle-orm';
 import { organizations } from '@mmc/database/schema';
 import type { DbClient } from '@mmc/database';
 import type { Organization, CreateOrganizationInput, UpdateOrganizationInput } from '@mmc/types';
-import type { OrganizationRepository } from '../../domains/platform/ports/organization.repository';
+import type { OrganizationRepository } from '../../domains/platform/ports/organization.repository.js';
 
 export class OrganizationRepositoryPg implements OrganizationRepository {
   constructor(private readonly db: DbClient) { }
@@ -44,33 +44,17 @@ export class OrganizationRepositoryPg implements OrganizationRepository {
         connectSince,
         city: data.city ?? '',
         description: data.description ?? '',
-        tagLine: data.tagLine ?? '',
-        registration: data.registration ?? '',
-        logo: data.logo ?? '',
-        address2: data.address2 ?? '',
-        timing: data.timing ?? '',
         adminEmail: data.adminEmail ?? '',
         adminPassword: data.adminPassword ?? '',
-
       })
       .returning();
     return this.toDomain(row!);
   }
 
   async update(id: number, data: UpdateOrganizationInput): Promise<Organization | null> {
-    const updateData: any = { ...data, updatedAt: new Date() };
-    
-    // Explicitly handle date normalization if connectSince is provided
-    if (data.connectSince) {
-      let connectSince = data.connectSince;
-      if (connectSince.length === 4 && /^\d{4}$/.test(connectSince)) {
-        updateData.connectSince = `${connectSince}-01-01`;
-      }
-    }
-
     const [row] = await this.db
       .update(organizations)
-      .set(updateData)
+      .set({ ...data, updatedAt: new Date() })
       .where(and(eq(organizations.id, id), isNull(organizations.deletedAt)))
       .returning();
     return row ? this.toDomain(row) : null;
@@ -97,14 +81,13 @@ export class OrganizationRepositoryPg implements OrganizationRepository {
       connectSince: row.connectSince ?? '',
       city: row.city ?? '',
       description: row.description ?? '',
+      adminEmail: row.adminEmail ?? '',
+      adminPassword: row.adminPassword ?? '',
+      registrationFee: (row as any).registrationFee ?? 0,
       tagLine: row.tagLine ?? '',
       registration: row.registration ?? '',
       logo: row.logo ?? '',
-      address2: row.address2 ?? '',
       timing: row.timing ?? '',
-      adminEmail: row.adminEmail ?? '',
-      adminPassword: row.adminPassword ?? '',
-
       deletedAt: row.deletedAt?.toISOString() ?? null,
       createdAt: row.createdAt?.toISOString() ?? new Date().toISOString(),
       updatedAt: row.updatedAt?.toISOString() ?? new Date().toISOString(),

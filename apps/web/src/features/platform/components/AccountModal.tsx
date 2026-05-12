@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import { NumericInput } from '@/shared/components/NumericInput';
 import type { Account, Organization } from '@mmc/types';
 import { useCreateAccount, useUpdateAccount } from '../hooks/use-accounts';
+import { Drawer } from '@/shared/components/drawer';
 import '../styles/platform.css';
 
 interface AccountModalProps {
@@ -48,23 +49,20 @@ export function AccountModal({ mode, account, organizations, onClose }: AccountM
     }
   };
 
-  return (
-    <div className="plat-modal-backdrop" onClick={onClose}>
-      <div className="plat-modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="plat-modal-header">
-          <h3 className="plat-modal-title">
-            {mode === 'create' ? 'Register New Account Manager' : 'Update Manager Account'}
-          </h3>
-          <button className="plat-btn plat-btn-icon plat-btn-ghost" onClick={onClose}>
-            <X size={14} />
-          </button>
-        </div>
 
-        <form onSubmit={handleSubmit} className="plat-modal-body">
+  return (
+    <Drawer
+      isOpen={true}
+      onClose={onClose}
+      title={mode === 'create' ? 'Register New Account Manager' : 'Update Manager Account'}
+      maxWidth="600px"
+    >
+      <form onSubmit={handleSubmit}>
+        <div className="plat-modal-body" style={{ padding: 0 }}>
           {/* Section 1: Professional Identity */}
-          <div className="plat-form-section">
+          <div className="plat-form-section" style={{ border: 'none', boxShadow: 'none', padding: 0 }}>
             <h4 className="plat-form-section-title">Manager Identity</h4>
-            <div className="plat-form-grid-multi">
+            <div className="plat-form-grid-multi" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
               <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
                 <label className="plat-form-label">Full Name *</label>
                 <input
@@ -118,9 +116,9 @@ export function AccountModal({ mode, account, organizations, onClose }: AccountM
           </div>
 
           {/* Section 2: Contact & Access */}
-          <div className="plat-form-section">
+          <div className="plat-form-section" style={{ border: 'none', boxShadow: 'none', padding: 0, marginTop: '24px' }}>
             <h4 className="plat-form-section-title">Contact & Access</h4>
-            <div className="plat-form-grid-multi">
+            <div className="plat-form-grid-multi" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
               <div className="plat-form-group">
                 <label className="plat-form-label">Email Address</label>
                 <input
@@ -172,23 +170,23 @@ export function AccountModal({ mode, account, organizations, onClose }: AccountM
                   className="plat-form-input"
                   value={form.about}
                   onChange={(e) => set('about', e.target.value)}
-                  rows={2}
+                  rows={3}
                   placeholder="Additional profile notes..."
                 />
               </div>
             </div>
           </div>
+        </div>
 
-          <div className="plat-modal-footer">
-            <button type="button" className="plat-btn plat-btn-ghost" onClick={onClose}>
-              Discard
-            </button>
-            <button type="submit" className="plat-btn plat-btn-primary" disabled={isPending}>
-              {isPending ? 'Syncing...' : mode === 'create' ? 'Register Manager' : 'Update Manager'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <div className="plat-modal-footer" style={{ padding: '24px 0 0 0', marginTop: '24px' }}>
+          <button type="button" className="plat-btn plat-btn-ghost" onClick={onClose}>
+            Discard
+          </button>
+          <button type="submit" className="plat-btn plat-btn-primary" disabled={isPending}>
+            {isPending ? 'Syncing...' : mode === 'create' ? 'Register Manager' : 'Update Manager'}
+          </button>
+        </div>
+      </form>
+    </Drawer>
   );
 }

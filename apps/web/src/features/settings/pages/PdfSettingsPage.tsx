@@ -1,14 +1,20 @@
 import React, { useState } from 'react';
-import { FileText, Plus, X, RefreshCw, ArrowLeft, Trash2, Edit2, Layout, CheckCircle2, Search, Printer, Eye, Settings, ShieldCheck, MapPin, Globe, Mail, Clock, Image as ImageIcon } from 'lucide-react';
+import { FileText, Plus, X, RefreshCw, Trash2, Edit2, Layout, CheckCircle2, Search, Printer, Eye, Settings, ShieldCheck, MapPin, Globe, Mail, Clock, Image as ImageIcon, Phone } from 'lucide-react';
 
 import { Link } from 'react-router-dom';
 import { usePdfSettings, useCreatePdfSetting, useUpdatePdfSetting, useDeletePdfSetting } from '../hooks/use-settings';
+import { Drawer } from '@/shared/components/drawer';
 import { useOrganizations, useUpdateOrganization } from '../../platform/hooks/use-organizations';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { NumericInput } from '@/shared/components/NumericInput';
 import '../../platform/styles/platform.css';
 
 import '../styles/settings.css';
+
+import { Pagination } from '@/shared/components/Pagination';
+import { usePagination } from '@/shared/hooks/use-pagination';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
 
 const EMPTY_FORM = { templateName: '', headerHtml: '', footerHtml: '', margin: '20mm', isDefault: false };
 
@@ -24,7 +30,7 @@ export default function PdfSettingsPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [search, setSearch] = useState('');
 
-  // ─── Clinic Details Config (Letterhead) ───
+  // ÔöÇÔöÇÔöÇ Clinic Details Config (Letterhead) ÔöÇÔöÇÔöÇ
   const { data: orgs = [] } = useOrganizations();
   const updateOrg = useUpdateOrganization();
   const user = useAuthStore(s => s.user);
@@ -54,7 +60,7 @@ export default function PdfSettingsPage() {
     if (!logoPath) return '';
     if (logoPath.startsWith('http') || logoPath.startsWith('data:')) return logoPath;
     // Handle relative /uploads paths by ensuring they work through the proxy/base
-    return logoPath; 
+    return logoPath;
   };
 
   const handleClinicSubmit = async (e: React.FormEvent) => {
@@ -100,6 +106,15 @@ export default function PdfSettingsPage() {
   const filteredConfigs = configs.filter((c: any) =>
     c.templateName.toLowerCase().includes(search.toLowerCase())
   );
+
+  const {
+    currentPage,
+    setCurrentPage,
+    itemsPerPage,
+    setItemsPerPage,
+    paginatedData,
+    totalItems
+  } = usePagination(filteredConfigs);
 
   const handlePrintList = () => {
     const printWindow = window.open('', '_blank');
@@ -206,32 +221,53 @@ export default function PdfSettingsPage() {
 
   return (
     <div className="plat-page fade-in">
-      <div className="plat-header">
+      <div className="pp-page-hero">
         <div>
-          <h1 className="plat-header-title">
-            <Layout size={20} className="color-primary" />
+          <h1 className="pp-page-hero-title">
+            <Layout size={22} style={{ color: 'var(--pp-blue)' }} />
             PDF & Report Designer
           </h1>
-          <p className="plat-header-sub">Manage institutional branding and clinical document layouts.</p>
+          <p className="pp-page-hero-sub">Manage institutional branding and clinical document layouts.</p>
         </div>
-        <div className="plat-header-actions" style={{ flexWrap: 'wrap' }}>
-          <div className="plat-view-toggle-group">
+        <div className="pp-page-hero-actions pdf-hero-actions">
+          <style>{`
+            @media (max-width: 768px) {
+              .pdf-hero-actions .appt-segmented-toggle { 
+                display: flex !important; 
+                width: 100% !important;
+              }
+              .pdf-hero-actions .appt-segmented-btn {
+                flex: 1 !important;
+                justify-content: center !important;
+              }
+              .pdf-hero-actions .btn-primary { 
+                width: 100% !important; 
+                justify-content: center !important;
+                padding: 12px !important;
+                height: 48px !important;
+                border-radius: 12px !important;
+              }
+            }
+          `}</style>
+          <div className="appt-segmented-toggle">
             <button
-              className={`plat-view-toggle-btn ${activeTab === 'templates' ? 'is-active' : ''}`}
+              type="button"
+              className={`appt-segmented-btn ${activeTab === 'templates' ? 'active' : ''}`}
               onClick={() => setActiveTab('templates')}
             >
-              <FileText size={14} /> Templates
+              <FileText size={16} /> Templates
             </button>
             <button
-              className={`plat-view-toggle-btn ${activeTab === 'letterhead' ? 'is-active' : ''}`}
+              type="button"
+              className={`appt-segmented-btn ${activeTab === 'letterhead' ? 'active' : ''}`}
               onClick={() => setActiveTab('letterhead')}
             >
-              <Printer size={14} /> Letterhead
+              <Printer size={16} /> Letterhead
             </button>
           </div>
           {activeTab === 'templates' && (
-            <button className="plat-btn plat-btn-primary" onClick={handleOpenCreate}>
-              <Plus size={14} /> Add Template
+            <button className="btn-primary" onClick={handleOpenCreate}>
+              <Plus size={16} strokeWidth={1.8} /> Add Template
             </button>
           )}
         </div>
@@ -239,42 +275,46 @@ export default function PdfSettingsPage() {
 
       {activeTab === 'templates' ? (
         <>
-          <div className="plat-stats-bar" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))' }}>
-            <div className="plat-stat-card">
-              <p className="plat-stat-label">Total Templates</p>
-              <p className="plat-stat-value plat-stat-value-primary">{configs.length}</p>
+          <div className="pp-stat-grid">
+            <div className="pp-stat-card-enhanced">
+              <div className="pp-stat-label">Total Templates</div>
+              <div className="pp-stat-value is-primary">{configs.length}</div>
             </div>
-            <div className="plat-stat-card">
-              <p className="plat-stat-label">Active Listing</p>
-              <p className="plat-stat-value plat-stat-value-primary">{filteredConfigs.length}</p>
+            <div className="pp-stat-card-enhanced">
+              <div className="pp-stat-label">Active Listing</div>
+              <div className="pp-stat-value is-primary">{filteredConfigs.length}</div>
             </div>
           </div>
 
-          <div className="plat-filters">
-            <div className="plat-search-wrap">
-              <Search size={14} className="plat-search-icon" />
+          <div className="pp-filter-card">
+            <div className="pp-filter-search-wrap">
+              <Search size={14} />
               <input
-                className="plat-form-input plat-search-input"
+                type="text"
                 placeholder="Search templates..."
+                className="pp-filter-search-input"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
           </div>
 
-          <div className="plat-card">
+          <div className="pp-table-container-enhanced">
             {isLoading ? (
-              <div className="plat-empty">
-                <RefreshCw size={22} className="animate-spin opacity-30" />
-              </div>
+              <TableSkeleton rows={5} columns={5} />
             ) : filteredConfigs.length === 0 ? (
-              <div className="plat-empty">
-                <Layout size={40} className="plat-empty-icon" />
-                <p className="plat-empty-text">No configurations found.</p>
-              </div>
+              <EmptyState 
+                icon={Layout}
+                title={search ? "No matches found" : "No configurations found"}
+                description={search ? `No PDF templates matching "${search}" were found.` : "Add a new PDF template to customize your clinical reports."}
+                actionLabel={search ? "Clear Search" : "Add Template"}
+                onAction={search ? () => setSearch('') : handleOpenCreate}
+                variant="card"
+                className="my-8"
+              />
             ) : (
-              <div className="plat-table-container">
-                <table className="plat-table">
+              <>
+                <table className="pp-table">
                   <thead>
                     <tr>
                       <th style={{ width: '80px' }}>ID</th>
@@ -285,8 +325,8 @@ export default function PdfSettingsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredConfigs.map((config: any) => (
-                      <tr key={config.id} className="plat-table-row">
+                    {paginatedData.map((config: any) => (
+                      <tr key={config.id} className="pp-hover-row" onClick={() => handleOpenEdit(config)} style={{ cursor: 'pointer' }}>
                         <td data-label="ID" className="plat-table-cell font-mono text-xs color-muted">{config.id}</td>
                         <td data-label="Name" className="plat-table-cell font-semibold">
                           <div className="flex items-center gap-2">
@@ -295,17 +335,31 @@ export default function PdfSettingsPage() {
                           </div>
                         </td>
                         <td data-label="Margin" className="plat-table-cell font-mono text-xs">{config.margin}</td>
-                        <td data-label="Type" className="plat-table-cell">{config.isDefault ? <span className="plat-badge plat-badge-staff">Default</span> : <span className="plat-badge plat-badge-default">Custom</span>}</td>
-                        <td className="plat-table-cell">
-                          <div className="flex justify-end gap-3">
-                            <button className="plat-btn plat-btn-sm plat-btn-icon" onClick={() => handlePrintPreview(config)} title="Preview & Print">
-                              <Eye size={13} />
+                        <td data-label="Type" className="plat-table-cell font-medium" style={{ color: '#64748b' }}>
+                          {config.isDefault ? 'Default' : 'Custom'}
+                        </td>
+                        <td data-label="Actions" className="plat-table-cell">
+                          <div className="flex justify-end gap-2">
+                            <button
+                              className="plat-btn plat-btn-sm plat-btn-icon"
+                              onClick={(e) => { e.stopPropagation(); handlePrintPreview(config); }}
+                              title="Preview & Print"
+                            >
+                              <Eye size={14} />
                             </button>
-                            <button className="plat-btn plat-btn-sm plat-btn-icon" onClick={() => handleOpenEdit(config)}>
-                              <Edit2 size={13} />
+                            <button
+                              className="plat-btn plat-btn-sm plat-btn-icon"
+                              onClick={(e) => { e.stopPropagation(); handleOpenEdit(config); }}
+                              title="Edit Template"
+                            >
+                              <Edit2 size={14} />
                             </button>
-                            <button className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" onClick={() => { if (confirm(`Delete config?`)) deletePdf.mutate(config.id) }}>
-                              <Trash2 size={13} />
+                            <button
+                              className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger"
+                              onClick={(e) => { e.stopPropagation(); if (confirm(`Delete config?`)) deletePdf.mutate(config.id); }}
+                              title="Delete"
+                            >
+                              <Trash2 size={14} />
                             </button>
                           </div>
                         </td>
@@ -313,9 +367,21 @@ export default function PdfSettingsPage() {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </>
             )}
           </div>
+
+          {!isLoading && filteredConfigs.length > 0 && (
+            <div style={{ marginTop: '20px' }}>
+              <Pagination
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                currentPage={currentPage}
+                onPageChange={setCurrentPage}
+                onLimitChange={setItemsPerPage}
+              />
+            </div>
+          )}
         </>
       ) : (
         <div className="plat-settings-grid">
@@ -324,124 +390,177 @@ export default function PdfSettingsPage() {
             @media (min-width: 1024px) { .plat-settings-grid { grid-template-columns: 1.2fr 0.8fr; } }
             .letterhead-designer-card { padding: 24px; }
             @media (min-width: 640px) { .letterhead-designer-card { padding: 32px; } }
+
+            /* Mobile letterhead responsive */
+            @media (max-width: 767px) {
+              .letterhead-designer-card { padding: 20px 16px; }
+              .plat-form-grid-multi { grid-template-columns: 1fr !important; gap: 12px; }
+              .plat-form-grid-multi > * { grid-column: span 1 !important; }
+              .letterhead-preview-sticky { margin-top: 24px; }
+              .letterhead-preview-sticky .plat-card { padding: 20px 16px !important; }
+            }
+            @media (max-width: 480px) {
+              .letterhead-designer-card h2 { font-size: 1.1rem !important; }
+              .letterhead-header-flex { flex-direction: column !important; align-items: center !important; text-align: center !important; }
+            }
           `}</style>
 
           {/* Letterhead Designer Form */}
-          <div className="plat-card letterhead-designer-card">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
-              <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <ShieldCheck size={22} />
+          <div className="pp-table-container-enhanced letterhead-designer-card" style={{ padding: '20px 16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 40 }}>
+              <div className="pp-empty-icon-circle" style={{ width: 52, height: 52, marginBottom: 0, background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)' }}>
+                <ShieldCheck size={26} />
               </div>
               <div>
-                <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--pp-ink)', margin: 0 }}>Letterhead Identity Designer</h2>
-                <p style={{ fontSize: '0.8rem', color: 'var(--pp-text-3)', margin: 0 }}>Configure the branding nodes used across all automated clinical documents.</p>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--pp-ink)', margin: 0, letterSpacing: '-0.02em' }}>Letterhead Identity Designer</h2>
+                <p style={{ fontSize: '0.85rem', color: 'var(--pp-text-3)', margin: '4px 0 0 0', fontWeight: 500 }}>Configure the branding nodes used across all automated clinical documents.</p>
               </div>
             </div>
 
             {clinicForm && (
               <form onSubmit={handleClinicSubmit}>
-                <div className="plat-form-grid-multi">
-                  <div className="plat-form-group">
-                    <label className="plat-form-label font-bold">CLINIC NAME*</label>
+                {/* Identity Section */}
+                <div style={{ marginBottom: 32 }}>
+                  <h4 style={{ fontSize: '0.7rem', fontWeight: 850, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Layout size={12} /> Institutional Identity
+                  </h4>
+                  <div className="plat-form-grid-multi">
+                    <div className="plat-form-group">
+                      <label className="plat-form-label font-bold">CLINIC NAME*</label>
+                      <input
+                        className="plat-form-input"
+                        value={clinicForm.name}
+                        onChange={e => setClinicForm((f: any) => ({ ...f, name: e.target.value }))}
+                        required
+                        placeholder="e.g. Hope Wellness Center"
+                      />
+                    </div>
+                    <div className="plat-form-group">
+                      <label className="plat-form-label font-bold">REGISTRATION / LICENSE</label>
+                      <input
+                        className="plat-form-input"
+                        value={clinicForm.registration}
+                        onChange={e => setClinicForm((f: any) => ({ ...f, registration: e.target.value }))}
+                        placeholder="e.g. Reg No: 1725-A"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="plat-form-group mt-6">
+                    <label className="plat-form-label font-bold">PRIMARY TAGLINE / SLOGAN</label>
                     <input
                       className="plat-form-input"
-                      value={clinicForm.name}
-                      onChange={e => setClinicForm((f: any) => ({ ...f, name: e.target.value }))}
-                      required
+                      value={clinicForm.tagLine}
+                      onChange={e => setClinicForm((f: any) => ({ ...f, tagLine: e.target.value }))}
+                      placeholder="e.g. Specialist in Chronic Diseases & Holistic Care"
                     />
                   </div>
-                  <div className="plat-form-group">
-                    <label className="plat-form-label font-bold">REGISTRATION / LICENSE</label>
-                    <input
-                      className="plat-form-input"
-                      value={clinicForm.registration}
-                      onChange={e => setClinicForm((f: any) => ({ ...f, registration: e.target.value }))}
-                      placeholder="e.g. Reg No: 1725-A"
-                    />
+
+                  <div className="plat-form-group mt-6">
+                    <label className="plat-form-label font-bold">LOGO ENDPOINT (URL)</label>
+                    <div style={{ position: 'relative' }}>
+                      <ImageIcon size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--pp-text-3)' }} />
+                      <input
+                        className="plat-form-input font-mono text-xs"
+                        style={{ paddingLeft: 36 }}
+                        value={clinicForm.logo}
+                        onChange={e => setClinicForm((f: any) => ({ ...f, logo: e.target.value }))}
+                        placeholder="https://example.com/logo.png"
+                      />
+                    </div>
                   </div>
                 </div>
 
-                <div className="plat-form-group mt-6">
-                  <label className="plat-form-label font-bold">PRIMARY TAGLINE / SLOGAN</label>
-                  <input
-                    className="plat-form-input"
-                    value={clinicForm.tagLine}
-                    onChange={e => setClinicForm((f: any) => ({ ...f, tagLine: e.target.value }))}
-                    placeholder="e.g. Specialist in Chronic Diseases"
-                  />
-                </div>
-
-                <div className="plat-form-group mt-6">
-                  <label className="plat-form-label font-bold">LOGO ENDPOINT (URL)</label>
-                  <input
-                    className="plat-form-input font-mono text-xs"
-                    value={clinicForm.logo}
-                    onChange={e => setClinicForm((f: any) => ({ ...f, logo: e.target.value }))}
-                    placeholder="https://example.com/logo.png"
-                  />
-                </div>
-
-                <div className="plat-form-grid-multi mt-6">
-                  <div className="plat-form-group">
-                    <label className="plat-form-label font-bold">ADDRESS LINE 1</label>
-                    <input
-                      className="plat-form-input"
-                      value={clinicForm.address}
-                      onChange={e => setClinicForm((f: any) => ({ ...f, address: e.target.value }))}
-                    />
-                  </div>
-                  <div className="plat-form-group">
-                    <label className="plat-form-label font-bold">ADDRESS LINE 2 / LANDMARK</label>
-                    <input
-                      className="plat-form-input"
-                      value={clinicForm.address2}
-                      onChange={e => setClinicForm((f: any) => ({ ...f, address2: e.target.value }))}
-                    />
+                {/* Location Section */}
+                <div style={{ marginBottom: 32 }}>
+                  <h4 style={{ fontSize: '0.7rem', fontWeight: 850, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <MapPin size={12} /> Physical Location
+                  </h4>
+                  <div className="plat-form-grid-multi">
+                    <div className="plat-form-group">
+                      <label className="plat-form-label font-bold">ADDRESS LINE 1</label>
+                      <input
+                        className="plat-form-input"
+                        value={clinicForm.address}
+                        onChange={e => setClinicForm((f: any) => ({ ...f, address: e.target.value }))}
+                        placeholder="House No, Street Name"
+                      />
+                    </div>
+                    <div className="plat-form-group">
+                      <label className="plat-form-label font-bold">ADDRESS LINE 2 / LANDMARK</label>
+                      <input
+                        className="plat-form-input"
+                        value={clinicForm.address2}
+                        onChange={e => setClinicForm((f: any) => ({ ...f, address2: e.target.value }))}
+                        placeholder="City, State, ZIP"
+                      />
+                    </div>
                   </div>
                 </div>
 
-                <div className="plat-form-grid-multi mt-6">
-                  <div className="plat-form-group">
-                    <label className="plat-form-label font-bold">CONTACT PHONE</label>
-                    <NumericInput
-                      className="plat-form-input"
-                      value={clinicForm.phone}
-                      onChange={e => setClinicForm((f: any) => ({ ...f, phone: e.target.value }))}
-                    />
+                {/* Contact & Hours Section */}
+                <div style={{ marginBottom: 40 }}>
+                  <h4 style={{ fontSize: '0.7rem', fontWeight: 850, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Phone size={12} /> Communication & Hours
+                  </h4>
+                  <div className="plat-form-grid-multi">
+                    <div className="plat-form-group">
+                      <label className="plat-form-label font-bold">CONTACT PHONE</label>
+                      <NumericInput
+                        className="plat-form-input"
+                        value={clinicForm.phone}
+                        onChange={e => setClinicForm((f: any) => ({ ...f, phone: e.target.value }))}
+                        placeholder="Phone number"
+                      />
+                    </div>
+                    <div className="plat-form-group">
+                      <label className="plat-form-label font-bold">CLINIC TIMINGS</label>
+                      <div style={{ position: 'relative' }}>
+                        <Clock size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--pp-text-3)' }} />
+                        <input
+                          className="plat-form-input"
+                          style={{ paddingLeft: 36 }}
+                          value={clinicForm.timing}
+                          onChange={e => setClinicForm((f: any) => ({ ...f, timing: e.target.value }))}
+                          placeholder="e.g. 10:00 AM - 8:00 PM"
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div className="plat-form-group">
-                    <label className="plat-form-label font-bold">CLINIC TIMINGS</label>
-                    <input
-                      className="plat-form-input"
-                      value={clinicForm.timing}
-                      onChange={e => setClinicForm((f: any) => ({ ...f, timing: e.target.value }))}
-                      placeholder="e.g. 10:00 AM - 8:00 PM"
-                    />
+
+                  <div className="plat-form-grid-multi mt-6">
+                    <div className="plat-form-group">
+                      <label className="plat-form-label font-bold">OFFICIAL EMAIL</label>
+                      <div style={{ position: 'relative' }}>
+                        <Mail size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--pp-text-3)' }} />
+                        <input
+                          className="plat-form-input"
+                          style={{ paddingLeft: 36 }}
+                          type="email"
+                          value={clinicForm.email}
+                          onChange={e => setClinicForm((f: any) => ({ ...f, email: e.target.value }))}
+                          placeholder="contact@clinic.com"
+                        />
+                      </div>
+                    </div>
+                    <div className="plat-form-group">
+                      <label className="plat-form-label font-bold">WEBSITE</label>
+                      <div style={{ position: 'relative' }}>
+                        <Globe size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--pp-text-3)' }} />
+                        <input
+                          className="plat-form-input"
+                          style={{ paddingLeft: 36 }}
+                          value={clinicForm.website}
+                          onChange={e => setClinicForm((f: any) => ({ ...f, website: e.target.value }))}
+                          placeholder="www.clinic.com"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div className="plat-form-grid-multi mt-6">
-                  <div className="plat-form-group">
-                    <label className="plat-form-label font-bold">OFFICIAL EMAIL</label>
-                    <input
-                      className="plat-form-input"
-                      type="email"
-                      value={clinicForm.email}
-                      onChange={e => setClinicForm((f: any) => ({ ...f, email: e.target.value }))}
-                    />
-                  </div>
-                  <div className="plat-form-group">
-                    <label className="plat-form-label font-bold">WEBSITE</label>
-                    <input
-                      className="plat-form-input"
-                      value={clinicForm.website}
-                      onChange={e => setClinicForm((f: any) => ({ ...f, website: e.target.value }))}
-                    />
-                  </div>
-                </div>
-
-                <div style={{ marginTop: 40 }}>
-                  <button type="submit" className="plat-btn plat-btn-primary px-12 h-12 text-base" disabled={updateOrg.isPending}>
+                <div>
+                  <button type="submit" className="btn-primary px-12 h-14 text-base w-full sm:w-auto" style={{ borderRadius: 16, boxShadow: 'var(--pp-shadow-md)' }} disabled={updateOrg.isPending}>
                     {updateOrg.isPending ? 'Synchronizing Identity...' : 'INITIALIZE BRAND PROTOCOL'}
                   </button>
                 </div>
@@ -456,6 +575,10 @@ export default function PdfSettingsPage() {
                @media (min-width: 1024px) { .letterhead-preview-sticky { position: sticky; top: 24px; } }
                .letterhead-canvas-outer { padding: 40px 20px; }
                @media (min-width: 640px) { .letterhead-canvas-outer { padding: 60px 40px; } }
+               @media (max-width: 767px) {
+                 .letterhead-canvas-outer { padding: 20px 12px !important; min-height: auto !important; border-radius: 16px !important; }
+                 .letterhead-a4-sheet { padding: 24px 20px !important; min-height: 400px !important; max-width: 100% !important; border-radius: 8px !important; }
+               }
              `}</style>
             <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--pp-text-3)' }}>
@@ -472,211 +595,305 @@ export default function PdfSettingsPage() {
               minHeight: '600px',
               background: 'var(--pp-warm-2)',
               border: '1px solid var(--pp-warm-4)',
-              borderRadius: 24,
+              borderRadius: 32,
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               backgroundImage: 'radial-gradient(var(--pp-warm-4) 1px, transparent 1px)',
-              backgroundSize: '24px 24px',
-              overflowX: 'auto'
+              backgroundSize: '32px 32px',
+              overflowX: 'auto',
+              padding: '60px 20px'
             }}>
-                <div style={{
-                  width: '100%',
-                  maxWidth: '500px',
-                  background: '#fff',
-                  boxShadow: 'var(--pp-shadow-premium)',
-                  borderRadius: '2px',
-                  minHeight: '680px',
-                  padding: 'clamp(16px, 5vw, 40px)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  position: 'relative',
-                  border: '1px solid rgba(0,0,0,0.05)',
-                  boxSizing: 'border-box'
-                }}>
-                  {/* Watermark/Scale hint */}
-                  <div style={{ position: 'absolute', top: 10, right: 10, fontSize: '9px', fontWeight: 900, color: 'var(--pp-warm-4)', textTransform: 'uppercase' }}>A4 Preview (1:1)</div>
+              <div className="letterhead-a4-sheet" style={{
+                width: '100%',
+                maxWidth: '540px',
+                background: '#fff',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15)',
+                borderRadius: '4px',
+                minHeight: '760px',
+                padding: '50px 45px',
+                display: 'flex',
+                flexDirection: 'column',
+                position: 'relative',
+                border: '1px solid rgba(0,0,0,0.03)',
+                boxSizing: 'border-box'
+              }}>
+                {/* Watermark/Scale hint */}
+                <div style={{ position: 'absolute', top: 12, right: 15, fontSize: '7px', fontWeight: 900, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', background: '#f8fafc', padding: '2px 6px', borderRadius: 4, border: '1px solid #e2e8f0' }}>A4 PREVIEW ÔÇó 1:1 SCALE</div>
 
-                  {/* Header Preview */}
-                  <div className="letterhead-canvas-header" style={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    borderBottom: '2.5px solid var(--pp-blue)', 
-                    paddingBottom: 24, 
-                    marginBottom: 40,
-                    gap: 20
-                  }}>
-                    <style>{`
+                <div className="letterhead-canvas-header" style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
+                  paddingBottom: 28,
+                  marginBottom: 0,
+                  gap: 30,
+                  padding: '20px 22px',
+                  background: 'linear-gradient(135deg, #f8fbff 0%, #ffffff 60%)',
+                  borderRadius: 12,
+                  boxShadow: '0 2px 12px rgba(22, 101, 228, 0.06), inset 0 -1px 0 rgba(22, 101, 228, 0.08)'
+                }}>
+                  <style>{`
                       @media (max-width: 639px) {
                         .letterhead-canvas-header { flex-direction: column; align-items: center; text-align: center; }
-                        .letterhead-canvas-header > div { justify-content: center !important; }
+                        .letterhead-canvas-header > div { justify-content: center !important; text-align: center !important; }
                       }
                     `}</style>
-                    <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-                      <div 
-                        key={clinicForm?.logo} // Force fresh render when URL changes to reset errors
-                        style={{ width: 64, height: 64, borderRadius: 12, background: 'var(--pp-warm-1)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: '1px solid var(--pp-warm-3)', boxShadow: '0 4px 10px rgba(0,0,0,0.03)', flexShrink: 0 }}
-                      >
-                        {clinicForm?.logo ? (
-                          <img 
-                            src={getLogoUrl(clinicForm.logo)} 
-                            style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.style.display = 'none';
-                              const errEl = document.createElement('div');
-                              errEl.style.cssText = 'color: var(--pp-text-4); font-size: 8px; text-align: center; padding: 4px;';
-                              errEl.innerText = 'Link Error (403/CORS)';
-                              target.parentElement?.appendChild(errEl);
-                            }}
-                          />
-                        ) : <ImageIcon size={24} style={{ opacity: 0.1 }} />}
-                      </div>
-                      <div style={{ minWidth: 140 }}>
-                        <h2 style={{ fontSize: '1.2rem', fontWeight: 950, color: 'var(--pp-ink)', margin: 0, textTransform: 'uppercase', letterSpacing: '-0.03em', lineHeight: 1 }}>{clinicForm?.name || 'Clinic Name'}</h2>
-                        <p style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--pp-blue)', margin: '6px 0 0', opacity: 0.9 }}>{clinicForm?.tagLine || 'Primary Slogan'}</p>
-                        <p style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--pp-text-3)', margin: '10px 0 0', display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <ShieldCheck size={10} className="text-success" /> {clinicForm?.registration || 'Registration Credentials'}
-                        </p>
-                      </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 14, flex: 1, minWidth: 0, alignItems: 'flex-start' }}>
+                    <div
+                      key={clinicForm?.logo}
+                      style={{
+                        height: 70,
+                        minWidth: 70,
+                        maxWidth: 160,
+                        borderRadius: 10,
+                        background: '#fff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        overflow: 'hidden',
+                        border: '1px solid #e2e8f0',
+                        boxShadow: '0 2px 8px rgba(22, 101, 228, 0.08), inset 0 1px 2px rgba(255,255,255,0.8)',
+                        flexShrink: 0,
+                        padding: '4px 8px'
+                      }}
+                    >
+                      {clinicForm?.logo ? (
+                        <img
+                          src={getLogoUrl(clinicForm.logo)}
+                          style={{ height: '100%', width: 'auto', maxWidth: '100%', objectFit: 'contain' }}
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const errEl = document.createElement('div');
+                            errEl.style.cssText = 'color: var(--pp-text-4); font-size: 8px; text-align: center; padding: 6px; font-weight: 800;';
+                            errEl.innerText = '403';
+                            target.parentElement?.appendChild(errEl);
+                          }}
+                        />
+                      ) : <ImageIcon size={24} style={{ color: 'var(--pp-warm-4)' }} />}
                     </div>
-                    <div style={{ textAlign: 'right', maxWidth: '200px' }}>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--pp-ink)', fontWeight: 700, display: 'flex', alignItems: 'flex-start', gap: 6, justifyContent: 'flex-end', lineHeight: 1.4 }}>
-                        <MapPin size={11} style={{ color: 'var(--pp-blue)', marginTop: 2 }} /> {clinicForm?.address || 'Site Geography'}
-                      </div>
-                      <div style={{ fontSize: '0.65rem', color: 'var(--pp-text-3)', fontWeight: 500, marginTop: 4 }}>{clinicForm?.address2}</div>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--pp-ink)', fontWeight: 700, marginTop: 14, display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end' }}>
-                        <Clock size={11} style={{ color: 'var(--pp-blue)' }} /> {clinicForm?.timing || 'Schedule'}
+                    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', minWidth: 0, width: '100%' }}>
+                      <h2 style={{
+                        fontSize: '1.4rem',
+                        fontWeight: 975,
+                        color: '#0f172a',
+                        margin: 0,
+                        textTransform: 'uppercase',
+                        letterSpacing: '-0.03em',
+                        lineHeight: 1.15,
+                        overflowWrap: 'break-word',
+                        fontFamily: 'Georgia, "Times New Roman", serif'
+                      }}>
+                        {clinicForm?.name || 'Clinic Name'}
+                      </h2>
+                      <p style={{ fontSize: '0.75rem', fontWeight: 700, background: 'linear-gradient(135deg, #16a1e4 0%, #6366f1 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', margin: '3px 0 0', letterSpacing: '0.02em' }}>
+                        {clinicForm?.tagLine || 'Primary Specialty'}
+                      </p>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, margin: '8px 0 0', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 999, padding: '3px 8px 3px 5px', maxWidth: 'fit-content' }}>
+                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 0 2px rgba(34,197,94,0.3)' }} />
+                        <ShieldCheck size={10} style={{ color: '#16a1e4' }} />
+                        <span style={{ fontSize: '0.55rem', fontWeight: 800, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{clinicForm?.registration || 'REGISTRATION'}</span>
                       </div>
                     </div>
                   </div>
 
-                {/* Content Area Mockup */}
-                <div style={{ padding: '20px 0' }}>
-                  <div style={{ height: 14, width: '35%', background: 'var(--pp-warm-2)', borderRadius: 4, marginBottom: 16 }} />
-                  <div style={{ display: 'grid', gap: 10 }}>
-                    <div style={{ height: 10, width: '100%', background: 'var(--pp-warm-1)', borderRadius: 2, opacity: 0.8 }} />
-                    <div style={{ height: 10, width: '98%', background: 'var(--pp-warm-1)', borderRadius: 2, opacity: 0.6 }} />
-                    <div style={{ height: 10, width: '95%', background: 'var(--pp-warm-1)', borderRadius: 2, opacity: 0.4 }} />
-                    <div style={{ height: 10, width: '99%', background: 'var(--pp-warm-1)', borderRadius: 2, opacity: 0.2 }} />
-                  </div>
-
-                  <div style={{ marginTop: 40, border: '1.5px dashed var(--pp-warm-4)', borderRadius: 16, padding: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.01)' }}>
-                    <div style={{ textAlign: 'center' }}>
-                      <FileText size={32} style={{ color: 'var(--pp-warm-4)', margin: '0 auto 12px', opacity: 0.5 }} />
-                      <p style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--pp-text-4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Document Content Area</p>
+                  <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: 8, borderLeft: '1.5px solid #e2e8f0', paddingLeft: 16, minWidth: '140px', maxWidth: '165px', flexShrink: 0 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <div style={{ fontSize: '0.68rem', color: '#334155', fontWeight: 700, display: 'flex', alignItems: 'flex-start', gap: 5, justifyContent: 'flex-end', lineHeight: 1.35 }}>
+                        <MapPin size={11} style={{ color: '#6366f1', flexShrink: 0, marginTop: 1 }} />
+                        <span style={{ overflowWrap: 'break-word' }}>{clinicForm?.address || 'Site Geography'}</span>
+                      </div>
+                      {clinicForm?.address2 && (
+                        <div style={{ fontSize: '0.6rem', color: '#64748b', fontWeight: 500, paddingRight: 16 }}>{clinicForm?.address2}</div>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <div style={{ fontSize: '0.68rem', color: '#334155', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 5, justifyContent: 'flex-end' }}>
+                        <Phone size={11} style={{ color: '#6366f1' }} />
+                        <span>{clinicForm?.phone || 'Contact'}</span>
+                      </div>
+                      <div style={{ fontSize: '0.68rem', color: '#334155', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 5, justifyContent: 'flex-end' }}>
+                        <Clock size={11} style={{ color: '#6366f1' }} />
+                        <span>{clinicForm?.timing || 'Schedule'}</span>
+                      </div>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, justifyContent: 'flex-end', marginTop: 2, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 999, padding: '3px 8px 3px 6px' }}>
+                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', animation: 'pulse-green 2s infinite' }} />
+                        <span style={{ fontSize: '0.55rem', fontWeight: 800, color: '#15803d', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Open for Appointments</span>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Footer Preview */}
-                <div className="letterhead-canvas-footer" style={{ 
-                  marginTop: 'auto', 
-                  paddingTop: 24, 
-                  borderTop: '1px solid var(--pp-warm-4)', 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center',
+                {/* Refined Divider */}
+                <div style={{ width: '100%', marginBottom: 30 }}>
+                  <div style={{ height: 3, width: '100%', background: 'linear-gradient(90deg, #16a1e4 0%, #6366f1 50%, #8b5cf6 100%)', borderRadius: 3, boxShadow: '0 1px 4px rgba(22, 101, 228, 0.25)' }} />
+                  <div style={{ height: 1, width: '100%', background: '#f1f5f9', marginTop: 3 }} />
+                </div>
+
+                <div style={{ padding: '20px 0', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 35 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <div style={{ fontSize: '0.6rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Patient Details</div>
+                      <div style={{ height: 12, width: 140, background: '#f1f5f9', borderRadius: 3 }} />
+                      <div style={{ height: 10, width: 90, background: '#f8fafc', borderRadius: 3 }} />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
+                      <div style={{ fontSize: '0.6rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Date & Reference</div>
+                      <div style={{ height: 12, width: 100, background: '#f1f5f9', borderRadius: 3 }} />
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: 40 }}>
+                    <div style={{
+                      fontSize: '2.5rem',
+                      fontWeight: 400,
+                      color: '#cbd5e1',
+                      fontFamily: 'Georgia, "Times New Roman", serif',
+                      fontStyle: 'italic',
+                      marginBottom: 15,
+                      lineHeight: 1
+                    }}>Rx</div>
+                    <div style={{ display: 'grid', gap: 14, paddingLeft: 20 }}>
+                      <div style={{ height: 8, width: '100%', background: '#f8fafc', borderRadius: 4, position: 'relative', overflow: 'hidden' }}>
+                        <div style={{ position: 'absolute', top: 0, left: 0, height: '100%', width: '40%', background: 'linear-gradient(90deg, #e2e8f0, #f8fafc)', borderRadius: 4 }} />
+                      </div>
+                      <div style={{ height: 8, width: '85%', background: '#f8fafc', borderRadius: 4 }} />
+                      <div style={{ height: 8, width: '92%', background: '#f8fafc', borderRadius: 4 }} />
+                    </div>
+                  </div>
+
+                  <div style={{
+                    marginTop: 'auto',
+                    border: '1px dashed #cbd5e1',
+                    borderRadius: 16,
+                    padding: '35px 20px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: 'linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(248,250,252,0.6) 100%)',
+                    minHeight: 160,
+                    boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.01)'
+                  }}>
+                    <FileText size={32} style={{ color: '#94a3b8', marginBottom: 12, strokeWidth: 1.5 }} />
+                    <p style={{ fontSize: '0.75rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>Dynamic Content Area</p>
+                    <p style={{ fontSize: '0.65rem', color: '#94a3b8', marginTop: 6, margin: 0, fontWeight: 500 }}>System automatically injects Prescriptions, Invoices, or Clinical Reports here.</p>
+                  </div>
+                </div>
+
+                <div className="letterhead-canvas-footer" style={{
+                  marginTop: 30,
+                  paddingTop: 20,
+                  borderTop: '1px solid #e2e8f0',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-end',
                   gap: 16
                 }}>
                   <style>{`
-                    @media (max-width: 639px) {
-                      .letterhead-canvas-footer { flex-direction: column; text-align: center; }
-                    }
-                  `}</style>
-                  <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', justifyContent: 'center' }}>
-                    <div style={{ fontSize: '0.65rem', color: 'var(--pp-text-3)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Globe size={10} style={{ color: 'var(--pp-blue)' }} /> {clinicForm?.website || 'web-node-dns'}
+                      @media (max-width: 639px) {
+                        .letterhead-canvas-footer { flex-direction: column; text-align: center; align-items: center; }
+                        .letterhead-footer-left { justify-content: center; }
+                        .letterhead-footer-right { text-align: center !important; margin-top: 10px; }
+                      }
+                    `}</style>
+                  <div className="letterhead-footer-left" style={{ display: 'flex', gap: 30, flexWrap: 'wrap', flex: 1 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <span style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Website</span>
+                      <div style={{ fontSize: '0.7rem', color: '#334155', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Globe size={12} style={{ color: '#16a1e4' }} /> {clinicForm?.website || 'www.clinic-portal.com'}
+                      </div>
                     </div>
-                    <div style={{ fontSize: '0.65rem', color: 'var(--pp-text-3)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Mail size={10} style={{ color: 'var(--pp-blue)' }} /> {clinicForm?.email || 'identity@clinic.com'}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <span style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Inquiries</span>
+                      <div style={{ fontSize: '0.7rem', color: '#334155', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Mail size={12} style={{ color: '#16a1e4' }} /> {clinicForm?.email || 'contact@clinic.com'}
+                      </div>
                     </div>
                   </div>
-                  <div style={{ fontSize: '0.6rem', color: 'var(--pp-text-4)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Secure PDF Engine v2.0</div>
+                  <div className="letterhead-footer-right" style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '0.65rem', color: '#475569', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Secure PDF Engine</div>
+                    <div style={{ fontSize: '0.55rem', color: '#94a3b8', fontWeight: 600, marginTop: 2 }}>Digitally Verified ÔÇó HomeoX v2.0</div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-
         </div>
       )}
-
-      {isModalOpen && (
-        <div className="plat-modal-backdrop" onClick={() => setIsModalOpen(false)}>
-          <div className="plat-modal-content max-w-4xl" onClick={e => e.stopPropagation()}>
-            <div className="plat-modal-header">
-              <h2 className="plat-modal-title">{editingId ? 'Edit Configuration' : 'Add PDF Configuration'}</h2>
-              <button className="plat-btn plat-btn-icon" onClick={() => setIsModalOpen(false)}>
-                <X size={16} />
-              </button>
-            </div>
-            <form onSubmit={handleSubmit}>
-              <div className="plat-modal-body">
-                <div className="plat-form-section">
-                  <div className="plat-form-grid-multi">
-                    <div className="plat-form-group">
-                      <label className="plat-form-label font-bold">Template Name *</label>
-                      <input
-                        className="plat-form-input"
-                        value={form.templateName}
-                        onChange={e => setForm(f => ({ ...f, templateName: e.target.value }))}
-                        required
-                        placeholder="e.g. Standard Prescription"
-                      />
-                    </div>
-                    <div className="plat-form-group">
-                      <label className="plat-form-label font-bold">Margin (CSS value)</label>
-                      <input
-                        className="plat-form-input"
-                        value={form.margin}
-                        onChange={e => setForm(f => ({ ...f, margin: e.target.value }))}
-                        placeholder="e.g. 20mm, 1in"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="plat-form-group mt-4">
-                    <label className="plat-form-label font-bold">Header HTML</label>
-                    <textarea
-                      className="plat-form-input font-mono text-xs leading-relaxed"
-                      style={{ minHeight: '140px' }}
-                      value={form.headerHtml}
-                      onChange={e => setForm(f => ({ ...f, headerHtml: e.target.value }))}
-                      placeholder="<div>Clinic Header...</div>"
-                    />
-                  </div>
-
-                  <div className="plat-form-group mt-4">
-                    <label className="plat-form-label font-bold">Footer HTML</label>
-                    <textarea
-                      className="plat-form-input font-mono text-xs leading-relaxed"
-                      style={{ minHeight: '140px' }}
-                      value={form.footerHtml}
-                      onChange={e => setForm(f => ({ ...f, footerHtml: e.target.value }))}
-                      placeholder="<div>Reg No: 12345...</div>"
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-2 py-4 mt-2">
-                    <input
-                      type="checkbox"
-                      className="w-4 h-4 accent-primary"
-                      id="isDefaultPdf"
-                      checked={form.isDefault}
-                      onChange={e => setForm(f => ({ ...f, isDefault: e.target.checked }))}
-                    />
-                    <label htmlFor="isDefaultPdf" className="plat-form-label mb-0 cursor-pointer font-bold">Set as default configuration</label>
-                  </div>
+      <Drawer
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={editingId ? 'Edit Configuration' : 'Add PDF Configuration'}
+        maxWidth="500px"
+      >
+        <form onSubmit={handleSubmit}>
+          <div className="plat-modal-body" style={{ padding: 0 }}>
+            <div className="plat-form-section" style={{ border: 'none', boxShadow: 'none', padding: 0 }}>
+              <div className="plat-form-grid-multi">
+                <div className="plat-form-group">
+                  <label className="plat-form-label font-bold">Template Name *</label>
+                  <input
+                    className="plat-form-input"
+                    value={form.templateName}
+                    onChange={e => setForm(f => ({ ...f, templateName: e.target.value }))}
+                    required
+                    placeholder="e.g. Standard Prescription"
+                  />
+                </div>
+                <div className="plat-form-group">
+                  <label className="plat-form-label font-bold">Margin (CSS value)</label>
+                  <input
+                    className="plat-form-input"
+                    value={form.margin}
+                    onChange={e => setForm(f => ({ ...f, margin: e.target.value }))}
+                    placeholder="e.g. 20mm, 1in"
+                  />
                 </div>
               </div>
-              <div className="plat-modal-footer">
-                <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                <button type="submit" className="plat-btn plat-btn-primary px-8">Save Configuration</button>
+
+              <div className="plat-form-group mt-6">
+                <label className="plat-form-label font-bold">Header HTML</label>
+                <textarea
+                  className="plat-form-input font-mono text-xs leading-relaxed"
+                  style={{ minHeight: '180px' }}
+                  value={form.headerHtml}
+                  onChange={e => setForm(f => ({ ...f, headerHtml: e.target.value }))}
+                  placeholder="<div>Clinic Header...</div>"
+                />
               </div>
-            </form>
+
+              <div className="plat-form-group mt-6">
+                <label className="plat-form-label font-bold">Footer HTML</label>
+                <textarea
+                  className="plat-form-input font-mono text-xs leading-relaxed"
+                  style={{ minHeight: '180px' }}
+                  value={form.footerHtml}
+                  onChange={e => setForm(f => ({ ...f, footerHtml: e.target.value }))}
+                  placeholder="<div>Reg No: 12345...</div>"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 py-4 mt-2">
+                <input
+                  type="checkbox"
+                  className="w-4 h-4 accent-primary"
+                  id="isDefaultPdf"
+                  checked={form.isDefault}
+                  onChange={e => setForm(f => ({ ...f, isDefault: e.target.checked }))}
+                />
+                <label htmlFor="isDefaultPdf" className="plat-form-label mb-0 cursor-pointer font-bold">Set as default configuration</label>
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+          <div className="plat-modal-footer" style={{ padding: '24px 0 0 0', marginTop: '24px' }}>
+            <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
+            <button type="submit" className="plat-btn plat-btn-primary px-8">Save Configuration</button>
+          </div>
+        </form>
+      </Drawer>
+
     </div>
   );
 }

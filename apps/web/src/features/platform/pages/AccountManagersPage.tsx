@@ -8,6 +8,13 @@ import { createStaffSchema, updateStaffSchema } from '@mmc/validation';
 import { apiClient } from '@/infrastructure/api-client';
 import '../styles/platform.css';
 
+import { Pagination } from '@/shared/components/Pagination';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
+import { Drawer } from '@/shared/components/drawer';
+
+
+
 function FileInputRow({
   label,
   field,
@@ -245,15 +252,13 @@ function StaffModal({
   const isEdit = mode === 'edit';
 
   return (
-    <div className="plat-modal-backdrop" onClick={onClose}>
-      <div className="plat-modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="plat-modal-header">
-          <h3 className="plat-modal-title">{isEdit ? 'Update Manager Profile' : 'Register New Account Manager'}</h3>
-          <button className="plat-btn plat-btn-icon plat-btn-ghost" onClick={onClose}>
-            <X size={14} />
-          </button>
-        </div>
-
+    <Drawer
+      isOpen={true}
+      onClose={onClose}
+      title={isEdit ? 'Update Account Manager' : 'Register New Manager'}
+      maxWidth="600px"
+    >
+      <div className="plat-modal-content" style={{ border: 'none', boxShadow: 'none', margin: 0, padding: 0 }}>
         <form onSubmit={handleSubmit} className="plat-modal-body">
           {errors['general'] && <div className="plat-error-banner mb-4">{errors['general']}</div>}
 
@@ -429,7 +434,7 @@ function StaffModal({
           </div>
         </form>
       </div>
-    </div>
+    </Drawer>
   );
 }
 
@@ -441,10 +446,11 @@ export default function AccountManagersPage() {
   const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('DESC');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [itemsPerPage, setItemsPerPage] = useState(PAGE_SIZE);
 
-  const { data, isLoading } = useStaffList(CATEGORY, { 
-    page, 
-    limit: PAGE_SIZE, 
+  const { data, isLoading } = useStaffList(CATEGORY, {
+    page,
+    limit: itemsPerPage,
     search: debouncedSearch,
     sortBy,
     sortOrder
@@ -473,7 +479,6 @@ export default function AccountManagersPage() {
     await deleteMutation.mutateAsync({ category: CATEGORY, id });
   };
 
-  // return (
   return (
     <div className="plat-page">
       <div className="plat-header">
@@ -517,7 +522,7 @@ export default function AccountManagersPage() {
 
           <div className="flex items-center gap-2">
             <span className="text-[11px] font-bold color-muted uppercase tracking-wider">Sort:</span>
-            <select 
+            <select
               className="plat-form-input !py-1 !text-xs !w-auto min-w-[140px]"
               value={`${sortBy}-${sortOrder}`}
               onChange={(e) => {
@@ -535,12 +540,12 @@ export default function AccountManagersPage() {
           </div>
         </div>
 
-        <button 
-          className="plat-btn plat-btn-ghost plat-btn-sm" 
-          onClick={() => { 
-            setSearch(''); 
-            setDebouncedSearch(''); 
-            setPage(1); 
+        <button
+          className="plat-btn plat-btn-ghost plat-btn-sm"
+          onClick={() => {
+            setSearch('');
+            setDebouncedSearch('');
+            setPage(1);
             setSortBy('id');
             setSortOrder('DESC');
           }}
@@ -551,56 +556,68 @@ export default function AccountManagersPage() {
 
       <div className="plat-card">
         {isLoading ? (
-          <div className="plat-empty" style={{ minHeight: 400 }}><RefreshCw size={24} className="animate-spin opacity-20" /></div>
+          <TableSkeleton rows={itemsPerPage} columns={6} />
         ) : staff.length === 0 ? (
-          <div className="plat-empty" style={{ minHeight: 400 }}>
-            <div className="plat-empty-icon-wrap mb-6">
-              <UserCog size={48} className="text-blue-500 opacity-20" />
-            </div>
-            <h3 className="text-lg font-semibold text-slate-800 mb-2">No Account Managers Registered</h3>
-            <p className="text-sm text-slate-500 max-w-xs text-center mb-8">
-              Financial coordination is key to clinic success. Register your first account manager to begin tracking clinical ledgers.
-            </p>
-            <button className="plat-btn plat-btn-primary" onClick={() => { setEditingId(null); setModalOpen(true); }}>
-              <Plus size={14} /> Register First Manager
-            </button>
-          </div>
+          <EmptyState 
+            icon={UserCog}
+            title="No Account Managers Registered"
+            description="Financial coordination is key to clinic success. Register your first account manager to begin tracking clinical ledgers."
+            actionLabel="Register First Manager"
+            onAction={() => { setEditingId(null); setModalOpen(true); }}
+            variant="card"
+            className="my-8"
+          />
         ) : (
-          <div className="plat-table-container">
+          <>
+            <div className="plat-table-container">
             <table className="plat-table">
               <thead><tr><th>#</th><th>Financial Profile</th><th>Contact</th><th>Designation</th><th>Access Status</th><th>Actions</th></tr></thead>
               <tbody>
                 {staff.map((s: StaffSummary, i: number) => (
                   <tr key={s.id} className="plat-table-row">
-                    <td className="plat-mono-data text-xs" style={{ width: 40 }}>{(page - 1) * PAGE_SIZE + i + 1}</td>
-                    <td>
-                      <div className="font-semibold">{s.name}</div>
-                      <div className="text-[11px] color-muted font-medium">{s.email || 'No email registered'}</div>
+                    <td data-label="#" className="plat-mono-data text-xs" style={{ width: 40 }}>
+                      <div>{(page - 1) * PAGE_SIZE + i + 1}</div>
                     </td>
-                    <td>
-                      <div className="plat-mono-data">{s.mobile}</div>
-                      <div className="text-[10px] color-muted plat-capitalize flex items-center gap-1 font-medium">
-                        <MapPin size={10} /> {s.city || 'Station N/A'}
+                    <td data-label="Profile">
+                      <div className="plat-cell-val">
+                        <div className="font-semibold">{s.name}</div>
+                        <div className="text-[11px] color-muted font-medium">{s.email || 'No email registered'}</div>
                       </div>
                     </td>
-                    <td><div className="font-medium">{s.designation || 'Accounts Manager'}</div></td>
-                    <td>
-                      <span className={s.isActive ? 'plat-badge plat-badge-info' : 'plat-badge plat-badge-default'}>
-                        {s.isActive ? (
-                          <span className="flex items-center gap-1">
-                            <UserCheck size={10} /> Authorized
-                          </span>
-                        ) : 'Suspended'}
-                      </span>
+                    <td data-label="Contact">
+                      <div className="plat-cell-val">
+                        <div className="plat-mono-data">{s.mobile}</div>
+                        <div className="text-[10px] color-muted plat-capitalize flex items-center gap-1 font-medium">
+                          <MapPin size={10} /> {s.city || 'Station N/A'}
+                        </div>
+                      </div>
                     </td>
-                    <td>
-                      <div className="flex justify-end gap-2">
-                        <button className="plat-btn plat-btn-icon plat-btn-ghost" onClick={() => handleEdit(s)}>
-                          <Edit2 size={13} />
-                        </button>
-                        <button className="plat-btn plat-btn-icon plat-btn-danger" onClick={() => handleDelete(s.id)}>
-                          <Trash2 size={13} />
-                        </button>
+                    <td data-label="Designation">
+                      <div className="plat-cell-val">
+                        <div className="font-medium">{s.designation || 'Accounts Manager'}</div>
+                      </div>
+                    </td>
+                    <td data-label="Status">
+                      <div className="plat-cell-val">
+                        <span className={s.isActive ? 'plat-badge plat-badge-info' : 'plat-badge plat-badge-default'}>
+                          {s.isActive ? (
+                            <span className="flex items-center gap-1">
+                              <UserCheck size={10} /> Active
+                            </span>
+                          ) : 'Inactive'}
+                        </span>
+                      </div>
+                    </td>
+                    <td data-label="Actions">
+                      <div className="plat-cell-val">
+                        <div className="flex gap-2">
+                          <button className="plat-btn plat-btn-icon plat-btn-ghost" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={() => handleEdit(s)}>
+                            <Edit2 size={13} />
+                          </button>
+                          <button className="plat-btn plat-btn-icon plat-btn-danger" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={() => handleDelete(s.id)}>
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
                       </div>
                     </td>
                   </tr>
@@ -608,32 +625,17 @@ export default function AccountManagersPage() {
               </tbody>
             </table>
           </div>
+          <Pagination
+            totalItems={data?.total || 0}
+            itemsPerPage={itemsPerPage}
+            currentPage={page}
+            onPageChange={setPage}
+            onLimitChange={setItemsPerPage}
+          />
+        </>
         )}
       </div>
 
-      {totalPages > 1 && (
-        <div className="plat-pagination-container">
-          <div className="plat-pagination-pill">
-            <button 
-              className="plat-pagination-btn" 
-              disabled={page <= 1} 
-              onClick={() => { setPage(p => p - 1); window.scrollTo(0, 0); }}
-            >
-              ← Previous
-            </button>
-            <div className="plat-pagination-info">
-              Page <b>{page}</b> of <b>{totalPages}</b>
-            </div>
-            <button 
-              className="plat-pagination-btn" 
-              disabled={page >= totalPages} 
-              onClick={() => { setPage(p => p + 1); window.scrollTo(0, 0); }}
-            >
-              Next →
-            </button>
-          </div>
-        </div>
-      )}
 
       {modalOpen && <StaffModal mode={editingId ? 'edit' : 'create'} staff={editingStaff} isLoading={isLoadingStaff} onClose={() => { setModalOpen(false); setEditingId(null); }} onSuccess={() => setEditingId(null)} />}
     </div>

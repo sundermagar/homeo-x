@@ -1,258 +1,395 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
-import { usePatients, useDeletePatient } from '../hooks/use-patients';
-import { Search, Plus, List as ListIcon, Grid, Eye, Edit2, Phone, MapPin, Calendar } from 'lucide-react';
+import { usePatients, useDeletePatient, usePatientFormMeta } from '../hooks/use-patients';
+import {
+  Search, Plus, List as ListIcon, Grid, Edit2, MapPin, Calendar,
+  MessageCircle, Printer, Download, MoreVertical, Trash2, Phone, User, Users, ClipboardList, Zap
+} from 'lucide-react';
 import { useAuthStore } from '@/shared/stores/auth-store';
-import { Role, type PatientSummary } from '@mmc/types';
+import { type PatientSummary } from '@mmc/types';
+import { PatientFormDrawer } from '../components/patient-form-drawer';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { AssignPackageModal } from '../../packages/components/assign-package-modal';
 import '../../appointments/styles/appointments.css';
+import '../../dashboard/pages/role-dashboards.css';
 import '../styles/patients.css';
+import { Pagination } from '@/components/shared/pagination';
+import { EmptyState } from '@/components/shared/empty-state';
 
-const PAGE_SIZE = 10;
+/* ─── Helpers ──────────────────────────────────────────────────────────────── */
+function formatDate(date: Date | string | null | undefined) {
+  if (!date) return '—';
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
 
+function openWhatsApp(phone: string | null, name: string) {
+  if (!phone) return alert('No phone number available.');
+  const cleaned = phone.replace(/\D/g, '');
+  const msg = encodeURIComponent(`Hello ${name}, this is a message from your clinic.`);
+  window.open(`https://wa.me/91${cleaned}?text=${msg}`, '_blank');
+}
+
+function getInitials(name: string) {
+  if (!name) return '?';
+  return name.trim().charAt(0).toUpperCase();
+}
+
+/* ─── Portal Kebab Menu ────────────────────────────────────────────────────── */
+interface KebabMenuPortalProps {
+  anchorEl: HTMLButtonElement | null;
+  onClose: () => void;
+  children: React.ReactNode;
+}
+
+function KebabMenuPortal({ anchorEl, onClose, children }: KebabMenuPortalProps) {
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [style, setStyle] = useState<React.CSSProperties>({
+    position: 'fixed', opacity: 0, pointerEvents: 'none',
+  });
+
+  useEffect(() => {
+    if (!anchorEl) return;
+
+    const position = () => {
+      const rect = anchorEl.getBoundingClientRect();
+      const menuH = menuRef.current?.offsetHeight ?? 240;
+      const menuW = menuRef.current?.offsetWidth ?? 200;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const spaceBelow = vh - rect.bottom;
+      const openUp = spaceBelow < menuH + 8 && rect.top > menuH + 8;
+      const alignRight = rect.right + 4 >= vw - menuW;
+      setStyle({
+        position: 'fixed',
+        top: openUp ? undefined : rect.bottom + 4,
+        bottom: openUp ? vh - rect.top + 4 : undefined,
+        left: alignRight ? undefined : rect.left,
+        right: alignRight ? vw - rect.right : undefined,
+        zIndex: 9999,
+        opacity: 1,
+        pointerEvents: 'auto',
+      });
+    };
+
+    const t = setTimeout(position, 10);
+    window.addEventListener('resize', position);
+    window.addEventListener('scroll', onClose, true);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener('resize', position);
+      window.removeEventListener('scroll', onClose, true);
+    };
+  }, [anchorEl, onClose]);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (
+        menuRef.current && !menuRef.current.contains(e.target as Node) &&
+        anchorEl && !anchorEl.contains(e.target as Node)
+      ) onClose();
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [anchorEl, onClose]);
+
+  return createPortal(
+    <div ref={menuRef} className="appt-kebab-menu" style={style}>{children}</div>,
+    document.body
+  );
+}
+
+/* ─── Page ─────────────────────────────────────────────────────────────────── */
 export default function PatientListPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [sortBy, setSortBy] = useState('newest');
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [menuAnchor, setMenuAnchor] = useState<{ regid: number; el: HTMLButtonElement } | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [drawerRegid, setDrawerRegid] = useState<number | null>(null);
+  const [assignPkgPatient, setAssignPkgPatient] = useState<{ regid: number; name: string } | null>(null);
 
   const user = useAuthStore(s => s.user);
-  const rawRole = ((user as any)?.type || (user as any)?.role || (user as any)?.roleName || '').toLowerCase();
-  const isDoctor = rawRole === 'doctor' || rawRole === 'medical practitioner' || ((user as any)?.name || '').toLowerCase().startsWith('dr');
+  const token = useAuthStore(s => s.token);
 
-  const { data, isLoading } = usePatients({
-    page,
-    limit: PAGE_SIZE,
-    search: debouncedSearch,
-    doctorId: isDoctor ? (user as any)?.id : undefined
+  const { data, isLoading, refetch } = usePatients({
+    page, limit: pageSize, search: debouncedSearch,
+    clinicId: (user as any)?.contextId,
+    sortBy, sortOrder: sortBy === 'oldest' ? 'asc' : 'desc',
   });
+  const { data: meta } = usePatientFormMeta((user as any)?.contextId);
   const deleteMutation = useDeletePatient();
 
   const handleSearchChange = (val: string) => {
-    setSearch(val);
-    setPage(1);
+    setSearch(val); setPage(1);
     clearTimeout((window as any).__patientSearchTimer);
     (window as any).__patientSearchTimer = setTimeout(() => setDebouncedSearch(val), 300);
   };
 
-  const patients = useMemo(() => {
-    const list = data?.data || [];
-    if (sortBy === 'name') return [...list].sort((a, b) => a.fullName.localeCompare(b.fullName));
+  const patients = data?.data || [];
+  const totalEntries = data?.total || 0;
+  const totalPages = Math.ceil(totalEntries / pageSize);
 
-    if (sortBy === 'oldest') {
-      return [...list].sort((a, b) => {
-        const dateA = new Date(a.createdAt).getTime();
-        const dateB = new Date(b.createdAt).getTime();
-        if (dateA !== dateB) return dateA - dateB;
-        return a.regid - b.regid; // Fallback to regid
-      });
-    }
+  const closeMenu = useCallback(() => setMenuAnchor(null), []);
+  const toggleMenu = (regid: number, el: HTMLButtonElement) =>
+    setMenuAnchor(prev => (prev?.regid === regid ? null : { regid, el }));
 
-    if (sortBy === 'newest') {
-      return [...list].sort((a, b) => {
-        const dateA = new Date(a.createdAt).getTime();
-        const dateB = new Date(b.createdAt).getTime();
-        if (dateA !== dateB) return dateB - dateA;
-        return b.regid - a.regid; // Fallback to regid
-      });
-    }
+  const handleDelete = async (regid: number, name: string) => {
+    closeMenu();
+    if (!confirm(`Delete patient "${name}"? This cannot be undone.`)) return;
+    setDeletingId(regid);
+    try { await deleteMutation.mutateAsync(regid); refetch(); }
+    catch { alert('Failed to delete patient.'); }
+    finally { setDeletingId(null); }
+  };
 
-    return list;
-  }, [data?.data, sortBy]);
+  const doctorName = (p: PatientSummary) =>
+    meta?.doctors?.find(d => String(d.id) === String(p.doctorName))?.name || p.doctorName || '—';
 
-  const totalPages = Math.ceil((data?.total || 0) / PAGE_SIZE);
+  const renderMenuItems = (p: PatientSummary) => (
+    <>
+      <button className="appt-kebab-item" onClick={() => { setDrawerRegid(p.regid); setIsDrawerOpen(true); closeMenu(); }}>
+        <Edit2 size={14} /> Edit Patient
+      </button>
+      <button className="appt-kebab-item" onClick={() => { navigate(`/patients/${p.regid}`); closeMenu(); }}>
+        <Users size={14} /> Manage Family
+      </button>
+      <button className="appt-kebab-item" onClick={() => { openWhatsApp(p.phone, p.fullName); closeMenu(); }}>
+        <MessageCircle size={14} /> WhatsApp
+      </button>
+      <button className="appt-kebab-item" onClick={() => { window.open(`/api/medical-cases/remedy-chart/pdf/${p.regid}?token=${token}`, '_blank'); closeMenu(); }}>
+        <Printer size={14} /> Print Prescription
+      </button>
+      <button className="appt-kebab-item" onClick={() => { window.open(`/api/medical-cases/pdf/summary/${p.regid}?token=${token}`, '_blank'); closeMenu(); }}>
+        <Download size={14} /> Download Report
+      </button>
+      <div className="appt-kebab-divider" />
+      <button className="appt-kebab-item" style={{ color: 'var(--pp-blue)' }} onClick={() => { setAssignPkgPatient({ regid: p.regid, name: p.fullName }); closeMenu(); }}>
+        <Zap size={14} /> Assign Package
+      </button>
+      <div className="appt-kebab-divider" />
+      <button className="appt-kebab-item is-danger" onClick={() => handleDelete(p.regid, p.fullName)}>
+        <Trash2 size={14} /> Delete
+      </button>
+    </>
+  );
 
   return (
     <div className="pp-page-container animate-fade-in">
-      <div className="pp-page-header" style={{ marginBottom: '24px' }}>
+      {/* ── Hero Header ── */}
+      <div className="pp-page-hero">
         <div>
-          <h1 className="text-title" style={{ fontSize: '24px' }}>Patient Registry</h1>
-          <p className="text-subtitle">Access and manage comprehensive patient health records.</p>
+          <h1 className="pp-page-hero-title">
+            <ClipboardList size={22} strokeWidth={1.8} />
+            Patient Registry
+          </h1>
+          <p className="pp-page-hero-sub">Access and manage comprehensive patient health records.</p>
         </div>
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <div className="appt-view-toggle">
-            <button
-              type="button"
-              className={`appt-view-btn${viewMode === 'list' ? ' is-active' : ''}`}
-              onClick={() => setViewMode('list')}
-            >
-              <ListIcon size={14} /> List
+        <div className="pp-page-hero-actions">
+          <div className="appt-segmented-toggle">
+            <button type="button" className={`appt-segmented-btn ${viewMode === 'list' ? 'active' : ''}`} onClick={() => setViewMode('list')}>
+              <ListIcon size={16} /> List
             </button>
-            <button
-              type="button"
-              className={`appt-view-btn${viewMode === 'grid' ? ' is-active' : ''}`}
-              onClick={() => setViewMode('grid')}
-            >
-              <Grid size={14} /> Grid
+            <button type="button" className={`appt-segmented-btn ${viewMode === 'grid' ? 'active' : ''}`} onClick={() => setViewMode('grid')}>
+              <Grid size={16} /> Grid
             </button>
           </div>
-          <button className="btn-primary" onClick={() => navigate('/patients/add')}>
+          <button className="btn-primary" onClick={() => { setDrawerRegid(null); setIsDrawerOpen(true); }}>
             <Plus size={16} /> New Patient
           </button>
         </div>
       </div>
 
-      <div className="pp-card pp-filter-bar" style={{ marginBottom: '24px' }}>
-        <div className="pat-search-wrap">
-          <Search size={14} className="pat-search-icon" />
+      {/* ── Filter Card ── */}
+      <div className="pp-filter-card">
+        <div className="pp-filter-search-wrap">
+          <Search size={16} />
           <input
-            className="pp-input pat-search-input"
-            type="text"
-            placeholder="Search patients by name or phone..."
-            value={search}
-            onChange={(e) => handleSearchChange(e.target.value)}
+            className="pp-filter-search-input" type="text"
+            placeholder="Search patients by name, phone or registration ID..."
+            value={search} onChange={e => handleSearchChange(e.target.value)}
           />
         </div>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <span className="text-label">Sort By:</span>
-          <select
-            className="pp-select"
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            style={{ minWidth: '140px' }}
-          >
-            <option value="newest">Newest First</option>
-            <option value="oldest">Oldest First</option>
-            <option value="name">Alphabetical</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="pat-stats-row">
-        <span className="text-label">Registry Entries</span>
-        <span className="text-small">Showing {patients.length} of {data?.total || 0}</span>
-      </div>
-
-      {isLoading ? (
-        <div className="pp-card" style={{ padding: 0 }}>
-          <div className="pat-skeleton">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="pat-skeleton-row">
-                <div className="pat-skeleton-avatar" />
-                <div className="pat-skeleton-content">
-                  <div className="pat-skeleton-line" style={{ width: '40%' }} />
-                  <div className="pat-skeleton-line" style={{ width: '25%', marginTop: 4 }} />
-                </div>
-                <div className="pat-skeleton-line" style={{ width: '60px' }} />
-                <div className="pat-skeleton-line" style={{ width: '80px' }} />
-                <div className="pat-skeleton-line" style={{ width: '80px' }} />
-              </div>
-            ))}
+        <div className="pp-filter-controls">
+          <div className="pp-filter-group">
+            <span className="pp-filter-label">Sort:</span>
+            <select className="pp-select" style={{ minWidth: 150 }} value={sortBy} onChange={e => setSortBy(e.target.value)}>
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+            </select>
           </div>
         </div>
+      </div>
+
+      {/* ── Table Meta Row ── */}
+      <div className="pp-table-meta-row">
+        <div className="pp-table-meta-label">Registry Entries</div>
+        <div className="pp-table-meta-stats">Showing {patients.length} of {totalEntries} patients</div>
+      </div>
+
+      {/* Table Content */}
+      {isLoading ? (
+        <TableSkeleton rows={10} cols={6} />
       ) : patients.length === 0 ? (
-        <div className="pp-card pat-empty-state">
-          <p className="pat-empty-state-title">No patients found</p>
-          <p className="text-small">Try adjusting your search filters</p>
-        </div>
+        <EmptyState 
+          icon={ClipboardList}
+          title={debouncedSearch ? "No matches found" : "No patients registered"}
+          description={debouncedSearch ? `We couldn't find any patient matching "${debouncedSearch}".` : "Your clinic's patient registry is empty. Register your first patient to begin tracking clinical records."}
+          actionLabel={debouncedSearch ? "Clear Search" : "Register Patient"}
+          onAction={debouncedSearch ? () => handleSearchChange('') : () => { setDrawerRegid(null); setIsDrawerOpen(true); }}
+          variant="card"
+          className="my-8"
+        />
       ) : viewMode === 'list' ? (
-        <div className="pp-card pp-table-scroll" style={{ padding: 0 }}>
-          <table className="pp-table">
-            <thead>
-              <tr>
-                <th>Patient</th>
-                <th>RegID</th>
-                <th>Contact</th>
-                <th>City</th>
-                <th>Registered</th>
-                <th style={{ textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {patients.map((p: PatientSummary) => (
-                <tr key={p.regid} className="hover-row">
-                  <td>
-                    <div className="pat-member-row">
-                      <div className="pat-avatar">
-                        {(p.fullName?.[0] || '?').toUpperCase()}
-                      </div>
-                      <div>
-                        <div className="pat-member-name">{p.fullName || 'Unknown'}</div>
-                        <div className="text-small">{p.gender === 'M' ? 'Male' : p.gender === 'F' ? 'Female' : p.gender}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <span className="pp-mono" style={{ background: 'var(--pp-warm-2)', padding: '2px 6px', borderRadius: '4px', fontSize: '12px' }}>
-                      {p.regid}
-                    </span>
-                  </td>
-                  <td>{p.phone || '—'}</td>
-                  <td>{p.city || '—'}</td>
-                  <td className="text-small">{p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-GB') : '—'}</td>
-                  <td style={{ textAlign: 'right' }}>
-                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                      <Link to={`/patients/${p.regid}`} className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px' }}>
-                        <Eye size={14} /> View
-                      </Link>
-                      <Link to={`/patients/${p.regid}/edit`} className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', border: '1px solid var(--pp-warm-4)', color: 'var(--pp-text-2)' }}>
-                        <Edit2 size={14} />
-                      </Link>
-                    </div>
-                  </td>
+        <div className="pp-table-container-enhanced">
+          <div className="pp-table-scroll">
+            <table className="pp-table pat-main-table">
+              <colgroup>
+                <col style={{ width: '6%' }} />
+                <col style={{ width: '22%' }} />
+                <col style={{ width: '10%' }} />
+                <col style={{ width: '16%' }} />
+                <col style={{ width: '20%' }} />
+                <col style={{ width: '18%' }} />
+                <col style={{ width: '8%' }} />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th style={{ width: '40px' }}>#</th>
+                  <th>Patient</th>
+                  <th>RegID</th>
+                  <th>Contact</th>
+                  <th>Doctor Name</th>
+                  <th>Last Followup</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {patients.map((p: PatientSummary, idx: number) => (
+                  <tr key={p.regid} className="pp-hover-row">
+                    <td data-label="#">
+                      <div className="font-mono text-[11px] font-semibold color-muted opacity-60">
+                        {idx + 1 + (page - 1) * pageSize}
+                      </div>
+                    </td>
+                    <td data-label="Patient">
+                      <div className="pat-member-row">
+                        <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                          <Link to={`/medical-cases/${p.regid}`} className="appt-cell-name pp-clickable-name" style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {p.fullName || 'Unknown'}
+                          </Link>
+                          <div className="appt-cell-phone">{p.gender === 'M' ? 'Male' : p.gender === 'F' ? 'Female' : p.gender || '—'}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td data-label="RegID">
+                      <Link to={`/medical-cases/${p.regid}`} className="pp-regid-pill">
+                        #{p.regid}
+                      </Link>
+                    </td>
+                    <td data-label="Contact">
+                      <span className="appt-cell-name">{p.phone || '—'}</span>
+                    </td>
+                    <td data-label="Doctor Name">
+                      <span className="appt-cell-muted">{doctorName(p)}</span>
+                    </td>
+                    <td data-label="Last Followup">
+                      <div className="appt-cell-name">{p.lastVisit ? formatDate(p.lastVisit) : "No Followup"}</div>
+                      <div className="appt-cell-phone">Visit History</div>
+                    </td>
+                    <td data-label="Actions" style={{ textAlign: 'right' }}>
+                      <button
+                        className="appt-kebab-btn"
+                        onClick={e => toggleMenu(p.regid, e.currentTarget)}
+                        aria-label="Patient actions"
+                      >
+                        <MoreVertical size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       ) : (
-        <div className="pp-patient-grid">
+        /* ── GRID VIEW ── */
+        <div className="appt-card-grid">
           {patients.map((p: PatientSummary) => (
-            <div key={p.regid} className="pp-card pat-grid-card">
-              <div className="pat-grid-card-header">
-                <div className="pat-avatar pat-avatar--md">
-                  {(p.fullName?.[0] || '?').toUpperCase()}
-                </div>
+            <div key={p.regid} className="appt-card appt-grid-card">
+              <div className="appt-grid-card-header">
                 <div>
-                  <div className="pat-grid-card-name">{p.fullName}</div>
-                  <div className="pat-grid-card-regid">RegID: {p.regid}</div>
+                  <Link to={`/medical-cases/${p.regid}`} className="appt-grid-card-patient clickable-link">
+                    {p.fullName}
+                  </Link>
+                  <div className="appt-grid-card-phone">
+                    <Link to={`/medical-cases/${p.regid}`} className="clickable-link" style={{ color: 'inherit' }}>
+                      ID: {p.regid}
+                    </Link> • {p.phone || 'No phone'}
+                  </div>
+                </div>
+                <button
+                  className="appt-kebab-btn"
+                  onClick={e => toggleMenu(p.regid, e.currentTarget)}
+                  aria-label="Patient actions"
+                >
+                  <MoreVertical size={16} />
+                </button>
+              </div>
+              <div className="appt-grid-card-detail">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <MapPin size={14} /> {doctorName(p)}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Calendar size={14} /> Followup: {p.lastVisit ? formatDate(p.lastVisit) : "No Followup"}
                 </div>
               </div>
-
-              <div className="pat-grid-card-detail">
-                <div className="pat-grid-card-detail-row">
-                  <span className="pat-grid-card-detail-label"><Phone size={12} /> Phone</span>
-                  <span className="pat-grid-card-detail-value">{p.phone || '—'}</span>
-                </div>
-                <div className="pat-grid-card-detail-row">
-                  <span className="pat-grid-card-detail-label"><MapPin size={12} /> City</span>
-                  <span className="pat-grid-card-detail-value">{p.city || '—'}</span>
-                </div>
-                <div className="pat-grid-card-detail-row">
-                  <span className="pat-grid-card-detail-label"><Calendar size={12} /> Date</span>
-                  <span className="pat-grid-card-detail-value">{p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-GB') : '—'}</span>
-                </div>
+              <div className="appt-grid-card-actions-minimal">
+                <button className="appt-btn-minimal white-pill" style={{ flex: 1 }} onClick={() => openWhatsApp(p.phone, p.fullName)}>
+                  <MessageCircle size={14} /> Send WhatsApp Message
+                </button>
               </div>
-
-              <Link to={`/patients/${p.regid}`} className="btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>
-                View Details
-              </Link>
             </div>
           ))}
         </div>
       )}
 
-      {totalPages > 1 && (
-        <div className="pat-pagination">
-          <button
-            disabled={page <= 1}
-            onClick={() => setPage(p => p - 1)}
-            className="btn-secondary"
-            style={{ opacity: page <= 1 ? 0.5 : 1 }}
-          >
-            Previous
-          </button>
-          <span className="text-small">Page {page} of {totalPages}</span>
-          <button
-            disabled={page >= totalPages}
-            onClick={() => setPage(p => p + 1)}
-            className="btn-secondary"
-            style={{ opacity: page >= totalPages ? 0.5 : 1 }}
-          >
-            Next
-          </button>
-        </div>
+      {/* Portal dropdown — renders at body level, no clipping ever */}
+      {menuAnchor && (
+        <KebabMenuPortal anchorEl={menuAnchor.el} onClose={closeMenu}>
+          {renderMenuItems(patients.find((p: PatientSummary) => p.regid === menuAnchor.regid)!)}
+        </KebabMenuPortal>
+      )}
+
+      {totalEntries > 0 && (
+        <Pagination
+          currentPage={page} totalPages={totalPages}
+          pageSize={pageSize} totalItems={totalEntries}
+          onPageChange={setPage} onPageSizeChange={setPageSize}
+        />
+      )}
+
+      <PatientFormDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        regid={drawerRegid}
+        onSuccess={refetch}
+      />
+
+      {assignPkgPatient && (
+        <AssignPackageModal
+          isOpen={!!assignPkgPatient}
+          onClose={() => setAssignPkgPatient(null)}
+          patientId={assignPkgPatient.regid}
+          patientName={assignPkgPatient.name}
+        />
       )}
     </div>
   );

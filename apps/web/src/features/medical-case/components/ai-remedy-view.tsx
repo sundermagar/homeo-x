@@ -2,7 +2,8 @@ import React, { useMemo, useState } from 'react';
 import {
   Search, ChevronRight, ChevronDown, Activity,
   Plus, RotateCw, Microscope, Zap,
-  Folder, FolderOpen, FlaskConical, Network
+  Folder, FolderOpen, FlaskConical, Network, X,
+  Share2, MessageSquare, Printer
 } from 'lucide-react';
 import {
   useRemedyTree,
@@ -35,22 +36,26 @@ interface MatrixNodeProps {
   depth?: number;
   regid?: number;
   searchQuery?: string;
-  expandedId: number | null;
-  onExpand: (id: number | null) => void;
+  expandedIds: Set<string | number>;
+  onToggle: (id: string | number) => void;
+  onSelectPath?: (path: string) => void;
+  parentPath?: string;
 }
 
-function MatrixNode({ node, depth = 0, regid, searchQuery, expandedId, onExpand }: MatrixNodeProps) {
-  const isSearching = !!searchQuery;
-  const isManualOpen = expandedId === node.id;
-  const isOpen = isSearching || isManualOpen;
+function MatrixNode({ node, depth = 0, regid, searchQuery, expandedIds, onToggle, onSelectPath, parentPath = '' }: MatrixNodeProps) {
+  const isOpen = expandedIds.has(node.id);
 
-  const hasChildren = node.children && node.children.length > 0;
+  const currentPath = parentPath ? `${parentPath} > ${node.label}` : node.label;
 
-  // Heuristic for leaf remedy
-  const isRemedy = !hasChildren && (node.label.length < 25 && !node.label.includes('?'));
-
+  // Lazy load children
+  const { data: children, isLoading: loadingChildren } = useRemedyTree(isOpen ? node.id : -1);
   const { data: alternatives, isLoading: loadingAlts } = useRemedyAlternatives(isOpen ? node.id : null);
   const saveMutation = useSavePrescription();
+
+  const hasChildren = (children && children.length > 0) || node.nodeType === 'RUBRIC';
+
+  // Heuristic for leaf remedy
+  const isRemedy = !hasChildren && (node.label.length < 35 && !node.label.includes('?'));
 
   const handlePrescribe = async (remedy: string, potency: string | null) => {
     if (!regid) return;
@@ -62,39 +67,51 @@ function MatrixNode({ node, depth = 0, regid, searchQuery, expandedId, onExpand 
       potencyName: potency || '',
       frequencyName: 'TDS',
       days: 3,
-      notes: 'Added from Matrix Explorer'
+      notes: `Path: ${currentPath}`
     });
+  };
+
+  const handleNodeClick = () => {
+    if (hasChildren) {
+      onToggle(node.id);
+    }
+    if (onSelectPath) {
+      onSelectPath(currentPath);
+    }
   };
 
   // Depth-based design tokens
   const getColors = () => {
-    if (depth === 0) {
-      if (isOpen) {
-        return { bg: 'var(--primary-tint)', text: 'var(--primary)', border: 'var(--primary-border)' };
-      }
-      return { bg: 'var(--bg-card)', text: 'var(--text-main)', border: 'var(--border-main)' };
-    }
-    if (depth === 1) return { bg: 'var(--bg-card)', text: 'var(--text-main)', border: 'var(--border-main)' };
-    return { bg: 'var(--bg-surface-2)', text: 'var(--text-secondary)', border: 'transparent' };
+    if (depth === 0) return { 
+      bg: 'var(--pp-blue-faded)', 
+      border: 'var(--pp-blue-border)', 
+      text: 'var(--pp-blue)' 
+    };
+    if (depth === 1) return { 
+      bg: 'var(--pp-purple-faded)', 
+      border: 'var(--pp-purple)', 
+      text: 'var(--pp-purple)' 
+    };
+    return { bg: 'transparent', border: 'transparent', text: 'var(--text-main)' };
   };
   const colors = getColors();
 
   return (
-    <div className="mc-matrix-node-container" style={{ marginBottom: '8px' }}>
+    <div className="mc-matrix-node-container" style={{ marginBottom: '6px' }}>
       <div
         className={`mc-matrix-node-header ${isOpen ? 'is-open' : ''}`}
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '12px',
-          padding: depth === 0 ? '12px 16px' : '10px 14px',
+          gap: '10px',
+          padding: depth === 0 ? '8px 12px' : '6px 10px',
           background: colors.bg,
           border: `1px solid ${colors.border}`,
-          borderRadius: '12px',
+          borderRadius: '8px',
           cursor: hasChildren ? 'pointer' : 'default',
           color: colors.text
         }}
-        onClick={hasChildren ? () => onExpand(isManualOpen ? null : node.id) : undefined}
+        onClick={handleNodeClick}
       >
         <div style={{ width: 16, display: 'flex', justifyContent: 'center' }}>
           {hasChildren ? (
@@ -104,34 +121,35 @@ function MatrixNode({ node, depth = 0, regid, searchQuery, expandedId, onExpand 
           )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
           <div style={{
-            width: 28, height: 28, borderRadius: '8px',
+            width: 24, height: 24, borderRadius: '6px',
             background: 'var(--bg-card)', border: '1px solid var(--border-main)',
             display: 'flex', alignItems: 'center', justifyContent: 'center'
           }}>
             {hasChildren ? (
-              isOpen ? <FolderOpen size={14} /> : <Folder size={14} />
+              isOpen ? <FolderOpen size={12} /> : <Folder size={12} />
             ) : (
-              <FlaskConical size={12} />
+              <FlaskConical size={11} />
             )}
           </div>
-          <span style={{ fontSize: depth === 0 ? '0.9rem' : '0.82rem', fontWeight: depth === 0 ? 800 : 600 }}>
+          <span style={{ fontSize: depth === 0 ? '0.8rem' : '0.72rem', fontWeight: depth === 0 ? 700 : 500 }}>
             <Highlight text={node.label} query={searchQuery || ''} />
           </span>
         </div>
 
-        {hasChildren && (
+        {hasChildren && children && children.length > 0 && (
           <span className="mc-count" style={{ fontSize: '0.6rem', padding: '2px 8px', background: 'var(--bg-card)', borderRadius: '4px', border: '1px solid var(--border-main)' }}>
-          {node.children?.length ?? 0} Clusters
+            {children.length} {depth === 0 ? 'Categories' : 'Clusters'}
           </span>
         )}
 
-        {isRemedy && regid && (
+        {depth > 0 && (
           <button
             onClick={(e) => { e.stopPropagation(); handlePrescribe(node.label, null); }}
-            className="mc-btn-primary"
-            style={{ height: '24px', padding: '0 8px', fontSize: '0.65rem', borderRadius: '6px' }}
+            className="mc-action-circle"
+            style={{ width: '24px', height: '24px', marginLeft: 'auto' }}
+            title="Prescribe this rubric/remedy"
           >
             <Plus size={12} />
           </button>
@@ -147,11 +165,23 @@ function MatrixNode({ node, depth = 0, regid, searchQuery, expandedId, onExpand 
           flexDirection: 'column',
           gap: '6px'
         }}>
-          {node.children?.map(child => (
-            <MatrixNode key={child.id} node={child} depth={depth + 1} regid={regid} searchQuery={searchQuery} expandedId={expandedId} onExpand={onExpand} />
+          {loadingChildren && <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', padding: '4px' }}>Loading children...</div>}
+
+          {children?.map(child => (
+            <MatrixNode 
+              key={child.id} 
+              node={child} 
+              depth={depth + 1} 
+              regid={regid} 
+              searchQuery={searchQuery} 
+              expandedIds={expandedIds} 
+              onToggle={onToggle} 
+              onSelectPath={onSelectPath}
+              parentPath={currentPath}
+            />
           ))}
 
-          {loadingAlts && <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', padding: '4px' }}>Querying clinical matrix...</div>}
+          {/* {loadingAlts && <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', padding: '4px' }}>Querying clinical matrix...</div>} */}
 
           {alternatives && alternatives.length > 0 && (
             <div style={{ padding: '8px', background: 'var(--bg-surface-2)', borderRadius: '10px' }}>
@@ -181,81 +211,196 @@ function MatrixNode({ node, depth = 0, regid, searchQuery, expandedId, onExpand 
 
 export function AiRemedyView({ regid }: { regid?: number }) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [expandedId, setExpandedId] = useState<number | null>(null);
-  const { data: treeNodes, isLoading } = useRemedyTree();
+  const [expandedIds, setExpandedIds] = useState<Set<string | number>>(new Set());
+  const [selectedPath, setSelectedPath] = useState<string>('');
+  const { data: rootNodes, isLoading: loadingRoots } = useRemedyTree(0);
+  const { data: searchResults, isLoading: loadingSearch } = useRemedyTree(searchTerm ? 0 : -1, searchTerm);
 
-  const filteredNodes = useMemo(() => {
-    if (!searchTerm) return treeNodes || [];
-    const filter = (nodes: RemedyTreeNode[]): RemedyTreeNode[] => {
-      return nodes.reduce((acc: RemedyTreeNode[], n) => {
-        const matches = n.label.toLowerCase().includes(searchTerm.toLowerCase());
-        const childMatches = n.children ? filter(n.children) : [];
-        if (matches || childMatches.length > 0) {
-          acc.push({ ...n, children: childMatches.length > 0 ? childMatches : n.children });
-        }
-        return acc;
-      }, []);
+  // Auto-expand search results when they arrive
+  React.useEffect(() => {
+    if (searchTerm && searchResults) {
+      setExpandedIds(prev => {
+        const next = new Set(prev);
+        searchResults.forEach(node => next.add(node.id));
+        return next;
+      });
+    }
+  }, [searchResults, searchTerm]);
+
+  const toggleNode = (id: string | number) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const filteredNodes = searchTerm ? (searchResults || []) : (rootNodes || []);
+  const isLoading = searchTerm ? loadingSearch : loadingRoots;
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === '/' && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        const input = document.querySelector('.mc-search-input') as HTMLInputElement;
+        input?.focus();
+      }
     };
-    return filter(treeNodes || []);
-  }, [treeNodes, searchTerm]);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+
+  const handleWhatsAppShare = () => {
+    if (!selectedPath) return;
+    const text = encodeURIComponent(`Remedy Selection Path: ${selectedPath}`);
+    window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+  };
+
+  const handlePrintPath = () => {
+    if (!selectedPath) return;
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head><title>Remedy Path</title></head>
+          <body style="font-family: sans-serif; padding: 40px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #333; padding-bottom:10px; margin-bottom:20px;">
+              <h1 style="margin:0;">Clinical Remedy Selection</h1>
+              <p style="font-weight:bold; color:#666;">Date: ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+            </div>
+            <p style="font-size: 1.2rem; border: 1px solid #ddd; padding: 20px; border-radius: 8px; background:#f9f9f9;">
+              ${selectedPath}
+            </p>
+            <p style="color: #666; font-size: 0.8rem;">Generated from Homeo-X Clinical Matrix</p>
+            <script>window.print();</script>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+    }
+  };
 
   return (
-    <div className="mc-detail-page">
+    <div className="mc-detail-page" style={{ height: 'calc(100vh - 80px)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* Header with Back Button */}
-      <div className="mc-detail-header">
+      <div className="mc-detail-header" style={{ marginBottom: '4px', padding: '10px 16px' }}>
         <div className="mc-back-group">
-          {/* <button className="mc-back-btn" onClick={() => window.history.back()}>
-            <ChevronRight size={20} style={{ transform: 'rotate(180deg)' }} />
-          </button> */}
-          <div className="mc-divider-v" />
           <div>
-            <h1 className="mc-page-title">Remedy Explorer</h1>
-            <p className="mc-page-sub">Taxonomically mapped Materia Medica</p>
+            <h1 className="mc-page-title" style={{ fontSize: '1.15rem', marginBottom: '0' }}>Remedy Explorer</h1>
+            <p className="mc-page-sub" style={{ fontSize: '0.65rem' }}>Taxonomically mapped Materia Medica</p>
           </div>
         </div>
-        {regid && <span className="mc-active-badge">Active Session: #{regid}</span>}
+        {regid && <span className="mc-active-badge" style={{ padding: '2px 6px', fontSize: '0.6rem' }}>Active Session: #{regid}</span>}
       </div>
 
-      <div className="mc-matrix-layout">
+      <div className="mc-matrix-layout" style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
 
         {/* ── Left Column: Matrix Explorer ── */}
-        <div className="mc-matrix-main">
-          <div className="mc-remedy-header">
+        <div className="mc-matrix-main" style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg-card)', borderRadius: '12px', padding: '0', border: '1px solid var(--border-main)', boxShadow: 'var(--pp-premium-shadow)', overflow: 'hidden', height: '100%' }}>
+          <div className="mc-remedy-header" style={{ padding: '10px 16px', borderBottom: '1px solid var(--border-main)' }}>
             <div>
-              <h2 className="mc-title">Pharmacopoeia & Taxonomy Matrix</h2>
-              <p className="mc-subtitle">Hierarchical mapping of clinical remedies and therapeutic clusters</p>
+              <h2 className="mc-title" style={{ fontSize: '1rem', fontWeight: 800 }}>Pharmacopoeia & Taxonomy Matrix</h2>
+              <p className="mc-subtitle" style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Hierarchical mapping of remedies</p>
             </div>
+            {selectedPath && (
+              <div className="mc-breadcrumb-float">
+                <span className="mc-breadcrumb-text">{selectedPath}</span>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={handleWhatsAppShare} className="mc-action-circle" title="Share via WhatsApp">
+                    <MessageSquare size={14} />
+                  </button>
+                  <button onClick={handlePrintPath} className="mc-action-circle" title="Print Path">
+                    <Printer size={14} />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
-          <div className="mc-search-wrap" style={{ marginTop: '20px' }}>
-            <Search className="mc-search-icon" size={18} />
-            <input
-              type="text"
-              placeholder="Locate remedy family or taxonomy node..."
-              className="mc-search-input"
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-            />
+          <div className="mc-action-row" style={{ background: 'var(--bg-surface-2)', padding: '12px 16px', borderBottom: '1px solid var(--border-main)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="mc-search-wrap" style={{ 
+              position: 'relative', 
+              width: '100%', 
+              maxWidth: '360px',
+              height: '42px',
+              borderRadius: '10px',
+              background: 'var(--bg-card)',
+              border: '1.5px solid var(--border-main)',
+              boxShadow: 'var(--pp-shadow-sm)',
+              transition: 'all 0.2s ease'
+            }}>
+              <Search style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--pp-text-3)' }} size={16} />
+              <input
+                type="text"
+                placeholder="Locate clinical rubric or remedy..."
+                className="mc-search-input"
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                autoFocus
+                style={{ 
+                  width: '100%', 
+                  height: '100%', 
+                  padding: '0 40px 0 42px', 
+                  fontSize: '0.88rem', 
+                  fontWeight: 500,
+                  border: 'none',
+                  background: 'transparent',
+                  outline: 'none'
+                }}
+              />
+              {searchTerm && (
+                <button 
+                  className="mc-search-clear" 
+                  onClick={() => setSearchTerm('')}
+                  style={{ 
+                    position: 'absolute', 
+                    right: 12, 
+                    top: '50%', 
+                    transform: 'translateY(-50%)',
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--pp-text-4)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+            {searchTerm && (
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--pp-blue)', background: 'var(--pp-blue-tint)', padding: '4px 10px', borderRadius: '6px' }}>
+                {filteredNodes.length} matches identified
+              </div>
+            )}
           </div>
 
-          <div className="mc-matrix-tree">
+          <div className="mc-matrix-tree" style={{ flex: 1, overflowY: 'auto', paddingRight: '4px', marginTop: '8px', padding: '0 16px 16px' }}>
             {isLoading ? (
-              <div className="mc-loading">
-                <RotateCw size={32} className="mc-icon-spin" style={{ color: 'var(--primary)', marginBottom: '12px' }} />
-                <div style={{ fontWeight: 600 }}>Synthesizing knowledge nodes...</div>
+              <div style={{ padding: '40px', textAlign: 'center' }}>
+                <RotateCw className="animate-spin" size={24} style={{ color: 'var(--primary)', margin: '0 auto 12px' }} />
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                  {searchTerm ? 'Searching clinical matrix...' : 'Loading remedy hierarchy...'}
+                </p>
+              </div>
+            ) : filteredNodes.length === 0 ? (
+              <div className="mc-empty-state">
+                <Search size={32} style={{ opacity: 0.3, marginBottom: '12px' }} />
+                <p>{searchTerm ? 'No matches found in the matrix.' : 'No taxonomy data available.'}</p>
               </div>
             ) : (
               <>
                 {filteredNodes.map(node => (
-                  <MatrixNode key={node.id} node={node} regid={regid} searchQuery={searchTerm} expandedId={expandedId} onExpand={setExpandedId} />
+                  <MatrixNode 
+                    key={node.id} 
+                    node={node} 
+                    regid={regid} 
+                    searchQuery={searchTerm} 
+                    expandedIds={expandedIds} 
+                    onToggle={toggleNode} 
+                    onSelectPath={setSelectedPath}
+                  />
                 ))}
-                {filteredNodes.length === 0 && (
-                  <div className="mc-wip">
-                    <Microscope size={48} style={{ opacity: 0.2, marginBottom: '16px' }} />
-                    <div className="mc-wip-title">No Taxonomical Nodes Found</div>
-                    <p className="mc-wip-text">Try broadening your search or checking another directory</p>
-                  </div>
-                )}
               </>
             )}
           </div>

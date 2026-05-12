@@ -2,15 +2,16 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { usePatient, useCreatePatient, useUpdatePatient, usePatientFormMeta } from '../hooks/use-patients';
 import { NumericInput } from '@/shared/components/NumericInput';
+import { useAuthStore } from '@/shared/stores/auth-store';
 import '../styles/patients.css';
 
 
 const INDIAN_STATES = [
-  'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat',
-  'Haryana', 'Himachal Pradesh', 'Jammu & Kashmir', 'Jharkhand', 'Karnataka', 'Kerala',
-  'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha',
-  'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Tripura', 'Uttarakhand', 'Uttar Pradesh',
-  'West Bengal', 'Andaman & Nicobar', 'Chandigarh', 'Delhi', 'Puducherry',
+  'Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhattisgarh','Goa','Gujarat',
+  'Haryana','Himachal Pradesh','Jammu & Kashmir','Jharkhand','Karnataka','Kerala',
+  'Madhya Pradesh','Maharashtra','Manipur','Meghalaya','Mizoram','Nagaland','Odisha',
+  'Punjab','Rajasthan','Sikkim','Tamil Nadu','Tripura','Uttarakhand','Uttar Pradesh',
+  'West Bengal','Andaman & Nicobar','Chandigarh','Delhi','Puducherry',
 ];
 
 const INIT_FORM = {
@@ -18,7 +19,7 @@ const INIT_FORM = {
   phone: '', mobile1: '', mobile2: '', email: '',
   pin: '', address: '', road: '', area: '', city: '', state: 'Punjab', country: 'India', altAddress: '',
   religion: '', occupation: '', maritalStatus: '', bloodGroup: '',
-  referenceType: '', referenceTypeId: '' as string | number, referredBy: '', assistantDoctor: '', consultationFee: 500,
+  referenceType: '', referredBy: '', assistantDoctor: '', consultationFee: undefined as number | undefined,
   courierOutstation: false, dateOfBirth: '',
 };
 
@@ -26,11 +27,14 @@ export default function PatientFormPage() {
   const navigate = useNavigate();
   const { regid } = useParams();
   const isEdit = Boolean(regid);
+  
+  const { user } = useAuthStore();
+  const clinicId = user?.contextId;
 
   const [form, setForm] = useState(INIT_FORM);
   const [errors, setErrors] = useState<string[]>([]);
 
-  const { data: meta } = usePatientFormMeta();
+  const { data: meta } = usePatientFormMeta(clinicId);
   const { data: patient } = usePatient(Number(regid));
   const createMutation = useCreatePatient();
   const updateMutation = useUpdatePatient();
@@ -60,7 +64,6 @@ export default function PatientFormPage() {
         maritalStatus: patient.maritalStatus || '',
         bloodGroup: patient.bloodGroup || '',
         referenceType: patient.referenceType || '',
-        referenceTypeId: patient.referenceTypeId || '',
         referredBy: patient.referredBy || '',
         assistantDoctor: patient.assistantDoctor || '',
         consultationFee: patient.consultationFee || 500,
@@ -77,19 +80,19 @@ export default function PatientFormPage() {
 
     setForm(prev => {
       const next = { ...prev, [name]: val };
-
+      
+      // Auto-update consultation fee when doctor is selected
       if (name === 'assistantDoctor') {
-        const doc = meta?.doctors?.find(d => String(d.id) === value);
-        if (doc) {
-          next.consultationFee = Number(doc.consultationFee) || 0;
+        if (!value) {
+          next.consultationFee = undefined;
+        } else {
+          const doc = meta?.doctors?.find(d => String(d.id) === value);
+          if (doc) {
+            next.consultationFee = Number(doc.consultationFee) || 0;
+          }
         }
       }
-
-      if (name === 'referenceTypeId') {
-        const selected = meta?.referenceTypes.find(r => String(r.id) === value);
-        next.referenceType = selected?.name || '';
-      }
-
+      
       return next;
     });
   };
@@ -122,10 +125,6 @@ export default function PatientFormPage() {
   };
 
   const isSubmitting = createMutation.isPending || updateMutation.isPending;
-  
-  // Referrer name lookup with status handling
-  const referredById = Number(form.referredBy);
-  const { data: referrerPatient, isLoading: isReferrerLoading, isError: isReferrerError } = usePatient(referredById);
 
   return (
     <div className="pp-page-container animate-fade-in">
@@ -232,7 +231,7 @@ export default function PatientFormPage() {
               <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Road / Region</label>
               <input className="pp-input" name="road" value={form.road} onChange={handleChange} placeholder="Road / Region" />
             </div>
-            <div>
+             <div>
               <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Area / Sector</label>
               <input className="pp-input" name="area" value={form.area} onChange={handleChange} placeholder="Area" />
             </div>
@@ -283,47 +282,15 @@ export default function PatientFormPage() {
               </select>
             </div>
             <div>
-              <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Reference</label>
-              <select className="pp-select" name="referenceTypeId" value={form.referenceTypeId} onChange={handleChange}>
-                <option value="">Select Reference</option>
-                {(meta?.referenceTypes || []).map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-              </select>
+              <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Referred By (Patient ID)</label>
+              <input className="pp-input" name="referredBy" value={form.referredBy} onChange={handleChange} placeholder="Patient ID" />
             </div>
-            <div>
-              <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Referred By</label>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <input 
-                  className="pp-input" 
-                  style={{ width: '100px' }} 
-                  name="referredBy" 
-                  value={form.referredBy} 
-                  onChange={handleChange} 
-                  placeholder="ID" 
-                />
-                <div className="pp-input" style={{ 
-                  flex: 1, 
-                  background: 'var(--pp-warm-3)', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  color: referrerPatient ? 'var(--pp-blue)' : 'var(--text-muted)', 
-                  minHeight: '38px', 
-                  borderRadius: '8px', 
-                  padding: '0 12px',
-                  fontSize: '14px',
-                  fontWeight: referrerPatient ? 600 : 400
-                }}>
-                  {isReferrerLoading ? 'Searching...' : 
-                   referrerPatient ? `${referrerPatient.firstName} ${referrerPatient.surname}` : 
-                   (form.referredBy ? (isReferrerError ? 'Search Error' : 'Patient Not Found') : 'Enter Patient ID')}
-                </div>
-              </div>
-            </div>
-            {/* <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '8px' }}>
               <label className="text-body" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px' }}>
                 <input type="checkbox" name="courierOutstation" checked={form.courierOutstation} onChange={handleChange} style={{ width: '16px', height: '16px' }} />
                 Courier Outstation
               </label>
-            </div> */}
+            </div>
           </div>
 
           {/* Submit */}

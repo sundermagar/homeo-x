@@ -61,6 +61,7 @@ export const pdfHooks        = makeSettingsHooks<any>('pdf');
 export const messageHooks    = makeSettingsHooks<any>('message-templates');
 export const packageHooks    = makeSettingsHooks<any>('packages');
 export const courierHooks    = makeSettingsHooks<any>('couriers');
+export const stockHooks      = makeSettingsHooks<any>('stocks');
 
 export function useStockLogs(medicineId?: number) {
   return useQuery({
@@ -72,6 +73,34 @@ export function useStockLogs(medicineId?: number) {
     }
   });
 }
+
+export function useAddStock() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: { medicineId: number; quantity: number; changeType: string; reason?: string }) => {
+      const { data } = await apiClient.post('/settings/stock-logs', payload);
+      return data.data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['settings', 'stock-logs'] });
+      qc.invalidateQueries({ queryKey: ['settings', 'medicines'] });
+    }
+  });
+}
+
+export function useDeleteStockLog() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      await apiClient.delete(`/settings/stock-logs/${id}`);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['settings', 'stock-logs'] });
+    }
+  });
+}
+
+export const vaccineHooks    = makeSettingsHooks<any>('vaccines');
 
 // ─── Named convenience exports (recommended way to use) ───────────────────────
 export const { useList: useDepartments, useCreate: useCreateDepartment, useUpdate: useUpdateDepartment, useRemove: useDeleteDepartment } = departmentHooks;
@@ -88,3 +117,5 @@ export const { useList: usePdfSettings, useCreate: useCreatePdfSetting, useUpdat
 export const { useList: useMessageTemplates, useCreate: useCreateMessageTemplate, useUpdate: useUpdateMessageTemplate, useRemove: useDeleteMessageTemplate } = messageHooks;
 export const { useList: usePackagePlans, useCreate: useCreatePackagePlan, useUpdate: useUpdatePackagePlan, useRemove: useDeletePackagePlan } = packageHooks;
 export const { useList: useCouriers, useCreate: useCreateCourier, useUpdate: useUpdateCourier, useRemove: useDeleteCourier } = courierHooks;
+export const { useList: useStocks, useCreate: useCreateStock, useUpdate: useUpdateStock, useRemove: useDeleteStock } = stockHooks;
+export const { useList: useVaccines, useCreate: useCreateVaccine, useUpdate: useUpdateVaccine, useRemove: useDeleteVaccine } = vaccineHooks;

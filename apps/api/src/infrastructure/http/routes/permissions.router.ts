@@ -3,8 +3,8 @@ import type { Router as IRouter } from 'express';
 import type { Request, Response } from 'express';
 import { eq, and, isNull } from 'drizzle-orm';
 import * as schema from '@mmc/database';
-import { sendSuccess, sendError } from '../../../shared/response-formatter';
-import { authMiddleware } from '../middleware/auth';
+import { sendSuccess, sendError } from '../../../shared/response-formatter.js';
+import { authMiddleware } from '../middleware/auth.js';
 
 export const permissionsRouter: IRouter = Router();
 

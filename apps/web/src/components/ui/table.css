@@ -1,0 +1,79 @@
+/* ─── Table Component ─── */
+
+.ui-table-wrapper {
+  position: relative;
+  width: 100%;
+  overflow-x: auto;
+}
+
+.ui-table {
+  width: 100%;
+  caption-side: bottom;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.ui-table-header {
+  background-color: var(--bg-surface-2);
+}
+
+.ui-table-header .ui-table-row:hover {
+  background-color: transparent;
+}
+
+.ui-table-body .ui-table-row:last-child {
+  border-bottom: none;
+}
+
+.ui-table-footer {
+  background-color: var(--bg-surface-2);
+  font-weight: 500;
+}
+
+.ui-table-footer .ui-table-row:last-child {
+  border-bottom: none;
+}
+
+.ui-table-row {
+  border-bottom: 1px solid var(--border-default);
+  transition: background-color var(--transition-fast);
+}
+
+.ui-table-body .ui-table-row:hover {
+  background-color: var(--color-gray-50);
+}
+
+.ui-table-row[data-state="selected"] {
+  background-color: var(--color-primary-50);
+}
+
+.ui-table-head {
+  height: 2.5rem;
+  padding: 0 1rem;
+  text-align: left;
+  vertical-align: middle;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.ui-table-head[data-align="right"] {
+  text-align: right;
+}
+
+.ui-table-cell {
+  padding: 0.875rem 1rem;
+  vertical-align: middle;
+  color: var(--text-primary);
+}
+
+.ui-table-cell[data-align="right"] {
+  text-align: right;
+}
+
+.ui-table-caption {
+  margin-top: 1rem;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  text-align: center;
+}

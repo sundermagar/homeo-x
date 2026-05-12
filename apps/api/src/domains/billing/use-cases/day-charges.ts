@@ -1,4 +1,4 @@
-import type { DayChargeRepository } from '../ports/accounts.repository';
+import type { DayChargeRepository } from '../ports/accounts.repository.js';
 import type { CreateDayChargeInput, UpdateDayChargeInput } from '@mmc/validation';
 import type { DayCharge } from '@mmc/types';
 

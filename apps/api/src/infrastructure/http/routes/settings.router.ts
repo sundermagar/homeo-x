@@ -1,4 +1,5 @@
 import { Router, type Request, type Response } from 'express';
+import { sql } from 'drizzle-orm';
 import { asyncHandler } from '../middleware/async-handler.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
@@ -31,14 +32,61 @@ const createMedicineSchema = z.object({
   category: z.string().optional().nullable(),
   price: z.number().optional(),
   stockLevel: z.number().optional(),
+  snomedCodeId: z.number().optional().nullable(),
 });
 const updateMedicineSchema = createMedicineSchema.partial();
+
+const createStockSchema = z.object({
+  name: z.string().min(1).max(255),
+  description: z.string().optional().nullable(),
+  potency: z.string().optional().nullable(),
+  category: z.string().optional().nullable(),
+  quantity: z.number().optional(),
+  unitPrice: z.number().optional(),
+  batchNumber: z.string().optional().nullable(),
+  snomedCodeId: z.number().optional().nullable(),
+});
+const updateStockSchema = createStockSchema.partial();
+
+const createVaccineSchema = z.object({
+  label: z.string().min(1).max(255),
+  description: z.string().optional().nullable(),
+  months: z.number().optional().nullable(),
+  parentId: z.number().optional().nullable(),
+});
+const updateVaccineSchema = createVaccineSchema.partial();
+
+const ensuredTenants = new Set<string>();
+
+async function ensureSnomedColumnsExist(db: any, tenantId: string, logger: any) {
+  if (ensuredTenants.has(tenantId)) return;
+  try {
+    await db.execute(sql.raw(`
+      ALTER TABLE medicines ADD COLUMN IF NOT EXISTS snomed_code_id INTEGER;
+      ALTER TABLE stocks ADD COLUMN IF NOT EXISTS snomed_code_id INTEGER;
+    `));
+    ensuredTenants.add(tenantId);
+    logger.info({ tenantId }, 'SNOMED columns ensured in medicines and stocks');
+  } catch (err: any) {
+    logger.warn({ err: err.message, tenantId }, 'Failed to ensure SNOMED columns');
+    ensuredTenants.add(tenantId);
+  }
+}
 
 export function createSettingsRouter(): Router {
   const router = Router();
   router.use(authMiddleware);
 
   const logger = createLogger('settings-router');
+
+  // Self-healing: ensure SNOMED columns exist
+  router.use(asyncHandler(async (req: Request, _res: Response, next: any) => {
+    const db = (req as any).tenantDb;
+    const tenantId = (req as any).tenantId || (req as any).user?.contextId || 'default';
+    if (db) await ensureSnomedColumnsExist(db, tenantId, logger);
+    next();
+  }));
+
   const getRepo = (req: Request) => new SettingsRepositoryPg(req.tenantDb);
 
   // ─── Departments ─────────────────────────────────────────────────────────
@@ -319,6 +367,33 @@ export function createSettingsRouter(): Router {
 
 
 
+  // ─── Stocks (Inventory) ───────────────────────────────────────────────────
+  router.get('/stocks', asyncHandler(async (req: Request, res: Response) => {
+    const data = await getRepo(req).listStocks();
+    res.json({ success: true, data });
+  }));
+
+  router.get('/stocks/:id', asyncHandler(async (req: Request, res: Response) => {
+    const row = await getRepo(req).getStock(Number(req.params.id));
+    if (!row) { res.status(404).json({ success: false, error: 'Not found' }); return; }
+    res.json({ success: true, data: row });
+  }));
+
+  router.post('/stocks', validate(createStockSchema), asyncHandler(async (req: Request, res: Response) => {
+    const data = await getRepo(req).createStock(req.body);
+    res.status(201).json({ success: true, data });
+  }));
+
+  router.put('/stocks/:id', validate(updateStockSchema), asyncHandler(async (req: Request, res: Response) => {
+    const data = await getRepo(req).updateStock(Number(req.params.id), req.body);
+    res.json({ success: true, data });
+  }));
+
+  router.delete('/stocks/:id', asyncHandler(async (req: Request, res: Response) => {
+    await getRepo(req).deleteStock(Number(req.params.id));
+    res.json({ success: true });
+  }));
+
   // ─── Message Templates ────────────────────────────────────────────────────
   router.get('/message-templates', asyncHandler(async (req: Request, res: Response) => {
     const data = await getRepo(req).listMessageTemplates();
@@ -343,8 +418,70 @@ export function createSettingsRouter(): Router {
   // ─── Stock Logs ───────────────────────────────────────────────────────────
   router.get('/stock-logs', asyncHandler(async (req: Request, res: Response) => {
     const medicineId = req.query.medicineId ? Number(req.query.medicineId) : undefined;
-    const data = await getRepo(req).listStockLogs(medicineId);
+    const repo = getRepo(req);
+    // Auto-create table if missing
+    try {
+      await (repo as any).db.execute(sql`
+        CREATE TABLE IF NOT EXISTS stock_logs (
+          id SERIAL PRIMARY KEY,
+          medicine_id INTEGER NOT NULL,
+          change_type VARCHAR(50) NOT NULL,
+          quantity DECIMAL(10,2) NOT NULL,
+          previous_stock DECIMAL(10,2),
+          new_stock DECIMAL(10,2),
+          reason TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+    } catch (_) {}
+    const data = await repo.listStockLogs(medicineId);
     res.json({ success: true, data });
+  }));
+
+  router.post('/stock-logs', asyncHandler(async (req: Request, res: Response) => {
+    const { medicineId, quantity, changeType = 'INVENTORY_ADD', reason } = req.body;
+    if (!medicineId || !quantity) {
+      res.status(400).json({ success: false, error: 'medicineId and quantity are required' });
+      return;
+    }
+    const repo = getRepo(req);
+    // Ensure table exists
+    try {
+      await (repo as any).db.execute(sql`
+        CREATE TABLE IF NOT EXISTS stock_logs (
+          id SERIAL PRIMARY KEY,
+          medicine_id INTEGER NOT NULL,
+          change_type VARCHAR(50) NOT NULL,
+          quantity DECIMAL(10,2) NOT NULL,
+          previous_stock DECIMAL(10,2),
+          new_stock DECIMAL(10,2),
+          reason TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+    } catch (_) {}
+    // Get current medicine stock
+    const medicine = await repo.getMedicine(Number(medicineId));
+    const prevStock = medicine?.stockLevel ?? 0;
+    const delta = changeType === 'INVENTORY_ADD' ? Number(quantity) : -Number(quantity);
+    const newStock = Math.max(0, prevStock + delta);
+    // Update medicine stock level
+    await repo.updateMedicine(Number(medicineId), { stockLevel: newStock });
+    // Create log entry
+    const log = await repo.createStockLog({
+      medicineId: Number(medicineId),
+      changeType,
+      quantity: Math.abs(Number(quantity)),
+      previousStock: prevStock,
+      newStock,
+      reason: reason ?? null,
+    });
+    res.status(201).json({ success: true, data: log });
+  }));
+
+  router.delete('/stock-logs/:id', asyncHandler(async (req: Request, res: Response) => {
+    await getRepo(req).deleteStockLog(Number(req.params.id));
+    res.json({ success: true });
   }));
 
   // ─── Package Plans ────────────────────────────────────────────────────────
@@ -386,6 +523,33 @@ export function createSettingsRouter(): Router {
 
   router.delete('/couriers/:id', asyncHandler(async (req: Request, res: Response) => {
     await getRepo(req).deleteCourier(Number(req.params.id));
+    res.json({ success: true });
+  }));
+
+  // ─── Vaccines ─────────────────────────────────────────────────────────────
+  router.get('/vaccines', asyncHandler(async (req: Request, res: Response) => {
+    const data = await getRepo(req).listVaccines();
+    res.json({ success: true, data });
+  }));
+
+  router.get('/vaccines/:id', asyncHandler(async (req: Request, res: Response) => {
+    const row = await getRepo(req).getVaccine(Number(req.params.id));
+    if (!row) { res.status(404).json({ success: false, error: 'Not found' }); return; }
+    res.json({ success: true, data: row });
+  }));
+
+  router.post('/vaccines', validate(createVaccineSchema), asyncHandler(async (req: Request, res: Response) => {
+    const data = await getRepo(req).createVaccine(req.body);
+    res.status(201).json({ success: true, data });
+  }));
+
+  router.put('/vaccines/:id', validate(updateVaccineSchema), asyncHandler(async (req: Request, res: Response) => {
+    const data = await getRepo(req).updateVaccine(Number(req.params.id), req.body);
+    res.json({ success: true, data });
+  }));
+
+  router.delete('/vaccines/:id', asyncHandler(async (req: Request, res: Response) => {
+    await getRepo(req).deleteVaccine(Number(req.params.id));
     res.json({ success: true });
   }));
 

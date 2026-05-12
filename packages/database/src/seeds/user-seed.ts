@@ -1,6 +1,6 @@
 import { Role } from '@mmc/types';
-import { users } from '../schema/users';
-import type { DbClient } from '../client';
+import { users } from '../schema/users.js';
+import type { DbClient } from '../client.js';
 import { eq } from 'drizzle-orm';
 
 export async function seedUsers(db: DbClient) {
@@ -8,42 +8,28 @@ export async function seedUsers(db: DbClient) {
 
   const demoUsers = [
     {
-      email: 'superadmin@kreedhealth.com',
-      password: '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07xdM0ttR9i0NcMsuG', // password123
-      name: 'Super Admin Test',
-      type: 'SuperAdmin' as Role,
-      isActive: true,
-    },
-    {
-      email: 'admin@kreedhealth.com',
+      email: 'admin@kreed.health',
       password: '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07xdM0ttR9i0NcMsuG', // password123
       name: 'System Admin',
       type: Role.Admin,
       isActive: true,
     },
     {
-      email: 'clinicadmin@kreedhealth.com',
+      email: 'clinicadmin@kreed.health',
       password: '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07xdM0ttR9i0NcMsuG', // password123
       name: 'Clinic Manager',
-      type: 'Clinicadmin' as Role, // Using the exact string if Role enum doesn't map directly
+      type: 'Clinicadmin' as Role,
       isActive: true,
     },
     {
-      email: 'doctor@kreedhealth.com',
+      email: 'doctor@kreed.health',
       password: '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07xdM0ttR9i0NcMsuG', // password123
-      name: 'Dr. Aryan Sharma',
+      name: 'Dr. Demo',
       type: Role.Doctor,
       isActive: true,
     },
     {
-      email: 'meera@kreedhealth.com',
-      password: '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07xdM0ttR9i0NcMsuG', // password123
-      name: 'Dr. Meera Iyer',
-      type: Role.Doctor,
-      isActive: true,
-    },
-    {
-      email: 'receptionist@kreedhealth.com',
+      email: 'reception@kreed.health',
       password: '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07xdM0ttR9i0NcMsuG', // password123
       name: 'Front Desk',
       type: 'Receptionist' as Role,

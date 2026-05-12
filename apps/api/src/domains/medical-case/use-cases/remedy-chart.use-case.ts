@@ -9,6 +9,9 @@ export interface RemedyTreeNode {
   description: string | null;
   nodeType: string;
   sortOrder: number;
+  hindiLabel?: string;
+  gujratiLabel?: string;
+  marathiLabel?: string;
   children?: RemedyTreeNode[];
 }
 
@@ -20,7 +23,7 @@ export interface AlphabetGroup {
 export interface RemedyLookups {
   medicines: { id: number; name: string }[];
   potencies: { id: number; name: string }[];
-  frequencies: { id: number; name: string }[];
+  frequencies: { id: number; name: string; instruction: string }[];
 }
 
 export interface SavePrescriptionDto {
@@ -38,6 +41,7 @@ export interface SavePrescriptionDto {
   days?: number;
   instructions?: string;
   notes?: string;
+  deliveryMode?: string;  // 'clinic', 'courier', 'pickup'
 }
 
 // ─── Use Case ────────────────────────────────────────────────────────────────
@@ -45,31 +49,38 @@ export interface SavePrescriptionDto {
 export class RemedyChartUseCase {
   constructor(private readonly db: any) { }
 
-  private async _executeWithFallback(primary: Promise<any>, backup: Promise<any>) {
+  private async _executeWithFallback(primary: () => Promise<any>, backup: () => Promise<any>) {
     try {
-      return await primary;
-    } catch {
+      return await primary();
+    } catch (err) {
+      console.warn('Primary query failed, falling back to legacy:', err);
       try {
-        return await backup;
-      } catch {
+        return await backup();
+      } catch (backupErr) {
+        console.error('Backup query failed too:', backupErr);
         return [];
       }
     }
   }
 
   // ── 1. Full hierarchical tree (optionally filtered by label) ──
-  async getRemedyTree(label?: string): Promise<RemedyTreeNode[]> {
+  async getRemedyTree(parentId: number = 0, label?: string): Promise<RemedyTreeNode[]> {
     const rows = await this._executeWithFallback(
-      this.db.execute(sql`
-        SELECT id, parent_id, label, description, node_type, sort_order
+      () => this.db.execute(sql`
+        SELECT id, parent_id, label, description, node_type, sort_order,
+               hindi_label, gujrati_label, marathi_label
         FROM remedy_tree_nodes
         WHERE is_active = true
+          ${label ? sql`AND label ILIKE ${'%' + label + '%'}` : sql`AND parent_id = ${parentId}`}
         ORDER BY label ASC
       `),
-      this.db.execute(sql`
+      () => this.db.execute(sql`
         SELECT id, parent_id, label, description,
-               'RUBRIC' AS node_type, 0 AS sort_order
+               'RUBRIC' AS node_type, 0 AS sort_order,
+               hindi_label, gujrati_label, marathi_label
         FROM managetreedatas
+        WHERE 1=1
+          ${label ? sql`AND label ILIKE ${'%' + label + '%'}` : sql`AND parent_id = ${parentId}`}
         ORDER BY label ASC
       `)
     );
@@ -81,33 +92,30 @@ export class RemedyChartUseCase {
       description: r.description ?? null,
       nodeType: String(r.node_type ?? 'RUBRIC'),
       sortOrder: Number(r.sort_order ?? 0),
+      hindiLabel: r.hindi_label,
+      gujratiLabel: r.gujrati_label,
+      marathiLabel: r.marathi_label,
     }));
 
-    // Filter by label if provided
-    let needle = label?.trim() ?? '';
-    if (needle.includes('(')) {
-      const m = needle.match(/\(([^)]+)\)/);
-      if (m) needle = m[1] ?? needle;
-    }
-    const filtered = needle
-      ? flat.filter(n => n.label.toLowerCase() === needle.toLowerCase())
-      : flat;
-
-    return this._buildTree(filtered.length > 0 ? filtered : flat);
+    // For lazy loading, we don't build the tree deeply, 
+    // unless it's a search result (but for now we keep it simple)
+    return flat;
   }
 
   // ── 2. A-Z grouped index of root-level nodes ──
   async getTreeByAlphabet(): Promise<AlphabetGroup[]> {
     const rows = await this._executeWithFallback(
-      this.db.execute(sql`
-        SELECT id, parent_id, label, description, node_type, sort_order
+      () => this.db.execute(sql`
+        SELECT id, parent_id, label, description, node_type, sort_order,
+               hindi_label, gujrati_label, marathi_label
         FROM remedy_tree_nodes
         WHERE parent_id = 0 AND is_active = true
         ORDER BY label ASC
       `),
-      this.db.execute(sql`
+      () => this.db.execute(sql`
         SELECT id, parent_id, label, description,
-               'RUBRIC' AS node_type, 0 AS sort_order
+               'RUBRIC' AS node_type, 0 AS sort_order,
+               hindi_label, gujrati_label, marathi_label
         FROM managetreedatas
         WHERE parent_id = 0
         ORDER BY label ASC
@@ -125,6 +133,9 @@ export class RemedyChartUseCase {
         description: r.description ?? null,
         nodeType: String(r.node_type ?? 'RUBRIC'),
         sortOrder: Number(r.sort_order ?? 0),
+        hindiLabel: r.hindi_label,
+        gujratiLabel: r.gujrati_label,
+        marathiLabel: r.marathi_label,
       });
     }
 
@@ -138,13 +149,13 @@ export class RemedyChartUseCase {
   async filterTreeByLetter(letter: string): Promise<AlphabetGroup[]> {
     const safeLetter = letter.charAt(0).toUpperCase();
     const rows = await this._executeWithFallback(
-      this.db.execute(sql`
+      () => this.db.execute(sql`
         SELECT id, parent_id, label, description, node_type, sort_order
         FROM remedy_tree_nodes
         WHERE label ILIKE ${safeLetter + '%'} AND parent_id = 0 AND is_active = true
         ORDER BY label ASC
       `),
-      this.db.execute(sql`
+      () => this.db.execute(sql`
         SELECT id, parent_id, label, description,
                'RUBRIC' AS node_type, 0 AS sort_order
         FROM managetreedatas
@@ -168,13 +179,13 @@ export class RemedyChartUseCase {
   // ── 4. Alternative medicines for a tree node ──
   async getAlternatives(treeNodeId: number) {
     const rows = await this._executeWithFallback(
-      this.db.execute(sql`
+      () => this.db.execute(sql`
         SELECT id, tree_id, remedy, potency, notes, sort_order
         FROM remedy_alternatives
         WHERE tree_id = ${treeNodeId}
         ORDER BY remedy ASC
       `),
-      this.db.execute(sql`
+      () => this.db.execute(sql`
         SELECT id, tree_id, remedy, potency, notes, 0 AS sort_order
         FROM medicine_others
         WHERE tree_id = ${treeNodeId}
@@ -188,123 +199,165 @@ export class RemedyChartUseCase {
   async getRemedyLookups(): Promise<RemedyLookups> {
     const [medRows, potRows, freqRows] = await Promise.all([
       this._executeWithFallback(
-        this.db.execute(sql`
+        () => this.db.execute(sql`
           SELECT id, name FROM medicines WHERE deleted_at IS NULL ORDER BY name ASC
         `),
-        this.db.execute(sql`SELECT id, name FROM stocks WHERE deleted_at IS NULL ORDER BY name ASC`)
+        () => this.db.execute(sql`SELECT id, name FROM stocks WHERE deleted_at IS NULL ORDER BY name ASC`)
       ),
       this._executeWithFallback(
-        this.db.execute(sql`
+        () => this.db.execute(sql`
           SELECT id, name FROM potencies WHERE deleted_at IS NULL ORDER BY id ASC
         `),
-        this.db.execute(sql`SELECT id, name FROM potencies1 WHERE deleted_at IS NULL ORDER BY id ASC`)
+        () => this.db.execute(sql`SELECT id, name FROM potencies1 WHERE deleted_at IS NULL ORDER BY id ASC`)
       ),
-      this.db.execute(sql`
-        SELECT id, COALESCE(frequency, title) AS name
-        FROM case_frequency
-        WHERE deleted_at IS NULL
-        ORDER BY id ASC
-      `).catch(() => []),
+      this._executeWithFallback(
+        () => this.db.execute(sql`
+          SELECT id, title, frequency
+          FROM case_frequency
+          ORDER BY id ASC
+        `),
+        () => this.db.execute(sql`
+          SELECT id, title, frequency
+          FROM case_frequency
+          WHERE deleted_at IS NULL
+          ORDER BY id ASC
+        `)
+      ).catch(() => []),
     ]);
 
     return {
       medicines: (medRows as any[]).map(r => ({ id: Number(r.id), name: String(r.name) })),
       potencies: (potRows as any[]).map(r => ({ id: Number(r.id), name: String(r.name) })),
-      frequencies: (freqRows as any[]).map(r => ({ id: Number(r.id), name: String(r.name) })),
+      frequencies: (freqRows as any[]).map(r => ({
+        id: Number(r.id),
+        name: String(r.title || r.name || ''),
+        instruction: String(r.frequency || r.instruction || '')
+      })),
     };
   }
 
   // ── 6. Get all prescription rows for a patient ──
   async getPrescriptionsForPatient(regid: number) {
-    const caseRow = await this.db.execute(sql`
-      SELECT id FROM case_datas WHERE regid = ${regid} LIMIT 1
-    `).catch(() =>
-      this.db.execute(sql`
-        SELECT id FROM medicalcases WHERE regid = ${regid} LIMIT 1
-      `)
-    );
-
-    const caseId = (caseRow as any)[0] ? Number((caseRow as any)[0].id) : regid;
-
     const rows = await this.db.execute(sql`
       SELECT
         cp.id,
         cp.regid,
         cp.dateval,
         cp.todate,
-        cp.appremedy   AS remedy_name,
-        cp.apppotency  AS potency_name,
-        cp.appfrequency AS frequency_name,
-        cp.appdays     AS days,
-        cp.appnotes    AS notes,
-        cp.rxprescription AS prescription,
-        cp.created_at
+        COALESCE(cp.rxremedy, '') AS remedy_name,
+        COALESCE(cp.rxpotency, '') AS potency_name,
+        COALESCE(cp.rxfrequency, '') AS frequency_name,
+        COALESCE(cp.rxdays, '0') AS days,
+        COALESCE(cp.rxprescription, '') AS notes,
+        COALESCE(cp.rxprescription, '') AS prescription,
+        cp.created_at,
+        LOWER(COALESCE(cm.post_type, 'clinic')) AS "deliveryMode"
       FROM case_potencies cp
-      WHERE cp.regid = ${caseId}
-        AND cp.deleted_at IS NULL
+      LEFT JOIN courier_medicine cm ON cp.rand_id = cm.rand_id
+      WHERE cp.regid = ${regid}
+        AND (cp.deleted_at IS NULL OR cp.deleted_at = '')
       ORDER BY cp.id DESC
     `);
-
     return rows;
   }
 
   // ── 7. Upsert a prescription row ──
   async savePrescription(dto: SavePrescriptionDto): Promise<{ id: number }> {
-    const caseRow = await this.db.execute(sql`
-      SELECT id FROM case_datas WHERE regid = ${dto.regid} LIMIT 1
-    `).catch(() =>
-      this.db.execute(sql`
-        SELECT id FROM medicalcases WHERE regid = ${dto.regid} LIMIT 1
-      `)
-    );
-    const caseId = (caseRow as any)[0] ? Number((caseRow as any)[0].id) : dto.regid;
-
     const remedyName = dto.remedyName ?? '';
     const potencyName = dto.potencyName ?? '';
     const frequencyName = dto.frequencyName ?? '';
     const days = dto.days ?? 0;
-    const notes = dto.notes ?? '';
     const prescription = dto.instructions ?? '';
-    const clinicId = dto.clinicId ?? 0;
     const dateNow = new Date().toISOString().split('T')[0]!;
+    const regid = dto.regid;
+    const deliveryMode = dto.deliveryMode;
+    const visitId = dto.visitId || 0;
+
+    let prescriptionId: number;
+    let randId: string;
 
     if (dto.id) {
+      const existing = await this.db.execute(sql`SELECT rand_id FROM case_potencies WHERE id = ${dto.id}`);
+      randId = (existing as any[])[0]?.rand_id;
+
       await this.db.execute(sql`
         UPDATE case_potencies SET
-          appremedy    = ${remedyName},
-          apppotency   = ${potencyName},
-          appfrequency = ${frequencyName},
-          appdays      = ${days},
-          appnotes     = ${notes},
+          rxremedy      = ${remedyName},
+          rxpotency     = ${potencyName},
+          rxfrequency   = ${frequencyName},
+          rxdays        = ${String(days)},
           rxprescription = ${prescription},
-          updated_at   = NOW()
+          updated_at    = NOW()
         WHERE id = ${dto.id}
       `);
-      return { id: dto.id };
+      prescriptionId = dto.id;
     } else {
-      const randId = `${dateNow.replace(/-/g, '')}${caseId}`;
+      randId = `${dateNow.replace(/-/g, '')}${regid}`;
       const result = await this.db.execute(sql`
         INSERT INTO case_potencies (
-          rand_id, regid, clinic_id,
-          appremedy, apppotency, appfrequency, appdays,
-          appnotes, rxprescription,
+          rand_id, regid,
+          rxremedy, rxpotency, rxfrequency, rxdays,
+          rxprescription,
           dateval, todate, sdate, created_at, updated_at
         ) VALUES (
-          ${randId}, ${caseId}, ${clinicId},
-          ${remedyName}, ${potencyName}, ${frequencyName}, ${days},
-          ${notes}, ${prescription},
+          ${randId}, ${regid},
+          ${remedyName}, ${potencyName}, ${frequencyName}, ${String(days)},
+          ${prescription},
           ${dateNow}, ${dateNow}, ${dateNow}, NOW(), NOW()
         )
         RETURNING id
       `);
-      return { id: Number((result as any)[0].id) };
+      prescriptionId = Number((result as any)[0].id);
     }
+
+    // Upsert Delivery Mode if provided
+    if (deliveryMode && randId) {
+      if (deliveryMode === 'courier' || deliveryMode === 'pickup') {
+        const postType = deliveryMode === 'courier' ? 'Courier' : 'Pickup';
+        const isPickup = deliveryMode === 'pickup' ? 1 : 0;
+        
+        // Map columns correctly: case_id = patient regid, regid = internal case ID (visitId)
+        const patientRegid = regid;
+        const internalCaseId = visitId;
+
+        const check = await this.db.execute(sql`SELECT id FROM courier_medicine WHERE rand_id = ${randId}`);
+        if ((check as any[]) && (check as any[]).length > 0) {
+          await this.db.execute(sql`
+             UPDATE courier_medicine 
+             SET 
+               post_type = ${postType}, 
+               pickup = ${isPickup}, 
+               read_type = 'unread', 
+               remedy = ${remedyName},
+               potency = ${potencyName},
+               frequency = ${frequencyName},
+               days = ${String(days)},
+               updated_at = NOW() 
+             WHERE rand_id = ${randId}
+           `);
+        } else {
+          await this.db.execute(sql`
+             INSERT INTO courier_medicine (
+               case_id, regid, rand_id, currentdate, remedy, potency, frequency, days, post_type, pickup, read_type, is_assign, created_at, updated_at
+             ) VALUES (
+               ${patientRegid}, ${internalCaseId}, ${randId}, ${dateNow}, 
+               ${remedyName}, ${potencyName}, ${frequencyName}, ${String(days)},
+               ${postType}, ${isPickup}, 'unread', 0, NOW(), NOW()
+             )
+           `);
+        }
+      } else if (deliveryMode === 'clinic') {
+        await this.db.execute(sql`DELETE FROM courier_medicine WHERE rand_id = ${randId}`);
+      }
+    }
+
+    return { id: prescriptionId };
   }
 
   // ── 8. Soft-delete a prescription row ──
   async deletePrescription(id: number): Promise<void> {
     await this.db.execute(sql`
-      UPDATE case_potencies SET deleted_at = NOW() WHERE id = ${id}
+      UPDATE case_potencies SET deleted_at = NOW()::text WHERE id = ${id}
     `);
   }
 

@@ -8,7 +8,15 @@ const FAMILY_KEY = 'family-members';
 
 // ─── Patient Queries ───
 
-export function usePatients(params: { page?: number; limit?: number; search?: string; doctorId?: number }) {
+export function usePatients(params: { 
+  page?: number; 
+  limit?: number; 
+  search?: string; 
+  doctorId?: number; 
+  clinicId?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}) {
   return useQuery({
     queryKey: [PATIENTS_KEY, params],
     queryFn: async () => {
@@ -17,6 +25,9 @@ export function usePatients(params: { page?: number; limit?: number; search?: st
         limit: params.limit,
         search: params.search,
         doctor_id: params.doctorId,
+        clinicId: params.clinicId,
+        sortBy: params.sortBy,
+        sortOrder: params.sortOrder,
       };
       const res = await apiClient.get('/patients', { params: apiParams });
       return { 
@@ -31,20 +42,11 @@ export function usePatient(regid: number) {
   return useQuery({
     queryKey: [PATIENTS_KEY, regid],
     queryFn: async () => {
-      try {
-        const res = await apiClient.get<{ success: boolean; data: Patient }>(`/patients/${regid}`);
-        return res.data.data ?? null;
-      } catch (err: any) {
-        if (err.response?.status === 404) return null;
-        throw err;
-      }
+      const res = await apiClient.get<{ success: boolean; data: Patient }>(`/patients/${regid}`);
+      return res.data.data ?? null;
     },
     enabled: !!regid,
-    retry: (failureCount, error: any) => {
-      if (error.response?.status === 404) return false;
-      return failureCount < 3;
-    },
-    staleTime: 30000,
+    retry: false,
   });
 }
 
@@ -70,11 +72,13 @@ export function usePatientLookup(query: string) {
   });
 }
 
-export function usePatientFormMeta() {
+export function usePatientFormMeta(clinicId?: number) {
   return useQuery({
-    queryKey: [PATIENTS_KEY, 'meta'],
+    queryKey: [PATIENTS_KEY, 'meta', clinicId],
     queryFn: async () => {
-      const { data } = await apiClient.get<{ success: boolean; data: PatientFormMeta }>('/patients/meta/form');
+      const { data } = await apiClient.get<{ success: boolean; data: PatientFormMeta }>('/patients/meta/form', {
+        params: { clinicId }
+      });
       return data.data;
     },
     staleTime: 5 * 60 * 1000,
@@ -104,6 +108,8 @@ export function useUpdatePatient() {
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: [PATIENTS_KEY] });
       qc.invalidateQueries({ queryKey: [PATIENTS_KEY, vars.regid] });
+      qc.invalidateQueries({ queryKey: ['medical-case', 'full', vars.regid] });
+      qc.invalidateQueries({ queryKey: ['medical-case', 'full', String(vars.regid)] });
     },
   });
 }

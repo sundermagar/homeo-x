@@ -3,6 +3,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Search, Plus, ChevronRight, Power } from 'lucide-react';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { apiClient } from '@/infrastructure/api-client';
+import { useDoctorStatus, useUpdateDoctorStatus } from '@/features/dashboard/hooks/use-doctor-status';
+import { NotificationBell } from '@/components/shared/notification-bell';
 
 interface DashboardHeaderProps {
   onOpenPalette: () => void;
@@ -10,20 +12,20 @@ interface DashboardHeaderProps {
 
 // ─── Route → Title Mapping ────────────────────────────────────────────────────
 const ROUTE_TITLES: Record<string, string> = {
-  '/':                        'Dashboard',
-  '/patients':                'Patients',
-  '/patients/add':            'New Patient',
-  '/appointments':            'Appointments',
-  '/appointments/calendar':   'Calendar',
-  '/appointments/queue':      'Token Queue',
-  '/medical-cases':           'Medical Cases',
-  '/billing':                 'Billing',
-  '/payments':                'Payments',
-  '/analytics':               'Analytics',
-  '/communications':          'Communications',
-  '/packages':                'Packages',
-  '/platform/clinics':        'Clinics',
-  '/platform/accounts':       'Accounts',
+  '/': 'Dashboard',
+  '/patients': 'Patients',
+  '/patients/add': 'New Patient',
+  '/appointments': 'Appointments',
+  '/appointments/calendar': 'Calendar',
+  '/appointments/queue': 'Token Queue',
+  '/medical-cases': 'Medical Cases',
+  '/billing': 'Billing',
+  '/payments': 'Payments',
+  '/analytics': 'Analytics',
+  '/communications': 'Communications',
+  '/packages': 'Packages',
+  '/platform/clinics': 'Clinics',
+  '/platform/accounts': 'Accounts',
 };
 
 function getPageTitle(pathname: string): string {
@@ -49,60 +51,42 @@ function useFormattedDate(): string {
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 export function DashboardHeader({ onOpenPalette }: DashboardHeaderProps) {
-  const location     = useLocation();
-  const navigate     = useNavigate();
-  const { user }   = useAuthStore();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { user } = useAuthStore();
   const formattedDate = useFormattedDate();
 
-  const pageTitle  = getPageTitle(location.pathname);
-  const clinicName = user?.clinicName || 'Kreed.health Clinic';
+  const pageTitle = getPageTitle(location.pathname);
+  const clinicName = user?.clinicName || 'Kreed.health';
 
   const rawRole = ((user as any)?.type || (user as any)?.role || (user as any)?.roleName || '').toLowerCase();
   const isDoctor = rawRole === 'doctor' || rawRole === 'medical practitioner' || ((user as any)?.name || '').toLowerCase().startsWith('dr');
 
-  const [isDoctorActive, setIsDoctorActive] = useState<boolean>(true);
-  const [toggleLoading, setToggleLoading] = useState(false);
-
-  useEffect(() => {
-    if (isDoctor) {
-      apiClient.get<{ success: boolean; isActive: boolean }>('/doctors/status').then(({ data }) => {
-        if (typeof data.isActive === 'boolean') {
-          setIsDoctorActive(data.isActive);
-        }
-      }).catch(() => {});
-    }
-  }, [isDoctor]);
+  const { data: isDoctorActive = true, isLoading: statusLoading } = useDoctorStatus(isDoctor);
+  const updateStatus = useUpdateDoctorStatus();
 
   const toggleDoctorStatus = async () => {
-    setToggleLoading(true);
-    try {
-      const { data } = await apiClient.patch<{ success: boolean; isActive: boolean }>('/doctors/status', { isActive: !isDoctorActive });
-      if (data.success) {
-        setIsDoctorActive(data.isActive);
-      }
-    } catch (err) {
-      console.error('Failed to toggle status', err);
-    } finally {
-      setToggleLoading(false);
-    }
+    updateStatus.mutate(!isDoctorActive);
   };
+
+  const toggleLoading = updateStatus.isPending || statusLoading;
 
   return (
     <>
       <header className="dh-bar">
         {/* ── Left: Live Status + Page Title ── */}
         <div className="dh-left">
-          <div className="dh-live-badge" style={{ 
+          <div className="dh-live-badge" style={{
             '--badge-bg': isDoctor && !isDoctorActive ? 'var(--pp-danger-bg)' : 'var(--pp-success-bg)',
             '--badge-border': isDoctor && !isDoctorActive ? 'var(--pp-danger-border)' : 'rgba(34, 197, 94, 0.15)',
           } as any}>
-            <span className="dh-live-dot" style={{ 
+            <span className="dh-live-dot" style={{
               '--dot-color': isDoctor && !isDoctorActive ? 'var(--pp-danger-fg)' : 'var(--pp-success-fg)'
             } as any} />
-            <span className="dh-live-text" style={{ 
-              color: isDoctor && !isDoctorActive ? 'var(--pp-danger-fg)' : 'var(--pp-success-fg)' 
+            <span className="dh-live-text" style={{
+              color: isDoctor && !isDoctorActive ? 'var(--pp-danger-fg)' : 'var(--pp-success-fg)'
             }}>
-              {isDoctor ? (isDoctorActive ? 'Live' : 'Offline') : 'Live'}
+              {isDoctor ? (isDoctorActive ? 'Active' : 'Inactive') : 'Active'}
             </span>
           </div>
 
@@ -113,9 +97,11 @@ export function DashboardHeader({ onOpenPalette }: DashboardHeaderProps) {
           </div>
         </div>
 
-        {/* ── Right: Date, Command Palette trigger, Actions ── */}
+        {/* ── Right: Date, Notification, Command Palette trigger, Actions ── */}
         <div className="dh-right">
           <span className="dh-date">{formattedDate}</span>
+
+          <NotificationBell />
 
           {/* Command Palette Trigger */}
           <button

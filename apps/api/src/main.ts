@@ -1,18 +1,18 @@
-import './shared/config/load-env';
+import './shared/config/load-env.js';
 import type { Server } from 'node:http';
-import { createApp, runAdminBackfill } from './infrastructure/http/app';
-import { createLogger } from './shared/logger';
-import { appConfig } from './shared/config/app-config';
-import { aiConfig } from './shared/config/ai-config';
-import { AppointmentRepositoryPG } from './infrastructure/repositories/appointment.repository.pg';
-import { PatientRepositoryPg } from './infrastructure/repositories/patient.repository.pg';
-import { CommunicationRepositoryPG } from './infrastructure/repositories/communication.repository.pg';
-import { SendSmsUseCase } from './domains/communication/use-cases/send-sms.use-case';
-import { createSmsGateway } from './infrastructure/communication/msg91-sms-gateway';
-import { JobScheduler } from './infrastructure/scheduler/job-scheduler';
+import { createApp } from './infrastructure/http/app.js';
+import { createLogger } from './shared/logger.js';
+import { appConfig } from './shared/config/app-config.js';
+import { aiConfig } from './shared/config/ai-config.js';
+import { AppointmentRepositoryPG } from './infrastructure/repositories/appointment.repository.pg.js';
+import { PatientRepositoryPg } from './infrastructure/repositories/patient.repository.pg.js';
+import { CommunicationRepositoryPG } from './infrastructure/repositories/communication.repository.pg.js';
+import { SendSmsUseCase } from './domains/communication/use-cases/send-sms.use-case.js';
+import { createSmsGateway } from './infrastructure/communication/msg91-sms-gateway.js';
+import { JobScheduler } from './infrastructure/scheduler/job-scheduler.js';
 
 const logger = createLogger('main');
-logger.info('Reloading API server...');
+logger.info('Reloading API server... (port sync)');
 
 async function listenWithFallback(
   server: Server,
@@ -58,12 +58,9 @@ async function bootstrap() {
   logger.info(`CORS origins: ${appConfig.cors.origins.join(', ')}`);
   logger.info(`AI health: ${JSON.stringify(aiConfig.getHealthStatus())}`);
 
-  const { app, server, tenantDb, publicDb } = await createApp();
+  const { app, server, tenantDb } = await createApp();
   const boundPort = await listenWithFallback(server, appConfig.port);
   logger.info(`API server running on port ${boundPort}`);
-
-  // ─── Background Auth Sync ───
-  runAdminBackfill(publicDb).catch(err => logger.error({ err }, 'Admin backfill failed in background'));
 
   // ─── Initialize Background Jobs ───
   if (tenantDb) {

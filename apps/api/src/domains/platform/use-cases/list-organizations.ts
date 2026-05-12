@@ -1,4 +1,4 @@
-import type { OrganizationRepository } from '../ports/organization.repository';
+import type { OrganizationRepository } from '../ports/organization.repository.js';
 import type { Organization } from '@mmc/types';
 
 export class ListOrganizationsUseCase {

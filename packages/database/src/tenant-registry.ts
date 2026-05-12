@@ -41,10 +41,15 @@ export class TenantRegistry {
     ['gulf', { slug: 'gulf', schemaName: 'tenant_gulf', displayName: 'Gulf Clinic', isActive: true }],
     ['homeocare', { slug: 'homeocare', schemaName: 'tenant_homeocare', displayName: 'HomeoCAre Clinic', isActive: true }],
     ['hmc', { slug: 'hmc', schemaName: 'tenant_hmc', displayName: 'HMC Clinic', isActive: true }],
-    ['otamaclinic', { slug: 'otamaclinic', schemaName: 'tenant_otamamedical', displayName: 'Otama Medical', isActive: true }],
   ]);
 
+  private static ensureHardcodedLoaded(): void {
+    if (this.tenants.size > 0) return;
+    this.hardcodedTenants.forEach((v, k) => this.tenants.set(k, v));
+  }
+
   static resolve(host: string): TenantConfig | null {
+    this.ensureHardcodedLoaded();
     // Extract subdomain: "zirakpur.managemyclinic.in" → "zirakpur"
     const slug = host.split('.')[0]?.toLowerCase();
     if (!slug) return null;
@@ -52,6 +57,7 @@ export class TenantRegistry {
   }
 
   static getAll(): TenantConfig[] {
+    this.ensureHardcodedLoaded();
     return Array.from(this.tenants.values());
   }
 
@@ -61,28 +67,71 @@ export class TenantRegistry {
 
   static async initialize(db: any): Promise<void> {
     if (this.isInitialized) return;
-    
+
     // Start with hardcoded defaults
-    this.hardcodedTenants.forEach((v, k) => this.tenants.set(k, v));
+    this.ensureHardcodedLoaded();
 
     try {
       const { sql } = await import('drizzle-orm');
+      
+      // Load all tenant schemas that actually exist in PostgreSQL
+      const schemaRows = await db.execute(sql`
+        SELECT schema_name FROM information_schema.schemata 
+        WHERE schema_name LIKE 'tenant_%'
+      `);
+      const existingSchemas = new Set((schemaRows as any[]).map((r: any) => r.schema_name));
+      
       const orgs = await db.execute(sql`SELECT name, city FROM organizations WHERE deleted_at IS NULL`);
       
       for (const org of orgs) {
         const slug = org.name.toLowerCase().replace(/[^a-z0-9]/g, '');
         const schemaName = `tenant_${slug}`;
         
-        if (!this.tenants.has(slug)) {
-          this.tenants.set(slug, {
-            slug,
-            schemaName,
-            displayName: org.name,
-            isActive: true
-          });
+        if (existingSchemas.has(schemaName)) {
+          // Exact match: org name generates a slug that matches an existing schema
+          if (!this.tenants.has(slug)) {
+            this.tenants.set(slug, {
+              slug,
+              schemaName,
+              displayName: org.name,
+              isActive: true
+            });
+          }
+        } else {
+          // No exact match — the org name may have been changed after provisioning.
+          // Try to find a schema that starts with a similar prefix.
+          // e.g. org "nandaclinic" should match schema "tenant_nandaclininc" if that's
+          // the only close match.
+          const candidates = [...existingSchemas].filter(s => 
+            s.startsWith(`tenant_${slug.substring(0, Math.min(6, slug.length))}`) &&
+            !this.tenants.has(s.replace('tenant_', ''))
+          );
+          
+          if (candidates.length === 1) {
+            // Single close match found — register it
+            const matchedSchema = candidates[0]!;
+            console.log(`[TenantRegistry] Org "${org.name}" (slug: ${slug}) matched to existing schema: ${matchedSchema}`);
+            this.tenants.set(slug, {
+              slug,
+              schemaName: matchedSchema,
+              displayName: org.name,
+              isActive: true
+            });
+          } else {
+            // Register with the expected schema name anyway (it may be provisioned later)
+            if (!this.tenants.has(slug)) {
+              this.tenants.set(slug, {
+                slug,
+                schemaName,
+                displayName: org.name,
+                isActive: true
+              });
+            }
+          }
         }
       }
       this.isInitialized = true;
+      console.log(`[TenantRegistry] Initialized with ${this.tenants.size} tenants (${existingSchemas.size} schemas found)`);
     } catch (err) {
       console.error('[TenantRegistry] Failed to load organizations from database:', err);
     }
