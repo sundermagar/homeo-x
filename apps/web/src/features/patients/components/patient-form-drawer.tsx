@@ -2,9 +2,12 @@ import { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { usePatient, useCreatePatient, useUpdatePatient, usePatientFormMeta, usePatientLookup } from '../hooks/use-patients';
 import { useReferrals } from '../../settings/hooks/use-settings';
+import { useAvailableSlots, useCreateAppointment } from '../../appointments/hooks/use-appointments';
+import { useDoctors } from '../../appointments/hooks/use-doctors';
+import { VisitType } from '@mmc/types';
 import { NumericInput } from '@/shared/components/NumericInput';
 import { useAuthStore } from '@/shared/stores/auth-store';
-import { X } from 'lucide-react';
+import { X, Calendar as CalendarIcon, Clock, CheckCircle } from 'lucide-react';
 import '../styles/patients.css';
 
 const INDIAN_STATES = [
@@ -22,16 +25,22 @@ const INIT_FORM = {
   religion: '', occupation: '', maritalStatus: '', bloodGroup: '',
   referenceType: '', referredBy: '', assistantDoctor: '', consultationFee: undefined as number | undefined,
   courierOutstation: false, dateOfBirth: '',
+  // Appointment fields
+  bookingDate: new Date().toISOString().split('T')[0],
+  bookingTime: '',
+  visitType: VisitType.New,
+  notes: '',
 };
 
 interface PatientFormDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   regid?: number | null; // null for create, number for edit
+  unregisteredPatient?: any | null; // Data from shadow patient to convert
   onSuccess?: () => void;
 }
 
-export function PatientFormDrawer({ isOpen, onClose, regid, onSuccess }: PatientFormDrawerProps) {
+export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient, onSuccess }: PatientFormDrawerProps) {
   const isEdit = Boolean(regid);
   const { user } = useAuthStore();
   const clinicId = user?.contextId;
@@ -45,8 +54,18 @@ export function PatientFormDrawer({ isOpen, onClose, regid, onSuccess }: Patient
   const { data: patient } = usePatient(isEdit && regid ? Number(regid) : 0);
   const { data: refResults = [] } = usePatientLookup(refSearch);
   const { data: referrals = [] } = useReferrals();
+  const { data: doctors = [] } = useDoctors();
   const createMutation = useCreatePatient();
   const updateMutation = useUpdatePatient();
+  const createApptMutation = useCreateAppointment();
+
+  const { data: slots = [] } = useAvailableSlots(
+    form.assistantDoctor ? Number(form.assistantDoctor) : undefined,
+    form.bookingDate || undefined,
+  );
+
+  const selectedDoctor = doctors.find(d => String(d.id) === form.assistantDoctor);
+  const isDoctorInactive = selectedDoctor && selectedDoctor.isActive === false;
 
   useEffect(() => {
     if (isOpen) {
@@ -78,14 +97,55 @@ export function PatientFormDrawer({ isOpen, onClose, regid, onSuccess }: Patient
           assistantDoctor: patient.assistantDoctor || '',
           consultationFee: patient.consultationFee || 500,
           courierOutstation: patient.courierOutstation || false,
-          dateOfBirth: patient.dateOfBirth ? (new Date(String(patient.dateOfBirth)).toISOString().split('T')[0] ?? '') : '',
+          dateOfBirth: patient.dateOfBirth ? (() => {
+            const d = new Date(String(patient.dateOfBirth));
+            return isNaN(d.getTime()) ? '' : d.toISOString().split('T')[0];
+          })() : '',
+          // Reset appointment fields on edit for safety
+          bookingDate: new Date().toISOString().split('T')[0],
+          bookingTime: '',
+          visitType: VisitType.New,
+        });
+      } else if (unregisteredPatient) {
+        const latestAppt = unregisteredPatient.latestAppointment;
+        const nameParts = (unregisteredPatient.name || '').trim().split(' ');
+        const firstName = nameParts[0] || '';
+        const surname = nameParts.slice(1).join(' ') || '';
+        
+        // Ensure date is in YYYY-MM-DD format
+        let bDate = new Date().toISOString().split('T')[0];
+        if (latestAppt?.bookingDate) {
+          try {
+            const d = new Date(latestAppt.bookingDate);
+            if (!isNaN(d.getTime())) {
+              bDate = d.toISOString().split('T')[0];
+            }
+          } catch (e) {
+            console.warn('Invalid booking date from unregistered patient:', latestAppt.bookingDate);
+          }
+        }
+
+        setForm({
+          ...INIT_FORM,
+          firstName,
+          surname,
+          phone: unregisteredPatient.phone || '',
+          gender: (unregisteredPatient.gender || 'M') as any,
+          email: unregisteredPatient.email || '',
+          // Pre-fill appointment info if available
+          assistantDoctor: latestAppt?.doctorId ? String(latestAppt.doctorId) : '',
+          bookingDate: bDate,
+          bookingTime: latestAppt?.bookingTime || '',
+          visitType: (latestAppt?.visitType || VisitType.New) as any,
+          consultationFee: latestAppt?.consultationFee ? Number(latestAppt.consultationFee) : (latestAppt?.doctorId ? (meta?.doctors?.find(d => String(d.id) === String(latestAppt.doctorId))?.consultationFee || 500) : 500),
+          notes: latestAppt?.notes || '',
         });
       } else if (!isEdit) {
         setForm(INIT_FORM);
       }
       setErrors([]);
     }
-  }, [isOpen, isEdit, patient]);
+  }, [isOpen, isEdit, patient, unregisteredPatient, meta]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -130,7 +190,26 @@ export function PatientFormDrawer({ isOpen, onClose, regid, onSuccess }: Patient
         onSuccess?.();
         onClose();
       } else {
-        await createMutation.mutateAsync(form);
+        const patientResult = await createMutation.mutateAsync({
+           ...form,
+           unregisteredId: unregisteredPatient?.id
+        });
+        
+        // If a time slot is selected, book the appointment (Skip if we already have an unregistered patient as the backend links existing ones)
+        if (!unregisteredPatient && form.bookingTime && form.assistantDoctor && patientResult.regid) {
+          await createApptMutation.mutateAsync({
+            patientId: patientResult.regid,
+            patientName: `${form.firstName} ${form.surname}`.trim(),
+            phone: form.phone || form.mobile1,
+            doctorId: Number(form.assistantDoctor),
+            bookingDate: form.bookingDate!, // Guaranteed to have a default in INIT_FORM
+            bookingTime: form.bookingTime!, // Checked in condition above
+            visitType: form.visitType,
+            consultationFee: form.consultationFee || 0,
+            notes: 'Initial consultation booked during registration.',
+          });
+        }
+        
         onSuccess?.();
         onClose();
       }
@@ -148,7 +227,9 @@ export function PatientFormDrawer({ isOpen, onClose, regid, onSuccess }: Patient
       <div className="drawer-overlay" onClick={onClose} />
       <div className="drawer-panel">
         <div className="drawer-header">
-          <h2 className="drawer-title">{isEdit ? 'Edit Patient' : 'Register New Patient'}</h2>
+          <h2 className="drawer-title">
+            {isEdit ? 'Edit Patient' : unregisteredPatient ? 'Complete Registration' : 'Register New Patient'}
+          </h2>
           <button className="drawer-close" onClick={onClose}><X size={20} /></button>
         </div>
 
@@ -226,6 +307,69 @@ export function PatientFormDrawer({ isOpen, onClose, regid, onSuccess }: Patient
                   <NumericInput className="drawer-input" name="consultationFee" value={form.consultationFee} onChange={handleChange} />
                </div>
             </div>
+
+            {/* Appointment Booking Logic */}
+            {!isEdit && form.assistantDoctor && (
+              <div className="pat-appt-section animate-fade-in" style={{ marginTop: '12px', padding: '12px', background: 'var(--pp-bg-subtle)', borderRadius: '8px', border: '1px solid var(--pp-border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                  <CalendarIcon size={14} style={{ color: 'var(--pp-blue)' }} />
+                  <span style={{ fontWeight: 600, fontSize: '13px' }}>Book Appointment</span>
+                </div>
+
+                <div className="form-group">
+                  <label className="drawer-label">Booking Date</label>
+                  <input 
+                    className="drawer-input" 
+                    type="date" 
+                    name="bookingDate" 
+                    value={form.bookingDate} 
+                    onChange={handleChange}
+                    min={new Date().toISOString().split('T')[0]}
+                  />
+                </div>
+
+                <div className="form-group" style={{ marginTop: '12px' }}>
+                  <label className="drawer-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Clock size={13} /> Time Slot
+                  </label>
+                  
+                  {isDoctorInactive ? (
+                    <div className="pat-slots-unavailable" style={{ padding: '12px', textAlign: 'center', color: 'var(--pp-danger-fg)', background: 'var(--pp-danger-bg)', borderRadius: '6px', fontSize: '13px' }}>
+                      <span style={{ marginRight: '8px' }}>🔴</span>
+                      Doctor is currently inactive. You can still register the patient, but cannot book a slot.
+                    </div>
+                  ) : slots.length === 0 ? (
+                    <div className="pat-slots-hint" style={{ padding: '8px', textAlign: 'center', opacity: 0.6, fontSize: '12px' }}>
+                      Select a date to see available slots
+                    </div>
+                  ) : (
+                    <div className="pat-slots-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '8px', marginTop: '8px' }}>
+                      {slots.filter(s => !s.isPast || s.booked || s.time === form.bookingTime).map(slot => (
+                        <button
+                          key={slot.time}
+                          type="button"
+                          className={`pat-slot-btn ${form.bookingTime === slot.time ? 'selected' : slot.booked ? 'booked' : slot.isPast ? 'past' : 'available'}`}
+                          disabled={slot.booked || slot.isPast}
+                          onClick={() => setForm(f => ({ ...f, bookingTime: slot.time }))}
+                          style={{
+                            padding: '6px 4px',
+                            fontSize: '11px',
+                            borderRadius: '4px',
+                            border: '1px solid var(--pp-border)',
+                            background: form.bookingTime === slot.time ? 'var(--pp-blue)' : slot.booked ? 'var(--pp-bg-subtle)' : 'var(--pp-surface)',
+                            color: form.bookingTime === slot.time ? 'white' : slot.booked ? 'var(--pp-text-muted)' : 'var(--pp-text)',
+                            cursor: slot.booked || slot.isPast ? 'not-allowed' : 'pointer',
+                            opacity: slot.isPast ? 0.4 : 1
+                          }}
+                        >
+                          {slot.time}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Address */}
             <div className="form-group" style={{ marginTop: '8px' }}>
@@ -346,7 +490,7 @@ export function PatientFormDrawer({ isOpen, onClose, regid, onSuccess }: Patient
 
             <div className="form-group" style={{ marginTop: '24px' }}>
               <button className="drawer-submit-btn" type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Saving...' : (isEdit ? 'Update Patient' : 'Register Patient')}
+                {isSubmitting ? 'Saving...' : (isEdit ? 'Update Patient' : unregisteredPatient ? 'Complete Registration' : 'Register Patient')}
               </button>
             </div>
           </form>

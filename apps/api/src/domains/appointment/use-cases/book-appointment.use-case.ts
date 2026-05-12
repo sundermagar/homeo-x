@@ -18,28 +18,21 @@ export class BookAppointmentUseCase {
     if (!dto.bookingDate) return fail('Booking date is required', 'VALIDATION');
 
     let patientId = dto.patientId;
+    let unregisteredPatientId = dto.unregisteredPatientId;
 
-    // Auto-create patient if name/phone provided but no patientId (walk-in scenario)
-    if (!patientId && dto.patientName && dto.phone && this.patientRepo) {
-      const phoneOrMobile = dto.phone.trim();
-      const nameParts = dto.patientName.trim().split(/\s+/);
-      const firstName = nameParts[0] || dto.patientName.trim();
-      const surname = nameParts.slice(1).join(' ') || 'Patient';
-
-      const created = await this.patientRepo.create({
-        firstName,
-        surname,
-        phone: phoneOrMobile,
-        mobile1: phoneOrMobile,
-        gender: 'M',
-      } as any);
-
+    // Create unregistered patient if name provided but no patientId (quick-booking)
+    if (!patientId && !unregisteredPatientId && dto.patientName && this.patientRepo) {
+      const created = await this.patientRepo.createUnregistered({
+        name: dto.patientName,
+        phone: dto.phone,
+        clinicId: dto.clinicId,
+      });
       if (created) {
-        patientId = created.regid;
+        unregisteredPatientId = created.id;
       }
     }
 
-    const id = await this.repo.create({ ...dto, patientId });
+    const id = await this.repo.create({ ...dto, patientId, unregisteredPatientId });
 
     if (this.sms && dto.phone && dto.patientName) {
       this.sms.sendAppointmentConfirmation({

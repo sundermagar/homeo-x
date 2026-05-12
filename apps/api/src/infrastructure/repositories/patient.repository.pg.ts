@@ -9,7 +9,9 @@ import {
   appointments,
   referralSources,
   users,
-  medicalCases
+  medicalCases,
+  unregisteredPatients,
+  waitlist
 } from '@mmc/database/schema';
 import type { DbClient } from '@mmc/database';
 import type {
@@ -101,7 +103,14 @@ export class PatientRepositoryPg implements PatientRepository {
     }
 
     if (clinicId) {
-      conditions.push(eq(patients.clinicId, clinicId));
+      conditions.push(
+        or(
+          eq(patients.clinicId, clinicId),
+          isNull(patients.clinicId),
+          eq(patients.clinicId, 0),
+          eq(patients.clinicId, 1),
+        )!
+      );
     }
 
     const whereClause = and(...conditions);
@@ -126,7 +135,11 @@ export class PatientRepositoryPg implements PatientRepository {
       this.db
         .select({
           patient: patients,
-          doctorName: users.name,
+          doctorName: sql<string>`COALESCE(
+            (SELECT name FROM users WHERE id::text = TRIM(${patients.assistantDoctor}) LIMIT 1),
+            (SELECT name FROM doctors WHERE id::text = TRIM(${patients.assistantDoctor}) LIMIT 1),
+            ${patients.assistantDoctor}
+          )`,
           lastVisit: sql<Date>`(
             SELECT MAX(d) FROM (
               SELECT created_at as d FROM medicalcases WHERE regid = ${patients.regid} AND created_at IS NOT NULL
@@ -140,7 +153,6 @@ export class PatientRepositoryPg implements PatientRepository {
           )`
         })
         .from(patients)
-        .leftJoin(users, eq(patients.assistantDoctor, sql`CAST(${users.id} AS TEXT)`))
         .where(whereClause)
         .orderBy(orderBy)
         .limit(limit)
@@ -315,11 +327,18 @@ export class PatientRepositoryPg implements PatientRepository {
     }
 
     const rows = await this.db
-      .select()
+      .select({
+        patient: patients,
+        doctorName: sql<string>`COALESCE(
+          (SELECT name FROM users WHERE id::text = TRIM(${patients.assistantDoctor}) LIMIT 1),
+          (SELECT name FROM doctors WHERE id::text = TRIM(${patients.assistantDoctor}) LIMIT 1),
+          ${patients.assistantDoctor}
+        )`
+      })
       .from(patients)
       .where(and(...conditions))
       .limit(limit);
-    return rows.map(row => this.toSummary(row));
+    return rows.map(row => this.toSummary({ ...row.patient, doctorName: row.doctorName }));
   }
 
   async findBirthdays(mmdd: string, clinicId?: number): Promise<PatientSummary[]> {
@@ -333,10 +352,17 @@ export class PatientRepositoryPg implements PatientRepository {
     }
 
     const rows = await this.db
-      .select()
+      .select({
+        patient: patients,
+        doctorName: sql<string>`COALESCE(
+          (SELECT name FROM users WHERE id::text = TRIM(${patients.assistantDoctor}) LIMIT 1),
+          (SELECT name FROM doctors WHERE id::text = TRIM(${patients.assistantDoctor}) LIMIT 1),
+          ${patients.assistantDoctor}
+        )`
+      })
       .from(patients)
       .where(and(...conditions));
-    return rows.map(row => this.toSummary(row));
+    return rows.map(row => this.toSummary({ ...row.patient, doctorName: row.doctorName }));
   }
 
   async getFormMeta(clinicId?: number): Promise<PatientFormMeta> {
@@ -555,6 +581,137 @@ export class PatientRepositoryPg implements PatientRepository {
       .where(eq(familygroupsLegacy.id, id))
       .returning();
     return !!row;
+  }
+
+  async createUnregistered(data: { name: string; phone?: string; email?: string; gender?: string; clinicId?: number }): Promise<{ id: number; name: string }> {
+    const [row] = await this.db
+      .insert(unregisteredPatients)
+      .values({
+        name: data.name,
+        phone: data.phone || null,
+        email: data.email || null,
+        gender: data.gender || 'Other',
+        clinicId: data.clinicId || null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+    return { id: row!.id, name: row!.name };
+  }
+
+  async findUnregistered(params: { clinicId?: number; search?: string; limit?: number; offset?: number }): Promise<any[]> {
+    const conditions = [
+      isNull(unregisteredPatients.deletedAt),
+      isNull(unregisteredPatients.registeredPatientId) // Only show those not yet converted
+    ];
+    if (params.clinicId) {
+      conditions.push(
+        or(
+          eq(unregisteredPatients.clinicId, params.clinicId),
+          isNull(unregisteredPatients.clinicId),
+          eq(unregisteredPatients.clinicId, 0),
+          eq(unregisteredPatients.clinicId, 1),
+        )!
+      );
+    }
+    if (params.search) {
+      conditions.push(like(unregisteredPatients.name, `%${params.search}%`));
+    }
+
+    const query = this.db
+      .select({
+        unregistered: unregisteredPatients,
+        appointment: {
+          doctorId: appointments.doctorId,
+          doctorName: sql<string>`COALESCE(
+            (SELECT name FROM users WHERE id = ${appointments.doctorId}),
+            (SELECT name FROM doctors WHERE id = ${appointments.doctorId}),
+            'Practitioner'
+          )`,
+          bookingDate: appointments.bookingDate,
+          bookingTime: appointments.bookingTime,
+          visitType: appointments.visitType,
+          consultationFee: appointments.consultationFee,
+          notes: appointments.notes,
+        }
+      })
+      .from(unregisteredPatients)
+      .leftJoin(appointments, eq(unregisteredPatients.id, appointments.unregisteredPatientId))
+      .where(and(...conditions))
+      .orderBy(sql`${unregisteredPatients.id} DESC, ${appointments.id} DESC`);
+
+    if (params.limit !== undefined) {
+      query.limit(params.limit);
+    }
+    if (params.offset !== undefined) {
+      query.offset(params.offset);
+    }
+
+    const results = await query;
+
+    // Deduplicate in memory
+    const uniqueMap = new Map();
+    results.forEach(r => {
+      if (!uniqueMap.has(r.unregistered.id)) {
+        uniqueMap.set(r.unregistered.id, {
+          ...r.unregistered,
+          latestAppointment: (r.appointment && r.appointment.doctorId) ? r.appointment : null
+        });
+      }
+    });
+
+    return Array.from(uniqueMap.values());
+  }
+
+  async linkUnregisteredToFormal(unregisteredId: number, formalId: number): Promise<void> {
+    await this.db.transaction(async (tx) => {
+      // Get formal patient details to update linked records
+      const [formal] = await tx
+        .select({ 
+          firstName: patients.firstName, 
+          surname: patients.surname, 
+          phone: patients.phone,
+          mobile1: patients.mobile1,
+          assistantDoctor: patients.assistantDoctor
+        })
+        .from(patients)
+        .where(eq(patients.id, formalId))
+        .limit(1);
+
+      const fullName = `${formal?.firstName || ''} ${formal?.surname || ''}`.trim() || 'Unknown';
+      const contactPhone = formal?.mobile1 || formal?.phone || '';
+      const doctorId = formal?.assistantDoctor ? Number(formal.assistantDoctor) : null;
+
+      // 1. Mark as registered
+      await tx
+        .update(unregisteredPatients)
+        .set({ registeredPatientId: formalId, updatedAt: new Date() })
+        .where(eq(unregisteredPatients.id, unregisteredId));
+
+      // 2. Update appointments
+      await tx
+        .update(appointments)
+        .set({ 
+          patientId: formalId, 
+          unregisteredPatientId: null,
+          patientName: fullName,
+          phone: contactPhone,
+          doctorId: doctorId || undefined,
+          updatedAt: new Date()
+        })
+        .where(eq(appointments.unregisteredPatientId, unregisteredId));
+
+      // 3. Update waitlist
+      await tx
+        .update(waitlist)
+        .set({ 
+          patientId: formalId, 
+          unregisteredPatientId: null,
+          doctorId: doctorId || undefined,
+          updatedAt: new Date()
+        })
+        .where(eq(waitlist.unregisteredPatientId, unregisteredId));
+    });
   }
 
   private toDomain(row: any): Patient {

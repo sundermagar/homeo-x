@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, text, varchar, date, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, serial, integer, text, varchar, date, timestamp, index } from 'drizzle-orm/pg-core';
 
 export const patients = pgTable('case_datas', {
   id: serial('id').primaryKey(),
@@ -52,4 +52,27 @@ export const patients = pgTable('case_datas', {
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
   deletedAt: timestamp('deleted_at'),
+});
+
+export const unregisteredPatients = pgTable('unregistered_patients', {
+  id: serial('id').primaryKey(),
+  clinicId: integer('clinic_id'),
+  name: varchar('name', { length: 255 }).notNull(),
+  phone: varchar('phone', { length: 50 }),
+  email: varchar('email', { length: 255 }),
+  gender: varchar('gender', { length: 20 }),
+  
+  // Link to formal patient record after registration
+  registeredPatientId: integer('registered_patient_id'),
+  
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  deletedAt: timestamp('deleted_at'),
+}, (table) => {
+  return {
+    clinicIdx: index('unreg_clinic_idx').on(table.clinicId),
+    nameIdx: index('unreg_name_idx').on(table.name),
+    regIdIdx: index('unreg_reg_id_idx').on(table.registeredPatientId),
+    deletedIdx: index('unreg_deleted_idx').on(table.deletedAt),
+  };
 });

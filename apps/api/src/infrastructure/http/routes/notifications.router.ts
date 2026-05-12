@@ -108,6 +108,20 @@ export function createNotificationsRouter(): Router {
     } catch (err) { next(err); }
   });
 
+  // DELETE /api/notifications/delete-all
+  router.delete('/delete-all', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const db = getDb(req);
+      const user = (req as any).user;
+      if (!user) { res.status(401).json(fail('Unauthorized')); return; }
+      if (!db)   { res.status(500).json(fail('DB not initialized')); return; }
+
+      const repo = new NotificationsRepositoryPg(db);
+      const success = await repo.deleteAllNotifications(user.id);
+      res.json(ok({ success }));
+    } catch (err) { next(err); }
+  });
+
   // DELETE /api/notifications/:id
   router.delete('/:id', async (req: Request, res: Response, next: NextFunction) => {
     try {

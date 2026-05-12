@@ -35,7 +35,7 @@ export class QueueManagementUseCase {
     return ok(list);
   }
 
-  async addToWaitlist(dto: { patientId?: number; appointmentId?: number; doctorId?: number; consultationFee?: number; clinicId?: number }): Promise<Result<{ waitingNumber: number }>> {
+  async addToWaitlist(dto: { patientId?: number; appointmentId?: number; unregisteredPatientId?: number; doctorId?: number; consultationFee?: number; clinicId?: number }): Promise<Result<{ waitingNumber: number }>> {
     const waitingNumber = await this.repo.addToWaitlist(dto);
 
     if (this.notifRepo && dto.doctorId) {
