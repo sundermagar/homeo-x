@@ -79,6 +79,36 @@ export function usePrescriptionWorkflow(regid: number, visitId?: number) {
     }
   };
 
+  const repeatRx = async (rx: any) => {
+    if (!regid || !rx) return;
+    const repeatData = {
+      remedyName: rx.remedy_name || rx.remedyName || '',
+      potencyName: rx.potency_name || rx.potencyName || '',
+      frequencyName: rx.frequency_name || rx.frequencyName || '',
+      days: Number(rx.days) || 0,
+      instructions: rx.prescription || rx.notes || rx.instructions || '',
+      notes: rx.notes || ''
+    };
+
+    setForm(repeatData);
+    setActiveTab('rx');
+    setManualInstruction(true);
+
+    try {
+      const res = await saveMutation.mutateAsync({
+        regid,
+        visitId,
+        deliveryMode: delivery,
+        ...repeatData
+      });
+      if (res && typeof res === 'object' && 'id' in res) {
+        setEditingId(Number(res.id));
+      }
+    } catch (err) {
+      console.error('Failed to repeat Rx:', err);
+    }
+  };
+
   // Debounced auto-save
   useEffect(() => {
     if (!editingId || !regid) return;
@@ -110,6 +140,7 @@ export function usePrescriptionWorkflow(regid: number, visitId?: number) {
     manualInstruction,
     setManualInstruction,
     startNewRx,
+    repeatRx,
     saveMutation,
     deleteMutation,
     activeTab,

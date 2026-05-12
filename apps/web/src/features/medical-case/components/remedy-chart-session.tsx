@@ -56,11 +56,12 @@ export function RemedyChartSession({
   dayCharges: any[],
   selectedDate?: string | null
 }) {
+  const formRef = useRef<HTMLDivElement>(null);
   const {
     history, isLoading, isRxToday, firstRxOfToday,
     form, setForm, editingId, setEditingId,
     delivery, setDelivery, manualInstruction, setManualInstruction,
-    startNewRx, saveMutation, deleteMutation,
+    startNewRx, repeatRx, saveMutation, deleteMutation,
     activeTab, setActiveTab
   } = workflow;
 
@@ -78,13 +79,13 @@ export function RemedyChartSession({
     setExpandedDates(next);
   };
 
-  const totalPages = Math.ceil((history?.length || 0) / pageSize);
-  const startIndex = (currentPage - 1) * pageSize;
-  const currentHistory = history?.slice(startIndex, startIndex + pageSize) || [];
-
-  const groupedHistory = useMemo(() => {
+  // 1. Group all history items by date FIRST for accurate daily pagination
+  const allGroupedHistory = useMemo(() => {
+    if (!history) return [];
     const groups: { date: string; items: any[] }[] = [];
-    currentHistory.forEach(rx => {
+    
+    // History is assumed to be sorted by date DESC from the API
+    history.forEach(rx => {
       const dateVal = rx.created_at || rx.dateval;
       if (!dateVal) return;
       const date = new Date(dateVal).toDateString();
@@ -102,7 +103,13 @@ export function RemedyChartSession({
     });
 
     return groups;
-  }, [currentHistory]);
+  }, [history]);
+
+  // 2. Paginate the date groups
+  const totalItems = allGroupedHistory.length;
+  const totalPages = Math.ceil(totalItems / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const groupedHistory = allGroupedHistory.slice(startIndex, startIndex + pageSize);
 
   const dayOptions = useMemo(() => {
     return dayCharges.map((dc: any) => String(dc.days)).filter(Boolean);
@@ -112,6 +119,21 @@ export function RemedyChartSession({
     if (!form.days) return null;
     return dayCharges.find((dc: any) => String(dc.days) === String(form.days));
   }, [form.days, dayCharges]);
+
+  // Click outside to hide Rx form
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (activeTab === 'rx' && formRef.current && !formRef.current.contains(event.target as Node)) {
+        // Only hide if we aren't clicking an action button that would re-open it
+        const target = event.target as HTMLElement;
+        if (!target.closest('.mc-tab-btn-premium') && !target.closest('.mc-action-btn')) {
+          setActiveTab(null);
+        }
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [activeTab, setActiveTab]);
 
   useEffect(() => {
     if (onDayChargeChange && selectedDayCharge) {
@@ -137,44 +159,16 @@ export function RemedyChartSession({
 
   const handleRepeat = () => {
     if (!history || history.length === 0) return alert('No previous prescription to repeat.');
-    if (isRxToday) {
-      setShowRepeatWarning(true);
-      return;
-    }
     const lastRx = history[0];
     if (!lastRx) return;
-    setManualInstruction(true);
-    setEditingId(null);
-    setForm({
-      remedyName: lastRx.remedy_name,
-      potencyName: lastRx.potency_name,
-      frequencyName: lastRx.frequency_name,
-      days: Number(lastRx.days) || 0,
-      instructions: lastRx.prescription || lastRx.notes || '',
-      notes: lastRx.notes || ''
-    });
-    setActiveTab('rx');
+    repeatRx(lastRx);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Removed duplicate startNewRx and auto-save useEffect as they are now provided by the workflow hook
 
   const handleRepeatRow = (rx: PrescriptionRow) => {
-    if (isRxToday) {
-      setShowRepeatWarning(true);
-      return;
-    }
-    setActiveTab('rx');
-    setManualInstruction(true);
-    setEditingId(null);
-    setForm({
-      remedyName: rx.remedy_name,
-      potencyName: rx.potency_name,
-      frequencyName: rx.frequency_name,
-      days: Number(rx.days) || 0,
-      instructions: rx.prescription || rx.notes || '',
-      notes: rx.notes || ''
-    });
+    repeatRx(rx);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -232,8 +226,22 @@ export function RemedyChartSession({
         <div style={{ padding: '16px 24px' }}>
           {/* Inline Form - Only visible when Rx tab is active */}
           {activeTab === 'rx' && (
-            <>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: '16px', alignItems: 'flex-start', marginBottom: '24px' }}>
+            <div ref={formRef} className="animate-slide-in-top" style={{ 
+              background: 'var(--pp-blue-faded)', 
+              borderRadius: '16px', 
+              padding: '20px', 
+              marginBottom: '24px', 
+              border: '1.5px solid var(--pp-blue-border)',
+              position: 'relative',
+              boxShadow: '0 10px 25px -5px rgba(37, 99, 235, 0.1)'
+            }}>
+              <button 
+                onClick={() => setActiveTab(null)}
+                style={{ position: 'absolute', right: '12px', top: '12px', background: 'transparent', border: 'none', color: 'var(--pp-blue)', cursor: 'pointer', opacity: 0.6 }}
+              >
+                <X size={18} />
+              </button>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: '16px', alignItems: 'flex-start', marginBottom: '16px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-ink)' }}>Remedy:</label>
                   <SearchableSelect
@@ -360,14 +368,14 @@ export function RemedyChartSession({
                   />
                 </div>
               </div>
-            </>
+            </div>
           )}
 
           <div className="pp-card pp-table-scroll" style={{ padding: 0, borderRadius: '12px', border: '1px solid #bfdbfe' }}>
             <div style={{ padding: '12px 16px', background: 'var(--pp-blue-faded)', borderBottom: '1px solid var(--pp-blue-border)', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <BookOpen size={15} style={{ color: 'var(--pp-blue)' }} />
               <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--pp-blue)' }}>Prescription History</span>
-              <span style={{ fontSize: '0.72rem', color: 'var(--pp-text-3)', fontWeight: 600, marginLeft: '4px' }}>({history?.length || 0})</span>
+              <span style={{ fontSize: '0.72rem', color: 'var(--pp-text-3)', fontWeight: 600, marginLeft: '4px' }}>({allGroupedHistory.length || 0} Sessions)</span>
             </div>
             {isLoading ? (
               <TableSkeleton rows={5} cols={8} />
@@ -404,7 +412,10 @@ export function RemedyChartSession({
                               borderLeft: isRowSelected ? '4px solid var(--pp-blue)' : (idx > 0 ? '3px solid #e2e8f0' : 'none'),
                               transition: 'all 0.2s'
                             }}
-                            onClick={() => onSelectDate?.(rx.created_at || rx.createdAt || rx.dateval)}
+                            onClick={() => {
+                              onSelectDate?.(rx.created_at || rx.createdAt || rx.dateval);
+                              if (activeTab === 'rx') setActiveTab(null);
+                            }}
                           >
                             <td>
                               {idx === 0 ? (
@@ -525,7 +536,7 @@ export function RemedyChartSession({
             currentPage={currentPage}
             totalPages={totalPages}
             pageSize={pageSize}
-            totalItems={history?.length || 0}
+            totalItems={totalItems}
             onPageChange={setCurrentPage}
             onPageSizeChange={setPageSize}
           />

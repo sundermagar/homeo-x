@@ -517,6 +517,8 @@
     gap: 12px;
     z-index: 10000;
     transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    will-change: transform; /* GPU compositing for drag */
+    touch-action: none;     /* Prevents scroll interference during drag */
   }
 
   .mc-mobile-fab-bar.collapsed .mc-fab-actions {
@@ -556,6 +558,7 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     z-index: 2;
     transition: all 0.3s ease;
+    will-change: transform;
   }
 
   .mc-fab-toggle:hover {
@@ -4932,3 +4935,396 @@
   color: #EF4444; /* Premium Red */
 }
 
+
+/* --- Premium Patient Details Tab Styles --- */
+.mc-premium-details {
+  padding: 32px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.mc-details-hero {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  margin-bottom: 40px;
+  padding: 32px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 24px;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+}
+
+.mc-hero-avatar {
+  width: 100px;
+  height: 100px;
+  border-radius: 30px;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  font-weight: 800;
+  box-shadow: 0 20px 25px -5px rgba(37, 99, 235, 0.2);
+  border: 4px solid white;
+}
+
+.mc-hero-info h1 {
+  font-size: 2.2rem;
+  font-weight: 900;
+  color: #1e293b;
+  margin: 4px 0 12px;
+  letter-spacing: -0.02em;
+}
+
+.mc-hero-badge {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #3b82f6;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.mc-hero-meta {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.mc-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #64748b;
+  background: white;
+  padding: 6px 14px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+}
+
+.mc-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+}
+
+.mc-details-card {
+  background: white;
+  padding: 24px;
+  border-radius: 20px;
+  border: 1px solid #e2e8f0;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.mc-details-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05);
+  border-color: #3b82f6;
+}
+
+.mc-card-header-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: #eff6ff;
+  color: #3b82f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.mc-details-card h3 {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin-bottom: 20px;
+}
+
+.mc-card-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mc-card-row label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.mc-row-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #334155;
+}
+
+.mc-highlight-card {
+  background: linear-gradient(to bottom right, #ffffff, #f0f9ff);
+  border: 1px solid #bfdbfe;
+}
+
+.mc-badge-success {
+  background: #dcfce7;
+  color: #166534;
+  padding: 4px 12px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.mc-badge-warning {
+  background: #fef9c3;
+  color: #854d0e;
+  padding: 4px 12px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.mc-empty-package {
+  text-align: center;
+  padding: 20px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px dashed #cbd5e1;
+}
+
+.mc-empty-package p {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+/* ─── Premium Profile / Details View ─── */
+.mc-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  padding: 8px;
+}
+
+.mc-profile-card {
+  background: white;
+  border-radius: 20px;
+  border: 1px solid #eef2f6;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+  height: 100%;
+}
+
+.mc-profile-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+}
+
+.mc-profile-card-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(to right, #f8fafc, white);
+}
+
+.mc-profile-card-header svg {
+  color: #3b82f6;
+}
+
+.mc-profile-card-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.mc-profile-card-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.mc-profile-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.mc-profile-icon-wrapper {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #64748b;
+}
+
+.mc-profile-item-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mc-profile-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mc-profile-value {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #334155;
+  line-height: 1.5;
+}
+
+.mc-profile-value.highlight {
+  color: #2563eb;
+}
+
+.mc-profile-badge {
+  padding: 4px 12px;
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mc-badge-active {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.mc-badge-expired {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.mc-badge-pending {
+  background: #fffbeb;
+  color: #d97706;
+}
+
+
+/* ─── 10. Responsive Scaling & Clinical Density Optimizations ─── */
+
+/* Laptop/Desktop Scaling Adjustment (Standardize for ~1400px) */
+@media (max-width: 1500px) {
+  :root {
+    --mc-base-font: 0.95rem;
+  }
+  
+  .pat-name { font-size: 1.35rem; }
+  .patient-banner { padding: 16px 28px; }
+  .pat-av { width: 50px; height: 50px; font-size: 1.2rem; }
+  
+  .mc-body-main { padding: 12px; gap: 16px; }
+  .mc-body-side { padding: 20px; }
+  
+  .mc-profile-grid { 
+    grid-template-columns: repeat(2, 1fr); 
+    gap: 16px; 
+    padding: 0;
+  }
+  .mc-profile-card-header { padding: 14px 20px; }
+  .mc-profile-card-body { padding: 16px; gap: 14px; }
+  .mc-profile-item { gap: 12px; }
+  .mc-profile-icon-wrapper { width: 32px; height: 32px; }
+  .mc-profile-value { font-size: 0.88rem; }
+  
+  .mc-tab-btn-premium {
+    padding: 10px;
+    font-size: 0.82rem;
+    border-radius: 10px;
+  }
+
+  /* Table Scaling */
+  .pp-table th {
+    font-size: 0.65rem;
+    padding: 10px 14px;
+  }
+  .pp-table td {
+    padding: 12px 14px;
+    font-size: 0.85rem;
+  }
+}
+
+/* Compact Laptop Mode (Under 1400px) */
+@media (max-width: 1400px) {
+  .mc-body-grid { grid-template-columns: 1fr 280px; }
+  .mc-left-tabs-container { width: 75px; padding: 20px 8px; }
+  .mc-left-tab { width: 42px; height: 42px; }
+  
+  .mc-profile-grid { grid-template-columns: repeat(2, 1fr); }
+  .mc-profile-card { border-radius: 16px; }
+  .mc-profile-card-header { padding: 12px 16px; }
+  .mc-profile-card-body { padding: 14px; gap: 10px; }
+}
+
+/* Small Laptop / Tablet Landscape (Under 1200px) */
+@media (max-width: 1200px) {
+  .mc-body-grid { grid-template-columns: 1fr 260px; }
+  .mc-body-side { padding: 16px; }
+  
+  .pp-table th, .pp-table td {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+  }
+  
+  .pat-name { font-size: 1.2rem; }
+  .pat-av { width: 44px; height: 44px; }
+}
+
+/* Ensure Scrollability for Tables */
+.pp-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 12px;
+}
+
+.pp-table {
+  width: 100%;
+  min-width: 700px; /* Prevents columns from becoming unreadable on narrow viewports */
+  border-collapse: collapse;
+}
+
+/* Better Scrollbar for Tables */
+.pp-table-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+.pp-table-scroll::-webkit-scrollbar-track {
+  background: var(--pp-warm-2);
+  border-radius: 10px;
+}
+.pp-table-scroll::-webkit-scrollbar-thumb {
+  background: var(--pp-blue-border);
+  border-radius: 10px;
+}
+.pp-table-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--pp-blue);
+}
+
+@media (max-width: 768px) {
+  .mc-profile-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
