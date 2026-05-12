@@ -3,6 +3,7 @@ import type { AppointmentStatus, VisitType, TokenStatus } from '../enums.js';
 export interface Appointment {
   id: number;
   patientId: number | null;
+  unregisteredPatientId: number | null;
   doctorId: number | null;
   bookingDate: string | null;          // YYYY-MM-DD
   bookingTime: string | null;          // "09:00 AM"
@@ -41,6 +42,7 @@ export interface Token {
 export interface WaitlistEntry {
   id: number;
   patientId: number | null;
+  unregisteredPatientId: number | null;
   appointmentId: number | null;
   doctorId: number | null;
   waitingNumber: number;
@@ -74,6 +76,7 @@ export interface AvailabilitySlot {
 
 export interface CreateAppointmentDto {
   patientId?: number;
+  unregisteredPatientId?: number;
   patientName?: string;
   phone?: string;
   doctorId?: number;

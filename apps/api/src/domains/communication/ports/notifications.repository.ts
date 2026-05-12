@@ -6,6 +6,7 @@ export interface NotificationsRepository {
   markAsRead(id: number, userId: number): Promise<boolean>;
   markAllAsRead(userId: number): Promise<boolean>;
   deleteNotification(id: number, userId: number): Promise<boolean>;
+  deleteAllNotifications(userId: number): Promise<boolean>;
   createNotification?(data: { userId: number, clinicId?: number, type: string, title: string, message: string }): Promise<number | undefined>;
   /**
    * Resolves a tenant `doctors.id` to the matching `users.id` (with type Doctor).

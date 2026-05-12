@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { useDashboard } from '../hooks/use-dashboard';
+import { useDashboard, dashboardKeys } from '../hooks/use-dashboard';
 import { useQueueMgmt } from '../hooks/use-queue-mgmt';
 import { useUpdateStatus, apptKeys } from '../../appointments/hooks/use-appointments';
 import { apiClient } from '@/infrastructure/api-client';
@@ -81,10 +81,33 @@ export function DoctorDashboard() {
   const handleSkip = async (item: QueueItem) => {
     setIsMoreMenuOpen(false);
 
-    // Optimistic: immediately clear HUD so the UI feels instant
-    setActivePatientId(null);
-    setConsultationStartedAt(null);
+    // Optimistic: find next patient and immediately set them in HUD
+    const nextPatient = todayAppts
+      .filter((a) => a.id !== item.id && a.status === 'Waitlist')
+      .sort((a, b) => (Number(a.tokenNo) || 999) - (Number(b.tokenNo) || 999))[0];
+
+    setActivePatientId(nextPatient?.id || null);
+    setConsultationStartedAt(nextPatient ? Date.now() : null);
     setConsultDuration('00:00');
+
+    // Optimistically update React Query cache to reflect the UI instantly
+    qc.setQueryData(dashboardKeys.detail('day'), (old: any) => {
+      if (!old?.queue) return old;
+      const newQueue = old.queue.map((q: QueueItem) => {
+        if (q.id === item.id) return { ...q, status: 'Waitlist' };
+        if (nextPatient && q.id === nextPatient.id) return { ...q, status: 'Consultation' };
+        return q;
+      });
+      // Sort to match backend logic (Consultation first)
+      newQueue.sort((a: any, b: any) => {
+        const order: Record<string, number> = { Consultation: 1, Confirmed: 2, Waitlist: 2, Pending: 3, Completed: 4 };
+        const aOrd = order[a.status] ?? 5;
+        const bOrd = order[b.status] ?? 5;
+        if (aOrd !== bOrd) return aOrd - bOrd;
+        return (Number(a.tokenNo) || 999) - (Number(b.tokenNo) || 999);
+      });
+      return { ...old, queue: newQueue };
+    });
 
     const realWlId = (item as any).wlId;
 
@@ -94,7 +117,7 @@ export function DoctorDashboard() {
       : updateStatus.mutateAsync({ id: item.id, status: 'Waitlist' }).catch(() => { });
 
     // Invalidate cache immediately so React Query refetches in background
-    qc.invalidateQueries({ queryKey: ['dashboard'] });
+    qc.invalidateQueries({ queryKey: dashboardKeys.all });
     qc.invalidateQueries({ queryKey: apptKeys.all });
 
     // Log errors silently
@@ -181,6 +204,11 @@ export function DoctorDashboard() {
       // at best, and could conflict at worst.
       if (item.status === 'Waitlist' && wlId) {
         await queueMgmt.callNext.mutateAsync(wlId);
+        qc.invalidateQueries({ queryKey: ['dashboard'] });
+        qc.invalidateQueries({ queryKey: apptKeys.all });
+      } else if (item.status === 'Pending' || item.status === 'Confirmed') {
+        // If they bypass the waitlist and start directly
+        await updateStatus.mutateAsync({ id: item.id, status: 'Consultation' });
         qc.invalidateQueries({ queryKey: ['dashboard'] });
         qc.invalidateQueries({ queryKey: apptKeys.all });
       }

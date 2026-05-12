@@ -84,3 +84,16 @@ export interface FamilyGroupSummary {
   surname: string;
   totalMembers: number;
 }
+
+export interface UnregisteredPatient {
+  id: number;
+  clinicId: number | null;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  gender: string | null;
+  registeredPatientId: number | null;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
+}

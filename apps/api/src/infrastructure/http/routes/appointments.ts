@@ -38,10 +38,11 @@ async function isDoctorOffline(req: any, doctorId: number): Promise<boolean> {
 const addToWaitlistSchema = z.object({
   patientId: z.number().int().positive().optional(),
   appointmentId: z.number().int().positive().optional(),
+  unregisteredPatientId: z.number().int().positive().optional(),
   doctorId: z.number().int().positive().optional(),
   consultationFee: z.number().min(0).optional(),
-}).refine((data) => data.patientId || data.appointmentId, {
-  message: "Either patientId or appointmentId is required",
+}).refine((data) => data.patientId || data.appointmentId || data.unregisteredPatientId, {
+  message: "Either patientId, appointmentId, or unregisteredPatientId is required",
   path: ["patientId"],
 });
 

@@ -344,6 +344,7 @@ export function ConsultationStage({
   const lastExtractedSegCountRef = useRef(0);
   const extractionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  /*
   useEffect(() => {
     // Auto-extract for ALL modes:
     // - AUDIO/VIDEO: dual-mic, segments are labeled DOCTOR vs PATIENT
@@ -426,6 +427,7 @@ export function ConsultationStage({
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [segments.length, callMode, binaryTranscriber.isRecording]);
+  */
 
   const handleLoadModeQuestions = useCallback(() => {
     modeQuestions.mutate({
@@ -439,10 +441,12 @@ export function ConsultationStage({
   }, [consultationMode, segments, answeredQuestions, visit.chiefComplaint, patientAge, patient?.gender, modeQuestions]);
 
   // Auto-load questions when mode changes
+  /*
   useEffect(() => {
     handleLoadModeQuestions();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [consultationMode]);
+  */
 
   const totalSymptoms = categorizedSymptoms.mental.length + categorizedSymptoms.physical.length + categorizedSymptoms.particular.length;
 
@@ -618,6 +622,7 @@ export function ConsultationStage({
       </div>
 
       {/* GNM Progress Status (if available) */}
+      {/* 
       {gnmAnalysis && (
         <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-[#FFFBEB] border border-[#FDE68A]">
           <Sparkles className="h-4 w-4 text-[#D97706] shrink-0" />
@@ -631,6 +636,7 @@ export function ConsultationStage({
           </span>
         </div>
       )}
+      */}
 
       {/* 4. Two-column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-4">
@@ -748,7 +754,8 @@ export function ConsultationStage({
           </AICaptureModule>
 
 
-          {/* AI Suggested Questions panel */}
+          {/* AI Suggested Inquiries panel */}
+          {/* 
           <div className="pp-card overflow-hidden">
             <div className="px-5 py-3 bg-[#FAFAF8] border-b border-[#E3E2DF] flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -775,7 +782,6 @@ export function ConsultationStage({
             </div>
 
             <div className="p-4 space-y-2 bg-white">
-              {/* Question items as clickable cards */}
               {allQuestions.filter((q: any) => !q.answered).length === 0 && !modeQuestions.isPending && (
                 <p className="text-[13px] text-[#888786] italic text-center py-4">
                   No questions available. Click Regenerate or start recording.
@@ -805,7 +811,6 @@ export function ConsultationStage({
                       <ArrowRight className="h-4 w-4 text-[#888786] group-hover:text-[#2563EB] mt-0.5 shrink-0 ml-auto transition-transform group-hover:translate-x-1" />
                     </button>
                     
-                    {/* Render choice options if available */}
                     {q.options && q.options.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 ml-6 mb-2">
                         {q.options.map((opt: string, idx: number) => (
@@ -827,7 +832,6 @@ export function ConsultationStage({
                 ))}
               </div>
 
-              {/* Custom question input row */}
               <div className="flex items-center gap-2 pt-3 mt-3 border-t border-[#E3E2DF]">
                 <input
                   type="text"
@@ -857,13 +861,14 @@ export function ConsultationStage({
 
             </div>
           </div>
+          */}
 
         </div>
 
         {/* RIGHT COLUMN: Live Symptom Extraction panel */}
+        {/* 
         <div className="space-y-0">
           <div className="pp-card sticky top-8">
-            {/* Header */}
             <div className="px-5 py-4 border-b border-[#E3E2DF] bg-[#FAFAF8] flex items-center justify-between">
               <span className="text-[14px] font-bold text-[#0F0F0E] tracking-tight flex items-center gap-2">
                 <Search className="h-4 w-4 text-[#2563EB]" />
@@ -879,7 +884,6 @@ export function ConsultationStage({
             </div>
 
             <div className="divide-y divide-[#E3E2DF] bg-white">
-              {/* Mental Generals */}
               <div className="p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Brain className="h-4 w-4 text-[#2563EB]" />
@@ -909,7 +913,6 @@ export function ConsultationStage({
                 </div>
               </div>
 
-              {/* Physical Generals */}
               <div className="p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Heart className="h-4 w-4 text-[#2563EB]" />
@@ -939,7 +942,6 @@ export function ConsultationStage({
                 </div>
               </div>
 
-              {/* Particulars */}
               <div className="p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Search className="h-4 w-4 text-[#2563EB]" />
@@ -970,12 +972,12 @@ export function ConsultationStage({
               </div>
             </div>
 
-            {/* Symptom total */}
             <div className="px-4 py-2 bg-[#FAFAF8] border-t border-[#E3E2DF] text-center">
               <span className="text-[11px] font-bold text-[#888786] uppercase tracking-widest">{totalSymptoms} symptom{totalSymptoms !== 1 ? 's' : ''} extracted</span>
             </div>
           </div>
         </div>
+        */}
       </div>
 
       {/* Navigation buttons are in the bottom bar — no duplicate here */}

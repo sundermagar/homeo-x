@@ -85,6 +85,23 @@ export function usePatientFormMeta(clinicId?: number) {
   });
 }
 
+export function useUnregisteredPatients(params: { search?: string; limit?: number; offset?: number; clinicId?: number } = {}) {
+  return useQuery({
+    queryKey: [PATIENTS_KEY, 'unregistered', params],
+    queryFn: async () => {
+      const { data } = await apiClient.get<{ success: boolean; data: any[] }>('/patients/unregistered', {
+        params: { 
+          search: params.search,
+          limit: params.limit,
+          offset: params.offset,
+          clinicId: params.clinicId
+        }
+      });
+      return data.data;
+    },
+  });
+}
+
 // ─── Patient Mutations ───
 
 export function useCreatePatient() {

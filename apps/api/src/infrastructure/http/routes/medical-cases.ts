@@ -26,6 +26,7 @@ router.use(authMiddleware);
 
 import { streamToSSE } from '../../../shared/sse.js';
 
+/*
 // ─── AI Clinical Consultant ───
 router.post('/ai-analysis', asyncHandler(async (req, res) => {
   const params = req.body; // Validation schema skipped (Task A2 not executed)
@@ -38,6 +39,7 @@ router.post('/ai-analysis', asyncHandler(async (req, res) => {
     sendSuccess(res, result, 'AI Analysis complete');
   }
 }));
+*/
 
 const getRepo = (req: any) => new MedicalCaseRepositoryPg(req.tenantDb);
 const getInvRepo = (req: any) => new InventoryRepositoryPg(req.tenantDb);
@@ -101,11 +103,13 @@ router.delete('/vitals/:id', asyncHandler(async (req, res) => {
   sendSuccess(res, null, 'Vitals record deleted');
 }));
 
+/*
 router.post('/vitals/analyze', asyncHandler(async (req, res) => {
   const useCase = new AnalyzeVitalsUseCase(req.tenantDb);
   const result = await useCase.execute(req.body);
   sendSuccess(res, result);
 }));
+*/
 
 router.get('/soap/:visitId', asyncHandler(async (req, res) => {
   const { regid } = req.query;
@@ -478,11 +482,26 @@ router.get('/pdf/summary/:regid', asyncHandler(async (req, res) => {
 
   const data = result.data;
   const settingsRepo = getSettingsRepo(req);
-  const settings = await settingsRepo.listPdfSettings();
+  const clinicId = (req as any).user?.contextId;
+  const orgRepo = new OrganizationRepositoryPg(req.publicDb);
+
+  const [settings, organization] = await Promise.all([
+    settingsRepo.listPdfSettings(),
+    clinicId ? orgRepo.findById(clinicId) : Promise.resolve(null)
+  ]);
+
   const defaultSetting = settings.find((s: any) => s.isDefault) || settings[0];
 
   await pdfService.generateClinicalSummary(res, {
-    clinicName: defaultSetting?.templateName || (req as any).tenantDb?.schemaName || 'Homeo-X Clinic',
+    clinicName: organization?.name || defaultSetting?.templateName || (req as any).tenantDb?.schemaName || 'Homeo-X Clinic',
+    clinicAddress: organization?.address || (defaultSetting as any)?.clinicAddress || '',
+    clinicPhone: organization?.phone || (defaultSetting as any)?.clinicPhone || '',
+    clinicEmail: organization?.email || '',
+    clinicWebsite: organization?.website || '',
+    clinicLogo: organization?.logo || '',
+    clinicTagline: organization?.tagLine || '',
+    clinicRegistration: organization?.registration || '',
+    clinicTiming: organization?.timing || '',
     patient: {
       regid: data.medicalCase.regid,
       name: data.medicalCase.patientName || 'Patient',

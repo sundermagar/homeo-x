@@ -129,8 +129,8 @@ function buildCommands(
     // ── Medical Cases ─────────────────────────────────────────────────────────
     nav('Vitals Check', '/vitals-check', <Activity size={16} />, CLINICAL,
       ['vital', 'bp', 'weight', 'pulse', 'checkup']),
-    nav('AI Analysis', '/ai-analysis', <BrainCircuit size={16} />, CLINICAL,
-      ['ai', 'consultant', 'advisor', 'bot', 'assistant', 'analysis']),
+    // nav('AI Analysis', '/ai-analysis', <BrainCircuit size={16} />, CLINICAL,
+    //   ['ai', 'consultant', 'advisor', 'bot', 'assistant', 'analysis']),
     nav('Remedy Chart', '/clinical/remedy-chart', <Brain size={16} />, CLINICAL,
       ['remedy', 'chart', 'tree', 'medicine', 'drug']),
 

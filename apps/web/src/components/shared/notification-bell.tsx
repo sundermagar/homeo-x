@@ -22,6 +22,7 @@ import {
   useMarkAsRead,
   useMarkAllAsRead,
   useDeleteNotification,
+  useDeleteAllNotifications,
 } from '../../hooks/use-notifications';
 import { useNotificationSocket } from '@/hooks/use-notification-socket';
 import { timeAgo } from '../../lib/format';
@@ -55,6 +56,7 @@ export function NotificationBell() {
   const markAsRead = useMarkAsRead();
   const markAllAsRead = useMarkAllAsRead();
   const deleteNotification = useDeleteNotification();
+  const deleteAllNotifications = useDeleteAllNotifications();
 
   const unreadCount = unreadData?.unreadCount ?? 0;
   const notifications = notificationsData?.notifications ?? [];
@@ -68,6 +70,11 @@ export function NotificationBell() {
 
   const handleMarkAllAsRead = async () => {
     try { await markAllAsRead.mutateAsync(); } catch { /* silent */ }
+  };
+
+  const handleDeleteAll = async () => {
+    if (!window.confirm('Are you sure you want to delete all notifications?')) return;
+    try { await deleteAllNotifications.mutateAsync(); } catch { /* silent */ }
   };
 
   const handleDelete = async (e: React.MouseEvent, id: string | number) => {
@@ -106,6 +113,12 @@ export function NotificationBell() {
                   <button className="notif-mark-all-btn" onClick={handleMarkAllAsRead}>
                     <CheckCheck size={13} />
                     Mark all read
+                  </button>
+                )}
+                {notifications.length > 0 && (
+                  <button className="notif-mark-all-btn notif-delete-all-btn" onClick={handleDeleteAll} style={{ color: 'var(--pp-danger-fg)' }}>
+                    <Trash2 size={13} />
+                    Delete all
                   </button>
                 )}
                 <button className="notif-close-btn" onClick={() => setOpen(false)} title="Close">

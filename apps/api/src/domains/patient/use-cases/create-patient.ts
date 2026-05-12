@@ -39,6 +39,11 @@ export class CreatePatientUseCase {
       }
     }
 
+    // Link to unregistered patient record if exists
+    if (input.unregisteredId) {
+      await this.patientRepo.linkUnregisteredToFormal(input.unregisteredId, patient.id);
+    }
+
     return ok({ patient });
   }
 }

@@ -4,6 +4,7 @@
 import { useEffect, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { getSocket, disconnectSocket } from '@/infrastructure/socket';
+import { toast } from '@/hooks/use-toast';
 
 export interface SocketNotification {
   id: number;
@@ -61,6 +62,13 @@ export function useNotificationSocket() {
       // Play sound immediately
       playNotificationSound();
 
+      // Show visual toast
+      toast({
+        title: notification.title,
+        description: notification.message,
+        variant: (notification.type === 'error' || notification.type === 'warning') ? 'error' : 'default',
+      });
+
       // Prepend new notification to the list, update unread count
       queryClient.setQueryData(['notifications', { limit: 20, offset: 0 }], (old: any) => {
         if (!old) return old;
@@ -78,7 +86,6 @@ export function useNotificationSocket() {
 
     socket.on('notification:new', handleNew);
     socket.on('connected', (data: { userId: number }) => {
-      console.log('[Socket] Connected to notifications namespace, userId:', data.userId);
     });
     socket.on('error', (err: { message: string }) => {
       console.warn('[Socket] Notification error:', err.message);

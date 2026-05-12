@@ -111,6 +111,24 @@ patientRouter.get('/meta/birthdays', authMiddleware, async (req: Request, res: R
   }
 });
 
+// GET /api/patients/unregistered
+patientRouter.get('/unregistered', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { search, clinicId } = req.query;
+    const repo = getRepo(req);
+    
+    let effectiveClinicId = req.user?.contextId;
+    if (clinicId && (req.user?.type === Role.Admin || req.user?.type === Role.SuperAdmin)) {
+      effectiveClinicId = Number(clinicId);
+    }
+
+    const data = await repo.findUnregistered({ clinicId: effectiveClinicId, search: search as string });
+    res.json({ success: true, data });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // ─── Family Group Endpoints ───
 
 // GET /api/family-groups

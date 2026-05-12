@@ -21,6 +21,7 @@ function getUserId(req: Request): string {
   return (req as any).user?.id || (req as any).userId || 'system';
 }
 
+/*
 // POST /api/scribing/generate-soap — Generate SOAP from transcript text directly
 scribingRouter.post('/generate-soap', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -58,6 +59,7 @@ scribingRouter.post('/generate-analysis', async (req: Request, res: Response, ne
     next(err);
   }
 });
+*/
 
 // ─── Session lifecycle (backed by tenant scribing_sessions + transcript_segments) ─
 // These endpoints make the ambient-scribe hooks (useCreateScribingSession,

@@ -116,6 +116,10 @@
   background: var(--pp-blue-tint, #eff6ff);
 }
 
+.notif-delete-all-btn:hover {
+  background: var(--pp-danger-bg, #fef2f2) !important;
+}
+
 .notif-header-actions {
   display: flex;
   align-items: center;

@@ -12,6 +12,87 @@ export class PdfkitServiceAdapter {
    * @param res The Express response stream (Writable)
    * @param data Any data to inject
    */
+  private async drawHeader(doc: any, data: {
+    clinicName: string;
+    clinicAddress?: string;
+    clinicPhone?: string;
+    clinicEmail?: string;
+    clinicWebsite?: string;
+    clinicLogo?: string;
+    clinicTagline?: string;
+    clinicRegistration?: string;
+    clinicTiming?: string;
+  }) {
+    const headerY = doc.y;
+    const leftPadding = 40;
+    const contentWidth = 515;
+
+    // 1. Logo & Clinic Identity (Left Side)
+    let logoOffset = 0;
+    if (data.clinicLogo) {
+      try {
+        let logoPath = data.clinicLogo;
+        if (logoPath.startsWith('/uploads')) {
+          logoPath = path.join(process.cwd(), logoPath);
+        }
+        if (fs.existsSync(logoPath)) {
+          doc.image(logoPath, leftPadding, headerY, { height: 50 });
+          logoOffset = 65;
+        }
+      } catch (err) {
+        logger.warn(`Failed to load logo: ${data.clinicLogo}`);
+      }
+    }
+
+    const nameX = leftPadding + logoOffset;
+    doc.font('Helvetica-Bold').fontSize(18).fillColor('#0F172A').text(data.clinicName.toUpperCase(), nameX, headerY, { lineGap: -2 });
+
+    if (data.clinicTagline) {
+      doc.fontSize(9).font('Helvetica-Oblique').fillColor('#6366F1').text(data.clinicTagline, nameX, doc.y);
+    }
+
+    if (data.clinicRegistration) {
+      const badgeY = doc.y + 4;
+      const badgeText = data.clinicRegistration.toUpperCase();
+      const badgeWidth = doc.widthOfString(badgeText) + 12;
+
+      doc.roundedRect(nameX, badgeY, badgeWidth, 12, 3).fill('#F0FDF4');
+      doc.fillColor('#15803D').font('Helvetica-Bold').fontSize(6).text(badgeText, nameX + 6, badgeY + 3.5);
+      doc.y = badgeY + 15;
+    }
+
+    // 2. Contact Section (Right Side with Vertical Divider)
+    const contactX = 400;
+    const dividerX = contactX - 15;
+
+    doc.moveTo(dividerX, headerY).lineTo(dividerX, headerY + 60).strokeColor('#E2E8F0').lineWidth(1.5).stroke();
+
+    let rightY = headerY;
+    doc.fontSize(8).font('Helvetica').fillColor('#334155');
+
+    if (data.clinicAddress) {
+      doc.text(data.clinicAddress, contactX, rightY, { width: 155, align: 'left' });
+      rightY = doc.y + 3;
+    }
+
+    if (data.clinicPhone) {
+      doc.font('Helvetica-Bold').text(`Ph: ${data.clinicPhone}`, contactX, rightY, { width: 155, align: 'left' });
+      rightY = doc.y + 3;
+    }
+
+    if (data.clinicTiming) {
+      doc.font('Helvetica').text(`Hours: ${data.clinicTiming}`, contactX, rightY, { width: 155, align: 'left' });
+    }
+
+    doc.y = Math.max(doc.y, headerY + 70);
+
+    // 3. Signature Gradient Line
+    doc.moveTo(leftPadding, doc.y).lineTo(leftPadding + contentWidth, doc.y).strokeColor('#6366F1').lineWidth(2.5).stroke();
+    doc.moveTo(leftPadding, doc.y + 2.5).lineTo(leftPadding + contentWidth, doc.y + 2.5).strokeColor('#F1F5F9').lineWidth(1).stroke();
+
+    doc.moveDown(1.5);
+  }
+
   async generatePrescription(res: Writable, data: {
     clinicName: string;
     clinicAddress?: string;
@@ -33,82 +114,16 @@ export class PdfkitServiceAdapter {
     potencies: any[];
     settings?: any;
   }): Promise<void> {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       try {
         const doc = new PDFDocument({ size: 'A4', margin: 40 });
         doc.pipe(res);
 
         // ─── Header (Letterhead Identity Designer Format) ───
-        const headerY = doc.y;
-        const leftPadding = 40;
-        const contentWidth = 515;
-
-        // 1. Logo & Clinic Identity (Left Side)
-        let logoOffset = 0;
-        if (data.clinicLogo) {
-          try {
-            let logoPath = data.clinicLogo;
-            if (logoPath.startsWith('/uploads')) {
-              logoPath = path.join(process.cwd(), logoPath);
-            }
-            if (fs.existsSync(logoPath)) {
-              doc.image(logoPath, leftPadding, headerY, { height: 50 });
-              logoOffset = 65;
-            }
-          } catch (err) {
-            logger.warn(`Failed to load logo: ${data.clinicLogo}`);
-          }
-        }
-
-        const nameX = leftPadding + logoOffset;
-        doc.font('Helvetica-Bold').fontSize(18).fillColor('#0F172A').text(data.clinicName.toUpperCase(), nameX, headerY, { lineGap: -2 });
-
-        if (data.clinicTagline) {
-          doc.fontSize(9).font('Helvetica-Oblique').fillColor('#6366F1').text(data.clinicTagline, nameX, doc.y);
-        }
-
-        if (data.clinicRegistration) {
-          const badgeY = doc.y + 4;
-          const badgeText = data.clinicRegistration.toUpperCase();
-          const badgeWidth = doc.widthOfString(badgeText) + 12;
-
-          doc.roundedRect(nameX, badgeY, badgeWidth, 12, 3).fill('#F0FDF4');
-          doc.fillColor('#15803D').font('Helvetica-Bold').fontSize(6).text(badgeText, nameX + 6, badgeY + 3.5);
-          doc.y = badgeY + 15;
-        }
-
-        // 2. Contact Section (Right Side with Vertical Divider)
-        const contactX = 400;
-        const dividerX = contactX - 15;
-
-        doc.moveTo(dividerX, headerY).lineTo(dividerX, headerY + 60).strokeColor('#E2E8F0').lineWidth(1.5).stroke();
-
-        let rightY = headerY;
-        doc.fontSize(8).font('Helvetica').fillColor('#334155');
-
-        if (data.clinicAddress) {
-          doc.text(data.clinicAddress, contactX, rightY, { width: 155, align: 'left' });
-          rightY = doc.y + 3;
-        }
-
-        if (data.clinicPhone) {
-          doc.font('Helvetica-Bold').text(`Ph: ${data.clinicPhone}`, contactX, rightY, { width: 155, align: 'left' });
-          rightY = doc.y + 3;
-        }
-
-        if (data.clinicTiming) {
-          doc.font('Helvetica').text(`Hours: ${data.clinicTiming}`, contactX, rightY, { width: 155, align: 'left' });
-        }
-
-        doc.y = Math.max(doc.y, headerY + 70);
-
-        // 3. Signature Gradient Line
-        doc.moveTo(leftPadding, doc.y).lineTo(leftPadding + contentWidth, doc.y).strokeColor('#6366F1').lineWidth(2.5).stroke();
-        doc.moveTo(leftPadding, doc.y + 2.5).lineTo(leftPadding + contentWidth, doc.y + 2.5).strokeColor('#F1F5F9').lineWidth(1).stroke();
-
-        doc.moveDown(1.5);
+        await this.drawHeader(doc, data);
 
         // ─── Patient & Date Reference Blocks ───
+        const leftPadding = 40;
         const blockY = doc.y;
 
         // Left Block: Patient Details
@@ -216,6 +231,14 @@ export class PdfkitServiceAdapter {
 
   async generateClinicalSummary(res: Writable, data: {
     clinicName: string;
+    clinicAddress?: string;
+    clinicPhone?: string;
+    clinicEmail?: string;
+    clinicWebsite?: string;
+    clinicLogo?: string;
+    clinicTagline?: string;
+    clinicRegistration?: string;
+    clinicTiming?: string;
     patient: any;
     vitals: any[];
     homeo: any;
@@ -223,21 +246,22 @@ export class PdfkitServiceAdapter {
     prescriptions: any[];
     investigations: any[];
   }): Promise<void> {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       try {
         const doc = new PDFDocument({ size: 'A4', margin: 40 });
         doc.pipe(res);
 
         // Header
-        doc.font('Helvetica-Bold').fontSize(16).text(data.clinicName, { align: 'center' });
-        doc.fontSize(10).font('Helvetica').text('Clinical Case Summary', { align: 'center' });
+        await this.drawHeader(doc, data);
+        
+        doc.fontSize(10).font('Helvetica-Bold').fillColor('#6366F1').text('Clinical Case Summary', { align: 'center' });
         doc.moveDown(1);
 
         // Patient Info Section
-        doc.font('Helvetica-Bold').fontSize(12).text('Patient Information');
-        doc.moveTo(40, doc.y).lineTo(550, doc.y).stroke();
+        doc.font('Helvetica-Bold').fontSize(12).fillColor('#1E293B').text('Patient Information');
+        doc.moveTo(40, doc.y).lineTo(550, doc.y).strokeColor('#E2E8F0').lineWidth(1).stroke();
         doc.moveDown(0.5);
-        doc.font('Helvetica').fontSize(10);
+        doc.font('Helvetica').fontSize(10).fillColor('#334155');
         doc.text(`Name: ${data.patient.name} (${data.patient.regid})`);
         doc.text(`Age/Gender: ${data.patient.age || ''} / ${data.patient.gender || ''}`);
         doc.text(`Phone: ${data.patient.phone || ''}`);
@@ -246,10 +270,10 @@ export class PdfkitServiceAdapter {
         // Latest Vitals
         if (data.vitals && data.vitals.length > 0) {
           const v = data.vitals[0];
-          doc.font('Helvetica-Bold').fontSize(12).text('Latest Vitals');
-          doc.moveTo(40, doc.y).lineTo(550, doc.y).stroke();
+          doc.font('Helvetica-Bold').fontSize(12).fillColor('#1E293B').text('Latest Vitals');
+          doc.moveTo(40, doc.y).lineTo(550, doc.y).strokeColor('#E2E8F0').lineWidth(1).stroke();
           doc.moveDown(0.5);
-          doc.font('Helvetica').fontSize(10);
+          doc.font('Helvetica').fontSize(10).fillColor('#334155');
           doc.text(`BP: ${v.systolicBp || '-'}/${v.diastolicBp || '-'} mmHg  |  Pulse: ${v.pulseRate || '-'} bpm  |  Temp: ${v.temperatureF || '-'} F`);
           doc.text(`BMI: ${v.bmi || '-'} (Weight: ${v.weightKg || '-'} kg, Height: ${v.heightCm || '-'} cm)`);
           doc.moveDown(1);
@@ -257,10 +281,10 @@ export class PdfkitServiceAdapter {
 
         // Homeo Evaluation
         if (data.homeo) {
-          doc.font('Helvetica-Bold').fontSize(12).text('Homeopathic Evaluation');
-          doc.moveTo(40, doc.y).lineTo(550, doc.y).stroke();
+          doc.font('Helvetica-Bold').fontSize(12).fillColor('#1E293B').text('Homeopathic Evaluation');
+          doc.moveTo(40, doc.y).lineTo(550, doc.y).strokeColor('#E2E8F0').lineWidth(1).stroke();
           doc.moveDown(0.5);
-          doc.font('Helvetica').fontSize(10);
+          doc.font('Helvetica').fontSize(10).fillColor('#334155');
           doc.text(`Thermal: ${data.homeo.thermal || '-'}`);
           doc.text(`Constitutional: ${data.homeo.constitutional || '-'}`);
           doc.moveDown(1);
@@ -268,10 +292,10 @@ export class PdfkitServiceAdapter {
 
         // Recent Follow-up History
         if (data.notes && data.notes.length > 0) {
-          doc.font('Helvetica-Bold').fontSize(12).text('Recent Follow-up Notes');
-          doc.moveTo(40, doc.y).lineTo(550, doc.y).stroke();
+          doc.font('Helvetica-Bold').fontSize(12).fillColor('#1E293B').text('Recent Follow-up Notes');
+          doc.moveTo(40, doc.y).lineTo(550, doc.y).strokeColor('#E2E8F0').lineWidth(1).stroke();
           doc.moveDown(0.5);
-          doc.font('Helvetica').fontSize(9);
+          doc.font('Helvetica').fontSize(9).fillColor('#334155');
           data.notes.slice(0, 5).forEach(n => {
             doc.font('Helvetica-Bold').text(`${n.dateval || 'N/A'}:`, { continued: true });
             doc.font('Helvetica').text(` ${n.notes}`);
@@ -281,10 +305,10 @@ export class PdfkitServiceAdapter {
 
         // Active Prescriptions
         if (data.prescriptions && data.prescriptions.length > 0) {
-          doc.font('Helvetica-Bold').fontSize(12).text('Active Prescriptions');
-          doc.moveTo(40, doc.y).lineTo(550, doc.y).stroke();
+          doc.font('Helvetica-Bold').fontSize(12).fillColor('#1E293B').text('Active Prescriptions');
+          doc.moveTo(40, doc.y).lineTo(550, doc.y).strokeColor('#E2E8F0').lineWidth(1).stroke();
           doc.moveDown(0.5);
-          doc.font('Helvetica').fontSize(9);
+          doc.font('Helvetica').fontSize(9).fillColor('#334155');
           data.prescriptions.slice(0, 10).forEach(p => {
             doc.text(`${p.medicine || 'Remedy'} ${p.potency || ''} — ${p.frequency || ''} for ${p.days || '0'} days`);
           });

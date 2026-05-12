@@ -205,9 +205,9 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       const { start, boundary, prevStart, prevBoundary } = this.getPeriodDates(period);
       const docCol = await this.getDoctorColumn();
 
-      const docApptFilter = doctorId ? sql` AND ${sql.identifier(docCol)} = ${doctorId}` : sql``;
-      const docWaitFilter = doctorId ? sql` AND doctor_id = ${doctorId}` : sql``;
-      const docBillFilter = doctorId ? sql` AND b.doctor_id = ${doctorId}` : sql``;
+      const docApptFilter = doctorId ? sql` AND (${sql.identifier(docCol)} = ${doctorId} OR LOWER(TRIM((SELECT name FROM users WHERE id = ${doctorId}))) IN (SELECT LOWER(TRIM(name)) FROM doctors WHERE id = ${sql.identifier(docCol)} UNION SELECT LOWER(TRIM(name)) FROM users WHERE id = ${sql.identifier(docCol)}))` : sql``;
+      const docWaitFilter = doctorId ? sql` AND (doctor_id = ${doctorId} OR LOWER(TRIM((SELECT name FROM users WHERE id = ${doctorId}))) IN (SELECT LOWER(TRIM(name)) FROM doctors WHERE id = doctor_id UNION SELECT LOWER(TRIM(name)) FROM users WHERE id = doctor_id))` : sql``;
+      const docBillFilter = doctorId ? sql` AND (b.doctor_id = ${doctorId} OR LOWER(TRIM((SELECT name FROM users WHERE id = ${doctorId}))) IN (SELECT LOWER(TRIM(name)) FROM doctors WHERE id = b.doctor_id UNION SELECT LOWER(TRIM(name)) FROM users WHERE id = b.doctor_id))` : sql``;
 
       // ── Single round-trip combining counts + finance + wait + followup ──
       // Previously this was 4 parallel sub-queries via Promise.all, but each
@@ -368,8 +368,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     const dd = String(istDate.getDate()).padStart(2, '0');
     const today = `${y}-${mm}-${dd}`;
     return this.getCached(`queue:${contextId}:${today}:${doctorId ?? ''}`, 5_000, async () => {
-      const waitlistDocFilter = doctorId ? sql` AND (w.doctor_id = ${doctorId} OR (SELECT name FROM users WHERE id = ${doctorId}) = (SELECT name FROM doctors WHERE id = w.doctor_id))` : sql``;
-      const apptDocFilter = doctorId ? sql` AND (a.doctor_id = ${doctorId} OR (SELECT name FROM users WHERE id = ${doctorId}) = (SELECT name FROM doctors WHERE id = a.doctor_id))` : sql``;
+      const waitlistDocFilter = doctorId ? sql` AND (w.doctor_id = ${doctorId} OR LOWER(TRIM((SELECT name FROM users WHERE id = ${doctorId}))) IN (SELECT LOWER(TRIM(name)) FROM doctors WHERE id = w.doctor_id UNION SELECT LOWER(TRIM(name)) FROM users WHERE id = w.doctor_id))` : sql``;
+      const apptDocFilter = doctorId ? sql` AND (a.doctor_id = ${doctorId} OR LOWER(TRIM((SELECT name FROM users WHERE id = ${doctorId}))) IN (SELECT LOWER(TRIM(name)) FROM doctors WHERE id = a.doctor_id UNION SELECT LOWER(TRIM(name)) FROM users WHERE id = a.doctor_id))` : sql``;
 
       // Robust date filtering that handles both YYYY-MM-DD and DD/MM/YYYY formats
       const dateCond = sql`(
@@ -412,7 +412,14 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           q.notes,
           COALESCE(p.first_name || ' ' || p.surname, q.manual_name, 'Unknown Patient') as patient_name,
           COALESCE(p.regid, p.id, q.patient_id) as regid,
-          COALESCE(d.name, u.name, 'Practitioner') as doctor_name,
+          COALESCE(
+            d.name, 
+            u.name, 
+            (SELECT name FROM users WHERE id::text = q.manual_name LIMIT 1),
+            (SELECT name FROM doctors WHERE id::text = q.manual_name LIMIT 1),
+            q.manual_name,
+            'Practitioner'
+          ) as doctor_name,
           v.systolic_bp,
           v.diastolic_bp,
           v.weight_kg,
