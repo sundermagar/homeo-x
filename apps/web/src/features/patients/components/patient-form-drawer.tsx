@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { usePatient, useCreatePatient, useUpdatePatient, usePatientFormMeta, usePatientLookup } from '../hooks/use-patients';
+import { useGrantConsent, useConsentStatus } from '../hooks/use-consent';
 import { useReferrals } from '../../settings/hooks/use-settings';
 import { NumericInput } from '@/shared/components/NumericInput';
 import { useAuthStore } from '@/shared/stores/auth-store';
@@ -40,13 +41,21 @@ export function PatientFormDrawer({ isOpen, onClose, regid, onSuccess }: Patient
   const [errors, setErrors] = useState<string[]>([]);
   const [refSearch, setRefSearch] = useState('');
   const [showRefDropdown, setShowRefDropdown] = useState(false);
+  const [consents, setConsents] = useState({
+    data_processing: true,
+    ai_analysis: false,
+    sms_communication: true,
+    whatsapp_communication: true,
+  });
 
   const { data: meta } = usePatientFormMeta(clinicId);
   const { data: patient } = usePatient(isEdit && regid ? Number(regid) : 0);
   const { data: refResults = [] } = usePatientLookup(refSearch);
   const { data: referrals = [] } = useReferrals();
+  const { data: existingConsents = [] } = useConsentStatus(regid || 0);
   const createMutation = useCreatePatient();
   const updateMutation = useUpdatePatient();
+  const grantConsentMutation = useGrantConsent();
 
   useEffect(() => {
     if (isOpen) {
@@ -82,10 +91,29 @@ export function PatientFormDrawer({ isOpen, onClose, regid, onSuccess }: Patient
         });
       } else if (!isEdit) {
         setForm(INIT_FORM);
+        setConsents({
+          data_processing: true,
+          ai_analysis: false,
+          sms_communication: true,
+          whatsapp_communication: true,
+        });
       }
       setErrors([]);
     }
   }, [isOpen, isEdit, patient]);
+
+  useEffect(() => {
+    if (isEdit && existingConsents.length > 0) {
+      const newConsents = { ...consents };
+      existingConsents.forEach(c => {
+        if (c.consentType in newConsents) {
+          // @ts-ignore
+          newConsents[c.consentType] = c.granted;
+        }
+      });
+      setConsents(newConsents);
+    }
+  }, [isEdit, existingConsents]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -111,11 +139,17 @@ export function PatientFormDrawer({ isOpen, onClose, regid, onSuccess }: Patient
     });
   };
 
+  const handleConsentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, checked } = e.target;
+    setConsents(prev => ({ ...prev, [name]: checked }));
+  };
+
   const validate = () => {
     const errs: string[] = [];
     if (!form.firstName.trim()) errs.push('First Name is required');
     if (!form.surname.trim()) errs.push('Surname is required');
     if (!form.phone.trim() && !form.mobile1.trim()) errs.push('At least one phone number is required');
+    if (!consents.data_processing) errs.push('Consent for data processing is required for registration');
     return errs;
   };
 
@@ -127,10 +161,52 @@ export function PatientFormDrawer({ isOpen, onClose, regid, onSuccess }: Patient
     try {
       if (isEdit) {
         await updateMutation.mutateAsync({ regid: Number(regid), ...form });
+        
+        // Update consents
+        const consentTypes = [
+          { type: 'data_processing', purpose: 'To store and manage clinical health records' },
+          { type: 'ai_analysis', purpose: 'To analyze symptoms and provide AI-assisted diagnosis' },
+          { type: 'sms_communication', purpose: 'To send appointment reminders and clinical updates via SMS' },
+          { type: 'whatsapp_communication', purpose: 'To send prescriptions and reminders via WhatsApp' },
+        ];
+
+        for (const ct of consentTypes) {
+          // Only update if changed (or just update all for simplicity)
+          await grantConsentMutation.mutateAsync({
+            patientRegid: Number(regid),
+            consentType: ct.type,
+            purpose: ct.purpose,
+            // @ts-ignore
+            granted: consents[ct.type],
+            consentVersion: 1,
+          });
+        }
+
         onSuccess?.();
         onClose();
       } else {
-        await createMutation.mutateAsync(form);
+        const res = await createMutation.mutateAsync(form);
+        const newRegid = res.regid;
+        
+        // Record consents
+        const consentTypes = [
+          { type: 'data_processing', purpose: 'To store and manage clinical health records' },
+          { type: 'ai_analysis', purpose: 'To analyze symptoms and provide AI-assisted diagnosis' },
+          { type: 'sms_communication', purpose: 'To send appointment reminders and clinical updates via SMS' },
+          { type: 'whatsapp_communication', purpose: 'To send prescriptions and reminders via WhatsApp' },
+        ];
+
+        for (const ct of consentTypes) {
+          await grantConsentMutation.mutateAsync({
+            patientRegid: newRegid,
+            consentType: ct.type,
+            purpose: ct.purpose,
+            // @ts-ignore
+            granted: consents[ct.type],
+            consentVersion: 1,
+          });
+        }
+
         onSuccess?.();
         onClose();
       }
@@ -342,6 +418,73 @@ export function PatientFormDrawer({ isOpen, onClose, regid, onSuccess }: Patient
                   )}
                 </div>
               </div>
+            </div>
+
+            {/* Compliance & Consent (DPDP Act 2023) */}
+            <div className="form-section-header" style={{ marginTop: '24px', marginBottom: '12px' }}>
+              <h3 className="section-title" style={{ fontSize: '14px', color: 'var(--pp-blue)', fontWeight: 600 }}>🛡️ DPDP Act Compliance & Consent</h3>
+            </div>
+            
+            <div className="consent-container" style={{ background: 'var(--pp-sidebar-bg)', padding: '16px', borderRadius: '8px', border: '1px solid var(--pp-border)' }}>
+              <div className="consent-item" style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: '12px' }}>
+                <input 
+                  type="checkbox" 
+                  id="data_processing" 
+                  name="data_processing" 
+                  checked={consents.data_processing} 
+                  onChange={handleConsentChange} 
+                  style={{ marginTop: '4px' }}
+                />
+                <label htmlFor="data_processing" style={{ fontSize: '13px', cursor: 'pointer' }}>
+                  <strong>Data Processing Consent:</strong> I agree to allow Kreed.health to store and process my medical records and personal data for treatment and billing purposes. <span style={{ color: 'var(--pp-danger-fg)' }}>*</span>
+                </label>
+              </div>
+
+              <div className="consent-item" style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: '12px' }}>
+                <input 
+                  type="checkbox" 
+                  id="ai_analysis" 
+                  name="ai_analysis" 
+                  checked={consents.ai_analysis} 
+                  onChange={handleConsentChange} 
+                  style={{ marginTop: '4px' }}
+                />
+                <label htmlFor="ai_analysis" style={{ fontSize: '13px', cursor: 'pointer' }}>
+                  <strong>AI Consultation Consent:</strong> I agree to allow my symptoms to be processed by AI for diagnostic assistance (data is anonymized).
+                </label>
+              </div>
+
+              <div className="consent-item" style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: '12px' }}>
+                <input 
+                  type="checkbox" 
+                  id="sms_communication" 
+                  name="sms_communication" 
+                  checked={consents.sms_communication} 
+                  onChange={handleConsentChange} 
+                  style={{ marginTop: '4px' }}
+                />
+                <label htmlFor="sms_communication" style={{ fontSize: '13px', cursor: 'pointer' }}>
+                  <strong>SMS Updates:</strong> I agree to receive appointment reminders and clinical updates via SMS.
+                </label>
+              </div>
+
+              <div className="consent-item" style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                <input 
+                  type="checkbox" 
+                  id="whatsapp_communication" 
+                  name="whatsapp_communication" 
+                  checked={consents.whatsapp_communication} 
+                  onChange={handleConsentChange} 
+                  style={{ marginTop: '4px' }}
+                />
+                <label htmlFor="whatsapp_communication" style={{ fontSize: '13px', cursor: 'pointer' }}>
+                  <strong>WhatsApp Updates:</strong> I agree to receive prescriptions and clinical records via WhatsApp.
+                </label>
+              </div>
+              
+              <p style={{ fontSize: '11px', color: 'var(--pp-faint-fg)', marginTop: '12px', fontStyle: 'italic' }}>
+                By checking the boxes above, you provide explicit consent as per the Digital Personal Data Protection Act, 2023. You can withdraw this consent at any time.
+              </p>
             </div>
 
             <div className="form-group" style={{ marginTop: '24px' }}>

@@ -5,6 +5,7 @@ import { useActivePackage } from '../../packages/hooks/use-packages';
 import { AssignPackageModal } from '../../packages/components/assign-package-modal';
 import { Edit2, Trash2, UserPlus, Users, X, MapPin, Phone, CheckCircle, Search, TrendingUp, Activity, MessageCircle, Zap, ShieldCheck, Clock } from 'lucide-react';
 import { useSendWhatsApp } from '../../communications/hooks/use-communications';
+import { useConsentStatus, useGrantConsent, useRevokeConsent } from '../hooks/use-consent';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import type { PatientSummary, FamilyMember } from '@mmc/types';
 import { PageSkeleton } from '@/components/shared/page-skeleton';
@@ -30,6 +31,28 @@ export default function PatientDetailPage() {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const { data: lookupResults = [] } = usePatientLookup(searchQuery);
   const { data: activePkg, isLoading: pkgLoading } = useActivePackage(numRegid);
+
+  // DPDP Consent Management
+  const { data: consents = [], isLoading: consentsLoading } = useConsentStatus(numRegid);
+  const grantMutation = useGrantConsent();
+  const revokeMutation = useRevokeConsent();
+
+  const handleToggleConsent = async (type: string, currentlyGranted: boolean) => {
+    if (currentlyGranted) {
+      if (!confirm(`Are you sure you want to withdraw consent for ${type.replace('_', ' ')}? This may limit service availability.`)) return;
+      await revokeMutation.mutateAsync({ regid: numRegid, type });
+      toast({ title: 'Consent withdrawn', variant: 'success' });
+    } else {
+      await grantMutation.mutateAsync({
+        patientRegid: numRegid,
+        consentType: type,
+        purpose: CONSENT_PURPOSES[type] || 'Standard data processing',
+        granted: true,
+        consentVersion: 1,
+      });
+      toast({ title: 'Consent granted', variant: 'success' });
+    }
+  };
 
   const handleDelete = async () => {
     if (!confirm('Are you sure you want to delete this patient?')) return;
@@ -182,6 +205,53 @@ export default function PatientDetailPage() {
               <button className="pp-link" style={{ fontSize: '12px' }} onClick={() => setShowAssignModal(true)}>Assign a package →</button>
             </div>
           )}
+        </div>
+
+        {/* DPDP Compliance Card */}
+        <div className="pp-card dpdp-compliance-card">
+          <h3 className="pat-chart-title">
+            <ShieldCheck size={16} className="pat-chart-title-icon" style={{ color: 'var(--pp-success-fg)' }} /> DPDP Compliance
+          </h3>
+          
+          <div className="consent-status-list" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {consentsLoading ? (
+               <div className="pp-skeleton" style={{ height: '100px', width: '100%' }} />
+            ) : (
+              Object.keys(CONSENT_PURPOSES).map(type => {
+                const c = consents.find(item => item.consentType === type);
+                const isGranted = c?.granted || false;
+                return (
+                  <div key={type} className="consent-status-item" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px', borderRadius: '6px', background: 'var(--pp-sidebar-bg)', border: '1px solid var(--pp-border)' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span className="text-label" style={{ fontSize: '10px', textTransform: 'uppercase' }}>{type.replace('_', ' ')}</span>
+                      <span className="text-body" style={{ fontSize: '12px', fontWeight: 600 }}>{isGranted ? '✅ Granted' : '❌ Not Granted'}</span>
+                    </div>
+                    <button 
+                      onClick={() => handleToggleConsent(type, isGranted)}
+                      disabled={grantMutation.isPending || revokeMutation.isPending}
+                      className={isGranted ? 'btn-rev-mini' : 'btn-grant-mini'}
+                      style={{ 
+                        fontSize: '10px', 
+                        padding: '4px 8px', 
+                        borderRadius: '4px',
+                        border: '1px solid',
+                        cursor: 'pointer',
+                        fontWeight: 700,
+                        background: isGranted ? 'var(--pp-danger-tint)' : 'var(--pp-success-tint)',
+                        color: isGranted ? 'var(--pp-danger-fg)' : 'var(--pp-success-fg)',
+                        borderColor: isGranted ? 'var(--pp-danger-fg)' : 'var(--pp-success-fg)',
+                      }}
+                    >
+                      {isGranted ? 'Revoke' : 'Grant'}
+                    </button>
+                  </div>
+                );
+              })
+            )}
+          </div>
+          <p style={{ fontSize: '10px', color: 'var(--pp-faint-fg)', marginTop: '12px', fontStyle: 'italic' }}>
+            Consent history is audited for DPDP compliance.
+          </p>
         </div>
       </div>
 
@@ -388,5 +458,12 @@ function ClinicalTrends({ regid }: { regid: number }) {
     </div>
   );
 }
+
+const CONSENT_PURPOSES: Record<string, string> = {
+  data_processing: 'To store and manage clinical health records',
+  ai_analysis: 'To analyze symptoms and provide AI-assisted diagnosis',
+  sms_communication: 'To send appointment reminders and clinical updates via SMS',
+  whatsapp_communication: 'To send prescriptions and reminders via WhatsApp',
+};
 
 

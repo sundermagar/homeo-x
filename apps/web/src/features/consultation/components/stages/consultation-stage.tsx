@@ -14,6 +14,9 @@ import { Zap, RefreshCw, ClipboardList, Brain, Heart, Search, Star, Volume2, Mic
 import { io, type Socket } from 'socket.io-client';
 import { toast } from '../../../../hooks/use-toast';
 import { ROUTES } from '../../../../lib/constants';
+import { useConsentStatus, useGrantConsent } from '../../../patients/hooks/use-consent';
+import { Button } from '../../../../components/ui/button';
+import { Checkbox } from '../../../../components/ui/checkbox';
 
 interface ConsultationStageProps {
   visitId: string;
@@ -96,6 +99,39 @@ export function ConsultationStage({
   // Buffer of patient-answer segments waiting for Submit.
   // Keyed by original text so translation updates can swap in the English version.
   const patientAnswerSegmentsRef = useRef<{ text: string; translatedText: string; timestamp: number }[]>([]);
+
+  // DPDP Phase 2: AI Consent
+  const patientRegid = patient?.regid;
+  const { data: consents = [], isLoading: isLoadingConsents } = useConsentStatus(patientRegid || 0);
+  const grantConsent = useGrantConsent();
+  const [showConsentModal, setShowConsentModal] = useState(false);
+  const [consentGranted, setConsentGranted] = useState(false);
+
+  const aiConsent = consents.find(c => c.consentType === 'ai_analysis');
+  const isAiConsentGranted = aiConsent?.granted || consentGranted;
+
+  useEffect(() => {
+    if (!isLoadingConsents && !isAiConsentGranted && patientRegid) {
+      setShowConsentModal(true);
+    }
+  }, [isLoadingConsents, isAiConsentGranted, patientRegid]);
+
+  const handleGrantAiConsent = async () => {
+    try {
+      await grantConsent.mutateAsync({
+        patientRegid,
+        consentType: 'ai_analysis',
+        purpose: 'To analyze symptoms and provide AI-assisted diagnosis',
+        granted: true,
+        consentVersion: 1,
+      });
+      setConsentGranted(true);
+      setShowConsentModal(false);
+      toast({ title: 'Consent granted', variant: 'success' });
+    } catch (err) {
+      toast({ title: 'Failed to record consent', variant: 'error' });
+    }
+  };
 
   // ── Client-side interim text staleness watchdog ──────────────────────────────
   // If interim text hasn't resolved to a final result within 8 seconds, the STT
@@ -267,7 +303,7 @@ export function ConsultationStage({
       // REQUIREMENT: Don't start transcription until both have joined.
       // We check if at least one remote user (the patient) is present.
       const isPatientJoined = (video?.remoteUsers || []).length > 0;
-      if (!isPatientJoined) return;
+      if (!isPatientJoined || !isAiConsentGranted) return;
 
       // 1. Doctor voice
       if (!hasAutoStartedDr.current && !binaryTranscriber.isRecording && !binaryTranscriber.isConnecting) {
@@ -300,6 +336,7 @@ export function ConsultationStage({
       }
     } else {
       // IN_PERSON — no LiveKit, our own getUserMedia
+      if (!isAiConsentGranted) return;
       if (!hasAutoStartedDr.current && !binaryTranscriber.isRecording && !binaryTranscriber.isConnecting) {
         hasAutoStartedDr.current = true;
         console.log('[ConsultationStage] Auto-starting transcription (IN_PERSON)');
@@ -979,6 +1016,59 @@ export function ConsultationStage({
       </div>
 
       {/* Navigation buttons are in the bottom bar — no duplicate here */}
+
+      {/* DPDP Phase 2: AI Consent Modal */}
+      {showConsentModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="h-10 w-10 rounded-full bg-blue-50 flex items-center justify-center">
+                <Sparkles className="h-5 w-5 text-blue-600" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900">AI Consultation Consent</h3>
+            </div>
+            
+            <p className="text-sm text-gray-600 mb-6 leading-relaxed">
+              As per the <strong>DPDP Act 2023</strong>, we require explicit consent from <strong>{patient?.fullName || 'the patient'}</strong> to use AI for symptom analysis and diagnostic assistance.
+            </p>
+
+            <div className="bg-gray-50 rounded-lg p-4 mb-6 border border-gray-100">
+              <div className="flex items-start gap-3">
+                <Checkbox 
+                  id="modal_ai_consent" 
+                  checked={consentGranted} 
+                  onCheckedChange={(checked) => setConsentGranted(!!checked)}
+                  className="mt-1"
+                />
+                <label htmlFor="modal_ai_consent" className="text-xs font-medium text-gray-700 cursor-pointer">
+                  The patient provides explicit consent for AI-assisted consultation and data processing.
+                </label>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <Button 
+                variant="outline" 
+                className="flex-1" 
+                onClick={() => setShowConsentModal(false)}
+              >
+                Skip AI
+              </Button>
+              <Button 
+                className="flex-1 bg-blue-600 hover:bg-blue-700" 
+                disabled={!consentGranted}
+                onClick={handleGrantAiConsent}
+              >
+                Enable AI
+              </Button>
+            </div>
+            
+            <p className="text-[10px] text-gray-400 mt-4 text-center italic">
+              Transcription and AI features remain disabled until consent is granted.
+            </p>
+          </div>
+        </div>
+      )}
 
     </div>
   );

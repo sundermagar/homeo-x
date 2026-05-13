@@ -63,6 +63,7 @@ import { createTerminologyRouter } from './routes/terminology.router.js';
 import { createNotificationsRouter } from './routes/notifications.router.js';
 import { setupNotificationsGateway, setNotificationEmitters } from './gateways/notifications.gateway.js';
 import { uploadsRouter } from './routes/uploads.router.js';
+import { consentRouter } from './routes/consent.router.js';
 
 const logger = createLogger('http');
 
@@ -161,7 +162,7 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   app.use('/api/clinicadmins', authMiddleware, createClinicAdminsRouter());
   
   // Our modules — Settings & Configuration
-  app.use('/api/settings', authMiddleware, createSettingsRouter());
+  app.use('/api/settings', createSettingsRouter());
   
   // Clinical Terminology
   app.use('/api/terminology', authMiddleware, createTerminologyRouter());
@@ -184,6 +185,9 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
 
   // Authenticated Uploads
   app.use('/api/uploads', uploadsRouter);
+
+  // Consent Management (DPDP Phase 2)
+  app.use('/api/consent', consentRouter);
 
   // ─── Consultation, Scribing, AI, Visits (JWT required) ───
   app.use('/api/consultations', authMiddleware, consultationsRouter);

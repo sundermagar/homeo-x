@@ -75,19 +75,19 @@ async function ensureSnomedColumnsExist(db: any, tenantId: string, logger: any) 
 
 export function createSettingsRouter(): Router {
   const router = Router();
-  router.use(authMiddleware);
+  const getRepo = (req: Request) => new SettingsRepositoryPg(req.tenantDb);
 
-  const logger = createLogger('settings-router');
-
-  // Self-healing: ensure SNOMED columns exist
-  router.use(asyncHandler(async (req: Request, _res: Response, next: any) => {
-    const db = (req as any).tenantDb;
-    const tenantId = (req as any).tenantId || (req as any).user?.contextId || 'default';
-    if (db) await ensureSnomedColumnsExist(db, tenantId, logger);
-    next();
+  // ─── CMS: Public Static Pages ─────────────────────────────────────────────
+  // This must remain unauthenticated for public access to Privacy Policy / TOS
+  router.get('/cms/public/pages/slug/:slug', asyncHandler(async (req: Request, res: Response) => {
+    const row = await getRepo(req).getStaticPageBySlug(req.params.slug as string);
+    if (!row) { res.status(404).json({ success: false, error: 'Not found' }); return; }
+    res.json({ success: true, data: row });
   }));
 
-  const getRepo = (req: Request) => new SettingsRepositoryPg(req.tenantDb);
+  router.use(authMiddleware);
+
+  // Self-healing: ensure SNOMED columns exist
 
   // ─── Departments ─────────────────────────────────────────────────────────
   router.get('/departments', asyncHandler(async (req: Request, res: Response) => {

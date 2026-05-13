@@ -532,31 +532,31 @@ AI providers (Google, Groq) process data outside India. Under DPDP Sec 16, trans
 
 ## 📋 Master Implementation Checklist
 
-### Phase 1 — Security Safeguards (Week 1–2) 🔴
-- [ ] 1.1.1 Remove backdoor password from `login.use-case.ts`
-- [ ] 1.1.2 Gate demo tokens to development only
-- [ ] 1.1.3 Delete debug routes from `health.ts`
-- [ ] 1.1.4 Remove JWT fallback `'dev-secret'`
-- [ ] 1.2 Add `authMiddleware` to all unprotected PHI routes
-- [ ] 1.3.1 Hide stack traces in production errors
-- [ ] 1.3.2 Remove `err.stack` from patient router
-- [ ] 1.3.3 Remove all `console.log` from auth domain
-- [ ] 1.4.1 Enable database SSL/TLS
-- [ ] 1.4.2 Verify hosting encryption at rest
-- [ ] 1.4.3 Enable Content Security Policy
-- [ ] 1.5.1 Add JWT blacklist check to auth middleware
-- [ ] 1.5.2 Reduce JWT expiry to 30 minutes
-- [ ] 1.5.3 Migrate tokens from localStorage to httpOnly cookies
+### Phase 1 — Security Safeguards (Week 1–2) 🟢
+- [x] 1.1.1 Remove backdoor password from `login.use-case.ts`
+- [x] 1.1.2 Gate demo tokens to development only
+- [x] 1.1.3 Delete debug routes from `health.ts`
+- [x] 1.1.4 Remove JWT fallback `'dev-secret'`
+- [x] 1.2 Add `authMiddleware` to all unprotected PHI routes
+- [x] 1.3.1 Hide stack traces in production errors
+- [x] 1.3.2 Remove `err.stack` from patient router
+- [x] 1.3.3 Remove all `console.log` from auth domain
+- [x] 1.4.1 Enable database SSL/TLS
+- [x] 1.4.2 Verify hosting encryption at rest (Railway/Supabase default)
+- [x] 1.4.3 Enable Content Security Policy
+- [x] 1.5.1 Add JWT blacklist check to auth middleware
+- [x] 1.5.2 Reduce JWT expiry to 30 minutes
+- [x] 1.5.3 Migrate tokens from localStorage to httpOnly cookies
 
-### Phase 2 — Consent & Notice (Week 3–4) 🔴
-- [ ] 2.1 Create `consent_records` database table
-- [ ] 2.1 Build consent domain (ports, use-cases, repository)
-- [ ] 2.1 Create consent API endpoints
-- [ ] 2.1 Add consent UI to patient registration
-- [ ] 2.1 Add consent modal before AI consultation
-- [ ] 2.2 Write comprehensive privacy notice (English + Hindi)
-- [ ] 2.2 Replace CMS seed placeholder with real privacy policy
-- [ ] 2.2 Add privacy notice link to login page (replace `href="#"`)
+### Phase 2 — Consent & Notice (Week 3–4) 🟢
+- [x] 2.1 Create `consent_records` database table
+- [x] 2.1 Build consent domain (ports, use-cases, repository)
+- [x] 2.1 Create consent API endpoints
+- [x] 2.1 Add consent UI to patient registration
+- [x] 2.1 Add consent modal before AI consultation
+- [x] 2.2 Write comprehensive privacy notice (English + Hindi)
+- [x] 2.2 Replace CMS seed placeholder with real privacy policy
+- [x] 2.2 Add privacy notice link to login page (replace `href="#"`)
 
 ### Phase 3 — Data Principal Rights (Week 5–6) 🟠
 - [ ] 3.1 Build data access summary endpoint

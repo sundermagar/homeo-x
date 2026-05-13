@@ -66,6 +66,7 @@ const EmployeesPage = lazy(() => import('@/features/platform/pages/EmployeesPage
 const ReceptionistsPage = lazy(() => import('@/features/platform/pages/ReceptionistsPage'));
 const ClinicAdminsPage = lazy(() => import('@/features/platform/pages/ClinicAdminsPage'));
 const AccountManagersPage = lazy(() => import('@/features/platform/pages/AccountManagersPage'));
+const PublicCmsPage = lazy(() => import('@/features/platform/pages/PublicCmsPage'));
 
 // ─── Settings & Configuration ─────────────────────
 const DepartmentsPage = lazy(() => import('@/features/settings/pages/DepartmentsPage'));
@@ -121,6 +122,7 @@ export function AppRouter() {
         {/* Public */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/meet/:roomId" element={<PatientMeetPage />} />
+        <Route path="/p/:slug" element={<PublicCmsPage />} />
 
         {/* Protected */}
         <Route element={<ProtectedRoute />}>
