@@ -307,6 +307,16 @@ async function ensureIndexes(db: any): Promise<void> {
   const indexes: string[] = [
     `CREATE INDEX IF NOT EXISTS idx_patients_clinic_deleted ON patients (clinic_id) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
     `CREATE INDEX IF NOT EXISTS idx_patients_deleted ON patients (id) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    
+    // ── Clinical Record Indexes (Optimization for Case Details) ──
+    `CREATE INDEX IF NOT EXISTS idx_mc_regid ON medicalcases (regid)`,
+    `CREATE INDEX IF NOT EXISTS idx_mc_clinic ON medicalcases (clinic_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_soap_regid ON soap_notes (regid)`,
+    `CREATE INDEX IF NOT EXISTS idx_soap_visit ON soap_notes (visit_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_vitals_regid ON vitals (regid)`,
+    `CREATE INDEX IF NOT EXISTS idx_vitals_visit ON vitals (visit_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_presc_regid ON case_potencies (regid)`,
+    `CREATE INDEX IF NOT EXISTS idx_presc_visit ON case_potencies (visit_id)`,
     // ── Dashboard-critical composite indexes ──────────────────────────────────
     // appointments: used in KPI counts + revenue series (clinic_id + booking_date filter)
     `CREATE INDEX IF NOT EXISTS idx_appts_clinic_date ON appointments (clinic_id, booking_date) WHERE deleted_at IS NULL OR deleted_at::text = ''`,

@@ -112,8 +112,9 @@ router.post('/vitals/analyze', asyncHandler(async (req, res) => {
 */
 
 router.get('/soap/:visitId', asyncHandler(async (req, res) => {
+  const { regid } = req.query;
   const useCase = new ManageSoapNotesUseCase(getRepo(req));
-  const result = await useCase.get(Number(req.params.visitId));
+  const result = await useCase.get(Number(regid), Number(req.params.visitId));
   if (!result.success) throw new Error(result.error);
   sendSuccess(res, result.data);
 }));
@@ -311,10 +312,18 @@ router.put('/:regid/diagnosis', asyncHandler(async (req, res) => {
 
   // Find the active medical case for this patient
   const cases = await repo.findByRegId(regid);
-  const activeCase = cases.find((c: any) => c.status === 'Active') || cases[0];
+  let activeCase = cases.find((c: any) => c.status === 'Active') || cases[0];
 
   if (!activeCase) {
-    res.status(404).json({ success: false, error: 'No medical case found for this patient' });
+    // Self-healing: If no case exists (new patient), create an active one implicitly
+    const newCaseId = await repo.create({
+      regid,
+      condition,
+      status: 'Active',
+      clinicId: (req as any).user?.contextId,
+      doctorId: (req as any).user?.id
+    });
+    sendSuccess(res, { condition, id: newCaseId, created: true }, 'Medical case created and diagnosis updated');
     return;
   }
 

@@ -446,19 +446,97 @@ export function HomeopathyConsultationLayout({
                 </div>
               )}
 
-              {/* Rx Items (only if CHANGE) */}
-              {state.rxItems.length > 0 && (
-                <div className="bg-white border border-[#E3E2DF] rounded-lg p-4">
-                  <h3 className="text-xs font-bold text-[#888786] uppercase tracking-widest mb-3">New Prescription</h3>
-                  {state.rxItems.map((item, i) => (
-                    <div key={i} className="flex items-center gap-4 py-2 border-b border-[#F4F3F1] last:border-0">
-                      <span className="text-sm font-bold text-[#2563EB]">{item.medicationName}</span>
-                      <span className="text-xs text-[#4A4A47]">{item.dosage}</span>
-                      {item.instructions && <span className="text-xs text-[#888786]">— {item.instructions}</span>}
-                    </div>
-                  ))}
+              {/* Rx Items — editable so the doctor can adjust the AI's suggested
+                  remedy before approving. buildPayload's filter requires every
+                  field; making them visible inputs ensures nothing silently
+                  drops out at submit time. */}
+              <div className="bg-white border border-[#E3E2DF] rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xs font-bold text-[#888786] uppercase tracking-widest">New Prescription</h3>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      state.setRxItems(prev => [
+                        ...prev,
+                        {
+                          medicationName: '',
+                          genericName: '',
+                          dosage: '30C',
+                          frequency: 'Stat',
+                          duration: '1 day',
+                          route: 'Globules',
+                          instructions: '',
+                        },
+                      ])
+                    }
+                    className="text-[10px] font-bold text-[#2563EB] hover:underline uppercase tracking-wider"
+                  >
+                    + Add Remedy
+                  </button>
                 </div>
-              )}
+
+                {state.rxItems.length === 0 && (
+                  <p className="text-[12px] text-[#888786] italic">No remedy suggested. Use "+ Add Remedy" if you want to prescribe.</p>
+                )}
+
+                <div className="space-y-3">
+                  {state.rxItems.map((item, i) => {
+                    const updateItem = (patch: Partial<typeof item>) => {
+                      state.setRxItems(prev => prev.map((it, idx) => idx === i ? { ...it, ...patch } : it));
+                    };
+                    const removeItem = () => {
+                      state.setRxItems(prev => prev.filter((_, idx) => idx !== i));
+                    };
+                    return (
+                      <div key={i} className="grid grid-cols-12 gap-2 items-start">
+                        <input
+                          type="text"
+                          value={item.medicationName || ''}
+                          onChange={(e) => updateItem({ medicationName: e.target.value })}
+                          placeholder="Remedy name"
+                          className="col-span-4 text-sm font-bold text-[#2563EB] px-2 py-1.5 rounded-md border border-[#E3E2DF] bg-[#FAFAF8] focus:outline-none focus:bg-white focus:border-[#2563EB]"
+                        />
+                        <input
+                          type="text"
+                          value={item.dosage || ''}
+                          onChange={(e) => updateItem({ dosage: e.target.value })}
+                          placeholder="Potency (30C)"
+                          className="col-span-2 text-xs text-[#0F0F0E] px-2 py-1.5 rounded-md border border-[#E3E2DF] bg-[#FAFAF8] focus:outline-none focus:bg-white focus:border-[#2563EB]"
+                        />
+                        <input
+                          type="text"
+                          value={item.frequency || ''}
+                          onChange={(e) => updateItem({ frequency: e.target.value })}
+                          placeholder="Frequency"
+                          className="col-span-2 text-xs text-[#0F0F0E] px-2 py-1.5 rounded-md border border-[#E3E2DF] bg-[#FAFAF8] focus:outline-none focus:bg-white focus:border-[#2563EB]"
+                        />
+                        <input
+                          type="text"
+                          value={item.duration || ''}
+                          onChange={(e) => updateItem({ duration: e.target.value })}
+                          placeholder="Duration"
+                          className="col-span-2 text-xs text-[#0F0F0E] px-2 py-1.5 rounded-md border border-[#E3E2DF] bg-[#FAFAF8] focus:outline-none focus:bg-white focus:border-[#2563EB]"
+                        />
+                        <button
+                          type="button"
+                          onClick={removeItem}
+                          title="Remove remedy"
+                          className="col-span-2 text-[10px] font-bold text-[#DC2626] hover:bg-[#FEF2F2] border border-[#FECACA] rounded-md py-1.5 px-2 transition-colors uppercase tracking-wider"
+                        >
+                          Remove
+                        </button>
+                        <input
+                          type="text"
+                          value={item.instructions || ''}
+                          onChange={(e) => updateItem({ instructions: e.target.value })}
+                          placeholder="Instructions (e.g. 2 pills 3 times/day)"
+                          className="col-span-12 text-xs text-[#4A4A47] px-2 py-1.5 rounded-md border border-[#E3E2DF] bg-[#FAFAF8] focus:outline-none focus:bg-white focus:border-[#2563EB]"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           );
         }
@@ -603,6 +681,7 @@ export function HomeopathyConsultationLayout({
             else if (state.consultStage === 'REPERTORY') {
               const { rows, advice, followUp } = repertoryDataRef.current;
               if (rows.length > 0) {
+                // Standard new-case flow: RepertoryStage feeds rxItems via repertoryDataRef.
                 const rxItems = rows.map(r => ({
                   medicationName: r.remedyName,
                   genericName: '',
@@ -613,6 +692,12 @@ export function HomeopathyConsultationLayout({
                   instructions: r.instruction,
                 }));
                 state.handleCompleteWithData(rxItems, advice, followUp);
+              } else if (state.rxItems.length > 0) {
+                // Follow-up flow: rxItems was populated by handleHomeopathyConsultGenerated
+                // (CHANGE decision sets the alternative remedy). repertoryDataRef stays empty
+                // because RepertoryStage doesn't render in follow-up mode — pass rxItems
+                // explicitly so the prescription is never lost to a state-flush race.
+                state.handleCompleteWithData(state.rxItems, state.advice, state.followUp);
               } else {
                 state.handleComplete();
               }
@@ -672,15 +757,27 @@ export function HomeopathyConsultationLayout({
                 className="w-full pp-btn-secondary h-10 justify-center"
                 inlineData={{
                   soapData: state.soapData,
-                  rxItems: repertoryDataRef.current.rows.map(r => ({
-                    medicationName: r.remedyName,
-                    dosage: r.potency,
-                    frequency: r.frequency,
-                    duration: r.duration,
-                    instructions: r.instruction,
-                  })),
-                  advice: repertoryDataRef.current.advice,
-                  followUp: repertoryDataRef.current.followUp,
+                  // Standard new-case flow feeds repertoryDataRef from RepertoryStage.
+                  // Follow-up flow doesn't render RepertoryStage, so that ref stays
+                  // empty — fall back to state.rxItems which is populated by the
+                  // follow-up CHANGE handler (and editable on the assessment screen).
+                  rxItems: repertoryDataRef.current.rows.length > 0
+                    ? repertoryDataRef.current.rows.map(r => ({
+                        medicationName: r.remedyName,
+                        dosage: r.potency,
+                        frequency: r.frequency,
+                        duration: r.duration,
+                        instructions: r.instruction,
+                      }))
+                    : state.rxItems.map(item => ({
+                        medicationName: item.medicationName,
+                        dosage: item.dosage,
+                        frequency: item.frequency,
+                        duration: item.duration,
+                        instructions: item.instructions,
+                      })),
+                  advice: repertoryDataRef.current.advice || state.advice,
+                  followUp: repertoryDataRef.current.followUp || state.followUp,
                   visit,
                   patient: patient || undefined,
                 }}
