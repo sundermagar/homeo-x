@@ -59,6 +59,8 @@ export const users = pgTable('users', {
 
   isActive: boolean('is_active').default(true).notNull(),
   rememberToken: text('remember_token'),
+  resetOtp: text('reset_otp'),
+  resetOtpExpiry: timestamp('reset_otp_expiry'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   deletedAt: timestamp('deleted_at'),

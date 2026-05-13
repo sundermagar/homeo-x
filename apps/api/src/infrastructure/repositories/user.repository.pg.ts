@@ -1,4 +1,4 @@
-import { sql, eq } from 'drizzle-orm';
+import { sql, eq, and, isNull } from 'drizzle-orm';
 import type { User } from '@mmc/types';
 import { Role } from '@mmc/types';
 import type { DbClient } from '@mmc/database';
@@ -85,6 +85,44 @@ export class UserRepositoryPG implements UserRepository {
     await this.db.execute(
       sql`UPDATE users SET password = ${passwordHash}, updated_at = NOW() WHERE id = ${userId}`
     );
+  }
+
+  async updateResetOtp(userId: number, hashedOtp: string, expiry: Date): Promise<void> {
+    await this.db.update(schema.users)
+      .set({
+        resetOtp: hashedOtp,
+        resetOtpExpiry: expiry,
+        updatedAt: new Date()
+      })
+      .where(eq(schema.users.id, userId));
+  }
+
+  async getResetOtp(email: string): Promise<{ resetOtp: string | null; resetOtpExpiry: Date | null } | null> {
+    const results = await this.db
+      .select({
+        resetOtp: schema.users.resetOtp,
+        resetOtpExpiry: schema.users.resetOtpExpiry
+      })
+      .from(schema.users)
+      .where(and(eq(schema.users.email, email), isNull(schema.users.deletedAt)))
+      .limit(1);
+
+    const row = results[0];
+    if (!row) return null;
+    return {
+      resetOtp: row.resetOtp,
+      resetOtpExpiry: row.resetOtpExpiry ? new Date(row.resetOtpExpiry) : null
+    };
+  }
+
+  async clearResetOtp(userId: number): Promise<void> {
+    await this.db.update(schema.users)
+      .set({
+        resetOtp: null,
+        resetOtpExpiry: null,
+        updatedAt: new Date()
+      })
+      .where(eq(schema.users.id, userId));
   }
 
   async getUserPermissions(roleId: number): Promise<string[]> {
