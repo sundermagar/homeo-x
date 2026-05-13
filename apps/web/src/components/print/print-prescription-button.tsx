@@ -114,6 +114,8 @@ export function PrintPrescriptionButton({
 
       const visit = inlineData.visit || { id: visitId };
 
+      const visitDate = (visit as any).completedAt || (visit as any).startedAt || (visit as any).checkedInAt || (visit as any).createdAt || new Date().toISOString();
+
       printData = {
         clinic: clinic as any,
         doctor: getDoctorLetterhead(),
@@ -121,12 +123,12 @@ export function PrintPrescriptionButton({
           name: patientName,
           age: patientAge,
           gender: inlineData.patient?.gender,
-          mrn: inlineData.patient?.mrn,
+          mrn: inlineData.patient?.mrn || (inlineData.patient as any)?.regid?.toString() || (inlineData.patient as any)?.id?.toString(),
           phone: inlineData.patient?.phone,
         },
         visit: {
-          visitNumber: (visit as any).visitNumber || visit.id?.slice(-6).toUpperCase() || visitId.slice(-6).toUpperCase(),
-          date: (visit as any).completedAt || (visit as any).startedAt || (visit as any).checkedInAt || new Date().toISOString(),
+          visitNumber: (visit as any).visitNumber || (visit as any).id?.toString?.()?.slice(-6)?.toUpperCase?.() || visitId.slice(-6).toUpperCase(),
+          date: visitDate,
           specialty: (visit as any).specialty,
           chiefComplaint: (visit as any).chiefComplaint,
         },
@@ -150,6 +152,7 @@ export function PrintPrescriptionButton({
           route: item.route,
           instructions: item.instructions,
           quantity: item.quantity,
+          date: visitDate,
         })),
         advice: inlineData.advice,
         followUp: inlineData.followUp,
@@ -201,6 +204,8 @@ export function PrintPrescriptionButton({
       // prescription rows ({ remedy, potency, frequency, duration, instructions }).
       // It also accepts the older nested shape ({ items: [{ medicationName, dosage, ... }] })
       // for back-compat — handle both.
+      const visitDate = summary!.visit.completedAt || summary!.visit.startedAt || summary!.visit.checkedInAt || (summary!.visit as any).createdAt || new Date().toISOString();
+
       const medications = (summary!.prescriptions ?? []).flatMap((rx: any) => {
         // Back-compat: nested-items shape
         if (Array.isArray(rx?.items) && rx.items.length > 0) {
@@ -213,6 +218,7 @@ export function PrintPrescriptionButton({
             route: item.route,
             instructions: item.instructions,
             quantity: item.quantity,
+            date: item.created_at ?? item.date ?? visitDate,
           }));
         }
         // Flat row shape from the legacy `prescriptions` table
@@ -225,6 +231,7 @@ export function PrintPrescriptionButton({
           route: rx?.route,
           instructions: rx?.instructions,
           quantity: rx?.quantity,
+          date: rx?.created_at ?? rx?.date ?? visitDate,
         }];
       }).filter((m: any) => m.name);
 

@@ -778,8 +778,10 @@ export function HomeopathyConsultationLayout({
                       })),
                   advice: repertoryDataRef.current.advice || state.advice,
                   followUp: repertoryDataRef.current.followUp || state.followUp,
-                  visit,
-                  patient: patient || undefined,
+                  visit: { ...visit, createdAt: (visit as any).createdAt || new Date().toISOString() },
+                  patient: patient
+                    ? { ...patient, mrn: (patient as any).mrn || (patient as any).regid?.toString() || (visit as any).patientId?.toString() }
+                    : { mrn: (visit as any).patientId?.toString() } as any,
                 }}
               />
               <button
