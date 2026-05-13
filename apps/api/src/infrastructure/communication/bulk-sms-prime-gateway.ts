@@ -57,7 +57,7 @@ export class BulkSmsPrimeGateway implements SmsGateway {
           timeout: 15000,
           family: 4, // 🔌 Force IPv4 to resolve legacy DNS issues
           headers: {
-            'User-Agent': 'HomeoX-API/1.0',
+            'User-Agent': 'KreedHealth-API/1.0',
           }
         };
 

@@ -60,7 +60,9 @@ import { TranslatorEngine } from '../../domains/consultation/engines/translator.
 import { getAiProviderChain } from '../ai/ai-provider-chain.js';
 import { createTerminologyRouter } from './routes/terminology.router.js';
 import { createNotificationsRouter } from './routes/notifications.router.js';
+import { whatsappRouter } from './routes/whatsapp.js';
 import { setupNotificationsGateway, setNotificationEmitters } from './gateways/notifications.gateway.js';
+import { setupWhatsAppGateway, setWhatsAppGateway } from './gateways/whatsapp.gateway.js';
 
 const logger = createLogger('http');
 
@@ -163,6 +165,7 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   app.use('/api/records', authMiddleware, recordsRouter);
   app.use('/api/staff', authMiddleware, staffRouter);
   app.use('/api/notifications', authMiddleware, createNotificationsRouter());
+  app.use('/api/whatsapp', whatsappRouter);
 
   // Roles & Permissions
   app.use('/api/roles', authMiddleware, rolesRouter);
@@ -202,14 +205,21 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
     logger.error({ err: err?.message }, 'Failed to initialize video-call gateway');
   }
 
-  // ─── Notifications gateway (Socket.IO /notifications namespace) ───
-  // Pushes real-time notifications to authenticated users.
   try {
     const { emitToUser, emitToClinic } = setupNotificationsGateway(io);
     setNotificationEmitters(emitToUser, emitToClinic);
     logger.info('Notifications gateway initialized on /notifications namespace');
   } catch (err: any) {
     logger.error({ err: err?.message }, 'Failed to initialize notifications gateway');
+  }
+
+  // ─── WhatsApp gateway (Socket.IO /whatsapp namespace) ───
+  try {
+    const gateway = setupWhatsAppGateway(io);
+    setWhatsAppGateway(gateway);
+    logger.info('WhatsApp gateway initialized on /whatsapp namespace');
+  } catch (err: any) {
+    logger.error({ err: err?.message }, 'Failed to initialize whatsapp gateway');
   }
 
   // ─── Error Handling (must be last) ───

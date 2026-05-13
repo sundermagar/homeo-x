@@ -112,6 +112,9 @@ const CourierQueuePage = lazy(() => import('@/features/logistics/pages/courier-q
 // Clinical Hub
 const ClinicalHubPage = lazy(() => import('@/features/clinical-hub/pages/clinical-hub-page'));
 const PatientMeetPage = lazy(() => import('@/features/consultation/patient-meet-page'));
+// Legal & Compliance
+const PrivacyPolicyPage = lazy(() => import('@/features/legal/pages/privacy-policy-page'));
+const TermsOfServicePage = lazy(() => import('@/features/legal/pages/terms-of-service-page'));
 
 export function AppRouter() {
   return (
@@ -121,6 +124,8 @@ export function AppRouter() {
         {/* Public */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/meet/:roomId" element={<PatientMeetPage />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+        <Route path="/terms-of-service" element={<TermsOfServicePage />} />
 
         {/* Protected */}
         <Route element={<ProtectedRoute />}>
@@ -164,7 +169,17 @@ export function AppRouter() {
             <Route path="/communications/sms" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><GroupSmsPage /></RoleGuard>} />
             <Route path="/communications/templates" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><SmsTemplatesPage /></RoleGuard>} />
             <Route path="/communications/reports" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><SmsReportsPage /></RoleGuard>} />
-            <Route path="/communications/whatsapp" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><WhatsAppPage /></RoleGuard>} />
+            <Route path="/communications/whatsapp" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><WhatsAppPage /></RoleGuard>}>
+              <Route index element={<Navigate to="overview" replace />} />
+              <Route path="overview" element={<div />} />
+              <Route path="inbox" element={<div />} />
+              <Route path="campaigns" element={<div />} />
+              <Route path="contacts" element={<div />} />
+              <Route path="automations" element={<div />} />
+              <Route path="chatbots" element={<div />} />
+              <Route path="media" element={<div />} />
+              <Route path="channels" element={<div />} />
+            </Route>
             <Route path="/communications/birthdays" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><BirthdayBroadcastPage /></RoleGuard>} />
             <Route path="/communications" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><GroupSmsPage /></RoleGuard>} />
 

@@ -10,6 +10,8 @@ import { CommunicationRepositoryPG } from './infrastructure/repositories/communi
 import { SendSmsUseCase } from './domains/communication/use-cases/send-sms.use-case.js';
 import { createSmsGateway } from './infrastructure/communication/msg91-sms-gateway.js';
 import { JobScheduler } from './infrastructure/scheduler/job-scheduler.js';
+import { WhatsAppRepositoryPG } from './infrastructure/repositories/whatsapp.repository.pg.js';
+import { WhatsAppCloudGateway } from './infrastructure/communication/whatsapp-cloud-gateway.js';
 
 const logger = createLogger('main');
 logger.info('Reloading API server... (port sync)');
@@ -70,7 +72,11 @@ async function bootstrap() {
     const smsGateway = createSmsGateway();
     const smsUseCase = new SendSmsUseCase(commRepo, smsGateway);
 
-    const scheduler = new JobScheduler(apptRepo, patientRepo, smsUseCase);
+    // WhatsApp deps for scheduled template sync
+    const waRepo = new WhatsAppRepositoryPG(tenantDb);
+    const waGateway = new WhatsAppCloudGateway(waRepo);
+
+    const scheduler = new JobScheduler(apptRepo, patientRepo, smsUseCase, waRepo, waGateway);
     scheduler.start();
     logger.info('Background job scheduler initialized');
   }

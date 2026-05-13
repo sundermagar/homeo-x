@@ -170,13 +170,15 @@ function buildCommands(
     nav('Operations Hub', '/operations', <LayoutDashboard size={16} />, ADMIN_CLINIC,
       ['operation', 'crm', 'leads', 'task', 'logistics']),
 
-    // ── Communications ────────────────────────────────────────────────────────
+    // ── Communications (SMS decommissioned) ──────────────────────────────────
+    /*
     nav('Group SMS', '/communications/sms', <MessageSquare size={16} />, ADMIN_CLINIC,
       ['sms', 'group', 'broadcast', 'send', 'message']),
     nav('SMS Templates', '/communications/templates', <Mail size={16} />, ADMIN_CLINIC,
       ['sms', 'template', 'canned']),
     nav('SMS Reports', '/communications/reports', <FileBarChart size={16} />, ADMIN_CLINIC,
       ['sms', 'report', 'reports']),
+    */
     nav('WhatsApp', '/communications/whatsapp', <MessageCircle size={16} />, ADMIN_CLINIC,
       ['whatsapp', 'message', 'chat']),
 

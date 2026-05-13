@@ -11,6 +11,9 @@ import { CommunicationRepositoryPG } from '../../repositories/communication.repo
 import { NotificationsRepositoryPg } from '../../repositories/notifications.repository.pg.js';
 import { createSmsGateway } from '../../communication/msg91-sms-gateway.js';
 import { DashboardRepositoryPg } from '../../repositories/dashboard.repository.pg.js';
+import { WhatsAppRepositoryPG } from '../../repositories/whatsapp.repository.pg.js';
+import { SendWhatsAppTemplateUseCase } from '../../../domains/communication/use-cases/send-whatsapp-template.use-case.js';
+import { WhatsAppCloudGateway } from '../../communication/whatsapp-cloud-gateway.js';
 import { asyncHandler } from '../middleware/async-handler.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { BadRequestError, ValidationError } from '../../../shared/errors.js';
@@ -168,8 +171,13 @@ appointmentsRouter.post('/', asyncHandler(async (req, res) => {
   const commRepo = new CommunicationRepositoryPG(req.tenantDb);
   const patientRepo = new PatientRepositoryPg(req.tenantDb);
   const notifRepo = new NotificationsRepositoryPg(req.tenantDb);
+  const waRepo = new WhatsAppRepositoryPG(req.tenantDb);
+  const waGateway = new WhatsAppCloudGateway(waRepo);
+  
   const smsUc = new SendSmsUseCase(commRepo, smsGateway);
-  const bookAppt = new BookAppointmentUseCase(getRepo(req), smsUc, patientRepo, notifRepo);
+  const waUc = new SendWhatsAppTemplateUseCase(waGateway as any, waRepo);
+  
+  const bookAppt = new BookAppointmentUseCase(getRepo(req), smsUc, patientRepo, notifRepo, waUc);
   const clinicId = (req as any).user?.contextId;
   const result = await bookAppt.execute({ ...req.body, clinicId });
 

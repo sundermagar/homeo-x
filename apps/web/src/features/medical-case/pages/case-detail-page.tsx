@@ -23,7 +23,7 @@ import {
   useManageClinicalRecords, 
   useMasterVaccines, 
   useCommunicationLogs,
-  useSendSms
+  useSendWhatsApp
 } from '../hooks/use-medical-cases';
 import { usePatientPrescriptions, useRemedyLookups } from '../hooks/use-remedy-chart';
 import { usePrescriptionWorkflow } from '../hooks/use-prescription-workflow';
@@ -198,7 +198,7 @@ export default function MedicalCaseDetailPage() {
   const [editingVitals, setEditingVitals] = useState<any>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
-  const clinicName = useAuthStore(s => s.user?.clinicName || 'HomeoX Clinic');
+  const clinicName = useAuthStore(s => s.user?.clinicName || 'Kreed.health Clinic');
 
   const onDragStart = (e: React.MouseEvent | React.TouchEvent) => {
     setIsDragging(true);
@@ -1684,7 +1684,7 @@ function AnalyticsView({ vitals, regid, visitId, name, phone, clinicName, onAppe
   const [sending, setSending] = useState(false);
 
   const { saveVitals } = useManageClinicalRecords();
-  const sendSms = useSendSms();
+  const sendWhatsApp = useSendWhatsApp();
 
   const handleSave = async () => {
     if (!hVal && !wVal) return;
@@ -1735,7 +1735,7 @@ function AnalyticsView({ vitals, regid, visitId, name, phone, clinicName, onAppe
 
     const msg = `*📊 CLINICAL VITALS REPORT*\n\nHello ${name},\n\nYour latest height/weight recorded at *${clinicName}*:\n\n📏 *Height:* ${heightStr}\n⚖️ *Weight:* ${weightStr}\n📉 *BMI:* ${latest.bmi || '-'}\n\n*Recorded on:* ${new Date(latest.recordedAt).toLocaleDateString()}\n\nThank you!`;
     try {
-      await sendSms.mutateAsync({ phone, message: msg, regid });
+      await sendWhatsApp.mutateAsync({ phone, message: msg, regid });
     } finally {
       setSending(false);
     }
@@ -1892,7 +1892,7 @@ function VitalsView({ vitals, onRecord, phone, name, regid, clinicName, onAppend
   const latest = vitals && vitals.length > 0 ? vitals[0] : null;
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const sendSms = useSendSms();
+  const sendWhatsApp = useSendWhatsApp();
   const [sending, setSending] = useState(false);
   const { deleteVitals } = useManageClinicalRecords();
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -1950,7 +1950,7 @@ function VitalsView({ vitals, onRecord, phone, name, regid, clinicName, onAppend
 
     const msg = `*📊 CLINICAL VITALS REPORT*\n\nHello ${name},\n\nYour latest clinical vitals have been recorded at *${clinicName}*:\n\n📏 *Height:* ${heightStr}\n⚖️ *Weight:* ${weightStr}\n📉 *BMI:* ${latest.bmi || '-'}\n💓 *Blood Pressure:* ${latest.systolicBp}/${latest.diastolicBp} mmHg\n🌡️ *Temperature:* ${latest.temperatureF}°F\n🫁 *Oxygen (SpO2):* ${latest.oxygenSaturation || '-'}%\n\n*Recorded on:* ${new Date(latest.recordedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}\n\n_Note: Please consult your doctor for a detailed assessment of these values._\n\nThank you!`;
     try {
-      await sendSms.mutateAsync({ phone, message: msg, regid });
+      await sendWhatsApp.mutateAsync({ phone, message: msg, regid });
     } finally {
       setSending(false);
     }
@@ -2548,7 +2548,7 @@ function LabsView({ investigations, regid, visitId, onAppendNote }: { investigat
 function CommunicationView({ regid, phone, name, onAppendNote }: { regid: number; phone: string; name: string; onAppendNote?: (text: string) => void }) {
   const { data: logs = [], isLoading } = useCommunicationLogs(regid);
   const [message, setMessage] = useState('');
-  const sendSms = useSendSms();
+  const sendWhatsApp = useSendWhatsApp();
 
   const handleCopyToFollowup = (log: any) => {
     if (!onAppendNote) return;
@@ -2580,7 +2580,7 @@ function CommunicationView({ regid, phone, name, onAppendNote }: { regid: number
           <button
             className="btn-primary"
             style={{ width: '100%' }}
-            onClick={() => sendSms.mutateAsync({ phone, message, regid })}
+            onClick={() => sendWhatsApp.mutateAsync({ phone, message, regid })}
           >
             <Send size={16} style={{ marginRight: '8px' }} /> Send WhatsApp
           </button>

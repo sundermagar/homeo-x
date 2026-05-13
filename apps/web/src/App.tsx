@@ -94,25 +94,27 @@ export function App() {
   }, []);
 
   return (
-    <ErrorBoundary
-      onError={(error) => {
-        toast({
-          title: 'Something went wrong',
-          description: error.message,
-          variant: 'error',
-        });
-      }}
-    >
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <ThemeProvider>
-            <AuthProvider>
-              <AppRouter />
-            </AuthProvider>
-          </ThemeProvider>
-        </BrowserRouter>
-      </QueryClientProvider>
+    <>
+      <ErrorBoundary
+        onError={(error) => {
+          toast({
+            title: 'Something went wrong',
+            description: error.message,
+            variant: 'error',
+          });
+        }}
+      >
+        <QueryClientProvider client={queryClient}>
+          <BrowserRouter>
+            <ThemeProvider>
+              <AuthProvider>
+                <AppRouter />
+              </AuthProvider>
+            </ThemeProvider>
+          </BrowserRouter>
+        </QueryClientProvider>
+      </ErrorBoundary>
       <Toaster />
-    </ErrorBoundary>
+    </>
   );
 }

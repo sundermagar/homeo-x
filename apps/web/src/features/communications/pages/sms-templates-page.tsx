@@ -129,14 +129,25 @@ export default function SmsTemplatesPage() {
         <div>
           <h1 className="plat-header-title">
             <MessageSquare size={16} className="color-primary" />
-            SMS Templates
+            Archived SMS Templates
           </h1>
-          <p className="plat-header-sub">{templates.length} templates · Manage reusable message templates</p>
+          <p className="plat-header-sub">{templates.length} templates · Legacy template repository (Read Only)</p>
         </div>
         <div className="plat-header-actions">
-          <button className="plat-btn plat-btn-primary" onClick={() => setModal('create')}>
+          <button className="plat-btn plat-btn-ghost" disabled title="Creation disabled">
             <Plus size={14} /> New Template
           </button>
+        </div>
+      </div>
+
+      {/* Deactivation Banner */}
+      <div style={{ margin: '0 24px 24px 24px', padding: '16px 20px', background: '#fff7ed', border: '1px solid #ffedd5', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ padding: '8px', background: '#fed7aa', borderRadius: '50%', color: '#9a3412' }}>
+          <RefreshCw size={18} />
+        </div>
+        <div>
+          <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: '#9a3412' }}>Messaging Infrastructure Updated</h4>
+          <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: '#c2410c' }}>Legacy SMS templates are now read-only. Please migrate your communication workflows to the WhatsApp Template Manager.</p>
         </div>
       </div>
 

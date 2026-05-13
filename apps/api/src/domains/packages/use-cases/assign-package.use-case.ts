@@ -69,6 +69,8 @@ export class AssignPackageUseCase {
       billId: bill.id,
     });
 
+    // DECOMMISSIONED: SMS session moved to WhatsApp
+    /*
     // Step 3: Send SMS notification (matching legacy behavior)
     if (this.patientRepo && this.smsUseCase) {
       const fullData = await this.patientRepo.getUnifiedCaseData(regid);
@@ -87,6 +89,7 @@ export class AssignPackageUseCase {
         }
       }
     }
+    */
 
     return ok({ subscriptionId, expiryDate: expiryDateStr, billId: bill.id });
   }

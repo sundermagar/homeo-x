@@ -126,7 +126,7 @@ export function AccountModal({ mode, account, organizations, onClose }: AccountM
                   type="email"
                   value={form.email}
                   onChange={(e) => set('email', e.target.value)}
-                  placeholder="manager@homeox.com"
+                  placeholder="manager@kreed.health"
                 />
               </div>
 

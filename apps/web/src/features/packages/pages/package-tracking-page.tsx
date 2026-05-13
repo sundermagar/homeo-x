@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Calendar, RefreshCw, AlertTriangle, CheckCircle2, XCircle, Clock, Phone, User, MessageCircle, Send, CheckSquare, Square } from 'lucide-react';
 import { usePackageExpiryReport } from '../hooks/use-packages';
 import { useSendWhatsApp } from '@/features/communications/hooks/use-communications';
+import { toast } from '@/hooks/use-toast';
 import { Drawer } from '@/shared/components/drawer';
 import { Pagination } from '@/components/shared/pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
@@ -91,23 +92,34 @@ export default function PackageTrackingPage() {
   const sendBulkWhatsApp = async () => {
     if (!smsMessage.trim()) return;
     const ids = Array.from(selectedIds);
+    let sent = 0, failed = 0;
     for (const regid of ids) {
       const rec = records.find((r: any) => r.regid === regid);
       if (rec?.phone) {
-        await sendWa.mutateAsync({ phone: String(rec.phone), message: smsMessage.replace(/\{#name#\}/gi, `${rec.firstName} ${rec.surname || ''}`) });
+        try {
+          await sendWa.mutateAsync({ phone: String(rec.phone), message: smsMessage.replace(/\{#name#\}/gi, `${rec.firstName} ${rec.surname || ''}`) });
+          sent++;
+        } catch {
+          failed++;
+        }
       }
     }
     setShowSmsModal(false);
     setSmsMessage('');
     setSelectedIds(new Set());
-    alert('WhatsApp messages sent!');
+    toast({ title: 'WhatsApp Broadcast', description: `Sent: ${sent}, Failed: ${failed}` });
   };
 
   const sendSingleWhatsApp = (rec: any) => {
-    if (!rec.phone) { alert('No phone number available'); return; }
+    if (!rec.phone) {
+      toast({ title: 'No Phone Number', description: 'This patient has no phone number on record.', variant: 'error' });
+      return;
+    }
     const msg = `Dear ${rec.firstName} ${rec.surname || ''}, your ${rec.packageName} subscription expires on ${rec.expiryDate}. Please visit us to renew. - Kreed.health`;
-    sendWa.mutate({ phone: String(rec.phone), message: msg });
-    alert('WhatsApp message sent!');
+    sendWa.mutate({ phone: String(rec.phone), message: msg }, {
+      onSuccess: () => toast({ title: 'WhatsApp Sent', description: `Message sent to ${rec.firstName}.` }),
+      onError: (err: any) => toast({ title: 'Send Failed', description: err?.response?.data?.message || err.message, variant: 'error' }),
+    });
   };
 
   return (

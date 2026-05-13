@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Send, MessageSquare, Users, RefreshCw, CheckCircle2, AlertCircle, MessageCircle } from 'lucide-react';
+import { MessageSquare, Users, RefreshCw, CheckCircle2, AlertCircle, MessageCircle } from 'lucide-react';
 import { NumericInput } from '@/shared/components/NumericInput';
-import { useSmsTemplates, useSendSms, useBroadcastSms, useSendWhatsApp } from '../hooks/use-communications';
+import { useSendWhatsApp, useBroadcastWhatsApp } from '../hooks/use-communications';
 import '../styles/communications.css';
 
 const RECIPIENT_TYPES = [
@@ -11,17 +11,14 @@ const RECIPIENT_TYPES = [
 ];
 
 export default function GroupSmsPage() {
-  const { data: templates = [] } = useSmsTemplates();
-  const sendSingle = useSendSms();
-  const broadcast = useBroadcastSms();
   const waSingle = useSendWhatsApp();
+  const waBroadcast = useBroadcastWhatsApp();
 
   const [mode, setMode] = useState<'single' | 'broadcast'>('single');
   const [recipientType, setRecipientType] = useState('manual');
   const [phone, setPhone] = useState('');
   const [patientIds, setPatientIds] = useState('');
   const [message, setMessage] = useState('');
-  const [smsType, setSmsType] = useState('General');
   const [result, setResult] = useState<{ sent: number; failed: number } | null>(null);
   const [error, setError] = useState('');
 
@@ -31,11 +28,6 @@ export default function GroupSmsPage() {
     .replace(/{#name#}/gi, 'Rajesh Kumar')
     .replace(/{#date#}/gi, new Date().toLocaleDateString('en-IN'));
 
-  const applyTemplate = (tpl: { message: string; smsType: string }) => {
-    setMessage(tpl.message);
-    setSmsType(tpl.smsType);
-  };
-
   const parseError = (err: any) => {
     const raw = (err as { response?: { data?: any } }).response?.data;
     if (typeof raw === 'string' && raw.includes('<!DOCTYPE')) {
@@ -44,43 +36,30 @@ export default function GroupSmsPage() {
     return raw?.error ?? 'Failed to complete action';
   };
 
-  const handleSendSingle = async () => {
+  const handleWhatsAppSingle = async () => {
     if (!phone.trim()) { setError('Phone number is required'); return; }
     if (!message.trim()) { setError('Message is required'); return; }
     setError('');
     try {
-      const res = await sendSingle.mutateAsync({ phone: phone.trim(), message, smsType });
-      setResult(res.data as { sent: number; failed: number });
-    } catch (err: unknown) {
-      setError(parseError(err));
-    }
-  };
-
-  const handleWhatsApp = async () => {
-    if (!phone.trim()) { setError('Phone number is required'); return; }
-    if (!message.trim()) { setError('Message is required'); return; }
-    setError('');
-    try {
-      const res = await waSingle.mutateAsync({ phone: phone.trim(), message });
-      const d = (res.data as any).data as { details?: Array<{ deepLink?: string }> };
-      const link = d.details?.[0]?.deepLink ?? `https://api.whatsapp.com/send?phone=${phone.trim()}&text=${encodeURIComponent(message)}`;
-      window.open(link, '_blank');
+      await waSingle.mutateAsync({ phone: phone.trim(), message });
       setResult({ sent: 1, failed: 0 });
     } catch (err: unknown) {
       setError(parseError(err));
-      // Fallback to direct link if API fails
-      window.open(`https://api.whatsapp.com/send?phone=${phone.trim()}&text=${encodeURIComponent(message)}`, '_blank');
     }
   };
 
-  const handleBroadcast = async () => {
+  const handleWhatsAppBroadcast = async () => {
     if (!message.trim()) { setError('Message is required'); return; }
     setError('');
     const ids = patientIds
       ? patientIds.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n))
       : [];
     try {
-      const res = await broadcast.mutateAsync({ patientIds: ids.length ? ids : undefined, message, smsType });
+      const res = await waBroadcast.mutateAsync({ 
+        patientIds: ids.length ? ids : undefined, 
+        message,
+        phone: recipientType === 'manual' && phone ? [phone] : undefined
+      });
       setResult(res.data as { sent: number; failed: number });
     } catch (err: unknown) {
       setError(parseError(err));
@@ -88,8 +67,8 @@ export default function GroupSmsPage() {
   };
 
   const handleSubmit = () => {
-    if (mode === 'single') handleSendSingle();
-    else handleBroadcast();
+    if (mode === 'single') handleWhatsAppSingle();
+    else handleWhatsAppBroadcast();
   };
 
   return (
@@ -98,10 +77,10 @@ export default function GroupSmsPage() {
       <div className="pp-page-hero">
         <div>
           <h1 className="pp-page-hero-title">
-            <Send size={22} style={{ color: 'var(--pp-blue)' }} strokeWidth={2} />
-            Send SMS
+            <MessageCircle size={22} style={{ color: '#25D366' }} strokeWidth={2} />
+            WhatsApp Messaging
           </h1>
-          <p className="pp-page-hero-sub">Compose and send SMS messages to patients</p>
+          <p className="pp-page-hero-sub">Securely communicate with patients via Meta Cloud API</p>
         </div>
       </div>
 
@@ -114,12 +93,12 @@ export default function GroupSmsPage() {
               <button
                 type="button"
                 className={`pp-segmented-btn ${mode === 'single' ? 'active' : ''}`}
-                onClick={() => setMode('single')}>Single</button>
+                onClick={() => setMode('single')}>Direct</button>
               <button
                 type="button"
                 className={`pp-segmented-btn ${mode === 'broadcast' ? 'active' : ''}`}
                 onClick={() => setMode('broadcast')}>
-                <Users size={16} /> Group
+                <Users size={16} /> Broadcast
               </button>
             </div>
           </div>
@@ -133,33 +112,22 @@ export default function GroupSmsPage() {
             {result && (
               <div className="comm-alert comm-alert-success">
                 <CheckCircle2 size={16} />
-                Sent: {result.sent} · Failed: {result.failed}
+                WhatsApp Messages Sent: {result.sent} · Failed: {result.failed}
               </div>
             )}
 
             <div className="comm-composer">
-              {/* Template selector */}
-              <div className="comm-form-group">
-                <label className="comm-form-label">Template (optional)</label>
-                <div className="comm-template-select">
-                  {templates.map(t => (
-                    <button key={t.id} className="comm-template-chip" onClick={() => applyTemplate(t)}>
-                      {t.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               {/* Recipient */}
               {mode === 'single' ? (
                 <div className="comm-form-group">
-                  <label className="comm-form-label">Phone Number *</label>
+                  <label className="comm-form-label">Patient WhatsApp Number *</label>
                   <NumericInput className="comm-form-input" placeholder="e.g. 9876543210"
                     value={phone} onChange={e => setPhone(e.target.value)} />
+                  <p className="text-[10px] text-muted mt-1">Include country code without &quot;+&quot; prefix (e.g. 91 for India).</p>
                 </div>
               ) : (
                 <div className="comm-form-group">
-                  <label className="comm-form-label">Recipients</label>
+                  <label className="comm-form-label">Broadcast Recipients</label>
                   <div className="comm-form-row-2">
                     <select className="comm-form-select" value={recipientType} onChange={e => setRecipientType(e.target.value)}>
                       {RECIPIENT_TYPES.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
@@ -167,71 +135,43 @@ export default function GroupSmsPage() {
                     <input className="comm-form-input" placeholder="Patient IDs (comma-separated)"
                       value={patientIds} onChange={e => setPatientIds(e.target.value)} />
                   </div>
-                  <div className="comm-placeholder-hint" style={{ marginTop: 4 }}>
-                    Leave IDs empty to send to all patients
-                  </div>
                 </div>
               )}
 
               {/* Message */}
               <div className="comm-form-group">
-                <label className="comm-form-label">Message *</label>
-                <textarea className="comm-form-textarea" placeholder="Type your message or select a template…"
+                <label className="comm-form-label">Message Content *</label>
+                <textarea className="comm-form-textarea" placeholder="Type your message to the patient…"
                   value={message} onChange={e => setMessage(e.target.value)} />
-                <div className={`comm-char-count${charCount > 160 ? ' over' : ''}`}>
-                  {charCount} chars · {Math.ceil(charCount / 160)} SMS
+                <div className="comm-char-count">
+                  {charCount} characters
                 </div>
               </div>
 
               <div className="comm-placeholder-hint">
-                Placeholders: <code>{'{#name#}'}</code> Patient name · <code>{'{#date#}'}</code> Today · <code>{'{#clinic#}'}</code> Clinic name
+                Placeholders: <code>{'{#name#}'}</code> Patient name · <code>{'{#date#}'}</code> Today
               </div>
 
               {/* Preview */}
               {preview && (
                 <div className="comm-form-group">
-                  <label className="comm-form-label">Preview</label>
+                  <label className="comm-form-label">Message Preview</label>
                   <div className="comm-preview-box">{preview}</div>
                 </div>
               )}
 
-              {/* Category */}
-              <div className="comm-form-group">
-                <label className="comm-form-label">SMS Category</label>
-                <select className="comm-form-select" value={smsType} onChange={e => setSmsType(e.target.value)}>
-                  <option value="General">General</option>
-                  <option value="Appointment">Appointment</option>
-                  <option value="Reminder">Reminder</option>
-                  <option value="Promotional">Promotional</option>
-                  <option value="Transactional">Transactional</option>
-                </select>
-              </div>
-
-              <div style={{ display: 'flex', gap: 12 }}>
+              <div style={{ display: 'flex', marginTop: '12px' }}>
                 <button
-                  className="comm-btn comm-btn-primary comm-btn-lg"
+                  className="comm-btn comm-btn-wa comm-btn-lg"
                   onClick={handleSubmit}
-                  disabled={sendSingle.isPending || broadcast.isPending}
+                  disabled={waSingle.isPending || waBroadcast.isPending}
                   style={{ flex: 1 }}
                 >
-                  {sendSingle.isPending || broadcast.isPending
-                    ? <><RefreshCw size={14} className="comm-spin" /> Sending…</>
-                    : <><Send size={14} /> {mode === 'single' ? 'Send SMS' : 'Broadcast SMS'}</>
+                  {waSingle.isPending || waBroadcast.isPending
+                    ? <><RefreshCw size={14} className="comm-spin" /> Transmitting…</>
+                    : <><MessageCircle size={14} /> {mode === 'single' ? 'Send WhatsApp' : 'Broadcast via WhatsApp'}</>
                   }
                 </button>
-                {mode === 'single' && (
-                  <button
-                    className="comm-btn comm-btn-wa comm-btn-lg"
-                    onClick={handleWhatsApp}
-                    disabled={waSingle.isPending}
-                    style={{ flex: 1 }}
-                  >
-                    {waSingle.isPending
-                      ? <><RefreshCw size={14} className="comm-spin" /> …</>
-                      : <><MessageCircle size={14} /> Send WhatsApp</>
-                    }
-                  </button>
-                )}
               </div>
             </div>
           </div>
@@ -241,22 +181,20 @@ export default function GroupSmsPage() {
         <div className="comm-info-col">
           <div className="pp-table-container-enhanced" style={{ padding: '24px' }}>
             <div style={{ marginBottom: '20px' }}>
-              <h2 className="comm-card-title" style={{ fontSize: '1rem' }}>Quick Tips</h2>
+              <h2 className="comm-card-title" style={{ fontSize: '1rem' }}>Clinical Guidelines</h2>
             </div>
             <div className="comm-card-body">
               <div className="comm-info-text">
-                <p><strong>SMS Length:</strong> Each SMS is 160 characters. Messages longer than 160 chars are split into multiple segments.</p>
-                <p><strong>Placeholders:</strong> Use <code>{'{#name#}'}</code> to insert the patient&apos;s name automatically. Works with broadcast mode.</p>
-                <p><strong>Categories:</strong> Transactional SMS has higher delivery rates. Promotional SMS may be delayed by carriers.</p>
-                <p><strong>Template reuse:</strong> Select any saved template to quickly fill the message body, then customize as needed.</p>
+                <p><strong>Meta Compliance:</strong> For initial outbound messages, ensure you are using approved templates to avoid being flagged.</p>
+                <p><strong>Placeholders:</strong> Use <code>{'{#name#}'}</code> to personalize messages. Personalization increases patient engagement.</p>
+                <p><strong>E2E Encryption:</strong> All messages sent through Homeo-X are secured using Meta&apos;s end-to-end encryption pipeline.</p>
               </div>
             </div>
           </div>
-          <div className="comm-placeholder-card">
-            <div className="comm-placeholder-icon">📱</div>
+          <div className="comm-placeholder-card" style={{ borderColor: '#25D366' }}>
+            <div className="comm-placeholder-icon">🛡️</div>
             <div className="comm-placeholder-text">
-              In production, SMS is sent via your configured gateway (BulkShooters / MSG91 / Twilio).
-              Currently messages are logged to the delivery reports.
+              Legacy SMS messaging has been deactivated. All clinical correspondence is now routed through the Meta Verified WhatsApp Cloud API.
             </div>
           </div>
         </div>

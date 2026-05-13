@@ -19,6 +19,172 @@ const log = {
 // Using {{SCHEMA}} placeholder to replace dynamically
 const TABLES: Array<{ name: string; ddl: string }> = [
   {
+    name: 'wa_channels',
+    ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."wa_channels" (
+  "id" serial PRIMARY KEY,
+  "clinic_id" integer,
+  "name" text NOT NULL,
+  "phone_number_id" text NOT NULL,
+  "access_token" text NOT NULL,
+  "whatsapp_business_account_id" text,
+  "phone_number" text,
+  "app_id" text,
+  "is_active" boolean DEFAULT true,
+  "is_coexistence" boolean DEFAULT false,
+  "health_status" text DEFAULT 'unknown',
+  "last_health_check" timestamp,
+  "health_details" jsonb DEFAULT '{}',
+  "connection_method" varchar(20) DEFAULT 'embedded',
+  "created_at" timestamp DEFAULT NOW() NOT NULL,
+  "updated_at" timestamp DEFAULT NOW() NOT NULL,
+  "created_by" integer
+)`,
+  },
+  {
+    name: 'wa_templates',
+    ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."wa_templates" (
+  "id" serial PRIMARY KEY,
+  "channel_id" integer REFERENCES "{{SCHEMA}}"."wa_channels"("id") ON DELETE CASCADE,
+  "name" text NOT NULL,
+  "category" text NOT NULL,
+  "language" text DEFAULT 'en_US',
+  "header" text,
+  "body" text NOT NULL,
+  "footer" text,
+  "buttons" jsonb DEFAULT '[]',
+  "variables" jsonb DEFAULT '[]',
+  "status" text DEFAULT 'draft',
+  "rejection_reason" text,
+  "media_type" text DEFAULT 'text',
+  "media_url" text,
+  "media_handle" text,
+  "carousel_cards" jsonb DEFAULT '[]',
+  "whatsapp_template_id" text,
+  "usage_count" integer DEFAULT 0,
+  "created_at" timestamp DEFAULT NOW() NOT NULL,
+  "updated_at" timestamp DEFAULT NOW() NOT NULL
+)`,
+  },
+  {
+    name: 'wa_campaigns',
+    ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."wa_campaigns" (
+  "id" serial PRIMARY KEY,
+  "clinic_id" integer,
+  "channel_id" integer REFERENCES "{{SCHEMA}}"."wa_channels"("id") ON DELETE CASCADE,
+  "name" text NOT NULL,
+  "description" text,
+  "campaign_type" text NOT NULL,
+  "type" text NOT NULL,
+  "api_type" text NOT NULL,
+  "template_id" integer REFERENCES "{{SCHEMA}}"."wa_templates"("id"),
+  "template_name" text,
+  "template_language" text,
+  "variable_mapping" jsonb DEFAULT '{}',
+  "contact_groups" jsonb DEFAULT '[]',
+  "csv_data" jsonb DEFAULT '[]',
+  "status" text DEFAULT 'draft',
+  "scheduled_at" timestamp,
+  "recipient_count" integer DEFAULT 0,
+  "sent_count" integer DEFAULT 0,
+  "delivered_count" integer DEFAULT 0,
+  "read_count" integer DEFAULT 0,
+  "replied_count" integer DEFAULT 0,
+  "failed_count" integer DEFAULT 0,
+  "completed_at" timestamp,
+  "created_at" timestamp DEFAULT NOW() NOT NULL,
+  "updated_at" timestamp DEFAULT NOW() NOT NULL,
+  "created_by" integer
+)`,
+  },
+  {
+    name: 'wa_campaign_recipients',
+    ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."wa_campaign_recipients" (
+  "id" serial PRIMARY KEY,
+  "campaign_id" integer NOT NULL REFERENCES "{{SCHEMA}}"."wa_campaigns"("id") ON DELETE CASCADE,
+  "patient_id" integer,
+  "phone" text NOT NULL,
+  "name" text,
+  "status" text DEFAULT 'pending',
+  "whatsapp_message_id" varchar(255),
+  "template_params" jsonb DEFAULT '{}',
+  "sent_at" timestamp,
+  "delivered_at" timestamp,
+  "read_at" timestamp,
+  "error_code" varchar(50),
+  "error_message" text,
+  "retry_count" integer DEFAULT 0,
+  "created_at" timestamp DEFAULT NOW() NOT NULL,
+  "updated_at" timestamp DEFAULT NOW() NOT NULL
+)`,
+  },
+  {
+    name: 'wa_conversations',
+    ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."wa_conversations" (
+  "id" serial PRIMARY KEY,
+  "clinic_id" integer,
+  "channel_id" integer REFERENCES "{{SCHEMA}}"."wa_channels"("id") ON DELETE CASCADE,
+  "patient_id" integer,
+  "assigned_to" integer,
+  "contact_phone" varchar(20),
+  "contact_name" varchar(200),
+  "status" text DEFAULT 'open',
+  "priority" text DEFAULT 'normal',
+  "type" text DEFAULT 'whatsapp',
+  "chatbot_id" integer,
+  "session_id" text,
+  "tags" jsonb DEFAULT '[]',
+  "unread_count" integer DEFAULT 0,
+  "last_message_at" timestamp,
+  "last_incoming_message_at" timestamp,
+  "last_message_text" text,
+  "created_at" timestamp DEFAULT NOW() NOT NULL,
+  "updated_at" timestamp DEFAULT NOW() NOT NULL
+)`,
+  },
+  {
+    name: 'wa_messages',
+    ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."wa_messages" (
+  "id" serial PRIMARY KEY,
+  "conversation_id" integer REFERENCES "{{SCHEMA}}"."wa_conversations"("id") ON DELETE CASCADE,
+  "whatsapp_message_id" varchar(255),
+  "direction" text DEFAULT 'outbound',
+  "content" text NOT NULL,
+  "type" text DEFAULT 'text',
+  "from_type" varchar(50) DEFAULT 'user',
+  "media_id" varchar(255),
+  "media_url" text,
+  "media_mime_type" varchar(100),
+  "status" text DEFAULT 'sent',
+  "timestamp" timestamp,
+  "metadata" jsonb DEFAULT '{}',
+  "delivered_at" timestamp,
+  "read_at" timestamp,
+  "error_code" varchar(50),
+  "error_message" text,
+  "campaign_id" integer REFERENCES "{{SCHEMA}}"."wa_campaigns"("id") ON DELETE SET NULL,
+  "created_at" timestamp DEFAULT NOW() NOT NULL,
+  "updated_at" timestamp DEFAULT NOW() NOT NULL
+)`,
+  },
+  {
+    name: 'wa_automations',
+    ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."wa_automations" (
+  "id" serial PRIMARY KEY,
+  "clinic_id" integer,
+  "channel_id" integer REFERENCES "{{SCHEMA}}"."wa_channels"("id") ON DELETE CASCADE,
+  "name" text NOT NULL,
+  "description" text,
+  "trigger" text NOT NULL,
+  "trigger_config" jsonb DEFAULT '{}',
+  "status" text DEFAULT 'inactive',
+  "execution_count" integer DEFAULT 0,
+  "last_executed_at" timestamp,
+  "created_at" timestamp DEFAULT NOW() NOT NULL,
+  "updated_at" timestamp DEFAULT NOW() NOT NULL,
+  "created_by" integer
+)`,
+  },
+  {
     name: 'accounts',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."accounts" (
   "id" serial PRIMARY KEY,
@@ -2899,12 +3065,19 @@ export async function provisionTenant(dbUrl: string, schemaName: string): Promis
   }
 
   try {
-    // Highly optimized bulk execution: concatenate all 150 tables into a single block
-    const allDdls = TABLES.map(table => table.ddl.replace(/\{\{SCHEMA\}\}/g, schemaName)).join(';\n');
-    await sql.unsafe(allDdls);
-    log.info(`  🎉 Done! All 150+ legacy tables fast-provisioned in [${schemaName}]`);
+    log.info(`  🔨 Provisioning tables for ${schemaName}...`);
+    for (const table of TABLES) {
+      try {
+        const ddl = table.ddl.replace(/\{\{SCHEMA\}\}/g, schemaName);
+        await sql.unsafe(ddl);
+      } catch (tableErr: any) {
+        log.error(`    ⚠️  Failed to provision table [${table.name}] in ${schemaName}: ${tableErr.message}`);
+        // Continue to next table
+      }
+    }
+    log.info(`  🎉 Provisioning complete for [${schemaName}]`);
   } catch (err: any) {
-    log.error(`  ❌ Failed during bulk provisioning for ${schemaName}: ${err.message}`);
+    log.error(`  ❌ Critical failure during provisioning for ${schemaName}: ${err.message}`);
     throw err;
   }
 

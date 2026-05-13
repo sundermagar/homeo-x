@@ -257,12 +257,12 @@ export function useCommunicationLogs(regid: number) {
   });
 }
 
-export function useSendSms() {
+export function useSendWhatsApp() {
   const api = useApi();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: { phone: string; message: string; regid: number }) => 
-      api.post('/medical-cases/communication/send-sms', data),
+      api.post('/whatsapp/send-text', data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['medical-case', 'communication', variables.regid] });
     },

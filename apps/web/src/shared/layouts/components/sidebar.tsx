@@ -3,7 +3,8 @@ import { useState } from 'react';
 import {
   LayoutDashboard, Users, UsersRound, Calendar, FileText,
   LogOut, X, Briefcase, ChevronDown, ChevronRight, Circle,
-  BarChart3, Stethoscope, Receipt, Settings, MessageCircle, Truck
+  BarChart3, Stethoscope, Receipt, Settings, MessageCircle, Truck,
+  Bot, MessageSquare, Send, Zap, Globe
 } from 'lucide-react';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { useQuery } from '@tanstack/react-query';
@@ -19,6 +20,7 @@ type UserRole = 'SuperAdmin' | 'Admin' | 'Clinicadmin' | 'Doctor' | 'Receptionis
 interface NavSubItem {
   label: string;
   path: string;
+  icon?: React.ReactNode;
   badge?: number;
 }
 
@@ -37,7 +39,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const user = useAuthStore((s) => s.user);
   const location = useLocation();
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({
-    'Operations Hub': location.pathname.includes('/operations')
+    'Operations Hub': location.pathname.includes('/operations'),
+    'WhatsApp Pro': location.pathname.includes('/communications/whatsapp')
   });
 
   const { data: unreadResponse } = useQuery({
@@ -133,11 +136,25 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       roles: [...ADMIN_ROLES, 'Doctor'],
     },
     {
-      label: 'Communications',
-      icon: <MessageCircle size={20} />,
+      label: 'WhatsApp Pro',
+      icon: <MessageCircle size={20} className="text-pp-blue" />,
       roles: ADMIN_ROLES,
       subItems: [
-        { label: 'WhatsApp Messenger', path: '/communications/whatsapp' },
+        { label: 'Overview', path: '/communications/whatsapp/overview', icon: <BarChart3 size={14} /> },
+        { label: 'Unified Inbox', path: '/communications/whatsapp/inbox', icon: <MessageSquare size={14} /> },
+        { label: 'Campaigns', path: '/communications/whatsapp/campaigns', icon: <Send size={14} /> },
+        { label: 'Patient CRM', path: '/communications/whatsapp/contacts', icon: <Users size={14} /> },
+        { label: 'Automations', path: '/communications/whatsapp/automations', icon: <Zap size={14} /> },
+        { label: 'AI Triage', path: '/communications/whatsapp/chatbots', icon: <Bot size={14} /> },
+        { label: 'Media Vault', path: '/communications/whatsapp/media', icon: <FileText size={14} /> },
+        { label: 'WABA Channels', path: '/communications/whatsapp/channels', icon: <Globe size={14} /> },
+      ]
+    },
+    {
+      label: 'Communications',
+      icon: <Globe size={20} />,
+      roles: ADMIN_ROLES,
+      subItems: [
         { label: 'Birthday Greetings', path: '/communications/birthdays' },
         { label: 'SMS Reports', path: '/communications/reports' },
       ]
@@ -217,7 +234,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                             return `sb-sub-item${isMatch ? ' active' : ''}`;
                           }}
                         >
-                          <Circle size={6} fill="currentColor" />
+                          {subItem.icon || <Circle size={6} fill="currentColor" />}
                           <span style={{ flex: 1 }}>{subItem.label}</span>
                           {subItem.badge !== undefined && subItem.badge > 0 && (
                             <span className="nav-badge">{subItem.badge}</span>

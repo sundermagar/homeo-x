@@ -68,12 +68,10 @@ export default function PatientDetailPage() {
     if (!phone) return;
     const msg = `Hello ${patient?.firstName || ''}, this is Homeo-X clinic.`;
     try {
-      const res = await waMutation.mutateAsync({ phone, message: msg });
-      const deepLink = (res.data as any).data?.details?.[0]?.deepLink;
-      if (deepLink) window.open(deepLink, '_blank');
-      else window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(msg)}`, '_blank');
+      await waMutation.mutateAsync({ phone, message: msg });
     } catch (err) {
-      window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(msg)}`, '_blank');
+      // API failed — message was not delivered
+      console.error('WhatsApp send failed:', err);
     }
   };
 

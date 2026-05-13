@@ -48,13 +48,22 @@ export default function SmsReportsPage() {
         <div>
           <h1 className="comm-title">
             <BarChart2 size={20} strokeWidth={1.6} className="comm-title-icon-blue" />
-            SMS Reports
+            Archived SMS Reports
           </h1>
-          <p className="comm-subtitle">Delivery tracking and transmission ledger</p>
-        </div>
-        <div className="comm-header-actions">
+          <p className="comm-subtitle">Legacy delivery tracking and transmission ledger (Read Only)</p>
         </div>
       </header>
+
+      {/* Deactivation Banner */}
+      <div style={{ marginBottom: '24px', padding: '16px 20px', background: '#fff7ed', border: '1px solid #ffedd5', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ padding: '8px', background: '#fed7aa', borderRadius: '50%', color: '#9a3412' }}>
+          <RefreshCw size={18} />
+        </div>
+        <div>
+          <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: '#9a3412' }}>Legacy SMS Infrastructure Deactivated</h4>
+          <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: '#c2410c' }}>SMS sending has been decommissioned. Please use the WhatsApp module for all new clinical correspondence.</p>
+        </div>
+      </div>
 
       {/* Stats */}
       <div className="comm-stats">

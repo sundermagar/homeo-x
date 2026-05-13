@@ -57,6 +57,8 @@ import {
   Truck,
   CreditCard,
   Sun,
+  Bot,
+  Zap,
   Moon,
 } from 'lucide-react';
 import { useAuthStore } from '../stores/auth-store';
@@ -223,6 +225,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         ],
       },
     },
+    /*
     {
       type: 'group',
       group: {
@@ -234,7 +237,27 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           { path: '/communications/sms', label: 'Send SMS', icon: Send },
           { path: '/communications/templates', label: 'Templates', icon: MessageCircle },
           { path: '/communications/reports', label: 'SMS Reports', icon: BarChart2 },
-          { path: '/communications/whatsapp', label: 'WhatsApp', icon: MessageSquare },
+          { path: '/communications/birthdays', label: 'Birthday Broadcast', icon: Gift },
+        ],
+      },
+    },
+    */
+    {
+      type: 'group',
+      group: {
+        id: 'whatsapp-module',
+        label: 'WhatsApp Pro',
+        icon: MessageCircle,
+        roles: ALL,
+        children: [
+          { path: '/communications/whatsapp/overview', label: 'Overview', icon: LayoutDashboard },
+          { path: '/communications/whatsapp/inbox', label: 'Team Chat', icon: MessageCircle },
+          { path: '/communications/whatsapp/campaigns', label: 'Campaigns', icon: Send },
+          { path: '/communications/whatsapp/contacts', label: 'Patient CRM', icon: Users },
+          { path: '/communications/whatsapp/automations', label: 'Automations', icon: Zap },
+          { path: '/communications/whatsapp/chatbots', label: 'AI Triage', icon: Bot },
+          { path: '/communications/whatsapp/media', label: 'Media Vault', icon: FileText },
+          { path: '/communications/whatsapp/channels', label: 'WABA Channels', icon: Globe },
         ],
       },
     },

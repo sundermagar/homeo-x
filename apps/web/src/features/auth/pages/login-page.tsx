@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   Mail, Lock, Eye, EyeOff, Loader2, AlertCircle,
@@ -227,13 +227,11 @@ export default function LoginPage() {
 
             {/* ─── Minimal Footer ────────────────────────────────────────── */}
             <div className="login-mini-footer">
-              <span>© 2026 HomeoX Platform</span>
+              <span>© 2026 Kreed.health Clinical Systems</span>
               <div className="footer-dot" />
-              <a href="#">Privacy</a>
+              <Link to="/privacy-policy" className="footer-highlight">Privacy Policy</Link>
               <div className="footer-dot" />
-              <a href="#">Terms</a>
-              <div className="footer-dot" />
-              <a href="#">Status</a>
+              <Link to="/terms-of-service" className="footer-highlight">Terms of Service</Link>
             </div>
           </div>
         </div>

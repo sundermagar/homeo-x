@@ -1,7 +1,7 @@
 /**
  * SMS Gateway Port
  *
- * Plugs into any SMS provider: MSG91, Twilio, BulkShooters, etc.
+ * Plugs into any SMS provider: MSG91, Twilio, etc.
  * Swap implementations by swapping the adapter class.
  */
 

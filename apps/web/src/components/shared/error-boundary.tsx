@@ -1,4 +1,4 @@
-import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { Component, useEffect, type ErrorInfo, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AlertTriangle, RefreshCw, Home, RotateCcw } from 'lucide-react';
 import './error-boundary.css';
@@ -85,58 +85,69 @@ export class ErrorBoundary extends Component<Props, State> {
 }
 
 function DefaultFallback({ error, reset, errorId, occurredAt }: FallbackProps): ReactNode {
-  const reload = (): void => window.location.reload();
-  const goHome = (): void => {
-    window.location.href = '/';
-  };
+  const isChunkError = 
+    error.name === 'ChunkLoadError' || 
+    error.message.includes('Failed to fetch dynamically imported module') ||
+    error.message.includes('Loading chunk');
 
+  // Auto-reset once for chunk errors to handle network blips gracefully
+  useEffect(() => {
+    if (isChunkError) {
+      const timer = setTimeout(() => {
+        console.log('[ErrorBoundary] Auto-retrying chunk load error...');
+        reset();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [isChunkError, reset]);
+
+  const reload = (): void => window.location.reload();
+  
   const formattedTime = occurredAt
-    ? new Date(occurredAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    ? new Date(occurredAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     : '';
 
   return (
-    <div className="eb-root" role="alert">
-      <div className="eb-card">
-        <div className="eb-icon-wrap" aria-hidden="true">
-          <AlertTriangle size={28} strokeWidth={2} />
+    <div className="eb-soft-overlay" role="alert">
+      <div className="eb-soft-toast">
+        <div className="eb-soft-header">
+          <div className="eb-soft-icon">
+            <AlertTriangle size={18} />
+          </div>
+          <div className="eb-soft-content">
+            <h3 className="eb-soft-title">
+              {isChunkError ? 'Connection refresh needed' : 'Something went wrong'}
+            </h3>
+            <p className="eb-soft-message">
+              {isChunkError 
+                ? 'We encountered a minor glitch loading this view. Trying to recover...'
+                : error.message || 'An unexpected error occurred.'}
+            </p>
+          </div>
         </div>
 
-        <h1 className="eb-title">Something went wrong</h1>
-        <p className="eb-subtitle">
-          The page hit an unexpected problem. Your data is safe — try one of the actions below to recover.
-        </p>
-
-        <div className="eb-message">
-          {error.message || 'An unexpected error occurred while rendering this view.'}
-        </div>
-
-        <div className="eb-actions">
-          <button type="button" className="eb-btn eb-btn-primary" onClick={reset}>
-            <RotateCcw size={14} strokeWidth={2.2} />
-            Try again
+        <div className="eb-soft-actions">
+          <button type="button" className="eb-soft-btn primary" onClick={reset}>
+            <RotateCcw size={14} />
+            {isChunkError ? 'Retry now' : 'Try again'}
           </button>
-          <button type="button" className="eb-btn eb-btn-secondary" onClick={goHome}>
-            <Home size={14} strokeWidth={2.2} />
-            Go home
-          </button>
-          <button type="button" className="eb-btn eb-btn-ghost" onClick={reload}>
-            <RefreshCw size={14} strokeWidth={2.2} />
-            Reload page
+          <button type="button" className="eb-soft-btn secondary" onClick={reload}>
+            <RefreshCw size={14} />
+            Reload
           </button>
         </div>
 
-        {(errorId || formattedTime) && (
-          <div className="eb-meta">
-            {errorId && <span>ID: {errorId}</span>}
-            {errorId && formattedTime && <span className="eb-meta-divider">•</span>}
-            {formattedTime && <span>{formattedTime}</span>}
+        {errorId && (
+          <div className="eb-soft-footer">
+            <span>Error ID: {errorId}</span>
+            {formattedTime && <span> • {formattedTime}</span>}
           </div>
         )}
       </div>
-
+      
       {isDev && error.stack && (
-        <details className="eb-trace">
-          <summary>Stack trace (development only)</summary>
+        <details className="eb-soft-trace">
+          <summary>Debug Details</summary>
           <pre>{error.stack}</pre>
         </details>
       )}

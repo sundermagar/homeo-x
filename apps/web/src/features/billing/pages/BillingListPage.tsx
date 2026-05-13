@@ -19,19 +19,25 @@ function DailyCollectionCard({ label, amount, count, icon, type = 'default' }: {
   icon: React.ReactNode;
   type?: 'success' | 'danger' | 'warning' | 'default';
 }) {
-  const accentMap: Record<string, string> = {
-    success: 'var(--pp-success-fg)', danger: 'var(--pp-danger-fg)',
-    warning: 'var(--pp-warning-fg)', default: 'var(--pp-blue)'
-  };
-  const valueClass = type === 'success' ? 'is-success' : type === 'danger' ? 'is-danger' : type === 'warning' ? 'is-warning' : 'is-primary';
   return (
-    <div className="pp-stat-card-enhanced" style={{ '--stat-accent': accentMap[type] } as React.CSSProperties}>
-      <div className="pp-stat-icon" style={{ '--stat-icon-color': accentMap[type], '--stat-icon-bg': `${accentMap[type]}15` } as React.CSSProperties}>
+    <div className="bill-stat-card" data-type={type}>
+      <div className="bill-stat-icon" style={{ 
+        background: type === 'success' ? 'var(--pp-success-bg)' : 
+                    type === 'danger' ? 'var(--pp-danger-bg)' : 
+                    type === 'warning' ? 'var(--pp-warning-bg)' : 
+                    'var(--pp-blue-tint)',
+        color: type === 'success' ? 'var(--pp-success-fg)' : 
+               type === 'danger' ? 'var(--pp-danger-fg)' : 
+               type === 'warning' ? 'var(--pp-warning-fg)' : 
+               'var(--pp-blue)'
+      }}>
         {icon}
       </div>
-      <div className="pp-stat-label">{label}</div>
-      <div className={`pp-stat-value ${valueClass}`}>₹{amount.toLocaleString()}</div>
-      {count !== undefined && <div className="pp-stat-trend">{count} items</div>}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p className="bill-stat-label">{label}</p>
+        <div className="bill-stat-value">₹{amount.toLocaleString('en-IN')}</div>
+        {count !== undefined && <div className="text-[10px] font-bold text-secondary uppercase tracking-wider mt-1">{count} items</div>}
+      </div>
     </div>
   );
 }
@@ -94,7 +100,7 @@ export default function BillingListPage() {
       </div>
 
       {/* ─── KPI Stats ─── */}
-      <div className="pp-stat-grid">
+      <div className="bill-stats-bar">
         <DailyCollectionCard
           label="Total Charges"
           amount={collectionQuery.data?.totalCharges ?? 0}

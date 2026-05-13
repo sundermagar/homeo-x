@@ -120,6 +120,7 @@ export interface SendWhatsAppDto {
   phone:      string;
   message:    string;
   regid?:     number;
+  clinicId?:  number;
   instanceId?: string;
   tenantSlug?: string;
   mediaUrl?:   string;
@@ -130,6 +131,7 @@ export interface BroadcastWhatsAppDto {
   patientIds?: number[];
   phone?:      string[];
   message:     string;
+  clinicId?:   number;
   instanceId?: string;
   tenantSlug?: string;
 }

@@ -814,7 +814,7 @@ export default function PdfSettingsPage() {
                   </div>
                   <div className="letterhead-footer-right" style={{ textAlign: 'right' }}>
                     <div style={{ fontSize: '0.65rem', color: '#475569', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Secure PDF Engine</div>
-                    <div style={{ fontSize: '0.55rem', color: '#94a3b8', fontWeight: 600, marginTop: 2 }}>Digitally Verified ÔÇó HomeoX v2.0</div>
+                    <div style={{ fontSize: '0.55rem', color: '#94a3b8', fontWeight: 600, marginTop: 2 }}>Digitally Verified • Kreed.health v4.0</div>
                   </div>
                 </div>
               </div>
