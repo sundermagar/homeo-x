@@ -534,7 +534,9 @@ Output the JSON now. ${ccTrim ? `Anchor your questions to "${ccTrim}" and any ne
       // case-taking patterns — every patient should feel like a unique person,
       // not a checklist exercise.
       temperature: 0.7,
-      maxTokens: 4000,
+      // 5 questions × (question + 4 options + 2 alternates) ≈ 250 tokens. 1500 leaves
+      // ~6× headroom for verbose chronic mode but trims credit cost vs. the old 4000.
+      maxTokens: 1500,
       responseFormat: 'json',
       // Always fresh — no cache reuse across patients/visits.
       useCache: false,

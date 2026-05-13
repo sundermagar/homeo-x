@@ -340,6 +340,11 @@ export function ConsultationStage({
   const [answeredQuestions, setAnsweredQuestions] = useState<string[]>([]);
   const lastQuestionRef = useRef<string>('');
 
+  // Auto-regenerate questions in batches: count 5 answers, then fire one
+  // suggest/questions call. Cuts AI credits vs. firing on every Q&A pair.
+  const QUESTION_BATCH_SIZE = 5;
+  const answersSinceLastGenRef = useRef(0);
+
   // --- Auto-extract symptoms from live transcript during calls ---
   const lastExtractedSegCountRef = useRef(0);
   const extractionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -409,15 +414,19 @@ export function ConsultationStage({
         },
       );
 
-      // Also regenerate mode-specific questions based on updated transcript
-      modeQuestions.mutate({
-        consultationMode,
-        transcript: finalSegs.map(s => `${s.speaker}: ${s.translatedText || s.text}`).join('\n'),
-        answeredQuestions,
-        chiefComplaint: (visit.chiefComplaint || (visit as any).notes || '').trim(),
-        patientAge,
-        patientGender: patient?.gender,
-      });
+      // Batched regenerate: fire only after 5 answers have come in.
+      answersSinceLastGenRef.current += 1;
+      if (answersSinceLastGenRef.current >= QUESTION_BATCH_SIZE) {
+        answersSinceLastGenRef.current = 0;
+        modeQuestions.mutate({
+          consultationMode,
+          transcript: finalSegs.map(s => `${s.speaker}: ${s.translatedText || s.text}`).join('\n'),
+          answeredQuestions,
+          chiefComplaint: (visit.chiefComplaint || (visit as any).notes || '').trim(),
+          patientAge,
+          patientGender: patient?.gender,
+        });
+      }
     }, 8000);
 
     return () => {
@@ -430,6 +439,7 @@ export function ConsultationStage({
   */
 
   const handleLoadModeQuestions = useCallback(() => {
+    answersSinceLastGenRef.current = 0;
     modeQuestions.mutate({
       consultationMode,
       transcript: segments.map(s => `${s.speaker}: ${s.translatedText || s.text}`).join('\n'),
@@ -558,18 +568,22 @@ export function ConsultationStage({
       },
     );
 
-    // Regenerate next questions based on updated transcript (includes the new answer)
-    setTimeout(() => {
-      modeQuestions.mutate({
-        consultationMode,
-        transcript: [...segments, segment].map(s => `${s.speaker}: ${s.translatedText || s.text}`).join('\n'),
-        answeredQuestions: [...answeredQuestions, questionText],
-        chiefComplaint: (visit.chiefComplaint || (visit as any).notes || '').trim(),
-        patientAge,
-        patientGender: patient?.gender,
-      });
-    }, 500);
-  }, [patientAnswer, onTranscriptUpdate, symptomExtraction, consultationMode, categorizedSymptoms, onSymptomsExtracted, segments, answeredQuestions, visit.chiefComplaint, patientAge, patient?.gender, modeQuestions]);
+    // Batched regenerate: fire only after 5 answers have come in.
+    answersSinceLastGenRef.current += 1;
+    if (answersSinceLastGenRef.current >= QUESTION_BATCH_SIZE) {
+      answersSinceLastGenRef.current = 0;
+      setTimeout(() => {
+        modeQuestions.mutate({
+          consultationMode,
+          transcript: [...segments, segment].map(s => `${s.speaker}: ${s.translatedText || s.text}`).join('\n'),
+          answeredQuestions: [...answeredQuestions, questionText],
+          chiefComplaint: (visit.chiefComplaint || (visit as any).notes || '').trim(),
+          patientAge,
+          patientGender: patient?.gender,
+        });
+      }, 500);
+    }
+  }, [onTranscriptUpdate, symptomExtraction, consultationMode, categorizedSymptoms, onSymptomsExtracted, segments, answeredQuestions, visit, patientAge, patient?.gender, modeQuestions]);
 
   // Remove a symptom from categorized symptoms
   const handleRemoveSymptom = useCallback((category: 'mental' | 'physical' | 'particular', index: number) => {
