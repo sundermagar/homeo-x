@@ -140,6 +140,7 @@ consultationsRouter.post('/complete', async (req: Request, res: Response, next: 
       // 1. Upsert SOAP note (unique on visit_id)
       if (soap) {
         const soapPayload: any = {
+          regid: appt.patientId,
           visitId,
           subjective: soap.subjective ?? null,
           objective: soap.objective ?? null,
@@ -310,6 +311,20 @@ consultationsRouter.post('/complete', async (req: Request, res: Response, next: 
       }
     });
 
+    // Self-healing: backfill regid on any orphaned soap_notes rows from previous consultations.
+    // This is idempotent and non-fatal — ensures historical SOAP notes show in case history.
+    try {
+      await db.execute(sql`
+        UPDATE soap_notes sn
+           SET regid = a.patient_id
+          FROM appointments a
+         WHERE sn.visit_id = a.id
+           AND sn.regid IS NULL
+           AND a.patient_id IS NOT NULL
+      `);
+    } catch (backfillErr: any) {
+      logger.warn({ err: backfillErr?.message }, 'SOAP regid backfill — non-fatal');
+    }
     logger.info(
       { tenantSlug: req.tenantSlug, visitId, soapId: savedSoap?.id, rxItems: savedPrescription?.items?.length ?? 0 },
       'Consultation completed',

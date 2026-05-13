@@ -340,6 +340,20 @@ export function useConsultationState({
     if (Array.isArray(basePlan)) basePlan = basePlan.join('\n');
     let planText = basePlan || '';
 
+    // Auto-generate a treatment plan from prescribed remedies if plan is empty
+    if (!planText.trim()) {
+      const filledRx = rxItems.filter(
+        (item) => item.medicationName && item.dosage,
+      );
+      if (filledRx.length > 0) {
+        const lines = filledRx.map(
+          (item) =>
+            `${item.medicationName} ${item.dosage}${item.frequency ? ' — ' + item.frequency : ''}${item.duration ? ' for ' + item.duration : ''}${item.instructions ? ' (' + item.instructions + ')' : ''}`,
+        );
+        planText = 'Rx:\n' + lines.join('\n');
+      }
+    }
+
     if (labTests.length > 0) {
       planText += `\n\nLab Orders: ${labTests.join(', ')}`;
     }
