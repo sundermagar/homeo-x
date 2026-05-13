@@ -361,6 +361,13 @@ const PRINT_STYLES = `
     margin: 0 auto;
     color: #111827;
     font-family: 'Inter', 'Segoe UI', Tahoma, sans-serif;
+    display: flex;
+    flex-direction: column;
+    min-height: 98vh; /* Use 98vh to push content down without forcing a 2nd blank page */
+  }
+  .rx-footer-wrapper {
+    margin-top: auto;
+    width: 100%;
   }
   .rx-letterhead {
     display: flex;
@@ -784,7 +791,7 @@ export function generatePrescriptionHtml(data: PrescriptionPrintData): string {
   let headerHtml = data.clinic.headerHtml;
   
   // Ignore legacy seed HTML so the new premium default layout activates
-  if (headerHtml && headerHtml.includes('Kreed.health Clinical Prescription')) {
+  if (headerHtml && (headerHtml.includes('Kreed.health Clinical Prescription') || headerHtml.includes('HomeoX Clinical Prescription') || headerHtml.includes('Clinical Prescription'))) {
     headerHtml = undefined;
   }
 
@@ -798,8 +805,8 @@ export function generatePrescriptionHtml(data: PrescriptionPrintData): string {
     headerHtml = `
       <div style="display:flex; justify-content:space-between; align-items:flex-start; padding-bottom:28px; margin-bottom:18px; gap:30px; padding:20px 22px; background:linear-gradient(135deg, #f8fbff 0%, #ffffff 60%); border-radius:12px; box-shadow:0 2px 12px rgba(22, 101, 228, 0.06), inset 0 -1px 0 rgba(22, 101, 228, 0.08);">
         <div style="display:flex; flex-direction:column; gap:14px; flex:1; min-width:0; align-items:flex-start;">
-          <div style="height:70px; min-width:70px; max-width:160px; border-radius:10px; background:#fff; display:flex; align-items:center; justify-content:center; overflow:hidden; border:1px solid #e2e8f0; box-shadow:0 2px 8px rgba(22, 101, 228, 0.08), inset 0 1px 2px rgba(255,255,255,0.8); flex-shrink:0; padding:4px 8px;">
-            ${data.clinic.logoUrl ? `<img src="${safe(data.clinic.logoUrl)}" style="height:100%; width:auto; max-width:100%; object-fit:contain;" />` : `<span style="font-size:24px; color:#9ca3af; font-weight:bold;">${safe(data.clinic.name?.charAt(0))}</span>`}
+          <div style="max-height:110px; max-width:350px; display:flex; align-items:center; justify-content:flex-start; overflow:hidden; flex-shrink:0;">
+            ${data.clinic.logoUrl ? `<img src="${safe(data.clinic.logoUrl)}" style="max-height:110px; width:auto; max-width:100%; object-fit:contain;" />` : `<div style="height:70px; width:70px; border-radius:10px; background:#fff; display:flex; align-items:center; justify-content:center; border:1px solid #e2e8f0; box-shadow:0 2px 8px rgba(22, 101, 228, 0.08);"><span style="font-size:24px; color:#9ca3af; font-weight:bold;">${safe(data.clinic.name?.charAt(0))}</span></div>`}
           </div>
           <div style="display:flex; flex-direction:column; justify-content:center; min-width:0; width:100%;">
             <h2 style="font-size:1.4rem; font-weight:900; color:#0f172a; margin:0; text-transform:uppercase; letter-spacing:-0.03em; line-height:1.15; overflow-wrap:break-word; font-family:Georgia, 'Times New Roman', serif;">${safe(data.clinic.name)}</h2>
@@ -807,9 +814,9 @@ export function generatePrescriptionHtml(data: PrescriptionPrintData): string {
             ${data.clinic.registrationNo ? `<div style="display:inline-flex; align-items:center; gap:6px; margin:8px 0 0; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:999px; padding:3px 8px 3px 5px; max-width:fit-content;"><div style="width:6px; height:6px; border-radius:50%; background:#22c55e; box-shadow:0 0 0 2px rgba(34,197,94,0.3);"></div><span style="font-size:0.55rem; font-weight:800; color:#374151; text-transform:uppercase; letter-spacing:0.06em;">${safe(data.clinic.registrationNo)}</span></div>` : ''}
           </div>
         </div>
-        <div style="text-align:right; display:flex; flex-direction:column; gap:8px; border-left:1.5px solid #e2e8f0; padding-left:16px; min-width:140px; max-width:165px; flex-shrink:0;">
+        <div style="text-align:right; display:flex; flex-direction:column; gap:8px; border-left:1.5px solid #e2e8f0; padding-left:16px; min-width:200px; max-width:320px; flex-shrink:0;">
           <div style="display:flex; flex-direction:column; gap:2px;">
-            <div style="font-size:0.68rem; color:#334155; font-weight:700; display:flex; align-items:flex-start; gap:5px; justify-content:flex-end; line-height:1.35;">
+            <div style="font-size:0.68rem; color:#334155; font-weight:700; display:flex; align-items:flex-start; gap:5px; justify-content:flex-end; line-height:1.35; text-align:right;">
               ${mapPinIcon}
               <span style="overflow-wrap:break-word;">${safe(data.clinic.address) || 'Clinic Address'}</span>
             </div>
@@ -857,9 +864,12 @@ export function generatePrescriptionHtml(data: PrescriptionPrintData): string {
 
   // ─── Resolve Footer ───
   let footerHtml = data.clinic.footerHtml;
+  if (footerHtml && (footerHtml.includes('Kreed.health') || footerHtml.includes('HomeoX'))) {
+    footerHtml = undefined;
+  }
   if (!footerHtml) {
     footerHtml = `
-      <div style="margin-top:30px; padding-top:20px; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:flex-end; gap:16px;">
+      <div style="margin-top:20px; padding-top:16px; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:flex-end; gap:16px;">
         <div style="display:flex; gap:30px; flex-wrap:wrap; flex:1;">
           <div style="display:flex; flex-direction:column; gap:4px;">
             <span style="font-size:0.6rem; font-weight:800; color:#94a3b8; text-transform:uppercase; letter-spacing:0.05em;">Website</span>
@@ -959,15 +969,19 @@ ${PRINT_STYLES}
     </section>
   ` : ''}
 
-  <footer class="rx-signature">
-    <p class="rx-sig-name">Dr. ${safe(data.doctor.name)}</p>
-    ${data.doctor.qualification ? `<p class="rx-sig-meta">${safe(data.doctor.qualification)}</p>` : ''}
-    ${data.doctor.registrationNumber ? `<p class="rx-sig-meta">Reg. No. ${safe(data.doctor.registrationNumber)}</p>` : ''}
-  </footer>
+  <div class="rx-footer-wrapper">
+    <footer class="rx-signature">
+      <p class="rx-sig-name">Dr. ${safe(data.doctor.name)}</p>
+      ${data.doctor.qualification ? `<p class="rx-sig-meta">${safe(data.doctor.qualification)}</p>` : ''}
+      ${data.doctor.registrationNumber ? `<p class="rx-sig-meta">Reg. No. ${safe(data.doctor.registrationNumber)}</p>` : ''}
+    </footer>
 
-  <div class="rx-print-footer">
-    ${safe(data.clinic.footer || `${data.clinic.name}${data.clinic.phone ? ` · ${data.clinic.phone}` : ''}`)}
-    &nbsp;·&nbsp; Printed ${new Date().toLocaleString('en-IN')}
+    ${footerHtml}
+
+    <div class="rx-print-footer">
+      ${safe(data.clinic.footer || `${data.clinic.name}${data.clinic.phone ? ` · ${data.clinic.phone}` : ''}`)}
+      &nbsp;·&nbsp; Printed ${new Date().toLocaleString('en-IN')}
+    </div>
   </div>
 </div>
   `;

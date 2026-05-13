@@ -349,7 +349,6 @@ export function ConsultationStage({
   const lastExtractedSegCountRef = useRef(0);
   const extractionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  /*
   useEffect(() => {
     // Auto-extract for ALL modes:
     // - AUDIO/VIDEO: dual-mic, segments are labeled DOCTOR vs PATIENT
@@ -375,14 +374,11 @@ export function ConsultationStage({
       let answerText: string;
 
       if (isInPerson) {
-        // Single-mic mode: send all new transcript text as the answer.
-        // The AI will extract symptoms regardless of who said what.
         const allText = newSegs.map(s => s.translatedText || s.text).join(' ');
         if (!allText.trim()) return;
         questionText = lastQuestionRef.current || 'Doctor-patient conversation';
         answerText = allText;
       } else {
-        // Dual-mic mode: pair doctor question with patient answer
         const doctorSegs = newSegs.filter(s => s.speaker === 'DOCTOR');
         const patientSegs = newSegs.filter(s => s.speaker === 'PATIENT');
         if (patientSegs.length === 0) return;
@@ -394,7 +390,6 @@ export function ConsultationStage({
 
       lastExtractedSegCountRef.current = newSegCount;
 
-      // Extract symptoms from this Q&A pair
       const genAtDispatch = clearGenerationRef.current;
       symptomExtraction.mutate(
         {
@@ -406,7 +401,7 @@ export function ConsultationStage({
         },
         {
           onSuccess: (result) => {
-            if (clearGenerationRef.current !== genAtDispatch) return; // user cleared — discard stale result
+            if (clearGenerationRef.current !== genAtDispatch) return;
             if (result && (result.mental?.length || result.physical?.length || result.particular?.length)) {
               onSymptomsExtracted(result);
             }
@@ -414,7 +409,6 @@ export function ConsultationStage({
         },
       );
 
-      // Batched regenerate: fire only after 5 answers have come in.
       answersSinceLastGenRef.current += 1;
       if (answersSinceLastGenRef.current >= QUESTION_BATCH_SIZE) {
         answersSinceLastGenRef.current = 0;
@@ -436,7 +430,6 @@ export function ConsultationStage({
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [segments.length, callMode, binaryTranscriber.isRecording]);
-  */
 
   const handleLoadModeQuestions = useCallback(() => {
     answersSinceLastGenRef.current = 0;
@@ -451,12 +444,10 @@ export function ConsultationStage({
   }, [consultationMode, segments, answeredQuestions, visit.chiefComplaint, patientAge, patient?.gender, modeQuestions]);
 
   // Auto-load questions when mode changes
-  /*
   useEffect(() => {
     handleLoadModeQuestions();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [consultationMode]);
-  */
 
   const totalSymptoms = categorizedSymptoms.mental.length + categorizedSymptoms.physical.length + categorizedSymptoms.particular.length;
 
@@ -636,7 +627,6 @@ export function ConsultationStage({
       </div>
 
       {/* GNM Progress Status (if available) */}
-      {/* 
       {gnmAnalysis && (
         <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-[#FFFBEB] border border-[#FDE68A]">
           <Sparkles className="h-4 w-4 text-[#D97706] shrink-0" />
@@ -650,7 +640,6 @@ export function ConsultationStage({
           </span>
         </div>
       )}
-      */}
 
       {/* 4. Two-column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-4">
@@ -769,7 +758,6 @@ export function ConsultationStage({
 
 
           {/* AI Suggested Inquiries panel */}
-          {/* 
           <div className="pp-card overflow-hidden">
             <div className="px-5 py-3 bg-[#FAFAF8] border-b border-[#E3E2DF] flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -875,12 +863,10 @@ export function ConsultationStage({
 
             </div>
           </div>
-          */}
 
         </div>
 
         {/* RIGHT COLUMN: Live Symptom Extraction panel */}
-        {/* 
         <div className="space-y-0">
           <div className="pp-card sticky top-8">
             <div className="px-5 py-4 border-b border-[#E3E2DF] bg-[#FAFAF8] flex items-center justify-between">
@@ -991,7 +977,6 @@ export function ConsultationStage({
             </div>
           </div>
         </div>
-        */}
       </div>
 
       {/* Navigation buttons are in the bottom bar — no duplicate here */}
