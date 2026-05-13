@@ -21,7 +21,7 @@ function loadConfig(): AppConfig {
     appUrl: process.env.APP_URL || 'http://localhost:3000',
     jwt: {
       secret: process.env.JWT_SECRET || '',
-      expiresIn: process.env.JWT_EXPIRES_IN || '24h',
+      expiresIn: process.env.JWT_EXPIRES_IN || '30m',
     },
     database: {
       url: process.env.DATABASE_URL || '',

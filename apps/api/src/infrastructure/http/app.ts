@@ -8,6 +8,7 @@ import type { Server as SocketIOServer } from 'socket.io';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
+import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import { correlationIdMiddleware } from './middleware/correlation-id.js';
 import { requestLogger } from './middleware/request-logger.js';
@@ -61,6 +62,7 @@ import { getAiProviderChain } from '../ai/ai-provider-chain.js';
 import { createTerminologyRouter } from './routes/terminology.router.js';
 import { createNotificationsRouter } from './routes/notifications.router.js';
 import { setupNotificationsGateway, setNotificationEmitters } from './gateways/notifications.gateway.js';
+import { uploadsRouter } from './routes/uploads.router.js';
 
 const logger = createLogger('http');
 
@@ -78,7 +80,15 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   // ─── Security ───
   app.set('trust proxy', 1);
   app.use(helmet({
-    contentSecurityPolicy: false,
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "blob:", "https:"],
+        connectSrc: ["'self'", "https:", "wss:"],
+      }
+    },
     crossOriginResourcePolicy: { policy: "cross-origin" },
     crossOriginEmbedderPolicy: false,
   }));
@@ -101,8 +111,10 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
 
   // ─── Request Processing ───
   app.use(compression());
+  app.use(cookieParser());
   app.use(express.json({ limit: '50mb' }));
-  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+  // Removed insecure static uploads route for DPDP compliance
+  // app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
   // ─── Observability ───
   app.use(correlationIdMiddleware);
@@ -125,8 +137,8 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
 
   // Friend's modules
   app.use('/api/auth', authRouter);
-  app.use('/api/appointments', appointmentsRouter);
-  app.use('/api/medical-cases', medicalCasesRouter);
+  app.use('/api/appointments', authMiddleware, appointmentsRouter);
+  app.use('/api/medical-cases', authMiddleware, medicalCasesRouter);
   app.use('/api/doctors', doctorsRouter);
   app.use('/api/packages', packagesRouter);
   app.use('/api/communications', communicationRouter);
@@ -135,25 +147,24 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   app.use('/api/patients', patientRouter); // Added patient from shiva
 
   // Our modules — Billing & Finance
-  app.use('/api/billing', createBillingRouter());
-  app.use('/api/payments', createPaymentRouter());
-  app.use('/api/accounts', createAccountsRouter());
-  app.use('/api/day-charges', createDayChargesRouter());
-  app.use('/api/deposits', createDepositsRouter());
-  app.use('/api/expenses', createExpensesRouter());
+  app.use('/api/billing', authMiddleware, createBillingRouter());
+  app.use('/api/payments', authMiddleware, createPaymentRouter());
+  app.use('/api/accounts', authMiddleware, createAccountsRouter());
+  app.use('/api/day-charges', authMiddleware, createDayChargesRouter());
+  app.use('/api/deposits', authMiddleware, createDepositsRouter());
+  app.use('/api/expenses', authMiddleware, createExpensesRouter());
 
   // Our modules — Platform (JWT required)
   app.use('/api/organizations', authMiddleware, createOrganizationRouter());
   app.use('/api/platform-accounts', authMiddleware, createAccountRouter());
-  // Temporary unauthenticated route for backfilling
-  app.use('/api/public-clinicadmins', createClinicAdminsRouter());
+  // Removed unauthenticated /api/public-clinicadmins route for security compliance
   app.use('/api/clinicadmins', authMiddleware, createClinicAdminsRouter());
   
   // Our modules — Settings & Configuration
   app.use('/api/settings', authMiddleware, createSettingsRouter());
   
   // Clinical Terminology
-  app.use('/api/terminology', createTerminologyRouter());
+  app.use('/api/terminology', authMiddleware, createTerminologyRouter());
 
   // ─── Operations & Logistics (JWT required) ───
   app.use('/api/crm', authMiddleware, crmRouter);
@@ -171,6 +182,9 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   // Data Export
   app.use('/api/export', authMiddleware, exportRouter);
 
+  // Authenticated Uploads
+  app.use('/api/uploads', uploadsRouter);
+
   // ─── Consultation, Scribing, AI, Visits (JWT required) ───
   app.use('/api/consultations', authMiddleware, consultationsRouter);
   app.use('/api/scribing', authMiddleware, scribingRouter);
@@ -179,10 +193,8 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   app.use('/api/specialties', authMiddleware, specialtiesRouter);
 
   // ─── Video Call (LiveKit token issuance) ───
-  // Mounted without authMiddleware because the patient-join link must be
-  // accessible without a doctor's JWT. The doctor `/token` endpoint reads
-  // req.user.id when present and falls back to 'system' otherwise.
-  app.use('/api/video-call', videoCallRouter);
+  // Secured with authMiddleware to protect clinical video sessions
+  app.use('/api/video-call', authMiddleware, videoCallRouter);
 
   // ─── Real-time transcription gateway (Socket.IO /transcription namespace) ───
   // Web clients send PCM audio chunks; the gateway streams them to Google STT

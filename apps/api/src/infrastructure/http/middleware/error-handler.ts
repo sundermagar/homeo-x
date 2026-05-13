@@ -46,10 +46,12 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
 
   // Unknown / unhandled errors
   logger.error({ ...context, err, stack: err.stack }, 'Unhandled error');
+  
+  const isDev = process.env.NODE_ENV !== 'production';
   res.status(500).json({
     success: false,
-    error: err.message, // Temporarily allow stack trace/message in dev
-    stack: err.stack,
+    error: isDev ? err.message : 'An internal error occurred. Contact support with your correlationId.',
+    ...(isDev && { stack: err.stack }),
     code: 'INTERNAL_ERROR',
     correlationId,
   });

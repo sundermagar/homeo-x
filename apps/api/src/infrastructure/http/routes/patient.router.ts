@@ -92,7 +92,7 @@ patientRouter.get('/meta/form', authMiddleware, async (req: Request, res: Respon
     res.json({ success: true, data: meta });
   } catch (err: any) {
     console.error('CRITICAL PatientRouter Error:', err);
-    res.status(500).json({ success: false, message: err.message, stack: err.stack });
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 
@@ -132,7 +132,7 @@ patientRouter.get('/family-groups', authMiddleware, async (req: Request, res: Re
 });
 
 // GET /api/patients/:regid
-patientRouter.get('/:regid', async (req: Request, res: Response) => {
+patientRouter.get('/:regid', authMiddleware, async (req: Request, res: Response) => {
   try {
     const regid = Number(req.params.regid);
     if (isNaN(regid)) { res.status(400).json({ success: false, message: 'Invalid regid' }); return; }
@@ -174,7 +174,7 @@ patientRouter.post('/', authMiddleware, async (req: Request, res: Response) => {
 });
 
 // PUT /api/patients/:regid
-patientRouter.put('/:regid', async (req: Request, res: Response) => {
+patientRouter.put('/:regid', authMiddleware, async (req: Request, res: Response) => {
   try {
     const regid = Number(req.params.regid);
     if (isNaN(regid)) { res.status(400).json({ success: false, message: 'Invalid regid' }); return; }
@@ -198,7 +198,7 @@ patientRouter.put('/:regid', async (req: Request, res: Response) => {
 });
 
 // DELETE /api/patients/:regid
-patientRouter.delete('/:regid', async (req: Request, res: Response) => {
+patientRouter.delete('/:regid', authMiddleware, async (req: Request, res: Response) => {
   try {
     const regid = Number(req.params.regid);
     if (isNaN(regid)) { res.status(400).json({ success: false, message: 'Invalid regid' }); return; }
@@ -216,7 +216,7 @@ patientRouter.delete('/:regid', async (req: Request, res: Response) => {
 });
 
 // GET /api/patients/:regid/family
-patientRouter.get('/:regid/family', async (req: Request, res: Response) => {
+patientRouter.get('/:regid/family', authMiddleware, async (req: Request, res: Response) => {
   try {
     const regid = Number(req.params.regid);
     const repo = getRepo(req);
@@ -228,7 +228,7 @@ patientRouter.get('/:regid/family', async (req: Request, res: Response) => {
 });
 
 // POST /api/patients/:regid/family
-patientRouter.post('/:regid/family', async (req: Request, res: Response) => {
+patientRouter.post('/:regid/family', authMiddleware, async (req: Request, res: Response) => {
   try {
     const regid = Number(req.params.regid);
     const parsed = familyMemberSchema.safeParse(req.body);
@@ -245,7 +245,7 @@ patientRouter.post('/:regid/family', async (req: Request, res: Response) => {
 });
 
 // DELETE /api/patients/:regid/family/:id
-patientRouter.delete('/:regid/family/:id', async (req: Request, res: Response) => {
+patientRouter.delete('/:regid/family/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
     const repo = getRepo(req);

@@ -33,6 +33,7 @@ export function createDbClient(databaseUrl: string, tenantSchema?: string): DbCl
     max_lifetime: Number(process.env['DB_MAX_LIFETIME'] || 1800),
     connect_timeout: Number(process.env['DB_CONNECT_TIMEOUT'] || 15),
     keep_alive: 60,
+    ssl: process.env['NODE_ENV'] === 'production' ? { rejectUnauthorized: true } : false,
   };
 
   let finalUrl = databaseUrl;

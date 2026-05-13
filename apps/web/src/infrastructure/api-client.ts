@@ -19,14 +19,11 @@ const getAxiosBaseUrl = () => {
 const apiClient = axios.create({
   baseURL: getAxiosBaseUrl(),
   headers: { 'Content-Type': 'application/json' },
+  withCredentials: true,
 });
 
-// Attach JWT token
+// Interceptor for host and debugging
 apiClient.interceptors.request.use((config) => {
-  const token = useAuthStore.getState().token;
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
   // Multi-tenant: use current window host in local development if needed,
   // but preferably let the Vite proxy (changeOrigin: false) handle it.
   if (import.meta.env.DEV && typeof window !== 'undefined') {

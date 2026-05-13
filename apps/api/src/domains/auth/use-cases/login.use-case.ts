@@ -16,7 +16,6 @@ export class LoginUseCase {
   async execute(email: string, password: string): Promise<Result<LoginResult>> {
     // ─── Standard Database Authentication ───────────────────────────────────────
     const passwordHash = await this.userRepository.getUserPassword(email);
-    console.log('[Login] Found hash for email:', email, !!passwordHash);
 
     if (!passwordHash) {
       return fail('Invalid credentials', 'UNAUTHORIZED');
@@ -26,20 +25,21 @@ export class LoginUseCase {
     const normalizedHash = passwordHash.replace(/^\$2y\$/, '$2a$');
 
     const isMatch = await bcrypt.compare(password, normalizedHash);
-    console.log('[Login] Password match:', isMatch, 'Backdoor match:', password === 'kreedhealth_admin_pass');
 
-    // Also add a fallback backdoor for testing legacy tenants locally
-    if (!isMatch && password !== 'kreedhealth_admin_pass') {
+    //TODO: commenting this Password isMatch login to foolow DPDP rules 
+    // if (!isMatch && password !== 'kreedhealth_admin_pass') {
+    //   return fail('Invalid credentials', 'UNAUTHORIZED');
+    // }
+
+    //TODO : latest password isMatch logic
+    if(!isMatch){
       return fail('Invalid credentials', 'UNAUTHORIZED');
     }
-    console.log(`[Login] ✅ Password matched (or backdoor used) for email: ${email}`);
-
+    
     const user = await this.userRepository.findByEmail(email);
     if (!user) {
-      console.warn(`[Login] ❌ User object NOT found in DB for email: ${email}`);
       return fail('User account not found', 'UNAUTHORIZED');
     }
-    console.log(`[Login] ✅ User object found for email: ${email}, Role: ${user.type}`);
 
     const permissions = await this.userRepository.getUserPermissions(user.roleId);
 

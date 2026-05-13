@@ -63,8 +63,8 @@ export default function LoginPage() {
 
     try {
       const { data } = await apiClient.post('/auth/login', { email, password });
-      if (data.success && data.data?.token) {
-        setAuth(data.data.token, data.data.user);
+      if (data.success && data.data?.user) {
+        setAuth(data.data.user);
         // Fire ONE dashboard request matching this user's role so it's in flight by
         // the time React mounts the dashboard route. Firing both 'month' and 'day'
         // at once doubles connection-pool pressure on the remote DB and makes the

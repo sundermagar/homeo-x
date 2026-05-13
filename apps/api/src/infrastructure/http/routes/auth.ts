@@ -30,22 +30,31 @@ authRouter.post('/login', asyncHandler(async (req, res) => {
 
   // Primary attempt: search in the resolved tenant DB (normal staff/doctor login)
   const tenantLoginUseCase = new LoginUseCase(getRepo(req));
-  const result = await tenantLoginUseCase.execute(email, password);
-
-  if (result.success) {
-    sendSuccess(res, result.data);
-    return;
-  }
+  let result = await tenantLoginUseCase.execute(email, password);
 
   // Fallback: search in the public schema (clinic admin login from any domain)
-  // Clinic admins are mirrored to public.users during organization provisioning
-  console.log(`[Auth] Tenant login failed for ${email}, trying public schema fallback...`);
-  const publicLoginUseCase = new LoginUseCase(getPublicRepo(req));
-  const publicResult = await publicLoginUseCase.execute(email, password);
+  if (!result.success) {
+    console.log(`[Auth] Tenant login failed for ${email}, trying public schema fallback...`);
+    const publicLoginUseCase = new LoginUseCase(getPublicRepo(req));
+    result = await publicLoginUseCase.execute(email, password);
+    
+    if (result.success) {
+      console.log(`[Auth] ✅ Public schema fallback login succeeded for ${email}`);
+    }
+  }
 
-  if (publicResult.success) {
-    console.log(`[Auth] ✅ Public schema fallback login succeeded for ${email}`);
-    sendSuccess(res, publicResult.data);
+  if (result.success) {
+    const { token, user } = result.data;
+    
+    // Set httpOnly cookie
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 30 * 60 * 1000, // 30 minutes (matches JWT expiry)
+    });
+
+    sendSuccess(res, { user });
     return;
   }
 
@@ -54,8 +63,7 @@ authRouter.post('/login', asyncHandler(async (req, res) => {
 
 // POST /api/auth/logout
 authRouter.post('/logout', authMiddleware, asyncHandler(async (req, res) => {
-  const authHeader = req.headers.authorization;
-  const token = authHeader?.split(' ')[1];
+  const token = req.cookies.token;
   
   if (!token) {
     throw new UnauthorizedError('Missing token');
@@ -63,6 +71,10 @@ authRouter.post('/logout', authMiddleware, asyncHandler(async (req, res) => {
 
   const logoutUseCase = new LogoutUseCase();
   await logoutUseCase.execute(token, req.user!);
+
+  // Clear cookie
+  res.clearCookie('token');
+  
   sendSuccess(res, undefined, 'Logged out successfully');
 }));
 
