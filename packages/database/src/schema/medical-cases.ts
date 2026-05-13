@@ -44,7 +44,8 @@ export const vitals = pgTable('vitals', {
 
 export const soapNotes = pgTable('soap_notes', {
   id: serial('id').primaryKey(),
-  visitId: integer('visit_id').notNull().unique(),
+  regid: integer('regid'),
+  visitId: integer('visit_id'),
   subjective: text('subjective'),
   objective: text('objective'),
   assessment: text('assessment'),

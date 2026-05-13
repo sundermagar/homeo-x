@@ -39,7 +39,7 @@ export class GetMedicalCaseUseCase {
     }
 
     const vitals = await this.repository.getVitals(visitId);
-    const soap = await this.repository.getSoapNotes(visitId);
+    const soap = await this.repository.getSoapNotes(regid, visitId);
     const homeo = await this.repository.getHomeoDetails(regid);
 
     return ok({

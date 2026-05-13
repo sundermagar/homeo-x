@@ -9,8 +9,8 @@ export class ManageSoapNotesUseCase {
     return ok(undefined);
   }
 
-  async get(visitId: number): Promise<Result<SoapNotes | null>> {
-    const notes = await this.repository.getSoapNotes(visitId);
+  async get(regid: number, visitId: number): Promise<Result<SoapNotes | null>> {
+    const notes = await this.repository.getSoapNotes(regid, visitId);
     return ok(notes);
   }
 }

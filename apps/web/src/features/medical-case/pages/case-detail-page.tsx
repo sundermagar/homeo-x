@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -14,18 +14,23 @@ import {
   LayoutList,
   LayoutGrid,
   RefreshCw,
-  Copy
+  Copy,
+  Mail,
+  ShieldCheck,
+  Award
 } from 'lucide-react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import { useAutoSave } from '@/shared/hooks/use-auto-save';
-import { 
-  useFullMedicalCase, 
-  useManageClinicalRecords, 
-  useMasterVaccines, 
+import {
+  useFullMedicalCase,
+  useManageClinicalRecords,
+  useMasterVaccines,
   useCommunicationLogs,
   useSendSms
 } from '../hooks/use-medical-cases';
-import { usePatientPrescriptions } from '../hooks/use-remedy-chart';
+import { usePatientPrescriptions, useRemedyLookups } from '../hooks/use-remedy-chart';
+import { usePrescriptionWorkflow } from '../hooks/use-prescription-workflow';
+// QuickRxForm removed — not used in current render
 import { useDayCharges } from '../../billing/hooks/use-accounts';
 import { AssignPackageModal } from '../../packages/components/assign-package-modal';
 import { VitalsFormModal } from '../components/vitals-form-modal';
@@ -40,7 +45,7 @@ import { usePatientBills } from '../../billing/hooks/use-billing';
 import { useActivePackage } from '../../packages/hooks/use-packages';
 import { BillingUpdateModal } from '../components/billing-update-modal';
 import { PaymentReceiptModal } from '../../billing/components/payment-receipt-modal';
-import { LogisticsSection } from '../../logistics/components/logistics-section';
+
 import { useAppointments } from '../../appointments/hooks/use-appointments';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { Pagination } from '@/components/shared/pagination';
@@ -53,6 +58,19 @@ import { getClinicLetterhead, getDoctorLetterhead } from '@/lib/clinic-letterhea
 import { useOrganizations } from '../../platform/hooks/use-organizations';
 import { usePdfSettings } from '../../settings/hooks/use-settings';
 import '../styles/medical-case.css';
+import { useTableGrouping } from '../hooks/use-table-grouping';
+import { DateGroupCell } from '../components/date-group-cell';
+
+// ─── Static tab config ─ defined outside component to avoid recreation on every render ───
+const TABS = [
+  { id: 'summary', label: 'Followup History', icon: History },
+  { id: 'diagnosis', label: 'Diagnosis', icon: Sparkles },
+  { id: 'media', label: 'Media', icon: Camera },
+  { id: 'labs', label: 'Investigation Report', icon: FlaskConical },
+  { id: 'vitals', label: 'Vitals', icon: Stethoscope },
+  { id: 'vaccine', label: 'Vaccines', icon: Syringe },
+  { id: 'analytics', label: 'Graph (H/W)', icon: BarChart3 },
+];
 
 export function AutoSaveNoteArea({ value, onChange, onSave, placeholder = '', minHeight = '120px' }: { value: string, onChange: (v: string) => void, onSave: (val: string) => Promise<void>, placeholder?: string, minHeight?: string }) {
   const { status, forceSave } = useAutoSave({
@@ -99,63 +117,6 @@ function EmptyState({ icon: Icon, title, description, actionLabel, onAction }: a
   );
 }
 
-export function useTableGrouping(data: any[], dateField: string = 'createdAt') {
-  const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
-  const toggleDate = (date: string) => {
-    setExpandedDates(prev => {
-      const next = new Set(prev);
-      if (next.has(date)) next.delete(date);
-      else next.add(date);
-      return next;
-    });
-  };
-
-  const groupedData = React.useMemo(() => {
-    const groups: Record<string, any[]> = {};
-    data.forEach(record => {
-      const dateVal = record[dateField] || record.createdAt || record.created_at || record.dateval || record.recordedAt || record.visitDate || record.reminderDate || 0;
-      const dateStr = new Date(dateVal).toDateString();
-      if (!groups[dateStr]) groups[dateStr] = [];
-      groups[dateStr].push(record);
-    });
-    return Object.entries(groups).map(([date, items]) => ({ date, items }));
-  }, [data, dateField]);
-
-  return { expandedDates, toggleDate, groupedData };
-}
-
-export function DateGroupCell({ dateVal, isFirst, isExpanded, itemsCount, onToggle }: any) {
-  if (isFirst) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-        <span style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--pp-text-2)' }}>
-          {new Date(dateVal).getDate()}
-        </span>
-        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--pp-text-3)', textTransform: 'uppercase' }}>
-          {new Date(dateVal).toLocaleString('default', { month: 'short' })} {new Date(dateVal).getFullYear()}
-        </span>
-        {itemsCount > 1 && (
-          <button 
-            onClick={(e) => { e.stopPropagation(); onToggle(); }}
-            style={{ 
-              background: 'var(--pp-blue-faded)', color: 'var(--pp-blue)', border: '1px solid var(--pp-blue-border)',
-              borderRadius: '12px', padding: '2px 8px', fontSize: '0.65rem', fontWeight: 700, cursor: 'pointer',
-              marginTop: '6px', alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '2px', transition: 'all 0.2s'
-            }}
-          >
-            <Plus size={10} style={{ transform: isExpanded ? 'rotate(45deg)' : 'none', transition: 'transform 0.2s' }} />
-            {isExpanded ? 'less' : `${itemsCount - 1} more`}
-          </button>
-        )}
-      </div>
-    );
-  }
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', opacity: 0.3 }}>
-      <div style={{ width: 2, height: 20, background: 'var(--pp-blue)', borderRadius: 2 }} />
-    </div>
-  );
-}
 
 export default function MedicalCaseDetailPage() {
   const { regid } = useParams();
@@ -166,6 +127,25 @@ export default function MedicalCaseDetailPage() {
   const [showBillingModal, setShowBillingModal] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [showFinalizeModal, setShowFinalizeModal] = useState(false);
+  const { data: fullData, isLoading, error } = useFullMedicalCase(Number(regid));
+  const medicalCase = fullData?.medicalCase;
+  const visitId = medicalCase?.id;
+  const { data: dayCharges = [] } = useDayCharges();
+
+  const { data: lookups } = useRemedyLookups();
+  const rxWorkflow = usePrescriptionWorkflow(Number(regid), visitId);
+
+  // Building day options from day-charges module
+  const dayOptions = useMemo(() => {
+    return dayCharges.map((dc: any) => String(dc.days)).filter(Boolean);
+  }, [dayCharges]);
+
+  // Get the amount for the selected days
+  const selectedDayCharge = useMemo(() => {
+    if (!rxWorkflow.form.days) return null;
+    return dayCharges.find((dc: any) => String(dc.days) === String(rxWorkflow.form.days));
+  }, [rxWorkflow.form.days, dayCharges]);
+
   const [followUpNote, setFollowUpNote] = useState('');
   const [pendingCharge, setPendingCharge] = useState(0);
   const [mobileDrawer, setMobileDrawer] = useState<'followup' | 'billing' | 'contact' | 'package' | null>(null);
@@ -179,80 +159,173 @@ export default function MedicalCaseDetailPage() {
 
   const clinicName = useAuthStore(s => s.user?.clinicName || 'HomeoX Clinic');
 
-  const onDragStart = (e: React.MouseEvent | React.TouchEvent) => {
-    setIsDragging(true);
+  // Refs for drag state — avoids stale closures in event listeners
+  const isDraggingRef = useRef(false);
+  const dragStartYRef = useRef(0);
+  const fabYRef = useRef(fabY);
+  fabYRef.current = fabY;
+
+  const onDragStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    isDraggingRef.current = true;
     hasMoved.current = false;
-    const clientY = 'touches' in e 
-      ? (e.touches[0]?.clientY ?? 0) 
+    setIsDragging(true);
+    const clientY = 'touches' in e
+      ? (e.touches[0]?.clientY ?? 0)
       : (e as React.MouseEvent).clientY;
-    setDragStartY(clientY - fabY);
-  };
+    dragStartYRef.current = clientY - fabYRef.current;
+    setDragStartY(dragStartYRef.current);
+  }, []);
 
-  const onDrag = (e: MouseEvent | TouchEvent) => {
-    if (!isDragging) return;
+  const onDrag = useCallback((e: MouseEvent | TouchEvent) => {
+    if (!isDraggingRef.current) return;
     hasMoved.current = true;
-    const clientY = 'touches' in e 
-      ? ((e as TouchEvent).touches[0]?.clientY ?? 0) 
+    const clientY = 'touches' in e
+      ? ((e as TouchEvent).touches[0]?.clientY ?? 0)
       : (e as MouseEvent).clientY;
-    setFabY(clientY - dragStartY);
-  };
+    setFabY(clientY - dragStartYRef.current);
+  }, []);
 
-  const onDragEnd = () => {
+  const onDragEnd = useCallback(() => {
+    isDraggingRef.current = false;
     setIsDragging(false);
-  };
+  }, []);
 
+  // Register drag listeners once on mount — stable refs prevent stale captures
   useEffect(() => {
-    if (isDragging) {
-      window.addEventListener('mousemove', onDrag);
-      window.addEventListener('mouseup', onDragEnd);
-      window.addEventListener('touchmove', onDrag, { passive: false });
-      window.addEventListener('touchend', onDragEnd);
-    } else {
-      window.removeEventListener('mousemove', onDrag);
-      window.removeEventListener('mouseup', onDragEnd);
-      window.removeEventListener('touchmove', onDrag);
-      window.removeEventListener('touchend', onDragEnd);
-    }
+    const handleMove = (e: MouseEvent | TouchEvent) => onDrag(e);
+    const handleEnd = () => onDragEnd();
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleEnd);
+    window.addEventListener('touchmove', handleMove, { passive: false });
+    window.addEventListener('touchend', handleEnd);
     return () => {
-      window.removeEventListener('mousemove', onDrag);
-      window.removeEventListener('mouseup', onDragEnd);
-      window.removeEventListener('touchmove', onDrag);
-      window.removeEventListener('touchend', onDragEnd);
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('mouseup', handleEnd);
+      window.removeEventListener('touchmove', handleMove);
+      window.removeEventListener('touchend', handleEnd);
     };
-  }, [isDragging, dragStartY]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const { data: fullData, isLoading, error } = useFullMedicalCase(Number(regid));
+  // Removed duplicate fullData declaration
   const { data: prescriptionsHistory } = usePatientPrescriptions(Number(regid));
-  const { finalizeConsultation, saveNote, updateDiagnosis } = useManageClinicalRecords();
+  const { finalizeConsultation, saveNote, updateDiagnosis, saveSoap, deleteRecord } = useManageClinicalRecords();
   const { data: summary } = usePatientBills(Number(regid));
   const { data: activePackage } = useActivePackage(Number(regid));
-  const { data: dayCharges = [] } = useDayCharges();
+  // Moved useDayCharges to top of component
   const { data: orgs = [] } = useOrganizations();
   const { data: pdfSettings = [] } = usePdfSettings();
   const user = useAuthStore(s => s.user);
 
-  // Helper to safely parse dates from various backend formats
-  const parseSafeDate = (d: any) => {
+  // Initialize selectedDate to latest prescription date on load
+  useEffect(() => {
+    if (prescriptionsHistory?.length && !selectedDate) {
+      const sorted = [...prescriptionsHistory].sort((a, b) =>
+        new Date(b.created_at || b.dateval).getTime() - new Date(a.created_at || a.dateval).getTime()
+      );
+      if (sorted[0]) {
+        setSelectedDate(sorted[0].created_at || sorted[0].dateval);
+      }
+    }
+  }, [prescriptionsHistory]);
+
+  // Diagnosis State
+  const [showDiagnosisDrawer, setShowDiagnosisDrawer] = useState(false);
+  const [editingDiagnosisRecord, setEditingDiagnosisRecord] = useState<any>(null);
+  const [diagForm, setDiagForm] = useState({
+    diagnosis: '',
+    complaint: '',
+    medication: '',
+    investigationFindings: ''
+  });
+
+  // Consolidated with previous hook call above
+
+  const handleOpenDiagnosis = (record?: any) => {
+    // If a specific record is provided (from the history table), use it
+    if (record) {
+      setDiagForm({
+        diagnosis: record.assessment || '',
+        complaint: record.subjective || '',
+        medication: record.plan || '',
+        investigationFindings: record.objective || ''
+      });
+      setEditingDiagnosisRecord(record);
+    } else {
+      // If clicking "Diagnosis" from sidebar, check if one already exists for this visit
+      const existingSoap = (soap || []).find((s: any) => (s.visitId === medicalCase?.id || s.visit_id === medicalCase?.id));
+
+      if (existingSoap) {
+        setDiagForm({
+          diagnosis: existingSoap.assessment || '',
+          complaint: existingSoap.subjective || '',
+          medication: existingSoap.plan || '',
+          investigationFindings: existingSoap.objective || ''
+        });
+        setEditingDiagnosisRecord(existingSoap);
+      } else {
+        setDiagForm({
+          diagnosis: '',
+          complaint: '',
+          medication: '',
+          investigationFindings: ''
+        });
+        setEditingDiagnosisRecord(null);
+      }
+    }
+    setShowDiagnosisDrawer(true);
+  };
+
+  const handleSaveDiagnosis = async () => {
+    try {
+      if (diagForm.diagnosis.trim()) {
+        await updateDiagnosis.mutateAsync({ regid: Number(regid), condition: diagForm.diagnosis.trim() });
+      }
+      await saveSoap.mutateAsync({
+        id: editingDiagnosisRecord?.id,
+        regid: Number(regid),
+        visitId: medicalCase?.id,
+        subjective: diagForm.complaint,
+        objective: diagForm.investigationFindings,
+        assessment: diagForm.diagnosis,
+        plan: diagForm.medication
+      });
+
+      // If it's a new diagnosis, switch view to today so it shows up immediately
+      if (!editingDiagnosisRecord) {
+        setSelectedDate(new Date().toISOString());
+      }
+
+      setShowDiagnosisDrawer(false);
+      setEditingDiagnosisRecord(null);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Helper to safely parse dates — stable reference via useCallback
+  const parseSafeDate = useCallback((d: any): Date | null => {
     if (!d) return null;
     const date = new Date(d);
     return isNaN(date.getTime()) ? null : date;
-  };
+  }, []);
 
-  const filterByDate = (items: any[], date: Date | null) => {
+  const filterByDate = useCallback((items: any[], date: Date | null) => {
     if (!date || !items) return [];
+    const dateStr = date.toDateString();
     return items.filter(item => {
       const itemDate = parseSafeDate(item.createdAt || item.created_at || item.dateval || item.recordedAt || item.recorded_at || item.visitDate || item.visit_date || item.date_val);
-      return itemDate && itemDate.toDateString() === date.toDateString();
+      return itemDate && itemDate.toDateString() === dateStr;
     });
-  };
+  }, [parseSafeDate]);
 
   // Derived data with safety checks for loading states
   const notes = fullData?.notes || [];
-  const medicalCase = fullData?.medicalCase;
+  // Removed redundant medicalCase declaration as it is already declared at the top level
   const prescriptionsFromFull = fullData?.prescriptions || [];
-  
+
   const followupNotes = React.useMemo(() => {
-    return (notes || []).filter((n: any) => 
+    return (notes || []).filter((n: any) =>
       n.notesType === 'Followup' || n.noteType === 'Followup' || n.notes_type === 'Followup'
     ).sort((a: any, b: any) => new Date(b.createdAt || b.created_at || b.dateval || 0).getTime() - new Date(a.createdAt || a.created_at || a.dateval || 0).getTime());
   }, [notes]);
@@ -265,7 +338,7 @@ export default function MedicalCaseDetailPage() {
     })[0];
   }, [prescriptionsHistory]);
 
-  const latestPrescriptionDateStr = latestPrescriptionObj?.created_at || latestPrescriptionObj?.createdAt || latestPrescriptionObj?.dateval;
+  const latestPrescriptionDateStr = latestPrescriptionObj?.created_at || latestPrescriptionObj?.dateval;
   const latestNoteDate = followupNotes[0] ? parseSafeDate(followupNotes[0].createdAt || followupNotes[0].created_at || followupNotes[0].dateval) : null;
   const latestRxDate = parseSafeDate(latestPrescriptionDateStr);
 
@@ -314,71 +387,122 @@ export default function MedicalCaseDetailPage() {
       throw err;
     }
   }, [regid, medicalCase?.id, activeNote?.id, saveNote, displayDate]);
- 
+
   const latestRx = useMemo(() => {
     const all = [...(prescriptionsHistory || []), ...(prescriptionsFromFull || [])];
     if (all.length === 0) return null;
     return all.sort((a, b) => new Date(b.created_at || b.dateval).getTime() - new Date(a.created_at || a.dateval).getTime())[0];
   }, [prescriptionsHistory, prescriptionsFromFull]);
 
-  const regularCharge = medicalCase?.consultationFee || 0;
+  const selectedBill = useMemo(() => {
+    if (!displayDate || !summary?.bills) return null;
+    return summary.bills.find(b => {
+      const d = parseSafeDate(b.billDate || b.createdAt);
+      return d && d.toDateString() === displayDate.toDateString();
+    });
+  }, [displayDate, summary?.bills]);
 
+  const billingValues = useMemo(() => {
+    if (selectedBill) {
+      return {
+        regular: selectedBill.charges,
+        total: selectedBill.charges,
+        received: selectedBill.received,
+        balance: selectedBill.balance
+      };
+    }
 
-  // MOVE LOADING CHECKS HERE - AFTER ALL HOOKS
-  if (isLoading) return <MedicalCasePageSkeleton />;
-  if (error || !fullData) return <div className="mc-error">Failed to load clinical records.</div>;
+    const currentTotal = pendingCharge > 0
+      ? (pendingCharge + (medicalCase?.totalAdditionalCharges || 0))
+      : (medicalCase?.totalBill || 0);
 
-  const { vitals, soap, examination, images, investigations, homeo, vaccines, reminders } = fullData;
-  const ageString = medicalCase.dateOfBirth ? `${new Date().getFullYear() - new Date(medicalCase.dateOfBirth).getFullYear()} Yrs` : 'Unknown Age';
+    const currentPaid = medicalCase?.paidAmount || 0;
+    const currentBalance = currentTotal - currentPaid;
 
+    return {
+      regular: medicalCase?.consultationFee || pendingCharge || 0,
+      total: currentTotal,
+      received: currentPaid,
+      balance: currentBalance
+    };
+  }, [selectedBill, medicalCase, pendingCharge]);
 
-  // Total bill is calculated on backend as (regular + additional)
-  // If we have a pending change in the UI, we overlay it on top of additional charges
-  const displayTotal = pendingCharge > 0 
-    ? (pendingCharge + (medicalCase.totalAdditionalCharges || 0))
-    : (medicalCase.totalBill || 0);
-    
-  const paidAmount = medicalCase.paidAmount || 0;
-  const balance = displayTotal - paidAmount;
+  // ─── Derived from fullData (safe after query completes) ───
+  const fullVitals = fullData?.vitals;
+  const fullSoap = fullData?.soap;
+  const fullImages = fullData?.images;
+  const fullInvestigations = fullData?.investigations;
+  const fullVaccines = fullData?.vaccines;
 
-  const TABS = [
-    { id: 'summary', label: 'Examination Report', icon: Pill },
-    { id: 'diagnosis', label: 'Diagnosis', icon: Sparkles },
-    { id: 'media', label: 'Media', icon: Camera },
-    { id: 'labs', label: 'Investigation Report', icon: FlaskConical },
-    { id: 'vitals', label: 'Vitals', icon: Stethoscope },
-    { id: 'vaccine', label: 'Vaccines', icon: Syringe },
-    { id: 'homeo', label: 'Add Clinic Activity', icon: Zap },
-    { id: 'analytics', label: 'Graph (H/W)', icon: BarChart3 },
-  ];
+  const ageString = medicalCase?.dateOfBirth ? `${new Date().getFullYear() - new Date(medicalCase.dateOfBirth).getFullYear()} Yrs` : 'Unknown Age';
 
-  const renderActiveTabContent = () => {
-    // Filter data for the specific displayDate; if no date, show all data
-    const filteredSoap = displayDate ? filterByDate(soap || [], displayDate) : (soap || []);
-    const filteredImages = displayDate ? filterByDate(images || [], displayDate) : (images || []);
-    const filteredInvestigations = displayDate ? filterByDate(investigations || [], displayDate) : (investigations || []);
-    const filteredVitals = displayDate ? filterByDate(vitals || [], displayDate) : (vitals || []);
-    const filteredVaccines = displayDate ? filterByDate(vaccines || [], displayDate) : (vaccines || []);
-    const filteredHomeo = displayDate ? filterByDate(homeo || [], displayDate) : (Array.isArray(homeo) ? homeo : []);
+  // tabContent MUST be declared before any early returns (Rules of Hooks)
+  const tabContent = useMemo(() => {
+    if (!fullData || !medicalCase) return null;
+    const vitals = fullVitals || [];
+    const soap = fullSoap || [];
+    const images = fullImages || [];
+    const investigations = fullInvestigations || [];
+    const vaccines = fullVaccines || [];
 
+    const filteredSoap = displayDate ? filterByDate(soap, displayDate) : soap;
+    const filteredImages = displayDate ? filterByDate(images, displayDate) : images;
+    const filteredInvestigations = displayDate ? filterByDate(investigations, displayDate) : investigations;
+    const filteredVitals = displayDate ? filterByDate(vitals, displayDate) : vitals;
+    const filteredVaccines = displayDate ? filterByDate(vaccines, displayDate) : vaccines;
     switch (activeTab) {
-      case 'summary': return <RemedyChartSession regid={Number(regid)} visitId={medicalCase.id} onDayChargeChange={setPendingCharge} onSelectDate={setSelectedDate} onStartRx={() => setSelectedDate(new Date().toISOString())} />;
-      case 'diagnosis': return <div className="mc-tab-content-wrapper"><DiagnosisView regid={Number(regid)} visitId={medicalCase.id} medicalCase={medicalCase} soapRecords={filteredSoap} onAppendNote={appendNote} /></div>;
+      case 'summary': return <RemedyChartSession
+        regid={Number(regid)}
+        visitId={medicalCase.id}
+        onDayChargeChange={setPendingCharge}
+        onSelectDate={setSelectedDate}
+        onStartRx={() => setSelectedDate(new Date().toISOString())}
+        workflow={rxWorkflow}
+        lookups={lookups}
+        dayCharges={dayCharges}
+        selectedDate={selectedDate}
+      />;
+      case 'diagnosis': return <div className="mc-tab-content-wrapper"><DiagnosisView
+        regid={Number(regid)}
+        visitId={medicalCase.id}
+        medicalCase={medicalCase}
+        soapRecords={filteredSoap}
+        onAppendNote={appendNote}
+        onEditRecord={handleOpenDiagnosis}
+        onAddRecord={() => handleOpenDiagnosis()}
+      /></div>;
       case 'media': return <div className="mc-tab-content-wrapper"><MediaView regid={Number(regid)} visitId={medicalCase.id} images={filteredImages} /></div>;
       case 'labs': return <div className="mc-tab-content-wrapper"><LabsView investigations={filteredInvestigations} regid={Number(regid)} visitId={medicalCase.id} onAppendNote={appendNote} /></div>;
       case 'vitals': return <div className="mc-tab-content-wrapper"><VitalsView vitals={filteredVitals} onRecord={(data) => {
-                  setEditingVitals(data || null);
-                  setShowVitalsModal(true);
-                }} phone={medicalCase.phone || medicalCase.mobile || ''} name={medicalCase.patientName || ''} regid={Number(regid)} clinicName={clinicName} onAppendNote={appendNote} /></div>;
+        setEditingVitals(data || null);
+        setShowVitalsModal(true);
+      }} phone={medicalCase.phone || medicalCase.mobile || ''} name={medicalCase.patientName || ''} regid={Number(regid)} clinicName={clinicName} onAppendNote={appendNote} /></div>;
       case 'communication': return <div className="mc-tab-content-wrapper"><CommunicationView regid={Number(regid)} phone={medicalCase.phone || ''} name={medicalCase.patientName || ''} onAppendNote={appendNote} /></div>;
-      case 'vaccine': return <div className="mc-tab-content-wrapper"><VaccineView regid={Number(regid)} caseVaccines={filteredVaccines} onAppendNote={appendNote} /></div>;
-      case 'homeo': return <div className="mc-tab-content-wrapper"><HomeoView regid={Number(regid)} initialData={filteredHomeo} reminders={reminders} medicalCase={medicalCase} onAppendNote={appendNote} /></div>;
-      case 'analytics': return <div className="mc-tab-content-wrapper"><AnalyticsView vitals={vitals || []} regid={Number(regid)} visitId={medicalCase.id} name={medicalCase.patientName || ''} phone={medicalCase.phone || medicalCase.mobile || ''} clinicName={clinicName} onAppendNote={appendNote} /></div>;
+      case 'vaccine': return <div className="mc-tab-content-wrapper"><VaccineView regid={Number(regid)} caseVaccines={vaccines} onAppendNote={appendNote} /></div>;
+      case 'analytics': return <div className="mc-tab-content-wrapper"><AnalyticsView vitals={vitals} regid={Number(regid)} visitId={medicalCase.id} name={medicalCase.patientName || ''} phone={medicalCase.phone || medicalCase.mobile || ''} clinicName={clinicName} onAppendNote={appendNote} /></div>;
       case 'reports': return <div className="mc-tab-content-wrapper"><ReportsView regid={Number(regid)} investigations={filteredInvestigations} /></div>;
       case 'ai-assist': return <div className="mc-tab-content-wrapper"><AiConsultantView regid={Number(regid)} /></div>;
-      default: return <RemedyChartSession regid={Number(regid)} visitId={medicalCase.id} onDayChargeChange={setPendingCharge} onSelectDate={setSelectedDate} onStartRx={() => setSelectedDate(new Date().toISOString())} />;
+      default: return <RemedyChartSession
+        regid={Number(regid)}
+        visitId={medicalCase.id}
+        onDayChargeChange={setPendingCharge}
+        onSelectDate={setSelectedDate}
+        onStartRx={() => setSelectedDate(new Date().toISOString())}
+        workflow={rxWorkflow}
+        lookups={lookups}
+        dayCharges={dayCharges}
+      />;
     }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, displayDate, fullVitals, fullSoap, fullImages, fullInvestigations, fullVaccines,
+    fullData, selectedDate, regid, medicalCase, rxWorkflow, lookups, dayCharges,
+    appendNote, handleOpenDiagnosis, clinicName, filterByDate, setPendingCharge, setSelectedDate]);
+
+  // ─── Loading / Error guards (AFTER all hooks) ───
+  if (isLoading) return <MedicalCasePageSkeleton />;
+  if (error || !fullData) return <div className="mc-error">Failed to load clinical records.</div>;
+
+  const { vitals, soap, examination, images, investigations, vaccines } = fullData;
 
   return (
     <div className="mc-detail-container animate-fade-in">
@@ -497,153 +621,409 @@ export default function MedicalCaseDetailPage() {
         </div>
       </div>
 
-      {/* ─── Tab Navigation ─── */}
-      <div className="mc-top-tabs-container">
-        <button
-          className="mc-scroll-btn left"
-          onClick={() => {
-            const el = document.querySelector('.mc-top-tabs');
-            if (el) el.scrollBy({ left: -200, behavior: 'smooth' });
-          }}
-        >
-          <ChevronLeft size={18} />
-        </button>
+      {/* ─── Layout with Left Tabs ─── */}
+      <div className="mc-layout-wrapper">
+        {/* ─── Tab Navigation ─── */}
+        <div className="mc-left-tabs-container">
+          <div className="mc-left-tabs">
+            {TABS.map(tab => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  className={`mc-left-tab ${activeTab === tab.id ? 'active' : ''}`}
+                  onClick={() => {
+                    setActiveTab(tab.id);
+                    if (tab.id === 'summary') rxWorkflow.setActiveTab(null);
+                  }}
+                >
+                  <Icon size={20} />
+                  <span className="mc-left-tab-label">{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
-        <div className="mc-top-tabs">
-          {TABS.map(tab => {
-            const Icon = tab.icon;
-            return (
+        {/* ─── Main Content & Sidebar Grid ─── */}
+        <div className="mc-body-grid">
+          <div className="mc-body-main">
+            {tabContent || (
+              <div className="mc-tab-empty">
+                <History size={48} style={{ opacity: 0.2, marginBottom: '16px' }} />
+                <p>Select a tab to view clinical data</p>
+              </div>
+            )}
+
+            {/* ─── Persistent Patient Details Section (Below Tabs) ─── */}
+            <div className="mc-profile-grid" style={{ marginTop: '24px', padding: '0 8px' }}>
+              
+              {/* Identity & Personal Info */}
+              <div className="mc-profile-card">
+                <div className="mc-profile-card-header">
+                  <User size={18} />
+                  <span className="mc-profile-card-title">Personal Identity</span>
+                </div>
+                <div className="mc-profile-card-body">
+                  <div className="mc-profile-item">
+                    <div className="mc-profile-icon-wrapper"><User size={16} /></div>
+                    <div className="mc-profile-item-content">
+                      <span className="mc-profile-label">Full Name</span>
+                      <span className="mc-profile-value highlight">{medicalCase.patientName}</span>
+                    </div>
+                  </div>
+                  <div className="mc-profile-item">
+                    <div className="mc-profile-icon-wrapper"><Clock size={16} /></div>
+                    <div className="mc-profile-item-content">
+                      <span className="mc-profile-label">Age & DOB</span>
+                      <span className="mc-profile-value">{ageString} {medicalCase.dateOfBirth ? `(${new Date(medicalCase.dateOfBirth).toLocaleDateString()})` : ''}</span>
+                    </div>
+                  </div>
+                  <div className="mc-profile-item">
+                    <div className="mc-profile-icon-wrapper"><Activity size={16} /></div>
+                    <div className="mc-profile-item-content">
+                      <span className="mc-profile-label">Gender</span>
+                      <span className="mc-profile-value">{medicalCase.gender || 'Not Specified'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Contact Information */}
+              <div className="mc-profile-card">
+                <div className="mc-profile-card-header">
+                  <Phone size={18} />
+                  <span className="mc-profile-card-title">Contact Details</span>
+                </div>
+                <div className="mc-profile-card-body">
+                  <div className="mc-profile-item">
+                    <div className="mc-profile-icon-wrapper"><Phone size={16} /></div>
+                    <div className="mc-profile-item-content">
+                      <span className="mc-profile-label">Mobile Number</span>
+                      <span className="mc-profile-value">{medicalCase.mobile || medicalCase.phone || '—'}</span>
+                    </div>
+                  </div>
+                  <div className="mc-profile-item">
+                    <div className="mc-profile-icon-wrapper"><Mail size={16} /></div>
+                    <div className="mc-profile-item-content">
+                      <span className="mc-profile-label">Email Address</span>
+                      <span className="mc-profile-value">{medicalCase.email || '—'}</span>
+                    </div>
+                  </div>
+                  <div className="mc-profile-item">
+                    <div className="mc-profile-icon-wrapper"><MapPin size={16} /></div>
+                    <div className="mc-profile-item-content">
+                      <span className="mc-profile-label">Residential Address</span>
+                      <span className="mc-profile-value">{medicalCase.address || '—'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Clinical Overview */}
+              <div className="mc-profile-card">
+                <div className="mc-profile-card-header">
+                  <Stethoscope size={18} />
+                  <span className="mc-profile-card-title">Clinical Context</span>
+                </div>
+                <div className="mc-profile-card-body">
+                  <div className="mc-profile-item">
+                    <div className="mc-profile-icon-wrapper"><Sparkles size={16} /></div>
+                    <div className="mc-profile-item-content">
+                      <span className="mc-profile-label">Chief Complaint</span>
+                      <span className="mc-profile-value">{medicalCase.condition || 'General consultation'}</span>
+                    </div>
+                  </div>
+                  <div className="mc-profile-item">
+                    <div className="mc-profile-icon-wrapper"><Calendar size={16} /></div>
+                    <div className="mc-profile-item-content">
+                      <span className="mc-profile-label">Registered On</span>
+                      <span className="mc-profile-value">{medicalCase.createdAt ? new Date(medicalCase.createdAt).toLocaleDateString() : '—'}</span>
+                    </div>
+                  </div>
+                  <div className="mc-profile-item">
+                    <div className="mc-profile-icon-wrapper"><User size={16} /></div>
+                    <div className="mc-profile-item-content">
+                      <span className="mc-profile-label">Attending Doctor</span>
+                      <span className="mc-profile-value">{medicalCase.doctorName || '—'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Package & Membership */}
+              <div className="mc-profile-card">
+                <div className="mc-profile-card-header">
+                  <Award size={18} />
+                  <span className="mc-profile-card-title">Membership Status</span>
+                </div>
+                <div className="mc-profile-card-body">
+                  <div className="mc-profile-item">
+                    <div className="mc-profile-icon-wrapper"><Package size={16} /></div>
+                    <div className="mc-profile-item-content">
+                      <span className="mc-profile-label">Active Plan</span>
+                      <span className="mc-profile-value">{activePackage?.packageName || 'No active package'}</span>
+                    </div>
+                  </div>
+                  <div className="mc-profile-item">
+                    <div className="mc-profile-icon-wrapper"><Clock size={16} /></div>
+                    <div className="mc-profile-item-content">
+                      <span className="mc-profile-label">Expiry Date</span>
+                      <span className="mc-profile-value">{activePackage?.expiryDate ? new Date(activePackage.expiryDate).toLocaleDateString() : '—'}</span>
+                    </div>
+                  </div>
+                  <div className="mc-profile-item">
+                    <div className="mc-profile-icon-wrapper"><ShieldCheck size={16} /></div>
+                    <div className="mc-profile-item-content">
+                      <span className="mc-profile-label">Current Status</span>
+                      <div style={{ marginTop: '4px' }}>
+                        <span className={`mc-profile-badge ${activePackage?.status === 'Active' ? 'mc-badge-active' : 'mc-badge-expired'}`}>
+                          {activePackage?.status === 'Active' ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
+                          {activePackage?.status || 'Inactive'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <aside className="mc-body-side">
+
+
+            {/* ─── Clinical History / Follow-up Timeline ─── */}
+            <div className="mc-side-card" style={{ marginBottom: '16px' }}>
+              <div className="mc-side-card-header">
+                <div className="mc-side-card-title">
+                  <History size={16} />
+                  {displayDate
+                    ? `Follow Up on ${displayDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`
+                    : "No Follow-up"
+                  }
+                </div>
+              </div>
+              <div className="mc-side-card-body" style={{ padding: '16px' }}>
+                <AutoSaveNoteArea
+                  value={followUpNote}
+                  onChange={setFollowUpNote}
+                  placeholder={displayDate ? "Record patient follow-up or status..." : "No history available"}
+                  onSave={handleSaveNote}
+                  minHeight="180px"
+                />
+              </div>
+            </div>
+
+            {/* ─── Diagnosis Shortcut Button ─── */}
+            <div style={{ marginBottom: '8px' }}>
               <button
-                key={tab.id}
-                className={`mc-top-tab ${activeTab === tab.id ? 'active' : ''}`}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => handleOpenDiagnosis()}
+                className="premium-diagnosis-btn"
+                style={{
+                  width: '100%', padding: '16px', borderRadius: '16px', border: 'none',
+                  background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)', color: 'white',
+                  fontWeight: 800, cursor: 'pointer', boxShadow: '0 10px 15px -3px rgba(37, 99, 235, 0.2)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px',
+                  transition: 'transform 0.2s, box-shadow 0.2s',
+                  fontSize: '0.95rem'
+                }}
               >
-                <Icon size={16} /> {tab.label}
+                <div style={{ background: 'rgba(255,255,255,0.2)', padding: '8px', borderRadius: '12px' }}>
+                  <Sparkles size={20} />
+                </div>
+                <span>Diagnosis</span>
               </button>
-            );
-          })}
-        </div>
+            </div>
 
-        <button
-          className="mc-scroll-btn right"
-          onClick={() => {
-            const el = document.querySelector('.mc-top-tabs');
-            if (el) el.scrollBy({ left: 200, behavior: 'smooth' });
-          }}
-        >
-          <ChevronRight size={18} />
-        </button>
-      </div>
-
-      {/* ─── Main Content & Sidebar Grid ─── */}
-      <div className="mc-body-grid">
-        <div className="mc-body-main">
-          {renderActiveTabContent()}
-
-          {/* Patient Details Cards (Below Tab Content) */}
-          <div className="mc-details-footer-grid">
-            <div className="mc-info-card">
-              <div className="mc-info-card-header">
-                <div className="mc-info-card-title"><User size={16} /> Patient Details</div>
-              </div>
-              <div className="mc-info-card-body mc-info-card-grid-body">
-                <div className="mc-info-col">
-                  <div className="mc-info-row"><span>Address</span> <strong>{medicalCase.address || '—'}</strong></div>
-                  <div className="mc-info-row"><span>Mobile</span> <strong>{medicalCase.mobile || '—'}</strong></div>
-                  <div className="mc-info-row"><span>Email</span> <strong>{medicalCase.email || '—'}</strong></div>
-                  <div className="mc-info-row"><span>Referred By</span> <strong>{medicalCase.referedBy || '—'}</strong></div>
+            {/* ─── Pharmacy & Logistics Shortcut Button ─── */}
+            <div style={{ marginBottom: '16px' }}>
+              <button
+                onClick={() => navigate('/courier-queue')}
+                style={{
+                  width: '100%', padding: '16px', borderRadius: '16px', border: 'none',
+                  background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)', color: 'white',
+                  fontWeight: 800, cursor: 'pointer', boxShadow: '0 10px 15px -3px rgba(139, 92, 246, 0.2)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px',
+                  transition: 'transform 0.2s, box-shadow 0.2s',
+                  fontSize: '0.95rem'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 12px 20px -3px rgba(139, 92, 246, 0.3)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(139, 92, 246, 0.2)';
+                }}
+              >
+                <div style={{ background: 'rgba(255,255,255,0.2)', padding: '8px', borderRadius: '12px' }}>
+                  <Package size={20} />
                 </div>
-                <div className="mc-info-col">
-                  <div className="mc-info-row"><span>Case Taken By</span> <strong>{medicalCase.doctorName || '—'}</strong></div>
-                  <div className="mc-info-row"><span>Package</span> <strong>{activePackage?.packageName || '—'}</strong></div>
-                  <div className="mc-info-row"><span>Expiry</span> <strong>{activePackage?.expiryDate ? new Date(activePackage.expiryDate).toLocaleDateString() : '—'}</strong></div>
-                  <div className="mc-info-row"><span>Package Status</span> <strong style={{ color: activePackage?.status === 'Active' ? 'var(--pp-blue)' : 'inherit' }}>{activePackage?.status || '—'}</strong></div>
+                <span>Pharmacy & Logistics</span>
+              </button>
+            </div>
+
+            {/* ─── Billing Summary ─── */}
+            <div className="mc-side-card">
+              <div className="mc-side-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="mc-side-card-title"><CreditCard size={16} /> Billing Summary</div>
+                {displayDate && (
+                  <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--pp-text-3)', background: 'var(--pp-warm-1)', padding: '2px 8px', borderRadius: '6px', border: '1px solid var(--pp-warm-2)' }}>
+                    {displayDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  </span>
+                )}
+              </div>
+              <div className="mc-side-card-body">
+                <div className="mc-bill-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}><span>Regular Charge</span> <strong>₹{billingValues.regular}</strong></div>
+                <div className="mc-bill-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}><span>Total Bill</span> <strong>₹{billingValues.total}</strong></div>
+                <div className="mc-bill-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}><span>Received</span> <strong className="text-green">₹{billingValues.received}</strong></div>
+                <div className="mc-bill-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}><span>Balance</span> <strong className="text-red">₹{billingValues.balance}</strong></div>
+                <div className="mc-bill-total" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', fontWeight: 800, color: 'var(--pp-blue)', borderTop: '1px solid var(--border-main)', paddingTop: '12px', marginTop: '8px' }}>
+                  <span>Outstanding</span>
+                  <strong>₹{billingValues.balance}</strong>
+                </div>
+                <div className="flex flex-col gap-2 mt-3">
+                  <button
+                    className="mc-pay-btn"
+                    onClick={() => setShowBillingModal(true)}
+                    style={{ width: '100%', padding: '10px', background: 'var(--pp-success-bg)', color: 'var(--pp-success-fg)', border: '1px solid var(--pp-success-border)', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    Update Payment
+                  </button>
+                  <button
+                    className="mc-receipt-btn"
+                    onClick={() => setShowReceiptModal(true)}
+                    style={{ width: '100%', padding: '10px', background: 'var(--pp-blue-bg)', color: 'var(--pp-blue-fg)', border: '1px solid var(--pp-blue-border)', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                  >
+                    <Share2 size={16} /> Share Payment Receipt
+                  </button>
                 </div>
               </div>
             </div>
-          </div>
+
+            {/* ─── Global Diagnosis Form Drawer ─── */}
+            {showDiagnosisDrawer && ReactDOM.createPortal(
+              <>
+                <div className="mc-drawer-backdrop" onClick={() => setShowDiagnosisDrawer(false)} />
+                <div className="mc-drawer animate-slide-in-right" style={{ maxWidth: '520px' }}>
+                  <header className="mc-drawer-header" style={{ background: 'var(--pp-blue)', color: 'white' }}>
+                    <div className="mc-drawer-header-title">
+                      <Sparkles size={18} /> {editingDiagnosisRecord ? 'Edit Diagnosis' : 'New Diagnosis'}
+                    </div>
+                    <button className="mc-drawer-close" onClick={() => setShowDiagnosisDrawer(false)} style={{ color: 'white', opacity: 0.8 }}>
+                      <X size={16} />
+                    </button>
+                  </header>
+
+                  <div style={{ padding: '24px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    <div style={{ padding: '10px 14px', background: 'var(--pp-warm-1)', borderRadius: '8px', border: '1px solid var(--pp-warm-2)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Calendar size={14} style={{ color: 'var(--pp-blue)' }} />
+                      <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-ink)' }}>
+                        Record Date: {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Main Diagnosis</label>
+                      <textarea
+                        className="pp-textarea"
+                        value={diagForm.diagnosis}
+                        onChange={e => setDiagForm({ ...diagForm, diagnosis: e.target.value })}
+                        placeholder="Final clinical assessment..."
+                        style={{ minHeight: '60px', fontSize: '1rem', fontWeight: 700 }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Subjective (Complaints)</label>
+                      <textarea
+                        className="pp-textarea"
+                        value={diagForm.complaint}
+                        onChange={e => setDiagForm({ ...diagForm, complaint: e.target.value })}
+                        placeholder="Patient symptoms & intensity..."
+                        style={{ minHeight: '100px' }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Treatment Plan</label>
+                      <textarea
+                        className="pp-textarea"
+                        value={diagForm.medication}
+                        onChange={e => setDiagForm({ ...diagForm, medication: e.target.value })}
+                        placeholder="Medications or next steps..."
+                        style={{ minHeight: '80px' }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Objective Findings</label>
+                      <textarea
+                        className="pp-textarea"
+                        value={diagForm.investigationFindings}
+                        onChange={e => setDiagForm({ ...diagForm, investigationFindings: e.target.value })}
+                        placeholder="Physical exam or lab summaries..."
+                        style={{ minHeight: '80px' }}
+                      />
+                    </div>
+                  </div>
+
+                  <footer style={{
+                    padding: '20px 24px',
+                    background: '#f8fafc',
+                    borderTop: '1px solid #e2e8f0',
+                    display: 'flex',
+                    gap: '12px',
+                    position: 'sticky',
+                    bottom: 0,
+                    zIndex: 10
+                  }}>
+                    <button
+                      onClick={() => setShowDiagnosisDrawer(false)}
+                      style={{
+                        flex: 1, padding: '12px', borderRadius: '10px', border: '1px solid #cbd5e1',
+                        background: 'white', color: '#64748b', fontWeight: 600, cursor: 'pointer'
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSaveDiagnosis}
+                      style={{
+                        flex: 2, padding: '12px', borderRadius: '10px', border: 'none',
+                        background: 'var(--pp-blue)', color: 'white', fontWeight: 700,
+                        cursor: 'pointer', display: 'flex', alignItems: 'center',
+                        justifyContent: 'center', gap: '8px',
+                        boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.1)'
+                      }}
+                    >
+                      <Save size={18} /> Save Assessment
+                    </button>
+                  </footer>
+                </div>
+              </>
+              , document.body)}
+
+            <PaymentReceiptModal
+              isOpen={showReceiptModal}
+              onClose={() => setShowReceiptModal(false)}
+              patientData={medicalCase}
+              billingData={{
+                regularCharges: billingValues.regular,
+                additionalCharges: fullData.additionalCharges || [],
+                totalBill: billingValues.total,
+                paidAmount: billingValues.received,
+                balance: billingValues.balance
+              }}
+            />
+
+          </aside>
         </div>
-
-        <aside className="mc-body-side">
-
-
-          {/* ─── Clinical History / Follow-up Timeline ─── */}
-          <div className="mc-side-card">
-            <div className="mc-side-card-header">
-              <div className="mc-side-card-title">
-                <History size={16} /> 
-                {displayDate 
-                  ? `Follow Up on ${displayDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`
-                  : "No Follow-up"
-                }
-              </div>
-            </div>
-            <div className="mc-side-card-body" style={{ padding: '16px' }}>
-              <AutoSaveNoteArea 
-                value={followUpNote}
-                onChange={setFollowUpNote}
-                placeholder={displayDate ? "Record patient follow-up or status..." : "No history available"}
-                onSave={handleSaveNote}
-                minHeight="250px"
-              />
-            </div>
-          </div>
-
-          {/* ─── Billing Summary ─── */}
-          <div className="mc-side-card">
-            <div className="mc-side-card-header">
-              <div className="mc-side-card-title"><CreditCard size={16} /> Billing Summary</div>
-            </div>
-            <div className="mc-side-card-body">
-              <div className="mc-bill-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}><span>Regular Charge</span> <strong>₹{regularCharge || pendingCharge || 0}</strong></div>
-              <div className="mc-bill-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}><span>Total Bill</span> <strong>₹{displayTotal}</strong></div>
-              <div className="mc-bill-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}><span>Received</span> <strong className="text-green">₹{paidAmount}</strong></div>
-              <div className="mc-bill-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}><span>Balance</span> <strong className="text-red">₹{balance}</strong></div>
-              <div className="mc-bill-total" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', fontWeight: 800, color: 'var(--pp-blue)', borderTop: '1px solid var(--border-main)', paddingTop: '12px', marginTop: '8px' }}>
-                <span>Outstanding</span>
-                <strong>₹{balance}</strong>
-              </div>
-              <div className="flex flex-col gap-2 mt-3">
-                <button 
-                  className="mc-pay-btn" 
-                  onClick={() => setShowBillingModal(true)} 
-                  style={{ width: '100%', padding: '10px', background: 'var(--pp-success-bg)', color: 'var(--pp-success-fg)', border: '1px solid var(--pp-success-border)', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}
-                >
-                  Update Payment
-                </button>
-                <button 
-                  className="mc-receipt-btn" 
-                  onClick={() => setShowReceiptModal(true)} 
-                  style={{ width: '100%', padding: '10px', background: 'var(--pp-blue-bg)', color: 'var(--pp-blue-fg)', border: '1px solid var(--pp-blue-border)', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                >
-                  <Share2 size={16} /> Share Payment Receipt
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* ... */}
-          
-          <PaymentReceiptModal 
-            isOpen={showReceiptModal}
-            onClose={() => setShowReceiptModal(false)}
-            patientData={medicalCase}
-            billingData={{
-              regularCharges: regularCharge,
-              additionalCharges: fullData.additionalCharges || [],
-              totalBill: displayTotal,
-              paidAmount: paidAmount,
-              balance: balance
-            }}
-          />
-
-          <LogisticsSection regid={Number(regid)} />
-
-        </aside>
       </div>
 
       {/* ─── Mobile Floating Action Bar (Collapsible) ─── */}
-      <div 
+      <div
         className={`mc-mobile-fab-bar ${shortcutOpen ? 'expanded' : 'collapsed'}`}
         style={{ top: `${fabY}px`, touchAction: 'none' }}
       >
@@ -673,7 +1053,7 @@ export default function MedicalCaseDetailPage() {
           >
             <CreditCard size={20} />
             <span className="mc-fab-btn-label">Billing</span>
-            {balance > 0 && <span className="mc-fab-badge" />}
+            {billingValues.balance > 0 && <span className="mc-fab-badge" />}
           </button>
           <button
             className={`mc-fab-btn ${mobileDrawer === 'contact' ? 'active' : ''}`}
@@ -732,7 +1112,7 @@ export default function MedicalCaseDetailPage() {
                       </div>
                     )}
                   </div>
-                  <AutoSaveNoteArea 
+                  <AutoSaveNoteArea
                     value={followUpNote}
                     onChange={setFollowUpNote}
                     onSave={handleSaveNote}
@@ -749,19 +1129,19 @@ export default function MedicalCaseDetailPage() {
                     <div className="mc-side-card-body">
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', padding: '8px 0' }}>
                         <span style={{ color: 'var(--pp-text-3)' }}>Total</span>
-                        <strong style={{ color: 'var(--pp-ink)' }}>₹{displayTotal}</strong>
+                        <strong style={{ color: 'var(--pp-ink)' }}>₹{billingValues.total}</strong>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', padding: '8px 0' }}>
                         <span style={{ color: 'var(--pp-text-3)' }}>Paid</span>
-                        <strong style={{ color: 'var(--pp-success-fg)' }}>₹{paidAmount}</strong>
+                        <strong style={{ color: 'var(--pp-success-fg)' }}>₹{billingValues.received}</strong>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', padding: '8px 0' }}>
                         <span style={{ color: 'var(--pp-text-3)' }}>Balance</span>
-                        <strong style={{ color: 'var(--pp-danger-fg)' }}>₹{balance}</strong>
+                        <strong style={{ color: 'var(--pp-danger-fg)' }}>₹{billingValues.balance}</strong>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.1rem', fontWeight: 800, color: 'var(--pp-blue)', borderTop: '2px solid var(--border-main)', paddingTop: '14px', marginTop: '8px' }}>
                         <span>Outstanding</span>
-                        <strong>₹{balance}</strong>
+                        <strong>₹{billingValues.balance}</strong>
                       </div>
                     </div>
                   </div>
@@ -854,9 +1234,9 @@ export default function MedicalCaseDetailPage() {
       )}
 
       {showVitalsModal && <VitalsFormModal initialData={editingVitals} visitId={medicalCase.id} regid={Number(regid)} onClose={() => {
-            setShowVitalsModal(false);
-            setEditingVitals(null);
-          }} />}
+        setShowVitalsModal(false);
+        setEditingVitals(null);
+      }} />}
       {showAssignModal && (
         <AssignPackageModal
           isOpen={showAssignModal}
@@ -915,66 +1295,68 @@ function MedicalCasePageSkeleton() {
         </div>
       </div>
 
-      {/* Tabs Skeleton */}
-      <div className="mc-top-tabs-container">
-        <div className="mc-top-tabs" style={{ gap: '12px', padding: '16px 32px' }}>
-          {[1, 2, 3, 4, 5, 6].map(i => (
-            <div key={i} className="skeleton-box" style={{ width: '140px', height: '42px', borderRadius: '10px', flexShrink: 0 }} />
-          ))}
-        </div>
-      </div>
-
-      {/* Main Grid Skeleton */}
-      <div className="mc-body-grid">
-        <div className="mc-body-main">
-          {/* Main Tab Content Skeleton */}
-          <div className="pp-card" style={{ padding: '32px', marginBottom: '24px' }}>
-            <div className="skeleton-box skeleton-text title" style={{ width: '30%', marginBottom: '32px' }} />
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginBottom: '40px' }}>
-              {[1, 2, 3].map(i => <div key={i} className="skeleton-box" style={{ height: '80px', borderRadius: '12px' }} />)}
-            </div>
-            <div className="skeleton-box" style={{ width: '100%', height: '240px', borderRadius: '16px' }} />
-          </div>
-
-          {/* Footer Grid Skeleton */}
-          <div className="mc-details-footer-grid">
-            <div className="mc-info-card">
-              <div className="mc-info-card-header">
-                <div className="skeleton-box skeleton-text title" style={{ width: '60%', margin: 0, height: '18px' }} />
-              </div>
-              <div className="mc-info-card-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div className="skeleton-box skeleton-text" style={{ width: '100%' }} />
-                <div className="skeleton-box skeleton-text" style={{ width: '80%' }} />
-                <div className="skeleton-box skeleton-text" style={{ width: '90%' }} />
-              </div>
-            </div>
-            <div className="mc-info-card">
-              <div className="mc-info-card-header">
-                <div className="skeleton-box skeleton-text title" style={{ width: '60%', margin: 0, height: '18px' }} />
-              </div>
-              <div className="mc-info-card-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div className="skeleton-box skeleton-text" style={{ width: '100%' }} />
-                <div className="skeleton-box skeleton-text" style={{ width: '80%' }} />
-                <div className="skeleton-box skeleton-text" style={{ width: '90%' }} />
-              </div>
-            </div>
+      {/* Layout with Left Tabs Skeleton */}
+      <div className="mc-layout-wrapper">
+        <div className="mc-left-tabs-container">
+          <div className="mc-left-tabs">
+            {[1, 2, 3, 4, 5, 6, 7].map(i => (
+              <div key={i} className="skeleton-box" style={{ width: '46px', height: '46px', borderRadius: '12px', flexShrink: 0 }} />
+            ))}
           </div>
         </div>
 
-        <aside className="mc-body-side">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="mc-side-card" style={{ background: 'white' }}>
-              <div className="mc-side-card-title">
-                <div className="skeleton-box skeleton-text title" style={{ width: '60%', margin: 0, height: '18px' }} />
+        {/* Main Grid Skeleton */}
+        <div className="mc-body-grid">
+          <div className="mc-body-main">
+            {/* Main Tab Content Skeleton */}
+            <div className="pp-card" style={{ padding: '32px', marginBottom: '24px' }}>
+              <div className="skeleton-box skeleton-text title" style={{ width: '30%', marginBottom: '32px' }} />
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginBottom: '40px' }}>
+                {[1, 2, 3].map(i => <div key={i} className="skeleton-box" style={{ height: '80px', borderRadius: '12px' }} />)}
               </div>
-              <div className="mc-side-card-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div className="skeleton-box skeleton-text" style={{ width: '100%' }} />
-                <div className="skeleton-box skeleton-text" style={{ width: '80%' }} />
-                <div className="skeleton-box skeleton-text" style={{ width: '90%' }} />
+              <div className="skeleton-box" style={{ width: '100%', height: '240px', borderRadius: '16px' }} />
+            </div>
+
+            {/* Footer Grid Skeleton */}
+            <div className="mc-details-footer-grid">
+              <div className="mc-info-card">
+                <div className="mc-info-card-header">
+                  <div className="skeleton-box skeleton-text title" style={{ width: '60%', margin: 0, height: '18px' }} />
+                </div>
+                <div className="mc-info-card-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div className="skeleton-box skeleton-text" style={{ width: '100%' }} />
+                  <div className="skeleton-box skeleton-text" style={{ width: '80%' }} />
+                  <div className="skeleton-box skeleton-text" style={{ width: '90%' }} />
+                </div>
+              </div>
+              <div className="mc-info-card">
+                <div className="mc-info-card-header">
+                  <div className="skeleton-box skeleton-text title" style={{ width: '60%', margin: 0, height: '18px' }} />
+                </div>
+                <div className="mc-info-card-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div className="skeleton-box skeleton-text" style={{ width: '100%' }} />
+                  <div className="skeleton-box skeleton-text" style={{ width: '80%' }} />
+                  <div className="skeleton-box skeleton-text" style={{ width: '90%' }} />
+                </div>
               </div>
             </div>
-          ))}
-        </aside>
+          </div>
+
+          <aside className="mc-body-side">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="mc-side-card" style={{ background: 'white' }}>
+                <div className="mc-side-card-title">
+                  <div className="skeleton-box skeleton-text title" style={{ width: '60%', margin: 0, height: '18px' }} />
+                </div>
+                <div className="mc-side-card-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div className="skeleton-box skeleton-text" style={{ width: '100%' }} />
+                  <div className="skeleton-box skeleton-text" style={{ width: '80%' }} />
+                  <div className="skeleton-box skeleton-text" style={{ width: '90%' }} />
+                </div>
+              </div>
+            ))}
+          </aside>
+        </div>
       </div>
     </div>
   );
@@ -984,25 +1366,12 @@ function MedicalCasePageSkeleton() {
 
 function VaccineView({ regid, caseVaccines, onAppendNote }: { regid: number; caseVaccines: any[]; onAppendNote?: (text: string) => void }) {
   const { data: masterVaccines = [], isLoading } = useMasterVaccines();
-  const { saveVaccine, deleteVaccine } = useManageClinicalRecords();
+  const { saveVaccine } = useManageClinicalRecords();
   const [savingId, setSavingId] = useState<number | null>(null);
-  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [search, setSearch] = useState('');
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [editingRecord, setEditingRecord] = useState<any>(null); // null = add mode, object = edit mode
-  const [formVaccineId, setFormVaccineId] = useState<number | ''>('');
-  const [formNotes, setFormNotes] = useState('');
-
+  const [sortOrder, setSortOrder] = useState<'marked' | 'asc' | 'desc'>('asc');
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [givenPage, setGivenPage] = useState(1);
-  const [givenPageSize, setGivenPageSize] = useState(5);
-
-  const currentGivenVaccines = React.useMemo(() => {
-    return caseVaccines.slice((givenPage - 1) * givenPageSize, givenPage * givenPageSize);
-  }, [caseVaccines, givenPage, givenPageSize]);
-
-  const { expandedDates, toggleDate, groupedData: groupedGivenVaccines } = useTableGrouping(currentGivenVaccines, 'createdAt');
+  const [pageSize, setPageSize] = useState(15);
 
   // Build grouped list (categories + children) like the settings page
   const flatGrouped = React.useMemo(() => {
@@ -1023,16 +1392,28 @@ function VaccineView({ regid, caseVaccines, onAppendNote }: { regid: number; cas
     // Orphans
     masterVaccines.filter((v: any) => v.parentId !== 0 && !catMap[v.parentId]).forEach((v: any) => list.push(v));
 
-    if (!search) return list;
-    return list.filter((v: any) => v.label?.toLowerCase().includes(search.toLowerCase()));
-  }, [masterVaccines, search]);
+    let filtered = list;
+    if (search) {
+      filtered = filtered.filter((v: any) => v.label?.toLowerCase().includes(search.toLowerCase()));
+    }
+
+    // Sort non-header items
+    if (sortOrder !== 'asc') {
+      const nonHeaders = filtered.filter(v => !v.isHeader);
+      if (sortOrder === 'marked') {
+        return nonHeaders.filter(v => caseVaccines.some((cv: any) => cv.vaccineId === v.id));
+      } else if (sortOrder === 'desc') {
+        nonHeaders.sort((a, b) => (b.label || '').localeCompare(a.label || ''));
+      }
+      return nonHeaders;
+    }
+
+    return filtered;
+  }, [masterVaccines, search, sortOrder, caseVaccines]);
 
   const totalPages = Math.ceil(flatGrouped.length / pageSize);
   const startIndex = (currentPage - 1) * pageSize;
   const currentVaccines = flatGrouped.slice(startIndex, startIndex + pageSize);
-
-  // Only non-header vaccines for the dropdown
-  const vaccineOptions = masterVaccines.filter((v: any) => v.parentId !== 0);
 
   const handleMarkDone = async (vaccineId: number) => {
     setSavingId(vaccineId);
@@ -1041,288 +1422,142 @@ function VaccineView({ regid, caseVaccines, onAppendNote }: { regid: number; cas
     } finally { setSavingId(null); }
   };
 
-  const handleOpenAdd = () => {
-    setEditingRecord(null);
-    setFormVaccineId('');
-    setFormNotes('');
-    setDrawerOpen(true);
-  };
-
-  const handleOpenEdit = (cv: any) => {
-    setEditingRecord(cv);
-    setFormVaccineId(cv.vaccineId);
-    setFormNotes(cv.notes || '');
-    setDrawerOpen(true);
-  };
-
-  const handleCopyToFollowup = (cv: any) => {
-    if (!onAppendNote) return;
-    onAppendNote(`VACCINE (${new Date(cv.createdAt).toLocaleDateString()}): ${cv.vaccineName || `Vaccine #${cv.vaccineId}`}${cv.notes ? ` - ${cv.notes}` : ''}`);
-  };
-
-  const handleDelete = async (cv: any) => {
-    if (!window.confirm(`Delete vaccine record "${cv.vaccineName || 'Vaccine #' + cv.vaccineId}"?`)) return;
-    setDeletingId(cv.id);
-    try {
-      await deleteVaccine.mutateAsync(cv.id);
-    } finally { setDeletingId(null); }
-  };
-
-  const handleDrawerSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formVaccineId) return;
-    setSavingId(Number(formVaccineId));
-    try {
-      const payload: any = { regid, vaccineId: Number(formVaccineId), notes: formNotes || 'Administered' };
-      if (editingRecord) payload.id = editingRecord.id;
-      await saveVaccine.mutateAsync(payload);
-      setFormVaccineId('');
-      setFormNotes('');
-      setEditingRecord(null);
-      setDrawerOpen(false);
-    } finally { setSavingId(null); }
-  };
-
-  if (isLoading) return <TableSkeleton rows={6} cols={4} />;
-
   return (
     <div style={{ animation: 'none' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Syringe size={18} style={{ color: 'var(--pp-blue)' }} />
-            <span style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--pp-ink)' }}>Immunization Record</span>
-          </div>
-          <p style={{ fontSize: '0.75rem', color: 'var(--pp-text-3)', marginTop: '2px' }}>Track patient vaccination schedule and administered doses</p>
-        </div>
-        <button
-          onClick={handleOpenAdd}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 20px', background: '#2563eb', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 8px rgba(37,99,235,0.18)' }}
-        >
-          <Plus size={15} /> Add Vaccine
-        </button>
-      </div>
 
-      {/* ── Previously Administered Vaccines ── */}
-      {caseVaccines.length === 0 ? (
-        <EmptyState
-          icon={Syringe}
-          title="No vaccinations recorded yet"
-          description="Keep a record of the patient's immunization history to ensure they are up to date with their vaccination schedule."
-          actionLabel="Record the first vaccine"
-          onAction={handleOpenAdd}
-        />
-      ) : (
-        <>
-          <div className="pp-card pp-table-scroll" style={{ padding: 0, marginBottom: '20px', border: '1px solid #bbf7d0' }}>
-            <div style={{ padding: '12px 16px', background: 'var(--pp-success-bg)', borderBottom: '1px solid var(--pp-success-border)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <CheckCircle2 size={15} style={{ color: 'var(--pp-success-fg)' }} />
-              <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--pp-success-fg)' }}>Previously Given Vaccines</span>
-              <span style={{ fontSize: '0.72rem', color: 'var(--pp-success-fg)', fontWeight: 600, marginLeft: '4px' }}>({caseVaccines.length})</span>
-            </div>
-            <div className="mc-table-container">
-            <table className="pp-table mc-responsive-table" style={{ marginBottom: 0 }}>
-              <thead>
-                <tr>
-                  <th style={{ width: '36px' }}>#</th>
-                  <th style={{ width: '130px' }}>Date</th>
-                  <th>Vaccine & Notes</th>
-                  <th style={{ width: '100px', textAlign: 'right' }}>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {groupedGivenVaccines.map((group) => (
-                  <React.Fragment key={group.date}>
-                    {group.items.map((cv: any, idx: number) => {
-                      const isExpanded = expandedDates.has(group.date);
-                      if (idx > 0 && !isExpanded) return null;
 
-                      const dateVal = cv.createdAt || 0;
-
-                      return (
-                        <tr 
-                          key={cv.id} 
-                          className="hover-row"
-                          style={{ 
-                            background: idx > 0 ? '#f8fafc' : 'white',
-                            borderLeft: idx > 0 ? '3px solid #e2e8f0' : 'none'
-                          }}
-                        >
-                          <td style={{ color: 'var(--pp-text-3)', fontSize: '0.72rem', fontFamily: 'monospace' }}>
-                            {idx === 0 ? (givenPage - 1) * givenPageSize + caseVaccines.indexOf(cv) + 1 : ''}
-                          </td>
-                          <td className="appt-cell-mono">
-                            <DateGroupCell 
-                              dateVal={dateVal} 
-                              isFirst={idx === 0} 
-                              isExpanded={isExpanded} 
-                              itemsCount={group.items.length} 
-                              onToggle={() => toggleDate(group.date)} 
-                            />
-                          </td>
-                          <td>
-                            <div style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--pp-ink)' }}>{cv.vaccineName || `Vaccine #${cv.vaccineId}`}</div>
-                            <div style={{ fontSize: '0.78rem', color: 'var(--pp-text-3)', marginTop: '4px' }}>
-                              {cv.notes || '—'}
-                            </div>
-                          </td>
-                          <td style={{ textAlign: 'right' }}>
-                            <div style={{ display: 'flex', gap: '4px', justifyContent: 'flex-end' }}>
-                              {onAppendNote && (
-                                <button
-                                  title="Copy to Follow-up"
-                                  onClick={() => handleCopyToFollowup(cv)}
-                                  style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #dcfce7', borderRadius: '6px', background: 'var(--bg-card)', cursor: 'pointer', color: '#16a34a' }}
-                                >
-                                  <Copy size={13} />
-                                </button>
-                              )}
-                              <button
-                                title="Edit"
-                                onClick={() => handleOpenEdit(cv)}
-                                style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border-main)', borderRadius: '6px', background: 'var(--bg-card)', cursor: 'pointer', color: 'var(--pp-blue)' }}
-                              >
-                                <Edit size={13} />
-                              </button>
-                              <button
-                                title="Delete"
-                                onClick={() => handleDelete(cv)}
-                                disabled={deletingId === cv.id}
-                                style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #fecaca', borderRadius: '6px', background: 'var(--bg-card)', cursor: 'pointer', color: '#ef4444', opacity: deletingId === cv.id ? 0.5 : 1 }}
-                              >
-                                {deletingId === cv.id ? <Loader2 size={13} className="spin" /> : <Trash2 size={13} />}
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </React.Fragment>
-                ))}
-              </tbody>
-            </table>
-            </div>
-          </div>
-          <Pagination
-            currentPage={givenPage}
-            totalPages={Math.ceil(caseVaccines.length / givenPageSize)}
-            pageSize={givenPageSize}
-            totalItems={caseVaccines.length}
-            onPageChange={setGivenPage}
-            onPageSizeChange={setGivenPageSize}
+      {/* Search and Sort */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '16px' }}>
+        <div style={{ position: 'relative', flex: 1, maxWidth: '400px' }}>
+          <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--pp-text-3)' }} />
+          <input
+            type="text"
+            placeholder="Search vaccine..."
+            value={search}
+            onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
+            style={{ width: '100%', padding: '10px 12px 10px 36px', border: '1.5px solid var(--border-main)', borderRadius: '10px', fontSize: '0.85rem', outline: 'none', background: 'var(--bg-surface-2)', boxSizing: 'border-box', color: 'var(--pp-ink)' }}
           />
-        </>
-      )}
-
-      {/* Search */}
-      <div style={{ position: 'relative', marginBottom: '16px', maxWidth: '360px' }}>
-        <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--pp-text-3)' }} />
-        <input
-          type="text"
-          placeholder="Search vaccine..."
-          value={search}
-          onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
-          style={{ width: '100%', padding: '10px 12px 10px 36px', border: '1.5px solid var(--border-main)', borderRadius: '10px', fontSize: '0.85rem', outline: 'none', background: 'var(--bg-surface-2)', boxSizing: 'border-box', color: 'var(--pp-ink)' }}
-        />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--pp-text-3)', textTransform: 'uppercase' }}>Sort by:</span>
+          <select
+            className="pp-select"
+            style={{ width: '140px', padding: '8px 12px' }}
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value as any)}
+          >
+            <option value="marked">Marked</option>
+            <option value="asc">Ascending (A-Z)</option>
+            <option value="desc">Descending (Z-A)</option>
+          </select>
+          {(sortOrder !== 'asc' || search) && (
+            <button
+              onClick={() => { setSortOrder('asc'); setSearch(''); setCurrentPage(1); }}
+              className="btn-ghost"
+              style={{ padding: '8px 12px', fontSize: '0.75rem', fontWeight: 700, color: 'var(--pp-blue)', display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <RefreshCw size={12} /> Reset
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Table */}
       <div className="pp-card pp-table-scroll" style={{ padding: 0 }}>
         <div className="mc-table-container">
-        <table className="pp-table mc-responsive-table">
-          <thead>
-            <tr>
-              <th style={{ width: '40px' }}>#</th>
-              <th>Vaccine & Description</th>
-              <th style={{ width: '160px' }}>Recommended Age</th>
-              <th style={{ width: '140px' }}>Status</th>
-              <th style={{ textAlign: 'right', width: '120px' }}>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {currentVaccines.length === 0 && (
-              <tr><td colSpan={5} style={{ textAlign: 'center', padding: '32px', color: 'var(--pp-text-3)' }}>
-                <Syringe size={32} style={{ opacity: 0.2, marginBottom: '8px' }} />
-                <p>No vaccine records found.</p>
-              </td></tr>
-            )}
-            {currentVaccines.map((vac: any, idx: number) => {
-              if (vac.isHeader) {
+          <table className="pp-table mc-responsive-table">
+            <thead>
+              <tr>
+                <th style={{ width: '40px' }}>#</th>
+                <th>Vaccine & Description</th>
+                <th style={{ width: '160px' }}>Recommended Age</th>
+                <th style={{ width: '140px' }}>Status</th>
+                <th style={{ textAlign: 'right', width: '120px' }}>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {currentVaccines.length === 0 && (
+                <tr><td colSpan={5} style={{ textAlign: 'center', padding: '32px', color: 'var(--pp-text-3)' }}>
+                  <Syringe size={32} style={{ opacity: 0.2, marginBottom: '8px' }} />
+                  <p>No vaccine records found.</p>
+                </td></tr>
+              )}
+              {currentVaccines.map((vac: any, idx: number) => {
+                if (vac.isHeader) {
+                  return (
+                    <tr key={`hdr-${vac.id}`} style={{ background: '#f0f9ff' }}>
+                      <td colSpan={5} style={{ padding: '10px 14px', borderBottom: '1px solid #dbeafe' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <Calendar size={13} style={{ color: 'var(--pp-blue)' }} />
+                          <span style={{ fontWeight: 800, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#1e40af' }}>
+                            {vac.label}
+                          </span>
+                          {vac.months !== undefined && vac.months !== 999 && (
+                            <span style={{ fontSize: '0.65rem', color: 'var(--pp-text-3)', fontWeight: 500 }}>(At {vac.months} Months)</span>
+                          )}
+                          <div style={{ flex: 1, borderTop: '1px dashed #cbd5e1', marginLeft: '8px', opacity: 0.5 }} />
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                }
+
+                const isDone = caseVaccines.some((cv: any) => cv.vaccineId === vac.id);
+                const doneRecord = caseVaccines.find((cv: any) => cv.vaccineId === vac.id);
+
                 return (
-                  <tr key={`hdr-${vac.id}`} style={{ background: '#f0f9ff' }}>
-                    <td colSpan={5} style={{ padding: '10px 14px', borderBottom: '1px solid #dbeafe' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Calendar size={13} style={{ color: 'var(--pp-blue)' }} />
-                        <span style={{ fontWeight: 800, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#1e40af' }}>
-                          {vac.label}
+                  <tr key={vac.id} className="hover-row">
+                    <td style={{ color: 'var(--pp-text-3)', fontSize: '0.7rem', fontFamily: 'monospace' }}>
+                      {idx + 1 + startIndex}
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--pp-ink)' }}>{vac.label}</div>
+                      {vac.description && (
+                        <div style={{ fontSize: '0.72rem', color: 'var(--pp-text-3)', marginTop: '2px' }}>{vac.description}</div>
+                      )}
+                      {isDone && doneRecord?.createdAt && (
+                        <div style={{ fontSize: '0.68rem', color: '#22c55e', marginTop: '3px', fontWeight: 600 }}>
+                          ✓ Given on {new Date(doneRecord.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          {doneRecord.notes && doneRecord.notes !== 'Administered' && doneRecord.notes !== 'Done' ? ` — ${doneRecord.notes}` : ''}
+                        </div>
+                      )}
+                    </td>
+                    <td>
+                      {vac.months !== null && vac.months !== undefined ? (
+                        <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 700, background: vac.months === 0 ? '#f0fdf4' : '#eff6ff', color: vac.months === 0 ? '#16a34a' : '#2563eb', border: `1px solid ${vac.months === 0 ? '#bbf7d0' : '#bfdbfe'}` }}>
+                          {vac.months === 0 ? 'At Birth' : `${vac.months} Months`}
                         </span>
-                        {vac.months !== undefined && vac.months !== 999 && (
-                          <span style={{ fontSize: '0.65rem', color: 'var(--pp-text-3)', fontWeight: 500 }}>(At {vac.months} Months)</span>
-                        )}
-                        <div style={{ flex: 1, borderTop: '1px dashed #cbd5e1', marginLeft: '8px', opacity: 0.5 }} />
-                      </div>
+                      ) : (
+                        <span style={{ color: '#cbd5e1', fontSize: '0.75rem' }}>N/A</span>
+                      )}
+                    </td>
+                    <td>
+                      {isDone ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 10px', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 700, background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0' }}>
+                          <Check size={12} /> Administered
+                        </span>
+                      ) : (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 10px', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 600, background: '#fef9c3', color: '#a16207', border: '1px solid #fde68a' }}>
+                          <AlertCircle size={11} /> Pending
+                        </span>
+                      )}
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      {!isDone && (
+                        <button
+                          onClick={() => handleMarkDone(vac.id)}
+                          disabled={savingId === vac.id}
+                          style={{ padding: '6px 14px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700, border: '1px solid #e2e8f0', background: 'white', color: '#2563eb', cursor: 'pointer' }}
+                        >
+                          {savingId === vac.id ? '...' : 'Mark Done'}
+                        </button>
+                      )}
                     </td>
                   </tr>
                 );
-              }
-
-              const isDone = caseVaccines.some((cv: any) => cv.vaccineId === vac.id);
-              const doneRecord = caseVaccines.find((cv: any) => cv.vaccineId === vac.id);
-
-              return (
-                <tr key={vac.id} className="hover-row">
-                  <td style={{ color: 'var(--pp-text-3)', fontSize: '0.7rem', fontFamily: 'monospace' }}>
-                    {idx + 1 + startIndex}
-                  </td>
-                  <td>
-                    <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--pp-ink)' }}>{vac.label}</div>
-                    {vac.description && (
-                      <div style={{ fontSize: '0.72rem', color: 'var(--pp-text-3)', marginTop: '2px' }}>{vac.description}</div>
-                    )}
-                    {isDone && doneRecord?.createdAt && (
-                      <div style={{ fontSize: '0.68rem', color: '#22c55e', marginTop: '3px', fontWeight: 600 }}>
-                        ✓ Given on {new Date(doneRecord.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                        {doneRecord.notes && doneRecord.notes !== 'Administered' && doneRecord.notes !== 'Done' ? ` — ${doneRecord.notes}` : ''}
-                      </div>
-                    )}
-                  </td>
-                  <td>
-                    {vac.months !== null && vac.months !== undefined ? (
-                      <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 700, background: vac.months === 0 ? '#f0fdf4' : '#eff6ff', color: vac.months === 0 ? '#16a34a' : '#2563eb', border: `1px solid ${vac.months === 0 ? '#bbf7d0' : '#bfdbfe'}` }}>
-                        {vac.months === 0 ? 'At Birth' : `${vac.months} Months`}
-                      </span>
-                    ) : (
-                      <span style={{ color: '#cbd5e1', fontSize: '0.75rem' }}>N/A</span>
-                    )}
-                  </td>
-                  <td>
-                    {isDone ? (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 10px', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 700, background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0' }}>
-                        <Check size={12} /> Administered
-                      </span>
-                    ) : (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 10px', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 600, background: '#fef9c3', color: '#a16207', border: '1px solid #fde68a' }}>
-                        <AlertCircle size={11} /> Pending
-                      </span>
-                    )}
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    {!isDone && (
-                      <button
-                        onClick={() => handleMarkDone(vac.id)}
-                        disabled={savingId === vac.id}
-                        style={{ padding: '6px 14px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700, border: '1px solid #e2e8f0', background: 'white', color: '#2563eb', cursor: 'pointer' }}
-                      >
-                        {savingId === vac.id ? '...' : 'Mark Done'}
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+              })}
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -1334,96 +1569,6 @@ function VaccineView({ regid, caseVaccines, onAppendNote }: { regid: number; cas
         onPageChange={setCurrentPage}
         onPageSizeChange={setPageSize}
       />
-
-      {/* ── Right-Side Drawer: Add Vaccine ── */}
-      {drawerOpen && ReactDOM.createPortal(
-        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', justifyContent: 'flex-end' }}>
-          {/* Backdrop */}
-          <div onClick={() => setDrawerOpen(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(2px)' }} />
-          {/* Panel */}
-          <div style={{ position: 'relative', width: '100%', maxWidth: '440px', background: 'var(--bg-card)', boxShadow: '-8px 0 30px rgba(0,0,0,0.12)', display: 'flex', flexDirection: 'column', animation: 'slideInRight 0.25s ease-out' }}>
-            {/* Drawer Header */}
-            <div style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div>
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--pp-ink)', margin: 0 }}>{editingRecord ? 'Edit Vaccine Record' : 'Add Vaccine to Patient'}</h3>
-                <p style={{ fontSize: '0.72rem', color: 'var(--pp-text-3)', margin: '2px 0 0' }}>{editingRecord ? 'Update notes for this vaccine record' : 'Select from master immunization list'}</p>
-              </div>
-              <button onClick={() => setDrawerOpen(false)} style={{ width: '32px', height: '32px', border: 'none', borderRadius: '8px', background: '#f1f5f9', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--pp-text-3)' }}>
-                <X size={16} />
-              </button>
-            </div>
-
-            {/* Drawer Body */}
-            <form onSubmit={handleDrawerSubmit} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-              <div style={{ flex: 1, padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                {/* Vaccine Select */}
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-ink)', marginBottom: '6px' }}>Vaccine *</label>
-                  <select
-                    required
-                    value={formVaccineId}
-                    onChange={e => setFormVaccineId(Number(e.target.value))}
-                    disabled={!!editingRecord}
-                    style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem', color: '#334155', background: editingRecord ? '#f1f5f9' : 'var(--bg-card)', outline: 'none', boxSizing: 'border-box' }}
-                  >
-                    <option value="">— Select a vaccine —</option>
-                    {vaccineOptions.map((v: any) => {
-                      const alreadyDone = caseVaccines.some((cv: any) => cv.vaccineId === v.id);
-                      return (
-                        <option key={v.id} value={v.id} disabled={alreadyDone}>
-                          {v.label}{v.months !== null && v.months !== undefined ? ` (${v.months === 0 ? 'Birth' : v.months + 'mo'})` : ''}{alreadyDone ? ' ✓' : ''}
-                        </option>
-                      );
-                    })}
-                  </select>
-                </div>
-
-                {/* Notes */}
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-ink)', marginBottom: '6px' }}>Clinical Notes</label>
-                  <textarea
-                    placeholder="e.g. Batch #1234, administered by Dr. X..."
-                    value={formNotes}
-                    onChange={e => setFormNotes(e.target.value)}
-                    style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem', minHeight: '100px', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none' }}
-                  />
-                </div>
-
-                {/* Info tip */}
-                <div style={{ display: 'flex', gap: '8px', padding: '12px', background: '#f0f9ff', borderRadius: '8px', border: '1px solid #dbeafe' }}>
-                  <AlertCircle size={14} style={{ color: 'var(--pp-blue)', flexShrink: 0, marginTop: '1px' }} />
-                  <p style={{ fontSize: '0.75rem', color: '#1e40af', margin: 0, lineHeight: 1.5 }}>
-                    The vaccine will be recorded for <strong>Patient #{regid}</strong> with today's date. You can mark additional vaccines directly from the table.
-                  </p>
-                </div>
-              </div>
-
-              {/* Drawer Footer */}
-              <div style={{ padding: '16px 24px', borderTop: '1px solid #e2e8f0', display: 'flex', gap: '10px', justifyContent: 'flex-end', background: 'var(--bg-surface-2)' }}>
-                <button type="button" onClick={() => setDrawerOpen(false)} style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', fontSize: '0.85rem', fontWeight: 600, color: 'var(--pp-text-3)', cursor: 'pointer' }}>
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={!formVaccineId || savingId !== null}
-                  style={{ padding: '10px 24px', borderRadius: '8px', border: 'none', background: '#2563eb', color: 'white', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', opacity: !formVaccineId ? 0.5 : 1, boxShadow: '0 2px 8px rgba(37,99,235,0.18)' }}
-                >
-                  {savingId !== null ? 'Saving...' : editingRecord ? 'Update Vaccine' : 'Save Vaccine'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>,
-        document.body
-      )}
-
-      {/* Slide-in animation */}
-      <style>{`
-        @keyframes slideInRight {
-          from { transform: translateX(100%); opacity: 0; }
-          to { transform: translateX(0); opacity: 1; }
-        }
-      `}</style>
     </div>
   );
 }
@@ -1538,9 +1683,9 @@ function AnalyticsView({ vitals, regid, visitId, name, phone, clinicName, onAppe
             <Send size={14} /> {sending ? 'Sending...' : 'Share Latest'}
           </button>
           {onAppendNote && vitals?.length > 0 && (
-            <button 
-              className="btn-secondary" 
-              onClick={handleCopyToFollowup} 
+            <button
+              className="btn-secondary"
+              onClick={handleCopyToFollowup}
               style={{ padding: '10px 20px', height: '44px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #dcfce7', background: 'white', color: '#16a34a' }}
               title="Copy Latest to Follow-up"
             >
@@ -1638,280 +1783,7 @@ function SnapshotRow({ label, value }: { label: string, value: string }) {
   );
 }
 
-function HomeoView({ regid, initialData, reminders, medicalCase, onAppendNote }: { regid: number; initialData?: any; reminders?: any[]; medicalCase: any; onAppendNote?: (text: string) => void }) {
-  const { saveReminder, deleteReminder } = useManageClinicalRecords();
 
-  // Reminder / Activity State
-  const [showDrawer, setShowDrawer] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [remindDate, setRemindDate] = useState(new Date().toISOString().split('T')[0]);
-  const [remindTime, setRemindTime] = useState(new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }));
-  const [purpose, setPurpose] = useState('');
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(5);
-
-
-  const handleSaveActivity = async () => {
-    if (!remindDate || !purpose) return;
-    try {
-      // Combine date and time
-      const dateTime = new Date(`${remindDate}T${remindTime || '00:00'}:00`);
-
-      await saveReminder.mutateAsync({
-        id: editingId,
-        regid,
-        reminderDate: dateTime.toISOString(),
-        message: purpose,
-        status: 'Pending'
-      });
-
-      setShowDrawer(false);
-      resetActivityForm();
-    } catch (err) { console.error(err); }
-  };
-
-  const handleEditActivity = (reminder: any) => {
-    setEditingId(reminder.id);
-    const date = new Date(reminder.reminderDate);
-    setRemindDate(date.toISOString().split('T')[0]);
-    setRemindTime(date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }));
-    setPurpose(reminder.message || '');
-    setShowDrawer(true);
-  };
-
-  const handleDeleteActivity = async (id: number) => {
-    if (confirm('Delete this activity?')) {
-      try {
-        await deleteReminder.mutateAsync(id);
-      } catch (err) { console.error(err); }
-    }
-  };
-
-  const resetActivityForm = () => {
-    setEditingId(null);
-    setRemindDate(new Date().toISOString().split('T')[0]);
-    setRemindTime(new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }));
-    setPurpose('');
-  };
-
-  const handleCopyToFollowup = (rem: any) => {
-    if (!onAppendNote) return;
-    onAppendNote(`CLINIC ACTIVITY (${new Date(rem.reminderDate).toLocaleString()}): ${rem.message}`);
-  };
-
-  const sortedReminders = reminders ? [...reminders].sort((a, b) =>
-    new Date(b.reminderDate).getTime() - new Date(a.reminderDate).getTime()
-  ) : [];
-
-  const totalPages = Math.ceil(sortedReminders.length / pageSize);
-  const startIndex = (currentPage - 1) * pageSize;
-  const currentReminders = sortedReminders.slice(startIndex, startIndex + pageSize);
-
-  const { expandedDates, toggleDate, groupedData: groupedReminders } = useTableGrouping(currentReminders, 'reminderDate');
-
-  return (
-    <div className="animate-fade-in">
-      {/* ─── Header Row: Title + Add Button ─── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <div className="mc-section-header" style={{ margin: 0 }}>Clinic Activities</div>
-        <button className="btn-primary" style={{ padding: '8px 16px' }} onClick={() => { resetActivityForm(); setShowDrawer(true); }}>
-          <Plus size={16} style={{ marginRight: '6px' }} /> Add Clinic Activity
-        </button>
-      </div>
-
-      {/* ─── Table (default view) ─── */}
-      {!reminders ? (
-        <TableSkeleton rows={5} cols={5} />
-      ) : reminders.length === 0 ? (
-        <EmptyState
-          icon={History}
-          title="No clinic activities recorded yet"
-          description="Keep track of patient follow-ups, clinical attributes, and scheduled activities."
-          actionLabel="Record the first activity"
-          onAction={() => { setEditingId(null); resetActivityForm(); setShowDrawer(true); }}
-        />
-      ) : (
-        <>
-          <div className="pp-card pp-table-scroll" style={{ padding: 0, marginBottom: '20px', border: '1px solid #c7d2fe' }}>
-            <div style={{ padding: '12px 16px', background: '#eef2ff', borderBottom: '1px solid #c7d2fe', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <History size={15} style={{ color: '#6366f1' }} />
-              <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#3730a3' }}>Activity History</span>
-              <span style={{ fontSize: '0.72rem', color: '#818cf8', fontWeight: 600, marginLeft: '4px' }}>({reminders.length})</span>
-            </div>
-            <div className="mc-table-container">
-            <table className="pp-table mc-responsive-table" style={{ marginBottom: 0 }}>
-              <thead>
-                <tr>
-                  <th style={{ width: '170px' }}>Scheduled For</th>
-                  <th>Purpose / Message</th>
-                  <th style={{ width: '100px' }}>Status</th>
-                  <th style={{ width: '90px', textAlign: 'center' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {groupedReminders.map((group) => (
-                  <React.Fragment key={group.date}>
-                    {group.items.map((rem, idx) => {
-                      const isExpanded = expandedDates.has(group.date);
-                      if (idx > 0 && !isExpanded) return null;
-
-                      const dateVal = rem.reminderDate || 0;
-
-                      return (
-                        <tr 
-                          key={rem.id} 
-                          className="hover-row"
-                          style={{ 
-                            background: idx > 0 ? '#f8fafc' : 'white',
-                            borderLeft: idx > 0 ? '3px solid #e2e8f0' : 'none'
-                          }}
-                        >
-                          <td className="appt-cell-mono">
-                            <DateGroupCell 
-                              dateVal={dateVal} 
-                              isFirst={idx === 0} 
-                              isExpanded={isExpanded} 
-                              itemsCount={group.items.length} 
-                              onToggle={() => toggleDate(group.date)} 
-                            />
-                            {idx === 0 && (
-                              <div style={{ fontSize: '0.75rem', opacity: 0.7, marginTop: '4px' }}>
-                                {new Date(dateVal).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                              </div>
-                            )}
-                          </td>
-                          <td style={{ fontSize: '0.85rem' }}>{rem.message}</td>
-                          <td>
-                            <span className={`mc-badge-solid-${rem.status === 'Done' ? 'green' : 'blue'}`} style={{ fontSize: '0.7rem' }}>
-                              {rem.status}
-                            </span>
-                          </td>
-                          <td style={{ textAlign: 'center' }}>
-                            <div style={{ display: 'flex', justifyContent: 'center', gap: '4px' }}>
-                              {onAppendNote && (
-                                <button
-                                  className="btn-ghost"
-                                  style={{ color: '#16a34a', padding: '4px' }}
-                                  title="Copy to Follow-up"
-                                  onClick={() => handleCopyToFollowup(rem)}
-                                >
-                                  <Copy size={14} />
-                                </button>
-                              )}
-                              <button className="btn-ghost" style={{ color: 'var(--pp-blue)', padding: '4px' }} onClick={() => handleEditActivity(rem)}>
-                                <Edit size={14} />
-                              </button>
-                              <button className="btn-ghost" style={{ color: '#dc2626', padding: '4px' }} onClick={() => handleDeleteActivity(rem.id)}>
-                                <Trash2 size={14} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </React.Fragment>
-                ))}
-              </tbody>
-            </table>
-            </div>
-          </div>
-          <Pagination currentPage={currentPage} totalPages={totalPages} pageSize={pageSize} totalItems={sortedReminders.length} onPageChange={setCurrentPage} onPageSizeChange={setPageSize} />
-        </>
-      )}
-
-      {/* ─── Drawer: Add/Edit Activity ─── */}
-      {showDrawer && ReactDOM.createPortal(
-        <>
-          <div className="mc-drawer-backdrop" onClick={() => setShowDrawer(false)} />
-          <div className="mc-drawer animate-slide-in-right" style={{ maxWidth: '480px' }}>
-            <header className="mc-drawer-header" style={{ background: 'var(--pp-blue)', color: 'white' }}>
-              <div className="mc-drawer-header-title">
-                <Zap size={18} /> {editingId ? 'Edit Activity' : 'Add Clinic Activity'}
-              </div>
-              <button className="mc-drawer-close" onClick={() => setShowDrawer(false)} style={{ color: 'white' }}>
-                <X size={18} />
-              </button>
-            </header>
-
-            <div className="mc-drawer-body" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto' }}>
-
-              {/* Patient Info (Read-only) */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '16px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Patient Id</label>
-                  <div className="pp-input" style={{ background: 'var(--pp-warm-1)', color: 'var(--pp-text-3)', fontWeight: 600 }}>{regid}</div>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Patient Name</label>
-                  <div className="pp-input" style={{ background: 'var(--pp-warm-1)', color: 'var(--pp-text-3)', fontWeight: 600 }}>{medicalCase.patientName}</div>
-                </div>
-              </div>
-
-              {/* Remind On */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Remind On</label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '12px' }}>
-                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                    <input
-                      type="date"
-                      className="pp-input"
-                      style={{ width: '100%', paddingRight: '40px' }}
-                      value={remindDate}
-                      onChange={e => setRemindDate(e.target.value)}
-                    />
-                    <Calendar size={16} style={{ position: 'absolute', right: '12px', color: 'var(--pp-text-3)' }} />
-                  </div>
-                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                    <input
-                      type="time"
-                      className="pp-input"
-                      style={{ width: '100%', paddingRight: '40px' }}
-                      value={remindTime}
-                      onChange={e => setRemindTime(e.target.value)}
-                    />
-                    <Clock size={16} style={{ position: 'absolute', right: '12px', color: 'var(--pp-text-3)' }} />
-                  </div>
-                </div>
-              </div>
-
-              {/* Purpose */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Purpose / Message</label>
-                <textarea
-                  className="pp-textarea"
-                  style={{ minHeight: '100px' }}
-                  placeholder="Enter purpose or message for this activity..."
-                  value={purpose}
-                  onChange={e => setPurpose(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <footer className="mc-drawer-footer" style={{ padding: '16px 24px', background: 'var(--pp-warm-1)', borderTop: '1px solid var(--pp-warm-3)', display: 'flex', gap: '10px' }}>
-              <button
-                className="btn-secondary"
-                style={{ flex: 1 }}
-                onClick={() => setShowDrawer(false)}
-              >
-                Cancel
-              </button>
-              <button
-                className="btn-primary"
-                style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                onClick={handleSaveActivity}
-                disabled={saveReminder.isPending}
-              >
-                {saveReminder.isPending ? 'Submitting...' : (editingId ? 'Update Activity' : 'Save Activity')}
-              </button>
-            </footer>
-          </div>
-        </>,
-        document.body
-      )}
-    </div>
-  );
-}
 
 
 function VitalsView({ vitals, onRecord, phone, name, regid, clinicName, onAppendNote }: { vitals: any[]; onRecord: (v?: any) => void; phone: string; name: string; regid: number; clinicName: string; onAppendNote?: (text: string) => void }) {
@@ -1932,7 +1804,7 @@ function VitalsView({ vitals, onRecord, phone, name, regid, clinicName, onAppend
     if (v.weightKg) parts.push(`Weight: ${v.weightKg}kg`);
     if (v.oxygenSaturation) parts.push(`SpO2: ${v.oxygenSaturation}%`);
     if (v.bmi) parts.push(`BMI: ${v.bmi}`);
-    
+
     onAppendNote(`VITALS (${new Date(v.recordedAt).toLocaleDateString()}): ${parts.join(', ')}`);
   };
 
@@ -2046,21 +1918,21 @@ function VitalsView({ vitals, onRecord, phone, name, regid, clinicName, onAppend
                       const dateVal = v.recordedAt || 0;
 
                       return (
-                        <tr 
-                          key={v.id} 
+                        <tr
+                          key={v.id}
                           className="hover-row"
-                          style={{ 
+                          style={{
                             background: idx > 0 ? '#f8fafc' : 'white',
                             borderLeft: idx > 0 ? '3px solid #e2e8f0' : 'none'
                           }}
                         >
                           <td className="appt-cell-mono">
-                            <DateGroupCell 
-                              dateVal={dateVal} 
-                              isFirst={idx === 0} 
-                              isExpanded={isExpanded} 
-                              itemsCount={group.items.length} 
-                              onToggle={() => toggleDate(group.date)} 
+                            <DateGroupCell
+                              dateVal={dateVal}
+                              isFirst={idx === 0}
+                              isExpanded={isExpanded}
+                              itemsCount={group.items.length}
+                              onToggle={() => toggleDate(group.date)}
                             />
                           </td>
                           <td style={{ fontWeight: 600 }}>{v.systolicBp}/{v.diastolicBp}</td>
@@ -2412,21 +2284,21 @@ function LabsView({ investigations, regid, visitId, onAppendNote }: { investigat
                       const dateVal = inv.investDate || 0;
 
                       return (
-                        <tr 
-                          key={inv.id} 
+                        <tr
+                          key={inv.id}
                           className="hover-row"
-                          style={{ 
+                          style={{
                             background: idx > 0 ? '#f8fafc' : 'white',
                             borderLeft: idx > 0 ? '3px solid #e2e8f0' : 'none'
                           }}
                         >
                           <td className="appt-cell-mono">
-                            <DateGroupCell 
-                              dateVal={dateVal} 
-                              isFirst={idx === 0} 
-                              isExpanded={isExpanded} 
-                              itemsCount={group.items.length} 
-                              onToggle={() => toggleDate(group.date)} 
+                            <DateGroupCell
+                              dateVal={dateVal}
+                              isFirst={idx === 0}
+                              isExpanded={isExpanded}
+                              itemsCount={group.items.length}
+                              onToggle={() => toggleDate(group.date)}
                             />
                           </td>
                           <td><span className="badge-primary">{inv.type}</span></td>
@@ -2628,7 +2500,7 @@ function CommunicationView({ regid, phone, name, onAppendNote }: { regid: number
                   <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase' }}>{new Date(log.createdAt).toLocaleString()}</span>
                 </div>
                 {onAppendNote && (
-                  <button 
+                  <button
                     onClick={() => handleCopyToFollowup(log)}
                     style={{ padding: '4px', background: 'transparent', border: 'none', color: '#16a34a', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', fontWeight: 700 }}
                   >
@@ -2646,22 +2518,15 @@ function CommunicationView({ regid, phone, name, onAppendNote }: { regid: number
 }
 
 function MediaView({ regid, visitId, images }: { regid: number; visitId: number; images: any[] }) {
-  const { saveImage, updateImage, deleteImage } = useManageClinicalRecords();
-  const [uploading, setUploading] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(8);
+  const { updateImage, deleteImage } = useManageClinicalRecords();
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [uploadDescription, setUploadDescription] = useState('');
 
   const sortedImages = images ? [...images].sort((a, b) =>
     new Date(b.createdAt || b.created_at || 0).getTime() -
     new Date(a.createdAt || a.created_at || 0).getTime()
   ) : [];
 
-  const totalPages = Math.ceil(sortedImages.length / pageSize);
-  const startIndex = (currentPage - 1) * pageSize;
-  const currentImages = sortedImages.slice(startIndex, startIndex + pageSize);
+  const currentImages = sortedImages;
 
   const { expandedDates, toggleDate, groupedData: groupedImages } = useTableGrouping(currentImages, 'createdAt');
 
@@ -2679,30 +2544,7 @@ function MediaView({ regid, visitId, images }: { regid: number; visitId: number;
     return path.startsWith('/') ? path : '/' + path;
   };
 
-  const onFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.length) {
-      setSelectedFile(e.target.files[0]);
-    }
-  };
 
-  const handleUpload = async () => {
-    if (!selectedFile) return;
-    setUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append('files', selectedFile as Blob);
-      formData.append('regid', String(regid));
-      formData.append('visitId', String(visitId));
-      formData.append('description', uploadDescription || 'Clinical Evidence');
-      await saveImage.mutateAsync(formData);
-      setSelectedFile(null);
-      setUploadDescription('');
-    } catch (err) {
-      console.error('Upload error:', err);
-    } finally {
-      setUploading(false);
-    }
-  };
 
   const handleEditDescription = async (img: any) => {
     const newDesc = prompt('Edit Clinical Note/Description:', img.description || '');
@@ -2757,75 +2599,14 @@ function MediaView({ regid, visitId, images }: { regid: number; visitId: number;
         </div>
       </div>
 
-      <div style={{ background: 'white', border: '1px solid var(--pp-warm-3)', borderRadius: '16px', padding: '24px', marginBottom: '32px', boxShadow: 'var(--pp-shadow-sm)' }}>
-        <div
-          style={{
-            border: '1.5px dashed var(--pp-warm-4)', borderRadius: '12px', padding: '40px 20px', textAlign: 'center',
-            background: 'var(--pp-warm-1)', position: 'relative', cursor: 'pointer', transition: 'all 0.2s',
-            marginBottom: '20px'
-          }}
-          onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--pp-blue)'}
-          onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--pp-warm-4)'}
-        >
-          <input
-            type="file"
-            onChange={onFileSelect}
-            style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }}
-            disabled={uploading}
-            accept="image/*,.pdf"
-          />
-          {uploading ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-              <Loader2 size={32} className="animate-spin" style={{ color: 'var(--pp-blue)' }} />
-              <div style={{ fontWeight: 700, color: 'var(--pp-blue)' }}>Processing Image...</div>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', color: 'var(--pp-blue)' }}>
-                <Plus size={24} />
-              </div>
-              <div>
-                <div style={{ fontWeight: 700, color: 'var(--pp-ink)', fontSize: '1rem', marginBottom: '4px' }}>
-                  {selectedFile ? selectedFile.name : 'Click to upload clinical image'}
-                </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--pp-text-3)', fontWeight: 500 }}>
-                  PNG, JPG or PDF (Max 10MB)
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
 
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <div style={{ flex: 1, position: 'relative' }}>
-            <input 
-              type="text" 
-              className="pp-input"
-              placeholder="Enter image description (e.g. Scan 1, Notes...)"
-              value={uploadDescription}
-              onChange={e => setUploadDescription(e.target.value)}
-              style={{ padding: '12px 16px', fontSize: '0.9rem', width: '100%' }}
-            />
-          </div>
-          <button 
-            className="btn-primary" 
-            onClick={handleUpload}
-            disabled={!selectedFile || uploading}
-            style={{ padding: '12px 24px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '8px', opacity: !selectedFile ? 0.6 : 1 }}
-          >
-            {uploading ? <Loader2 size={16} className="spin" /> : <Upload size={16} />}
-            Upload Image
-          </button>
-        </div>
-
-        <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--pp-warm-2)', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--pp-text-3)', fontSize: '0.75rem' }}>
-          <span style={{ fontSize: '1rem' }}>💡</span>
-          <span>These images will also appear in the <strong>Media</strong> tab of the patient record.</span>
-        </div>
-      </div>
 
       {viewMode === 'grid' ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '20px' }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: currentImages.length === 1 ? '1fr' : 'repeat(2, 1fr)',
+          gap: '20px'
+        }}>
           {currentImages.map(img => {
             const imagePath = img.picture || img.picturePath || img.picture_path;
             const timestamp = img.createdAt || img.created_at || img.recordedAt || img.recorded_at;
@@ -2841,7 +2622,11 @@ function MediaView({ regid, visitId, images }: { regid: number; visitId: number;
                   display: 'flex', flexDirection: 'column'
                 }}
               >
-                <div style={{ aspectRatio: '4/3', position: 'relative', overflow: 'hidden', background: 'var(--pp-warm-1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{
+                  aspectRatio: currentImages.length === 1 ? 'auto' : '4/3',
+                  maxHeight: currentImages.length === 1 ? '600px' : '300px',
+                  position: 'relative', overflow: 'hidden', background: 'var(--pp-warm-1)', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
                   {resolvedUrl ? (
                     <img
                       src={resolvedUrl}
@@ -2914,60 +2699,60 @@ function MediaView({ regid, visitId, images }: { regid: number; visitId: number;
               </tr>
             </thead>
             <tbody>
-                {groupedImages.map((group) => (
-                  <React.Fragment key={group.date}>
-                    {group.items.map((img: any, idx: number) => {
-                      const isExpanded = expandedDates.has(group.date);
-                      if (idx > 0 && !isExpanded) return null;
+              {groupedImages.map((group) => (
+                <React.Fragment key={group.date}>
+                  {group.items.map((img: any, idx: number) => {
+                    const isExpanded = expandedDates.has(group.date);
+                    if (idx > 0 && !isExpanded) return null;
 
-                      const dateVal = img.createdAt || img.created_at || img.recordedAt || img.recorded_at || 0;
-                      const imagePath = img.picture || img.picturePath || img.picture_path;
-                      const resolvedUrl = imagePath ? getImageUrl(imagePath) : '';
+                    const dateVal = img.createdAt || img.created_at || img.recordedAt || img.recorded_at || 0;
+                    const imagePath = img.picture || img.picturePath || img.picture_path;
+                    const resolvedUrl = imagePath ? getImageUrl(imagePath) : '';
 
-                      return (
-                        <tr 
-                          key={img.id} 
-                          className="hover-row"
-                          style={{ 
-                            background: idx > 0 ? '#f8fafc' : 'white',
-                            borderLeft: idx > 0 ? '3px solid #e2e8f0' : 'none'
-                          }}
-                        >
-                          <td style={{ width: '80px' }}>
-                            <div style={{ width: '50px', height: '50px', borderRadius: '8px', overflow: 'hidden', background: 'var(--pp-warm-1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              {resolvedUrl ? (
-                                <img src={resolvedUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onClick={() => window.open(resolvedUrl, '_blank')} />
-                              ) : <Camera size={20} style={{ opacity: 0.3 }} />}
-                            </div>
-                          </td>
-                          <td className="appt-cell-mono">
-                            <DateGroupCell 
-                              dateVal={dateVal} 
-                              isFirst={idx === 0} 
-                              isExpanded={isExpanded} 
-                              itemsCount={group.items.length} 
-                              onToggle={() => toggleDate(group.date)} 
-                            />
-                          </td>
-                          <td style={{ fontSize: '0.85rem' }}>{img.description || 'Clinical Evidence'}</td>
-                          <td style={{ textAlign: 'center' }}>
-                            <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
-                              <button className="btn-ghost" style={{ color: 'var(--pp-blue)' }} onClick={() => handleEditDescription(img)} title="Edit Notes">
-                                <Edit size={16} />
-                              </button>
-                              <button className="btn-ghost" style={{ color: 'var(--pp-blue)' }} onClick={() => resolvedUrl && window.open(resolvedUrl, '_blank')} title="View Full Image">
-                                <Eye size={16} />
-                              </button>
-                              <button className="btn-ghost" style={{ color: 'var(--pp-danger-fg)' }} onClick={() => handleDelete(img.id)} title="Delete Image">
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </React.Fragment>
-                ))}
+                    return (
+                      <tr
+                        key={img.id}
+                        className="hover-row"
+                        style={{
+                          background: idx > 0 ? '#f8fafc' : 'white',
+                          borderLeft: idx > 0 ? '3px solid #e2e8f0' : 'none'
+                        }}
+                      >
+                        <td style={{ width: '80px' }}>
+                          <div style={{ width: '50px', height: '50px', borderRadius: '8px', overflow: 'hidden', background: 'var(--pp-warm-1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            {resolvedUrl ? (
+                              <img src={resolvedUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onClick={() => window.open(resolvedUrl, '_blank')} />
+                            ) : <Camera size={20} style={{ opacity: 0.3 }} />}
+                          </div>
+                        </td>
+                        <td className="appt-cell-mono">
+                          <DateGroupCell
+                            dateVal={dateVal}
+                            isFirst={idx === 0}
+                            isExpanded={isExpanded}
+                            itemsCount={group.items.length}
+                            onToggle={() => toggleDate(group.date)}
+                          />
+                        </td>
+                        <td style={{ fontSize: '0.85rem' }}>{img.description || 'Clinical Evidence'}</td>
+                        <td style={{ textAlign: 'center' }}>
+                          <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
+                            <button className="btn-ghost" style={{ color: 'var(--pp-blue)' }} onClick={() => handleEditDescription(img)} title="Edit Notes">
+                              <Edit size={16} />
+                            </button>
+                            <button className="btn-ghost" style={{ color: 'var(--pp-blue)' }} onClick={() => resolvedUrl && window.open(resolvedUrl, '_blank')} title="View Full Image">
+                              <Eye size={16} />
+                            </button>
+                            <button className="btn-ghost" style={{ color: 'var(--pp-danger-fg)' }} onClick={() => handleDelete(img.id)} title="Delete Image">
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </React.Fragment>
+              ))}
             </tbody>
           </table>
         </div>
@@ -2981,33 +2766,31 @@ function MediaView({ regid, visitId, images }: { regid: number; visitId: number;
         />
       )}
 
-      {sortedImages.length > 0 && (
-        <div style={{ marginTop: '24px' }}>
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            pageSize={pageSize}
-            totalItems={sortedImages.length}
-            onPageChange={setCurrentPage}
-            onPageSizeChange={setPageSize}
-          />
-        </div>
-      )}
+
     </div>
   );
 }
 
-function DiagnosisView({ regid, visitId, medicalCase, soapRecords, onAppendNote }: { regid: number; visitId: number; medicalCase: any; soapRecords: any[]; onAppendNote?: (text: string) => void }) {
-  const { updateDiagnosis, saveSoap, deleteRecord } = useManageClinicalRecords();
-  const [diagnosis, setDiagnosis] = useState(medicalCase?.condition || '');
-  const [complaint, setComplaint] = useState('');
-  const [medication, setMedication] = useState('');
-  const [investigationFindings, setInvestigationFindings] = useState('');
-
+function DiagnosisView({
+  regid,
+  visitId,
+  medicalCase,
+  soapRecords,
+  onAppendNote,
+  onEditRecord,
+  onAddRecord
+}: {
+  regid: number;
+  visitId: number;
+  medicalCase: any;
+  soapRecords: any[];
+  onAppendNote?: (text: string) => void;
+  onEditRecord?: (record: any) => void;
+  onAddRecord?: () => void;
+}) {
+  const { deleteRecord } = useManageClinicalRecords();
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [showDrawer, setShowDrawer] = useState(false);
-  const [editingRecord, setEditingRecord] = useState<any>(null);
 
   const sortedSoap = soapRecords ? [...soapRecords].sort((a, b) => {
     const timeA = new Date(a.createdAt || 0).getTime();
@@ -3022,7 +2805,7 @@ function DiagnosisView({ regid, visitId, medicalCase, soapRecords, onAppendNote 
     if (record.subjective) parts.push(`S: ${record.subjective}`);
     if (record.objective) parts.push(`O: ${record.objective}`);
     if (record.plan) parts.push(`P: ${record.plan}`);
-    
+
     onAppendNote(`DIAGNOSIS (${new Date(record.createdAt).toLocaleDateString()}): ${parts.join(' | ')}`);
   };
 
@@ -3032,49 +2815,7 @@ function DiagnosisView({ regid, visitId, medicalCase, soapRecords, onAppendNote 
 
   const { expandedDates, toggleDate, groupedData: groupedSoap } = useTableGrouping(currentSoap, 'createdAt');
 
-  const handleUpdate = async () => {
-    try {
-      if (diagnosis.trim()) {
-        await updateDiagnosis.mutateAsync({ regid, condition: diagnosis.trim() });
-      }
-      if (complaint || medication || investigationFindings || diagnosis) {
-        await saveSoap.mutateAsync({
-          id: editingRecord?.id,
-          regid,
-          visitId,
-          subjective: complaint,
-          objective: investigationFindings,
-          assessment: diagnosis,
-          plan: medication
-        });
-      }
-      setShowDrawer(false);
-      setEditingRecord(null);
-      setComplaint('');
-      setMedication('');
-      setInvestigationFindings('');
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleEdit = (record: any) => {
-    setDiagnosis(record.assessment || '');
-    setComplaint(record.subjective || '');
-    setMedication(record.plan || '');
-    setInvestigationFindings(record.objective || '');
-    setEditingRecord(record);
-    setShowDrawer(true);
-  };
-
-  const handleAdd = () => {
-    setDiagnosis('');
-    setComplaint('');
-    setMedication('');
-    setInvestigationFindings('');
-    setEditingRecord(null);
-    setShowDrawer(true);
-  };
+  // Logic moved to parent component handleOpenDiagnosis
 
   const handleDelete = async (id: number) => {
     if (confirm('Delete this clinical assessment?')) {
@@ -3092,9 +2833,7 @@ function DiagnosisView({ regid, visitId, medicalCase, soapRecords, onAppendNote 
       <div className="mc-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
         <div className="mc-section-header" style={{ margin: 0 }}>Clinical Assessments</div>
         <div style={{ display: 'flex', gap: '10px' }}>
-          <button onClick={handleAdd} className="btn-primary" style={{ padding: '8px 16px' }}>
-            <Plus size={16} style={{ marginRight: '6px' }} /> Add Diagnosis
-          </button>
+          {/* Main tab 'Add Diagnosis' button removed as requested. User uses sidebar button instead. */}
         </div>
       </div>
 
@@ -3105,14 +2844,12 @@ function DiagnosisView({ regid, visitId, medicalCase, soapRecords, onAppendNote 
         <EmptyState
           icon={Sparkles}
           title="No clinical assessments recorded yet"
-          description="Start recording clinical findings, symptoms, and treatment plans for this patient to track their progress."
-          actionLabel="Create the first diagnosis"
-          onAction={handleAdd}
+          description="Use the Diagnosis button in the sidebar to start recording clinical findings for this patient."
         />
       ) : (
         <>
           <div className="pp-card pp-table-scroll" style={{ padding: 0, borderRadius: '12px', border: '1px solid #fde68a', marginBottom: '20px' }}>
-            <div style={{ padding: '12px 16px', background: 'var(--bg-card)beb', borderBottom: '1px solid #fde68a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ padding: '12px 16px', background: '#fffbeb', borderBottom: '1px solid #fde68a', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Sparkles size={15} style={{ color: '#d97706' }} />
               <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#92400e' }}>Clinical Assessment History</span>
               <span style={{ fontSize: '0.72rem', color: '#fbbf24', fontWeight: 600, marginLeft: '4px' }}>({soapRecords.length})</span>
@@ -3137,21 +2874,21 @@ function DiagnosisView({ regid, visitId, medicalCase, soapRecords, onAppendNote 
                       const dateVal = record.createdAt || record.created_at || record.dateval || record.visitDate || 0;
 
                       return (
-                        <tr 
-                          key={record.id} 
+                        <tr
+                          key={record.id}
                           className="hover-row"
-                          style={{ 
+                          style={{
                             background: idx > 0 ? '#f8fafc' : 'white',
                             borderLeft: idx > 0 ? '3px solid #e2e8f0' : 'none'
                           }}
                         >
                           <td className="appt-cell-mono">
-                            <DateGroupCell 
-                              dateVal={dateVal} 
-                              isFirst={idx === 0} 
-                              isExpanded={isExpanded} 
-                              itemsCount={group.items.length} 
-                              onToggle={() => toggleDate(group.date)} 
+                            <DateGroupCell
+                              dateVal={dateVal}
+                              isFirst={idx === 0}
+                              isExpanded={isExpanded}
+                              itemsCount={group.items.length}
+                              onToggle={() => toggleDate(group.date)}
                             />
                           </td>
                           <td>
@@ -3182,7 +2919,7 @@ function DiagnosisView({ regid, visitId, medicalCase, soapRecords, onAppendNote 
                                 className="btn-ghost"
                                 style={{ color: 'var(--pp-blue)', padding: '4px 8px' }}
                                 title="Edit"
-                                onClick={() => handleEdit(record)}
+                                onClick={() => onEditRecord?.(record)}
                               >
                                 <Edit size={14} />
                               </button>
@@ -3215,91 +2952,6 @@ function DiagnosisView({ regid, visitId, medicalCase, soapRecords, onAppendNote 
         </>
       )}
 
-      {/* ─── Diagnosis Form Drawer (right-side popup) ─── */}
-      {showDrawer && ReactDOM.createPortal(
-        <>
-          <div className="mc-drawer-backdrop" onClick={() => { setShowDrawer(false); setEditingRecord(null); }} />
-          <div className="mc-drawer animate-slide-in-right" style={{ maxWidth: '520px' }}>
-            <header className="mc-drawer-header" style={{ background: 'var(--pp-blue)', color: 'white' }}>
-              <div className="mc-drawer-header-title">
-                <Sparkles size={18} /> {editingRecord ? 'Edit Assessment' : 'New Assessment'}
-              </div>
-              <button className="mc-drawer-close" onClick={() => { setShowDrawer(false); setEditingRecord(null); }} style={{ color: 'white', opacity: 0.8 }}>
-                <X size={16} />
-              </button>
-            </header>
-
-            <div style={{ padding: '24px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <div style={{ padding: '10px 14px', background: 'var(--pp-warm-1)', borderRadius: '8px', border: '1px solid var(--pp-warm-2)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Calendar size={14} style={{ color: 'var(--pp-blue)' }} />
-                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-ink)' }}>
-                  Record Date: {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Main Diagnosis</label>
-                <textarea
-                  className="pp-textarea"
-                  value={diagnosis}
-                  onChange={e => setDiagnosis(e.target.value)}
-                  placeholder="Final clinical assessment..."
-                  style={{ minHeight: '60px', fontSize: '1rem', fontWeight: 700 }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Subjective (Complaints)</label>
-                <textarea
-                  className="pp-textarea"
-                  value={complaint}
-                  onChange={e => setComplaint(e.target.value)}
-                  placeholder="Patient symptoms & intensity..."
-                  style={{ minHeight: '100px' }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Treatment Plan</label>
-                <textarea
-                  className="pp-textarea"
-                  value={medication}
-                  onChange={e => setMedication(e.target.value)}
-                  placeholder="Medications or next steps..."
-                  style={{ minHeight: '80px' }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Objective Findings</label>
-                <textarea
-                  className="pp-textarea"
-                  value={investigationFindings}
-                  onChange={e => setInvestigationFindings(e.target.value)}
-                  placeholder="Physical exam or lab summaries..."
-                  style={{ minHeight: '80px' }}
-                />
-              </div>
-            </div>
-
-            <footer style={{ padding: '16px 24px', background: 'var(--pp-warm-1)', borderTop: '1px solid var(--pp-warm-3)', display: 'flex', gap: '10px' }}>
-              <button type="button" className="btn-secondary" style={{ flex: 1 }} onClick={() => { setShowDrawer(false); setEditingRecord(null); }}>Cancel</button>
-              <button
-                onClick={handleUpdate}
-                className="btn-primary"
-                style={{ flex: 2, padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-                disabled={updateDiagnosis.isPending}
-              >
-                {updateDiagnosis.isPending
-                  ? <Loader2 size={16} className="animate-spin" />
-                  : <Save size={16} />
-                } {editingRecord ? 'Update Assessment' : 'Save Assessment'}
-              </button>
-            </footer>
-          </div>
-        </>,
-        document.body
-      )}
     </div>
   );
 }

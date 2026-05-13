@@ -320,6 +320,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
         this.db
           .select({
             id: schema.legacySoapNotes.id,
+            regid: schema.legacySoapNotes.regid,
             visitId: schema.legacySoapNotes.visitId,
             subjective: schema.legacySoapNotes.subjective,
             objective: schema.legacySoapNotes.objective,
@@ -333,11 +334,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
           })
           .from(schema.legacySoapNotes)
           .leftJoin(schema.appointments, eq(schema.legacySoapNotes.visitId, schema.appointments.id))
-          .leftJoin(schema.medicalCases, eq(schema.legacySoapNotes.visitId, schema.medicalCases.id))
-          .where(or(
-            eq(schema.appointments.patientId, regid),
-            eq(schema.medicalCases.regid, regid)
-          ))
+          .where(eq(schema.legacySoapNotes.regid, regid))
           .orderBy(desc(schema.legacySoapNotes.id)),
 
         this.getHomeoDetails(regid),
@@ -549,6 +546,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
         await this.db
           .insert(schema.legacySoapNotes)
           .values({
+            regid: (data as any).regid,
             visitId: data.visitId!,
             subjective: data.subjective,
             objective: data.objective,
@@ -566,11 +564,14 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
     }
   }
 
-  async getSoapNotes(visitId: number): Promise<SoapNotes | null> {
+  async getSoapNotes(regid: number, visitId: number): Promise<SoapNotes | null> {
     const [row] = await this.db
       .select()
       .from(schema.legacySoapNotes)
-      .where(eq(schema.legacySoapNotes.visitId, visitId))
+      .where(and(
+        eq(schema.legacySoapNotes.regid, regid),
+        eq(schema.legacySoapNotes.visitId, visitId)
+      ))
       .limit(1);
 
     return (row as SoapNotes) || null;
