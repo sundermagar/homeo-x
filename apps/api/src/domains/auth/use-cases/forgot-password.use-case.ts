@@ -18,9 +18,11 @@ export class ForgotPasswordUseCase {
     const rawToken = crypto.randomBytes(32).toString('hex');
     const hashedToken = await bcrypt.hash(rawToken, 10);
     
-    // Set expiry to 15 minutes from now
+    // Set expiry to 5 minutes from now
     const expiry = new Date();
-    expiry.setMinutes(expiry.getMinutes() + 15);
+    expiry.setMinutes(expiry.getMinutes() + 5);
+
+    const userName = user.name || 'User';
 
     // Update user record with the token
     await this.userRepository.updateResetOtp(user.id, hashedToken, expiry);
@@ -46,7 +48,7 @@ export class ForgotPasswordUseCase {
             </div>
             <div style="padding: 40px; color: #1e293b; line-height: 1.6;">
               <h2 style="margin-top: 0; color: #0f172a; font-size: 20px; font-weight: 700;">Password Reset Request</h2>
-              <p>Hello,</p>
+              <p>Hello ${userName},</p>
               <p>We received a request to reset the password for your account on the <strong>Kreed.health</strong> hospital portal. Click the button below to choose a new, secure password:</p>
               
               <div style="text-align: center; margin: 35px 0;">
@@ -54,7 +56,7 @@ export class ForgotPasswordUseCase {
               </div>
               
               <p style="font-size: 14px; color: #64748b; background: #f1f5f9; padding: 12px; border-radius: 8px;">
-                <strong>Security Note:</strong> This link will expire in <strong>15 minutes</strong>. If you did not request this password reset, please ignore this email or contact your hospital administrator.
+                <strong>Security Note:</strong> This link will expire in <strong>5 minutes</strong>. If you did not request this password reset, please ignore this email or contact your hospital administrator.
               </p>
               
               <hr style="border: 0; border-top: 1px solid #f1f5f9; margin: 30px 0;">

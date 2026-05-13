@@ -43,7 +43,7 @@ function AuthFlow() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof LoginFields, string>>>({});
-  const [rememberMe, setRememberMe] = useState(false);
+
 
   // Reset Password specific states
   const [resetEmail, setResetEmail] = useState('');
@@ -277,14 +277,7 @@ function AuthFlow() {
             </div>
 
             <div className="login-form-options">
-              <label className="remember-me">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                />
-                <span>Keep me logged in</span>
-              </label>
+
               <button 
                 type="button" 
                 className="forgot-pass" 
@@ -473,11 +466,15 @@ function AuthFlow() {
 // ─── Main Page Component ─────────────────────────────────────────────────────
 export default function LoginPage() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (isAuthenticated) navigate('/', { replace: true });
-  }, [isAuthenticated, navigate]);
+    // Only redirect to dashboard if authenticated AND NOT trying to reset password
+    if (isAuthenticated && !searchParams.has('token')) {
+      navigate('/', { replace: true });
+    }
+  }, [isAuthenticated, navigate, searchParams]);
 
   useEffect(() => {
     const warmup = () => {
