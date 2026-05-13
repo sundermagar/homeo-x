@@ -1,0 +1,12 @@
+ALTER TABLE "medicines" ADD COLUMN IF NOT EXISTS "deleted_at" timestamp;
+ALTER TABLE "tokens" ADD COLUMN IF NOT EXISTS "clinic_id" integer;
+ALTER TABLE "remedy_tree_nodes" ADD COLUMN IF NOT EXISTS "hindi_label" text;
+ALTER TABLE "remedy_tree_nodes" ADD COLUMN IF NOT EXISTS "gujrati_label" text;
+ALTER TABLE "remedy_tree_nodes" ADD COLUMN IF NOT EXISTS "punjabi_label" text;
+ALTER TABLE "remedy_tree_nodes" ADD COLUMN IF NOT EXISTS "malyalum_label" text;
+ALTER TABLE "remedy_tree_nodes" ADD COLUMN IF NOT EXISTS "kannad_label" text;
+ALTER TABLE "remedy_tree_nodes" ADD COLUMN IF NOT EXISTS "bengali_label" text;
+ALTER TABLE "remedy_tree_nodes" ADD COLUMN IF NOT EXISTS "marathi_label" text;
+ALTER TABLE "remedy_tree_nodes" ADD COLUMN IF NOT EXISTS "french_label" text;
+ALTER TABLE "remedy_tree_nodes" ADD COLUMN IF NOT EXISTS "german_label" text;
+ALTER TABLE "remedy_tree_nodes" ADD COLUMN IF NOT EXISTS "spanish_label" text;

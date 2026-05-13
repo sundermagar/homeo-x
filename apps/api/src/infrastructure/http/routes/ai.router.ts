@@ -641,7 +641,7 @@ aiRouter.post('/parse-lab-report', async (req: Request, res: Response, next: Nex
 aiRouter.get('/rubrics/kent-search', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const uc = getConsultationUseCase();
-    const result = await uc.searchKentRubrics(String(req.query.q || ''));
+    const result = await uc.searchKentRubrics(String(req.query.q || ''), getTenant(req));
     sendSuccess(res, result);
   } catch (err) { next(err); }
 });

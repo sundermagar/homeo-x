@@ -61,7 +61,8 @@ async function main() {
         ['is_active', 'boolean DEFAULT true'],
         ['created_at', 'timestamp DEFAULT now()'],
         ['updated_at', 'timestamp DEFAULT now()'],
-        ['deleted_at', 'timestamp']
+        ['deleted_at', 'timestamp'],
+        ['embedding', 'vector(3072)']
       ];
 
       for (const [col, type] of columns) {
@@ -71,11 +72,71 @@ async function main() {
         `);
       }
 
-      console.log(`  ✅ ${schema_name}: remedy_tree_nodes table fixed`);
+      // Ensure embedding column is 3072 dimensions (Gemini standard)
+      await sql.unsafe(`
+        ALTER TABLE "${schema_name}"."remedy_tree_nodes" 
+        ALTER COLUMN "embedding" TYPE vector(3072);
+      `).catch(() => {});
+
+      // Also ensure medicines and tokens have their missing columns in each tenant schema
+      await sql.unsafe(`
+        ALTER TABLE "${schema_name}"."medicines" ADD COLUMN IF NOT EXISTS "deleted_at" timestamp;
+      `).catch(() => {});
+
+      await sql.unsafe(`
+        ALTER TABLE "${schema_name}"."tokens" ADD COLUMN IF NOT EXISTS "clinic_id" integer;
+      `).catch(() => {});
+
+      await sql.unsafe(`
+        ALTER TABLE "${schema_name}"."case_datas" 
+        ADD COLUMN IF NOT EXISTS "status" text,
+        ADD COLUMN IF NOT EXISTS "clinic_id" integer,
+        ADD COLUMN IF NOT EXISTS "assitant_doctor" text,
+        ADD COLUMN IF NOT EXISTS "consultation_fee" integer,
+        ADD COLUMN IF NOT EXISTS "blood_group" text;
+      `).catch(() => {});
+
+      // ── Comprehensive clinic_id injection for ALL tables that need it ──
+      const tablesNeedingClinicId = [
+        'bills', 'receipt', 'waitingstatus', 'case_potencies',
+        'vitals', 'couriermedicines', 'prescriptions', 'stocks',
+        'referral_sources', 'waitlist'
+      ];
+      for (const tbl of tablesNeedingClinicId) {
+        await sql.unsafe(`
+          ALTER TABLE "${schema_name}"."${tbl}" ADD COLUMN IF NOT EXISTS "clinic_id" integer;
+        `).catch(() => {});
+      }
+
+      // ── Billing columns ──
+      await sql.unsafe(`
+        ALTER TABLE "${schema_name}"."bills"
+          ADD COLUMN IF NOT EXISTS "bill_type" varchar(30) NOT NULL DEFAULT 'Consultation',
+          ADD COLUMN IF NOT EXISTS "custom_title" varchar(255),
+          ADD COLUMN IF NOT EXISTS "procedure_code_id" integer;
+      `).catch(() => {});
+
+      // ── Stocks columns ──
+      await sql.unsafe(`
+        ALTER TABLE "${schema_name}"."stocks"
+          ADD COLUMN IF NOT EXISTS "quantity" integer DEFAULT 0,
+          ADD COLUMN IF NOT EXISTS "unit_price" real DEFAULT 0,
+          ADD COLUMN IF NOT EXISTS "batch_number" varchar(100),
+          ADD COLUMN IF NOT EXISTS "category" varchar(100);
+      `).catch(() => {});
+
+      console.log(`  ✅ ${schema_name}: all tables fixed`);
     } catch (e: any) {
       console.warn(`  ⚠️  ${schema_name}: ${e.message}`);
     }
   }
+
+  // ── Fix public.organizations missing columns ──
+  await sql.unsafe(`
+    ALTER TABLE public.organizations
+      ADD COLUMN IF NOT EXISTS "registration_fee" integer NOT NULL DEFAULT 0;
+  `).catch(() => {});
+  console.log('  ✅ public.organizations: registration_fee fixed');
 
   await sql.end();
   console.log('\n🎉 Migration complete!');

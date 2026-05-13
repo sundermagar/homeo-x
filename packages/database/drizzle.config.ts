@@ -7,7 +7,7 @@ import path from 'node:path';
 config({ path: path.resolve(process.cwd(), '../../.env') });
 
 export default defineConfig({
-  schema: './src/schema/app-schema.ts',
+  schema: './dist/schema/app-schema.js',
   out: './src/migrations',
   dialect: 'postgresql',
   dbCredentials: {

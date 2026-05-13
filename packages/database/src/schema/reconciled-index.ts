@@ -1,5 +1,5 @@
 import { otps } from './legacy/users';
-import { leads, leadFollowups, referrals, caseReminders } from './crm';
+import { leads, leadFollowups, referrals, crmCaseReminders } from './crm';
 
 // Export everything from legacy
 export * from './legacy/index';

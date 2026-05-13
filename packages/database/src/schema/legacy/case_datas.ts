@@ -44,6 +44,7 @@ export const caseDatasLegacy = pgTable("case_datas", {
   referedSms: text("refered_sms"),
   sdate: date("sdate"),
   notes: text("notes"),
+  bloodGroup: text("blood_group"),
 }, (table) => {
   return {
     patientsKpiIdx: index('idx_patients_kpi')

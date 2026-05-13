@@ -373,6 +373,14 @@ router.get('/remedy-chart/tree', asyncHandler(async (req, res) => {
   sendSuccess(res, data, 'Remedy tree loaded');
 }));
 
+// GET /api/medical-cases/remedy-chart/tree/semantic?q=
+router.get('/remedy-chart/tree/semantic', asyncHandler(async (req, res) => {
+  const { q } = req.query;
+  const uc = getRemedyChart(req);
+  const data = await uc.searchSemanticRubrics(String(q || ''));
+  sendSuccess(res, data, 'Semantic search results loaded');
+}));
+
 // GET /api/medical-cases/remedy-chart/alternatives/:treeNodeId
 router.get('/remedy-chart/alternatives/:treeNodeId', asyncHandler(async (req, res) => {
   const uc = getRemedyChart(req);

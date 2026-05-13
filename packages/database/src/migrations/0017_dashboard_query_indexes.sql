@@ -52,24 +52,24 @@ BEGIN
     END IF;
 
     -- ─── EXPENSES (KPI: today's expenses) ─────────────────────────────────────
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'expenses') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'expenses' AND column_name = 'clinic_id') THEN
         IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_expenses_clinic_date_active') THEN
-            CREATE INDEX idx_expenses_clinic_date_active
+            EXECUTE 'CREATE INDEX idx_expenses_clinic_date_active
                 ON expenses (clinic_id, exp_date)
-                WHERE deleted_at IS NULL OR deleted_at::text = '';
+                WHERE deleted_at IS NULL OR deleted_at::text = ''''';
         END IF;
     END IF;
 
     -- ─── WAITLIST (KPI avg wait time + today queue) ───────────────────────────
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'waitlist') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'waitlist' AND column_name = 'clinic_id') THEN
         -- avg(called_at - checked_in_at) over (clinic, date) — partial on rows that
         -- contributed to the avg only.
         IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_waitlist_clinic_date_wait') THEN
-            CREATE INDEX idx_waitlist_clinic_date_wait
+            EXECUTE 'CREATE INDEX idx_waitlist_clinic_date_wait
                 ON waitlist (clinic_id, date)
                 WHERE called_at IS NOT NULL
                   AND checked_in_at IS NOT NULL
-                  AND deleted_at IS NULL;
+                  AND deleted_at IS NULL';
         END IF;
     END IF;
 

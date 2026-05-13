@@ -1,4 +1,20 @@
-import { pgTable, serial, varchar, text, integer, boolean, timestamp, real, date } from 'drizzle-orm/pg-core';
+import { pgTable, serial, varchar, text, integer, boolean, timestamp, real, date, customType } from 'drizzle-orm/pg-core';
+
+// Helper for vector type (pgvector)
+// We use 3072 dimensions by default for Gemini gemini-embedding-001
+export const vectorType = (name: string, dimensions: number = 3072) => {
+  return customType<{ data: number[]; driverData: string }>({
+    dataType() {
+      return `vector(${dimensions})`;
+    },
+    toDriver(value: number[]): string {
+      return JSON.stringify(value);
+    },
+    fromDriver(value: string): number[] {
+      return JSON.parse(value);
+    },
+  })(name);
+};
 
 export const departments = pgTable('departments', {
   id: serial('id').primaryKey(),
@@ -147,6 +163,7 @@ export const remedyTreeNodes = pgTable('remedy_tree_nodes', {
   image: varchar('image', { length: 255 }),
   description: text('description'),
   detailImage: varchar('detail_image', { length: 255 }),
+  embedding: vectorType('embedding', 3072),
   nodeType: varchar('node_type', { length: 50 }).default('RUBRIC'),
   sortOrder: integer('sort_order').default(0),
   isActive: boolean('is_active').default(true),

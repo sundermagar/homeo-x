@@ -3,10 +3,13 @@
 // The core homeopathic analysis engine.
 // Ported from: Ai-Counsultaion/apps/api/src/modules/ai/engines/repertorization.engine.ts
 
+import { sql } from 'drizzle-orm';
+import { createDbClient, TenantRegistry } from '@mmc/database';
 import { createLogger } from '../../../shared/logger.js';
 import type { AiProviderChain } from '../../../infrastructure/ai/ai-provider-chain.js';
 
 const logger = createLogger('repertorization-engine');
+
 
 // ─── Result Types ───
 
@@ -371,11 +374,80 @@ JSON Output:
   }
 
   /**
-   * Search Kent's Repertory rubrics via AI
+   * Search Kent's Repertory rubrics via highly-optimized PGVector semantic search
+   * with robust real-time generative AI fallback.
    */
-  async searchKentRubrics(query: string): Promise<SuggestedRubric[]> {
+  async searchKentRubrics(query: string, tenantId?: string): Promise<SuggestedRubric[]> {
     if (!query?.trim() || query.trim().length < 2) return [];
 
+    try {
+      // 1. Generate semantic embedding vector for the search query matching seeder dimensions (3072)
+      const GEMINI_API_KEY = process.env['GEMINI_API_KEY']?.split(',')[0];
+      if (GEMINI_API_KEY) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${GEMINI_API_KEY}`;
+        const embedResponse = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: "models/gemini-embedding-001",
+            content: { parts: [{ text: query }] }
+          })
+        });
+
+        if (embedResponse.ok) {
+          const embedData = await embedResponse.json() as any;
+          const vector = embedData.embedding?.values;
+
+          if (Array.isArray(vector) && vector.length === 3072) {
+            // Resolve multi-tenant DB schema context
+            const resolvedTenant = tenantId ? TenantRegistry.resolve(tenantId) : null;
+            const schemaName = resolvedTenant?.schemaName || 'tenant_demo';
+            
+            // Acquire schema-aware transient Drizzle DB client
+            const db = createDbClient(process.env.DATABASE_URL!, schemaName);
+
+            // Execute highly performant exact cosine-distance query via pgvector
+            const rows = await db.execute(sql`
+              SELECT id, label, description, node_type,
+                     1 - (embedding <=> ${JSON.stringify(vector)}::vector) as similarity
+              FROM remedy_tree_nodes
+              WHERE is_active = true AND embedding IS NOT NULL
+              ORDER BY embedding <=> ${JSON.stringify(vector)}::vector
+              LIMIT 15
+            `);
+
+            const results: SuggestedRubric[] = (rows as any[]).map((r: any) => {
+              const desc = r.description || r.label || '';
+              const lower = desc.toLowerCase();
+              let cat = 'PARTICULAR';
+              if (lower.includes('mind')) cat = 'MIND';
+              else if (lower.includes('general')) cat = 'GENERAL';
+
+              return {
+                rubricId: String(r.id),
+                description: desc,
+                category: cat,
+                chapter: r.node_type || 'Rubric',
+                importance: r.similarity > 0.75 ? 3 : 2,
+                source: 'db' as const,
+                confidence: Math.round(r.similarity * 100) / 100,
+                remedyCount: 40,
+              };
+            });
+
+            if (results.length > 0) {
+              logger.info({ tenantId, query, hits: results.length }, 'Semantic vector search successful');
+              return results;
+            }
+          }
+        }
+      }
+    } catch (err: any) {
+      logger.warn({ err: err.message, query }, 'PGVector query failed/unavailable, falling back to generative search');
+    }
+
+    // 2. Generative AI Fallback for unseeded schemas or empty hit spaces
+    logger.info({ query }, 'Executing generative AI fallback rubric search');
     const systemPrompt = `You are a digital Kent's Repertory and Boericke's Materia Medica reference engine.
 Given a search keyword or symptom phrase, return ALL matching rubrics from Kent's Repertory.
 

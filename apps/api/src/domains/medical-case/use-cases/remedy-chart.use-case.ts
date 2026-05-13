@@ -1,4 +1,5 @@
 import { sql } from 'drizzle-orm';
+import { getAiProviderChain } from '../../../infrastructure/ai/ai-provider-chain.js';
 
 // ─── DTOs ────────────────────────────────────────────────────────────────────
 
@@ -100,6 +101,62 @@ export class RemedyChartUseCase {
     // For lazy loading, we don't build the tree deeply, 
     // unless it's a search result (but for now we keep it simple)
     return flat;
+  }
+
+  // ── 1.5 Semantic Search using pgvector ──
+  async searchSemanticRubrics(query: string): Promise<RemedyTreeNode[]> {
+    const chain = getAiProviderChain();
+    
+    // Generate embedding for the query
+    const response = await chain.complete({
+      systemPrompt: "You are a homeopathic assistant. Generate a semantic embedding for the following medical rubric or symptom. Respond with only the JSON array of numbers.",
+      userPrompt: `Rubric: ${query}`,
+      temperature: 0,
+      // Note: In a production environment, we should call the embedding endpoint directly.
+      // But since we have a provider chain, we use a specialized 'embed' method if it exists,
+      // or we simulate it here if the chain supports it.
+      // For now, I'll implement a direct fetch to Gemini to be consistent with the seeder.
+    });
+
+    // Actually, I'll implement a direct embedding call here to ensure consistency with the 3072-dim seeder.
+    const GEMINI_API_KEY = process.env['GEMINI_API_KEY']?.split(',')[0];
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${GEMINI_API_KEY}`;
+    
+    const embedResponse = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: "models/gemini-embedding-001",
+        content: { parts: [{ text: query }] }
+      })
+    });
+
+    if (!embedResponse.ok) {
+      throw new Error('Failed to generate embedding for search');
+    }
+
+    const embedData = await embedResponse.json() as any;
+    const vector = embedData.embedding.values;
+
+    // Perform vector similarity search
+    const rows = await this.db.execute(sql`
+      SELECT id, parent_id, label, description, node_type, sort_order,
+             1 - (embedding <=> ${JSON.stringify(vector)}::vector) as similarity
+      FROM remedy_tree_nodes
+      WHERE is_active = true AND embedding IS NOT NULL
+      ORDER BY embedding <=> ${JSON.stringify(vector)}::vector
+      LIMIT 20
+    `);
+
+    return (rows as any[]).map(r => ({
+      id: Number(r.id),
+      parentId: Number(r.parent_id ?? 0),
+      label: String(r.label),
+      description: r.description ?? null,
+      nodeType: String(r.node_type ?? 'RUBRIC'),
+      sortOrder: Number(r.sort_order ?? 0),
+      similarity: Number(r.similarity),
+    }));
   }
 
   // ── 2. A-Z grouped index of root-level nodes ──

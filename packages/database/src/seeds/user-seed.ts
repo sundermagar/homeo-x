@@ -9,28 +9,28 @@ export async function seedUsers(db: DbClient) {
   const demoUsers = [
     {
       email: 'admin@kreed.health',
-      password: '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07xdM0ttR9i0NcMsuG', // password123
+      password: '$2a$10$yy.o0SuhsBq4EAuzZiBM3.60tDy5FQgEZEhNbIaAxeIpBBjsJApIK', // password123
       name: 'System Admin',
       type: Role.Admin,
       isActive: true,
     },
     {
       email: 'clinicadmin@kreed.health',
-      password: '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07xdM0ttR9i0NcMsuG', // password123
+      password: '$2a$10$yy.o0SuhsBq4EAuzZiBM3.60tDy5FQgEZEhNbIaAxeIpBBjsJApIK', // password123
       name: 'Clinic Manager',
       type: 'Clinicadmin' as Role,
       isActive: true,
     },
     {
       email: 'doctor@kreed.health',
-      password: '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07xdM0ttR9i0NcMsuG', // password123
+      password: '$2a$10$yy.o0SuhsBq4EAuzZiBM3.60tDy5FQgEZEhNbIaAxeIpBBjsJApIK', // password123
       name: 'Dr. Demo',
       type: Role.Doctor,
       isActive: true,
     },
     {
       email: 'reception@kreed.health',
-      password: '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07xdM0ttR9i0NcMsuG', // password123
+      password: '$2a$10$yy.o0SuhsBq4EAuzZiBM3.60tDy5FQgEZEhNbIaAxeIpBBjsJApIK', // password123
       name: 'Front Desk',
       type: 'Receptionist' as Role,
       isActive: true,
@@ -44,7 +44,11 @@ export async function seedUsers(db: DbClient) {
       await db.insert(users).values(userData);
       console.log(`[Seed] Created user: ${userData.email}`);
     } else {
-      console.log(`[Seed] User already exists: ${userData.email}`);
+      await db.update(users).set({
+        password: userData.password,
+        isActive: true,
+      }).where(eq(users.email, userData.email));
+      console.log(`[Seed] Updated pre-existing user password: ${userData.email}`);
     }
   }
 

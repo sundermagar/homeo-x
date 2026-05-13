@@ -374,7 +374,8 @@ const TABLES: Array<{ name: string; ddl: string }> = [
   "coupon" text,
   "refered_sms" text,
   "sdate" date,
-  "notes" text
+  "notes" text,
+  "blood_group" text
 )`,
   },
   {

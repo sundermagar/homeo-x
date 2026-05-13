@@ -150,7 +150,7 @@ export * from "./trial.js";
 export * from "./upload_picture.js";
 export * from "./uploads.js";
 export * from "./user_profiles.js";
-export * from "./users.js";
+export { usersLegacy } from "./users.js";
 export * from "./users_helloter.js";
 export * from "./vaccinedatas.js";
 export * from "./vitals.js";

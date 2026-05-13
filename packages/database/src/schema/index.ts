@@ -17,7 +17,7 @@ export * from './crm.js';
 export * from './logistics.js';
 export * from './clinical-codes.js';
 export * from './records.js';
-export * from './knowledge.js';
+export { dictionary, libraryResources, staticPages as knowledgeStaticPages, faqs as knowledgeFaqs } from './knowledge.js';
 export * from './legacy-public-manifest.js';
 export * from './tenant-demo-legacy-schema.js';
 export * from './legacy/index.js';

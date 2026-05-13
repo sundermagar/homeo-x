@@ -250,8 +250,8 @@ export class ConsultationUseCase {
     return { translatedText: await this.translator.translateToEnglish(tenantId, userId, input.text) };
   }
 
-  async searchKentRubrics(query: string) {
-    return this.repertorizationEngine.searchKentRubrics(query);
+  async searchKentRubrics(query: string, tenantId?: string) {
+    return this.repertorizationEngine.searchKentRubrics(query, tenantId);
   }
 
   async generateQuestions(tenantId: string, userId: string, input: { transcript: string }) {
