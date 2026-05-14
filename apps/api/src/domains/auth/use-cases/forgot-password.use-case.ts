@@ -36,7 +36,7 @@ export class ForgotPasswordUseCase {
     const resetLink = `${frontendUrl}/login?token=${rawToken}&email=${encodeURIComponent(email)}`;
 
     // Send the email using the shared service
-    await emailService.sendEmail({
+    const sent = await emailService.sendEmail({
       to: email,
       subject: 'Password Reset Request - Kreed.health',
       text: `You requested a password reset. Click the following link to reset your password: ${resetLink}`,
@@ -70,6 +70,16 @@ export class ForgotPasswordUseCase {
         </div>
       `
     });
+
+    if (!sent) {
+      // In development, we return an error so the user knows it failed.
+      // In production, we'd still return success to prevent account enumeration,
+      // but for debugging purposes here, we'll be explicit.
+      return {
+        success: false,
+        message: 'Failed to send reset email. Please check server logs for SMTP errors.'
+      };
+    }
 
     return { 
       success: true, 

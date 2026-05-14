@@ -60,6 +60,7 @@ function getDefaultStaffForm(): CreateStaffInput {
     col12Document: '',
     bhmsDocument: '',
     mdDocument: '',
+    sendWelcomeEmail: false,
   };
 }
 
@@ -104,6 +105,7 @@ function staffMemberToForm(staff: StaffMember): CreateStaffInput {
     col12Document: staff.col12Document || '',
     bhmsDocument: staff.bhmsDocument || '',
     mdDocument: staff.mdDocument || '',
+    sendWelcomeEmail: false,
   };
 }
 
@@ -438,6 +440,23 @@ function StaffModal({
                 />
                 {errors['password'] && <span className="plat-form-error">{errors['password']}</span>}
               </div>
+
+              {mode === 'create' && (
+                <div className="plat-form-group" style={{ gridColumn: 'span 2', marginTop: '8px' }}>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={!!form.sendWelcomeEmail}
+                      onChange={(e) => updateForm('sendWelcomeEmail', e.target.checked)}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      style={{ width: '16px', height: '16px' }}
+                    />
+                    <span className="text-sm font-medium text-gray-700">
+                      Send welcome email with credentials
+                    </span>
+                  </label>
+                </div>
+              )}
 
               <div className="plat-form-group">
                 <label className="plat-form-label">City</label>

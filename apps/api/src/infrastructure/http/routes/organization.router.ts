@@ -13,6 +13,7 @@ import {
   DeleteOrganizationUseCase,
 } from '../../../domains/platform/index.js';
 import { StaffRepositoryPg } from '../../repositories/staff.repository.pg.js';
+import { emailService } from '../../communication/nodemailer.service.js';
 
 const logger = createLogger('organization-router');
 
@@ -148,6 +149,21 @@ export function createOrganizationRouter(): Router {
           }
         } catch (publicErr: any) {
           logger.error({ err: publicErr.message, adminEmail: req.body.adminEmail }, '❌ Failed to mirror admin to public schema');
+        }
+      }
+      // ─── Step 3: Send Welcome Email ───
+      if (req.body.sendWelcomeEmail && req.body.adminEmail && req.body.adminPassword) {
+        try {
+          await emailService.sendWelcomeCredentials(
+            req.body.adminEmail,
+            `${result.name} Admin`,
+            'Clinicadmin',
+            req.body.adminPassword,
+            true // isClinic
+          );
+          logger.info({ adminEmail: req.body.adminEmail }, 'Welcome email sent successfully');
+        } catch (emailErr: any) {
+          logger.error({ err: emailErr.message, adminEmail: req.body.adminEmail }, 'Failed to send welcome email');
         }
       }
     }

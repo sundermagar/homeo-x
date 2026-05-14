@@ -17,6 +17,7 @@ import { Role } from '@mmc/types';
 import { eq } from 'drizzle-orm';
 import { accounts, users } from '@mmc/database/schema';
 import type { DbClient } from '@mmc/database';
+import { emailService } from '../../communication/nodemailer.service.js';
 
 const logger = createLogger('staff-router');
 
@@ -162,6 +163,13 @@ staffRouter.post('/', async (req: Request, res: Response) => {
       res.status(400).json({ success: false, message: 'Validation failed', errors: fieldErrors });
       return;
     }
+    
+    // Auto-generate a secure password if welcome email is requested but password is left blank
+    if (parsed.data.sendWelcomeEmail && !parsed.data.password) {
+      // 8-character random string + 'X1!' to ensure it meets any basic complexity rules
+      parsed.data.password = Math.random().toString(36).slice(-8) + 'X1!';
+    }
+    
     logger.info(`Creating new staff member: ${parsed.data.name} (Category: ${parsed.data.category})`);
 
     // Ensure users table has all required columns before mirroring
@@ -172,6 +180,24 @@ staffRouter.post('/', async (req: Request, res: Response) => {
     const result = await uc.execute(parsed.data);
     if (result.success) {
       logger.info(`Successfully created staff member: ${result.data.id}`);
+
+      // Send Welcome Email if requested and email/password are present
+      if (parsed.data.sendWelcomeEmail && parsed.data.email && parsed.data.password) {
+        try {
+          const staffName = parsed.data.name || [parsed.data.firstname, parsed.data.middlename, parsed.data.surname].filter(Boolean).join(' ') || 'User';
+          await emailService.sendWelcomeCredentials(
+            parsed.data.email,
+            staffName,
+            parsed.data.category,
+            parsed.data.password,
+            false // not clinic
+          );
+          logger.info({ email: parsed.data.email }, 'Staff welcome email sent successfully');
+        } catch (emailErr: any) {
+          logger.error({ err: emailErr.message, email: parsed.data.email }, 'Failed to send staff welcome email');
+        }
+      }
+
       res.status(201).json({ success: true, data: result.data });
     } else {
       logger.error(`Failed to create staff member: ${result.error}`);

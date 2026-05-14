@@ -58,6 +58,7 @@ export default function StaffFormPage() {
     dateLeft: '',
     salaryCur: 0,
     password: '',
+    sendWelcomeEmail: false,
     // Doctor extras
     title: 'Dr',
     firstname: '',
@@ -283,6 +284,24 @@ export default function StaffFormPage() {
                 <input type="password" className="plat-form-input" name="password" value={formData.password} onChange={handleChange} placeholder={isEditing ? '••••••••' : 'Setup password'} />
               </div>
             </div>
+            
+            {!isEditing && (
+              <div className="plat-form-group" style={{ marginTop: '16px' }}>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="sendWelcomeEmail"
+                    checked={formData.sendWelcomeEmail || false}
+                    onChange={(e) => setFormData((prev: any) => ({ ...prev, sendWelcomeEmail: e.target.checked }))}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    style={{ width: '16px', height: '16px' }}
+                  />
+                  <span className="text-sm font-medium text-gray-700">
+                    Send welcome email with credentials
+                  </span>
+                </label>
+              </div>
+            )}
           </div>
 
           {/* Professional Details */}

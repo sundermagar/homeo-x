@@ -25,13 +25,14 @@ export function AccountModal({ mode, account, organizations, onClose }: AccountM
     about:       account?.about       ?? '',
     designation: account?.designation ?? '',
     clinicId:    account?.clinicId as number | undefined ?? undefined,
+    sendWelcomeEmail: false,
   });
 
   const createAccount = useCreateAccount();
   const updateAccount = useUpdateAccount();
   const isPending = createAccount.isPending || updateAccount.isPending;
 
-  const set = (key: string, val: string | number | undefined) =>
+  const set = (key: string, val: string | number | boolean | undefined) =>
     setForm(f => ({ ...f, [key]: val }));
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -151,6 +152,23 @@ export function AccountModal({ mode, account, organizations, onClose }: AccountM
                     onChange={(e) => set('password', e.target.value)}
                     placeholder="Min. 6 characters"
                   />
+                </div>
+              )}
+
+              {mode === 'create' && (
+                <div className="plat-form-group" style={{ gridColumn: 'span 2', marginTop: '8px' }}>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={form.sendWelcomeEmail}
+                      onChange={(e) => set('sendWelcomeEmail', e.target.checked)}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      style={{ width: '16px', height: '16px' }}
+                    />
+                    <span className="text-sm font-medium text-gray-700">
+                      Send welcome email with credentials
+                    </span>
+                  </label>
                 </div>
               )}
 
