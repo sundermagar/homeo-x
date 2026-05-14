@@ -290,19 +290,29 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     {
       type: 'group',
       group: {
-        id: 'platform',
-        label: 'Staff & Platform',
-        icon: Building2,
+        id: 'staff-management',
+        label: 'Staff Management',
+        icon: Users,
         roles: ['SuperAdmin', 'Admin', 'Clinicadmin'],
         children: [
           { path: '/platform/doctors', label: 'Doctors', icon: Stethoscope },
           { path: '/platform/employees', label: 'Employees', icon: User },
           { path: '/platform/receptionists', label: 'Receptionists', icon: Phone },
           { path: '/platform/clinicadmins', label: 'Clinic Admins', icon: Shield },
-          { path: '/platform/account-managers', label: 'Account Mgrs', icon: Briefcase },
-          { path: '/platform/clinics', label: 'Clinics', icon: Building2, roles: ['SuperAdmin', 'Admin'] },
-          { path: '/platform/accounts', label: 'Accounts', icon: UserCog },
-          { path: '/settings/roles', label: 'Roles & Access', icon: UserCheck, roles: ['SuperAdmin', 'Admin'] },
+          { path: '/settings/roles', label: 'Roles & Access', icon: UserCheck },
+        ],
+      },
+    },
+    {
+      type: 'group',
+      group: {
+        id: 'platform-admin',
+        label: 'Platform Admin',
+        icon: Globe,
+        roles: ['SuperAdmin', 'Admin'],
+        children: [
+          { path: '/platform/clinics', label: 'Clinics', icon: Building2 },
+          { path: '/platform/accounts', label: 'Clinic Accounts', icon: UserCog },
         ],
       },
     },
