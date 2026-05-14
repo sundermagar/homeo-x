@@ -111,14 +111,28 @@
       "idx": 15,
       "version": "7",
       "when": 1746800000000,
-      "tag": "0016_query_performance_indexes",
+      "tag": "0015_add_vitals_regid_fix_images",
       "breakpoints": true
     },
     {
       "idx": 16,
       "version": "7",
       "when": 1746810000000,
-      "tag": "0017_dashboard_query_indexes",
+      "tag": "0016_add_case_reminders",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1746820000000,
+      "tag": "0017_query_performance_indexes",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1746830000000,
+      "tag": "0018_dashboard_query_indexes",
       "breakpoints": true
     }
   ]

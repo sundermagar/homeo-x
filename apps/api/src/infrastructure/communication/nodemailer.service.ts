@@ -75,7 +75,7 @@ export class NodemailerServiceAdapter implements EmailService {
   }
 
   async sendWelcomeCredentials(to: string, name: string, role: string, pass: string, isClinic: boolean = false): Promise<boolean> {
-    const loginUrl = process.env.APP_URL || 'https://managemyclinic.in';
+    const loginUrl = process.env.APP_URL || 'https://generous-flow-production.up.railway.app';
     const title = isClinic ? 'Clinic Organization Setup Complete' : 'Welcome to Kreed.health';
     const roleText = isClinic ? 'Clinic Administrator' : role;
     
