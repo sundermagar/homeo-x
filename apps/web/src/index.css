@@ -1192,7 +1192,7 @@ a {
 
 /* Centralized Grid Alignment */
 .page-content-area {
-  padding: var(--pp-space-6);
+  /* padding: var(--pp-space-6); */
   /* 24px on all sides */
 }
 

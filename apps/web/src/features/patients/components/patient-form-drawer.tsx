@@ -7,6 +7,7 @@ import { useAvailableSlots, useCreateAppointment } from '../../appointments/hook
 import { useDoctors } from '../../appointments/hooks/use-doctors';
 import { VisitType } from '@mmc/types';
 import { NumericInput } from '@/shared/components/NumericInput';
+import { Checkbox } from '../../../components/ui/checkbox';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { X, Calendar as CalendarIcon, Clock, CheckCircle } from 'lucide-react';
 import '../styles/patients.css';
@@ -61,9 +62,13 @@ export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient,
   const { data: patient } = usePatient(isEdit && regid ? Number(regid) : 0);
   const { data: refResults = [] } = usePatientLookup(refSearch);
   const { data: referrals = [] } = useReferrals();
+  const { data: existingConsents = [] } = useConsentStatus(regid || 0);
+  // const createMutation = useCreatePatient();
+  const updateMutation = useUpdatePatient();
+  const grantConsentMutation = useGrantConsent();
   const { data: doctors = [] } = useDoctors();
   const createMutation = useCreatePatient();
-  const updateMutation = useUpdatePatient();
+  // const updateMutation = useUpdatePatient();
   const createApptMutation = useCreateAppointment();
 
   const { data: slots = [] } = useAvailableSlots(
@@ -243,6 +248,28 @@ export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient,
         onSuccess?.();
         onClose();
       } else {
+        const res = await createMutation.mutateAsync(form);
+        const newRegid = res.regid;
+        
+        // Record consents
+        const consentTypes = [
+          { type: 'data_processing', purpose: 'To store and manage clinical health records' },
+          { type: 'ai_analysis', purpose: 'To analyze symptoms and provide AI-assisted diagnosis' },
+          { type: 'sms_communication', purpose: 'To send appointment reminders and clinical updates via SMS' },
+          { type: 'whatsapp_communication', purpose: 'To send prescriptions and reminders via WhatsApp' },
+        ];
+
+        for (const ct of consentTypes) {
+          await grantConsentMutation.mutateAsync({
+            patientRegid: newRegid,
+            consentType: ct.type,
+            purpose: ct.purpose,
+            // @ts-ignore
+            granted: consents[ct.type],
+            consentVersion: 1,
+          });
+        }
+
         const patientResult = await createMutation.mutateAsync({
            ...form,
            unregisteredId: unregisteredPatient?.id
@@ -548,13 +575,11 @@ export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient,
             
             <div className="consent-container" style={{ background: 'var(--pp-sidebar-bg)', padding: '16px', borderRadius: '8px', border: '1px solid var(--pp-border)' }}>
               <div className="consent-item" style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: '12px' }}>
-                <input 
-                  type="checkbox" 
+                <Checkbox 
                   id="data_processing" 
                   name="data_processing" 
                   checked={consents.data_processing} 
-                  onChange={handleConsentChange} 
-                  style={{ marginTop: '4px' }}
+                  onCheckedChange={(checked) => setConsents(prev => ({ ...prev, data_processing: checked }))} 
                 />
                 <label htmlFor="data_processing" style={{ fontSize: '13px', cursor: 'pointer' }}>
                   <strong>Data Processing Consent:</strong> I agree to allow Kreed.health to store and process my medical records and personal data for treatment and billing purposes. <span style={{ color: 'var(--pp-danger-fg)' }}>*</span>
@@ -562,13 +587,11 @@ export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient,
               </div>
 
               <div className="consent-item" style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: '12px' }}>
-                <input 
-                  type="checkbox" 
+                <Checkbox 
                   id="ai_analysis" 
                   name="ai_analysis" 
                   checked={consents.ai_analysis} 
-                  onChange={handleConsentChange} 
-                  style={{ marginTop: '4px' }}
+                  onCheckedChange={(checked) => setConsents(prev => ({ ...prev, ai_analysis: checked }))} 
                 />
                 <label htmlFor="ai_analysis" style={{ fontSize: '13px', cursor: 'pointer' }}>
                   <strong>AI Consultation Consent:</strong> I agree to allow my symptoms to be processed by AI for diagnostic assistance (data is anonymized).
@@ -576,13 +599,11 @@ export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient,
               </div>
 
               <div className="consent-item" style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: '12px' }}>
-                <input 
-                  type="checkbox" 
+                <Checkbox 
                   id="sms_communication" 
                   name="sms_communication" 
                   checked={consents.sms_communication} 
-                  onChange={handleConsentChange} 
-                  style={{ marginTop: '4px' }}
+                  onCheckedChange={(checked) => setConsents(prev => ({ ...prev, sms_communication: checked }))} 
                 />
                 <label htmlFor="sms_communication" style={{ fontSize: '13px', cursor: 'pointer' }}>
                   <strong>SMS Updates:</strong> I agree to receive appointment reminders and clinical updates via SMS.
@@ -590,13 +611,11 @@ export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient,
               </div>
 
               <div className="consent-item" style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                <input 
-                  type="checkbox" 
+                <Checkbox 
                   id="whatsapp_communication" 
                   name="whatsapp_communication" 
                   checked={consents.whatsapp_communication} 
-                  onChange={handleConsentChange} 
-                  style={{ marginTop: '4px' }}
+                  onCheckedChange={(checked) => setConsents(prev => ({ ...prev, whatsapp_communication: checked }))} 
                 />
                 <label htmlFor="whatsapp_communication" style={{ fontSize: '13px', cursor: 'pointer' }}>
                   <strong>WhatsApp Updates:</strong> I agree to receive prescriptions and clinical records via WhatsApp.

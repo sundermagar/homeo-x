@@ -6,7 +6,7 @@ import { GetConsentStatusUseCase } from '../../../domains/consent/use-cases/get-
 import { authMiddleware } from '../middleware/auth.js';
 import { sendSuccess } from '../../../shared/response-formatter.js';
 
-export const consentRouter = Router();
+export const consentRouter: Router = Router();
 
 consentRouter.use(authMiddleware);
 

@@ -23,13 +23,17 @@ export interface Permissions {
 interface AuthState {
   user: (AuthTokenPayload & { permissions?: Permissions }) | null;
   isAuthenticated: boolean;
+  isLoading: boolean;
   setAuth: (user: AuthTokenPayload & { permissions?: Permissions }) => void;
   logout: () => void;
+  finishLoading: () => void;
 }
 
 export const useAuthStore = create<AuthState>()((set) => ({
   user: null,
   isAuthenticated: false,
-  setAuth: (user) => set({ user, isAuthenticated: true }),
-  logout: () => set({ user: null, isAuthenticated: false }),
+  isLoading: true,
+  setAuth: (user) => set({ user, isAuthenticated: true, isLoading: false }),
+  logout: () => set({ user: null, isAuthenticated: false, isLoading: false }),
+  finishLoading: () => set({ isLoading: false }),
 }));

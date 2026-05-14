@@ -22,15 +22,19 @@ export class ConsentRepositoryPg implements ConsentRepository {
         .update(consentRecords)
         .set({
           granted: data.granted,
-          grantedAt: data.granted ? new Date() : existing[0].grantedAt,
+          grantedAt: data.granted ? new Date() : existing[0]!.grantedAt,
           revokedAt: data.granted ? null : new Date(),
           ipAddress: data.ipAddress,
           userAgent: data.userAgent,
           consentVersion: data.consentVersion,
           updatedAt: new Date(),
         })
-        .where(eq(consentRecords.id, existing[0].id))
+        .where(eq(consentRecords.id, existing[0]!.id))
         .returning();
+
+      if (!updated) {
+        throw new Error('Failed to update consent record');
+      }
       return updated;
     }
 
@@ -48,6 +52,10 @@ export class ConsentRepositoryPg implements ConsentRepository {
         consentVersion: data.consentVersion,
       })
       .returning();
+
+    if (!inserted) {
+      throw new Error('Failed to insert consent record');
+    }
     return inserted;
   }
 
@@ -87,6 +95,6 @@ export class ConsentRepositoryPg implements ConsentRepository {
       )
       .limit(1);
     
-    return records.length > 0 ? records[0].granted : false;
+    return records.length > 0 ? !!records[0]!.granted : false;
   }
 }

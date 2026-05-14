@@ -12,3 +12,4 @@ export * from './consultation.js';
 export * from './audit.js';
 export * from './platform.js';
 export * from './settings.js';
+export * from './consent.js';

@@ -563,7 +563,17 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               {darkMode ? <Sun size={16} strokeWidth={2} /> : <Moon size={16} strokeWidth={2} />}
             </button>
 
-            <button className="logout-btn" onClick={logout}>
+            <button 
+              className="logout-btn" 
+              onClick={async () => {
+                try {
+                  await apiClient.post('/auth/logout');
+                } catch (err) {
+                  // Ignore error during logout
+                }
+                logout();
+              }}
+            >
               <LogOut size={16} strokeWidth={2} />
             </button>
           </div>

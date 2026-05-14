@@ -1,5 +1,5 @@
 import { useState, useEffect, memo } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   Mail, Lock, Eye, EyeOff, Loader2, AlertCircle,

@@ -57,6 +57,8 @@ import type { PrescriptionPrintData } from '@/lib/print-templates';
 import { getClinicLetterhead, getDoctorLetterhead } from '@/lib/clinic-letterhead';
 import { useOrganizations } from '../../platform/hooks/use-organizations';
 import { usePdfSettings } from '../../settings/hooks/use-settings';
+import { useConsentStatus, useGrantConsent, useRevokeConsent } from '../../patients/hooks/use-consent';
+import { toast } from '../../../hooks/use-toast';
 import '../styles/medical-case.css';
 import { useTableGrouping } from '../hooks/use-table-grouping';
 import { DateGroupCell } from '../components/date-group-cell';
@@ -71,6 +73,13 @@ const TABS = [
   { id: 'vaccine', label: 'Vaccines', icon: Syringe },
   { id: 'analytics', label: 'Graph (H/W)', icon: BarChart3 },
 ];
+
+const CONSENT_PURPOSES: Record<string, string> = {
+  data_processing: 'To store and manage clinical health records',
+  ai_analysis: 'To analyze symptoms and provide AI-assisted diagnosis',
+  sms_communication: 'To send appointment reminders and clinical updates via SMS',
+  whatsapp_communication: 'To send prescriptions and reminders via WhatsApp',
+};
 
 export function AutoSaveNoteArea({ value, onChange, onSave, placeholder = '', minHeight = '120px' }: { value: string, onChange: (v: string) => void, onSave: (val: string) => Promise<void>, placeholder?: string, minHeight?: string }) {
   const { status, forceSave } = useAutoSave({
@@ -148,74 +157,41 @@ export default function MedicalCaseDetailPage() {
 
   const [followUpNote, setFollowUpNote] = useState('');
   const [pendingCharge, setPendingCharge] = useState(0);
-  const [mobileDrawer, setMobileDrawer] = useState<'followup' | 'billing' | 'contact' | 'package' | null>(null);
-  const [shortcutOpen, setShortcutOpen] = useState(false);
-  const [fabY, setFabY] = useState(180);
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStartY, setDragStartY] = useState(0);
-  const hasMoved = useRef(false);
   const [editingVitals, setEditingVitals] = useState<any>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-
   const clinicName = useAuthStore(s => s.user?.clinicName || 'HomeoX Clinic');
 
-  // Refs for drag state — avoids stale closures in event listeners
-  const isDraggingRef = useRef(false);
-  const dragStartYRef = useRef(0);
-  const fabYRef = useRef(fabY);
-  fabYRef.current = fabY;
-
-  const onDragStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-    isDraggingRef.current = true;
-    hasMoved.current = false;
-    setIsDragging(true);
-    const clientY = 'touches' in e
-      ? (e.touches[0]?.clientY ?? 0)
-      : (e as React.MouseEvent).clientY;
-    dragStartYRef.current = clientY - fabYRef.current;
-    setDragStartY(dragStartYRef.current);
-  }, []);
-
-  const onDrag = useCallback((e: MouseEvent | TouchEvent) => {
-    if (!isDraggingRef.current) return;
-    hasMoved.current = true;
-    const clientY = 'touches' in e
-      ? ((e as TouchEvent).touches[0]?.clientY ?? 0)
-      : (e as MouseEvent).clientY;
-    setFabY(clientY - dragStartYRef.current);
-  }, []);
-
-  const onDragEnd = useCallback(() => {
-    isDraggingRef.current = false;
-    setIsDragging(false);
-  }, []);
-
-  // Register drag listeners once on mount — stable refs prevent stale captures
-  useEffect(() => {
-    const handleMove = (e: MouseEvent | TouchEvent) => onDrag(e);
-    const handleEnd = () => onDragEnd();
-    window.addEventListener('mousemove', handleMove);
-    window.addEventListener('mouseup', handleEnd);
-    window.addEventListener('touchmove', handleMove, { passive: false });
-    window.addEventListener('touchend', handleEnd);
-    return () => {
-      window.removeEventListener('mousemove', handleMove);
-      window.removeEventListener('mouseup', handleEnd);
-      window.removeEventListener('touchmove', handleMove);
-      window.removeEventListener('touchend', handleEnd);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // Removed duplicate fullData declaration
   const { data: prescriptionsHistory } = usePatientPrescriptions(Number(regid));
   const { finalizeConsultation, saveNote, updateDiagnosis, saveSoap, deleteRecord } = useManageClinicalRecords();
-  const { data: summary } = usePatientBills(Number(regid));
   const { data: activePackage } = useActivePackage(Number(regid));
-  // Moved useDayCharges to top of component
+  const { data: summary } = usePatientBills(Number(regid));
   const { data: orgs = [] } = useOrganizations();
   const { data: pdfSettings = [] } = usePdfSettings();
   const user = useAuthStore(s => s.user);
+
+  // DPDP Consent Management
+  const { data: consents = [], isLoading: consentsLoading } = useConsentStatus(Number(regid));
+  const grantMutation = useGrantConsent();
+  const revokeMutation = useRevokeConsent();
+
+  const handleToggleConsent = async (type: string, currentlyGranted: boolean) => {
+    if (currentlyGranted) {
+      if (!confirm(`Are you sure you want to withdraw consent for ${type.replace('_', ' ')}? This may limit service availability.`)) return;
+      await revokeMutation.mutateAsync({ regid: Number(regid), type });
+      toast({ title: 'Consent withdrawn', variant: 'success' });
+    } else {
+      await grantMutation.mutateAsync({
+        patientRegid: Number(regid),
+        consentType: type,
+        purpose: CONSENT_PURPOSES[type] || 'Standard data processing',
+        granted: true,
+        consentVersion: 1,
+      });
+      toast({ title: 'Consent granted', variant: 'success' });
+    }
+  };
 
   // Initialize selectedDate to latest prescription date on load
   useEffect(() => {
@@ -648,15 +624,25 @@ export default function MedicalCaseDetailPage() {
         {/* ─── Main Content & Sidebar Grid ─── */}
         <div className="mc-body-grid">
           <div className="mc-body-main">
-            {tabContent || (
-              <div className="mc-tab-empty">
-                <History size={48} style={{ opacity: 0.2, marginBottom: '16px' }} />
-                <p>Select a tab to view clinical data</p>
-              </div>
-            )}
+            {/* Mobile Quick Links (Visible only on mobile) */}
+            <div className="mc-mobile-quick-links">
+              <button onClick={() => document.querySelector('.mc-followup-wrapper')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}><History size={14}/> Follow Up</button>
+              <button onClick={() => document.querySelector('.mc-diagnosis-wrapper')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}><Sparkles size={14}/> Diagnosis</button>
+              <button onClick={() => document.querySelector('.mc-logistics-wrapper')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}><Package size={14}/> Logistics</button>
+              <button onClick={() => document.querySelector('.mc-billing-wrapper')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}><CreditCard size={14}/> Billing</button>
+            </div>
+
+            <div className="mc-tab-content-wrapper">
+              {tabContent || (
+                <div className="mc-tab-empty">
+                  <History size={48} style={{ opacity: 0.2, marginBottom: '16px' }} />
+                  <p>Select a tab to view clinical data</p>
+                </div>
+              )}
+            </div>
 
             {/* ─── Persistent Patient Details Section (Below Tabs) ─── */}
-            <div className="mc-profile-grid" style={{ marginTop: '24px', padding: '0 8px' }}>
+            <div className="mc-profile-details-wrapper mc-profile-grid" style={{ marginTop: '24px', padding: '0 8px' }}>
               
               {/* Identity & Personal Info */}
               <div className="mc-profile-card">
@@ -787,6 +773,56 @@ export default function MedicalCaseDetailPage() {
                 </div>
               </div>
 
+              {/* DPDP Compliance Card */}
+              <div className="mc-profile-card">
+                <div className="mc-profile-card-header">
+                  <ShieldCheck size={18} style={{ color: 'var(--pp-success-fg)' }} />
+                  <span className="mc-profile-card-title">DPDP Compliance</span>
+                </div>
+                <div className="mc-profile-card-body">
+                  <div className="consent-status-list" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {consentsLoading ? (
+                       <div className="pp-skeleton" style={{ height: '80px', width: '100%' }} />
+                    ) : (
+                      Object.keys(CONSENT_PURPOSES).map(type => {
+                        const c = consents.find(item => item.consentType === type);
+                        const isGranted = c?.granted || false;
+                        return (
+                          <div key={type} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--pp-warm-2)' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                              <span style={{ fontSize: '9px', fontWeight: 700, color: 'var(--pp-text-3)', textTransform: 'uppercase' }}>{type.replace('_', ' ')}</span>
+                              <span style={{ fontSize: '11px', fontWeight: 600, color: isGranted ? 'var(--pp-success-fg)' : 'var(--pp-danger-fg)' }}>
+                                {isGranted ? '✅ Granted' : '❌ Not Granted'}
+                              </span>
+                            </div>
+                            <button 
+                              onClick={() => handleToggleConsent(type, isGranted)}
+                              disabled={grantMutation.isPending || revokeMutation.isPending}
+                              style={{ 
+                                fontSize: '9px', 
+                                padding: '2px 6px', 
+                                borderRadius: '4px',
+                                border: '1px solid',
+                                cursor: 'pointer',
+                                fontWeight: 700,
+                                background: isGranted ? 'var(--pp-danger-tint)' : 'var(--pp-success-tint)',
+                                color: isGranted ? 'var(--pp-danger-fg)' : 'var(--pp-success-fg)',
+                                borderColor: isGranted ? 'var(--pp-danger-fg)' : 'var(--pp-success-fg)',
+                              }}
+                            >
+                              {isGranted ? 'Revoke' : 'Grant'}
+                            </button>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                  <p style={{ fontSize: '9px', color: 'var(--pp-faint-fg)', marginTop: '8px', fontStyle: 'italic' }}>
+                    Audited for DPDP 2023 compliance.
+                  </p>
+                </div>
+              </div>
+
             </div>
           </div>
 
@@ -794,7 +830,7 @@ export default function MedicalCaseDetailPage() {
 
 
             {/* ─── Clinical History / Follow-up Timeline ─── */}
-            <div className="mc-side-card" style={{ marginBottom: '16px' }}>
+            <div className="mc-followup-wrapper mc-side-card" style={{ marginBottom: '16px' }}>
               <div className="mc-side-card-header">
                 <div className="mc-side-card-title">
                   <History size={16} />
@@ -815,57 +851,60 @@ export default function MedicalCaseDetailPage() {
               </div>
             </div>
 
-            {/* ─── Diagnosis Shortcut Button ─── */}
-            <div style={{ marginBottom: '8px' }}>
-              <button
-                onClick={() => handleOpenDiagnosis()}
-                className="premium-diagnosis-btn"
-                style={{
-                  width: '100%', padding: '16px', borderRadius: '16px', border: 'none',
-                  background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)', color: 'white',
-                  fontWeight: 800, cursor: 'pointer', boxShadow: '0 10px 15px -3px rgba(37, 99, 235, 0.2)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px',
-                  transition: 'transform 0.2s, box-shadow 0.2s',
-                  fontSize: '0.95rem'
-                }}
-              >
-                <div style={{ background: 'rgba(255,255,255,0.2)', padding: '8px', borderRadius: '12px' }}>
-                  <Sparkles size={20} />
-                </div>
-                <span>Diagnosis</span>
-              </button>
-            </div>
+            {/* ─── Action Shortcuts Row ─── */}
+            <div className="mc-action-shortcuts">
+              {/* ─── Diagnosis Shortcut Button ─── */}
+              <div className="mc-diagnosis-wrapper">
+                <button
+                  onClick={() => handleOpenDiagnosis()}
+                  className="premium-diagnosis-btn"
+                  style={{
+                    width: '100%', padding: '16px', borderRadius: '16px', border: 'none',
+                    background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)', color: 'white',
+                    fontWeight: 800, cursor: 'pointer', boxShadow: '0 10px 15px -3px rgba(37, 99, 235, 0.2)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px',
+                    transition: 'transform 0.2s, box-shadow 0.2s',
+                    fontSize: '0.95rem'
+                  }}
+                >
+                  <div style={{ background: 'rgba(255,255,255,0.2)', padding: '8px', borderRadius: '12px' }}>
+                    <Sparkles size={20} />
+                  </div>
+                  <span>Diagnosis</span>
+                </button>
+              </div>
 
-            {/* ─── Pharmacy & Logistics Shortcut Button ─── */}
-            <div style={{ marginBottom: '16px' }}>
-              <button
-                onClick={() => navigate('/courier-queue')}
-                style={{
-                  width: '100%', padding: '16px', borderRadius: '16px', border: 'none',
-                  background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)', color: 'white',
-                  fontWeight: 800, cursor: 'pointer', boxShadow: '0 10px 15px -3px rgba(139, 92, 246, 0.2)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px',
-                  transition: 'transform 0.2s, box-shadow 0.2s',
-                  fontSize: '0.95rem'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 12px 20px -3px rgba(139, 92, 246, 0.3)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(139, 92, 246, 0.2)';
-                }}
-              >
-                <div style={{ background: 'rgba(255,255,255,0.2)', padding: '8px', borderRadius: '12px' }}>
-                  <Package size={20} />
-                </div>
-                <span>Pharmacy & Logistics</span>
-              </button>
+              {/* ─── Pharmacy & Logistics Shortcut Button ─── */}
+              <div className="mc-logistics-wrapper">
+                <button
+                  onClick={() => navigate('/courier-queue')}
+                  style={{
+                    width: '100%', padding: '16px', borderRadius: '16px', border: 'none',
+                    background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)', color: 'white',
+                    fontWeight: 800, cursor: 'pointer', boxShadow: '0 10px 15px -3px rgba(139, 92, 246, 0.2)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px',
+                    transition: 'transform 0.2s, box-shadow 0.2s',
+                    fontSize: '0.95rem'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 12px 20px -3px rgba(139, 92, 246, 0.3)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(139, 92, 246, 0.2)';
+                  }}
+                >
+                  <div style={{ background: 'rgba(255,255,255,0.2)', padding: '8px', borderRadius: '12px' }}>
+                    <Package size={20} />
+                  </div>
+                  <span>Pharmacy & Logistics</span>
+                </button>
+              </div>
             </div>
 
             {/* ─── Billing Summary ─── */}
-            <div className="mc-side-card">
+            <div className="mc-billing-wrapper mc-side-card">
               <div className="mc-side-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div className="mc-side-card-title"><CreditCard size={16} /> Billing Summary</div>
                 {displayDate && (
@@ -1022,216 +1061,6 @@ export default function MedicalCaseDetailPage() {
         </div>
       </div>
 
-      {/* ─── Mobile Floating Action Bar (Collapsible) ─── */}
-      <div
-        className={`mc-mobile-fab-bar ${shortcutOpen ? 'expanded' : 'collapsed'}`}
-        style={{ top: `${fabY}px`, touchAction: 'none' }}
-      >
-        <button
-          className="mc-fab-toggle"
-          onMouseDown={onDragStart}
-          onTouchStart={onDragStart}
-          onClick={() => {
-            if (!hasMoved.current) setShortcutOpen(!shortcutOpen);
-          }}
-          title={shortcutOpen ? "Collapse shortcuts" : "Expand shortcuts"}
-        >
-          {shortcutOpen ? <X size={20} /> : <Zap size={20} className="animate-pulse" />}
-        </button>
-
-        <div className="mc-fab-actions">
-          <button
-            className={`mc-fab-btn ${mobileDrawer === 'followup' ? 'active' : ''}`}
-            onClick={() => { setMobileDrawer('followup'); setShortcutOpen(false); }}
-          >
-            <FileText size={20} />
-            <span className="mc-fab-btn-label">Notes</span>
-          </button>
-          <button
-            className={`mc-fab-btn ${mobileDrawer === 'billing' ? 'active' : ''}`}
-            onClick={() => { setMobileDrawer('billing'); setShortcutOpen(false); }}
-          >
-            <CreditCard size={20} />
-            <span className="mc-fab-btn-label">Billing</span>
-            {billingValues.balance > 0 && <span className="mc-fab-badge" />}
-          </button>
-          <button
-            className={`mc-fab-btn ${mobileDrawer === 'contact' ? 'active' : ''}`}
-            onClick={() => { setMobileDrawer('contact'); setShortcutOpen(false); }}
-          >
-            <Phone size={20} />
-            <span className="mc-fab-btn-label">Contact</span>
-          </button>
-          <button
-            className={`mc-fab-btn ${mobileDrawer === 'package' ? 'active' : ''}`}
-            onClick={() => { setMobileDrawer('package'); setShortcutOpen(false); }}
-          >
-            <Package size={20} />
-            <span className="mc-fab-btn-label">Package</span>
-          </button>
-        </div>
-      </div>
-
-      {/* ─── Mobile Drawer ─── */}
-      {mobileDrawer && (
-        <>
-          <div className="mc-drawer-backdrop" onClick={() => setMobileDrawer(null)} />
-          <div className="mc-drawer">
-            <div className="mc-drawer-header">
-              <div className="mc-drawer-header-title">
-                {mobileDrawer === 'followup' && <><FileText size={18} /> Follow-up Notes</>}
-                {mobileDrawer === 'billing' && <><CreditCard size={18} /> Billing Summary</>}
-                {mobileDrawer === 'contact' && <><Phone size={18} /> Patient Contact</>}
-                {mobileDrawer === 'package' && <><Package size={18} /> Package Info</>}
-              </div>
-              <button className="mc-drawer-close" onClick={() => setMobileDrawer(null)}>
-                <X size={16} />
-              </button>
-            </div>
-            <div className="mc-drawer-body">
-              {mobileDrawer === 'followup' && (
-                <>
-                  <div style={{ maxHeight: '300px', overflowY: 'auto', marginBottom: '12px' }}>
-                    {(notes || []).filter((n: any) => n.notesType === 'Followup' || n.noteType === 'Followup').length > 0 ? (
-                      (notes || []).filter((n: any) => n.notesType === 'Followup' || n.noteType === 'Followup')
-                        .sort((a: any, b: any) => new Date(b.createdAt || b.created_at || b.dateval || 0).getTime() - new Date(a.createdAt || a.created_at || a.dateval || 0).getTime())
-                        .map((note: any) => (
-                          <div key={note.id} style={{ padding: '10px 0', borderBottom: '1px solid var(--border-main)', fontSize: '0.85rem' }}>
-                            <div style={{ color: 'var(--pp-text-3)', fontSize: '0.7rem', marginBottom: '4px' }}>
-                              {(note.createdAt || note.created_at || note.dateval) ? new Date(note.createdAt || note.created_at || note.dateval).toLocaleDateString('en-GB', {
-                                day: '2-digit', month: 'short', year: 'numeric',
-                                hour: '2-digit', minute: '2-digit'
-                              }) : '—'}
-                            </div>
-                            <div style={{ color: 'var(--pp-ink)', lineHeight: 1.5 }}>{note.notes}</div>
-                          </div>
-                        ))
-                    ) : (
-                      <div style={{ color: 'var(--pp-text-3)', fontSize: '0.85rem', textAlign: 'center', padding: '24px 0' }}>
-                        No follow-up notes yet. Add one below.
-                      </div>
-                    )}
-                  </div>
-                  <AutoSaveNoteArea
-                    value={followUpNote}
-                    onChange={setFollowUpNote}
-                    onSave={handleSaveNote}
-                    placeholder="Add follow-up notes here..."
-                    minHeight="200px"
-                  />
-                </>
-              )}
-
-
-              {mobileDrawer === 'billing' && (
-                <>
-                  <div className="mc-side-card" style={{ background: 'var(--bg-card)' }}>
-                    <div className="mc-side-card-body">
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', padding: '8px 0' }}>
-                        <span style={{ color: 'var(--pp-text-3)' }}>Total</span>
-                        <strong style={{ color: 'var(--pp-ink)' }}>₹{billingValues.total}</strong>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', padding: '8px 0' }}>
-                        <span style={{ color: 'var(--pp-text-3)' }}>Paid</span>
-                        <strong style={{ color: 'var(--pp-success-fg)' }}>₹{billingValues.received}</strong>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', padding: '8px 0' }}>
-                        <span style={{ color: 'var(--pp-text-3)' }}>Balance</span>
-                        <strong style={{ color: 'var(--pp-danger-fg)' }}>₹{billingValues.balance}</strong>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.1rem', fontWeight: 800, color: 'var(--pp-blue)', borderTop: '2px solid var(--border-main)', paddingTop: '14px', marginTop: '8px' }}>
-                        <span>Outstanding</span>
-                        <strong>₹{billingValues.balance}</strong>
-                      </div>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => { setMobileDrawer(null); setShowBillingModal(true); }}
-                    style={{
-                      width: '100%', padding: '14px', background: 'var(--pp-success-bg)', color: 'var(--pp-success-fg)',
-                      border: '1px solid #BBF7D0', borderRadius: '10px', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer'
-                    }}
-                  >
-                    Record Payment
-                  </button>
-                </>
-              )}
-
-              {mobileDrawer === 'contact' && (
-                <div className="mc-side-card" style={{ background: 'white' }}>
-                  <div className="mc-side-card-body" style={{ gap: '14px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                      <span style={{ color: 'var(--pp-text-3)' }}>Name</span>
-                      <strong>{medicalCase.patientName || '—'}</strong>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                      <span style={{ color: 'var(--pp-text-3)' }}>Mobile</span>
-                      <strong>{medicalCase.mobile || '—'}</strong>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                      <span style={{ color: 'var(--pp-text-3)' }}>Email</span>
-                      <strong>{medicalCase.email || '—'}</strong>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                      <span style={{ color: 'var(--pp-text-3)' }}>Address</span>
-                      <strong style={{ textAlign: 'right', maxWidth: '60%' }}>{medicalCase.address || '—'}</strong>
-                    </div>
-                    {medicalCase.mobile && (
-                      <a
-                        href={`tel:${medicalCase.mobile}`}
-                        style={{
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                          width: '100%', padding: '12px', background: '#2563eb', color: 'white',
-                          border: 'none', borderRadius: '10px', fontWeight: 700, fontSize: '0.9rem',
-                          textDecoration: 'none', marginTop: '8px'
-                        }}
-                      >
-                        <Phone size={16} /> Call Patient
-                      </a>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {mobileDrawer === 'package' && (
-                <>
-                  <div className="mc-side-card" style={{ background: 'white' }}>
-                    <div className="mc-side-card-body" style={{ gap: '14px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                        <span style={{ color: 'var(--pp-text-3)' }}>Scheme</span>
-                        <strong>{activePackage?.packageName || '—'}</strong>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                        <span style={{ color: 'var(--pp-text-3)' }}>Status</span>
-                        <span style={{
-                          padding: '3px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700,
-                          background: activePackage?.status === 'Active' ? '#dcfce7' : '#fef3c7',
-                          color: activePackage?.status === 'Active' ? '#166534' : '#92400e'
-                        }}>
-                          {activePackage?.status || '—'}
-                        </span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                        <span style={{ color: 'var(--pp-text-3)' }}>Expiry</span>
-                        <strong>{activePackage?.expiryDate ? new Date(activePackage.expiryDate).toLocaleDateString() : '—'}</strong>
-                      </div>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => { setMobileDrawer(null); setShowAssignModal(true); }}
-                    style={{
-                      width: '100%', padding: '14px', background: 'var(--pp-blue-faded)', color: 'var(--pp-blue)',
-                      border: '1px solid #C7D2FE', borderRadius: '10px', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer'
-                    }}
-                  >
-                    Manage Package
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        </>
-      )}
 
       {showVitalsModal && <VitalsFormModal initialData={editingVitals} visitId={medicalCase.id} regid={Number(regid)} onClose={() => {
         setShowVitalsModal(false);

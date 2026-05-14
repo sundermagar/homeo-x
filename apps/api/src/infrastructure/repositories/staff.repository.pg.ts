@@ -204,8 +204,8 @@ export class StaffRepositoryPg implements StaffRepository {
       data.dateBirth || null, data.dateLeft || null, data.salaryCur || 0, hashedPassword
     ];
 
-    // Add clinic_id for clinic admins — ties the admin to their organization
-    if (category === 'clinicadmin' && (data as any).clinicId) {
+    // Add clinic_id for clinic admins and doctors — ties the member to their organization/clinic
+    if ((category === 'clinicadmin' || category === 'doctor') && (data as any).clinicId) {
       staffCols.push('clinic_id');
       staffVals.push((data as any).clinicId);
     }
