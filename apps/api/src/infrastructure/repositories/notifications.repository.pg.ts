@@ -100,6 +100,20 @@ export class NotificationsRepositoryPg implements NotificationsRepository {
     }
   }
 
+  async deleteAllNotifications(userId: number): Promise<boolean> {
+    try {
+      await this.db.execute(sql`
+        UPDATE notifications
+        SET deleted_at = NOW(), updated_at = NOW()
+        WHERE user_id = ${userId} AND deleted_at IS NULL
+      `);
+      return true;
+    } catch (err: any) {
+      logger.error({ err: err.message }, `Failed to delete all notifications for user ${userId}`);
+      return false;
+    }
+  }
+
   async createNotification(data: { userId: number, clinicId?: number, type: string, title: string, message: string }): Promise<number | undefined> {
     try {
       const result = await this.db.execute(sql`

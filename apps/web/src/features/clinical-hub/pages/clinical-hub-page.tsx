@@ -16,6 +16,7 @@ const FEATURES = [
     path: '/vitals-check',
     badge: null,
   },
+  /*
   {
     icon: BrainCircuit,
     iconStyle: 'purple',
@@ -24,6 +25,7 @@ const FEATURES = [
     path: '/ai-analysis',
     badge: 'active',
   },
+  */
   {
     icon: Activity,
     iconStyle: 'alt',

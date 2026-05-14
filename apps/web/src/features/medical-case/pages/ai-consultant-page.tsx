@@ -6,21 +6,12 @@ import '../styles/medical-case.css';
 export default function AiConsultantPage() {
   return (
     <div className="pp-page-container">
-      <header className="pp-page-header" style={{ marginBottom: 'var(--pp-space-10)', marginTop: 'var(--pp-space-4)' }}>
-        <div>
-          <div className="text-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Sparkles size={22} style={{ color: 'var(--primary)' }} />
-            AI Clinical Analysis
-            <span className="db-badge db-badge-primary" style={{ marginLeft: 8 }}>Global Session</span>
-          </div>
-          <p className="text-subtitle" style={{ marginTop: '4px' }}>
-            Multi-theoretical AI analysis: Homeopathy, GNM, and Rubric correlations
-          </p>
-        </div>
-      </header>
-
-      <div>
-        <AiConsultantView />
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-4">
+        <Sparkles size={48} className="text-gray-300" />
+        <h1 className="text-2xl font-bold text-gray-900">AI Clinical Analysis Deprecated</h1>
+        <p className="text-gray-500 max-w-md">
+          This feature has been decommissioned. Please use the standard clinical modules for patient analysis.
+        </p>
       </div>
     </div>
   );

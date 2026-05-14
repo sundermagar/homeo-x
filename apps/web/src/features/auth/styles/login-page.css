@@ -508,7 +508,7 @@
 
 .login-form-options {
   display: flex;
-  justify-content: space-between;
+  justify-content: end;
   align-items: center;
   font-size: 0.8125rem;
 }
@@ -591,12 +591,10 @@
   left: -50%;
   width: 200%;
   height: 200%;
-  background: linear-gradient(
-    45deg,
-    transparent 20%,
-    rgba(255, 255, 255, 0.1) 50%,
-    transparent 80%
-  );
+  background: linear-gradient(45deg,
+      transparent 20%,
+      rgba(255, 255, 255, 0.1) 50%,
+      transparent 80%);
   transform: rotate(45deg);
   animation: shimmer 4s infinite;
 }
@@ -910,12 +908,10 @@
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(
-      160deg,
-      rgba(10, 20, 70, 0.6) 0%,
-      rgba(15, 30, 80, 0.45) 50%,
-      rgba(5, 15, 50, 0.55) 100%
-    );
+    background: linear-gradient(160deg,
+        rgba(10, 20, 70, 0.6) 0%,
+        rgba(15, 30, 80, 0.45) 50%,
+        rgba(5, 15, 50, 0.55) 100%);
     z-index: 2;
     pointer-events: none;
   }

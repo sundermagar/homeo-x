@@ -340,6 +340,20 @@ export function useConsultationState({
     if (Array.isArray(basePlan)) basePlan = basePlan.join('\n');
     let planText = basePlan || '';
 
+    // Auto-generate a treatment plan from prescribed remedies if plan is empty
+    if (!planText.trim()) {
+      const filledRx = rxItems.filter(
+        (item) => item.medicationName && item.dosage,
+      );
+      if (filledRx.length > 0) {
+        const lines = filledRx.map(
+          (item) =>
+            `${item.medicationName} ${item.dosage}${item.frequency ? ' — ' + item.frequency : ''}${item.duration ? ' for ' + item.duration : ''}${item.instructions ? ' (' + item.instructions + ')' : ''}`,
+        );
+        planText = 'Rx:\n' + lines.join('\n');
+      }
+    }
+
     if (labTests.length > 0) {
       planText += `\n\nLab Orders: ${labTests.join(', ')}`;
     }
@@ -411,8 +425,12 @@ export function useConsultationState({
   // ─── Handlers ───
 
   const handleSoapGenerated = useCallback((suggestion: SoapSuggestion) => {
+    console.log('[useConsultationState] SOAP generated (DISABLED):', suggestion);
+    return;
+    /*
     setScribeSuggestion(suggestion);
     metricsRef.current.voiceSegmentCount++;
+    */
   }, []);
 
   const handleDiagnosisSelected = useCallback((diagnoses: string[]) => {
@@ -626,87 +644,12 @@ export function useConsultationState({
   }, []);
 
   const handleHomeopathyConsultGenerated = useCallback((result: HomeopathyConsultResult) => {
-    console.log('[useConsultationState] Homeopathy consult generated:', result);
-
+    console.log('[useConsultationState] Homeopathy consult generated (DISABLED):', result);
+    return;
+    /*
     // ── Follow-up handling ──
-    // If this is a follow-up assessment, apply directly without direction selection.
-    // Follow-up results have a followUpAssessment field with REPEAT/CHANGE/ADVICE_ONLY decision.
-    if (result.followUpAssessment) {
-      const assessment = result.followUpAssessment;
-      const decisionLabels = {
-        REPEAT: '🔄 Repeat Remedy',
-        CHANGE: '🔀 Change Remedy',
-        ADVICE_ONLY: '💡 Advice Only',
-      };
-
-      // Populate SOAP
-      setSoapData({
-        subjective: result.prescriptionDraft?.consultationSummary || '',
-        objective: `Improvement: ${assessment.improvementPercent}%\nGeneral Wellbeing: ${assessment.generalWellbeing}${assessment.heringLawObservations.length > 0 ? '\nHering\'s Law: ' + assessment.heringLawObservations.join(', ') : ''}${assessment.newSymptoms.length > 0 ? '\nNew Symptoms: ' + assessment.newSymptoms.join(', ') : ''}`,
-        assessment: `${decisionLabels[assessment.decision]} — ${assessment.chiefComplaintStatus}`,
-        plan: `${assessment.suggestedAction}${assessment.potencyAdjustment ? '\nPotency: ' + assessment.potencyAdjustment : ''}${assessment.decision === 'CHANGE' && assessment.alternativeRemedy ? '\nNew Remedy: ' + assessment.alternativeRemedy.name + ' ' + assessment.alternativeRemedy.potency + ' — ' + assessment.alternativeRemedy.reasoning : ''}`,
-        clinicalSummary: result.caseSummary || assessment.clinicalNotes,
-      });
-
-      // Populate advice
-      const adviceLines = [
-        ...assessment.dietaryAdvice,
-        ...assessment.lifestyleAdvice,
-      ].filter(Boolean);
-      setAdvice(adviceLines.join('\n'));
-
-      // Populate prescription only if CHANGE
-      if (assessment.decision === 'CHANGE' && assessment.alternativeRemedy) {
-        setRxItems([{
-          medicationName: assessment.alternativeRemedy.name,
-          genericName: '',
-          dosage: assessment.alternativeRemedy.potency || '30C',
-          frequency: 'Stat',
-          duration: '1 day',
-          route: 'Globules',
-          instructions: assessment.alternativeRemedy.dosage || '',
-        }]);
-      }
-      // For REPEAT/ADVICE_ONLY: don't auto-populate rxItems (doctor keeps previous remedy or gives none)
-
-      // Follow-up date
-      const followUpText = assessment.followUpTimeline || '';
-      if (followUpText) {
-        const date = new Date();
-        const daysMatch = followUpText.match(/(\d+)\s*day/i);
-        const weeksMatch = followUpText.match(/(\d+)\s*week/i);
-        const monthsMatch = followUpText.match(/(\d+)\s*month/i);
-        if (daysMatch) date.setDate(date.getDate() + parseInt(daysMatch[1]!));
-        else if (weeksMatch) date.setDate(date.getDate() + parseInt(weeksMatch[1]!) * 7);
-        else if (monthsMatch) date.setMonth(date.getMonth() + parseInt(monthsMatch[1]!));
-        else date.setDate(date.getDate() + 15);
-        const yyyy = date.getFullYear();
-        const mm = String(date.getMonth() + 1).padStart(2, '0');
-        const dd = String(date.getDate()).padStart(2, '0');
-        setFollowUp(`${yyyy}-${mm}-${dd}`);
-      }
-
-      metricsRef.current.voiceSegmentCount++;
-      toast({ title: `Follow-up Assessment: ${decisionLabels[assessment.decision]}`, variant: 'success' });
-      return;
-    }
-
-    // ── Standard new-case handling ──
-    const hasDirections = result.diagnosisData?.primaryDiagnosis || (result.diagnosisData?.differentials?.length || 0) > 0;
-
-    if (!hasDirections) {
-      console.warn('[useConsultationState] No clinical directions found in AI response. Skipping selection step.');
-      // Auto-select a fallback or General Consultation
-      setPendingConsultResult(result);
-      handleSelectDirection(result.diagnosisData?.primaryDiagnosis?.name || 'General Consultation', result.diagnosisData?.primaryDiagnosis?.icdCode || '');
-      return;
-    }
-
-    // Instead of applying everything, we show the clinical direction selector first
-    setPendingConsultResult(result);
-    setIsSelectingDirection(true);
-    metricsRef.current.voiceSegmentCount++;
-    toast({ title: 'AI Analysis complete. Please select a clinical direction.', variant: 'default' });
+    ...
+    */
   }, []);
 
   const handleSelectDirection = useCallback((name: string, icdCode: string) => {

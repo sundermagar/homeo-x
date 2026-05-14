@@ -9,19 +9,21 @@ const logger = createLogger('nodemailer-service');
 export class NodemailerServiceAdapter implements EmailService {
   private transporter: Transporter;
   private isConnected: boolean = false;
+  private connectionPromise: Promise<void>;
 
   constructor() {
     this.transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || 'smtp.gmail.com',
-      port: Number(process.env.SMTP_PORT) || 587,
-      secure: process.env.SMTP_SECURE === 'true', // true for 465, false for 587
+      host: process.env.SMTP_HOST || process.env.MAIL_HOST || 'smtp.gmail.com',
+      port: Number(process.env.SMTP_PORT || process.env.MAIL_PORT) || 587,
+      secure: (process.env.SMTP_SECURE || process.env.MAIL_ENCRYPTION) === 'true' || process.env.MAIL_PORT === '465', 
       auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
+        user: process.env.SMTP_USER || process.env.MAIL_USER,
+        pass: process.env.SMTP_PASS || process.env.MAIL_PASS,
       },
     });
 
-    this.verifyConnection();
+    logger.info(`Initializing SMTP with host: ${process.env.SMTP_HOST || process.env.MAIL_HOST || 'smtp.gmail.com'}, port: ${Number(process.env.SMTP_PORT || process.env.MAIL_PORT) || 587}`);
+    this.connectionPromise = this.verifyConnection();
   }
 
   private async verifyConnection() {
@@ -36,6 +38,7 @@ export class NodemailerServiceAdapter implements EmailService {
   }
 
   async sendEmail(data: SendEmailDto): Promise<boolean> {
+    await this.connectionPromise;
     if (!this.isConnected) {
       logger.warn(`Email to ${data.to} skipped because SMTP is not connected.`);
       return false;
@@ -43,7 +46,7 @@ export class NodemailerServiceAdapter implements EmailService {
 
     try {
       const info = await this.transporter.sendMail({
-        from: process.env.SMTP_FROM || '"Kreed.health System" <noreply@managemyclinic.in>',
+        from: process.env.SMTP_FROM || process.env.MAIL_USER || '"Kreed.health System" <noreply@managemyclinic.in>',
         to: data.to,
         subject: data.subject,
         text: data.text,
@@ -59,3 +62,5 @@ export class NodemailerServiceAdapter implements EmailService {
     }
   }
 }
+
+export const emailService = new NodemailerServiceAdapter();

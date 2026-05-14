@@ -8,7 +8,7 @@ import { GetSmsReportsUseCase } from '../../../domains/communication/use-cases/g
 import { SendSmsUseCase } from '../../../domains/communication/use-cases/send-sms.use-case.js';
 import { SendWhatsAppUseCase } from '../../../domains/communication/use-cases/send-whatsapp.use-case.js';
 import { CommunicationRepositoryPG } from '../../repositories/communication.repository.pg.js';
-import { NodemailerServiceAdapter } from '../../communication/nodemailer.service.js';
+import { emailService } from '../../communication/nodemailer.service.js';
 import { createSmsGateway } from '../../communication/msg91-sms-gateway.js';
 import { createWhatsAppGateway } from '../../communication/bulk-shooters-whatsapp-gateway.js';
 
@@ -197,8 +197,6 @@ communicationRouter.post('/otp/verify', asyncHandler(async (req, res) => {
 communicationRouter.post('/email/send', asyncHandler(async (req, res) => {
   const { to, subject, text, html } = req.body;
   if (!to || !subject) throw new BadRequestError('to and subject are required');
-
-  const emailService = new NodemailerServiceAdapter();
   const success = await emailService.sendEmail({ to, subject, text, html });
 
   if (success) {

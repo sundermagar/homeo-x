@@ -377,6 +377,11 @@ export function ConsultationStage({
   const [answeredQuestions, setAnsweredQuestions] = useState<string[]>([]);
   const lastQuestionRef = useRef<string>('');
 
+  // Auto-regenerate questions in batches: count 5 answers, then fire one
+  // suggest/questions call. Cuts AI credits vs. firing on every Q&A pair.
+  const QUESTION_BATCH_SIZE = 5;
+  const answersSinceLastGenRef = useRef(0);
+
   // --- Auto-extract symptoms from live transcript during calls ---
   const lastExtractedSegCountRef = useRef(0);
   const extractionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -406,14 +411,11 @@ export function ConsultationStage({
       let answerText: string;
 
       if (isInPerson) {
-        // Single-mic mode: send all new transcript text as the answer.
-        // The AI will extract symptoms regardless of who said what.
         const allText = newSegs.map(s => s.translatedText || s.text).join(' ');
         if (!allText.trim()) return;
         questionText = lastQuestionRef.current || 'Doctor-patient conversation';
         answerText = allText;
       } else {
-        // Dual-mic mode: pair doctor question with patient answer
         const doctorSegs = newSegs.filter(s => s.speaker === 'DOCTOR');
         const patientSegs = newSegs.filter(s => s.speaker === 'PATIENT');
         if (patientSegs.length === 0) return;
@@ -425,7 +427,6 @@ export function ConsultationStage({
 
       lastExtractedSegCountRef.current = newSegCount;
 
-      // Extract symptoms from this Q&A pair
       const genAtDispatch = clearGenerationRef.current;
       symptomExtraction.mutate(
         {
@@ -437,7 +438,7 @@ export function ConsultationStage({
         },
         {
           onSuccess: (result) => {
-            if (clearGenerationRef.current !== genAtDispatch) return; // user cleared — discard stale result
+            if (clearGenerationRef.current !== genAtDispatch) return;
             if (result && (result.mental?.length || result.physical?.length || result.particular?.length)) {
               onSymptomsExtracted(result);
             }
@@ -445,15 +446,18 @@ export function ConsultationStage({
         },
       );
 
-      // Also regenerate mode-specific questions based on updated transcript
-      modeQuestions.mutate({
-        consultationMode,
-        transcript: finalSegs.map(s => `${s.speaker}: ${s.translatedText || s.text}`).join('\n'),
-        answeredQuestions,
-        chiefComplaint: (visit.chiefComplaint || (visit as any).notes || '').trim(),
-        patientAge,
-        patientGender: patient?.gender,
-      });
+      answersSinceLastGenRef.current += 1;
+      if (answersSinceLastGenRef.current >= QUESTION_BATCH_SIZE) {
+        answersSinceLastGenRef.current = 0;
+        modeQuestions.mutate({
+          consultationMode,
+          transcript: finalSegs.map(s => `${s.speaker}: ${s.translatedText || s.text}`).join('\n'),
+          answeredQuestions,
+          chiefComplaint: (visit.chiefComplaint || (visit as any).notes || '').trim(),
+          patientAge,
+          patientGender: patient?.gender,
+        });
+      }
     }, 8000);
 
     return () => {
@@ -465,6 +469,7 @@ export function ConsultationStage({
   }, [segments.length, callMode, binaryTranscriber.isRecording]);
 
   const handleLoadModeQuestions = useCallback(() => {
+    answersSinceLastGenRef.current = 0;
     modeQuestions.mutate({
       consultationMode,
       transcript: segments.map(s => `${s.speaker}: ${s.translatedText || s.text}`).join('\n'),
@@ -591,18 +596,22 @@ export function ConsultationStage({
       },
     );
 
-    // Regenerate next questions based on updated transcript (includes the new answer)
-    setTimeout(() => {
-      modeQuestions.mutate({
-        consultationMode,
-        transcript: [...segments, segment].map(s => `${s.speaker}: ${s.translatedText || s.text}`).join('\n'),
-        answeredQuestions: [...answeredQuestions, questionText],
-        chiefComplaint: (visit.chiefComplaint || (visit as any).notes || '').trim(),
-        patientAge,
-        patientGender: patient?.gender,
-      });
-    }, 500);
-  }, [patientAnswer, onTranscriptUpdate, symptomExtraction, consultationMode, categorizedSymptoms, onSymptomsExtracted, segments, answeredQuestions, visit.chiefComplaint, patientAge, patient?.gender, modeQuestions]);
+    // Batched regenerate: fire only after 5 answers have come in.
+    answersSinceLastGenRef.current += 1;
+    if (answersSinceLastGenRef.current >= QUESTION_BATCH_SIZE) {
+      answersSinceLastGenRef.current = 0;
+      setTimeout(() => {
+        modeQuestions.mutate({
+          consultationMode,
+          transcript: [...segments, segment].map(s => `${s.speaker}: ${s.translatedText || s.text}`).join('\n'),
+          answeredQuestions: [...answeredQuestions, questionText],
+          chiefComplaint: (visit.chiefComplaint || (visit as any).notes || '').trim(),
+          patientAge,
+          patientGender: patient?.gender,
+        });
+      }, 500);
+    }
+  }, [onTranscriptUpdate, symptomExtraction, consultationMode, categorizedSymptoms, onSymptomsExtracted, segments, answeredQuestions, visit, patientAge, patient?.gender, modeQuestions]);
 
   // Remove a symptom from categorized symptoms
   const handleRemoveSymptom = useCallback((category: 'mental' | 'physical' | 'particular', index: number) => {
@@ -785,7 +794,7 @@ export function ConsultationStage({
           </AICaptureModule>
 
 
-          {/* AI Suggested Questions panel */}
+          {/* AI Suggested Inquiries panel */}
           <div className="pp-card overflow-hidden">
             <div className="px-5 py-3 bg-[#FAFAF8] border-b border-[#E3E2DF] flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -812,7 +821,6 @@ export function ConsultationStage({
             </div>
 
             <div className="p-4 space-y-2 bg-white">
-              {/* Question items as clickable cards */}
               {allQuestions.filter((q: any) => !q.answered).length === 0 && !modeQuestions.isPending && (
                 <p className="text-[13px] text-[#888786] italic text-center py-4">
                   No questions available. Click Regenerate or start recording.
@@ -842,7 +850,6 @@ export function ConsultationStage({
                       <ArrowRight className="h-4 w-4 text-[#888786] group-hover:text-[#2563EB] mt-0.5 shrink-0 ml-auto transition-transform group-hover:translate-x-1" />
                     </button>
                     
-                    {/* Render choice options if available */}
                     {q.options && q.options.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 ml-6 mb-2">
                         {q.options.map((opt: string, idx: number) => (
@@ -864,7 +871,6 @@ export function ConsultationStage({
                 ))}
               </div>
 
-              {/* Custom question input row */}
               <div className="flex items-center gap-2 pt-3 mt-3 border-t border-[#E3E2DF]">
                 <input
                   type="text"
@@ -900,7 +906,6 @@ export function ConsultationStage({
         {/* RIGHT COLUMN: Live Symptom Extraction panel */}
         <div className="space-y-0">
           <div className="pp-card sticky top-8">
-            {/* Header */}
             <div className="px-5 py-4 border-b border-[#E3E2DF] bg-[#FAFAF8] flex items-center justify-between">
               <span className="text-[14px] font-bold text-[#0F0F0E] tracking-tight flex items-center gap-2">
                 <Search className="h-4 w-4 text-[#2563EB]" />
@@ -916,7 +921,6 @@ export function ConsultationStage({
             </div>
 
             <div className="divide-y divide-[#E3E2DF] bg-white">
-              {/* Mental Generals */}
               <div className="p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Brain className="h-4 w-4 text-[#2563EB]" />
@@ -946,7 +950,6 @@ export function ConsultationStage({
                 </div>
               </div>
 
-              {/* Physical Generals */}
               <div className="p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Heart className="h-4 w-4 text-[#2563EB]" />
@@ -976,7 +979,6 @@ export function ConsultationStage({
                 </div>
               </div>
 
-              {/* Particulars */}
               <div className="p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Search className="h-4 w-4 text-[#2563EB]" />
@@ -1007,7 +1009,6 @@ export function ConsultationStage({
               </div>
             </div>
 
-            {/* Symptom total */}
             <div className="px-4 py-2 bg-[#FAFAF8] border-t border-[#E3E2DF] text-center">
               <span className="text-[11px] font-bold text-[#888786] uppercase tracking-widest">{totalSymptoms} symptom{totalSymptoms !== 1 ? 's' : ''} extracted</span>
             </div>

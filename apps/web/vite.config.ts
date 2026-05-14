@@ -11,20 +11,38 @@ export default defineConfig({
       '@mmc/validation': path.resolve(__dirname, '../../packages/validation/src/index.ts'),
     },
   },
+  // ── Optimization for Dev Speed ──
+  optimizeDeps: {
+    include: [
+      'react',
+      'react-dom',
+      'react-router-dom',
+      'lucide-react',
+      '@tanstack/react-query',
+      'recharts',
+      'date-fns',
+      'axios',
+      'clsx'
+    ],
+  },
   build: {
+    target: 'esnext',
+    minify: 'esbuild', // Faster than terser
+    cssCodeSplit: true,
     sourcemap: false,
+    chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
+        // Grouping related dependencies into larger chunks to reduce HTTP request overhead
         manualChunks(id) {
-          if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/') || id.includes('node_modules/react-router-dom')) return 'react-vendor';
-          if (id.includes('node_modules/@tanstack')) return 'query';
-          if (id.includes('node_modules/lucide-react')) return 'icons';
-          if (id.includes('node_modules/recharts') || id.includes('node_modules/d3-')) return 'charts';
-          // ── Heavy feature-specific deps isolated into their own chunks ──
-          if (id.includes('node_modules/@fullcalendar')) return 'fullcalendar';
-          if (id.includes('node_modules/livekit-client') || id.includes('node_modules/livekit-')) return 'livekit';
-          if (id.includes('node_modules/date-fns')) return 'date-fns';
-          if (id.includes('node_modules/zod')) return 'zod';
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('router')) return 'vendor-core';
+            if (id.includes('lucide-react')) return 'vendor-icons';
+            if (id.includes('recharts') || id.includes('d3')) return 'vendor-charts';
+            if (id.includes('@fullcalendar')) return 'vendor-calendar';
+            if (id.includes('livekit')) return 'vendor-video';
+            return 'vendor-utils'; // Group smaller utils together
+          }
         },
       },
     },

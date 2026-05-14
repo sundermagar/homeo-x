@@ -53,15 +53,39 @@ export function TotalityStage({
   const [perspiration, setPerspiration] = useState('');
   const [doctorNotes, setDoctorNotes] = useState('');
 
-  const addSymptom = useCallback((category: 'mental' | 'physical' | 'particular') => {
-    const val = prompt(`Add ${category} symptom (Repertory format):`);
-    if (val?.trim() && onCategorizedSymptomsChange) {
+  // ─── Inline add state: which category is currently in "add" mode ───
+  const [addingCategory, setAddingCategory] = useState<'mental' | 'physical' | 'particular' | null>(null);
+  const [newSymptomText, setNewSymptomText] = useState('');
+
+  const startAdding = useCallback((category: 'mental' | 'physical' | 'particular') => {
+    setAddingCategory(category);
+    setNewSymptomText('');
+  }, []);
+
+  const commitSymptom = useCallback(() => {
+    if (newSymptomText.trim() && addingCategory && onCategorizedSymptomsChange) {
       onCategorizedSymptomsChange((prev) => ({
         ...prev,
-        [category]: [...new Set([...prev[category], val.trim()])],
+        [addingCategory]: [...new Set([...prev[addingCategory], newSymptomText.trim()])],
       }));
     }
-  }, [onCategorizedSymptomsChange]);
+    setNewSymptomText('');
+    setAddingCategory(null);
+  }, [newSymptomText, addingCategory, onCategorizedSymptomsChange]);
+
+  const cancelAdding = useCallback(() => {
+    setNewSymptomText('');
+    setAddingCategory(null);
+  }, []);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      commitSymptom();
+    } else if (e.key === 'Escape') {
+      cancelAdding();
+    }
+  }, [commitSymptom, cancelAdding]);
 
   const removeSymptom = useCallback((category: 'mental' | 'physical' | 'particular', idx: number) => {
     if (onCategorizedSymptomsChange) {
@@ -71,6 +95,54 @@ export function TotalityStage({
       }));
     }
   }, [onCategorizedSymptomsChange]);
+
+  // Renders the inline add input or the "Add" button for a given category
+  const renderAddArea = (category: 'mental' | 'physical' | 'particular', label: string) => {
+    if (!onCategorizedSymptomsChange) return null;
+
+    if (addingCategory === category) {
+      return (
+        <div className="px-4 pb-4">
+          <div className="flex gap-2">
+            <input
+              autoFocus
+              type="text"
+              value={newSymptomText}
+              onChange={(e) => setNewSymptomText(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={`e.g. MIND - Anxiety, evening`}
+              className="flex-1 text-[13px] font-medium text-[#0F0F0E] bg-white border border-[#2563EB] px-3 py-2 rounded-md focus:ring-2 focus:ring-[#EFF6FF] outline-none transition-all placeholder:text-[#B0B0AE]"
+            />
+            <button
+              onClick={commitSymptom}
+              disabled={!newSymptomText.trim()}
+              className="px-3 py-2 rounded-md text-[12px] font-bold text-white bg-[#2563EB] hover:bg-[#1D4ED8] disabled:opacity-40 transition-colors"
+            >
+              Add
+            </button>
+            <button
+              onClick={cancelAdding}
+              className="px-2 py-2 rounded-md text-[12px] font-bold text-[#888786] hover:text-[#DC2626] hover:bg-[#FEF2F2] transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <p className="text-[10px] text-[#888786] mt-1.5 ml-1">Press <kbd className="px-1 py-0.5 bg-[#F4F3F1] rounded text-[9px] font-mono border border-[#E3E2DF]">Enter</kbd> to add, <kbd className="px-1 py-0.5 bg-[#F4F3F1] rounded text-[9px] font-mono border border-[#E3E2DF]">Esc</kbd> to cancel</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="px-4 pb-4">
+        <button
+          onClick={() => startAdding(category)}
+          className="w-full pp-btn-secondary px-3 py-2 flex justify-center text-[12px]"
+        >
+          <Plus className="h-4 w-4 mr-1" /> Add {label}
+        </button>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-8 pp-fade-in relative">
@@ -98,7 +170,7 @@ export function TotalityStage({
       {/* ═══ 4. Three-Column Symptom Grid ═══ */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
-        {/* Mental Generals — Purple -> Blue Default */}
+        {/* Mental Generals */}
         <div className="pp-card overflow-hidden">
           <div className="px-4 py-3 bg-[#FAFAF8] border-b border-[#E3E2DF] flex items-center gap-2">
             <Brain className="h-4 w-4 text-[#2563EB]" />
@@ -120,19 +192,10 @@ export function TotalityStage({
               </div>
             ))}
           </div>
-          {onCategorizedSymptomsChange && (
-            <div className="px-4 pb-4">
-              <button
-                onClick={() => addSymptom('mental')}
-                className="w-full pp-btn-secondary px-3 py-2 flex justify-center text-[12px]"
-              >
-                <Plus className="h-4 w-4 mr-1" /> Add Mental Symptom
-              </button>
-            </div>
-          )}
+          {renderAddArea('mental', 'Mental Symptom')}
         </div>
 
-        {/* Physical Generals — Blue -> Blue Default */}
+        {/* Physical Generals */}
         <div className="pp-card overflow-hidden">
           <div className="px-4 py-3 bg-[#FAFAF8] border-b border-[#E3E2DF] flex items-center gap-2">
             <Heart className="h-4 w-4 text-[#2563EB]" />
@@ -154,19 +217,10 @@ export function TotalityStage({
               </div>
             ))}
           </div>
-          {onCategorizedSymptomsChange && (
-            <div className="px-4 pb-4">
-              <button
-                onClick={() => addSymptom('physical')}
-                className="w-full pp-btn-secondary px-3 py-2 flex justify-center text-[12px]"
-              >
-                <Plus className="h-4 w-4 mr-1" /> Add Physical Symptom
-              </button>
-            </div>
-          )}
+          {renderAddArea('physical', 'Physical Symptom')}
         </div>
 
-        {/* Particular Symptoms — Emerald -> Blue Default */}
+        {/* Particular Symptoms */}
         <div className="pp-card overflow-hidden">
           <div className="px-4 py-3 bg-[#FAFAF8] border-b border-[#E3E2DF] flex items-center gap-2">
             <Search className="h-4 w-4 text-[#2563EB]" />
@@ -188,16 +242,7 @@ export function TotalityStage({
               </div>
             ))}
           </div>
-          {onCategorizedSymptomsChange && (
-            <div className="px-4 pb-4">
-              <button
-                onClick={() => addSymptom('particular')}
-                className="w-full pp-btn-secondary px-3 py-2 flex justify-center text-[12px]"
-              >
-                <Plus className="h-4 w-4 mr-1" /> Add Particular Symptom
-              </button>
-            </div>
-          )}
+          {renderAddArea('particular', 'Particular Symptom')}
         </div>
       </div>
 

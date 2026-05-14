@@ -314,17 +314,30 @@ export function PrescriptionStage({
   // Build the remedy list to display:
   // Priority 1 — GNM-ranked remedies (if AI produced a GNM analysis)
   // Priority 2 — Repertorization scored remedies (always available, sorted by score)
+  // Priority 3 — Already-populated rxItems (e.g., follow-up CHANGE pre-fills these
+  //              with the AI's alternative remedy but doesn't populate scoredRemedies)
   const gnmRemedies = gnmAnalysis?.rankedRemedies || [];
   const allRemedies = gnmRemedies.length > 0
     ? gnmRemedies
-    : scoredRemedies.map((r, i) => ({
+    : scoredRemedies.length > 0
+    ? scoredRemedies.map((r, i) => ({
         rank: i + 1,
         name: r.remedyName,
         matchStrength: (i === 0 ? 'strongest' : i <= 2 ? 'strong' : 'moderate') as 'strongest' | 'strong' | 'moderate',
         keynotes: r.keynotes || [],
         suggestedPotency: r.commonPotencies?.[0] || '30C',
         whenToUse: r.matchExplanation?.[0] || '',
-      }));
+      }))
+    : rxItems
+        .filter(item => item.medicationName)
+        .map((item, i) => ({
+          rank: i + 1,
+          name: item.medicationName as string,
+          matchStrength: 'strongest' as const,
+          keynotes: [item.instructions || ''].filter(Boolean),
+          suggestedPotency: item.dosage || '30C',
+          whenToUse: '',
+        }));
   const resolution = gnmAnalysis?.resolutionStrategy;
 
   // Pre-fill GNM counselling from resolution
@@ -472,17 +485,23 @@ export function PrescriptionStage({
               <div className="mt-6 flex justify-end">
                 <button
                   onClick={() => {
-                    // Sync rxItems immediately when moving to step 2 
-                    // so the preview reflects the current selection
-                    const currentSelection = selectedRemedyNames.map(name => ({
-                      medicationName: name,
-                      genericName: '',
-                      dosage: '200C',
-                      route: 'Dry on tongue',
-                      instructions: '1 dose dry on tongue. Single.',
-                      frequency: 'Stat',
-                      duration: '1 day'
-                    }));
+                    // Sync rxItems immediately when moving to step 2.
+                    // Preserve any AI-pre-populated values (e.g., follow-up CHANGE
+                    // sets a specific potency/instructions on the alternative remedy)
+                    // by re-using the existing rxItem when names match.
+                    const currentSelection = selectedRemedyNames.map(name => {
+                      const existing = rxItems.find(r => r.medicationName === name);
+                      if (existing) return existing;
+                      return {
+                        medicationName: name,
+                        genericName: '',
+                        dosage: '200C',
+                        route: 'Dry on tongue',
+                        instructions: '1 dose dry on tongue. Single.',
+                        frequency: 'Stat',
+                        duration: '1 day',
+                      };
+                    });
                     onRxItemsChange(currentSelection);
                     setPrescriptionStep(2);
                   }}

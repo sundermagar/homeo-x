@@ -143,7 +143,7 @@ export function useIssueToken() {
 export function useAddToWaitlist() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (dto: { patientId: number; appointmentId?: number; doctorId?: number; consultationFee?: number }) =>
+    mutationFn: (dto: { patientId?: number; appointmentId?: number; unregisteredPatientId?: number; doctorId?: number; consultationFee?: number }) =>
       apiClient.post('/appointments/waiting', dto),
     onSuccess: () => qc.invalidateQueries({ queryKey: apptKeys.all }),
   });
