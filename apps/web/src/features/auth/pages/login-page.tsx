@@ -68,8 +68,14 @@ function AuthFlow() {
       setResetEmail(emailParam);
       setOtp(tokenParam);
       setView('RESET_PASSWORD');
+
+      // Clear sensitive params from URL to keep it clean and secure
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('token');
+      newParams.delete('email');
+      setSearchParams(newParams, { replace: true });
     }
-  }, [searchParams]);
+  }, [searchParams, setSearchParams]);
 
   // Auto-clear messages after 5 seconds
   useEffect(() => {
