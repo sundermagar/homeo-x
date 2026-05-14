@@ -155,10 +155,13 @@
   z-index: 10;
 }
 
-.login-logo {
+.login-logo,
+.login-form-logo {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 12px;
+  margin-bottom: 24px;
 }
 
 .login-logo-icon {
@@ -316,6 +319,7 @@
   border-radius: 0;
   box-shadow: none;
   border: none;
+  position: relative;
 }
 
 .login-form-header-row {
@@ -378,6 +382,7 @@
   margin-bottom: 8px;
   letter-spacing: -0.02em;
   line-height: 1.2;
+  text-align: center;
   animation: slideUp 0.5s ease-out 0.3s both;
 }
 
@@ -387,6 +392,9 @@
   margin-bottom: 32px;
   line-height: 1.5;
   max-width: 360px;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
   animation: slideUp 0.5s ease-out 0.4s both;
 }
 
@@ -760,7 +768,7 @@
   margin-top: 48px;
   padding-top: 32px;
   border-top: 1px solid var(--hospital-gray-100);
-  animation: slideUp 0.5s ease-out 0.7s both;
+  animation: slideUp 0.5s ease-out 0.1s both;
 }
 
 .login-platform-features .feature-item {
@@ -772,7 +780,8 @@
   padding: 16px 8px;
   border-radius: 16px;
   transition: all 0.3s ease;
-  cursor: default;
+  cursor: pointer;
+  outline: none;
 }
 
 .login-platform-features .feature-item:hover {
@@ -795,11 +804,186 @@
     0 2px 4px rgba(37, 99, 235, 0.15);
 }
 
-.login-platform-features .feature-item:hover .feature-icon {
+.login-platform-features .feature-item:hover .feature-icon,
+.login-platform-features .feature-item.is-active .feature-icon {
   transform: scale(1.1) rotate(5deg);
   box-shadow:
-    0 8px 20px rgba(37, 99, 235, 0.35),
+    0 8px 24px rgba(37, 99, 235, 0.4),
     0 4px 8px rgba(37, 99, 235, 0.2);
+}
+
+.login-platform-features .feature-item.is-active {
+  background: white;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--hospital-gray-200);
+}
+
+/* ─── Contextual Insights ─── */
+.login-subtitle-container {
+  min-height: 60px;
+  margin-bottom: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.login-form-subtitle {
+  font-size: 0.9375rem;
+  color: var(--hospital-gray-500);
+  line-height: 1.5;
+  max-width: 360px;
+  margin: 0;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.login-form-subtitle.is-insight {
+  color: var(--hospital-blue);
+  background: rgba(37, 99, 235, 0.04);
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(37, 99, 235, 0.1);
+  font-size: 0.85rem;
+}
+
+.insight-inline-icon {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 6px;
+  margin-top: -2px;
+  color: var(--hospital-blue);
+}
+
+.insight-close-pill {
+  margin-top: 12px;
+  background: white;
+  border: 1px solid var(--hospital-gray-200);
+  padding: 4px 10px;
+  border-radius: 100px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: var(--hospital-gray-500);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.insight-close-pill:hover {
+  background: var(--hospital-gray-50);
+  color: var(--hospital-blue);
+  border-color: var(--hospital-blue);
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+  }
+}
+
+@media (max-width: 1200px) {
+  .feature-detail-card {
+    position: fixed;
+    inset: 0;
+    margin: auto;
+    right: 20px;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: auto;
+    max-width: 360px;
+    height: fit-content;
+    box-shadow: 0 0 0 100vmax rgba(0,0,0,0.4); /* Backdrop */
+  }
+  
+  @keyframes slideInLeft {
+    from { opacity: 0; transform: translateY(-40%); }
+    to { opacity: 1; transform: translateY(-50%); }
+  }
+  
+  .feature-detail-card::after {
+    display: none;
+  }
+}
+
+@keyframes slideUpPopup {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.feature-detail-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--hospital-blue);
+}
+
+.feature-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.detail-icon-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(37, 99, 235, 0.08);
+  padding: 6px 14px;
+  border-radius: 100px;
+  color: var(--hospital-blue);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.detail-close {
+  background: var(--hospital-gray-100);
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--hospital-gray-500);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.detail-close:hover {
+  background: var(--hospital-red);
+  color: white;
+  transform: rotate(90deg);
+}
+
+.feature-detail-body p {
+  font-size: 0.875rem;
+  color: var(--hospital-gray-600);
+  line-height: 1.6;
+  margin: 0;
 }
 
 .login-platform-features .feature-text strong {

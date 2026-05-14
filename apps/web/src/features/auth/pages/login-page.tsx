@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   Mail, Lock, Eye, EyeOff, Loader2, AlertCircle,
-  Video, Activity, ShieldCheck, Building2, Stethoscope, Clipboard
+  Video, Activity, ShieldCheck, Building2, X
 } from 'lucide-react';
 import { z } from 'zod';
 import { apiClient } from '@/infrastructure/api-client';
@@ -23,6 +23,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof LoginFields, string>>>({});
   const [rememberMe, setRememberMe] = useState(false);
+  const [activeFeature, setActiveFeature] = useState<string | null>(null);
 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -91,15 +92,6 @@ export default function LoginPage() {
     <div className="login-screen">
       <div className="login-container fade-in">
 
-        {/* ─── Header area ─────────────────────────────────── */}
-        <div className="login-header">
-          <div className="login-logo">
-            <div className="login-logo-icon">
-              <Building2 size={32} color="white" strokeWidth={2.5} />
-            </div>
-            <span className="login-logo-text">Kreed<span>.health</span></span>
-          </div>
-        </div>
 
         {/* ─── Main Content Area ─────────────────────────────────────────────── */}
         <div className="login-content-grid">
@@ -120,6 +112,14 @@ export default function LoginPage() {
           {/* Right Side: Form */}
           <div className="login-form-side">
             <div className="login-form-card">
+              {/* ─── Integrated Logo ─── */}
+              <div className="login-form-logo">
+                <div className="login-logo-icon">
+                  <Building2 size={32} color="white" strokeWidth={2.5} />
+                </div>
+                <span className="login-logo-text">Kreed<span>.health</span></span>
+              </div>
+
               <div className="login-form-header-row">
                 <div className="login-form-header-badge">
                   <ShieldCheck size={14} />
@@ -131,9 +131,35 @@ export default function LoginPage() {
                 </div>
               </div>
               <h1 className="login-form-title">Hospital Portal</h1>
-              <p className="login-form-subtitle">
-                Access your clinical dashboard, patient records, and hospital management tools.
-              </p>
+              <div className="login-subtitle-container">
+                <p className={`login-form-subtitle ${activeFeature ? 'is-insight' : ''}`}>
+                  {activeFeature === 'ai' && (
+                    <>
+                      <Activity size={12} className="insight-inline-icon" />
+                      <strong>AI Intelligence:</strong> Our proprietary engine assists with clinical analysis and remedy suggestions using 15+ years of data.
+                    </>
+                  )}
+                  {activeFeature === 'tele' && (
+                    <>
+                      <Video size={12} className="insight-inline-icon" />
+                      <strong>Telehealth:</strong> Integrated HD video suite designed for remote diagnostics with built-in vitals tracking.
+                    </>
+                  )}
+                  {activeFeature === 'data' && (
+                    <>
+                      <ShieldCheck size={12} className="insight-inline-icon" />
+                      <strong>Security:</strong> Enterprise-grade HIPAA-compliant 256-bit encryption with dedicated clinical tenant isolation.
+                    </>
+                  )}
+                  {!activeFeature && "Access your clinical dashboard, patient records, and hospital management tools."}
+                </p>
+                {activeFeature && (
+                  <button className="insight-close-pill" onClick={() => setActiveFeature(null)}>
+                    <X size={10} />
+                    <span>Back</span>
+                  </button>
+                )}
+              </div>
 
               <form className="login-form" onSubmit={handleSubmit} noValidate>
                 <div className="form-group input-wrapper has-input-icon">
@@ -201,21 +227,36 @@ export default function LoginPage() {
 
               {/* ─── Platform Features ─────────────────────────────────────── */}
               <div className="login-platform-features">
-                <div className="feature-item">
+                <div 
+                  className={`feature-item ${activeFeature === 'ai' ? 'is-active' : ''}`}
+                  onClick={() => setActiveFeature('ai')}
+                  role="button"
+                  tabIndex={0}
+                >
                   <div className="feature-icon"><Activity size={18} /></div>
                   <div className="feature-text">
                     <strong>AI Consultation</strong>
                     <span>Smart clinical assistance</span>
                   </div>
                 </div>
-                <div className="feature-item">
+                <div 
+                  className={`feature-item ${activeFeature === 'tele' ? 'is-active' : ''}`}
+                  onClick={() => setActiveFeature('tele')}
+                  role="button"
+                  tabIndex={0}
+                >
                   <div className="feature-icon"><Video size={18} /></div>
                   <div className="feature-text">
                     <strong>Telehealth Ready</strong>
                     <span>Integrated video care</span>
                   </div>
                 </div>
-                <div className="feature-item">
+                <div 
+                  className={`feature-item ${activeFeature === 'data' ? 'is-active' : ''}`}
+                  onClick={() => setActiveFeature('data')}
+                  role="button"
+                  tabIndex={0}
+                >
                   <div className="feature-icon"><ShieldCheck size={18} /></div>
                   <div className="feature-text">
                     <strong>Secure Data</strong>
