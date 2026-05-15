@@ -111,14 +111,63 @@
       "idx": 15,
       "version": "7",
       "when": 1746800000000,
-      "tag": "0016_query_performance_indexes",
+      "tag": "0015_add_vitals_regid_fix_images",
       "breakpoints": true
     },
     {
       "idx": 16,
       "version": "7",
       "when": 1746810000000,
-      "tag": "0017_dashboard_query_indexes",
+      "tag": "0016_add_case_reminders",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1746820000000,
+      "tag": "0017_query_performance_indexes",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1746830000000,
+      "tag": "0018_dashboard_query_indexes",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1747200000000,
+      "tag": "0019_fix_schema_drift",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1747210000000,
+      "tag": "0020_add_unreg_patient_id",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1747220000000,
+      "tag": "0021_add_clinic_id_to_finance_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1747300000000,
+      "tag": "0022_add_clinical_codes_and_billing_cols",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1747310000000,
+      "tag": "0023_fix_medicines_schema_drift",
       "breakpoints": true
     }
   ]

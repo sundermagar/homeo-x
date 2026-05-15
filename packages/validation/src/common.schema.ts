@@ -25,6 +25,6 @@ export const numericStringSchema = z
   .string()
   .regex(/^\d*$/, { message: 'Must contain only numbers' });
 
-export const phoneSchema = numericStringSchema.max(20).optional();
+export const phoneSchema = z.string().regex(/^(\d{10})?$/, { message: 'Phone number must be exactly 10 digits' }).optional().or(z.literal(''));
 
 

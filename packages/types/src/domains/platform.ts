@@ -58,6 +58,7 @@ export interface CreateOrganizationInput {
   description?: string;
   adminEmail?:  string;
   adminPassword?: string;
+  sendWelcomeEmail?: boolean;
   registrationFee?: number;
 }
 

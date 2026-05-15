@@ -16,6 +16,7 @@ export const createOrganizationSchema = z.object({
   // Initial Administrator
   adminEmail:    z.string().email('Invalid admin email'),
   adminPassword: z.string().min(6, 'Admin password must be at least 6 characters'),
+  sendWelcomeEmail: z.boolean().optional().default(false),
 });
 
 export const updateOrganizationSchema = createOrganizationSchema.partial();
@@ -37,6 +38,7 @@ export const createAccountSchema = z.object({
   designation: z.string().optional().default(''),
   dept:        z.number().int().optional().default(1),
   clinicId:    z.number().int().positive().optional().nullable(),
+  sendWelcomeEmail: z.boolean().optional().default(false),
 });
 
 export const updateAccountSchema = createAccountSchema.omit({ password: true }).partial();

@@ -17,7 +17,7 @@ import { Drawer } from '@/shared/components/drawer';
 
 const EMPTY_FORM: any = {
   name: '', email: '', phone: '', city: '', website: '', description: '', connectSince: '',
-  adminEmail: '', adminPassword: '',
+  adminEmail: '', adminPassword: '', sendWelcomeEmail: false,
 };
 
 export default function ClinicsPage() {
@@ -88,6 +88,7 @@ export default function ClinicsPage() {
       connectSince: org.connectSince || '',
       adminEmail: org.adminEmail || '',
       adminPassword: '',
+      sendWelcomeEmail: false,
     });
     setIsCreating(true);
   };
@@ -107,7 +108,7 @@ export default function ClinicsPage() {
     }
   };
 
-  const set = (key: string, val: string) =>
+  const set = (key: string, val: any) =>
     setForm(prev => ({ ...prev, [key]: val }));
 
   const activeCities = new Set(orgs.map(o => o.city).filter(Boolean)).size;
@@ -309,6 +310,7 @@ export default function ClinicsPage() {
                     <label className="plat-form-label">Phone Number</label>
                     <NumericInput
                       className="plat-form-input"
+                      name="phone"
                       value={form.phone || ''}
                       onChange={e => set('phone', e.target.value)}
                       placeholder="9876543210"
@@ -376,6 +378,22 @@ export default function ClinicsPage() {
                     />
                   </div>
                 </div>
+                {!editingOrg && (
+                  <div className="plat-form-group" style={{ marginTop: '16px' }}>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={form.sendWelcomeEmail || false}
+                        onChange={e => set('sendWelcomeEmail', e.target.checked)}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        style={{ width: '16px', height: '16px' }}
+                      />
+                      <span className="text-sm font-medium text-gray-700">
+                        Send welcome email with credentials
+                      </span>
+                    </label>
+                  </div>
+                )}
               </div>
 
               <div className="plat-modal-footer">

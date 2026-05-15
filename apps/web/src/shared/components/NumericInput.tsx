@@ -79,11 +79,21 @@ export const NumericInput: React.FC<NumericInputProps> = ({
     }
   };
 
+  const isPhoneField = (props.type === 'tel' || !props.type) && 
+                       (props.name?.toLowerCase().includes('phone') || 
+                        props.name?.toLowerCase().includes('mobile') ||
+                        props.placeholder?.toLowerCase().includes('phone') ||
+                        props.placeholder?.toLowerCase().includes('mobile') ||
+                        props.placeholder?.match(/^\d{10}$/));
+  
+  const finalMaxLength = props.maxLength || (isPhoneField ? 10 : undefined);
+
   return (
     <input
       {...props}
       type={props.type || "tel"}
       inputMode="numeric"
+      maxLength={finalMaxLength}
       onKeyDown={handleKeyDown}
       onChange={handleChange}
       onPaste={handlePaste}

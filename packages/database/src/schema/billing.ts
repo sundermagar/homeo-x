@@ -42,3 +42,28 @@ export const payments = pgTable('payments', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   deletedAt: timestamp('deleted_at'),
 });
+
+export const charges = pgTable('charges', {
+  id: serial('id').primaryKey(),
+  charges: varchar('charges', { length: 255 }),
+  amount: real('amount').default(0),
+  quantity: integer('quantity').default(0),
+  type: varchar('type', { length: 50 }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  deletedAt: timestamp('deleted_at'),
+});
+
+export const additionalCharges = pgTable('additional_charges', {
+  id: serial('id').primaryKey(),
+  regid: integer('regid').references(() => patients.regid, { onDelete: 'set null' }),
+  randId: varchar('rand_id', { length: 50 }),
+  dateval: varchar('dateval', { length: 20 }),
+  additionalName: varchar('additional_name', { length: 255 }),
+  additionalPrice: real('additional_price').default(0),
+  additionalQuantity: integer('additional_quantity').default(1),
+  receivedPrice: real('received_price').default(0),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  deletedAt: timestamp('deleted_at'),
+});

@@ -35,6 +35,7 @@ import { createAccountsRouter } from './routes/accounts.router.js';
 import { createDayChargesRouter } from './routes/day-charges.router.js';
 import { createDepositsRouter } from './routes/deposits.router.js';
 import { createExpensesRouter } from './routes/expenses.router.js';
+import { createChargesRouter } from './routes/charges.router.js';
 import { createOrganizationRouter } from './routes/organization.router.js';
 import { createAccountRouter } from './routes/account.router.js';
 import { createClinicAdminsRouter } from './routes/clinicadmins.router.js';
@@ -141,6 +142,7 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   app.use('/api/day-charges', createDayChargesRouter());
   app.use('/api/deposits', createDepositsRouter());
   app.use('/api/expenses', createExpensesRouter());
+  app.use('/api/charges', createChargesRouter());
 
   // Our modules — Platform (JWT required)
   app.use('/api/organizations', authMiddleware, createOrganizationRouter());
@@ -224,6 +226,35 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   }
 
 
+
+  // --- AUTO-MIGRATE ALL TENANTS ON STARTUP ---
+  // This ensures every tenant schema is always up-to-date with the latest migrations.
+  // Runs in the background (fire-and-forget) so it doesn't block server startup.
+  (async () => {
+    try {
+      const { migrateTenant } = await import('@mmc/database');
+      const allTenants = TenantRegistry.getAll();
+      const dbUrl = process.env.DATABASE_URL!;
+      
+      logger.info(`🔄 Auto-migrating ${allTenants.length} tenant(s)...`);
+      let successCount = 0;
+      let failCount = 0;
+      
+      for (const tenant of allTenants) {
+        try {
+          await migrateTenant(dbUrl, tenant.schemaName);
+          successCount++;
+        } catch (migErr: any) {
+          failCount++;
+          logger.warn({ schema: tenant.schemaName, err: migErr.message }, 'Tenant migration failed (non-fatal)');
+        }
+      }
+      
+      logger.info(`✅ Auto-migration complete: ${successCount} succeeded, ${failCount} failed out of ${allTenants.length} tenants`);
+    } catch (err: any) {
+      logger.error({ err: err.message }, 'Auto-migration system error (non-fatal)');
+    }
+  })();
 
   // For background jobs and system tasks, we provide a default tenant DB (demo)
   const defaultTenant = TenantRegistry.resolve('demo') || { schemaName: 'public' };

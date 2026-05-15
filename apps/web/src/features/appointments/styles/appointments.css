@@ -3130,36 +3130,39 @@
 /* ─── Segmented Toggle (Grid/List) ──────────────────────────────────────── */
 .appt-segmented-toggle {
   display: inline-flex;
-  gap: 4px;
-  background: #f8fafc;
-  padding: 4px;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
+  gap: 2px;
+  background: var(--pp-warm-2);
+  padding: 3px;
+  border-radius: 10px;
+  border: 1px solid var(--pp-warm-4);
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);
 }
 
 .appt-segmented-btn {
   background: transparent;
   border: none;
   padding: 6px 14px;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 13px;
   font-weight: 600;
-  color: #64748b;
+  color: var(--pp-text-3);
   display: flex;
   align-items: center;
   gap: 6px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .appt-segmented-btn:hover {
-  color: #0f172a;
+  color: var(--pp-ink);
+  background: rgba(255, 255, 255, 0.5);
 }
 
-.appt-segmented-btn.active {
+.appt-segmented-btn.active,
+.appt-segmented-btn.is-active {
   background: #ffffff;
-  color: #0f172a;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
+  color: var(--pp-blue);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 /* ─── Token Queue Board Refinement ────────────────────────────────────────── */

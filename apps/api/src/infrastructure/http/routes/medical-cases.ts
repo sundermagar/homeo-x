@@ -103,13 +103,11 @@ router.delete('/vitals/:id', asyncHandler(async (req, res) => {
   sendSuccess(res, null, 'Vitals record deleted');
 }));
 
-/*
 router.post('/vitals/analyze', asyncHandler(async (req, res) => {
   const useCase = new AnalyzeVitalsUseCase(req.tenantDb);
   const result = await useCase.execute(req.body);
   sendSuccess(res, result);
 }));
-*/
 
 router.get('/soap/:visitId', asyncHandler(async (req, res) => {
   const { regid } = req.query;

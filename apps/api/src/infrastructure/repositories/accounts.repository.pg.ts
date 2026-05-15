@@ -609,3 +609,89 @@ export class ExpenseRepositoryPg implements ExpenseRepository {
     };
   }
 }
+
+/**
+ * PostgreSQL adapter for ChargeRepository.
+ */
+import { charges as chargesLegacy } from '@mmc/database/schema';
+import type { ChargeRepository } from '../../domains/billing/ports/accounts.repository.js';
+import type { Charge } from '@mmc/types';
+import type { CreateChargeInput, UpdateChargeInput } from '@mmc/validation';
+
+export class ChargeRepositoryPg implements ChargeRepository {
+  constructor(private readonly db: DbClient) { }
+
+  async findById(id: number): Promise<Charge | null> {
+    const [row] = await this.db
+      .select()
+      .from(chargesLegacy)
+      .where(and(eq(chargesLegacy.id, id), isNull(chargesLegacy.deletedAt)))
+      .limit(1);
+    return row ? this.toDomain(row) : null;
+  }
+
+  async findAll(): Promise<Charge[]> {
+    try {
+      const rows = await this.db
+        .select()
+        .from(chargesLegacy)
+        .where(isNull(chargesLegacy.deletedAt))
+        .orderBy(desc(chargesLegacy.id));
+      return rows.map(this.toDomain.bind(this));
+    } catch {
+      return [];
+    }
+  }
+
+  async create(data: CreateChargeInput): Promise<Charge> {
+    const [row] = await this.db
+      .insert(chargesLegacy)
+      .values({
+        charges: data.charges,
+        amount: data.amount,
+        quantity: data.quantity,
+        type: data.type,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+    return this.toDomain(row!);
+  }
+
+  async update(id: number, data: UpdateChargeInput): Promise<Charge | null> {
+    const [row] = await this.db
+      .update(chargesLegacy)
+      .set({
+        ...(data.charges !== undefined && { charges: data.charges }),
+        ...(data.amount !== undefined && { amount: data.amount }),
+        ...(data.quantity !== undefined && { quantity: data.quantity }),
+        ...(data.type !== undefined && { type: data.type }),
+        updatedAt: new Date(),
+      })
+      .where(and(eq(chargesLegacy.id, id), isNull(chargesLegacy.deletedAt)))
+      .returning();
+    return row ? this.toDomain(row) : null;
+  }
+
+  async softDelete(id: number): Promise<boolean> {
+    const [row] = await this.db
+      .update(chargesLegacy)
+      .set({ deletedAt: new Date() })
+      .where(and(eq(chargesLegacy.id, id), isNull(chargesLegacy.deletedAt)))
+      .returning();
+    return !!row;
+  }
+
+  private toDomain(row: typeof chargesLegacy.$inferSelect): Charge {
+    return {
+      id: row.id,
+      charges: row.charges ?? null,
+      amount: row.amount ?? null,
+      quantity: row.quantity ?? null,
+      type: row.type ?? null,
+      createdAt: row.createdAt ?? null,
+      updatedAt: row.updatedAt ?? null,
+      deletedAt: row.deletedAt ?? null,
+    };
+  }
+}

@@ -10,6 +10,7 @@ import {  ListAccountsUseCase,
   UpdateAccountUseCase,
   DeleteAccountUseCase,
 } from '../../../domains/platform/index.js';
+import { emailService } from '../../communication/nodemailer.service.js';
 
 export function createAccountRouter(): Router {
   const router = Router();
@@ -66,6 +67,21 @@ export function createAccountRouter(): Router {
         }
       } catch (err: any) {
         logger.error({ err, accountName: result.name }, 'Failed to provision tenant DB');
+      }
+    }
+
+    if (req.body.sendWelcomeEmail && req.body.email && req.body.password) {
+      try {
+        await emailService.sendWelcomeCredentials(
+          req.body.email,
+          result.name,
+          'Account Manager',
+          req.body.password,
+          false
+        );
+        logger.info({ email: req.body.email }, 'Account welcome email sent successfully');
+      } catch (emailErr: any) {
+        logger.error({ err: emailErr.message, email: req.body.email }, 'Failed to send account welcome email');
       }
     }
 

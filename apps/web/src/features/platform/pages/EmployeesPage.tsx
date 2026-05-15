@@ -116,6 +116,7 @@ function getDefaultStaffForm(): CreateStaffInput {
     col12Document: '',
     bhmsDocument: '',
     mdDocument: '',
+    sendWelcomeEmail: false,
   };
 }
 
@@ -160,6 +161,7 @@ function staffMemberToForm(staff: StaffMember): CreateStaffInput {
     col12Document: staff.col12Document || '',
     bhmsDocument: staff.bhmsDocument || '',
     mdDocument: staff.mdDocument || '',
+    sendWelcomeEmail: false,
   };
 }
 
@@ -353,6 +355,7 @@ function StaffModal({
                 <label className="plat-form-label">Mobile Number *</label>
                 <NumericInput
                   className="plat-form-input"
+                  name="mobile"
                   value={form.mobile || ''}
                   onChange={(e: any) => updateForm('mobile', e.target.value)}
                   disabled={isLoading}
@@ -365,6 +368,7 @@ function StaffModal({
                 <label className="plat-form-label">Emergency Mobile</label>
                 <NumericInput
                   className="plat-form-input"
+                  name="mobile2"
                   value={form.mobile2 || ''}
                   onChange={(e: any) => updateForm('mobile2', e.target.value)}
                   disabled={isLoading}
@@ -485,6 +489,23 @@ function StaffModal({
                 />
                 {errors['password'] && <span className="plat-form-error">{errors['password']}</span>}
               </div>
+
+              {mode === 'create' && (
+                <div className="plat-form-group" style={{ gridColumn: 'span 2', marginTop: '8px' }}>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={!!form.sendWelcomeEmail}
+                      onChange={(e) => updateForm('sendWelcomeEmail', e.target.checked)}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      style={{ width: '16px', height: '16px' }}
+                    />
+                    <span className="text-sm font-medium text-gray-700">
+                      Send welcome email with credentials
+                    </span>
+                  </label>
+                </div>
+              )}
             </div>
           </div>
 
@@ -689,10 +710,10 @@ export default function EmployeesPage() {
                     <td data-label="Actions">
                       <div className="plat-cell-val">
                         <div className="flex justify-end gap-2" style={{ width: '100%' }}>
-                          <button className="plat-btn plat-btn-icon plat-btn-ghost" style={{ width: 36, height: 36, borderRadius: 10 }} title="Edit" onClick={() => openEdit(s)}>
+                          <button className="plat-btn plat-btn-icon plat-btn-ghost" style={{ width: 36, height: 36, borderRadius: 10 }} title="Edit" onClick={(e) => { e.stopPropagation(); openEdit(s); }}>
                             <Edit2 size={13} />
                           </button>
-                          <button className="plat-btn plat-btn-icon plat-btn-danger" style={{ width: 36, height: 36, borderRadius: 10 }} title="Delete" onClick={() => handleDelete(s.id)} disabled={deleteMutation.isPending}>
+                          <button className="plat-btn plat-btn-icon plat-btn-danger" style={{ width: 36, height: 36, borderRadius: 10 }} title="Delete" onClick={(e) => { e.stopPropagation(); handleDelete(s.id); }} disabled={deleteMutation.isPending}>
                             <Trash2 size={13} />
                           </button>
                         </div>

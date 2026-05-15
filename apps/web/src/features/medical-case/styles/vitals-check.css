@@ -54,11 +54,61 @@
 /* ─── Cards ─── */
 .ghub-primary-card {
   background: var(--bg-card);
-  border-radius: var(--radius-card);
-  padding: 20px;
   border: 1px solid var(--border-main);
+  border-radius: 24px;
+  padding: 32px;
+  box-shadow: var(--pp-shadow-lg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.dark .ghub-primary-card {
+  background: #000000;
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+}
+
+.ghub-metric-card {
+  position: relative;
+  background: var(--bg-surface-2);
+  border-radius: 20px;
+  padding: 24px;
+  border: 1.5px solid var(--border-main);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
   display: flex;
   flex-direction: column;
+  gap: 12px;
+}
+
+.ghub-metric-card:hover {
+  transform: translateY(-6px);
+  border-color: var(--primary-border);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+  background: var(--bg-card);
+}
+
+.dark .ghub-metric-card {
+  background: #0a0a0a;
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.dark .ghub-metric-card:hover {
+  background: rgba(30, 41, 59, 0.6);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+}
+
+.ghub-level-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 4px;
+  transition: all 0.3s ease;
+}
+
+.ghub-metric-card:hover .ghub-level-bar {
+  width: 6px;
 }
 
 .ghub-secondary-card {
@@ -145,6 +195,33 @@
   font-family: inherit;
 }
 
+.dark .ghub-premium-input {
+  background: #050505;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.ghub-premium-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+}
+
+.dark .ghub-premium-input:focus {
+  background: rgba(15, 23, 42, 0.8);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
+}
+
+/* Hide default date picker icon in Chrome/Safari/Edge */
+.ghub-premium-input::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  cursor: pointer;
+  z-index: 2;
+}
+
 .ghub-no-icon {
   padding-left: 16px !important;
 }
@@ -189,51 +266,53 @@
 
 .ghub-toggle-group {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  flex-direction: row;
+  gap: 0;
 }
 
 .ghub-toggle-item {
   flex: 1;
-  border: 1px solid var(--border-main);
   padding: 14px;
-  border-radius: var(--radius-btn);
-  text-align: center;
-  font-weight: 700;
-  font-size: 0.9rem;
-  color: var(--text-muted);
+  border: 1.5px solid var(--border-main);
   background: var(--bg-card);
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   cursor: pointer;
-  transition: all var(--transition-fast);
-  font-family: inherit;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.ghub-toggle-item:hover {
-  border-color: var(--primary-border);
+.ghub-toggle-item:first-child {
+  border-radius: 12px 0 0 12px;
 }
 
-.active-male {
-  background: var(--primary-tint);
+.ghub-toggle-item:last-child {
+  border-radius: 0 12px 12px 0;
+}
+
+.ghub-toggle-item.active-male {
+  background: rgba(37, 99, 235, 0.08);
   border-color: var(--primary);
   color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+  z-index: 1;
 }
 
-.active-female {
-  background: var(--danger-bg);
-  border-color: var(--danger);
-  color: var(--danger);
+.ghub-toggle-item.active-female {
+  background: rgba(236, 72, 153, 0.08);
+  border-color: #ec4899;
+  color: #ec4899;
+  box-shadow: inset 0 0 0 1px #ec4899;
+  z-index: 1;
 }
 
-/* ─── Metric Cards ─── */
-.ghub-metric-card {
-  background: var(--bg-surface-2);
-  border: 1px solid var(--border-main);
-  border-radius: var(--radius-card);
-  padding: 16px 16px 16px 20px;
-  position: relative;
-  overflow: hidden;
-  transition: border-color var(--transition-fast);
+.dark .ghub-toggle-item {
+  background: rgba(15, 23, 42, 0.4);
 }
+
+
 
 .ghub-metric-card:focus-within {
   border-color: var(--primary);
@@ -275,37 +354,75 @@
   font-size: 1.75rem;
 }
 
+.ghub-form-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 32px;
+}
+
 .ghub-action-button {
-  width: 100%;
-  background: var(--primary);
-  color: white;
+  flex: 2;
+  height: 54px;
   border: none;
-  padding: 16px;
-  border-radius: var(--radius-btn);
-  font-size: 0.9rem;
+  border-radius: 16px;
+  font-size: 0.85rem;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 12px;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: inherit;
-  margin-top: 24px;
 }
 
-.dark .ghub-action-button {
-  background: var(--primary);
-  color: var(--pp-ink);
+.ghub-action-button.primary {
+  background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+  color: white;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+.ghub-action-button.secondary {
+  flex: 1;
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-main);
+  color: var(--text-secondary);
+}
+
+.dark .ghub-action-button.primary {
+  background: linear-gradient(135deg, var(--primary), #3b82f6);
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+}
+
+.dark .ghub-action-button.secondary {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.dark .ghub-action-button.secondary:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: white;
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .ghub-action-button:hover:not(:disabled) {
-  background: var(--primary-hover);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  filter: brightness(1.05);
+}
+
+.ghub-action-button.primary:hover {
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.3);
+}
+
+.ghub-action-button.secondary:hover {
+  border-color: var(--primary-border);
+  color: var(--primary);
+  background: var(--bg-surface-2);
 }
 
 .ghub-action-button:active:not(:disabled) {
-  transform: translateY(0);
+  transform: translateY(0) scale(0.98);
 }
 
 .ghub-action-button:disabled {
@@ -358,6 +475,8 @@
   box-shadow: var(--pp-shadow-lg);
   overflow: hidden;
 }
+
+
 
 .ghub-drop-item {
   display: flex;
@@ -441,19 +560,19 @@
 }
 
 .ghub-recalculate-btn {
-  height: 40px;
-  padding: 0 16px;
-  border-radius: var(--radius-btn);
-  border: 1px solid var(--border-main);
+  height: 48px;
+  padding: 0 20px;
+  border-radius: 14px;
+  border: 1.5px solid var(--border-main);
   background: var(--bg-card);
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   font-weight: 700;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   cursor: pointer;
   color: var(--text-secondary);
-  transition: all var(--transition-fast);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: inherit;
   align-self: flex-start;
 }
@@ -462,6 +581,12 @@
   background: var(--bg-surface-2);
   border-color: var(--primary-border);
   color: var(--primary);
+  transform: translateY(-1px);
+  box-shadow: var(--pp-shadow-sm);
+}
+
+.ghub-recalculate-btn:active {
+  transform: translateY(0) scale(0.96);
 }
 
 /* ─── Results Grid ─── */
@@ -479,20 +604,22 @@
 
 /* ─── BMI Infographic ─── */
 .ghub-bmi-infographic {
-  border-radius: var(--radius-card);
-  padding: 20px;
+  border-radius: 24px;
+  padding: 32px;
   display: flex;
   flex-direction: column;
   align-items: center;
   border: 1px solid var(--border-main);
-  background: var(--bg-surface-2);
-  gap: 12px;
+  background: linear-gradient(145deg, var(--bg-surface-2), var(--bg-card));
+  gap: 16px;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.02);
 }
 
 .ghub-bmi-img {
-  width: 80px;
+  width: 100px;
   height: auto;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
+  filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.1));
 }
 
 .ghub-bmi-content {
@@ -557,11 +684,16 @@
 
 /* ─── Parameter Card (Results) ─── */
 .param-card {
-  border: 1px solid var(--bg-surface-2);
-  border-radius: var(--radius-card);
-  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 24px;
   background: var(--bg-card);
-  box-shadow: var(--pp-shadow-sm);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  transition: transform 0.3s ease;
+}
+
+.param-card:hover {
+  transform: scale(1.01);
 }
 
 
