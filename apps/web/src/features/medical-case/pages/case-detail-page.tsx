@@ -440,7 +440,7 @@ export default function MedicalCaseDetailPage() {
   const fullInvestigations = fullData?.investigations;
   const fullVaccines = fullData?.vaccines;
 
-  const ageString = medicalCase?.dateOfBirth ? `${new Date().getFullYear() - new Date(medicalCase.dateOfBirth).getFullYear()} Yrs` : 'Unknown Age';
+  const ageString = medicalCase?.dateOfBirth ? `${new Date().getFullYear() - new Date(medicalCase.dateOfBirth).getFullYear()} Years` : 'Unknown Age';
   const isToday = displayDate && displayDate.toDateString() === new Date().toDateString();
 
   const currentVisitSoaps = useMemo(() => {
@@ -651,7 +651,7 @@ export default function MedicalCaseDetailPage() {
                     doctor,
                     patient: {
                       name: medicalCase.patientName || `Patient ${regid}`,
-                      age: ageString.replace(' Yrs', ''),
+                      age: ageString.replace(' Years', ''),
                       gender: medicalCase.gender || undefined,
                       mrn: String(regid),
                       phone: medicalCase.phone || medicalCase.mobile || undefined,
@@ -684,7 +684,7 @@ export default function MedicalCaseDetailPage() {
           </div>
           <div className="profile-info-cell">
             <label>AGE</label>
-            <span>{ageString.replace(' Yrs', '') || 'Unknown'}</span>
+            <span>{ageString || 'Unknown'}</span>
           </div>
           <div className="profile-info-cell">
             <label>PHONE</label>
@@ -737,6 +737,7 @@ export default function MedicalCaseDetailPage() {
                     setActiveTab(tab.id);
                     if (tab.id === 'summary') rxWorkflow.setActiveTab(null);
                   }}
+                  title={tab.label}
                 >
                   <Icon size={20} />
                   <span className="mc-left-tab-label">{tab.label}</span>
