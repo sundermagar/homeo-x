@@ -110,8 +110,8 @@ export class PublicRepositoryPg implements PublicRepository {
   }
 
   async getLatestClinicalData(phone: string): Promise<any> {
-    // ─── Verification/Test Account ───
-    if (phone === '9999999999') {
+    // ─── Test Account (DEV only) ───
+    if (process.env.NODE_ENV === 'development' && phone === '9999999999') {
       return {
         patientInfo: {
           name: 'Aryan Sharma (Test)',
@@ -442,6 +442,50 @@ export class PublicRepositoryPg implements PublicRepository {
       }
     } catch (err) {
       console.error('[DB] patient_preferences upsert failed (likely missing table):', err);
+    }
+  }
+
+  async getClinics(): Promise<any[]> {
+    try {
+      const result = await this.db.execute(sql`
+        SELECT id, name, location, city, address, mobile, email, is_active
+        FROM dispensaries
+        WHERE is_active = true AND deleted_at IS NULL
+        ORDER BY name ASC
+      `);
+      return result.map((r: any) => ({
+        id: r.id,
+        name: r.name,
+        location: [r.city, r.location].filter(Boolean).join(', ') || r.address || '',
+        phone: r.mobile || '',
+        email: r.email || '',
+        verified: true,
+      }));
+    } catch (err) {
+      console.error('[DB] Failed to fetch clinics:', err);
+      return [];
+    }
+  }
+
+  async getDoctors(clinicId?: number): Promise<any[]> {
+    try {
+      const result = await this.db.execute(sql`
+        SELECT id, name, firstname, surname, designation, qualification, consultation_fee, mobile, email
+        FROM doctors
+        WHERE deleted_at IS NULL
+        ORDER BY name ASC
+      `);
+      return result.map((r: any) => ({
+        id: r.id,
+        name: r.name || [r.firstname, r.surname].filter(Boolean).join(' '),
+        specialization: r.designation || r.qualification || 'Homeopathy',
+        consultationFee: r.consultation_fee || '300',
+        phone: r.mobile || '',
+        email: r.email || '',
+      }));
+    } catch (err) {
+      console.error('[DB] Failed to fetch doctors:', err);
+      return [];
     }
   }
 }

@@ -22,7 +22,7 @@ export function PatientReports() {
   }
 
   if (error || !data) {
-    return <Navigate to="/verify-otp" />;
+    return <Navigate to="/patient/login" />;
   }
 
   const { patientInfo, history = [], prescriptions = [] } = data;
@@ -49,9 +49,7 @@ export function PatientReports() {
               const isExpanded = expandedId === i;
               const formatD = new Date(h.date);
               
-              // Dummy lab placeholders since we don't have real lab data yet
-              const labCount = (i % 3) + 1;
-              const medCount = matchedPrescripts.length || ((i % 4) + 1);
+              const medCount = matchedPrescripts.length;
 
               return (
                 <div key={i} className="patient-report-card-v2" style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', overflow: 'hidden', transition: 'all 0.3s ease', boxShadow: isExpanded ? '0 8px 24px rgba(0,0,0,0.06)' : 'none' }}>
@@ -84,12 +82,11 @@ export function PatientReports() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: 700, color: '#334155', background: '#f8fafc', padding: '6px 10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                       <Activity size={14} /> {h.condition || 'Fever, unspecified'}
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: 700, color: '#334155', background: '#f8fafc', padding: '6px 10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                      <Pill size={14} /> {medCount} medicine(s)
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: 700, color: '#334155', background: '#f8fafc', padding: '6px 10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                      <FlaskConical size={14} /> {labCount} lab test(s)
-                    </div>
+                    {medCount > 0 && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: 700, color: '#334155', background: '#f8fafc', padding: '6px 10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                        <Pill size={14} /> {medCount} medicine(s)
+                      </div>
+                    )}
                   </div>
 
                   {/* Expanded Detail Body */}
@@ -110,25 +107,7 @@ export function PatientReports() {
                                <span>{p.days} days</span>
                              </div>
                            )) : (
-                             <>
-                               {/* Placeholder mock data if no matching prescriptions found */}
-                               <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.8rem', color: '#475569' }}>
-                                 <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--primary)', flexShrink: 0 }} />
-                                 <span style={{ fontWeight: 600, color: 'var(--primary)' }}>Arsenicum Album 30C</span>
-                                 <span style={{ color: '#cbd5e1' }}>•</span>
-                                 <span>4 globules • 3 times daily</span>
-                                 <span style={{ color: '#cbd5e1' }}>•</span>
-                                 <span>5 days</span>
-                               </div>
-                               <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.8rem', color: '#475569' }}>
-                                 <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--primary)', flexShrink: 0 }} />
-                                 <span style={{ fontWeight: 600, color: 'var(--primary)' }}>Rhus Tox 200C</span>
-                                 <span style={{ color: '#cbd5e1' }}>•</span>
-                                 <span>4 globules • 1 time daily</span>
-                                 <span style={{ color: '#cbd5e1' }}>•</span>
-                                 <span>10 days</span>
-                               </div>
-                             </>
+                             <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic' }}>No prescriptions recorded for this visit</div>
                            )}
                         </div>
                       </div>
@@ -141,13 +120,7 @@ export function PatientReports() {
                         </div>
                       </div>
 
-                      {/* Lab Tests */}
-                      <div>
-                        <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#1e293b', marginBottom: '4px' }}>Lab Tests</div>
-                        <div style={{ fontSize: '0.8rem', color: '#64748b', lineHeight: '1.5' }}>
-                          Stool routine and culture (if fever persists &gt;5 days), Complete blood count (if symptoms worsen).
-                        </div>
-                      </div>
+
 
                     </div>
                   )}

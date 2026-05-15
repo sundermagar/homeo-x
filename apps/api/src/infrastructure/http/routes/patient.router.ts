@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import type { Request, Response, Router as IRouter } from 'express';
 import { createPatientSchema, updatePatientSchema, familyMemberSchema } from '@mmc/validation';
+import bcrypt from 'bcryptjs';
+import { sql } from 'drizzle-orm';
 import { PatientRepositoryPg } from '../../repositories/patient.repository.pg.js';
 import { OrganizationRepositoryPg } from '../../repositories/organization.repository.pg.js';
 import { BillingRepositoryPg } from '../../repositories/billing.repository.pg.js';
@@ -164,6 +166,12 @@ patientRouter.post('/', authMiddleware, async (req: Request, res: Response) => {
     const clinicId = req.user?.contextId;
     const result = await uc.execute(parsed.data, clinicId);
     if (result.success) {
+      // Hash and save portal password if provided
+      const portalPassword = req.body.portalPassword;
+      if (portalPassword && portalPassword.trim()) {
+        const hash = bcrypt.hashSync(portalPassword.trim(), 10);
+        await req.tenantDb.execute(sql`UPDATE case_datas SET password_hash = ${hash} WHERE regid = ${result.data.patient.regid}`);
+      }
       res.status(201).json({ success: true, data: result.data.patient, regid: result.data.patient.regid, registrationBillId: (result.data as any).registrationBillId });
     } else {
       res.status(400).json({ success: false, message: result.error });
@@ -188,6 +196,12 @@ patientRouter.put('/:regid', async (req: Request, res: Response) => {
     const uc = new UpdatePatientUseCase(repo, billingRepo);
     const result = await uc.execute(regid, parsed.data);
     if (result.success) {
+      // Hash and save portal password if provided (blank = keep existing)
+      const portalPassword = req.body.portalPassword;
+      if (portalPassword && portalPassword.trim()) {
+        const hash = bcrypt.hashSync(portalPassword.trim(), 10);
+        await req.tenantDb.execute(sql`UPDATE case_datas SET password_hash = ${hash} WHERE regid = ${regid}`);
+      }
       res.json({ success: true, data: result.data });
     } else {
       res.status(404).json({ success: false, message: result.error });

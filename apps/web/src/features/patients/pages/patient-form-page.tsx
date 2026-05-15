@@ -16,7 +16,7 @@ const INDIAN_STATES = [
 
 const INIT_FORM = {
   title: 'Mr.', firstName: '', middleName: '', surname: '', gender: 'M' as 'M' | 'F' | 'Other',
-  phone: '', mobile1: '', mobile2: '', email: '',
+  phone: '', mobile1: '', mobile2: '', email: '', portalPassword: '',
   pin: '', address: '', road: '', area: '', city: '', state: 'Punjab', country: 'India', altAddress: '',
   religion: '', occupation: '', maritalStatus: '', bloodGroup: '',
   referenceType: '', referredBy: '', assistantDoctor: '', consultationFee: undefined as number | undefined,
@@ -211,6 +211,11 @@ export default function PatientFormPage() {
             <div>
               <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Email</label>
               <input className="pp-input" name="email" value={form.email} onChange={handleChange} placeholder="Email" type="email" />
+            </div>
+            <div>
+              <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Portal Password {!isEdit && <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 400 }}>(for patient login)</span>}</label>
+              <input className="pp-input" name="portalPassword" value={form.portalPassword} onChange={handleChange} placeholder={isEdit ? '••••• (leave blank to keep)' : 'Set portal password'} type="password" autoComplete="new-password" />
+            </div>
             </div>
             <div>
               <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Date of Birth</label>

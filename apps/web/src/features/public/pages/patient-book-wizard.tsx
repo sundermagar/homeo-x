@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Search, ArrowLeft, MapPin, Sparkles, ChevronRight, Clock, Phone, Mail, User, Video, PhoneCall, CalendarDays } from 'lucide-react';
 import { PatientBottomNav } from '../components/patient-bottom-nav';
-import { useBookAppointment, usePublicClinicalData, useBookedSlots, useCancelAppointment } from '../hooks/use-public-api';
+import { useBookAppointment, usePublicClinicalData, useBookedSlots, useCancelAppointment, usePublicClinics, usePublicDoctors } from '../hooks/use-public-api';
 
 export default function PatientBookWizard() {
   const { phone } = useParams<{ phone: string }>();
@@ -12,19 +12,14 @@ export default function PatientBookWizard() {
   const isReschedule = searchParams.get('reschedule') === 'true';
   const oldApptId = searchParams.get('oldApptId');
 
-  // Hardcoded UI Mock Data from Request
-  const clinics = [
-    { id: 1, name: 'homeo clinic', location: 'kurukshetra, haryana', verified: true }
-  ];
-
-  const doctors = [
-    { id: 1, name: 'Dr. neeraj verma', specialization: 'Homeopathy' }
-  ];
+  // Fetch clinics and doctors from DB
+  const { data: clinics = [], isLoading: clinicsLoading } = usePublicClinics();
+  const { data: doctors = [], isLoading: doctorsLoading } = usePublicDoctors();
 
   // Booking Flow State
   const [step, setStep] = useState<number>(isReschedule ? 3 : 1);
-  const [selectedClinic, setSelectedClinic] = useState<any>(isReschedule ? clinics[0] : null);
-  const [selectedDoctor, setSelectedDoctor] = useState<any>(isReschedule ? doctors[0] : null);
+  const [selectedClinic, setSelectedClinic] = useState<any>(null);
+  const [selectedDoctor, setSelectedDoctor] = useState<any>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [consultMode, setConsultMode] = useState<'in-person' | 'video' | 'audio'>('in-person');

@@ -308,3 +308,17 @@ publicRouter.put('/patient/:phone/profile', asyncHandler(async (req, res) => {
   const result = await repo.updatePatientProfile(phone, updates);
   sendSuccess(res, result, 'Profile updated successfully');
 }));
+
+// ─── Public Clinics & Doctors ────────────────────────────────────────────
+publicRouter.get('/clinics', asyncHandler(async (req, res) => {
+  const repo = getRepo(req);
+  const clinics = await repo.getClinics();
+  sendSuccess(res, clinics);
+}));
+
+publicRouter.get('/doctors', asyncHandler(async (req, res) => {
+  const clinicId = req.query.clinicId ? Number(req.query.clinicId) : undefined;
+  const repo = getRepo(req);
+  const doctors = await repo.getDoctors(clinicId);
+  sendSuccess(res, doctors);
+}));

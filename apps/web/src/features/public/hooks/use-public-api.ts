@@ -150,3 +150,28 @@ export function useUpdatePatientPreferences() {
     },
   });
 }
+
+export function usePublicClinics() {
+  return useQuery<any[]>({
+    queryKey: ['public', 'clinics'],
+    queryFn: async () => {
+      const res = await apiClient.get('/public/clinics');
+      const result = res.data?.data ?? res.data;
+      return Array.isArray(result) ? result : [];
+    },
+    staleTime: 5 * 60_000, // cache for 5 min
+  });
+}
+
+export function usePublicDoctors(clinicId?: number) {
+  return useQuery<any[]>({
+    queryKey: ['public', 'doctors', clinicId],
+    queryFn: async () => {
+      const url = clinicId ? `/public/doctors?clinicId=${clinicId}` : '/public/doctors';
+      const res = await apiClient.get(url);
+      const result = res.data?.data ?? res.data;
+      return Array.isArray(result) ? result : [];
+    },
+    staleTime: 5 * 60_000,
+  });
+}
