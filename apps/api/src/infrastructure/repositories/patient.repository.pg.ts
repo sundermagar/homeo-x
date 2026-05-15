@@ -144,11 +144,18 @@ export class PatientRepositoryPg implements PatientRepository {
             SELECT MAX(d) FROM (
               SELECT recorded_at::date as d FROM vitals WHERE regid = ${patients.regid} AND recorded_at IS NOT NULL
               UNION ALL
-              SELECT COALESCE(NULLIF(dateval, '')::date, created_at::date) as d FROM case_potencies WHERE regid = ${patients.regid}
+              SELECT COALESCE(NULLIF(dateval, '')::date, created_at::date) as d
+                FROM case_potencies
+               WHERE regid = ${patients.regid}
+                 AND COALESCE(NULLIF(TRIM(rxremedy), ''), NULL) IS NOT NULL
+                 AND (deleted_at IS NULL OR deleted_at = '')
               UNION ALL
               SELECT created_at::date as d FROM soap_notes WHERE regid = ${patients.regid} AND created_at IS NOT NULL
               UNION ALL
-              SELECT COALESCE(NULLIF(dateval, '')::date, created_at::date) as d FROM case_notes WHERE regid = ${patients.regid}
+              SELECT COALESCE(NULLIF(dateval, '')::date, created_at::date) as d
+                FROM case_notes
+               WHERE regid = ${patients.regid}
+                 AND (deleted_at IS NULL OR CAST(deleted_at AS text) = '')
             ) t
           )`
         })

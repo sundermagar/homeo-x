@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { usePatientPrescriptions, useSavePrescription, useDeletePrescription } from './use-remedy-chart';
 
 export interface RxForm {
@@ -8,6 +8,16 @@ export interface RxForm {
   days: number;
   instructions: string;
   notes: string;
+}
+
+/**
+ * Safely extract delivery mode from a prescription row.
+ * DB drivers may return the column as deliveryMode, deliverymode, or delivery_mode.
+ */
+function getRowDeliveryMode(rx: any): string {
+  const mode = rx?.deliveryMode || rx?.deliverymode || rx?.delivery_mode;
+  if (mode && ['clinic', 'courier', 'pickup'].includes(mode)) return mode;
+  return 'clinic';
 }
 
 export function usePrescriptionWorkflow(regid: number, visitId?: number, selectedDate?: string | null) {
@@ -28,6 +38,11 @@ export function usePrescriptionWorkflow(regid: number, visitId?: number, selecte
     notes: ''
   });
 
+  // Keep a ref of delivery so the auto-save can read the latest value
+  // without having `delivery` in its dependency array (prevents race condition).
+  const deliveryRef = useRef(delivery);
+  deliveryRef.current = delivery;
+
   const isRxToday = useMemo(() => {
     return (history || []).some(rx => {
       const dateVal = rx.created_at || rx.dateval;
@@ -47,30 +62,27 @@ export function usePrescriptionWorkflow(regid: number, visitId?: number, selecte
     return todayRxs.reduce((prev, curr) => (prev.id < curr.id ? prev : curr));
   }, [history]);
 
-  // Sync delivery mode from history dynamically
+  // Sync delivery mode from history when selectedDate or history changes.
+  // Uses getRowDeliveryMode helper to handle all possible property name variants.
   useEffect(() => {
-    if (history?.length) {
-      // If we have a selected date, find the delivery mode for that date
-      if (selectedDate) {
-        const selectedRxs = history.filter(rx => {
-          const dateVal = rx.created_at || rx.dateval || rx.createdAt;
-          return dateVal && new Date(dateVal).toDateString() === new Date(selectedDate).toDateString();
-        });
-        if (selectedRxs.length > 0) {
-          const mode = selectedRxs[0]?.deliveryMode;
-          if (mode && ['clinic', 'courier', 'pickup'].includes(mode)) {
-            setDelivery(mode);
-            return;
-          }
-        }
-      }
-      
-      // Fallback to latest entry if no date selected or no matches
-      const mode = history[0]?.deliveryMode;
-      if (mode && ['clinic', 'courier', 'pickup'].includes(mode)) {
+    if (!history?.length) return;
+
+    // If we have a selected date, find the delivery mode for that date
+    if (selectedDate) {
+      const selectedRxs = history.filter(rx => {
+        const dateVal = rx.created_at || rx.dateval || rx.createdAt;
+        return dateVal && new Date(dateVal).toDateString() === new Date(selectedDate).toDateString();
+      });
+      if (selectedRxs.length > 0) {
+        const mode = getRowDeliveryMode(selectedRxs[0]);
         setDelivery(mode);
+        return;
       }
     }
+
+    // Fallback to latest entry if no date selected or no matches
+    const mode = getRowDeliveryMode(history[0]);
+    setDelivery(mode);
   }, [history, selectedDate]);
 
   const startNewRx = async () => {
@@ -84,7 +96,7 @@ export function usePrescriptionWorkflow(regid: number, visitId?: number, selecte
       const res = await saveMutation.mutateAsync({
         regid,
         visitId,
-        deliveryMode: delivery,
+        deliveryMode: deliveryRef.current,
         ...initialForm
       });
       if (res && typeof res === 'object' && 'id' in res) {
@@ -114,7 +126,7 @@ export function usePrescriptionWorkflow(regid: number, visitId?: number, selecte
       const res = await saveMutation.mutateAsync({
         regid,
         visitId,
-        deliveryMode: delivery,
+        deliveryMode: deliveryRef.current,
         ...repeatData
       });
       if (res && typeof res === 'object' && 'id' in res) {
@@ -125,7 +137,9 @@ export function usePrescriptionWorkflow(regid: number, visitId?: number, selecte
     }
   };
 
-  // Debounced auto-save
+  // Debounced auto-save — uses deliveryRef to avoid re-triggering when
+  // delivery state changes (prevents the race condition where the sync
+  // useEffect resets delivery and auto-save then overwrites the DB).
   useEffect(() => {
     if (!editingId || !regid) return;
 
@@ -134,13 +148,14 @@ export function usePrescriptionWorkflow(regid: number, visitId?: number, selecte
         regid,
         visitId,
         id: editingId,
-        deliveryMode: delivery,
+        deliveryMode: deliveryRef.current,
         ...form
       });
     }, 800);
 
     return () => clearTimeout(timer);
-  }, [form, editingId, delivery, regid, visitId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form, editingId, regid, visitId]);
 
   return {
     history,

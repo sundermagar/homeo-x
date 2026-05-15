@@ -35,6 +35,13 @@ import '../styles/premium-buttons.css';
 
 // Removed local SearchableSelect in favor of shared component
 
+/** Safely extract delivery mode from a prescription row (handles all property name variants). */
+function getRowDeliveryMode(rx: any): string {
+  const mode = rx?.deliveryMode || rx?.deliverymode || rx?.delivery_mode;
+  if (mode && ['clinic', 'courier', 'pickup'].includes(mode)) return mode;
+  return 'clinic';
+}
+
 export function RemedyChartSession({ 
   regid, 
   visitId,

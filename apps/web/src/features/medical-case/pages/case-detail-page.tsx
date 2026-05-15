@@ -406,21 +406,25 @@ export default function MedicalCaseDetailPage() {
     if (selectedBill) {
       return {
         regular: selectedBill.charges,
+        additional: 0, // Fallback for historical/aggregated bills
         total: selectedBill.charges,
         received: selectedBill.received,
         balance: selectedBill.balance
       };
     }
 
+    const additional = medicalCase?.totalAdditionalCharges || 0;
+    const regular = medicalCase?.consultationFee || pendingCharge || 0;
     const currentTotal = pendingCharge > 0
-      ? (pendingCharge + (medicalCase?.totalAdditionalCharges || 0))
+      ? (pendingCharge + additional)
       : (medicalCase?.totalBill || 0);
 
     const currentPaid = medicalCase?.paidAmount || 0;
     const currentBalance = currentTotal - currentPaid;
 
     return {
-      regular: medicalCase?.consultationFee || pendingCharge || 0,
+      regular,
+      additional,
       total: currentTotal,
       received: currentPaid,
       balance: currentBalance
@@ -508,38 +512,25 @@ export default function MedicalCaseDetailPage() {
     <div className="mc-detail-container animate-fade-in">
 
       {/* ─── Redesigned Header Section ─── */}
-      <div className="patient-banner">
-        <div className="banner-inner">
-          <div className="banner-content-grid">
-            <div className="banner-left-group">
-              <div className="pat-av">
-                {medicalCase.patientName?.charAt(0).toUpperCase()}
-              </div>
-              <div className="mc-header-info">
-                <span className="pat-id">PATIENT #{regid}</span>
-                <h1 className="pat-name">{medicalCase.patientName}</h1>
-                
-                <div className="pat-meta">
-                  <span className="pat-chip"><User size={12} /> {medicalCase.gender || 'Unknown'}</span>
-                  <span className="pat-chip"><Clock size={12} /> {ageString}</span>
-                  <span className="pat-chip"><Phone size={12} /> {medicalCase.mobile || medicalCase.phone || '—'}</span>
-                  {medicalCase.email && <span className="pat-chip"><Mail size={12} /> {medicalCase.email}</span>}
-                  
-                  {/* Dynamic Active Plan Chip */}
-                  <span className={`pat-chip ${activePackage?.status === 'Active' ? 'plan-active' : 'plan-inactive'}`}>
-                    <Award size={12} /> {activePackage?.packageName || 'No Active Plan'}
-                  </span>
-                </div>
-
-                <div className="pat-address-line">
-                  <MapPin size={12} /> {medicalCase.address || 'No address provided'}
-                </div>
-              </div>
+      <div className="patient-profile-card">
+        <div className="profile-top-row">
+          <div className="profile-identity">
+            <div className="profile-avatar">
+              {medicalCase.patientName?.substring(0, 2).toUpperCase()}
             </div>
+            <div className="profile-name-id">
+              <h1 className="profile-name">{medicalCase.patientName}</h1>
+              <span className="profile-id">Patient #{regid}</span>
+            </div>
+            <div className={`profile-status-chip ${activePackage?.status === 'Active' ? 'active' : ''}`}>
+              {activePackage?.status === 'Active' ? <Award size={12} /> : <Clock size={12} />}
+              {activePackage?.packageName ? `${activePackage.packageName} (${activePackage.status})` : 'No active plan'}
+            </div>
+          </div>
 
-            <div className="banner-actions-group">
+          <div className="profile-actions">
               <button
-                className="banner-primary-btn"
+                className="profile-btn"
                 onClick={() => {
                   const myOrg: any = orgs.find(o => o.id === user?.contextId) || orgs[0];
                   const defaultTemplate = pdfSettings.find((s: any) => s.isDefault) || pdfSettings[0];
@@ -613,15 +604,55 @@ export default function MedicalCaseDetailPage() {
                   };
 
                   printPrescription(printData);
-                }}
-              >
-                <Printer size={18} /> Print Prescription
-              </button>
+                }}>
+              <Printer size={16} /> Print Prescription
+            </button>
+            <button className="profile-btn" onClick={() => setMobileDrawer('contact')}>
+              <MessageSquare size={16} /> Message
+            </button>
+          </div>
+        </div>
 
-              <button className="banner-secondary-btn">
-                <MessageSquare size={18} /> Message
-              </button>
+        <div className="profile-bottom-grid">
+          <div className="profile-info-cell">
+            <label>GENDER</label>
+            <span>{medicalCase.gender || 'Other'}</span>
+          </div>
+          <div className="profile-info-cell">
+            <label>AGE</label>
+            <span>{ageString.replace(' Yrs', '') || 'Unknown'}</span>
+          </div>
+          <div className="profile-info-cell">
+            <label>PHONE</label>
+            <div className="info-with-icon">
+              <Phone size={14} /> {medicalCase.mobile || medicalCase.phone || '—'}
             </div>
+          </div>
+          <div className="profile-info-cell">
+            <label>DOCTOR</label>
+            <div className="info-with-icon">
+              <Stethoscope size={14} /> {medicalCase.doctorName || '—'}
+            </div>
+          </div>
+          <div className="profile-info-cell">
+            <label>REGISTERED</label>
+            <span>{medicalCase.createdAt ? new Date(medicalCase.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '—'}</span>
+          </div>
+          {activePackage?.expiryDate && (
+            <div className="profile-info-cell">
+              <label>EXPIRES</label>
+              <div className="info-with-icon">
+                <Clock size={14} /> {new Date(activePackage.expiryDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+              </div>
+            </div>
+          )}
+          <div className="profile-info-cell">
+            <label>ADDRESS</label>
+            <span title={medicalCase.address}>{medicalCase.address || 'Not provided'}</span>
+          </div>
+          <div className="profile-info-cell">
+            <label>CONDITION</label>
+            <span title={medicalCase.condition}>{medicalCase.condition || 'General'}</span>
           </div>
         </div>
       </div>
@@ -662,6 +693,103 @@ export default function MedicalCaseDetailPage() {
                 <p>Select a tab to view clinical data</p>
               </div>
             )}
+
+            {/* ─── Billing Summary (Full-Width Statistics Bar) ─── */}
+            <div style={{
+              marginTop: '32px',
+              padding: '24px',
+              background: '#fff',
+              border: '1px solid var(--border-main)',
+              borderRadius: '16px',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '20px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '1.1rem', fontWeight: 800, color: '#1e293b' }}>
+                  <div style={{ padding: '8px', background: '#eff6ff', borderRadius: '10px', color: '#3b82f6' }}>
+                    <CreditCard size={20} />
+                  </div>
+                  Billing Overview
+                </div>
+                {displayDate && (
+                  <div style={{ background: '#f8fafc', padding: '6px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.8rem', fontWeight: 700, color: '#64748b' }}>
+                    {displayDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  </div>
+                )}
+              </div>
+
+              <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', border: '1px solid #f1f5f9', borderRadius: '12px', overflow: 'hidden' }}>
+                {[
+                  { label: 'Regular Charge', value: billingValues.regular, color: '#1e293b' },
+                  { label: 'Additional Charge', value: billingValues.additional, color: '#64748b' },
+                  { label: 'Total Bill Amount', value: billingValues.total, color: '#2563eb', bold: true },
+                  { label: 'Amount Received', value: billingValues.received, color: '#059669' },
+                  { label: 'Pending Balance', value: billingValues.balance, color: '#dc2626', bold: true },
+                ].map((row, idx) => (
+                  <div key={idx} style={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: '1fr 140px 40px', 
+                    padding: '10px 16px', 
+                    borderBottom: idx === 4 ? 'none' : '1px solid #f1f5f9',
+                    alignItems: 'center',
+                    background: idx % 2 === 0 ? 'transparent' : '#f8fafc'
+                  }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569' }}>{row.label}</span>
+                    <span style={{ fontSize: '0.95rem', fontWeight: row.bold ? 800 : 700, color: row.color, textAlign: 'right', paddingRight: '20px' }}>₹{row.value}</span>
+                    <button 
+                      onClick={() => setShowBillingModal(true)}
+                      style={{ 
+                        width: '28px',
+                        height: '28px',
+                        padding: '0', 
+                        background: '#fff', 
+                        border: '1px solid #e2e8f0', 
+                        borderRadius: '6px', 
+                        cursor: 'pointer', 
+                        color: '#64748b',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = '#f1f5f9';
+                        e.currentTarget.style.color = '#3b82f6';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = '#fff';
+                        e.currentTarget.style.color = '#64748b';
+                      }}
+                    >
+                      <Edit size={12} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => setShowReceiptModal(true)}
+                  style={{ 
+                    padding: '10px 24px', 
+                    background: '#3b82f6', 
+                    color: 'white', 
+                    border: 'none', 
+                    borderRadius: '10px', 
+                    fontWeight: 700, 
+                    cursor: 'pointer', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '8px',
+                    boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.2)'
+                  }}
+                >
+                  <Share2 size={16} /> Share Payment Receipt
+                </button>
+              </div>
+            </div>
           </div>
 
           <aside className="mc-body-side">
@@ -738,43 +866,7 @@ export default function MedicalCaseDetailPage() {
               </button>
             </div>
 
-            {/* ─── Billing Summary ─── */}
-            <div className="mc-side-card">
-              <div className="mc-side-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div className="mc-side-card-title"><CreditCard size={16} /> Billing Summary</div>
-                {displayDate && (
-                  <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--pp-text-3)', background: 'var(--pp-warm-1)', padding: '2px 8px', borderRadius: '6px', border: '1px solid var(--pp-warm-2)' }}>
-                    {displayDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                  </span>
-                )}
-              </div>
-              <div className="mc-side-card-body">
-                <div className="mc-bill-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}><span>Regular Charge</span> <strong>₹{billingValues.regular}</strong></div>
-                <div className="mc-bill-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}><span>Total Bill</span> <strong>₹{billingValues.total}</strong></div>
-                <div className="mc-bill-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}><span>Received</span> <strong className="text-green">₹{billingValues.received}</strong></div>
-                <div className="mc-bill-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}><span>Balance</span> <strong className="text-red">₹{billingValues.balance}</strong></div>
-                <div className="mc-bill-total" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', fontWeight: 800, color: 'var(--pp-blue)', borderTop: '1px solid var(--border-main)', paddingTop: '12px', marginTop: '8px' }}>
-                  <span>Outstanding</span>
-                  <strong>₹{billingValues.balance}</strong>
-                </div>
-                <div className="flex flex-col gap-2 mt-3">
-                  <button
-                    className="mc-pay-btn"
-                    onClick={() => setShowBillingModal(true)}
-                    style={{ width: '100%', padding: '10px', background: 'var(--pp-success-bg)', color: 'var(--pp-success-fg)', border: '1px solid var(--pp-success-border)', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}
-                  >
-                    Update Payment
-                  </button>
-                  <button
-                    className="mc-receipt-btn"
-                    onClick={() => setShowReceiptModal(true)}
-                    style={{ width: '100%', padding: '10px', background: 'var(--pp-blue-bg)', color: 'var(--pp-blue-fg)', border: '1px solid var(--pp-blue-border)', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                  >
-                    <Share2 size={16} /> Share Payment Receipt
-                  </button>
-                </div>
-              </div>
-            </div>
+
 
             {/* ─── Global Diagnosis Form Drawer ─── */}
             {showDiagnosisDrawer && ReactDOM.createPortal(
@@ -893,75 +985,7 @@ export default function MedicalCaseDetailPage() {
             />
           </aside>
 
-          {/* ─── Persistent Patient Details Section (Bottom on Mobile, Below Sidebar on Tablets) ─── */}
-          <div className="mc-profile-grid">
-            {/* Clinical Overview */}
-            <div className="mc-profile-card">
-              <div className="mc-profile-card-header">
-                <Stethoscope size={18} />
-                <span className="mc-profile-card-title">Clinical Context</span>
-              </div>
-              <div className="mc-profile-card-body">
-                <div className="mc-profile-item">
-                  <div className="mc-profile-icon-wrapper"><Sparkles size={16} /></div>
-                  <div className="mc-profile-item-content">
-                    <span className="mc-profile-label">Chief Complaint</span>
-                    <span className="mc-profile-value">{medicalCase.condition || 'General consultation'}</span>
-                  </div>
-                </div>
-                <div className="mc-profile-item">
-                  <div className="mc-profile-icon-wrapper"><Calendar size={16} /></div>
-                  <div className="mc-profile-item-content">
-                    <span className="mc-profile-label">Registered On</span>
-                    <span className="mc-profile-value">{medicalCase.createdAt ? new Date(medicalCase.createdAt).toLocaleDateString() : '—'}</span>
-                  </div>
-                </div>
-                <div className="mc-profile-item">
-                  <div className="mc-profile-icon-wrapper"><User size={16} /></div>
-                  <div className="mc-profile-item-content">
-                    <span className="mc-profile-label">Attending Doctor</span>
-                    <span className="mc-profile-value">{medicalCase.doctorName || '—'}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
 
-            {/* Package & Membership */}
-            <div className="mc-profile-card">
-              <div className="mc-profile-card-header">
-                <Award size={18} />
-                <span className="mc-profile-card-title">Membership Status</span>
-              </div>
-              <div className="mc-profile-card-body">
-                <div className="mc-profile-item">
-                  <div className="mc-profile-icon-wrapper"><Package size={16} /></div>
-                  <div className="mc-profile-item-content">
-                    <span className="mc-profile-label">Active Plan</span>
-                    <span className="mc-profile-value">{activePackage?.packageName || 'No active package'}</span>
-                  </div>
-                </div>
-                <div className="mc-profile-item">
-                  <div className="mc-profile-icon-wrapper"><Clock size={16} /></div>
-                  <div className="mc-profile-item-content">
-                    <span className="mc-profile-label">Expiry Date</span>
-                    <span className="mc-profile-value">{activePackage?.expiryDate ? new Date(activePackage.expiryDate).toLocaleDateString() : '—'}</span>
-                  </div>
-                </div>
-                <div className="mc-profile-item">
-                  <div className="mc-profile-icon-wrapper"><ShieldCheck size={16} /></div>
-                  <div className="mc-profile-item-content">
-                    <span className="mc-profile-label">Current Status</span>
-                    <div style={{ marginTop: '4px' }}>
-                      <span className={`mc-profile-badge ${activePackage?.status === 'Active' ? 'mc-badge-active' : 'mc-badge-expired'}`}>
-                        {activePackage?.status === 'Active' ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
-                        {activePackage?.status || 'Inactive'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
 
         </div>
       </div>
@@ -1164,100 +1188,72 @@ export default function MedicalCaseDetailPage() {
 
 function MedicalCasePageSkeleton() {
   return (
-    <div className="mc-detail-container animate-fade-in">
-      {/* Redesigned Banner Skeleton */}
-      <div className="patient-banner" style={{ minHeight: '180px' }}>
-        <div className="banner-inner">
-          <div className="banner-content-grid">
-            <div className="banner-left-group">
-              <div className="skeleton-box skeleton-circle pat-av" style={{ width: '80px', height: '80px', flexShrink: 0, margin: 0, border: 'none' }} />
-              <div className="mc-header-info">
-                <div className="skeleton-box skeleton-text" style={{ width: '80px', height: '12px', marginBottom: '8px' }} />
-                <div className="skeleton-box skeleton-text title" style={{ width: '280px', height: '32px', marginBottom: '16px' }} />
-                
-                <div className="pat-meta">
-                  <div className="skeleton-box" style={{ width: '80px', height: '24px', borderRadius: '12px' }} />
-                  <div className="skeleton-box" style={{ width: '100px', height: '24px', borderRadius: '12px' }} />
-                  <div className="skeleton-box" style={{ width: '120px', height: '24px', borderRadius: '12px' }} />
-                  <div className="skeleton-box" style={{ width: '140px', height: '24px', borderRadius: '12px' }} />
-                </div>
-
-                <div className="pat-address-line" style={{ marginTop: '16px' }}>
-                  <div className="skeleton-box" style={{ width: '60%', height: '14px', borderRadius: '4px' }} />
-                </div>
-              </div>
-            </div>
-
-            <div className="banner-actions-group">
-              <div className="skeleton-box" style={{ width: '160px', height: '44px', borderRadius: '12px' }} />
-              <div className="skeleton-box" style={{ width: '120px', height: '44px', borderRadius: '12px' }} />
+    <div className="mc-detail-container animate-fade-in" style={{ padding: '24px' }}>
+      {/* ─── Redesigned Header Card Skeleton ─── */}
+      <div className="patient-profile-card" style={{ minHeight: '160px', opacity: 0.7 }}>
+        <div className="profile-top-row">
+          <div className="profile-identity">
+            <div className="skeleton-box skeleton-circle" style={{ width: '56px', height: '56px' }} />
+            <div className="profile-name-id">
+              <div className="skeleton-box skeleton-text" style={{ width: '200px', height: '24px', marginBottom: '8px' }} />
+              <div className="skeleton-box skeleton-text" style={{ width: '100px', height: '14px' }} />
             </div>
           </div>
+          <div className="profile-actions">
+            <div className="skeleton-box" style={{ width: '120px', height: '40px', borderRadius: '10px' }} />
+            <div className="skeleton-box" style={{ width: '100px', height: '40px', borderRadius: '10px' }} />
+          </div>
+        </div>
+        <div style={{ 
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+          gap: '24px',
+          marginTop: '24px', 
+          borderTop: '1px solid rgba(255,255,255,0.1)', 
+          paddingTop: '20px' 
+        }}>
+          {[1, 2, 3, 4, 5, 6].map(i => (
+            <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div className="skeleton-box" style={{ width: '60px', height: '10px', opacity: 0.2, borderRadius: '4px' }} />
+              <div className="skeleton-box" style={{ width: '100px', height: '14px', opacity: 0.4, borderRadius: '4px' }} />
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Layout with Left Tabs Skeleton */}
-      <div className="mc-layout-wrapper">
-        <div className="mc-left-tabs-container">
-          <div className="mc-left-tabs">
-            {[1, 2, 3, 4, 5, 6, 7].map(i => (
-              <div key={i} className="skeleton-box" style={{ width: '46px', height: '46px', borderRadius: '12px', flexShrink: 0 }} />
-            ))}
+      <div className="mc-body-grid" style={{ marginTop: '32px' }}>
+        <div className="mc-body-main">
+          {/* Main Content Area Shimmer */}
+          <div className="pp-card" style={{ padding: '32px', minHeight: '400px', marginBottom: '24px' }}>
+            <div className="skeleton-box skeleton-text title" style={{ width: '30%', marginBottom: '32px' }} />
+            <div className="skeleton-box" style={{ width: '100%', height: '300px', borderRadius: '16px' }} />
+          </div>
+
+          {/* ─── Itemized Billing Summary Skeleton ─── */}
+          <div style={{ padding: '20px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '16px' }}>
+            <div className="skeleton-box skeleton-text title" style={{ width: '120px', height: '14px', marginBottom: '20px' }} />
+            <div style={{ display: 'flex', flexDirection: 'column', border: '1px solid #f1f5f9', borderRadius: '10px', overflow: 'hidden' }}>
+              {[1, 2, 3, 4, 5].map(i => (
+                <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 140px 40px', padding: '10px 16px', borderBottom: i === 5 ? 'none' : '1px solid #f1f5f9' }}>
+                  <div className="skeleton-box skeleton-text" style={{ width: '80px', height: '10px' }} />
+                  <div className="skeleton-box skeleton-text" style={{ width: '60px', height: '14px', marginLeft: 'auto' }} />
+                  <div className="skeleton-box" style={{ width: '28px', height: '28px', borderRadius: '6px', marginLeft: 'auto' }} />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Main Grid Skeleton */}
-        <div className="mc-body-grid">
-          <div className="mc-body-main">
-            {/* Main Tab Content Skeleton */}
-            <div className="pp-card" style={{ padding: '32px', marginBottom: '24px' }}>
-              <div className="skeleton-box skeleton-text title" style={{ width: '30%', marginBottom: '32px' }} />
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginBottom: '40px' }}>
-                {[1, 2, 3].map(i => <div key={i} className="skeleton-box" style={{ height: '80px', borderRadius: '12px' }} />)}
-              </div>
-              <div className="skeleton-box" style={{ width: '100%', height: '240px', borderRadius: '16px' }} />
+        <aside className="mc-body-side">
+          {[1, 2].map(i => (
+            <div key={i} className="mc-side-card" style={{ padding: '20px', background: 'white' }}>
+              <div className="skeleton-box skeleton-text title" style={{ width: '60%', marginBottom: '16px' }} />
+              <div className="skeleton-box skeleton-text" style={{ width: '100%', marginBottom: '10px' }} />
+              <div className="skeleton-box skeleton-text" style={{ width: '80%', marginBottom: '10px' }} />
+              <div className="skeleton-box skeleton-text" style={{ width: '90%' }} />
             </div>
-
-            {/* Footer Grid Skeleton */}
-            <div className="mc-details-footer-grid">
-              <div className="mc-info-card">
-                <div className="mc-info-card-header">
-                  <div className="skeleton-box skeleton-text title" style={{ width: '60%', margin: 0, height: '18px' }} />
-                </div>
-                <div className="mc-info-card-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <div className="skeleton-box skeleton-text" style={{ width: '100%' }} />
-                  <div className="skeleton-box skeleton-text" style={{ width: '80%' }} />
-                  <div className="skeleton-box skeleton-text" style={{ width: '90%' }} />
-                </div>
-              </div>
-              <div className="mc-info-card">
-                <div className="mc-info-card-header">
-                  <div className="skeleton-box skeleton-text title" style={{ width: '60%', margin: 0, height: '18px' }} />
-                </div>
-                <div className="mc-info-card-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <div className="skeleton-box skeleton-text" style={{ width: '100%' }} />
-                  <div className="skeleton-box skeleton-text" style={{ width: '80%' }} />
-                  <div className="skeleton-box skeleton-text" style={{ width: '90%' }} />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <aside className="mc-body-side">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="mc-side-card" style={{ background: 'white' }}>
-                <div className="mc-side-card-title">
-                  <div className="skeleton-box skeleton-text title" style={{ width: '60%', margin: 0, height: '18px' }} />
-                </div>
-                <div className="mc-side-card-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div className="skeleton-box skeleton-text" style={{ width: '100%' }} />
-                  <div className="skeleton-box skeleton-text" style={{ width: '80%' }} />
-                  <div className="skeleton-box skeleton-text" style={{ width: '90%' }} />
-                </div>
-              </div>
-            ))}
-          </aside>
-        </div>
+          ))}
+        </aside>
       </div>
     </div>
   );
