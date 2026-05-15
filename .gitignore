@@ -114,7 +114,6 @@ ts_errors.txt
 antigravity.log
 
 # One-off Scripts & Recovery Files
-packages/database/src/migrate-*.ts
 check-*.ts
 verify-*.ts
 debug-*.ts
