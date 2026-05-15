@@ -295,10 +295,9 @@ export default function ClinicsPage() {
                     <label className="plat-form-label">Connected Since</label>
                     <input
                       className="plat-form-input"
-                      type="text"
+                      type="date"
                       value={form.connectSince || ''}
                       onChange={e => set('connectSince', e.target.value)}
-                      placeholder="YYYY-MM-DD"
                     />
                   </div>
                 </div>
@@ -311,6 +310,7 @@ export default function ClinicsPage() {
                     <label className="plat-form-label">Phone Number</label>
                     <NumericInput
                       className="plat-form-input"
+                      name="phone"
                       value={form.phone || ''}
                       onChange={e => set('phone', e.target.value)}
                       placeholder="9876543210"

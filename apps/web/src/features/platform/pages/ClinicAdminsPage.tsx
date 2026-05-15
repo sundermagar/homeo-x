@@ -300,6 +300,7 @@ function StaffModal({
                 <label className="plat-form-label">Primary Mobile *</label>
                 <NumericInput
                   className="plat-form-input"
+                  name="mobile"
                   value={form.mobile || ''}
                   onChange={(e: any) => updateForm('mobile', e.target.value)}
                   disabled={isLoading}
@@ -311,6 +312,7 @@ function StaffModal({
                 <label className="plat-form-label">Secondary Mobile</label>
                 <NumericInput
                   className="plat-form-input"
+                  name="mobile2"
                   value={form.mobile2 || ''}
                   onChange={(e: any) => updateForm('mobile2', e.target.value)}
                   disabled={isLoading}

@@ -103,6 +103,13 @@ export default function PatientFormPage() {
     if (!form.firstName.trim()) errs.push('First Name is required');
     if (!form.surname.trim()) errs.push('Surname is required');
     if (!form.phone.trim() && !form.mobile1.trim()) errs.push('At least one phone number is required');
+    if (!form.dateOfBirth) errs.push('Date of Birth is required');
+
+    // Phone length validation
+    if (form.phone && form.phone.length !== 10) errs.push('Primary Mobile must be 10 digits');
+    if (form.mobile1 && form.mobile1.length !== 10) errs.push('Alternate Mobile must be 10 digits');
+    if (form.mobile2 && form.mobile2.length !== 10) errs.push('Landline must be 10 digits');
+
     return errs;
   };
 
@@ -198,23 +205,23 @@ export default function PatientFormPage() {
             </div>
             <div>
               <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Mobile <span style={{ color: 'var(--pp-danger-fg)' }}>*</span></label>
-              <NumericInput className="pp-input" name="phone" value={form.phone} onChange={handleChange} placeholder="Primary Mobile" />
+              <NumericInput className="pp-input" name="phone" value={form.phone} onChange={handleChange} placeholder="Primary Mobile" maxLength={10} />
             </div>
             <div>
               <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Mobile 2</label>
-              <NumericInput className="pp-input" name="mobile1" value={form.mobile1} onChange={handleChange} placeholder="Alternate Mobile" />
+              <NumericInput className="pp-input" name="mobile1" value={form.mobile1} onChange={handleChange} placeholder="Alternate Mobile" maxLength={10} />
             </div>
             <div>
               <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Landline</label>
-              <NumericInput className="pp-input" name="mobile2" value={form.mobile2} onChange={handleChange} placeholder="Landline" />
+              <NumericInput className="pp-input" name="mobile2" value={form.mobile2} onChange={handleChange} placeholder="Landline" maxLength={10} />
             </div>
             <div>
               <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Email</label>
               <input className="pp-input" name="email" value={form.email} onChange={handleChange} placeholder="Email" type="email" />
             </div>
             <div>
-              <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Date of Birth</label>
-              <input className="pp-input" name="dateOfBirth" type="date" value={form.dateOfBirth} onChange={handleChange} />
+              <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Date of Birth <span style={{ color: 'var(--pp-danger-fg)' }}>*</span></label>
+              <input className="pp-input" name="dateOfBirth" type="date" value={form.dateOfBirth} onChange={handleChange} required />
             </div>
           </div>
 

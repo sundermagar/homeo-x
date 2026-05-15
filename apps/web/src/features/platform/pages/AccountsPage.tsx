@@ -48,7 +48,7 @@ export default function AccountsPage() {
         <div>
           <h1 className="plat-header-title">
             <UserCog size={20} strokeWidth={1.6} style={{ color: 'var(--primary)' }} />
-            Account Managers
+            Clinic Accounts
           </h1>
           <p className="plat-header-sub">
             Clinic admin accounts. Each account is mirrored to the clinic's login system.

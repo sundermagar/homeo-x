@@ -27,6 +27,7 @@ export class ConvertLeadToPatientUseCase {
       referenceType: lead.source || 'Lead Conversion',
       title: 'Mr.',
       gender: 'M',
+      dateOfBirth: '01/01/1900', // Added placeholder for mandatory field
       courierOutstation: false,
     });
 

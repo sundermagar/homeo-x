@@ -8,6 +8,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/infrastructure/api-client';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { Pagination } from '@/components/shared/pagination';
+import { NumericInput } from '@/shared/components/NumericInput';
 import './courier-queue-page.css';
 
 interface CourierEntry {
@@ -402,8 +403,8 @@ export function CourierQueuePage() {
             <div className="courier-modal-body">
               <div className="modal-field">
                 <label>Mobile Number</label>
-                <input
-                  type="text"
+                <NumericInput
+                  name="mobile"
                   value={messageModal.phone}
                   onChange={(e) => setMessageModal({ ...messageModal, phone: e.target.value })}
                   className="modal-input"

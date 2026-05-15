@@ -13,6 +13,7 @@
   ],
   "exclude": [
     "src/scripts",
+    "src/scratch",
     "src/scratch-*.ts"
   ],
   "references": [
