@@ -134,6 +134,27 @@
       "when": 1746830000000,
       "tag": "0018_dashboard_query_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1747200000000,
+      "tag": "0019_fix_schema_drift",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1747210000000,
+      "tag": "0020_add_unreg_patient_id",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1747220000000,
+      "tag": "0021_add_clinic_id_to_finance_tables",
+      "breakpoints": true
     }
   ]
 }

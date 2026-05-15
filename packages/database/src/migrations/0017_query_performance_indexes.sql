@@ -26,28 +26,28 @@ BEGIN
 
     -- ─── APPOINTMENTS ────────────────────────────────────────────────────────
     -- Doctor day view + slot-availability lookup (findAvailableSlots, dashboards)
-    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_appointments_doctor_date') THEN
+    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_appointments_doctor_date' AND schemaname = current_schema()) THEN
         CREATE INDEX idx_appointments_doctor_date
             ON appointments (doctor_id, booking_date)
             WHERE deleted_at IS NULL;
     END IF;
 
     -- Status-filtered dashboard queries (Pending/Confirmed/Waitlist filters)
-    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_appointments_clinic_status_date') THEN
+    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_appointments_clinic_status_date' AND schemaname = current_schema()) THEN
         CREATE INDEX idx_appointments_clinic_status_date
             ON appointments (clinic_id, status, booking_date)
             WHERE deleted_at IS NULL;
     END IF;
 
     -- findMany pagination (ORDER BY id DESC) scoped to clinic
-    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_appointments_clinic_id_desc') THEN
+    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_appointments_clinic_id_desc' AND schemaname = current_schema()) THEN
         CREATE INDEX idx_appointments_clinic_id_desc
             ON appointments (clinic_id, id DESC)
             WHERE deleted_at IS NULL;
     END IF;
 
     -- Patient history (medical case timeline / follow-ups)
-    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_appointments_patient_date_desc') THEN
+    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_appointments_patient_date_desc' AND schemaname = current_schema()) THEN
         CREATE INDEX idx_appointments_patient_date_desc
             ON appointments (patient_id, booking_date DESC)
             WHERE deleted_at IS NULL;
@@ -55,11 +55,11 @@ BEGIN
 
     -- ILIKE %search% on appointment list (name + phone)
     IF has_trgm THEN
-        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_appointments_patient_name_trgm') THEN
+        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_appointments_patient_name_trgm' AND schemaname = current_schema()) THEN
             CREATE INDEX idx_appointments_patient_name_trgm
                 ON appointments USING gin (patient_name gin_trgm_ops);
         END IF;
-        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_appointments_phone_trgm') THEN
+        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_appointments_phone_trgm' AND schemaname = current_schema()) THEN
             CREATE INDEX idx_appointments_phone_trgm
                 ON appointments USING gin (phone gin_trgm_ops);
         END IF;
@@ -67,19 +67,19 @@ BEGIN
 
     -- ─── CASE_DATAS (patients) ───────────────────────────────────────────────
     -- Patient list pagination (clinic + ORDER BY id DESC)
-    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_patients_clinic_id_desc') THEN
+    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_patients_clinic_id_desc' AND schemaname = current_schema()) THEN
         CREATE INDEX idx_patients_clinic_id_desc
             ON case_datas (clinic_id, id DESC)
             WHERE deleted_at IS NULL;
     END IF;
 
     -- Direct phone-number lookup (exact match, walk-in identification)
-    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_patients_mobile1') THEN
+    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_patients_mobile1' AND schemaname = current_schema()) THEN
         CREATE INDEX idx_patients_mobile1
             ON case_datas (mobile1)
             WHERE deleted_at IS NULL;
     END IF;
-    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_patients_phone') THEN
+    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_patients_phone' AND schemaname = current_schema()) THEN
         CREATE INDEX idx_patients_phone
             ON case_datas (phone)
             WHERE deleted_at IS NULL;
@@ -87,42 +87,42 @@ BEGIN
 
     -- Patient ILIKE %search% across the four searchable fields
     IF has_trgm THEN
-        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_patients_first_name_trgm') THEN
+        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_patients_first_name_trgm' AND schemaname = current_schema()) THEN
             CREATE INDEX idx_patients_first_name_trgm
                 ON case_datas USING gin (first_name gin_trgm_ops);
         END IF;
-        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_patients_surname_trgm') THEN
+        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_patients_surname_trgm' AND schemaname = current_schema()) THEN
             CREATE INDEX idx_patients_surname_trgm
                 ON case_datas USING gin (surname gin_trgm_ops);
         END IF;
-        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_patients_mobile1_trgm') THEN
+        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_patients_mobile1_trgm' AND schemaname = current_schema()) THEN
             CREATE INDEX idx_patients_mobile1_trgm
                 ON case_datas USING gin (mobile1 gin_trgm_ops);
         END IF;
-        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_patients_phone_trgm') THEN
+        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_patients_phone_trgm' AND schemaname = current_schema()) THEN
             CREATE INDEX idx_patients_phone_trgm
                 ON case_datas USING gin (phone gin_trgm_ops);
         END IF;
     END IF;
 
     -- ─── WAITLIST ────────────────────────────────────────────────────────────
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'waitlist') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'waitlist' AND table_schema = current_schema()) THEN
         -- addToWaitlist dedup check: (patient_id, date, status, deleted_at IS NULL)
-        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_waitlist_patient_date_status') THEN
+        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_waitlist_patient_date_status' AND schemaname = current_schema()) THEN
             CREATE INDEX idx_waitlist_patient_date_status
                 ON waitlist (patient_id, date, status)
                 WHERE deleted_at IS NULL;
         END IF;
 
         -- callNextInWaitlist / skipWaitlistEntry: (doctor_id, date, status)
-        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_waitlist_doctor_date_status') THEN
+        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_waitlist_doctor_date_status' AND schemaname = current_schema()) THEN
             CREATE INDEX idx_waitlist_doctor_date_status
                 ON waitlist (doctor_id, date, status)
                 WHERE deleted_at IS NULL;
         END IF;
 
         -- ORDER BY waiting_number + max(waiting_number) per date
-        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_waitlist_date_waitnum') THEN
+        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_waitlist_date_waitnum' AND schemaname = current_schema()) THEN
             CREATE INDEX idx_waitlist_date_waitnum
                 ON waitlist (date, waiting_number)
                 WHERE deleted_at IS NULL;
@@ -130,20 +130,20 @@ BEGIN
     END IF;
 
     -- ─── PENDING_APPOINTMENTS (next-visit follow-ups) ────────────────────────
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'pending_appointments') THEN
-        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_pending_appts_regid') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'pending_appointments' AND table_schema = current_schema()) THEN
+        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_pending_appts_regid' AND schemaname = current_schema()) THEN
             CREATE INDEX idx_pending_appts_regid
                 ON pending_appointments (regid);
         END IF;
-        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_pending_appts_next_date') THEN
+        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_pending_appts_next_date' AND schemaname = current_schema()) THEN
             CREATE INDEX idx_pending_appts_next_date
                 ON pending_appointments (next_date);
         END IF;
     END IF;
 
     -- ─── TOKENS (daily token-number issuance) ────────────────────────────────
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'tokens') THEN
-        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_tokens_date_tokenno') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'tokens' AND table_schema = current_schema()) THEN
+        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_tokens_date_tokenno' AND schemaname = current_schema()) THEN
             CREATE INDEX idx_tokens_date_tokenno
                 ON tokens (date, token_no)
                 WHERE deleted_at IS NULL;
@@ -151,7 +151,7 @@ BEGIN
     END IF;
 
     -- ─── BILLS (waitlist patient_finances CTE: GROUP BY regid) ───────────────
-    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_bills_regid_active') THEN
+    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_bills_regid_active' AND schemaname = current_schema()) THEN
         CREATE INDEX idx_bills_regid_active
             ON bills (regid)
             WHERE deleted_at IS NULL;
