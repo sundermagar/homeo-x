@@ -758,6 +758,105 @@ export default function MedicalCaseDetailPage() {
               </div>
             )}
 
+            {/* ─── Billing Summary (Positioned below Prescription Table) ─── */}
+            {activeTab === 'summary' && (
+              <div style={{
+                marginTop: '32px',
+                padding: '24px',
+                background: '#fff',
+                border: '1px solid var(--border-main)',
+                borderRadius: '16px',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '20px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '1.1rem', fontWeight: 800, color: '#1e293b' }}>
+                    <div style={{ padding: '8px', background: '#eff6ff', borderRadius: '10px', color: '#3b82f6' }}>
+                      <CreditCard size={20} />
+                    </div>
+                    Billing Overview
+                  </div>
+                  {displayDate && (
+                    <div style={{ background: '#f8fafc', padding: '6px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.8rem', fontWeight: 700, color: '#64748b' }}>
+                      {displayDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', border: '1px solid #f1f5f9', borderRadius: '12px', overflow: 'hidden' }}>
+                  {[
+                    { label: 'Regular Charge', value: billingValues.regular, color: '#1e293b' },
+                    { label: 'Additional Charge', value: billingValues.additional, color: '#64748b' },
+                    { label: 'Total Bill Amount', value: billingValues.total, color: '#2563eb', bold: true },
+                    { label: 'Amount Received', value: billingValues.received, color: '#059669' },
+                    { label: 'Pending Balance', value: billingValues.balance, color: '#dc2626', bold: true },
+                  ].map((row, idx) => (
+                    <div key={idx} style={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: '1fr 140px 40px', 
+                      padding: '10px 16px', 
+                      borderBottom: idx === 4 ? 'none' : '1px solid #f1f5f9',
+                      alignItems: 'center',
+                      background: idx % 2 === 0 ? 'transparent' : '#f8fafc'
+                    }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569' }}>{row.label}</span>
+                      <span style={{ fontSize: '0.95rem', fontWeight: row.bold ? 800 : 700, color: row.color, textAlign: 'right', paddingRight: '20px' }}>₹{row.value}</span>
+                      <button 
+                        onClick={() => setShowBillingModal(true)}
+                        style={{ 
+                          width: '28px',
+                          height: '28px',
+                          padding: '0', 
+                          background: '#fff', 
+                          border: '1px solid #e2e8f0', 
+                          borderRadius: '6px', 
+                          cursor: 'pointer', 
+                          color: '#64748b',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = '#f1f5f9';
+                          e.currentTarget.style.color = '#3b82f6';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = '#fff';
+                          e.currentTarget.style.color = '#64748b';
+                        }}
+                      >
+                        <Edit size={12} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+                  <button
+                    onClick={() => setShowReceiptModal(true)}
+                    style={{ 
+                      padding: '10px 24px', 
+                      background: '#3b82f6', 
+                      color: 'white', 
+                      border: 'none', 
+                      borderRadius: '10px', 
+                      fontWeight: 700, 
+                      cursor: 'pointer', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '8px',
+                      boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.2)'
+                    }}
+                  >
+                    <Share2 size={16} /> Share Payment Receipt
+                  </button>
+                </div>
+              </div>
+            )}
+
           </div>
 
           <aside className="mc-body-side">
@@ -932,104 +1031,6 @@ export default function MedicalCaseDetailPage() {
                 </div>
               </>
               , document.body)}
-
-            {/* ─── Billing Summary (Now at very bottom for mobile) ─── */}
-            <div className="mc-billing-footer" style={{ marginTop: '32px' }}>
-              <div style={{
-                padding: '24px',
-                background: '#fff',
-                border: '1px solid var(--border-main)',
-                borderRadius: '16px',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '20px'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '1.1rem', fontWeight: 800, color: '#1e293b' }}>
-                    <div style={{ padding: '8px', background: '#eff6ff', borderRadius: '10px', color: '#3b82f6' }}>
-                      <CreditCard size={20} />
-                    </div>
-                    Billing Overview
-                  </div>
-                  {displayDate && (
-                    <div style={{ background: '#f8fafc', padding: '6px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.8rem', fontWeight: 700, color: '#64748b' }}>
-                      {displayDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                    </div>
-                  )}
-                </div>
-
-                <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', border: '1px solid #f1f5f9', borderRadius: '12px', overflow: 'hidden' }}>
-                  {[
-                    { label: 'Regular Charge', value: billingValues.regular, color: '#1e293b' },
-                    { label: 'Additional Charge', value: billingValues.additional, color: '#64748b' },
-                    { label: 'Total Bill Amount', value: billingValues.total, color: '#2563eb', bold: true },
-                    { label: 'Amount Received', value: billingValues.received, color: '#059669' },
-                    { label: 'Pending Balance', value: billingValues.balance, color: '#dc2626', bold: true },
-                  ].map((row, idx) => (
-                    <div key={idx} style={{ 
-                      display: 'grid', 
-                      gridTemplateColumns: '1fr 140px 40px', 
-                      padding: '10px 16px', 
-                      borderBottom: idx === 4 ? 'none' : '1px solid #f1f5f9',
-                      alignItems: 'center',
-                      background: idx % 2 === 0 ? 'transparent' : '#f8fafc'
-                    }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569' }}>{row.label}</span>
-                      <span style={{ fontSize: '0.95rem', fontWeight: row.bold ? 800 : 700, color: row.color, textAlign: 'right', paddingRight: '20px' }}>₹{row.value}</span>
-                      <button 
-                        onClick={() => setShowBillingModal(true)}
-                        style={{ 
-                          width: '28px',
-                          height: '28px',
-                          padding: '0', 
-                          background: '#fff', 
-                          border: '1px solid #e2e8f0', 
-                          borderRadius: '6px', 
-                          cursor: 'pointer', 
-                          color: '#64748b',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                          transition: 'all 0.2s'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = '#f1f5f9';
-                          e.currentTarget.style.color = '#3b82f6';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = '#fff';
-                          e.currentTarget.style.color = '#64748b';
-                        }}
-                      >
-                        <Edit size={12} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
-                  <button
-                    onClick={() => setShowReceiptModal(true)}
-                    style={{ 
-                      padding: '10px 24px', 
-                      background: '#3b82f6', 
-                      color: 'white', 
-                      border: 'none', 
-                      borderRadius: '10px', 
-                      fontWeight: 700, 
-                      cursor: 'pointer', 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: '8px',
-                      boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.2)'
-                    }}
-                  >
-                    <Share2 size={16} /> Share Payment Receipt
-                  </button>
-                </div>
-              </div>
-            </div>
 
             <PaymentReceiptModal
               isOpen={showReceiptModal}

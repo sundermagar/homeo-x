@@ -498,11 +498,6 @@
   .mc-profile-grid {
     order: 3; /* Force to bottom on mobile */
   }
-  .mc-billing-footer {
-    order: 4;
-    padding: 0 10px 24px;
-    grid-column: 1 / span 2;
-  }
 }
 
 .mc-body-side {
