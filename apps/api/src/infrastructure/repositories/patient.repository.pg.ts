@@ -142,32 +142,57 @@ export class PatientRepositoryPg implements PatientRepository {
           )`,
           lastVisit: sql<Date>`(
             SELECT MAX(d) FROM (
-              SELECT recorded_at::date as d FROM vitals WHERE regid = ${patients.regid} AND recorded_at IS NOT NULL
+              -- 1. Prescriptions (Primary Source)
+              SELECT 
+                CASE 
+                  WHEN cp_inner.dateval ~ '^\\d{1,2}/\\d{1,2}/\\d{4}$' THEN to_date(cp_inner.dateval, 'DD/MM/YYYY')
+                  WHEN cp_inner.dateval ~ '^\\d{1,2}-\\d{1,2}-\\d{4}$' THEN to_date(cp_inner.dateval, 'DD-MM-YYYY')
+                  WHEN cp_inner.dateval ~ '^\\d{4}-\\d{1,2}-\\d{1,2}$' THEN cp_inner.dateval::date
+                  ELSE NULL 
+                END as d
+              FROM case_potencies AS cp_inner
+              WHERE cp_inner.regid = case_datas.regid 
+                AND (cp_inner.deleted_at IS NULL OR cp_inner.deleted_at = '')
+                AND NULLIF(cp_inner.dateval, '') IS NOT NULL
+
               UNION ALL
-              SELECT COALESCE(NULLIF(dateval, '')::date, created_at::date) as d
-                FROM case_potencies
-               WHERE regid = ${patients.regid}
-                 AND COALESCE(NULLIF(TRIM(rxremedy), ''), NULL) IS NOT NULL
-                 AND (deleted_at IS NULL OR deleted_at = '')
+              -- 2. Follow-up Notes
+              SELECT 
+                CASE 
+                  WHEN cn_inner.dateval ~ '^\\d{1,2}/\\d{1,2}/\\d{4}$' THEN to_date(cn_inner.dateval, 'DD/MM/YYYY')
+                  WHEN cn_inner.dateval ~ '^\\d{1,2}-\\d{1,2}-\\d{4}$' THEN to_date(cn_inner.dateval, 'DD-MM-YYYY')
+                  WHEN cn_inner.dateval ~ '^\\d{4}-\\d{1,2}-\\d{1,2}$' THEN cn_inner.dateval::date
+                  ELSE NULL
+                END as d
+              FROM case_notes AS cn_inner
+              WHERE cn_inner.regid = case_datas.regid 
+                AND cn_inner.notes_type = 'Followup' 
+                AND (cn_inner.deleted_at IS NULL OR CAST(cn_inner.deleted_at AS text) = '')
+                AND NULLIF(cn_inner.dateval, '') IS NOT NULL
+
               UNION ALL
-              SELECT created_at::date as d FROM soap_notes WHERE regid = ${patients.regid} AND created_at IS NOT NULL
-              UNION ALL
-              SELECT COALESCE(NULLIF(dateval, '')::date, created_at::date) as d
-                FROM case_notes
-               WHERE regid = ${patients.regid}
-                 AND (deleted_at IS NULL OR CAST(deleted_at AS text) = '')
+              -- 3. Legacy explicit follow-up table
+              SELECT 
+                CASE 
+                  WHEN tf_inner."FollowupDate" ~ '^\\d{1,2}/\\d{1,2}/\\d{4}$' THEN to_date(tf_inner."FollowupDate", 'DD/MM/YYYY')
+                  WHEN tf_inner."FollowupDate" ~ '^\\d{1,2}-\\d{1,2}-\\d{4}$' THEN to_date(tf_inner."FollowupDate", 'DD-MM-YYYY')
+                  WHEN tf_inner."FollowupDate" ~ '^\\d{4}-\\d{1,2}-\\d{1,2}$' THEN tf_inner."FollowupDate"::date
+                  ELSE NULL
+                END as d
+              FROM temp_followup AS tf_inner
+              WHERE tf_inner."PersonalID" ~ '^\\d+$' AND tf_inner."PersonalID"::integer = case_datas.regid
             ) t
           )`
         })
         .from(patients)
         .where(whereClause)
-        .orderBy(orderBy)
         .limit(limit)
-        .offset(offset),
+        .offset(offset)
+        .orderBy(orderBy),
       this.db
         .select({ count: sql<number>`count(*)` })
         .from(patients)
-        .where(whereClause),
+        .where(whereClause)
     ]);
 
     return {

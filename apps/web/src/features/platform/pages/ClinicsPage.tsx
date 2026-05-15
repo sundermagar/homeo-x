@@ -310,6 +310,7 @@ export default function ClinicsPage() {
                     <label className="plat-form-label">Phone Number</label>
                     <NumericInput
                       className="plat-form-input"
+                      name="phone"
                       value={form.phone || ''}
                       onChange={e => set('phone', e.target.value)}
                       placeholder="9876543210"

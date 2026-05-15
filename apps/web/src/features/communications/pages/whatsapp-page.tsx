@@ -159,7 +159,7 @@ export default function WhatsAppPage() {
             {/* Phone */}
             <div className="comm-form-group">
               <label className="comm-form-label">Phone Number *</label>
-              <NumericInput className="comm-form-input" placeholder="e.g. 9876543210"
+              <NumericInput className="comm-form-input" placeholder="e.g. 9876543210" name="phone"
                 value={phone} onChange={e => setPhone(e.target.value)} />
             </div>
 

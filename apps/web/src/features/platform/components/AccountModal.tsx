@@ -135,6 +135,7 @@ export function AccountModal({ mode, account, organizations, onClose }: AccountM
                 <label className="plat-form-label">Mobile Number</label>
                 <NumericInput
                   className="plat-form-input"
+                  name="mobile"
                   value={form.mobile}
                   onChange={(e) => set('mobile', e.target.value)}
                   placeholder="9876543210"

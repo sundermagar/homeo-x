@@ -38,6 +38,9 @@
   --pp-danger-bg: #FEF2F2;
   --pp-danger-fg: #DC2626;
   --pp-danger-border: #FECACA;
+  --pp-unregistered-bg: #FFF1F2;
+  --pp-unregistered-fg: #E11D48;
+  --pp-unregistered-border: #FECDD3;
   --pp-warning-bg: #FFFBEB;
   --pp-warning-fg: #D97706;
   --pp-warning-border: #FDE68A;
@@ -3731,3 +3734,20 @@ a {
 }
 
 /* ─── END RESPONSIVE FIXES v4 ────────────────────────────────────────────── */
+/* ─── Unregistered Patient Highlighting ─── */
+.pp-row-unregistered {
+  background-color: #FFF1F2 !important;
+}
+
+.pp-row-unregistered:hover td {
+  background-color: #FFE4E6 !important;
+}
+
+/* Dark Mode Enhancements */
+.dark .pp-row-unregistered {
+  background-color: rgba(225, 29, 72, 0.12) !important;
+}
+
+.dark .pp-row-unregistered:hover td {
+  background-color: rgba(225, 29, 72, 0.2) !important;
+}

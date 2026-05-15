@@ -116,7 +116,7 @@ export default function PatientListPage() {
   const [drawerRegid, setDrawerRegid] = useState<number | null>(null);
   const [assignPkgPatient, setAssignPkgPatient] = useState<{ regid: number; name: string } | null>(null);
   const [selectedUnregistered, setSelectedUnregistered] = useState<any | null>(null);
-  const [patientFilter, setPatientFilter] = useState<'all' | 'registered' | 'unregistered'>('all');
+  const [patientFilter, setPatientFilter] = useState<'registered' | 'unregistered'>('registered');
 
   const user = useAuthStore(s => s.user);
   const token = useAuthStore(s => s.token);
@@ -241,15 +241,47 @@ export default function PatientListPage() {
         </div>
         
         <div className="pp-filter-controls">
-          <div className="appt-segmented-toggle">
-             <button className={`appt-segmented-btn ${patientFilter === 'all' ? 'is-active' : ''}`} onClick={() => { setPatientFilter('all'); setPage(1); }}>
-               All
-             </button>
-             <button className={`appt-segmented-btn ${patientFilter === 'registered' ? 'is-active' : ''}`} onClick={() => { setPatientFilter('registered'); setPage(1); }}>
+          <div className="appt-segmented-toggle" style={{ gap: '4px', padding: '4px' }}>
+             <button 
+               className={`appt-segmented-btn ${patientFilter === 'registered' ? 'is-active' : ''}`} 
+               onClick={() => { setPatientFilter('registered'); setPage(1); }}
+             >
                Registered
+               <span style={{ 
+                 marginLeft: '6px', 
+                 fontSize: '10px', 
+                 background: patientFilter === 'registered' ? 'white' : 'var(--pp-border)', 
+                 color: patientFilter === 'registered' ? 'var(--pp-blue)' : 'var(--pp-text-muted)', 
+                 padding: '2px 6px', 
+                 borderRadius: '10px', 
+                 fontWeight: 600 
+               }}>
+                 {data?.total || 0}
+               </span>
              </button>
-             <button className={`appt-segmented-btn ${patientFilter === 'unregistered' ? 'is-active' : ''}`} onClick={() => { setPatientFilter('unregistered'); setPage(1); }}>
+             <button 
+               className={`appt-segmented-btn ${patientFilter === 'unregistered' ? 'is-active' : ''}`} 
+               onClick={() => { setPatientFilter('unregistered'); setPage(1); }}
+               style={{
+                 position: 'relative',
+                 ...(patientFilter === 'unregistered' ? { color: '#dc2626', background: '#fff1f2' } : {})
+               }}
+             >
+               {unregisteredPatients.length > 0 && patientFilter !== 'unregistered' && (
+                 <span className="pat-unreg-pulse-dot" />
+               )}
                Unregistered
+               <span style={{ 
+                 marginLeft: '6px', 
+                 fontSize: '10px', 
+                 background: patientFilter === 'unregistered' ? '#fecaca' : (unregisteredPatients.length > 0 ? '#fee2e2' : 'var(--pp-border)'), 
+                 color: patientFilter === 'unregistered' ? '#b91c1c' : (unregisteredPatients.length > 0 ? '#dc2626' : 'var(--pp-text-muted)'), 
+                 padding: '2px 6px', 
+                 borderRadius: '10px', 
+                 fontWeight: 600 
+               }}>
+                 {unregisteredPatients.length}
+               </span>
              </button>
           </div>
 
@@ -308,7 +340,10 @@ export default function PatientListPage() {
               </thead>
               <tbody>
                 {combinedPatients.map((p: any, idx: number) => (
-                  <tr key={p.isUnregistered ? `unreg-${p.original.id}` : p.regid} className="pp-hover-row">
+                  <tr 
+                    key={p.isUnregistered ? `unreg-${p.original.id}` : p.regid} 
+                    className={`pp-hover-row ${p.isUnregistered ? 'pp-row-unregistered' : ''}`}
+                  >
                     <td data-label="#">
                       <div className="font-mono text-[11px] font-semibold color-muted opacity-60">
                         {idx + 1 + (page - 1) * pageSize}
@@ -318,7 +353,7 @@ export default function PatientListPage() {
                       <div className="pat-member-row">
                         <div style={{ minWidth: 0, overflow: 'hidden' }}>
                           {p.isUnregistered ? (
-                            <span className="appt-cell-name">{p.fullName}</span>
+                            <span className="appt-cell-name" style={{ color: 'var(--pp-unregistered-fg)', fontWeight: 700 }}>{p.fullName}</span>
                           ) : (
                             <Link to={`/medical-cases/${p.regid}`} className="appt-cell-name pp-clickable-name">
                               {p.fullName || 'Unknown'}
@@ -326,7 +361,6 @@ export default function PatientListPage() {
                           )}
                           <div className="appt-cell-phone">
                             {p.gender === 'M' ? 'Male' : p.gender === 'F' ? 'Female' : p.gender || '—'}
-                            {p.isUnregistered && <span className="pp-badge-status status-pending" style={{ marginLeft: '8px', fontSize: '10px' }}>Unregistered</span>}
                           </div>
                         </div>
                       </div>
