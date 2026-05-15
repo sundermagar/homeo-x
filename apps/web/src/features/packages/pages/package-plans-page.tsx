@@ -216,13 +216,7 @@ export default function PackagePlansPage() {
           ))
         )}
 
-        {/* Add Card */}
-        {!isLoading && (
-          <div className="pkg-add-card" onClick={() => setModal('create')}>
-            <Plus size={28} strokeWidth={1.5} />
-            Add New Plan
-          </div>
-        )}
+
       </div>
 
       {!isLoading && totalItems > 0 && (

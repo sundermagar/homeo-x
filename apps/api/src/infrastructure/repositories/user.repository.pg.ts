@@ -90,6 +90,7 @@ export class UserRepositoryPG implements UserRepository {
   async updateResetOtp(userId: number, hashedOtp: string, expiry: Date): Promise<void> {
     await this.db.update(schema.users)
       .set({
+        // @ts-ignore: TS type inference drops these properties due to declaration merging limits
         resetOtp: hashedOtp,
         resetOtpExpiry: expiry,
         updatedAt: new Date()
@@ -100,7 +101,9 @@ export class UserRepositoryPG implements UserRepository {
   async getResetOtp(email: string): Promise<{ resetOtp: string | null; resetOtpExpiry: Date | null } | null> {
     const results = await this.db
       .select({
+        // @ts-ignore: TS type inference drops these properties due to declaration merging limits
         resetOtp: schema.users.resetOtp,
+        // @ts-ignore
         resetOtpExpiry: schema.users.resetOtpExpiry
       })
       .from(schema.users)
@@ -118,6 +121,7 @@ export class UserRepositoryPG implements UserRepository {
   async clearResetOtp(userId: number): Promise<void> {
     await this.db.update(schema.users)
       .set({
+        // @ts-ignore: TS type inference drops these properties due to declaration merging limits
         resetOtp: null,
         resetOtpExpiry: null,
         updatedAt: new Date()

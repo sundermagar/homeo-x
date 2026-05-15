@@ -133,6 +133,7 @@ const TABLES: Array<{ name: string; ddl: string }> = [
   "booking_date" text,
   "booking_time" text,
   "patient_id" integer,
+  "unregistered_patient_id" integer,
   "assistant_doctor" text,
   "doctor_id" integer,
   "patient_name" text,
@@ -156,6 +157,17 @@ const TABLES: Array<{ name: string; ddl: string }> = [
   "duration_minutes" integer,
   "cancellation_reason" text
 )`,
+  },
+  {
+    name: 'idx_appointments_unreg_patient_id',
+    ddl: `DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'appointments' AND column_name = 'unregistered_patient_id' AND table_schema = '{{SCHEMA}}') THEN
+    IF NOT EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relname = 'idx_appointments_unreg_patient_id' AND n.nspname = '{{SCHEMA}}') THEN
+      CREATE INDEX "idx_appointments_unreg_patient_id" ON "{{SCHEMA}}"."appointments" ("unregistered_patient_id");
+    END IF;
+  END IF;
+END $$`,
   },
   {
     name: 'ask_ques',
@@ -240,6 +252,7 @@ const TABLES: Array<{ name: string; ddl: string }> = [
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."bills" (
   "id" serial PRIMARY KEY,
   "regid" integer,
+  "clinic_id" integer,
   "bill_no" integer,
   "bill_date" date,
   "charges" real DEFAULT 0 NOT NULL,
@@ -247,12 +260,15 @@ const TABLES: Array<{ name: string; ddl: string }> = [
   "balance" real DEFAULT 0 NOT NULL,
   "payment_mode" varchar(50),
   "treatment" varchar(255),
+  "procedure_code_id" integer,
   "disease" varchar(255),
   "from_date" date,
   "to_date" date,
   "charge_id" integer,
   "doctor_id" integer,
   "notes" text,
+  "bill_type" varchar(30) DEFAULT 'Consultation',
+  "custom_title" varchar(255),
   "created_at" timestamp DEFAULT CURRENT_TIMESTAMP,
   "updated_at" timestamp DEFAULT CURRENT_TIMESTAMP,
   "deleted_at" timestamp
@@ -339,6 +355,7 @@ const TABLES: Array<{ name: string; ddl: string }> = [
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."case_datas" (
   "id" serial PRIMARY KEY,
   "regid" integer,
+  "clinic_id" integer,
   "patientid" integer,
   "title" text,
   "first_name" text,
@@ -373,9 +390,35 @@ const TABLES: Array<{ name: string; ddl: string }> = [
   "abha_id" text,
   "coupon" text,
   "refered_sms" text,
-  "sdate" date,
+  "status" text,
+  "blood_group" text,
+  "assitant_doctor" text,
+  "consultation_fee" integer,
+  "reference_type_id" integer,
   "notes" text
 )`,
+  },
+  {
+    name: 'idx_case_datas_clinic_id',
+    ddl: `DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'case_datas' AND column_name = 'clinic_id' AND table_schema = '{{SCHEMA}}') THEN
+    IF NOT EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relname = 'idx_case_datas_clinic_id' AND n.nspname = '{{SCHEMA}}') THEN
+      CREATE INDEX "idx_case_datas_clinic_id" ON "{{SCHEMA}}"."case_datas" ("clinic_id");
+    END IF;
+  END IF;
+END $$`,
+  },
+  {
+    name: 'idx_case_datas_assitant_doctor',
+    ddl: `DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'case_datas' AND column_name = 'assitant_doctor' AND table_schema = '{{SCHEMA}}') THEN
+    IF NOT EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relname = 'idx_case_datas_assitant_doctor' AND n.nspname = '{{SCHEMA}}') THEN
+      CREATE INDEX "idx_case_datas_assitant_doctor" ON "{{SCHEMA}}"."case_datas" ("assitant_doctor");
+    END IF;
+  END IF;
+END $$`,
   },
   {
     name: 'case_datas_regid_unique',
@@ -666,6 +709,17 @@ END $$`,
   "heading" text NOT NULL,
   "comments" text NOT NULL,
   "status" text NOT NULL
+)`,
+  },
+  {
+    name: 'case_reminders',
+    ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."case_reminders" (
+  "id" serial PRIMARY KEY,
+  "regid" integer NOT NULL,
+  "reminder_date" timestamp,
+  "message" text,
+  "status" varchar(20) DEFAULT 'Pending',
+  "created_at" timestamp DEFAULT now()
 )`,
   },
   {
@@ -1518,10 +1572,20 @@ END $$`,
   {
     name: 'medicines',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."medicines" (
-  "ID" integer,
+  "id" serial PRIMARY KEY,
+  "name" varchar(255) NOT NULL,
   "shortname" text,
   "remedy" text,
-  "snomed_code_id" integer
+  "disease" text,
+  "potency_id" integer,
+  "type" varchar(100),
+  "category" varchar(100),
+  "price" real DEFAULT 0,
+  "stock_level" integer DEFAULT 0,
+  "snomed_code_id" integer,
+  "created_at" timestamp DEFAULT CURRENT_TIMESTAMP,
+  "updated_at" timestamp DEFAULT CURRENT_TIMESTAMP,
+  "deleted_at" timestamp
 )`,
   },
   {
@@ -1835,6 +1899,7 @@ END $$`,
     name: 'receipt',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."receipt" (
   "id" serial PRIMARY KEY,
+  "clinic_id" integer,
   "receiptdate" text,
   "dateval" text,
   "regid" integer,
@@ -2026,6 +2091,7 @@ END $$`,
     name: 'settargets',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."settargets" (
   "id" serial PRIMARY KEY,
+  "clinic_id" integer,
   "doctor_id" integer,
   "target_amount" real,
   "target_month" integer,
@@ -2068,7 +2134,8 @@ END $$`,
     name: 'soap_notes',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."soap_notes" (
   "id" serial PRIMARY KEY,
-  "visit_id" integer NOT NULL UNIQUE,
+  "visit_id" integer,
+  "regid" integer,
   "subjective" text,
   "objective" text,
   "assessment" text,
@@ -2081,22 +2148,11 @@ END $$`,
   "doctor_approved" boolean,
   "approved_at" timestamp,
   "specialty_data" jsonb,
-  "created_at" timestamp,
-  "updated_at" timestamp
+  "created_at" timestamp DEFAULT now(),
+  "updated_at" timestamp DEFAULT now()
 )`,
   },
-  {
-    name: 'soap_notes_visit_id_unique',
-    ddl: `DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint WHERE conname = 'soap_notes_visit_id_unique'
-      AND conrelid = '"{{SCHEMA}}"."soap_notes"'::regclass
-  ) THEN
-    ALTER TABLE "{{SCHEMA}}"."soap_notes" ADD CONSTRAINT "soap_notes_visit_id_unique" UNIQUE("visit_id");
-  END IF;
-END $$`,
-  },
+
   {
     name: 'staticpages',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."staticpages" (
@@ -2131,9 +2187,12 @@ END $$`,
   "id" serial PRIMARY KEY,
   "name" text,
   "description" text,
-  "deleted_at" text,
-  "created_at" timestamp,
-  "updated_at" timestamp,
+  "quantity" integer DEFAULT 0,
+  "unit_price" real,
+  "batch_number" varchar(100),
+  "deleted_at" timestamp,
+  "created_at" timestamp DEFAULT CURRENT_TIMESTAMP,
+  "updated_at" timestamp DEFAULT CURRENT_TIMESTAMP,
   "potency" text,
   "ml" text,
   "status" text,
@@ -2656,6 +2715,50 @@ END $$`,
 )`,
   },
   {
+    name: 'waitlist',
+    ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."waitlist" (
+  "id" serial PRIMARY KEY,
+  "clinic_id" integer,
+  "patient_id" integer,
+  "unregistered_patient_id" integer,
+  "appointment_id" integer,
+  "doctor_id" integer,
+  "waiting_number" integer NOT NULL,
+  "date" date NOT NULL,
+  "status" integer DEFAULT 0 NOT NULL,
+  "consultation_fee" numeric(10, 2),
+  "checked_in_at" timestamp,
+  "called_at" timestamp,
+  "completed_at" timestamp,
+  "rowcolor" integer DEFAULT 0,
+  "created_at" timestamp DEFAULT now() NOT NULL,
+  "updated_at" timestamp DEFAULT now() NOT NULL,
+  "deleted_at" timestamp
+)`,
+  },
+  {
+    name: 'idx_waitlist_clinic_id',
+    ddl: `DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'waitlist' AND column_name = 'clinic_id' AND table_schema = '{{SCHEMA}}') THEN
+    IF NOT EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relname = 'idx_waitlist_clinic_id' AND n.nspname = '{{SCHEMA}}') THEN
+      CREATE INDEX "idx_waitlist_clinic_id" ON "{{SCHEMA}}"."waitlist" ("clinic_id");
+    END IF;
+  END IF;
+END $$`,
+  },
+  {
+    name: 'idx_waitlist_unreg_patient_id',
+    ddl: `DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'waitlist' AND column_name = 'unregistered_patient_id' AND table_schema = '{{SCHEMA}}') THEN
+    IF NOT EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relname = 'idx_waitlist_unreg_patient_id' AND n.nspname = '{{SCHEMA}}') THEN
+      CREATE INDEX "idx_waitlist_unreg_patient_id" ON "{{SCHEMA}}"."waitlist" ("unregistered_patient_id");
+    END IF;
+  END IF;
+END $$`,
+  },
+  {
     name: 'transcript_segments',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."transcript_segments" (
   "id" serial PRIMARY KEY,
@@ -2817,7 +2920,8 @@ END $$`,
     name: 'vitals',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."vitals" (
   "id" serial PRIMARY KEY,
-  "visit_id" integer NOT NULL UNIQUE,
+  "visit_id" integer,
+  "regid" integer,
   "height_cm" real,
   "weight_kg" real,
   "bmi" real,
@@ -2835,18 +2939,7 @@ END $$`,
   "updated_at" timestamp DEFAULT NOW()
 )`,
   },
-  {
-    name: 'vitals_visit_id_unique',
-    ddl: `DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint WHERE conname = 'vitals_visit_id_unique'
-      AND conrelid = '"{{SCHEMA}}"."vitals"'::regclass
-  ) THEN
-    ALTER TABLE "{{SCHEMA}}"."vitals" ADD CONSTRAINT "vitals_visit_id_unique" UNIQUE("visit_id");
-  END IF;
-END $$`,
-  },
+
   {
     name: 'waitingstatus',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."waitingstatus" (
@@ -2880,6 +2973,148 @@ END $$`,
   "deleted_at" timestamp
 )`,
   },
+  {
+    name: 'unregistered_patients',
+    ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."unregistered_patients" (
+  "id" serial PRIMARY KEY,
+  "clinic_id" integer,
+  "name" text NOT NULL,
+  "phone" text,
+  "email" text,
+  "gender" text,
+  "registered_patient_id" integer,
+  "created_at" timestamp DEFAULT CURRENT_TIMESTAMP,
+  "updated_at" timestamp DEFAULT CURRENT_TIMESTAMP,
+  "deleted_at" timestamp
+)`,
+  },
+  {
+    name: 'notifications',
+    ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."notifications" (
+  "id" serial PRIMARY KEY,
+  "user_id" integer NOT NULL,
+  "clinic_id" integer,
+  "type" text NOT NULL,
+  "title" text NOT NULL,
+  "message" text NOT NULL,
+  "is_read" boolean DEFAULT false NOT NULL,
+  "deleted_at" timestamp,
+  "created_at" timestamp DEFAULT now(),
+  "updated_at" timestamp DEFAULT now()
+)`,
+  },
+  // ─── Clinical Codes Tables ─────────────────────────────────────────────────
+  {
+    name: 'icd_codes',
+    ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."icd_codes" (
+  "id" serial PRIMARY KEY,
+  "code" varchar(20) NOT NULL,
+  "version" varchar(10) NOT NULL DEFAULT 'ICD-10',
+  "description" text NOT NULL,
+  "chapter" varchar(100),
+  "category" varchar(255),
+  "parent_code" varchar(20),
+  "is_active" boolean DEFAULT true,
+  "created_at" timestamp DEFAULT now()
+)`,
+  },
+  {
+    name: 'snomed_concepts',
+    ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."snomed_concepts" (
+  "id" serial PRIMARY KEY,
+  "concept_id" bigint NOT NULL UNIQUE,
+  "fsn" text NOT NULL,
+  "term" text NOT NULL,
+  "concept_type" varchar(50),
+  "active" boolean DEFAULT true,
+  "created_at" timestamp DEFAULT now()
+)`,
+  },
+  {
+    name: 'loinc_codes',
+    ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."loinc_codes" (
+  "id" serial PRIMARY KEY,
+  "loinc_num" varchar(20) NOT NULL UNIQUE,
+  "component" text NOT NULL,
+  "property" varchar(50),
+  "system" varchar(100),
+  "scale" varchar(20),
+  "method" varchar(100),
+  "units" varchar(50),
+  "description" text NOT NULL,
+  "created_at" timestamp DEFAULT now()
+)`,
+  },
+  {
+    name: 'lab_panels',
+    ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."lab_panels" (
+  "id" serial PRIMARY KEY,
+  "code" varchar(20) NOT NULL UNIQUE,
+  "name" varchar(255) NOT NULL,
+  "description" text,
+  "created_at" timestamp DEFAULT now()
+)`,
+  },
+  {
+    name: 'lab_panel_loinc_links',
+    ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."lab_panel_loinc_links" (
+  "id" serial PRIMARY KEY,
+  "lab_panel_id" integer NOT NULL,
+  "loinc_code_id" integer NOT NULL,
+  "sort_order" integer DEFAULT 0
+)`,
+  },
+  {
+    name: 'code_mappings',
+    ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."code_mappings" (
+  "id" serial PRIMARY KEY,
+  "source_system" varchar(20) NOT NULL,
+  "source_code" varchar(50) NOT NULL,
+  "target_system" varchar(20) NOT NULL,
+  "target_code" varchar(50) NOT NULL,
+  "map_type" varchar(20) DEFAULT 'equivalent',
+  "created_at" timestamp DEFAULT now()
+)`,
+  },
+  {
+    name: 'procedure_codes',
+    ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."procedure_codes" (
+  "id" serial PRIMARY KEY,
+  "code" varchar(20) NOT NULL UNIQUE,
+  "name" varchar(255) NOT NULL,
+  "description" text,
+  "category" varchar(100),
+  "standard" varchar(20) DEFAULT 'CPT',
+  "is_active" boolean DEFAULT true,
+  "created_at" timestamp DEFAULT now()
+)`,
+  },
+  {
+    name: 'medical_case_diagnoses',
+    ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."medical_case_diagnoses" (
+  "id" serial PRIMARY KEY,
+  "medical_case_id" integer NOT NULL,
+  "icd_code_id" integer,
+  "snomed_code_id" integer,
+  "is_primary" boolean DEFAULT false,
+  "notes" text,
+  "recorded_at" timestamp DEFAULT now(),
+  "recorded_by" varchar(36)
+)`,
+  },
+  {
+    name: 'investigation_results',
+    ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."investigation_results" (
+  "id" serial PRIMARY KEY,
+  "investigation_id" integer NOT NULL,
+  "loinc_code_id" integer,
+  "observation_value" varchar(100),
+  "observation_unit" varchar(20),
+  "reference_range" varchar(50),
+  "is_abnormal" boolean DEFAULT false,
+  "created_at" timestamp DEFAULT now()
+)`,
+  },
 ];
 
 export async function provisionTenant(dbUrl: string, schemaName: string): Promise<void> {
@@ -2900,7 +3135,7 @@ export async function provisionTenant(dbUrl: string, schemaName: string): Promis
 
   try {
     // Highly optimized bulk execution: concatenate all 150 tables into a single block
-    const allDdls = TABLES.map(table => table.ddl.replace(/\{\{SCHEMA\}\}/g, schemaName)).join(';\n');
+    const allDdls = TABLES.map(table => table.ddl.replace(/\{\{SCHEMA\}\}/g, schemaName)).join(';\n') + ';';
     await sql.unsafe(allDdls);
     log.info(`  🎉 Done! All 150+ legacy tables fast-provisioned in [${schemaName}]`);
   } catch (err: any) {

@@ -151,42 +151,44 @@ export function DashboardAnalyticsPage() {
           <h3>Common Diagnoses</h3>
         </div>
         <div style={{ padding: '20px' }}>
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', 
-            gap: '12px' 
-          }}>
-            {(trends?.topDiagnoses ?? []).length === 0 ? (
-              <EmptyState 
-                icon={Activity}
-                title="No diagnoses recorded"
-                description="Clinical diagnosis trends will appear here once you start prescribing for patient visits."
-                variant="card"
-              />
-            ) : (trends?.topDiagnoses ?? []).map((d: any, i: number) => (
-              <div key={i} style={{ 
-                padding: '16px', 
-                background: 'var(--pp-warm-1)', 
-                border: '1px solid var(--pp-warm-4)',
-                borderRadius: '12px',
-                transition: 'transform 0.2s ease'
-              }}>
-                <div style={{ 
-                  fontSize: '0.65rem', 
-                  color: 'var(--pp-text-3)', 
-                  fontWeight: 800, 
-                  textTransform: 'uppercase', 
-                  letterSpacing: '0.05em',
-                  marginBottom: '4px'
+          {(trends?.topDiagnoses ?? []).length === 0 ? (
+            <EmptyState 
+              icon={Activity}
+              title="No diagnoses recorded"
+              description="Clinical diagnosis trends will appear here once you start prescribing for patient visits."
+              variant="card"
+            />
+          ) : (
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', 
+              gap: '12px' 
+            }}>
+              {(trends?.topDiagnoses ?? []).map((d: any, i: number) => (
+                <div key={i} style={{ 
+                  padding: '16px', 
+                  background: 'var(--pp-warm-1)', 
+                  border: '1px solid var(--pp-warm-4)',
+                  borderRadius: '12px',
+                  transition: 'transform 0.2s ease'
                 }}>
-                  {d.diagnosis}
+                  <div style={{ 
+                    fontSize: '0.65rem', 
+                    color: 'var(--pp-text-3)', 
+                    fontWeight: 800, 
+                    textTransform: 'uppercase', 
+                    letterSpacing: '0.05em',
+                    marginBottom: '4px'
+                  }}>
+                    {d.diagnosis}
+                  </div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--pp-blue)', lineHeight: 1 }}>
+                    {d.count}
+                  </div>
                 </div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--pp-blue)', lineHeight: 1 }}>
-                  {d.count}
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

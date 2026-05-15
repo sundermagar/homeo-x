@@ -52,7 +52,7 @@ export function createOrganizationRouter(): Router {
       // ─── Step 1: Provision tenant schema + create admin in tenant DB ───
       // Independently wrapped — failures here do NOT block Step 2 (public mirror)
       try {
-        const { provisionTenant, TenantRegistry, createDbClient } = await import('@mmc/database');
+        const { provisionTenant, migrateTenant, TenantRegistry, createDbClient } = await import('@mmc/database');
 
         let shouldProvision = true;
         const allTenants = TenantRegistry.getAll();
@@ -62,6 +62,7 @@ export function createOrganizationRouter(): Router {
 
         if (shouldProvision) {
           await provisionTenant(dbUrl, schemaName);
+          await migrateTenant(dbUrl, schemaName);
 
           // Best-effort: create admin in tenant schema
           try {

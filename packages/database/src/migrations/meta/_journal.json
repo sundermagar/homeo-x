@@ -155,6 +155,20 @@
       "when": 1747220000000,
       "tag": "0021_add_clinic_id_to_finance_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1747300000000,
+      "tag": "0022_add_clinical_codes_and_billing_cols",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1747310000000,
+      "tag": "0023_fix_medicines_schema_drift",
+      "breakpoints": true
     }
   ]
 }

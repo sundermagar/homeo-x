@@ -295,12 +295,18 @@ export class MockWhatsAppGateway implements WhatsAppGateway {
   }
 }
 
+import { WhatsAppCloudGateway } from './whatsapp-cloud.gateway.js';
+
 /** Factory — picks the right gateway based on env */
 export function createWhatsAppGateway(): WhatsAppGateway {
+  if (process.env.WHATSAPP_TOKEN && process.env.PHONE_NUMBER_ID) {
+    logger.info('WhatsApp gateway initialized with Meta Cloud API');
+    return new WhatsAppCloudGateway();
+  }
   if (process.env.WHATSAPP_SECRET && process.env.WHATSAPP_ACCOUNT_DEFAULT) {
     logger.info('WhatsApp gateway initialized with BulkShooters');
     return new BulkShootersWhatsAppGateway();
   }
-  logger.warn('WhatsApp gateway running in MOCK mode. Set WHATSAPP_SECRET to send real messages.');
+  logger.warn('WhatsApp gateway running in MOCK mode. Set WHATSAPP_TOKEN or WHATSAPP_SECRET to send real messages.');
   return new MockWhatsAppGateway();
 }

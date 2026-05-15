@@ -65,3 +65,5 @@ export const users = pgTable('users', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   deletedAt: timestamp('deleted_at'),
 });
+
+// Cache invalidation comment to ensure TS emits the updated types.
