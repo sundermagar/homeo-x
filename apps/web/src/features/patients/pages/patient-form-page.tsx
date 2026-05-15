@@ -103,6 +103,7 @@ export default function PatientFormPage() {
     if (!form.firstName.trim()) errs.push('First Name is required');
     if (!form.surname.trim()) errs.push('Surname is required');
     if (!form.phone.trim() && !form.mobile1.trim()) errs.push('At least one phone number is required');
+    if (!form.dateOfBirth) errs.push('Date of Birth is required');
     return errs;
   };
 
@@ -213,8 +214,8 @@ export default function PatientFormPage() {
               <input className="pp-input" name="email" value={form.email} onChange={handleChange} placeholder="Email" type="email" />
             </div>
             <div>
-              <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Date of Birth</label>
-              <input className="pp-input" name="dateOfBirth" type="date" value={form.dateOfBirth} onChange={handleChange} />
+              <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Date of Birth <span style={{ color: 'var(--pp-danger-fg)' }}>*</span></label>
+              <input className="pp-input" name="dateOfBirth" type="date" value={form.dateOfBirth} onChange={handleChange} required />
             </div>
           </div>
 
