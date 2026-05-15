@@ -1,5 +1,5 @@
 import { pgTable, serial, varchar, text, boolean, timestamp, bigint, integer, index } from 'drizzle-orm/pg-core';
-import { investigations, medicalCases } from './medical-cases';
+import { investigations, medicalCases } from './medical-cases.js';
 
 // ─── ICD-10/ICD-11 Master Table ────────────────────────────────────────────────
 export const icdCodes = pgTable('icd_codes', {
