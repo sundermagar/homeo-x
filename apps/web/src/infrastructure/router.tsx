@@ -1,6 +1,7 @@
 import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from '@/shared/components/protected-route';
+import { PatientProtectedRoute } from '@/shared/components/patient-protected-route';
 import { RoleGuard } from '@/shared/components/role-guard';
 import { AppLayout } from '@/shared/layouts/app-layout';
 import { RouteErrorBoundary } from '@/components/shared/error-boundary';
@@ -113,6 +114,17 @@ const CourierQueuePage = lazy(() => import('@/features/logistics/pages/courier-q
 const ClinicalHubPage = lazy(() => import('@/features/clinical-hub/pages/clinical-hub-page'));
 const PatientMeetPage = lazy(() => import('@/features/consultation/patient-meet-page'));
 
+// Patient Portal
+const PatientLoginPage = lazy(() => import('@/features/public/pages/patient-login-page'));
+const PatientDashboardPage = lazy(() => import('@/features/public/pages/patient-dashboard'));
+const PatientAppointmentsPage = lazy(() => import('@/features/public/pages/patient-appointments'));
+const PatientBookWizardPage = lazy(() => import('@/features/public/pages/patient-book-wizard'));
+const PatientNotificationsPage = lazy(() => import('@/features/public/pages/patient-notifications'));
+const PatientPrescriptionsPage = lazy(() => import('@/features/public/pages/patient-prescriptions'));
+const PatientReportsPage = lazy(() => import('@/features/public/pages/patient-reports'));
+const PatientProfilePage = lazy(() => import('@/features/public/pages/patient-profile'));
+const FaqPage = lazy(() => import('@/features/public/pages/faq-page').then(m => ({ default: m.FaqPage })));
+
 export function AppRouter() {
   return (
     <RouteErrorBoundary>
@@ -120,7 +132,20 @@ export function AppRouter() {
         <Routes>
         {/* Public */}
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/patient/login" element={<PatientLoginPage />} />
         <Route path="/meet/:roomId" element={<PatientMeetPage />} />
+        <Route path="/faqs" element={<FaqPage />} />
+
+        {/* Patient Portal (protected by Patient Auth) */}
+        <Route element={<PatientProtectedRoute />}>
+          <Route path="/patient/:phone" element={<PatientDashboardPage />} />
+          <Route path="/patient/:phone/appointments" element={<PatientAppointmentsPage />} />
+          <Route path="/patient/:phone/book" element={<PatientBookWizardPage />} />
+          <Route path="/patient/:phone/notifications" element={<PatientNotificationsPage />} />
+          <Route path="/patient/:phone/prescriptions" element={<PatientPrescriptionsPage />} />
+          <Route path="/patient/:phone/reports" element={<PatientReportsPage />} />
+          <Route path="/patient/:phone/profile" element={<PatientProfilePage />} />
+        </Route>
 
         {/* Protected */}
         <Route element={<ProtectedRoute />}>

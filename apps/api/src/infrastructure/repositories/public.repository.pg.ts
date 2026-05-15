@@ -44,7 +44,7 @@ export class PublicRepositoryPg implements PublicRepository {
         .limit(5);
         
       console.log(`[AUTH] Found ${records.length} unverified OTP records for phone ${phone}`);
-      if (records.length > 0) {
+      if (records.length > 0 && records[0]) {
         console.log(`[AUTH] Latest OTP DB match detail: dbOtp=${records[0].otp}, matches=${records[0].otp === otp}, expiresAt=${records[0].expiresAt}`);
       }
 
@@ -193,9 +193,9 @@ export class PublicRepositoryPg implements PublicRepository {
     } catch (e) { console.error('[DB] Frequencies query failed:', e); }
 
     // Parse extra profile fields from notes JSON
-    let extraFields: Record<string, string> = {};
+    let extraFields: Record<string, any> = {};
     try {
-      if (patient.notes) extraFields = JSON.parse(patient.notes);
+      if (patient.notes) extraFields = JSON.parse(patient.notes as string);
     } catch { /* notes is plain text, ignore */ }
 
     return {
@@ -352,6 +352,8 @@ export class PublicRepositoryPg implements PublicRepository {
     emergencyName?: string;
     emergencyPhone?: string;
     emergencyRelation?: string;
+    chronicConditions?: string;
+    currentMedications?: string;
   }): Promise<any> {
     try {
       const updateFields: Record<string, any> = {};
@@ -375,7 +377,7 @@ export class PublicRepositoryPg implements PublicRepository {
         if (current?.notes) existingNotes = JSON.parse(current.notes);
       } catch { /* ignore parse errors */ }
 
-      const notesData = { ...existingNotes };
+      const notesData: Record<string, any> = { ...existingNotes };
       if (updates.height !== undefined) notesData.height = updates.height;
       if (updates.weight !== undefined) notesData.weight = updates.weight;
       if (updates.allergies !== undefined) notesData.allergies = updates.allergies;

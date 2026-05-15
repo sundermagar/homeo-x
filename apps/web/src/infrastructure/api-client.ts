@@ -1,5 +1,6 @@
 import axios, { type AxiosRequestConfig } from 'axios';
 import { useAuthStore } from '@/shared/stores/auth-store';
+import { usePatientAuthStore } from '@/shared/stores/patient-auth-store';
 import { toast } from '@/hooks/use-toast';
 
 /** Per-request opt-out of the global error toast (e.g. for endpoints that handle errors inline). */
@@ -23,9 +24,18 @@ const apiClient = axios.create({
 
 // Attach JWT token
 apiClient.interceptors.request.use((config) => {
-  const token = useAuthStore.getState().token;
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  // If request is for a public/patient portal endpoint, use patient auth
+  if (config.url?.startsWith('/public/')) {
+    const patientToken = usePatientAuthStore.getState().token;
+    if (patientToken) {
+      config.headers.Authorization = `Bearer ${patientToken}`;
+    }
+  } else {
+    // Otherwise use staff/clinic auth
+    const token = useAuthStore.getState().token;
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
   }
   // Multi-tenant: use current window host in local development if needed,
   // but preferably let the Vite proxy (changeOrigin: false) handle it.
@@ -84,10 +94,19 @@ apiClient.interceptors.response.use(
 
     // 401 Unauthorized → token expired or invalid → force logout (no toast, redirect tells the story).
     if (status === 401) {
-      const { logout } = useAuthStore.getState();
-      logout();
-      if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-        window.location.href = '/login';
+      // Check which context threw the 401 based on URL
+      if (config.url?.startsWith('/public/')) {
+        const { logout } = usePatientAuthStore.getState();
+        logout();
+        if (typeof window !== 'undefined' && !window.location.pathname.includes('/patient/login')) {
+          window.location.href = '/patient/login';
+        }
+      } else {
+        const { logout } = useAuthStore.getState();
+        logout();
+        if (typeof window !== 'undefined' && !window.location.pathname.includes('/login') && !window.location.pathname.includes('/patient/login')) {
+          window.location.href = '/login';
+        }
       }
       return Promise.reject(error);
     }

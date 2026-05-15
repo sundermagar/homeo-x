@@ -32,7 +32,7 @@ export function PatientReports() {
     <div className="patient-shell">
       <PatientHeader patientName={patientInfo.name} />
 
-      <main className="patient-main" style={{ padding: 0, backgroundColor: '#f8fafc', minHeight: '100vh', paddingBottom: '90px' }}>
+      <main className="patient-main" style={{ padding: 0, backgroundColor: '#f8fafc', paddingBottom: '90px' }}>
         <div style={{ background: 'white', padding: '20px 20px 10px 20px', position: 'sticky', top: 0, zIndex: 10, borderBottom: '1px solid #f1f5f9' }}>
           <h1 className="patient-page-title" style={{ textAlign: 'center', margin: 0, fontSize: '1.15rem', fontWeight: 700, color: '#1e293b' }}>Reports</h1>
         </div>

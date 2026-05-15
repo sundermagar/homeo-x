@@ -58,7 +58,7 @@ export function usePublicClinicalData(phone: string) {
     queryKey: ['public', 'clinical', phone],
     queryFn: async () => {
       const res = await apiClient.get(`/public/clinical/${phone}`);
-      return res.data ?? null;
+      return res.data?.data ?? res.data ?? null;
     },
     enabled: !!phone,
   });
@@ -69,8 +69,7 @@ export function usePatientAppointments(phone: string) {
     queryKey: ['public', 'appointments', phone],
     queryFn: async () => {
       const res = await apiClient.get(`/public/appointments/${phone}`);
-      // The response interceptor unwraps {success, data} -> data
-      const result = res.data;
+      const result = res.data?.data ?? res.data;
       return Array.isArray(result) ? result : [];
     },
     enabled: !!phone,
@@ -124,7 +123,7 @@ export function useBookedSlots(date: string) {
     queryKey: ['public', 'booked-slots', date],
     queryFn: async () => {
       const res = await apiClient.get(`/public/appointments/booked-slots?date=${date}`);
-      const result = res.data;
+      const result = res.data?.data ?? res.data;
       return Array.isArray(result) ? result : [];
     },
     enabled: !!date,

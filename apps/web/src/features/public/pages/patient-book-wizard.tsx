@@ -1,27 +1,16 @@
 import React, { useState, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Search, ArrowLeft, MapPin, Sparkles, ChevronRight, Clock, Phone, Mail, User, Video, PhoneCall, CalendarDays } from 'lucide-react';
 import { PatientBottomNav } from '../components/patient-bottom-nav';
-import { useBookAppointment, usePublicClinicalData, useBookedSlots } from '../hooks/use-public-api';
+import { useBookAppointment, usePublicClinicalData, useBookedSlots, useCancelAppointment } from '../hooks/use-public-api';
 
 export default function PatientBookWizard() {
   const { phone } = useParams<{ phone: string }>();
   const navigate = useNavigate();
-
-  // Booking Flow State
-  const [step, setStep] = useState<number>(1);
-  const [selectedClinic, setSelectedClinic] = useState<any>(null);
-  const [selectedDoctor, setSelectedDoctor] = useState<any>(null);
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
-  const [consultMode, setConsultMode] = useState<'in-person' | 'video' | 'audio'>('in-person');
-  const [chiefComplaint, setChiefComplaint] = useState<string>('');
-  const [visitType, setVisitType] = useState<'New' | 'Follow-up'>('New');
-
-  const bookMutation = useBookAppointment();
-  const { data: patientData } = usePublicClinicalData(phone || '');
-  const dateStr = selectedDate.toLocaleDateString('en-CA');
-  const { data: bookedSlots = [] } = useBookedSlots(dateStr);
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const isReschedule = searchParams.get('reschedule') === 'true';
+  const oldApptId = searchParams.get('oldApptId');
 
   // Hardcoded UI Mock Data from Request
   const clinics = [
@@ -32,10 +21,26 @@ export default function PatientBookWizard() {
     { id: 1, name: 'Dr. neeraj verma', specialization: 'Homeopathy' }
   ];
 
+  // Booking Flow State
+  const [step, setStep] = useState<number>(isReschedule ? 3 : 1);
+  const [selectedClinic, setSelectedClinic] = useState<any>(isReschedule ? clinics[0] : null);
+  const [selectedDoctor, setSelectedDoctor] = useState<any>(isReschedule ? doctors[0] : null);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+  const [consultMode, setConsultMode] = useState<'in-person' | 'video' | 'audio'>('in-person');
+  const [chiefComplaint, setChiefComplaint] = useState<string>('');
+  const [visitType, setVisitType] = useState<'New' | 'Follow-up'>('New');
+
+  const bookMutation = useBookAppointment();
+  const cancelMutation = useCancelAppointment();
+  const { data: patientData } = usePublicClinicalData(phone || '');
+  const dateStr = selectedDate.toLocaleDateString('en-CA');
+  const { data: bookedSlots = [] } = useBookedSlots(dateStr);
+
   const generateSlots = () => {
     const times = [];
-    let startMinutes = 9 * 60 + 40; // 9:40 AM
-    const endMinutes = 22 * 60 + 40; // 10:40 PM
+    let startMinutes = 10 * 60; // 10:00 AM
+    const endMinutes = 20 * 60; // 8:00 PM
 
     const now = new Date();
     const isToday = selectedDate.toDateString() === now.toDateString();
@@ -48,8 +53,8 @@ export default function PatientBookWizard() {
       const hours12 = h % 12 || 12;
       const timeStr = `${hours12}:${m.toString().padStart(2, '0')} ${ampm}`;
       
-      // Calculate end time (+15 mins)
-      const endMins = startMinutes + 15;
+      // Calculate end time (+30 mins)
+      const endMins = startMinutes + 30;
       const endH = Math.floor(endMins / 60);
       const endM = endMins % 60;
       const endAmpm = endH >= 12 ? 'PM' : 'AM';
@@ -62,7 +67,7 @@ export default function PatientBookWizard() {
         // Disable past slots or already-booked slots
         available: (isToday ? startMinutes > currentMinutes : true) && !bookedSlots.includes(timeStr)
       });
-      startMinutes += 20; // 20 min interval (from image)
+      startMinutes += 30; // 30 min interval
     }
     return times;
   };
@@ -92,7 +97,7 @@ export default function PatientBookWizard() {
   };
 
   const handleBack = () => {
-    if (step === 1) navigate(`/patient/${phone}`);
+    if (step === 1 || (isReschedule && step === 3)) navigate(`/patient/${phone}/appointments`);
     else setStep(step - 1);
   };
 
@@ -104,7 +109,15 @@ export default function PatientBookWizard() {
   // Step 4: confirmed → actually book
   const handleBookSlot = async () => {
     if (!phone || !selectedSlot) return;
+    if (!chiefComplaint.trim()) {
+      alert('Please provide your chief complaint to proceed.');
+      return;
+    }
     try {
+      if (isReschedule && oldApptId) {
+        await cancelMutation.mutateAsync(Number(oldApptId));
+      }
+
       await bookMutation.mutateAsync({
         phone,
         patientName: patientData?.patientInfo?.firstName || 'Patient',
@@ -112,7 +125,7 @@ export default function PatientBookWizard() {
         bookingTime: selectedSlot,
         doctorId: selectedDoctor?.id || 1, // Fallback to 1 if missing for safety
         visitType,
-        notes: `Clinic: ${selectedClinic?.name || 'Homeo'}, Doctor: ${selectedDoctor?.name || 'N/A'}, Mode: ${consultMode}, Type: ${visitType}${chiefComplaint ? `, Complaint: ${chiefComplaint}` : ''}`
+        notes: `Clinic: ${selectedClinic?.name || 'Homeo'}, Doctor: ${selectedDoctor?.name || 'N/A'}, Mode: ${consultMode}, Type: ${visitType}, Complaint: ${chiefComplaint}`
       });
       navigate(`/patient/${phone}/appointments`);
     } catch (err) {
@@ -121,7 +134,7 @@ export default function PatientBookWizard() {
   };
 
   return (
-    <div className="patient-shell" style={{ backgroundColor: '#f8fafc', minHeight: '100vh', paddingBottom: '90px' }}>
+    <div className="patient-shell" style={{ backgroundColor: '#f8fafc', paddingBottom: '90px' }}>
       
       {/* Dynamic Header */}
       <div style={{ background: 'white', padding: '16px', display: 'flex', alignItems: 'center', position: 'sticky', top: 0, zIndex: 10, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
@@ -222,12 +235,12 @@ export default function PatientBookWizard() {
               <div style={{ background: 'white', borderRadius: '16px', padding: '16px', fontSize: '0.85rem', color: '#64748b', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
                 {[
                   { day: 'Sun', hours: 'Closed', label: '' },
-                  { day: 'Mon', hours: '09:00-18:00, 18:00-23:00', label: 'Open' },
-                  { day: 'Tue', hours: '09:00-18:00, 18:00-23:00', label: 'Open' },
-                  { day: 'Wed', hours: '09:00-18:00, 18:00-23:00', label: 'Open' },
-                  { day: 'Thu', hours: '09:00-18:00, 18:00-23:00', label: 'Open' },
-                  { day: 'Fri', hours: '09:00-18:00, 18:00-23:00', label: 'Open' },
-                  { day: 'Sat', hours: '09:00-18:00, 18:00-23:00', label: 'Open' },
+                  { day: 'Mon', hours: '10:00 AM - 8:30 PM', label: 'Open' },
+                  { day: 'Tue', hours: '10:00 AM - 8:30 PM', label: 'Open' },
+                  { day: 'Wed', hours: '10:00 AM - 8:30 PM', label: 'Open' },
+                  { day: 'Thu', hours: '10:00 AM - 8:30 PM', label: 'Open' },
+                  { day: 'Fri', hours: '10:00 AM - 8:30 PM', label: 'Open' },
+                  { day: 'Sat', hours: '10:00 AM - 8:30 PM', label: 'Open' },
                 ].map((s, idx) => {
                   const isToday = new Date().getDay() === idx;
                   return (
@@ -430,12 +443,12 @@ export default function PatientBookWizard() {
             {/* Chief Complaint */}
             <div>
               <div style={{ fontWeight: 700, color: '#1e293b', marginBottom: '12px', fontSize: '0.95rem' }}>
-                Chief Complaint <span style={{ fontWeight: 400, color: '#94a3b8', fontSize: '0.85rem' }}>(optional)</span>
+                Chief Complaint <span style={{ color: '#dc2626' }}>*</span>
               </div>
               <textarea
                 value={chiefComplaint}
                 onChange={e => { if (e.target.value.length <= 500) setChiefComplaint(e.target.value); }}
-                placeholder="Briefly describe your symptoms or reason for visit..."
+                placeholder="Briefly describe your symptoms or reason for visit... (Required)"
                 rows={4}
                 style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.9rem', resize: 'none', outline: 'none', background: 'white', color: '#334155', boxSizing: 'border-box', fontFamily: 'inherit' }}
               />
@@ -463,10 +476,10 @@ export default function PatientBookWizard() {
             {/* Confirm Button */}
             <button
               onClick={handleBookSlot}
-              disabled={bookMutation.isPending}
-              style={{ width: '100%', padding: '18px', borderRadius: '14px', background: bookMutation.isPending ? '#cbd5e1' : 'var(--primary)', color: 'white', border: 'none', fontWeight: 800, fontSize: '1.05rem', cursor: bookMutation.isPending ? 'not-allowed' : 'pointer', marginBottom: '20px', boxShadow: '0 4px 14px rgba(99, 102, 241, 0.35)' }}
+              disabled={bookMutation.isPending || cancelMutation.isPending || !chiefComplaint.trim()}
+              style={{ width: '100%', padding: '18px', borderRadius: '14px', background: (bookMutation.isPending || cancelMutation.isPending || !chiefComplaint.trim()) ? '#cbd5e1' : 'var(--primary)', color: 'white', border: 'none', fontWeight: 800, fontSize: '1.05rem', cursor: (bookMutation.isPending || cancelMutation.isPending || !chiefComplaint.trim()) ? 'not-allowed' : 'pointer', marginBottom: '20px', boxShadow: (bookMutation.isPending || cancelMutation.isPending || !chiefComplaint.trim()) ? 'none' : '0 4px 14px rgba(99, 102, 241, 0.35)' }}
             >
-              {bookMutation.isPending ? 'Confirming...' : '✓  Confirm Appointment'}
+              {(bookMutation.isPending || cancelMutation.isPending) ? 'Confirming...' : '✓  Confirm Appointment'}
             </button>
           </div>
         )}

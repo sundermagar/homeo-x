@@ -39,6 +39,7 @@ const REQUIRED_COLUMNS: Record<string, Record<string, string>> = {
     refered_sms: 'text',
     sdate: 'date',
     notes: 'text',
+    password_hash: 'text',
   },
   waitlist: {
     clinic_id: 'integer',

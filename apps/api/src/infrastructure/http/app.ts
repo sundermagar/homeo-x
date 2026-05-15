@@ -54,6 +54,7 @@ import { scribingRouter } from './routes/scribing.router.js';
 import { visitsRouter } from './routes/visits.router.js';
 import { videoCallRouter } from './routes/video-call.router.js';
 import { specialtiesRouter } from './routes/specialties.router.js';
+import { publicRouter } from './routes/public.router.js';
 import { setupTranscriptionGateway } from './gateways/transcription.gateway.js';
 import { setupVideoCallGateway } from './gateways/video-call.gateway.js';
 import { TranslatorEngine } from '../../domains/consultation/engines/translator.engine.js';
@@ -133,6 +134,7 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   app.use('/api/analytics', analyticsRouter);
   app.use('/api/dashboard', dashboardRouter);
   app.use('/api/patients', patientRouter); // Added patient from shiva
+  app.use('/api/public', publicRouter); // Patient portal APIs
 
   // Our modules — Billing & Finance
   app.use('/api/billing', createBillingRouter());

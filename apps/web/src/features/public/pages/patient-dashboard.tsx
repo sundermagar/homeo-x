@@ -135,7 +135,7 @@ export function PatientDashboard() {
   }
 
   if (error || !data) {
-    return <Navigate to="/verify-otp" />;
+    return <Navigate to="/patient/login" />;
   }
 
   const { patientInfo } = data;

@@ -1,0 +1,374 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   Patient Login — Premium Design
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.patient-login-screen {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 50%, #f0fdf4 100%);
+  padding: 16px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.patient-login-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  max-width: 960px;
+  width: 100%;
+  min-height: 580px;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.04),
+    0 20px 60px -12px rgba(0, 0, 0, 0.12),
+    0 8px 24px -8px rgba(0, 0, 0, 0.08);
+  background: #ffffff;
+}
+
+/* ─── Hero Side ─── */
+.patient-login-hero {
+  position: relative;
+  background: linear-gradient(160deg, #0c4a6e 0%, #075985 40%, #0284c7 100%);
+  padding: 48px 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.patient-login-hero-shapes {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.hero-circle-1 {
+  position: absolute;
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.04);
+  top: -60px;
+  right: -40px;
+}
+
+.hero-circle-2 {
+  position: absolute;
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  bottom: 40px;
+  left: -50px;
+}
+
+.hero-circle-3 {
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  top: 50%;
+  left: 60%;
+}
+
+.patient-login-hero-content {
+  position: relative;
+  z-index: 1;
+  color: #ffffff;
+  text-align: left;
+}
+
+.patient-login-hero-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.patient-login-hero-content h1 {
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+  margin-bottom: 14px;
+}
+
+.patient-login-hero-content p {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.75);
+  margin-bottom: 32px;
+  max-width: 280px;
+}
+
+.patient-login-features {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.patient-login-feature {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* ─── Form Side ─── */
+.patient-login-form-side {
+  padding: 48px 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.patient-login-card {
+  max-width: 360px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.patient-login-card-header {
+  margin-bottom: 24px;
+}
+
+.patient-login-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #0284c7;
+  background: #e0f2fe;
+  padding: 5px 12px;
+  border-radius: 6px;
+}
+
+.patient-login-title {
+  font-size: 26px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.4px;
+  margin-bottom: 6px;
+}
+
+.patient-login-subtitle {
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+  line-height: 1.5;
+  margin-bottom: 28px;
+}
+
+/* ─── Inputs ─── */
+.patient-login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.patient-input-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.patient-input-icon {
+  position: absolute;
+  left: 14px;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.patient-input {
+  width: 100%;
+  padding: 13px 14px 13px 44px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #0f172a;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.patient-input:focus {
+  border-color: #0284c7;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.1);
+}
+
+.patient-input::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.patient-password-toggle {
+  position: absolute;
+  right: 14px;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  z-index: 2;
+}
+
+.patient-password-toggle:hover {
+  color: #475569;
+}
+
+/* ─── Error ─── */
+.patient-login-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  color: #dc2626;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* ─── Button ─── */
+.patient-login-btn {
+  width: 100%;
+  padding: 13px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffffff;
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  margin-top: 4px;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3);
+}
+
+.patient-login-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #0369a1, #075985);
+  box-shadow: 0 4px 16px rgba(2, 132, 199, 0.4);
+  transform: translateY(-1px);
+}
+
+.patient-login-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* ─── Divider ─── */
+.patient-login-divider {
+  text-align: center;
+  margin: 24px 0 12px;
+  position: relative;
+}
+
+.patient-login-divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: #e2e8f0;
+}
+
+.patient-login-divider span {
+  position: relative;
+  background: #ffffff;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.patient-login-help {
+  font-size: 12px;
+  color: #94a3b8;
+  text-align: center;
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.patient-login-footer {
+  text-align: center;
+  padding-top: 16px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.patient-login-staff-link {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.patient-login-staff-link:hover {
+  color: #0284c7;
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 768px) {
+  .patient-login-container {
+    grid-template-columns: 1fr;
+    max-width: 420px;
+  }
+
+  .patient-login-hero {
+    padding: 32px 24px;
+  }
+
+  .patient-login-hero-content h1 {
+    font-size: 24px;
+  }
+
+  .patient-login-features {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .patient-login-form-side {
+    padding: 32px 24px;
+  }
+}
+
+/* ─── Spin Animation ─── */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.animate-spin {
+  animation: spin 1s linear infinite;
+}

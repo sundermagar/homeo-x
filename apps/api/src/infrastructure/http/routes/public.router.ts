@@ -1,4 +1,6 @@
 import { Router } from 'express';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import { SendOtpUseCase } from '../../../domains/public/use-cases/send-otp.use-case';
 import { VerifyOtpUseCase } from '../../../domains/public/use-cases/verify-otp.use-case';
 import { GetPublicContentUseCase } from '../../../domains/public/use-cases/get-public-content.use-case';
@@ -6,10 +8,109 @@ import { PublicRepositoryPg } from '../../repositories/public.repository.pg';
 import { sql } from 'drizzle-orm';
 import { asyncHandler } from '../middleware/async-handler';
 import { sendSuccess } from '../../../shared/response-formatter';
+import { appConfig } from '../../../shared/config/app-config.js';
 
 export const publicRouter: Router = Router();
 
 const getRepo = (req: any) => new PublicRepositoryPg(req.tenantDb);
+
+// ─── Patient Email+Password Login ─────────────────────────────────────────
+publicRouter.post('/auth/login', asyncHandler(async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    res.status(400).json({ success: false, message: 'Email and password are required' });
+    return;
+  }
+
+  const db = req.tenantDb;
+
+  // Look up patient by email in case_datas
+  const rows = await db.execute(sql`
+    SELECT id, regid, first_name, surname, phone, mobile1, email, password_hash
+    FROM case_datas
+    WHERE LOWER(email) = LOWER(${email})
+    AND deleted_at IS NULL
+    LIMIT 1
+  `);
+
+  const patient = (rows as any).rows?.[0] || (rows as any)[0];
+  if (!patient) {
+    res.status(401).json({ success: false, message: 'No patient account found with this email' });
+    return;
+  }
+
+  const storedHash = (patient as any).password_hash;
+  if (!storedHash) {
+    res.status(401).json({
+      success: false,
+      message: 'Password not set. Please contact your clinic to set up your patient portal password.',
+    });
+    return;
+  }
+
+  // PHP generates $2y$ which bcryptjs does not recognize
+  const normalizedHash = storedHash.replace(/^\$2y\$/, '$2a$');
+  const isMatch = await bcrypt.compare(password, normalizedHash);
+
+  if (!isMatch) {
+    res.status(401).json({ success: false, message: 'Invalid password' });
+    return;
+  }
+
+  const p = patient as any;
+  const patientName = [p.first_name, p.surname].filter(Boolean).join(' ');
+  const phone = p.phone || p.mobile1 || '';
+
+  const payload = {
+    id: p.id,
+    regid: p.regid,
+    name: patientName,
+    phone,
+    email: p.email,
+    type: 'Patient',
+  };
+
+  const token = jwt.sign(payload, appConfig.jwt.secret as jwt.Secret, {
+    expiresIn: '7d',
+  });
+
+  sendSuccess(res, {
+    token,
+    patient: payload,
+  });
+}));
+
+// ─── Patient Password Setup / Reset (by clinic staff) ─────────────────────
+publicRouter.post('/auth/set-password', asyncHandler(async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    res.status(400).json({ success: false, message: 'Email and password are required' });
+    return;
+  }
+  if (password.length < 6) {
+    res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
+    return;
+  }
+
+  const db = req.tenantDb;
+  const salt = await bcrypt.genSalt(10);
+  const hash = await bcrypt.hash(password, salt);
+
+  const result = await db.execute(sql`
+    UPDATE case_datas
+    SET password_hash = ${hash}
+    WHERE LOWER(email) = LOWER(${email})
+    AND deleted_at IS NULL
+  `);
+
+  const rowCount = (result as any).rowCount ?? (result as any).rows?.length ?? 0;
+  if (rowCount === 0) {
+    res.status(404).json({ success: false, message: 'No patient found with this email' });
+    return;
+  }
+
+  sendSuccess(res, undefined, 'Patient password set successfully');
+}));
 
 // ─── OTP ───────────────────────────────────────────────────────────────────
 publicRouter.post('/otp/send', asyncHandler(async (req, res) => {
@@ -120,18 +221,19 @@ publicRouter.get('/faqs', asyncHandler(async (req, res) => {
 
 publicRouter.get('/cms/pages/:slug', asyncHandler(async (req, res) => {
   const useCase = new GetPublicContentUseCase(getRepo(req));
-  const page = await useCase.getPage(req.params.slug);
+  const page = await useCase.getPage(req.params.slug as string);
   sendSuccess(res, page);
 }));
 
 // ─── Direct Clinical Access (Transient) ───────────────────────────────────
 publicRouter.get('/clinical/:phone', asyncHandler(async (req, res) => {
-  const { phone } = req.params;
+  const phone = req.params.phone as string;
   const repo = getRepo(req);
   const data = await repo.getLatestClinicalData(phone);
   
   if (!data) {
-    return res.status(404).json({ success: false, message: 'No patient record found for this number' });
+    res.status(404).json({ success: false, message: 'No patient record found for this number' });
+    return;
   }
 
   sendSuccess(res, data);
@@ -146,7 +248,7 @@ publicRouter.get('/appointments/booked-slots', asyncHandler(async (req, res) => 
 }));
 
 publicRouter.get('/appointments/:phone', asyncHandler(async (req, res) => {
-  const { phone } = req.params;
+  const phone = req.params.phone as string;
   const repo = getRepo(req);
   const appointments = await repo.getPatientAppointments(phone);
   sendSuccess(res, appointments);
@@ -184,14 +286,14 @@ publicRouter.patch('/appointments/:id/cancel', asyncHandler(async (req, res) => 
 
 // ─── Patient Preferences ─────────────────────────────────────────────────
 publicRouter.get('/patient/:phone/preferences', asyncHandler(async (req, res) => {
-  const { phone } = req.params;
+  const phone = req.params.phone as string;
   const repo = getRepo(req);
   const prefs = await repo.getNotificationPreferences(phone);
   sendSuccess(res, prefs);
 }));
 
 publicRouter.patch('/patient/:phone/preferences', asyncHandler(async (req, res) => {
-  const { phone } = req.params;
+  const phone = req.params.phone as string;
   const prefs = req.body;
   const repo = getRepo(req);
   await repo.upsertNotificationPreferences(phone, prefs);
@@ -200,7 +302,7 @@ publicRouter.patch('/patient/:phone/preferences', asyncHandler(async (req, res) 
 
 // ─── Patient Profile Update ──────────────────────────────────────────────
 publicRouter.put('/patient/:phone/profile', asyncHandler(async (req, res) => {
-  const { phone } = req.params;
+  const phone = req.params.phone as string;
   const updates = req.body;
   const repo = getRepo(req);
   const result = await repo.updatePatientProfile(phone, updates);

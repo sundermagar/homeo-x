@@ -144,7 +144,7 @@ export function PatientAppointments() {
     <div className="patient-shell">
       <PatientHeader patientName={clinicalData.patientInfo.name} />
 
-      <main className="patient-main" style={{ padding: 0, backgroundColor: '#f8fafc', minHeight: '100vh', paddingBottom: '80px' }}>
+      <main className="patient-main" style={{ padding: 0, backgroundColor: '#f8fafc', paddingBottom: '80px' }}>
         <div style={{ background: 'white', padding: '20px 20px 0 20px', position: 'sticky', top: 0, zIndex: 10, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
           <h1 className="patient-page-title" style={{ textAlign: 'center', marginBottom: '24px', fontSize: '1.2rem', fontWeight: 700 }}>My Appointments</h1>
           <div style={{ display: 'flex', borderBottom: '2px solid #f1f5f9' }}>
@@ -314,7 +314,7 @@ export function PatientAppointments() {
 
                            {/* Reschedule */}
                            <button
-                             onClick={() => !within6h && navigate(`/patient/${phone}/book`)}
+                             onClick={() => !within6h && navigate(`/patient/${phone}/book?reschedule=true&oldApptId=${appt.id}`)}
                              disabled={within6h}
                              title={within6h ? 'Unavailable within 6 hours of appointment' : 'Reschedule'}
                              style={{ flex: 1, padding: '10px 0', borderRadius: '10px', background: 'transparent', color: within6h ? '#cbd5e1' : '#6366f1', border: `1px solid ${within6h ? '#e2e8f0' : '#6366f1'}`, fontWeight: 600, fontSize: '0.85rem', cursor: within6h ? 'not-allowed' : 'pointer' }}

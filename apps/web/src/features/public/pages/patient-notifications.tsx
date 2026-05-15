@@ -37,7 +37,7 @@ export function PatientNotifications() {
 
   if (isLoading || !prefs) {
     return (
-      <div className="patient-shell" style={{ backgroundColor: '#f8fafc', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="patient-shell" style={{ backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ width: 48, height: 48, border: '4px solid #dcfce7', borderTopColor: '#22c55e', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       </div>
@@ -90,7 +90,7 @@ export function PatientNotifications() {
   ];
 
   return (
-    <div className="patient-shell" style={{ backgroundColor: '#f8fafc', minHeight: '100vh' }}>
+    <div className="patient-shell" style={{ backgroundColor: '#f8fafc' }}>
       <div className="pn-header">
         <button className="pn-back-btn" onClick={() => navigate(-1)}>
           <ChevronLeft size={24} />
