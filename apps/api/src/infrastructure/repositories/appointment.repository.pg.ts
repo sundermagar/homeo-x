@@ -3,7 +3,7 @@ import type { DbClient } from '@mmc/database';
 import * as schema from '@mmc/database';
 import type { Appointment, WaitlistEntry, AvailabilitySlot, CreateAppointmentDto, UpdateAppointmentDto } from '@mmc/types';
 import { AppointmentStatus } from '@mmc/types';
-import type { AppointmentRepository, AppointmentFilters } from '../../domains/appointment/ports/appointment.repository';
+import type { AppointmentRepository, AppointmentFilters } from '../../domains/appointment/ports/appointment.repository.js';
 
 const ALL_TIME_SLOTS = [
   '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM', '12:00 PM', '12:30 PM', '01:00 PM', '01:30 PM',
