@@ -96,7 +96,7 @@ staffRouter.get('/', async (req: Request, res: Response) => {
       res.status(400).json({ success: false, message: 'Invalid or missing category. Must be one of: doctor, employee, receptionist, clinicadmin, account' });
       return;
     }
-    const { search, page = '1', limit = '30' } = req.query;
+    const { search, page = '1', limit = '30', sortBy, sortOrder } = req.query;
     const repo = await getRepo(req);
     const uc = new ListStaffUseCase(repo);
     const result = await uc.execute({
@@ -104,6 +104,8 @@ staffRouter.get('/', async (req: Request, res: Response) => {
       page: Number(page),
       limit: Number(limit),
       search: search as string,
+      sortBy: sortBy as string,
+      sortOrder: sortOrder as 'ASC' | 'DESC',
     });
     if (result.success) {
       res.json({ success: true, data: result.data.data, total: result.data.total });

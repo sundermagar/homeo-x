@@ -61,8 +61,10 @@ export class StaffRepositoryPg implements StaffRepository {
     page: number;
     limit: number;
     search?: string;
+    sortBy?: string;
+    sortOrder?: 'ASC' | 'DESC';
   }): Promise<{ data: StaffSummary[]; total: number }> {
-    const { category, page, limit, search } = params;
+    const { category, page, limit, search, sortBy, sortOrder } = params;
     const offset = (page - 1) * limit;
     const table = this.getTableName(category);
 
@@ -74,13 +76,18 @@ export class StaffRepositoryPg implements StaffRepository {
 
     const colFragment = sql.join(selectCols.map(c => sql.identifier(c)), sql`, `);
 
+    // Determine sort column and direction with whitelist/validation for safety
+    const allowedSortCols = ['id', 'name', 'email', 'mobile', 'city', 'created_at', 'consultation_fee'];
+    const sortCol = allowedSortCols.includes(sortBy || '') ? (sortBy as string) : 'id';
+    const sortDir = (sortOrder === 'ASC' || sortOrder === 'DESC') ? sortOrder : (sortBy === 'name' ? 'ASC' : 'DESC');
+
     // We only select columns confirmed to exist in the legacy schema
     const rows = await this.db.execute(sql`
       SELECT ${colFragment}
       FROM ${sql.identifier(table)}
       WHERE (deleted_at IS NULL OR deleted_at::text = '')
       ${searchSafe ? sql`AND (name ILIKE ${searchSafe} OR email ILIKE ${searchSafe} OR mobile ILIKE ${searchSafe})` : sql``}
-      ORDER BY name ASC
+      ORDER BY ${sql.identifier(sortCol)} ${sql.raw(sortDir)}
       LIMIT ${limit} OFFSET ${offset}
     `);
 
@@ -193,7 +200,7 @@ export class StaffRepositoryPg implements StaffRepository {
     nextId = userId; // Force staff ID to match user ID
     roleAssignId = userId;
 
-    // ─── 1. Insert into specific Staff table ───
+    // ─── 1. Insert into specific Staff table + 2. Assign Role (PARALLEL) ───
     const staffCols = [
       'id', 'name', 'email', 'mobile', 'mobile2', 'gender', 'designation', 'dept', 'city', 'address', 'about',
       'date_birth', 'date_left', 'salary_cur', 'password'
@@ -204,13 +211,11 @@ export class StaffRepositoryPg implements StaffRepository {
       data.dateBirth || null, data.dateLeft || null, data.salaryCur || 0, hashedPassword
     ];
 
-    // Add clinic_id for clinic admins — ties the admin to their organization
     if (category === 'clinicadmin' && (data as any).clinicId) {
       staffCols.push('clinic_id');
       staffVals.push((data as any).clinicId);
     }
 
-    // Add doctor-specific columns if applicable
     if (category === 'doctor') {
       staffCols.push(
         'title', 'firstname', 'middlename', 'surname', 'qualification', 'instutitue', 'passedout',
@@ -229,17 +234,17 @@ export class StaffRepositoryPg implements StaffRepository {
       );
     }
 
-    await this.db.execute(sql`
-      INSERT INTO ${sql.identifier(table)} (${sql.join(staffCols.map(c => sql.raw(c)), sql`, `)}, created_at, updated_at)
-      VALUES (${sql.join(staffVals.map(v => sql`${v}`), sql`, `)}, NOW(), NOW())
-    `);
-
-    // ─── 2. Assign Role ───
-    await this.db.execute(sql`
-      INSERT INTO role_user (id, user_id, role_id, created_at)
-      VALUES ((SELECT COALESCE(MAX(id), 0) + 1 FROM role_user), ${roleAssignId}, ${roleId}, NOW())
-      ON CONFLICT (id) DO NOTHING
-    `);
+    await Promise.all([
+      this.db.execute(sql`
+        INSERT INTO ${sql.identifier(table)} (${sql.join(staffCols.map(c => sql.raw(c)), sql`, `)}, created_at, updated_at)
+        VALUES (${sql.join(staffVals.map(v => sql`${v}`), sql`, `)}, NOW(), NOW())
+      `),
+      this.db.execute(sql`
+        INSERT INTO role_user (id, user_id, role_id, created_at)
+        VALUES ((SELECT COALESCE(MAX(id), 0) + 1 FROM role_user), ${roleAssignId}, ${roleId}, NOW())
+        ON CONFLICT (id) DO NOTHING
+      `)
+    ]);
 
     const created = await this.findById(category, nextId);
     if (!created) throw new Error('Failed to retrieve created staff member');

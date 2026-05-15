@@ -13,35 +13,39 @@ export class CreatePatientUseCase {
   ) {}
 
   async execute(input: CreatePatientInput, clinicId?: number): Promise<Result<{ patient: Patient; registrationBillId?: number }>> {
-    const patient = await this.patientRepo.create({ ...input, clinicId });
+    // ─── Parallelize Patient Creation and Org Lookup ───
+    const [patient, org] = await Promise.all([
+      this.patientRepo.create({ ...input, clinicId }),
+      clinicId ? this.orgRepo.findById(clinicId) : Promise.resolve(null)
+    ]);
 
-    // Auto-bill registration fee if clinic has one configured
-    if (clinicId) {
-      try {
-        const org = await this.orgRepo.findById(clinicId);
-        if (org?.registrationFee && org.registrationFee > 0) {
+    // ─── Background: Auto-bill registration fee ───
+    if (clinicId && org?.registrationFee && org.registrationFee > 0) {
+      (async () => {
+        try {
           const billNo = await this.billingRepo.nextBillNo();
           await this.billingRepo.create({
             regid: patient.regid,
             billNo,
             billDate: new Date().toISOString().split('T')[0],
-            charges: org.registrationFee,
+            charges: org.registrationFee || 0,
             received: 0,
             paymentMode: 'Cash',
             billType: 'Registration',
             treatment: 'Registration Fee',
             customTitle: 'Registration Fee',
           });
+          console.log(`[CreatePatient] Auto-bill generated for RegID: ${patient.regid}`);
+        } catch (err) {
+          console.warn('[CreatePatient] registration fee billing failed in background:', err);
         }
-      } catch (err) {
-        // Billing failure should not roll back patient creation
-        console.warn('[CreatePatient] registration fee billing failed:', err);
-      }
+      })();
     }
 
-    // Link to unregistered patient record if exists
+    // ─── Background: Link to unregistered patient record ───
     if (input.unregisteredId) {
-      await this.patientRepo.linkUnregisteredToFormal(input.unregisteredId, patient.id);
+      this.patientRepo.linkUnregisteredToFormal(input.unregisteredId, patient.id)
+        .catch(err => console.warn('[CreatePatient] linkUnregisteredToFormal failed:', err));
     }
 
     return ok({ patient });
