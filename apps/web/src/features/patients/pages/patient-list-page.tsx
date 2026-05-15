@@ -116,6 +116,7 @@ export default function PatientListPage() {
   const [drawerRegid, setDrawerRegid] = useState<number | null>(null);
   const [assignPkgPatient, setAssignPkgPatient] = useState<{ regid: number; name: string } | null>(null);
   const [selectedUnregistered, setSelectedUnregistered] = useState<any | null>(null);
+  const [patientFilter, setPatientFilter] = useState<'all' | 'registered' | 'unregistered'>('all');
 
   const user = useAuthStore(s => s.user);
   const token = useAuthStore(s => s.token);
@@ -134,8 +135,8 @@ export default function PatientListPage() {
   });
   const deleteMutation = useDeletePatient();
 
-  const combinedPatients = useMemo(() => [
-    ...unregisteredPatients.map((up: any) => ({
+  const combinedPatients = useMemo(() => {
+    const unreg = unregisteredPatients.map((up: any) => ({
       regid: 0,
       fullName: up.name,
       phone: up.phone,
@@ -144,11 +145,17 @@ export default function PatientListPage() {
       lastVisit: null,
       isUnregistered: true,
       original: up
-    })),
-    ...(data?.data || []).map((p: PatientSummary) => ({ ...p, isUnregistered: false }))
-  ], [unregisteredPatients, data?.data]);
+    }));
+    const reg = (data?.data || []).map((p: PatientSummary) => ({ ...p, isUnregistered: false }));
 
-  const totalEntries = (data?.total || 0) + unregisteredPatients.length;
+    if (patientFilter === 'registered') return reg;
+    if (patientFilter === 'unregistered') return unreg;
+    return [...unreg, ...reg];
+  }, [unregisteredPatients, data?.data, patientFilter]);
+
+  const totalEntries = patientFilter === 'registered' ? (data?.total || 0) :
+                       patientFilter === 'unregistered' ? unregisteredPatients.length :
+                       ((data?.total || 0) + unregisteredPatients.length);
 
   const handleSearchChange = (val: string) => {
     setSearch(val); setPage(1);
@@ -234,6 +241,18 @@ export default function PatientListPage() {
         </div>
         
         <div className="pp-filter-controls">
+          <div className="appt-segmented-toggle">
+             <button className={`appt-segmented-btn ${patientFilter === 'all' ? 'is-active' : ''}`} onClick={() => { setPatientFilter('all'); setPage(1); }}>
+               All
+             </button>
+             <button className={`appt-segmented-btn ${patientFilter === 'registered' ? 'is-active' : ''}`} onClick={() => { setPatientFilter('registered'); setPage(1); }}>
+               Registered
+             </button>
+             <button className={`appt-segmented-btn ${patientFilter === 'unregistered' ? 'is-active' : ''}`} onClick={() => { setPatientFilter('unregistered'); setPage(1); }}>
+               Unregistered
+             </button>
+          </div>
+
           <div className="appt-segmented-toggle">
              <button className={`appt-segmented-btn ${viewMode === 'list' ? 'is-active' : ''}`} onClick={() => setViewMode('list')} title="List View">
                <ListIcon size={16} /> List
