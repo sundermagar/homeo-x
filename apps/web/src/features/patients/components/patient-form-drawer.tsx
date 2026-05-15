@@ -176,6 +176,7 @@ export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient,
     if (!form.firstName.trim()) errs.push('First Name is required');
     if (!form.surname.trim()) errs.push('Surname is required');
     if (!form.phone.trim() && !form.mobile1.trim()) errs.push('At least one phone number is required');
+    if (!form.dateOfBirth) errs.push('Date of Birth is required');
     return errs;
   };
 
@@ -266,8 +267,8 @@ export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient,
                 </select>
               </div>
               <div className="form-group">
-                <label className="drawer-label">Date of Birth</label>
-                <input className="drawer-input" name="dateOfBirth" type="date" value={form.dateOfBirth} onChange={handleChange} />
+                <label className="drawer-label">Date of Birth <span style={{ color: 'var(--pp-danger-fg)' }}>*</span></label>
+                <input className="drawer-input" name="dateOfBirth" type="date" value={form.dateOfBirth} onChange={handleChange} required />
               </div>
             </div>
 

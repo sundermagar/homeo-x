@@ -14,7 +14,7 @@ const TABS: { key: StaffCategory; label: string; color: string; icon: string }[]
   { key: 'employee', label: 'Employees', color: '#8b5cf6', icon: '👤' },
   { key: 'receptionist', label: 'Receptionists', color: '#f59e0b', icon: '🏥' },
   { key: 'clinicadmin', label: 'Clinic Admins', color: 'var(--pp-danger-fg)', icon: '🛡️' },
-  { key: 'account', label: 'Account Mgrs', color: '#10b981', icon: '💼' },
+
 ];
 
 const PAGE_SIZE = 10;
@@ -169,8 +169,7 @@ export default function StaffListPage({ defaultTab }: { defaultTab?: StaffCatego
               activeTab === 'doctor' ? Stethoscope :
               activeTab === 'employee' ? Users :
               activeTab === 'receptionist' ? UserPlus :
-              activeTab === 'clinicadmin' ? ShieldCheck :
-              activeTab === 'account' ? UserCog : Users
+              activeTab === 'clinicadmin' ? ShieldCheck : Users
             }
             title={`No ${currentTabMeta.label.toLowerCase()} records found.`}
             description={`Adjust your search or register a new ${currentTabMeta.label.replace(/s$/, '').toLowerCase()} in the registry.`}

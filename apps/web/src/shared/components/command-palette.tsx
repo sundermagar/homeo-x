@@ -193,11 +193,10 @@ function buildCommands(
       ['receptionist', 'receptionists', 'front desk']),
     nav('Clinic Admins', '/platform/clinicadmins', <Contact size={16} />, ADMIN_CLINIC,
       ['clinic', 'admin', 'clinicadmin']),
-    nav('Account Managers', '/platform/account-managers', <UserPlus size={16} />, ADMIN_CLINIC,
-      ['account', 'manager', 'account manager']),
+
     nav('Clinics', '/platform/clinics', <Building2 size={16} />, ADMIN_ONLY,
       ['clinic', 'organisation', 'branch']),
-    nav('Accounts', '/platform/accounts', <Building2 size={16} />, ADMIN_ONLY,
+    nav('Clinic Accounts', '/platform/accounts', <Building2 size={16} />, ADMIN_ONLY,
       ['account', 'accounts', 'organisation']),
 
     // ── Settings ────────────────────────────────────────────────────────────
