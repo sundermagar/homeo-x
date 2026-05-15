@@ -60,18 +60,18 @@ export function SearchableSelect({
       {isOpen && (
         <div style={{
           position: 'absolute',
-          bottom: '100%', // Open upwards by default if in sidebar
+          top: '100%', 
           left: 0,
           right: 0,
           maxHeight: '250px',
           display: 'flex',
           flexDirection: 'column',
-          backgroundColor: 'var(--bg-card)',
+          backgroundColor: 'white',
           border: '1px solid var(--border-main)',
-          borderRadius: '4px',
-          marginBottom: '4px',
+          borderRadius: '12px',
+          marginTop: '6px',
           zIndex: 1000,
-          boxShadow: 'var(--pp-shadow-md)'
+          boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
         }}>
           <div style={{ padding: '8px', borderBottom: '1px solid var(--pp-warm-1)' }}>
             <input

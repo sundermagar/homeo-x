@@ -10,7 +10,7 @@ export interface RxForm {
   notes: string;
 }
 
-export function usePrescriptionWorkflow(regid: number, visitId?: number) {
+export function usePrescriptionWorkflow(regid: number, visitId?: number, selectedDate?: string | null) {
   const { data: history, isLoading } = usePatientPrescriptions(regid);
   const saveMutation = useSavePrescription();
   const deleteMutation = useDeletePrescription(regid);
@@ -47,15 +47,31 @@ export function usePrescriptionWorkflow(regid: number, visitId?: number) {
     return todayRxs.reduce((prev, curr) => (prev.id < curr.id ? prev : curr));
   }, [history]);
 
-  // Sync delivery mode from history
+  // Sync delivery mode from history dynamically
   useEffect(() => {
     if (history?.length) {
+      // If we have a selected date, find the delivery mode for that date
+      if (selectedDate) {
+        const selectedRxs = history.filter(rx => {
+          const dateVal = rx.created_at || rx.dateval || rx.createdAt;
+          return dateVal && new Date(dateVal).toDateString() === new Date(selectedDate).toDateString();
+        });
+        if (selectedRxs.length > 0) {
+          const mode = selectedRxs[0]?.deliveryMode;
+          if (mode && ['clinic', 'courier', 'pickup'].includes(mode)) {
+            setDelivery(mode);
+            return;
+          }
+        }
+      }
+      
+      // Fallback to latest entry if no date selected or no matches
       const mode = history[0]?.deliveryMode;
       if (mode && ['clinic', 'courier', 'pickup'].includes(mode)) {
         setDelivery(mode);
       }
     }
-  }, [history]);
+  }, [history, selectedDate]);
 
   const startNewRx = async () => {
     if (!regid) return;

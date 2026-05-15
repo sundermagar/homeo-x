@@ -142,13 +142,13 @@ export class PatientRepositoryPg implements PatientRepository {
           )`,
           lastVisit: sql<Date>`(
             SELECT MAX(d) FROM (
-              SELECT created_at as d FROM medicalcases WHERE regid = ${patients.regid} AND created_at IS NOT NULL
+              SELECT recorded_at::date as d FROM vitals WHERE regid = ${patients.regid} AND recorded_at IS NOT NULL
               UNION ALL
-              SELECT updated_at as d FROM medicalcases WHERE regid = ${patients.regid} AND updated_at IS NOT NULL
+              SELECT COALESCE(NULLIF(dateval, '')::date, created_at::date) as d FROM case_potencies WHERE regid = ${patients.regid}
               UNION ALL
-              SELECT recorded_at as d FROM vitals WHERE regid = ${patients.regid} AND recorded_at IS NOT NULL
+              SELECT created_at::date as d FROM soap_notes WHERE regid = ${patients.regid} AND created_at IS NOT NULL
               UNION ALL
-              SELECT created_at as d FROM case_potencies WHERE regid = ${patients.regid} AND created_at IS NOT NULL
+              SELECT COALESCE(NULLIF(dateval, '')::date, created_at::date) as d FROM case_notes WHERE regid = ${patients.regid}
             ) t
           )`
         })

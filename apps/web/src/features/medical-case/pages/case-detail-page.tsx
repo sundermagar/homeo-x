@@ -127,13 +127,14 @@ export default function MedicalCaseDetailPage() {
   const [showBillingModal, setShowBillingModal] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [showFinalizeModal, setShowFinalizeModal] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const { data: fullData, isLoading, error } = useFullMedicalCase(Number(regid));
   const medicalCase = fullData?.medicalCase;
   const visitId = medicalCase?.id;
   const { data: dayCharges = [] } = useDayCharges();
 
   const { data: lookups } = useRemedyLookups();
-  const rxWorkflow = usePrescriptionWorkflow(Number(regid), visitId);
+  const rxWorkflow = usePrescriptionWorkflow(Number(regid), visitId, selectedDate);
 
   // Building day options from day-charges module
   const dayOptions = useMemo(() => {
@@ -155,7 +156,6 @@ export default function MedicalCaseDetailPage() {
   const [dragStartY, setDragStartY] = useState(0);
   const hasMoved = useRef(false);
   const [editingVitals, setEditingVitals] = useState<any>(null);
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   const clinicName = useAuthStore(s => s.user?.clinicName || 'HomeoX Clinic');
 
@@ -510,116 +510,122 @@ export default function MedicalCaseDetailPage() {
       {/* ─── Redesigned Header Section ─── */}
       <div className="patient-banner">
         <div className="banner-inner">
-          <div className="banner-left">
-            <div className="pat-av">
-              {medicalCase.patientName?.charAt(0).toUpperCase()}
-            </div>
+          <div className="banner-content-grid">
+            <div className="banner-left-group">
+              <div className="pat-av">
+                {medicalCase.patientName?.charAt(0).toUpperCase()}
+              </div>
+              <div className="mc-header-info">
+                <span className="pat-id">PATIENT #{regid}</span>
+                <h1 className="pat-name">{medicalCase.patientName}</h1>
+                
+                <div className="pat-meta">
+                  <span className="pat-chip"><User size={12} /> {medicalCase.gender || 'Unknown'}</span>
+                  <span className="pat-chip"><Clock size={12} /> {ageString}</span>
+                  <span className="pat-chip"><Phone size={12} /> {medicalCase.mobile || medicalCase.phone || '—'}</span>
+                  {medicalCase.email && <span className="pat-chip"><Mail size={12} /> {medicalCase.email}</span>}
+                  
+                  {/* Dynamic Active Plan Chip */}
+                  <span className={`pat-chip ${activePackage?.status === 'Active' ? 'plan-active' : 'plan-inactive'}`}>
+                    <Award size={12} /> {activePackage?.packageName || 'No Active Plan'}
+                  </span>
+                </div>
 
-            <div className="mc-header-info">
-              <span className="pat-id">PATIENT #{regid}</span>
-              <h1 className="pat-name">
-                {medicalCase.patientName}
-              </h1>
-              <div className="pat-meta">
-                <span className="pat-chip"><User size={12} /> {medicalCase.gender || 'Unknown'}</span>
-                <span className="pat-chip"><Clock size={12} /> {ageString}</span>
-                <span className="pat-chip" style={{ background: 'rgba(34,197,94,0.2)', borderColor: 'rgba(34,197,94,0.35)' }}>
-                  <CheckCircle2 size={12} /> Active
-                </span>
+                <div className="pat-address-line">
+                  <MapPin size={12} /> {medicalCase.address || 'No address provided'}
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="banner-right" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <button
-              className="banner-btn"
-              style={{ background: '#1e3a8a', color: 'white' }}
-              onClick={() => {
-                const myOrg: any = orgs.find(o => o.id === user?.contextId) || orgs[0];
-                const defaultTemplate = pdfSettings.find((s: any) => s.isDefault) || pdfSettings[0];
-                const baseClinic = getClinicLetterhead();
-                const clinic = {
-                  ...baseClinic,
-                  name: myOrg?.name || baseClinic.name,
-                  tagline: myOrg?.tagLine || baseClinic.tagline,
-                  logoUrl: myOrg?.logo || baseClinic.logoUrl,
-                  address: myOrg?.address || baseClinic.address,
-                  address2: myOrg?.address2 || baseClinic.address2,
-                  phone: myOrg?.phone || baseClinic.phone,
-                  timing: myOrg?.timing || baseClinic.timing,
-                  email: myOrg?.email || baseClinic.email,
-                  website: myOrg?.website || baseClinic.website,
-                  registrationNo: myOrg?.registration || baseClinic.registrationNo,
-                  headerHtml: (defaultTemplate as any)?.headerHtml,
-                  footerHtml: (defaultTemplate as any)?.footerHtml,
-                };
+            <div className="banner-actions-group">
+              <button
+                className="banner-primary-btn"
+                onClick={() => {
+                  const myOrg: any = orgs.find(o => o.id === user?.contextId) || orgs[0];
+                  const defaultTemplate = pdfSettings.find((s: any) => s.isDefault) || pdfSettings[0];
+                  const baseClinic = getClinicLetterhead();
+                  const clinic = {
+                    ...baseClinic,
+                    name: myOrg?.name || baseClinic.name,
+                    tagline: myOrg?.tagLine || baseClinic.tagline,
+                    logoUrl: myOrg?.logo || baseClinic.logoUrl,
+                    address: myOrg?.address || baseClinic.address,
+                    address2: myOrg?.address2 || baseClinic.address2,
+                    phone: myOrg?.phone || baseClinic.phone,
+                    timing: myOrg?.timing || baseClinic.timing,
+                    email: myOrg?.email || baseClinic.email,
+                    website: myOrg?.website || baseClinic.website,
+                    registrationNo: myOrg?.registration || baseClinic.registrationNo,
+                    headerHtml: (defaultTemplate as any)?.headerHtml,
+                    footerHtml: (defaultTemplate as any)?.footerHtml,
+                  };
 
-                const doctor = getDoctorLetterhead();
+                  const doctor = getDoctorLetterhead();
 
-                const medications = (prescriptionsHistory?.length ? prescriptionsHistory : prescriptionsFromFull || [])
-                  .filter((p: any) => p.remedy_name || p.remedyName || p.medicineName || p.medicine)
-                  .map((p: any) => ({
-                    name: p.remedy_name || p.remedyName || p.medicineName || p.medicine || '—',
-                    genericName: undefined,
-                    dosage: p.potency_name || p.potencyName || p.potency || '—',
-                    frequency: p.frequency_name || p.frequencyName || p.frequencyTitle || p.frequency || '—',
-                    duration: (p.days || p.rx_days || p.rxdays) ? `${p.days || p.rx_days || p.rxdays} days` : '—',
-                    route: undefined,
-                    instructions: p.prescription || p.rx_prescription || p.instructions || p.notes || undefined,
-                    quantity: undefined,
-                    date: p.created_at || p.createdAt || p.dateval,
-                  }));
+                  const medications = (prescriptionsHistory?.length ? prescriptionsHistory : prescriptionsFromFull || [])
+                    .filter((p: any) => p.remedy_name || p.remedyName || p.medicineName || p.medicine)
+                    .map((p: any) => ({
+                      name: p.remedy_name || p.remedyName || p.medicineName || p.medicine || '—',
+                      genericName: undefined,
+                      dosage: p.potency_name || p.potencyName || p.potency || '—',
+                      frequency: p.frequency_name || p.frequencyName || p.frequencyTitle || p.frequency || '—',
+                      duration: (p.days || p.rx_days || p.rxdays) ? `${p.days || p.rx_days || p.rxdays} days` : '—',
+                      route: undefined,
+                      instructions: p.prescription || p.rx_prescription || p.instructions || p.notes || undefined,
+                      quantity: undefined,
+                      date: p.created_at || p.createdAt || p.dateval,
+                    }));
 
-                const followUpEntry = notes?.find((n: any) => n.notesType === 'Followup');
-                const diagnosisNote = medicalCase.condition || soap?.find((s: any) => s.notesType === 'assessment')?.notes || '';
+                  const followUpEntry = notes?.find((n: any) => n.notesType === 'Followup');
+                  const diagnosisNote = medicalCase.condition || soap?.find((s: any) => s.notesType === 'assessment')?.notes || '';
 
-                const latestVitals = vitals?.[0];
-                const vitalsData = latestVitals ? {
-                  heightCm: latestVitals.heightCm ?? undefined,
-                  weightKg: latestVitals.weightKg ?? undefined,
-                  bmi: latestVitals.bmi ?? undefined,
-                  temperatureF: latestVitals.temperatureF ?? undefined,
-                  pulseRate: latestVitals.pulseRate ?? undefined,
-                  systolicBp: latestVitals.systolicBp ?? undefined,
-                  diastolicBp: latestVitals.diastolicBp ?? undefined,
-                  oxygenSaturation: latestVitals.oxygenSaturation ?? undefined,
-                } : undefined;
+                  const latestVitals = vitals?.[0];
+                  const vitalsData = latestVitals ? {
+                    heightCm: latestVitals.heightCm ?? undefined,
+                    weightKg: latestVitals.weightKg ?? undefined,
+                    bmi: latestVitals.bmi ?? undefined,
+                    temperatureF: latestVitals.temperatureF ?? undefined,
+                    pulseRate: latestVitals.pulseRate ?? undefined,
+                    systolicBp: latestVitals.systolicBp ?? undefined,
+                    diastolicBp: latestVitals.diastolicBp ?? undefined,
+                    oxygenSaturation: latestVitals.oxygenSaturation ?? undefined,
+                  } : undefined;
 
-                const printData: PrescriptionPrintData = {
-                  clinic: clinic as any,
-                  doctor,
-                  patient: {
-                    name: medicalCase.patientName || `Patient ${regid}`,
-                    age: ageString.replace(' Yrs', ''),
-                    gender: medicalCase.gender || undefined,
-                    mrn: String(regid),
-                    phone: medicalCase.phone || medicalCase.mobile || undefined,
-                  },
-                  visit: {
-                    visitNumber: String(regid),
-                    date: medicalCase.createdAt || new Date().toISOString(),
-                    chiefComplaint: medicalCase.condition || undefined,
-                  },
-                  vitals: vitalsData,
-                  diagnosis: diagnosisNote ? { assessment: diagnosisNote } : undefined,
-                  medications,
-                  advice: followUpEntry?.notes || undefined,
-                  followUp: followUpEntry?.notes ? undefined : undefined,
-                  prescriptionStrategy: 'REMEDY',
-                };
+                  const printData: PrescriptionPrintData = {
+                    clinic: clinic as any,
+                    doctor,
+                    patient: {
+                      name: medicalCase.patientName || `Patient ${regid}`,
+                      age: ageString.replace(' Yrs', ''),
+                      gender: medicalCase.gender || undefined,
+                      mrn: String(regid),
+                      phone: medicalCase.phone || medicalCase.mobile || undefined,
+                    },
+                    visit: {
+                      visitNumber: String(regid),
+                      date: medicalCase.createdAt || new Date().toISOString(),
+                      followUp: followUpEntry?.notes || undefined,
+                      diagnosis: diagnosisNote || undefined,
+                      complaints: medicalCase.condition || undefined,
+                    },
+                    medications,
+                    vitals: vitalsData,
+                  };
 
-                const html = generatePrescriptionHtml(printData);
-                printHtml(html, { title: `Prescription - ${medicalCase.patientName || regid}` });
-              }}
-            >
-              <Printer size={14} /> Print Prescription
-            </button>
-            <button className={`banner-btn ${activeTab === 'communication' ? 'bb-active' : 'bb-outline'}`} onClick={() => setActiveTab('communication')}>
-              <MessageSquare size={14} /> Message
-            </button>
+                  printPrescription(printData);
+                }}
+              >
+                <Printer size={18} /> Print Prescription
+              </button>
+
+              <button className="banner-secondary-btn">
+                <MessageSquare size={18} /> Message
+              </button>
+            </div>
           </div>
         </div>
       </div>
+
 
       {/* ─── Layout with Left Tabs ─── */}
       <div className="mc-layout-wrapper">
@@ -645,8 +651,10 @@ export default function MedicalCaseDetailPage() {
           </div>
         </div>
 
+
         {/* ─── Main Content & Sidebar Grid ─── */}
         <div className="mc-body-grid">
+
           <div className="mc-body-main">
             {tabContent || (
               <div className="mc-tab-empty">
@@ -654,140 +662,6 @@ export default function MedicalCaseDetailPage() {
                 <p>Select a tab to view clinical data</p>
               </div>
             )}
-
-            {/* ─── Persistent Patient Details Section (Below Tabs) ─── */}
-            <div className="mc-profile-grid" style={{ marginTop: '24px', padding: '0 8px' }}>
-              
-              {/* Identity & Personal Info */}
-              <div className="mc-profile-card">
-                <div className="mc-profile-card-header">
-                  <User size={18} />
-                  <span className="mc-profile-card-title">Personal Identity</span>
-                </div>
-                <div className="mc-profile-card-body">
-                  <div className="mc-profile-item">
-                    <div className="mc-profile-icon-wrapper"><User size={16} /></div>
-                    <div className="mc-profile-item-content">
-                      <span className="mc-profile-label">Full Name</span>
-                      <span className="mc-profile-value highlight">{medicalCase.patientName}</span>
-                    </div>
-                  </div>
-                  <div className="mc-profile-item">
-                    <div className="mc-profile-icon-wrapper"><Clock size={16} /></div>
-                    <div className="mc-profile-item-content">
-                      <span className="mc-profile-label">Age & DOB</span>
-                      <span className="mc-profile-value">{ageString} {medicalCase.dateOfBirth ? `(${new Date(medicalCase.dateOfBirth).toLocaleDateString()})` : ''}</span>
-                    </div>
-                  </div>
-                  <div className="mc-profile-item">
-                    <div className="mc-profile-icon-wrapper"><Activity size={16} /></div>
-                    <div className="mc-profile-item-content">
-                      <span className="mc-profile-label">Gender</span>
-                      <span className="mc-profile-value">{medicalCase.gender || 'Not Specified'}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Contact Information */}
-              <div className="mc-profile-card">
-                <div className="mc-profile-card-header">
-                  <Phone size={18} />
-                  <span className="mc-profile-card-title">Contact Details</span>
-                </div>
-                <div className="mc-profile-card-body">
-                  <div className="mc-profile-item">
-                    <div className="mc-profile-icon-wrapper"><Phone size={16} /></div>
-                    <div className="mc-profile-item-content">
-                      <span className="mc-profile-label">Mobile Number</span>
-                      <span className="mc-profile-value">{medicalCase.mobile || medicalCase.phone || '—'}</span>
-                    </div>
-                  </div>
-                  <div className="mc-profile-item">
-                    <div className="mc-profile-icon-wrapper"><Mail size={16} /></div>
-                    <div className="mc-profile-item-content">
-                      <span className="mc-profile-label">Email Address</span>
-                      <span className="mc-profile-value">{medicalCase.email || '—'}</span>
-                    </div>
-                  </div>
-                  <div className="mc-profile-item">
-                    <div className="mc-profile-icon-wrapper"><MapPin size={16} /></div>
-                    <div className="mc-profile-item-content">
-                      <span className="mc-profile-label">Residential Address</span>
-                      <span className="mc-profile-value">{medicalCase.address || '—'}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Clinical Overview */}
-              <div className="mc-profile-card">
-                <div className="mc-profile-card-header">
-                  <Stethoscope size={18} />
-                  <span className="mc-profile-card-title">Clinical Context</span>
-                </div>
-                <div className="mc-profile-card-body">
-                  <div className="mc-profile-item">
-                    <div className="mc-profile-icon-wrapper"><Sparkles size={16} /></div>
-                    <div className="mc-profile-item-content">
-                      <span className="mc-profile-label">Chief Complaint</span>
-                      <span className="mc-profile-value">{medicalCase.condition || 'General consultation'}</span>
-                    </div>
-                  </div>
-                  <div className="mc-profile-item">
-                    <div className="mc-profile-icon-wrapper"><Calendar size={16} /></div>
-                    <div className="mc-profile-item-content">
-                      <span className="mc-profile-label">Registered On</span>
-                      <span className="mc-profile-value">{medicalCase.createdAt ? new Date(medicalCase.createdAt).toLocaleDateString() : '—'}</span>
-                    </div>
-                  </div>
-                  <div className="mc-profile-item">
-                    <div className="mc-profile-icon-wrapper"><User size={16} /></div>
-                    <div className="mc-profile-item-content">
-                      <span className="mc-profile-label">Attending Doctor</span>
-                      <span className="mc-profile-value">{medicalCase.doctorName || '—'}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Package & Membership */}
-              <div className="mc-profile-card">
-                <div className="mc-profile-card-header">
-                  <Award size={18} />
-                  <span className="mc-profile-card-title">Membership Status</span>
-                </div>
-                <div className="mc-profile-card-body">
-                  <div className="mc-profile-item">
-                    <div className="mc-profile-icon-wrapper"><Package size={16} /></div>
-                    <div className="mc-profile-item-content">
-                      <span className="mc-profile-label">Active Plan</span>
-                      <span className="mc-profile-value">{activePackage?.packageName || 'No active package'}</span>
-                    </div>
-                  </div>
-                  <div className="mc-profile-item">
-                    <div className="mc-profile-icon-wrapper"><Clock size={16} /></div>
-                    <div className="mc-profile-item-content">
-                      <span className="mc-profile-label">Expiry Date</span>
-                      <span className="mc-profile-value">{activePackage?.expiryDate ? new Date(activePackage.expiryDate).toLocaleDateString() : '—'}</span>
-                    </div>
-                  </div>
-                  <div className="mc-profile-item">
-                    <div className="mc-profile-icon-wrapper"><ShieldCheck size={16} /></div>
-                    <div className="mc-profile-item-content">
-                      <span className="mc-profile-label">Current Status</span>
-                      <div style={{ marginTop: '4px' }}>
-                        <span className={`mc-profile-badge ${activePackage?.status === 'Active' ? 'mc-badge-active' : 'mc-badge-expired'}`}>
-                          {activePackage?.status === 'Active' ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
-                          {activePackage?.status || 'Inactive'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-            </div>
           </div>
 
           <aside className="mc-body-side">
@@ -1011,66 +885,88 @@ export default function MedicalCaseDetailPage() {
               patientData={medicalCase}
               billingData={{
                 regularCharges: billingValues.regular,
-                additionalCharges: fullData.additionalCharges || [],
+                additionalCharges: (fullData as any).additionalCharges || [],
                 totalBill: billingValues.total,
                 paidAmount: billingValues.received,
                 balance: billingValues.balance
               }}
             />
-
           </aside>
+
+          {/* ─── Persistent Patient Details Section (Bottom on Mobile, Below Sidebar on Tablets) ─── */}
+          <div className="mc-profile-grid">
+            {/* Clinical Overview */}
+            <div className="mc-profile-card">
+              <div className="mc-profile-card-header">
+                <Stethoscope size={18} />
+                <span className="mc-profile-card-title">Clinical Context</span>
+              </div>
+              <div className="mc-profile-card-body">
+                <div className="mc-profile-item">
+                  <div className="mc-profile-icon-wrapper"><Sparkles size={16} /></div>
+                  <div className="mc-profile-item-content">
+                    <span className="mc-profile-label">Chief Complaint</span>
+                    <span className="mc-profile-value">{medicalCase.condition || 'General consultation'}</span>
+                  </div>
+                </div>
+                <div className="mc-profile-item">
+                  <div className="mc-profile-icon-wrapper"><Calendar size={16} /></div>
+                  <div className="mc-profile-item-content">
+                    <span className="mc-profile-label">Registered On</span>
+                    <span className="mc-profile-value">{medicalCase.createdAt ? new Date(medicalCase.createdAt).toLocaleDateString() : '—'}</span>
+                  </div>
+                </div>
+                <div className="mc-profile-item">
+                  <div className="mc-profile-icon-wrapper"><User size={16} /></div>
+                  <div className="mc-profile-item-content">
+                    <span className="mc-profile-label">Attending Doctor</span>
+                    <span className="mc-profile-value">{medicalCase.doctorName || '—'}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Package & Membership */}
+            <div className="mc-profile-card">
+              <div className="mc-profile-card-header">
+                <Award size={18} />
+                <span className="mc-profile-card-title">Membership Status</span>
+              </div>
+              <div className="mc-profile-card-body">
+                <div className="mc-profile-item">
+                  <div className="mc-profile-icon-wrapper"><Package size={16} /></div>
+                  <div className="mc-profile-item-content">
+                    <span className="mc-profile-label">Active Plan</span>
+                    <span className="mc-profile-value">{activePackage?.packageName || 'No active package'}</span>
+                  </div>
+                </div>
+                <div className="mc-profile-item">
+                  <div className="mc-profile-icon-wrapper"><Clock size={16} /></div>
+                  <div className="mc-profile-item-content">
+                    <span className="mc-profile-label">Expiry Date</span>
+                    <span className="mc-profile-value">{activePackage?.expiryDate ? new Date(activePackage.expiryDate).toLocaleDateString() : '—'}</span>
+                  </div>
+                </div>
+                <div className="mc-profile-item">
+                  <div className="mc-profile-icon-wrapper"><ShieldCheck size={16} /></div>
+                  <div className="mc-profile-item-content">
+                    <span className="mc-profile-label">Current Status</span>
+                    <div style={{ marginTop: '4px' }}>
+                      <span className={`mc-profile-badge ${activePackage?.status === 'Active' ? 'mc-badge-active' : 'mc-badge-expired'}`}>
+                        {activePackage?.status === 'Active' ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
+                        {activePackage?.status || 'Inactive'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
 
-      {/* ─── Mobile Floating Action Bar (Collapsible) ─── */}
-      <div
-        className={`mc-mobile-fab-bar ${shortcutOpen ? 'expanded' : 'collapsed'}`}
-        style={{ top: `${fabY}px`, touchAction: 'none' }}
-      >
-        <button
-          className="mc-fab-toggle"
-          onMouseDown={onDragStart}
-          onTouchStart={onDragStart}
-          onClick={() => {
-            if (!hasMoved.current) setShortcutOpen(!shortcutOpen);
-          }}
-          title={shortcutOpen ? "Collapse shortcuts" : "Expand shortcuts"}
-        >
-          {shortcutOpen ? <X size={20} /> : <Zap size={20} className="animate-pulse" />}
-        </button>
-
-        <div className="mc-fab-actions">
-          <button
-            className={`mc-fab-btn ${mobileDrawer === 'followup' ? 'active' : ''}`}
-            onClick={() => { setMobileDrawer('followup'); setShortcutOpen(false); }}
-          >
-            <FileText size={20} />
-            <span className="mc-fab-btn-label">Notes</span>
-          </button>
-          <button
-            className={`mc-fab-btn ${mobileDrawer === 'billing' ? 'active' : ''}`}
-            onClick={() => { setMobileDrawer('billing'); setShortcutOpen(false); }}
-          >
-            <CreditCard size={20} />
-            <span className="mc-fab-btn-label">Billing</span>
-            {billingValues.balance > 0 && <span className="mc-fab-badge" />}
-          </button>
-          <button
-            className={`mc-fab-btn ${mobileDrawer === 'contact' ? 'active' : ''}`}
-            onClick={() => { setMobileDrawer('contact'); setShortcutOpen(false); }}
-          >
-            <Phone size={20} />
-            <span className="mc-fab-btn-label">Contact</span>
-          </button>
-          <button
-            className={`mc-fab-btn ${mobileDrawer === 'package' ? 'active' : ''}`}
-            onClick={() => { setMobileDrawer('package'); setShortcutOpen(false); }}
-          >
-            <Package size={20} />
-            <span className="mc-fab-btn-label">Package</span>
-          </button>
-        </div>
-      </div>
+      {/* ─── Mobile Floating Action Bar Removed ─── */}
 
       {/* ─── Mobile Drawer ─── */}
       {mobileDrawer && (
@@ -1269,28 +1165,33 @@ export default function MedicalCaseDetailPage() {
 function MedicalCasePageSkeleton() {
   return (
     <div className="mc-detail-container animate-fade-in">
-      {/* Banner Skeleton */}
-      <div className="patient-banner" style={{ borderBottom: '1px solid var(--pp-warm-4)', position: 'relative', zIndex: 1 }}>
+      {/* Redesigned Banner Skeleton */}
+      <div className="patient-banner" style={{ minHeight: '180px' }}>
         <div className="banner-inner">
-          <div className="banner-left">
-            <div style={{ marginRight: '4px' }}>
-              <div className="skeleton-box" style={{ width: '32px', height: '32px', borderRadius: '8px' }} />
-            </div>
-            <div className="skeleton-box skeleton-circle pat-av" style={{ width: '56px', height: '56px', flexShrink: 0, margin: 0, border: 'none' }} />
-            <div className="mc-header-info">
-              <div className="skeleton-box skeleton-text" style={{ width: '80px', height: '12px', margin: 0 }} />
-              {/* <div className="skeleton-box skeleton-text title" style={{ width: '240px', height: '28px', margin: '4px 0 0 0' }} /> */}
-              <div className="pat-meta" style={{ marginTop: '8px' }}>
-                <div className="skeleton-box" style={{ width: '70px', height: '24px', borderRadius: '12px' }} />
-                <div className="skeleton-box" style={{ width: '80px', height: '24px', borderRadius: '12px' }} />
-                <div className="skeleton-box" style={{ width: '60px', height: '24px', borderRadius: '12px' }} />
+          <div className="banner-content-grid">
+            <div className="banner-left-group">
+              <div className="skeleton-box skeleton-circle pat-av" style={{ width: '80px', height: '80px', flexShrink: 0, margin: 0, border: 'none' }} />
+              <div className="mc-header-info">
+                <div className="skeleton-box skeleton-text" style={{ width: '80px', height: '12px', marginBottom: '8px' }} />
+                <div className="skeleton-box skeleton-text title" style={{ width: '280px', height: '32px', marginBottom: '16px' }} />
+                
+                <div className="pat-meta">
+                  <div className="skeleton-box" style={{ width: '80px', height: '24px', borderRadius: '12px' }} />
+                  <div className="skeleton-box" style={{ width: '100px', height: '24px', borderRadius: '12px' }} />
+                  <div className="skeleton-box" style={{ width: '120px', height: '24px', borderRadius: '12px' }} />
+                  <div className="skeleton-box" style={{ width: '140px', height: '24px', borderRadius: '12px' }} />
+                </div>
+
+                <div className="pat-address-line" style={{ marginTop: '16px' }}>
+                  <div className="skeleton-box" style={{ width: '60%', height: '14px', borderRadius: '4px' }} />
+                </div>
               </div>
             </div>
-          </div>
-          <div className="banner-right" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <div className="skeleton-box" style={{ width: '110px', height: '38px', borderRadius: '10px' }} />
-            <div className="skeleton-box" style={{ width: '110px', height: '38px', borderRadius: '10px' }} />
-            <div className="skeleton-box" style={{ width: '130px', height: '38px', borderRadius: '10px' }} />
+
+            <div className="banner-actions-group">
+              <div className="skeleton-box" style={{ width: '160px', height: '44px', borderRadius: '12px' }} />
+              <div className="skeleton-box" style={{ width: '120px', height: '44px', borderRadius: '12px' }} />
+            </div>
           </div>
         </div>
       </div>

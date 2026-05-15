@@ -68,6 +68,16 @@ export function RemedyChartSession({
   const [showConfirm, setShowConfirm] = useState(false);
   const [showRepeatWarning, setShowRepeatWarning] = useState(false);
 
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const isMobile = windowWidth < 640;
+
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -192,38 +202,52 @@ export function RemedyChartSession({
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '16px' }}>
 
       {/* Top Header Row */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '16px 16px 0 16px', width: '100%', boxSizing: 'border-box' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '12px', flexWrap: 'wrap' }}>
-          {/* Action Tabs */}
-          <div style={{ display: 'flex', gap: '8px', flex: '1 1 300px', justifyContent: 'flex-start' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px',  width: '100%', boxSizing: 'border-box' }}>
+        <div className="mc-action-bar">
+          {/* Action Tabs & Dispensing Indicator - Adaptive grid for better mobile fit */}
+          <div className="mc-action-group" style={{ 
+            display: 'grid', 
+            gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(0, 1fr))', 
+            gap: '8px', 
+            width: '100%' 
+          }}>
             <button
               onClick={() => setShowConfirm(true)}
               className={`mc-tab-btn-premium ${activeTab === 'rx' && !isRxToday ? 'active' : ''}`}
+              style={{ width: '100%' }}
             >
               Rx
             </button>
-            {isRxToday && (
-              <div style={{ width: 0, height: 0, overflow: 'hidden' }}>{/* Placeholder to keep logic if needed, but button is removed */}</div>
-            )}
             <button
               onClick={() => handleRepeat()}
               className="mc-tab-btn-premium"
+              style={{ width: '100%' }}
             >
               Repeat
             </button>
             <button
               onClick={() => setActiveTab('image')}
               className={`mc-tab-btn-premium ${activeTab === 'image' ? 'active' : ''}`}
+              style={{ width: '100%' }}
             >
               Add Image
             </button>
-          </div>
 
+            {/* Dispensing Mode Indicator - Now part of the equal-width grid */}
+            <div className="mc-service-indicator" style={{ width: '100%', minWidth: 0, justifyContent: 'center', padding: isMobile ? '8px' : '12px' }}>
+              <span style={{ fontSize: isMobile ? '0.65rem' : '0.72rem', fontWeight: 700, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Service:</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--pp-blue)', fontWeight: 800, fontSize: isMobile ? '0.75rem' : '0.85rem' }}>
+                {delivery === 'clinic' && <><Home size={14} /> <span>clinic</span></>}
+                {delivery === 'courier' && <><Truck size={14} /> <span>courier</span></>}
+                {delivery === 'pickup' && <><Package size={14} /> <span>pickup</span></>}
+              </div>
+            </div>
           </div>
         </div>
+      </div>
 
       {(activeTab === 'rx' || activeTab === null) && (
-        <div style={{ padding: '16px 24px' }}>
+        <div>
           {/* Inline Form - Only visible when Rx tab is active */}
           {activeTab === 'rx' && (
             <div ref={formRef} className="animate-slide-in-top" style={{ 
@@ -253,55 +277,7 @@ export function RemedyChartSession({
                     options={lookups?.medicines?.map(m => m.name) || []}
                   />
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-ink)' }}>Delivery:</label>
-                  <div style={{ position: 'relative' }}>
-                    <select
-                      value={delivery}
-                      onChange={async (e) => {
-                        const val = e.target.value;
-                        setDelivery(val);
-                        if (isRxToday && history) {
-                          const todayItems = history.filter(rx => {
-                            const dateVal = rx.created_at || rx.dateval;
-                            return dateVal && new Date(dateVal).toDateString() === new Date().toDateString();
-                          });
-                          for (const item of todayItems) {
-                            await saveMutation.mutateAsync({
-                              ...item,
-                              deliveryMode: val,
-                              regid: regid || 0,
-                              visitId
-                            });
-                          }
-                        }
-                      }}
-                      style={{
-                        width: '100%',
-                        padding: '6px 8px 6px 30px',
-                        borderRadius: '4px',
-                        fontSize: '0.8rem',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        appearance: 'none',
-                        background: 'var(--bg-card)',
-                        border: '1px solid var(--border-main)',
-                        color: 'var(--pp-ink)',
-                        outline: 'none',
-                        minHeight: '30px'
-                      }}
-                    >
-                      <option value="clinic">Clinic</option>
-                      <option value="courier">Courier</option>
-                      <option value="pickup">Pickup</option>
-                    </select>
-                    <div style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', color: 'var(--pp-blue)', pointerEvents: 'none', display: 'flex' }}>
-                      {delivery === 'clinic' && <Home size={14} />}
-                      {delivery === 'courier' && <Truck size={14} />}
-                      {delivery === 'pickup' && <Package size={14} />}
-                    </div>
-                  </div>
-                </div>
+
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-ink)' }}>Potency:</label>
                   <SearchableSelect
@@ -356,10 +332,23 @@ export function RemedyChartSession({
                   </div>
                 )}
                 <div style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-ink)' }}>Instructions</label>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-ink)' }}>Instructions:</label>
                   <textarea
-                    placeholder="Enter manual instructions..."
-                    style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border-main)', borderRadius: '8px', fontSize: '0.9rem', minHeight: '80px', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box', background: 'var(--bg-card)', color: 'var(--pp-ink)' }}
+                    placeholder="Enter manual instructions for this remedy..."
+                    style={{ 
+                      width: '100%', 
+                      padding: '10px 14px', 
+                      border: '1px solid var(--border-main)', 
+                      borderRadius: '10px', 
+                      fontSize: '0.85rem', 
+                      minHeight: '60px', 
+                      resize: 'vertical', 
+                      fontFamily: 'inherit', 
+                      boxSizing: 'border-box', 
+                      background: 'white', 
+                      color: 'var(--pp-ink)',
+                      boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)'
+                    }}
                     value={form.instructions}
                     onChange={e => {
                       setManualInstruction(true);
@@ -380,15 +369,15 @@ export function RemedyChartSession({
             {isLoading ? (
               <TableSkeleton rows={5} cols={8} />
             ) : (
-              <table className="pp-table" style={{ marginBottom: 0 }}>
+              <table className="mc-data-table" style={{ marginBottom: 0 }}>
                 <thead style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--pp-warm-2)' }}>
                   <tr>
                     <th>DATE</th>
                     <th>REMEDY</th>
                     <th>POTENCY</th>
                     <th>FREQUENCY</th>
-                    <th>DAYS</th>
-                    <th>INSTRUCTIONS</th>
+                    <th className="mc-col-days">DAYS</th>
+                    <th className="mc-col-instructions">INSTRUCTIONS</th>
                     <th style={{ textAlign: 'right' }}>ACTION</th>
                   </tr>
                 </thead>
@@ -417,7 +406,7 @@ export function RemedyChartSession({
                               if (activeTab === 'rx') setActiveTab(null);
                             }}
                           >
-                            <td>
+                            <td data-label="Date">
                               {idx === 0 ? (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                                   <span style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--pp-text-2)' }}>
@@ -446,23 +435,23 @@ export function RemedyChartSession({
                                 <div style={{ marginLeft: '12px', borderLeft: '2px dashed #cbd5e1', height: '20px' }} />
                               )}
                             </td>
-                            <td>
-                              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--pp-ink)', letterSpacing: '-0.01em' }}>
+                            <td data-label="Remedy">
+                              <div className="remedy-name">
                                 {rx.remedy_name}
                               </div>
                             </td>
-                            <td>
+                            <td data-label="Potency">
                               <span style={{ padding: '4px 12px', background: 'var(--pp-warm-1)', border: '1px solid var(--border-main)', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700, color: 'var(--pp-text-2)' }}>
                                 {rx.potency_name}
                               </span>
                             </td>
-                            <td>
+                            <td data-label="Frequency">
                               <span style={{ color: 'var(--pp-blue)', fontWeight: 700, fontSize: '0.9rem' }}>{rx.frequency_name}</span>
                             </td>
-                            <td>
+                            <td data-label="Days" className="mc-col-days">
                               <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--pp-ink)' }}>{rx.days}</span>
                             </td>
-                            <td>
+                            <td data-label="Instructions" className="mc-col-instructions">
                               <div style={{ 
                                 maxHeight: '60px', 
                                 overflowY: 'auto', 
@@ -478,7 +467,7 @@ export function RemedyChartSession({
                                 {rx.prescription || rx.notes || <span style={{ opacity: 0.4, fontStyle: 'italic' }}>No instructions</span>}
                               </div>
                             </td>
-                            <td style={{ textAlign: 'right' }}>
+                            <td data-label="Actions" style={{ textAlign: 'right' }}>
                               <div className="mc-table-actions">
                                 <div className="mc-desktop-actions">
                                   <button onClick={(e) => { e.stopPropagation(); handleRepeatRow(rx); }} className="mc-action-btn" title="Repeat"><History size={14} /></button>
@@ -572,28 +561,30 @@ export function RemedyChartSession({
               ) : (
                 <>
                   <div style={{ marginBottom: '20px', textAlign: 'left' }}>
-                    <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--pp-ink)', marginBottom: '8px' }}>Select Delivery Mode:</div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--pp-ink)', marginBottom: '8px' }}>Dispensing Mode (Service):</div>
                     <div style={{ position: 'relative' }}>
                       <select
                         value={delivery}
                         onChange={(e) => setDelivery(e.target.value)}
+                        disabled={isRxToday}
                         style={{
                           width: '100%',
                           padding: '12px 16px 12px 44px',
                           borderRadius: '12px',
                           fontSize: '0.95rem',
                           fontWeight: 600,
-                          cursor: 'pointer',
+                          cursor: isRxToday ? 'not-allowed' : 'pointer',
                           appearance: 'none',
-                          background: 'var(--pp-warm-1)',
-                          border: '1px solid var(--border-main)',
+                          background: isRxToday ? 'var(--pp-warm-1)' : 'white',
+                          border: '1px solid var(--pp-blue-border)',
                           color: 'var(--pp-ink)',
-                          outline: 'none'
+                          outline: 'none',
+                          opacity: isRxToday ? 0.7 : 1
                         }}
                       >
-                        <option value="clinic">Clinic Delivery</option>
-                        <option value="courier">Courier Service</option>
-                        <option value="pickup">Self Pickup</option>
+                        <option value="clinic">clinic</option>
+                        <option value="courier">courier</option>
+                        <option value="pickup">pickup</option>
                       </select>
                       <div style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--pp-blue)', pointerEvents: 'none', display: 'flex' }}>
                         {delivery === 'clinic' && <Home size={20} />}
