@@ -256,16 +256,14 @@ export default function FaqsPage() {
                     placeholder="Explain the process in detail..."
                   />
                 </div>
-                <div className="flex items-center gap-2 py-2">
+                <label className="plat-checkbox-group">
                   <input
                     type="checkbox"
-                    className="w-4 h-4 accent-primary"
-                    id="isActiveFaq"
                     checked={form.isActive}
                     onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))}
                   />
-                  <label htmlFor="isActiveFaq" className="plat-form-label mb-0 cursor-pointer font-semibold">Active & Visible</label>
-                </div>
+                  <span className="plat-checkbox-label">Active & Visible</span>
+                </label>
               </div>
             </div>
           </div>

@@ -252,16 +252,14 @@ export default function CouriersPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 py-2" style={{ gridColumn: 'span 2' }}>
+                <label className="plat-checkbox-group" style={{ gridColumn: 'span 2' }}>
                   <input
                     type="checkbox"
-                    className="w-4 h-4 accent-primary"
-                    id="is_active"
                     checked={form.isActive}
                     onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))}
                   />
-                  <label htmlFor="is_active" className="plat-form-label mb-0 cursor-pointer">Courier is Active</label>
-                </div>
+                  <span className="plat-checkbox-label">Courier is Active</span>
+                </label>
               </div>
             </div>
           </div>

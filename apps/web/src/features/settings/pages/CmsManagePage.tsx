@@ -249,8 +249,8 @@ export default function CmsManagePage() {
               <div className="flex items-center gap-2 py-4 mt-2">
                 <input
                   type="checkbox"
-                  className="w-4 h-4 accent-primary"
-                  id="page_active_cms"
+                  
+                  
                   checked={form.isActive}
                   onChange={e => setForm(p => ({ ...p, isActive: e.target.checked }))}
                 />

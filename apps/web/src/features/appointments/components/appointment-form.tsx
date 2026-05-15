@@ -489,7 +489,7 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
           required
           aria-required="true"
         />
-        <p style={{ fontSize: 11, color: '#6b7280', margin: '4px 0 0' }}>
+        <p style={{ fontSize: 11, color: 'var(--pp-text-3)', margin: '4px 0 0' }}>
           Required. This appears on the doctor's consultation screen as the chief complaint.
         </p>
       </div>

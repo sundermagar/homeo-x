@@ -6,27 +6,21 @@ import { useOrganizations, useCreateOrganization, useDeleteOrganization, useUpda
 import type { CreateOrganizationInput } from '@mmc/types';
 import { NumericInput } from '@/shared/components/NumericInput';
 import '../styles/platform.css';
-
 import { Pagination } from '@/shared/components/Pagination';
 import { usePagination } from '@/shared/hooks/use-pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { EmptyState } from '@/components/shared/empty-state';
 import { Drawer } from '@/shared/components/drawer';
-
-
-
 const EMPTY_FORM: any = {
   name: '', email: '', phone: '', city: '', website: '', description: '', connectSince: '',
   adminEmail: '', adminPassword: '', sendWelcomeEmail: false,
 };
-
 export default function ClinicsPage() {
   const qc = useQueryClient();
   const { data: orgs = [], isLoading, refetch } = useOrganizations();
   const createOrg = useCreateOrganization();
   const deleteOrg = useDeleteOrganization();
   const updateOrg = useUpdateOrganization();
-
   const {
     currentPage,
     setCurrentPage,
@@ -35,12 +29,10 @@ export default function ClinicsPage() {
     paginatedData,
     totalItems
   } = usePagination(orgs);
-
   const [isCreating, setIsCreating] = useState(false);
   const [editingOrg, setEditingOrg] = useState<any>(null);
   const [form, setForm] = useState<CreateOrganizationInput>(EMPTY_FORM);
   const [searchParams, setSearchParams] = useSearchParams();
-
   useEffect(() => {
     if (searchParams.get('add') === 'true') {
       setIsCreating(true);
@@ -52,7 +44,6 @@ export default function ClinicsPage() {
       setSearchParams(newParams, { replace: true });
     }
   }, [searchParams, setSearchParams]);
-
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -75,7 +66,6 @@ export default function ClinicsPage() {
       alert(`Failed: ${err?.response?.data?.error || err.message || 'Unknown error'}`);
     }
   };
-
   const handleEdit = (org: any) => {
     setEditingOrg(org);
     setForm({
@@ -92,7 +82,6 @@ export default function ClinicsPage() {
     });
     setIsCreating(true);
   };
-
   const handleDelete = async (id: number, name: string) => {
     if (!window.confirm(`Delete "${name}"? This cannot be undone.`)) return;
     console.log(`[Delete] Attempting to delete clinic: ${id} - ${name}`);
@@ -107,15 +96,11 @@ export default function ClinicsPage() {
       alert(`Failed to delete clinic: ${err?.response?.data?.error || err.message || 'Unknown error'}`);
     }
   };
-
   const set = (key: string, val: any) =>
     setForm(prev => ({ ...prev, [key]: val }));
-
   const activeCities = new Set(orgs.map(o => o.city).filter(Boolean)).size;
-
   return (
     <div className="plat-page fade-in">
-
       {/* ─── Header ─── */}
       <div className="pp-page-hero">
         <div>
@@ -132,7 +117,6 @@ export default function ClinicsPage() {
           </button>
         </div>
       </div>
-
       {/* ─── KPI Stats ─── */}
       <div className="pp-stat-grid">
         {[
@@ -146,13 +130,12 @@ export default function ClinicsPage() {
           </div>
         ))}
       </div>
-
       {/* ─── Table ─── */}
       <div>
         {isLoading ? (
           <TableSkeleton rows={8} columns={7} />
         ) : orgs.length === 0 ? (
-          <EmptyState 
+          <EmptyState
             icon={Building2}
             title="No clinics registered"
             description="Add your first clinic to get started with the multi-tenant clinical ecosystem."
@@ -255,7 +238,6 @@ export default function ClinicsPage() {
           </>
         )}
       </div>
-
       {isCreating && (
     <Drawer
       isOpen={true}
@@ -279,7 +261,6 @@ export default function ClinicsPage() {
                       placeholder="e.g. Hope Homeopathy Center"
                     />
                   </div>
-
                   <div className="plat-form-group">
                     <label className="plat-form-label">City Station</label>
                     <input
@@ -290,7 +271,6 @@ export default function ClinicsPage() {
                       placeholder="City"
                     />
                   </div>
-
                   <div className="plat-form-group">
                     <label className="plat-form-label">Connected Since</label>
                     <input
@@ -302,7 +282,6 @@ export default function ClinicsPage() {
                   </div>
                 </div>
               </div>
-
               <div className="plat-form-section">
                 <h4 className="plat-form-section-title">Contact & Presence</h4>
                 <div className="plat-form-grid-multi">
@@ -316,7 +295,6 @@ export default function ClinicsPage() {
                       placeholder="9876543210"
                     />
                   </div>
-
                   <div className="plat-form-group">
                     <label className="plat-form-label">Email Address</label>
                     <input
@@ -327,7 +305,6 @@ export default function ClinicsPage() {
                       placeholder="office@clinic.com"
                     />
                   </div>
-
                   <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
                     <label className="plat-form-label">Website URL</label>
                     <input
@@ -338,7 +315,6 @@ export default function ClinicsPage() {
                       placeholder="https://www.clinic.com"
                     />
                   </div>
-
                   <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
                     <label className="plat-form-label">About Clinic / Description</label>
                     <textarea
@@ -351,7 +327,6 @@ export default function ClinicsPage() {
                   </div>
                 </div>
               </div>
-
               <div className="plat-form-section">
                 <h4 className="plat-form-section-title">Initial Administrator</h4>
                 <div className="plat-form-grid-multi">
@@ -380,22 +355,19 @@ export default function ClinicsPage() {
                 </div>
                 {!editingOrg && (
                   <div className="plat-form-group" style={{ marginTop: '16px' }}>
-                    <label className="flex items-center gap-2 cursor-pointer">
+                    <label className="plat-checkbox-group">
                       <input
                         type="checkbox"
                         checked={form.sendWelcomeEmail || false}
                         onChange={e => set('sendWelcomeEmail', e.target.checked)}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                        style={{ width: '16px', height: '16px' }}
                       />
-                      <span className="text-sm font-medium text-gray-700">
+                      <span className="plat-checkbox-label">
                         Send welcome email with credentials
                       </span>
                     </label>
                   </div>
                 )}
               </div>
-
               <div className="plat-modal-footer">
                 <button type="button" className="plat-btn plat-btn-ghost" onClick={() => { setIsCreating(false); setEditingOrg(null); setForm(EMPTY_FORM); }}>Discard</button>
                 <button type="submit" className="plat-btn plat-btn-primary" disabled={createOrg.isPending || updateOrg.isPending}>
@@ -406,7 +378,6 @@ export default function ClinicsPage() {
           </div>
         </Drawer>
       )}
-
     </div>
   );
 }

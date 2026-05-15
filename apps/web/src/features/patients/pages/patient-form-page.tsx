@@ -292,10 +292,10 @@ export default function PatientFormPage() {
               <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Referred By (Patient ID)</label>
               <input className="pp-input" name="referredBy" value={form.referredBy} onChange={handleChange} placeholder="Patient ID" />
             </div>
-            <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '8px' }}>
-              <label className="text-body" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px' }}>
-                <input type="checkbox" name="courierOutstation" checked={form.courierOutstation} onChange={handleChange} style={{ width: '16px', height: '16px' }} />
-                Courier Outstation
+            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+              <label className="plat-checkbox-group">
+                <input type="checkbox" name="courierOutstation" checked={form.courierOutstation} onChange={handleChange} />
+                <span className="plat-checkbox-label">Courier Outstation</span>
               </label>
             </div>
           </div>
