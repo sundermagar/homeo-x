@@ -7,6 +7,8 @@ import {
   useDeleteCharge,
 } from '../../billing/hooks/use-accounts';
 import { Drawer } from '@/shared/components/drawer';
+import { PageSkeleton } from '@/components/shared/page-skeleton';
+import { Pagination } from '@/components/shared/pagination';
 import '../../platform/styles/platform.css';
 import '../styles/settings.css';
 
@@ -20,6 +22,9 @@ export function ChargesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCharge, setEditingCharge] = useState<any>(null);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
   // Form State
   const [type, setType] = useState('Normal'); // 'Normal' = Service, 'Product' = Product
   const [name, setName] = useState('');
@@ -29,6 +34,12 @@ export function ChargesPage() {
   const filteredCharges = charges?.filter(c =>
     c.charges?.toLowerCase().includes(search.toLowerCase())
   ) || [];
+
+  const totalPages = Math.ceil(filteredCharges.length / pageSize) || 1;
+  const paginatedCharges = filteredCharges.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
 
   const handleOpenModal = (charge?: any) => {
     if (charge) {
@@ -112,17 +123,17 @@ export function ChargesPage() {
             className="plat-form-input plat-search-input"
             placeholder="Search..."
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={e => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }}
           />
-        </div>
-        <div className="text-sm color-muted flex items-center px-4">
-          Showing {filteredCharges.length > 0 ? 1 : 0} to {filteredCharges.length} entries
         </div>
       </div>
 
       <div className="plat-card">
         {isLoading ? (
-          <div className="p-8 text-center color-muted">Loading services...</div>
+          <PageSkeleton variant="table" cols={6} rows={pageSize} />
         ) : filteredCharges.length === 0 ? (
           <div className="p-8 text-center color-muted">No entries found</div>
         ) : (
@@ -139,11 +150,13 @@ export function ChargesPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredCharges.map((charge, idx) => {
+                {paginatedCharges.map((charge, idx) => {
                   const isProduct = charge.type === 'Product';
                   return (
                     <tr key={charge.id} className="plat-table-row">
-                      <td className="plat-table-cell text-xs color-muted font-mono">{idx + 1}</td>
+                      <td className="plat-table-cell text-xs color-muted font-mono">
+                        {(currentPage - 1) * pageSize + idx + 1}
+                      </td>
                       <td className="plat-table-cell font-medium color-main">
                         {charge.charges}
                       </td>
@@ -180,6 +193,17 @@ export function ChargesPage() {
               </tbody>
             </table>
           </div>
+        )}
+        
+        {!isLoading && filteredCharges.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            pageSize={pageSize}
+            totalItems={filteredCharges.length}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={setPageSize}
+          />
         )}
       </div>
 

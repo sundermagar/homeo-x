@@ -149,6 +149,8 @@ function buildCommands(
       ['custom', 'bill', 'invoice']),
     nav('Additional Charges', '/billing/additional-charges', <Plus size={16} />, BILLING_ADMIN,
       ['additional', 'charges', 'extra']),
+    nav('Assigned Charges', '/billing/assigned-charges', <Plus size={16} />, BILLING_ADMIN,
+      ['assigned', 'charges', 'patient', 'allocation']),
     nav('Day Charges', '/billing/day-charges', <Calendar size={16} />, BILLING_ADMIN,
       ['day', 'charges', 'daily']),
     nav('Deposits', '/billing/deposits', <Wallet size={16} />, BILLING_ADMIN,
