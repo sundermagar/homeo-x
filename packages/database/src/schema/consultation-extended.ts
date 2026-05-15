@@ -60,8 +60,8 @@ export const rubricRemedyMap = pgTable('rubric_remedy_map', {
   uniqueMapping: uniqueIndex('idx_rrm_unique').on(table.rubricId, table.remedyId),
 }));
 
-// ─── SOAP Notes ───────────────────────────────────────────────────────────────
-export const soapNotes = pgTable('soap_notes', {
+// ─── Extended SOAP Notes ──────────────────────────────────────────────────────
+export const extendedSoapNotes = pgTable('soap_notes', {
   id: serial('id').primaryKey(),
   tenantId: varchar('tenant_id', { length: 50 }),
   visitId: varchar('visit_id', { length: 50 }).notNull(),
@@ -85,11 +85,12 @@ export const soapNotes = pgTable('soap_notes', {
   tenantIdx: index('idx_soap_tenant').on(table.tenantId),
 }));
 
-// ─── Prescriptions ────────────────────────────────────────────────────────────
-export const prescriptions = pgTable('prescriptions', {
+// ─── Extended Prescriptions ───────────────────────────────────────────────────
+export const extendedPrescriptions = pgTable('prescriptions', {
   id: serial('id').primaryKey(),
   tenantId: varchar('tenant_id', { length: 50 }),
   visitId: varchar('visit_id', { length: 50 }).notNull(),
+  regid: integer('regid'), // Added for cross-schema compatibility
   specialty: varchar('specialty', { length: 50 }),
   notes: text('notes'),
   status: varchar('status', { length: 30 }).default('DRAFT'), // DRAFT, APPROVED, DISPENSED
@@ -97,6 +98,7 @@ export const prescriptions = pgTable('prescriptions', {
   approvedAt: timestamp('approved_at'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
+  deletedAt: timestamp('deleted_at'),
 }, (table) => ({
   visitIdx: index('idx_rx_visit').on(table.visitId),
   tenantIdx: index('idx_rx_tenant').on(table.tenantId),

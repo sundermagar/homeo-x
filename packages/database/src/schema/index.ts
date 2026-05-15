@@ -1,28 +1,32 @@
 // ─── Domain Schemas ───
-export * from './patients.js';
-export { medicalCases, vitals, homeoDetails, caseNotes, caseExamination, caseImages, investigations, growthReferences, vaccineMaster, caseVaccines, caseReminders, soapNotes as legacySoapNotes, prescriptions as legacyPrescriptions } from './medical-cases.js';
-export * from './appointments.js';
-export * from './users.js';
-export * from './billing.js';
-export * from './consultation.js';
-export * from './consultation-extended.js';
-export * from './rbac.js';
-export * from './inventory.js';
-export * from './audit.js';
-export * from './packages.js';
-export * from './communication.js';
-export * from './platform.js';
-export * from './settings.js';
-export * from './crm.js';
-export * from './logistics.js';
-export * from './clinical-codes.js';
-export * from './records.js';
-export { dictionary, libraryResources, staticPages as knowledgeStaticPages, faqs as knowledgeFaqs } from './knowledge.js';
-export * from './legacy-public-manifest.js';
-export * from './tenant-demo-legacy-schema.js';
-export * from './legacy/index.js';
-export * from './notifications.js';
-export * from './patient_preferences.js';
+export * from './patients';
+export { 
+  medicalCases, vitals, homeoDetails, caseNotes, caseExamination, caseImages, 
+  investigations, growthReferences, soapNotes, prescriptions,
+  soapNotes as legacySoapNotes, prescriptions as legacyPrescriptions 
+} from './medical-cases';
+export * from './appointments';
+export * from './users';
+export * from './billing';
+export * from './consultation';
+export { 
+  rubrics, remedies, remedyProfiles, rubricRemedyMap, 
+  extendedSoapNotes, extendedPrescriptions, prescriptionItems 
+} from './consultation-extended';
+export * from './rbac';
+export * from './inventory';
+export * from './audit';
+export * from './packages';
+export * from './communication';
+export * from './platform';
+export * from './settings';
+export * from './crm';
+export * from './logistics';
+export * from './records';
+export * from './knowledge';
+export * from './legacy-public-manifest';
+export * from './tenant-demo-legacy-schema';
+export * from './legacy/index';
 
 // Aliases for legacy tables used in the merged Patient repository
 export { 
@@ -32,4 +36,4 @@ export {
   religionLegacy, 
   occupationLegacy, 
   refrencetypeLegacy 
-} from './legacy/index.js';
+} from './legacy/index';
