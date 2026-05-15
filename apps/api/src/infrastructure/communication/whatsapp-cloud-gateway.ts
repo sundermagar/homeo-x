@@ -10,19 +10,37 @@ export class WhatsAppCloudGateway implements WhatsAppGateway {
 
   constructor(private readonly waRepo: WhatsAppRepository) {}
 
-  private async getHeaders(channelId: number) {
-    const channel = await this.waRepo.findChannelById(channelId);
-    if (!channel) throw new Error(`Channel ${channelId} not found`);
+  private async getHeaders(channelId?: number) {
+    let accessToken = process.env.WHATSAPP_TOKEN;
+
+    if (channelId) {
+      const channel = await this.waRepo.findChannelById(channelId);
+      if (channel?.accessToken) accessToken = channel.accessToken;
+    }
+
+    if (!accessToken) throw new Error(`WhatsApp token not found in DB or .env`);
+
     return {
-      'Authorization': `Bearer ${channel.accessToken}`,
+      'Authorization': `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
     };
   }
 
-  async sendText(channelId: number, to: string, text: string): Promise<{ success: boolean; messageId?: string; error?: string }> {
-    try {
+  private async getPhoneNumberId(channelId?: number) {
+    let phoneId = process.env.PHONE_NUMBER_ID;
+
+    if (channelId) {
       const channel = await this.waRepo.findChannelById(channelId);
-      if (!channel) return { success: false, error: 'Channel not found' };
+      if (channel?.phoneNumberId) phoneId = channel.phoneNumberId;
+    }
+
+    if (!phoneId) throw new Error(`WhatsApp Phone Number ID not found in DB or .env`);
+    return phoneId;
+  }
+
+  async sendText(channelId: number | null, to: string, text: string): Promise<{ success: boolean; messageId?: string; error?: string }> {
+    try {
+      const phoneNumberId = await this.getPhoneNumberId(channelId || undefined);
 
       const body = {
         messaging_product: 'whatsapp',
@@ -32,9 +50,9 @@ export class WhatsAppCloudGateway implements WhatsAppGateway {
         text: { body: text },
       };
 
-      const response = await fetch(`${this.baseUrl}/${channel.phoneNumberId}/messages`, {
+      const response = await fetch(`${this.baseUrl}/${phoneNumberId}/messages`, {
         method: 'POST',
-        headers: await this.getHeaders(channelId),
+        headers: await this.getHeaders(channelId || undefined),
         body: JSON.stringify(body),
       });
 
@@ -51,10 +69,19 @@ export class WhatsAppCloudGateway implements WhatsAppGateway {
     }
   }
 
-  async sendTemplate(channelId: number, to: string, templateName: string, language: string, components: any[]): Promise<{ success: boolean; messageId?: string; error?: string }> {
-    try {
+  private async getWabaId(channelId?: number) {
+    let wabaId = process.env.WHATSAPP_BUSINESS_ACCOUNT_ID;
+    if (channelId) {
       const channel = await this.waRepo.findChannelById(channelId);
-      if (!channel) return { success: false, error: 'Channel not found' };
+      if (channel?.whatsappBusinessAccountId) wabaId = channel.whatsappBusinessAccountId;
+    }
+    if (!wabaId) throw new Error(`WhatsApp Business Account ID not found in DB or .env`);
+    return wabaId;
+  }
+
+  async sendTemplate(channelId: number | null, to: string, templateName: string, language: string, components: any[]): Promise<{ success: boolean; messageId?: string; error?: string }> {
+    try {
+      const phoneNumberId = await this.getPhoneNumberId(channelId || undefined);
 
       const body = {
         messaging_product: 'whatsapp',
@@ -68,9 +95,9 @@ export class WhatsAppCloudGateway implements WhatsAppGateway {
         },
       };
 
-      const response = await fetch(`${this.baseUrl}/${channel.phoneNumberId}/messages`, {
+      const response = await fetch(`${this.baseUrl}/${phoneNumberId}/messages`, {
         method: 'POST',
-        headers: await this.getHeaders(channelId),
+        headers: await this.getHeaders(channelId || undefined),
         body: JSON.stringify(body),
       });
 
@@ -87,14 +114,13 @@ export class WhatsAppCloudGateway implements WhatsAppGateway {
     }
   }
 
-  async getTemplates(channelId: number): Promise<any[]> {
+  async getTemplates(channelId: number | null): Promise<any[]> {
     try {
-      const channel = await this.waRepo.findChannelById(channelId);
-      if (!channel) throw new Error('Channel not found');
+      const wabaId = await this.getWabaId(channelId || undefined);
 
       const response = await fetch(
-        `${this.baseUrl}/${channel.whatsappBusinessAccountId}/message_templates?limit=100`,
-        { headers: await this.getHeaders(channelId) }
+        `${this.baseUrl}/${wabaId}/message_templates?limit=100`,
+        { headers: await this.getHeaders(channelId || undefined) }
       );
 
       const data = await response.json() as any;
@@ -107,20 +133,21 @@ export class WhatsAppCloudGateway implements WhatsAppGateway {
     }
   }
 
-  async uploadMedia(channelId: number, file: Buffer, fileName: string, mimeType: string): Promise<string> {
+  async uploadMedia(channelId: number | null, file: Buffer, fileName: string, mimeType: string): Promise<string> {
     try {
-      const channel = await this.waRepo.findChannelById(channelId);
-      if (!channel) throw new Error('Channel not found');
+      const phoneNumberId = await this.getPhoneNumberId(channelId || undefined);
 
       const formData = new FormData();
       formData.append('messaging_product', 'whatsapp');
       formData.append('file', new Blob([new Uint8Array(file)], { type: mimeType }), fileName);
 
-      const response = await fetch(`${this.baseUrl}/${channel.phoneNumberId}/media`, {
+      const headers = await this.getHeaders(channelId || undefined);
+      // Remove Content-Type so fetch can auto-set the boundary for formData
+      delete (headers as any)['Content-Type'];
+
+      const response = await fetch(`${this.baseUrl}/${phoneNumberId}/media`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${channel.accessToken}`,
-        },
+        headers,
         body: formData,
       });
 
@@ -137,7 +164,7 @@ export class WhatsAppCloudGateway implements WhatsAppGateway {
     }
   }
 
-  async registerWebhook(channelId: number, callbackUrl: string, verifyToken: string): Promise<boolean> {
+  async registerWebhook(channelId: number | null, callbackUrl: string, verifyToken: string): Promise<boolean> {
     // This typically involves manual setup in Meta dashboard, 
     // but some subscriptions can be automated via API for Embedded Signup
     return true;

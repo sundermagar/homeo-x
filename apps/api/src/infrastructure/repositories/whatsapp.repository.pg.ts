@@ -251,12 +251,13 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
     return row ?? null;
   }
 
-  async findConversationByPhone(channelId: number, phone: string): Promise<any> {
+  async findConversationByPhone(channelId: number | null, phone: string): Promise<any> {
+    const channelCondition = channelId ? eq(schema.waConversations.channelId, channelId) : isNull(schema.waConversations.channelId);
     const [row] = await this.db
       .select()
       .from(schema.waConversations)
       .where(and(
-        eq(schema.waConversations.channelId, channelId),
+        channelCondition,
         eq(schema.waConversations.contactPhone, phone)
       ))
       .limit(1);

@@ -39,12 +39,18 @@ export class SendWhatsAppUseCase {
       const clinicId = dto.clinicId;
       const channel = clinicId ? await this.waRepo.findDefaultChannel(clinicId) : null;
 
+      let channelId = channel?.id || null;
+
       if (!channel) {
-        logger.warn(`No active WABA channel for clinic ${clinicId}. WhatsApp send skipped.`);
-        return fail('No active WhatsApp channel configured. Please add a WABA channel.', 'NO_CHANNEL');
+        if (process.env.WHATSAPP_TOKEN) {
+          logger.info(`No active WABA channel for clinic ${clinicId}, falling back to .env Meta credentials.`);
+        } else {
+          logger.warn(`No active WABA channel for clinic ${clinicId}. WhatsApp send skipped.`);
+          return fail('No active WhatsApp channel configured. Please add a WABA channel or set WHATSAPP_TOKEN in .env.', 'NO_CHANNEL');
+        }
       }
 
-      const result = await this.cloudGateway.sendText(channel.id, phone, dto.message);
+      const result = await this.cloudGateway.sendText(channelId, phone, dto.message);
 
       // Track in conversation
       try {
@@ -104,8 +110,11 @@ export class SendWhatsAppUseCase {
       const clinicId = dto.clinicId;
       const channel = clinicId ? await this.waRepo.findDefaultChannel(clinicId) : null;
 
+      let channelId = channel?.id || null;
       if (!channel) {
-        return fail('No active WhatsApp channel configured. Please add a WABA channel.', 'NO_CHANNEL');
+        if (!process.env.WHATSAPP_TOKEN) {
+          return fail('No active WhatsApp channel configured. Please add a WABA channel or set WHATSAPP_TOKEN in .env.', 'NO_CHANNEL');
+        }
       }
 
       // Collect phones
@@ -127,7 +136,7 @@ export class SendWhatsAppUseCase {
 
       for (const phone of [...new Set(phones)]) {
         try {
-          const result = await this.cloudGateway.sendText(channel.id, phone, dto.message);
+          const result = await this.cloudGateway.sendText(channelId, phone, dto.message);
 
           await this.commRepo.logWhatsApp({
             phone: `91${phone}`,

@@ -341,26 +341,29 @@ whatsappRouter.post('/send-text', authMiddleware, asyncHandler(async (req, res) 
   const gateway: WhatsAppGateway = getGateway(req);
 
   // Resolve channel: use explicit channelId, or find default active channel for clinic
-  let channelId = explicitChannelId ? Number(explicitChannelId) : null;
+  let channelId: number | null = explicitChannelId ? Number(explicitChannelId) : null;
   if (!channelId) {
     const defaultChannel = await repo.findDefaultChannel(clinicId);
     if (!defaultChannel) {
-      throw new BadRequestError('No active WhatsApp channel configured. Please add a WABA channel first.');
+      if (!process.env.WHATSAPP_TOKEN) {
+        throw new BadRequestError('No active WhatsApp channel configured. Please add a WABA channel first or set WHATSAPP_TOKEN in .env.');
+      }
+    } else {
+      channelId = defaultChannel.id;
     }
-    channelId = defaultChannel.id;
   }
 
   const cleanPhone = phone.replace(/\D/g, '');
-  const result = await gateway.sendText(channelId as number, cleanPhone, message);
+  const result = await gateway.sendText(channelId, cleanPhone, message);
 
   if (result.success) {
     // Find or create conversation for tracking
-    let conversation = await repo.findConversationByPhone(channelId as number, cleanPhone);
+    let conversation = await repo.findConversationByPhone(channelId, cleanPhone);
     if (!conversation) {
-      const channel = await repo.findChannelById(channelId as number);
+      const channel = channelId ? await repo.findChannelById(channelId) : null;
       conversation = await repo.saveConversation({
         clinicId: channel?.clinicId || clinicId,
-        channelId: channelId as number,
+        channelId: channelId,
         contactPhone: cleanPhone,
         status: 'open',
         lastMessageAt: new Date(),
@@ -419,18 +422,21 @@ whatsappRouter.post('/send-template', authMiddleware, asyncHandler(async (req, r
   const repo = getRepo(req);
   const gateway: WhatsAppGateway = getGateway(req);
 
-  let channelId = explicitChannelId ? Number(explicitChannelId) : null;
+  let channelId: number | null = explicitChannelId ? Number(explicitChannelId) : null;
   if (!channelId) {
     const defaultChannel = await repo.findDefaultChannel(clinicId);
     if (!defaultChannel) {
-      throw new BadRequestError('No active WhatsApp channel configured. Please add a WABA channel first.');
+      if (!process.env.WHATSAPP_TOKEN) {
+        throw new BadRequestError('No active WhatsApp channel configured. Please add a WABA channel first or set WHATSAPP_TOKEN in .env.');
+      }
+    } else {
+      channelId = defaultChannel.id;
     }
-    channelId = defaultChannel.id;
   }
 
   const cleanPhone = phone.replace(/\D/g, '');
   const result = await gateway.sendTemplate(
-    channelId as number,
+    channelId,
     cleanPhone,
     templateName,
     language || 'en_US',
@@ -439,12 +445,12 @@ whatsappRouter.post('/send-template', authMiddleware, asyncHandler(async (req, r
 
   if (result.success) {
     // Track in conversations
-    let conversation = await repo.findConversationByPhone(channelId as number, cleanPhone);
+    let conversation = await repo.findConversationByPhone(channelId, cleanPhone);
     if (!conversation) {
-      const channel = await repo.findChannelById(channelId as number);
+      const channel = channelId ? await repo.findChannelById(channelId) : null;
       conversation = await repo.saveConversation({
         clinicId: channel?.clinicId || clinicId,
-        channelId: channelId as number,
+        channelId: channelId,
         contactPhone: cleanPhone,
         status: 'open',
         lastMessageAt: new Date(),
