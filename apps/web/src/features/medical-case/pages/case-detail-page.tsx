@@ -242,49 +242,51 @@ export default function MedicalCaseDetailPage() {
   // Consolidated with previous hook call above
 
   const handleOpenDiagnosis = (record?: any) => {
-    // If a specific record is provided (from the history table), use it
-    if (record) {
-      setDiagForm({
-        diagnosis: record.assessment || '',
-        complaint: record.subjective || '',
-        medication: record.plan || '',
-        investigationFindings: record.objective || ''
-      });
-      setEditingDiagnosisRecord(record);
-    } else {
-      // If clicking "Diagnosis" from sidebar, check if one already exists for this visit
-      const existingSoap = (soap || []).find((s: any) => (s.visitId === medicalCase?.id || s.visit_id === medicalCase?.id));
+    // Priority: 1. Passed record (from table), 2. Current visit record (from sidebar context), 3. Existing record for the visit ID
+    let activeRecord = record || currentVisitSoap;
+    
+    if (!activeRecord && currentVisitId) {
+      activeRecord = (soap || []).find((s: any) => (s.visitId === currentVisitId || s.visit_id === currentVisitId));
+    }
 
-      if (existingSoap) {
-        setDiagForm({
-          diagnosis: existingSoap.assessment || '',
-          complaint: existingSoap.subjective || '',
-          medication: existingSoap.plan || '',
-          investigationFindings: existingSoap.objective || ''
-        });
-        setEditingDiagnosisRecord(existingSoap);
-      } else {
-        setDiagForm({
-          diagnosis: '',
-          complaint: '',
-          medication: '',
-          investigationFindings: ''
-        });
-        setEditingDiagnosisRecord(null);
-      }
+    if (activeRecord) {
+      setDiagForm({
+        diagnosis: activeRecord.assessment || '',
+        complaint: activeRecord.subjective || '',
+        medication: activeRecord.plan || (isToday ? (medicationTakingStr !== '—' ? medicationTakingStr : '') : ''),
+        investigationFindings: activeRecord.objective || ''
+      });
+      setEditingDiagnosisRecord(activeRecord);
+    } else {
+      // New record for today
+      setDiagForm({
+        diagnosis: '',
+        complaint: '',
+        medication: isToday && medicationTakingStr !== '—' ? medicationTakingStr : '',
+        investigationFindings: ''
+      });
+      setEditingDiagnosisRecord(null);
     }
     setShowDiagnosisDrawer(true);
   };
 
   const handleSaveDiagnosis = async () => {
     try {
+      // Last-mile check for existing records for this specific visit ID 
+      // (Avoids duplicate key violations if state is out of sync)
+      let finalRecordId = editingDiagnosisRecord?.id;
+      if (!finalRecordId && currentVisitId) {
+        const existing = (soap || []).find((s: any) => (s.visitId === currentVisitId || s.visit_id === currentVisitId));
+        if (existing) finalRecordId = existing.id;
+      }
+
       if (diagForm.diagnosis.trim()) {
         await updateDiagnosis.mutateAsync({ regid: Number(regid), condition: diagForm.diagnosis.trim() });
       }
       await saveSoap.mutateAsync({
-        id: editingDiagnosisRecord?.id,
+        id: finalRecordId,
         regid: Number(regid),
-        visitId: medicalCase?.id,
+        visitId: currentVisitId,
         subjective: diagForm.complaint,
         objective: diagForm.investigationFindings,
         assessment: diagForm.diagnosis,
@@ -370,13 +372,13 @@ export default function MedicalCaseDetailPage() {
   };
 
   const handleSaveNote = React.useCallback(async (content: string) => {
-    if (!content.trim() || !medicalCase?.id) return;
+    if (!content.trim() || !currentVisitId) return;
     try {
       // Use displayDate for dateval so notes are linked to the viewed encounter
       const noteDate = displayDate ? displayDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
       await saveNote.mutateAsync({
         regid: Number(regid),
-        visitId: medicalCase.id,
+        visitId: currentVisitId,
         id: activeNote?.id,
         notesType: 'Followup',
         notes: content.trim(),
@@ -439,6 +441,67 @@ export default function MedicalCaseDetailPage() {
   const fullVaccines = fullData?.vaccines;
 
   const ageString = medicalCase?.dateOfBirth ? `${new Date().getFullYear() - new Date(medicalCase.dateOfBirth).getFullYear()} Yrs` : 'Unknown Age';
+  const isToday = displayDate && displayDate.toDateString() === new Date().toDateString();
+
+  const currentVisitSoaps = useMemo(() => {
+    const soap = fullData?.soap || [];
+    if (!displayDate || !soap.length) return [];
+    return filterByDate(soap, displayDate);
+  }, [displayDate, fullData?.soap, filterByDate]);
+
+  const currentVisitSoap = currentVisitSoaps[0] || null;
+
+  const currentVisitPrescriptions = useMemo(() => {
+    if (!displayDate) return [];
+    const fromHistory = prescriptionsHistory || [];
+    const fromFull = fullData?.prescriptions || [];
+    const all = [...fromHistory, ...fromFull];
+    return filterByDate(all, displayDate);
+  }, [displayDate, prescriptionsHistory, fullData?.prescriptions, filterByDate]);
+
+  const currentVisitId = useMemo(() => {
+    // Attempt to extract visit ID from any clinical record on the currently viewed date
+    const rx = currentVisitPrescriptions?.[0];
+    const soap = currentVisitSoaps?.[0];
+    
+    // Check various common field names for visit IDs
+    const idFromRx = rx ? (rx.visitId ?? rx.visit_id ?? rx.consultationId ?? rx.consultation_id) : null;
+    const idFromSoap = soap ? (soap.visitId ?? soap.visit_id) : null;
+    
+    // Priority: 1. ID from today's prescriptions, 2. ID from today's SOAP notes, 3. The global active case ID
+    return idFromRx ?? idFromSoap ?? medicalCase?.id;
+  }, [currentVisitPrescriptions, currentVisitSoaps, medicalCase?.id]);
+
+  const medicationTakingStr = useMemo(() => {
+    if (!displayDate || (!prescriptionsHistory && !fullData?.prescriptions)) return '—';
+    
+    const all = [...(prescriptionsHistory || []), ...(fullData?.prescriptions || [])];
+    
+    // Get unique dates sorted descending to find the previous encounter
+    const uniqueDates = Array.from(new Set(all.map(p => {
+      const d = parseSafeDate(p.created_at || p.createdAt || p.dateval);
+      return d ? d.toDateString() : null;
+    }))).filter(Boolean).map(d => new Date(d!)).sort((a, b) => b.getTime() - a.getTime());
+    
+    // Find index of current displayDate
+    const currentIdx = uniqueDates.findIndex(d => d.toDateString() === displayDate.toDateString());
+    
+    // The "Medication Taking" is what was prescribed in the PRIOR visit
+    const prevDate = currentIdx !== -1 && uniqueDates[currentIdx + 1] ? uniqueDates[currentIdx + 1] : null;
+    
+    if (!prevDate) return '—';
+
+    const prevPrescriptions = filterByDate(all, prevDate);
+    
+    // Deduplicate and format
+    const uniqueMeds = Array.from(new Set(prevPrescriptions.map(p => {
+      const name = p.remedy_name || p.remedyName || p.medicineName || p.medicine || '';
+      const potency = p.potency_name || p.potencyName || p.potency || '';
+      return `${name}${potency ? ` ${potency}` : ''}`.trim();
+    }))).filter(Boolean);
+    
+    return uniqueMeds.length > 0 ? uniqueMeds.join(', ') : '—';
+  }, [displayDate, prescriptionsHistory, fullData?.prescriptions, parseSafeDate, filterByDate]);
 
   // tabContent MUST be declared before any early returns (Rules of Hooks)
   const tabContent = useMemo(() => {
@@ -474,9 +537,10 @@ export default function MedicalCaseDetailPage() {
         onAppendNote={appendNote}
         onEditRecord={handleOpenDiagnosis}
         onAddRecord={() => handleOpenDiagnosis()}
+        isDateFiltered={!!displayDate}
       /></div>;
-      case 'media': return <div className="mc-tab-content-wrapper"><MediaView regid={Number(regid)} visitId={medicalCase.id} images={filteredImages} /></div>;
-      case 'labs': return <div className="mc-tab-content-wrapper"><LabsView investigations={filteredInvestigations} regid={Number(regid)} visitId={medicalCase.id} onAppendNote={appendNote} /></div>;
+      case 'media': return <div className="mc-tab-content-wrapper"><MediaView regid={Number(regid)} visitId={medicalCase.id} images={filteredImages} isDateFiltered={!!displayDate} /></div>;
+      case 'labs': return <div className="mc-tab-content-wrapper"><LabsView investigations={filteredInvestigations} regid={Number(regid)} visitId={medicalCase.id} onAppendNote={appendNote} isDateFiltered={!!displayDate} /></div>;
       case 'vitals': return <div className="mc-tab-content-wrapper"><VitalsView vitals={filteredVitals} onRecord={(data) => {
         setEditingVitals(data || null);
         setShowVitalsModal(true);
@@ -694,102 +758,6 @@ export default function MedicalCaseDetailPage() {
               </div>
             )}
 
-            {/* ─── Billing Summary (Full-Width Statistics Bar) ─── */}
-            <div style={{
-              marginTop: '32px',
-              padding: '24px',
-              background: '#fff',
-              border: '1px solid var(--border-main)',
-              borderRadius: '16px',
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '20px'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '1.1rem', fontWeight: 800, color: '#1e293b' }}>
-                  <div style={{ padding: '8px', background: '#eff6ff', borderRadius: '10px', color: '#3b82f6' }}>
-                    <CreditCard size={20} />
-                  </div>
-                  Billing Overview
-                </div>
-                {displayDate && (
-                  <div style={{ background: '#f8fafc', padding: '6px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.8rem', fontWeight: 700, color: '#64748b' }}>
-                    {displayDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                  </div>
-                )}
-              </div>
-
-              <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', border: '1px solid #f1f5f9', borderRadius: '12px', overflow: 'hidden' }}>
-                {[
-                  { label: 'Regular Charge', value: billingValues.regular, color: '#1e293b' },
-                  { label: 'Additional Charge', value: billingValues.additional, color: '#64748b' },
-                  { label: 'Total Bill Amount', value: billingValues.total, color: '#2563eb', bold: true },
-                  { label: 'Amount Received', value: billingValues.received, color: '#059669' },
-                  { label: 'Pending Balance', value: billingValues.balance, color: '#dc2626', bold: true },
-                ].map((row, idx) => (
-                  <div key={idx} style={{ 
-                    display: 'grid', 
-                    gridTemplateColumns: '1fr 140px 40px', 
-                    padding: '10px 16px', 
-                    borderBottom: idx === 4 ? 'none' : '1px solid #f1f5f9',
-                    alignItems: 'center',
-                    background: idx % 2 === 0 ? 'transparent' : '#f8fafc'
-                  }}>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569' }}>{row.label}</span>
-                    <span style={{ fontSize: '0.95rem', fontWeight: row.bold ? 800 : 700, color: row.color, textAlign: 'right', paddingRight: '20px' }}>₹{row.value}</span>
-                    <button 
-                      onClick={() => setShowBillingModal(true)}
-                      style={{ 
-                        width: '28px',
-                        height: '28px',
-                        padding: '0', 
-                        background: '#fff', 
-                        border: '1px solid #e2e8f0', 
-                        borderRadius: '6px', 
-                        cursor: 'pointer', 
-                        color: '#64748b',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                        transition: 'all 0.2s'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = '#f1f5f9';
-                        e.currentTarget.style.color = '#3b82f6';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = '#fff';
-                        e.currentTarget.style.color = '#64748b';
-                      }}
-                    >
-                      <Edit size={12} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-              <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
-                <button
-                  onClick={() => setShowReceiptModal(true)}
-                  style={{ 
-                    padding: '10px 24px', 
-                    background: '#3b82f6', 
-                    color: 'white', 
-                    border: 'none', 
-                    borderRadius: '10px', 
-                    fontWeight: 700, 
-                    cursor: 'pointer', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '8px',
-                    boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.2)'
-                  }}
-                >
-                  <Share2 size={16} /> Share Payment Receipt
-                </button>
-              </div>
-            </div>
           </div>
 
           <aside className="mc-body-side">
@@ -817,54 +785,48 @@ export default function MedicalCaseDetailPage() {
               </div>
             </div>
 
-            {/* ─── Diagnosis Shortcut Button ─── */}
-            <div style={{ marginBottom: '8px' }}>
-              <button
-                onClick={() => handleOpenDiagnosis()}
-                className="premium-diagnosis-btn"
-                style={{
-                  width: '100%', padding: '16px', borderRadius: '16px', border: 'none',
-                  background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)', color: 'white',
-                  fontWeight: 800, cursor: 'pointer', boxShadow: '0 10px 15px -3px rgba(37, 99, 235, 0.2)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px',
-                  transition: 'transform 0.2s, box-shadow 0.2s',
-                  fontSize: '0.95rem'
-                }}
-              >
-                <div style={{ background: 'rgba(255,255,255,0.2)', padding: '8px', borderRadius: '12px' }}>
-                  <Sparkles size={20} />
+            {/* ─── Homeo Details Snapshot ─── */}
+            <div className="mc-side-card" style={{ marginBottom: '16px' }}>
+              <div className="mc-side-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#1e293b' }}>Homeo details</div>
+                {isToday && (
+                  <div 
+                    onClick={() => handleOpenDiagnosis(currentVisitSoap)}
+                    style={{ color: '#3b82f6', cursor: 'pointer', padding: '4px' }}
+                    title="Edit Today's Assessment"
+                  >
+                    <Edit size={14} />
+                  </div>
+                )}
+                {!isToday && currentVisitSoaps.length > 1 && (
+                  <div 
+                    onClick={() => setActiveTab('diagnosis')}
+                    style={{ color: '#3b82f6', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px' }}
+                  >
+                    See all ({currentVisitSoaps.length}) <ChevronRight size={14} />
+                  </div>
+                )}
+              </div>
+              <div className="mc-side-card-body" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#1e293b', marginBottom: '4px' }}>Diagnosis</div>
+                  <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>{currentVisitSoap?.assessment || '—'}</div>
                 </div>
-                <span>Diagnosis</span>
-              </button>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#1e293b', marginBottom: '4px' }}>Complaint Intensity</div>
+                  <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>{currentVisitSoap?.subjective || '—'}</div>
+                </div>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#1e293b', marginBottom: '4px' }}>Medication Taking</div>
+                  <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>{medicationTakingStr}</div>
+                </div>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#1e293b', marginBottom: '4px' }}>Investigation</div>
+                  <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>{currentVisitSoap?.plan || currentVisitSoap?.advice || '—'}</div>
+                </div>
+              </div>
             </div>
 
-            {/* ─── Pharmacy & Logistics Shortcut Button ─── */}
-            <div style={{ marginBottom: '16px' }}>
-              <button
-                onClick={() => navigate('/courier-queue')}
-                style={{
-                  width: '100%', padding: '16px', borderRadius: '16px', border: 'none',
-                  background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)', color: 'white',
-                  fontWeight: 800, cursor: 'pointer', boxShadow: '0 10px 15px -3px rgba(139, 92, 246, 0.2)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px',
-                  transition: 'transform 0.2s, box-shadow 0.2s',
-                  fontSize: '0.95rem'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 12px 20px -3px rgba(139, 92, 246, 0.3)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(139, 92, 246, 0.2)';
-                }}
-              >
-                <div style={{ background: 'rgba(255,255,255,0.2)', padding: '8px', borderRadius: '12px' }}>
-                  <Package size={20} />
-                </div>
-                <span>Pharmacy & Logistics</span>
-              </button>
-            </div>
 
 
 
@@ -970,6 +932,104 @@ export default function MedicalCaseDetailPage() {
                 </div>
               </>
               , document.body)}
+
+            {/* ─── Billing Summary (Now at very bottom for mobile) ─── */}
+            <div className="mc-billing-footer" style={{ marginTop: '32px' }}>
+              <div style={{
+                padding: '24px',
+                background: '#fff',
+                border: '1px solid var(--border-main)',
+                borderRadius: '16px',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '20px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '1.1rem', fontWeight: 800, color: '#1e293b' }}>
+                    <div style={{ padding: '8px', background: '#eff6ff', borderRadius: '10px', color: '#3b82f6' }}>
+                      <CreditCard size={20} />
+                    </div>
+                    Billing Overview
+                  </div>
+                  {displayDate && (
+                    <div style={{ background: '#f8fafc', padding: '6px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.8rem', fontWeight: 700, color: '#64748b' }}>
+                      {displayDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', border: '1px solid #f1f5f9', borderRadius: '12px', overflow: 'hidden' }}>
+                  {[
+                    { label: 'Regular Charge', value: billingValues.regular, color: '#1e293b' },
+                    { label: 'Additional Charge', value: billingValues.additional, color: '#64748b' },
+                    { label: 'Total Bill Amount', value: billingValues.total, color: '#2563eb', bold: true },
+                    { label: 'Amount Received', value: billingValues.received, color: '#059669' },
+                    { label: 'Pending Balance', value: billingValues.balance, color: '#dc2626', bold: true },
+                  ].map((row, idx) => (
+                    <div key={idx} style={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: '1fr 140px 40px', 
+                      padding: '10px 16px', 
+                      borderBottom: idx === 4 ? 'none' : '1px solid #f1f5f9',
+                      alignItems: 'center',
+                      background: idx % 2 === 0 ? 'transparent' : '#f8fafc'
+                    }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569' }}>{row.label}</span>
+                      <span style={{ fontSize: '0.95rem', fontWeight: row.bold ? 800 : 700, color: row.color, textAlign: 'right', paddingRight: '20px' }}>₹{row.value}</span>
+                      <button 
+                        onClick={() => setShowBillingModal(true)}
+                        style={{ 
+                          width: '28px',
+                          height: '28px',
+                          padding: '0', 
+                          background: '#fff', 
+                          border: '1px solid #e2e8f0', 
+                          borderRadius: '6px', 
+                          cursor: 'pointer', 
+                          color: '#64748b',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = '#f1f5f9';
+                          e.currentTarget.style.color = '#3b82f6';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = '#fff';
+                          e.currentTarget.style.color = '#64748b';
+                        }}
+                      >
+                        <Edit size={12} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+                  <button
+                    onClick={() => setShowReceiptModal(true)}
+                    style={{ 
+                      padding: '10px 24px', 
+                      background: '#3b82f6', 
+                      color: 'white', 
+                      border: 'none', 
+                      borderRadius: '10px', 
+                      fontWeight: 700, 
+                      cursor: 'pointer', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '8px',
+                      boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.2)'
+                    }}
+                  >
+                    <Share2 size={16} /> Share Payment Receipt
+                  </button>
+                </div>
+              </div>
+            </div>
 
             <PaymentReceiptModal
               isOpen={showReceiptModal}
@@ -2057,7 +2117,7 @@ const LAB_CONFIG: Record<string, any[]> = {
   ]
 };
 
-function LabsView({ investigations, regid, visitId, onAppendNote }: { investigations: any[]; regid: number; visitId: number; onAppendNote?: (text: string) => void }) {
+function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered }: { investigations: any[]; regid: number; visitId: number; onAppendNote?: (text: string) => void; isDateFiltered?: boolean }) {
   const [activeType, setActiveType] = useState('CBC');
   const [labData, setLabData] = useState<any>({});
   const [saved, setSaved] = useState(false);
@@ -2175,7 +2235,7 @@ function LabsView({ investigations, regid, visitId, onAppendNote }: { investigat
                 {groupedInvs.map((group) => (
                   <React.Fragment key={group.date}>
                     {group.items.map((inv, idx) => {
-                      const isExpanded = expandedDates.has(group.date);
+                      const isExpanded = isDateFiltered || expandedDates.has(group.date);
                       if (idx > 0 && !isExpanded) return null;
 
                       const dateVal = inv.investDate || 0;
@@ -2194,7 +2254,7 @@ function LabsView({ investigations, regid, visitId, onAppendNote }: { investigat
                               dateVal={dateVal}
                               isFirst={idx === 0}
                               isExpanded={isExpanded}
-                              itemsCount={group.items.length}
+                              itemsCount={isDateFiltered ? 1 : group.items.length}
                               onToggle={() => toggleDate(group.date)}
                             />
                           </td>
@@ -2414,7 +2474,7 @@ function CommunicationView({ regid, phone, name, onAppendNote }: { regid: number
   );
 }
 
-function MediaView({ regid, visitId, images }: { regid: number; visitId: number; images: any[] }) {
+function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; visitId: number; images: any[]; isDateFiltered?: boolean }) {
   const { updateImage, deleteImage } = useManageClinicalRecords();
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
 
@@ -2599,7 +2659,7 @@ function MediaView({ regid, visitId, images }: { regid: number; visitId: number;
               {groupedImages.map((group) => (
                 <React.Fragment key={group.date}>
                   {group.items.map((img: any, idx: number) => {
-                    const isExpanded = expandedDates.has(group.date);
+                    const isExpanded = isDateFiltered || expandedDates.has(group.date);
                     if (idx > 0 && !isExpanded) return null;
 
                     const dateVal = img.createdAt || img.created_at || img.recordedAt || img.recorded_at || 0;
@@ -2627,7 +2687,7 @@ function MediaView({ regid, visitId, images }: { regid: number; visitId: number;
                             dateVal={dateVal}
                             isFirst={idx === 0}
                             isExpanded={isExpanded}
-                            itemsCount={group.items.length}
+                            itemsCount={isDateFiltered ? 1 : group.items.length}
                             onToggle={() => toggleDate(group.date)}
                           />
                         </td>
@@ -2675,7 +2735,8 @@ function DiagnosisView({
   soapRecords,
   onAppendNote,
   onEditRecord,
-  onAddRecord
+  onAddRecord,
+  isDateFiltered
 }: {
   regid: number;
   visitId: number;
@@ -2684,6 +2745,7 @@ function DiagnosisView({
   onAppendNote?: (text: string) => void;
   onEditRecord?: (record: any) => void;
   onAddRecord?: () => void;
+  isDateFiltered?: boolean;
 }) {
   const { deleteRecord } = useManageClinicalRecords();
   const [currentPage, setCurrentPage] = useState(1);
@@ -2765,7 +2827,7 @@ function DiagnosisView({
                 {groupedSoap.map((group) => (
                   <React.Fragment key={group.date}>
                     {group.items.map((record, idx) => {
-                      const isExpanded = expandedDates.has(group.date);
+                      const isExpanded = isDateFiltered || expandedDates.has(group.date);
                       if (idx > 0 && !isExpanded) return null;
 
                       const dateVal = record.createdAt || record.created_at || record.dateval || record.visitDate || 0;
@@ -2784,7 +2846,7 @@ function DiagnosisView({
                               dateVal={dateVal}
                               isFirst={idx === 0}
                               isExpanded={isExpanded}
-                              itemsCount={group.items.length}
+                              itemsCount={isDateFiltered ? 1 : group.items.length}
                               onToggle={() => toggleDate(group.date)}
                             />
                           </td>
