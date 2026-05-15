@@ -8,10 +8,12 @@ import { ScrollToTop } from '../components/scroll-to-top';
 import { useMobile } from '../hooks/use-mobile';
 import { useCallback, useEffect } from 'react';
 import { useAuthStore } from '../stores/auth-store';
+import { AppointmentFormDrawer } from '@/features/appointments/components/appointment-form-drawer';
 
 export function AppLayout() {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [appointmentDrawerOpen, setAppointmentDrawerOpen] = useState(false);
   const isMobile = useMobile();
   const location = useLocation();
   const navigate = useNavigate();
@@ -61,7 +63,10 @@ export function AppLayout() {
       />
 
       <main className="app-main">
-        <DashboardHeader onOpenPalette={() => setPaletteOpen(true)} />
+        <DashboardHeader 
+          onOpenPalette={() => setPaletteOpen(true)} 
+          onNewAppointment={() => setAppointmentDrawerOpen(true)}
+        />
         <div className="page-content-area">
           <div className="page-content-row">
             {/* {location.pathname !== '/' && location.pathname !== '/login' && (
@@ -83,6 +88,15 @@ export function AppLayout() {
       </main>
 
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+      
+      <AppointmentFormDrawer 
+        isOpen={appointmentDrawerOpen} 
+        onClose={() => setAppointmentDrawerOpen(false)}
+        onSuccess={() => {
+          // If we are on the appointments page, we might want to refresh the list
+          // But since it's a global drawer, the child components should handle their own refresh via react-query if applicable
+        }}
+      />
     </div>
   );
 }

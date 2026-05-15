@@ -8,6 +8,7 @@ import { NotificationBell } from '@/components/shared/notification-bell';
 
 interface DashboardHeaderProps {
   onOpenPalette: () => void;
+  onNewAppointment: () => void;
 }
 
 // ─── Route → Title Mapping ────────────────────────────────────────────────────
@@ -50,7 +51,7 @@ function useFormattedDate(): string {
 }
 
 // ─── Component ─────────────────────────────────────────────────────────────────
-export function DashboardHeader({ onOpenPalette }: DashboardHeaderProps) {
+export function DashboardHeader({ onOpenPalette, onNewAppointment }: DashboardHeaderProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuthStore();
@@ -139,7 +140,7 @@ export function DashboardHeader({ onOpenPalette }: DashboardHeaderProps) {
           ) : (
             <button
               className="dh-cta-btn"
-              onClick={() => navigate('/appointments')}
+              onClick={onNewAppointment}
               id="dh-new-appointment-btn"
             >
               <Plus size={14} strokeWidth={2.5} />
