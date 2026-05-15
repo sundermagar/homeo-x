@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { PlusCircle, X, RefreshCw, Trash2, Edit2, Search, Receipt } from 'lucide-react';
-import { useAdditionalCharges, useCreateAdditionalCharge, useUpdateAdditionalCharge, useDeleteAdditionalCharge } from '../hooks/use-accounts';
+import { useAdditionalCharges, useCreateAdditionalCharge, useUpdateAdditionalCharge, useDeleteAdditionalCharge, useCharges } from '../hooks/use-accounts';
 import { usePatient } from '../../patients/hooks/use-patients';
-import type { AdditionalChargeWithPatient } from '@mmc/types';
+import type { AdditionalChargeWithPatient, Charge } from '@mmc/types';
 import type { CreateAdditionalChargeInput } from '@mmc/validation';
 import { Pagination } from '@/shared/components/Pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
@@ -30,6 +30,11 @@ export default function AdditionalChargesPage() {
 
   const query = { page, limit: 10, regid: regidFilter ? parseInt(regidFilter, 10) : undefined };
   const { data, isLoading } = useAdditionalCharges(query);
+  
+  // Fetch Predefined Charges Catalog
+  const { data: chargesCatalog } = useCharges({ limit: 100 });
+  const predefinedCharges: Charge[] = chargesCatalog?.data ?? [];
+  
   const createCharge = useCreateAdditionalCharge();
   const updateCharge = useUpdateAdditionalCharge();
   const deleteCharge = useDeleteAdditionalCharge();
@@ -38,7 +43,7 @@ export default function AdditionalChargesPage() {
   const total = data?.total ?? 0;
   const filtered = charges.filter(c =>
     !search || (c.additionalName ?? '').toLowerCase().includes(search.toLowerCase()) ||
-    c.patientName.toLowerCase().includes(search.toLowerCase())
+    (c.patientName && c.patientName.toLowerCase().includes(search.toLowerCase()))
   );
 
   const handleOpenCreate = () => {
@@ -237,16 +242,26 @@ export default function AdditionalChargesPage() {
             <select 
               className="plat-form-input" 
               value={form.additionalName} 
-              onChange={e => setForm(f => ({ ...f, additionalName: e.target.value }))} 
+              onChange={e => {
+                const selectedName = e.target.value;
+                const charge = predefinedCharges.find(c => c.charges === selectedName);
+                
+                setForm(f => ({ 
+                  ...f, 
+                  additionalName: selectedName,
+                  additionalPrice: charge ? charge.amount : f.additionalPrice,
+                  additionalQuantity: charge?.type === 'Product' ? 1 : 0
+                }));
+              }} 
               required
               style={{ height: 44, borderRadius: 10 }}
             >
               <option value="">Select Charge Type...</option>
-              <option value="Courier Charges">Courier Charges</option>
-              <option value="Consultation Fees">Consultation Fees</option>
-              <option value="Medicine Charges">Medicine Charges</option>
-              <option value="Registration Fees">Registration Fees</option>
-              <option value="Miscellaneous">Miscellaneous</option>
+              {predefinedCharges.map(charge => (
+                <option key={charge.id} value={charge.charges}>
+                  {charge.charges}
+                </option>
+              ))}
             </select>
           </div>
           
@@ -262,20 +277,22 @@ export default function AdditionalChargesPage() {
                 style={{ fontWeight: 800, fontFamily: 'var(--pp-font-mono)' }}
               />
             </div>
-            <div className="plat-form-group">
-              <label className="plat-form-label">Quantity</label>
-              <input 
-                className="plat-form-input" 
-                type="number" 
-                min={1} 
-                value={form.additionalQuantity} 
-                onChange={e => setForm(f => ({ ...f, additionalQuantity: Number(e.target.value) }))} 
-                style={{ fontFamily: 'var(--pp-font-mono)' }}
-              />
-            </div>
+            {predefinedCharges.find(c => c.charges === form.additionalName)?.type === 'Product' && (
+              <div className="plat-form-group fade-in">
+                <label className="plat-form-label">Quantity</label>
+                <input 
+                  className="plat-form-input" 
+                  type="number" 
+                  min={1} 
+                  value={form.additionalQuantity} 
+                  onChange={e => setForm(f => ({ ...f, additionalQuantity: Number(e.target.value) }))} 
+                  style={{ fontFamily: 'var(--pp-font-mono)' }}
+                />
+              </div>
+            )}
           </div>
           
-          <div className="plat-form-group">
+          <div className="plat-form-group mt-3">
             <label className="plat-form-label">Received Amount (₹)</label>
             <input 
               className="plat-form-input" 

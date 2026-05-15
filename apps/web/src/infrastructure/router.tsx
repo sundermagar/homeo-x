@@ -88,6 +88,7 @@ const StaffManagementPage = lazy(() => import('@/features/settings/pages/StaffMa
 const StocksPage = lazy(() => import('@/features/settings/pages/StocksPage'));
 const RemedyTreePage = lazy(() => import('@/features/settings/pages/RemedyTreePage'));
 const VaccinesPage = lazy(() => import('@/features/settings/pages/VaccinesPage'));
+const ChargesPage = lazy(() => import('@/features/settings/pages/ChargesPage').then(m => ({ default: m.ChargesPage })));
 
 // Communications
 const SmsTemplatesPage = lazy(() => import('@/features/communications/pages/sms-templates-page'));
@@ -187,6 +188,7 @@ export function AppRouter() {
             <Route path="/billing/collection" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist']}><ViewCollectionPage /></RoleGuard>} />
             <Route path="/billing/balance" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist']}><ViewBalancePage /></RoleGuard>} />
             <Route path="/billing/additional-charges" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Receptionist']}><AdditionalChargesPage /></RoleGuard>} />
+            <Route path="/billing/predefined-charges" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><ChargesPage /></RoleGuard>} />
             <Route path="/billing/day-charges" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Receptionist']}><DayChargesPage /></RoleGuard>} />
             <Route path="/billing/deposits" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Receptionist']}><DepositsPage /></RoleGuard>} />
             <Route path="/billing/expenses" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Receptionist']}><ExpensesPage /></RoleGuard>} />
