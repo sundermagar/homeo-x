@@ -9,6 +9,7 @@ import {
 } from '../../billing/hooks/use-billing';
 import { useUpdatePatient } from '../../patients/hooks/use-patients';
 import { usePatientBills } from '../../billing/hooks/use-billing';
+import { useCreateAdditionalCharge } from '../../billing/hooks/use-accounts';
 
 interface BillingUpdateModalProps {
   regid: number;
@@ -28,7 +29,7 @@ export function BillingUpdateModal({ regid, patientName, onClose, currentConsult
 
   // Mutations
   const updatePatient = useUpdatePatient();
-  const createCustomBill = useCreateCustomBill();
+  const createAdditionalCharge = useCreateAdditionalCharge();
   const recordPayment = useRecordPayment();
   const { data: bills, refetch: refetchBills } = usePatientBills(regid);
 
@@ -48,14 +49,13 @@ export function BillingUpdateModal({ regid, patientName, onClose, currentConsult
   const handleAddCustom = async () => {
     if (!amount || isNaN(Number(amount)) || !customTitle) return;
     try {
-      await createCustomBill.mutateAsync({
+      await createAdditionalCharge.mutateAsync({
         regid,
-        charges: Number(amount),
-        received: 0,
-        paymentMode: 'Cash',
-        customTitle,
-        notes,
-        billDate: new Date().toISOString().split('T')[0]
+        additionalName: customTitle,
+        additionalPrice: Number(amount),
+        receivedPrice: 0,
+        additionalQuantity: 1,
+        dateval: new Date().toISOString().split('T')[0]
       });
       refetchBills();
       onClose();
@@ -92,7 +92,7 @@ export function BillingUpdateModal({ regid, patientName, onClose, currentConsult
     }
   };
 
-  const isLoading = updatePatient.isPending || createCustomBill.isPending || recordPayment.isPending;
+  const isLoading = updatePatient.isPending || createAdditionalCharge.isPending || recordPayment.isPending;
 
   return (
     <>

@@ -35,6 +35,7 @@ import { createAccountsRouter } from './routes/accounts.router.js';
 import { createDayChargesRouter } from './routes/day-charges.router.js';
 import { createDepositsRouter } from './routes/deposits.router.js';
 import { createExpensesRouter } from './routes/expenses.router.js';
+import { createChargesRouter } from './routes/charges.router.js';
 import { createOrganizationRouter } from './routes/organization.router.js';
 import { createAccountRouter } from './routes/account.router.js';
 import { createClinicAdminsRouter } from './routes/clinicadmins.router.js';
@@ -141,6 +142,7 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   app.use('/api/day-charges', createDayChargesRouter());
   app.use('/api/deposits', createDepositsRouter());
   app.use('/api/expenses', createExpensesRouter());
+  app.use('/api/charges', createChargesRouter());
 
   // Our modules — Platform (JWT required)
   app.use('/api/organizations', authMiddleware, createOrganizationRouter());

@@ -3,7 +3,7 @@ export * from './patients.js';
 export { medicalCases, vitals, homeoDetails, caseNotes, caseExamination, caseImages, investigations, growthReferences, vaccineMaster, caseVaccines, caseReminders, soapNotes as legacySoapNotes, prescriptions as legacyPrescriptions } from './medical-cases.js';
 export * from './appointments.js';
 export * from './users.js';
-export * from './billing.js';
+export { bills, payments, charges, additionalCharges } from './billing.js';
 export * from './consultation.js';
 export * from './consultation-extended.js';
 export * from './rbac.js';
