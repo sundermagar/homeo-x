@@ -206,11 +206,11 @@ export default function MessageTemplatesPage() {
                   <label className="plat-form-label">Communication Channel</label>
                   <div className="flex gap-4 p-2 border border-main rounded-lg bg-soft">
                     <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="radio" className="w-4 h-4 accent-primary" name="tpl-type" checked={form.type === 'SMS'} onChange={() => setForm(f => ({ ...f, type: 'SMS' }))} />
+                      <input type="radio" name="tpl-type" checked={form.type === 'SMS'} onChange={() => setForm(f => ({ ...f, type: 'SMS' }))} />
                       <span className="text-sm">SMS</span>
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="radio" className="w-4 h-4 accent-primary" name="tpl-type" checked={form.type === 'WhatsApp'} onChange={() => setForm(f => ({ ...f, type: 'WhatsApp' }))} />
+                      <input type="radio" name="tpl-type" checked={form.type === 'WhatsApp'} onChange={() => setForm(f => ({ ...f, type: 'WhatsApp' }))} />
                       <span className="text-sm font-bold color-primary">WhatsApp</span>
                     </label>
                   </div>
@@ -230,16 +230,14 @@ export default function MessageTemplatesPage() {
                   />
                 </div>
 
-                <div className="flex items-center gap-2 py-2">
+                <label className="plat-checkbox-group">
                   <input
                     type="checkbox"
-                    className="w-4 h-4 accent-primary"
-                    id="isActiveTpl"
                     checked={form.isActive}
                     onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))}
                   />
-                  <label htmlFor="isActiveTpl" className="plat-form-label mb-0 cursor-pointer">Template is Active</label>
-                </div>
+                  <span className="plat-checkbox-label">Template is Active</span>
+                </label>
               </div>
             </div>
           </div>

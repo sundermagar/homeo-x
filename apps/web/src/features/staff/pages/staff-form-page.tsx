@@ -7,7 +7,6 @@ import { createStaffSchema, updateStaffSchema } from '@mmc/validation';
 import { User, Mail, Phone, MapPin, Briefcase, IndianRupee, ShieldCheck } from 'lucide-react';
 import { NumericInput } from '@/shared/components/NumericInput';
 import { Drawer } from '@/shared/components/drawer';
-
 const CATEGORY_META: Record<StaffCategory, string> = {
   doctor: 'Doctor',
   employee: 'Employee',
@@ -15,7 +14,6 @@ const CATEGORY_META: Record<StaffCategory, string> = {
   clinicadmin: 'Clinic Admin',
   account: 'Account Manager',
 };
-
 const mobileStyles = `
   @media (max-width: 1024px) {
     .plat-form-grid-multi { grid-template-columns: 1fr !important; gap: 16px !important; }
@@ -26,22 +24,17 @@ const mobileStyles = `
     .plat-modal-footer .plat-btn { width: 100% !important; height: 46px !important; border-radius: 12px !important; }
   }
 `;
-
 export default function StaffFormPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const initialCategory = (searchParams.get('category') as StaffCategory) || 'employee';
-
   const [category, setCategory] = useState<StaffCategory>(initialCategory);
-  
   const isEditing = Boolean(id);
   const staffId = id ? parseInt(id, 10) : 0;
-
   const { data: staffData, isLoading: isLoadingStaff } = useStaffMember(category, staffId);
   const createMutation = useCreateStaff();
   const updateMutation = useUpdateStaff();
-
   const [formData, setFormData] = useState<any>({
     category: initialCategory,
     name: '',
@@ -71,10 +64,8 @@ export default function StaffFormPage() {
     consultationFee: '',
     permanentAddress: '',
   });
-
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-
   useEffect(() => {
     if (staffData && isEditing) {
       setFormData({
@@ -107,7 +98,6 @@ export default function StaffFormPage() {
       setCategory(staffData.category);
     }
   }, [staffData, isEditing]);
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
     let val: any = value;
@@ -115,43 +105,35 @@ export default function StaffFormPage() {
       val = value === '' ? '' : Number(value);
     }
     setFormData((prev: any) => ({ ...prev, [name]: val }));
-    
     // Clear specific field error when touched
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
   };
-
   const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newCategory = e.target.value as StaffCategory;
     setCategory(newCategory);
     setFormData((prev: any) => ({ ...prev, category: newCategory }));
   };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
     setIsSubmitting(true);
-
     try {
       if (isEditing) {
         const payload = updateStaffSchema.parse(formData);
-        
         // Remove empty password to avoid triggering update
         if (!payload.password) {
           delete payload.password;
         }
-
         if (!staffId || isNaN(staffId)) {
           throw new Error('Could not identify the staff member to update.');
         }
-
         await updateMutation.mutateAsync({ ...payload, category, id: staffId });
       } else {
         const payload = createStaffSchema.parse(formData);
         await createMutation.mutateAsync(payload as CreateStaffInput);
       }
-      
       navigate('/staff');
     } catch (err: any) {
       if (err.errors) { // Zod error
@@ -169,13 +151,10 @@ export default function StaffFormPage() {
       setIsSubmitting(false);
     }
   };
-
   if (isEditing && isLoadingStaff) {
     return <div className="plat-empty" style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>Loading staff details...</div>;
   }
-
   const categoryName = CATEGORY_META[category] || 'Staff';
-
   return (
     <Drawer
       isOpen={true}
@@ -186,7 +165,6 @@ export default function StaffFormPage() {
       <style>{mobileStyles}</style>
       <div className="plat-modal-content" style={{ border: 'none', boxShadow: 'none', margin: 0, padding: 0 }}>
         <form onSubmit={handleSubmit} className="plat-modal-body">
-          
           {/* Category Selection (Only when creating) */}
           {!isEditing && (
             <div className="plat-form-section">
@@ -202,13 +180,11 @@ export default function StaffFormPage() {
               </div>
             </div>
           )}
-
           {/* Identity & Basic Details */}
           <div className="plat-form-section">
             <h4 className="plat-form-section-title">
               <User size={16} /> Identity Information
             </h4>
-            
             {category === 'doctor' ? (
               <div className="plat-form-grid-multi" style={{ gridTemplateColumns: '80px 1fr 1fr' }}>
                 <div className="plat-form-group">
@@ -238,7 +214,6 @@ export default function StaffFormPage() {
                 {errors['name'] && <span className="plat-form-error">{errors['name']}</span>}
               </div>
             )}
-
             <div className="plat-form-grid-multi">
               <div className="plat-form-group">
                 <label className="plat-form-label">Gender</label>
@@ -254,13 +229,11 @@ export default function StaffFormPage() {
               </div>
             </div>
           </div>
-
           {/* Contact Credentials */}
           <div className="plat-form-section">
             <h4 className="plat-form-section-title">
               <Phone size={16} /> Contact Gateway
             </h4>
-            
             <div className="plat-form-grid-multi">
               <div className="plat-form-group">
                 <label className="plat-form-label">Primary Mobile *</label>
@@ -272,7 +245,6 @@ export default function StaffFormPage() {
                 <NumericInput className="plat-form-input" name="mobile2" value={formData.mobile2} onChange={handleChange} placeholder="+91" />
               </div>
             </div>
-
             <div className="plat-form-grid-multi">
               <div className="plat-form-group">
                 <label className="plat-form-label">Login Email</label>
@@ -284,32 +256,27 @@ export default function StaffFormPage() {
                 <input type="password" className="plat-form-input" name="password" value={formData.password} onChange={handleChange} placeholder={isEditing ? '••••••••' : 'Setup password'} />
               </div>
             </div>
-            
             {!isEditing && (
               <div className="plat-form-group" style={{ marginTop: '16px' }}>
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label className="plat-checkbox-group">
                   <input
                     type="checkbox"
                     name="sendWelcomeEmail"
                     checked={formData.sendWelcomeEmail || false}
                     onChange={(e) => setFormData((prev: any) => ({ ...prev, sendWelcomeEmail: e.target.checked }))}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    style={{ width: '16px', height: '16px' }}
                   />
-                  <span className="text-sm font-medium text-gray-700">
+                  <span className="plat-checkbox-label">
                     Send welcome email with credentials
                   </span>
                 </label>
               </div>
             )}
           </div>
-
           {/* Professional Details */}
           <div className="plat-form-section">
             <h4 className="plat-form-section-title">
               <ShieldCheck size={16} /> Professional Registry
             </h4>
-            
             <div className="plat-form-grid-multi">
               <div className="plat-form-group">
                 <label className="plat-form-label">Designation</label>
@@ -323,7 +290,6 @@ export default function StaffFormPage() {
                 </select>
               </div>
             </div>
-
             {category === 'doctor' && (
               <div className="plat-form-grid-multi">
                 <div className="plat-form-group">
@@ -340,7 +306,6 @@ export default function StaffFormPage() {
                 </div>
               </div>
             )}
-
             <div className="plat-form-grid-multi">
               <div className="plat-form-group">
                 <label className="plat-form-label">Monthly Retainer (₹)</label>
@@ -354,13 +319,11 @@ export default function StaffFormPage() {
               )}
             </div>
           </div>
-
           {/* Address */}
           <div className="plat-form-section">
             <h4 className="plat-form-section-title">
               <MapPin size={16} /> Residency & Station
             </h4>
-            
             <div className="plat-form-group">
               <label className="plat-form-label">City Station</label>
               <input className="plat-form-input" name="city" value={formData.city} onChange={handleChange} placeholder="City name" />
@@ -370,7 +333,6 @@ export default function StaffFormPage() {
               <textarea className="plat-form-input" name="address" value={formData.address} onChange={handleChange} placeholder="Full address" rows={3} style={{ height: 'auto', padding: '12px' }}></textarea>
             </div>
           </div>
-
           <div className="plat-modal-footer">
             <button type="button" className="plat-btn plat-btn-ghost" onClick={() => navigate('/staff')} disabled={isSubmitting}>
               Discard

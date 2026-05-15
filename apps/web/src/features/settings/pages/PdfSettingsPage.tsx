@@ -878,12 +878,12 @@ export default function PdfSettingsPage() {
               <div className="flex items-center gap-2 py-4 mt-2">
                 <input
                   type="checkbox"
-                  className="w-4 h-4 accent-primary"
-                  id="isDefaultPdf"
+                  
+                  
                   checked={form.isDefault}
                   onChange={e => setForm(f => ({ ...f, isDefault: e.target.checked }))}
                 />
-                <label htmlFor="isDefaultPdf" className="plat-form-label mb-0 cursor-pointer font-bold">Set as default configuration</label>
+                <span className="plat-checkbox-label">Set as default configuration</span>
               </div>
             </div>
           </div>

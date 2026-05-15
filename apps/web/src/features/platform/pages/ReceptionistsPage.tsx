@@ -8,14 +8,10 @@ import type { CreateStaffInput, UpdateStaffInput } from '@mmc/validation';
 import { createStaffSchema, updateStaffSchema } from '@mmc/validation';
 import { apiClient } from '@/infrastructure/api-client';
 import '../styles/platform.css';
-
 import { Pagination } from '@/shared/components/Pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { EmptyState } from '@/components/shared/empty-state';
 import { Drawer } from '@/shared/components/drawer';
-
-
-
 function FileInputRow({
   label,
   field,
@@ -62,11 +58,9 @@ function FileInputRow({
     </div>
   );
 }
-
 const CATEGORY = 'receptionist' as const;
 const META = { label: 'Receptionists', description: 'Manage front-desk staff, shift rosters, and patient intake coordination.' };
 const PAGE_SIZE = 10;
-
 function getDefaultStaffForm(): CreateStaffInput {
   return {
     category: CATEGORY,
@@ -110,7 +104,6 @@ function getDefaultStaffForm(): CreateStaffInput {
     sendWelcomeEmail: false,
   };
 }
-
 function staffMemberToForm(staff: StaffMember): CreateStaffInput {
   const gender = (staff.gender === 'Female' || staff.gender === 'Other') ? staff.gender : 'Male';
   return {
@@ -125,7 +118,6 @@ function staffMemberToForm(staff: StaffMember): CreateStaffInput {
     password: '', // Keep blank on edit
   } as CreateStaffInput;
 }
-
 function StaffModal({
   mode,
   staff,
@@ -141,11 +133,9 @@ function StaffModal({
 }) {
   const [form, setForm] = useState<CreateStaffInput | UpdateStaffInput>(getDefaultStaffForm());
   const [errors, setErrors] = useState<Record<string, string | undefined>>({});
-
   const createMutation = useCreateStaff();
   const updateMutation = useUpdateStaff();
   const { user } = useAuthStore();
-
   useEffect(() => {
     if (mode === 'edit' && staff) {
       const editForm = staffMemberToForm(staff);
@@ -161,20 +151,16 @@ function StaffModal({
       setForm(defaultForm);
     }
   }, [mode, staff, user]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
-
     // Debugging ke liye full data check karein
     console.log("[StaffModal] Raw Form Data:", form);
-
     // 1. Name split logic: 'name' field se firstname aur surname nikalna
     const nameParts = (form.name || '').trim().split(/\s+/);
     const fName = nameParts[0] || '';
     // Agar user ne surname nahi dala, toh hum default 'Staff' ya 'Member' bhej sakte hain
     const sName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'Member';
-
     // 2. Payload prepare karein (zod schema ke exact requirements ke hisaab se)
     const payload = {
       ...form,
@@ -185,23 +171,18 @@ function StaffModal({
       qualification: form.qualification || 'Higher Secondary',
       joiningdate: form.joiningdate ?? (new Date().toISOString().split('T')[0] || ''),
       registrationId: form.registrationId ?? 'N/A',
-
       // Numeric casting
       salaryCur: Number(form.salaryCur) || 0,
       dept: Number(form.dept) || 4,
       consultationFee: 0,
     };
-
     console.log("[StaffModal] Processed Payload for Validation:", payload);
-
     const schema = mode === 'create' ? createStaffSchema : updateStaffSchema;
     const result = schema.safeParse(payload);
-
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
       // Sabse important: Console mein dekhein kaunsa specific field fail hua
       console.error("[StaffModal] Zod Validation Errors:", result.error.flatten().fieldErrors);
-
       result.error.errors.forEach((err) => {
         const path = err.path[0] as string;
         fieldErrors[path] = err.message;
@@ -209,7 +190,6 @@ function StaffModal({
       setErrors(fieldErrors);
       return;
     }
-
     try {
       if (mode === 'create') {
         await createMutation.mutateAsync(payload as CreateStaffInput);
@@ -227,26 +207,21 @@ function StaffModal({
       setErrors({ general: err.message || 'Server error' });
     }
   };
-
   const updateForm = (field: string, value: any) => {
     let castValue = value;
     if (field === 'dept' || field === 'salaryCur') castValue = value === '' ? 0 : Number(value);
     setForm((prev) => ({ ...prev, [field]: castValue }));
   };
-
   const handleFileUpload = async (field: string, event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
     try {
       setErrors((prev) => ({ ...prev, [field]: undefined }));
       const formData = new FormData();
       formData.append('file', file);
-
       const res = await apiClient.post('/staff/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-
       const resData = (res as any)._original ?? res.data;
       if (resData?.success && resData?.path) {
         updateForm(field, resData.path);
@@ -257,10 +232,8 @@ function StaffModal({
       setErrors((prev) => ({ ...prev, [field]: err.message || 'Upload failed' }));
     }
   };
-
   const isPending = createMutation.isPending || updateMutation.isPending;
   const isEdit = mode === 'edit';
-
   return (
     <Drawer
       isOpen={true}
@@ -271,7 +244,6 @@ function StaffModal({
       <div className="plat-modal-content" style={{ border: 'none', boxShadow: 'none', margin: 0, padding: 0 }}>
         <form onSubmit={handleSubmit} className="plat-modal-body">
           {errors['general'] && <div className="plat-error-banner mb-4">{errors['general']}</div>}
-
           {/* Section 1: Personal & Contact */}
           <div className="plat-form-section">
             <h4 className="plat-form-section-title">Personal & Contact</h4>
@@ -287,7 +259,6 @@ function StaffModal({
                 />
                 {errors['name'] && <span className="plat-form-error">{errors['name']}</span>}
               </div>
-
               <div className="plat-form-group">
                 <label className="plat-form-label">Email Address</label>
                 <input
@@ -299,7 +270,6 @@ function StaffModal({
                 />
                 {errors['email'] && <span className="plat-form-error">{errors['email']}</span>}
               </div>
-
               <div className="plat-form-group">
                 <label className="plat-form-label">Mobile Number *</label>
                 <NumericInput
@@ -311,7 +281,6 @@ function StaffModal({
                 />
                 {errors['mobile'] && <span className="plat-form-error">{errors['mobile']}</span>}
               </div>
-
               <div className="plat-form-group">
                 <label className="plat-form-label">Secondary Mobile</label>
                 <NumericInput
@@ -322,7 +291,6 @@ function StaffModal({
                   disabled={isLoading}
                 />
               </div>
-
               <div className="plat-form-group">
                 <label className="plat-form-label">Gender</label>
                 <select
@@ -336,7 +304,6 @@ function StaffModal({
                   <option value="Other">Other</option>
                 </select>
               </div>
-
               <div className="plat-form-group">
                 <label className="plat-form-label">Date of Birth</label>
                 <input
@@ -349,7 +316,6 @@ function StaffModal({
               </div>
             </div>
           </div>
-
           {/* Section 2: Professional & Location */}
           <div className="plat-form-section">
             <h4 className="plat-form-section-title">Professional & Location</h4>
@@ -364,7 +330,6 @@ function StaffModal({
                   disabled={isLoading}
                 />
               </div>
-
               <div className="plat-form-group">
                 <label className="plat-form-label">Department</label>
                 <select
@@ -379,7 +344,6 @@ function StaffModal({
                   <option value={4}>Homeopathy</option>
                 </select>
               </div>
-
               <div className="plat-form-group">
                 <label className="plat-form-label">Monthly Salary (₹)</label>
                 <NumericInput
@@ -389,7 +353,6 @@ function StaffModal({
                   disabled={isLoading}
                 />
               </div>
-
               <div className="plat-form-group">
                 <label className="plat-form-label">Station/City</label>
                 <input
@@ -400,7 +363,6 @@ function StaffModal({
                   disabled={isLoading}
                 />
               </div>
-
               <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
                 <label className="plat-form-label">Residential Address</label>
                 <textarea
@@ -411,7 +373,6 @@ function StaffModal({
                   rows={2}
                 />
               </div>
-
               <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
                 <label className="plat-form-label">About / Bio</label>
                 <textarea
@@ -422,7 +383,6 @@ function StaffModal({
                   rows={2}
                 />
               </div>
-
               <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
                 <label className="plat-form-label">Initial Password {isEdit && '(leave blank to keep current)'}</label>
                 <input
@@ -435,24 +395,20 @@ function StaffModal({
                 />
                 {errors['password'] && <span className="plat-form-error">{errors['password']}</span>}
               </div>
-
               {mode === 'create' && (
                 <div className="plat-form-group" style={{ gridColumn: 'span 2', marginTop: '8px' }}>
-                  <label className="flex items-center gap-2 cursor-pointer">
+                  <label className="plat-checkbox-group">
                     <input
                       type="checkbox"
                       checked={!!form.sendWelcomeEmail}
                       onChange={(e) => updateForm('sendWelcomeEmail', e.target.checked)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      style={{ width: '16px', height: '16px' }}
                     />
-                    <span className="text-sm font-medium text-gray-700">
+                    <span className="plat-checkbox-label">
                       Send welcome email with credentials
                     </span>
                   </label>
                 </div>
               )}
-
               {isEdit && (
                 <div className="plat-form-group">
                   <label className="plat-form-label">End Date</label>
@@ -467,7 +423,6 @@ function StaffModal({
               )}
             </div>
           </div>
-
           {/* Section 4: Statutory Documents */}
           <div className="plat-form-section">
             <h4 className="plat-form-section-title">Statutory Documents</h4>
@@ -483,7 +438,6 @@ function StaffModal({
                 />
               </div>
               <FileInputRow label="Aadhar Card" field="aadharCard" value={form.aadharCard} onChange={handleFileUpload} error={errors['aadharCard']} />
-
               <div className="plat-form-group">
                 <label className="plat-form-label">PAN Number</label>
                 <input
@@ -497,7 +451,6 @@ function StaffModal({
               <FileInputRow label="PAN Card" field="panCard" value={form.panCard} onChange={handleFileUpload} error={errors['panCard']} />
             </div>
           </div>
-
           <div className="plat-modal-footer">
             <button type="button" className="plat-btn plat-btn-ghost" onClick={onClose}>Discard Changes</button>
             <button type="submit" className="plat-btn plat-btn-primary" disabled={isPending || isLoading}>
@@ -509,7 +462,6 @@ function StaffModal({
     </Drawer>
   );
 }
-
 export default function ReceptionistsPage() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -519,7 +471,6 @@ export default function ReceptionistsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [itemsPerPage, setItemsPerPage] = useState(PAGE_SIZE);
-
   const { data, isLoading } = useStaffList(CATEGORY, {
     page,
     limit: itemsPerPage,
@@ -529,28 +480,23 @@ export default function ReceptionistsPage() {
   });
   const deleteMutation = useDeleteStaff();
   const { data: editingStaff, isLoading: isLoadingStaff } = useStaffMember(CATEGORY, editingId ?? 0);
-
   const staff = data?.data || [];
   const totalPages = Math.ceil((data?.total || 0) / PAGE_SIZE);
   const activeCount = data?.activeCount ?? 0;
-
   const handleEdit = (s: StaffSummary) => {
     setEditingId(s.id);
     setModalOpen(true);
   };
-
   const handleSearchChange = (val: string) => {
     setSearch(val);
     setPage(1);
     clearTimeout((window as any).__staffSearchTimer);
     (window as any).__staffSearchTimer = setTimeout(() => setDebouncedSearch(val), 300);
   };
-
   const handleDelete = async (id: number) => {
     if (!confirm('This will revoke all clinical access for this receptionist. Proceed?')) return;
     await deleteMutation.mutateAsync({ category: CATEGORY, id });
   };
-
   // return (
   return (
     <div className="plat-page">
@@ -569,7 +515,6 @@ export default function ReceptionistsPage() {
           </button>
         </div>
       </div>
-
       <div className="plat-stats-bar">
         <div className="plat-stat-card">
           <p className="plat-stat-label">Desk Force</p>
@@ -580,7 +525,6 @@ export default function ReceptionistsPage() {
           <p className="plat-stat-value plat-stat-value-success">{activeCount}</p>
         </div>
       </div>
-
       <div className="plat-filters">
         <div className="flex gap-4 flex-1">
           <div className="plat-search-wrap">
@@ -592,7 +536,6 @@ export default function ReceptionistsPage() {
               onChange={(e) => handleSearchChange(e.target.value)}
             />
           </div>
-
           <div className="flex items-center gap-2">
             <span className="text-[11px] font-bold color-muted uppercase tracking-wider">Sort:</span>
             <select
@@ -612,7 +555,6 @@ export default function ReceptionistsPage() {
             </select>
           </div>
         </div>
-
         <button
           className="plat-btn plat-btn-ghost plat-btn-sm"
           onClick={() => {
@@ -626,12 +568,11 @@ export default function ReceptionistsPage() {
           Reset
         </button>
       </div>
-
       <div className="plat-card">
         {isLoading ? (
           <TableSkeleton rows={itemsPerPage} columns={6} />
         ) : staff.length === 0 ? (
-          <EmptyState 
+          <EmptyState
             icon={ClipboardList}
             title="No Receptionists Registered"
             description="Front-desk operations start here. Add your first receptionist to begin coordinating patient intake."
@@ -708,8 +649,6 @@ export default function ReceptionistsPage() {
         </>
         )}
       </div>
-
-
       {modalOpen && <StaffModal mode={editingId ? 'edit' : 'create'} staff={editingStaff} isLoading={isLoadingStaff} onClose={() => { setModalOpen(false); setEditingId(null); }} onSuccess={() => setEditingId(null)} />}
     </div>
   );
