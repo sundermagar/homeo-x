@@ -149,7 +149,7 @@ export function AppRouter() {
             <Route path="/staff/:id/edit" element={<RoleGuard allowed={['SuperAdmin', 'Admin']}><StaffFormPage /></RoleGuard>} />
 
             {/* ─── Medical Cases ─── */}
-            <Route path="/medical-cases" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><MedicalCaseListPage /></RoleGuard>} />
+            {/* <Route path="/medical-cases" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><MedicalCaseListPage /></RoleGuard>} /> */}
             <Route path="/medical-cases/:regid" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist']}><MedicalCaseDetailPage /></RoleGuard>} />
             <Route path="/medical-cases/followups" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist']}><FollowupsPage /></RoleGuard>} />
             <Route path="/vitals-check" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><VitalsCheckPage /></RoleGuard>} />

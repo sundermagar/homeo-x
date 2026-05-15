@@ -82,10 +82,10 @@ export class PatientRepositoryPg implements PatientRepository {
       const s = `%${search}%`;
       conditions.push(
         or(
-          like(patients.firstName, s),
-          like(patients.surname, s),
-          like(patients.phone, s),
-          like(patients.mobile1, s),
+          sql`${patients.firstName} ILIKE ${s}`,
+          sql`${patients.surname} ILIKE ${s}`,
+          sql`${patients.phone} ILIKE ${s}`,
+          sql`${patients.mobile1} ILIKE ${s}`,
           sql`CAST(${patients.regid} AS TEXT) LIKE ${s}`,
         )!
       );
@@ -314,10 +314,10 @@ export class PatientRepositoryPg implements PatientRepository {
     const conditions = [
       sql`(${patients.deletedAt} IS NULL OR ${patients.deletedAt}::text = '')`,
       or(
-        like(patients.firstName, s),
-        like(patients.surname, s),
-        like(patients.phone, s),
-        like(patients.mobile1, s),
+        sql`${patients.firstName} ILIKE ${s}`,
+        sql`${patients.surname} ILIKE ${s}`,
+        sql`${patients.phone} ILIKE ${s}`,
+        sql`${patients.mobile1} ILIKE ${s}`,
         sql`CAST(${patients.regid} AS TEXT) LIKE ${s}`,
       )
     ];

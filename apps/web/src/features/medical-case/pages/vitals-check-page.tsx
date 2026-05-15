@@ -39,7 +39,7 @@ function ParameterCard({ label, current, ideal, unit, icon: Icon, color, analysi
         {ideal && (
           <div className={`param-diff-badge ${isDeficit ? 'deficit' : 'premium'}`}>
             {isDeficit ? <TrendingDown size={13} /> : <TrendingUp size={13} />}
-            {isDeficit ? 'Deficit' : 'Premium'} {Math.abs(parseFloat(diff!))} {unit}
+            Gap: {isDeficit ? '-' : '+'}{Math.abs(parseFloat(diff!))} {unit}
           </div>
         )}
       </div>
@@ -114,14 +114,29 @@ export default function VitalsCheckPage() {
   };
 
   const selectPatient = (p: any) => {
-    const gender = p.gender === 'Female' ? 'F' : 'M';
+    // Standardize gender to 'M' or 'F'
+    const gender = (p.gender === 'F' || p.gender === 'Female') ? 'F' : 'M';
+    
+    // Format DOB for <input type="date" /> (YYYY-MM-DD)
+    let dob = '';
+    if (p.dob) {
+      try {
+        const dateObj = new Date(p.dob);
+        if (!isNaN(dateObj.getTime())) {
+          dob = dateObj.toISOString().split('T')[0];
+        }
+      } catch (e) {
+        console.warn('Invalid DOB format', p.dob);
+      }
+    }
+
     setSelectedPatient(p);
     setForm({
       ...form,
       regid: p.regid,
       name: p.fullName || '',
       mobile: p.mobile1 || p.phone || '',
-      dob: p.dob || '',
+      dob: dob,
       gender
     });
     setSuggestions([]);
@@ -177,9 +192,9 @@ export default function VitalsCheckPage() {
         <div className="ghub-title-area">
           <h1 className="ghub-main-title">
             <Activity size={22} style={{ color: 'var(--primary)' }} />
-            Growth Analytics Engine
+            Growth Calculator
           </h1>
-          <p className="ghub-subtitle">Advanced percentile mapping for developmental tracking</p>
+          <p className="ghub-subtitle">WHO Standardized Percentile Mapping Engine (Supports up to 20 years)</p>
         </div>
       </div>
 
@@ -203,7 +218,7 @@ export default function VitalsCheckPage() {
               <form onSubmit={handleAnalyze} className="ghub-form-body">
                 {/* Patient Search */}
                 <div className="ghub-input-field">
-                  <label className="ghub-input-label">Search Patient (Name or ID)</label>
+                  <label className="ghub-input-label">Quick Search (Existing Patient)</label>
                   <div className="ghub-input-container">
                     <User className="ghub-input-icon-left" size={16} />
                     <input
@@ -211,7 +226,7 @@ export default function VitalsCheckPage() {
                       className="ghub-premium-input"
                       value={search}
                       onChange={(e) => handleSearch(e.target.value)}
-                      placeholder="Enter name, phone or registration ID..."
+                      placeholder="Search by Name, Phone or ID..."
                     />
                     {suggestions.length > 0 && (
                       <div className="ghub-dropdown">
@@ -228,14 +243,46 @@ export default function VitalsCheckPage() {
                   </div>
                 </div>
 
+                {/* ID + Name */}
+                <div className="ghub-grid-2 mt-6">
+                  <div className="ghub-input-field">
+                    <label className="ghub-input-label">Patient ID</label>
+                    <div className="ghub-input-container">
+                      <Zap className="ghub-input-icon-left" size={16} />
+                      <input
+                        type="text"
+                        className="ghub-premium-input ghub-readonly"
+                        value={form.regid ? `PT-${form.regid}` : ''}
+                        readOnly
+                        placeholder="Auto-filled"
+                      />
+                    </div>
+                  </div>
+                  <div className="ghub-input-field">
+                    <label className="ghub-input-label">Patient Name <span className="text-danger">*</span></label>
+                    <div className="ghub-input-container">
+                      <User className="ghub-input-icon-left" size={16} />
+                      <input
+                        type="text"
+                        required
+                        className="ghub-premium-input"
+                        value={form.name}
+                        onChange={(e) => setForm({ ...form, name: e.target.value })}
+                        placeholder="Full Name"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 {/* Contact + DOB */}
                 <div className="ghub-grid-2 mt-6">
                   <div className="ghub-input-field">
-                    <label className="ghub-input-label">Primary Contact</label>
+                    <label className="ghub-input-label">Primary Mobile <span className="text-danger">*</span></label>
                     <div className="ghub-input-container">
                       <Phone className="ghub-input-icon-left" size={16} />
                       <input
                         type="text"
+                        required
                         className="ghub-premium-input"
                         value={form.mobile}
                         onChange={(e) => setForm({ ...form, mobile: e.target.value })}
@@ -244,16 +291,15 @@ export default function VitalsCheckPage() {
                     </div>
                   </div>
                   <div className="ghub-input-field">
-                    <label className="ghub-input-label">Date of Birth</label>
+                    <label className="ghub-input-label">Date of Birth <span className="text-danger">*</span></label>
                     <div className="ghub-input-container">
+                      <Calendar className="ghub-input-icon-left" size={16} />
                       <input
-                        type="text"
-                        onFocus={(e) => (e.target.type = 'date')}
-                        onBlur={(e) => !e.target.value && (e.target.type = 'text')}
-                        className="ghub-premium-input ghub-no-icon"
+                        type="date"
+                        required
+                        className="ghub-premium-input"
                         value={form.dob}
                         onChange={(e) => setForm({ ...form, dob: e.target.value })}
-                        placeholder="dd / mm / yyyy"
                       />
                     </div>
                   </div>
@@ -291,8 +337,13 @@ export default function VitalsCheckPage() {
                     <input
                       type="number"
                       step="0.1"
+                      min="0"
                       value={form.height}
-                      onChange={e => setForm({ ...form, height: e.target.value })}
+                      onChange={e => {
+                        const val = e.target.value;
+                        if (val !== '' && parseFloat(val) < 0) return;
+                        setForm({ ...form, height: val });
+                      }}
                       placeholder="0.0"
                     />
                   </div>
@@ -305,31 +356,36 @@ export default function VitalsCheckPage() {
                     <input
                       type="number"
                       step="0.1"
+                      min="0"
                       value={form.weight}
-                      onChange={e => setForm({ ...form, weight: e.target.value })}
+                      onChange={e => {
+                        const val = e.target.value;
+                        if (val !== '' && parseFloat(val) < 0) return;
+                        setForm({ ...form, weight: val });
+                      }}
                       placeholder="0.0"
                     />
                   </div>
                 </div>
 
-                {/* CTA */}
-                <button
-                  type="submit"
-                  className="ghub-action-button"
-                  disabled={submitting}
-                >
-                  {submitting ? (
-                    <>
-                      <RotateCcw size={18} style={{ animation: 'spin 1s linear infinite' }} />
-                      <span>Generating...</span>
-                    </>
-                  ) : (
-                    <>
+                <div className="ghub-form-actions">
+                  <button type="submit" className="ghub-action-button primary" disabled={submitting}>
+                    {submitting ? (
+                      <RotateCcw className="animate-spin" size={18} />
+                    ) : (
                       <Activity size={18} />
-                      <span>Generate Diagnostic Analysis</span>
-                    </>
-                  )}
-                </button>
+                    )}
+                    <span>Calculate</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={reset}
+                    className="ghub-action-button secondary"
+                  >
+                    <RotateCcw size={18} />
+                    <span>Clear</span>
+                  </button>
+                </div>
               </form>
             </section>
 
@@ -398,14 +454,6 @@ export default function VitalsCheckPage() {
                 </div>
               </div>
             </section>
-
-            <div className="ghub-history-footer">
-              <Link to="/medical-cases" className="ghub-history-link">
-                <History size={15} />
-                View History
-                <ChevronRight size={15} />
-              </Link>
-            </div>
           </div>
         )}
       </div>
