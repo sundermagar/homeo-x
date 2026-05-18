@@ -27,7 +27,7 @@ export class ProcessAdditionalChargeUseCase {
 
       await this.billingRepo.create({
         regid: input.regid!,
-        charges: input.additionalPrice || 0,
+        charges: (input.additionalPrice || 0) * (input.additionalQuantity || 1),
         received: input.receivedPrice || 0,
         paymentMode: 'Cash',
         billDate: today,

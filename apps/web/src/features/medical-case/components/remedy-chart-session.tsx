@@ -688,13 +688,28 @@ function ImageUploadTab({ regid }: { regid: number }) {
   const { saveImage } = useManageClinicalRecords();
   const [description, setDescription] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
     if (selected) {
       setFile(selected);
+      if (selected.type.startsWith('image/')) {
+        const url = URL.createObjectURL(selected);
+        setPreviewUrl(url);
+      } else {
+        setPreviewUrl(null);
+      }
     }
   };
 
@@ -709,6 +724,10 @@ function ImageUploadTab({ regid }: { regid: number }) {
     try {
       await saveImage.mutateAsync(formData);
       setFile(null);
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+        setPreviewUrl(null);
+      }
       setDescription('');
       if (fileInputRef.current) fileInputRef.current.value = '';
     } catch (err) {
@@ -725,11 +744,14 @@ function ImageUploadTab({ regid }: { regid: number }) {
           background: 'var(--pp-warm-1)', 
           border: '1.5px dashed var(--border-main)', 
           borderRadius: '16px', 
-          padding: '48px 24px', 
+          padding: previewUrl ? '24px' : '48px 24px', 
           textAlign: 'center',
           cursor: 'pointer',
           position: 'relative',
-          transition: 'all 0.2s'
+          transition: 'all 0.2s',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center'
         }}
         onClick={() => fileInputRef.current?.click()}
         onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--pp-blue)'}
@@ -750,18 +772,44 @@ function ImageUploadTab({ regid }: { regid: number }) {
             <div style={{ fontWeight: 700, color: 'var(--pp-blue)' }}>Processing...</div>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-            <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', color: 'var(--pp-blue)' }}>
-              <Plus size={28} />
-            </div>
-            <div>
-              <div style={{ color: 'var(--pp-ink)', fontWeight: 700, fontSize: '1.1rem', marginBottom: '4px' }}>
-                {file ? file.name : 'Click to upload clinical image'}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', width: '100%' }}>
+            {previewUrl ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                <img 
+                  src={previewUrl} 
+                  alt="Preview" 
+                  style={{ 
+                    maxHeight: '180px', 
+                    maxWidth: '100%', 
+                    borderRadius: '12px', 
+                    objectFit: 'contain', 
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.08)' 
+                  }} 
+                />
+                <div>
+                  <div style={{ color: 'var(--pp-ink)', fontWeight: 700, fontSize: '0.95rem', marginBottom: '2px' }}>
+                    {file?.name}
+                  </div>
+                  <div style={{ color: 'var(--pp-blue)', fontSize: '0.8rem', fontWeight: 700 }}>
+                    Click to select a different image
+                  </div>
+                </div>
               </div>
-              <div style={{ color: 'var(--pp-text-3)', fontSize: '0.85rem', fontWeight: 500 }}>
-                PNG, JPG or PDF (Max 10MB)
-              </div>
-            </div>
+            ) : (
+              <>
+                <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', color: 'var(--pp-blue)' }}>
+                  <Plus size={28} />
+                </div>
+                <div>
+                  <div style={{ color: 'var(--pp-ink)', fontWeight: 700, fontSize: '1.1rem', marginBottom: '4px' }}>
+                    {file ? file.name : 'click to select image'}
+                  </div>
+                  <div style={{ color: 'var(--pp-text-3)', fontSize: '0.85rem', fontWeight: 500 }}>
+                    PNG, JPG or PDF (Max 10MB)
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -769,7 +817,7 @@ function ImageUploadTab({ regid }: { regid: number }) {
       <div style={{ display: 'flex', gap: '12px' }}>
         <input
           className="pp-input"
-          placeholder="Enter image description (e.g. Scan 1, Notes...)"
+          placeholder="add notes"
           value={description}
           onChange={e => setDescription(e.target.value)}
           style={{ flex: 1, padding: '12px 16px' }}
@@ -781,7 +829,7 @@ function ImageUploadTab({ regid }: { regid: number }) {
           style={{ padding: '0 32px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '8px', opacity: !file ? 0.6 : 1 }}
         >
           {uploading ? <Loader2 size={16} className="spin" /> : <Upload size={16} />}
-          Upload Image
+          upload
         </button>
       </div>
 

@@ -63,12 +63,20 @@ export default function PatientQueuePage() {
 
   const { data: waitlist = [], isLoading: wLoading, refetch: wRefetch } = useWaitlist(today, doctorFilter ? Number(doctorFilter) : undefined);
 
+  const formattedWaitlist = useMemo(() => {
+    const formatName = (name?: string | null) => name ? name.replace(/\b\w/g, c => c.toUpperCase()) : null;
+    return waitlist.map(w => ({
+      ...w,
+      patientName: formatName(w.patientName)
+    }));
+  }, [waitlist]);
+
   const callNext = useCallNext();
   const completeVisit = useCompleteVisit();
 
-  const waiting = waitlist.filter(w => w.status === 0);
-  const inProgress = waitlist.filter(w => w.status === 1);
-  const done = waitlist.filter(w => w.status === 2);
+  const waiting = formattedWaitlist.filter(w => w.status === 0);
+  const inProgress = formattedWaitlist.filter(w => w.status === 1);
+  const done = formattedWaitlist.filter(w => w.status === 2);
 
   const totalItems = waiting.length;
   const totalPages = Math.ceil(totalItems / limit);

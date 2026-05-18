@@ -1,4 +1,4 @@
-import { eq, and, or, sql, desc, isNull } from 'drizzle-orm';
+import { eq, and, or, sql, desc, isNull, gte } from 'drizzle-orm';
 import type { DbClient } from '@mmc/database';
 import * as schema from '@mmc/database';
 import type {
@@ -213,7 +213,13 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
           dateOfBirth: schema.patients.dateOfBirth,
           city: schema.patients.city,
           state: schema.patients.state,
-          doctorName: schema.users.name,
+          doctorName: sql<string>`COALESCE(
+            ${schema.users.name},
+            (SELECT name FROM doctors WHERE id::text = TRIM(${schema.patients.assistantDoctor}) LIMIT 1),
+            (SELECT name FROM users WHERE id::text = TRIM(${schema.patients.assistantDoctor}) LIMIT 1),
+            ${schema.patients.assistantDoctor},
+            '—'
+          )`,
           referedBy: schema.patients.referedBy,
           consultationFee: schema.patients.consultationFee,
         })
@@ -244,6 +250,11 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
             state: schema.patients.state,
             referedBy: schema.patients.referedBy,
             consultationFee: schema.patients.consultationFee,
+            doctorName: sql<string>`COALESCE(
+              (SELECT name FROM doctors WHERE id::text = TRIM(${schema.patients.assistantDoctor}) LIMIT 1),
+              (SELECT name FROM users WHERE id::text = TRIM(${schema.patients.assistantDoctor}) LIMIT 1),
+              ${schema.patients.assistantDoctor}
+            )`,
           })
           .from(schema.patients)
           .where(eq(schema.patients.regid, regid))
@@ -267,7 +278,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
           dateOfBirth: patient.dateOfBirth,
           city: patient.city,
           state: patient.state,
-          doctorName: '—',
+          doctorName: patient.doctorName || '—',
           referedBy: patient.referedBy,
           consultationFee: patient.consultationFee,
         } as any;
@@ -291,7 +302,8 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
         reminders,
         additionalChargesRes,
         paymentsRes,
-        modernPaymentsRes
+        modernPaymentsRes,
+        activePackageRes
       ] = await Promise.all([
         // Vitals: Fetch all vitals for this patient by regid
         this.db
@@ -396,23 +408,65 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
           )),
 
         // Billing Aggregation: Modern (Full rows for detailed breakdown)
-        this.db.select().from(schema.bills).where(and(eq(schema.bills.regid, regid), isNull(schema.bills.deletedAt)))
+        this.db.select().from(schema.bills).where(and(eq(schema.bills.regid, regid), isNull(schema.bills.deletedAt))),
 
+        // Active Package
+        this.db
+          .select({
+            id: schema.patientPackages.id,
+            regid: schema.patientPackages.regid,
+            packageId: schema.patientPackages.packageId,
+            startDate: schema.patientPackages.startDate,
+            expiryDate: schema.patientPackages.expiryDate,
+            status: schema.patientPackages.status,
+            packageName: schema.packagePlans.name,
+            colorCode: schema.packagePlans.colorCode,
+            // Hardcode covers for now as these flags aren't in schema yet, but logic is uniform
+            coversConsultation: sql<boolean>`true`, 
+            coversMedicine: sql<boolean>`true`,
+          })
+          .from(schema.patientPackages)
+          .leftJoin(schema.packagePlans, eq(schema.patientPackages.packageId, schema.packagePlans.id))
+          .where(
+            and(
+              eq(schema.patientPackages.regid, regid),
+              eq(schema.patientPackages.status, 'Active'),
+              gte(schema.patientPackages.expiryDate, new Date().toISOString().substring(0, 10)),
+              isNull(schema.patientPackages.deletedAt)
+            )
+          )
+          .limit(1)
       ]);
 
       const legacyAdditionalRows = additionalChargesRes as any[];
       const modernBills = (modernPaymentsRes as any[]) || [];
       const legacySums = (paymentsRes as any)[0];
       
-      const modernRegularBills = modernBills.filter(b => b.billType !== 'Custom');
+      const modernRegularBills = modernBills.filter(b => b.billType !== 'Custom' && b.billType !== 'Additional');
       const modernCustomBills = modernBills.filter(b => b.billType === 'Custom');
 
       const totalRegular = (legacySums?.totalCharges || 0) + modernRegularBills.reduce((sum, b) => sum + (Number(b.charges) || 0), 0);
       
       // Combine legacy additional and modern custom bills
       const combinedAdditional = [
-        ...legacyAdditionalRows.map(r => ({ name: r.name, amount: r.amount, notes: null })),
-        ...modernCustomBills.map(b => ({ name: b.customTitle || 'Additional Charge', amount: b.charges, notes: b.notes }))
+        ...legacyAdditionalRows.map(r => ({ 
+          id: r.id,
+          name: r.name, 
+          amount: r.amount, 
+          price: r.price, 
+          quantity: r.quantity, 
+          notes: null, 
+          createdAt: r.createdAt 
+        })),
+        ...modernCustomBills.map(b => ({ 
+          id: b.id,
+          name: b.customTitle || 'Additional Charge', 
+          amount: b.charges, 
+          price: b.charges, 
+          quantity: 1, 
+          notes: b.notes, 
+          createdAt: b.createdAt 
+        }))
       ];
 
       const totalAdditional = combinedAdditional.reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
@@ -459,6 +513,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
         vaccines: vaccines as any[],
         reminders: reminders as any[],
         additionalCharges: combinedAdditional,
+        activePackage: (activePackageRes as any[])[0] || null,
       };
     } catch (err: any) {
       console.error(`💥 [MedicalCaseRepositoryPg] Error in getUnifiedCaseData for regid ${regid}:`, err);
@@ -822,7 +877,9 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
         regid: schema.additionalChargesLegacy.regid,
         randId: schema.additionalChargesLegacy.randId,
         name: schema.additionalChargesLegacy.additionalName,
-        amount: schema.additionalChargesLegacy.additionalPrice,
+        amount: sql<number>`${schema.additionalChargesLegacy.additionalPrice} * COALESCE(${schema.additionalChargesLegacy.additionalQuantity}, 1)`,
+        price: schema.additionalChargesLegacy.additionalPrice,
+        quantity: schema.additionalChargesLegacy.additionalQuantity,
         createdAt: schema.additionalChargesLegacy.createdAt,
       })
       .from(schema.additionalChargesLegacy)

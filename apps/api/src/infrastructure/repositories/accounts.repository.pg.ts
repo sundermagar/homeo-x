@@ -7,6 +7,7 @@ import {
   expensesLegacy,
   expensesheadLegacy,
   patients,
+  charges as chargesLegacy,
 } from '@mmc/database/schema';
 import type { DbClient } from '@mmc/database';
 import {
@@ -124,10 +125,40 @@ export class AdditionalChargeRepositoryPg implements AdditionalChargeRepository 
         updatedAt: new Date(),
       })
       .returning();
+
+    // If the charge matches a catalog product, deduct the product inventory count
+    try {
+      if (data.additionalName) {
+        const [matchingCharge] = await this.db
+          .select()
+          .from(chargesLegacy)
+          .where(and(eq(chargesLegacy.charges, data.additionalName), eq(chargesLegacy.type, 'Product'), isNull(chargesLegacy.deletedAt)))
+          .limit(1);
+
+        if (matchingCharge && matchingCharge.quantity !== null) {
+          const newQty = Math.max(0, (matchingCharge.quantity || 0) - (data.additionalQuantity ?? 1));
+          await this.db
+            .update(chargesLegacy)
+            .set({ quantity: newQty, updatedAt: new Date() })
+            .where(eq(chargesLegacy.id, matchingCharge.id));
+        }
+      }
+    } catch (err) {
+      console.warn('[ACCOUNTS_REPO] Failed to deduct product quantity from catalog:', err);
+    }
+
     return this.toDomain(row!);
   }
 
   async update(id: number, data: UpdateAdditionalChargeInput): Promise<AdditionalCharge | null> {
+    const [existing] = await this.db
+      .select()
+      .from(additionalChargesLegacy)
+      .where(eq(additionalChargesLegacy.id, id))
+      .limit(1);
+
+    if (!existing) return null;
+
     const [row] = await this.db
       .update(additionalChargesLegacy)
       .set({
@@ -139,6 +170,47 @@ export class AdditionalChargeRepositoryPg implements AdditionalChargeRepository 
       })
       .where(and(eq(additionalChargesLegacy.id, id), isNull(additionalChargesLegacy.deletedAt)))
       .returning();
+
+    if (row) {
+      try {
+        // 1. Restore the old product quantity to the catalog
+        if (existing.additionalName) {
+          const [oldMatchingCharge] = await this.db
+            .select()
+            .from(chargesLegacy)
+            .where(and(eq(chargesLegacy.charges, existing.additionalName), eq(chargesLegacy.type, 'Product'), isNull(chargesLegacy.deletedAt)))
+            .limit(1);
+
+          if (oldMatchingCharge && oldMatchingCharge.quantity !== null) {
+            const restoredQty = (oldMatchingCharge.quantity || 0) + (existing.additionalQuantity ?? 1);
+            await this.db
+              .update(chargesLegacy)
+              .set({ quantity: restoredQty, updatedAt: new Date() })
+              .where(eq(chargesLegacy.id, oldMatchingCharge.id));
+          }
+        }
+
+        // 2. Deduct the new product quantity from the catalog
+        if (row.additionalName) {
+          const [newMatchingCharge] = await this.db
+            .select()
+            .from(chargesLegacy)
+            .where(and(eq(chargesLegacy.charges, row.additionalName), eq(chargesLegacy.type, 'Product'), isNull(chargesLegacy.deletedAt)))
+            .limit(1);
+
+          if (newMatchingCharge && newMatchingCharge.quantity !== null) {
+            const newQty = Math.max(0, (newMatchingCharge.quantity || 0) - (row.additionalQuantity ?? 1));
+            await this.db
+              .update(chargesLegacy)
+              .set({ quantity: newQty, updatedAt: new Date() })
+              .where(eq(chargesLegacy.id, newMatchingCharge.id));
+          }
+        }
+      } catch (err) {
+        console.warn('[ACCOUNTS_REPO] Failed to sync product quantity in catalog on update:', err);
+      }
+    }
+
     return row ? this.toDomain(row) : null;
   }
 
@@ -147,6 +219,27 @@ export class AdditionalChargeRepositoryPg implements AdditionalChargeRepository 
       .delete(additionalChargesLegacy)
       .where(eq(additionalChargesLegacy.id, id))
       .returning();
+
+    if (row && row.additionalName) {
+      try {
+        const [matchingCharge] = await this.db
+          .select()
+          .from(chargesLegacy)
+          .where(and(eq(chargesLegacy.charges, row.additionalName), eq(chargesLegacy.type, 'Product'), isNull(chargesLegacy.deletedAt)))
+          .limit(1);
+
+        if (matchingCharge && matchingCharge.quantity !== null) {
+          const restoredQty = (matchingCharge.quantity || 0) + (row.additionalQuantity ?? 1);
+          await this.db
+            .update(chargesLegacy)
+            .set({ quantity: restoredQty, updatedAt: new Date() })
+            .where(eq(chargesLegacy.id, matchingCharge.id));
+        }
+      } catch (err) {
+        console.warn('[ACCOUNTS_REPO] Failed to restore product quantity to catalog on delete:', err);
+      }
+    }
+
     return !!row;
   }
 
@@ -613,7 +706,6 @@ export class ExpenseRepositoryPg implements ExpenseRepository {
 /**
  * PostgreSQL adapter for ChargeRepository.
  */
-import { charges as chargesLegacy } from '@mmc/database/schema';
 import type { ChargeRepository } from '../../domains/billing/ports/accounts.repository.js';
 import type { Charge } from '@mmc/types';
 import type { CreateChargeInput, UpdateChargeInput } from '@mmc/validation';
