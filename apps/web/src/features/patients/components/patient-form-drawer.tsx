@@ -166,6 +166,16 @@ export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient,
           }
         }
       }
+
+      // Clear referral fields if reference type changes
+      if (name === 'referenceType') {
+        const isReferral = value?.toLowerCase().includes('patient') || value?.toLowerCase().includes('recommendation');
+        if (!isReferral) {
+          next.referredBy = '';
+          next.referredById = undefined;
+          setRefSearch('');
+        }
+      }
       
       return next;
     });
@@ -176,6 +186,13 @@ export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient,
     if (!form.firstName.trim()) errs.push('First Name is required');
     if (!form.surname.trim()) errs.push('Surname is required');
     if (!form.phone.trim() && !form.mobile1.trim()) errs.push('At least one phone number is required');
+    if (!form.dateOfBirth) errs.push('Date of Birth is required');
+    
+    // Phone length validation
+    if (form.phone && form.phone.length !== 10) errs.push('Primary Mobile must be 10 digits');
+    if (form.mobile1 && form.mobile1.length !== 10) errs.push('Alternate Mobile must be 10 digits');
+    if (form.mobile2 && form.mobile2.length !== 10) errs.push('Landline must be 10 digits');
+    
     return errs;
   };
 
@@ -266,26 +283,26 @@ export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient,
                 </select>
               </div>
               <div className="form-group">
-                <label className="drawer-label">Date of Birth</label>
-                <input className="drawer-input" name="dateOfBirth" type="date" value={form.dateOfBirth} onChange={handleChange} />
+                <label className="drawer-label">Date of Birth <span style={{ color: 'var(--pp-danger-fg)' }}>*</span></label>
+                <input className="drawer-input" name="dateOfBirth" type="date" value={form.dateOfBirth} onChange={handleChange} required />
               </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                <div className="form-group">
                   <label className="drawer-label">Mobile <span style={{ color: 'var(--pp-danger-fg)' }}>*</span></label>
-                  <NumericInput className="drawer-input" name="phone" value={form.phone} onChange={handleChange} placeholder="Primary Mobile" />
+                  <NumericInput className="drawer-input" name="phone" value={form.phone} onChange={handleChange} placeholder="Primary Mobile" maxLength={10} />
                </div>
                <div className="form-group">
                   <label className="drawer-label">Mobile 2</label>
-                  <NumericInput className="drawer-input" name="mobile1" value={form.mobile1} onChange={handleChange} placeholder="Alternate Mobile" />
+                  <NumericInput className="drawer-input" name="mobile1" value={form.mobile1} onChange={handleChange} placeholder="Alternate Mobile" maxLength={10} />
                </div>
             </div>
 
             <div className="drawer-grid-2">
                <div className="form-group">
                   <label className="drawer-label">Landline</label>
-                  <NumericInput className="drawer-input" name="mobile2" value={form.mobile2} onChange={handleChange} placeholder="Landline" />
+                  <NumericInput className="drawer-input" name="mobile2" value={form.mobile2} onChange={handleChange} placeholder="Landline" maxLength={10} />
                </div>
                <div className="form-group">
                   <label className="drawer-label">Email Address</label>
@@ -310,10 +327,10 @@ export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient,
 
             {/* Appointment Booking Logic */}
             {!isEdit && form.assistantDoctor && (
-              <div className="pat-appt-section animate-fade-in" style={{ marginTop: '12px', padding: '12px', background: 'var(--pp-bg-subtle)', borderRadius: '8px', border: '1px solid var(--pp-border)' }}>
+              <div className="pat-appt-section animate-fade-in" style={{ marginTop: '12px', padding: '12px', background: 'var(--bg-surface-2)', borderRadius: '8px', border: '1px solid var(--border-main)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
                   <CalendarIcon size={14} style={{ color: 'var(--pp-blue)' }} />
-                  <span style={{ fontWeight: 600, fontSize: '13px' }}>Book Appointment</span>
+                  <span style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text-main)' }}>Book Appointment</span>
                 </div>
 
                 <div className="form-group">
@@ -339,7 +356,7 @@ export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient,
                       Doctor is currently inactive. You can still register the patient, but cannot book a slot.
                     </div>
                   ) : slots.length === 0 ? (
-                    <div className="pat-slots-hint" style={{ padding: '8px', textAlign: 'center', opacity: 0.6, fontSize: '12px' }}>
+                    <div className="pat-slots-hint" style={{ padding: '8px', textAlign: 'center', opacity: 0.6, fontSize: '12px', color: 'var(--text-muted)' }}>
                       Select a date to see available slots
                     </div>
                   ) : (
@@ -355,9 +372,9 @@ export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient,
                             padding: '6px 4px',
                             fontSize: '11px',
                             borderRadius: '4px',
-                            border: '1px solid var(--pp-border)',
-                            background: form.bookingTime === slot.time ? 'var(--pp-blue)' : slot.booked ? 'var(--pp-bg-subtle)' : 'var(--pp-surface)',
-                            color: form.bookingTime === slot.time ? 'white' : slot.booked ? 'var(--pp-text-muted)' : 'var(--pp-text)',
+                            border: '1px solid var(--border-main)',
+                            background: form.bookingTime === slot.time ? 'var(--pp-blue)' : slot.booked ? 'var(--bg-surface-2)' : 'var(--bg-card)',
+                            color: form.bookingTime === slot.time ? 'white' : slot.booked ? 'var(--text-muted)' : 'var(--text-main)',
                             cursor: slot.booked || slot.isPast ? 'not-allowed' : 'pointer',
                             opacity: slot.isPast ? 0.4 : 1
                           }}
@@ -442,50 +459,53 @@ export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient,
                   }
                 </select>
               </div>
-              <div className="form-group">
-                <label className="drawer-label">Referred By</label>
-                <div style={{ display: 'flex', gap: '8px', position: 'relative' }}>
-                  <input 
-                    className="drawer-input" 
-                    style={{ width: '80px' }} 
-                    placeholder="ID" 
-                    value={refSearch}
-                    onChange={e => {
-                       setRefSearch(e.target.value);
-                       setShowRefDropdown(true);
-                    }}
-                    onFocus={() => setShowRefDropdown(true)}
-                  />
-                  <input 
-                    className="drawer-input" 
-                    style={{ flex: 1 }} 
-                    name="referredBy" 
-                    value={form.referredBy} 
-                    onChange={handleChange} 
-                    placeholder="Patient Name" 
-                    readOnly
-                  />
-                  
-                  {showRefDropdown && refSearch.length >= 2 && refResults.length > 0 && (
-                    <div className="appt-kebab-menu" style={{ position: 'absolute', top: '100%', left: 0, width: '100%', zIndex: 10, maxHeight: '200px', overflowY: 'auto' }}>
-                      {refResults.map(p => (
-                        <button 
-                          key={p.regid} 
-                          type="button"
-                          className="appt-kebab-item" 
-                          onClick={() => {
-                            setForm(f => ({ ...f, referredBy: p.fullName }));
-                            setRefSearch(String(p.regid));
-                            setShowRefDropdown(false);
-                          }}
-                        >
-                          <span className="pp-mono text-small" style={{ color: 'var(--pp-blue)' }}>{p.regid}</span> - {p.fullName}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+
+              {(form.referenceType?.toLowerCase().includes('patient') || form.referenceType?.toLowerCase().includes('recommendation')) && (
+                <div className="form-group animate-fade-in">
+                  <label className="drawer-label">Referred By</label>
+                  <div style={{ display: 'flex', gap: '8px', position: 'relative' }}>
+                    <input 
+                      className="drawer-input" 
+                      style={{ width: '80px' }} 
+                      placeholder="ID" 
+                      value={refSearch}
+                      onChange={e => {
+                         setRefSearch(e.target.value);
+                         setShowRefDropdown(true);
+                      }}
+                      onFocus={() => setShowRefDropdown(true)}
+                    />
+                    <input 
+                      className="drawer-input" 
+                      style={{ flex: 1 }} 
+                      name="referredBy" 
+                      value={form.referredBy} 
+                      onChange={handleChange} 
+                      placeholder="Patient Name" 
+                      readOnly
+                    />
+                    
+                    {showRefDropdown && refSearch.length >= 2 && refResults.length > 0 && (
+                      <div className="appt-kebab-menu" style={{ position: 'absolute', top: '100%', left: 0, width: '100%', zIndex: 10, maxHeight: '200px', overflowY: 'auto' }}>
+                        {refResults.map(p => (
+                          <button 
+                            key={p.regid} 
+                            type="button"
+                            className="appt-kebab-item" 
+                            onClick={() => {
+                              setForm(f => ({ ...f, referredBy: p.fullName }));
+                              setRefSearch(String(p.regid));
+                              setShowRefDropdown(false);
+                            }}
+                          >
+                            <span className="pp-mono text-small" style={{ color: 'var(--pp-blue)' }}>{p.regid}</span> - {p.fullName}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             <div className="form-group" style={{ marginTop: '24px' }}>

@@ -35,11 +35,13 @@ BEGIN
     ALTER TABLE vitals ALTER COLUMN visit_id DROP NOT NULL;
   END IF;
 
-  -- Drop any UNIQUE constraint on visit_id
+  -- Drop any UNIQUE constraint on visit_id (schema-aware)
   SELECT c.conname INTO constraint_name
   FROM pg_constraint c
   JOIN pg_class t ON c.conrelid = t.oid
+  JOIN pg_namespace n ON t.relnamespace = n.oid
   WHERE t.relname = 'vitals'
+    AND n.nspname = current_schema()
     AND c.contype = 'u'
     AND EXISTS (
       SELECT 1 FROM unnest(c.conkey) AS col
@@ -49,7 +51,7 @@ BEGIN
   LIMIT 1;
 
   IF constraint_name IS NOT NULL THEN
-    EXECUTE 'ALTER TABLE vitals DROP CONSTRAINT ' || constraint_name;
+    EXECUTE 'ALTER TABLE vitals DROP CONSTRAINT IF EXISTS ' || quote_ident(constraint_name);
   END IF;
 END $$;
 

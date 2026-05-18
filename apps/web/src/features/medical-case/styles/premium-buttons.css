@@ -33,6 +33,72 @@
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
 }
 
+/* Action Bar Container */
+.mc-action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.mc-action-group {
+  display: flex;
+  gap: 12px;
+  flex: 1 1 auto;
+  justify-content: flex-start;
+  align-items: center;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.mc-btn-group {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+  min-width: 250px;
+}
+
+/* Service Indicator */
+.mc-service-indicator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px;
+  background: white;
+  border-radius: 12px;
+  border: 1.5px solid var(--pp-blue-border);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  min-height: 42px;
+  box-sizing: border-box;
+  flex: 1;
+  min-width: 180px;
+  transition: all 0.2s;
+}
+
+@media (max-width: 640px) {
+  .mc-tab-btn-premium {
+    font-size: 0.75rem;
+    padding: 10px 8px;
+    min-width: 60px;
+  }
+  
+  .mc-service-indicator {
+    font-size: 0.75rem;
+    padding: 6px 10px;
+    min-width: 100%; /* Force full width on mobile */
+  }
+  
+  .mc-btn-group {
+    min-width: 100%; /* Force full width on mobile */
+  }
+
+  .mc-service-indicator span {
+    font-size: 0.75rem;
+  }
+}
+
 /* Beauty Alert Styles */
 .premium-alert-content {
   background: var(--pp-glass-bg) !important;

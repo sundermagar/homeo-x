@@ -53,7 +53,7 @@
 
 .rt-search-input:focus {
   border-color: var(--primary);
-  background: white;
+  background: var(--bg-card);
   box-shadow: 0 0 0 3px var(--primary-tint);
 }
 

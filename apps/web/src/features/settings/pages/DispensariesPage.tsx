@@ -3,6 +3,7 @@ import { MapPin, Plus, X, RefreshCw, Trash2, Edit2, Phone, Mail, User, Briefcase
 import { Link } from 'react-router-dom';
 import { useDispensaries, useCreateDispensary, useUpdateDispensary, useDeleteDispensary } from '../hooks/use-settings';
 import { Drawer } from '@/shared/components/drawer';
+import { NumericInput } from '@/shared/components/NumericInput';
 import '../../platform/styles/platform.css';
 import '../styles/settings.css';
 
@@ -317,8 +318,9 @@ export default function DispensariesPage() {
                   <label className="plat-form-label">Primary Mobile</label>
                   <div className="plat-input-wrapper">
                     <Phone size={14} className="plat-input-icon" />
-                    <input
+                    <NumericInput
                       className="plat-form-input"
+                      name="mobile"
                       value={form.mobile}
                       onChange={e => setForm(f => ({ ...f, mobile: e.target.value }))}
                       placeholder="Contact number"
@@ -353,16 +355,14 @@ export default function DispensariesPage() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 py-4">
+              <label className="plat-checkbox-group">
                 <input
                   type="checkbox"
-                  className="w-4 h-4 accent-primary"
-                  id="isActiveDisp"
                   checked={form.isActive}
                   onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))}
                 />
-                <label htmlFor="isActiveDisp" className="plat-form-label mb-0 cursor-pointer">Authorized for System Access</label>
-              </div>
+                <span className="plat-checkbox-label">Authorized for System Access</span>
+              </label>
             </div>
           </div>
           <div className="plat-modal-footer" style={{ padding: '24px 0 0 0', marginTop: '24px' }}>

@@ -19,7 +19,7 @@ export const createBillSchema = z.object({
   chargeId: z.number().int().positive().optional(),
   doctorId: z.number().int().positive().optional(),
   notes: z.string().optional(),
-  billType: z.enum(['Consultation', 'Package', 'Registration', 'Custom']).optional(),
+  billType: z.enum(['Consultation', 'Package', 'Registration', 'Custom', 'Additional']).optional(),
   customTitle: z.string().max(255).optional(),
 });
 
@@ -120,9 +120,19 @@ export const createDayChargeSchema = z.object({
 });
 
 export const updateDayChargeSchema = createDayChargeSchema.partial();
-
 export type CreateDayChargeInput = z.infer<typeof createDayChargeSchema>;
 export type UpdateDayChargeInput = z.infer<typeof updateDayChargeSchema>;
+
+export const createChargeSchema = z.object({
+  charges: z.string().min(1, 'Charge name is required'),
+  amount: z.number().min(0).default(0),
+  quantity: z.number().min(0).default(0),
+  type: z.string().optional(),
+});
+
+export const updateChargeSchema = createChargeSchema.partial();
+export type CreateChargeInput = z.infer<typeof createChargeSchema>;
+export type UpdateChargeInput = z.infer<typeof updateChargeSchema>;
 
 // ─── Bank Deposit Schemas ───────────────────────────────────────────────────────
 

@@ -63,6 +63,7 @@ function getDefaultStaffForm(category: StaffCategory): CreateStaffInput {
     col12Document: '',
     bhmsDocument: '',
     mdDocument: '',
+    sendWelcomeEmail: false,
   };
 }
 
@@ -107,6 +108,7 @@ function staffMemberToForm(staff: StaffMember): CreateStaffInput {
     col12Document: staff.col12Document || '',
     bhmsDocument: staff.bhmsDocument || '',
     mdDocument: staff.mdDocument || '',
+    sendWelcomeEmail: false,
   };
 }
 

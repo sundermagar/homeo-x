@@ -251,14 +251,19 @@ export class RemedyChartUseCase {
         COALESCE(cp.rxprescription, '') AS notes,
         COALESCE(cp.rxprescription, '') AS prescription,
         cp.created_at,
-        LOWER(COALESCE(cm.post_type, 'clinic')) AS "deliveryMode"
+        LOWER(COALESCE(cm.post_type, 'clinic')) AS delivery_mode
       FROM case_potencies cp
-      LEFT JOIN courier_medicine cm ON cp.rand_id = cm.rand_id
+      LEFT JOIN courier_medicine cm ON (cm.rand_id = cp.id::text OR cm.rand_id = cp.rand_id)
       WHERE cp.regid = ${regid}
         AND (cp.deleted_at IS NULL OR cp.deleted_at = '')
       ORDER BY cp.id DESC
     `);
-    return rows;
+    // Normalize: DB drivers may return column as delivery_mode, deliverymode, or deliveryMode.
+    // Ensure every row has a consistent `deliveryMode` property for the frontend.
+    return (rows as any[]).map(row => ({
+      ...row,
+      deliveryMode: row.deliveryMode || row.deliverymode || row.delivery_mode || 'clinic',
+    }));
   }
 
   // ── 7. Upsert a prescription row ──
@@ -311,16 +316,19 @@ export class RemedyChartUseCase {
     }
 
     // Upsert Delivery Mode if provided
-    if (deliveryMode && randId) {
+    // We use the unique prescriptionId (casted to string) as the rand_id for the courier entry.
+    // This ensures every medicine row gets its own independent entry in the courier queue.
+    const syncRandId = String(prescriptionId);
+
+    if (deliveryMode && syncRandId) {
       if (deliveryMode === 'courier' || deliveryMode === 'pickup') {
         const postType = deliveryMode === 'courier' ? 'Courier' : 'Pickup';
         const isPickup = deliveryMode === 'pickup' ? 1 : 0;
         
-        // Map columns correctly: case_id = patient regid, regid = internal case ID (visitId)
         const patientRegid = regid;
         const internalCaseId = visitId;
 
-        const check = await this.db.execute(sql`SELECT id FROM courier_medicine WHERE rand_id = ${randId}`);
+        const check = await this.db.execute(sql`SELECT id FROM courier_medicine WHERE rand_id = ${syncRandId}`);
         if ((check as any[]) && (check as any[]).length > 0) {
           await this.db.execute(sql`
              UPDATE courier_medicine 
@@ -333,21 +341,21 @@ export class RemedyChartUseCase {
                frequency = ${frequencyName},
                days = ${String(days)},
                updated_at = NOW() 
-             WHERE rand_id = ${randId}
+             WHERE rand_id = ${syncRandId}
            `);
         } else {
           await this.db.execute(sql`
              INSERT INTO courier_medicine (
                case_id, regid, rand_id, currentdate, remedy, potency, frequency, days, post_type, pickup, read_type, is_assign, created_at, updated_at
              ) VALUES (
-               ${patientRegid}, ${internalCaseId}, ${randId}, ${dateNow}, 
+               ${patientRegid}, ${internalCaseId}, ${syncRandId}, ${dateNow}, 
                ${remedyName}, ${potencyName}, ${frequencyName}, ${String(days)},
                ${postType}, ${isPickup}, 'unread', 0, NOW(), NOW()
              )
            `);
         }
       } else if (deliveryMode === 'clinic') {
-        await this.db.execute(sql`DELETE FROM courier_medicine WHERE rand_id = ${randId}`);
+        await this.db.execute(sql`DELETE FROM courier_medicine WHERE rand_id = ${syncRandId}`);
       }
     }
 
@@ -359,6 +367,8 @@ export class RemedyChartUseCase {
     await this.db.execute(sql`
       UPDATE case_potencies SET deleted_at = NOW()::text WHERE id = ${id}
     `);
+    // Also remove from courier queue if it exists
+    await this.db.execute(sql`DELETE FROM courier_medicine WHERE rand_id = ${String(id)}`);
   }
 
   // ─── Tree builder ──────────────────────────────────────────────────────────

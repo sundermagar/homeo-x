@@ -967,7 +967,7 @@ export default function OperationsDashboard() {
                 </div>
                 <div className="ops-form-group">
                   <label>Mobile Number</label>
-                  <input type="tel" className="ops-input" placeholder="e.g. 98XXXXXXXX" value={formData.mobile} onChange={e => setFormData({ ...formData, mobile: e.target.value })} />
+                  <NumericInput className="ops-input" name="mobile" placeholder="e.g. 98XXXXXXXX" value={formData.mobile} onValueChange={val => setFormData({ ...formData, mobile: val })} />
                 </div>
                 <div className="ops-form-group">
                   <label>Lead Source</label>

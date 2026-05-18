@@ -7,6 +7,7 @@ import {
   Expense,
   ExpenseWithHead,
   ExpenseHead,
+  Charge,
 } from '@mmc/types';
 import type {
   ListAdditionalChargesQuery,
@@ -24,6 +25,8 @@ import type {
   ListExpensesQuery,
   CreateExpenseHeadInput,
   UpdateExpenseHeadInput,
+  CreateChargeInput,
+  UpdateChargeInput,
 } from '@mmc/validation';
 
 /**
@@ -86,4 +89,15 @@ export interface ExpenseRepository {
   createHead(data: CreateExpenseHeadInput): Promise<ExpenseHead>;
   updateHead(id: number, data: UpdateExpenseHeadInput): Promise<ExpenseHead | null>;
   deleteHead(id: number): Promise<boolean>;
+}
+
+/**
+ * ChargeRepository Port
+ */
+export interface ChargeRepository {
+  findById(id: number): Promise<Charge | null>;
+  findAll(): Promise<Charge[]>;
+  create(data: CreateChargeInput): Promise<Charge>;
+  update(id: number, data: UpdateChargeInput): Promise<Charge | null>;
+  softDelete(id: number): Promise<boolean>;
 }

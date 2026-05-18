@@ -91,3 +91,14 @@ export interface ExpenseHead {
   isActive?: boolean | null;
 }
 
+export interface Charge {
+  id: number;
+  charges: string | null;
+  amount: number | null;
+  quantity: number | null;
+  type: string | null;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+  deletedAt: Date | null;
+}
+

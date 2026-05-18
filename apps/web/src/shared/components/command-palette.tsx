@@ -149,6 +149,8 @@ function buildCommands(
       ['custom', 'bill', 'invoice']),
     nav('Additional Charges', '/billing/additional-charges', <Plus size={16} />, BILLING_ADMIN,
       ['additional', 'charges', 'extra']),
+    nav('Assigned Charges', '/billing/assigned-charges', <Plus size={16} />, BILLING_ADMIN,
+      ['assigned', 'charges', 'patient', 'allocation']),
     nav('Day Charges', '/billing/day-charges', <Calendar size={16} />, BILLING_ADMIN,
       ['day', 'charges', 'daily']),
     nav('Deposits', '/billing/deposits', <Wallet size={16} />, BILLING_ADMIN,
@@ -193,11 +195,10 @@ function buildCommands(
       ['receptionist', 'receptionists', 'front desk']),
     nav('Clinic Admins', '/platform/clinicadmins', <Contact size={16} />, ADMIN_CLINIC,
       ['clinic', 'admin', 'clinicadmin']),
-    nav('Account Managers', '/platform/account-managers', <UserPlus size={16} />, ADMIN_CLINIC,
-      ['account', 'manager', 'account manager']),
+
     nav('Clinics', '/platform/clinics', <Building2 size={16} />, ADMIN_ONLY,
       ['clinic', 'organisation', 'branch']),
-    nav('Accounts', '/platform/accounts', <Building2 size={16} />, ADMIN_ONLY,
+    nav('Clinic Accounts', '/platform/accounts', <Building2 size={16} />, ADMIN_ONLY,
       ['account', 'accounts', 'organisation']),
 
     // ── Settings ────────────────────────────────────────────────────────────

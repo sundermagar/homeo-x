@@ -9,6 +9,49 @@
   background: var(--bg-main);
 }
 
+/* ─── Hover Labels for Collapsed Sidebar ─── */
+.sidebar.collapsed .sidebar-hover-label {
+  position: absolute;
+  left: 56px;
+  background: #1e293b;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateX(-10px);
+}
+
+.sidebar.collapsed .sidebar-item:hover .sidebar-hover-label,
+.sidebar.collapsed .sidebar-group-trigger:hover .sidebar-hover-label,
+.sidebar.collapsed .sidebar-child-item:hover .sidebar-hover-label,
+.sidebar.collapsed .theme-toggle-btn:hover .sidebar-hover-label,
+.sidebar.collapsed .logout-btn:hover .sidebar-hover-label,
+.sidebar.collapsed .user-avatar:hover .sidebar-hover-label {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0);
+}
+
+/* Arrow indicator */
+.sidebar.collapsed .sidebar-hover-label::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -4px;
+  transform: translateY(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: transparent #1e293b transparent transparent;
+}
+
 @media (min-width: 1024px) {
   .app-container {
     flex-direction: row;
@@ -513,6 +556,7 @@
 }
 
 .user-avatar {
+  position: relative;
   width: 34px;
   height: 34px;
   border-radius: 50%;
@@ -545,6 +589,7 @@
 }
 
 .logout-btn {
+  position: relative;
   padding: 6px;
   color: var(--text-muted);
   border: none;
@@ -559,6 +604,7 @@
 }
 
 .theme-toggle-btn {
+  position: relative;
   padding: 6px;
   color: var(--text-muted);
   border: none;

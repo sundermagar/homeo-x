@@ -299,7 +299,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             path: '/billing', label: 'Billing', icon: Receipt,
             children: [
               { path: '/billing', label: 'Bill List', icon: Receipt },
-              { path: '/billing/additional-charges', label: 'Additional Charges', icon: PlusCircle },
+              { path: '/billing/additional-charges', label: 'Additional Charges', icon: Receipt },
               { path: '/billing/day-charges', label: 'Day Charges', icon: Calendar },
               { path: '/billing/deposits', label: 'Deposits', icon: Building },
               { path: '/billing/expenses', label: 'Expenses', icon: DollarSign },
@@ -313,19 +313,29 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     {
       type: 'group',
       group: {
-        id: 'platform',
-        label: 'Staff & Platform',
-        icon: Building2,
+        id: 'staff-management',
+        label: 'Staff Management',
+        icon: Users,
         roles: ['SuperAdmin', 'Admin', 'Clinicadmin'],
         children: [
           { path: '/platform/doctors', label: 'Doctors', icon: Stethoscope },
           { path: '/platform/employees', label: 'Employees', icon: User },
           { path: '/platform/receptionists', label: 'Receptionists', icon: Phone },
           { path: '/platform/clinicadmins', label: 'Clinic Admins', icon: Shield },
-          { path: '/platform/account-managers', label: 'Account Mgrs', icon: Briefcase },
-          { path: '/platform/clinics', label: 'Clinics', icon: Building2, roles: ['SuperAdmin', 'Admin'] },
-          { path: '/platform/accounts', label: 'Accounts', icon: UserCog },
-          { path: '/settings/roles', label: 'Roles & Access', icon: UserCheck, roles: ['SuperAdmin', 'Admin'] },
+          { path: '/settings/roles', label: 'Roles & Access', icon: UserCheck },
+        ],
+      },
+    },
+    {
+      type: 'group',
+      group: {
+        id: 'platform-admin',
+        label: 'Platform Admin',
+        icon: Globe,
+        roles: ['SuperAdmin', 'Admin'],
+        children: [
+          { path: '/platform/clinics', label: 'Clinics', icon: Building2 },
+          { path: '/platform/accounts', label: 'Clinic Accounts', icon: UserCog },
         ],
       },
     },
@@ -334,7 +344,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       group: {
         id: 'operations-hub',
         label: 'Operations Hub',
-        icon: Settings,
+        icon: Briefcase,
         roles: ['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist'],
         children: [
           { path: '/courier-queue', label: 'Dispatch Queue', icon: Truck },
@@ -444,6 +454,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               <span className="sidebar-child-dot" />
               <ChildIcon className="sidebar-child-icon" strokeWidth={1.8} />
               {!effectiveCollapsed && <span>{child.label}</span>}
+              {effectiveCollapsed && <span className="sidebar-hover-label">{child.label}</span>}
             </div>
             {!effectiveCollapsed && (
               <ChevronDown
@@ -481,6 +492,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         <span className="sidebar-child-dot" />
         <ChildIcon className="sidebar-child-icon" strokeWidth={1.8} />
         {!effectiveCollapsed && <span>{child.label}</span>}
+        {effectiveCollapsed && <span className="sidebar-hover-label">{child.label}</span>}
       </NavLink>
     );
   };
@@ -526,6 +538,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 >
                   <Icon className="sidebar-item-icon" strokeWidth={1.8} />
                   {!effectiveCollapsed && <span>{item.label}</span>}
+                  {effectiveCollapsed && <span className="sidebar-hover-label">{item.label}</span>}
                   {item.badge !== undefined && item.badge > 0 && !effectiveCollapsed && (
                     <span className="nav-badge" style={{ marginLeft: 'auto' }}>{item.badge}</span>
                   )}
@@ -550,6 +563,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                   <div className="sidebar-group-trigger-left">
                     <GroupIcon className="sidebar-item-icon" strokeWidth={1.8} />
                     {!effectiveCollapsed && <span>{group.label}</span>}
+                    {effectiveCollapsed && <span className="sidebar-hover-label">{group.label}</span>}
                   </div>
                   {!effectiveCollapsed && (
                     <span className={`sidebar-chevron ${isOpen_ ? 'open' : ''}`}>
@@ -574,6 +588,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>
                 {user?.name?.substring(0, 2).toUpperCase() || 'UX'}
               </span>
+              {effectiveCollapsed && <span className="sidebar-hover-label">{user?.name || 'Practitioner'}</span>}
             </div>
             {!effectiveCollapsed && (
               <div className="user-info">
@@ -584,10 +599,12 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
             <button className="theme-toggle-btn" onClick={toggleDarkMode}>
               {darkMode ? <Sun size={16} strokeWidth={2} /> : <Moon size={16} strokeWidth={2} />}
+              {effectiveCollapsed && <span className="sidebar-hover-label">{darkMode ? 'Light Mode' : 'Dark Mode'}</span>}
             </button>
 
             <button className="logout-btn" onClick={logout}>
               <LogOut size={16} strokeWidth={2} />
+              {effectiveCollapsed && <span className="sidebar-hover-label">Logout</span>}
             </button>
           </div>
         </div>

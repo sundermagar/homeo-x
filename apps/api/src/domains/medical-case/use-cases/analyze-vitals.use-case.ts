@@ -1,5 +1,5 @@
 import { type DbClient, growthReferences } from '@mmc/database';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, lte, desc } from 'drizzle-orm';
 import { AppError } from '../../../shared/errors.js';
 
 export class AnalyzeVitalsUseCase {
@@ -46,11 +46,17 @@ export class AnalyzeVitalsUseCase {
     const ageDays = Math.floor((diff % (30.44 * 24 * 3600 * 1000)) / (24 * 3600 * 1000));
     const ageDisplay = `${ageYears} years ${ageMonths} months ${ageDays} days`;
 
+    // Age Limit Check: WHO Growth Standards typically apply up to 20 years
+    if (ageYears >= 18) {
+      throw new AppError(400, 'Growth analytics is only supported for patients up to 20 years of age.', 'AGE_LIMIT_EXCEEDED');
+    }
+
     // Fetch ideal reference (matching legacy query)
     const [reference] = await this.db
       .select()
       .from(growthReferences)
-      .where(and(eq(growthReferences.months, months), eq(growthReferences.gender, gender)))
+      .where(and(lte(growthReferences.months, months), eq(growthReferences.gender, gender)))
+      .orderBy(desc(growthReferences.months))
       .limit(1)
       .catch(() => []);
 

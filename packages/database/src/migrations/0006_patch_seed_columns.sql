@@ -82,13 +82,13 @@ ALTER TABLE "dispensaries" ALTER COLUMN "salary_cur" DROP NOT NULL;
 -- ── Add packages to all staff tables ──────────────────────────
 DO $$ 
 BEGIN
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'employees') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'employees' AND table_schema = current_schema()) THEN
         ALTER TABLE "employees" ADD COLUMN IF NOT EXISTS "packages" text;
     END IF;
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'clinicadmins') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'clinicadmins' AND table_schema = current_schema()) THEN
         ALTER TABLE "clinicadmins" ADD COLUMN IF NOT EXISTS "packages" text;
     END IF;
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'receptionists') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'receptionists' AND table_schema = current_schema()) THEN
         ALTER TABLE "receptionists" ADD COLUMN IF NOT EXISTS "packages" text;
     END IF;
     -- accounts always exists in shared schema

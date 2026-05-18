@@ -1,6 +1,6 @@
 DO $$
 BEGIN
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'expenseshead') THEN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'expenseshead' AND table_schema = current_schema()) THEN
     IF (SELECT count(*) FROM "expenseshead") = 0 THEN
       INSERT INTO "expenseshead" (expenseshead, short_name, created_at, updated_at) VALUES
         ('Rent', 'RENT', now(), now()),

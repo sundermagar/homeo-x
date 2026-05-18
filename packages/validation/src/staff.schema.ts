@@ -25,6 +25,7 @@ export const createStaffSchema = z.object({
   salaryCur: z.number().optional().default(0),
   password: z.string().optional().default(''),
   clinicId: z.number().int().nullable().optional().default(null),
+  sendWelcomeEmail: z.boolean().optional().default(false),
 
   // Doctor-specific fields — optional for non-doctor categories
   title: z.string().optional().default('Dr'),

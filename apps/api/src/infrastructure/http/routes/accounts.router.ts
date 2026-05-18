@@ -14,6 +14,7 @@ import {
   CreateExpenseHeadUseCase,
   UpdateExpenseHeadUseCase,
   DeleteExpenseHeadUseCase,
+  ProcessAdditionalChargeUseCase,
 } from '../../../domains/billing/index.js';
 import {
   createAdditionalChargeSchema,
@@ -70,7 +71,9 @@ export function createAccountsRouter(): Router {
     '/additional-charges',
     validate(createAdditionalChargeSchema),
     asyncHandler(async (req: Request, res: Response) => {
-      const useCase = new CreateAdditionalChargeUseCase(getRepo(req));
+      const { BillingRepositoryPg } = await import('../../repositories/billing.repository.pg.js');
+      const { MedicalCaseRepositoryPg } = await import('../../repositories/medical-case.repository.pg.js');
+      const useCase = new ProcessAdditionalChargeUseCase(getRepo(req), new BillingRepositoryPg(req.tenantDb), new MedicalCaseRepositoryPg(req.tenantDb));
       const result = await useCase.execute(req.body);
       if (!result.success) {
         res.status(400).json({ success: false, error: result.error });

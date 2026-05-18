@@ -8,7 +8,7 @@ export const createPatientSchema = z.object({
   middleName: z.string().max(100).optional(),
   surname: z.string().min(1, 'Surname is required').max(100),
   gender: z.enum(['M', 'F', 'Other']).default('M'),
-  dateOfBirth: z.string().optional(),
+  dateOfBirth: z.string().min(1, 'Date of Birth is required'),
   // Contact
   phone: phoneSchema,
   mobile1: phoneSchema,

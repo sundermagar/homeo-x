@@ -26,6 +26,7 @@ export {
   UpdateAdditionalChargeUseCase,
   DeleteAdditionalChargeUseCase,
 } from './use-cases/list-additional-charges.js';
+export { ProcessAdditionalChargeUseCase } from './use-cases/process-additional-charge.js';
 // Day Charges
 export {
   ListDayChargesUseCase,
@@ -59,3 +60,11 @@ export {
   DeleteExpenseHeadUseCase,
 } from './use-cases/expenses.js';
 
+// Charges
+export {
+  ListChargesUseCase,
+  GetChargeUseCase,
+  CreateChargeUseCase,
+  UpdateChargeUseCase,
+  DeleteChargeUseCase,
+} from './use-cases/charges.js';

@@ -217,16 +217,14 @@ export default function ReferralSourcesPage() {
                     />
                   </div>
                 </div>
-                <div className="flex items-center gap-2 py-2">
+                <label className="plat-checkbox-group">
                   <input
                     type="checkbox"
-                    className="w-4 h-4 accent-primary"
-                    id="isActiveRef"
                     checked={form.isActive}
                     onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))}
                   />
-                  <label htmlFor="isActiveRef" className="plat-form-label mb-0 cursor-pointer">Source is actively used</label>
-                </div>
+                  <span className="plat-checkbox-label">Source is actively used</span>
+                </label>
               </div>
             </div>
           </div>

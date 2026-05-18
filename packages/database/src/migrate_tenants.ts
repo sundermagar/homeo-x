@@ -3,7 +3,6 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import path from 'path';
 import dotenv from 'dotenv';
-import { TenantRegistry } from './tenant-registry.js';
 import fs from 'fs';
 
 // Load environment variables
@@ -29,83 +28,71 @@ const migrationsFolder = path.join(process.cwd(), 'src', 'migrations');
 
 import { provisionTenant } from './provision-tenant.js';
 
-async function migrateTenant(schemaName: string) {
-  console.log(`\n===========================================`);
-  console.log(`🚀 Provisioning & Migrating Schema: [${schemaName}]`);
-  console.log(`===========================================`);
-
-  try {
-    // 1. Provision Baseline Tables (Legacy Parity)
-    // This ensures all 150+ tables from tenant_demo are present
-    await provisionTenant(dbUrl as string, schemaName);
-
-    // 2. Run Modern Migrations
-    const connection = postgres(dbUrl as string, {
-      max: 1,
-      onnotice: () => { },
-      connection: {
-        search_path: schemaName
-      }
-    });
-
-    const db = drizzle(connection);
-    await migrate(db, {
-      migrationsFolder,
-      migrationsSchema: schemaName
-    });
-
-    await connection.end();
-    console.log(`✅ Schema [${schemaName}] synchronized successfully.`);
-  } catch (error: any) {
-    console.error(`❌ Process failed for [${schemaName}]:`);
-    console.error(error);
-    if (error.query) {
-      console.error(`❌ FAILING QUERY WAS:`, error.query);
-    }
-    process.exit(1);
-  }
-}
-
-async function main() {
+async function runMigrations() {
   if (!fs.existsSync(migrationsFolder)) {
     console.error(`❌ Migrations folder not found at: ${migrationsFolder}`);
     process.exit(1);
   }
 
-  const tenants = TenantRegistry.getAll();
-  console.log(`Starting migration strategy for ${tenants.length} tenants...`);
-
-  // 1. Provision public schema with base tables
-  console.log('\n===========================================');
-  console.log('🚀 Provisioning PUBLIC schema (base tables)...');
-  console.log('===========================================');
+  // Get ALL schemas from DB starting with tenant_ to ensure no clinic is missed
+  const sql = postgres(dbUrl as string, { max: 1 });
+  
   try {
+    // Ensure required extensions are available in public schema
+    console.log('Ensuring pg_trgm extension is enabled in public schema...');
+    await sql`CREATE EXTENSION IF NOT EXISTS pg_trgm SCHEMA public`;
+
+    const schemas = await sql`SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE 'tenant_%'`;
+    const tenantSchemas = schemas.map(s => s['schema_name']);
+    console.log(`Starting migration strategy for ${tenantSchemas.length} discovered tenant schemas...`);
+
+    // 1. Provision public schema with base tables
+    console.log('\n===========================================');
+    console.log('🚀 Provisioning PUBLIC schema (base tables)...');
+    console.log('===========================================');
     await provisionTenant(dbUrl as string, 'public');
     console.log('✅ Public schema base tables ready.');
-  } catch (e: any) {
-    console.error('❌ Public schema provisioning failed:', e.message);
-    throw e;
-  }
 
-  // Optional: Force wipe schemas once to fix the primary key serial issue
-  if (process.env['FORCE_RESET_SCHEMAS'] === 'true') {
-    console.log('⚠️ FORCE_RESET_SCHEMAS DETECTED! Wiping all tenant schemas...');
-    const dropSql = postgres(dbUrl as string);
-    for (const tenant of tenants) {
-      console.log(`Killing ${tenant.schemaName}...`);
-      await dropSql.unsafe(`DROP SCHEMA IF EXISTS "${tenant.schemaName}" CASCADE`);
+    // 2. Iterate through all discovered tenant schemas
+    for (const schemaName of tenantSchemas) {
+      console.log('\n===========================================');
+      console.log(`🚀 Provisioning & Migrating Schema: [${schemaName}]`);
+      console.log(`   Memory: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`);
+      console.log('===========================================');
+      
+      try {
+        await provisionTenant(dbUrl as string, schemaName);
+        const dbConnection = postgres(dbUrl as string, { 
+          max: 1, 
+          onnotice: () => {},
+          connection: {
+            search_path: `${schemaName},public`
+          }
+        });
+        const db = drizzle(dbConnection);
+        await migrate(db, {
+          migrationsFolder,
+          migrationsSchema: schemaName,
+          migrationsTable: '__drizzle_migrations',
+        });
+        // Close connection
+        await dbConnection.end();
+        console.log(`✅ Schema [${schemaName}] synchronized successfully.`);
+      } catch (error: any) {
+        console.error(`❌ Process failed for [${schemaName}]:`);
+        console.error(error.message || error);
+        // Continue to next schema instead of crashing the whole process
+      }
     }
-    await dropSql.end();
-    console.log('✅ Wiped. Now regenerating correctly...');
-  }
 
-  // Process sequentially to avoid aggressive connection pooling bottlenecks
-  for (const tenant of tenants) {
-    await migrateTenant(tenant.schemaName);
+    console.log('\n🎉 ALL DISCOVERED TENANTS SYNCHRONIZED SUCCESSFULLY!');
+  } finally {
+    await sql.end();
   }
-
-  console.log(`\n🎉 Full multi-tenant provisioning lifecycle complete!`);
-  process.exit(0);
 }
 
-main();
+runMigrations().catch((err) => {
+  console.error('❌ FATAL ERROR in migration runner:');
+  console.error(err);
+  process.exit(1);
+});

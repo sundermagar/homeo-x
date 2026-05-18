@@ -254,16 +254,14 @@ export default function PackagePlansPage() {
                     onChange={e => setForm(f => ({ ...f, colorCode: e.target.value }))}
                   />
                 </div>
-                <div className="flex items-center gap-2 pt-8">
+                <label className="plat-checkbox-group">
                   <input
                     type="checkbox"
-                    className="w-4 h-4 accent-primary"
-                    id="is_active_plan"
                     checked={form.isActive}
                     onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))}
                   />
-                  <label htmlFor="is_active_plan" className="plat-form-label mb-0 cursor-pointer">Plan is Active</label>
-                </div>
+                  <span className="plat-checkbox-label">Plan is Active</span>
+                </label>
               </div>
 
               <div className="plat-form-group mt-4">

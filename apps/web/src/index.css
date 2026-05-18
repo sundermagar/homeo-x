@@ -38,6 +38,9 @@
   --pp-danger-bg: #FEF2F2;
   --pp-danger-fg: #DC2626;
   --pp-danger-border: #FECACA;
+  --pp-unregistered-bg: #FFF1F2;
+  --pp-unregistered-fg: #E11D48;
+  --pp-unregistered-border: #FECDD3;
   --pp-warning-bg: #FFFBEB;
   --pp-warning-fg: #D97706;
   --pp-warning-border: #FDE68A;
@@ -194,6 +197,55 @@
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+.color-main { color: var(--text-main); }
+.color-muted { color: var(--text-muted); }
+.border-plat-border { border-color: var(--border-main) !important; }
+
+/* ─── Premium Checkbox System ─── */
+.plat-checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-main);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all var(--pp-transition-fast);
+  margin-top: 8px;
+  user-select: none;
+  width: fit-content;
+}
+
+.plat-checkbox-group:hover {
+  border-color: var(--pp-blue-border);
+  background: var(--bg-card);
+  box-shadow: var(--pp-shadow-sm);
+  transform: translateY(-1px);
+}
+
+.plat-checkbox-group input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--pp-blue);
+}
+
+.plat-checkbox-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pp-ink);
+}
+
+.dark .plat-checkbox-group {
+  background: var(--pp-warm-3);
+}
+
+.dark .plat-checkbox-group:hover {
+  background: var(--pp-warm-4);
+  border-color: var(--pp-blue);
 }
 
 /* ─── Layout Utilities ─────────────────────────────────────────────────────── */
@@ -3732,3 +3784,20 @@ a {
 }
 
 /* ─── END RESPONSIVE FIXES v4 ────────────────────────────────────────────── */
+/* ─── Unregistered Patient Highlighting ─── */
+.pp-row-unregistered {
+  background-color: #FFF1F2 !important;
+}
+
+.pp-row-unregistered:hover td {
+  background-color: #FFE4E6 !important;
+}
+
+/* Dark Mode Enhancements */
+.dark .pp-row-unregistered {
+  background-color: rgba(225, 29, 72, 0.12) !important;
+}
+
+.dark .pp-row-unregistered:hover td {
+  background-color: rgba(225, 29, 72, 0.2) !important;
+}
