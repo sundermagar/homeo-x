@@ -7,6 +7,7 @@ import {
   expensesLegacy,
   expensesheadLegacy,
   patients,
+  charges as chargesLegacy,
 } from '@mmc/database/schema';
 import type { DbClient } from '@mmc/database';
 import {
@@ -124,6 +125,28 @@ export class AdditionalChargeRepositoryPg implements AdditionalChargeRepository 
         updatedAt: new Date(),
       })
       .returning();
+
+    // If the charge matches a catalog product, deduct the product inventory count
+    try {
+      if (data.additionalName) {
+        const [matchingCharge] = await this.db
+          .select()
+          .from(chargesLegacy)
+          .where(and(eq(chargesLegacy.charges, data.additionalName), eq(chargesLegacy.type, 'Product'), isNull(chargesLegacy.deletedAt)))
+          .limit(1);
+
+        if (matchingCharge && matchingCharge.quantity !== null) {
+          const newQty = Math.max(0, (matchingCharge.quantity || 0) - (data.additionalQuantity ?? 1));
+          await this.db
+            .update(chargesLegacy)
+            .set({ quantity: newQty, updatedAt: new Date() })
+            .where(eq(chargesLegacy.id, matchingCharge.id));
+        }
+      }
+    } catch (err) {
+      console.warn('[ACCOUNTS_REPO] Failed to deduct product quantity from catalog:', err);
+    }
+
     return this.toDomain(row!);
   }
 
@@ -613,7 +636,6 @@ export class ExpenseRepositoryPg implements ExpenseRepository {
 /**
  * PostgreSQL adapter for ChargeRepository.
  */
-import { charges as chargesLegacy } from '@mmc/database/schema';
 import type { ChargeRepository } from '../../domains/billing/ports/accounts.repository.js';
 import type { Charge } from '@mmc/types';
 import type { CreateChargeInput, UpdateChargeInput } from '@mmc/validation';

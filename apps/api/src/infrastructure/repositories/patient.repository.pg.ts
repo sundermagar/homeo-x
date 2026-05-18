@@ -136,9 +136,18 @@ export class PatientRepositoryPg implements PatientRepository {
         .select({
           patient: patients,
           doctorName: sql<string>`COALESCE(
-            (SELECT name FROM users WHERE id::text = TRIM(${patients.assistantDoctor}) LIMIT 1),
-            (SELECT name FROM doctors WHERE id::text = TRIM(${patients.assistantDoctor}) LIMIT 1),
-            ${patients.assistantDoctor}
+            (
+              SELECT u.name 
+              FROM medicalcases mc 
+              JOIN users u ON mc.doctor_id = u.id 
+              WHERE mc.regid = case_datas.regid 
+                AND (mc.deleted_at IS NULL OR mc.deleted_at::text = '')
+              ORDER BY mc.created_at DESC 
+              LIMIT 1
+            ),
+            (SELECT name FROM doctors WHERE id::text = TRIM(case_datas.assitant_doctor) LIMIT 1),
+            (SELECT name FROM users WHERE id::text = TRIM(case_datas.assitant_doctor) LIMIT 1),
+            case_datas.assitant_doctor
           )`,
           lastVisit: sql<Date>`(
             SELECT MAX(d) FROM (
@@ -362,9 +371,18 @@ export class PatientRepositoryPg implements PatientRepository {
       .select({
         patient: patients,
         doctorName: sql<string>`COALESCE(
-          (SELECT name FROM users WHERE id::text = TRIM(${patients.assistantDoctor}) LIMIT 1),
-          (SELECT name FROM doctors WHERE id::text = TRIM(${patients.assistantDoctor}) LIMIT 1),
-          ${patients.assistantDoctor}
+          (
+            SELECT u.name 
+            FROM medicalcases mc 
+            JOIN users u ON mc.doctor_id = u.id 
+            WHERE mc.regid = case_datas.regid 
+              AND (mc.deleted_at IS NULL OR mc.deleted_at::text = '')
+            ORDER BY mc.created_at DESC 
+            LIMIT 1
+          ),
+          (SELECT name FROM doctors WHERE id::text = TRIM(case_datas.assitant_doctor) LIMIT 1),
+          (SELECT name FROM users WHERE id::text = TRIM(case_datas.assitant_doctor) LIMIT 1),
+          case_datas.assitant_doctor
         )`
       })
       .from(patients)
@@ -387,9 +405,18 @@ export class PatientRepositoryPg implements PatientRepository {
       .select({
         patient: patients,
         doctorName: sql<string>`COALESCE(
-          (SELECT name FROM users WHERE id::text = TRIM(${patients.assistantDoctor}) LIMIT 1),
-          (SELECT name FROM doctors WHERE id::text = TRIM(${patients.assistantDoctor}) LIMIT 1),
-          ${patients.assistantDoctor}
+          (
+            SELECT u.name 
+            FROM medicalcases mc 
+            JOIN users u ON mc.doctor_id = u.id 
+            WHERE mc.regid = case_datas.regid 
+              AND (mc.deleted_at IS NULL OR mc.deleted_at::text = '')
+            ORDER BY mc.created_at DESC 
+            LIMIT 1
+          ),
+          (SELECT name FROM doctors WHERE id::text = TRIM(case_datas.assitant_doctor) LIMIT 1),
+          (SELECT name FROM users WHERE id::text = TRIM(case_datas.assitant_doctor) LIMIT 1),
+          case_datas.assitant_doctor
         )`
       })
       .from(patients)

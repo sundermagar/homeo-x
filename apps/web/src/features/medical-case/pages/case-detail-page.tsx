@@ -125,6 +125,7 @@ export default function MedicalCaseDetailPage() {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showVitalsModal, setShowVitalsModal] = useState(false);
   const [showBillingModal, setShowBillingModal] = useState(false);
+  const [activeBillingTab, setActiveBillingTab] = useState<'regular' | 'custom' | 'payment'>('regular');
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [showFinalizeModal, setShowFinalizeModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -405,23 +406,71 @@ export default function MedicalCaseDetailPage() {
   }, [displayDate, summary?.bills]);
 
   const billingValues = useMemo(() => {
-    if (selectedBill) {
-      return {
-        regular: selectedBill.charges,
-        additional: 0, // Fallback for historical/aggregated bills
-        total: selectedBill.charges,
-        received: selectedBill.received,
-        balance: selectedBill.balance
-      };
-    }
+    // 1. Calculate additional charges for the selected displayDate
+    const additional = (() => {
+      if (!displayDate || !fullData?.additionalCharges) return 0;
+      return fullData.additionalCharges
+        .filter((ac: any) => {
+          const d = ac.createdAt ? new Date(ac.createdAt) : null;
+          return d && d.toDateString() === displayDate.toDateString();
+        })
+        .reduce((sum: number, ac: any) => sum + (Number(ac.amount) || 0), 0);
+    })();
 
-    const additional = medicalCase?.totalAdditionalCharges || 0;
-    const regular = medicalCase?.consultationFee || pendingCharge || 0;
-    const currentTotal = pendingCharge > 0
-      ? (pendingCharge + additional)
-      : (medicalCase?.totalBill || 0);
+    // 2. Fetch all bills for the selected displayDate to sum received amount
+    const dayBills = (() => {
+      if (!displayDate || !summary?.bills) return [];
+      return summary.bills.filter(b => {
+        const d = parseSafeDate(b.billDate || b.createdAt);
+        return d && d.toDateString() === displayDate.toDateString();
+      });
+    })();
 
-    const currentPaid = medicalCase?.paidAmount || 0;
+    // Sum of received amount for all bills on this date
+    const currentPaid = dayBills.reduce((sum: number, b: any) => sum + (Number(b.received) || 0), 0);
+
+    // Sum of all regular bills currently saved in the database for today
+    const savedRegularBillsSum = dayBills
+      .filter(b => b.billType !== 'Custom' && b.billType !== 'Additional')
+      .reduce((sum, b) => sum + (Number(b.charges) || 0), 0);
+
+    const isCompleted = medicalCase?.status === 'Completed';
+
+    // 3. Dynamic Medicine Days Charge (e.g. 600 for 3 days of medicine)
+    const effectiveDaysCharge = (() => {
+      if (pendingCharge > 0) return pendingCharge;
+      if (!displayDate) return 0;
+      
+      const allRx = [...(prescriptionsHistory || []), ...(prescriptionsFromFull || [])];
+      const todayRx = allRx.filter((rx: any) => {
+        const d = parseSafeDate(rx.created_at || rx.dateval);
+        return d && d.toDateString() === displayDate.toDateString();
+      });
+
+      if (todayRx.length === 0) return 0;
+      
+      const savedDays = Number(todayRx[0].days) || 0;
+      if (savedDays <= 0) return 0;
+
+      const match = dayCharges.find((dc: any) => Number(dc.days) === savedDays);
+      return match ? Number(match.regularCharges) || 0 : 0;
+    })();
+
+    // 4. Registration Charge (shown as "Registration Charge" row in UI)
+    // It must strictly be the base consultation/registration fee without dynamic medicine day charges.
+    const regular = (() => {
+      if (isCompleted) {
+        // If completed, the savedRegularBillsSum already includes the finalized day charge.
+        // We subtract it to show only the base consultation/registration fee in this row.
+        return Math.max(0, savedRegularBillsSum - effectiveDaysCharge);
+      }
+      // Otherwise (active session), it is the saved bills sum (like registration fee) + doctor fee.
+      const baseFee = medicalCase?.consultationFee || 0;
+      return savedRegularBillsSum + baseFee;
+    })();
+
+    // 5. Total Bill Amount = Registration Charge (regular) + Medicine Days Charge + Additional Charges
+    const currentTotal = regular + effectiveDaysCharge + additional;
     const currentBalance = currentTotal - currentPaid;
 
     return {
@@ -431,7 +480,16 @@ export default function MedicalCaseDetailPage() {
       received: currentPaid,
       balance: currentBalance
     };
-  }, [selectedBill, medicalCase, pendingCharge]);
+  }, [
+    summary?.bills,
+    medicalCase,
+    pendingCharge,
+    displayDate,
+    fullData?.additionalCharges,
+    prescriptionsHistory,
+    prescriptionsFromFull,
+    dayCharges
+  ]);
 
   // ─── Derived from fullData (safe after query completes) ───
   const fullVitals = fullData?.vitals;
@@ -788,11 +846,11 @@ export default function MedicalCaseDetailPage() {
 
                 <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', border: '1px solid #f1f5f9', borderRadius: '12px', overflow: 'hidden' }}>
                   {[
-                    { label: 'Regular Charge', value: billingValues.regular, color: '#1e293b' },
-                    { label: 'Additional Charge', value: billingValues.additional, color: '#64748b' },
-                    { label: 'Total Bill Amount', value: billingValues.total, color: '#2563eb', bold: true },
-                    { label: 'Amount Received', value: billingValues.received, color: '#059669' },
-                    { label: 'Pending Balance', value: billingValues.balance, color: '#dc2626', bold: true },
+                    { label: 'Registration Charge', value: billingValues.regular, color: '#1e293b', tab: 'regular' },
+                    { label: 'Additional Charge', value: billingValues.additional, color: '#64748b', tab: 'custom' },
+                    { label: 'Total Bill Amount', value: billingValues.total, color: '#2563eb', bold: true, tab: 'regular' },
+                    { label: 'Amount Received', value: billingValues.received, color: '#059669', tab: 'payment' },
+                    { label: 'Pending Balance', value: billingValues.balance, color: '#dc2626', bold: true, noEdit: true },
                   ].map((row, idx) => (
                     <div key={idx} style={{ 
                       display: 'grid', 
@@ -804,34 +862,41 @@ export default function MedicalCaseDetailPage() {
                     }}>
                       <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569' }}>{row.label}</span>
                       <span style={{ fontSize: '0.95rem', fontWeight: row.bold ? 800 : 700, color: row.color, textAlign: 'right', paddingRight: '20px' }}>₹{row.value}</span>
-                      <button 
-                        onClick={() => setShowBillingModal(true)}
-                        style={{ 
-                          width: '28px',
-                          height: '28px',
-                          padding: '0', 
-                          background: '#fff', 
-                          border: '1px solid #e2e8f0', 
-                          borderRadius: '6px', 
-                          cursor: 'pointer', 
-                          color: '#64748b',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                          transition: 'all 0.2s'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = '#f1f5f9';
-                          e.currentTarget.style.color = '#3b82f6';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = '#fff';
-                          e.currentTarget.style.color = '#64748b';
-                        }}
-                      >
-                        <Edit size={12} />
-                      </button>
+                      {row.noEdit ? (
+                        <div style={{ width: '28px', height: '28px' }} />
+                      ) : (
+                        <button 
+                          onClick={() => {
+                            setActiveBillingTab(row.tab as any);
+                            setShowBillingModal(true);
+                          }}
+                          style={{ 
+                            width: '28px',
+                            height: '28px',
+                            padding: '0', 
+                            background: '#fff', 
+                            border: '1px solid #e2e8f0', 
+                            borderRadius: '6px', 
+                            cursor: 'pointer', 
+                            color: '#64748b',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                            transition: 'all 0.2s'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = '#f1f5f9';
+                            e.currentTarget.style.color = '#3b82f6';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = '#fff';
+                            e.currentTarget.style.color = '#64748b';
+                          }}
+                        >
+                          <Edit size={12} />
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1241,6 +1306,8 @@ export default function MedicalCaseDetailPage() {
           regid={Number(regid)}
           patientName={medicalCase.patientName || ''}
           currentConsultationFee={medicalCase.consultationFee || 0}
+          defaultTab={activeBillingTab}
+          additionalCharges={fullData?.additionalCharges || []}
           onClose={() => setShowBillingModal(false)}
         />
       )}

@@ -68,7 +68,18 @@ export function useCreateAdditionalCharge() {
       );
       return data.data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['additional-charges'] }),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['additional-charges'] });
+      qc.invalidateQueries({ queryKey: ['charges'] });
+      qc.invalidateQueries({ queryKey: ['bills'] });
+      qc.invalidateQueries({ queryKey: ['billing', 'daily'] });
+      if (data?.regid) {
+        qc.refetchQueries({ queryKey: ['medical-case', 'full', data.regid] });
+        qc.refetchQueries({ queryKey: ['medical-case', 'full', String(data.regid)] });
+      } else {
+        qc.invalidateQueries({ queryKey: ['medical-case', 'full'] });
+      }
+    },
   });
 }
 
@@ -92,7 +103,11 @@ export function useDeleteAdditionalCharge() {
     mutationFn: async (id: number) => {
       await apiClient.delete(`/accounts/additional-charges/${id}`);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['additional-charges'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['additional-charges'] });
+      qc.invalidateQueries({ queryKey: ['bills'] });
+      qc.invalidateQueries({ queryKey: ['medical-case', 'full'] });
+    },
   });
 }
 
