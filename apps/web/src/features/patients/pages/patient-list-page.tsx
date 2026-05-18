@@ -177,7 +177,9 @@ export default function PatientListPage() {
   };
 
   const doctorName = (p: any) => {
-     return meta?.doctors?.find(d => String(d.id) === String(p.doctorName))?.name || p.doctorName || '—';
+    const docIdOrName = p.doctorName;
+    if (!docIdOrName || docIdOrName === '—' || docIdOrName === '0') return '';
+    return meta?.doctors?.find(d => String(d.id) === String(docIdOrName))?.name || docIdOrName;
   }
 
   const renderMenuItems = (p: PatientSummary) => (
@@ -445,9 +447,11 @@ export default function PatientListPage() {
                 )}
               </div>
               <div className="appt-grid-card-detail">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <MapPin size={14} /> {doctorName(p)}
-                </div>
+                {doctorName(p) && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <MapPin size={14} /> {doctorName(p)}
+                  </div>
+                )}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Calendar size={14} /> {p.isUnregistered ? 'Shadow Record' : `Followup: ${p.lastVisit ? formatDate(p.lastVisit) : "No Followup"}`}
                 </div>

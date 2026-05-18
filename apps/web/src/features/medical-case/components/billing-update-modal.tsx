@@ -2,15 +2,21 @@ import React, { useState } from 'react';
 import { 
   X, CreditCard, Plus, Receipt, IndianRupee, 
   ChevronRight, Save, Loader2, AlertCircle, CheckCircle2,
-  Trash2
+  Trash2, Edit
 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { 
   useCreateCustomBill, 
   useRecordPayment 
 } from '../../billing/hooks/use-billing';
 import { useUpdatePatient } from '../../patients/hooks/use-patients';
 import { usePatientBills } from '../../billing/hooks/use-billing';
-import { useCreateAdditionalCharge, useCharges, useDeleteAdditionalCharge } from '../../billing/hooks/use-accounts';
+import { 
+  useCreateAdditionalCharge, 
+  useUpdateAdditionalCharge,
+  useCharges, 
+  useDeleteAdditionalCharge 
+} from '../../billing/hooks/use-accounts';
 
 interface BillingUpdateModalProps {
   regid: number;
@@ -19,11 +25,20 @@ interface BillingUpdateModalProps {
   currentConsultationFee?: number;
   defaultTab?: TabType;
   additionalCharges?: any[];
+  displayDate?: Date;
 }
 
 type TabType = 'regular' | 'custom' | 'payment';
 
-export function BillingUpdateModal({ regid, patientName, onClose, currentConsultationFee, defaultTab, additionalCharges = [] }: BillingUpdateModalProps) {
+export function BillingUpdateModal({ 
+  regid, 
+  patientName, 
+  onClose, 
+  currentConsultationFee, 
+  defaultTab, 
+  additionalCharges = [],
+  displayDate
+}: BillingUpdateModalProps) {
   const [activeTab, setActiveTab] = useState<TabType>(defaultTab || 'regular');
   const [amount, setAmount] = useState<string>(currentConsultationFee?.toString() || '');
   const [customTitle, setCustomTitle] = useState('');
@@ -31,14 +46,41 @@ export function BillingUpdateModal({ regid, patientName, onClose, currentConsult
   const [isProduct, setIsProduct] = useState(false);
   const [quantity, setQuantity] = useState<number>(1);
   const [paymentMode, setPaymentMode] = useState<'Cash' | 'Card' | 'Cheque' | 'UPI' | 'Online' | 'Bank Transfer'>('Cash');
+  const [editingChargeId, setEditingChargeId] = useState<number | null>(null);
 
   // Mutations
   const updatePatient = useUpdatePatient();
   const createAdditionalCharge = useCreateAdditionalCharge();
+  const updateAdditionalCharge = useUpdateAdditionalCharge();
   const deleteAdditionalCharge = useDeleteAdditionalCharge();
   const recordPayment = useRecordPayment();
   const { data: bills, refetch: refetchBills } = usePatientBills(regid);
   const { data: chargesCatalog = [] } = useCharges();
+  const qc = useQueryClient();
+
+  const todayCharges = React.useMemo(() => {
+    if (!displayDate || !additionalCharges) return [];
+    return additionalCharges.filter((ac: any) => {
+      const d = ac.createdAt ? new Date(ac.createdAt) : null;
+      return d && d.toDateString() === displayDate.toDateString();
+    });
+  }, [displayDate, additionalCharges]);
+
+  React.useEffect(() => {
+    if (activeTab === 'custom' && todayCharges.length > 0 && !editingChargeId) {
+      const firstCharge = todayCharges[0];
+      const title = firstCharge.name || firstCharge.additionalName || '';
+      setCustomTitle(title);
+      setAmount((firstCharge.price || firstCharge.additionalPrice || firstCharge.amount || 0).toString());
+      
+      const match = chargesCatalog.find(c => c.charges === title);
+      const isProd = (match && match.type === 'Product') || (firstCharge.quantity !== undefined && firstCharge.quantity !== null);
+      
+      setIsProduct(!!isProd);
+      setQuantity(firstCharge.quantity || 1);
+      setEditingChargeId(firstCharge.id);
+    }
+  }, [activeTab, todayCharges, editingChargeId, chargesCatalog]);
 
   const handleUpdateRegular = async () => {
     if (!amount || isNaN(Number(amount))) return;
@@ -56,18 +98,28 @@ export function BillingUpdateModal({ regid, patientName, onClose, currentConsult
   const handleAddCustom = async () => {
     if (!amount || isNaN(Number(amount)) || !customTitle) return;
     try {
-      await createAdditionalCharge.mutateAsync({
-        regid,
-        additionalName: customTitle,
-        additionalPrice: Number(amount),
-        receivedPrice: 0,
-        additionalQuantity: isProduct ? quantity : 1,
-        dateval: new Date().toISOString().split('T')[0]
-      });
+      if (editingChargeId) {
+        await updateAdditionalCharge.mutateAsync({
+          id: editingChargeId,
+          additionalName: customTitle,
+          additionalPrice: Number(amount),
+          additionalQuantity: isProduct ? quantity : 1,
+        });
+      } else {
+        await createAdditionalCharge.mutateAsync({
+          regid,
+          additionalName: customTitle,
+          additionalPrice: Number(amount),
+          receivedPrice: 0,
+          additionalQuantity: isProduct ? quantity : 1,
+          dateval: new Date().toISOString().split('T')[0]
+        });
+      }
       refetchBills();
+      qc.invalidateQueries({ queryKey: ['medical-case', 'full'] });
       onClose();
     } catch (err) {
-      console.error('Failed to add custom charge:', err);
+      console.error('Failed to save custom charge:', err);
     }
   };
 
@@ -99,7 +151,7 @@ export function BillingUpdateModal({ regid, patientName, onClose, currentConsult
     }
   };
 
-  const isLoading = updatePatient.isPending || createAdditionalCharge.isPending || recordPayment.isPending;
+  const isLoading = updatePatient.isPending || createAdditionalCharge.isPending || updateAdditionalCharge.isPending || recordPayment.isPending;
 
   return (
     <>
@@ -201,12 +253,14 @@ export function BillingUpdateModal({ regid, patientName, onClose, currentConsult
 
           {activeTab === 'custom' && (
             <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+
               {chargesCatalog && chargesCatalog.length > 0 && (
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#0f172a', marginBottom: '8px' }}>Select from Catalog</label>
                   <select 
                     className="pp-input" 
                     style={{ width: '100%', cursor: 'pointer', fontWeight: 600, color: '#0f172a', borderRadius: '8px', border: '1px solid #e2e8f0', padding: '10px 14px' }}
+                    value={chargesCatalog.find(c => c.charges === customTitle)?.id?.toString() || ''}
                     onChange={e => {
                       const selected = chargesCatalog.find(c => c.id === Number(e.target.value));
                       if (selected) {
@@ -216,7 +270,6 @@ export function BillingUpdateModal({ regid, patientName, onClose, currentConsult
                         setQuantity(1);
                       }
                     }}
-                    defaultValue=""
                   >
                     <option value="" disabled>-- Choose predefined service or product --</option>
                     {chargesCatalog.map(charge => (
@@ -300,6 +353,36 @@ export function BillingUpdateModal({ regid, patientName, onClose, currentConsult
                           <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a' }}>
                             ₹{ac.amount}
                           </span>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              const title = ac.name || ac.additionalName || '';
+                              setCustomTitle(title);
+                              setAmount((ac.price || ac.additionalPrice || ac.amount || 0).toString());
+                              
+                              const match = chargesCatalog.find(c => c.charges === title);
+                              const isProd = (match && match.type === 'Product') || (ac.quantity !== undefined && ac.quantity !== null);
+                              
+                              setIsProduct(!!isProd);
+                              setQuantity(ac.quantity || 1);
+                              setEditingChargeId(ac.id);
+                            }}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: '#3b82f6',
+                              cursor: 'pointer',
+                              padding: '4px',
+                              borderRadius: '6px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'all 0.2s'
+                            }}
+                            title="Edit charge"
+                          >
+                            <Edit size={15} />
+                          </button>
                           <button
                             onClick={async (e) => {
                               e.preventDefault();
@@ -404,7 +487,7 @@ export function BillingUpdateModal({ regid, patientName, onClose, currentConsult
           >
             {isLoading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
             <span>
-              {activeTab === 'regular' ? 'Update Charge' : activeTab === 'custom' ? 'Add Charge' : 'Record Payment'}
+              {activeTab === 'regular' ? 'Update Charge' : activeTab === 'custom' ? (editingChargeId ? 'Save Changes' : 'Add Charge') : 'Record Payment'}
             </span>
           </button>
         </div>

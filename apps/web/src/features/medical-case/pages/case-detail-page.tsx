@@ -862,7 +862,7 @@ export default function MedicalCaseDetailPage() {
                     }}>
                       <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569' }}>{row.label}</span>
                       <span style={{ fontSize: '0.95rem', fontWeight: row.bold ? 800 : 700, color: row.color, textAlign: 'right', paddingRight: '20px' }}>₹{row.value}</span>
-                      {row.noEdit ? (
+                      {row.noEdit || !isToday ? (
                         <div style={{ width: '28px', height: '28px' }} />
                       ) : (
                         <button 
@@ -1192,15 +1192,17 @@ export default function MedicalCaseDetailPage() {
                       </div>
                     </div>
                   </div>
-                  <button
-                    onClick={() => { setMobileDrawer(null); setShowBillingModal(true); }}
-                    style={{
-                      width: '100%', padding: '14px', background: 'var(--pp-success-bg)', color: 'var(--pp-success-fg)',
-                      border: '1px solid #BBF7D0', borderRadius: '10px', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer'
-                    }}
-                  >
-                    Record Payment
-                  </button>
+                  {isToday && (
+                    <button
+                      onClick={() => { setMobileDrawer(null); setShowBillingModal(true); }}
+                      style={{
+                        width: '100%', padding: '14px', background: 'var(--pp-success-bg)', color: 'var(--pp-success-fg)',
+                        border: '1px solid #BBF7D0', borderRadius: '10px', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer'
+                      }}
+                    >
+                      Record Payment
+                    </button>
+                  )}
                 </>
               )}
 
@@ -1308,6 +1310,7 @@ export default function MedicalCaseDetailPage() {
           currentConsultationFee={medicalCase.consultationFee || 0}
           defaultTab={activeBillingTab}
           additionalCharges={fullData?.additionalCharges || []}
+          displayDate={displayDate || undefined}
           onClose={() => setShowBillingModal(false)}
         />
       )}
