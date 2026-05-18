@@ -134,6 +134,11 @@ export default function MedicalCaseDetailPage() {
   const visitId = medicalCase?.id;
   const { data: dayCharges = [] } = useDayCharges();
 
+  const formatName = useCallback((name?: string | null) => {
+    if (!name) return '';
+    return name.replace(/\b\w/g, c => c.toUpperCase());
+  }, []);
+
   const { data: lookups } = useRemedyLookups();
   const rxWorkflow = usePrescriptionWorkflow(Number(regid), visitId, selectedDate);
 
@@ -429,15 +434,19 @@ export default function MedicalCaseDetailPage() {
     // Sum of received amount for all bills on this date
     const currentPaid = dayBills.reduce((sum: number, b: any) => sum + (Number(b.received) || 0), 0);
 
-    // Sum of all regular bills currently saved in the database for today
+    // Sum of all regular bills currently saved in the database for today (excluding custom, additional, and package bills)
     const savedRegularBillsSum = dayBills
-      .filter(b => b.billType !== 'Custom' && b.billType !== 'Additional')
+      .filter(b => 
+        b.billType !== 'Custom' && 
+        b.billType !== 'Additional' && 
+        !b.treatment?.startsWith('Package:')
+      )
       .reduce((sum, b) => sum + (Number(b.charges) || 0), 0);
 
     const isCompleted = medicalCase?.status === 'Completed';
 
     // 3. Dynamic Medicine Days Charge (e.g. 600 for 3 days of medicine)
-    const effectiveDaysCharge = (() => {
+    const rawEffectiveDaysCharge = (() => {
       if (pendingCharge > 0) return pendingCharge;
       if (!displayDate) return 0;
       
@@ -455,9 +464,17 @@ export default function MedicalCaseDetailPage() {
       const match = dayCharges.find((dc: any) => Number(dc.days) === savedDays);
       return match ? Number(match.regularCharges) || 0 : 0;
     })();
+    
+    const hasActivePackage = !!fullData?.activePackage;
+    
+    // Waive medicine charges if covered by package and session isn't completed yet
+    const effectiveDaysCharge = (hasActivePackage && fullData?.activePackage?.coversMedicine && !isCompleted)
+      ? 0
+      : rawEffectiveDaysCharge;
 
     // 4. Registration Charge (shown as "Registration Charge" row in UI)
     // It must strictly be the base consultation/registration fee without dynamic medicine day charges.
+    const originalRegular = medicalCase?.consultationFee || 0;
     const regular = (() => {
       if (isCompleted) {
         // If completed, the savedRegularBillsSum already includes the finalized day charge.
@@ -465,7 +482,7 @@ export default function MedicalCaseDetailPage() {
         return Math.max(0, savedRegularBillsSum - effectiveDaysCharge);
       }
       // Otherwise (active session), it is the saved bills sum (like registration fee) + doctor fee.
-      const baseFee = medicalCase?.consultationFee || 0;
+      const baseFee = originalRegular;
       return savedRegularBillsSum + baseFee;
     })();
 
@@ -475,10 +492,16 @@ export default function MedicalCaseDetailPage() {
 
     return {
       regular,
+      originalRegular,
       additional,
       total: currentTotal,
       received: currentPaid,
-      balance: currentBalance
+      balance: currentBalance,
+      daysCharge: effectiveDaysCharge,
+      originalDaysCharge: rawEffectiveDaysCharge,
+      hasActivePackage,
+      activePackageName: fullData?.activePackage?.packageName,
+      activePackageColor: fullData?.activePackage?.colorCode
     };
   }, [
     summary?.bills,
@@ -641,7 +664,7 @@ export default function MedicalCaseDetailPage() {
               {medicalCase.patientName?.substring(0, 2).toUpperCase()}
             </div>
             <div className="profile-name-id">
-              <h1 className="profile-name">{medicalCase.patientName}</h1>
+              <h1 className="profile-name">{formatName(medicalCase.patientName)}</h1>
               <span className="profile-id">Patient #{regid}</span>
             </div>
             <div className={`profile-status-chip ${activePackage?.status === 'Active' ? 'active' : ''}`}>
@@ -708,7 +731,7 @@ export default function MedicalCaseDetailPage() {
                     clinic: clinic as any,
                     doctor,
                     patient: {
-                      name: medicalCase.patientName || `Patient ${regid}`,
+                      name: formatName(medicalCase.patientName) || `Patient ${regid}`,
                       age: ageString.replace(' Years', ''),
                       gender: medicalCase.gender || undefined,
                       mrn: String(regid),
@@ -753,7 +776,7 @@ export default function MedicalCaseDetailPage() {
           <div className="profile-info-cell">
             <label>DOCTOR</label>
             <div className="info-with-icon">
-              <Stethoscope size={14} /> {medicalCase.doctorName || '—'}
+              <Stethoscope size={14} /> {formatName(medicalCase.doctorName) || '—'}
             </div>
           </div>
           <div className="profile-info-cell">
@@ -844,9 +867,20 @@ export default function MedicalCaseDetailPage() {
                   )}
                 </div>
 
+                {billingValues.hasActivePackage && (
+                  <div style={{ background: `${billingValues.activePackageColor || '#3b82f6'}1a`, border: `1px solid ${billingValues.activePackageColor || '#3b82f6'}33`, padding: '8px 16px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px', marginTop: '-4px' }}>
+                    <span style={{ fontSize: '1rem' }}>💎</span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: billingValues.activePackageColor || '#1e40af' }}>
+                      Active Plan: {billingValues.activePackageName}
+                    </span>
+                    <span style={{ marginLeft: 'auto', fontSize: '0.65rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>Charges Waived</span>
+                  </div>
+                )}
+
                 <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', border: '1px solid #f1f5f9', borderRadius: '12px', overflow: 'hidden' }}>
                   {[
-                    { label: 'Registration Charge', value: billingValues.regular, color: '#1e293b', tab: 'regular' },
+                    { label: 'Registration Charge', value: billingValues.regular, color: '#1e293b', tab: 'regular', isCovered: billingValues.hasActivePackage && billingValues.originalRegular > 0 && billingValues.regular === 0, originalValue: billingValues.originalRegular },
+                    { label: 'Medicine Days Charge', value: billingValues.daysCharge, color: '#475569', tab: 'regular', isCovered: billingValues.hasActivePackage && billingValues.originalDaysCharge > 0 && billingValues.daysCharge === 0, originalValue: billingValues.originalDaysCharge },
                     { label: 'Additional Charge', value: billingValues.additional, color: '#64748b', tab: 'custom' },
                     { label: 'Total Bill Amount', value: billingValues.total, color: '#2563eb', bold: true, tab: 'regular' },
                     { label: 'Amount Received', value: billingValues.received, color: '#059669', tab: 'payment' },
@@ -856,12 +890,21 @@ export default function MedicalCaseDetailPage() {
                       display: 'grid', 
                       gridTemplateColumns: '1fr 140px 40px', 
                       padding: '10px 16px', 
-                      borderBottom: idx === 4 ? 'none' : '1px solid #f1f5f9',
+                      borderBottom: idx === 5 ? 'none' : '1px solid #f1f5f9',
                       alignItems: 'center',
                       background: idx % 2 === 0 ? 'transparent' : '#f8fafc'
                     }}>
                       <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569' }}>{row.label}</span>
-                      <span style={{ fontSize: '0.95rem', fontWeight: row.bold ? 800 : 700, color: row.color, textAlign: 'right', paddingRight: '20px' }}>₹{row.value}</span>
+                      <span style={{ fontSize: '0.95rem', fontWeight: row.bold ? 800 : 700, color: row.color, textAlign: 'right', paddingRight: '20px' }}>
+                        {row.isCovered ? (
+                          <>
+                            <del style={{ color: '#94a3b8', fontSize: '0.75rem', marginRight: '6px' }}>₹{row.originalValue}</del>
+                            <span style={{ color: '#059669', fontWeight: 800 }}>₹0</span>
+                          </>
+                        ) : (
+                          `₹${row.value}`
+                        )}
+                      </span>
                       {row.noEdit || !isToday ? (
                         <div style={{ width: '28px', height: '28px' }} />
                       ) : (
@@ -1292,7 +1335,9 @@ export default function MedicalCaseDetailPage() {
           patientId={Number(regid)}
           patientName={medicalCase.patientName || ''}
           onClose={() => setShowAssignModal(false)}
-          onSuccess={() => { }}
+          onSuccess={() => { 
+            refetchFull();
+          }}
         />
       )}
       {showFinalizeModal && (
@@ -1300,6 +1345,9 @@ export default function MedicalCaseDetailPage() {
           regid={Number(regid)}
           visitId={medicalCase.id}
           prescriptions={prescriptionsHistory || []}
+          defaultConsultationFee={medicalCase.consultationFee || 0}
+          defaultMedicineDaysCharge={billingValues.daysCharge || 0}
+          activePackageName={billingValues.activePackageName}
           onClose={() => setShowFinalizeModal(false)}
         />
       )}

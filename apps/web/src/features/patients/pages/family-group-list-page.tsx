@@ -24,7 +24,11 @@ export default function FamilyGroupListPage() {
     (window as any).__familySearchTimer = setTimeout(() => setDebouncedSearch(val), 300);
   };
 
-  const families = data?.data || [];
+  const families = (data?.data || []).map((f: any) => ({
+    ...f,
+    name: f.name ? f.name.replace(/\b\w/g, c => c.toUpperCase()) : '',
+    surname: f.surname ? f.surname.replace(/\b\w/g, c => c.toUpperCase()) : ''
+  }));
   const total = (data as any)?._original?.total ?? (data as any)?.total ?? 0;
   const totalPages = Math.ceil(total / PAGE_SIZE);
 

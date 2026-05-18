@@ -23,6 +23,8 @@ export default function PatientDetailPage() {
   const addFamilyMutation = useAddFamilyMember();
   const removeFamilyMutation = useRemoveFamilyMember();
 
+  const formatName = (name?: string | null) => name ? name.replace(/\b\w/g, c => c.toUpperCase()) : '';
+
   const [showFamilyForm, setShowFamilyForm] = useState(false);
   const [familyForm, setFamilyForm] = useState({ memberRegid: '', relation: 'Spouse' });
   const [searchQuery, setSearchQuery] = useState('');
@@ -104,7 +106,7 @@ export default function PatientDetailPage() {
         </div>
         <div className="pat-header-info">
           <h1 className="pat-header-name">
-            {patient.title} {patient.firstName} {patient.middleName} {patient.surname}
+            {patient.title} {formatName(patient.firstName)} {formatName(patient.middleName)} {formatName(patient.surname)}
           </h1>
           <div className="pat-header-meta">
             <span className="pat-reg-badge">RegID: {patient.regid}</span>
@@ -223,10 +225,10 @@ export default function PatientDetailPage() {
                     {lookupResults.filter((p: PatientSummary) => p.regid !== numRegid).map((p: PatientSummary) => (
                       <div
                         key={p.regid}
-                        onClick={() => { setFamilyForm(f => ({ ...f, memberRegid: String(p.regid) })); setSearchQuery(p.fullName); }}
+                        onClick={() => { setFamilyForm(f => ({ ...f, memberRegid: String(p.regid) })); setSearchQuery(formatName(p.fullName)); }}
                         className="hover-row pat-lookup-item"
                       >
-                        <div className="pat-lookup-name">{p.fullName}</div>
+                        <div className="pat-lookup-name">{formatName(p.fullName)}</div>
                         <div className="pat-lookup-sub">RegID: {p.regid} • {p.phone}</div>
                       </div>
                     ))}
@@ -285,7 +287,7 @@ export default function PatientDetailPage() {
                         <div className="pat-avatar pat-avatar--sm pat-avatar--warm">
                           {(m.memberName?.[0] || '?').toUpperCase()}
                         </div>
-                        <span className="pat-member-name">{m.memberName || 'Unknown'}</span>
+                        <span className="pat-member-name">{formatName(m.memberName) || 'Unknown'}</span>
                       </div>
                     </td>
                     <td>

@@ -8,15 +8,27 @@ interface FinalizeConsultationModalProps {
   regid: number;
   visitId: number;
   prescriptions: any[];
+  defaultConsultationFee?: number;
+  defaultMedicineDaysCharge?: number;
+  activePackageName?: string;
   onClose: () => void;
 }
 
-export function FinalizeConsultationModal({ regid, visitId, prescriptions, onClose }: FinalizeConsultationModalProps) {
+export function FinalizeConsultationModal({ 
+  regid, 
+  visitId, 
+  prescriptions, 
+  defaultConsultationFee = 500,
+  defaultMedicineDaysCharge = 0,
+  activePackageName,
+  onClose 
+}: FinalizeConsultationModalProps) {
   const navigate = useNavigate();
   const { finalizeConsultation } = useManageClinicalRecords();
   const { data: lookups } = useRemedyLookups();
   
-  const [fee, setFee] = useState(500);
+  const [fee, setFee] = useState(defaultConsultationFee);
+  const [medicineCharge, setMedicineCharge] = useState(defaultMedicineDaysCharge);
   const [paymentMode, setPaymentMode] = useState('Cash');
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -39,7 +51,7 @@ export function FinalizeConsultationModal({ regid, visitId, prescriptions, onClo
       await finalizeConsultation.mutateAsync({
         regid,
         visitId,
-        consultationFee: fee,
+        consultationFee: fee + medicineCharge,
         paymentMode,
         prescriptions: mappedPrescriptions
       });
@@ -71,6 +83,15 @@ export function FinalizeConsultationModal({ regid, visitId, prescriptions, onClo
         </div>
 
         <div className="mc-drawer-body" style={{ flex: 1, padding: '24px' }}>
+          {activePackageName && (
+            <div style={{ marginBottom: '20px', padding: '12px 16px', background: '#ecfdf5', border: '1px solid #10b981', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '1.2rem' }}>💎</span>
+              <p style={{ fontSize: '0.75rem', color: '#065f46', margin: 0, fontWeight: 500, lineHeight: 1.4 }}>
+                <strong>Medicine charges</strong> are automatically waived due to active <strong>{activePackageName}</strong> plan.
+              </p>
+            </div>
+          )}
+
           {/* Summary */}
           <div style={{ marginBottom: '24px', padding: '16px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
             <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '12px' }}>Session Summary</div>
@@ -87,15 +108,33 @@ export function FinalizeConsultationModal({ regid, visitId, prescriptions, onClo
             )}
           </div>
 
-          <div className="mc-legacy-input-group" style={{ marginBottom: '24px' }}>
-            <label>Consultation Fee (₹)</label>
-            <input 
-              type="number" 
-              value={fee} 
-              onChange={e => setFee(Number(e.target.value))}
-              className="mc-legacy-input"
-              style={{ fontSize: '1.2rem', fontWeight: 700, color: '#2563eb' }}
-            />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+            <div className="mc-legacy-input-group">
+              <label>Base Consultation Fee (₹)</label>
+              <input 
+                type="number" 
+                value={fee} 
+                onChange={e => setFee(Number(e.target.value))}
+                className="mc-legacy-input"
+                style={{ fontSize: '1.2rem', fontWeight: 700, color: '#2563eb' }}
+              />
+            </div>
+            
+            <div className="mc-legacy-input-group">
+              <label>Medicine Charges (₹)</label>
+              <input 
+                type="number" 
+                value={medicineCharge} 
+                onChange={e => setMedicineCharge(Number(e.target.value))}
+                className="mc-legacy-input"
+                style={{ fontSize: '1.2rem', fontWeight: 700, color: '#475569' }}
+              />
+            </div>
+          </div>
+          
+          <div style={{ padding: '16px', background: '#eff6ff', borderRadius: '12px', border: '1px solid #bfdbfe', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#1e40af' }}>Total Session Charge</span>
+            <span style={{ fontSize: '1.4rem', fontWeight: 800, color: '#1d4ed8' }}>₹{fee + medicineCharge}</span>
           </div>
 
           <div className="mc-legacy-input-group">

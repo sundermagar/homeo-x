@@ -1,4 +1,4 @@
-import { eq, and, or, sql, desc, isNull } from 'drizzle-orm';
+import { eq, and, or, sql, desc, isNull, gte } from 'drizzle-orm';
 import type { DbClient } from '@mmc/database';
 import * as schema from '@mmc/database';
 import type {
@@ -302,7 +302,8 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
         reminders,
         additionalChargesRes,
         paymentsRes,
-        modernPaymentsRes
+        modernPaymentsRes,
+        activePackageRes
       ] = await Promise.all([
         // Vitals: Fetch all vitals for this patient by regid
         this.db
@@ -407,8 +408,34 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
           )),
 
         // Billing Aggregation: Modern (Full rows for detailed breakdown)
-        this.db.select().from(schema.bills).where(and(eq(schema.bills.regid, regid), isNull(schema.bills.deletedAt)))
+        this.db.select().from(schema.bills).where(and(eq(schema.bills.regid, regid), isNull(schema.bills.deletedAt))),
 
+        // Active Package
+        this.db
+          .select({
+            id: schema.patientPackages.id,
+            regid: schema.patientPackages.regid,
+            packageId: schema.patientPackages.packageId,
+            startDate: schema.patientPackages.startDate,
+            expiryDate: schema.patientPackages.expiryDate,
+            status: schema.patientPackages.status,
+            packageName: schema.packagePlans.name,
+            colorCode: schema.packagePlans.colorCode,
+            // Hardcode covers for now as these flags aren't in schema yet, but logic is uniform
+            coversConsultation: sql<boolean>`true`, 
+            coversMedicine: sql<boolean>`true`,
+          })
+          .from(schema.patientPackages)
+          .leftJoin(schema.packagePlans, eq(schema.patientPackages.packageId, schema.packagePlans.id))
+          .where(
+            and(
+              eq(schema.patientPackages.regid, regid),
+              eq(schema.patientPackages.status, 'Active'),
+              gte(schema.patientPackages.expiryDate, new Date().toISOString().substring(0, 10)),
+              isNull(schema.patientPackages.deletedAt)
+            )
+          )
+          .limit(1)
       ]);
 
       const legacyAdditionalRows = additionalChargesRes as any[];
@@ -486,6 +513,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
         vaccines: vaccines as any[],
         reminders: reminders as any[],
         additionalCharges: combinedAdditional,
+        activePackage: (activePackageRes as any[])[0] || null,
       };
     } catch (err: any) {
       console.error(`💥 [MedicalCaseRepositoryPg] Error in getUnifiedCaseData for regid ${regid}:`, err);

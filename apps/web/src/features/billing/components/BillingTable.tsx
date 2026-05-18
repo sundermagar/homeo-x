@@ -97,7 +97,7 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
                     <div>{bill.billDate ? format(new Date(bill.billDate), 'dd-MM-yyyy') : '—'}</div>
                   </td>
                   <td data-label="Patient" style={{ fontWeight: 500 }}>
-                    <div>{bill.patientName}</div>
+                    <div>{bill.patientName ? bill.patientName.replace(/\b\w/g, c => c.toUpperCase()) : '—'}</div>
                   </td>
                   <td data-label="Mode">
                     <div className="plat-cell-val">
@@ -148,7 +148,9 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
                         <button 
                           className="bill-btn bill-btn-sm" 
                           style={{ color: 'var(--pp-blue)', border: 'none', background: 'none', fontWeight: 600, cursor: 'pointer', fontSize: 11, padding: '0 8px' }}
-                          onClick={() => window.location.href = `/patients/${bill.regid}`}
+                          onClick={() => {
+                            if (myOrg) printBill(bill, myOrg);
+                          }}
                         >
                           View
                         </button>

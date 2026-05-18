@@ -136,9 +136,10 @@ export default function PatientListPage() {
   const deleteMutation = useDeletePatient();
 
   const combinedPatients = useMemo(() => {
+    const formatName = (name: string) => name ? name.replace(/\b\w/g, c => c.toUpperCase()) : 'Unknown';
     const unreg = unregisteredPatients.map((up: any) => ({
       regid: 0,
-      fullName: up.name,
+      fullName: formatName(up.name),
       phone: up.phone,
       gender: up.gender,
       doctorName: up.latestAppointment?.doctorName || '—',
@@ -146,7 +147,7 @@ export default function PatientListPage() {
       isUnregistered: true,
       original: up
     }));
-    const reg = (data?.data || []).map((p: PatientSummary) => ({ ...p, isUnregistered: false }));
+    const reg = (data?.data || []).map((p: PatientSummary) => ({ ...p, fullName: formatName(p.fullName), isUnregistered: false }));
 
     if (patientFilter === 'registered') return reg;
     if (patientFilter === 'unregistered') return unreg;
