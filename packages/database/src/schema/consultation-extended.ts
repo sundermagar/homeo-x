@@ -1,6 +1,6 @@
 import {
   pgTable, serial, integer, varchar, text, boolean, real,
-  timestamp, jsonb, index, uniqueIndex,
+  timestamp, jsonb, index, uniqueIndex, vector,
 } from 'drizzle-orm/pg-core';
 
 // ─── Rubrics (Kent Repertory) ─────────────────────────────────────────────────
@@ -119,4 +119,65 @@ export const prescriptionItems = pgTable('prescription_items', {
   createdAt: timestamp('created_at').defaultNow(),
 }, (table) => ({
   rxIdx: index('idx_rxi_prescription').on(table.prescriptionId),
+}));
+
+// ─── ML Training Logs (AI Pipeline Data Collection) ───────────────────────────
+export const mlTrainingLogs = pgTable('ml_training_logs', {
+  id: serial('id').primaryKey(),
+  tenantId: varchar('tenant_id', { length: 50 }),
+  visitId: varchar('visit_id', { length: 50 }).notNull(),
+  
+  // 0. Consultation Context
+  consultationMode: varchar('consultation_mode', { length: 20 }), // 'acute', 'chronic', or 'followup'
+  
+  // 1. Patient & Clinical Context (What the model needs to know before starting)
+  patientContext: jsonb('patient_context'), // Age, Gender, Chronic History, Vitals
+  
+  // 2. Raw Input & Conversation
+  transcript: jsonb('transcript'), // The full Q&A array / session history
+  
+  // 3. Clinical Synthesis (Case Taking)
+  soapNotes: jsonb('soap_notes'), // Subjective, Objective, Assessment, Plan, Advice
+  
+  // 4. Homeopathic Reasoning (Chain of Thought)
+  extractedSymptoms: jsonb('extracted_symptoms'), // { mental: [], physical: [], particular: [] }
+  mappedRubrics: jsonb('mapped_rubrics'),         // The exact rubrics matched to the symptoms
+  repertorizationMatrix: jsonb('repertorization_matrix'), // Remedy scores & affinities
+  
+  // 5. Output (AI Prediction vs Ground Truth)
+  aiSuggestedRemedy: jsonb('ai_suggested_remedy'),
+  doctorFinalRemedy: jsonb('doctor_final_remedy'), // GROUND TRUTH: The actual prescribed remedy
+
+  // (Embeddings live in `ml_training_embeddings` — see below.)
+
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+}, (table) => ({
+  visitIdx: uniqueIndex('idx_ml_training_visit').on(table.visitId),
+  tenantIdx: index('idx_ml_training_tenant').on(table.tenantId),
+}));
+
+// ─── ML Training Embeddings (pgvector — separate from logs) ───────────────────
+// Split from ml_training_logs so the log table stays lean and embeddings can be
+// re-generated / re-modelled without rewriting consultation rows. One row per
+// log row (1:1, enforced by unique mlTrainingLogId).
+export const mlTrainingEmbeddings = pgTable('ml_training_embeddings', {
+  id: serial('id').primaryKey(),
+  mlTrainingLogId: integer('ml_training_log_id')
+    .notNull()
+    .references(() => mlTrainingLogs.id, { onDelete: 'cascade' }),
+  tenantId: varchar('tenant_id', { length: 50 }),
+  visitId: varchar('visit_id', { length: 50 }).notNull(),
+
+  embedding: vector('embedding', { dimensions: 768 }).notNull(),
+  embeddingModel: varchar('embedding_model', { length: 50 }).notNull(),
+  fingerprintHash: varchar('fingerprint_hash', { length: 64 }).notNull(),
+
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+}, (table) => ({
+  logIdx: uniqueIndex('idx_ml_training_embeddings_log').on(table.mlTrainingLogId),
+  tenantIdx: index('idx_ml_training_embeddings_tenant').on(table.tenantId),
+  visitIdx: index('idx_ml_training_embeddings_visit').on(table.visitId),
+  embeddingIdx: index('idx_ml_training_embeddings_hnsw').using('hnsw', table.embedding.op('vector_cosine_ops')),
 }));

@@ -109,7 +109,7 @@ class AiConfigService {
     }
 
     if (!this.config.transcription.isAvailable) {
-      logger.warn('Deepgram not configured — cloud transcription unavailable (Web Speech API still works)');
+      // logger.warn('Deepgram not configured — cloud transcription unavailable (Web Speech API still works)');
     }
 
     if (!this.config.videoCall.isAvailable) {

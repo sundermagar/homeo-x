@@ -10,26 +10,26 @@ import { getConsultationUseCase } from '../../../domains/consultation/consultati
 import { getAiProviderChain } from '../../ai/ai-provider-chain.js';
 import { sendSuccess } from '../../../shared/response-formatter.js';
 import { createLogger } from '../../../shared/logger.js';
+import { safeJsonParse } from '../../../shared/safe-json-parse.js';
+import { mlTrainingLogger } from '../../../domains/consultation/services/ml-training-logger.service.js';
+import { embeddingService } from '../../../domains/consultation/services/embedding.service.js';
+import { createDbClient } from '@mmc/database';
+import { mlTrainingLogs, mlTrainingEmbeddings } from '@mmc/database/schema';
+import { cosineDistance, desc, and, not, eq, sql } from 'drizzle-orm';
 
 const logger = createLogger('ai-router');
 
-// Tolerant JSON extractor — strips ```json fences and finds the first object/array
+// Tolerant JSON extractor — uses the shared safeJsonParse which handles
+// truncation, missing commas, and unbalanced brackets from local LLMs.
 function extractJson<T = any>(raw: string): T | null {
-  if (!raw) return null;
-  const cleaned = raw.replace(/```json\s*/gi, '').replace(/```/g, '').trim();
-  try { return JSON.parse(cleaned); } catch {}
-  const firstObj = cleaned.match(/\{[\s\S]*\}/);
-  if (firstObj) { try { return JSON.parse(firstObj[0]); } catch {} }
-  const firstArr = cleaned.match(/\[[\s\S]*\]/);
-  if (firstArr) { try { return JSON.parse(firstArr[0]); } catch {} }
-  return null;
+  return safeJsonParse<T>(raw);
 }
 
 export const aiRouter: Router = Router();
 
 // Helper to extract tenant/user from request (set by middleware)
 function getTenant(req: Request): string {
-  return (req as any).tenantId || 'default';
+  return (req as any).tenantSlug || (req as any).tenantId || 'default';
 }
 function getUserId(req: Request): string {
   return (req as any).user?.id || (req as any).userId || 'system';
@@ -40,6 +40,18 @@ aiRouter.post('/suggest/soap', async (req: Request, res: Response, next: NextFun
   try {
     const uc = getConsultationUseCase();
     const result = await uc.suggestSoap(getTenant(req), getUserId(req), req.body);
+    if (req.body.visitId) {
+      // Sanitize SOAP: ensure all fields are strings, not objects
+      const sanitizedSoap: Record<string, any> = {};
+      for (const [key, val] of Object.entries(result as Record<string, any>)) {
+        sanitizedSoap[key] = (val !== null && typeof val === 'object' && !Array.isArray(val))
+          ? JSON.stringify(val)
+          : val;
+      }
+      mlTrainingLogger.logPhase(getTenant(req), req.body.visitId, {
+        soapNotes: sanitizedSoap,
+      });
+    }
     sendSuccess(res, result);
   } catch (err) { next(err); }
 });
@@ -47,10 +59,45 @@ aiRouter.post('/suggest/soap', async (req: Request, res: Response, next: NextFun
 // POST /api/ai/consult/homeopathy — Full 7-phase pipeline
 aiRouter.post('/consult/homeopathy', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // Extended timeout for the full pipeline (up to 90s)
-    req.setTimeout(90_000);
+    // Disable per-request timeout — local CPU models (Ollama/Qwen) need
+    // minutes to process the 7-phase pipeline. Server-level timeout in main.ts
+    // provides the outer safety net (30 min).
+    req.setTimeout(0);
     const uc = getConsultationUseCase();
     const result = await uc.consultHomeopathy(getTenant(req), getUserId(req), req.body);
+    // Full consultation handles its own ML logging if needed, or we can log the final result here.
+      if (req.body.visitId) {
+        // Extract rubrics from the scoring result coverage
+        const allRubrics: any[] = [];
+        const seenRubricIds = new Set<string>();
+        const scoredRemedies = (result.remedyScores as any)?.scoredRemedies;
+        if (Array.isArray(scoredRemedies)) {
+          for (const remedy of scoredRemedies) {
+            if (Array.isArray(remedy.coverage)) {
+              for (const c of remedy.coverage) {
+                if (c.rubricId && !seenRubricIds.has(c.rubricId)) {
+                  seenRubricIds.add(c.rubricId);
+                  allRubrics.push({
+                    rubricId: c.rubricId,
+                    rubricName: c.rubricDescription,
+                    category: c.rubricCategory,
+                    importance: c.importance,
+                    grade: c.grade,
+                  });
+                }
+              }
+            }
+          }
+        }
+
+        mlTrainingLogger.logPhase(getTenant(req), req.body.visitId, {
+          soapNotes: result.soap,
+          extractedSymptoms: { mental: result.clinicalData.mentalState, physical: result.clinicalData.generalSymptoms, particular: result.clinicalData.physicalSymptoms },
+          repertorizationMatrix: result.remedyScores,
+          aiSuggestedRemedy: result.prescriptionDraft.suggestedRemedy,
+          ...(allRubrics.length > 0 ? { mappedRubrics: allRubrics } : {}),
+        });
+      }
     sendSuccess(res, result);
   } catch (err) { next(err); }
 });
@@ -60,6 +107,11 @@ aiRouter.post('/repertorize/extract', async (req: Request, res: Response, next: 
   try {
     const uc = getConsultationUseCase();
     const result = await uc.extractRubrics(getTenant(req), getUserId(req), req.body);
+    if (req.body.visitId) {
+      mlTrainingLogger.logPhase(getTenant(req), req.body.visitId, {
+        mappedRubrics: result.suggestedRubrics,
+      });
+    }
     sendSuccess(res, result);
   } catch (err) { next(err); }
 });
@@ -69,6 +121,35 @@ aiRouter.post('/repertorize/score', async (req: Request, res: Response, next: Ne
   try {
     const uc = getConsultationUseCase();
     const result = await uc.scoreRemedies(getTenant(req), getUserId(req), req.body);
+    if (req.body.visitId) {
+      // Extract rubrics from the scoring result coverage
+      const allRubrics: any[] = [];
+      const seenRubricIds = new Set<string>();
+      const scoredRemedies = (result as any)?.scoredRemedies;
+      if (Array.isArray(scoredRemedies)) {
+        for (const remedy of scoredRemedies) {
+          if (Array.isArray(remedy.coverage)) {
+            for (const c of remedy.coverage) {
+              if (c.rubricId && !seenRubricIds.has(c.rubricId)) {
+                seenRubricIds.add(c.rubricId);
+                allRubrics.push({
+                  rubricId: c.rubricId,
+                  rubricName: c.rubricDescription,
+                  category: c.rubricCategory,
+                  importance: c.importance,
+                  grade: c.grade,
+                });
+              }
+            }
+          }
+        }
+      }
+
+      mlTrainingLogger.logPhase(getTenant(req), req.body.visitId, {
+        repertorizationMatrix: result,
+        ...(allRubrics.length > 0 ? { mappedRubrics: allRubrics } : {}),
+      });
+    }
     sendSuccess(res, result);
   } catch (err) { next(err); }
 });
@@ -91,7 +172,7 @@ aiRouter.post('/case/extract', async (req: Request, res: Response, next: NextFun
 // Output: full merged list { mental: string[], physical: string[], particular: string[] }
 aiRouter.post('/extract/symptoms', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { consultationMode, question, answer, existingSymptoms, labContext } = req.body ?? {};
+    const { consultationMode, question, answer, existingSymptoms, labContext, visitId } = req.body ?? {};
     const existing = {
       mental: Array.isArray(existingSymptoms?.mental) ? existingSymptoms.mental : [],
       physical: Array.isArray(existingSymptoms?.physical) ? existingSymptoms.physical : [],
@@ -100,6 +181,19 @@ aiRouter.post('/extract/symptoms', async (req: Request, res: Response, next: Nex
 
     // Nothing new to look at — return existing as-is to keep panel stable.
     if (!question && !answer && !labContext) { sendSuccess(res, existing); return; }
+
+    if (visitId) {
+      // Log Q&A transcript and consultation mode
+      mlTrainingLogger.logPhase(getTenant(req), visitId, {
+        consultationMode: consultationMode || 'acute',
+      });
+      // Accumulate transcript entries (question/answer pairs)
+      mlTrainingLogger.appendTranscript(getTenant(req), visitId, {
+        question: question || '',
+        answer: answer || '',
+        timestamp: new Date().toISOString(),
+      });
+    }
 
     const chain = getAiProviderChain();
     const isLabOnly = question === '__LAB_REPORT_ANALYSIS__';
@@ -279,6 +373,12 @@ Reply with ONLY the JSON object.`;
     const mergedMental     = mergeAndDedup(existing.mental,     Array.isArray(parsed.mental)     ? parsed.mental     : []);
     const mergedPhysical   = mergeAndDedup(existing.physical,   Array.isArray(parsed.physical)   ? parsed.physical   : []);
     const mergedParticular = mergeAndDedup(existing.particular, Array.isArray(parsed.particular) ? parsed.particular : []);
+
+    if (visitId) {
+      mlTrainingLogger.logPhase(getTenant(req), visitId, {
+        extractedSymptoms: { mental: mergedMental, physical: mergedPhysical, particular: mergedParticular }
+      });
+    }
 
     sendSuccess(res, {
       mental: mergedMental,
@@ -655,3 +755,66 @@ aiRouter.post('/feedback', async (req: Request, res: Response, next: NextFunctio
     sendSuccess(res, { recorded: true });
   } catch (err) { next(err); }
 });
+
+/**
+ * POST /api/ai/similar-cases
+ * Finds past consultations similar to the provided text or visitId.
+ */
+aiRouter.post('/similar-cases', async (req: Request, res: Response) => {
+  try {
+    const { text, visitId, limit = 5 } = req.body;
+    let queryText = text;
+
+    const db = createDbClient(process.env.DATABASE_URL!);
+
+    // If a visitId is provided, fetch its clinical fingerprint to use as the query
+    if (visitId && !queryText) {
+      const [record] = await db
+        .select()
+        .from(mlTrainingLogs)
+        .where(eq(mlTrainingLogs.visitId, String(visitId)))
+        .limit(1);
+      
+      if (record) {
+        queryText = embeddingService.createFingerprint(record);
+      }
+    }
+
+    if (!queryText) {
+      return res.status(400).json({ success: false, message: 'Query text or valid visitId required' });
+    }
+
+    // Generate embedding for the query
+    const queryVector = await embeddingService.generateEmbedding(queryText);
+    if (!queryVector || queryVector.length === 0) {
+      return res.status(502).json({ success: false, message: 'Failed to generate query embedding' });
+    }
+
+    // Perform vector similarity search (cosine distance) by joining the
+    // embeddings table to the logs table. The inner join ensures we only
+    // consider rows that actually have an embedding.
+    const similarity = sql<number>`1 - (${cosineDistance(mlTrainingEmbeddings.embedding, queryVector)})`;
+
+    const results = await db
+      .select({
+        visitId: mlTrainingLogs.visitId,
+        consultationMode: mlTrainingLogs.consultationMode,
+        extractedSymptoms: mlTrainingLogs.extractedSymptoms,
+        doctorFinalRemedy: mlTrainingLogs.doctorFinalRemedy,
+        similarity: similarity,
+      })
+      .from(mlTrainingEmbeddings)
+      .innerJoin(mlTrainingLogs, eq(mlTrainingLogs.id, mlTrainingEmbeddings.mlTrainingLogId))
+      .where(
+        visitId ? not(eq(mlTrainingLogs.visitId, String(visitId))) : undefined
+      )
+      .orderBy((t) => desc(t.similarity))
+      .limit(limit);
+
+    sendSuccess(res, { results });
+  } catch (err: any) {
+    logger.error({ err: err?.message }, '[similar-cases] failed');
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+

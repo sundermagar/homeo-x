@@ -113,6 +113,13 @@ ts_errors.txt
 .antigravity/
 antigravity.log
 
+# ML training pipeline (local artifacts only — code is tracked)
+ml-pipeline/output/
+ml-pipeline/state/
+ml-pipeline/.venv/
+ml-pipeline/__pycache__/
+ml-pipeline/**/__pycache__/
+
 # One-off Scripts & Recovery Files
 check-*.ts
 verify-*.ts

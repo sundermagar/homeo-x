@@ -169,6 +169,48 @@
       "when": 1747310000000,
       "tag": "0023_fix_medicines_schema_drift",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1778675525621,
+      "tag": "0017_ml_training_logs",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1778676946785,
+      "tag": "0018_ml_training_embeddings",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1778680000000,
+      "tag": "0019_add_fingerprint_hash",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1778690000000,
+      "tag": "0020_split_ml_training_embeddings",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1778700000000,
+      "tag": "0024_fix_legacy_id_sequences",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1778710000000,
+      "tag": "0025_fix_public_id_sequences",
+      "breakpoints": true
     }
   ]
 }

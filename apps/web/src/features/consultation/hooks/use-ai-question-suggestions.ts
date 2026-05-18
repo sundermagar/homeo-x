@@ -27,6 +27,11 @@ export function useAiQuestionSuggestions(
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastTriggerLengthRef = useRef(0);
   const lastTriggerTimeRef = useRef(0);
+  // Tracks in-flight state synchronously so the debounced trigger can check it
+  // without racing React's setState. With slow local LLMs (qwen2.5:1.5b on CPU
+  // can take 5+ minutes per call) we MUST NOT abort an in-flight request just
+  // because new transcript segments arrived — the user would never see results.
+  const isGeneratingRef = useRef(false);
 
   // Build transcript text from segments
   const buildTranscriptText = useCallback((segs: TranscriptSegmentLocal[]) => {
@@ -48,11 +53,16 @@ export function useAiQuestionSuggestions(
     const transcriptText = buildTranscriptText(segs);
     if (!transcriptText.trim() || transcriptText.length < 30) return;
 
-    // Cancel any ongoing request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
+    // Skip if a request is already in flight. Aborting the previous one wastes
+    // server compute (Ollama keeps generating server-side anyway) and means the
+    // user never sees questions when the model is slow.
+    if (isGeneratingRef.current) {
+      console.log('[AI Discovery] Skipping trigger — previous request still in flight');
+      return;
     }
+
     abortControllerRef.current = new AbortController();
+    isGeneratingRef.current = true;
 
     console.log('[AI Discovery] Generating questions from transcript...', { transcriptLen: transcriptText.length });
     setIsGenerating(true);
@@ -80,9 +90,10 @@ export function useAiQuestionSuggestions(
       if (err instanceof Error && err.name === 'AbortError') return;
       console.error('[AI Discovery] Generation failed:', err);
     } finally {
+      isGeneratingRef.current = false;
       setIsGenerating(false);
     }
-  }, [buildTranscriptText]);
+  }, [buildTranscriptText, mode]);
 
   // Trigger generation when segments change
   useEffect(() => {
@@ -116,7 +127,7 @@ export function useAiQuestionSuggestions(
       lastTriggerLengthRef.current = currentLength;
       lastTriggerTimeRef.current = Date.now();
       generateQuestions(segments);
-    }, 6000); 
+    }, 6000);
   }, [segments.length, isTranscribing, generateQuestions, mode, buildTranscriptText]);
 
   // Cleanup on unmount

@@ -165,7 +165,7 @@ export const vaccineMaster = pgTable('vaccinedatas', {
 
 export const caseVaccines = pgTable('case_vaccins', {
   id: serial('id').primaryKey(),
-  regid: integer('regid').notNull(),
+  regid: integer('reg_id').notNull(),
   vaccineId: integer('vaccinee_id').notNull(),
   notes: text('notes'),
   createdAt: timestamp('created_at').defaultNow(),

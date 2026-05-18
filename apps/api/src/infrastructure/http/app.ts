@@ -236,10 +236,9 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
       const allTenants = TenantRegistry.getAll();
       const dbUrl = process.env.DATABASE_URL!;
       
-      logger.info(`🔄 Auto-migrating ${allTenants.length} tenant(s)...`);
       let successCount = 0;
       let failCount = 0;
-      
+
       for (const tenant of allTenants) {
         try {
           await migrateTenant(dbUrl, tenant.schemaName);
@@ -249,8 +248,10 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
           logger.warn({ schema: tenant.schemaName, err: migErr.message }, 'Tenant migration failed (non-fatal)');
         }
       }
-      
-      logger.info(`✅ Auto-migration complete: ${successCount} succeeded, ${failCount} failed out of ${allTenants.length} tenants`);
+
+      if (failCount > 0) {
+        logger.warn(`Auto-migration finished with ${failCount}/${allTenants.length} failures (${successCount} succeeded)`);
+      }
     } catch (err: any) {
       logger.error({ err: err.message }, 'Auto-migration system error (non-fatal)');
     }

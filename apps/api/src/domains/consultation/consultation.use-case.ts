@@ -89,9 +89,11 @@ export class ConsultationUseCase {
     let phasesCompleted = 0;
 
     // Phase 1: Translate transcript
-    logger.info({ tenantId }, 'Phase 1: Translation');
+    let phaseStart = Date.now();
+    logger.info({ tenantId }, 'Phase 1: Translation — STARTED');
     const englishTranscript = await this.translator.translateToEnglish(tenantId, userId, input.transcript);
     phasesCompleted++;
+    logger.info({ tenantId, elapsedMs: Date.now() - phaseStart }, 'Phase 1: Translation — DONE');
 
     // Phase 1.5: Medical-intent gate — short-circuit if the transcript is clearly
     // non-medical (greetings only, mic test, silence). Saves ~5 expensive AI calls
@@ -110,7 +112,8 @@ export class ConsultationUseCase {
     }
 
     // Phase 2: Clinical extraction
-    logger.info({ tenantId }, 'Phase 2: Clinical extraction');
+    phaseStart = Date.now();
+    logger.info({ tenantId }, 'Phase 2: Clinical extraction — STARTED');
     const extraction = await this.extractionEngine.extract(tenantId, userId, {
       transcript: englishTranscript,
       labReports: input.labReports,
@@ -120,9 +123,11 @@ export class ConsultationUseCase {
       specialty: input.specialty || 'HOMEOPATHY',
     });
     phasesCompleted++;
+    logger.info({ tenantId, elapsedMs: Date.now() - phaseStart }, 'Phase 2: Clinical extraction — DONE');
 
     // Phase 3: SOAP generation
-    logger.info({ tenantId }, 'Phase 3: SOAP structuring');
+    phaseStart = Date.now();
+    logger.info({ tenantId }, 'Phase 3: SOAP structuring — STARTED');
     const soap = await this.soapEngine.generateSoap(tenantId, userId, {
       transcript: englishTranscript,
       chiefComplaint: input.chiefComplaint,
@@ -131,9 +136,11 @@ export class ConsultationUseCase {
       patientGender: input.patientGender,
     });
     phasesCompleted++;
+    logger.info({ tenantId, elapsedMs: Date.now() - phaseStart }, 'Phase 3: SOAP structuring — DONE');
 
     // Phase 4: Rubric extraction
-    logger.info({ tenantId, consultationMode: input.consultationMode }, 'Phase 4: Rubric extraction');
+    phaseStart = Date.now();
+    logger.info({ tenantId, consultationMode: input.consultationMode }, 'Phase 4: Rubric extraction — STARTED');
     const rubrics = await this.repertorizationEngine.extractRubrics(tenantId, userId, {
       chiefComplaint: input.chiefComplaint,
       subjective: soap.subjective,
@@ -148,9 +155,11 @@ export class ConsultationUseCase {
       consultationMode: input.consultationMode,
     });
     phasesCompleted++;
+    logger.info({ tenantId, elapsedMs: Date.now() - phaseStart }, 'Phase 4: Rubric extraction — DONE');
 
     // Phase 5: Remedy scoring
-    logger.info({ tenantId }, 'Phase 5: Repertorization scoring');
+    phaseStart = Date.now();
+    logger.info({ tenantId }, 'Phase 5: Repertorization scoring — STARTED');
     const repertorization = await this.repertorizationEngine.scoreRemedies(tenantId, userId, {
       selectedRubrics: rubrics.suggestedRubrics.map(r => ({
         rubricId: r.rubricId,
@@ -163,9 +172,11 @@ export class ConsultationUseCase {
       miasm: input.miasm || extraction.miasm,
     });
     phasesCompleted++;
+    logger.info({ tenantId, elapsedMs: Date.now() - phaseStart }, 'Phase 5: Repertorization scoring — DONE');
 
     // Phase 6: Prescription
-    logger.info({ tenantId }, 'Phase 6: Prescription generation');
+    phaseStart = Date.now();
+    logger.info({ tenantId }, 'Phase 6: Prescription generation — STARTED');
     const prescription = await this.prescriptionEngine.generatePrescription(
       tenantId,
       userId,
@@ -183,19 +194,22 @@ export class ConsultationUseCase {
       }
     );
     phasesCompleted++;
+    logger.info({ tenantId, elapsedMs: Date.now() - phaseStart }, 'Phase 6: Prescription generation — DONE');
 
     // Phase 7: Summary
-    logger.info({ tenantId }, 'Phase 7: Case summary');
+    phaseStart = Date.now();
+    logger.info({ tenantId }, 'Phase 7: Case summary — STARTED');
     const summary = await this.summaryEngine.generateSummary(tenantId, userId, {
       observations: extraction.observations,
       clinicalFindings: extraction.clinicalFindings,
-      selectedRemedies: repertorization.scoredRemedies.slice(0, 3).map(r => ({
+      selectedRemedies: repertorization.scoredRemedies.slice(0, 3).map((r: any) => ({
         name: r.remedyName,
         score: r.normalizedScore,
       })),
       soapData: { subjective: soap.subjective, objective: soap.objective, assessment: soap.assessment, plan: soap.plan },
     });
     phasesCompleted++;
+    logger.info({ tenantId, elapsedMs: Date.now() - phaseStart }, 'Phase 7: Case summary — DONE');
 
     const totalLatencyMs = Date.now() - start;
     logger.info({ tenantId, totalLatencyMs, phasesCompleted }, 'Consultation pipeline complete');
@@ -267,7 +281,11 @@ Focus on:
 - Duration/onset
 - Physical generals
 
-Respond ONLY with a JSON array of objects with keys "q" (the question text) and "c" (category: one of symptom, modality, mental, general, history). Do not output any other text.`,
+Respond ONLY with a JSON array in this exact format, no other text:
+[
+  {"q": "When does the pain worsen?", "c": "modality"},
+  {"q": "How is your sleep?", "c": "general"}
+]`,
         userPrompt: input.transcript.slice(-2000), // only last part of transcript
         temperature: 0.3,
         maxTokens: 500,

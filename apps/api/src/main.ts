@@ -1,4 +1,4 @@
-import './shared/config/load-env.js';
+import './shared/config/load-env.js'; // trigger reload 3
 import type { Server } from 'node:http';
 import { createApp } from './infrastructure/http/app.js';
 import { createLogger } from './shared/logger.js';
@@ -59,8 +59,15 @@ async function bootstrap() {
   logger.info(`AI health: ${JSON.stringify(aiConfig.getHealthStatus())}`);
 
   const { app, server, tenantDb } = await createApp();
+  
+  // Disable internal Node server timeouts (set to 30 minutes) to allow
+  // slow local CPU inference (Ollama) to finish without connection closing.
+  server.timeout = 30 * 60 * 1000; 
+  server.headersTimeout = 30 * 60 * 1000;
+  server.keepAliveTimeout = 30 * 60 * 1000;
+
   const boundPort = await listenWithFallback(server, appConfig.port);
-  logger.info(`API server running on port ${boundPort}`);
+  logger.info(`API server running on port ${boundPort} (Socket timeout increased to 30 mins)`);
 
   // ─── Initialize Background Jobs ───
   if (tenantDb) {

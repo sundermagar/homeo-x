@@ -279,7 +279,7 @@ export const tenant_demo_legacySchema = {
     { name: "clinic_id", type: "integer", nullable: true },
     { name: "regid", type: "integer", nullable: true },
     { name: "patientid", type: "integer", nullable: true },
-    { name: "assitant_doctor", type: "text", nullable: true },
+    { name: "assistant_doctor", type: "text", nullable: true },
     { name: "consultation_fee", type: "integer", nullable: true },
     { name: "dob", type: "date", nullable: true },
     { name: "title", type: "text", nullable: true },

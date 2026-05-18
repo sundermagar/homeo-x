@@ -13,6 +13,25 @@ export interface RemedyRxRow {
   instruction: string;
 }
 
+function parseDurationToDays(durationStr: string): number {
+  if (!durationStr) return 0;
+  const cleaned = durationStr.toLowerCase().trim();
+  
+  const daysMatch = cleaned.match(/^(\d+)\s*day/);
+  if (daysMatch) return parseInt(daysMatch[1]!, 10);
+  
+  const weeksMatch = cleaned.match(/^(\d+)\s*week/);
+  if (weeksMatch) return parseInt(weeksMatch[1]!, 10) * 7;
+  
+  const monthsMatch = cleaned.match(/^(\d+)\s*month/);
+  if (monthsMatch) return parseInt(monthsMatch[1]!, 10) * 30;
+  
+  const bareNumberMatch = cleaned.match(/^(\d+)$/);
+  if (bareNumberMatch) return parseInt(bareNumberMatch[1]!, 10);
+  
+  return 0;
+}
+
 interface RepertoryStageProps {
   selectedRubrics: SuggestedRubric[];
   scoredRemedies: ScoredRemedy[];
@@ -45,8 +64,7 @@ export function RepertoryStage({
 
   // Edit Prescription modal state
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [editingRow, setEditingRow] = useState<RemedyRxRow | null>(null);
-  const [editForm, setEditForm] = useState({ potency: '', dose: '', frequency: '', duration: '', instruction: '' });
+  const [editRows, setEditRows] = useState<RemedyRxRow[]>([]);
 
   // Sync AI values when they arrive (async AI completion)
   // Only update if user hasn't manually edited the field yet
@@ -62,6 +80,28 @@ export function RepertoryStage({
       setFollowUp(aiFollowUp);
     }
   }, [aiFollowUp]);
+
+  // Sync Next Review Date with the maximum prescribed medicine duration
+  useEffect(() => {
+    if (userEditedFollowUp.current || rxRows.length === 0) return;
+    
+    let maxDays = 0;
+    for (const row of rxRows) {
+      const days = parseDurationToDays(row.duration);
+      if (days > maxDays) {
+        maxDays = days;
+      }
+    }
+    
+    if (maxDays > 0) {
+      const date = new Date();
+      date.setDate(date.getDate() + maxDays);
+      const yyyy = date.getFullYear();
+      const mm = String(date.getMonth() + 1).padStart(2, '0');
+      const dd = String(date.getDate()).padStart(2, '0');
+      setFollowUp(`${yyyy}-${mm}-${dd}`);
+    }
+  }, [rxRows]);
 
   // Notify parent of data changes
   useEffect(() => {
@@ -285,26 +325,16 @@ export function RepertoryStage({
               </p>
             </div>
             <div className="flex items-center gap-3">
-              {rxRows.map((row) => (
-                <button
-                  key={row.remedyId}
-                  className="bg-white border border-[#E3E2DF] hover:border-[#BFDBFE] text-[#4A4A47] hover:text-[#2563EB] shadow-sm transition-all text-[11px] font-bold px-3 py-1.5 rounded-[4px] flex items-center justify-center gap-2 -translate-y-0.5 hover:-translate-y-1 uppercase tracking-widest"
-                  onClick={() => {
-                    setEditingRow(row);
-                    setEditForm({
-                      potency: row.potency,
-                      dose: row.dose,
-                      frequency: row.frequency,
-                      duration: row.duration,
-                      instruction: row.instruction,
-                    });
-                    setEditModalOpen(true);
-                  }}
-                >
-                  <Pencil className="h-3 w-3" />
-                  Edit {rxRows.length > 1 ? row.remedyName : ''}
-                </button>
-              ))}
+              <button
+                className="bg-white border border-[#E3E2DF] hover:border-[#BFDBFE] text-[#4A4A47] hover:text-[#2563EB] shadow-sm transition-all text-[11px] font-bold px-3 py-1.5 rounded-[4px] flex items-center justify-center gap-2 -translate-y-0.5 hover:-translate-y-1 uppercase tracking-widest"
+                onClick={() => {
+                  setEditRows(rxRows);
+                  setEditModalOpen(true);
+                }}
+              >
+                <Pencil className="h-3 w-3" />
+                Edit Prescription
+              </button>
             </div>
           </div>
 
@@ -346,7 +376,13 @@ export function RepertoryStage({
                 <tbody>
                   {rxRows.map((row) => (
                     <tr key={row.remedyId} className="border-b border-[#E3E2DF] border-dashed last:border-0 hover:bg-[#FAFAF8] group transition-colors">
-                      <td className="px-4 py-3 font-bold text-[#0F0F0E] whitespace-nowrap">{row.remedyName}</td>
+                      <td className="px-4 py-3 font-bold text-[#0F0F0E] whitespace-nowrap">
+                        <input
+                          value={row.remedyName}
+                          onChange={e => updateRxRow(row.remedyId, 'remedyName', e.target.value)}
+                          className="w-48 text-[12px] font-bold text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] rounded-md px-2 py-1 outline-none focus:border-[#2563EB] focus:bg-white focus:ring-2 focus:ring-[#EFF6FF] transition-all"
+                        />
+                      </td>
                       <td className="px-4 py-3">
                         <input
                           value={row.potency}
@@ -456,58 +492,96 @@ export function RepertoryStage({
 
       {/* ═══ Edit Prescription Modal ═══ */}
       <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
-        <DialogContent className="sm:max-w-md bg-white border-[#E3E2DF] !rounded-xl !p-0 overflow-hidden shadow-xl">
+        <DialogContent className="sm:max-w-xl bg-white border-[#E3E2DF] !rounded-xl !p-0 overflow-hidden shadow-xl">
           <DialogHeader className="px-6 py-4 border-b border-[#E3E2DF] bg-[#FAFAF8] space-y-0 text-left">
             <DialogTitle className="text-[16px] font-bold text-[#0F0F0E]">
-              Edit Prescription{editingRow ? ` — ${editingRow.remedyName}` : ''}
+              Edit Prescription Remedies
             </DialogTitle>
           </DialogHeader>
-          <div className="p-6 space-y-4">
-            <div>
-              <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">Potency</label>
-              <input
-                value={editForm.potency}
-                onChange={(e) => setEditForm(f => ({ ...f, potency: e.target.value }))}
-                className="w-full text-[13px] font-medium text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] rounded-md px-3 py-2 outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] focus:bg-white transition-all"
-                placeholder="e.g. 200C"
-              />
-            </div>
-            <div>
-              <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">Dosage</label>
-              <input
-                value={editForm.dose}
-                onChange={(e) => setEditForm(f => ({ ...f, dose: e.target.value }))}
-                className="w-full text-[13px] font-medium text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] rounded-md px-3 py-2 outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] focus:bg-white transition-all"
-                placeholder="e.g. 3 globules, once daily"
-              />
-            </div>
-            <div>
-              <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">Frequency</label>
-              <input
-                value={editForm.frequency}
-                onChange={(e) => setEditForm(f => ({ ...f, frequency: e.target.value }))}
-                className="w-full text-[13px] font-medium text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] rounded-md px-3 py-2 outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] focus:bg-white transition-all"
-                placeholder="e.g. Single dose"
-              />
-            </div>
-            <div>
-              <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">Duration</label>
-              <input
-                value={editForm.duration}
-                onChange={(e) => setEditForm(f => ({ ...f, duration: e.target.value }))}
-                className="w-full text-[13px] font-medium text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] rounded-md px-3 py-2 outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] focus:bg-white transition-all"
-                placeholder="e.g. 30 days"
-              />
-            </div>
-            <div>
-              <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">Instruction</label>
-              <input
-                value={editForm.instruction}
-                onChange={(e) => setEditForm(f => ({ ...f, instruction: e.target.value }))}
-                className="w-full text-[13px] font-medium text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] rounded-md px-3 py-2 outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] focus:bg-white transition-all"
-                placeholder="e.g. Dissolve under tongue, empty stomach"
-              />
-            </div>
+          <div className="p-6 max-h-[60vh] overflow-y-auto space-y-6">
+            {editRows.map((row, idx) => (
+              <div key={row.remedyId} className="border-b border-[#E3E2DF] last:border-0 pb-6 mb-6 last:pb-0 last:mb-0 space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-[12px] font-black text-[#2563EB] uppercase tracking-widest bg-[#EFF6FF] border border-[#BFDBFE] px-2.5 py-1 rounded-[4px]">
+                    Remedy #{idx + 1}: {row.remedyName || 'New Remedy'}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2">
+                    <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">Remedy Name</label>
+                    <input
+                      value={row.remedyName}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setEditRows(prev => prev.map(r => r.remedyId === row.remedyId ? { ...r, remedyName: val } : r));
+                      }}
+                      className="w-full text-[13px] font-medium text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] rounded-md px-3 py-2 outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] focus:bg-white transition-all"
+                      placeholder="e.g. Lycopodium clavatum"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">Potency</label>
+                    <input
+                      value={row.potency}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setEditRows(prev => prev.map(r => r.remedyId === row.remedyId ? { ...r, potency: val } : r));
+                      }}
+                      className="w-full text-[13px] font-medium text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] rounded-md px-3 py-2 outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] focus:bg-white transition-all"
+                      placeholder="e.g. 200C"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">Dosage</label>
+                    <input
+                      value={row.dose}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setEditRows(prev => prev.map(r => r.remedyId === row.remedyId ? { ...r, dose: val } : r));
+                      }}
+                      className="w-full text-[13px] font-medium text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] rounded-md px-3 py-2 outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] focus:bg-white transition-all"
+                      placeholder="e.g. 2 pills"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">Frequency</label>
+                    <input
+                      value={row.frequency}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setEditRows(prev => prev.map(r => r.remedyId === row.remedyId ? { ...r, frequency: val } : r));
+                      }}
+                      className="w-full text-[13px] font-medium text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] rounded-md px-3 py-2 outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] focus:bg-white transition-all"
+                      placeholder="e.g. Single dose"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">Duration</label>
+                    <input
+                      value={row.duration}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setEditRows(prev => prev.map(r => r.remedyId === row.remedyId ? { ...r, duration: val } : r));
+                      }}
+                      className="w-full text-[13px] font-medium text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] rounded-md px-3 py-2 outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] focus:bg-white transition-all"
+                      placeholder="e.g. 30 days"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">Instruction</label>
+                    <input
+                      value={row.instruction}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setEditRows(prev => prev.map(r => r.remedyId === row.remedyId ? { ...r, instruction: val } : r));
+                      }}
+                      className="w-full text-[13px] font-medium text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] rounded-md px-3 py-2 outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] focus:bg-white transition-all"
+                      placeholder="e.g. Dissolve under tongue, empty stomach"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
           <DialogFooter className="px-6 py-4 border-t border-[#E3E2DF] bg-[#FAFAF8] flex justify-end gap-3 sm:justify-end">
             <button
@@ -519,13 +593,7 @@ export function RepertoryStage({
             <button
               className="pp-btn-primary px-5 py-2 text-[13px]"
               onClick={() => {
-                if (editingRow) {
-                  updateRxRow(editingRow.remedyId, 'potency', editForm.potency);
-                  updateRxRow(editingRow.remedyId, 'dose', editForm.dose);
-                  updateRxRow(editingRow.remedyId, 'frequency', editForm.frequency);
-                  updateRxRow(editingRow.remedyId, 'duration', editForm.duration);
-                  updateRxRow(editingRow.remedyId, 'instruction', editForm.instruction);
-                }
+                setRxRows(editRows);
                 setEditModalOpen(false);
               }}
             >

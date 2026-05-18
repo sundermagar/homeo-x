@@ -3,6 +3,7 @@
 // Ported from: Ai-Counsultaion/apps/api/src/modules/ai/engines/soap-structuring.engine.ts
 
 import { createLogger } from '../../../shared/logger.js';
+import { safeJsonParse } from '../../../shared/safe-json-parse.js';
 import type { AiProviderChain } from '../../../infrastructure/ai/ai-provider-chain.js';
 
 const logger = createLogger('soap-engine');
@@ -83,8 +84,11 @@ Generate a complete, clinically appropriate SOAP note based strictly on the tran
         responseFormat: 'json',
       });
 
-      const jsonStr = response.content.substring(response.content.indexOf('{'), response.content.lastIndexOf('}') + 1);
-      const parsed = JSON.parse(jsonStr || response.content);
+      const parsed: any = safeJsonParse(response.content);
+      if (!parsed) {
+        logger.error({ tenantId, contentPreview: response.content.slice(0, 300) }, 'SOAP: JSON unrecoverable even after repair');
+        throw new Error('SOAP engine returned unparseable JSON');
+      }
 
       const icdCodes = Array.isArray(parsed.icdCodes)
         ? parsed.icdCodes.map((c: any) =>

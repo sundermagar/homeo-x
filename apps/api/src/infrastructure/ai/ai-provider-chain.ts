@@ -4,6 +4,7 @@
 // This is the single dependency that all AI engines receive.
 
 import { createLogger } from '../../shared/logger.js';
+import { OllamaAdapter } from './ollama.adapter.js';
 import { GeminiAdapter } from './gemini.adapter.js';
 import { GroqAdapter } from './groq.adapter.js';
 import { AnthropicAdapter } from './anthropic.adapter.js';
@@ -24,24 +25,24 @@ export class AiProviderChain {
 
   constructor() {
     const defaultModel = process.env.AI_MODEL || 'claude-haiku-4-5';
-    
-    this.providers = [
-      // Primary: Anthropic Claude (Premium Quality)
-      new AnthropicAdapter(defaultModel, 1000),
 
-      // Secondary: Groq (Verified Working, Ultra Fast Fallback)
+    this.providers = [
+      // Primary: Groq (Ultra-Fast, Stable)
       new GroqAdapter('llama-3.3-70b-versatile', 1000),
       new GroqAdapter('llama-3.1-8b-instant', 14400),
 
-      // Tertiary: Gemini (Scalable Fallback)
-      new GeminiAdapter('gemini-1.5-flash', 1500),
+      // Fallback: Local Ollama
+      new OllamaAdapter('qwen2.5:1.5b'),
+
+      // Secondary: Anthropic Claude & Gemini (Scale/Quality)
+      new AnthropicAdapter(defaultModel, 1000),
       new GeminiAdapter('gemini-2.0-flash', 1500),
-      new GeminiAdapter('gemini-1.5-flash-8b', 2000),
+      new GeminiAdapter('gemini-1.5-flash', 1500),
     ];
 
     const available = this.providers.filter(p => {
       // Check synchronously by examining the adapter's internal state
-      return (p as any).hasKey === true || (p as any).genAIs?.length > 0 || (p as any).clients?.length > 0;
+      return (p as any).hasKey === true || (p as any).genAIs?.length > 0 || (p as any).clients?.length > 0 || p.name === 'ollama';
     });
     logger.info(`AI Provider Chain: ${available.length}/${this.providers.length} providers initialized`);
   }

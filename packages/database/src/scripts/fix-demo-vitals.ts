@@ -1,4 +1,4 @@
-import { createDbClient } from '@mmc/database';
+import { createDbClient } from '../index.js';
 import { sql } from 'drizzle-orm';
 import dotenv from 'dotenv';
 import path from 'path';

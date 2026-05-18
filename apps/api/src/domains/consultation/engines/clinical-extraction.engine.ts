@@ -3,6 +3,7 @@
 // Ported from: Ai-Counsultaion/apps/api/src/modules/ai/engines/clinical-extraction.engine.ts
 
 import { createLogger } from '../../../shared/logger.js';
+import { safeJsonParse } from '../../../shared/safe-json-parse.js';
 import type { AiProviderChain } from '../../../infrastructure/ai/ai-provider-chain.js';
 
 const logger = createLogger('clinical-extraction-engine');
@@ -52,7 +53,19 @@ Extract these categories:
 IMPORTANT: Extract ONLY what is explicitly present. Do NOT fabricate.
 CRITICAL: Do NOT extract duplicate symptoms. If a symptom has already been mentioned or is a slight variation of an existing one, merge them into a single, comprehensive entry. Ensure all arrays contain strictly unique items.
 
-Respond in valid JSON matching the structure above.`;
+Respond ONLY with JSON in this exact structure:
+{
+  "observations": [],
+  "clinicalFindings": [],
+  "mentalState": ["irritable"],
+  "emotionProfile": [{"emotion": "anxiety", "intensity": 7, "context": "job stress"}],
+  "physicalSymptoms": ["hair fall"],
+  "generalSymptoms": [],
+  "modalities": {"aggravation": ["cold weather"], "amelioration": []},
+  "thermalReaction": "CHILLY",
+  "constitution": null,
+  "miasm": "PSORA"
+}`;
 
     const userPrompt = `Patient: Age ${input.patientAge || 'Unknown'}, Gender ${input.patientGender || 'Unknown'}
 Chief Complaint: ${input.chiefComplaint || 'Not specified'}
@@ -72,8 +85,11 @@ Extract all clinical data:`;
         responseFormat: 'json',
       });
 
-      const jsonStr = response.content.substring(response.content.indexOf('{'), response.content.lastIndexOf('}') + 1);
-      const parsed = JSON.parse(jsonStr || response.content);
+      const parsed: any = safeJsonParse(response.content);
+      if (!parsed) {
+        logger.error({ tenantId, contentPreview: response.content.slice(0, 300) }, 'Clinical extraction: JSON unrecoverable even after repair');
+        throw new Error('Clinical extraction returned unparseable JSON');
+      }
 
       logger.info({ tenantId }, 'Clinical extraction complete');
 

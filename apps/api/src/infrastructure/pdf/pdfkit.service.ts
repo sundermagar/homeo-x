@@ -61,11 +61,9 @@ export class PdfkitServiceAdapter {
       doc.y = badgeY + 15;
     }
 
-    // 2. Contact Section (Right Side with Vertical Divider)
+    // 2. Contact Section (Right Side)
     const contactX = 400;
     const dividerX = contactX - 15;
-
-    doc.moveTo(dividerX, headerY).lineTo(dividerX, headerY + 60).strokeColor('#E2E8F0').lineWidth(1.5).stroke();
 
     let rightY = headerY;
     doc.fontSize(8).font('Helvetica').fillColor('#334155');
@@ -85,10 +83,6 @@ export class PdfkitServiceAdapter {
     }
 
     doc.y = Math.max(doc.y, headerY + 70);
-
-    // 3. Signature Gradient Line
-    doc.moveTo(leftPadding, doc.y).lineTo(leftPadding + contentWidth, doc.y).strokeColor('#6366F1').lineWidth(2.5).stroke();
-    doc.moveTo(leftPadding, doc.y + 2.5).lineTo(leftPadding + contentWidth, doc.y + 2.5).strokeColor('#F1F5F9').lineWidth(1).stroke();
 
     doc.moveDown(1.5);
   }

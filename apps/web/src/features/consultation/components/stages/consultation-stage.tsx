@@ -10,7 +10,7 @@ import type { GnmAnalysis } from '../../../../types/ai';
 import type { TranscriptSegmentLocal, SpeakerLabel } from '../../../../types/scribing';
 import { useModeQuestions } from '../../hooks/use-mode-questions';
 import { useSymptomExtraction } from '../../hooks/use-symptom-extraction';
-import { Zap, RefreshCw, ClipboardList, Brain, Heart, Search, Star, Volume2, Mic, X, Trash2 } from 'lucide-react';
+import { Zap, RefreshCw, ClipboardList, Brain, Heart, Search, Star, Volume2, Mic, X, Trash2, Check } from 'lucide-react';
 import { io, type Socket } from 'socket.io-client';
 import { toast } from '../../../../hooks/use-toast';
 import { ROUTES } from '../../../../lib/constants';
@@ -83,6 +83,7 @@ export function ConsultationStage({
   const [_ongoingTranscript, _setOngoingTranscript] = useState('');
   const [patientAnswer, setPatientAnswer] = useState('');
   const [isListeningForAnswer, setIsListeningForAnswer] = useState(false);
+  const [selectedOptionsMap, setSelectedOptionsMap] = useState<Record<string, string[]>>({});
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Lab report context — updated from AICaptureModule render prop
@@ -393,6 +394,7 @@ export function ConsultationStage({
       const genAtDispatch = clearGenerationRef.current;
       symptomExtraction.mutate(
         {
+          visitId,
           consultationMode,
           question: questionText,
           answer: answerText,
@@ -543,6 +545,7 @@ export function ConsultationStage({
     const genAtDispatch = clearGenerationRef.current;
     symptomExtraction.mutate(
       {
+        visitId,
         consultationMode,
         question: questionText,
         answer: finalAnswerText,
@@ -670,6 +673,7 @@ export function ConsultationStage({
               const genAtDispatch = clearGenerationRef.current;
               symptomExtraction.mutate(
                 {
+                  visitId,
                   consultationMode,
                   question: '__LAB_REPORT_ANALYSIS__',
                   answer: `Lab report "${filename}" attached — extract rubrics from abnormal findings only.`,
@@ -813,23 +817,55 @@ export function ConsultationStage({
                       <ArrowRight className="h-4 w-4 text-[#888786] group-hover:text-[#2563EB] mt-0.5 shrink-0 ml-auto transition-transform group-hover:translate-x-1" />
                     </button>
                     
-                    {q.options && q.options.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 ml-6 mb-2">
-                        {q.options.map((opt: string, idx: number) => (
-                          <button
-                            key={idx}
-                            onClick={() => {
-                              injectQuestion(q.question, q.id);
-                              // Add a small delay so the answer appears after the question
-                              setTimeout(() => injectAnswer(opt), 300);
-                            }}
-                            className="px-2 py-1 text-[11px] font-bold bg-[#FAFAF8] border border-[#E3E2DF] rounded-[4px] text-[#4A4A47] hover:border-[#2563EB] hover:text-[#2563EB] transition-colors"
-                          >
-                            {opt}
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                    {q.options && q.options.length > 0 && (() => {
+                      const selectedOptions = selectedOptionsMap[q.question] || [];
+                      return (
+                        <div className="flex flex-wrap items-center gap-1.5 ml-6 mb-2">
+                          {q.options.map((opt: string, idx: number) => {
+                            const isSelected = selectedOptions.includes(opt);
+                            return (
+                              <button
+                                key={idx}
+                                onClick={() => {
+                                  setSelectedOptionsMap(prev => {
+                                    const current = prev[q.question] || [];
+                                    const next = current.includes(opt)
+                                      ? current.filter(o => o !== opt)
+                                      : [...current, opt];
+                                    return { ...prev, [q.question]: next };
+                                  });
+                                }}
+                                className={cn(
+                                  "px-2 py-1 text-[11px] font-bold border rounded-[4px] transition-all",
+                                  isSelected
+                                    ? "bg-[#2563EB] text-white border-[#2563EB] shadow-sm scale-95"
+                                    : "bg-[#FAFAF8] border-[#E3E2DF] text-[#4A4A47] hover:border-[#2563EB] hover:text-[#2563EB]"
+                                )}
+                              >
+                                {opt}
+                              </button>
+                            );
+                          })}
+                          {selectedOptions.length > 0 && (
+                            <button
+                              onClick={() => {
+                                injectQuestion(q.question, q.id);
+                                setTimeout(() => injectAnswer(selectedOptions.join(', ')), 300);
+                                // Clear selection for this question
+                                setSelectedOptionsMap(prev => {
+                                  const next = { ...prev };
+                                  delete next[q.question];
+                                  return next;
+                                });
+                              }}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold bg-[#2563EB] text-white border border-[#2563EB] rounded-[4px] hover:bg-[#1D4ED8] transition-colors uppercase tracking-wider shadow-sm ml-2"
+                            >
+                              <Check className="h-3 w-3" /> Submit
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 ))}
               </div>

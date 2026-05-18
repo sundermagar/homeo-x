@@ -126,6 +126,7 @@ export interface CategorizedSymptoms {
 }
 
 export interface SuggestQuestionsInput {
+  visitId?: string;
   consultationMode: ConsultationMode;
   transcript?: string;
   answeredQuestions?: string[];
@@ -135,6 +136,7 @@ export interface SuggestQuestionsInput {
 }
 
 export interface ExtractSymptomsInput {
+  visitId?: string;
   consultationMode: ConsultationMode;
   question: string;
   answer: string;

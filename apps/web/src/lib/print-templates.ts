@@ -814,7 +814,7 @@ export function generatePrescriptionHtml(data: PrescriptionPrintData): string {
             ${data.clinic.registrationNo ? `<div style="display:inline-flex; align-items:center; gap:6px; margin:8px 0 0; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:999px; padding:3px 8px 3px 5px; max-width:fit-content;"><div style="width:6px; height:6px; border-radius:50%; background:#22c55e; box-shadow:0 0 0 2px rgba(34,197,94,0.3);"></div><span style="font-size:0.55rem; font-weight:800; color:#374151; text-transform:uppercase; letter-spacing:0.06em;">${safe(data.clinic.registrationNo)}</span></div>` : ''}
           </div>
         </div>
-        <div style="text-align:right; display:flex; flex-direction:column; gap:8px; border-left:1.5px solid #e2e8f0; padding-left:16px; min-width:200px; max-width:320px; flex-shrink:0;">
+        <div style="text-align:right; display:flex; flex-direction:column; gap:8px; padding-left:16px; min-width:200px; max-width:320px; flex-shrink:0;">
           <div style="display:flex; flex-direction:column; gap:2px;">
             <div style="font-size:0.68rem; color:#334155; font-weight:700; display:flex; align-items:flex-start; gap:5px; justify-content:flex-end; line-height:1.35; text-align:right;">
               ${mapPinIcon}
@@ -844,10 +844,6 @@ export function generatePrescriptionHtml(data: PrescriptionPrintData): string {
             </div>` : ''}
           </div>
         </div>
-      </div>
-      <div style="width:100%; margin-bottom:20px;">
-        <div style="height:3px; width:100%; background:linear-gradient(90deg, #16a1e4 0%, #6366f1 50%, #8b5cf6 100%); border-radius:3px; box-shadow:0 1px 4px rgba(22, 101, 228, 0.25);"></div>
-        <div style="height:1px; width:100%; background:#f1f5f9; margin-top:3px;"></div>
       </div>
       <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px;">
         <div>

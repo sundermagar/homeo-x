@@ -16,6 +16,11 @@
     "db:generate": "turbo run db:generate --filter=@mmc/database",
     "db:migrate": "turbo run db:migrate --filter=@mmc/database",
     "db:seed": "turbo run db:seed --filter=@mmc/database",
+    "train:export": "pnpm --filter @mmc/api exec tsx src/scripts/export-training-data.ts",
+    "train:tune": "ml-pipeline/.venv/Scripts/python ml-pipeline/fine-tune-qwen.py",
+    "train:eval": "ml-pipeline/.venv/Scripts/python ml-pipeline/eval.py",
+    "train:deploy": "ml-pipeline/.venv/Scripts/python ml-pipeline/deploy-to-ollama.py",
+    "train:qwen": "pnpm train:export && pnpm train:tune && pnpm train:eval",
     "clean": "turbo run clean && rm -rf node_modules",
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\""
   },

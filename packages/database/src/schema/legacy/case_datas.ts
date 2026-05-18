@@ -6,7 +6,7 @@ export const caseDatasLegacy = pgTable("case_datas", {
   clinicId: integer("clinic_id"),
   regid: integer("regid"),
   patientid: integer("patientid"),
-  assitantDoctor: text("assitant_doctor"),
+  assistantDoctor: text("assistant_doctor"),
   consultationFee: integer("consultation_fee"),
   dob: date("dob"),
   title: text("title"),

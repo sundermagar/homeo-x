@@ -305,7 +305,7 @@ export function useConsultationState({
   // ─── Computed ───
   const patientAge = patient?.dateOfBirth
     ? calculateAge(patient.dateOfBirth)
-    : undefined;
+    : (patient as any)?.age;
 
   const aiContext: AiContext | undefined =
     visitId && visit.chiefComplaint

@@ -8,6 +8,7 @@ export * from './patients.js';
 export * from './medical-cases.js';
 export * from './billing.js';
 export * from './consultation.js';
+export { mlTrainingLogs, mlTrainingEmbeddings } from './consultation-extended.js';
 export * from './audit.js';
 export * from './platform.js';
 export * from './settings.js';

@@ -52,9 +52,23 @@ export default defineConfig({
       'frying-deviancy-rocklike.ngrok-free.dev'
     ],
     proxy: {
-      '/api': { target: 'http://127.0.0.1:3000', changeOrigin: false },
-      '/uploads': { target: 'http://127.0.0.1:3000', changeOrigin: false },
-      '/socket.io': { target: 'http://127.0.0.1:3000', ws: true, changeOrigin: false },
+      '/api': { 
+        target: 'http://127.0.0.1:3000', 
+        changeOrigin: false,
+        timeout: 1800000, // 30 minutes timeout
+        proxyTimeout: 1800000
+      },
+      '/uploads': { 
+        target: 'http://127.0.0.1:3000', 
+        changeOrigin: false 
+      },
+      '/socket.io': { 
+        target: 'http://127.0.0.1:3000', 
+        ws: true, 
+        changeOrigin: false,
+        timeout: 1800000,
+        proxyTimeout: 1800000
+      },
     },
   },
 });

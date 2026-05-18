@@ -14,10 +14,9 @@ export async function migrateTenant(dbUrl: string, schemaName: string): Promise<
   if (!fs.existsSync(migrationsFolder)) {
     migrationsFolder = path.join(__dirname, '../src/migrations');
   }
-  console.log(`[DEBUG] Running migrations for [${schemaName}] from: ${migrationsFolder}`);
 
-  const dbConnection = postgres(dbUrl, { 
-    max: 1, 
+  const dbConnection = postgres(dbUrl, {
+    max: 1,
     onnotice: () => {},
     connection: {
       search_path: `${schemaName},public`
@@ -31,7 +30,6 @@ export async function migrateTenant(dbUrl: string, schemaName: string): Promise<
       migrationsSchema: schemaName,
       migrationsTable: '__drizzle_migrations',
     });
-    console.log(`✅ Schema [${schemaName}] synchronized successfully.`);
   } finally {
     await dbConnection.end();
   }

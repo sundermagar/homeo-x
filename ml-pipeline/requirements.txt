@@ -1,0 +1,31 @@
+# Python dependencies for local Qwen fine-tuning.
+# Tested with Python 3.14 + PyTorch 2.11+. CPU-only by default.
+#
+# Install:  pip install -r ml-pipeline/requirements.txt
+
+# Core ML stack — torch already installed on Python 3.14 (cp314 wheels available)
+torch>=2.11.0
+
+# Stay on transformers 4.x and trl 0.x for stable SFTTrainer API.
+# transformers 5.x and trl 1.x changed the trainer API; we can migrate later.
+transformers>=4.46.0,<5.0
+trl>=0.12.0,<1.0
+peft>=0.13.0,<1.0
+datasets>=3.0.0,<5.0
+accelerate>=1.0.0
+
+# Tokenizers / model utilities
+sentencepiece>=0.2.0
+protobuf>=5.0.0
+safetensors>=0.4.5
+
+# Metrics / utilities
+scikit-learn>=1.5.0
+tqdm>=4.66.0
+numpy>=1.26.0,<3.0
+
+# Pretty CLI output
+rich>=13.9.0
+
+# Note: bitsandbytes is GPU-only; intentionally NOT pinned here.
+# If you ever move training to a CUDA box, add: bitsandbytes>=0.44.0
