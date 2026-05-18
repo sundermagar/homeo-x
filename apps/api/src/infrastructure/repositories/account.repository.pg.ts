@@ -1,4 +1,4 @@
-import { eq, isNull, and, desc } from 'drizzle-orm';
+import { eq, isNull, and, desc, or, sql } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 import { accounts, users } from '@mmc/database/schema';
 import type { DbClient } from '@mmc/database';
@@ -10,15 +10,190 @@ export class AccountRepositoryPg implements AccountRepository {
   constructor(private readonly db: DbClient) {}
 
   async findAll(clinicId?: number): Promise<Account[]> {
-    const conditions = [isNull(accounts.deletedAt)];
-    if (clinicId) conditions.push(eq(accounts.clinicId, clinicId));
+    if (clinicId) {
+      // 1. Fetch organization name from organizations table
+      const orgs = await this.db.execute(sql`
+        SELECT name FROM organizations WHERE id = ${clinicId}
+      `) as any[];
+      
+      const orgName = orgs[0]?.name;
+      if (!orgName) return [];
+      
+      const slug = orgName.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const schemaName = `tenant_${slug}`;
 
-    const rows = await this.db
-      .select()
-      .from(accounts)
-      .where(and(...conditions))
-      .orderBy(desc(accounts.id));
-    return rows.map(this.toDomain);
+      // 2. Fetch public users mapped to this clinic
+      const publicUsers = await this.db.execute(sql`
+        SELECT id, name, email, type::text as designation, gender, mobile
+        FROM users
+        WHERE deleted_at IS NULL AND context_id = ${clinicId}
+      `) as any[];
+
+      const tenantAccounts: any[] = [];
+      
+      if (schemaName) {
+        // A. Doctors
+        try {
+          const doctors = await this.db.execute(sql.raw(`
+            SELECT id, name, email, 'Doctor' as designation, gender, mobile
+            FROM ${schemaName}.doctors
+            WHERE deleted_at IS NULL
+          `)) as any[];
+          tenantAccounts.push(...doctors);
+        } catch (err) {}
+
+        // B. Receptionists
+        try {
+          const receptionists = await this.db.execute(sql.raw(`
+            SELECT id, name, email, 'Receptionist' as designation, gender, mobile
+            FROM ${schemaName}.receptionists
+            WHERE deleted_at IS NULL
+          `)) as any[];
+          tenantAccounts.push(...receptionists);
+        } catch (err) {}
+
+        // C. Employees
+        try {
+          const employees = await this.db.execute(sql.raw(`
+            SELECT id, name, email, 'Employee' as designation, gender, mobile
+            FROM ${schemaName}.employees
+            WHERE deleted_at IS NULL
+          `)) as any[];
+          tenantAccounts.push(...employees);
+        } catch (err) {}
+
+        // D. Dispensaries
+        try {
+          const dispensaries = await this.db.execute(sql.raw(`
+            SELECT id, name, email, 'Dispensary' as designation, 'Male' as gender, mobile
+            FROM ${schemaName}.dispensaries
+            WHERE deleted_at IS NULL
+          `)) as any[];
+          tenantAccounts.push(...dispensaries);
+        } catch (err) {}
+
+        // E. Patients (or case_datas)
+        try {
+          const patients = await this.db.execute(sql.raw(`
+            SELECT id, CONCAT(first_name, ' ', middle_name, ' ', surname) as name, email, 'Patient' as designation, gender, mobile1 as mobile
+            FROM ${schemaName}.patients
+            WHERE deleted_at IS NULL
+          `)) as any[];
+          tenantAccounts.push(...patients.map(p => ({
+            ...p,
+            name: p.name.trim() || 'Patient'
+          })));
+        } catch (err) {
+          try {
+            const caseDatas = await this.db.execute(sql.raw(`
+              SELECT id, name, email, 'Patient' as designation, gender, mobile
+              FROM ${schemaName}.case_datas
+              WHERE deleted_at IS NULL
+            `)) as any[];
+            tenantAccounts.push(...caseDatas);
+          } catch (e2) {}
+        }
+      }
+
+      // Merge and deduplicate
+      const allAccounts = [
+        ...publicUsers.map(u => ({
+          id: u.id,
+          name: u.name,
+          email: u.email,
+          mobile: u.mobile || '',
+          mobile2: '',
+          gender: u.gender || 'Male',
+          city: '',
+          address: '',
+          about: '',
+          designation: u.designation || 'Clinicadmin',
+          dept: 1,
+          clinicId: clinicId,
+          deletedAt: null as string | null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        })),
+        ...tenantAccounts.map(t => ({
+          id: t.id,
+          name: t.name,
+          email: t.email,
+          mobile: t.mobile || '',
+          mobile2: '',
+          gender: t.gender || 'Male',
+          city: '',
+          address: '',
+          about: '',
+          designation: t.designation || 'Staff',
+          dept: 1,
+          clinicId: clinicId,
+          deletedAt: null as string | null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }))
+      ];
+
+      const seen = new Set<string>();
+      const uniqueAccounts: Account[] = [];
+      for (const acc of allAccounts) {
+        const key = `${acc.email?.toLowerCase() || ''}_${acc.designation?.toLowerCase() || ''}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          uniqueAccounts.push(acc);
+        }
+      }
+
+      return uniqueAccounts;
+    }
+
+    // Default "All Registered Clinics" case (only Clinicadmin type in public users table)
+    const query = this.db
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        type: users.type,
+        contextId: users.contextId,
+        mobile: users.mobile,
+        phone: users.phone,
+        mobile2: users.mobile2,
+        gender: users.gender,
+        city: users.city,
+        address: users.address,
+        about: users.about,
+        designation: users.designation,
+        dept: users.dept,
+        deletedAt: users.deletedAt,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
+      })
+      .from(users)
+      .where(
+        and(
+          isNull(users.deletedAt),
+          eq(users.type, Role.Clinicadmin)
+        )
+      );
+
+    const rows = await query.orderBy(desc(users.id));
+
+    return rows.map(r => ({
+      id: r.id,
+      name: r.name,
+      email: r.email,
+      mobile: r.mobile || r.phone || '',
+      mobile2: r.mobile2 || '',
+      gender: r.gender || 'Male',
+      city: r.city || '',
+      address: r.address || '',
+      about: r.about || '',
+      designation: r.designation || r.type || '',
+      dept: r.dept || 1,
+      clinicId: r.contextId,
+      deletedAt: r.deletedAt?.toISOString() ?? null,
+      createdAt: r.createdAt?.toISOString() ?? new Date().toISOString(),
+      updatedAt: r.updatedAt?.toISOString() ?? new Date().toISOString(),
+    }));
   }
 
   async findById(id: number): Promise<Account | null> {

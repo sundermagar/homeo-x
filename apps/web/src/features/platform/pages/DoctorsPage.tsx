@@ -10,16 +10,13 @@ import type { CreateStaffInput, UpdateStaffInput } from '@mmc/validation';
 import { createStaffSchema, updateStaffSchema } from '@mmc/validation';
 import { apiClient } from '@/infrastructure/api-client';
 import '../styles/platform.css';
-
 import { Pagination } from '@/components/shared/pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { EmptyState } from '@/components/shared/empty-state';
 import { Drawer } from '@/shared/components/drawer';
-
 const CATEGORY = 'doctor' as const;
 const META = { label: 'Doctors', description: 'Manage clinical practitioners and specialized doctor profiles.' };
 const PAGE_SIZE = 10;
-
 function getDefaultStaffForm(): CreateStaffInput {
   return {
     category: CATEGORY,
@@ -63,7 +60,6 @@ function getDefaultStaffForm(): CreateStaffInput {
     sendWelcomeEmail: false,
   };
 }
-
 function staffMemberToForm(staff: StaffMember): CreateStaffInput {
   const gender = staff.gender === 'Female' || staff.gender === 'Other' ? (staff.gender as "Female" | "Other") : 'Male';
   return {
@@ -108,7 +104,6 @@ function staffMemberToForm(staff: StaffMember): CreateStaffInput {
     sendWelcomeEmail: false,
   };
 }
-
 function FileInputRow({
   label,
   field,
@@ -169,9 +164,6 @@ function FileInputRow({
     </div>
   );
 }
-
-
-
 function StaffModal({
   mode,
   staff,
@@ -187,12 +179,10 @@ function StaffModal({
 }) {
   const [form, setForm] = useState<CreateStaffInput | UpdateStaffInput>(getDefaultStaffForm());
   const [errors, setErrors] = useState<Record<string, string | undefined>>({});
-
   const createMutation = useCreateStaff();
   const updateMutation = useUpdateStaff();
   const qc = useQueryClient();
   const { user } = useAuthStore();
-
   useEffect(() => {
     if (mode === 'edit' && staff) {
       const editForm = staffMemberToForm(staff);
@@ -209,17 +199,13 @@ function StaffModal({
       setForm(defaultForm);
     }
   }, [mode, staff, user]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
-
     const fullName = `${form.firstname} ${form.middlename || ''} ${form.surname}`.replace(/\s+/g, ' ').trim();
     const finalForm = { ...form, name: fullName };
-
     const schema = mode === 'create' ? createStaffSchema : updateStaffSchema;
     const result = schema.safeParse(finalForm);
-
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
       result.error.errors.forEach((err) => {
@@ -230,7 +216,6 @@ function StaffModal({
       setErrors(fieldErrors);
       return;
     }
-
     try {
       if (mode === 'create') {
         await createMutation.mutateAsync(finalForm as CreateStaffInput);
@@ -249,7 +234,6 @@ function StaffModal({
       setErrors({ general: typeof serverMsg === 'object' ? JSON.stringify(serverMsg) : (serverMsg || 'An error occurred during submission') });
     }
   };
-
   const updateForm = (field: string, value: any) => {
     let castValue = value;
     if (field === 'dept' || field === 'salaryCur' || field === 'consultationFee') {
@@ -257,20 +241,16 @@ function StaffModal({
     }
     setForm((prev) => ({ ...prev, [field]: castValue }));
   };
-
   const handleFileUpload = async (field: string, event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
     try {
       setErrors((prev) => ({ ...prev, [field]: undefined }));
       const formData = new FormData();
       formData.append('file', file);
-
       const res = await apiClient.post('/staff/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-
       const resData = (res as any)._original ?? res.data;
       if (resData?.success && resData?.path) {
         updateForm(field, resData.path);
@@ -281,14 +261,11 @@ function StaffModal({
       setErrors((prev) => ({ ...prev, [field]: err.message || 'Upload failed' }));
     }
   };
-
   const handleFileRemove = (field: string) => {
     updateForm(field, '');
   };
-
   const isPending = createMutation.isPending || updateMutation.isPending;
   const isEdit = mode === 'edit';
-
   return (
     <Drawer
       isOpen={true}
@@ -301,7 +278,6 @@ function StaffModal({
           {errors['general'] && (
             <div className="plat-error-banner mb-4">{errors['general']}</div>
           )}
-
           {/* Section 1: Personal Details */}
           <div className="plat-form-section">
             <h4 className="plat-form-section-title">Personal Details</h4>
@@ -317,7 +293,6 @@ function StaffModal({
                 />
                 {errors['title'] && <span className="plat-form-error">{errors['title']}</span>}
               </div>
-
               <div className="plat-form-group" style={{ gridColumn: 'span 1' }}>
                 <label className="plat-form-label">First Name *</label>
                 <input
@@ -329,7 +304,6 @@ function StaffModal({
                 />
                 {errors['firstname'] && <span className="plat-form-error">{errors['firstname']}</span>}
               </div>
-
               <div className="plat-form-group" style={{ gridColumn: 'span 1' }}>
                 <label className="plat-form-label">Middle Name</label>
                 <input
@@ -340,7 +314,6 @@ function StaffModal({
                   disabled={isLoading}
                 />
               </div>
-
               <div className="plat-form-group" style={{ gridColumn: 'span 1' }}>
                 <label className="plat-form-label">Surname *</label>
                 <input
@@ -352,7 +325,6 @@ function StaffModal({
                 />
                 {errors['surname'] && <span className="plat-form-error">{errors['surname']}</span>}
               </div>
-
               <div className="plat-form-group" style={{ gridColumn: 'span 1' }}>
                 <label className="plat-form-label">Gender</label>
                 <select
@@ -366,7 +338,6 @@ function StaffModal({
                   <option value="Other">Other</option>
                 </select>
               </div>
-
               <div className="plat-form-group" style={{ gridColumn: 'span 1' }}>
                 <label className="plat-form-label">Date of Birth</label>
                 <input
@@ -377,7 +348,6 @@ function StaffModal({
                   disabled={isLoading}
                 />
               </div>
-
               <FileInputRow
                 label="Profile Picture"
                 field="profilepic"
@@ -390,7 +360,6 @@ function StaffModal({
               />
             </div>
           </div>
-
           {/* Section 2: Contact & Address */}
           <div className="plat-form-section">
             <h4 className="plat-form-section-title">Contact & Address</h4>
@@ -406,7 +375,6 @@ function StaffModal({
                 />
                 {errors['mobile'] && <span className="plat-form-error">{errors['mobile']}</span>}
               </div>
-
               <div className="plat-form-group">
                 <label className="plat-form-label">Alt Mobile</label>
                 <NumericInput
@@ -417,7 +385,6 @@ function StaffModal({
                   disabled={isLoading}
                 />
               </div>
-
               <div className="plat-form-group">
                 <label className="plat-form-label">Email Address</label>
                 <input
@@ -429,7 +396,6 @@ function StaffModal({
                 />
                 {errors['email'] && <span className="plat-form-error">{errors['email']}</span>}
               </div>
-
               <div className="plat-form-group">
                 <label className="plat-form-label">Login Password {isEdit && '(leave blank to keep current)'}</label>
                 <input
@@ -442,24 +408,20 @@ function StaffModal({
                 />
                 {errors['password'] && <span className="plat-form-error">{errors['password']}</span>}
               </div>
-
               {mode === 'create' && (
-                <div className="plat-form-group" style={{ gridColumn: 'span 2', marginTop: '8px' }}>
-                  <label className="flex items-center gap-2 cursor-pointer">
+                <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
+                  <label className="plat-checkbox-group">
                     <input
                       type="checkbox"
                       checked={!!form.sendWelcomeEmail}
                       onChange={(e) => updateForm('sendWelcomeEmail', e.target.checked)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      style={{ width: '16px', height: '16px' }}
                     />
-                    <span className="text-sm font-medium text-gray-700">
+                    <span className="plat-checkbox-label">
                       Send welcome email with credentials
                     </span>
                   </label>
                 </div>
               )}
-
               <div className="plat-form-group">
                 <label className="plat-form-label">City</label>
                 <input
@@ -470,7 +432,6 @@ function StaffModal({
                   disabled={isLoading}
                 />
               </div>
-
               <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
                 <label className="plat-form-label">Address</label>
                 <input
@@ -481,7 +442,6 @@ function StaffModal({
                   disabled={isLoading}
                 />
               </div>
-
               <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
                 <label className="plat-form-label">Permanent Address</label>
                 <input
@@ -494,7 +454,6 @@ function StaffModal({
               </div>
             </div>
           </div>
-
           {/* Section 3: Professional Credentials */}
           <div className="plat-form-section">
             <h4 className="plat-form-section-title">Professional Credentials</h4>
@@ -512,7 +471,6 @@ function StaffModal({
                   <option value={2}>Cardiology</option>
                 </select>
               </div>
-
               <div className="plat-form-group">
                 <label className="plat-form-label">Designation</label>
                 <input
@@ -523,7 +481,6 @@ function StaffModal({
                   disabled={isLoading}
                 />
               </div>
-
               <div className="plat-form-group">
                 <label className="plat-form-label">Qualification</label>
                 <input
@@ -534,7 +491,6 @@ function StaffModal({
                   disabled={isLoading}
                 />
               </div>
-
               <div className="plat-form-group">
                 <label className="plat-form-label">Institute / University</label>
                 <input
@@ -545,7 +501,6 @@ function StaffModal({
                   disabled={isLoading}
                 />
               </div>
-
               <div className="plat-form-group">
                 <label className="plat-form-label">Passed Out Year</label>
                 <input
@@ -557,7 +512,6 @@ function StaffModal({
                   disabled={isLoading}
                 />
               </div>
-
               <div className="plat-form-group">
                 <label className="plat-form-label">Consultation Fee (₹)</label>
                 <NumericInput
@@ -567,7 +521,6 @@ function StaffModal({
                   disabled={isLoading}
                 />
               </div>
-
               <div className="plat-form-group">
                 <label className="plat-form-label">Registration ID</label>
                 <input
@@ -578,7 +531,6 @@ function StaffModal({
                   disabled={isLoading}
                 />
               </div>
-
               <div className="plat-form-group">
                 <label className="plat-form-label">Joining Date</label>
                 <input
@@ -591,7 +543,6 @@ function StaffModal({
               </div>
             </div>
           </div>
-
           {/* Section 4: Statutory & Documents */}
           <div className="plat-form-section">
             <h4 className="plat-form-section-title">Statutory & Documents</h4>
@@ -606,7 +557,6 @@ function StaffModal({
                   disabled={isLoading}
                 />
               </div>
-
               <FileInputRow
                 label="Aadhar Card"
                 field="aadharCard"
@@ -615,7 +565,6 @@ function StaffModal({
                 onRemove={handleFileRemove}
                 error={errors['aadharCard']}
               />
-
               <div className="plat-form-group">
                 <label className="plat-form-label">PAN Number</label>
                 <input
@@ -626,7 +575,6 @@ function StaffModal({
                   disabled={isLoading}
                 />
               </div>
-
               <FileInputRow
                 label="PAN Card"
                 field="panCard"
@@ -635,7 +583,6 @@ function StaffModal({
                 onRemove={handleFileRemove}
                 error={errors['panCard']}
               />
-
               <FileInputRow
                 label="Registration Certificate"
                 field="registrationCertificate"
@@ -644,7 +591,6 @@ function StaffModal({
                 onRemove={handleFileRemove}
                 error={errors['registrationCertificate']}
               />
-
               <FileInputRow
                 label="Appointment Letter"
                 field="appointmentLetter"
@@ -653,14 +599,12 @@ function StaffModal({
                 onRemove={handleFileRemove}
                 error={errors['appointmentLetter']}
               />
-
               <FileInputRow label="10th Marksheet" field="col10Document" value={form.col10Document} onChange={handleFileUpload} onRemove={handleFileRemove} error={errors['col10Document']} />
               <FileInputRow label="12th Marksheet" field="col12Document" value={form.col12Document} onChange={handleFileUpload} onRemove={handleFileRemove} error={errors['col12Document']} />
               <FileInputRow label="BHMS Document" field="bhmsDocument" value={form.bhmsDocument} onChange={handleFileUpload} onRemove={handleFileRemove} error={errors['bhmsDocument']} style={{ gridColumn: 'span 2' }} />
               <FileInputRow label="MD Document" field="mdDocument" value={form.mdDocument} onChange={handleFileUpload} onRemove={handleFileRemove} error={errors['mdDocument']} style={{ gridColumn: 'span 2' }} />
             </div>
           </div>
-
           <div className="plat-modal-footer">
             <button type="button" className="plat-btn plat-btn-ghost" onClick={onClose}>
               Discard
@@ -674,7 +618,6 @@ function StaffModal({
     </Drawer>
   );
 }
-
 export default function DoctorsPage() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -685,7 +628,6 @@ export default function DoctorsPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [itemsPerPage, setItemsPerPage] = useState(PAGE_SIZE);
-
   const { data, isLoading } = useStaffList(CATEGORY, {
     page,
     limit: itemsPerPage,
@@ -695,36 +637,30 @@ export default function DoctorsPage() {
   });
   const deleteMutation = useDeleteStaff();
   const { data: editingStaff, isLoading: isLoadingStaff } = useStaffMember(CATEGORY, editingId ?? 0);
-
   const staffArray = Array.isArray(data?.data) ? data.data : [];
   const staff = staffArray;
   const totalPages = Math.ceil((data?.total || 0) / PAGE_SIZE);
   const activeCount = data?.activeCount ?? 0;
-
   const openCreate = () => {
     setModalMode('create');
     setEditingId(null);
     setModalOpen(true);
   };
-
   const openEdit = (s: StaffSummary) => {
     setModalMode('edit');
     setEditingId(s.id);
     setModalOpen(true);
   };
-
   const handleSearchChange = (val: string) => {
     setSearch(val);
     setPage(1);
     clearTimeout((window as any).__staffSearchTimer);
     (window as any).__staffSearchTimer = setTimeout(() => setDebouncedSearch(val), 300);
   };
-
   const handleDelete = async (id: number) => {
     if (!confirm('Are you sure you want to remove this practitioner?')) return;
     await deleteMutation.mutateAsync({ category: CATEGORY, id });
   };
-
   // return (
   return (
     <div className="plat-page">
@@ -742,7 +678,6 @@ export default function DoctorsPage() {
           </button>
         </div>
       </div>
-
       <div className="pp-stat-grid">
         <div className="pp-stat-card-enhanced">
           <div className="pp-stat-label">Total Practitioners</div>
@@ -753,7 +688,6 @@ export default function DoctorsPage() {
           <div className="pp-stat-value is-success">{activeCount}</div>
         </div>
       </div>
-
       <div className="pp-filter-card">
         <div className="pp-filter-search-wrap">
           <Search size={14} />
@@ -799,12 +733,11 @@ export default function DoctorsPage() {
           </button>
         </div>
       </div>
-
       <div>
         {isLoading ? (
           <TableSkeleton rows={itemsPerPage} columns={6} />
         ) : staff.length === 0 ? (
-          <EmptyState 
+          <EmptyState
             icon={Stethoscope}
             title="No doctors found"
             description="Adjust your filters or add a new clinical practitioner to the registry."
@@ -897,8 +830,6 @@ export default function DoctorsPage() {
         </>
         )}
       </div>
-
-
       {modalOpen && (
         <StaffModal
           mode={modalMode}

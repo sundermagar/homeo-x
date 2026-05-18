@@ -327,10 +327,10 @@ export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient,
 
             {/* Appointment Booking Logic */}
             {!isEdit && form.assistantDoctor && (
-              <div className="pat-appt-section animate-fade-in" style={{ marginTop: '12px', padding: '12px', background: 'var(--pp-bg-subtle)', borderRadius: '8px', border: '1px solid var(--pp-border)' }}>
+              <div className="pat-appt-section animate-fade-in" style={{ marginTop: '12px', padding: '12px', background: 'var(--bg-surface-2)', borderRadius: '8px', border: '1px solid var(--border-main)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
                   <CalendarIcon size={14} style={{ color: 'var(--pp-blue)' }} />
-                  <span style={{ fontWeight: 600, fontSize: '13px' }}>Book Appointment</span>
+                  <span style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text-main)' }}>Book Appointment</span>
                 </div>
 
                 <div className="form-group">
@@ -356,7 +356,7 @@ export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient,
                       Doctor is currently inactive. You can still register the patient, but cannot book a slot.
                     </div>
                   ) : slots.length === 0 ? (
-                    <div className="pat-slots-hint" style={{ padding: '8px', textAlign: 'center', opacity: 0.6, fontSize: '12px' }}>
+                    <div className="pat-slots-hint" style={{ padding: '8px', textAlign: 'center', opacity: 0.6, fontSize: '12px', color: 'var(--text-muted)' }}>
                       Select a date to see available slots
                     </div>
                   ) : (
@@ -372,9 +372,9 @@ export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient,
                             padding: '6px 4px',
                             fontSize: '11px',
                             borderRadius: '4px',
-                            border: '1px solid var(--pp-border)',
-                            background: form.bookingTime === slot.time ? 'var(--pp-blue)' : slot.booked ? 'var(--pp-bg-subtle)' : 'var(--pp-surface)',
-                            color: form.bookingTime === slot.time ? 'white' : slot.booked ? 'var(--pp-text-muted)' : 'var(--pp-text)',
+                            border: '1px solid var(--border-main)',
+                            background: form.bookingTime === slot.time ? 'var(--pp-blue)' : slot.booked ? 'var(--bg-surface-2)' : 'var(--bg-card)',
+                            color: form.bookingTime === slot.time ? 'white' : slot.booked ? 'var(--text-muted)' : 'var(--text-main)',
                             cursor: slot.booked || slot.isPast ? 'not-allowed' : 'pointer',
                             opacity: slot.isPast ? 0.4 : 1
                           }}

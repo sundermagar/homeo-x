@@ -199,6 +199,55 @@
   -webkit-text-fill-color: transparent;
 }
 
+.color-main { color: var(--text-main); }
+.color-muted { color: var(--text-muted); }
+.border-plat-border { border-color: var(--border-main) !important; }
+
+/* ─── Premium Checkbox System ─── */
+.plat-checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-main);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all var(--pp-transition-fast);
+  margin-top: 8px;
+  user-select: none;
+  width: fit-content;
+}
+
+.plat-checkbox-group:hover {
+  border-color: var(--pp-blue-border);
+  background: var(--bg-card);
+  box-shadow: var(--pp-shadow-sm);
+  transform: translateY(-1px);
+}
+
+.plat-checkbox-group input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--pp-blue);
+}
+
+.plat-checkbox-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pp-ink);
+}
+
+.dark .plat-checkbox-group {
+  background: var(--pp-warm-3);
+}
+
+.dark .plat-checkbox-group:hover {
+  background: var(--pp-warm-4);
+  border-color: var(--pp-blue);
+}
+
 /* ─── Layout Utilities ─────────────────────────────────────────────────────── */
 .flex {
   display: flex;

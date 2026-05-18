@@ -355,16 +355,14 @@ export default function DispensariesPage() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 py-4">
+              <label className="plat-checkbox-group">
                 <input
                   type="checkbox"
-                  className="w-4 h-4 accent-primary"
-                  id="isActiveDisp"
                   checked={form.isActive}
                   onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))}
                 />
-                <label htmlFor="isActiveDisp" className="plat-form-label mb-0 cursor-pointer">Authorized for System Access</label>
-              </div>
+                <span className="plat-checkbox-label">Authorized for System Access</span>
+              </label>
             </div>
           </div>
           <div className="plat-modal-footer" style={{ padding: '24px 0 0 0', marginTop: '24px' }}>

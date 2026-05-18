@@ -50,7 +50,7 @@ export function AppointmentFormDrawer({ isOpen, onClose, appointmentId, initialD
 
         <div className="appt-drawer-body">
           {loading ? (
-            <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
+            <div style={{ padding: '40px', textAlign: 'center', color: 'var(--pp-text-3)' }}>
               Loading appointment details...
             </div>
           ) : (
