@@ -5,7 +5,7 @@ import { createLogger } from '../../shared/logger.js';
 const logger = createLogger('whatsapp-gateway');
 
 export class WhatsAppCloudGateway implements WhatsAppGateway {
-  private apiVersion = process.env.WHATSAPP_API_VERSION || 'v24.0';
+  private apiVersion = process.env.META_API_VERSION || process.env.WHATSAPP_API_VERSION || 'v22.0';
   private baseUrl = `https://graph.facebook.com/${this.apiVersion}`;
 
   constructor(private readonly waRepo: WhatsAppRepository) {}

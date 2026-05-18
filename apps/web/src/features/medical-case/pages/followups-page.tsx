@@ -10,9 +10,11 @@ import { useDoctors } from '@/features/appointments/hooks/use-doctors';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { Pagination } from '@/components/shared/pagination';
 import { EmptyState } from '@/components/shared/empty-state';
+import { useSendWhatsApp } from '@/features/communications/hooks/use-communications';
 
 export default function FollowupsPage() {
   const navigate = useNavigate();
+  const sendWhatsApp = useSendWhatsApp();
   const [followups, setFollowups] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'list' | 'card'>('list');
@@ -68,7 +70,11 @@ export default function FollowupsPage() {
       alert('Mobile number not available');
       return;
     }
-    window.open(`https://wa.me/${phone.startsWith('91') ? phone : '91' + phone}?text=${encodeURIComponent(message)}`, '_blank');
+    const finalPhone = phone.startsWith('91') ? phone : '91' + phone;
+    sendWhatsApp.mutate({ phone: finalPhone, message }, {
+      onSuccess: () => alert('Follow-up reminder sent via WhatsApp!'),
+      onError: (err: any) => alert('Failed to send WhatsApp message: ' + (err.response?.data?.message || err.message))
+    });
   };
 
   const missedCount = followups.filter(f => f.visitType === 'Missed').length;

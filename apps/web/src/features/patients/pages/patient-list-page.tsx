@@ -16,6 +16,7 @@ import '../../dashboard/pages/role-dashboards.css';
 import '../styles/patients.css';
 import { Pagination } from '@/components/shared/pagination';
 import { EmptyState } from '@/components/shared/empty-state';
+import { useSendWhatsApp } from '@/features/communications/hooks/use-communications';
 
 /* ─── Helpers ──────────────────────────────────────────────────────────────── */
 function formatDate(date: Date | string | null | undefined) {
@@ -23,13 +24,6 @@ function formatDate(date: Date | string | null | undefined) {
   const d = new Date(date);
   if (isNaN(d.getTime())) return '—';
   return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-}
-
-function openWhatsApp(phone: string | null, name: string) {
-  if (!phone) return alert('No phone number available.');
-  const cleaned = phone.replace(/\D/g, '');
-  const msg = encodeURIComponent(`Hello ${name}, this is a message from your clinic.`);
-  window.open(`https://wa.me/91${cleaned}?text=${msg}`, '_blank');
 }
 
 function getInitials(name: string) {
@@ -119,6 +113,18 @@ export default function PatientListPage() {
 
   const user = useAuthStore(s => s.user);
   const token = useAuthStore(s => s.token);
+  const sendWhatsApp = useSendWhatsApp();
+
+  const openWhatsApp = (phone: string | null, name: string) => {
+    if (!phone) return alert('No phone number available.');
+    const cleaned = phone.replace(/\D/g, '');
+    const finalPhone = cleaned.length === 10 ? `91${cleaned}` : cleaned;
+    const msg = `Hello ${name}, this is a message from your clinic.`;
+    sendWhatsApp.mutate({ phone: finalPhone, message: msg }, {
+      onSuccess: () => alert('WhatsApp message sent directly via Meta Cloud API!'),
+      onError: (err: any) => alert('Failed to send WhatsApp message: ' + (err.response?.data?.message || err.message))
+    });
+  };
 
   const { data, isLoading, refetch } = usePatients({
     page, limit: pageSize, search: debouncedSearch,

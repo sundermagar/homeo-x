@@ -8,6 +8,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/infrastructure/api-client';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { Pagination } from '@/components/shared/pagination';
+import { useSendWhatsApp } from '@/features/communications/hooks/use-communications';
 import './courier-queue-page.css';
 
 interface CourierEntry {
@@ -33,6 +34,7 @@ interface CourierEntry {
 
 export function CourierQueuePage() {
   const queryClient = useQueryClient();
+  const sendWhatsApp = useSendWhatsApp();
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -114,9 +116,16 @@ export function CourierQueuePage() {
   const handleSendWhatsApp = () => {
     if (!messageModal) return;
     const phone = messageModal.phone.replace(/\D/g, '');
-    const encodedMsg = encodeURIComponent(messageModal.message);
-    window.open(`https://wa.me/${phone.startsWith('91') ? phone : '91' + phone}?text=${encodedMsg}`, '_blank');
-    setMessageModal(null);
+    const finalPhone = phone.startsWith('91') ? phone : '91' + phone;
+    sendWhatsApp.mutate({ phone: finalPhone, message: messageModal.message }, {
+      onSuccess: () => {
+        setMessageModal(null);
+        alert('WhatsApp message sent directly via Meta Cloud API!');
+      },
+      onError: (err: any) => {
+        alert('Failed to send WhatsApp message: ' + (err.response?.data?.message || err.message));
+      }
+    });
   };
 
   const filteredQueue = queue.filter(e => {

@@ -14,6 +14,7 @@ import { VitalsFormModal } from '../../medical-case/components/vitals-form-modal
 import { Pagination } from '@/components/shared/pagination';
 import { EmptyState } from '@/components/shared/empty-state';
 import { toast } from '@/hooks/use-toast';
+import { useSendWhatsApp } from '@/features/communications/hooks/use-communications';
 import '../styles/appointments.css';
 
 const WAIT_STATUS = { 0: 'Waiting', 1: 'Called', 2: 'Done' } as Record<number, string>;
@@ -32,6 +33,7 @@ import { useNavigate } from 'react-router-dom';
 
 export default function TokenQueuePage() {
   const navigate = useNavigate();
+  const sendWhatsApp = useSendWhatsApp();
   const today = new Date().toISOString().split('T')[0]!;
   const user = useAuthStore((s) => s.user);
   const rawRole = ((user as any)?.type || (user as any)?.role || (user as any)?.roleName || '').toLowerCase();
@@ -59,7 +61,10 @@ export default function TokenQueuePage() {
     const cleanPhone = phone.replace(/\D/g, '');
     const finalPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
     const msg = `Hello ${name}, your appointment at our clinic is confirmed.`;
-    window.open(`https://wa.me/${finalPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+    sendWhatsApp.mutate({ phone: finalPhone, message: msg }, {
+      onSuccess: () => toast({ description: 'WhatsApp message sent directly!', variant: 'success' }),
+      onError: (err: any) => toast({ description: 'Failed to send WhatsApp message: ' + (err.response?.data?.message || err.message), variant: 'error' })
+    });
   };
   const [openMenuId, setOpenMenuId] = useState<number | string | null>(null);
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);

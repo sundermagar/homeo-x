@@ -12,6 +12,7 @@ import {
   RemedyTreeNode,
   RemedyAlternative
 } from '../hooks/use-remedy-chart';
+import { useSendWhatsApp } from '@/features/communications/hooks/use-communications';
 
 import '../styles/medical-case.css';
 
@@ -215,6 +216,7 @@ export function AiRemedyView({ regid }: { regid?: number }) {
   const [selectedPath, setSelectedPath] = useState<string>('');
   const { data: rootNodes, isLoading: loadingRoots } = useRemedyTree(0);
   const { data: searchResults, isLoading: loadingSearch } = useRemedyTree(searchTerm ? 0 : -1, searchTerm);
+  const sendWhatsApp = useSendWhatsApp();
 
   // Auto-expand search results when they arrive
   React.useEffect(() => {
@@ -253,8 +255,16 @@ export function AiRemedyView({ regid }: { regid?: number }) {
 
   const handleWhatsAppShare = () => {
     if (!selectedPath) return;
-    const text = encodeURIComponent(`Remedy Selection Path: ${selectedPath}`);
-    window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+    const phone = window.prompt("Enter WhatsApp number to share this path:");
+    if (!phone) return;
+    const text = `Remedy Selection Path: ${selectedPath}`;
+    const cleanPhone = phone.replace(/\D/g, '');
+    const finalPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+    
+    sendWhatsApp.mutate({ phone: finalPhone, message: text }, {
+      onSuccess: () => alert('Shared via WhatsApp Meta Cloud API!'),
+      onError: (err: any) => alert('Failed to send WhatsApp message: ' + (err.response?.data?.message || err.message))
+    });
   };
 
   const handlePrintPath = () => {
