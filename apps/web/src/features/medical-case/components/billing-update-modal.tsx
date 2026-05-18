@@ -153,6 +153,12 @@ export function BillingUpdateModal({
 
   const isLoading = updatePatient.isPending || createAdditionalCharge.isPending || updateAdditionalCharge.isPending || recordPayment.isPending;
 
+  const selectedCatalogItem = React.useMemo(() => {
+    return chargesCatalog.find(c => c.charges === customTitle);
+  }, [chargesCatalog, customTitle]);
+
+  const maxQuantity = selectedCatalogItem?.type === 'Product' ? (selectedCatalogItem.quantity || 0) : null;
+
   return (
     <>
       <div className="mc-drawer-backdrop" onClick={onClose} />
@@ -311,15 +317,27 @@ export function BillingUpdateModal({
 
               {isProduct && (
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#0f172a', marginBottom: '8px' }}>Quantity</label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#0f172a' }}>Quantity</label>
+                    {maxQuantity !== null && (
+                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: maxQuantity > 0 ? '#64748b' : '#ef4444' }}>
+                        Available Stock: {maxQuantity}
+                      </span>
+                    )}
+                  </div>
                   <input 
                     type="number" 
                     value={quantity} 
                     onChange={e => setQuantity(Number(e.target.value) || 1)}
                     min="1"
-                    className="pp-input"
-                    style={{ width: '100%', borderRadius: '8px', border: '1px solid #e2e8f0', padding: '10px 14px' }}
+                    className={`pp-input ${maxQuantity !== null && quantity > maxQuantity ? 'border-red-500' : ''}`}
+                    style={{ width: '100%', borderRadius: '8px', border: maxQuantity !== null && quantity > maxQuantity ? '1px solid #ef4444' : '1px solid #e2e8f0', padding: '10px 14px' }}
                   />
+                  {maxQuantity !== null && quantity > maxQuantity && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', color: '#ef4444', fontSize: '0.75rem', fontWeight: 600 }}>
+                      <AlertCircle size={14} /> Selected quantity ({quantity}) exceeds available stock ({maxQuantity})!
+                    </div>
+                  )}
                 </div>
               )}
 
