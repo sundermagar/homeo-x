@@ -48,6 +48,7 @@ export interface WhatsAppRepository {
   // Contacts & Groups
   listContacts(clinicId: number, params?: { page?: number; limit?: number; search?: string }): Promise<{ data: any[]; total: number }>;
   saveContact(data: any): Promise<any>;
+  deleteContact(id: number): Promise<boolean>;
   listGroups(clinicId: number): Promise<any[]>;
   saveGroup(data: any): Promise<any>;
   addContactToGroup(contactId: number, groupId: number): Promise<void>;

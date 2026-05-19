@@ -5,13 +5,22 @@ import { toast } from '@/hooks/use-toast';
 import { Drawer } from '@/shared/components/drawer';
 
 export const Templates = () => {
-  const { useChannels, useTemplates, useSyncTemplates, useCreateTemplate } = useWhatsApp();
+  const { useChannels, useTemplates, useSyncTemplates, useCreateTemplate, useUpdateTemplate } = useWhatsApp();
   const { data: channels, isLoading: loadingChannels } = useChannels();
   
   const [selectedChannelId, setSelectedChannelId] = useState<number | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState<any | null>(null);
   
+  // Edit States
+  const updateMutation = useUpdateTemplate();
+  const [isEditingTemplate, setIsEditingTemplate] = useState(false);
+  const [editedTemplate, setEditedTemplate] = useState({
+    header: '',
+    body: '',
+    footer: ''
+  });
+
   // Create Dialog States
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newTemplate, setNewTemplate] = useState({
@@ -23,6 +32,20 @@ export const Templates = () => {
     footer: '',
     buttons: [] as any[],
   });
+
+  // Sync edit state with selected template
+  React.useEffect(() => {
+    if (selectedTemplate) {
+      setEditedTemplate({
+        header: selectedTemplate.header || '',
+        body: selectedTemplate.body || '',
+        footer: selectedTemplate.footer || ''
+      });
+      setIsEditingTemplate(false);
+    } else {
+      setIsEditingTemplate(false);
+    }
+  }, [selectedTemplate]);
 
   // Button Draft State inside Create Dialog
   const [btnType, setBtnType] = useState('QUICK_REPLY');
@@ -535,12 +558,63 @@ export const Templates = () => {
               </div>
 
               <div className="space-y-4">
-                <div>
-                  <h4 className="text-xs uppercase tracking-wider font-bold text-main">Template Content</h4>
-                  <div className="bg-pp-bg-subtle/50 p-4 rounded-2xl border border-pp-border text-sm leading-relaxed mt-2 text-secondary whitespace-pre-wrap font-mono">
-                    {selectedTemplate.body}
+                {isEditingTemplate ? (
+                  <div className="space-y-4 animate-slide-up">
+                    {/* Header Input */}
+                    <div>
+                      <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">Header Title Text (Optional)</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Appointment Confirmation"
+                        value={editedTemplate.header}
+                        onChange={(e) => setEditedTemplate({ ...editedTemplate, header: e.target.value })}
+                        className="pp-input w-full h-11"
+                      />
+                    </div>
+
+                    {/* Body Content */}
+                    <div>
+                      <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">Body Message Text (Supports variables like {"{{1}}"})</label>
+                      <textarea
+                        rows={6}
+                        required
+                        placeholder="e.g. Hello {{1}}, your homeopathy prescription is ready for pickup."
+                        value={editedTemplate.body}
+                        onChange={(e) => setEditedTemplate({ ...editedTemplate, body: e.target.value })}
+                        className="pp-input w-full p-3 font-sans text-sm"
+                      />
+                    </div>
+
+                    {/* Footer text */}
+                    <div>
+                      <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">Footer Text (Optional)</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Reply STOP to unsubscribe"
+                        value={editedTemplate.footer}
+                        onChange={(e) => setEditedTemplate({ ...editedTemplate, footer: e.target.value })}
+                        className="pp-input w-full h-11"
+                      />
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div>
+                    <h4 className="text-xs uppercase tracking-wider font-bold text-main">Template Content</h4>
+                    {selectedTemplate.header && (
+                      <div className="font-extrabold text-[12px] text-main border-b border-pp-border/50 pb-1 mt-2">
+                        {selectedTemplate.header}
+                      </div>
+                    )}
+                    <div className="bg-pp-bg-subtle/50 p-4 rounded-2xl border border-pp-border text-sm leading-relaxed mt-2 text-secondary whitespace-pre-wrap font-mono">
+                      {selectedTemplate.body}
+                    </div>
+                    {selectedTemplate.footer && (
+                      <div className="text-[10px] text-muted italic mt-1.5 pl-1">
+                        {selectedTemplate.footer}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {selectedTemplate.buttons && (
                   <div>
@@ -555,6 +629,64 @@ export const Templates = () => {
                       )}
                     </div>
                   </div>
+                )}
+              </div>
+
+              {/* Edit Mode Actions */}
+              <div className="flex gap-3 pt-4 border-t border-pp-border justify-end">
+                {isEditingTemplate ? (
+                  <>
+                    <button
+                      onClick={() => setIsEditingTemplate(false)}
+                      className="px-4 py-2 text-xs font-bold text-secondary bg-pp-bg-subtle border border-pp-border rounded-xl uppercase tracking-wider"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!editedTemplate.body.trim()) {
+                          toast({ title: 'Validation Error', description: 'Body text is required.', variant: 'error' });
+                          return;
+                        }
+                        try {
+                          await updateMutation.mutateAsync({
+                            id: selectedTemplate.id,
+                            channelId: selectedTemplate.channelId,
+                            name: selectedTemplate.name,
+                            category: selectedTemplate.category,
+                            language: selectedTemplate.language,
+                            header: editedTemplate.header,
+                            body: editedTemplate.body,
+                            footer: editedTemplate.footer,
+                            buttons: selectedTemplate.buttons,
+                            status: selectedTemplate.status
+                          });
+                          toast({ title: 'Template Updated', description: 'Successfully saved template changes.', variant: 'success' });
+                          setSelectedTemplate({
+                            ...selectedTemplate,
+                            header: editedTemplate.header,
+                            body: editedTemplate.body,
+                            footer: editedTemplate.footer
+                          });
+                          setIsEditingTemplate(false);
+                        } catch (err: any) {
+                          toast({ title: 'Update Failed', description: err.message || 'Failed to save changes.', variant: 'error' });
+                        }
+                      }}
+                      disabled={updateMutation.isPending}
+                      className="btn-primary h-9 px-5 text-xs font-bold flex items-center gap-1.5 uppercase tracking-wider"
+                    >
+                      {updateMutation.isPending && <RefreshCw size={12} className="animate-spin" />}
+                      Save Changes
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => setIsEditingTemplate(true)}
+                    className="btn-primary h-9 px-5 text-xs font-bold flex items-center gap-1.5 uppercase tracking-wider"
+                  >
+                    Edit Template
+                  </button>
                 )}
               </div>
             </div>
@@ -578,8 +710,32 @@ export const Templates = () => {
                   </div>
 
                   {/* Message bubble */}
-                  <div className="bg-white p-2.5 rounded-2xl shadow-sm border border-black/5 mt-10 relative text-[10px] leading-relaxed text-main self-start max-w-[90%]">
-                    {selectedTemplate.body}
+                  <div className="bg-white p-2.5 rounded-2xl shadow-sm border border-black/5 mt-10 relative text-[10px] leading-relaxed text-main self-start max-w-[90%] w-full">
+                    {isEditingTemplate && editedTemplate.header && (
+                      <div className="font-extrabold text-[10px] text-main border-b border-pp-border/50 pb-1 mb-1.5">
+                        {editedTemplate.header}
+                      </div>
+                    )}
+                    {!isEditingTemplate && selectedTemplate.header && (
+                      <div className="font-extrabold text-[10px] text-main border-b border-pp-border/50 pb-1 mb-1.5">
+                        {selectedTemplate.header}
+                      </div>
+                    )}
+
+                    <div className="whitespace-pre-wrap">
+                      {isEditingTemplate ? editedTemplate.body : selectedTemplate.body}
+                    </div>
+
+                    {isEditingTemplate && editedTemplate.footer && (
+                      <div className="text-[8px] text-muted mt-1">
+                        {editedTemplate.footer}
+                      </div>
+                    )}
+                    {!isEditingTemplate && selectedTemplate.footer && (
+                      <div className="text-[8px] text-muted mt-1">
+                        {selectedTemplate.footer}
+                      </div>
+                    )}
                     
                     {/* Time & tick */}
                     <div className="text-[8px] text-muted text-right mt-1.5 flex items-center justify-end gap-0.5">

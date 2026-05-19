@@ -9,6 +9,7 @@ import '@/features/appointments/styles/appointments.css';
 interface ContactModalProps {
   isOpen: boolean;
   onClose: () => void;
+  contact?: any;
 }
 
 interface ContactFormInput {
@@ -18,14 +19,33 @@ interface ContactFormInput {
   tags?: string;
 }
 
-export const ContactModal = ({ isOpen, onClose }: ContactModalProps) => {
+export const ContactModal = ({ isOpen, onClose, contact }: ContactModalProps) => {
   const { useCreateContact } = useWhatsApp();
   const { register, handleSubmit, reset, formState: { errors } } = useForm<ContactFormInput>();
   const createContactMutation = useCreateContact();
 
+  React.useEffect(() => {
+    if (contact) {
+      reset({
+        name: contact.name || '',
+        phone: contact.phone || '',
+        email: contact.email || '',
+        tags: contact.tags ? contact.tags.join(', ') : ''
+      });
+    } else {
+      reset({
+        name: '',
+        phone: '',
+        email: '',
+        tags: ''
+      });
+    }
+  }, [contact, reset, isOpen]);
+
   const onSubmit = (data: ContactFormInput) => {
     const payload = {
       ...data,
+      id: contact?.id ? Number(contact.id) : undefined,
       clinicId: 1, // Hardcoded for now
       tags: data.tags?.split(',').map((t: string) => t.trim()).filter(Boolean) || [],
       status: 'active'
@@ -33,7 +53,10 @@ export const ContactModal = ({ isOpen, onClose }: ContactModalProps) => {
 
     createContactMutation.mutate(payload, {
       onSuccess: () => {
-        toast({ title: 'Contact Registered', description: 'Patient has been added to the WhatsApp CRM.' });
+        toast({ 
+          title: contact ? 'Contact Updated' : 'Contact Registered', 
+          description: contact ? 'Patient has been updated in the WhatsApp CRM.' : 'Patient has been added to the WhatsApp CRM.' 
+        });
         reset();
         onClose();
       },
@@ -50,7 +73,7 @@ export const ContactModal = ({ isOpen, onClose }: ContactModalProps) => {
       <div className="appt-drawer-overlay" onClick={onClose} />
       <div className="appt-drawer-panel" style={{ maxWidth: '500px' }}>
         <div className="appt-drawer-header">
-          <h2 className="appt-drawer-title">Add Patient Contact</h2>
+          <h2 className="appt-drawer-title">{contact ? 'Edit Patient Contact' : 'Add Patient Contact'}</h2>
           <button className="appt-drawer-close" onClick={onClose}>
             <X size={20} />
           </button>
@@ -133,7 +156,13 @@ export const ContactModal = ({ isOpen, onClose }: ContactModalProps) => {
                 className="btn-primary" 
                 disabled={createContactMutation.isPending}
               >
-                {createContactMutation.isPending ? <><Loader2 size={15} className="animate-spin" /> Registering…</> : 'Register Patient'}
+                {createContactMutation.isPending ? (
+                  <><Loader2 size={15} className="animate-spin" /> Saving…</>
+                ) : contact ? (
+                  'Save Changes'
+                ) : (
+                  'Register Patient'
+                )}
               </button>
             </div>
           </form>

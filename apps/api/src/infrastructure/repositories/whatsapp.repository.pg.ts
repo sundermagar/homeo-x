@@ -453,6 +453,14 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
     return row;
   }
 
+  async deleteContact(id: number): Promise<boolean> {
+    const result = await this.db
+      .delete(schema.waContacts)
+      .where(eq(schema.waContacts.id, id))
+      .returning();
+    return result.length > 0;
+  }
+
   async listGroups(clinicId: number): Promise<any[]> {
     return this.db
       .select()

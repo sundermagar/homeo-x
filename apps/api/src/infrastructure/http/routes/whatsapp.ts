@@ -180,6 +180,28 @@ whatsappRouter.post('/templates', authMiddleware, asyncHandler(async (req, res) 
   sendSuccess(res, template, 'Template created successfully', 201);
 }));
 
+whatsappRouter.put('/templates/:id', authMiddleware, asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { channelId, name, category, language, header, body, footer, buttons, status } = req.body;
+  if (!id) throw new BadRequestError('id is required');
+
+  const repo = getRepo(req);
+  const template = await repo.saveTemplate({
+    id: Number(id),
+    channelId: channelId ? Number(channelId) : undefined,
+    name,
+    category,
+    language,
+    header,
+    body,
+    footer,
+    buttons,
+    status
+  });
+
+  sendSuccess(res, template, 'Template updated successfully');
+}));
+
 whatsappRouter.post('/templates/sync', authMiddleware, asyncHandler(async (req, res) => {
   const { channelId } = req.body;
   if (!channelId) throw new BadRequestError('channelId is required');
@@ -468,6 +490,20 @@ whatsappRouter.post('/contacts', authMiddleware, asyncHandler(async (req, res) =
   sendSuccess(res, contact, 'Contact saved successfully');
 }));
 
+whatsappRouter.delete('/contacts/:id', authMiddleware, asyncHandler(async (req, res) => {
+  const idStr = String(req.params.id || '');
+  if (idStr.startsWith('patient_')) {
+    throw new BadRequestError('Core patient directory entries cannot be deleted from the WhatsApp contact list.');
+  }
+  const repo = getRepo(req);
+  const success = await repo.deleteContact(Number(idStr));
+  if (success) {
+    sendSuccess(res, null, 'Contact deleted successfully');
+  } else {
+    throw new BadRequestError('Failed to delete contact or contact not found.');
+  }
+}));
+
 whatsappRouter.get('/groups', authMiddleware, asyncHandler(async (req, res) => {
   const clinicId = (req as any).user?.contextId;
   const groups = await getRepo(req).listGroups(clinicId);
@@ -680,13 +716,51 @@ whatsappRouter.post('/send-template', authMiddleware, asyncHandler(async (req, r
   }
 
   const cleanPhone = phone.replace(/\D/g, '');
-  const result = await gateway.sendTemplate(
+  let result = await gateway.sendTemplate(
     channelId,
     cleanPhone,
     templateName,
     language || 'en_US',
     components || []
   );
+
+  // If the template does not exist on Meta WABA, fall back to sending it as a direct text message
+  if (!result.success && (result.error?.includes('132001') || result.error?.toLowerCase().includes('not exist') || result.error?.toLowerCase().includes('translation'))) {
+    logger.info(`Route Template "${templateName}" not found on Meta. Interpolating database body and falling back to sendText...`);
+    
+    let templateBody = `Template: ${templateName}`;
+    try {
+      const { waTemplates } = await import('@mmc/database');
+      const templateRows = await (repo as any).db.select()
+        .from(waTemplates)
+        .where(
+          and(
+            eq(waTemplates.name, templateName),
+            channelId ? eq(waTemplates.channelId, channelId) : undefined
+          )
+        )
+        .limit(1);
+
+      if (templateRows.length > 0 && templateRows[0].body) {
+        templateBody = templateRows[0].body;
+
+        // Interpolate components (e.g. {{1}}, {{2}} with text values)
+        const bodyComponent = components?.find((c: any) => c.type === 'body');
+        if (bodyComponent?.parameters) {
+          bodyComponent.parameters.forEach((param: any, idx: number) => {
+            const val = param.text || param.value || '';
+            const placeholder = `{{${idx + 1}}}`;
+            templateBody = templateBody.split(placeholder).join(val);
+          });
+        }
+      }
+    } catch (dbErr: any) {
+      logger.warn(`Route failed to retrieve/interpolate template from DB: ${dbErr.message}`);
+    }
+
+    logger.info(`Route sending fallback text message: "${templateBody.substring(0, 100)}..."`);
+    result = await gateway.sendText(channelId, cleanPhone, templateBody);
+  }
 
   if (result.success) {
     // Find the template in the database to get its raw body text and interpolate variables

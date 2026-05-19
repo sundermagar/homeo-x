@@ -10,10 +10,16 @@ export class WhatsAppCloudGateway implements WhatsAppGateway {
 
   constructor(private readonly waRepo: WhatsAppRepository) {}
 
+  private isAuthError(data: any, errorMessage: string): boolean {
+    const isTokenExpired = data?.error?.code === 190 || data?.error?.error_subcode === 463 || data?.error?.error_subcode === 467;
+    const isAuthMessage = errorMessage.includes('Authentication Error') || errorMessage.includes('access token') || errorMessage.toLowerCase().includes('auth');
+    return isTokenExpired || isAuthMessage;
+  }
+
   private async getHeaders(channelId?: number) {
     let accessToken = process.env.WHATSAPP_TOKEN;
 
-    if (channelId) {
+    if (!accessToken && channelId) {
       const channel = await this.waRepo.findChannelById(channelId);
       if (channel?.accessToken) accessToken = channel.accessToken;
     }
@@ -29,7 +35,7 @@ export class WhatsAppCloudGateway implements WhatsAppGateway {
   private async getPhoneNumberId(channelId?: number) {
     let phoneId = process.env.PHONE_NUMBER_ID;
 
-    if (channelId) {
+    if (!phoneId && channelId) {
       const channel = await this.waRepo.findChannelById(channelId);
       if (channel?.phoneNumberId) phoneId = channel.phoneNumberId;
     }
@@ -67,7 +73,7 @@ export class WhatsAppCloudGateway implements WhatsAppGateway {
       if (!response.ok) {
         logger.error(`[SendText] ❌ Meta API Error (HTTP ${response.status}): ${JSON.stringify(data)}`);
         let errorMessage = data.error?.message || 'Unknown error';
-        if (data.error?.type === 'OAuthException' || data.error?.code === 190 || errorMessage.includes('Authentication Error') || errorMessage.includes('access token')) {
+        if (this.isAuthError(data, errorMessage)) {
           errorMessage = 'WhatsApp API Authentication Failed: Your access token is invalid or has expired. Please update WHATSAPP_TOKEN in your .env file or database configuration.';
         }
         return { success: false, error: errorMessage };
@@ -124,7 +130,7 @@ export class WhatsAppCloudGateway implements WhatsAppGateway {
       if (!response.ok) {
         logger.error(`[SendTemplate] ❌ Meta API Error (HTTP ${response.status}): ${JSON.stringify(data)}`);
         let errorMessage = data.error?.message || 'Unknown error';
-        if (data.error?.type === 'OAuthException' || data.error?.code === 190 || errorMessage.includes('Authentication Error') || errorMessage.includes('access token')) {
+        if (this.isAuthError(data, errorMessage)) {
           errorMessage = 'WhatsApp API Authentication Failed: Your access token is invalid or has expired. Please update WHATSAPP_TOKEN in your .env file or database configuration.';
         }
         return { success: false, error: errorMessage };
@@ -152,7 +158,7 @@ export class WhatsAppCloudGateway implements WhatsAppGateway {
       if (!response.ok) {
         logger.error(`[GetTemplates] ❌ Meta API Error (HTTP ${response.status}): ${JSON.stringify(data)}`);
         let errorMessage = data.error?.message || 'Failed to fetch templates';
-        if (data.error?.type === 'OAuthException' || data.error?.code === 190 || errorMessage.includes('Authentication Error') || errorMessage.includes('access token')) {
+        if (this.isAuthError(data, errorMessage)) {
           errorMessage = 'WhatsApp API Authentication Failed: Your access token is invalid or has expired. Please update WHATSAPP_TOKEN in your configuration.';
         }
         throw new Error(errorMessage);
@@ -187,7 +193,7 @@ export class WhatsAppCloudGateway implements WhatsAppGateway {
       if (!response.ok) {
         logger.error(`[UploadMedia] ❌ Meta API Error (HTTP ${response.status}): ${JSON.stringify(data)}`);
         let errorMessage = data.error?.message || 'Failed to upload media';
-        if (data.error?.type === 'OAuthException' || data.error?.code === 190 || errorMessage.includes('Authentication Error') || errorMessage.includes('access token')) {
+        if (this.isAuthError(data, errorMessage)) {
           errorMessage = 'WhatsApp API Authentication Failed: Your access token is invalid or has expired. Please update WHATSAPP_TOKEN in your configuration.';
         }
         throw new Error(errorMessage);
@@ -237,7 +243,7 @@ export class WhatsAppCloudGateway implements WhatsAppGateway {
       if (!response.ok) {
         logger.error(`[SendMedia] ❌ Meta API Error (HTTP ${response.status}): ${JSON.stringify(data)}`);
         let errorMessage = data.error?.message || 'Unknown error';
-        if (data.error?.type === 'OAuthException' || data.error?.code === 190 || errorMessage.includes('Authentication Error') || errorMessage.includes('access token')) {
+        if (this.isAuthError(data, errorMessage)) {
           errorMessage = 'WhatsApp API Authentication Failed: Your access token is invalid or has expired. Please update WHATSAPP_TOKEN in your configuration.';
         }
         return { success: false, error: errorMessage };
