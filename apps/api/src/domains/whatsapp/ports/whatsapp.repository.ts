@@ -63,5 +63,5 @@ export interface WhatsAppRepository {
   listTrainingData(chatbotId: number): Promise<any[]>;
   saveTrainingData(data: any): Promise<any>;
   // Analytics
-  getAnalytics(clinicId: number): Promise<any>;
+  getAnalytics(clinicId: number, days?: number): Promise<any>;
 }

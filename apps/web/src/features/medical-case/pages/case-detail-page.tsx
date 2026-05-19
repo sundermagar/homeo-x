@@ -25,9 +25,9 @@ import {
   useFullMedicalCase,
   useManageClinicalRecords,
   useMasterVaccines,
-  useCommunicationLogs,
-  useSendWhatsApp
+  useCommunicationLogs
 } from '../hooks/use-medical-cases';
+import { useWhatsApp } from '@/features/whatsapp/hooks/use-whatsapp';
 import { usePatientPrescriptions, useRemedyLookups } from '../hooks/use-remedy-chart';
 import { usePrescriptionWorkflow } from '../hooks/use-prescription-workflow';
 // QuickRxForm removed — not used in current render
@@ -1596,7 +1596,8 @@ function AnalyticsView({ vitals, regid, visitId, name, phone, clinicName, onAppe
   const [sending, setSending] = useState(false);
 
   const { saveVitals } = useManageClinicalRecords();
-  const sendWhatsApp = useSendWhatsApp();
+  const { useSendTemplate } = useWhatsApp();
+  const sendTemplate = useSendTemplate();
 
   const handleSave = async () => {
     if (!hVal && !wVal) return;
@@ -1644,10 +1645,32 @@ function AnalyticsView({ vitals, regid, visitId, name, phone, clinicName, onAppe
       const lbs = (latest.weightKg * 2.20462).toFixed(1);
       weightStr = `${latest.weightKg} kg (${lbs} lbs)`;
     }
+    
+    const bmiStr = latest.bmi ? String(latest.bmi) : '-';
+    
+    const cleaned = String(phone).replace(/\D/g, '');
+    const finalPhone = cleaned.length === 10 ? `91${cleaned}` : cleaned;
 
-    const msg = `*📊 CLINICAL VITALS REPORT*\n\nHello ${name},\n\nYour latest height/weight recorded at *${clinicName}*:\n\n📏 *Height:* ${heightStr}\n⚖️ *Weight:* ${weightStr}\n📉 *BMI:* ${latest.bmi || '-'}\n\n*Recorded on:* ${new Date(latest.recordedAt).toLocaleDateString()}\n\nThank you!`;
     try {
-      await sendWhatsApp.mutateAsync({ phone, message: msg, regid });
+      await sendTemplate.mutateAsync({
+        conversationId: 0,
+        phone: finalPhone,
+        templateName: 'height_weight_update',
+        language: 'en_US',
+        components: [
+          {
+            type: 'body',
+            parameters: [
+              { type: 'text', text: heightStr },
+              { type: 'text', text: weightStr },
+              { type: 'text', text: bmiStr }
+            ]
+          }
+        ]
+      });
+      alert('Vitals shared successfully via WhatsApp.');
+    } catch (err: any) {
+      alert('Failed to send WhatsApp message: ' + (err.response?.data?.message || err.message));
     } finally {
       setSending(false);
     }
@@ -1804,7 +1827,8 @@ function VitalsView({ vitals, onRecord, phone, name, regid, clinicName, onAppend
   const latest = vitals && vitals.length > 0 ? vitals[0] : null;
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const sendWhatsApp = useSendWhatsApp();
+  const { useSendTemplate } = useWhatsApp();
+  const sendTemplate = useSendTemplate();
   const [sending, setSending] = useState(false);
   const { deleteVitals } = useManageClinicalRecords();
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -1859,10 +1883,32 @@ function VitalsView({ vitals, onRecord, phone, name, regid, clinicName, onAppend
       const lbs = (latest.weightKg * 2.20462).toFixed(1);
       weightStr = `${latest.weightKg} kg (${lbs} lbs)`;
     }
+    
+    const bmiStr = latest.bmi ? String(latest.bmi) : '-';
 
-    const msg = `*📊 CLINICAL VITALS REPORT*\n\nHello ${name},\n\nYour latest clinical vitals have been recorded at *${clinicName}*:\n\n📏 *Height:* ${heightStr}\n⚖️ *Weight:* ${weightStr}\n📉 *BMI:* ${latest.bmi || '-'}\n💓 *Blood Pressure:* ${latest.systolicBp}/${latest.diastolicBp} mmHg\n🌡️ *Temperature:* ${latest.temperatureF}°F\n🫁 *Oxygen (SpO2):* ${latest.oxygenSaturation || '-'}%\n\n*Recorded on:* ${new Date(latest.recordedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}\n\n_Note: Please consult your doctor for a detailed assessment of these values._\n\nThank you!`;
+    const cleaned = String(phone).replace(/\D/g, '');
+    const finalPhone = cleaned.length === 10 ? `91${cleaned}` : cleaned;
+
     try {
-      await sendWhatsApp.mutateAsync({ phone, message: msg, regid });
+      await sendTemplate.mutateAsync({
+        conversationId: 0,
+        phone: finalPhone,
+        templateName: 'height_weight_update',
+        language: 'en_US',
+        components: [
+          {
+            type: 'body',
+            parameters: [
+              { type: 'text', text: heightStr },
+              { type: 'text', text: weightStr },
+              { type: 'text', text: bmiStr }
+            ]
+          }
+        ]
+      });
+      alert('Vitals shared successfully via WhatsApp.');
+    } catch (err: any) {
+      alert('Failed to send WhatsApp message: ' + (err.response?.data?.message || err.message));
     } finally {
       setSending(false);
     }

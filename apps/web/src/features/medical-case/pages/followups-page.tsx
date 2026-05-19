@@ -10,11 +10,12 @@ import { useDoctors } from '@/features/appointments/hooks/use-doctors';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { Pagination } from '@/components/shared/pagination';
 import { EmptyState } from '@/components/shared/empty-state';
-import { useSendWhatsApp } from '@/features/communications/hooks/use-communications';
+import { useWhatsApp } from '@/features/whatsapp/hooks/use-whatsapp';
 
 export default function FollowupsPage() {
   const navigate = useNavigate();
-  const sendWhatsApp = useSendWhatsApp();
+  const { useSendTemplate } = useWhatsApp();
+  const sendTemplate = useSendTemplate();
   const [followups, setFollowups] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'list' | 'card'>('list');
@@ -64,16 +65,29 @@ export default function FollowupsPage() {
   };
 
   const openWhatsApp = (f: any) => {
-    const message = `Hello ${f.patientName}, this is a reminder regarding your follow-up visit at our clinic. Your appointment was scheduled for ${new Date(f.bookingDate).toLocaleDateString()}. Please let us know if you'd like to reschedule.`;
     const phone = f.phone ? f.phone.replace(/[^0-9]/g, '') : '';
     if (!phone) {
       alert('Mobile number not available');
       return;
     }
-    const finalPhone = phone.startsWith('91') ? phone : '91' + phone;
-    sendWhatsApp.mutate({ phone: finalPhone, message }, {
-      onSuccess: () => alert('Follow-up reminder sent via WhatsApp!'),
-      onError: (err: any) => alert('Failed to send WhatsApp message: ' + (err.response?.data?.message || err.message))
+    const finalPhone = phone.length === 10 ? '91' + phone : phone;
+    
+    sendTemplate.mutate({
+      conversationId: 0,
+      phone: finalPhone,
+      templateName: 'due_date_reminder',
+      language: 'en_US',
+      components: [
+        {
+          type: 'body',
+          parameters: [
+            { type: 'text', text: f.patientName || 'Patient' }
+          ]
+        }
+      ]
+    }, {
+      onSuccess: () => alert('✅ Follow-up reminder sent via WhatsApp!'),
+      onError: (err: any) => alert('❌ Failed to send WhatsApp message: ' + (err.response?.data?.message || err.message))
     });
   };
 

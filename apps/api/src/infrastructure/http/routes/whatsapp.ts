@@ -1,4 +1,6 @@
 import { Router } from 'express';
+import { sql } from 'drizzle-orm';
+import { TenantRegistry, createDbClient } from '@mmc/database';
 import { WhatsAppRepositoryPG } from '../../repositories/whatsapp.repository.pg.js';
 import { WhatsAppCloudGateway } from '../../communication/whatsapp-cloud-gateway.js';
 import { WhatsAppGateway } from '../../../domains/whatsapp/ports/whatsapp-gateway.js';
@@ -29,7 +31,7 @@ whatsappRouter.get('/webhook', (req, res) => {
   const token = req.query['hub.verify_token'];
   const challenge = req.query['hub.challenge'];
 
-  const expectedToken = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || 'kreed_verify_token';
+  const expectedToken = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || process.env.VERIFY_TOKEN || 'kreed_verify_token';
 
   if (mode === 'subscribe' && token === expectedToken) {
     logger.info('Webhook verified successfully');
@@ -42,7 +44,79 @@ whatsappRouter.get('/webhook', (req, res) => {
 
 // POST /api/whatsapp/webhook - Incoming events
 whatsappRouter.post('/webhook', asyncHandler(async (req, res) => {
-  const useCase = new HandleWebhookUseCase(getRepo(req), getGateway(req));
+  logger.info(`Received WhatsApp webhook event: ${JSON.stringify(req.body)}`);
+
+  let targetDb = req.tenantDb; // Fallback to resolved schema (typically demo)
+
+  try {
+    const changes = req.body?.entry?.[0]?.changes?.[0];
+    const value = changes?.value;
+    const field = changes?.field;
+
+    if (field === 'messages') {
+      const phoneNumberId = value?.metadata?.phone_number_id;
+      const statusId = value?.statuses?.[0]?.id;
+      const messageId = value?.messages?.[0]?.id;
+
+      let matchedSchemaName: string | null = null;
+      
+      // Load all tenant configurations
+      const tenants = TenantRegistry.getAll();
+
+      // 1. Match by Phone Number ID (for incoming messages)
+      if (phoneNumberId) {
+        logger.info(`Webhook lookup: Scanning schemas for wa_channels matching phone_number_id: ${phoneNumberId}`);
+        for (const tenant of tenants) {
+          try {
+            const client = createDbClient(process.env.DATABASE_URL!, tenant.schemaName);
+            const [channel] = await client.execute(sql`
+              SELECT id FROM wa_channels WHERE phone_number_id = ${phoneNumberId} LIMIT 1
+            `);
+            if (channel) {
+              matchedSchemaName = tenant.schemaName;
+              logger.info(`Webhook lookup: Match found! Routing to schema: ${tenant.schemaName}`);
+              break;
+            }
+          } catch (e: any) {
+            // Ignore missing tables or connection issues on specific schemas
+          }
+        }
+      }
+
+      // 2. Match by message ID (for status updates like delivered/read)
+      if (!matchedSchemaName && (statusId || messageId)) {
+        const queryId = statusId || messageId;
+        logger.info(`Webhook lookup: Scanning schemas for wa_messages matching message id: ${queryId}`);
+        for (const tenant of tenants) {
+          try {
+            const client = createDbClient(process.env.DATABASE_URL!, tenant.schemaName);
+            const [msg] = await client.execute(sql`
+              SELECT id FROM wa_messages WHERE whatsapp_message_id = ${queryId} LIMIT 1
+            `);
+            if (msg) {
+              matchedSchemaName = tenant.schemaName;
+              logger.info(`Webhook lookup: Match found! Routing status to schema: ${tenant.schemaName}`);
+              break;
+            }
+          } catch (e: any) {
+            // Ignore error
+          }
+        }
+      }
+
+      if (matchedSchemaName) {
+        targetDb = createDbClient(process.env.DATABASE_URL!, matchedSchemaName);
+      } else {
+        logger.warn(`Webhook lookup: No matching channel or message found in any tenant schema for event. Falling back to default.`);
+      }
+    }
+  } catch (err: any) {
+    logger.error(`Error resolving tenant schema for incoming WhatsApp webhook: ${err.message}`);
+  }
+
+  const repo = new WhatsAppRepositoryPG(targetDb);
+  const gateway = new WhatsAppCloudGateway(repo);
+  const useCase = new HandleWebhookUseCase(repo, gateway);
   await useCase.execute(req.body);
   res.sendStatus(200);
 }));
@@ -72,6 +146,30 @@ whatsappRouter.get('/templates', authMiddleware, asyncHandler(async (req, res) =
   if (!channelId) throw new BadRequestError('channelId is required');
   const templates = await getRepo(req).listTemplates(Number(channelId));
   sendSuccess(res, templates);
+}));
+
+whatsappRouter.post('/templates', authMiddleware, asyncHandler(async (req, res) => {
+  const { channelId, name, category, language, header, body, footer, buttons } = req.body;
+  if (!channelId) throw new BadRequestError('channelId is required');
+  if (!name) throw new BadRequestError('name is required');
+  if (!body) throw new BadRequestError('body is required');
+  if (!category) throw new BadRequestError('category is required');
+
+  const repo = getRepo(req);
+  const template = await repo.saveTemplate({
+    channelId: Number(channelId),
+    name,
+    category,
+    language: language || 'en_US',
+    header: header || '',
+    body,
+    footer: footer || '',
+    buttons: buttons || [],
+    status: 'approved',
+    whatsappTemplateId: `local_${Date.now()}`
+  });
+
+  sendSuccess(res, template, 'Template created successfully', 201);
 }));
 
 whatsappRouter.post('/templates/sync', authMiddleware, asyncHandler(async (req, res) => {
@@ -168,6 +266,7 @@ whatsappRouter.post('/media/upload', authMiddleware, upload.single('file'), asyn
     mediaId,
     type,
     mimeType: req.file.mimetype,
+    url: '', // Avoid NOT NULL constraint violation in database
     size: req.file.size
   });
   
@@ -183,29 +282,90 @@ whatsappRouter.get('/conversations', authMiddleware, asyncHandler(async (req, re
   sendSuccess(res, conversations);
 }));
 
+whatsappRouter.post('/conversations', authMiddleware, asyncHandler(async (req, res) => {
+  const clinicId = (req as any).user?.contextId;
+  const { channelId, contactPhone, contactName } = req.body;
+  if (!channelId) throw new BadRequestError('channelId is required');
+  if (!contactPhone) throw new BadRequestError('contactPhone is required');
+
+  const repo = getRepo(req);
+  const cleanPhone = contactPhone.replace(/\D/g, '');
+
+  let conversation = await repo.findConversationByPhone(Number(channelId), cleanPhone);
+  if (!conversation) {
+    const channel = await repo.findChannelById(Number(channelId));
+    conversation = await repo.saveConversation({
+      clinicId: channel?.clinicId || clinicId,
+      channelId: Number(channelId),
+      contactPhone: cleanPhone,
+      contactName: contactName || null,
+      status: 'open',
+      lastMessageAt: new Date(),
+      lastMessageText: 'Conversation started',
+    });
+  }
+
+  sendSuccess(res, conversation, 'Conversation resolved successfully');
+}));
+
 whatsappRouter.get('/conversations/:id/messages', authMiddleware, asyncHandler(async (req, res) => {
-  const messages = await getRepo(req).listMessages(Number(req.params.id));
+  const repo = getRepo(req);
+  const convId = Number(req.params.id);
+  
+  // Mark conversation as read: reset unreadCount to 0 in database
+  const conversation = await repo.findConversationById(convId);
+  if (conversation && (conversation.unreadCount || 0) > 0) {
+    await repo.saveConversation({
+      id: convId,
+      unreadCount: 0
+    });
+  }
+
+  const messages = await repo.listMessages(convId);
   sendSuccess(res, messages);
 }));
 
+whatsappRouter.post('/conversations/:id/read', authMiddleware, asyncHandler(async (req, res) => {
+  const repo = getRepo(req);
+  const convId = Number(req.params.id);
+  const conversation = await repo.findConversationById(convId);
+  if (conversation) {
+    await repo.saveConversation({
+      id: convId,
+      unreadCount: 0
+    });
+  }
+  sendSuccess(res, null, 'Conversation marked as read');
+}));
+
 whatsappRouter.post('/conversations/:id/messages', authMiddleware, asyncHandler(async (req, res) => {
-  const { content } = req.body;
-  if (!content) throw new BadRequestError('content is required');
+  const { content, mediaId, mediaType, fileName } = req.body;
+  if (!content && !mediaId) throw new BadRequestError('content or mediaId is required');
   
   const repo = getRepo(req);
   const conversation = await repo.findConversationById(Number(req.params.id));
   if (!conversation) throw new BadRequestError('Conversation not found');
   
   const gateway: WhatsAppGateway = getGateway(req);
-  const result = await gateway.sendText(conversation.channelId, conversation.contactPhone, content);
+  let result;
+  
+  if (mediaId) {
+    result = await gateway.sendMedia(conversation.channelId, conversation.contactPhone, mediaId, mediaType || 'document', fileName, content);
+  } else {
+    result = await gateway.sendText(conversation.channelId, conversation.contactPhone, content);
+  }
   
   if (result.success) {
+    const displayContent = content 
+      ? (mediaId ? `${content} (Attachment: ${fileName || mediaType || 'file'})` : content)
+      : `Sent ${mediaType || 'file'}: ${fileName || ''}`;
+
     const message = await repo.saveMessage({
       conversationId: conversation.id,
       whatsappMessageId: result.messageId,
       direction: 'outbound',
-      content,
-      type: 'text',
+      content: displayContent,
+      type: mediaId ? 'media' : 'text',
       status: 'sent',
       timestamp: new Date()
     });
@@ -213,13 +373,55 @@ whatsappRouter.post('/conversations/:id/messages', authMiddleware, asyncHandler(
     await repo.saveConversation({
       id: conversation.id,
       lastMessageAt: new Date(),
-      lastMessageText: content.substring(0, 200)
+      lastMessageText: displayContent.substring(0, 200)
     });
     
     sendSuccess(res, message, 'Message sent');
   } else {
     throw new BadRequestError(result.error || 'Failed to send message');
   }
+}));
+
+whatsappRouter.post('/conversations/:id/upload', authMiddleware, upload.single('file'), asyncHandler(async (req, res) => {
+  if (!req.file) throw new BadRequestError('file is required');
+  
+  const repo = getRepo(req);
+  const conversation = await repo.findConversationById(Number(req.params.id));
+  if (!conversation) throw new BadRequestError('Conversation not found');
+  
+  const gateway = getGateway(req);
+
+  // 1. Upload to Meta
+  const mediaId = await gateway.uploadMedia(
+    conversation.channelId, 
+    req.file.buffer, 
+    req.file.originalname, 
+    req.file.mimetype
+  );
+
+  // 2. Resolve type
+  let type: 'document' | 'image' | 'video' | 'audio' = 'document';
+  if (req.file.mimetype.startsWith('image/')) type = 'image';
+  else if (req.file.mimetype.startsWith('video/')) type = 'video';
+  else if (req.file.mimetype.startsWith('audio/')) type = 'audio';
+
+  // 3. Save to wa_media table
+  const mediaRecord = await repo.saveMedia({
+    clinicId: conversation.clinicId,
+    name: req.file.originalname,
+    mediaId,
+    type,
+    mimeType: req.file.mimetype,
+    url: '', // Avoid NOT NULL constraint violation in database
+    size: req.file.size
+  });
+  
+  sendSuccess(res, {
+    mediaId,
+    type,
+    fileName: req.file.originalname,
+    mediaRecord
+  }, 'Media uploaded successfully');
 }));
 
 // ─── CRM (Private) ───────────────────────────────────────────────────────────
@@ -322,7 +524,8 @@ whatsappRouter.post('/automations', authMiddleware, asyncHandler(async (req, res
 
 whatsappRouter.get('/analytics', authMiddleware, asyncHandler(async (req, res) => {
   const clinicId = (req as any).user?.contextId;
-  const analytics = await getRepo(req).getAnalytics(clinicId);
+  const days = req.query.days ? Number(req.query.days) : 7;
+  const analytics = await getRepo(req).getAnalytics(clinicId, days);
   sendSuccess(res, analytics);
 }));
 

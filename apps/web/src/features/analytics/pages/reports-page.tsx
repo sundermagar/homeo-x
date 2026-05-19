@@ -9,7 +9,8 @@ import {
   useBirthdayList,
   useReferenceListing
 } from '../hooks/use-analytics';
-import { useSendWhatsApp, useSmsTemplates } from '@/features/communications/hooks/use-communications';
+import { useSmsTemplates } from '@/features/communications/hooks/use-communications';
+import { useWhatsApp } from '@/features/whatsapp/hooks/use-whatsapp';
 import { Pagination } from '@/components/shared/pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { EmptyState } from '@/components/shared/empty-state';
@@ -402,7 +403,8 @@ function BirthdaysTab({ onExport }: { onExport: (filename: string, headers: stri
   const itemsPerPage = 8;
   const { data, isLoading } = useBirthdayList();
   const { data: templates = [] } = useSmsTemplates();
-  const sendWa = useSendWhatsApp();
+  const { useSendTemplate } = useWhatsApp();
+  const sendTemplate = useSendTemplate();
 
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [showBulkModal, setShowBulkModal] = useState(false);
@@ -430,33 +432,46 @@ function BirthdaysTab({ onExport }: { onExport: (filename: string, headers: stri
 
   const openSingleModal = (patient: any) => {
     setSinglePatient(patient);
-    const tpl = templates.find((t: any) => t.smsType === 'Birthday');
-    const name = `${patient.first_name} ${patient.surname || ''}`;
-    setSingleMessage(tpl?.message?.replace(/\{#name#\}/gi, name) || `Happy Birthday, ${name}! Wishing you good health and happiness. - Kreed.health`);
     setShowSingleModal(true);
   };
 
   const sendSingle = async () => {
-    if (!singlePatient?.mobile1 || !singleMessage.trim()) return;
-    await sendWa.mutateAsync({ phone: String(singlePatient.mobile1), message: singleMessage });
+    if (!singlePatient?.mobile1) return;
+    const cleaned = String(singlePatient.mobile1).replace(/\D/g, '');
+    const finalPhone = cleaned.length === 10 ? `91${cleaned}` : cleaned;
+    
+    await sendTemplate.mutateAsync({
+      conversationId: 0,
+      phone: finalPhone,
+      templateName: 'happy_birthday',
+      language: 'en_US',
+      components: []
+    });
     setShowSingleModal(false);
     alert('WhatsApp message sent!');
   };
 
   const sendBulk = async () => {
-    if (!bulkMessage.trim()) return;
     const ids = Array.from(selectedIds);
     for (const id of ids) {
       const p = patients.find((x: any) => x.id === id);
       if (p?.mobile1) {
-        await sendWa.mutateAsync({
-          phone: String(p.mobile1),
-          message: bulkMessage.replace(/\{#name#\}/gi, `${p.first_name} ${p.surname || ''}`)
-        });
+        const cleaned = String(p.mobile1).replace(/\D/g, '');
+        const finalPhone = cleaned.length === 10 ? `91${cleaned}` : cleaned;
+        try {
+          await sendTemplate.mutateAsync({
+            conversationId: 0,
+            phone: finalPhone,
+            templateName: 'happy_birthday',
+            language: 'en_US',
+            components: []
+          });
+        } catch (e) {
+          console.error('Failed to send birthday wish', e);
+        }
       }
     }
     setShowBulkModal(false);
-    setBulkMessage('');
     setSelectedIds(new Set());
     alert('WhatsApp messages sent!');
   };
@@ -607,14 +622,15 @@ function BirthdaysTab({ onExport }: { onExport: (filename: string, headers: stri
                 style={{ width: '100%', padding: '10px 12px', border: '1.5px solid var(--pp-warm-4)', borderRadius: 10, fontSize: '0.85rem', background: 'var(--pp-warm-1)' }} />
             </div>
             <div style={{ marginBottom: 16 }}>
-              <label style={{ fontSize: '0.8rem', fontWeight: 700, display: 'block', marginBottom: 6 }}>Message</label>
-              <textarea className="comm-form-textarea" value={singleMessage} onChange={e => setSingleMessage(e.target.value)} rows={4}
-                style={{ width: '100%', padding: '10px 12px', border: '1.5px solid var(--pp-warm-4)', borderRadius: 10, fontSize: '0.85rem', resize: 'vertical' }} />
+              <label style={{ fontSize: '0.8rem', fontWeight: 700, display: 'block', marginBottom: 6 }}>Template Preview</label>
+              <div style={{ padding: '10px 12px', border: '1.5px solid var(--pp-warm-4)', borderRadius: 10, fontSize: '0.85rem', background: 'var(--pp-bg-subtle)' }}>
+                Wishing you health, love, wealth, happiness, and just everything your heart desires. Happy Birthday !! Regards, MMC HomeoTech
+              </div>
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button className="plat-btn plat-btn-sm" onClick={() => setShowSingleModal(false)}>Cancel</button>
-              <button style={{ background: '#25D366', color: 'white', border: 'none', borderRadius: 8, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem' }} onClick={sendSingle} disabled={sendWa.isPending}>
-                <Send size={12} /> {sendWa.isPending ? 'Sending...' : 'Send'}
+              <button style={{ background: '#25D366', color: 'white', border: 'none', borderRadius: 8, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem' }} onClick={sendSingle} disabled={sendTemplate.isPending}>
+                <Send size={12} /> {sendTemplate.isPending ? 'Sending...' : 'Send'}
               </button>
             </div>
           </div>
@@ -629,15 +645,15 @@ function BirthdaysTab({ onExport }: { onExport: (filename: string, headers: stri
               <MessageCircle size={18} style={{ color: '#25D366' }} /> Bulk Birthday Wishes ({selectedIds.size})
             </h3>
             <div style={{ marginBottom: 16 }}>
-              <label style={{ fontSize: '0.8rem', fontWeight: 700, display: 'block', marginBottom: 6 }}>Message (use {"{#name#}"} for patient name)</label>
-              <textarea className="comm-form-textarea" placeholder="Happy Birthday, {#name#}! Wishing you good health. - Kreed.health"
-                value={bulkMessage} onChange={e => setBulkMessage(e.target.value)} rows={4}
-                style={{ width: '100%', padding: '10px 12px', border: '1.5px solid var(--pp-warm-4)', borderRadius: 10, fontSize: '0.85rem', resize: 'vertical' }} />
+              <label style={{ fontSize: '0.8rem', fontWeight: 700, display: 'block', marginBottom: 6 }}>Template Preview</label>
+              <div style={{ padding: '10px 12px', border: '1.5px solid var(--pp-warm-4)', borderRadius: 10, fontSize: '0.85rem', background: 'var(--pp-bg-subtle)' }}>
+                Wishing you health, love, wealth, happiness, and just everything your heart desires. Happy Birthday !! Regards, MMC HomeoTech
+              </div>
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button className="plat-btn plat-btn-sm" onClick={() => { setShowBulkModal(false); setBulkMessage(''); }}>Cancel</button>
-              <button style={{ background: '#25D366', color: 'white', border: 'none', borderRadius: 8, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem' }} onClick={sendBulk} disabled={sendWa.isPending}>
-                <Send size={12} /> {sendWa.isPending ? 'Sending...' : `Send to ${selectedIds.size}`}
+              <button style={{ background: '#25D366', color: 'white', border: 'none', borderRadius: 8, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem' }} onClick={sendBulk} disabled={sendTemplate.isPending}>
+                <Send size={12} /> {sendTemplate.isPending ? 'Sending...' : `Send to ${selectedIds.size}`}
               </button>
             </div>
           </div>

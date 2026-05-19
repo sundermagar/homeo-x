@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Calendar, RefreshCw, AlertTriangle, CheckCircle2, XCircle, Clock, Phone, User, MessageCircle, Send, CheckSquare, Square } from 'lucide-react';
 import { usePackageExpiryReport } from '../hooks/use-packages';
-import { useSendWhatsApp } from '@/features/communications/hooks/use-communications';
+import { useWhatsApp } from '@/features/whatsapp/hooks/use-whatsapp';
 import { toast } from '@/hooks/use-toast';
 import { Drawer } from '@/shared/components/drawer';
 import { Pagination } from '@/components/shared/pagination';
@@ -40,7 +40,6 @@ export default function PackageTrackingPage() {
   const [selectedRecord, setSelectedRecord] = useState<any>(null);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [showSmsModal, setShowSmsModal] = useState(false);
-  const [smsMessage, setSmsMessage] = useState('Dear {#name#}, your subscription is ending soon. Please visit us to renew. - Kreed.health');
   const [statusValue, setStatusValue] = useState('informed');
   const [statusDate, setStatusDate] = useState(new Date().toISOString().split('T')[0]!);
   const [statusNotes, setStatusNotes] = useState('');
@@ -61,7 +60,8 @@ export default function PackageTrackingPage() {
   };
 
   const { data, isLoading, refetch } = usePackageExpiryReport(fromDate, toDate);
-  const sendWa = useSendWhatsApp();
+  const { useSendTemplate } = useWhatsApp();
+  const sendTemplate = useSendTemplate();
   const records = data?.records ?? [];
 
   const {
@@ -90,14 +90,29 @@ export default function PackageTrackingPage() {
   };
 
   const sendBulkWhatsApp = async () => {
-    if (!smsMessage.trim()) return;
     const ids = Array.from(selectedIds);
     let sent = 0, failed = 0;
     for (const regid of ids) {
       const rec = records.find((r: any) => r.regid === regid);
       if (rec?.phone) {
         try {
-          await sendWa.mutateAsync({ phone: String(rec.phone), message: smsMessage.replace(/\{#name#\}/gi, `${rec.firstName} ${rec.surname || ''}`) });
+          const cleaned = String(rec.phone).replace(/\D/g, '');
+          const finalPhone = cleaned.length === 10 ? `91${cleaned}` : cleaned;
+          await sendTemplate.mutateAsync({
+            conversationId: 0,
+            phone: finalPhone,
+            templateName: 'package_expire',
+            language: 'en_US',
+            components: [
+              {
+                type: 'body',
+                parameters: [
+                  { type: 'text', text: `${rec.firstName} ${rec.surname || ''}`.trim() || 'Patient' },
+                  { type: 'text', text: rec.expiryDate || 'soon' }
+                ]
+              }
+            ]
+          });
           sent++;
         } catch {
           failed++;
@@ -105,7 +120,6 @@ export default function PackageTrackingPage() {
       }
     }
     setShowSmsModal(false);
-    setSmsMessage('');
     setSelectedIds(new Set());
     toast({ title: 'WhatsApp Broadcast', description: `Sent: ${sent}, Failed: ${failed}` });
   };
@@ -115,10 +129,26 @@ export default function PackageTrackingPage() {
       toast({ title: 'No Phone Number', description: 'This patient has no phone number on record.', variant: 'error' });
       return;
     }
-    const msg = `Dear ${rec.firstName} ${rec.surname || ''}, your ${rec.packageName} subscription expires on ${rec.expiryDate}. Please visit us to renew. - Kreed.health`;
-    sendWa.mutate({ phone: String(rec.phone), message: msg }, {
-      onSuccess: () => toast({ title: 'WhatsApp Sent', description: `Message sent to ${rec.firstName}.` }),
-      onError: (err: any) => toast({ title: 'Send Failed', description: err?.response?.data?.message || err.message, variant: 'error' }),
+    const cleaned = String(rec.phone).replace(/\D/g, '');
+    const finalPhone = cleaned.length === 10 ? `91${cleaned}` : cleaned;
+    
+    sendTemplate.mutate({
+      conversationId: 0,
+      phone: finalPhone,
+      templateName: 'package_expire',
+      language: 'en_US',
+      components: [
+        {
+          type: 'body',
+          parameters: [
+            { type: 'text', text: `${rec.firstName} ${rec.surname || ''}`.trim() || 'Patient' },
+            { type: 'text', text: rec.expiryDate || 'soon' }
+          ]
+        }
+      ]
+    }, {
+      onSuccess: () => toast({ title: '✅ WhatsApp Sent', description: `Expiry reminder sent to ${rec.firstName}.` }),
+      onError: (err: any) => toast({ title: '❌ Send Failed', description: err?.response?.data?.message || err.message, variant: 'error' }),
     });
   };
 
@@ -420,20 +450,16 @@ export default function PackageTrackingPage() {
             </h3>
             <div style={{ marginBottom: 16 }}>
               <label style={{ fontSize: '0.8rem', fontWeight: 700, display: 'block', marginBottom: 6 }}>Message</label>
-              <textarea
-                className="comm-form-textarea"
-                placeholder="Dear {#name#}, your package is expiring..."
-                value={smsMessage}
-                onChange={e => setSmsMessage(e.target.value)}
-                rows={4}
-                style={{ width: '100%', padding: '10px 12px', border: '1.5px solid var(--pp-warm-4)', borderRadius: 10, fontSize: '0.85rem', resize: 'vertical' }}
-              />
-              <div style={{ fontSize: '0.75rem', color: 'var(--pp-text-3)', marginTop: 4 }}>{'Use {#name#} for patient name'}</div>
+              <div style={{ marginTop: '16px', padding: '12px', borderRadius: '8px', background: 'var(--pp-bg-subtle)', border: '1px solid var(--pp-border)' }}>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0 }}>
+                  <strong>Template Preview:</strong> Dear <strong>{'{name}'}</strong> Your package expires on <strong>{'{date}'}</strong>. Kindly call on 8727001444 to renew it. Ignore if already renewed. Regards MMC HomeoTech
+                </p>
+              </div>
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button className="pp-btn pp-btn-secondary" onClick={() => { setShowSmsModal(false); setSmsMessage(''); }}>Cancel</button>
-              <button className="pp-btn" style={{ background: '#25D366', color: 'white' }} onClick={sendBulkWhatsApp} disabled={sendWa.isPending}>
-                <Send size={14} /> {sendWa.isPending ? 'Sending...' : 'Send All'}
+              <button className="pp-btn pp-btn-secondary" onClick={() => setShowSmsModal(false)}>Cancel</button>
+              <button className="pp-btn" style={{ background: '#25D366', color: 'white' }} onClick={sendBulkWhatsApp} disabled={sendTemplate.isPending}>
+                <Send size={14} /> {sendTemplate.isPending ? 'Sending...' : 'Send via WhatsApp'}
               </button>
             </div>
           </div>

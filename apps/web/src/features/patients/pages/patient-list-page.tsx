@@ -16,7 +16,7 @@ import '../../dashboard/pages/role-dashboards.css';
 import '../styles/patients.css';
 import { Pagination } from '@/components/shared/pagination';
 import { EmptyState } from '@/components/shared/empty-state';
-import { useSendWhatsApp } from '@/features/communications/hooks/use-communications';
+import { useWhatsApp } from '@/features/whatsapp/hooks/use-whatsapp';
 
 /* ─── Helpers ──────────────────────────────────────────────────────────────── */
 function formatDate(date: Date | string | null | undefined) {
@@ -114,16 +114,31 @@ export default function PatientListPage() {
 
   const user = useAuthStore(s => s.user);
   const token = useAuthStore(s => s.token);
-  const sendWhatsApp = useSendWhatsApp();
+  const { useSendTemplate } = useWhatsApp();
+  const sendTemplate = useSendTemplate();
 
-  const openWhatsApp = (phone: string | null, name: string) => {
+  const openWhatsApp = (phone: string | null, name: string, regid: number) => {
     if (!phone) return alert('No phone number available.');
     const cleaned = phone.replace(/\D/g, '');
     const finalPhone = cleaned.length === 10 ? `91${cleaned}` : cleaned;
-    const msg = `Hello ${name}, this is a message from your clinic.`;
-    sendWhatsApp.mutate({ phone: finalPhone, message: msg }, {
-      onSuccess: () => alert('WhatsApp message sent directly via Meta Cloud API!'),
-      onError: (err: any) => alert('Failed to send WhatsApp message: ' + (err.response?.data?.message || err.message))
+    
+    sendTemplate.mutate({
+      conversationId: 0,
+      phone: finalPhone,
+      templateName: 'new_case_registration',
+      language: 'en_US',
+      components: [
+        {
+          type: 'body',
+          parameters: [
+            { type: 'text', text: name || 'Patient' },
+            { type: 'text', text: String(regid) }
+          ]
+        }
+      ]
+    }, {
+      onSuccess: () => alert('✅ Registration WhatsApp sent via Meta Cloud API!'),
+      onError: (err: any) => alert('❌ Failed to send WhatsApp message: ' + (err.response?.data?.message || err.message))
     });
   };
 
@@ -194,7 +209,7 @@ export default function PatientListPage() {
       <button className="appt-kebab-item" onClick={() => { navigate(`/patients/${p.regid}`); closeMenu(); }}>
         <Users size={14} /> Manage Family
       </button>
-      <button className="appt-kebab-item" onClick={() => { openWhatsApp(p.phone, p.fullName); closeMenu(); }}>
+      <button className="appt-kebab-item" onClick={() => { openWhatsApp(p.phone, p.fullName, p.regid); closeMenu(); }}>
         <MessageCircle size={14} /> WhatsApp
       </button>
       <button className="appt-kebab-item" onClick={() => { window.open(`/api/medical-cases/remedy-chart/pdf/${p.regid}?token=${token}`, '_blank'); closeMenu(); }}>
@@ -464,7 +479,7 @@ export default function PatientListPage() {
                     Add Patient
                   </button>
                 ) : (
-                  <button className="appt-btn-minimal white-pill" style={{ flex: 1 }} onClick={() => openWhatsApp(p.phone, p.fullName)}>
+                  <button className="appt-btn-minimal white-pill" style={{ flex: 1 }} onClick={() => openWhatsApp(p.phone, p.fullName, p.regid)}>
                     <MessageCircle size={14} /> WhatsApp
                   </button>
                 )}

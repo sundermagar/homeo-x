@@ -176,6 +176,7 @@ const TABLES: Array<{ name: string; ddl: string }> = [
   "description" text,
   "trigger" text NOT NULL,
   "trigger_config" jsonb DEFAULT '{}',
+  "flow_data" jsonb DEFAULT '{}',
   "status" text DEFAULT 'inactive',
   "execution_count" integer DEFAULT 0,
   "last_executed_at" timestamp,

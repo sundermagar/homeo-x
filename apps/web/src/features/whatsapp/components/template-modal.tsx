@@ -249,17 +249,30 @@ export const TemplateModal = ({ isOpen, onClose, onSelect }: TemplateModalProps)
           )}
         </div>
 
-        <div className="appt-drawer-actions">
-          <button className="btn-secondary" onClick={onClose}>
+        <div className="appt-drawer-actions flex items-center justify-end gap-3 p-6 border-t border-[var(--pp-warm-3)] bg-white">
+          <button 
+            className="px-5 py-2.5 rounded-xl border border-[var(--pp-warm-4)] bg-white text-[var(--pp-text-2)] hover:bg-[var(--pp-warm-2)] active:scale-95 transition-all text-xs font-bold uppercase tracking-wider" 
+            onClick={onClose}
+          >
             Cancel
           </button>
           {selectedTemplate && (
             <button 
-              className="btn-primary"
               onClick={handleSend}
               disabled={isSending}
+              className="bg-gradient-to-br from-[#2563EB] to-[#1D4ED8] hover:brightness-105 active:scale-95 text-white flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl shadow-[0_4px_12px_rgba(37,99,235,0.2)] font-bold text-xs uppercase tracking-wider transition-all border-none disabled:from-[var(--pp-text-4)] disabled:to-[var(--pp-text-4)] disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
             >
-              {isSending ? <><Loader2 size={15} className="animate-spin" /> Preparing...</> : <><Send size={15} /> Select Template</>}
+              {isSending ? (
+                <>
+                  <Loader2 size={15} className="animate-spin" />
+                  <span>Preparing...</span>
+                </>
+              ) : (
+                <>
+                  <Send size={14} className="translate-x-[0.5px] translate-y-[-0.5px]" />
+                  <span>Send Template</span>
+                </>
+              )}
             </button>
           )}
         </div>

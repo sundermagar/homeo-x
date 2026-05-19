@@ -169,6 +169,13 @@
       "when": 1747310000000,
       "tag": "0023_fix_medicines_schema_drift",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1747320000000,
+      "tag": "0024_add_automation_flow_data",
+      "breakpoints": true
     }
   ]
 }

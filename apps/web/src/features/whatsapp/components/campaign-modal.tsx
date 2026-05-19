@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { useWhatsApp } from '../hooks/use-whatsapp';
 import type { WhatsAppTemplate, WhatsAppChannel } from '@mmc/types';
 import ReactDOM from 'react-dom';
-import { X, Target, MessageSquare, Zap, Info, Loader2, FileSpreadsheet, CheckCircle2, ChevronRight } from 'lucide-react';
+import { X, Target, MessageSquare, Zap, Info, Loader2, FileSpreadsheet, CheckCircle2, ChevronRight, Users } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import '@/features/appointments/styles/appointments.css';
 
@@ -19,8 +19,9 @@ interface CampaignFormInput {
 }
 
 export const CampaignModal = ({ isOpen, onClose }: CampaignModalProps) => {
-  const { useChannels, useTemplates, useCreateCampaign, useUploadMedia } = useWhatsApp();
+  const { useChannels, useTemplates, useCreateCampaign, useUploadMedia, useContacts } = useWhatsApp();
   const { data: channels } = useChannels();
+  const { data: contacts } = useContacts(1);
   const { register, handleSubmit, watch, setValue, reset } = useForm<CampaignFormInput>();
   
   const selectedChannelId = watch('channelId');
@@ -28,6 +29,10 @@ export const CampaignModal = ({ isOpen, onClose }: CampaignModalProps) => {
   const { data: templates } = useTemplates(selectedChannelId ? Number(selectedChannelId) : undefined);
   const createCampaignMutation = useCreateCampaign();
   const uploadMediaMutation = useUploadMedia();
+
+  const [recipientSource, setRecipientSource] = React.useState<'csv' | 'db'>('csv');
+  const [selectedDbContacts, setSelectedDbContacts] = React.useState<any[]>([]);
+  const [dbSearchTerm, setDbSearchTerm] = React.useState('');
 
   const [csvRecipients, setCsvRecipients] = React.useState<any[]>([]);
   const [csvHeaders, setCsvHeaders] = React.useState<string[]>([]);
@@ -39,6 +44,28 @@ export const CampaignModal = ({ isOpen, onClose }: CampaignModalProps) => {
 
   const selectedTemplate = templates?.find((t) => t.name === selectedTemplateName);
   const templateVariables = selectedTemplate ? (selectedTemplate.body.match(/\{\{\d+\}\}/g) || []) : [];
+
+  const filteredContacts = contacts?.filter((c: any) => 
+    c.name?.toLowerCase().includes(dbSearchTerm.toLowerCase()) ||
+    c.phone?.includes(dbSearchTerm)
+  ) || [];
+
+  React.useEffect(() => {
+    if (recipientSource === 'db') {
+      setCsvHeaders(['name', 'phone']);
+      setCsvRecipients(selectedDbContacts);
+      setMapping(prev => ({
+        ...prev,
+        phone: 'phone',
+        name: 'name',
+        ...templateVariables.reduce((acc, _, i) => ({ ...acc, [`v${i + 1}`]: 'name' }), {})
+      }));
+    } else {
+      setCsvHeaders([]);
+      setCsvRecipients([]);
+      setMapping({ phone: '', name: '' });
+    }
+  }, [recipientSource, selectedDbContacts]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -181,7 +208,7 @@ export const CampaignModal = ({ isOpen, onClose }: CampaignModalProps) => {
               </label>
               <select 
                 className="appt-form-select"
-                onChange={e => setValue('channelId', e.target.value)}
+                {...register('channelId', { required: true })}
                 defaultValue=""
               >
                 <option value="" disabled>Select active WABA line</option>
@@ -199,7 +226,7 @@ export const CampaignModal = ({ isOpen, onClose }: CampaignModalProps) => {
               </label>
               <select 
                 className="appt-form-select"
-                onChange={e => setValue('templateName', e.target.value)}
+                {...register('templateName', { required: true })}
                 disabled={!selectedChannelId}
                 defaultValue=""
               >
@@ -210,37 +237,144 @@ export const CampaignModal = ({ isOpen, onClose }: CampaignModalProps) => {
               </select>
             </div>
 
+            {/* Recipient Source Tab Selector */}
             <div className="appt-form-group">
               <label className="appt-form-label">
-                <FileSpreadsheet size={13} strokeWidth={1.6} />
-                Recipient Matrix (CSV)
+                <Users size={13} strokeWidth={1.6} />
+                Recipient Source
               </label>
-              <div 
-                className="relative border-2 border-dashed border-pp-border rounded-xl p-6 text-center hover:bg-pp-bg-subtle/50 transition-all cursor-pointer group"
-                onClick={() => document.getElementById('csv-upload')?.click()}
-              >
-                <input 
-                  type="file" 
-                  id="csv-upload" 
-                  accept=".csv" 
-                  className="hidden" 
-                  onChange={handleFileUpload} 
-                />
-                {csvRecipients.length > 0 ? (
-                  <div className="flex flex-col items-center">
-                    <CheckCircle2 className="text-success w-8 h-8 mb-2" />
-                    <span className="text-[13px] font-bold text-main">{csvRecipients.length} Patients Prepared</span>
-                    <span className="text-[10px] text-muted font-medium mt-1">Click to replace matrix</span>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center">
-                    <FileSpreadsheet className="text-muted w-8 h-8 mb-2 group-hover:text-pp-blue transition-colors" />
-                    <span className="text-[13px] font-bold text-main">Upload Patient Data</span>
-                    <span className="text-[10px] text-muted font-medium mt-1">Columns must include Phone numbers</span>
-                  </div>
-                )}
+              <div className="flex gap-2 p-1 bg-pp-bg-subtle rounded-xl border border-pp-border/50">
+                <button
+                  type="button"
+                  onClick={() => setRecipientSource('csv')}
+                  className={`flex-1 py-1.5 text-center rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
+                    recipientSource === 'csv'
+                      ? 'bg-white text-pp-blue shadow-sm ring-1 ring-pp-border/50'
+                      : 'text-muted hover:text-main'
+                  }`}
+                >
+                  <FileSpreadsheet size={12} className="inline mr-1.5" />
+                  CSV Upload
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRecipientSource('db')}
+                  className={`flex-1 py-1.5 text-center rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
+                    recipientSource === 'db'
+                      ? 'bg-white text-pp-blue shadow-sm ring-1 ring-pp-border/50'
+                      : 'text-muted hover:text-main'
+                  }`}
+                >
+                  <Users size={12} className="inline mr-1.5" />
+                  Select Registered Patients
+                </button>
               </div>
             </div>
+
+            {recipientSource === 'csv' ? (
+              <div className="appt-form-group">
+                <label className="appt-form-label">
+                  <FileSpreadsheet size={13} strokeWidth={1.6} />
+                  Recipient Matrix (CSV)
+                </label>
+                <div 
+                  className="relative border-2 border-dashed border-pp-border rounded-xl p-6 text-center hover:bg-pp-bg-subtle/50 transition-all cursor-pointer group"
+                  onClick={() => document.getElementById('csv-upload')?.click()}
+                >
+                  <input 
+                    type="file" 
+                    id="csv-upload" 
+                    accept=".csv" 
+                    className="hidden" 
+                    onChange={handleFileUpload} 
+                  />
+                  {csvRecipients.length > 0 ? (
+                    <div className="flex flex-col items-center">
+                      <CheckCircle2 className="text-success w-8 h-8 mb-2" />
+                      <span className="text-[13px] font-bold text-main">{csvRecipients.length} Patients Prepared</span>
+                      <span className="text-[10px] text-muted font-medium mt-1">Click to replace matrix</span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center">
+                      <FileSpreadsheet className="text-muted w-8 h-8 mb-2 group-hover:text-pp-blue transition-colors" />
+                      <span className="text-[13px] font-bold text-main">Upload Patient Data</span>
+                      <span className="text-[10px] text-muted font-medium mt-1">Columns must include Phone numbers</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="appt-form-group animate-slide-up">
+                <div className="flex justify-between items-center mb-2">
+                  <label className="appt-form-label mb-0">
+                    <Users size={13} strokeWidth={1.6} />
+                    Registered Patients ({selectedDbContacts.length} Selected)
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedDbContacts(contacts || [])}
+                      className="text-[10px] font-bold text-pp-blue uppercase hover:underline"
+                    >
+                      Select All
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedDbContacts([])}
+                      className="text-[10px] font-bold text-muted uppercase hover:underline"
+                    >
+                      Deselect All
+                    </button>
+                  </div>
+                </div>
+                
+                <input
+                  placeholder="Filter by name or phone..."
+                  className="appt-form-input mb-2 h-8 text-xs"
+                  value={dbSearchTerm}
+                  onChange={(e) => setDbSearchTerm(e.target.value)}
+                />
+
+                <div className="max-h-48 overflow-y-auto border border-pp-border rounded-xl p-3 space-y-2 bg-white">
+                  {filteredContacts.length === 0 ? (
+                    <p className="text-xs text-muted text-center py-4">No patients found</p>
+                  ) : (
+                    filteredContacts.map((contact: any) => {
+                      const isChecked = selectedDbContacts.some((c: any) => c.phone === contact.phone);
+                      return (
+                        <div key={contact.id} className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedDbContacts([...selectedDbContacts, contact]);
+                              } else {
+                                setSelectedDbContacts(selectedDbContacts.filter((c: any) => c.phone !== contact.phone));
+                              }
+                            }}
+                            className="rounded border-pp-border text-pp-blue focus:ring-pp-blue w-4 h-4 cursor-pointer"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold text-main truncate">{contact.name}</p>
+                            <p className="text-[10px] text-muted font-medium truncate">+{contact.phone}</p>
+                          </div>
+                          {contact.tags && contact.tags.length > 0 && (
+                            <div className="flex gap-1 flex-wrap max-w-[120px] justify-end">
+                              {contact.tags.map((tag: string) => (
+                                <span key={tag} className="text-[8px] font-bold uppercase tracking-wider bg-pp-bg-subtle text-pp-blue px-1.5 py-0.5 rounded">
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            )}
 
             {csvRecipients.length > 0 && (
               <div className="appt-form-group animate-slide-up">

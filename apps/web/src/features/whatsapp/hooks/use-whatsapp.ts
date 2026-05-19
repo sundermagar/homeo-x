@@ -20,7 +20,7 @@ export const useWhatsApp = () => {
         const { data } = await apiClient.get<{ data: WhatsAppChannel[] }>('/whatsapp/channels');
         return data.data;
       },
-      staleTime: 30_000,
+      staleTime: 5 * 60 * 1000, // channels rarely change, cache for 5 minutes
     }),
     useCreateChannel: () => useMutation({
       mutationFn: async (payload: any) => {
@@ -38,6 +38,7 @@ export const useWhatsApp = () => {
         const { data } = await apiClient.get<{ data: WhatsAppCampaign[] | { data: WhatsAppCampaign[] } }>('/whatsapp/campaigns');
         return Array.isArray(data.data) ? data.data : (data.data as any).data;
       },
+      staleTime: 30_000, // cache for 30 seconds
     }),
     useCreateCampaign: () => useMutation({
       mutationFn: async (payload: any) => {
@@ -66,6 +67,7 @@ export const useWhatsApp = () => {
         return data.data;
       },
       enabled: !!channelId,
+      staleTime: 5 * 60 * 1000, // approved templates change rarely, cache for 5 minutes
     }),
     useSyncTemplates: () => useMutation({
       mutationFn: async (channelId: number) => {
@@ -76,7 +78,25 @@ export const useWhatsApp = () => {
         queryClient.invalidateQueries({ queryKey: ['whatsapp', 'templates', channelId] });
       },
     }),
+    useCreateTemplate: () => useMutation({
+      mutationFn: async (payload: { channelId: number; name: string; category: string; language?: string; body: string; header?: string; footer?: string; buttons?: any[] }) => {
+        const { data } = await apiClient.post<{ data: any }>('/whatsapp/templates', payload);
+        return data.data;
+      },
+      onSuccess: (_, variables) => {
+        queryClient.invalidateQueries({ queryKey: ['whatsapp', 'templates', variables.channelId] });
+      },
+    }),
     // Conversations & Messages
+    useMarkAsRead: () => useMutation({
+      mutationFn: async (conversationId: number) => {
+        const { data } = await apiClient.post<{ data: any }>(`/whatsapp/conversations/${conversationId}/read`);
+        return data.data;
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['whatsapp', 'conversations'] });
+      },
+    }),
     useConversations: (channelId?: number) => useQuery({
       queryKey: ['whatsapp', 'conversations', channelId],
       queryFn: async () => {
@@ -85,6 +105,16 @@ export const useWhatsApp = () => {
         return data.data;
       },
       enabled: !!channelId,
+      refetchInterval: 5000, // Poll conversations every 5 seconds to show new chats/unread badges
+    }),
+    useCreateConversation: () => useMutation({
+      mutationFn: async (payload: { channelId: number; contactPhone: string; contactName: string }) => {
+        const { data } = await apiClient.post<{ data: WhatsAppConversation }>('/whatsapp/conversations', payload);
+        return data.data;
+      },
+      onSuccess: (_, variables) => {
+        queryClient.invalidateQueries({ queryKey: ['whatsapp', 'conversations', variables.channelId] });
+      },
     }),
     useMessages: (conversationId?: number) => useQuery({
       queryKey: ['whatsapp', 'messages', conversationId],
@@ -94,14 +124,80 @@ export const useWhatsApp = () => {
         return data.data;
       },
       enabled: !!conversationId,
+      refetchInterval: 3000, // Poll messages of active conversation every 3 seconds for real-time delivery from phone
     }),
     useSendMessage: () => useMutation({
-      mutationFn: async ({ conversationId, content }: { conversationId: number; content: string }) => {
-        const { data } = await apiClient.post<{ data: WhatsAppMessage }>(`/whatsapp/conversations/${conversationId}/messages`, { content });
+      mutationFn: async ({ 
+        conversationId, 
+        content, 
+        mediaId, 
+        mediaType, 
+        fileName 
+      }: { 
+        conversationId: number; 
+        content?: string; 
+        mediaId?: string; 
+        mediaType?: string; 
+        fileName?: string; 
+      }) => {
+        const { data } = await apiClient.post<{ data: WhatsAppMessage }>(`/whatsapp/conversations/${conversationId}/messages`, { 
+          content, 
+          mediaId, 
+          mediaType, 
+          fileName 
+        });
         return data.data;
+      },
+      onMutate: async ({ conversationId, content, mediaId, mediaType, fileName }) => {
+        // Cancel outgoing refetches so they don't overwrite optimistic update
+        await queryClient.cancelQueries({ queryKey: ['whatsapp', 'messages', conversationId] });
+ 
+        // Snapshot previous messages
+        const previousMessages = queryClient.getQueryData<WhatsAppMessage[]>(['whatsapp', 'messages', conversationId]) || [];
+ 
+        // Optimistically insert message (outbound, sending status)
+        const optimisticMessage = {
+          id: -Date.now(),
+          conversationId,
+          content: content || `Sent ${mediaType || 'file'}: ${fileName || ''}`,
+          direction: 'outbound',
+          status: 'sent',
+          timestamp: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+        };
+ 
+        // Prepend optimistic message to cache (API returns descending order)
+        queryClient.setQueryData<WhatsAppMessage[]>(
+          ['whatsapp', 'messages', conversationId],
+          [optimisticMessage as any, ...previousMessages]
+        );
+ 
+        return { previousMessages };
+      },
+      onError: (err, { conversationId }, context) => {
+        if (context?.previousMessages) {
+          queryClient.setQueryData(['whatsapp', 'messages', conversationId], context.previousMessages);
+        }
       },
       onSuccess: (_, { conversationId }) => {
         queryClient.invalidateQueries({ queryKey: ['whatsapp', 'messages', conversationId] });
+        queryClient.invalidateQueries({ queryKey: ['whatsapp', 'conversations'] });
+      },
+    }),
+    useUploadConversationMedia: () => useMutation({
+      mutationFn: async ({ conversationId, file }: { conversationId: number; file: File }) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const { data } = await apiClient.post<{ 
+          data: { 
+            mediaId: string; 
+            type: 'document' | 'image' | 'video' | 'audio'; 
+            fileName: string; 
+          } 
+        }>(`/whatsapp/conversations/${conversationId}/upload`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return data.data;
       },
     }),
     useUploadMedia: () => useMutation({
@@ -125,6 +221,7 @@ export const useWhatsApp = () => {
         return Array.isArray(d) ? d : (d as any).data;
       },
       enabled: !!clinicId,
+      staleTime: 5 * 60 * 1000, // cache contacts static list for 5 minutes
     }),
     useGroups: (clinicId?: number) => useQuery({
       queryKey: ['wa-groups', clinicId],
@@ -133,6 +230,7 @@ export const useWhatsApp = () => {
         return data.data;
       },
       enabled: !!clinicId,
+      staleTime: 5 * 60 * 1000, // cache contact groups for 5 minutes
     }),
     useCreateContact: () => useMutation({
       mutationFn: async (data: any) => {
@@ -149,6 +247,7 @@ export const useWhatsApp = () => {
         return Array.isArray(d) ? d : (d as any).data;
       },
       enabled: !!clinicId,
+      staleTime: 60_000, // cache for 1 minute
     }),
     // Chatbots
     useChatbots: (clinicId?: number) => useQuery({
@@ -159,6 +258,7 @@ export const useWhatsApp = () => {
         return Array.isArray(d) ? d : (d as any).data;
       },
       enabled: !!clinicId,
+      staleTime: 60_000, // cache for 1 minute
     }),
     // Automations
     useAutomations: (clinicId?: number) => useQuery({
@@ -169,6 +269,7 @@ export const useWhatsApp = () => {
         return Array.isArray(d) ? d : (d as any).data;
       },
       enabled: !!clinicId,
+      staleTime: 60_000, // cache for 1 minute
     }),
     useCreateAutomation: () => useMutation({
       mutationFn: async (data: any) => {
@@ -198,13 +299,13 @@ export const useWhatsApp = () => {
       },
     }),
     // Analytics
-    useAnalytics: () => useQuery({
-      queryKey: ['whatsapp', 'analytics'],
+    useAnalytics: (days: number = 7) => useQuery({
+      queryKey: ['whatsapp', 'analytics', days],
       queryFn: async () => {
-        const { data } = await apiClient.get<{ data: WhatsAppAnalytics }>('/whatsapp/analytics');
+        const { data } = await apiClient.get<{ data: WhatsAppAnalytics }>('/whatsapp/analytics', { params: { days } });
         return data.data;
       },
-      staleTime: 30_000,
+      staleTime: 5 * 60 * 1000, // dashboard analytics cache for 5 minutes
     }),
     // Send a template message from the Inbox
     useSendTemplate: () => useMutation({
@@ -235,7 +336,7 @@ export const useWhatsApp = () => {
         const { data } = await apiClient.get<{ data: { configured: boolean; channel: WhatsAppChannel | null } }>('/whatsapp/default-channel');
         return data.data;
       },
-      staleTime: 60_000,
+      staleTime: 10 * 60 * 1000, // default configured channel is static, cache for 10 minutes
     }),
     // Campaigns Paginated
     useCampaignsPaginated: (params: { page: number, limit: number, search?: string }) => useQuery({
@@ -270,7 +371,8 @@ export const useWhatsApp = () => {
       queryFn: async () => {
         const { data } = await apiClient.get<{ data: { data: any[], total: number } }>('/whatsapp/chatbots', { params });
         return data.data;
-      }
+      },
+      staleTime: 30_000, // cache paginated chatbots for 30s
     }),
     // Automations Paginated
     useAutomationsPaginated: (params: { page: number, limit: number, search?: string }) => useQuery({
@@ -278,7 +380,8 @@ export const useWhatsApp = () => {
       queryFn: async () => {
         const { data } = await apiClient.get<{ data: { data: any[], total: number } }>('/whatsapp/automations', { params });
         return data.data;
-      }
+      },
+      staleTime: 30_000, // cache paginated automations for 30s
     }),
   };
 };

@@ -180,6 +180,9 @@ export function AppRouter() {
               <Route path="chatbots" element={<div />} />
               <Route path="media" element={<div />} />
               <Route path="channels" element={<div />} />
+              <Route path="templates" element={<div />} />
+              <Route path="analytics" element={<div />} />
+              <Route path="widget-builder" element={<div />} />
             </Route>
             <Route path="/communications/birthdays" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><BirthdayBroadcastPage /></RoleGuard>} />
             <Route path="/communications" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><GroupSmsPage /></RoleGuard>} />

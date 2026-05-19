@@ -284,6 +284,41 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
     .then(() => logger.info('DB pools warmed (idle keep-alive ping running)'))
     .catch(err => logger.warn({ err: err?.message }, 'DB pool warmup skipped'));
 
+  // --- AUTO-ALIGN WABA ACCESS TOKENS WITH ENV ---
+  // If the developer updates process.env.WHATSAPP_TOKEN, propagate it to the DB channels
+  (async () => {
+    try {
+      const envToken = process.env.WHATSAPP_TOKEN;
+      if (!envToken) return;
+
+      const { sql } = await import('drizzle-orm');
+      const allTenants = TenantRegistry.getAll();
+      logger.info(`Aligning WABA access tokens with .env for ${allTenants.length} tenants...`);
+      for (const tenant of allTenants) {
+        try {
+          const tenantDb = createDbClient(process.env.DATABASE_URL!, tenant.schemaName);
+          const channelRows = await tenantDb.execute(sql`
+            SELECT id, access_token FROM wa_channels LIMIT 10
+          `);
+          const rows = Array.isArray(channelRows) ? channelRows : (channelRows as any).rows || [];
+          for (const row of rows) {
+            if (row.access_token !== envToken) {
+              logger.info(`[SyncToken] Updating access token in schema ${tenant.schemaName} for WABA channel ${row.id}`);
+              await tenantDb.execute(sql`
+                UPDATE wa_channels SET access_token = ${envToken}, updated_at = NOW() WHERE id = ${row.id}
+              `);
+            }
+          }
+        } catch (e: any) {
+          // Ignore if table or schema does not exist
+        }
+      }
+      logger.info('WABA access token alignment complete');
+    } catch (err: any) {
+      logger.error({ err: err.message }, 'Failed to align WABA access tokens');
+    }
+  })();
+
   return { app, server, io, tenantDb, publicDb };
 }
 

@@ -14,7 +14,7 @@ import { VitalsFormModal } from '../../medical-case/components/vitals-form-modal
 import { Pagination } from '@/components/shared/pagination';
 import { EmptyState } from '@/components/shared/empty-state';
 import { toast } from '@/hooks/use-toast';
-import { useSendWhatsApp } from '@/features/communications/hooks/use-communications';
+import { useWhatsApp } from '@/features/whatsapp/hooks/use-whatsapp';
 import '../styles/appointments.css';
 
 const WAIT_STATUS = { 0: 'Waiting', 1: 'Called', 2: 'Done' } as Record<number, string>;
@@ -33,7 +33,8 @@ import { useNavigate } from 'react-router-dom';
 
 export default function TokenQueuePage() {
   const navigate = useNavigate();
-  const sendWhatsApp = useSendWhatsApp();
+  const { useSendTemplate } = useWhatsApp();
+  const sendTemplate = useSendTemplate();
   const today = new Date().toISOString().split('T')[0]!;
   const user = useAuthStore((s) => s.user);
   const rawRole = ((user as any)?.type || (user as any)?.role || (user as any)?.roleName || '').toLowerCase();
@@ -53,18 +54,38 @@ export default function TokenQueuePage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
-  const openWhatsApp = (phone: string | null, name: string) => {
+  const openWhatsApp = (phone: string | null, name: string, time?: string, date?: string) => {
     if (!phone) {
       toast({ description: "Mobile number not found", variant: "error" });
       return;
     }
     const cleanPhone = phone.replace(/\D/g, '');
     const finalPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
-    const msg = `Hello ${name}, your appointment at our clinic is confirmed.`;
-    sendWhatsApp.mutate({ phone: finalPhone, message: msg }, {
-      onSuccess: () => toast({ description: 'WhatsApp message sent directly!', variant: 'success' }),
-      onError: (err: any) => toast({ description: 'Failed to send WhatsApp message: ' + (err.response?.data?.message || err.message), variant: 'error' })
-    });
+    
+    const components = [
+      {
+        type: 'body',
+        parameters: [
+          { type: 'text', text: name || 'Patient' },
+          { type: 'text', text: time || 'N/A' },
+          { type: 'text', text: date || today }
+        ]
+      }
+    ];
+
+    sendTemplate.mutate(
+      {
+        conversationId: 0,
+        phone: finalPhone,
+        templateName: 'appointment_scheduled',
+        language: 'en_US',
+        components
+      },
+      {
+        onSuccess: () => toast({ description: '✅ Appointment WhatsApp sent successfully!', variant: 'success' }),
+        onError: (err: any) => toast({ description: '❌ Failed to send WhatsApp: ' + (err.response?.data?.message || err.message), variant: 'error' })
+      }
+    );
   };
   const [openMenuId, setOpenMenuId] = useState<number | string | null>(null);
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
@@ -482,7 +503,7 @@ export default function TokenQueuePage() {
                       <button className="appt-kebab-item" style={{ color: 'var(--pp-purple)' }} onClick={() => { setActiveVitals({ visitId: w.appointmentId || w.id, regid: w.patientId ?? 0 }); setOpenMenuId(null); setMenuPos(null); }}>
                         <Activity size={14} /> Vitals
                       </button>
-                      <button className="appt-kebab-item" style={{ color: '#25D366' }} onClick={() => { openWhatsApp(w.phone, w.patientName); setOpenMenuId(null); setMenuPos(null); }}>
+                      <button className="appt-kebab-item" style={{ color: '#25D366' }} onClick={() => { openWhatsApp(w.phone || w.mobile, w.patientName, w.bookingTime, new Date(w.appointmentDate || w.createdAt || today).toLocaleDateString('en-IN')); setOpenMenuId(null); setMenuPos(null); }}>
                         <MessageCircle size={14} /> WhatsApp
                       </button>
                     </div>,
@@ -740,7 +761,7 @@ export default function TokenQueuePage() {
                                 <button className="appt-kebab-item" style={{ color: 'var(--pp-purple)' }} onClick={() => { setActiveVitals({ visitId: a.id, regid: a.patientId ?? 0 }); setOpenMenuId(null); setMenuPos(null); }}>
                                   <Activity size={14} /> Vitals
                                 </button>
-                                <button className="appt-kebab-item" style={{ color: '#25D366' }} onClick={() => { openWhatsApp(a.phone, a.patientName); setOpenMenuId(null); setMenuPos(null); }}>
+                                <button className="appt-kebab-item" style={{ color: '#25D366' }} onClick={() => { openWhatsApp(a.phone || a.mobile, a.patientName, a.bookingTime, new Date(a.appointmentDate || a.createdAt || today).toLocaleDateString('en-IN')); setOpenMenuId(null); setMenuPos(null); }}>
                                   <MessageCircle size={14} /> WhatsApp
                                 </button>
                               </div>,

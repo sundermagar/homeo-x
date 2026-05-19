@@ -41,6 +41,17 @@ export const CampaignList = () => {
     }
   };
 
+  const safeFormatDate = (dateVal: any, pattern: string) => {
+    try {
+      if (!dateVal) return '';
+      const d = new Date(dateVal);
+      if (isNaN(d.getTime())) return '';
+      return format(d, pattern);
+    } catch (e) {
+      return '';
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Search/Filter Bar */}
@@ -66,104 +77,186 @@ export const CampaignList = () => {
         <TableSkeleton rows={pageSize} cols={7} />
       ) : (
         <>
-          <div className="pp-table-container-enhanced bg-white rounded-[12px] shadow-sm border border-pp-border">
-            <div className="pp-table-scroll">
-              <table className="pp-table">
-                <thead>
-                  <tr>
-                    <th style={{ width: '40px' }}>#</th>
-                    <th>Campaign Identity</th>
-                    <th>Template Reference</th>
-                    <th>Status</th>
-                    <th>Engagement Metrics</th>
-                    <th>Created At</th>
-                    <th style={{ textAlign: 'right' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {campaigns.length === 0 ? (
+          {/* Desktop view (hidden on mobile) */}
+          <div className="hidden md:block">
+            <div className="pp-table-container-enhanced bg-white rounded-[12px] shadow-sm border border-pp-border">
+              <div className="pp-table-scroll">
+                <table className="pp-table">
+                  <thead>
                     <tr>
-                      <td colSpan={7} className="text-center py-20 text-muted italic font-medium">
-                        <BarChart3 className="w-10 h-10 mx-auto mb-4 opacity-10" />
-                        No campaigns found. Start by creating a new outreach campaign.
-                      </td>
+                      <th style={{ width: '40px' }}>#</th>
+                      <th>Campaign Identity</th>
+                      <th>Template Reference</th>
+                      <th>Status</th>
+                      <th>Engagement Metrics</th>
+                      <th>Created At</th>
+                      <th style={{ textAlign: 'right' }}>Actions</th>
                     </tr>
-                  ) : (
-                    campaigns.map((campaign: any, idx: number) => (
-                      <tr key={campaign.id} className="pp-hover-row">
-                        <td>
-                           <span className="font-mono text-[10px] font-bold opacity-40">{idx + 1 + (page - 1) * pageSize}</span>
-                        </td>
-                        <td>
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-pp-blue-tint text-pp-blue rounded-lg flex items-center justify-center font-bold text-xs">
-                              {campaign.name.substring(0, 1).toUpperCase()}
-                            </div>
-                            <div>
-                              <p className="appt-cell-name">{campaign.name}</p>
-                              <p className="appt-cell-phone">ID: {campaign.id}</p>
-                            </div>
-                          </div>
-                        </td>
-                        <td>
-                          <div className="flex items-center text-[13px] font-medium text-secondary">
-                            <Clock className="w-3.5 h-3.5 mr-2 opacity-50" />
-                            {campaign.templateName}
-                          </div>
-                        </td>
-                        <td>{getStatusBadge(campaign.status)}</td>
-                        <td>
-                          <div className="space-y-1.5 max-w-[140px]">
-                            <div className="flex justify-between text-[9px] font-bold uppercase tracking-wider">
-                              <span className="text-success">Sent: {campaign.sentCount || 0}</span>
-                              <span className="text-danger">Fail: {campaign.failedCount || 0}</span>
-                            </div>
-                            <div className="h-1.5 w-full bg-pp-bg-subtle rounded-full overflow-hidden flex">
-                              <div 
-                                className="bg-success h-full transition-all duration-1000" 
-                                style={{ width: `${(campaign.sentCount / (campaign.recipientCount || 1)) * 100}%` }} 
-                              />
-                              <div 
-                                className="bg-danger h-full transition-all duration-1000" 
-                                style={{ width: `${(campaign.failedCount / (campaign.recipientCount || 1)) * 100}%` }} 
-                              />
-                            </div>
-                          </div>
-                        </td>
-                        <td>
-                          <div className="flex flex-col">
-                            <span className="appt-cell-name text-xs">{format(new Date(campaign.createdAt), 'MMM dd, yyyy')}</span>
-                            <span className="appt-cell-phone">{format(new Date(campaign.createdAt), 'h:mm a')}</span>
-                          </div>
-                        </td>
-                        <td style={{ textAlign: 'right' }}>
-                          {campaign.status === 'draft' && (
-                            <button 
-                              className="btn-primary btn-sm px-4 h-8 text-[11px]"
-                              onClick={() => {
-                                broadcastMutation.mutate(campaign.id, {
-                                  onSuccess: () => toast({ title: 'Broadcast Initialized', description: 'Patients are now being messaged.' }),
-                                  onError: (err: any) => toast({ title: 'Broadcast Failed', description: err.message, variant: 'error' })
-                                });
-                              }}
-                              disabled={broadcastMutation.isPending && broadcastMutation.variables === campaign.id}
-                            >
-                              <Play className={`w-3.5 h-3.5 mr-1.5 ${(broadcastMutation.isPending && broadcastMutation.variables === campaign.id) ? 'animate-spin' : ''}`} />
-                              {(broadcastMutation.isPending && broadcastMutation.variables === campaign.id) ? 'Launching...' : 'Launch'}
-                            </button>
-                          )}
-                          {campaign.status === 'completed' && (
-                            <button className="btn-ghost text-pp-blue font-bold text-[11px]">
-                              View Analytics
-                            </button>
-                          )}
+                  </thead>
+                  <tbody>
+                    {campaigns.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="text-center py-20 text-muted italic font-medium">
+                          <BarChart3 className="w-10 h-10 mx-auto mb-4 opacity-10" />
+                          No campaigns found. Start by creating a new outreach campaign.
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                    ) : (
+                      campaigns.map((campaign: any, idx: number) => (
+                        <tr key={campaign.id} className="pp-hover-row">
+                          <td>
+                             <span className="font-mono text-[10px] font-bold opacity-40">{idx + 1 + (page - 1) * pageSize}</span>
+                          </td>
+                          <td>
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 bg-pp-blue-tint text-pp-blue rounded-lg flex items-center justify-center font-bold text-xs">
+                                {campaign.name.substring(0, 1).toUpperCase()}
+                              </div>
+                              <div>
+                                <p className="appt-cell-name">{campaign.name}</p>
+                                <p className="appt-cell-phone">ID: {campaign.id}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <div className="flex items-center text-[13px] font-medium text-secondary">
+                              <Clock className="w-3.5 h-3.5 mr-2 opacity-50" />
+                              {campaign.templateName}
+                            </div>
+                          </td>
+                          <td>{getStatusBadge(campaign.status)}</td>
+                          <td>
+                            <div className="space-y-1.5 max-w-[140px]">
+                              <div className="flex justify-between text-[9px] font-bold uppercase tracking-wider">
+                                <span className="text-success">Sent: {campaign.sentCount || 0}</span>
+                                <span className="text-danger">Fail: {campaign.failedCount || 0}</span>
+                              </div>
+                              <div className="h-1.5 w-full bg-pp-bg-subtle rounded-full overflow-hidden flex">
+                                <div 
+                                  className="bg-success h-full transition-all duration-1000" 
+                                  style={{ width: `${(campaign.sentCount / (campaign.recipientCount || 1)) * 100}%` }} 
+                                />
+                                <div 
+                                  className="bg-danger h-full transition-all duration-1000" 
+                                  style={{ width: `${(campaign.failedCount / (campaign.recipientCount || 1)) * 100}%` }} 
+                                />
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <div className="flex flex-col">
+                              <span className="appt-cell-name text-xs">{safeFormatDate(campaign.createdAt, 'MMM dd, yyyy')}</span>
+                              <span className="appt-cell-phone">{safeFormatDate(campaign.createdAt, 'h:mm a')}</span>
+                            </div>
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            {campaign.status === 'draft' && (
+                              <button 
+                                className="btn-primary btn-sm px-4 h-8 text-[11px]"
+                                onClick={() => {
+                                  broadcastMutation.mutate(campaign.id, {
+                                    onSuccess: () => toast({ title: 'Broadcast Initialized', description: 'Patients are now being messaged.' }),
+                                    onError: (err: any) => toast({ title: 'Broadcast Failed', description: err.message, variant: 'error' })
+                                  });
+                                }}
+                                disabled={broadcastMutation.isPending && broadcastMutation.variables === campaign.id}
+                              >
+                                <Play className={`w-3.5 h-3.5 mr-1.5 ${(broadcastMutation.isPending && broadcastMutation.variables === campaign.id) ? 'animate-spin' : ''}`} />
+                                {(broadcastMutation.isPending && broadcastMutation.variables === campaign.id) ? 'Launching...' : 'Launch'}
+                              </button>
+                            )}
+                            {campaign.status === 'completed' && (
+                              <button className="btn-ghost text-pp-blue font-bold text-[11px]">
+                                View Analytics
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
+          </div>
+
+          {/* Mobile view (cards, hidden on desktop) */}
+          <div className="md:hidden space-y-4">
+            {campaigns.length === 0 ? (
+              <div className="p-8 text-center bg-white border border-pp-border rounded-2xl text-muted italic text-sm">
+                No campaigns found. Start by creating a new outreach campaign.
+              </div>
+            ) : (
+              campaigns.map((campaign: any, idx: number) => (
+                <div key={campaign.id} className="bg-white p-5 rounded-2xl border border-pp-border shadow-sm space-y-4">
+                  <div className="flex justify-between items-start">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-pp-blue-tint text-pp-blue rounded-lg flex items-center justify-center font-bold text-xs">
+                        {campaign.name.substring(0, 1).toUpperCase()}
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-main text-xs">{campaign.name}</h4>
+                        <p className="text-[10px] text-muted font-mono">ID: {campaign.id}</p>
+                      </div>
+                    </div>
+                    {getStatusBadge(campaign.status)}
+                  </div>
+                  
+                  <div className="bg-pp-bg-subtle/50 p-3 rounded-xl border border-pp-border text-xs text-secondary space-y-2">
+                    <div className="flex justify-between">
+                      <span className="font-semibold text-muted text-[10px]">TEMPLATE:</span>
+                      <span className="font-medium text-main">{campaign.templateName}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-semibold text-muted text-[10px]">CREATED:</span>
+                      <span className="font-medium text-main">{safeFormatDate(campaign.createdAt, 'MMM dd, yyyy h:mm a')}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-4 pt-2 border-t border-pp-border/50">
+                    <div className="flex-1 space-y-1">
+                      <div className="flex justify-between text-[9px] font-bold uppercase tracking-wider">
+                        <span className="text-success">Sent: {campaign.sentCount || 0}</span>
+                        <span className="text-danger">Fail: {campaign.failedCount || 0}</span>
+                      </div>
+                      <div className="h-1.5 w-full bg-pp-bg-subtle rounded-full overflow-hidden flex">
+                        <div 
+                          className="bg-success h-full" 
+                          style={{ width: `${(campaign.sentCount / (campaign.recipientCount || 1)) * 100}%` }} 
+                        />
+                        <div 
+                          className="bg-danger h-full" 
+                          style={{ width: `${(campaign.failedCount / (campaign.recipientCount || 1)) * 100}%` }} 
+                        />
+                      </div>
+                    </div>
+
+                    <div className="shrink-0">
+                      {campaign.status === 'draft' && (
+                        <button 
+                          className="btn-primary btn-sm px-4 h-8 text-[11px]"
+                          onClick={() => {
+                            broadcastMutation.mutate(campaign.id, {
+                              onSuccess: () => toast({ title: 'Broadcast Initialized', description: 'Patients are now being messaged.' }),
+                              onError: (err: any) => toast({ title: 'Broadcast Failed', description: err.message, variant: 'error' })
+                            });
+                          }}
+                          disabled={broadcastMutation.isPending && broadcastMutation.variables === campaign.id}
+                        >
+                          <Play className={`w-3.5 h-3.5 mr-1.5 ${(broadcastMutation.isPending && broadcastMutation.variables === campaign.id) ? 'animate-spin' : ''}`} />
+                          {(broadcastMutation.isPending && broadcastMutation.variables === campaign.id) ? 'Launching...' : 'Launch'}
+                        </button>
+                      )}
+                      {campaign.status === 'completed' && (
+                        <button className="btn-ghost text-pp-blue font-bold text-[11px]">
+                          View Analytics
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
           
           {totalEntries > 0 && (

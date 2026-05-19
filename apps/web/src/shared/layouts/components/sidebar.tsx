@@ -140,14 +140,14 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       icon: <MessageCircle size={20} className="text-pp-blue" />,
       roles: ADMIN_ROLES,
       subItems: [
-        { label: 'Overview', path: '/communications/whatsapp/overview', icon: <BarChart3 size={14} /> },
-        { label: 'Unified Inbox', path: '/communications/whatsapp/inbox', icon: <MessageSquare size={14} /> },
+        { label: 'Dashboard', path: '/communications/whatsapp/overview', icon: <LayoutDashboard size={14} /> },
+        { label: 'Team Inbox', path: '/communications/whatsapp/inbox', icon: <MessageSquare size={14} /> },
+        { label: 'Contacts', path: '/communications/whatsapp/contacts', icon: <Users size={14} /> },
         { label: 'Campaigns', path: '/communications/whatsapp/campaigns', icon: <Send size={14} /> },
-        { label: 'Patient CRM', path: '/communications/whatsapp/contacts', icon: <Users size={14} /> },
+        { label: 'Templates', path: '/communications/whatsapp/templates', icon: <FileText size={14} /> },
         { label: 'Automations', path: '/communications/whatsapp/automations', icon: <Zap size={14} /> },
-        { label: 'AI Triage', path: '/communications/whatsapp/chatbots', icon: <Bot size={14} /> },
-        { label: 'Media Vault', path: '/communications/whatsapp/media', icon: <FileText size={14} /> },
-        { label: 'WABA Channels', path: '/communications/whatsapp/channels', icon: <Globe size={14} /> },
+        { label: 'Analytics', path: '/communications/whatsapp/analytics', icon: <BarChart3 size={14} /> },
+        { label: 'Widget Builder', path: '/communications/whatsapp/widget-builder', icon: <Bot size={14} /> },
       ]
     },
     {

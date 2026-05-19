@@ -1,47 +1,90 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useWhatsApp } from '../hooks/use-whatsapp';
-import { Zap, Plus, Play, Pause, Trash2, ChevronRight, MessageSquare, Target, Clock, ArrowRight } from 'lucide-react';
+import { Zap, Plus, Play, Pause, Trash2, ChevronRight, MessageSquare, Target, Clock, ArrowRight, Search } from 'lucide-react';
 import { format } from 'date-fns';
-import { AutomationModal } from './automation-modal';
+import AutomationFlowBuilder from './automation-flow-builder/AutomationFlowBuilder';
 import { Pagination } from '@/components/shared/pagination';
 
 export const AutomationBuilder = () => {
-  const { useAutomationsPaginated } = useWhatsApp();
+  const { useAutomationsPaginated, useChannels } = useWhatsApp();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
   
   const { data, isLoading } = useAutomationsPaginated({ page, limit: pageSize });
+  const { data: channels } = useChannels();
+  const activeChannelId = channels?.[0]?.id?.toString();
+
   const automations = data?.data || [];
   const totalEntries = data?.total || 0;
   
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingAutomation, setEditingAutomation] = useState<any | null>(null);
+  const [isCreatingNew, setIsCreatingNew] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   
   useEffect(() => {
-    const handleOpenModal = () => setIsModalOpen(true);
+    const handleOpenModal = () => setIsCreatingNew(true);
     window.addEventListener('open-automation-modal', handleOpenModal);
     return () => window.removeEventListener('open-automation-modal', handleOpenModal);
   }, []);
 
+  const filteredAutomations = automations.filter((flow: any) => 
+    flow.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (flow.description && flow.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  if (isCreatingNew || editingAutomation) {
+    return (
+      <div className="h-[calc(100vh-220px)] w-full rounded-2xl overflow-hidden border border-pp-border bg-white shadow-sm ring-1 ring-black/5 animate-fade-in relative z-10 flex flex-col">
+        <AutomationFlowBuilder
+          automation={editingAutomation}
+          channelId={activeChannelId}
+          onClose={() => {
+            setIsCreatingNew(false);
+            setEditingAutomation(null);
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-6 animate-fade-in">
+      
+      {/* Top Filter and Actions bar */}
+      <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between bg-white p-6 rounded-2xl border border-pp-border shadow-sm">
+        <div className="flex-1 max-w-md">
+          <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">Search Workflows</label>
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search workflow name, description..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pp-input w-full h-11 pl-10"
+            />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" size={16} />
+          </div>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 gap-6">
         {isLoading ? (
           Array.from({ length: pageSize }).map((_, i) => (
             <div key={i} className="appt-card animate-pulse bg-pp-bg-subtle/20 border-pp-border h-[180px]" />
           ))
-        ) : automations.length === 0 ? (
-          <div className="py-24 bg-pp-bg-subtle/30 rounded-3xl border-2 border-dashed border-pp-border text-center">
-            <div className="w-16 h-16 bg-pp-bg-subtle rounded-2xl flex items-center justify-center mx-auto mb-6 text-muted/30">
+        ) : filteredAutomations.length === 0 ? (
+          <div className="py-20 bg-pp-bg-subtle/30 rounded-3xl border border-pp-border text-center flex flex-col items-center justify-center">
+            <div className="w-16 h-16 bg-pp-bg-subtle rounded-2xl flex items-center justify-center mb-6 text-muted/30">
               <Zap size={32} />
             </div>
             <h3 className="text-xl font-bold text-main">No Journeys Configured</h3>
-            <p className="text-secondary mt-2 mb-8 max-w-sm mx-auto text-sm leading-relaxed">
+            <p className="text-secondary mt-2 mb-4 max-w-sm mx-auto text-sm leading-relaxed">
               Define your first automated medical journey. Trigger workflows based on incoming keywords or patient status changes.
             </p>
           </div>
-        ) : automations.map((flow: any) => (
-          <div key={flow.id} className="appt-card group hover:border-pp-blue/30 transition-all p-0 overflow-hidden">
+        ) : filteredAutomations.map((flow: any) => (
+          <div key={flow.id} className="appt-card group hover:border-pp-blue/30 transition-all p-0 overflow-hidden bg-white shadow-sm border border-pp-border rounded-2xl">
             <div className="flex flex-col md:flex-row md:items-stretch">
               <div className="p-6 flex-1 border-b md:border-b-0 md:border-r border-pp-border">
                 <div className="flex justify-between items-start mb-4">
@@ -52,12 +95,12 @@ export const AutomationBuilder = () => {
                     <h3 className="text-lg font-bold text-main">{flow.name}</h3>
                   </div>
                   <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                    flow.status === 'active' ? 'bg-success/10 text-success border border-success/20' : 'bg-pp-bg-subtle text-muted border border-pp-border'
+                    flow.status === 'active' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-pp-bg-subtle text-muted border border-pp-border'
                   }`}>
                     {flow.status}
                   </div>
                 </div>
-                <p className="text-sm text-secondary mb-6 leading-relaxed">{flow.description}</p>
+                <p className="text-sm text-secondary mb-6 leading-relaxed">{flow.description || 'Keyword based quick messaging automation.'}</p>
                 
                 <div className="flex flex-wrap gap-6">
                   <div className="flex items-center gap-2">
@@ -86,7 +129,10 @@ export const AutomationBuilder = () => {
               
               <div className="bg-pp-bg-subtle/30 p-6 w-full md:w-64 flex flex-col justify-between">
                 <div className="space-y-3">
-                  <button className="w-full btn-secondary h-10 justify-between group/btn">
+                  <button 
+                    onClick={() => setEditingAutomation(flow)}
+                    className="w-full btn-secondary h-10 justify-between group/btn"
+                  >
                     <span>Edit Logic</span>
                     <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
                   </button>
@@ -120,8 +166,6 @@ export const AutomationBuilder = () => {
           onPageSizeChange={setPageSize}
         />
       )}
-
-      <AutomationModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </div>
   );
 };

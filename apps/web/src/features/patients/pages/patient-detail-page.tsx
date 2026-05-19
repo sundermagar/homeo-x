@@ -4,7 +4,7 @@ import { usePatient, useDeletePatient, useFamilyMembers, useAddFamilyMember, use
 import { useActivePackage } from '../../packages/hooks/use-packages';
 import { AssignPackageModal } from '../../packages/components/assign-package-modal';
 import { Edit2, Trash2, UserPlus, Users, X, MapPin, Phone, CheckCircle, Search, TrendingUp, Activity, MessageCircle, Zap, ShieldCheck, Clock } from 'lucide-react';
-import { useSendWhatsApp } from '../../communications/hooks/use-communications';
+import { useWhatsApp } from '@/features/whatsapp/hooks/use-whatsapp';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import type { PatientSummary, FamilyMember } from '@mmc/types';
 import { PageSkeleton } from '@/components/shared/page-skeleton';
@@ -55,7 +55,8 @@ export default function PatientDetailPage() {
     await removeFamilyMutation.mutateAsync({ regid: numRegid, id });
   };
 
-  const waMutation = useSendWhatsApp();
+  const { useSendTemplate } = useWhatsApp();
+  const sendTemplate = useSendTemplate();
 
   if (isLoading) {
     return <PageSkeleton variant="detail" />;
@@ -66,11 +67,26 @@ export default function PatientDetailPage() {
 
   const handleWhatsApp = async (phone: string) => {
     if (!phone) return;
-    const msg = `Hello ${patient?.firstName || ''}, this is Homeo-X clinic.`;
+    const cleaned = String(phone).replace(/\D/g, '');
+    const finalPhone = cleaned.length === 10 ? `91${cleaned}` : cleaned;
+    
     try {
-      await waMutation.mutateAsync({ phone, message: msg });
+      await sendTemplate.mutateAsync({
+        conversationId: 0,
+        phone: finalPhone,
+        templateName: 'new_case_registration',
+        language: 'en_US',
+        components: [
+          {
+            type: 'body',
+            parameters: [
+              { type: 'text', text: patient?.firstName || 'Patient' },
+              { type: 'text', text: patient?.regid ? String(patient.regid) : '-' }
+            ]
+          }
+        ]
+      });
     } catch (err) {
-      // API failed — message was not delivered
       console.error('WhatsApp send failed:', err);
     }
   };

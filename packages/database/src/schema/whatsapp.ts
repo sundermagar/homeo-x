@@ -182,6 +182,7 @@ export const waAutomations = pgTable('wa_automations', {
   description: text('description'),
   trigger: text('trigger').notNull(), // message_received, keyword, schedule, api_webhook
   triggerConfig: jsonb('trigger_config').default({}),
+  flowData: jsonb('flow_data').default({}),
   status: waAutomationStatusEnum('status').default('inactive'),
   executionCount: integer('execution_count').default(0),
   lastExecutedAt: timestamp('last_executed_at'),

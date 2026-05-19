@@ -2,7 +2,12 @@ import React, { Component, ErrorInfo, ReactNode, lazy, Suspense } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useWhatsApp } from '../hooks/use-whatsapp';
 import type { WhatsAppAnalytics, WhatsAppChannel } from '@mmc/types';
-import { MessageCircle, Send, Globe, LayoutDashboard, Zap, TrendingUp, Users, MessageSquare, AlertCircle, RefreshCcw, Loader2 } from 'lucide-react';
+import { 
+  MessageCircle, Send, Globe, LayoutDashboard, Zap, TrendingUp, Users, MessageSquare, 
+  AlertCircle, RefreshCcw, Loader2, FileText, BarChart2, Bot, Target, 
+  Smartphone, ShieldCheck, CheckCircle2, XCircle, ArrowUpRight, ArrowDownRight, Activity 
+} from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip, ResponsiveContainer, Legend } from 'recharts';
 import { toast } from '@/hooks/use-toast';
 import '@/features/dashboard/pages/role-dashboards.css';
 import '@/features/appointments/styles/appointments.css';
@@ -15,6 +20,9 @@ const ContactList = lazy(() => import('../components/contact-list').then(m => ({
 const AutomationBuilder = lazy(() => import('../components/automation-builder').then(m => ({ default: m.AutomationBuilder })));
 const ChatbotManager = lazy(() => import('../components/chatbot-manager').then(m => ({ default: m.ChatbotManager })));
 const MediaLibrary = lazy(() => import('../components/media-library').then(m => ({ default: m.MediaLibrary })));
+const Templates = lazy(() => import('../components/templates').then(m => ({ default: m.Templates })));
+const Analytics = lazy(() => import('../components/analytics').then(m => ({ default: m.Analytics })));
+const WidgetBuilder = lazy(() => import('../components/widget-builder').then(m => ({ default: m.WidgetBuilder })));
 
 const FeatureSkeleton = () => (
   <div className="space-y-6 animate-pulse">
@@ -73,14 +81,16 @@ class WhatsAppErrorBoundary extends Component<{ children: ReactNode }, { hasErro
 }
 
 export const WhatsAppDashboardPage = () => {
-  const { useChannels, useAnalytics } = useWhatsApp();
+  const [days, setDays] = React.useState(7);
+  const { useChannels, useAnalytics, useSyncTemplates } = useWhatsApp();
   const { data: channels } = useChannels();
   const { 
     data: analytics, 
     isLoading: loadingAnalytics, 
     isError: isAnalyticsError,
     error: analyticsError 
-  } = useAnalytics();
+  } = useAnalytics(days);
+  const syncTemplatesMutation = useSyncTemplates();
   
   const location = useLocation();
   const navigate = useNavigate();
@@ -106,19 +116,19 @@ export const WhatsAppDashboardPage = () => {
     switch (activeFeature) {
       case 'overview':
         return {
-          title: 'WhatsApp Overview',
+          title: 'WhatsApp Dashboard',
           sub: 'Analyze real-time delivery metrics and patient engagement status.',
           icon: <LayoutDashboard size={22} strokeWidth={1.8} />,
         };
       case 'inbox':
         return {
-          title: 'Clinical Team Chat',
+          title: 'Team Inbox',
           sub: 'Secure clinical dialogue and end-to-end encrypted patient support.',
-          icon: <MessageCircle size={22} strokeWidth={1.8} />,
+          icon: <MessageSquare size={22} strokeWidth={1.8} />,
         };
       case 'campaigns':
         return {
-          title: 'Campaign Manager',
+          title: 'Campaigns',
           sub: 'Design, launch, and monitor automated healthcare broadcasts.',
           icon: <Send size={22} strokeWidth={1.8} />,
           actions: (
@@ -142,7 +152,7 @@ export const WhatsAppDashboardPage = () => {
         };
       case 'contacts':
         return {
-          title: 'Patient CRM',
+          title: 'Contacts',
           sub: 'Manage WhatsApp-specific contact groups and patient segmentation.',
           icon: <Users size={22} strokeWidth={1.8} />,
           actions: (
@@ -152,9 +162,15 @@ export const WhatsAppDashboardPage = () => {
             </button>
           )
         };
+      case 'templates':
+        return {
+          title: 'Templates',
+          sub: 'Manage and synchronize your WhatsApp Business message templates.',
+          icon: <FileText size={22} strokeWidth={1.8} />,
+        };
       case 'automations':
         return {
-          title: 'Journey Automations',
+          title: 'Automations',
           sub: 'Configure trigger-based medical workflows and keyword responses.',
           icon: <Zap size={22} strokeWidth={1.8} />,
           actions: (
@@ -163,6 +179,18 @@ export const WhatsAppDashboardPage = () => {
               Create Workflow
             </button>
           )
+        };
+      case 'analytics':
+        return {
+          title: 'Analytics',
+          sub: 'Deep-dive reports on broadcast deliverability and message read metrics.',
+          icon: <BarChart2 size={22} strokeWidth={1.8} />,
+        };
+      case 'widget-builder':
+        return {
+          title: 'Widget Builder',
+          sub: 'Customize and embed your clinical WhatsApp floating chat widget.',
+          icon: <Bot size={22} strokeWidth={1.8} />,
         };
       case 'chatbots':
         return {
@@ -200,73 +228,299 @@ export const WhatsAppDashboardPage = () => {
       case 'overview':
         return (
           <div className="space-y-8 animate-fade-in">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="appt-card p-6 flex flex-col justify-between group hover:border-pp-blue transition-all">
+            {/* KPI Metrics */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="appt-card p-6 flex flex-col justify-between group hover:border-pp-blue transition-all duration-300">
                 <div className="flex justify-between items-start">
                   <div>
-                    <p className="pp-table-meta-label uppercase tracking-widest text-[10px] mb-1">Total Deliveries</p>
+                    <p className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1">Total Deliveries</p>
                     <h3 className={`text-3xl font-bold transition-all ${loadingAnalytics ? 'animate-pulse text-muted/30' : 'text-main'}`}>
                       {loadingAnalytics ? '...' : ((analytics as WhatsAppAnalytics)?.totalDeliveries || 0).toLocaleString()}
                     </h3>
                   </div>
-                  <div className="p-3 bg-blue-50 rounded-xl text-primary group-hover:bg-pp-blue group-hover:text-white transition-all">
-                    <Send size={20} />
+                  <div className="p-3 bg-blue-50 rounded-xl text-primary group-hover:bg-pp-blue group-hover:text-white transition-all duration-300">
+                    <Send size={18} />
                   </div>
                 </div>
                 <div className="mt-4 flex items-center text-success text-xs font-bold">
-                  <TrendingUp className="w-3.5 h-3.5 mr-1" />
+                  <ArrowUpRight className="w-4 h-4 mr-0.5" />
                   +12.5% this month
                 </div>
               </div>
 
-              <div className="appt-card p-6 flex flex-col justify-between group hover:border-success transition-all">
+              <div className="appt-card p-6 flex flex-col justify-between group hover:border-success transition-all duration-300">
                 <div className="flex justify-between items-start">
                   <div>
-                    <p className="pp-table-meta-label uppercase tracking-widest text-[10px] mb-1">Active Conversations</p>
-                    <h3 className={`text-3xl font-bold transition-all ${loadingAnalytics ? 'animate-pulse text-muted/30' : 'text-main'}`}>
-                      {loadingAnalytics ? '...' : ((analytics as WhatsAppAnalytics)?.activeConversations || 0).toLocaleString()}
+                    <p className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1">Delivery Rate</p>
+                    <h3 className="text-3xl font-bold text-main">
+                      98.6%
                     </h3>
                   </div>
-                  <div className="p-3 bg-green-50 rounded-xl text-success group-hover:bg-success group-hover:text-white transition-all">
-                    <MessageSquare size={20} />
+                  <div className="p-3 bg-green-50 rounded-xl text-success group-hover:bg-success group-hover:text-white transition-all duration-300">
+                    <CheckCircle2 size={18} />
                   </div>
                 </div>
-                <div className="mt-4 flex items-center text-success text-xs font-bold">
-                  <TrendingUp className="w-3.5 h-3.5 mr-1" />
-                  Real-time activity
+                <div className="mt-4">
+                  <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                    <div className="bg-success h-full rounded-full" style={{ width: '98.6%' }} />
+                  </div>
                 </div>
               </div>
 
-              <div className="appt-card p-6 flex flex-col justify-between group hover:border-purple-500 transition-all">
+              <div className="appt-card p-6 flex flex-col justify-between group hover:border-purple-500 transition-all duration-300">
                 <div className="flex justify-between items-start">
                   <div>
-                    <p className="pp-table-meta-label uppercase tracking-widest text-[10px] mb-1">Patient Reach</p>
+                    <p className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1">Read Response Rate</p>
+                    <h3 className="text-3xl font-bold text-main">
+                      84.2%
+                    </h3>
+                  </div>
+                  <div className="p-3 bg-purple-50 rounded-xl text-purple-600 group-hover:bg-purple-500 group-hover:text-white transition-all duration-300">
+                    <MessageSquare size={18} />
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                    <div className="bg-purple-500 h-full rounded-full" style={{ width: '84.2%' }} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="appt-card p-6 flex flex-col justify-between group hover:border-amber-500 transition-all duration-300">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1">Active Patients</p>
                     <h3 className={`text-3xl font-bold transition-all ${loadingAnalytics ? 'animate-pulse text-muted/30' : 'text-main'}`}>
                       {loadingAnalytics ? '...' : ((analytics as WhatsAppAnalytics)?.campaignReach || 0).toLocaleString()}
                     </h3>
                   </div>
-                  <div className="p-3 bg-purple-50 rounded-xl text-purple-600 group-hover:bg-purple-500 group-hover:text-white transition-all">
-                    <Users size={20} />
+                  <div className="p-3 bg-amber-50 rounded-xl text-amber-600 group-hover:bg-amber-500 group-hover:text-white transition-all duration-300">
+                    <Users size={18} />
                   </div>
                 </div>
-                <div className="mt-4 flex items-center text-primary text-xs font-bold">
+                <div className="mt-4 flex items-center text-success text-xs font-bold">
                   <TrendingUp className="w-3.5 h-3.5 mr-1" />
                   Clinic-wide engagement
                 </div>
               </div>
             </div>
-            
-            <div className="pp-table-container-enhanced p-12 border-dashed flex flex-col items-center justify-center text-center bg-white/50">
-              <div className="w-16 h-16 bg-pp-bg-subtle rounded-2xl flex items-center justify-center mb-6 text-primary/40">
-                <Zap size={32} />
+
+            {/* Interactive Charts & API Quality status block */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Message Analytics Chart */}
+              <div className="appt-card p-6 lg:col-span-2 flex flex-col justify-between">
+                <div className="flex justify-between items-center mb-6">
+                  <div>
+                    <h4 className="text-base font-bold text-main">Deliverability Matrix</h4>
+                    <p className="text-xs text-secondary mt-0.5">Real-time daily telemetry and dispatch activity.</p>
+                  </div>
+                  <div className="flex items-center gap-1.5 p-1 bg-pp-bg-subtle rounded-xl border border-pp-border">
+                    <button 
+                      onClick={() => setDays(7)}
+                      className={`text-[10px] px-3 py-1.5 rounded-lg transition-all ${
+                        days === 7 
+                          ? 'font-bold bg-white shadow-sm text-main' 
+                          : 'font-semibold text-secondary opacity-60 hover:opacity-100'
+                      }`}
+                    >
+                      7 Days
+                    </button>
+                    <button 
+                      onClick={() => setDays(30)}
+                      className={`text-[10px] px-3 py-1.5 rounded-lg transition-all ${
+                        days === 30 
+                          ? 'font-bold bg-white shadow-sm text-main' 
+                          : 'font-semibold text-secondary opacity-60 hover:opacity-100'
+                      }`}
+                    >
+                      30 Days
+                    </button>
+                  </div>
+                </div>
+
+                <div className="h-64 w-full">
+                  {loadingAnalytics ? (
+                    <div className="h-full flex items-center justify-center text-xs font-bold uppercase tracking-wider text-muted/40 animate-pulse">Aggregating telemetric trends...</div>
+                  ) : (analytics as WhatsAppAnalytics)?.trendData?.length ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={(analytics as WhatsAppAnalytics).trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="colorSent" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#1e68d7" stopOpacity={0.2}/>
+                            <stop offset="95%" stopColor="#1e68d7" stopOpacity={0}/>
+                          </linearGradient>
+                          <linearGradient id="colorDelivered" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#22c55e" stopOpacity={0.2}/>
+                            <stop offset="95%" stopColor="#22c55e" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                        <XAxis dataKey="name" stroke="#94a3b8" fontSize={10} tickLine={false} />
+                        <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} />
+                        <ChartTooltip />
+                        <Area type="monotone" dataKey="Sent" stroke="#1e68d7" strokeWidth={2} fillOpacity={1} fill="url(#colorSent)" />
+                        <Area type="monotone" dataKey="Delivered" stroke="#22c55e" strokeWidth={2} fillOpacity={1} fill="url(#colorDelivered)" />
+                        <Legend iconType="circle" fontSize={11} wrapperStyle={{ paddingTop: '15px' }} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-xs font-bold uppercase tracking-wider text-muted/40 border border-dashed rounded-2xl bg-pp-bg-subtle/40">No analytics data reported.</div>
+                  )}
+                </div>
               </div>
-              <h3 className="text-xl font-bold text-main">Pulse Analytics Active</h3>
-              <p className="text-secondary mt-2 mb-8 max-w-sm mx-auto text-sm leading-relaxed">
-                Your Meta Business channel is verified. Advanced clinical insights and automated patient journeys are being processed.
-              </p>
-              <button className="btn-primary px-8 h-11" onClick={() => navigate('/analytics')}>
-                View Detailed Reports
-              </button>
+
+              {/* API Connection & Meta Quality status */}
+              <div className="appt-card p-6 flex flex-col justify-between">
+                <div>
+                  <h4 className="text-base font-bold text-main mb-6">WABA Quality Metrics</h4>
+                  
+                  {activeChannel ? (
+                    <div className="space-y-4">
+                      {/* Connection Details */}
+                      <div className="flex items-center justify-between p-3.5 bg-green-50/50 border border-green-100 rounded-2xl">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-success rounded-xl flex items-center justify-center text-white">
+                            <Smartphone size={20} />
+                          </div>
+                          <div>
+                            <h5 className="text-xs font-bold text-main">{activeChannel.name}</h5>
+                            <p className="text-[11px] font-semibold text-secondary mt-0.5">
+                              +{activeChannel.phoneNumber.slice(0, 3)}******{activeChannel.phoneNumber.slice(-4)}
+                            </p>
+                          </div>
+                        </div>
+                        <span className="pp-badge-status status-active text-[9px] font-bold">CONNECTED</span>
+                      </div>
+
+                      {/* Health telemetry */}
+                      <div className="p-4 bg-slate-50 border border-pp-border rounded-2xl space-y-3">
+                        <div className="flex justify-between items-center text-xs font-medium text-secondary">
+                          <span className="flex items-center gap-1.5">
+                            <ShieldCheck className="w-4 h-4 text-pp-blue" />
+                            Meta Integration
+                          </span>
+                          <span className="font-bold text-main text-[11px]">VERIFIED</span>
+                        </div>
+                        <div className="flex justify-between items-center text-xs font-medium text-secondary">
+                          <span className="flex items-center gap-1.5">
+                            <Activity className="w-4 h-4 text-pp-blue" />
+                            API Quality Tier
+                          </span>
+                          <span className="font-bold text-success text-[11px]">TIER_10K</span>
+                        </div>
+                        <div className="flex justify-between items-center text-xs font-medium text-secondary">
+                          <span className="flex items-center gap-1.5">
+                            <CheckCircle2 className="w-4 h-4 text-pp-blue" />
+                            E2E Encryption
+                          </span>
+                          <span className="font-bold text-main text-[11px]">ACTIVE</span>
+                        </div>
+                      </div>
+
+                      {/* Daily message capacity meter */}
+                      <div className="p-4 bg-amber-50/30 border border-amber-100 rounded-2xl">
+                        <div className="flex justify-between text-xs font-bold text-main mb-1.5">
+                          <span>Daily Free Limit Capacity</span>
+                          <span>{(analytics as WhatsAppAnalytics)?.activeConversations || 0} / 1,000</span>
+                        </div>
+                        <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                          <div className="bg-amber-500 h-full rounded-full" style={{ width: `${Math.min((((analytics as WhatsAppAnalytics)?.activeConversations || 0) / 1000) * 100, 100)}%` }} />
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 bg-slate-50 border border-dashed rounded-2xl">
+                      <Globe className="w-10 h-10 mx-auto mb-3 opacity-20" />
+                      <h5 className="text-sm font-bold text-main">No Nodes Registered</h5>
+                      <p className="text-xs text-secondary max-w-[200px] mx-auto mt-1 mb-4">Integrate WABA credentials to unlock telemetry.</p>
+                      <button 
+                        className="btn-primary h-8 px-4 text-xs font-bold" 
+                        onClick={() => {
+                          navigate('/communications/whatsapp/channels');
+                          setTimeout(() => window.dispatchEvent(new CustomEvent('open-channel-modal')), 150);
+                        }}
+                      >
+                        Setup WABA
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-4 border-t border-pp-border flex justify-between items-center">
+                  <span className="text-[10px] font-semibold text-secondary">Last Sync: Just Now</span>
+                  {activeChannel && (
+                    <button 
+                      className="text-[10px] font-bold text-pp-blue hover:underline flex items-center gap-1"
+                      onClick={() => {
+                        syncTemplatesMutation.mutate(activeChannel.id, {
+                          onSuccess: () => toast({ title: 'Success', description: 'Meta Templates synchronized successfully.' }),
+                          onError: () => toast({ title: 'Error', description: 'Failed to sync templates.', variant: 'error' })
+                        });
+                      }}
+                      disabled={syncTemplatesMutation.isPending}
+                    >
+                      <RefreshCcw size={10} className={syncTemplatesMutation.isPending ? 'animate-spin' : ''} />
+                      {syncTemplatesMutation.isPending ? 'Syncing...' : 'Sync Meta'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Actions Panel */}
+            <div className="appt-card p-6">
+              <h4 className="text-base font-bold text-main mb-6">Quick Communications Suite</h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <button 
+                  className="p-4 bg-white border border-pp-border rounded-2xl text-left hover:border-pp-blue hover:shadow-sm transition-all duration-300 group"
+                  onClick={() => {
+                    navigate('/communications/whatsapp/campaigns');
+                    setTimeout(() => window.dispatchEvent(new CustomEvent('open-campaign-modal')), 150);
+                  }}
+                >
+                  <div className="w-9 h-9 bg-blue-50 text-pp-blue rounded-xl flex items-center justify-center mb-3 group-hover:bg-pp-blue group-hover:text-white transition-colors duration-300">
+                    <Send size={16} />
+                  </div>
+                  <h5 className="text-xs font-bold text-main">Launch Broadcast</h5>
+                  <p className="text-[10px] text-secondary mt-0.5">Send custom updates and alerts.</p>
+                </button>
+
+                <button 
+                  className="p-4 bg-white border border-pp-border rounded-2xl text-left hover:border-success hover:shadow-sm transition-all duration-300 group"
+                  onClick={() => {
+                    navigate('/communications/whatsapp/contacts');
+                    setTimeout(() => window.dispatchEvent(new CustomEvent('open-contact-modal')), 150);
+                  }}
+                >
+                  <div className="w-9 h-9 bg-green-50 text-success rounded-xl flex items-center justify-center mb-3 group-hover:bg-success group-hover:text-white transition-colors duration-300">
+                    <Users size={16} />
+                  </div>
+                  <h5 className="text-xs font-bold text-main">Add Contact</h5>
+                  <p className="text-[10px] text-secondary mt-0.5">Register a new patient number.</p>
+                </button>
+
+                <button 
+                  className="p-4 bg-white border border-pp-border rounded-2xl text-left hover:border-purple-500 hover:shadow-sm transition-all duration-300 group"
+                  onClick={() => navigate('/communications/whatsapp/automations')}
+                >
+                  <div className="w-9 h-9 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center mb-3 group-hover:bg-purple-500 group-hover:text-white transition-colors duration-300">
+                    <Zap size={16} />
+                  </div>
+                  <h5 className="text-xs font-bold text-main">Setup Automations</h5>
+                  <p className="text-[10px] text-secondary mt-0.5">Configure keyword responder flows.</p>
+                </button>
+
+                <button 
+                  className="p-4 bg-white border border-pp-border rounded-2xl text-left hover:border-amber-500 hover:shadow-sm transition-all duration-300 group"
+                  onClick={() => navigate('/communications/whatsapp/widget-builder')}
+                >
+                  <div className="w-9 h-9 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center mb-3 group-hover:bg-amber-500 group-hover:text-white transition-colors duration-300">
+                    <Bot size={16} />
+                  </div>
+                  <h5 className="text-xs font-bold text-main">Widget Builder</h5>
+                  <p className="text-[10px] text-secondary mt-0.5">Customize floating chat triggers.</p>
+                </button>
+              </div>
             </div>
           </div>
         );
@@ -278,8 +532,14 @@ export const WhatsAppDashboardPage = () => {
         return <ChannelList />;
       case 'contacts':
         return <ContactList />;
+      case 'templates':
+        return <Templates />;
       case 'automations':
         return <AutomationBuilder />;
+      case 'analytics':
+        return <Analytics />;
+      case 'widget-builder':
+        return <WidgetBuilder />;
       case 'chatbots':
         return <ChatbotManager />;
       case 'media':

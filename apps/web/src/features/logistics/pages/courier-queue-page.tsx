@@ -8,7 +8,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/infrastructure/api-client';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { Pagination } from '@/components/shared/pagination';
-import { useSendWhatsApp } from '@/features/communications/hooks/use-communications';
+import { useWhatsApp } from '@/features/whatsapp/hooks/use-whatsapp';
 import { NumericInput } from '@/shared/components/NumericInput';
 import './courier-queue-page.css';
 
@@ -35,7 +35,8 @@ interface CourierEntry {
 
 export function CourierQueuePage() {
   const queryClient = useQueryClient();
-  const sendWhatsApp = useSendWhatsApp();
+  const { useSendTemplate } = useWhatsApp();
+  const sendTemplate = useSendTemplate();
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -45,7 +46,13 @@ export function CourierQueuePage() {
   
   // Modal states
   const [assignModal, setAssignModal] = useState<CourierEntry | null>(null);
-  const [messageModal, setMessageModal] = useState<{ phone: string; message: string; regid: number } | null>(null);
+  const [messageModal, setMessageModal] = useState<{
+    phone: string;
+    patientName: string;
+    courierCompany: string;
+    podNumber: string;
+    regid: number;
+  } | null>(null);
   const [historyModal, setHistoryModal] = useState<{ regid: number; entries: CourierEntry[] } | null>(null);
 
   // Assign form state
@@ -91,18 +98,14 @@ export function CourierQueuePage() {
     });
   };
 
-  const handleOpenMessage = async (entry: CourierEntry) => {
-    try {
-      const { data } = await apiClient.get(`/courier/${entry.id}/sms-detail`);
-      setMessageModal(data.data);
-    } catch {
-      // Fallback
-      setMessageModal({
-        phone: entry.phone || '',
-        regid: entry.caseId,
-        message: `Dear ${entry.patientName || 'Patient'}, your medicines have been dispatched via ${entry.courier || 'courier'} and the POD number is ${entry.pcd || 'N/A'}. Regards, Kreed.health`
-      });
-    }
+  const handleOpenMessage = (entry: CourierEntry) => {
+    setMessageModal({
+      phone: entry.phone || '',
+      regid: entry.caseId,
+      patientName: entry.patientName || '',
+      courierCompany: entry.courier || '',
+      podNumber: entry.pcd || '',
+    });
   };
 
   const handleOpenHistory = async (regid: number) => {
@@ -118,15 +121,37 @@ export function CourierQueuePage() {
     if (!messageModal) return;
     const phone = messageModal.phone.replace(/\D/g, '');
     const finalPhone = phone.startsWith('91') ? phone : '91' + phone;
-    sendWhatsApp.mutate({ phone: finalPhone, message: messageModal.message }, {
-      onSuccess: () => {
-        setMessageModal(null);
-        alert('WhatsApp message sent directly via Meta Cloud API!');
+
+    // Build WhatsApp template components with variables
+    const components = [
+      {
+        type: 'body',
+        parameters: [
+          { type: 'text', text: messageModal.patientName || 'Patient' },
+          { type: 'text', text: messageModal.courierCompany || 'DTDC' },
+          { type: 'text', text: messageModal.podNumber || 'N/A' },
+        ],
       },
-      onError: (err: any) => {
-        alert('Failed to send WhatsApp message: ' + (err.response?.data?.message || err.message));
+    ];
+
+    sendTemplate.mutate(
+      {
+        conversationId: 0,
+        phone: finalPhone,
+        templateName: 'courier_dispatch',
+        language: 'en_US',
+        components,
+      },
+      {
+        onSuccess: () => {
+          setMessageModal(null);
+          alert('✅ Courier dispatch WhatsApp sent successfully!');
+        },
+        onError: (err: any) => {
+          alert('❌ Failed to send: ' + (err.response?.data?.message || err.message));
+        },
       }
-    });
+    );
   };
 
   const filteredQueue = queue.filter(e => {
@@ -420,21 +445,50 @@ export function CourierQueuePage() {
                 />
               </div>
               <div className="modal-field">
-                <label>Message Content</label>
-                <textarea
-                  value={messageModal.message}
-                  onChange={(e) => setMessageModal({ ...messageModal, message: e.target.value })}
-                  className="modal-textarea"
-                  rows={4}
+                <label>Patient Name (Variable 1)</label>
+                <input
+                  type="text"
+                  value={messageModal.patientName}
+                  onChange={(e) => setMessageModal({ ...messageModal, patientName: e.target.value })}
+                  className="modal-input"
                 />
+              </div>
+              <div className="modal-field">
+                <label>Courier Company (Variable 2)</label>
+                <input
+                  type="text"
+                  value={messageModal.courierCompany}
+                  onChange={(e) => setMessageModal({ ...messageModal, courierCompany: e.target.value })}
+                  className="modal-input"
+                  placeholder="e.g. DTDC"
+                />
+              </div>
+              <div className="modal-field">
+                <label>POD Number (Variable 3)</label>
+                <input
+                  type="text"
+                  value={messageModal.podNumber}
+                  onChange={(e) => setMessageModal({ ...messageModal, podNumber: e.target.value })}
+                  className="modal-input"
+                  placeholder="Tracking Number"
+                />
+              </div>
+              <div style={{ marginTop: '16px', padding: '12px', borderRadius: '8px', background: 'var(--pp-bg-subtle)', border: '1px solid var(--pp-border)' }}>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0 }}>
+                  <strong>Template Preview:</strong> Dear <strong>{messageModal.patientName || '{name}'}</strong> Your medicines has been dispatched via <strong>{messageModal.courierCompany || '{courier}'}</strong> and the POD number is <strong>{messageModal.podNumber || '{pod}'}</strong> For tracking log on www.dtdc.com Regards MMC HomeoTech
+                </p>
               </div>
             </div>
             <div className="courier-modal-footer">
               <button className="modal-btn modal-btn-cancel" onClick={() => setMessageModal(null)}>
                 Cancel
               </button>
-              <button className="modal-btn modal-btn-whatsapp" onClick={handleSendWhatsApp}>
-                <Send size={14} /> Send via WhatsApp
+              <button 
+                className="modal-btn modal-btn-whatsapp" 
+                onClick={handleSendWhatsApp}
+                disabled={sendTemplate.isPending}
+              >
+                <Send size={14} /> {sendTemplate.isPending ? 'Sending...' : 'Send via WhatsApp'}
               </button>
             </div>
           </div>
