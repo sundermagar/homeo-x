@@ -200,7 +200,7 @@ export default function StaffListPage({ defaultTab }: { defaultTab?: StaffCatego
                     </td>
                     <td data-label="Profile">
                       <div className="plat-cell-val">
-                        <div style={{ fontWeight: 700, fontSize: '13.5px', color: 'var(--pp-ink)' }}>{s.name || 'Unknown'}</div>
+                        <div className="plat-capitalize" style={{ fontWeight: 700, fontSize: '13.5px', color: 'var(--pp-ink)' }}>{s.name || 'Unknown'}</div>
                         <div style={{ fontSize: 10, color: s.gender === 'Female' ? '#db2777' : 'var(--pp-blue)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '2px' }}>
                           {s.gender || 'Not Specified'}
                         </div>
@@ -263,7 +263,7 @@ export default function StaffListPage({ defaultTab }: { defaultTab?: StaffCatego
               <div key={s.id} style={{ padding: 24, borderRadius: 20, background: 'var(--bg-card)', border: '1px solid var(--border-main)', boxShadow: 'var(--pp-shadow-sm)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', marginBottom: 20 }}>
                   <div>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-main)' }}>{s.name || 'Unknown'}</div>
+                    <div className="plat-capitalize" style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-main)' }}>{s.name || 'Unknown'}</div>
                     <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>{s.designation || 'Staff Member'}</div>
                   </div>
                   <div style={{ width: 48, height: 48, borderRadius: 14, background: `${currentTabMeta.color}15`, display: 'grid', placeItems: 'center', color: currentTabMeta.color, fontWeight: 800, fontSize: 18 }}>

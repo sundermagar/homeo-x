@@ -768,7 +768,7 @@ export default function DoctorsPage() {
                     </td>
                     <td data-label="Profile">
                       <div className="plat-cell-val" onClick={(e) => e.stopPropagation()}>
-                        <Link to={`/platform/doctors/${s.id}`} className="font-semibold pp-clickable-name">
+                        <Link to={`/platform/doctors/${s.id}`} className="font-semibold pp-clickable-name plat-capitalize">
                           {s.name}
                         </Link>
                         <div className="text-[11px] color-muted font-medium">{s.email || '—'}</div>

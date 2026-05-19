@@ -594,7 +594,7 @@ export default function ReceptionistsPage() {
                     </td>
                     <td data-label="Identity">
                       <div className="plat-cell-val">
-                        <div className="font-semibold">{s.name}</div>
+                        <div className="font-semibold plat-capitalize">{s.name}</div>
                         <div className="text-[11px] color-muted font-medium">{s.email || 'No email provided'}</div>
                       </div>
                     </td>
