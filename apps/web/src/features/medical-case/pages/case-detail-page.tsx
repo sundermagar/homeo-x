@@ -682,6 +682,10 @@ export default function MedicalCaseDetailPage() {
         lookups={lookups}
         dayCharges={dayCharges}
         selectedDate={selectedDate}
+        onAddAdditionalCharge={() => {
+          setActiveBillingTab('custom');
+          setShowBillingModal(true);
+        }}
       />;
       case 'diagnosis': return <div className="mc-tab-content-wrapper"><DiagnosisView
         regid={Number(regid)}
@@ -713,6 +717,10 @@ export default function MedicalCaseDetailPage() {
         workflow={rxWorkflow}
         lookups={lookups}
         dayCharges={dayCharges}
+        onAddAdditionalCharge={() => {
+          setActiveBillingTab('custom');
+          setShowBillingModal(true);
+        }}
       />;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1631,6 +1639,8 @@ export default function MedicalCaseDetailPage() {
           defaultTab={activeBillingTab}
           additionalCharges={fullData?.additionalCharges || []}
           displayDate={displayDate || undefined}
+          rxWorkflow={rxWorkflow}
+          visitId={medicalCase.id}
           onClose={() => setShowBillingModal(false)}
         />
       )}

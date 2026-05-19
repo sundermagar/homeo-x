@@ -198,12 +198,9 @@ export class RemedyChartUseCase {
   // ── 5. Lookup tables (medicines + potencies + frequencies) ──
   async getRemedyLookups(): Promise<RemedyLookups> {
     const [medRows, potRows, freqRows] = await Promise.all([
-      this._executeWithFallback(
-        () => this.db.execute(sql`
-          SELECT id, name FROM medicines WHERE deleted_at IS NULL ORDER BY name ASC
-        `),
-        () => this.db.execute(sql`SELECT id, name FROM stocks WHERE deleted_at IS NULL ORDER BY name ASC`)
-      ),
+      this.db.execute(sql`
+        SELECT id, name FROM stocks WHERE deleted_at IS NULL ORDER BY name ASC
+      `),
       this._executeWithFallback(
         () => this.db.execute(sql`
           SELECT id, name FROM potencies WHERE deleted_at IS NULL ORDER BY id ASC
