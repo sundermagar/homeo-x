@@ -63,6 +63,7 @@ async function bootstrap() {
   logger.info(`API server running on port ${boundPort}`);
 
   // ─── Initialize Background Jobs ───
+  let scheduler: JobScheduler | null = null;
   if (tenantDb) {
     const apptRepo = new AppointmentRepositoryPG(tenantDb);
     const patientRepo = new PatientRepositoryPg(tenantDb);
@@ -70,7 +71,7 @@ async function bootstrap() {
     const smsGateway = createSmsGateway();
     const smsUseCase = new SendSmsUseCase(commRepo, smsGateway);
 
-    const scheduler = new JobScheduler(apptRepo, patientRepo, smsUseCase);
+    scheduler = new JobScheduler(apptRepo, patientRepo, smsUseCase);
     scheduler.start();
     logger.info('Background job scheduler initialized');
   }
@@ -89,6 +90,27 @@ async function bootstrap() {
   // ─── Graceful Shutdown ───
   const shutdown = async (signal: string) => {
     logger.info(`Received ${signal}. Shutting down gracefully...`);
+    
+    // Stop background job scheduler intervals
+    if (scheduler) {
+      try {
+        scheduler.stop();
+        logger.info('Background job scheduler stopped');
+      } catch (err: any) {
+        logger.error({ err: err.message }, 'Failed to stop background job scheduler');
+      }
+    }
+
+    // Close all database connection pools immediately
+    try {
+      const { closeAllDbClients } = await import('@mmc/database');
+      logger.info('Closing database connection pools...');
+      await closeAllDbClients();
+      logger.info('Database connection pools closed successfully');
+    } catch (err: any) {
+      logger.error({ err: err.message }, 'Failed to close database connections during shutdown');
+    }
+
     server.close(() => {
       logger.info('HTTP server closed');
       process.exit(0);

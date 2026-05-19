@@ -27,8 +27,9 @@ export function createDbClient(databaseUrl: string, tenantSchema?: string): DbCl
   //                      ~3.4 s TCP+TLS+auth handshake to the remote DB.
   //   max_lifetime=1800 → recycle every 30 min to dodge cloud LB connection drops.
   //   connect_timeout=15s for slow handshakes on cold infra.
+  const defaultMax = process.env['NODE_ENV'] === 'production' ? 10 : 3;
   const connectionOptions: Record<string, any> = {
-    max: Number(process.env['DB_MAX_CONNECTIONS'] || 10),
+    max: Number(process.env['DB_MAX_CONNECTIONS'] || defaultMax),
     idle_timeout: Number(process.env['DB_IDLE_TIMEOUT'] || 300),
     max_lifetime: Number(process.env['DB_MAX_LIFETIME'] || 1800),
     connect_timeout: Number(process.env['DB_CONNECT_TIMEOUT'] || 15),
