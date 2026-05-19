@@ -345,6 +345,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           { path: '/settings/stock-logs', label: 'Stock Logs', icon: Database },
           { path: '/settings/potencies', label: 'Potencies', icon: Sparkles },
           { path: '/settings/frequencies', label: 'Dosage Frequencies', icon: Clock },
+          { path: '/settings/periods', label: 'Package Periods', icon: Clock },
           { path: '/settings/dispensaries', label: 'Dispensaries', icon: Hospital },
           { path: '/settings/referrals', label: 'Referral Sources', icon: UserPlus },
           { path: '/settings/stickers', label: 'Medicine Stickers', icon: StickyNote },

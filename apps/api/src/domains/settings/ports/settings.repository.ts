@@ -189,9 +189,26 @@ export interface Vaccine {
   updatedAt?: Date | null;
 }
 
+export interface PackagePeriod {
+  id: number;
+  name: string;
+  days: number;
+  description?: string | null;
+  isActive?: boolean | null;
+  createdAt?: Date | null;
+  updatedAt?: Date | null;
+}
+
 // ─── Port Interface ───────────────────────────────────────────────────────────
 
 export interface ISettingsRepository {
+  // Package Periods
+  listPackagePeriods(): Promise<PackagePeriod[]>;
+  getPackagePeriod(id: number): Promise<PackagePeriod | undefined>;
+  createPackagePeriod(data: Omit<PackagePeriod, 'id' | 'createdAt' | 'updatedAt'>): Promise<PackagePeriod>;
+  updatePackagePeriod(id: number, data: Partial<Omit<PackagePeriod, 'id'>>): Promise<PackagePeriod>;
+  deletePackagePeriod(id: number): Promise<void>;
+
   // Departments
   listDepartments(): Promise<Department[]>;
   getDepartment(id: number): Promise<Department | undefined>;

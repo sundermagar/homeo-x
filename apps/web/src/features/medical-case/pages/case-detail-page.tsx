@@ -64,7 +64,7 @@ import { DateGroupCell } from '../components/date-group-cell';
 // ─── Static tab config ─ defined outside component to avoid recreation on every render ───
 const TABS = [
   { id: 'summary', label: 'Followup History', icon: History },
-  { id: 'diagnosis', label: 'Diagnosis', icon: Sparkles },
+  { id: 'diagnosis', label: 'AI Follow up', icon: Sparkles },
   { id: 'media', label: 'Media', icon: Camera },
   { id: 'labs', label: 'Investigation Report', icon: FlaskConical },
   { id: 'vitals', label: 'Vitals', icon: Stethoscope },
@@ -1128,7 +1128,7 @@ export default function MedicalCaseDetailPage() {
                 <div className="mc-drawer animate-slide-in-right" style={{ maxWidth: '520px' }}>
                   <header className="mc-drawer-header" style={{ background: 'var(--pp-blue)', color: 'white' }}>
                     <div className="mc-drawer-header-title">
-                      <Sparkles size={18} /> {editingDiagnosisRecord ? 'Edit Diagnosis' : 'New Diagnosis'}
+                      <Sparkles size={18} /> {editingDiagnosisRecord ? 'Edit AI Follow up' : 'New AI Follow up'}
                     </div>
                     <button className="mc-drawer-close" onClick={() => setShowDiagnosisDrawer(false)} style={{ color: 'white', opacity: 0.8 }}>
                       <X size={16} />
@@ -2877,8 +2877,13 @@ function CommunicationView({ regid, phone, name, onAppendNote }: { regid: number
 }
 
 function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; visitId: number; images: any[]; isDateFiltered?: boolean }) {
-  const { updateImage, deleteImage } = useManageClinicalRecords();
+  const { updateImage, deleteImage, saveImage } = useManageClinicalRecords();
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
+  const [uploadNotes, setUploadNotes] = useState('');
 
   const sortedImages = images ? [...images].sort((a, b) =>
     new Date(b.createdAt || b.created_at || 0).getTime() -
@@ -2903,7 +2908,55 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
     return path.startsWith('/') ? path : '/' + path;
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
+    previews.forEach(url => URL.revokeObjectURL(url));
+
+    const newFiles: File[] = [];
+    const newPreviews: string[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (file) {
+        newFiles.push(file);
+        newPreviews.push(URL.createObjectURL(file));
+      }
+    }
+
+    setSelectedFiles(newFiles);
+    setPreviews(newPreviews);
+    setUploadNotes('');
+    setIsUploadOpen(true);
+  };
+
+  const handleCloseUpload = () => {
+    previews.forEach(url => URL.revokeObjectURL(url));
+    setPreviews([]);
+    setSelectedFiles([]);
+    setUploadNotes('');
+    setIsUploadOpen(false);
+  };
+
+  const handleUploadSubmit = async () => {
+    if (selectedFiles.length === 0) return;
+
+    const formData = new FormData();
+    formData.append('regid', String(regid));
+    formData.append('visitId', String(visitId));
+    formData.append('description', uploadNotes || 'Clinical Evidence');
+    selectedFiles.forEach(file => {
+      formData.append('files', file);
+    });
+
+    try {
+      await saveImage.mutateAsync(formData);
+      handleCloseUpload();
+    } catch (err) {
+      console.error('Upload failed:', err);
+    }
+  };
 
   const handleEditDescription = async (img: any) => {
     const newDesc = prompt('Edit Clinical Note/Description:', img.description || '');
@@ -2930,31 +2983,59 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
         <div className="mc-section-header" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
           <Camera size={20} /> Clinical Evidence
         </div>
-        <div style={{ display: 'flex', gap: '8px', background: 'var(--pp-warm-1)', padding: '4px', borderRadius: '8px', border: '1px solid var(--pp-warm-3)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <input
+            type="file"
+            multiple
+            accept="image/*"
+            id="clinical-evidence-upload"
+            style={{ display: 'none' }}
+            onChange={handleFileChange}
+          />
           <button
-            onClick={() => setViewMode('grid')}
+            className="btn-primary"
             style={{
-              padding: '6px 12px', borderRadius: '6px', border: 'none', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', fontWeight: 600,
-              background: viewMode === 'grid' ? 'white' : 'transparent',
-              color: viewMode === 'grid' ? 'var(--pp-blue)' : 'var(--pp-text-3)',
-              boxShadow: viewMode === 'grid' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none'
+              padding: '6px 16px',
+              borderRadius: '8px',
+              fontSize: '0.8rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer'
             }}
+            onClick={() => document.getElementById('clinical-evidence-upload')?.click()}
+            disabled={saveImage.isPending}
           >
-            <LayoutGrid size={14} /> Grid
+            <Plus size={14} />
+            {saveImage.isPending ? 'Uploading...' : 'Add Image'}
           </button>
-          <button
-            onClick={() => setViewMode('table')}
-            style={{
-              padding: '6px 12px', borderRadius: '6px', border: 'none', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', fontWeight: 600,
-              background: viewMode === 'table' ? 'white' : 'transparent',
-              color: viewMode === 'table' ? 'var(--pp-blue)' : 'var(--pp-text-3)',
-              boxShadow: viewMode === 'table' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none'
-            }}
-          >
-            <LayoutList size={14} /> Table
-          </button>
+
+          <div style={{ display: 'flex', gap: '8px', background: 'var(--pp-warm-1)', padding: '4px', borderRadius: '8px', border: '1px solid var(--pp-warm-3)' }}>
+            <button
+              onClick={() => setViewMode('grid')}
+              style={{
+                padding: '6px 12px', borderRadius: '6px', border: 'none', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', fontWeight: 600,
+                background: viewMode === 'grid' ? 'white' : 'transparent',
+                color: viewMode === 'grid' ? 'var(--pp-blue)' : 'var(--pp-text-3)',
+                boxShadow: viewMode === 'grid' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none'
+              }}
+            >
+              <LayoutGrid size={14} /> Grid
+            </button>
+            <button
+              onClick={() => setViewMode('table')}
+              style={{
+                padding: '6px 12px', borderRadius: '6px', border: 'none', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', fontWeight: 600,
+                background: viewMode === 'table' ? 'white' : 'transparent',
+                color: viewMode === 'table' ? 'var(--pp-blue)' : 'var(--pp-text-3)',
+                boxShadow: viewMode === 'table' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none'
+              }}
+            >
+              <LayoutList size={14} /> Table
+            </button>
+          </div>
         </div>
       </div>
 
@@ -3123,6 +3204,66 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
           title="No clinical images have been uploaded yet"
           description="Capture and store clinical photographs, laboratory reports, and other visual evidence for this patient's medical case."
         />
+      )}
+
+      {/* ─── Media Upload Drawer with Previews & Notes ─── */}
+      {isUploadOpen && ReactDOM.createPortal(
+        <>
+          <div className="mc-drawer-backdrop" onClick={handleCloseUpload} />
+          <div className="mc-drawer animate-slide-in-right" style={{ maxWidth: '520px', display: 'flex', flexDirection: 'column' }}>
+            <header className="mc-drawer-header" style={{ background: 'var(--pp-blue)', color: 'white' }}>
+              <div className="mc-drawer-header-title">
+                <Camera size={18} /> Add Clinical Evidence
+              </div>
+              <button className="mc-drawer-close" onClick={handleCloseUpload} style={{ color: 'white', opacity: 0.8 }}>
+                <X size={16} />
+              </button>
+            </header>
+
+            <div style={{ padding: '24px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {/* Image Previews */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Selected Media ({selectedFiles.length})
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                  {previews.map((url, idx) => (
+                    <div key={idx} style={{ position: 'relative', aspectRatio: '1', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--pp-warm-3)', background: 'var(--pp-warm-1)' }}>
+                      <img src={url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="preview" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Notes Form Group */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Notes / Description
+                </label>
+                <textarea
+                  className="pp-textarea"
+                  placeholder="Enter a description or clinical notes for this evidence..."
+                  value={uploadNotes}
+                  onChange={e => setUploadNotes(e.target.value)}
+                  style={{ minHeight: '120px' }}
+                />
+              </div>
+            </div>
+
+            <footer style={{ padding: '16px 24px', background: 'var(--pp-warm-1)', borderTop: '1px solid var(--pp-warm-3)', display: 'flex', gap: '10px' }}>
+              <button type="button" className="btn-secondary" style={{ flex: 1 }} onClick={handleCloseUpload}>Cancel</button>
+              <button
+                onClick={handleUploadSubmit}
+                className="btn-primary"
+                disabled={saveImage.isPending}
+                style={{ flex: 2, padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+              >
+                <Upload size={16} /> {saveImage.isPending ? 'Uploading...' : 'Upload Media'}
+              </button>
+            </footer>
+          </div>
+        </>,
+        document.body
       )}
 
 
@@ -3348,8 +3489,8 @@ function DiagnosisView({
       ) : soapRecords.length === 0 ? (
         <EmptyState
           icon={Sparkles}
-          title="No clinical assessments recorded yet"
-          description="Use the Diagnosis button in the sidebar to start recording clinical findings for this patient."
+          title="No AI Follow up recorded yet"
+          description="Use the AI Follow up button in the sidebar to start recording clinical findings for this patient."
         />
       ) : (
         <>

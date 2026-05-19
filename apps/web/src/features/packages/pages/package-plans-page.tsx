@@ -10,6 +10,7 @@ import { Pagination } from '@/components/shared/pagination';
 import { usePagination } from '@/shared/hooks/use-pagination';
 import { AssignPackageModal } from '../components/assign-package-modal';
 import { EmptyState } from '@/components/shared/empty-state';
+import { usePackagePeriods } from '@/features/settings/hooks/use-settings';
 import '../styles/packages.css';
 
 const COLORS = ['#2563EB', '#7C3AED', '#059669', '#D97706', '#E11D48', '#0891B2', '#EA580C', '#6366F1'];
@@ -30,6 +31,8 @@ function PlanDrawer({
     colorCode:    initial?.colorCode    ?? '#2563EB',
   });
 
+  const { data: periods = [] } = usePackagePeriods();
+
   const set = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }));
   const submit = (e: React.FormEvent) => { e.preventDefault(); onSave(form); };
 
@@ -48,6 +51,29 @@ function PlanDrawer({
         <label className="pkg-form-label">Description</label>
         <textarea className="pkg-form-input" style={{ minHeight: '80px', resize: 'vertical' }}
           placeholder="Short description of the plan…" value={form.description} onChange={e => set('description', e.target.value)} />
+      </div>
+      <div className="pkg-form-group">
+        <label className="pkg-form-label">Select Period</label>
+        <select 
+          className="pkg-form-input" 
+          value={
+            periods.some(p => p.days === form.durationDays && p.isActive !== false)
+              ? form.durationDays
+              : 'custom'
+          }
+          onChange={e => {
+            const val = e.target.value;
+            if (val !== 'custom') {
+              set('durationDays', Number(val));
+            }
+          }}
+          style={{ cursor: 'pointer', appearance: 'auto', background: 'var(--bg-card)', color: 'var(--pp-ink)' }}
+        >
+          <option value="custom">Custom (Specify days manually)</option>
+          {periods.filter(p => p.isActive !== false).map(p => (
+            <option key={p.id} value={p.days}>{p.name} ({p.days} days)</option>
+          ))}
+        </select>
       </div>
       <div className="pkg-form-row pkg-form-row-2">
         <div className="pkg-form-group">

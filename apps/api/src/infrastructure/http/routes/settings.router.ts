@@ -505,6 +505,36 @@ export function createSettingsRouter(): Router {
     res.json({ success: true });
   }));
 
+  // ─── Package Periods ──────────────────────────────────────────────────────
+  const packagePeriodSchema = z.object({
+    name: z.string().min(1).max(255),
+    days: z.number().min(1),
+    description: z.string().optional().nullable(),
+    isActive: z.boolean().optional(),
+  });
+
+  router.get('/package-periods', asyncHandler(async (req: Request, res: Response) => {
+    const data = await getRepo(req).listPackagePeriods();
+    res.json({ success: true, data });
+  }));
+
+  router.post('/package-periods', asyncHandler(async (req: Request, res: Response) => {
+    const body = packagePeriodSchema.parse(req.body);
+    const data = await getRepo(req).createPackagePeriod(body);
+    res.status(201).json({ success: true, data });
+  }));
+
+  router.put('/package-periods/:id', asyncHandler(async (req: Request, res: Response) => {
+    const body = packagePeriodSchema.partial().parse(req.body);
+    const data = await getRepo(req).updatePackagePeriod(Number(req.params.id), body);
+    res.json({ success: true, data });
+  }));
+
+  router.delete('/package-periods/:id', asyncHandler(async (req: Request, res: Response) => {
+    await getRepo(req).deletePackagePeriod(Number(req.params.id));
+    res.json({ success: true });
+  }));
+
   // ─── Couriers ─────────────────────────────────────────────────────────────
   router.get('/couriers', asyncHandler(async (req: Request, res: Response) => {
     const data = await getRepo(req).listCouriers();
