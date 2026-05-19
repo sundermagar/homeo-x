@@ -60,8 +60,8 @@ export default function PackageTrackingPage() {
   };
 
   const { data, isLoading, refetch } = usePackageExpiryReport(fromDate, toDate);
-  const { useSendTemplate } = useWhatsApp();
-  const sendTemplate = useSendTemplate();
+  const { useSendText } = useWhatsApp();
+  const sendText = useSendText();
   const records = data?.records ?? [];
 
   const {
@@ -98,20 +98,11 @@ export default function PackageTrackingPage() {
         try {
           const cleaned = String(rec.phone).replace(/\D/g, '');
           const finalPhone = cleaned.length === 10 ? `91${cleaned}` : cleaned;
-          await sendTemplate.mutateAsync({
-            conversationId: 0,
+          const textMessage = `Dear ${`${rec.firstName} ${rec.surname || ''}`.trim() || 'Patient'},\n\nYour package expires on *${rec.expiryDate || 'soon'}*.\nKindly call on 8727001444 to renew it.\nIgnore if already renewed.\n\nRegards,\nMMC HomeoTech`;
+          
+          await sendText.mutateAsync({
             phone: finalPhone,
-            templateName: 'package_expire',
-            language: 'en_US',
-            components: [
-              {
-                type: 'body',
-                parameters: [
-                  { type: 'text', text: `${rec.firstName} ${rec.surname || ''}`.trim() || 'Patient' },
-                  { type: 'text', text: rec.expiryDate || 'soon' }
-                ]
-              }
-            ]
+            message: textMessage
           });
           sent++;
         } catch {
@@ -132,20 +123,11 @@ export default function PackageTrackingPage() {
     const cleaned = String(rec.phone).replace(/\D/g, '');
     const finalPhone = cleaned.length === 10 ? `91${cleaned}` : cleaned;
     
-    sendTemplate.mutate({
-      conversationId: 0,
+    const textMessage = `Dear ${`${rec.firstName} ${rec.surname || ''}`.trim() || 'Patient'},\n\nYour package expires on *${rec.expiryDate || 'soon'}*.\nKindly call on 8727001444 to renew it.\nIgnore if already renewed.\n\nRegards,\nMMC HomeoTech`;
+
+    sendText.mutate({
       phone: finalPhone,
-      templateName: 'package_expire',
-      language: 'en_US',
-      components: [
-        {
-          type: 'body',
-          parameters: [
-            { type: 'text', text: `${rec.firstName} ${rec.surname || ''}`.trim() || 'Patient' },
-            { type: 'text', text: rec.expiryDate || 'soon' }
-          ]
-        }
-      ]
+      message: textMessage
     }, {
       onSuccess: () => toast({ title: '✅ WhatsApp Sent', description: `Expiry reminder sent to ${rec.firstName}.` }),
       onError: (err: any) => toast({ title: '❌ Send Failed', description: err?.response?.data?.message || err.message, variant: 'error' }),
@@ -458,8 +440,8 @@ export default function PackageTrackingPage() {
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button className="pp-btn pp-btn-secondary" onClick={() => setShowSmsModal(false)}>Cancel</button>
-              <button className="pp-btn" style={{ background: '#25D366', color: 'white' }} onClick={sendBulkWhatsApp} disabled={sendTemplate.isPending}>
-                <Send size={14} /> {sendTemplate.isPending ? 'Sending...' : 'Send via WhatsApp'}
+              <button className="pp-btn" style={{ background: '#25D366', color: 'white' }} onClick={sendBulkWhatsApp} disabled={sendText.isPending}>
+                <Send size={14} /> {sendText.isPending ? 'Sending...' : 'Send via WhatsApp'}
               </button>
             </div>
           </div>

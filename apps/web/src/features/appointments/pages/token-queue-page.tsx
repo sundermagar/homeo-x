@@ -33,8 +33,8 @@ import { useNavigate } from 'react-router-dom';
 
 export default function TokenQueuePage() {
   const navigate = useNavigate();
-  const { useSendTemplate } = useWhatsApp();
-  const sendTemplate = useSendTemplate();
+  const { useSendText } = useWhatsApp();
+  const sendText = useSendText();
   const today = new Date().toISOString().split('T')[0]!;
   const user = useAuthStore((s) => s.user);
   const rawRole = ((user as any)?.type || (user as any)?.role || (user as any)?.roleName || '').toLowerCase();
@@ -62,24 +62,12 @@ export default function TokenQueuePage() {
     const cleanPhone = phone.replace(/\D/g, '');
     const finalPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
     
-    const components = [
-      {
-        type: 'body',
-        parameters: [
-          { type: 'text', text: name || 'Patient' },
-          { type: 'text', text: time || 'N/A' },
-          { type: 'text', text: date || today }
-        ]
-      }
-    ];
+    const textMessage = `Dear ${name || 'Patient'},\n\nYour appointment has been scheduled for *${time || 'N/A'}* on *${date || today}*.\n\nPlease arrive 10 minutes early.\n\nRegards,\nMMC HomeoTech`;
 
-    sendTemplate.mutate(
+    sendText.mutate(
       {
-        conversationId: 0,
         phone: finalPhone,
-        templateName: 'appointment_scheduled',
-        language: 'en_US',
-        components
+        message: textMessage
       },
       {
         onSuccess: () => toast({ description: '✅ Appointment WhatsApp sent successfully!', variant: 'success' }),

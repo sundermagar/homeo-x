@@ -23,6 +23,9 @@ export class BroadcastCampaignUseCase {
       // Mark as active
       await this.waRepo.saveCampaign({ id: campaignId, status: 'active' });
 
+      const templates = await this.waRepo.listTemplates(campaign.channelId);
+      const template = templates.find(t => t.name === campaign.templateName);
+
       const recipients = await this.waRepo.listRecipients(campaignId);
       let sentCount = 0;
       let failedCount = 0;
@@ -33,12 +36,26 @@ export class BroadcastCampaignUseCase {
           continue;
         }
 
-        const result = await this.waGateway.sendTemplate(
+        // Construct standard text from template body
+        let textToSend = 'Hello from MMC HomeoTech!'; // Fallback
+        
+        if (template && template.body) {
+          textToSend = template.body;
+          if (recipient.templateParams && Array.isArray(recipient.templateParams)) {
+            recipient.templateParams.forEach((param: string, idx: number) => {
+              textToSend = textToSend.replace(new RegExp(`\\{\\{${idx + 1}\\}\\}`, 'g'), param || '');
+            });
+          }
+          if (template.header) textToSend = `*${template.header}*\n\n${textToSend}`;
+          if (template.footer) textToSend = `${textToSend}\n\n_${template.footer}_`;
+        } else if (campaign.name) {
+          textToSend = `Automated Broadcast: ${campaign.name}`;
+        }
+
+        const result = await this.waGateway.sendText(
           campaign.channelId,
           recipient.phone,
-          campaign.templateName,
-          campaign.templateLanguage,
-          recipient.templateParams || []
+          textToSend
         );
 
         if (result.success) {

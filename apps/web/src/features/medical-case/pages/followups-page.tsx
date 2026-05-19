@@ -14,8 +14,8 @@ import { useWhatsApp } from '@/features/whatsapp/hooks/use-whatsapp';
 
 export default function FollowupsPage() {
   const navigate = useNavigate();
-  const { useSendTemplate } = useWhatsApp();
-  const sendTemplate = useSendTemplate();
+  const { useSendText } = useWhatsApp();
+  const sendText = useSendText();
   const [followups, setFollowups] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'list' | 'card'>('list');
@@ -72,19 +72,11 @@ export default function FollowupsPage() {
     }
     const finalPhone = phone.length === 10 ? '91' + phone : phone;
     
-    sendTemplate.mutate({
-      conversationId: 0,
+    const textMessage = `Dear ${f.patientName || 'Patient'},\n\nThis is a friendly reminder for your upcoming follow-up appointment.\n\nPlease let us know if you need to reschedule.\n\nRegards,\nMMC HomeoTech`;
+
+    sendText.mutate({
       phone: finalPhone,
-      templateName: 'due_date_reminder',
-      language: 'en_US',
-      components: [
-        {
-          type: 'body',
-          parameters: [
-            { type: 'text', text: f.patientName || 'Patient' }
-          ]
-        }
-      ]
+      message: textMessage
     }, {
       onSuccess: () => alert('✅ Follow-up reminder sent via WhatsApp!'),
       onError: (err: any) => alert('❌ Failed to send WhatsApp message: ' + (err.response?.data?.message || err.message))

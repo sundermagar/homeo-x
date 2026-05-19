@@ -258,6 +258,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           { path: '/communications/whatsapp/automations', label: 'Automations', icon: Zap },
           { path: '/communications/whatsapp/analytics', label: 'Analytics', icon: BarChart2 },
           { path: '/communications/whatsapp/widget-builder', label: 'Widget Builder', icon: Bot },
+          { path: '/communications/whatsapp/channels', label: 'WABA Channels', icon: Globe },
         ],
       },
     },

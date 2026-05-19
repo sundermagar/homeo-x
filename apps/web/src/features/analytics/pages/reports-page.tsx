@@ -403,8 +403,8 @@ function BirthdaysTab({ onExport }: { onExport: (filename: string, headers: stri
   const itemsPerPage = 8;
   const { data, isLoading } = useBirthdayList();
   const { data: templates = [] } = useSmsTemplates();
-  const { useSendTemplate } = useWhatsApp();
-  const sendTemplate = useSendTemplate();
+  const { useSendText } = useWhatsApp();
+  const sendText = useSendText();
 
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [showBulkModal, setShowBulkModal] = useState(false);
@@ -440,12 +440,11 @@ function BirthdaysTab({ onExport }: { onExport: (filename: string, headers: stri
     const cleaned = String(singlePatient.mobile1).replace(/\D/g, '');
     const finalPhone = cleaned.length === 10 ? `91${cleaned}` : cleaned;
     
-    await sendTemplate.mutateAsync({
-      conversationId: 0,
+    const textMessage = `Dear ${singlePatient.first_name || 'Patient'},\n\nWishing you health, love, wealth, happiness, and just everything your heart desires.\nHappy Birthday!!\n\nRegards,\nMMC HomeoTech`;
+    
+    await sendText.mutateAsync({
       phone: finalPhone,
-      templateName: 'happy_birthday',
-      language: 'en_US',
-      components: []
+      message: textMessage
     });
     setShowSingleModal(false);
     alert('WhatsApp message sent!');
@@ -459,12 +458,11 @@ function BirthdaysTab({ onExport }: { onExport: (filename: string, headers: stri
         const cleaned = String(p.mobile1).replace(/\D/g, '');
         const finalPhone = cleaned.length === 10 ? `91${cleaned}` : cleaned;
         try {
-          await sendTemplate.mutateAsync({
-            conversationId: 0,
+          const textMessage = `Dear ${p.first_name || 'Patient'},\n\nWishing you health, love, wealth, happiness, and just everything your heart desires.\nHappy Birthday!!\n\nRegards,\nMMC HomeoTech`;
+          
+          await sendText.mutateAsync({
             phone: finalPhone,
-            templateName: 'happy_birthday',
-            language: 'en_US',
-            components: []
+            message: textMessage
           });
         } catch (e) {
           console.error('Failed to send birthday wish', e);
@@ -629,8 +627,8 @@ function BirthdaysTab({ onExport }: { onExport: (filename: string, headers: stri
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button className="plat-btn plat-btn-sm" onClick={() => setShowSingleModal(false)}>Cancel</button>
-              <button style={{ background: '#25D366', color: 'white', border: 'none', borderRadius: 8, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem' }} onClick={sendSingle} disabled={sendTemplate.isPending}>
-                <Send size={12} /> {sendTemplate.isPending ? 'Sending...' : 'Send'}
+              <button style={{ background: '#25D366', color: 'white', border: 'none', borderRadius: 8, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem' }} onClick={sendSingle} disabled={sendText.isPending}>
+                <Send size={12} /> {sendText.isPending ? 'Sending...' : 'Send'}
               </button>
             </div>
           </div>
@@ -652,8 +650,8 @@ function BirthdaysTab({ onExport }: { onExport: (filename: string, headers: stri
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button className="plat-btn plat-btn-sm" onClick={() => { setShowBulkModal(false); setBulkMessage(''); }}>Cancel</button>
-              <button style={{ background: '#25D366', color: 'white', border: 'none', borderRadius: 8, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem' }} onClick={sendBulk} disabled={sendTemplate.isPending}>
-                <Send size={12} /> {sendTemplate.isPending ? 'Sending...' : `Send to ${selectedIds.size}`}
+              <button style={{ background: '#25D366', color: 'white', border: 'none', borderRadius: 8, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem' }} onClick={sendBulk} disabled={sendText.isPending}>
+                <Send size={12} /> {sendText.isPending ? 'Sending...' : `Send to ${selectedIds.size}`}
               </button>
             </div>
           </div>

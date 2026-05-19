@@ -114,28 +114,17 @@ export default function PatientListPage() {
 
   const user = useAuthStore(s => s.user);
   const token = useAuthStore(s => s.token);
-  const { useSendTemplate } = useWhatsApp();
-  const sendTemplate = useSendTemplate();
+  const { useSendText } = useWhatsApp();
+  const sendText = useSendText();
 
   const openWhatsApp = (phone: string | null, name: string, regid: number) => {
     if (!phone) return alert('No phone number available.');
     const cleaned = phone.replace(/\D/g, '');
     const finalPhone = cleaned.length === 10 ? `91${cleaned}` : cleaned;
     
-    sendTemplate.mutate({
-      conversationId: 0,
+    sendText.mutate({
       phone: finalPhone,
-      templateName: 'new_case_registration',
-      language: 'en_US',
-      components: [
-        {
-          type: 'body',
-          parameters: [
-            { type: 'text', text: name || 'Patient' },
-            { type: 'text', text: String(regid) }
-          ]
-        }
-      ]
+      message: `Dear ${name || 'Patient'},\n\nThank you for registering with MMC HomeoTech. Your Registration ID is *${regid}*.\n\nPlease use this ID for all future communications.\n\nBest regards,\nYour Clinic`
     }, {
       onSuccess: () => alert('✅ Registration WhatsApp sent via Meta Cloud API!'),
       onError: (err: any) => alert('❌ Failed to send WhatsApp message: ' + (err.response?.data?.message || err.message))

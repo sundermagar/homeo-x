@@ -1596,8 +1596,8 @@ function AnalyticsView({ vitals, regid, visitId, name, phone, clinicName, onAppe
   const [sending, setSending] = useState(false);
 
   const { saveVitals } = useManageClinicalRecords();
-  const { useSendTemplate } = useWhatsApp();
-  const sendTemplate = useSendTemplate();
+  const { useSendText } = useWhatsApp();
+  const sendText = useSendText();
 
   const handleSave = async () => {
     if (!hVal && !wVal) return;
@@ -1652,21 +1652,11 @@ function AnalyticsView({ vitals, regid, visitId, name, phone, clinicName, onAppe
     const finalPhone = cleaned.length === 10 ? `91${cleaned}` : cleaned;
 
     try {
-      await sendTemplate.mutateAsync({
-        conversationId: 0,
+      const textMessage = `Dear Patient,\n\nYour latest recorded vitals are:\nHeight: ${heightStr}\nWeight: ${weightStr}\nBMI: ${bmiStr}\n\nRegards,\nMMC HomeoTech`;
+
+      await sendText.mutateAsync({
         phone: finalPhone,
-        templateName: 'height_weight_update',
-        language: 'en_US',
-        components: [
-          {
-            type: 'body',
-            parameters: [
-              { type: 'text', text: heightStr },
-              { type: 'text', text: weightStr },
-              { type: 'text', text: bmiStr }
-            ]
-          }
-        ]
+        message: textMessage
       });
       alert('Vitals shared successfully via WhatsApp.');
     } catch (err: any) {
@@ -1827,8 +1817,8 @@ function VitalsView({ vitals, onRecord, phone, name, regid, clinicName, onAppend
   const latest = vitals && vitals.length > 0 ? vitals[0] : null;
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const { useSendTemplate } = useWhatsApp();
-  const sendTemplate = useSendTemplate();
+  const { useSendText } = useWhatsApp();
+  const sendText = useSendText();
   const [sending, setSending] = useState(false);
   const { deleteVitals } = useManageClinicalRecords();
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -1890,21 +1880,11 @@ function VitalsView({ vitals, onRecord, phone, name, regid, clinicName, onAppend
     const finalPhone = cleaned.length === 10 ? `91${cleaned}` : cleaned;
 
     try {
-      await sendTemplate.mutateAsync({
-        conversationId: 0,
+      const textMessage = `Dear Patient,\n\nYour latest recorded vitals are:\nHeight: ${heightStr}\nWeight: ${weightStr}\nBMI: ${bmiStr}\n\nRegards,\nMMC HomeoTech`;
+
+      await sendText.mutateAsync({
         phone: finalPhone,
-        templateName: 'height_weight_update',
-        language: 'en_US',
-        components: [
-          {
-            type: 'body',
-            parameters: [
-              { type: 'text', text: heightStr },
-              { type: 'text', text: weightStr },
-              { type: 'text', text: bmiStr }
-            ]
-          }
-        ]
+        message: textMessage
       });
       alert('Vitals shared successfully via WhatsApp.');
     } catch (err: any) {

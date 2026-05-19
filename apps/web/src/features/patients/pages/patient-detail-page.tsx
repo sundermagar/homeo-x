@@ -55,8 +55,8 @@ export default function PatientDetailPage() {
     await removeFamilyMutation.mutateAsync({ regid: numRegid, id });
   };
 
-  const { useSendTemplate } = useWhatsApp();
-  const sendTemplate = useSendTemplate();
+  const { useSendText } = useWhatsApp();
+  const sendText = useSendText();
 
   if (isLoading) {
     return <PageSkeleton variant="detail" />;
@@ -71,20 +71,11 @@ export default function PatientDetailPage() {
     const finalPhone = cleaned.length === 10 ? `91${cleaned}` : cleaned;
     
     try {
-      await sendTemplate.mutateAsync({
-        conversationId: 0,
+      const textMessage = `Dear ${patient?.firstName || 'Patient'},\n\nThank you for registering with MMC HomeoTech. Your Registration ID is *${patient?.regid ? String(patient.regid) : '-'}*.\n\nPlease use this ID for all future communications.\n\nBest regards,\nYour Clinic`;
+
+      await sendText.mutateAsync({
         phone: finalPhone,
-        templateName: 'new_case_registration',
-        language: 'en_US',
-        components: [
-          {
-            type: 'body',
-            parameters: [
-              { type: 'text', text: patient?.firstName || 'Patient' },
-              { type: 'text', text: patient?.regid ? String(patient.regid) : '-' }
-            ]
-          }
-        ]
+        message: textMessage
       });
     } catch (err) {
       console.error('WhatsApp send failed:', err);

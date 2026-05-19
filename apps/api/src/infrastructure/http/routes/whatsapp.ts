@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { sql } from 'drizzle-orm';
+import { sql, eq, and } from 'drizzle-orm';
 import { TenantRegistry, createDbClient } from '@mmc/database';
 import { WhatsAppRepositoryPG } from '../../repositories/whatsapp.repository.pg.js';
 import { WhatsAppCloudGateway } from '../../communication/whatsapp-cloud-gateway.js';
@@ -11,7 +11,7 @@ import { CommunicationRepositoryPG } from '../../repositories/communication.repo
 import { asyncHandler } from '../middleware/async-handler.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { sendSuccess } from '../../../shared/response-formatter.js';
-import { BadRequestError } from '../../../shared/errors.js';
+import { BadRequestError, NotFoundError } from '../../../shared/errors.js';
 import { createLogger } from '../../../shared/logger.js';
 import multer from 'multer';
 
@@ -60,21 +60,29 @@ whatsappRouter.post('/webhook', asyncHandler(async (req, res) => {
 
       let matchedSchemaName: string | null = null;
       
-      // Load all tenant configurations
-      const tenants = TenantRegistry.getAll();
+      // Optimization: Only scan schemas that actually have the 'wa_channels' table.
+      // This prevents running 50+ DB clients/connection pools concurrently.
+      const publicDb = (req as any).publicDb || createDbClient(process.env.DATABASE_URL!);
+      const schemaRows = await publicDb.execute(sql`
+        SELECT table_schema 
+        FROM information_schema.tables 
+        WHERE table_name = 'wa_channels' 
+          AND table_schema LIKE 'tenant_%'
+      `);
+      const activeSchemas = (schemaRows as any[]).map(r => r.table_schema);
 
       // 1. Match by Phone Number ID (for incoming messages)
       if (phoneNumberId) {
-        logger.info(`Webhook lookup: Scanning schemas for wa_channels matching phone_number_id: ${phoneNumberId}`);
-        for (const tenant of tenants) {
+        logger.info(`Webhook lookup: Scanning ${activeSchemas.length} active schemas for wa_channels matching phone_number_id: ${phoneNumberId}`);
+        for (const schemaName of activeSchemas) {
           try {
-            const client = createDbClient(process.env.DATABASE_URL!, tenant.schemaName);
+            const client = createDbClient(process.env.DATABASE_URL!, schemaName);
             const [channel] = await client.execute(sql`
               SELECT id FROM wa_channels WHERE phone_number_id = ${phoneNumberId} LIMIT 1
             `);
             if (channel) {
-              matchedSchemaName = tenant.schemaName;
-              logger.info(`Webhook lookup: Match found! Routing to schema: ${tenant.schemaName}`);
+              matchedSchemaName = schemaName;
+              logger.info(`Webhook lookup: Match found! Routing to schema: ${schemaName}`);
               break;
             }
           } catch (e: any) {
@@ -86,16 +94,16 @@ whatsappRouter.post('/webhook', asyncHandler(async (req, res) => {
       // 2. Match by message ID (for status updates like delivered/read)
       if (!matchedSchemaName && (statusId || messageId)) {
         const queryId = statusId || messageId;
-        logger.info(`Webhook lookup: Scanning schemas for wa_messages matching message id: ${queryId}`);
-        for (const tenant of tenants) {
+        logger.info(`Webhook lookup: Scanning ${activeSchemas.length} active schemas for wa_messages matching message id: ${queryId}`);
+        for (const schemaName of activeSchemas) {
           try {
-            const client = createDbClient(process.env.DATABASE_URL!, tenant.schemaName);
+            const client = createDbClient(process.env.DATABASE_URL!, schemaName);
             const [msg] = await client.execute(sql`
               SELECT id FROM wa_messages WHERE whatsapp_message_id = ${queryId} LIMIT 1
             `);
             if (msg) {
-              matchedSchemaName = tenant.schemaName;
-              logger.info(`Webhook lookup: Match found! Routing status to schema: ${tenant.schemaName}`);
+              matchedSchemaName = schemaName;
+              logger.info(`Webhook lookup: Match found! Routing status to schema: ${schemaName}`);
               break;
             }
           } catch (e: any) {
@@ -234,6 +242,12 @@ whatsappRouter.post('/campaigns/:id/broadcast', authMiddleware, asyncHandler(asy
   }
 }));
 
+whatsappRouter.delete('/campaigns/:id', authMiddleware, asyncHandler(async (req, res) => {
+  const repo = getRepo(req);
+  await repo.deleteCampaign(Number(req.params.id));
+  sendSuccess(res, null, 'Campaign deleted successfully');
+}));
+
 whatsappRouter.post('/media/upload', authMiddleware, upload.single('file'), asyncHandler(async (req, res) => {
   const { channelId, title } = req.body;
   if (!channelId) throw new BadRequestError('channelId is required');
@@ -339,7 +353,7 @@ whatsappRouter.post('/conversations/:id/read', authMiddleware, asyncHandler(asyn
 }));
 
 whatsappRouter.post('/conversations/:id/messages', authMiddleware, asyncHandler(async (req, res) => {
-  const { content, mediaId, mediaType, fileName } = req.body;
+  const { content, mediaId, mediaType, fileName, metadata } = req.body;
   if (!content && !mediaId) throw new BadRequestError('content or mediaId is required');
   
   const repo = getRepo(req);
@@ -367,7 +381,8 @@ whatsappRouter.post('/conversations/:id/messages', authMiddleware, asyncHandler(
       content: displayContent,
       type: mediaId ? 'media' : 'text',
       status: 'sent',
-      timestamp: new Date()
+      timestamp: new Date(),
+      metadata: metadata || {}
     });
     
     await repo.saveConversation({
@@ -380,6 +395,16 @@ whatsappRouter.post('/conversations/:id/messages', authMiddleware, asyncHandler(
   } else {
     throw new BadRequestError(result.error || 'Failed to send message');
   }
+}));
+
+whatsappRouter.delete('/messages/:id', authMiddleware, asyncHandler(async (req, res) => {
+  const clinicId = (req as any).user?.contextId;
+  const id = Number(req.params.id);
+  const deleted = await getRepo(req).deleteMessage(clinicId, id);
+  if (!deleted) {
+    throw new NotFoundError('Message', id);
+  }
+  sendSuccess(res, { success: true }, 'Message deleted successfully');
 }));
 
 whatsappRouter.post('/conversations/:id/upload', authMiddleware, upload.single('file'), asyncHandler(async (req, res) => {
@@ -520,6 +545,23 @@ whatsappRouter.post('/automations', authMiddleware, asyncHandler(async (req, res
   sendSuccess(res, automation, 'Automation saved successfully');
 }));
 
+whatsappRouter.patch('/automations/:id', authMiddleware, asyncHandler(async (req, res) => {
+  const clinicId = (req as any).user?.contextId;
+  const id = Number(req.params.id);
+  const automation = await getRepo(req).saveAutomation({ ...req.body, id, clinicId });
+  sendSuccess(res, automation, 'Automation updated successfully');
+}));
+
+whatsappRouter.delete('/automations/:id', authMiddleware, asyncHandler(async (req, res) => {
+  const clinicId = (req as any).user?.contextId;
+  const id = Number(req.params.id);
+  const deleted = await getRepo(req).deleteAutomation(clinicId, id);
+  if (!deleted) {
+    throw new NotFoundError('Automation', id);
+  }
+  sendSuccess(res, { success: true }, 'Automation deleted successfully');
+}));
+
 // ─── Analytics (Private) ─────────────────────────────────────────────────────
 
 whatsappRouter.get('/analytics', authMiddleware, asyncHandler(async (req, res) => {
@@ -647,6 +689,37 @@ whatsappRouter.post('/send-template', authMiddleware, asyncHandler(async (req, r
   );
 
   if (result.success) {
+    // Find the template in the database to get its raw body text and interpolate variables
+    let templateBody = `Template: ${templateName}`;
+    try {
+      const { waTemplates } = await import('@mmc/database');
+      const templateRows = await (repo as any).db.select()
+        .from(waTemplates)
+        .where(
+          and(
+            eq(waTemplates.name, templateName),
+            channelId ? eq(waTemplates.channelId, channelId) : undefined
+          )
+        )
+        .limit(1);
+
+      if (templateRows.length > 0 && templateRows[0].body) {
+        templateBody = templateRows[0].body;
+
+        // Now interpolate body parameters if available
+        const bodyComponent = components?.find((c: any) => c.type === 'body');
+        if (bodyComponent?.parameters) {
+          bodyComponent.parameters.forEach((param: any, idx: number) => {
+            const val = param.text || param.value || '';
+            const placeholder = `{{${idx + 1}}}`;
+            templateBody = templateBody.split(placeholder).join(val);
+          });
+        }
+      }
+    } catch (e: any) {
+      logger.warn({ err: e.message }, 'Failed to fetch/interpolate WABA template body');
+    }
+
     // Track in conversations
     let conversation = await repo.findConversationByPhone(channelId, cleanPhone);
     if (!conversation) {
@@ -657,7 +730,13 @@ whatsappRouter.post('/send-template', authMiddleware, asyncHandler(async (req, r
         contactPhone: cleanPhone,
         status: 'open',
         lastMessageAt: new Date(),
-        lastMessageText: `Template: ${templateName}`,
+        lastMessageText: templateBody,
+      });
+    } else {
+      await repo.saveConversation({
+        ...conversation,
+        lastMessageAt: new Date(),
+        lastMessageText: templateBody,
       });
     }
 
@@ -665,7 +744,7 @@ whatsappRouter.post('/send-template', authMiddleware, asyncHandler(async (req, r
       conversationId: conversation.id,
       whatsappMessageId: result.messageId,
       direction: 'outbound',
-      content: `Template: ${templateName}`,
+      content: templateBody,
       type: 'template',
       status: 'sent',
       timestamp: new Date(),
@@ -676,7 +755,7 @@ whatsappRouter.post('/send-template', authMiddleware, asyncHandler(async (req, r
       const commRepo = new CommunicationRepositoryPG(req.tenantDb);
       await commRepo.logWhatsApp({
         phone: cleanPhone,
-        message: `Template: ${templateName}`,
+        message: templateBody,
         status: 'sent',
         deepLink: '', // Required by legacy logWhatsApp interface
       });

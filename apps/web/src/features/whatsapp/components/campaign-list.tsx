@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useWhatsApp } from '../hooks/use-whatsapp';
-import { Play, Plus, Clock, BarChart3, Search } from 'lucide-react';
+import { Play, Plus, Clock, BarChart3, Search, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { CampaignModal } from './campaign-modal';
 import { toast } from '@/hooks/use-toast';
@@ -18,7 +19,9 @@ export const CampaignList = () => {
   const totalEntries = data?.total || 0;
   
   const broadcastMutation = useBroadcastCampaign();
+  const deleteMutation = useWhatsApp().useDeleteCampaign();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const navigate = useNavigate();
   
   useEffect(() => {
     const handleOpenModal = () => setIsModalOpen(true);
@@ -150,26 +153,46 @@ export const CampaignList = () => {
                             </div>
                           </td>
                           <td style={{ textAlign: 'right' }}>
-                            {campaign.status === 'draft' && (
+                            <div className="flex items-center justify-end gap-2">
+                              {campaign.status === 'draft' && (
+                                <button 
+                                  className="btn-primary btn-sm px-4 h-8 text-[11px]"
+                                  onClick={() => {
+                                    broadcastMutation.mutate(campaign.id, {
+                                      onSuccess: () => toast({ title: 'Broadcast Initialized', description: 'Patients are now being messaged.' }),
+                                      onError: (err: any) => toast({ title: 'Broadcast Failed', description: err.message, variant: 'error' })
+                                    });
+                                  }}
+                                  disabled={broadcastMutation.isPending && broadcastMutation.variables === campaign.id}
+                                >
+                                  <Play className={`w-3.5 h-3.5 mr-1.5 ${(broadcastMutation.isPending && broadcastMutation.variables === campaign.id) ? 'animate-spin' : ''}`} />
+                                  {(broadcastMutation.isPending && broadcastMutation.variables === campaign.id) ? 'Launching...' : 'Launch'}
+                                </button>
+                              )}
+                              {campaign.status === 'completed' && (
+                                <button 
+                                  className="btn-ghost text-pp-blue font-bold text-[11px]"
+                                  onClick={() => navigate('/communications/whatsapp/analytics')}
+                                >
+                                  View Analytics
+                                </button>
+                              )}
                               <button 
-                                className="btn-primary btn-sm px-4 h-8 text-[11px]"
+                                className="btn-ghost text-error/80 hover:text-error hover:bg-error/10 h-8 w-8 p-0 rounded-lg flex items-center justify-center transition-colors"
                                 onClick={() => {
-                                  broadcastMutation.mutate(campaign.id, {
-                                    onSuccess: () => toast({ title: 'Broadcast Initialized', description: 'Patients are now being messaged.' }),
-                                    onError: (err: any) => toast({ title: 'Broadcast Failed', description: err.message, variant: 'error' })
-                                  });
+                                  if (confirm('Are you sure you want to delete this campaign?')) {
+                                    deleteMutation.mutate(campaign.id, {
+                                      onSuccess: () => toast({ title: 'Campaign Deleted' }),
+                                      onError: (err: any) => toast({ title: 'Failed to delete', description: err.message, variant: 'error' })
+                                    });
+                                  }
                                 }}
-                                disabled={broadcastMutation.isPending && broadcastMutation.variables === campaign.id}
+                                disabled={deleteMutation.isPending && deleteMutation.variables === campaign.id}
+                                title="Delete Campaign"
                               >
-                                <Play className={`w-3.5 h-3.5 mr-1.5 ${(broadcastMutation.isPending && broadcastMutation.variables === campaign.id) ? 'animate-spin' : ''}`} />
-                                {(broadcastMutation.isPending && broadcastMutation.variables === campaign.id) ? 'Launching...' : 'Launch'}
+                                <Trash2 size={14} className={(deleteMutation.isPending && deleteMutation.variables === campaign.id) ? 'animate-pulse' : ''} />
                               </button>
-                            )}
-                            {campaign.status === 'completed' && (
-                              <button className="btn-ghost text-pp-blue font-bold text-[11px]">
-                                View Analytics
-                              </button>
-                            )}
+                            </div>
                           </td>
                         </tr>
                       ))
@@ -231,7 +254,7 @@ export const CampaignList = () => {
                       </div>
                     </div>
 
-                    <div className="shrink-0">
+                    <div className="shrink-0 flex items-center gap-2">
                       {campaign.status === 'draft' && (
                         <button 
                           className="btn-primary btn-sm px-4 h-8 text-[11px]"
@@ -248,10 +271,27 @@ export const CampaignList = () => {
                         </button>
                       )}
                       {campaign.status === 'completed' && (
-                        <button className="btn-ghost text-pp-blue font-bold text-[11px]">
+                        <button 
+                          className="btn-ghost text-pp-blue font-bold text-[11px]"
+                          onClick={() => navigate('/communications/whatsapp/analytics')}
+                        >
                           View Analytics
                         </button>
                       )}
+                      <button 
+                        className="btn-ghost text-error/80 hover:text-error hover:bg-error/10 h-8 w-8 p-0 rounded-lg flex items-center justify-center"
+                        onClick={() => {
+                          if (confirm('Are you sure you want to delete this campaign?')) {
+                            deleteMutation.mutate(campaign.id, {
+                              onSuccess: () => toast({ title: 'Campaign Deleted' }),
+                              onError: (err: any) => toast({ title: 'Failed to delete', description: err.message, variant: 'error' })
+                            });
+                          }
+                        }}
+                        disabled={deleteMutation.isPending && deleteMutation.variables === campaign.id}
+                      >
+                        <Trash2 size={14} className={(deleteMutation.isPending && deleteMutation.variables === campaign.id) ? 'animate-pulse' : ''} />
+                      </button>
                     </div>
                   </div>
                 </div>

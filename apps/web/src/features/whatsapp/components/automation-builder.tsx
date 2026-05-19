@@ -5,15 +5,62 @@ import { Zap, Plus, Play, Pause, Trash2, ChevronRight, MessageSquare, Target, Cl
 import { format } from 'date-fns';
 import AutomationFlowBuilder from './automation-flow-builder/AutomationFlowBuilder';
 import { Pagination } from '@/components/shared/pagination';
+import { toast } from '@/hooks/use-toast';
 
 export const AutomationBuilder = () => {
-  const { useAutomationsPaginated, useChannels } = useWhatsApp();
+  const { useAutomationsPaginated, useChannels, useUpdateAutomation, useDeleteAutomation } = useWhatsApp();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
   
   const { data, isLoading } = useAutomationsPaginated({ page, limit: pageSize });
   const { data: channels } = useChannels();
   const activeChannelId = channels?.[0]?.id?.toString();
+
+  const updateMutation = useUpdateAutomation();
+  const deleteMutation = useDeleteAutomation();
+
+  const handleToggleStatus = (flow: any) => {
+    const nextStatus = flow.status === 'active' ? 'inactive' : 'active';
+    updateMutation.mutate(
+      { id: flow.id, status: nextStatus },
+      {
+        onSuccess: () => {
+          toast({
+            title: nextStatus === 'active' ? 'Workflow Activated' : 'Workflow Paused',
+            description: `The workflow "${flow.name}" has been successfully updated.`,
+          });
+        },
+        onError: (err: any) => {
+          toast({
+            title: 'Action Failed',
+            description: err.message || 'Unable to update workflow status.',
+            variant: 'error',
+          });
+        },
+      }
+    );
+  };
+
+  const handleDelete = (flow: any) => {
+    if (!window.confirm(`Are you sure you want to delete the workflow "${flow.name}"?`)) {
+      return;
+    }
+    deleteMutation.mutate(flow.id, {
+      onSuccess: () => {
+        toast({
+          title: 'Workflow Deleted',
+          description: `The workflow "${flow.name}" has been removed.`,
+        });
+      },
+      onError: (err: any) => {
+        toast({
+          title: 'Deletion Failed',
+          description: err.message || 'Unable to delete the workflow.',
+          variant: 'error',
+        });
+      },
+    });
+  };
 
   const automations = data?.data || [];
   const totalEntries = data?.total || 0;
@@ -143,10 +190,18 @@ export const AutomationBuilder = () => {
                 </div>
                 
                 <div className="flex gap-2 mt-6">
-                  <button className="flex-1 p-2 bg-white border border-pp-border rounded-xl text-success hover:bg-success/5 transition-all flex items-center justify-center gap-2">
+                  <button 
+                    onClick={() => handleToggleStatus(flow)}
+                    disabled={updateMutation.isPending || deleteMutation.isPending}
+                    className="flex-1 p-2 bg-white border border-pp-border rounded-xl text-success hover:bg-success/5 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+                  >
                     {flow.status === 'active' ? <Pause size={16} /> : <Play size={16} />}
                   </button>
-                  <button className="p-2 bg-white border border-pp-border rounded-xl text-muted hover:text-error hover:bg-error/5 transition-all">
+                  <button 
+                    onClick={() => handleDelete(flow)}
+                    disabled={updateMutation.isPending || deleteMutation.isPending}
+                    className="p-2 bg-white border border-pp-border rounded-xl text-muted hover:text-error hover:bg-error/5 disabled:opacity-50 transition-all"
+                  >
                     <Trash2 size={16} />
                   </button>
                 </div>

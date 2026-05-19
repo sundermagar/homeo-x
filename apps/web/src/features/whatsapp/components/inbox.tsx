@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useWhatsApp } from '../hooks/use-whatsapp';
-import { Search, Send, User, Check, CheckCheck, MessageSquare, Phone, Info, MoreVertical, Plus, FileText, Paperclip, Smile, Loader2, ArrowLeft } from 'lucide-react';
+import { Search, Send, User, Check, CheckCheck, MessageSquare, Phone, Info, MoreVertical, Plus, FileText, Paperclip, Smile, Loader2, ArrowLeft, CornerUpLeft, Forward, Trash2, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { NewChatModal } from './new-chat-modal';
 import { TemplateModal } from './template-modal';
@@ -8,15 +8,82 @@ import { toast } from '@/hooks/use-toast';
 import type { WhatsAppConversation, WhatsAppMessage } from '@mmc/types';
 import EmojiPicker from 'emoji-picker-react';
 
+const ForwardModal = ({ 
+  isOpen, 
+  onClose, 
+  onForward,
+  conversations 
+}: { 
+  isOpen: boolean; 
+  onClose: () => void; 
+  onForward: (conv: any) => void;
+  conversations: any[] 
+}) => {
+  const [search, setSearch] = useState('');
+  if (!isOpen) return null;
+
+  const filtered = conversations?.filter(c => 
+    c.contactName?.toLowerCase().includes(search.toLowerCase()) || 
+    c.contactPhone?.includes(search)
+  ) || [];
+
+  return (
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
+      <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl border border-[var(--pp-warm-3)] animate-scale-in">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-sm font-extrabold text-[var(--pp-ink)] uppercase tracking-[0.1em]">Forward Message</h3>
+          <button onClick={onClose} className="p-1 hover:bg-[var(--pp-warm-2)] rounded-lg text-[var(--pp-text-3)] hover:text-[var(--pp-ink)] transition-all">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--pp-text-3)]/60" size={14} />
+          <input 
+            className="pp-filter-search-input pl-9 h-9 text-xs font-semibold border-[var(--pp-warm-4)] focus:border-[var(--pp-blue)] rounded-xl w-full outline-none bg-[var(--pp-warm-1)]/30"
+            placeholder="Search contacts..." 
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <div className="max-h-60 overflow-y-auto divide-y divide-[var(--pp-warm-3)]/40 pr-1">
+          {filtered.length === 0 ? (
+            <div className="p-4 text-center text-xs text-[var(--pp-text-3)] italic">No contacts found</div>
+          ) : (
+            filtered.map((conv) => (
+              <div 
+                key={conv.id} 
+                onClick={() => onForward(conv)}
+                className="p-3 hover:bg-[var(--pp-warm-1)]/60 cursor-pointer rounded-xl flex items-center gap-3 transition-all"
+              >
+                <div className="w-8 h-8 rounded-lg bg-[var(--pp-blue-tint)] flex items-center justify-center text-[var(--pp-blue)] font-bold text-xs">
+                  {(conv.contactName || conv.contactPhone).substring(0, 1).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-xs font-bold text-[var(--pp-ink)] truncate">{conv.contactName || `+${conv.contactPhone}`}</h4>
+                  <p className="text-[10px] text-[var(--pp-text-3)] truncate">+{conv.contactPhone}</p>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const Inbox = ({ channelId }: { channelId?: number }) => {
-  const { useConversations, useMessages, useSendMessage, useSendTemplate, useCreateConversation, useUploadConversationMedia, useMarkAsRead } = useWhatsApp();
+  const { useConversations, useMessages, useSendMessage, useSendTemplate, useCreateConversation, useUploadConversationMedia, useMarkAsRead, useDeleteMessage } = useWhatsApp();
   const sendTemplateMutation = useSendTemplate();
   const createConversationMutation = useCreateConversation();
   const uploadMediaMutation = useUploadConversationMedia();
   const markAsReadMutation = useMarkAsRead();
+  const deleteMessageMutation = useDeleteMessage();
   const { data: conversations, isLoading: loadingConv } = useConversations(channelId);
   const [selectedConvId, setSelectedConvId] = useState<number | null>(null);
   const { data: messages, isLoading: loadingMsg, error: msgError } = useMessages(selectedConvId || undefined);
+  
+  const [replyingTo, setReplyingTo] = useState<any | null>(null);
+  const [forwardingMsg, setForwardingMsg] = useState<any | null>(null);
   
   const [readConvIds, setReadConvIds] = useState<Set<number>>(new Set());
 
@@ -91,13 +158,28 @@ export const Inbox = ({ channelId }: { channelId?: number }) => {
     if (!selectedConvId) return;
     if (!messageText.trim() && !pendingAttachment) return;
 
-    sendMessageMutation.mutate({ 
+    const payload: any = { 
       conversationId: selectedConvId, 
       content: messageText.trim() || undefined,
       mediaId: pendingAttachment?.mediaId,
       mediaType: pendingAttachment?.type,
       fileName: pendingAttachment?.fileName
-    }, {
+    };
+
+    if (replyingTo) {
+      payload.metadata = {
+        replyTo: {
+          id: replyingTo.id,
+          content: replyingTo.content,
+          direction: replyingTo.direction
+        }
+      };
+    }
+
+    sendMessageMutation.mutate(payload, {
+      onSuccess: () => {
+        setReplyingTo(null);
+      },
       onError: (err: any) => {
         const errorMsg = err?.response?.data?.message || err?.message || '';
         if (errorMsg.includes('131047') || errorMsg.includes('Re-engagement') || errorMsg.includes('conversation window') || errorMsg.includes('window')) {
@@ -119,6 +201,37 @@ export const Inbox = ({ channelId }: { channelId?: number }) => {
     setMessageText('');
     setPendingAttachment(null);
     setShowEmojiPicker(false);
+  };
+
+  const handleDeleteMessage = (msg: any) => {
+    if (!window.confirm('Are you sure you want to delete this message? This cannot be undone.')) return;
+    deleteMessageMutation.mutate({ messageId: msg.id }, {
+      onSuccess: () => {
+        toast({ title: 'Message Deleted', description: 'The message has been removed from the chat history.' });
+      },
+      onError: (err: any) => {
+        toast({ title: 'Failed to delete message', description: err.message, variant: 'error' });
+      }
+    });
+  };
+
+  const handleForwardMessage = (destConv: any) => {
+    if (!forwardingMsg) return;
+    
+    sendMessageMutation.mutate({
+      conversationId: destConv.id,
+      content: forwardingMsg.content,
+      mediaId: forwardingMsg.mediaId || undefined,
+      mediaType: forwardingMsg.type === 'media' ? 'document' : undefined
+    }, {
+      onSuccess: () => {
+        toast({ title: 'Message Forwarded', description: `Message forwarded to ${destConv.contactName || destConv.contactPhone}.` });
+        setForwardingMsg(null);
+      },
+      onError: (err: any) => {
+        toast({ title: 'Failed to forward message', description: err.message, variant: 'error' });
+      }
+    });
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -375,24 +488,65 @@ export const Inbox = ({ channelId }: { channelId?: number }) => {
                 <div className="flex justify-center p-8 text-xs font-bold text-[var(--pp-text-3)] uppercase tracking-widest animate-pulse">Syncing Dialogue...</div>
               ) : (
                 messages?.slice().reverse().map((msg: any) => (
-                  <div key={msg.id} className={`flex flex-col ${msg.direction === 'outbound' ? 'items-end' : 'items-start'}`}>
-                    <div 
-                      className={`max-w-[70%] p-3.5 px-4 rounded-[20px] shadow-[0_4px_16px_rgba(37,99,235,0.06)] border transition-all leading-relaxed ${
-                        msg.direction === 'outbound' 
-                          ? 'text-white rounded-tr-none border-white/10 bg-gradient-to-br from-[#2563EB] to-[#1E3A8A]' 
-                          : 'bg-white text-[var(--pp-ink)] border-[var(--pp-warm-3)]/90 rounded-tl-none shadow-[0_2px_12px_rgba(0,0,0,0.01)]'
-                      }`}
-                    >
-                      <p className="text-[13px] leading-relaxed font-semibold whitespace-pre-wrap">{msg.content}</p>
-                      <div className={`flex items-center gap-1.5 mt-2 ${msg.direction === 'outbound' ? 'justify-end' : 'justify-start'}`}>
-                        <span className={`text-[8px] font-extrabold uppercase tracking-widest ${msg.direction === 'outbound' ? 'text-white/60' : 'text-[var(--pp-text-3)]'}`}>
-                          {safeFormatTime(msg.timestamp, msg.createdAt)}
-                        </span>
-                        {msg.direction === 'outbound' && (
-                          msg.status === 'read' 
-                            ? <CheckCheck className="w-3 h-3 text-white animate-fade-in" /> 
-                            : <Check className="w-3 h-3 text-white/50 animate-fade-in" />
+                  <div 
+                    key={msg.id} 
+                    className={`flex flex-col relative group ${msg.direction === 'outbound' ? 'items-end' : 'items-start'} w-full mb-3`}
+                  >
+                    <div className={`flex items-center gap-2 max-w-[75%] ${msg.direction === 'outbound' ? 'flex-row-reverse' : 'flex-row'}`}>
+                      <div 
+                        className={`p-3.5 px-4 rounded-[20px] shadow-[0_4px_16px_rgba(37,99,235,0.06)] border transition-all leading-relaxed ${
+                          msg.direction === 'outbound' 
+                            ? 'text-white rounded-tr-none border-white/10 bg-gradient-to-br from-[#2563EB] to-[#1E3A8A]' 
+                            : 'bg-white text-[var(--pp-ink)] border-[var(--pp-warm-3)]/90 rounded-tl-none shadow-[0_2px_12px_rgba(0,0,0,0.01)]'
+                        }`}
+                      >
+                        {msg.metadata?.replyTo && (
+                          <div className={`mb-2 p-2 rounded-lg text-xs border-l-4 leading-normal flex flex-col gap-0.5 ${
+                            msg.direction === 'outbound'
+                              ? 'bg-white/10 border-white/40 text-white/90'
+                              : 'bg-[var(--pp-warm-2)] border-[var(--pp-blue)] text-[var(--pp-text-2)]'
+                          }`}>
+                            <span className="font-extrabold text-[9px] uppercase tracking-wider opacity-75">
+                              {msg.metadata.replyTo.direction === 'outbound' ? 'You' : 'Patient'}
+                            </span>
+                            <span className="truncate italic font-medium">{msg.metadata.replyTo.content}</span>
+                          </div>
                         )}
+                        <p className="text-[13px] leading-relaxed font-semibold whitespace-pre-wrap">{msg.content}</p>
+                        <div className={`flex items-center gap-1.5 mt-2 ${msg.direction === 'outbound' ? 'justify-end' : 'justify-start'}`}>
+                          <span className={`text-[8px] font-extrabold uppercase tracking-widest ${msg.direction === 'outbound' ? 'text-white/60' : 'text-[var(--pp-text-3)]'}`}>
+                            {safeFormatTime(msg.timestamp, msg.createdAt)}
+                          </span>
+                          {msg.direction === 'outbound' && (
+                            msg.status === 'read' 
+                              ? <CheckCheck className="w-3 h-3 text-white animate-fade-in" /> 
+                              : <Check className="w-3 h-3 text-white/50 animate-fade-in" />
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center bg-white border border-[var(--pp-warm-3)] shadow-md rounded-xl p-1 gap-0.5 z-10 shrink-0">
+                        <button 
+                          onClick={() => setReplyingTo(msg)}
+                          title="Reply"
+                          className="p-1.5 text-[var(--pp-text-3)] hover:text-[var(--pp-blue)] hover:bg-[var(--pp-warm-2)] rounded-lg transition-all"
+                        >
+                          <CornerUpLeft size={13} />
+                        </button>
+                        <button 
+                          onClick={() => setForwardingMsg(msg)}
+                          title="Forward"
+                          className="p-1.5 text-[var(--pp-text-3)] hover:text-[var(--pp-blue)] hover:bg-[var(--pp-warm-2)] rounded-lg transition-all"
+                        >
+                          <Forward size={13} />
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteMessage(msg)}
+                          title="Delete"
+                          className="p-1.5 text-[var(--pp-text-3)] hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                        >
+                          <Trash2 size={13} />
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -400,6 +554,27 @@ export const Inbox = ({ channelId }: { channelId?: number }) => {
               )}
               <div ref={messagesEndRef} />
             </div>
+
+            {replyingTo && (
+              <div className="px-6 py-2 bg-gradient-to-r from-[var(--pp-blue-tint)]/40 to-white border-t border-[var(--pp-warm-3)] flex items-center justify-between animate-fade-in z-20">
+                <div className="flex items-center gap-2 border-l-4 border-[var(--pp-blue)] pl-3 py-0.5">
+                  <div className="flex flex-col">
+                    <span className="text-[9px] font-extrabold text-[var(--pp-blue)] uppercase tracking-wider">
+                      Replying to {replyingTo.direction === 'outbound' ? 'yourself' : 'patient'}
+                    </span>
+                    <p className="text-xs font-semibold text-[var(--pp-text-2)] truncate max-w-[500px]">
+                      {replyingTo.content}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setReplyingTo(null)}
+                  className="text-[var(--pp-text-3)] hover:text-red-500 p-1 hover:bg-[var(--pp-warm-2)] rounded-lg transition-all"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            )}
 
             {pendingAttachment && (
               <div className="px-6 py-2.5 bg-[var(--pp-warm-1)] border-t border-[var(--pp-warm-3)] flex items-center justify-between animate-fade-in z-20">
@@ -530,6 +705,12 @@ export const Inbox = ({ channelId }: { channelId?: number }) => {
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
         onSelect={handleStartChat}
+      />
+      <ForwardModal
+        isOpen={!!forwardingMsg}
+        onClose={() => setForwardingMsg(null)}
+        onForward={handleForwardMessage}
+        conversations={conversations || []}
       />
       <TemplateModal 
         isOpen={isTemplateModalOpen}

@@ -21,6 +21,7 @@ export interface WhatsAppRepository {
   findCampaignById(id: number): Promise<any>;
   listCampaigns(clinicId: number, params?: { page?: number; limit?: number; search?: string }): Promise<{ data: any[]; total: number }>;
   saveCampaign(data: any): Promise<any>;
+  deleteCampaign(id: number): Promise<void>;
   updateCampaignStats(campaignId: number, stats: Partial<any>): Promise<void>;
 
   // Recipients

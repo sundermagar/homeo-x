@@ -58,6 +58,15 @@ export const useWhatsApp = () => {
         queryClient.invalidateQueries({ queryKey: ['whatsapp', 'campaigns'] });
       },
     }),
+    useDeleteCampaign: () => useMutation({
+      mutationFn: async (campaignId: number) => {
+        const { data } = await apiClient.delete<{ data: any }>(`/whatsapp/campaigns/${campaignId}`);
+        return data.data;
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['whatsapp', 'campaigns'] });
+      },
+    }),
     // Templates
     useTemplates: (channelId?: number) => useQuery({
       queryKey: ['whatsapp', 'templates', channelId],
@@ -132,19 +141,22 @@ export const useWhatsApp = () => {
         content, 
         mediaId, 
         mediaType, 
-        fileName 
+        fileName,
+        metadata
       }: { 
         conversationId: number; 
         content?: string; 
         mediaId?: string; 
         mediaType?: string; 
         fileName?: string; 
+        metadata?: any;
       }) => {
         const { data } = await apiClient.post<{ data: WhatsAppMessage }>(`/whatsapp/conversations/${conversationId}/messages`, { 
           content, 
           mediaId, 
           mediaType, 
-          fileName 
+          fileName,
+          metadata
         });
         return data.data;
       },
@@ -181,6 +193,16 @@ export const useWhatsApp = () => {
       },
       onSuccess: (_, { conversationId }) => {
         queryClient.invalidateQueries({ queryKey: ['whatsapp', 'messages', conversationId] });
+        queryClient.invalidateQueries({ queryKey: ['whatsapp', 'conversations'] });
+      },
+    }),
+    useDeleteMessage: () => useMutation({
+      mutationFn: async ({ messageId }: { messageId: number }) => {
+        const { data } = await apiClient.delete<{ data: any }>(`/whatsapp/messages/${messageId}`);
+        return data.data;
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['whatsapp', 'messages'] });
         queryClient.invalidateQueries({ queryKey: ['whatsapp', 'conversations'] });
       },
     }),
@@ -278,6 +300,27 @@ export const useWhatsApp = () => {
       },
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ['wa-automations'] });
+        queryClient.invalidateQueries({ queryKey: ['whatsapp', 'automations'] });
+      },
+    }),
+    useUpdateAutomation: () => useMutation({
+      mutationFn: async ({ id, ...payload }: { id: number; status?: string; name?: string; description?: string; trigger?: string; triggerConfig?: any; nodes?: any[]; edges?: any[] }) => {
+        const { data } = await apiClient.patch<{ data: any }>(`/whatsapp/automations/${id}`, payload);
+        return data.data;
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['wa-automations'] });
+        queryClient.invalidateQueries({ queryKey: ['whatsapp', 'automations'] });
+      },
+    }),
+    useDeleteAutomation: () => useMutation({
+      mutationFn: async (id: number) => {
+        const { data } = await apiClient.delete<{ data: any }>(`/whatsapp/automations/${id}`);
+        return data.data;
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['wa-automations'] });
+        queryClient.invalidateQueries({ queryKey: ['whatsapp', 'automations'] });
       },
     }),
     useCreateChatbot: () => useMutation({
@@ -326,6 +369,22 @@ export const useWhatsApp = () => {
       },
       onSuccess: (_, vars) => {
         queryClient.invalidateQueries({ queryKey: ['whatsapp', 'messages', vars.conversationId] });
+        queryClient.invalidateQueries({ queryKey: ['whatsapp', 'conversations'] });
+      },
+    }),
+    // Send a direct text message via the unified send-text endpoint
+    useSendText: () => useMutation({
+      mutationFn: async (payload: {
+        phone: string;
+        message: string;
+      }) => {
+        const { data } = await apiClient.post<{ data: any }>('/whatsapp/send-text', {
+          phone: payload.phone,
+          message: payload.message,
+        });
+        return data.data;
+      },
+      onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ['whatsapp', 'conversations'] });
       },
     }),

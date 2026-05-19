@@ -292,18 +292,43 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
       if (!envToken) return;
 
       const { sql } = await import('drizzle-orm');
-      const allTenants = TenantRegistry.getAll();
-      logger.info(`Aligning WABA access tokens with .env for ${allTenants.length} tenants...`);
-      for (const tenant of allTenants) {
+
+      // Optimization: Only align schemas that actually have the 'wa_channels' table.
+      // This avoids creating 50+ database connection pools for empty schemas.
+      const schemaRows = await publicDb.execute(sql`
+        SELECT table_schema 
+        FROM information_schema.tables 
+        WHERE table_name = 'wa_channels' 
+          AND table_schema LIKE 'tenant_%'
+      `);
+      const rawActiveSchemas = (schemaRows as any[]).map(r => r.table_schema);
+      const activeSchemas: string[] = [];
+
+      for (const schemaName of rawActiveSchemas) {
         try {
-          const tenantDb = createDbClient(process.env.DATABASE_URL!, tenant.schemaName);
+          const channelCheck = await publicDb.execute(sql`
+            SELECT id FROM ${sql.raw(`"${schemaName}"."wa_channels"`)} LIMIT 1
+          `);
+          const hasChannels = Array.isArray(channelCheck) ? channelCheck.length > 0 : (channelCheck as any).rows?.length > 0;
+          if (hasChannels) {
+            activeSchemas.push(schemaName);
+          }
+        } catch (e) {
+          // Ignore
+        }
+      }
+
+      logger.info(`Aligning WABA access tokens with .env for ${activeSchemas.length} active tenant schema(s)...`);
+      for (const schemaName of activeSchemas) {
+        try {
+          const tenantDb = createDbClient(process.env.DATABASE_URL!, schemaName);
           const channelRows = await tenantDb.execute(sql`
             SELECT id, access_token FROM wa_channels LIMIT 10
           `);
           const rows = Array.isArray(channelRows) ? channelRows : (channelRows as any).rows || [];
           for (const row of rows) {
             if (row.access_token !== envToken) {
-              logger.info(`[SyncToken] Updating access token in schema ${tenant.schemaName} for WABA channel ${row.id}`);
+              logger.info(`[SyncToken] Updating access token in schema ${schemaName} for WABA channel ${row.id}`);
               await tenantDb.execute(sql`
                 UPDATE wa_channels SET access_token = ${envToken}, updated_at = NOW() WHERE id = ${row.id}
               `);

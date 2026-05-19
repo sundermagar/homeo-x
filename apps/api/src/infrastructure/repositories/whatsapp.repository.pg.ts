@@ -1,4 +1,4 @@
-import { eq, and, sql, desc, isNull, ilike, gte, lte } from 'drizzle-orm';
+import { eq, and, or, sql, desc, isNull, ilike, gte, lte } from 'drizzle-orm';
 import type { DbClient } from '@mmc/database';
 import * as schema from '@mmc/database';
 import type { WhatsAppRepository } from '../../domains/whatsapp/ports/whatsapp.repository.js';
@@ -29,7 +29,13 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
   async listChannels(clinicId?: number): Promise<any[]> {
     const query = this.db.select().from(schema.waChannels);
     if (clinicId) {
-      query.where(eq(schema.waChannels.clinicId, clinicId));
+      query.where(
+        or(
+          eq(schema.waChannels.clinicId, clinicId),
+          eq(schema.waChannels.clinicId, 0),
+          isNull(schema.waChannels.clinicId)
+        )
+      );
     }
     return query.orderBy(desc(schema.waChannels.createdAt));
   }
@@ -39,7 +45,11 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
       .select()
       .from(schema.waChannels)
       .where(and(
-        eq(schema.waChannels.clinicId, clinicId),
+        or(
+          eq(schema.waChannels.clinicId, clinicId),
+          eq(schema.waChannels.clinicId, 0),
+          isNull(schema.waChannels.clinicId)
+        ),
         eq(schema.waChannels.isActive, true)
       ))
       .orderBy(desc(schema.waChannels.createdAt))
@@ -200,6 +210,10 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
       .where(eq(schema.waCampaigns.id, campaignId));
   }
 
+  async deleteCampaign(id: number): Promise<void> {
+    await this.db.delete(schema.waCampaigns).where(eq(schema.waCampaigns.id, id));
+  }
+
   // ─── Recipients ────────────────────────────────────────────────────────────
 
   async listRecipients(campaignId: number): Promise<any[]> {
@@ -304,6 +318,30 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
       .values(data)
       .returning();
     return row;
+  }
+
+  async deleteMessage(clinicId: number, id: number): Promise<boolean> {
+    const { and, eq } = await import('drizzle-orm');
+    // First verify message belongs to clinic
+    const [msg] = await this.db
+      .select({ id: schema.waMessages.id })
+      .from(schema.waMessages)
+      .innerJoin(schema.waConversations, eq(schema.waConversations.id, schema.waMessages.conversationId))
+      .where(
+        and(
+          eq(schema.waMessages.id, id),
+          eq(schema.waConversations.clinicId, clinicId)
+        )
+      )
+      .limit(1);
+
+    if (!msg) return false;
+
+    const result = await this.db
+      .delete(schema.waMessages)
+      .where(eq(schema.waMessages.id, id))
+      .returning();
+    return result.length > 0;
   }
 
   async listMessages(conversationId: number): Promise<any[]> {
@@ -595,6 +633,36 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
   }
 
   async saveAutomation(data: any): Promise<any> {
+    const id = data.automationId || data.id;
+
+    if (id) {
+      const updatePayload: Record<string, any> = {};
+      if (data.name !== undefined) updatePayload.name = data.name;
+      if (data.description !== undefined) updatePayload.description = data.description;
+      if (data.trigger !== undefined) updatePayload.trigger = data.trigger;
+      if (data.triggerConfig !== undefined) updatePayload.triggerConfig = data.triggerConfig;
+      if (data.status !== undefined) updatePayload.status = data.status;
+      if (data.nodes !== undefined || data.edges !== undefined) {
+        updatePayload.flowData = {
+          nodes: data.nodes || [],
+          edges: data.edges || []
+        };
+      }
+      updatePayload.updatedAt = new Date();
+
+      const [row] = await this.db
+        .update(schema.waAutomations)
+        .set(updatePayload)
+        .where(
+          and(
+            eq(schema.waAutomations.id, id),
+            eq(schema.waAutomations.clinicId, data.clinicId)
+          )
+        )
+        .returning();
+      return row ?? null;
+    }
+    
     const payload = {
       clinicId: data.clinicId,
       name: data.name,
@@ -604,25 +672,29 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
       flowData: {
         nodes: data.nodes || [],
         edges: data.edges || []
-      }
+      },
+      status: data.status || 'inactive'
     };
 
-    const id = data.automationId || data.id;
-
-    if (id) {
-      const [row] = await this.db
-        .update(schema.waAutomations)
-        .set({ ...payload, updatedAt: new Date() })
-        .where(eq(schema.waAutomations.id, id))
-        .returning();
-      return row;
-    }
-    
     const [row] = await this.db
       .insert(schema.waAutomations)
       .values(payload)
       .returning();
     return row;
+  }
+
+  async deleteAutomation(clinicId: number, id: number): Promise<boolean> {
+    const { and, eq } = await import('drizzle-orm');
+    const result = await this.db
+      .delete(schema.waAutomations)
+      .where(
+        and(
+          eq(schema.waAutomations.id, id),
+          eq(schema.waAutomations.clinicId, clinicId)
+        )
+      )
+      .returning();
+    return result.length > 0;
   }
 
   // ─── Analytics ───────────────────────────────────────────────────────────────

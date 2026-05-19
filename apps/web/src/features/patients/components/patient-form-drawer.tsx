@@ -8,6 +8,7 @@ import { VisitType } from '@mmc/types';
 import { NumericInput } from '@/shared/components/NumericInput';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { X, Calendar as CalendarIcon, Clock, CheckCircle } from 'lucide-react';
+import { useWhatsApp } from '@/features/whatsapp/hooks/use-whatsapp';
 import '../styles/patients.css';
 
 const INDIAN_STATES = [
@@ -58,6 +59,8 @@ export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient,
   const createMutation = useCreatePatient();
   const updateMutation = useUpdatePatient();
   const createApptMutation = useCreateAppointment();
+  const { useSendText } = useWhatsApp();
+  const sendText = useSendText();
 
   const { data: slots = [] } = useAvailableSlots(
     form.assistantDoctor ? Number(form.assistantDoctor) : undefined,
@@ -225,6 +228,21 @@ export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient,
             consultationFee: form.consultationFee || 0,
             notes: 'Initial consultation booked during registration.',
           });
+        }
+        
+        // Auto-send WhatsApp registration text
+        if (patientResult?.regid && (form.phone || form.mobile1)) {
+          const rawPhone = form.phone || form.mobile1;
+          const cleaned = rawPhone.replace(/\D/g, '');
+          const finalPhone = cleaned.length === 10 ? `91${cleaned}` : cleaned;
+          try {
+            await sendText.mutateAsync({
+              phone: finalPhone,
+              message: `Dear ${form.firstName} ${form.surname},\n\nThank you for registering with MMC HomeoTech. Your Registration ID is *${patientResult.regid}*.\n\nPlease use this ID for all future communications.\n\nBest regards,\nYour Clinic`
+            });
+          } catch (err) {
+            console.error('Auto WhatsApp failed', err);
+          }
         }
         
         onSuccess?.();

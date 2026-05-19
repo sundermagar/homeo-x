@@ -35,8 +35,8 @@ interface CourierEntry {
 
 export function CourierQueuePage() {
   const queryClient = useQueryClient();
-  const { useSendTemplate } = useWhatsApp();
-  const sendTemplate = useSendTemplate();
+  const { useSendText } = useWhatsApp();
+  const sendText = useSendText();
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -79,8 +79,27 @@ export function CourierQueuePage() {
     mutationFn: async (input: any) => {
       await apiClient.patch(`/courier/${input.id}/assign`, input);
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['courier-queue'] });
+      
+      // Auto-send WhatsApp on assign
+      if (assignModal?.phone && (variables.pcd || variables.pickup)) {
+        const phone = assignModal.phone.replace(/\D/g, '');
+        const finalPhone = phone.startsWith('91') ? phone : '91' + phone;
+        
+        let textMessage = '';
+        if (variables.pickup) {
+          textMessage = `Dear ${assignModal.patientName || 'Patient'},\n\nYour medicines are ready for pickup at the clinic.\n\nRegards,\nMMC HomeoTech`;
+        } else {
+          textMessage = `Dear ${assignModal.patientName || 'Patient'},\n\nYour medicines have been dispatched via *${variables.courier || 'DTDC'}* and the POD number is *${variables.pcd || 'N/A'}*.\n\nFor tracking, log on to the courier tracking website.\n\nRegards,\nMMC HomeoTech`;
+        }
+        
+        sendText.mutate({
+          phone: finalPhone,
+          message: textMessage,
+        }).catch(err => console.error('Auto WhatsApp failed', err));
+      }
+
       setAssignModal(null);
       setAssignPcd('');
       setAssignCourier('');
@@ -122,25 +141,12 @@ export function CourierQueuePage() {
     const phone = messageModal.phone.replace(/\D/g, '');
     const finalPhone = phone.startsWith('91') ? phone : '91' + phone;
 
-    // Build WhatsApp template components with variables
-    const components = [
-      {
-        type: 'body',
-        parameters: [
-          { type: 'text', text: messageModal.patientName || 'Patient' },
-          { type: 'text', text: messageModal.courierCompany || 'DTDC' },
-          { type: 'text', text: messageModal.podNumber || 'N/A' },
-        ],
-      },
-    ];
+    const textMessage = `Dear ${messageModal.patientName || 'Patient'},\n\nYour medicines have been dispatched via *${messageModal.courierCompany || 'DTDC'}* and the POD number is *${messageModal.podNumber || 'N/A'}*.\n\nFor tracking, log on to the courier tracking website.\n\nRegards,\nMMC HomeoTech`;
 
-    sendTemplate.mutate(
+    sendText.mutate(
       {
-        conversationId: 0,
         phone: finalPhone,
-        templateName: 'courier_dispatch',
-        language: 'en_US',
-        components,
+        message: textMessage,
       },
       {
         onSuccess: () => {
@@ -486,9 +492,9 @@ export function CourierQueuePage() {
               <button 
                 className="modal-btn modal-btn-whatsapp" 
                 onClick={handleSendWhatsApp}
-                disabled={sendTemplate.isPending}
+                disabled={sendText.isPending}
               >
-                <Send size={14} /> {sendTemplate.isPending ? 'Sending...' : 'Send via WhatsApp'}
+                <Send size={14} /> {sendText.isPending ? 'Sending...' : 'Send via WhatsApp'}
               </button>
             </div>
           </div>

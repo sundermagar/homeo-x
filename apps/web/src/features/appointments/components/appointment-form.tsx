@@ -9,6 +9,7 @@ import { apiClient } from '@/infrastructure/api-client';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { NumericInput } from '@/shared/components/NumericInput';
 import { printAppointmentSlip } from '@/shared/utils/print';
+import { useWhatsApp } from '@/features/whatsapp/hooks/use-whatsapp';
 import '../styles/appointments.css';
 
 interface Doctor { id: number; name: string; consultation_fee?: number; isActive?: boolean; }
@@ -50,6 +51,9 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
     form.doctorId ? Number(form.doctorId) : undefined,
     form.bookingDate || undefined,
   );
+  
+  const { useSendText } = useWhatsApp();
+  const sendText = useSendText();
 
   const user = useAuthStore(s => s.user);
 
@@ -192,6 +196,21 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
           doctorName: doc?.name || 'N/A',
           tokenNo: created?.tokenNo,
         });
+        
+        // Auto-send WhatsApp appointment confirmation
+        if (form.phone) {
+          const cleaned = form.phone.replace(/\D/g, '');
+          const finalPhone = cleaned.length === 10 ? `91${cleaned}` : cleaned;
+          try {
+            await sendText.mutateAsync({
+              phone: finalPhone,
+              message: `Dear ${form.patientName || 'Patient'},\n\nYour appointment with Dr. ${doc?.name || 'N/A'} is confirmed for ${normalizedDate} at ${form.bookingTime || 'N/A'}.\n${created?.tokenNo ? `Your Token Number is *${created.tokenNo}*.\n` : ''}\nRegards,\nMMC HomeoTech`
+            });
+          } catch (err) {
+            console.error('Auto WhatsApp failed', err);
+          }
+        }
+        
         onSuccess?.();
       }
     } catch (err: any) {
