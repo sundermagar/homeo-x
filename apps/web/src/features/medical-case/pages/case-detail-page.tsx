@@ -56,7 +56,7 @@ import { generatePrescriptionHtml } from '@/lib/print-templates';
 import type { PrescriptionPrintData } from '@/lib/print-templates';
 import { getClinicLetterhead, getDoctorLetterhead } from '@/lib/clinic-letterhead';
 import { useOrganizations } from '../../platform/hooks/use-organizations';
-import { usePdfSettings } from '../../settings/hooks/use-settings';
+import { usePdfSettings, useMedicines } from '../../settings/hooks/use-settings';
 import '../styles/medical-case.css';
 import { useTableGrouping } from '../hooks/use-table-grouping';
 import { DateGroupCell } from '../components/date-group-cell';
@@ -118,6 +118,23 @@ function EmptyState({ icon: Icon, title, description, actionLabel, onAction }: a
 }
 
 
+const PatientIssueSelectOptions = [
+  'Acne',
+  'Asthma',
+  'Cough',
+  'Cold',
+  'Headache',
+  'Fever',
+  'Skin Issue',
+  'Hair Fall',
+  'Gastric',
+  'Joint Pain',
+  'Allergy',
+  'Weakness',
+  'Anxiety',
+  'Insomnia'
+];
+
 export default function MedicalCaseDetailPage() {
   const { regid } = useParams();
   const navigate = useNavigate();
@@ -133,6 +150,7 @@ export default function MedicalCaseDetailPage() {
   const medicalCase = fullData?.medicalCase;
   const visitId = medicalCase?.id;
   const { data: dayCharges = [] } = useDayCharges();
+  const { data: medicines = [] } = useMedicines();
 
   const formatName = useCallback((name?: string | null) => {
     if (!name) return '';
@@ -242,8 +260,13 @@ export default function MedicalCaseDetailPage() {
     diagnosis: '',
     complaint: '',
     medication: '',
-    investigationFindings: ''
+    medicationTaking: ''
   });
+
+  const [medicationRows, setMedicationRows] = useState<MedicationRow[]>([
+    { medicine: '', frequency: 'Once', days: '', issue: '' }
+  ]);
+  const [activeMedicineFocusIdx, setActiveMedicineFocusIdx] = useState<number | null>(null);
 
   // Consolidated with previous hook call above
 
@@ -255,12 +278,33 @@ export default function MedicalCaseDetailPage() {
       activeRecord = (soap || []).find((s: any) => (s.visitId === currentVisitId || s.visit_id === currentVisitId));
     }
 
+    let initialMeds: MedicationRow[] = [{ medicine: '', frequency: 'Once', days: '', issue: '' }];
+    const objectiveStr = activeRecord?.objective;
+    if (objectiveStr) {
+      try {
+        if (objectiveStr.trim().startsWith('[') || objectiveStr.trim().startsWith('{')) {
+          const parsed = JSON.parse(objectiveStr);
+          initialMeds = Array.isArray(parsed) ? parsed : [parsed];
+        } else {
+          initialMeds = [{ medicine: objectiveStr, frequency: 'Once', days: '', issue: '' }];
+        }
+      } catch (e) {
+        initialMeds = [{ medicine: objectiveStr, frequency: 'Once', days: '', issue: '' }];
+      }
+    } else if (isToday && medicationTakingStr && medicationTakingStr !== '—') {
+      const parts = medicationTakingStr.split(',').map(p => p.trim()).filter(Boolean);
+      if (parts.length > 0) {
+        initialMeds = parts.map(m => ({ medicine: m, frequency: 'Once', days: '', issue: '' }));
+      }
+    }
+    setMedicationRows(initialMeds);
+
     if (activeRecord) {
       setDiagForm({
         diagnosis: activeRecord.assessment || '',
         complaint: activeRecord.subjective || '',
-        medication: activeRecord.plan || (isToday ? (medicationTakingStr !== '—' ? medicationTakingStr : '') : ''),
-        investigationFindings: activeRecord.objective || ''
+        medication: activeRecord.plan || '',
+        medicationTaking: activeRecord.objective || ''
       });
       setEditingDiagnosisRecord(activeRecord);
     } else {
@@ -268,12 +312,39 @@ export default function MedicalCaseDetailPage() {
       setDiagForm({
         diagnosis: '',
         complaint: '',
-        medication: isToday && medicationTakingStr !== '—' ? medicationTakingStr : '',
-        investigationFindings: ''
+        medication: '',
+        medicationTaking: ''
       });
       setEditingDiagnosisRecord(null);
     }
     setShowDiagnosisDrawer(true);
+  };
+
+  const updateMedicationRow = (index: number, field: keyof MedicationRow, value: string) => {
+    setMedicationRows(prev => prev.map((row, idx) => {
+      if (idx === index) {
+        const updated = { ...row, [field]: value };
+        if (field === 'medicine' && value) {
+          const match = (medicines as any[]).find(m => m.name && m.name.toLowerCase() === value.toLowerCase());
+          if (match && match.disease) {
+            updated.issue = match.disease;
+          }
+        }
+        return updated;
+      }
+      return row;
+    }));
+  };
+
+  const addMedicationRow = () => {
+    setMedicationRows(prev => [...prev, { medicine: '', frequency: 'Once', days: '', issue: '' }]);
+  };
+
+  const removeMedicationRow = (index: number) => {
+    setMedicationRows(prev => {
+      const updated = prev.filter((_, idx) => idx !== index);
+      return updated.length > 0 ? updated : [{ medicine: '', frequency: 'Once', days: '', issue: '' }];
+    });
   };
 
   const handleSaveDiagnosis = async () => {
@@ -289,12 +360,14 @@ export default function MedicalCaseDetailPage() {
       if (diagForm.diagnosis.trim()) {
         await updateDiagnosis.mutateAsync({ regid: Number(regid), condition: diagForm.diagnosis.trim() });
       }
+      const serializedMeds = JSON.stringify(medicationRows.filter(r => r.medicine.trim() !== ''));
+
       await saveSoap.mutateAsync({
         id: finalRecordId,
         regid: Number(regid),
         visitId: currentVisitId,
         subjective: diagForm.complaint,
-        objective: diagForm.investigationFindings,
+        objective: serializedMeds,
         assessment: diagForm.diagnosis,
         plan: diagForm.medication
       });
@@ -1026,7 +1099,9 @@ export default function MedicalCaseDetailPage() {
                 </div>
                 <div>
                   <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#1e293b', marginBottom: '4px' }}>Medication Taking</div>
-                  <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>{medicationTakingStr}</div>
+                  <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>
+                    {renderMedicationTakingSnapshot(currentVisitSoap?.objective || medicationTakingStr)}
+                  </div>
                 </div>
                 <div>
                   <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#1e293b', marginBottom: '4px' }}>Investigation</div>
@@ -1093,15 +1168,212 @@ export default function MedicalCaseDetailPage() {
                       />
                     </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Objective Findings</label>
-                      <textarea
-                        className="pp-textarea"
-                        value={diagForm.investigationFindings}
-                        onChange={e => setDiagForm({ ...diagForm, investigationFindings: e.target.value })}
-                        placeholder="Physical exam or lab summaries..."
-                        style={{ minHeight: '80px' }}
-                      />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Medication Taking</label>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {medicationRows.map((row, idx) => (
+                          <div 
+                            key={idx} 
+                            style={{ 
+                              border: '1px solid #e2e8f0', 
+                              borderRadius: '8px', 
+                              padding: '12px', 
+                              background: '#f8fafc',
+                              display: 'flex', 
+                              flexDirection: 'column', 
+                              gap: '10px',
+                              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.02)'
+                            }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                Medication #{idx + 1}
+                              </span>
+                              <button
+                                type="button"
+                                className="btn-ghost"
+                                style={{
+                                  color: '#ef4444',
+                                  padding: '6px',
+                                  border: '1px solid transparent',
+                                  borderRadius: '6px',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  background: '#fef2f2',
+                                  transition: 'all 0.2s ease'
+                                }}
+                                onClick={() => removeMedicationRow(idx)}
+                                title="Remove medication"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', position: 'relative' }}>
+                                <label style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Medicine Name</label>
+                                <input
+                                  type="text"
+                                  className="pp-input"
+                                  placeholder="Search or enter medicine name"
+                                  value={row.medicine}
+                                  onChange={e => updateMedicationRow(idx, 'medicine', e.target.value)}
+                                  onFocus={() => setActiveMedicineFocusIdx(idx)}
+                                  onBlur={() => {
+                                    setTimeout(() => setActiveMedicineFocusIdx(null), 200);
+                                  }}
+                                  style={{ width: '100%', padding: '8px 12px', fontSize: '0.85rem' }}
+                                  autoComplete="off"
+                                />
+
+                                {activeMedicineFocusIdx === idx && (() => {
+                                  const query = row.medicine.toLowerCase();
+                                  const filtered = (medicines as any[])
+                                    .filter(m => m.name && m.name.toLowerCase().includes(query))
+                                    .slice(0, 5);
+                                    
+                                  if (filtered.length === 0) return null;
+                                  
+                                  return (
+                                    <div style={{
+                                      position: 'absolute',
+                                      top: '100%',
+                                      left: 0,
+                                      right: 0,
+                                      zIndex: 1000,
+                                      background: 'white',
+                                      border: '1px solid #e2e8f0',
+                                      borderRadius: '8px',
+                                      boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                                      marginTop: '4px',
+                                      maxHeight: '220px',
+                                      overflowY: 'auto'
+                                    }}>
+                                      {filtered.map((m: any) => (
+                                        <div
+                                          key={m.id}
+                                          onMouseDown={() => {
+                                            updateMedicationRow(idx, 'medicine', m.name);
+                                          }}
+                                          style={{
+                                            padding: '10px 14px',
+                                            cursor: 'pointer',
+                                            borderBottom: '1px solid #f1f5f9',
+                                            transition: 'background 0.2s ease',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: '2px'
+                                          }}
+                                          onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
+                                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                        >
+                                          <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.85rem' }}>
+                                            {m.name}
+                                          </span>
+                                          
+                                          <div style={{ display: 'flex', gap: '8px', color: '#64748b', fontSize: '0.75rem', alignItems: 'center' }}>
+                                            {m.disease && (
+                                              <span>Disease: {m.disease}</span>
+                                            )}
+                                            {m.type && (
+                                              <>
+                                                <span style={{ color: '#cbd5e1' }}>•</span>
+                                                <span>Type: {m.type}</span>
+                                              </>
+                                            )}
+                                            {m.price > 0 && (
+                                              <>
+                                                <span style={{ color: '#cbd5e1' }}>•</span>
+                                                <span>Price: ₹{m.price}</span>
+                                              </>
+                                            )}
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  );
+                                })()}
+                              </div>
+
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                  <label style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Frequency</label>
+                                  <select
+                                    className="pp-input"
+                                    value={row.frequency}
+                                    onChange={e => updateMedicationRow(idx, 'frequency', e.target.value)}
+                                    style={{ width: '100%', padding: '8px', fontSize: '0.85rem', height: '38px', background: 'white' }}
+                                  >
+                                    <option value="Once">Once</option>
+                                    <option value="Twice">Twice</option>
+                                    <option value="Thrice">Thrice</option>
+                                    <option value="Bed Time">Bed Time</option>
+                                    <option value="Empty Stomach">Empty Stomach</option>
+                                    <option value="weekly">weekly</option>
+                                  </select>
+                                </div>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                  <label style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Patient Issue</label>
+                                  <select
+                                    className="pp-input"
+                                    value={row.issue}
+                                    onChange={e => updateMedicationRow(idx, 'issue', e.target.value)}
+                                    style={{ width: '100%', padding: '8px', fontSize: '0.85rem', height: '38px', background: 'white' }}
+                                  >
+                                    <option value="">Select Issue</option>
+                                    {diagForm.diagnosis && <option value={diagForm.diagnosis}>{diagForm.diagnosis}</option>}
+                                    {diagForm.complaint && <option value={diagForm.complaint}>{diagForm.complaint}</option>}
+                                    {PatientIssueSelectOptions.map(opt => (
+                                      <option key={opt} value={opt}>{opt}</option>
+                                    ))}
+                                    {row.issue && ![diagForm.diagnosis, diagForm.complaint, ...PatientIssueSelectOptions].includes(row.issue) && (
+                                      <option value={row.issue}>{row.issue}</option>
+                                    )}
+                                  </select>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={addMedicationRow}
+                        style={{
+                          alignSelf: 'flex-start',
+                          marginTop: '4px',
+                          padding: '6px 12px',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          color: '#2563eb',
+                          background: '#eff6ff',
+                          border: '1px dashed #bfdbfe',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = '#dbeafe';
+                          e.currentTarget.style.borderColor = '#3b82f6';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = '#eff6ff';
+                          e.currentTarget.style.borderColor = '#bfdbfe';
+                        }}
+                      >
+                        <Plus size={14} /> Add Medication
+                      </button>
+                      <datalist id="medicines-catalog-list">
+                        {(medicines as any[]).map((m: any) => (
+                          <option key={m.id} value={m.name} />
+                        ))}
+                      </datalist>
                     </div>
                   </div>
 
@@ -2848,6 +3120,130 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
   );
 }
 
+interface MedicationRow {
+  medicine: string;
+  frequency: string;
+  days: string;
+  issue: string;
+}
+
+const renderMedicationTakingSnapshot = (objectiveVal: string | null | undefined) => {
+  if (!objectiveVal || objectiveVal === '—') return '—';
+  try {
+    const trimmed = objectiveVal.trim();
+    if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+      const parsed = JSON.parse(trimmed);
+      const arr = Array.isArray(parsed) ? parsed : [parsed];
+      
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+          {arr.map((item: any, idx: number) => {
+            return (
+              <div 
+                key={idx} 
+                style={{ 
+                  background: '#f8fafc', 
+                  border: '1px solid #e2e8f0', 
+                  borderRadius: '8px', 
+                  padding: '8px 12px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px',
+                  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.02)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ display: 'inline-flex', padding: '4px', borderRadius: '50%', background: '#eff6ff', color: '#2563eb' }}>
+                    <Pill size={12} />
+                  </span>
+                  <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.85rem' }}>
+                    {item.medicine}
+                  </span>
+                </div>
+                
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                  {item.frequency && (
+                    <span style={{ 
+                      background: '#eff6ff', 
+                      color: '#1e40af', 
+                      padding: '2px 8px', 
+                      borderRadius: '12px', 
+                      fontSize: '0.7rem', 
+                      fontWeight: 600,
+                      border: '1px solid #dbeafe'
+                    }}>
+                      {item.frequency}
+                    </span>
+                  )}
+                  {item.days && (
+                    <span style={{ 
+                      background: '#f1f5f9', 
+                      color: '#334155', 
+                      padding: '2px 8px', 
+                      borderRadius: '12px', 
+                      fontSize: '0.7rem', 
+                      fontWeight: 600,
+                      border: '1px solid #e2e8f0'
+                    }}>
+                      {item.days} days
+                    </span>
+                  )}
+                  {item.issue && (
+                    <span style={{ 
+                      background: '#f0fdf4', 
+                      color: '#166534', 
+                      padding: '2px 8px', 
+                      borderRadius: '12px', 
+                      fontSize: '0.7rem', 
+                      fontWeight: 600,
+                      border: '1px solid #dcfce7'
+                    }}>
+                      {item.issue}
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+  } catch (e) {}
+  return objectiveVal;
+};
+
+const renderMedicationTakingHistory = (objectiveVal: string) => {
+  try {
+    const trimmed = objectiveVal.trim();
+    if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+      const parsed = JSON.parse(trimmed);
+      const arr = Array.isArray(parsed) ? parsed : [parsed];
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '4px' }}>
+          <span style={{ fontWeight: 800, color: 'var(--pp-text-2)', fontSize: '0.7rem', textTransform: 'uppercase' }}>Medication Taking:</span>
+          {arr.map((item: any, idx: number) => {
+            const parts = [];
+            if (item.frequency) parts.push(item.frequency);
+            if (item.days) parts.push(`${item.days} days`);
+            if (item.issue) parts.push(item.issue);
+            return (
+              <div key={idx} style={{ paddingLeft: '8px', borderLeft: '2px solid #cbd5e1', fontSize: '0.75rem', color: '#475569' }}>
+                <span style={{ fontWeight: 600, color: '#1e293b' }}>{item.medicine}</span>
+                {parts.length > 0 && ` (${parts.join(' - ')})`}
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+  } catch (e) {}
+  return (
+    <div>
+      <span style={{ fontWeight: 800, color: 'var(--pp-text-2)', fontSize: '0.7rem', textTransform: 'uppercase' }}>Medication Taking:</span> {objectiveVal}
+    </div>
+  );
+};
+
 function DiagnosisView({
   regid,
   visitId,
@@ -2882,7 +3278,27 @@ function DiagnosisView({
     const parts = [];
     if (record.assessment) parts.push(`Diagnosis: ${record.assessment}`);
     if (record.subjective) parts.push(`S: ${record.subjective}`);
-    if (record.objective) parts.push(`O: ${record.objective}`);
+    if (record.objective) {
+      try {
+        const trimmed = record.objective.trim();
+        if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+          const parsed = JSON.parse(trimmed);
+          const arr = Array.isArray(parsed) ? parsed : [parsed];
+          const medsStr = arr.map((item: any) => {
+            const detailParts = [];
+            if (item.frequency) detailParts.push(item.frequency);
+            if (item.days) detailParts.push(`${item.days}d`);
+            if (item.issue) detailParts.push(item.issue);
+            return `${item.medicine}${detailParts.length > 0 ? ` (${detailParts.join('/')})` : ''}`;
+          }).join(', ');
+          parts.push(`Medication Taking: ${medsStr}`);
+        } else {
+          parts.push(`Medication Taking: ${record.objective}`);
+        }
+      } catch (e) {
+        parts.push(`Medication Taking: ${record.objective}`);
+      }
+    }
     if (record.plan) parts.push(`P: ${record.plan}`);
 
     onAppendNote(`DIAGNOSIS (${new Date(record.createdAt).toLocaleDateString()}): ${parts.join(' | ')}`);
@@ -2972,7 +3388,7 @@ function DiagnosisView({
                           </td>
                           <td>
                             <div style={{ fontWeight: 700, color: 'var(--pp-blue)', fontSize: '0.85rem', marginBottom: '2px' }}>{record.assessment || 'No Diagnosis'}</div>
-                            {record.objective && <div style={{ fontSize: '0.75rem', color: 'var(--pp-text-3)' }}>Obj: {record.objective}</div>}
+                            {record.objective && renderMedicationTakingHistory(record.objective)}
                           </td>
                           <td>
                             <div style={{ fontSize: '0.85rem', color: 'var(--pp-ink)', lineHeight: 1.5 }}>
