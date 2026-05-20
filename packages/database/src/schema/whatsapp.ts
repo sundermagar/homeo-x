@@ -272,6 +272,8 @@ export const waAiSettings = pgTable('wa_ai_settings', {
   triggerWords: jsonb('trigger_words').default([]), // words that trigger auto-reply on first message
   systemPrompt: text('system_prompt'), // custom system prompt override
   escalationRules: jsonb('escalation_rules').default({}), // { enabled, maxAttempts, triggerPhrases }
+  responseConfig: jsonb('response_config').default({ tone: 'Friendly', length: 'Medium (~200 words)', fallback: "I'm sorry, I don't have the information you're looking for." }),
+  trainFromKB: boolean('train_from_kb').default(false),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({

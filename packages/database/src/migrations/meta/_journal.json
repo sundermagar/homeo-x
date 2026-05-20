@@ -183,6 +183,13 @@
       "when": 1747330000000,
       "tag": "0025_add_ai_chatbot_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1747340000000,
+      "tag": "0026_add_ai_behavior_customization",
+      "breakpoints": true
     }
   ]
 }

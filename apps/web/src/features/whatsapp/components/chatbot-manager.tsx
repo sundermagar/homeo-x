@@ -37,6 +37,7 @@ export const ChatbotManager = () => {
     isActive: false,
     apiKey: '',
     provider: 'openai',
+    endpoint: 'https://api.openai.com/v1',
     model: 'gpt-4o-mini',
     temperature: 0.7,
     maxTokens: 500,
@@ -61,6 +62,7 @@ export const ChatbotManager = () => {
         isActive: aiSettings.isActive || false,
         apiKey: aiSettings.apiKey || '',
         provider: aiSettings.provider || 'openai',
+        endpoint: aiSettings.endpoint || 'https://api.openai.com/v1',
         model: aiSettings.model || 'gpt-4o-mini',
         temperature: parseFloat(aiSettings.temperature) || 0.7,
         maxTokens: parseInt(aiSettings.maxTokens) || 500,
@@ -94,6 +96,36 @@ export const ChatbotManager = () => {
 
   const updateConfig = (key: string, value: any) => {
     setSettingsForm(prev => ({ ...prev, [key]: value }));
+  };
+
+  const updateResponseConfig = (key: string, value: string) => {
+    setSettingsForm(prev => ({
+      ...prev,
+      responseConfig: {
+        ...prev.responseConfig,
+        [key]: value
+      }
+    }));
+  };
+
+  const handleProviderChange = (newProvider: string) => {
+    let defaultEndpoint = 'https://api.openai.com/v1';
+    let defaultModel = 'gpt-4o-mini';
+
+    if (newProvider === 'gemini') {
+      defaultEndpoint = 'https://generativelanguage.googleapis.com/v1beta/openai/';
+      defaultModel = 'gemini-1.5-flash';
+    } else if (newProvider === 'custom') {
+      defaultEndpoint = 'https://api.openai.com/v1';
+      defaultModel = 'claude-3-5-sonnet';
+    }
+
+    setSettingsForm(prev => ({
+      ...prev,
+      provider: newProvider,
+      endpoint: defaultEndpoint,
+      model: defaultModel
+    }));
   };
 
   // Training Sources
@@ -243,6 +275,22 @@ export const ChatbotManager = () => {
               </button>
             );
           })}
+        </div>
+      </div>
+
+      {/* Global Training Stats Cards (matching mockup) */}
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="p-4 bg-blue-50/40 rounded-2xl border border-blue-100/60 text-center flex flex-col items-center justify-center min-h-[96px] transition-all hover:bg-blue-50/70">
+          <span className="text-2xl font-bold text-pp-blue">{stats?.sourcesCount ?? 0}</span>
+          <span className="text-xs font-bold text-secondary mt-1">Sources</span>
+        </div>
+        <div className="p-4 bg-purple-50/40 rounded-2xl border border-purple-100/60 text-center flex flex-col items-center justify-center min-h-[96px] transition-all hover:bg-purple-50/70">
+          <span className="text-2xl font-bold text-purple-600">{stats?.chunksCount ?? 0}</span>
+          <span className="text-xs font-bold text-secondary mt-1">Chunks</span>
+        </div>
+        <div className="p-4 bg-emerald-50/40 rounded-2xl border border-emerald-100/60 text-center flex flex-col items-center justify-center min-h-[96px] transition-all hover:bg-emerald-50/70">
+          <span className="text-2xl font-bold text-emerald-600">{stats?.qaCount ?? 0}</span>
+          <span className="text-xs font-bold text-secondary mt-1">Q&A Pairs</span>
         </div>
       </div>
 
@@ -402,123 +450,257 @@ export const ChatbotManager = () => {
 
       {/* AI Behavior Tab (from screenshot/code match) */}
       {activeTab === 'behavior' && (
-        <div className="appt-card p-4 sm:p-6 bg-white shadow-sm border border-pp-border">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-bold text-main flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              AI Provider Configuration
-            </h3>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-main">Active</span>
-              <label className="pp-switch-wrapper cursor-pointer">
+        <div className="space-y-6">
+          {/* Card 1: AI Provider Configuration */}
+          <div className="appt-card p-4 sm:p-6 bg-white shadow-sm border border-pp-border">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-bold text-main flex items-center gap-2">
+                <Settings className="h-4 w-4 text-secondary" />
+                AI Provider Configuration
+              </h3>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-main">Active</span>
+                <label className="pp-switch-wrapper cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    className="pp-switch-input" 
+                    checked={settingsForm.isActive}
+                    onChange={(e) => updateConfig("isActive", e.target.checked)}
+                  />
+                  <span className="pp-switch-slider"></span>
+                </label>
+              </div>
+            </div>
+            <p className="text-xs text-secondary mb-6">Configure your AI model provider, credentials, and trigger words</p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-main flex items-center gap-1.5"><Settings className="h-3.5 w-3.5 text-secondary" /> Provider</label>
+                <select 
+                  className="pp-select"
+                  value={settingsForm.provider}
+                  onChange={e => handleProviderChange(e.target.value)}
+                >
+                  <option value="openai">OpenAI (Default)</option>
+                  <option value="gemini">Google Gemini</option>
+                  <option value="custom">Custom (Claude, Groq, Ollama, etc.)</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-main flex items-center gap-1.5"><Key className="h-3.5 w-3.5 text-secondary" /> API Key</label>
                 <input 
-                  type="checkbox" 
-                  className="pp-switch-input" 
-                  checked={settingsForm.isActive}
-                  onChange={(e) => updateConfig("isActive", e.target.checked)}
+                  type="password"
+                  className="pp-input"
+                  placeholder={
+                    settingsForm.provider === 'gemini' 
+                      ? 'AIzaSy...' 
+                      : (settingsForm.provider === 'openai' ? 'sk-...' : 'Enter your API Key')
+                  }
+                  value={settingsForm.apiKey}
+                  onChange={e => updateConfig("apiKey", e.target.value)}
                 />
-                <span className="pp-switch-slider"></span>
-              </label>
-            </div>
-          </div>
-          <p className="text-xs text-secondary mb-6">Configure your AI model provider, credentials, and trigger words</p>
+              </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-main flex items-center gap-1.5"><Settings className="h-3.5 w-3.5" /> Provider</label>
-              <select 
-                className="pp-select"
-                value={settingsForm.provider}
-                onChange={e => updateConfig("provider", e.target.value)}
-              >
-                <option value="openai">OpenAI</option>
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-main flex items-center gap-1.5"><Key className="h-3.5 w-3.5" /> API Key</label>
-              <input 
-                type="password"
-                className="pp-input"
-                placeholder="sk-..."
-                value={settingsForm.apiKey}
-                onChange={e => updateConfig("apiKey", e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-main flex items-center gap-1.5"><Cpu className="h-3.5 w-3.5" /> Model</label>
-              <select 
-                className="pp-select"
-                value={settingsForm.model}
-                onChange={e => updateConfig("model", e.target.value)}
-              >
-                <option value="gpt-4o-mini">GPT-4o Mini</option>
-                <option value="gpt-4o">GPT-4o</option>
-                <option value="gpt-4-turbo">GPT-4 Turbo</option>
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-main flex items-center gap-1.5"><Brain className="h-3.5 w-3.5" /> Temperature</label>
-              <input 
-                type="number"
-                step="0.1" min="0" max="2"
-                className="pp-input"
-                value={settingsForm.temperature}
-                onChange={e => updateConfig("temperature", parseFloat(e.target.value))}
-              />
-            </div>
-          </div>
-
-          <div className="border-t border-pp-border pt-6 mb-6">
-            <label className="text-xs font-bold text-main flex items-center gap-1.5 mb-1">
-              <MessageSquare className="h-3.5 w-3.5" /> Trigger Words
-            </label>
-            <p className="text-xs text-secondary mb-3">AI will only respond when a message contains one of these words</p>
-            
-            <div className="flex gap-2 mb-3">
-              <div style={{ flex: '1 1 auto', maxWidth: '360px' }}>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-main flex items-center gap-1.5"><Globe className="h-3.5 w-3.5 text-secondary" /> API Endpoint / Base URL</label>
                 <input 
                   type="text"
                   className="pp-input"
-                  placeholder="e.g., hello, help, pricing"
-                  value={newTriggerWord}
-                  onChange={e => setNewTriggerWord(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && newTriggerWord.trim()) {
+                  placeholder="https://api.openai.com/v1"
+                  value={settingsForm.endpoint}
+                  onChange={e => updateConfig("endpoint", e.target.value)}
+                  disabled={settingsForm.provider === 'openai'}
+                />
+                <p className="text-[10px] text-slate-400">
+                  {settingsForm.provider === 'openai' 
+                    ? 'Default OpenAI API URL is used' 
+                    : (settingsForm.provider === 'gemini' ? 'Google Gemini OpenAI-compatible gateway' : 'Specify custom gateway URL')}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-main flex items-center gap-1.5"><Cpu className="h-3.5 w-3.5 text-secondary" /> Model</label>
+                {settingsForm.provider === 'openai' && (
+                  <select 
+                    className="pp-select"
+                    value={settingsForm.model}
+                    onChange={e => updateConfig("model", e.target.value)}
+                  >
+                    <option value="gpt-4o-mini">GPT-4o Mini</option>
+                    <option value="gpt-4o">GPT-4o</option>
+                    <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                  </select>
+                )}
+                {settingsForm.provider === 'gemini' && (
+                  <select 
+                    className="pp-select"
+                    value={settingsForm.model}
+                    onChange={e => updateConfig("model", e.target.value)}
+                  >
+                    <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                    <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                    <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash</option>
+                  </select>
+                )}
+                {settingsForm.provider === 'custom' && (
+                  <input 
+                    type="text"
+                    className="pp-input"
+                    placeholder="e.g. claude-3-5-sonnet-20241022 or llama-3"
+                    value={settingsForm.model}
+                    onChange={e => updateConfig("model", e.target.value)}
+                  />
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-main flex items-center gap-1.5"><Brain className="h-3.5 w-3.5 text-secondary" /> Temperature</label>
+                <input 
+                  type="number"
+                  step="0.1" min="0" max="2"
+                  className="pp-input"
+                  value={settingsForm.temperature}
+                  onChange={e => updateConfig("temperature", parseFloat(e.target.value))}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-main flex items-center gap-1.5"><Clock className="h-3.5 w-3.5 text-secondary" /> Max Tokens</label>
+                <input 
+                  type="number"
+                  step="64" min="1" max="16384"
+                  className="pp-input"
+                  value={settingsForm.maxTokens}
+                  onChange={e => updateConfig("maxTokens", parseInt(e.target.value))}
+                />
+              </div>
+            </div>
+
+            <div className="border-t border-pp-border pt-6">
+              <label className="text-xs font-bold text-main flex items-center gap-1.5 mb-1">
+                <MessageSquare className="h-3.5 w-3.5 text-secondary" /> Trigger Words
+              </label>
+              <p className="text-xs text-secondary mb-3">AI will only respond when a message contains one of these words (applies to both widget chat and team inbox)</p>
+              
+              <div className="flex gap-2 mb-3">
+                <div style={{ flex: '1 1 auto', maxWidth: '360px' }}>
+                  <input 
+                    type="text"
+                    className="pp-input"
+                    placeholder="e.g., hello, help, pricing"
+                    value={newTriggerWord}
+                    onChange={e => setNewTriggerWord(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && newTriggerWord.trim()) {
+                        updateConfig("triggerWords", [...settingsForm.triggerWords, newTriggerWord.trim()]);
+                        setNewTriggerWord("");
+                      }
+                    }}
+                  />
+                </div>
+                <button 
+                  className="btn-secondary px-4 h-10 shadow-sm border border-pp-border rounded-xl"
+                  onClick={() => {
+                    if (newTriggerWord.trim()) {
                       updateConfig("triggerWords", [...settingsForm.triggerWords, newTriggerWord.trim()]);
                       setNewTriggerWord("");
                     }
                   }}
-                />
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
               </div>
-              <button 
-                className="btn-secondary px-4 h-10 shadow-sm border border-pp-border rounded-xl"
-                onClick={() => {
-                  if (newTriggerWord.trim()) {
-                    updateConfig("triggerWords", [...settingsForm.triggerWords, newTriggerWord.trim()]);
-                    setNewTriggerWord("");
-                  }
-                }}
-              >
-                <Plus className="h-4 w-4" />
-              </button>
-            </div>
 
-            <div className="flex flex-wrap gap-2">
-              {settingsForm.triggerWords.map((word, i) => (
-                <span key={i} className="px-3 py-1.5 bg-pp-blue/5 border border-pp-blue/20 text-pp-blue rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm">
-                  {word}
-                  <button className="hover:bg-pp-blue/20 rounded-full p-0.5 transition-colors" onClick={() => updateConfig("triggerWords", settingsForm.triggerWords.filter((_, idx) => idx !== i))}>
-                    <X className="h-3 w-3" />
-                  </button>
-                </span>
-              ))}
+              {settingsForm.triggerWords.length === 0 ? (
+                <p className="text-xs text-slate-400 italic">No trigger words defined — AI will respond to all messages</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {settingsForm.triggerWords.map((word, i) => (
+                    <span key={i} className="px-3 py-1.5 bg-pp-blue/5 border border-pp-blue/20 text-pp-blue rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm">
+                      {word}
+                      <button className="hover:bg-pp-blue/20 rounded-full p-0.5 transition-colors" onClick={() => updateConfig("triggerWords", settingsForm.triggerWords.filter((_, idx) => idx !== i))}>
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
-          
-          <div className="flex justify-end border-t border-pp-border pt-6">
+
+          {/* Card 2: System Prompt */}
+          <div className="appt-card p-4 sm:p-6 bg-white shadow-sm border border-pp-border">
+            <h3 className="text-base font-bold text-main mb-1 flex items-center gap-2">
+              <Bot className="h-4 w-4 text-secondary" />
+              System Prompt
+            </h3>
+            <p className="text-xs text-secondary mb-4">Define how the AI should behave and respond to customers</p>
+            
+            <div className="space-y-2">
+              <textarea 
+                className="pp-textarea min-h-[120px]" 
+                placeholder="You are a helpful customer support assistant..."
+                maxLength={4000}
+                value={settingsForm.systemPrompt}
+                onChange={e => updateConfig("systemPrompt", e.target.value)}
+              />
+              <div className="text-right text-xs text-secondary">
+                {settingsForm.systemPrompt.length} / 4000 characters
+              </div>
+            </div>
+          </div>
+
+          {/* Card 3: Response Settings */}
+          <div className="appt-card p-4 sm:p-6 bg-white shadow-sm border border-pp-border">
+            <h3 className="text-base font-bold text-main mb-4 flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-secondary" />
+              Response Settings
+            </h3>
+            
+            <div className="space-y-4 max-w-3xl">
+              <div>
+                <label className="text-xs font-bold text-main block mb-1.5">Response Tone</label>
+                <select 
+                  className="pp-select"
+                  value={settingsForm.responseConfig.tone}
+                  onChange={e => updateResponseConfig("tone", e.target.value)}
+                >
+                  <option value="Friendly">Friendly</option>
+                  <option value="Professional">Professional</option>
+                  <option value="Casual">Casual</option>
+                  <option value="Empathetic">Empathetic</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-main block mb-1.5">Max Response Length</label>
+                <select 
+                  className="pp-select"
+                  value={settingsForm.responseConfig.length}
+                  onChange={e => updateResponseConfig("length", e.target.value)}
+                >
+                  <option value="Short (~50 words)">Short (~50 words)</option>
+                  <option value="Medium (~200 words)">Medium (~200 words)</option>
+                  <option value="Long (~500 words)">Long (~500 words)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-main block mb-1.5">Fallback Message</label>
+                <textarea 
+                  className="pp-textarea min-h-[80px]" 
+                  placeholder="I'm sorry, I don't have the information you're looking for."
+                  value={settingsForm.responseConfig.fallback}
+                  onChange={e => updateResponseConfig("fallback", e.target.value)}
+                />
+                <p className="text-xs text-secondary mt-1">Shown when the AI cannot generate a response</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Actions */}
+          <div className="flex justify-end pt-2">
             <button 
               className="btn-primary w-full sm:w-auto h-10 px-6 disabled:opacity-50"
               onClick={handleSaveSettings}
