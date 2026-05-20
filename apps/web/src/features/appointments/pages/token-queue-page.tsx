@@ -28,6 +28,11 @@ function formatWaitTime(checkedInAt: Date | string | null) {
   return `${Math.floor(diff / 60)}h ${diff % 60}m wait`;
 }
 
+const formatName = (name?: string | null) => {
+  if (!name) return '';
+  return name.trim().replace(/\b\w/g, c => c.toUpperCase());
+};
+
 import { useNavigate } from 'react-router-dom';
 
 export default function TokenQueuePage() {
@@ -58,7 +63,7 @@ export default function TokenQueuePage() {
     }
     const cleanPhone = phone.replace(/\D/g, '');
     const finalPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
-    const msg = `Hello ${name}, your appointment at our clinic is confirmed.`;
+    const msg = `Hello ${formatName(name)}, your appointment at our clinic is confirmed.`;
     window.open(`https://wa.me/${finalPhone}?text=${encodeURIComponent(msg)}`, '_blank');
   };
   const [openMenuId, setOpenMenuId] = useState<number | string | null>(null);
@@ -228,7 +233,7 @@ export default function TokenQueuePage() {
 
   const handlePrint = (token: any) => {
     setPrintData({
-      patientName: token.patientName || 'N/A',
+      patientName: formatName(token.patientName) || 'N/A',
       regId: token.regid,
       date: new Date().toLocaleDateString(),
       age: token.age,
@@ -330,7 +335,7 @@ export default function TokenQueuePage() {
           </div>
 
           <div className="appt-token-patient-box">
-            <div className="appt-token-patient-name">{w.patientName ?? `Patient #${w.patientId}`}</div>
+            <div className="appt-token-patient-name">{formatName(w.patientName) || `Patient #${w.patientId}`}</div>
             {w.doctorName && <div className="appt-token-doctor-name">{w.doctorName}</div>}
           </div>
 
@@ -399,7 +404,7 @@ export default function TokenQueuePage() {
                   <span className="appt-token-pill" style={{ color: WAIT_COLOR[w.status] }}>W{w.waitingNumber}</span>
                 </td>
                 <td data-label="PATIENT">
-                  <div style={{ fontWeight: 600, color: 'var(--pp-ink)' }}>{w.patientName || 'Unknown'}</div>
+                  <div style={{ fontWeight: 600, color: 'var(--pp-ink)' }}>{formatName(w.patientName) || 'Unknown'}</div>
                   <div style={{ fontSize: '11px', color: 'var(--pp-text-3)', fontWeight: 500 }}>
                     {w.regid ? `ID: ${w.regid}` : '—'} • {w.mobile || 'No Mobile'}
                   </div>
@@ -666,7 +671,7 @@ export default function TokenQueuePage() {
                             )}
                           </td>
                           <td data-label="PATIENT">
-                            <div style={{ fontWeight: 600, color: 'var(--pp-ink)' }}>{a.patientName || 'Unknown'}</div>
+                            <div style={{ fontWeight: 600, color: 'var(--pp-ink)' }}>{formatName(a.patientName) || 'Unknown'}</div>
                             <div style={{ fontSize: '11px', color: 'var(--pp-text-3)', fontWeight: 500 }}>
                               {a.regid ? `ID: ${a.regid}` : '—'} • {a.mobile || 'No Mobile'}
                             </div>
@@ -800,7 +805,7 @@ export default function TokenQueuePage() {
                             <div style={{ fontSize: 10, color: 'var(--pp-text-3)', fontWeight: 600 }}>{r.billDate || 'Live Sync'}</div>
                           </td>
                           <td data-label="PATIENT">
-                            <div className="appt-cell-name">{r.patientName}</div>
+                            <div className="appt-cell-name">{formatName(r.patientName)}</div>
                             <div className="appt-cell-phone">{r.phone || 'No Contact Linked'}</div>
                           </td>
                           <td data-label="CHANNEL" style={{ textAlign: 'center' }}>
@@ -850,7 +855,7 @@ function WaitlistCard({ entry, onStartConsult, onComplete, onVitals, isPending }
       <div className="appt-token-num">W{entry.waitingNumber}</div>
       <div className="appt-token-label">In Consultation</div>
 
-      <div className="appt-token-patient">{entry.patientName ?? `Patient #${entry.patientId}`}</div>
+      <div className="appt-token-patient">{formatName(entry.patientName) || `Patient #${entry.patientId}`}</div>
       <div className="appt-token-doctor">{entry.doctorName ?? 'Practitioner'}</div>
 
       <div className="appt-token-actions">

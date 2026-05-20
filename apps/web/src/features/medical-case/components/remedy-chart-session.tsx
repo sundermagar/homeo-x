@@ -3,7 +3,7 @@ import {
   Search, BookOpen, ChevronRight, Activity,
   FlaskConical, Save, Trash2, Calendar, FileText, Printer, Plus, X,
   History, Edit, MoreHorizontal, Truck, Home, Package, AlertTriangle, CheckCircle2,
-  Upload, Loader2
+  Upload, Loader2, CircleDollarSign
 } from 'lucide-react';
 import { useManageClinicalRecords } from '../hooks/use-medical-cases';
 import {
@@ -51,7 +51,8 @@ export function RemedyChartSession({
   workflow,
   lookups,
   dayCharges = [],
-  selectedDate
+  selectedDate,
+  onAddAdditionalCharge
 }: { 
   regid?: number, 
   visitId?: number,
@@ -61,7 +62,8 @@ export function RemedyChartSession({
   workflow: ReturnType<typeof usePrescriptionWorkflow>,
   lookups: any,
   dayCharges: any[],
-  selectedDate?: string | null
+  selectedDate?: string | null,
+  onAddAdditionalCharge?: () => void
 }) {
   const formRef = useRef<HTMLDivElement>(null);
   const {
@@ -476,39 +478,47 @@ export function RemedyChartSession({
                             </td>
                             <td data-label="Actions" style={{ textAlign: 'right' }}>
                               <div className="mc-table-actions">
-                                <div className="mc-desktop-actions">
-                                  <button onClick={(e) => { e.stopPropagation(); handleRepeatRow(rx); }} className="mc-action-btn" title="Repeat"><History size={14} /></button>
-                                  {(() => {
-                                    const rxDate = new Date(rx.created_at || rx.createdAt || rx.dateval);
-                                    const isToday = rxDate.toDateString() === new Date().toDateString();
-                                    if (!isToday) return null;
-                                    return (
-                                      <>
-                                        <button onClick={(e) => { e.stopPropagation(); startNewRx(); }} className="mc-action-btn" title="Add Extra"><Plus size={14} /></button>
-                                        <button onClick={(e) => { e.stopPropagation(); handleEdit(rx); }} className="mc-action-btn" title="Edit"><Edit size={14} /></button>
-                                        <button onClick={(e) => { e.stopPropagation(); handleDelete(rx.id, rx.remedy_name); }} className="mc-action-btn danger" title="Remove"><Trash2 size={14} /></button>
-                                      </>
-                                    );
-                                  })()}
-                                </div>
-                                <div className="mc-mobile-actions">
-                                  <button className="mc-dots-btn"><MoreHorizontal size={18} /></button>
-                                  <div className="mc-dots-dropdown">
-                                    <button onClick={(e) => { e.stopPropagation(); handleRepeatRow(rx); }}><History size={14} /> Repeat</button>
+                                  <div className="mc-desktop-actions">
+                                    <button 
+                                      onClick={(e) => { e.stopPropagation(); onAddAdditionalCharge?.(); }} 
+                                      className="mc-action-btn" 
+                                      title="Add Additional Charge"
+                                    >
+                                      <CircleDollarSign size={14} />
+                                    </button>
                                     {(() => {
                                       const rxDate = new Date(rx.created_at || rx.createdAt || rx.dateval);
                                       const isToday = rxDate.toDateString() === new Date().toDateString();
                                       if (!isToday) return null;
                                       return (
                                         <>
-                                          <button onClick={(e) => { e.stopPropagation(); startNewRx(); }}><Plus size={14} /> Add Extra</button>
-                                          <button onClick={(e) => { e.stopPropagation(); handleEdit(rx); }}><Edit size={14} /> Edit</button>
-                                          <button onClick={(e) => { e.stopPropagation(); handleDelete(rx.id, rx.remedy_name); }} style={{ color: '#dc2626' }}><Trash2 size={14} /> Remove</button>
+                                          <button onClick={(e) => { e.stopPropagation(); startNewRx(); }} className="mc-action-btn" title="Add Extra"><Plus size={14} /></button>
+                                          <button onClick={(e) => { e.stopPropagation(); handleEdit(rx); }} className="mc-action-btn" title="Edit"><Edit size={14} /></button>
+                                          <button onClick={(e) => { e.stopPropagation(); handleDelete(rx.id, rx.remedy_name); }} className="mc-action-btn danger" title="Remove"><Trash2 size={14} /></button>
                                         </>
                                       );
                                     })()}
                                   </div>
-                                </div>
+                                  <div className="mc-mobile-actions">
+                                    <button className="mc-dots-btn"><MoreHorizontal size={18} /></button>
+                                    <div className="mc-dots-dropdown">
+                                      <button onClick={(e) => { e.stopPropagation(); onAddAdditionalCharge?.(); }}>
+                                        <CircleDollarSign size={14} /> Add Charge
+                                      </button>
+                                      {(() => {
+                                        const rxDate = new Date(rx.created_at || rx.createdAt || rx.dateval);
+                                        const isToday = rxDate.toDateString() === new Date().toDateString();
+                                        if (!isToday) return null;
+                                        return (
+                                          <>
+                                            <button onClick={(e) => { e.stopPropagation(); startNewRx(); }}><Plus size={14} /> Add Extra</button>
+                                            <button onClick={(e) => { e.stopPropagation(); handleEdit(rx); }}><Edit size={14} /> Edit</button>
+                                            <button onClick={(e) => { e.stopPropagation(); handleDelete(rx.id, rx.remedy_name); }} style={{ color: '#dc2626' }}><Trash2 size={14} /> Remove</button>
+                                          </>
+                                        );
+                                      })()}
+                                    </div>
+                                  </div>
                               </div>
                             </td>
                           </tr>

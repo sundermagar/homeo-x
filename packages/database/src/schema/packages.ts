@@ -35,3 +35,17 @@ export const patientPackages = pgTable('patient_packages', {
   updatedAt:   timestamp('updated_at').defaultNow(),
   deletedAt:   timestamp('deleted_at'),
 });
+
+// ─── Predefined Package Periods ──────────────────────────────────────────────
+// Predefined durations (e.g. Monthly, Quarterly) and their effective days
+export const packagePeriods = pgTable('package_periods', {
+  id:           serial('id').primaryKey(),
+  name:         varchar('name',         { length: 150 }).notNull(),
+  days:         integer('days').notNull(),
+  description:  text('description'),
+  isActive:     boolean('is_active').default(true),
+  createdAt:    timestamp('created_at').defaultNow(),
+  updatedAt:    timestamp('updated_at').defaultNow(),
+  deletedAt:    timestamp('deleted_at'),
+});
+

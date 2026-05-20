@@ -59,10 +59,10 @@ async function bootstrap() {
   logger.info(`AI health: ${JSON.stringify(aiConfig.getHealthStatus())}`);
 
   const { app, server, tenantDb } = await createApp();
-  
+
   // Disable internal Node server timeouts (set to 30 minutes) to allow
   // slow local CPU inference (Ollama) to finish without connection closing.
-  server.timeout = 30 * 60 * 1000; 
+  server.timeout = 30 * 60 * 1000;
   server.headersTimeout = 30 * 60 * 1000;
   server.keepAliveTimeout = 30 * 60 * 1000;
 
@@ -70,6 +70,7 @@ async function bootstrap() {
   logger.info(`API server running on port ${boundPort} (Socket timeout increased to 30 mins)`);
 
   // ─── Initialize Background Jobs ───
+  let scheduler: JobScheduler | null = null;
   if (tenantDb) {
     const apptRepo = new AppointmentRepositoryPG(tenantDb);
     const patientRepo = new PatientRepositoryPg(tenantDb);
@@ -77,7 +78,7 @@ async function bootstrap() {
     const smsGateway = createSmsGateway();
     const smsUseCase = new SendSmsUseCase(commRepo, smsGateway);
 
-    const scheduler = new JobScheduler(apptRepo, patientRepo, smsUseCase);
+    scheduler = new JobScheduler(apptRepo, patientRepo, smsUseCase);
     scheduler.start();
     logger.info('Background job scheduler initialized');
   }
@@ -96,15 +97,47 @@ async function bootstrap() {
   // ─── Graceful Shutdown ───
   const shutdown = async (signal: string) => {
     logger.info(`Received ${signal}. Shutting down gracefully...`);
+
+    // Stop background job scheduler intervals
+    if (scheduler) {
+      try {
+        scheduler.stop();
+        logger.info('Background job scheduler stopped');
+      } catch (err: any) {
+        logger.error({ err: err.message }, 'Failed to stop background job scheduler');
+      }
+    }
+
+    // Close Socket.io server to release active websocket connections
+    if (io) {
+      try {
+        logger.info('Closing Socket.io server...');
+        io.close();
+        logger.info('Socket.io server closed');
+      } catch (err: any) {
+        logger.error({ err: err.message }, 'Failed to close Socket.io server');
+      }
+    }
+
+    // Close all database connection pools immediately
+    try {
+      const { closeAllDbClients } = await import('@mmc/database');
+      logger.info('Closing database connection pools...');
+      await closeAllDbClients();
+      logger.info('Database connection pools closed successfully');
+    } catch (err: any) {
+      logger.error({ err: err.message }, 'Failed to close database connections during shutdown');
+    }
+
     server.close(() => {
       logger.info('HTTP server closed');
       process.exit(0);
     });
-    // Force exit after 10s
+    // Force exit after 2s (quick recycle for tsx watch)
     setTimeout(() => {
-      logger.error('Forced shutdown after 10s timeout');
-      process.exit(1);
-    }, 10_000);
+      logger.warn('Forced shutdown after 2s timeout');
+      process.exit(0);
+    }, 2_000);
   };
 
   process.on('SIGTERM', () => shutdown('SIGTERM'));
@@ -115,11 +148,11 @@ bootstrap().catch((err) => {
   logger.fatal({ err }, 'Failed to start server');
   process.exit(1);
 });
- 
- 
- 
- 
- 
- 
- 
- 
+
+
+
+
+
+
+
+

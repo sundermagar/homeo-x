@@ -93,7 +93,7 @@ export default function AccountsPage() {
               }}
               onClick={() => setIsOpen(!isOpen)}
             >
-              <span>{clinicFilter ? orgs.find(o => o.id === clinicFilter)?.name ?? 'Select Clinic' : 'All Registered Clinics'}</span>
+              <span className="plat-capitalize">{clinicFilter ? orgs.find(o => o.id === clinicFilter)?.name ?? 'Select Clinic' : 'All Registered Clinics'}</span>
               <span style={{
                 borderLeft: '5px solid transparent',
                 borderRight: '5px solid transparent',
@@ -217,7 +217,7 @@ export default function AccountsPage() {
                             if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent';
                           }}
                         >
-                          {o.name}
+                          <span className="plat-capitalize">{o.name}</span>
                         </div>
                       );
                     })
@@ -268,7 +268,7 @@ export default function AccountsPage() {
                       </td>
                       <td data-label="Account Holder">
                         <div className="plat-cell-val">
-                          <div style={{ fontWeight: 600 }}>{account.name}</div>
+                          <div className="plat-capitalize" style={{ fontWeight: 600 }}>{account.name}</div>
                           <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '1px' }}>
                             {account.email || '—'}
                           </div>
@@ -276,7 +276,7 @@ export default function AccountsPage() {
                       </td>
                       <td data-label="Linked Clinic">
                         <div className="plat-cell-val">
-                          <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                          <div className="plat-capitalize" style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
                             {getClinicName(account.clinicId)}
                           </div>
                         </div>

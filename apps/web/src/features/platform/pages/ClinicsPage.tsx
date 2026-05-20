@@ -167,7 +167,7 @@ export default function ClinicsPage() {
                       </td>
                       <td data-label="Clinic Name">
                         <div className="plat-cell-val">
-                          <div style={{ fontWeight: 600 }}>{org.name}</div>
+                          <div className="plat-capitalize" style={{ fontWeight: 600 }}>{org.name}</div>
                           {org.description && (
                             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '1px' }}>
                               {org.description}
@@ -177,7 +177,7 @@ export default function ClinicsPage() {
                       </td>
                       <td data-label="City">
                         <div className="plat-cell-val">
-                          <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{org.city || '—'}</div>
+                          <div className="plat-capitalize" style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{org.city || '—'}</div>
                         </div>
                       </td>
                       <td data-label="Phone">

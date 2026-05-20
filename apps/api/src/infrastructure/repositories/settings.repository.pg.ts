@@ -7,12 +7,49 @@ import type {
   Department, Dispensary, ReferralSource, Sticker,
   StaticPage, Faq, PdfSetting, Medicine, Potency, Frequency,
   MessageTemplate, StockLog, PackagePlan, Courier,
-  User, Vaccine, Stock
+  User, Vaccine, Stock, PackagePeriod
 } from '../../domains/settings/ports/settings.repository.js';
 
 export class SettingsRepositoryPg implements ISettingsRepository {
   private readonly logger = createLogger('settings-repository-pg');
+  private initPromise: Promise<void> | null = null;
   constructor(private readonly db: DbClient) {}
+
+  private async initPackagePeriods() {
+    try {
+      // Ensure table exists
+      await this.q(`
+        CREATE TABLE IF NOT EXISTS package_periods (
+          id SERIAL PRIMARY KEY,
+          name VARCHAR(150) NOT NULL,
+          days INTEGER NOT NULL,
+          description TEXT,
+          is_active BOOLEAN DEFAULT TRUE,
+          created_at TIMESTAMP DEFAULT NOW(),
+          updated_at TIMESTAMP DEFAULT NOW()
+        );
+      `);
+      // Seed if empty or contains old template
+      const rows = await this.q<any>('SELECT COUNT(*)::integer as count FROM package_periods');
+      const count = rows[0]?.count ?? 0;
+      const hasOldSeed = await this.q<any>("SELECT id FROM package_periods WHERE name = 'Monthly' LIMIT 1");
+      if (count === 0 || hasOldSeed.length > 0) {
+        this.logger.info('Seeding default package periods into DB');
+        await this.q('TRUNCATE TABLE package_periods RESTART IDENTITY CASCADE');
+        await this.q(`
+          INSERT INTO package_periods (name, days, description, is_active) VALUES
+          ('1 Month', 30, 'Standard 1 month membership coverage', true),
+          ('3 Months', 91, 'Standard 3 months membership coverage', true),
+          ('4 Months', 120, 'Standard 4 months membership coverage', true),
+          ('6 Months', 182, 'Standard 6 months membership coverage', true),
+          ('12 Months', 365, 'Standard 12 months (1 year) membership coverage', true),
+          ('2 Years', 730, 'Standard 2 years membership coverage', true)
+        `);
+      }
+    } catch (err) {
+      this.logger.error({ err }, 'initPackagePeriods failed');
+    }
+  }
 
 
   // ─── Helpers: raw query via db.execute ───────────────────────────────────────
@@ -63,6 +100,48 @@ export class SettingsRepositoryPg implements ISettingsRepository {
     if (row.detail !== undefined && mapped.description === undefined) mapped.description = row.detail;
     
     return mapped;
+  }
+
+  private async ensureTable() {
+    if (!this.initPromise) {
+      this.initPromise = this.initPackagePeriods();
+    }
+    await this.initPromise;
+  }
+
+  // ─── Package Periods ──────────────────────────────────────────────────────
+  async listPackagePeriods(): Promise<PackagePeriod[]> {
+    await this.ensureTable();
+    return this.q<PackagePeriod>('SELECT * FROM package_periods ORDER BY days ASC');
+  }
+  async getPackagePeriod(id: number): Promise<PackagePeriod | undefined> {
+    await this.ensureTable();
+    return this.q1('SELECT * FROM package_periods WHERE id = $1', [id]);
+  }
+  async createPackagePeriod(data: Omit<PackagePeriod, 'id' | 'createdAt' | 'updatedAt'>): Promise<PackagePeriod> {
+    await this.ensureTable();
+    return this.q1(
+      `INSERT INTO package_periods (name, days, description, is_active, created_at, updated_at) 
+       VALUES ($1, $2, $3, $4, NOW(), NOW()) RETURNING *`,
+      [data.name, data.days, data.description ?? null, data.isActive ?? true]
+    ) as Promise<PackagePeriod>;
+  }
+  async updatePackagePeriod(id: number, data: Partial<Omit<PackagePeriod, 'id'>>): Promise<PackagePeriod> {
+    await this.ensureTable();
+    return this.q1(
+      `UPDATE package_periods SET 
+        name = COALESCE($1, name), 
+        days = COALESCE($2, days),
+        description = COALESCE($3, description),
+        is_active = COALESCE($4, is_active), 
+        updated_at = NOW() 
+       WHERE id = $5 RETURNING *`,
+      [data.name ?? null, data.days ?? null, data.description ?? null, data.isActive ?? null, id]
+    ) as Promise<PackagePeriod>;
+  }
+  async deletePackagePeriod(id: number): Promise<void> {
+    await this.ensureTable();
+    await this.q('DELETE FROM package_periods WHERE id = $1', [id]);
   }
 
   // ─── Departments ──────────────────────────────────────────────────────────
