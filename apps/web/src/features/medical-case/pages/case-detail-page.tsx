@@ -273,11 +273,6 @@ export default function MedicalCaseDetailPage() {
       } catch (e) {
         initialMeds = [{ medicine: objectiveStr, frequency: 'Once', days: '', issue: '' }];
       }
-    } else if (isToday && medicationTakingStr && medicationTakingStr !== '—') {
-      const parts = medicationTakingStr.split(',').map(p => p.trim()).filter(Boolean);
-      if (parts.length > 0) {
-        initialMeds = parts.map(m => ({ medicine: m, frequency: 'Once', days: '', issue: '' }));
-      }
     }
     setMedicationRows(initialMeds);
 
@@ -593,7 +588,20 @@ export default function MedicalCaseDetailPage() {
   const fullInvestigations = fullData?.investigations;
   const fullVaccines = fullData?.vaccines;
 
-  const ageString = medicalCase?.dateOfBirth ? `${new Date().getFullYear() - new Date(medicalCase.dateOfBirth).getFullYear()} Years` : 'Unknown Age';
+  const ageString = useMemo(() => {
+    const dob = medicalCase?.dateOfBirth || medicalCase?.dob;
+    if (!dob) return 'Unknown Age';
+    const birthDate = new Date(dob);
+    const now = new Date();
+    let years = now.getFullYear() - birthDate.getFullYear();
+    let months = now.getMonth() - birthDate.getMonth();
+    let days = now.getDate() - birthDate.getDate();
+    if (days < 0) { months--; days += new Date(now.getFullYear(), now.getMonth(), 0).getDate(); }
+    if (months < 0) { years--; months += 12; }
+    if (years > 0) return `${years} Year${years > 1 ? 's' : ''}`;
+    if (months > 0) return `${months} Month${months > 1 ? 's' : ''}`;
+    return `${Math.max(days, 1)} Day${days > 1 ? 's' : ''}`;
+  }, [medicalCase?.dateOfBirth, medicalCase?.dob]);
   const isToday = displayDate && displayDate.toDateString() === new Date().toDateString();
 
   const currentVisitSoaps = useMemo(() => {
@@ -624,37 +632,6 @@ export default function MedicalCaseDetailPage() {
     // Priority: 1. ID from today's prescriptions, 2. ID from today's SOAP notes, 3. The global active case ID
     return idFromRx ?? idFromSoap ?? medicalCase?.id;
   }, [currentVisitPrescriptions, currentVisitSoaps, medicalCase?.id]);
-
-  const medicationTakingStr = useMemo(() => {
-    if (!displayDate || (!prescriptionsHistory && !fullData?.prescriptions)) return '—';
-    
-    const all = [...(prescriptionsHistory || []), ...(fullData?.prescriptions || [])];
-    
-    // Get unique dates sorted descending to find the previous encounter
-    const uniqueDates = Array.from(new Set(all.map(p => {
-      const d = parseSafeDate(p.created_at || p.createdAt || p.dateval);
-      return d ? d.toDateString() : null;
-    }))).filter(Boolean).map(d => new Date(d!)).sort((a, b) => b.getTime() - a.getTime());
-    
-    // Find index of current displayDate
-    const currentIdx = uniqueDates.findIndex(d => d.toDateString() === displayDate.toDateString());
-    
-    // The "Medication Taking" is what was prescribed in the PRIOR visit
-    const prevDate = currentIdx !== -1 && uniqueDates[currentIdx + 1] ? uniqueDates[currentIdx + 1] : null;
-    
-    if (!prevDate) return '—';
-
-    const prevPrescriptions = filterByDate(all, prevDate);
-    
-    // Deduplicate and format
-    const uniqueMeds = Array.from(new Set(prevPrescriptions.map(p => {
-      const name = p.remedy_name || p.remedyName || p.medicineName || p.medicine || '';
-      const potency = p.potency_name || p.potencyName || p.potency || '';
-      return `${name}${potency ? ` ${potency}` : ''}`.trim();
-    }))).filter(Boolean);
-    
-    return uniqueMeds.length > 0 ? uniqueMeds.join(', ') : '—';
-  }, [displayDate, prescriptionsHistory, fullData?.prescriptions, parseSafeDate, filterByDate]);
 
   // tabContent MUST be declared before any early returns (Rules of Hooks)
   const tabContent = useMemo(() => {
@@ -741,9 +718,20 @@ export default function MedicalCaseDetailPage() {
         <div className="profile-top-row">
           <div className="profile-identity">
             <button 
-              className="profile-avatar"
               onClick={() => navigate('/patients')}
-              style={{ cursor: 'pointer', background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.2s' }}
+              style={{ 
+                cursor: 'pointer', 
+                background: 'transparent', 
+                border: 'none', 
+                color: 'white', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                padding: '8px',
+                borderRadius: '8px',
+                transition: 'background 0.2s',
+                marginRight: '8px'
+              }}
               onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
               onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
               title="Back to Patient List"
@@ -869,7 +857,11 @@ export default function MedicalCaseDetailPage() {
           </div>
           <div className="profile-info-cell">
             <label>REGISTERED</label>
-            <span>{medicalCase.createdAt ? new Date(medicalCase.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '—'}</span>
+            <span>{(() => {
+              const regDate = medicalCase.registeredAt || medicalCase.createdAt;
+              if (!regDate) return '—';
+              return new Date(regDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+            })()}</span>
           </div>
           {activePackage?.expiryDate && (
             <div className="profile-info-cell">
@@ -1113,7 +1105,7 @@ export default function MedicalCaseDetailPage() {
                 <div>
                   <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#1e293b', marginBottom: '4px' }}>Medication Taking</div>
                   <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>
-                    {renderMedicationTakingSnapshot(currentVisitSoap?.objective || medicationTakingStr)}
+                    {renderMedicationTakingSnapshot(currentVisitSoap?.objective)}
                   </div>
                 </div>
                 <div>
@@ -1454,14 +1446,7 @@ export default function MedicalCaseDetailPage() {
               isOpen={showReceiptModal}
               onClose={() => setShowReceiptModal(false)}
               patientData={medicalCase}
-              billingData={{
-                registrationCharge: billingValues.regular,
-                medicineDaysCharge: billingValues.daysCharge,
-                additionalCharge: billingValues.additional,
-                totalBill: billingValues.total,
-                paidAmount: billingValues.received,
-                balance: billingValues.balance
-              }}
+              billingData={billingValues}
             />
           </aside>
 

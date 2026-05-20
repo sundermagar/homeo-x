@@ -360,12 +360,71 @@ export class RemedyChartUseCase {
   }
 
   // ── 8. Soft-delete a prescription row ──
+  // When the last prescription for a given date is deleted, also clean up
+  // related records (SOAP/homeo details, followup notes, images, investigations).
   async deletePrescription(id: number): Promise<void> {
+    // 1. Fetch the prescription being deleted to get regid + dateval
+    const [rx] = await this.db.execute(sql`
+      SELECT regid, dateval FROM case_potencies WHERE id = ${id}
+    `) as any[];
+
+    // 2. Soft-delete the prescription itself
     await this.db.execute(sql`
       UPDATE case_potencies SET deleted_at = NOW()::text WHERE id = ${id}
     `);
     // Also remove from courier queue if it exists
     await this.db.execute(sql`DELETE FROM courier_medicine WHERE rand_id = ${String(id)}`);
+
+    if (!rx) return;
+
+    const regid = Number(rx.regid);
+    const dateval = rx.dateval;
+    if (!dateval) return;
+
+    // 3. Check if there are any remaining (non-deleted) prescriptions for the same regid + date
+    const remaining = await this.db.execute(sql`
+      SELECT COUNT(*)::int AS cnt FROM case_potencies
+      WHERE regid = ${regid}
+        AND dateval = ${dateval}
+        AND (deleted_at IS NULL OR deleted_at = '')
+    `) as any[];
+
+    const count = Number(remaining?.[0]?.cnt ?? 0);
+    if (count > 0) return; // Other prescriptions remain for this date, don't cascade
+
+    // 4. This was the last prescription for that date — cascade delete related records
+    console.log(`🗑️ Last prescription for regid=${regid} date=${dateval} deleted, cascading cleanup...`);
+
+    // Delete SOAP notes (homeo details) for this date
+    await this.db.execute(sql`
+      DELETE FROM soap_notes
+      WHERE regid = ${regid}
+        AND created_at::date = ${dateval}::date
+    `);
+
+    // Delete case notes (followup) for this date
+    await this.db.execute(sql`
+      UPDATE case_notes SET deleted_at = NOW()
+      WHERE regid = ${regid}
+        AND dateval = ${dateval}
+        AND deleted_at IS NULL
+    `);
+
+    // Delete case images for this date
+    await this.db.execute(sql`
+      UPDATE case_images SET deleted_at = NOW()
+      WHERE regid = ${regid}
+        AND created_at::date = ${dateval}::date
+        AND deleted_at IS NULL
+    `);
+
+    // Delete investigations for this date
+    await this.db.execute(sql`
+      UPDATE investigations SET deleted_at = NOW()
+      WHERE regid = ${regid}
+        AND invest_date = ${dateval}
+        AND deleted_at IS NULL
+    `);
   }
 
   // ─── Tree builder ──────────────────────────────────────────────────────────

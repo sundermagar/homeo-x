@@ -222,6 +222,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
           )`,
           referedBy: schema.patients.referedBy,
           consultationFee: schema.patients.consultationFee,
+          registeredAt: schema.patients.createdAt,
         })
         .from(schema.medicalCases)
         .leftJoin(schema.patients, eq(schema.medicalCases.regid, schema.patients.regid))
@@ -281,6 +282,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
           doctorName: patient.doctorName || '—',
           referedBy: patient.referedBy,
           consultationFee: patient.consultationFee,
+          registeredAt: (patient as any).createdAt,
         } as any;
       }
 
@@ -584,7 +586,8 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
   async saveSoapNotes(data: Partial<SoapNotes>): Promise<void> {
     try {
       if (data.id) {
-        await this.db
+        // Explicit update by ID
+        const result = await this.db
           .update(schema.legacySoapNotes)
           .set({
             subjective: data.subjective,
@@ -596,22 +599,49 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
             icdCodes: data.icdCodes,
             updatedAt: new Date(),
           })
-          .where(eq(schema.legacySoapNotes.id, data.id));
+          .where(eq(schema.legacySoapNotes.id, Number(data.id)))
+          .returning();
       } else {
-        await this.db
-          .insert(schema.legacySoapNotes)
-          .values({
-            regid: (data as any).regid,
-            visitId: data.visitId!,
-            subjective: data.subjective,
-            objective: data.objective,
-            assessment: data.assessment,
-            plan: data.plan,
-            advice: data.advice,
-            followUp: data.followUp,
-            icdCodes: data.icdCodes,
-            createdAt: new Date(),
-          });
+        // Check if a row already exists for this visitId to avoid duplicate key violation
+        const existing = (data.visitId !== undefined && data.visitId !== null)
+          ? await this.db
+              .select({ id: schema.legacySoapNotes.id })
+              .from(schema.legacySoapNotes)
+              .where(eq(schema.legacySoapNotes.visitId, data.visitId!))
+              .limit(1)
+          : [];
+
+        if (existing.length > 0) {
+          // Update the existing row instead of inserting a duplicate
+          await this.db
+            .update(schema.legacySoapNotes)
+            .set({
+              subjective: data.subjective,
+              objective: data.objective,
+              assessment: data.assessment,
+              plan: data.plan,
+              advice: data.advice,
+              followUp: data.followUp,
+              icdCodes: data.icdCodes,
+              updatedAt: new Date(),
+            })
+            .where(eq(schema.legacySoapNotes.id, existing[0]!.id));
+        } else {
+          await this.db
+            .insert(schema.legacySoapNotes)
+            .values({
+              regid: (data as any).regid,
+              visitId: data.visitId!,
+              subjective: data.subjective,
+              objective: data.objective,
+              assessment: data.assessment,
+              plan: data.plan,
+              advice: data.advice,
+              followUp: data.followUp,
+              icdCodes: data.icdCodes,
+              createdAt: (data as any).createdAt ? new Date((data as any).createdAt) : new Date(),
+            });
+        }
       }
     } catch (err: any) {
       console.error('💥 [MedicalCaseRepositoryPg] Error in saveSoapNotes:', err);
