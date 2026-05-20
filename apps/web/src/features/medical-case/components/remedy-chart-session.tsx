@@ -139,20 +139,7 @@ export function RemedyChartSession({
     return dayCharges.find((dc: any) => String(dc.days) === String(form.days));
   }, [form.days, dayCharges]);
 
-  // Click outside to hide Rx form
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (activeTab === 'rx' && formRef.current && !formRef.current.contains(event.target as Node)) {
-        // Only hide if we aren't clicking an action button that would re-open it
-        const target = event.target as HTMLElement;
-        if (!target.closest('.mc-tab-btn-premium') && !target.closest('.mc-action-btn')) {
-          setActiveTab(null);
-        }
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [activeTab, setActiveTab]);
+  // Auto-close on click outside has been removed as per user request to keep the form open until manually closed
 
   useEffect(() => {
     if (onDayChargeChange && selectedDayCharge) {
@@ -412,7 +399,6 @@ export function RemedyChartSession({
                             }}
                             onClick={() => {
                               onSelectDate?.(rx.created_at || rx.createdAt || rx.dateval);
-                              if (activeTab === 'rx') setActiveTab(null);
                             }}
                           >
                             <td data-label="Date">
@@ -479,19 +465,19 @@ export function RemedyChartSession({
                             <td data-label="Actions" style={{ textAlign: 'right' }}>
                               <div className="mc-table-actions">
                                   <div className="mc-desktop-actions">
-                                    <button 
-                                      onClick={(e) => { e.stopPropagation(); onAddAdditionalCharge?.(); }} 
-                                      className="mc-action-btn" 
-                                      title="Add Additional Charge"
-                                    >
-                                      <CircleDollarSign size={14} />
-                                    </button>
                                     {(() => {
                                       const rxDate = new Date(rx.created_at || rx.createdAt || rx.dateval);
                                       const isToday = rxDate.toDateString() === new Date().toDateString();
                                       if (!isToday) return null;
                                       return (
                                         <>
+                                          <button 
+                                            onClick={(e) => { e.stopPropagation(); onAddAdditionalCharge?.(); }} 
+                                            className="mc-action-btn" 
+                                            title="Add Additional Charge"
+                                          >
+                                            <CircleDollarSign size={14} />
+                                          </button>
                                           <button onClick={(e) => { e.stopPropagation(); startNewRx(); }} className="mc-action-btn" title="Add Extra"><Plus size={14} /></button>
                                           <button onClick={(e) => { e.stopPropagation(); handleEdit(rx); }} className="mc-action-btn" title="Edit"><Edit size={14} /></button>
                                           <button onClick={(e) => { e.stopPropagation(); handleDelete(rx.id, rx.remedy_name); }} className="mc-action-btn danger" title="Remove"><Trash2 size={14} /></button>
@@ -502,15 +488,15 @@ export function RemedyChartSession({
                                   <div className="mc-mobile-actions">
                                     <button className="mc-dots-btn"><MoreHorizontal size={18} /></button>
                                     <div className="mc-dots-dropdown">
-                                      <button onClick={(e) => { e.stopPropagation(); onAddAdditionalCharge?.(); }}>
-                                        <CircleDollarSign size={14} /> Add Charge
-                                      </button>
                                       {(() => {
                                         const rxDate = new Date(rx.created_at || rx.createdAt || rx.dateval);
                                         const isToday = rxDate.toDateString() === new Date().toDateString();
                                         if (!isToday) return null;
                                         return (
                                           <>
+                                            <button onClick={(e) => { e.stopPropagation(); onAddAdditionalCharge?.(); }}>
+                                              <CircleDollarSign size={14} /> Add Charge
+                                            </button>
                                             <button onClick={(e) => { e.stopPropagation(); startNewRx(); }}><Plus size={14} /> Add Extra</button>
                                             <button onClick={(e) => { e.stopPropagation(); handleEdit(rx); }}><Edit size={14} /> Edit</button>
                                             <button onClick={(e) => { e.stopPropagation(); handleDelete(rx.id, rx.remedy_name); }} style={{ color: '#dc2626' }}><Trash2 size={14} /> Remove</button>

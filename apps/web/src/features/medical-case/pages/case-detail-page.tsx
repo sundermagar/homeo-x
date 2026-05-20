@@ -257,12 +257,8 @@ export default function MedicalCaseDetailPage() {
   // Consolidated with previous hook call above
 
   const handleOpenDiagnosis = (record?: any) => {
-    // Priority: 1. Passed record (from table), 2. Current visit record (from sidebar context), 3. Existing record for the visit ID
-    let activeRecord = record || currentVisitSoap;
-    
-    if (!activeRecord && currentVisitId) {
-      activeRecord = (soap || []).find((s: any) => (s.visitId === currentVisitId || s.visit_id === currentVisitId));
-    }
+    // Priority: 1. Passed record (from table), 2. Current visit record (from sidebar context)
+    const activeRecord = record || currentVisitSoap;
 
     let initialMeds: MedicationRow[] = [{ medicine: '', frequency: 'Once', days: '', issue: '' }];
     const objectiveStr = activeRecord?.objective;
@@ -354,18 +350,14 @@ export default function MedicalCaseDetailPage() {
 
   const handleSaveDiagnosis = async () => {
     try {
-      // Last-mile check for existing records for this specific visit ID 
-      // (Avoids duplicate key violations if state is out of sync)
-      let finalRecordId = editingDiagnosisRecord?.id;
-      if (!finalRecordId && currentVisitId) {
-        const existing = (soap || []).find((s: any) => (s.visitId === currentVisitId || s.visit_id === currentVisitId));
-        if (existing) finalRecordId = existing.id;
-      }
+      const finalRecordId = editingDiagnosisRecord?.id;
 
       if (diagForm.diagnosis.trim()) {
         await updateDiagnosis.mutateAsync({ regid: Number(regid), condition: diagForm.diagnosis.trim() });
       }
       const serializedMeds = JSON.stringify(medicationRows.filter(r => r.medicine.trim() !== ''));
+
+      const soapDate = displayDate ? displayDate.toISOString() : new Date().toISOString();
 
       await saveSoap.mutateAsync({
         id: finalRecordId,
@@ -374,7 +366,9 @@ export default function MedicalCaseDetailPage() {
         subjective: diagForm.complaint,
         objective: serializedMeds,
         assessment: diagForm.diagnosis,
-        plan: diagForm.medication
+        plan: diagForm.medication,
+        dateval: soapDate,
+        createdAt: soapDate
       });
 
       // If it's a new diagnosis, switch view to today so it shows up immediately
@@ -746,9 +740,16 @@ export default function MedicalCaseDetailPage() {
       <div className="patient-profile-card">
         <div className="profile-top-row">
           <div className="profile-identity">
-            <div className="profile-avatar">
-              {medicalCase.patientName?.substring(0, 2).toUpperCase()}
-            </div>
+            <button 
+              className="profile-avatar"
+              onClick={() => navigate('/patients')}
+              style={{ cursor: 'pointer', background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.2s' }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+              title="Back to Patient List"
+            >
+              <ArrowLeft size={24} />
+            </button>
             <div className="profile-name-id">
               <h1 className="profile-name">{formatName(medicalCase.patientName)}</h1>
               <span className="profile-id">Patient #{regid}</span>
@@ -1084,15 +1085,13 @@ export default function MedicalCaseDetailPage() {
             <div className="mc-side-card" style={{ marginBottom: '16px' }}>
               <div className="mc-side-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#1e293b' }}>Homeo details</div>
-                {isToday && (
-                  <div 
-                    onClick={() => handleOpenDiagnosis(currentVisitSoap)}
-                    style={{ color: '#3b82f6', cursor: 'pointer', padding: '4px' }}
-                    title="Edit Today's Assessment"
-                  >
-                    <Edit size={14} />
-                  </div>
-                )}
+                <div 
+                  onClick={() => handleOpenDiagnosis(currentVisitSoap)}
+                  style={{ color: '#3b82f6', cursor: 'pointer', padding: '4px' }}
+                  title="Edit Assessment"
+                >
+                  <Edit size={14} />
+                </div>
                 {!isToday && currentVisitSoaps.length > 1 && (
                   <div 
                     onClick={() => setActiveTab('diagnosis')}
@@ -1102,7 +1101,7 @@ export default function MedicalCaseDetailPage() {
                   </div>
                 )}
               </div>
-              <div className="mc-side-card-body" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+              <div className="mc-side-card-body custom-scrollbar" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '18px', maxHeight: '400px', overflowY: 'auto' }}>
                 <div>
                   <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#1e293b', marginBottom: '4px' }}>Diagnosis</div>
                   <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>{currentVisitSoap?.assessment || '—'}</div>
@@ -1145,12 +1144,12 @@ export default function MedicalCaseDetailPage() {
                     <div style={{ padding: '10px 14px', background: 'var(--pp-warm-1)', borderRadius: '8px', border: '1px solid var(--pp-warm-2)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <Calendar size={14} style={{ color: 'var(--pp-blue)' }} />
                       <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-ink)' }}>
-                        Record Date: {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        Record Date: {(displayDate || new Date()).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                       </span>
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Main Diagnosis</label>
+                      <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Diagnosis</label>
                       <textarea
                         className="pp-textarea"
                         value={diagForm.diagnosis}
@@ -1161,24 +1160,13 @@ export default function MedicalCaseDetailPage() {
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Subjective (Complaints)</label>
+                      <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Complaint Intensity</label>
                       <textarea
                         className="pp-textarea"
                         value={diagForm.complaint}
                         onChange={e => setDiagForm({ ...diagForm, complaint: e.target.value })}
                         placeholder="Patient symptoms & intensity..."
                         style={{ minHeight: '100px' }}
-                      />
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Treatment Plan</label>
-                      <textarea
-                        className="pp-textarea"
-                        value={diagForm.medication}
-                        onChange={e => setDiagForm({ ...diagForm, medication: e.target.value })}
-                        placeholder="Medications or next steps..."
-                        style={{ minHeight: '80px' }}
                       />
                     </div>
 
@@ -1413,6 +1401,17 @@ export default function MedicalCaseDetailPage() {
                         ))}
                       </datalist>
                     </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Investigation</label>
+                      <textarea
+                        className="pp-textarea"
+                        value={diagForm.medication}
+                        onChange={e => setDiagForm({ ...diagForm, medication: e.target.value })}
+                        placeholder="Investigations or next steps..."
+                        style={{ minHeight: '80px' }}
+                      />
+                    </div>
                   </div>
 
                   <footer style={{
@@ -1456,8 +1455,9 @@ export default function MedicalCaseDetailPage() {
               onClose={() => setShowReceiptModal(false)}
               patientData={medicalCase}
               billingData={{
-                regularCharges: billingValues.regular,
-                additionalCharges: (fullData as any).additionalCharges || [],
+                registrationCharge: billingValues.regular,
+                medicineDaysCharge: billingValues.daysCharge,
+                additionalCharge: billingValues.additional,
                 totalBill: billingValues.total,
                 paidAmount: billingValues.received,
                 balance: billingValues.balance

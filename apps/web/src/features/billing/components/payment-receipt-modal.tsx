@@ -12,8 +12,9 @@ interface PaymentReceiptModalProps {
   onClose: () => void;
   patientData: any;
   billingData: {
-    regularCharges: number;
-    additionalCharges: any[];
+    registrationCharge: number;
+    medicineDaysCharge: number;
+    additionalCharge: number;
     totalBill: number;
     paidAmount: number;
     balance: number;
@@ -62,29 +63,32 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
           <div className="mb-8">
             <div className="space-y-4 border rounded-xl p-6 bg-white shadow-sm">
               <div className="flex justify-between items-center text-gray-600">
-                <span className="text-base font-medium">Regular Charge</span>
-                <span className="text-base font-bold text-gray-900">₹{billingData.regularCharges}</span>
+                <span className="text-base font-medium">Registration Charge</span>
+                <span className="text-base font-bold text-gray-900">₹{billingData.registrationCharge}</span>
+              </div>
+
+              <div className="flex justify-between items-center text-gray-600 border-t pt-4">
+                <span className="text-base font-medium">Medicine Days Charge</span>
+                <span className="text-base font-bold text-gray-900">₹{billingData.medicineDaysCharge}</span>
               </div>
               
               <div className="flex justify-between items-center text-gray-600 border-t pt-4">
                 <span className="text-base font-medium">Additional Charge</span>
-                <span className="text-base font-bold text-gray-900">
-                  ₹{billingData.additionalCharges.reduce((sum, item) => sum + (Number(item.amount) || 0), 0)}
-                </span>
+                <span className="text-base font-bold text-gray-900">₹{billingData.additionalCharge}</span>
               </div>
               
-              <div className="flex justify-between items-center border-t border-blue-100 pt-4 bg-blue-50/30 -mx-6 px-6">
-                <span className="text-lg font-bold text-gray-900">Total Charge</span>
+              <div className="flex justify-between items-center border-t border-blue-100 pt-4 bg-blue-50/30 -mx-6 px-6 pb-4">
+                <span className="text-lg font-bold text-gray-900">Total Bill Amount</span>
                 <span className="text-xl font-black text-blue-600">₹{billingData.totalBill}</span>
               </div>
 
-              <div className="flex justify-between items-center text-gray-600 border-t pt-4">
-                <span className="text-base font-medium">Received Charge</span>
+              <div className="flex justify-between items-center text-gray-600 border-t border-blue-100 pt-4">
+                <span className="text-base font-medium">Amount Received</span>
                 <span className="text-base font-bold text-green-600">₹{billingData.paidAmount}</span>
               </div>
 
               <div className="flex justify-between items-center text-gray-600 border-t pt-4">
-                <span className="text-base font-medium">Balance</span>
+                <span className="text-base font-medium">Pending Balance</span>
                 <span className="text-base font-bold text-red-600">₹{billingData.balance}</span>
               </div>
             </div>
