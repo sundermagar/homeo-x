@@ -362,6 +362,14 @@ export function CallInterfacePanel({ callMode, ...props }: CallInterfacePanelPro
             {isPaused ? 'Resume' : 'Pause'}
           </button>
 
+          <button
+            onClick={props.video?.toggleMic}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.4rem 0.625rem', background: 'transparent', border: 'none', color: props.video?.isMicOn ? '#2563EB' : '#EF4444', cursor: 'pointer', fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', borderRadius: '0.375rem' }}
+          >
+            {props.video?.isMicOn ? <Mic style={{ width: 13, height: 13, color: '#2563EB' }} /> : <MicOff style={{ width: 13, height: 13, color: '#EF4444' }} />}
+            {props.video?.isMicOn ? 'Mute' : 'Unmute'}
+          </button>
+
           {props.patientJoinLink && (
             <button
               onClick={handleCopyLink}

@@ -130,6 +130,8 @@ export function ConsultationStage({
 
   // --- Video-call socket for sending questions to patient screen ---
   const vcSocketRef = useRef<Socket | null>(null);
+  const injectAnswerRef = useRef<((answerText: string, forQuestion?: string) => void) | null>(null);
+
   useEffect(() => {
     if (callMode === 'IN_PERSON') return;
     const baseUrl = import.meta.env['VITE_API_URL'] || window.location.origin;
@@ -138,6 +140,12 @@ export function ConsultationStage({
     });
     socket.on('connect', () => {
       socket.emit('call:join', { visitId, speaker: 'DOCTOR' });
+    });
+    socket.on('call:answer', (data: { question: string; answer: string }) => {
+      console.log('[VIDEO-CALL] Received patient answer:', data);
+      if (injectAnswerRef.current) {
+        injectAnswerRef.current(data.answer, data.question);
+      }
     });
     vcSocketRef.current = socket;
     return () => {
@@ -341,6 +349,16 @@ export function ConsultationStage({
   const [answeredQuestions, setAnsweredQuestions] = useState<string[]>([]);
   const lastQuestionRef = useRef<string>('');
 
+  const segmentsRef = useRef<TranscriptSegmentLocal[]>([]);
+  useEffect(() => {
+    segmentsRef.current = segments;
+  }, [segments]);
+
+  const answeredQuestionsRef = useRef<string[]>([]);
+  useEffect(() => {
+    answeredQuestionsRef.current = answeredQuestions;
+  }, [answeredQuestions]);
+
   // Auto-regenerate questions in batches: count 5 answers, then fire one
   // suggest/questions call. Cuts AI credits vs. firing on every Q&A pair.
   const QUESTION_BATCH_SIZE = 5;
@@ -474,32 +492,40 @@ export function ConsultationStage({
   });
 
   // Inject a question into the transcript
-  const injectQuestion = useCallback((questionText: string, questionId?: string) => {
+  const injectQuestion = useCallback((questionText: string, options?: string[], questionId?: string) => {
     setAnsweredQuestions(prev => [...prev, questionText]);
     lastQuestionRef.current = questionText;
-    const segment: TranscriptSegmentLocal = {
-      sequenceNumber: nextSeqRef.current++,
-      text: questionText,
-      translatedText: questionText,
-      speaker: 'DOCTOR',
-      confidence: 1.0,
-      startTimeMs: 0,
-      endTimeMs: 0,
-      isFinal: true,
-      timestamp: Date.now(),
-    };
-    setSegments(prev => {
-      const updated = [...prev, segment];
-      const fullText = updated
-        .map(s => `${s.speaker === 'DOCTOR' ? 'Doctor' : 'Patient'}: ${s.translatedText || s.text}`)
-        .join('\n');
-      setTimeout(() => onTranscriptUpdate?.(fullText), 0);
-      return updated;
-    });
+
+    const isRemote = callMode !== 'IN_PERSON';
+
+    // In remote mode (AUDIO/VIDEO), DON'T add the question to the transcript yet.
+    // It will be injected as a Q-A pair when the patient's answer arrives,
+    // keeping DR:Q1 → PT:A1 → DR:Q2 → PT:A2 ordering.
+    if (!isRemote) {
+      const segment: TranscriptSegmentLocal = {
+        sequenceNumber: nextSeqRef.current++,
+        text: questionText,
+        translatedText: questionText,
+        speaker: 'DOCTOR',
+        confidence: 1.0,
+        startTimeMs: 0,
+        endTimeMs: 0,
+        isFinal: true,
+        timestamp: Date.now(),
+      };
+      setSegments(prev => {
+        const updated = [...prev, segment];
+        const fullText = updated
+          .map(s => `${s.speaker === 'DOCTOR' ? 'Doctor' : 'Patient'}: ${s.translatedText || s.text}`)
+          .join('\n');
+        setTimeout(() => onTranscriptUpdate?.(fullText), 0);
+        return updated;
+      });
+    }
 
     // Send question to patient's screen via WebSocket (AUDIO/VIDEO only)
     if (vcSocketRef.current?.connected) {
-      vcSocketRef.current.emit('call:send-question', { visitId, question: questionText });
+      vcSocketRef.current.emit('call:send-question', { visitId, question: questionText, options });
     }
 
     // In IN_PERSON mode, auto-enable "Listen for answer" so the next audio the
@@ -514,12 +540,33 @@ export function ConsultationStage({
   }, [onTranscriptUpdate, visitId, callMode]);
 
   // Submit patient answer directly to transcript — then extract symptoms from this Q&A pair
-  const injectAnswer = useCallback((answerText: string) => {
+  // forQuestion: optional question text passed from remote call:answer events to pair Q-A together
+  const injectAnswer = useCallback((answerText: string, forQuestion?: string) => {
     if (!answerText.trim()) return;
-    const questionText = lastQuestionRef.current || 'General question';
 
-    // Add answer to transcript
-    const segment: TranscriptSegmentLocal = {
+    const newSegments: TranscriptSegmentLocal[] = [];
+
+    // If a specific question was provided (from remote patient answer), inject the
+    // question segment first so the transcript reads DR:Q → PT:A in order.
+    if (forQuestion) {
+      lastQuestionRef.current = forQuestion;
+      newSegments.push({
+        sequenceNumber: nextSeqRef.current++,
+        text: forQuestion,
+        translatedText: forQuestion,
+        speaker: 'DOCTOR',
+        confidence: 1.0,
+        startTimeMs: 0,
+        endTimeMs: 0,
+        isFinal: true,
+        timestamp: Date.now(),
+      });
+      setAnsweredQuestions(prev => prev.includes(forQuestion) ? prev : [...prev, forQuestion]);
+    }
+
+    const questionText = forQuestion || lastQuestionRef.current || 'General question';
+
+    const answerSegment: TranscriptSegmentLocal = {
       sequenceNumber: nextSeqRef.current++,
       text: answerText,
       translatedText: answerText,
@@ -530,8 +577,10 @@ export function ConsultationStage({
       isFinal: true,
       timestamp: Date.now(),
     };
+    newSegments.push(answerSegment);
+
     setSegments(prev => {
-      const updated = [...prev, segment];
+      const updated = [...prev, ...newSegments];
       const fullText = updated
         .map(s => `${s.speaker === 'DOCTOR' ? 'Doctor' : 'Patient'}: ${s.translatedText || s.text}`)
         .join('\n');
@@ -569,15 +618,19 @@ export function ConsultationStage({
       setTimeout(() => {
         modeQuestions.mutate({
           consultationMode,
-          transcript: [...segments, segment].map(s => `${s.speaker}: ${s.translatedText || s.text}`).join('\n'),
-          answeredQuestions: [...answeredQuestions, questionText],
+          transcript: segmentsRef.current.map(s => `${s.speaker}: ${s.translatedText || s.text}`).join('\n'),
+          answeredQuestions: answeredQuestionsRef.current,
           chiefComplaint: (visit.chiefComplaint || (visit as any).notes || '').trim(),
           patientAge,
           patientGender: patient?.gender,
         });
       }, 500);
     }
-  }, [onTranscriptUpdate, symptomExtraction, consultationMode, categorizedSymptoms, onSymptomsExtracted, segments, answeredQuestions, visit, patientAge, patient?.gender, modeQuestions]);
+  }, [onTranscriptUpdate, symptomExtraction, consultationMode, categorizedSymptoms, onSymptomsExtracted, visit, patientAge, patient?.gender, modeQuestions]);
+
+  useEffect(() => {
+    injectAnswerRef.current = injectAnswer;
+  }, [injectAnswer]);
 
   // Remove a symptom from categorized symptoms
   const handleRemoveSymptom = useCallback((category: 'mental' | 'physical' | 'particular', index: number) => {
@@ -798,7 +851,7 @@ export function ConsultationStage({
                   <div key={q.id} className="flex flex-col gap-1">
                     <button
                       type="button"
-                      onClick={() => injectQuestion(q.question, q.id)}
+                      onClick={() => injectQuestion(q.question, q.options, q.id)}
                       className="group flex items-start gap-3 p-3 rounded-md bg-white border border-[#E3E2DF] hover:border-[#BFDBFE] hover:bg-[#EFF6FF] transition-colors text-left"
                     >
                       <Star className={cn("h-4 w-4 mt-0.5 shrink-0 transition-colors", q.isLive ? "text-amber-500" : "text-[#2563EB] opacity-70 group-hover:opacity-100")} />
