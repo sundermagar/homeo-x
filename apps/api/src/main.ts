@@ -58,7 +58,7 @@ async function bootstrap() {
   logger.info(`CORS origins: ${appConfig.cors.origins.join(', ')}`);
   logger.info(`AI health: ${JSON.stringify(aiConfig.getHealthStatus())}`);
 
-  const { app, server, tenantDb } = await createApp();
+  const { app, server, io, tenantDb } = await createApp();
 
   // Disable internal Node server timeouts (set to 30 minutes) to allow
   // slow local CPU inference (Ollama) to finish without connection closing.
