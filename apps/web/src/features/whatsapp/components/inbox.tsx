@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useWhatsApp } from '../hooks/use-whatsapp';
-import { Search, Send, User, Check, CheckCheck, MessageSquare, Phone, Info, MoreVertical, Plus, FileText, Paperclip, Smile, Loader2, ArrowLeft, CornerUpLeft, Forward, Trash2, X } from 'lucide-react';
+import { Search, Send, User, Check, CheckCheck, MessageSquare, Pin, MoreVertical, Plus, FileText, Paperclip, Smile, Loader2, ArrowLeft, CornerUpLeft, Forward, Trash2, X, Archive, Ban } from 'lucide-react';
 import { format } from 'date-fns';
 import { NewChatModal } from './new-chat-modal';
 import { TemplateModal } from './template-modal';
 import { toast } from '@/hooks/use-toast';
 import type { WhatsAppConversation, WhatsAppMessage } from '@mmc/types';
 import EmojiPicker from 'emoji-picker-react';
+import { apiClient } from '@/infrastructure/api-client';
 
 const ForwardModal = ({ 
   isOpen, 
@@ -72,20 +74,284 @@ const ForwardModal = ({
 };
 
 export const Inbox = ({ channelId }: { channelId?: number }) => {
-  const { useConversations, useMessages, useSendMessage, useSendTemplate, useCreateConversation, useUploadConversationMedia, useMarkAsRead, useDeleteMessage } = useWhatsApp();
+  const { 
+    useConversations, 
+    useMessages, 
+    useSendMessage, 
+    useSendTemplate, 
+    useCreateConversation, 
+    useUploadConversationMedia, 
+    useMarkAsRead, 
+    useDeleteMessage,
+    useUpdateConversationStatus,
+    useDeleteConversation,
+    useSendReaction
+  } = useWhatsApp();
+  
+  const navigate = useNavigate();
   const sendTemplateMutation = useSendTemplate();
   const createConversationMutation = useCreateConversation();
   const uploadMediaMutation = useUploadConversationMedia();
   const markAsReadMutation = useMarkAsRead();
   const deleteMessageMutation = useDeleteMessage();
+  const updateStatusMutation = useUpdateConversationStatus();
+  const deleteConversationMutation = useDeleteConversation();
+  const sendReactionMutation = useSendReaction();
+
   const { data: conversations, isLoading: loadingConv } = useConversations(channelId);
   const [selectedConvId, setSelectedConvId] = useState<number | null>(null);
   const { data: messages, isLoading: loadingMsg, error: msgError } = useMessages(selectedConvId || undefined);
   
   const [replyingTo, setReplyingTo] = useState<any | null>(null);
   const [forwardingMsg, setForwardingMsg] = useState<any | null>(null);
-  
+  const [reactingTo, setReactingTo] = useState<any | null>(null);
+  const [showMenu, setShowMenu] = useState(false);
+
+  const handleReact = (msg: any, emoji: string) => {
+    sendReactionMutation.mutate({ messageId: msg.id, emoji }, {
+      onSuccess: () => {
+        setReactingTo(null);
+      },
+      onError: (err: any) => {
+        toast({ title: 'Reaction Failed', description: err?.response?.data?.message || err?.message, variant: 'error' });
+      }
+    });
+  };
   const [readConvIds, setReadConvIds] = useState<Set<number>>(new Set());
+
+  const handleUpdateStatus = (newStatus: 'open' | 'closed') => {
+    if (!selectedConvId) return;
+    updateStatusMutation.mutate({ id: selectedConvId, status: newStatus }, {
+      onSuccess: () => {
+        toast({
+          title: `Conversation status updated`,
+          description: `Dialogue marked as ${newStatus === 'open' ? 'Open' : 'Resolved'}.`,
+        });
+        setShowMenu(false);
+      },
+      onError: (err: any) => {
+        toast({
+          title: 'Update failed',
+          description: err.message,
+          variant: 'error',
+        });
+      }
+    });
+  };
+
+  const handleViewContact = async () => {
+    if (!selectedConv) return;
+    setShowMenu(false);
+    
+    if (selectedConv.patientId) {
+      navigate(`/patients/${selectedConv.patientId}`);
+      return;
+    }
+    
+    try {
+      const cleanPhone = selectedConv.contactPhone.replace(/\D/g, '');
+      const { data: lookupRes } = await apiClient.get<{ success: boolean; data: any[] }>('/patients/lookup', {
+        params: { query: cleanPhone }
+      });
+      
+      if (lookupRes.success && lookupRes.data && lookupRes.data.length > 0) {
+        const matchingPatient = lookupRes.data[0];
+        navigate(`/patients/${matchingPatient.regid || matchingPatient.id}`);
+        toast({
+          title: "Patient Record Located",
+          description: `Directing to ${matchingPatient.name}'s profile page.`
+        });
+      } else {
+        toast({
+          title: "No Patient Profile Found",
+          description: `No active patient record matches +${selectedConv.contactPhone}.`,
+          variant: "warning"
+        });
+      }
+    } catch (err: any) {
+      toast({
+        title: "Lookup Failed",
+        description: "Unable to query clinical registry.",
+        variant: "error"
+      });
+    }
+  };
+
+  const handleArchiveChat = () => {
+    if (!selectedConvId) return;
+    
+    const existingTags = (selectedConv as any)?.tags || [];
+    const newTags = Array.isArray(existingTags) 
+      ? (existingTags.includes('archived') ? existingTags : [...existingTags, 'archived'])
+      : ['archived'];
+      
+    updateStatusMutation.mutate({ 
+      id: selectedConvId, 
+      status: 'closed',
+      tags: newTags
+    }, {
+      onSuccess: () => {
+        toast({
+          title: "Chat Archived",
+          description: "This conversation has been safely archived."
+        });
+        setSelectedConvId(null);
+        setShowMenu(false);
+      },
+      onError: (err: any) => {
+        toast({
+          title: "Archive Failed",
+          description: err.message,
+          variant: "error"
+        });
+      }
+    });
+  };
+
+  const handleBlockContact = () => {
+    if (!selectedConvId) return;
+    
+    const existingTags = (selectedConv as any)?.tags || [];
+    const newTags = Array.isArray(existingTags)
+      ? (existingTags.includes('blocked') ? existingTags : [...existingTags, 'blocked'])
+      : ['blocked'];
+      
+    updateStatusMutation.mutate({
+      id: selectedConvId,
+      status: 'closed',
+      tags: newTags
+    }, {
+      onSuccess: () => {
+        toast({
+          title: "Contact Blocked",
+          description: `+${selectedConv?.contactPhone} has been blocked and moved to resolved.`
+        });
+        setSelectedConvId(null);
+        setShowMenu(false);
+      },
+      onError: (err: any) => {
+        toast({
+          title: "Block Failed",
+          description: err.message,
+          variant: "error"
+        });
+      }
+    });
+  };
+  
+  const handleUnarchiveChat = () => {
+    if (!selectedConvId) return;
+    
+    const existingTags = (selectedConv as any)?.tags || [];
+    const newTags = Array.isArray(existingTags)
+      ? existingTags.filter((t: string) => t !== 'archived')
+      : [];
+      
+    updateStatusMutation.mutate({ 
+      id: selectedConvId, 
+      status: 'open',
+      tags: newTags
+    }, {
+      onSuccess: () => {
+        toast({
+          title: "Chat Unarchived",
+          description: "This conversation has been restored to your active inbox."
+        });
+        setSelectedConvId(null);
+        setShowMenu(false);
+      },
+      onError: (err: any) => {
+        toast({
+          title: "Unarchive Failed",
+          description: err.message,
+          variant: "error"
+        });
+      }
+    });
+  };
+
+  const handleUnblockContact = () => {
+    if (!selectedConvId) return;
+    
+    const existingTags = (selectedConv as any)?.tags || [];
+    const newTags = Array.isArray(existingTags)
+      ? existingTags.filter((t: string) => t !== 'blocked')
+      : [];
+      
+    updateStatusMutation.mutate({
+      id: selectedConvId,
+      status: 'open',
+      tags: newTags
+    }, {
+      onSuccess: () => {
+        toast({
+          title: "Contact Unblocked",
+          description: `+${selectedConv?.contactPhone} has been successfully unblocked.`
+        });
+        setSelectedConvId(null);
+        setShowMenu(false);
+      },
+      onError: (err: any) => {
+        toast({
+          title: "Unblock Failed",
+          description: err.message,
+          variant: "error"
+        });
+      }
+    });
+  };
+
+  const handleTogglePin = () => {
+    if (!selectedConvId) return;
+    
+    const existingTags = (selectedConv as any)?.tags || [];
+    const isPinned = existingTags.includes('pinned');
+    const newTags = isPinned
+      ? existingTags.filter((t: string) => t !== 'pinned')
+      : [...existingTags, 'pinned'];
+      
+    updateStatusMutation.mutate({
+      id: selectedConvId,
+      status: selectedConv?.status || 'open',
+      tags: newTags
+    }, {
+      onSuccess: () => {
+        toast({
+          title: isPinned ? "Chat Unpinned" : "Chat Pinned",
+          description: isPinned ? "Conversation removed from top." : "Conversation pinned to top."
+        });
+      },
+      onError: (err: any) => {
+        toast({
+          title: "Pin Failed",
+          description: err.message,
+          variant: "error"
+        });
+      }
+    });
+  };
+
+  const handleDeleteChat = () => {
+    if (!selectedConvId) return;
+    
+    deleteConversationMutation.mutate(selectedConvId, {
+      onSuccess: () => {
+        toast({
+          title: "Chat Deleted",
+          description: "The conversation and all messages have been permanently removed."
+        });
+        setSelectedConvId(null);
+        setShowMenu(false);
+      },
+      onError: (err: any) => {
+        toast({
+          title: "Delete Failed",
+          description: err.message,
+          variant: "error"
+        });
+      }
+    });
+  };
 
   React.useEffect(() => {
     console.log('[Inbox Debug] State Change:', {
@@ -294,8 +560,8 @@ export const Inbox = ({ channelId }: { channelId?: number }) => {
 
     // Status filter
     if (activeStatusFilter === 'unread' && conv.unreadCount === 0) return false;
-    if (activeStatusFilter === 'open' && conv.status === 'resolved') return false;
-    if (activeStatusFilter === 'resolved' && conv.status !== 'resolved') return false;
+    if (activeStatusFilter === 'open' && (conv.status === 'resolved' || conv.status === 'closed')) return false;
+    if (activeStatusFilter === 'resolved' && conv.status !== 'resolved' && conv.status !== 'closed') return false;
 
     // Channel filter
     // If channelType is not in WhatsAppConversation yet, we can add it or cast
@@ -305,6 +571,11 @@ export const Inbox = ({ channelId }: { channelId?: number }) => {
     if (activeChannelFilter === 'unread' && conv.unreadCount === 0) return false;
 
     return true;
+  })?.sort((a: any, b: any) => {
+    const aPinned = Array.isArray(a.tags) && a.tags.includes('pinned') ? 1 : 0;
+    const bPinned = Array.isArray(b.tags) && b.tags.includes('pinned') ? 1 : 0;
+    if (aPinned !== bPinned) return bPinned - aPinned; // Pinned items go first
+    return new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime();
   });
 
   const selectedConv = conversations?.find((c) => c.id === selectedConvId);
@@ -354,7 +625,7 @@ export const Inbox = ({ channelId }: { channelId?: number }) => {
           </div>
 
           {/* Tier 1: Channel Filters (Pill Style) */}
-          <div className="flex items-center gap-1.5 p-1 bg-[var(--pp-warm-2)] rounded-xl overflow-x-auto no-scrollbar border border-[var(--pp-warm-3)]/60">
+          <div className="flex flex-wrap items-center gap-1.5 p-1 bg-[var(--pp-warm-2)] rounded-xl border border-[var(--pp-warm-3)]/60">
             {['all', 'wa', 'widget', 'assigned', 'unread'].map((f) => (
               <button
                 key={f}
@@ -422,8 +693,11 @@ export const Inbox = ({ channelId }: { channelId?: number }) => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start mb-0.5">
-                      <h4 className={`font-bold text-[13px] truncate ${selectedConvId === conv.id ? 'text-[var(--pp-blue)]' : 'text-[var(--pp-ink)]'}`}>
-                        {conv.contactName || `+${conv.contactPhone}`}
+                      <h4 className={`font-bold text-[13px] truncate flex items-center gap-1.5 ${selectedConvId === conv.id ? 'text-[var(--pp-blue)]' : 'text-[var(--pp-ink)]'}`}>
+                        {Array.isArray(conv.tags) && conv.tags.includes('pinned') && (
+                          <Pin size={11} fill="currentColor" className="rotate-45 shrink-0 text-[var(--pp-blue)]" />
+                        )}
+                        <span className="truncate">{conv.contactName || `+${conv.contactPhone}`}</span>
                       </h4>
                       <span className="text-[9px] font-extrabold text-[var(--pp-text-3)] uppercase">
                         {conv.lastMessageAt ? format(new Date(conv.lastMessageAt), 'HH:mm') : ''}
@@ -471,15 +745,112 @@ export const Inbox = ({ channelId }: { channelId?: number }) => {
                 </div>
               </div>
               <div className="flex items-center gap-1">
-                <button className="w-8 h-8 rounded-xl text-[var(--pp-text-3)] hover:text-[var(--pp-blue)] hover:bg-[var(--pp-warm-2)] flex items-center justify-center transition-all border border-transparent hover:border-[var(--pp-warm-3)]">
-                  <Phone size={15} />
+                <button 
+                  onClick={handleTogglePin}
+                  className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all border ${
+                    (selectedConv as any)?.tags?.includes('pinned')
+                      ? 'text-[var(--pp-blue)] bg-[var(--pp-warm-2)] border-[var(--pp-warm-3)] shadow-sm' 
+                      : 'text-[var(--pp-text-3)] hover:text-[var(--pp-blue)] hover:bg-[var(--pp-warm-2)] border-transparent hover:border-[var(--pp-warm-3)]'
+                  }`}
+                  title={(selectedConv as any)?.tags?.includes('pinned') ? "Unpin Chat" : "Pin Chat"}
+                >
+                  <Pin size={15} fill={(selectedConv as any)?.tags?.includes('pinned') ? "currentColor" : "none"} className={(selectedConv as any)?.tags?.includes('pinned') ? "rotate-45" : ""} />
                 </button>
-                <button className="w-8 h-8 rounded-xl text-[var(--pp-text-3)] hover:text-[var(--pp-blue)] hover:bg-[var(--pp-warm-2)] flex items-center justify-center transition-all border border-transparent hover:border-[var(--pp-warm-3)]">
-                  <Info size={15} />
-                </button>
-                <button className="w-8 h-8 rounded-xl text-[var(--pp-text-3)] hover:text-[var(--pp-blue)] hover:bg-[var(--pp-warm-2)] flex items-center justify-center transition-all border border-transparent hover:border-[var(--pp-warm-3)]">
-                  <MoreVertical size={15} />
-                </button>
+                <div className="relative">
+                  <button 
+                    onClick={() => setShowMenu(!showMenu)}
+                    className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all border ${
+                      showMenu 
+                        ? 'text-[var(--pp-blue)] bg-[var(--pp-warm-2)] border-[var(--pp-warm-3)] shadow-sm' 
+                        : 'text-[var(--pp-text-3)] hover:text-[var(--pp-blue)] hover:bg-[var(--pp-warm-2)] border-transparent hover:border-[var(--pp-warm-3)]'
+                    }`}
+                  >
+                    <MoreVertical size={15} />
+                  </button>
+                  
+                  {showMenu && (
+                    <>
+                      {/* Overlay to close menu */}
+                      <div className="fixed inset-0 z-30" onClick={() => setShowMenu(false)} />
+                      
+                      <div className="absolute right-0 mt-2 w-56 bg-white border border-[var(--pp-warm-3)]/80 rounded-2xl shadow-2xl py-2 z-50 animate-scale-in text-left origin-top-right">
+                        <div className="px-4 py-1.5 text-[10px] font-extrabold text-[var(--pp-text-3)] uppercase tracking-[0.12em]">Status</div>
+                        
+                        <button
+                          onClick={() => handleUpdateStatus('open')}
+                          className="w-full px-4 py-2 text-xs font-bold text-[var(--pp-text-2)] hover:bg-[var(--pp-warm-1)]/60 flex items-center gap-3 transition-colors text-left"
+                        >
+                          <MessageSquare size={14} className="text-[var(--pp-text-3)]" />
+                          <span>Mark as Open</span>
+                        </button>
+                        
+                        <button
+                          onClick={() => handleUpdateStatus('closed')}
+                          className="w-full px-4 py-2 text-xs font-bold text-[var(--pp-text-2)] hover:bg-[var(--pp-warm-1)]/60 flex items-center gap-3 transition-colors text-left"
+                        >
+                          <Check size={14} className="text-[var(--pp-text-3)]" />
+                          <span>Mark as Resolved</span>
+                        </button>
+                        
+                        <div className="border-t border-[var(--pp-warm-3)]/60 my-1.5" />
+                        
+                        <button
+                          onClick={handleViewContact}
+                          className="w-full px-4 py-2 text-xs font-bold text-[var(--pp-text-2)] hover:bg-[var(--pp-warm-1)]/60 flex items-center gap-3 transition-colors text-left"
+                        >
+                          <User size={14} className="text-[var(--pp-text-3)]" />
+                          <span>View Contact</span>
+                        </button>
+                        
+                        {Array.isArray((selectedConv as any)?.tags) && (selectedConv as any).tags.includes('archived') ? (
+                          <button
+                            onClick={handleUnarchiveChat}
+                            className="w-full px-4 py-2 text-xs font-bold text-[var(--pp-text-2)] hover:bg-[var(--pp-warm-1)]/60 flex items-center gap-3 transition-colors text-left"
+                          >
+                            <Archive size={14} className="text-[var(--pp-blue)]" />
+                            <span>Unarchive Chat</span>
+                          </button>
+                        ) : (
+                          <button
+                            onClick={handleArchiveChat}
+                            className="w-full px-4 py-2 text-xs font-bold text-[var(--pp-text-2)] hover:bg-[var(--pp-warm-1)]/60 flex items-center gap-3 transition-colors text-left"
+                          >
+                            <Archive size={14} className="text-[var(--pp-text-3)]" />
+                            <span>Archive Chat</span>
+                          </button>
+                        )}
+                        
+                        {Array.isArray((selectedConv as any)?.tags) && (selectedConv as any).tags.includes('blocked') ? (
+                          <button
+                            onClick={handleUnblockContact}
+                            className="w-full px-4 py-2 text-xs font-bold text-[var(--pp-text-2)] hover:bg-[var(--pp-warm-1)]/60 flex items-center gap-3 transition-colors text-left"
+                          >
+                            <Ban size={14} className="text-[var(--pp-blue)]" />
+                            <span>Unblock Contact</span>
+                          </button>
+                        ) : (
+                          <button
+                            onClick={handleBlockContact}
+                            className="w-full px-4 py-2 text-xs font-bold text-[var(--pp-text-2)] hover:bg-[var(--pp-warm-1)]/60 flex items-center gap-3 transition-colors text-left"
+                          >
+                            <Ban size={14} className="text-[var(--pp-text-3)]" />
+                            <span>Block Contact</span>
+                          </button>
+                        )}
+                        
+                        <div className="border-t border-[var(--pp-warm-3)]/60 my-1.5" />
+                        
+                        <button
+                          onClick={handleDeleteChat}
+                          className="w-full px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50/50 flex items-center gap-3 transition-colors text-left"
+                        >
+                          <Trash2 size={14} className="text-red-500" />
+                          <span>Delete Chat</span>
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -525,7 +896,14 @@ export const Inbox = ({ channelId }: { channelId?: number }) => {
                         </div>
                       </div>
 
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center bg-white border border-[var(--pp-warm-3)] shadow-md rounded-xl p-1 gap-0.5 z-10 shrink-0">
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center bg-white border border-[var(--pp-warm-3)] shadow-md rounded-xl p-1 gap-0.5 z-10 shrink-0 relative">
+                        <button 
+                          onClick={() => setReactingTo(reactingTo?.id === msg.id ? null : msg)}
+                          title="React"
+                          className="p-1.5 text-[var(--pp-text-3)] hover:text-amber-500 hover:bg-amber-50 rounded-lg transition-all"
+                        >
+                          <Smile size={13} />
+                        </button>
                         <button 
                           onClick={() => setReplyingTo(msg)}
                           title="Reply"
@@ -547,6 +925,21 @@ export const Inbox = ({ channelId }: { channelId?: number }) => {
                         >
                           <Trash2 size={13} />
                         </button>
+                        
+                        {/* Mini Reaction Picker */}
+                        {reactingTo?.id === msg.id && (
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-white rounded-full shadow-lg border border-[var(--pp-warm-3)] p-1.5 flex gap-1 z-50 animate-slide-up">
+                            {['👍', '❤️', '😂', '😮', '😢', '🙏'].map(emoji => (
+                              <button
+                                key={emoji}
+                                onClick={() => handleReact(msg, emoji)}
+                                className="w-8 h-8 flex items-center justify-center hover:bg-[var(--pp-warm-2)] rounded-full text-lg transition-all transform hover:scale-125"
+                              >
+                                {emoji}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -723,10 +1116,18 @@ export const Inbox = ({ channelId }: { channelId?: number }) => {
           // Build template components from variables
           const components = variables.length > 0 ? [{
             type: 'body',
-            parameters: variables.map((v: any) => ({
-              type: 'text',
-              text: v.type === 'custom' ? v.value : v.type,
-            })),
+            parameters: variables.map((v: any) => {
+              let textValue = v.value || '';
+              if (v.type === 'fullName') {
+                textValue = selectedConv.contactName || 'Patient';
+              } else if (v.type === 'phone') {
+                textValue = selectedConv.contactPhone || '';
+              }
+              return {
+                type: 'text',
+                text: textValue,
+              };
+            }),
           }] : [];
 
           sendTemplateMutation.mutate({

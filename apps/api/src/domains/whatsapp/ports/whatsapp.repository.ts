@@ -16,6 +16,7 @@ export interface WhatsAppRepository {
   listTemplates(channelId: number): Promise<any[]>;
   saveTemplate(data: any): Promise<any>;
   upsertTemplate(data: any): Promise<{ row: any; action: 'created' | 'updated' | 'unchanged' }>;
+  deleteTemplate(id: number): Promise<boolean>;
 
   // Campaigns
   findCampaignById(id: number): Promise<any>;
@@ -34,11 +35,13 @@ export interface WhatsAppRepository {
   findConversationByPhone(channelId: number, phone: string): Promise<any>;
   listConversations(channelId: number): Promise<any[]>;
   saveConversation(data: any): Promise<any>;
+  deleteConversation(id: number): Promise<boolean>;
 
   // Messages
   saveMessage(data: any): Promise<any>;
   listMessages(conversationId: number): Promise<any[]>;
   findMessageByWhatsappId(whatsappId: string): Promise<any>;
+  findMessageById(id: number): Promise<any>;
 
   // Automations
   listAutomations(clinicId: number, params?: { page?: number; limit?: number }): Promise<{ data: any[]; total: number }>;

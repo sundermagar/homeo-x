@@ -150,6 +150,14 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
     return { row, action: 'created' };
   }
 
+  async deleteTemplate(id: number): Promise<boolean> {
+    const [deleted] = await this.db
+      .delete(schema.waTemplates)
+      .where(eq(schema.waTemplates.id, id))
+      .returning({ id: schema.waTemplates.id });
+    return !!deleted;
+  }
+
   // ─── Campaigns ─────────────────────────────────────────────────────────────
 
   async findCampaignById(id: number): Promise<any> {
@@ -267,13 +275,20 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
 
   async findConversationByPhone(channelId: number | null, phone: string): Promise<any> {
     const channelCondition = channelId ? eq(schema.waConversations.channelId, channelId) : isNull(schema.waConversations.channelId);
+    
+    // Fuzzy match: Meta API sends numbers with country codes (e.g. 917018936618)
+    // but the CRM might store them without (e.g. 7018936618).
+    // Matching on the last 10 digits ensures we link the conversation correctly.
+    const searchPhone = phone.length >= 10 ? phone.slice(-10) : phone;
+
     const [row] = await this.db
       .select()
       .from(schema.waConversations)
       .where(and(
         channelCondition,
-        eq(schema.waConversations.contactPhone, phone)
+        ilike(schema.waConversations.contactPhone, `%${searchPhone}`)
       ))
+      .orderBy(desc(schema.waConversations.createdAt))
       .limit(1);
     return row ?? null;
   }
@@ -300,6 +315,14 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
       .values(data)
       .returning();
     return row;
+  }
+
+  async deleteConversation(id: number): Promise<boolean> {
+    const res = await this.db
+      .delete(schema.waConversations)
+      .where(eq(schema.waConversations.id, id))
+      .returning();
+    return res.length > 0;
   }
 
   // ─── Messages ───────────────────────────────────────────────────────────────
@@ -357,6 +380,15 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
       .select()
       .from(schema.waMessages)
       .where(eq(schema.waMessages.whatsappMessageId, whatsappId))
+      .limit(1);
+    return row ?? null;
+  }
+
+  async findMessageById(id: number): Promise<any> {
+    const [row] = await this.db
+      .select()
+      .from(schema.waMessages)
+      .where(eq(schema.waMessages.id, id))
       .limit(1);
     return row ?? null;
   }

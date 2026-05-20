@@ -88,7 +88,7 @@ export const useWhatsApp = () => {
       },
     }),
     useCreateTemplate: () => useMutation({
-      mutationFn: async (payload: { channelId: number; name: string; category: string; language?: string; body: string; header?: string; footer?: string; buttons?: any[] }) => {
+      mutationFn: async (payload: { channelId: number; name: string; category: string; language?: string; body: string; header?: string; footer?: string; buttons?: any[]; mediaType?: string; mediaUrl?: string; mediaHandle?: string }) => {
         const { data } = await apiClient.post<{ data: any }>('/whatsapp/templates', payload);
         return data.data;
       },
@@ -97,7 +97,7 @@ export const useWhatsApp = () => {
       },
     }),
     useUpdateTemplate: () => useMutation({
-      mutationFn: async (payload: { id: number; channelId?: number; name?: string; category?: string; language?: string; body: string; header?: string; footer?: string; buttons?: any[]; status?: string }) => {
+      mutationFn: async (payload: { id: number; channelId?: number; name?: string; category?: string; language?: string; body: string; header?: string; footer?: string; buttons?: any[]; status?: string; mediaType?: string; mediaUrl?: string; mediaHandle?: string }) => {
         const { id, ...rest } = payload;
         const { data } = await apiClient.put<{ data: any }>(`/whatsapp/templates/${id}`, rest);
         return data.data;
@@ -106,10 +106,37 @@ export const useWhatsApp = () => {
         queryClient.invalidateQueries({ queryKey: ['whatsapp', 'templates', variables.channelId] });
       },
     }),
+    useDeleteTemplate: () => useMutation({
+      mutationFn: async (id: number) => {
+        const { data } = await apiClient.delete<{ data: any }>(`/whatsapp/templates/${id}`);
+        return data.data;
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['whatsapp', 'templates'] });
+      },
+    }),
     // Conversations & Messages
     useMarkAsRead: () => useMutation({
       mutationFn: async (conversationId: number) => {
         const { data } = await apiClient.post<{ data: any }>(`/whatsapp/conversations/${conversationId}/read`);
+        return data.data;
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['whatsapp', 'conversations'] });
+      },
+    }),
+    useUpdateConversationStatus: () => useMutation({
+      mutationFn: async ({ id, status, tags, priority }: { id: number; status?: string; tags?: string[]; priority?: string }) => {
+        const { data } = await apiClient.patch<{ data: any }>(`/whatsapp/conversations/${id}`, { status, tags, priority });
+        return data.data;
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['whatsapp', 'conversations'] });
+      },
+    }),
+    useDeleteConversation: () => useMutation({
+      mutationFn: async (id: number) => {
+        const { data } = await apiClient.delete<{ data: any }>(`/whatsapp/conversations/${id}`);
         return data.data;
       },
       onSuccess: () => {
@@ -215,6 +242,12 @@ export const useWhatsApp = () => {
         queryClient.invalidateQueries({ queryKey: ['whatsapp', 'messages'] });
         queryClient.invalidateQueries({ queryKey: ['whatsapp', 'conversations'] });
       },
+    }),
+    useSendReaction: () => useMutation({
+      mutationFn: async ({ messageId, emoji }: { messageId: number, emoji: string }) => {
+        const { data } = await apiClient.post<{ data: any }>(`/whatsapp/messages/${messageId}/reaction`, { emoji });
+        return data.data;
+      }
     }),
     useUploadConversationMedia: () => useMutation({
       mutationFn: async ({ conversationId, file }: { conversationId: number; file: File }) => {

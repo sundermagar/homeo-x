@@ -14,6 +14,7 @@ interface ContactModalProps {
 
 interface ContactFormInput {
   name: string;
+  countryCode: string;
   phone: string;
   email?: string;
   tags?: string;
@@ -26,15 +27,32 @@ export const ContactModal = ({ isOpen, onClose, contact }: ContactModalProps) =>
 
   React.useEffect(() => {
     if (contact) {
+      // Basic extraction of country code for edit mode
+      let cc = '91';
+      let localPhone = contact.phone || '';
+      
+      if (localPhone.startsWith('91') && localPhone.length > 10) {
+        cc = '91';
+        localPhone = localPhone.substring(2);
+      } else if (localPhone.startsWith('1') && localPhone.length > 10) {
+        cc = '1';
+        localPhone = localPhone.substring(1);
+      } else if (localPhone.startsWith('44') && localPhone.length > 10) {
+        cc = '44';
+        localPhone = localPhone.substring(2);
+      }
+
       reset({
         name: contact.name || '',
-        phone: contact.phone || '',
+        countryCode: cc,
+        phone: localPhone,
         email: contact.email || '',
         tags: contact.tags ? contact.tags.join(', ') : ''
       });
     } else {
       reset({
         name: '',
+        countryCode: '91',
         phone: '',
         email: '',
         tags: ''
@@ -43,8 +61,13 @@ export const ContactModal = ({ isOpen, onClose, contact }: ContactModalProps) =>
   }, [contact, reset, isOpen]);
 
   const onSubmit = (data: ContactFormInput) => {
+    // Strip any non-numeric characters the user might have typed
+    const cleanPhone = data.phone.replace(/\D/g, '');
+    const fullPhone = `${data.countryCode}${cleanPhone}`;
+
     const payload = {
       ...data,
+      phone: fullPhone,
       id: contact?.id ? Number(contact.id) : undefined,
       clinicId: 1, // Hardcoded for now
       tags: data.tags?.split(',').map((t: string) => t.trim()).filter(Boolean) || [],
@@ -95,18 +118,41 @@ export const ContactModal = ({ isOpen, onClose, contact }: ContactModalProps) =>
               />
             </div>
 
-            {/* Phone Number */}
+            {/* Phone Number with Country Code */}
             <div className="appt-form-group">
               <label className="appt-form-label">
                 <Phone size={13} strokeWidth={1.6} />
                 WhatsApp Number
               </label>
-              <input 
-                placeholder="e.g. 919876543210 (with country code)" 
-                className={`appt-form-input ${errors.phone ? 'border-error' : ''}`}
-                {...register('phone', { required: true })} 
-              />
-              <p className="text-[10px] text-muted mt-1 px-1">Ensure the number includes the country code without the "+" prefix.</p>
+              <div className="flex gap-2">
+                <select 
+                  className="appt-form-input w-[100px] shrink-0"
+                  {...register('countryCode')}
+                  defaultValue="91"
+                >
+                  <option value="91">+91 (IN)</option>
+                  <option value="1">+1 (US/CA)</option>
+                  <option value="44">+44 (UK)</option>
+                  <option value="61">+61 (AU)</option>
+                  <option value="971">+971 (AE)</option>
+                  <option value="65">+65 (SG)</option>
+                  {/* Can add more as needed */}
+                </select>
+                <input 
+                  type="text"
+                  placeholder="e.g. 9876543210" 
+                  className={`appt-form-input flex-1 ${errors.phone ? 'border-error' : ''}`}
+                  {...register('phone', { 
+                    required: true,
+                    pattern: {
+                      value: /^[0-9]{8,15}$/,
+                      message: "Please enter a valid phone number without country code"
+                    }
+                  })} 
+                />
+              </div>
+              {errors.phone && <p className="text-[10px] text-red-500 mt-1 px-1">{errors.phone.message as string}</p>}
+              <p className="text-[10px] text-muted mt-1 px-1">Select country code and enter the local number.</p>
             </div>
 
             {/* Email */}

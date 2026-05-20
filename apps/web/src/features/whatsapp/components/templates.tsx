@@ -5,20 +5,26 @@ import { toast } from '@/hooks/use-toast';
 import { Drawer } from '@/shared/components/drawer';
 
 export const Templates = () => {
-  const { useChannels, useTemplates, useSyncTemplates, useCreateTemplate, useUpdateTemplate } = useWhatsApp();
+  const { useChannels, useTemplates, useSyncTemplates, useCreateTemplate, useUpdateTemplate, useDeleteTemplate, useUploadMedia } = useWhatsApp();
   const { data: channels, isLoading: loadingChannels } = useChannels();
   
   const [selectedChannelId, setSelectedChannelId] = useState<number | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState<any | null>(null);
   
+  const uploadMutation = useUploadMedia();
+  
   // Edit States
   const updateMutation = useUpdateTemplate();
+  const deleteMutation = useDeleteTemplate();
   const [isEditingTemplate, setIsEditingTemplate] = useState(false);
   const [editedTemplate, setEditedTemplate] = useState({
     header: '',
     body: '',
-    footer: ''
+    footer: '',
+    mediaType: 'text',
+    mediaUrl: '',
+    mediaFile: null as File | null
   });
 
   // Create Dialog States
@@ -31,6 +37,9 @@ export const Templates = () => {
     body: '',
     footer: '',
     buttons: [] as any[],
+    mediaType: 'text',
+    mediaUrl: '',
+    mediaFile: null as File | null
   });
 
   // Sync edit state with selected template
@@ -39,7 +48,9 @@ export const Templates = () => {
       setEditedTemplate({
         header: selectedTemplate.header || '',
         body: selectedTemplate.body || '',
-        footer: selectedTemplate.footer || ''
+        footer: selectedTemplate.footer || '',
+        mediaType: selectedTemplate.mediaType || 'text',
+        mediaUrl: selectedTemplate.mediaUrl || ''
       });
       setIsEditingTemplate(false);
     } else {
@@ -105,6 +116,20 @@ export const Templates = () => {
     const formattedName = newTemplate.name.toLowerCase().trim().replace(/[^a-z0-9_]/g, '_');
 
     try {
+      let mediaHandle = '';
+      if ((newTemplate.mediaType === 'image_upload' || newTemplate.mediaType === 'video_upload') && newTemplate.mediaFile && selectedChannelId) {
+        const uploadResult = await uploadMutation.mutateAsync({
+          channelId: selectedChannelId,
+          file: newTemplate.mediaFile,
+          title: newTemplate.name + '_header'
+        });
+        mediaHandle = uploadResult.mediaId;
+      }
+
+      const finalMediaType = newTemplate.mediaType === 'image_upload' ? 'image' 
+        : newTemplate.mediaType === 'video_upload' ? 'video' 
+        : newTemplate.mediaType;
+
       await createMutation.mutateAsync({
         channelId: selectedChannelId,
         name: formattedName,
@@ -114,6 +139,9 @@ export const Templates = () => {
         body: newTemplate.body,
         footer: newTemplate.footer,
         buttons: newTemplate.buttons,
+        mediaType: finalMediaType,
+        mediaUrl: newTemplate.mediaUrl,
+        mediaHandle: mediaHandle || undefined,
       });
 
       toast({
@@ -131,6 +159,9 @@ export const Templates = () => {
         body: '',
         footer: '',
         buttons: [],
+        mediaType: 'text',
+        mediaUrl: '',
+        mediaFile: null
       });
     } catch (err: any) {
       toast({
@@ -289,7 +320,24 @@ export const Templates = () => {
 
               <div className="mt-4 flex items-center justify-between pt-4 border-t border-pp-border text-xs text-muted">
                 <span>Lang: <strong className="text-main uppercase">{template.language}</strong></span>
-                <span>Click to Preview</span>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (window.confirm(`Are you sure you want to delete the template "${template.name}"?`)) {
+                        deleteMutation.mutate(template.id, {
+                          onSuccess: () => toast({ title: 'Template Deleted', variant: 'success' }),
+                          onError: (err: any) => toast({ title: 'Delete Failed', description: err.message, variant: 'error' })
+                        });
+                      }
+                    }}
+                    className="p-1.5 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors z-10"
+                    title="Delete Template"
+                  >
+                    <Trash size={14} />
+                  </button>
+                  <span>Click to Preview</span>
+                </div>
               </div>
             </div>
           ))}
@@ -340,15 +388,55 @@ export const Templates = () => {
             </div>
 
             {/* Header Input */}
-            <div>
-              <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">Header Title Text (Optional)</label>
-              <input
-                type="text"
-                placeholder="e.g. Appointment Confirmation"
-                value={newTemplate.header}
-                onChange={(e) => setNewTemplate({ ...newTemplate, header: e.target.value })}
-                className="pp-input w-full h-11"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">Header Type</label>
+                <select
+                  value={newTemplate.mediaType}
+                  onChange={(e) => setNewTemplate({ ...newTemplate, mediaType: e.target.value, header: '' })}
+                  className="pp-input w-full h-11"
+                >
+                  <option value="text">Text Title</option>
+                  <option value="image">Image (URL)</option>
+                  <option value="image_upload">Image (Upload File)</option>
+                  <option value="video">Video (URL)</option>
+                  <option value="video_upload">Video (Upload File)</option>
+                </select>
+              </div>
+
+              {newTemplate.mediaType === 'text' ? (
+                <div>
+                  <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">Header Title Text (Optional)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Appointment Confirmation"
+                    value={newTemplate.header}
+                    onChange={(e) => setNewTemplate({ ...newTemplate, header: e.target.value })}
+                    className="pp-input w-full h-11"
+                  />
+                </div>
+              ) : newTemplate.mediaType === 'image_upload' || newTemplate.mediaType === 'video_upload' ? (
+                <div>
+                  <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">Upload Media File (Max 16MB)</label>
+                  <input
+                    type="file"
+                    accept={newTemplate.mediaType === 'image_upload' ? 'image/*' : 'video/*'}
+                    onChange={(e) => setNewTemplate({ ...newTemplate, mediaFile: e.target.files?.[0] || null, mediaUrl: e.target.files?.[0] ? URL.createObjectURL(e.target.files[0]) : '' })}
+                    className="pp-input w-full pt-2.5 h-11"
+                  />
+                </div>
+              ) : (
+                <div>
+                  <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">Media URL (Must be publicly accessible)</label>
+                  <input
+                    type="url"
+                    placeholder="https://..."
+                    value={newTemplate.mediaUrl}
+                    onChange={(e) => setNewTemplate({ ...newTemplate, mediaUrl: e.target.value })}
+                    className="pp-input w-full h-11"
+                  />
+                </div>
+              )}
             </div>
 
             {/* Body Content */}
@@ -392,7 +480,7 @@ export const Templates = () => {
                 </div>
               )}
 
-              <div className="bg-pp-bg-subtle/50 p-4 rounded-2xl border border-pp-border flex flex-col md:flex-row gap-3 items-end">
+              <div className="bg-pp-bg-subtle/50 p-4 rounded-2xl border border-pp-border flex flex-col md:flex-row flex-wrap gap-3 items-end">
                 <div className="flex-1 min-w-[120px]">
                   <span className="text-[10px] text-secondary mb-1 block">Type</span>
                   <select value={btnType} onChange={(e) => setBtnType(e.target.value)} className="pp-input w-full h-10 text-xs">
@@ -441,7 +529,7 @@ export const Templates = () => {
                 <button
                   type="button"
                   onClick={handleAddButton}
-                  className="h-10 px-4 bg-pp-blue text-white rounded-xl text-xs font-bold hover:bg-pp-blue/90"
+                  className="h-10 px-4 bg-pp-blue text-white rounded-xl text-xs font-bold hover:bg-pp-blue/90 shrink-0"
                 >
                   Add
                 </button>
@@ -488,7 +576,20 @@ export const Templates = () => {
 
                 {/* Message bubble */}
                 <div className="bg-white p-2.5 rounded-2xl shadow-sm border border-black/5 mt-10 relative text-[10px] leading-relaxed text-main self-start max-w-[95%] w-full">
-                  {newTemplate.header && (
+                  {(newTemplate.mediaType === 'image' || newTemplate.mediaType === 'image_upload') && newTemplate.mediaUrl && (
+                    <div className="w-full h-24 bg-gray-100 rounded-xl mb-2 overflow-hidden border border-pp-border/50">
+                      <img src={newTemplate.mediaUrl} alt="Header Preview" className="w-full h-full object-cover" onError={(e) => { (e.target as any).src = 'https://placehold.co/400x200?text=Image+Preview' }} />
+                    </div>
+                  )}
+                  {(newTemplate.mediaType === 'video' || newTemplate.mediaType === 'video_upload') && newTemplate.mediaUrl && (
+                    <div className="w-full h-24 bg-gray-200 rounded-xl mb-2 flex items-center justify-center border border-pp-border/50 relative overflow-hidden">
+                       <div className="absolute inset-0 bg-black/10 flex items-center justify-center z-10">
+                         <div className="w-8 h-8 bg-black/50 rounded-full flex items-center justify-center text-white pl-0.5">▶</div>
+                       </div>
+                       <video src={newTemplate.mediaUrl} className="w-full h-full object-cover opacity-50" />
+                    </div>
+                  )}
+                  {newTemplate.mediaType === 'text' && newTemplate.header && (
                     <div className="font-extrabold text-[10px] text-main border-b border-pp-border/50 pb-1 mb-1.5">
                       {newTemplate.header}
                     </div>
@@ -561,15 +662,55 @@ export const Templates = () => {
                 {isEditingTemplate ? (
                   <div className="space-y-4 animate-slide-up">
                     {/* Header Input */}
-                    <div>
-                      <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">Header Title Text (Optional)</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Appointment Confirmation"
-                        value={editedTemplate.header}
-                        onChange={(e) => setEditedTemplate({ ...editedTemplate, header: e.target.value })}
-                        className="pp-input w-full h-11"
-                      />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">Header Type</label>
+                        <select
+                          value={editedTemplate.mediaType}
+                          onChange={(e) => setEditedTemplate({ ...editedTemplate, mediaType: e.target.value, header: '' })}
+                          className="pp-input w-full h-11"
+                        >
+                          <option value="text">Text Title</option>
+                          <option value="image">Image (URL)</option>
+                          <option value="image_upload">Image (Upload File)</option>
+                          <option value="video">Video (URL)</option>
+                          <option value="video_upload">Video (Upload File)</option>
+                        </select>
+                      </div>
+
+                      {editedTemplate.mediaType === 'text' ? (
+                        <div>
+                          <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">Header Title Text (Optional)</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Appointment Confirmation"
+                            value={editedTemplate.header}
+                            onChange={(e) => setEditedTemplate({ ...editedTemplate, header: e.target.value })}
+                            className="pp-input w-full h-11"
+                          />
+                        </div>
+                      ) : editedTemplate.mediaType === 'image_upload' || editedTemplate.mediaType === 'video_upload' ? (
+                        <div>
+                          <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">Upload Media File</label>
+                          <input
+                            type="file"
+                            accept={editedTemplate.mediaType === 'image_upload' ? 'image/*' : 'video/*'}
+                            onChange={(e) => setEditedTemplate({ ...editedTemplate, mediaFile: e.target.files?.[0] || null, mediaUrl: e.target.files?.[0] ? URL.createObjectURL(e.target.files[0]) : '' })}
+                            className="pp-input w-full pt-2.5 h-11"
+                          />
+                        </div>
+                      ) : (
+                        <div>
+                          <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">Media URL</label>
+                          <input
+                            type="url"
+                            placeholder="https://..."
+                            value={editedTemplate.mediaUrl}
+                            onChange={(e) => setEditedTemplate({ ...editedTemplate, mediaUrl: e.target.value })}
+                            className="pp-input w-full h-11"
+                          />
+                        </div>
+                      )}
                     </div>
 
                     {/* Body Content */}
@@ -600,7 +741,21 @@ export const Templates = () => {
                 ) : (
                   <div>
                     <h4 className="text-xs uppercase tracking-wider font-bold text-main">Template Content</h4>
-                    {selectedTemplate.header && (
+                    
+                    {selectedTemplate.mediaType === 'image' && selectedTemplate.mediaUrl && (
+                      <div className="w-full max-w-[200px] h-32 bg-gray-100 rounded-xl mt-2 overflow-hidden border border-pp-border/50">
+                        <img src={selectedTemplate.mediaUrl} alt="Media" className="w-full h-full object-cover" onError={(e) => { (e.target as any).src = 'https://placehold.co/400x200?text=Image+Preview' }} />
+                      </div>
+                    )}
+                    {selectedTemplate.mediaType === 'video' && selectedTemplate.mediaUrl && (
+                      <div className="w-full max-w-[200px] h-32 bg-gray-200 rounded-xl mt-2 flex items-center justify-center border border-pp-border/50 relative overflow-hidden">
+                         <div className="absolute inset-0 bg-black/10 flex items-center justify-center z-10">
+                           <div className="w-8 h-8 bg-black/50 rounded-full flex items-center justify-center text-white pl-0.5">▶</div>
+                         </div>
+                         <video src={selectedTemplate.mediaUrl} className="w-full h-full object-cover opacity-50" />
+                      </div>
+                    )}
+                    {selectedTemplate.mediaType === 'text' && selectedTemplate.header && (
                       <div className="font-extrabold text-[12px] text-main border-b border-pp-border/50 pb-1 mt-2">
                         {selectedTemplate.header}
                       </div>
@@ -649,6 +804,20 @@ export const Templates = () => {
                           return;
                         }
                         try {
+                          let mediaHandle = selectedTemplate.mediaHandle || '';
+                          if ((editedTemplate.mediaType === 'image_upload' || editedTemplate.mediaType === 'video_upload') && editedTemplate.mediaFile && selectedTemplate.channelId) {
+                            const uploadResult = await uploadMutation.mutateAsync({
+                              channelId: selectedTemplate.channelId,
+                              file: editedTemplate.mediaFile,
+                              title: selectedTemplate.name + '_header_update'
+                            });
+                            mediaHandle = uploadResult.mediaId;
+                          }
+
+                          const finalMediaType = editedTemplate.mediaType === 'image_upload' ? 'image' 
+                            : editedTemplate.mediaType === 'video_upload' ? 'video' 
+                            : editedTemplate.mediaType;
+
                           await updateMutation.mutateAsync({
                             id: selectedTemplate.id,
                             channelId: selectedTemplate.channelId,
@@ -658,6 +827,9 @@ export const Templates = () => {
                             header: editedTemplate.header,
                             body: editedTemplate.body,
                             footer: editedTemplate.footer,
+                            mediaType: finalMediaType,
+                            mediaUrl: editedTemplate.mediaUrl,
+                            mediaHandle: mediaHandle || undefined,
                             buttons: selectedTemplate.buttons,
                             status: selectedTemplate.status
                           });
@@ -666,7 +838,10 @@ export const Templates = () => {
                             ...selectedTemplate,
                             header: editedTemplate.header,
                             body: editedTemplate.body,
-                            footer: editedTemplate.footer
+                            footer: editedTemplate.footer,
+                            mediaType: finalMediaType,
+                            mediaUrl: editedTemplate.mediaUrl,
+                            mediaHandle: mediaHandle || undefined,
                           });
                           setIsEditingTemplate(false);
                         } catch (err: any) {
@@ -711,15 +886,50 @@ export const Templates = () => {
 
                   {/* Message bubble */}
                   <div className="bg-white p-2.5 rounded-2xl shadow-sm border border-black/5 mt-10 relative text-[10px] leading-relaxed text-main self-start max-w-[90%] w-full">
-                    {isEditingTemplate && editedTemplate.header && (
-                      <div className="font-extrabold text-[10px] text-main border-b border-pp-border/50 pb-1 mb-1.5">
-                        {editedTemplate.header}
-                      </div>
-                    )}
-                    {!isEditingTemplate && selectedTemplate.header && (
-                      <div className="font-extrabold text-[10px] text-main border-b border-pp-border/50 pb-1 mb-1.5">
-                        {selectedTemplate.header}
-                      </div>
+                    
+                    {/* Media Preview */}
+                    {isEditingTemplate ? (
+                      <>
+                        {(editedTemplate.mediaType === 'image' || editedTemplate.mediaType === 'image_upload') && editedTemplate.mediaUrl && (
+                          <div className="w-full h-24 bg-gray-100 rounded-xl mb-2 overflow-hidden border border-pp-border/50">
+                            <img src={editedTemplate.mediaUrl} alt="Header Preview" className="w-full h-full object-cover" onError={(e) => { (e.target as any).src = 'https://placehold.co/400x200?text=Image+Preview' }} />
+                          </div>
+                        )}
+                        {(editedTemplate.mediaType === 'video' || editedTemplate.mediaType === 'video_upload') && editedTemplate.mediaUrl && (
+                          <div className="w-full h-24 bg-gray-200 rounded-xl mb-2 flex items-center justify-center border border-pp-border/50 relative overflow-hidden">
+                            <div className="absolute inset-0 bg-black/10 flex items-center justify-center z-10">
+                              <div className="w-8 h-8 bg-black/50 rounded-full flex items-center justify-center text-white pl-0.5">▶</div>
+                            </div>
+                            <video src={editedTemplate.mediaUrl} className="w-full h-full object-cover opacity-50" />
+                          </div>
+                        )}
+                        {editedTemplate.mediaType === 'text' && editedTemplate.header && (
+                          <div className="font-extrabold text-[10px] text-main border-b border-pp-border/50 pb-1 mb-1.5">
+                            {editedTemplate.header}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        {selectedTemplate.mediaType === 'image' && selectedTemplate.mediaUrl && (
+                          <div className="w-full h-24 bg-gray-100 rounded-xl mb-2 overflow-hidden border border-pp-border/50">
+                            <img src={selectedTemplate.mediaUrl} alt="Header Preview" className="w-full h-full object-cover" onError={(e) => { (e.target as any).src = 'https://placehold.co/400x200?text=Image+Preview' }} />
+                          </div>
+                        )}
+                        {selectedTemplate.mediaType === 'video' && selectedTemplate.mediaUrl && (
+                          <div className="w-full h-24 bg-gray-200 rounded-xl mb-2 flex items-center justify-center border border-pp-border/50 relative overflow-hidden">
+                            <div className="absolute inset-0 bg-black/10 flex items-center justify-center z-10">
+                              <div className="w-8 h-8 bg-black/50 rounded-full flex items-center justify-center text-white pl-0.5">▶</div>
+                            </div>
+                            <video src={selectedTemplate.mediaUrl} className="w-full h-full object-cover opacity-50" />
+                          </div>
+                        )}
+                        {selectedTemplate.mediaType === 'text' && selectedTemplate.header && (
+                          <div className="font-extrabold text-[10px] text-main border-b border-pp-border/50 pb-1 mb-1.5">
+                            {selectedTemplate.header}
+                          </div>
+                        )}
+                      </>
                     )}
 
                     <div className="whitespace-pre-wrap">

@@ -31,7 +31,10 @@ export interface WhatsAppConversation {
   channelId: number;
   contactPhone: string;
   contactName?: string;
-  status: 'open' | 'resolved';
+  patientId?: number;
+  status: 'open' | 'closed' | 'assigned' | 'pending' | 'resolved';
+  tags?: string[];
+  priority?: string;
   unreadCount: number;
   lastMessageAt: string;
   lastMessageText: string;

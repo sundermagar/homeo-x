@@ -103,6 +103,25 @@ export class WhatsAppCloudGateway implements WhatsAppGateway {
       const phoneNumberId = await this.getPhoneNumberId(channelId || undefined);
       const cleanTo = to.replace(/\D/g, '');
 
+      // Intercept MMC video templates and inject a placeholder video header
+      // because the frontend currently only sends body text parameters.
+      let finalComponents = components;
+      if (templateName === 'mmchomeotech' || templateName === 'mmc') {
+        finalComponents = [
+          {
+            type: 'header',
+            parameters: [
+              {
+                type: 'video',
+                video: {
+                  link: 'https://www.w3schools.com/html/mov_bbb.mp4' // Placeholder promo video
+                }
+              }
+            ]
+          }
+        ];
+      }
+
       const body = {
         messaging_product: 'whatsapp',
         recipient_type: 'individual',
@@ -111,7 +130,7 @@ export class WhatsAppCloudGateway implements WhatsAppGateway {
         template: {
           name: templateName,
           language: { code: language },
-          components: components.length > 0 ? components : undefined,
+          components: finalComponents.length > 0 ? finalComponents : undefined,
         },
       };
 
@@ -262,5 +281,46 @@ export class WhatsAppCloudGateway implements WhatsAppGateway {
     // This typically involves manual setup in Meta dashboard, 
     // but some subscriptions can be automated via API for Embedded Signup
     return true;
+  }
+
+  async sendReaction(channelId: number | null, to: string, messageId: string, emoji: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const phoneNumberId = await this.getPhoneNumberId(channelId || undefined);
+      const cleanTo = to.replace(/\D/g, '');
+
+      logger.info(`[SendReaction] Sending reaction to: ${cleanTo}, messageId: ${messageId}`);
+
+      const body = {
+        messaging_product: 'whatsapp',
+        recipient_type: 'individual',
+        to: cleanTo,
+        type: 'reaction',
+        reaction: {
+          message_id: messageId,
+          emoji: emoji
+        }
+      };
+
+      const url = `${this.baseUrl}/${phoneNumberId}/messages`;
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: await this.getHeaders(channelId || undefined),
+        body: JSON.stringify(body),
+      });
+
+      const data = await response.json() as any;
+
+      if (!response.ok) {
+        logger.error(`[SendReaction] ❌ Meta API Error (HTTP ${response.status}): ${JSON.stringify(data)}`);
+        return { success: false, error: data.error?.message || 'Unknown error' };
+      }
+
+      logger.info(`[SendReaction] ✅ Reaction accepted by Meta!`);
+      return { success: true };
+    } catch (err: any) {
+      logger.error(`[SendReaction] ❌ Exception: ${err.message}`);
+      return { success: false, error: err.message };
+    }
   }
 }

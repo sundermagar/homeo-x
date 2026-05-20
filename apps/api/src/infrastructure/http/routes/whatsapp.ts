@@ -157,7 +157,7 @@ whatsappRouter.get('/templates', authMiddleware, asyncHandler(async (req, res) =
 }));
 
 whatsappRouter.post('/templates', authMiddleware, asyncHandler(async (req, res) => {
-  const { channelId, name, category, language, header, body, footer, buttons } = req.body;
+  const { channelId, name, category, language, header, body, footer, buttons, mediaType, mediaUrl, mediaHandle } = req.body;
   if (!channelId) throw new BadRequestError('channelId is required');
   if (!name) throw new BadRequestError('name is required');
   if (!body) throw new BadRequestError('body is required');
@@ -173,6 +173,9 @@ whatsappRouter.post('/templates', authMiddleware, asyncHandler(async (req, res) 
     body,
     footer: footer || '',
     buttons: buttons || [],
+    mediaType: mediaType || 'text',
+    mediaUrl: mediaUrl || '',
+    mediaHandle: mediaHandle || '',
     status: 'approved',
     whatsappTemplateId: `local_${Date.now()}`
   });
@@ -182,7 +185,7 @@ whatsappRouter.post('/templates', authMiddleware, asyncHandler(async (req, res) 
 
 whatsappRouter.put('/templates/:id', authMiddleware, asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { channelId, name, category, language, header, body, footer, buttons, status } = req.body;
+  const { channelId, name, category, language, header, body, footer, buttons, status, mediaType, mediaUrl, mediaHandle } = req.body;
   if (!id) throw new BadRequestError('id is required');
 
   const repo = getRepo(req);
@@ -196,10 +199,27 @@ whatsappRouter.put('/templates/:id', authMiddleware, asyncHandler(async (req, re
     body,
     footer,
     buttons,
+    mediaType,
+    mediaUrl,
+    mediaHandle,
     status
   });
 
   sendSuccess(res, template, 'Template updated successfully');
+}));
+
+whatsappRouter.delete('/templates/:id', authMiddleware, asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  if (!id) throw new BadRequestError('id is required');
+
+  const repo = getRepo(req);
+  const success = await repo.deleteTemplate(Number(id));
+  
+  if (success) {
+    sendSuccess(res, { success: true }, 'Template deleted successfully');
+  } else {
+    throw new BadRequestError('Template not found or could not be deleted');
+  }
 }));
 
 whatsappRouter.post('/templates/sync', authMiddleware, asyncHandler(async (req, res) => {
@@ -419,6 +439,39 @@ whatsappRouter.post('/conversations/:id/messages', authMiddleware, asyncHandler(
   }
 }));
 
+whatsappRouter.patch('/conversations/:id', authMiddleware, asyncHandler(async (req, res) => {
+  const repo = getRepo(req);
+  const convId = Number(req.params.id);
+  const { status, tags, priority } = req.body;
+  
+  const conversation = await repo.findConversationById(convId);
+  if (!conversation) {
+    throw new NotFoundError('Conversation', convId);
+  }
+  
+  const updated = await repo.saveConversation({
+    id: convId,
+    ...(status !== undefined && { status }),
+    ...(tags !== undefined && { tags }),
+    ...(priority !== undefined && { priority })
+  });
+  
+  sendSuccess(res, updated, 'Conversation updated successfully');
+}));
+
+whatsappRouter.delete('/conversations/:id', authMiddleware, asyncHandler(async (req, res) => {
+  const repo = getRepo(req);
+  const convId = Number(req.params.id);
+  
+  const conversation = await repo.findConversationById(convId);
+  if (!conversation) {
+    throw new NotFoundError('Conversation', convId);
+  }
+  
+  const deleted = await repo.deleteConversation(convId);
+  sendSuccess(res, { success: deleted }, 'Conversation deleted successfully');
+}));
+
 whatsappRouter.delete('/messages/:id', authMiddleware, asyncHandler(async (req, res) => {
   const clinicId = (req as any).user?.contextId;
   const id = Number(req.params.id);
@@ -427,6 +480,25 @@ whatsappRouter.delete('/messages/:id', authMiddleware, asyncHandler(async (req, 
     throw new NotFoundError('Message', id);
   }
   sendSuccess(res, { success: true }, 'Message deleted successfully');
+}));
+
+whatsappRouter.post('/messages/:id/reaction', authMiddleware, asyncHandler(async (req, res) => {
+  const messageId = Number(req.params.id);
+  const { emoji } = req.body;
+  const repo = getRepo(req);
+  
+  const message = await repo.findMessageById(messageId);
+  if (!message || !message.whatsappMessageId) throw new BadRequestError('Message not found or missing WAMID');
+  
+  const conversation = await repo.findConversationById(message.conversationId);
+  if (!conversation) throw new BadRequestError('Conversation not found');
+
+  const gateway = getGateway(req);
+  const result = await gateway.sendReaction(conversation.channelId, conversation.contactPhone, message.whatsappMessageId, emoji);
+  
+  if (!result.success) throw new BadRequestError(result.error || 'Failed to send reaction');
+
+  sendSuccess(res, null, 'Reaction sent');
 }));
 
 whatsappRouter.post('/conversations/:id/upload', authMiddleware, upload.single('file'), asyncHandler(async (req, res) => {
@@ -715,52 +787,62 @@ whatsappRouter.post('/send-template', authMiddleware, asyncHandler(async (req, r
     }
   }
 
+  // Pre-fetch template to check for media headers
+  let finalComponents = [...(components || [])];
+  let templateBody = `Template: ${templateName}`;
+  try {
+    const { waTemplates } = await import('@mmc/database');
+    const templateRows = await (repo as any).db.select()
+      .from(waTemplates)
+      .where(
+        and(
+          eq(waTemplates.name, templateName),
+          channelId ? eq(waTemplates.channelId, channelId) : undefined
+        )
+      )
+      .limit(1);
+
+    if (templateRows.length > 0) {
+      const tpl = templateRows[0];
+      templateBody = tpl.body || templateBody;
+
+      // Automatically inject media header if configured
+      if (tpl.mediaType && ['image', 'video', 'document'].includes(tpl.mediaType)) {
+        if (tpl.mediaHandle || tpl.mediaUrl) {
+          // Only inject if frontend didn't already send a header
+          if (!finalComponents.some(c => c.type === 'header')) {
+            const mediaObject = tpl.mediaHandle 
+              ? { id: tpl.mediaHandle } 
+              : { link: tpl.mediaUrl };
+              
+            finalComponents.push({
+              type: 'header',
+              parameters: [
+                {
+                  type: tpl.mediaType,
+                  [tpl.mediaType]: mediaObject
+                }
+              ]
+            });
+          }
+        }
+      }
+    }
+  } catch (e: any) {
+    logger.warn({ err: e.message }, 'Failed to pre-fetch WABA template from DB for header injection');
+  }
+
   const cleanPhone = phone.replace(/\D/g, '');
   let result = await gateway.sendTemplate(
     channelId,
     cleanPhone,
     templateName,
     language || 'en_US',
-    components || []
+    finalComponents
   );
 
-  // If the template does not exist on Meta WABA, fall back to sending it as a direct text message
-  if (!result.success && (result.error?.includes('132001') || result.error?.toLowerCase().includes('not exist') || result.error?.toLowerCase().includes('translation'))) {
-    logger.info(`Route Template "${templateName}" not found on Meta. Interpolating database body and falling back to sendText...`);
-    
-    let templateBody = `Template: ${templateName}`;
-    try {
-      const { waTemplates } = await import('@mmc/database');
-      const templateRows = await (repo as any).db.select()
-        .from(waTemplates)
-        .where(
-          and(
-            eq(waTemplates.name, templateName),
-            channelId ? eq(waTemplates.channelId, channelId) : undefined
-          )
-        )
-        .limit(1);
-
-      if (templateRows.length > 0 && templateRows[0].body) {
-        templateBody = templateRows[0].body;
-
-        // Interpolate components (e.g. {{1}}, {{2}} with text values)
-        const bodyComponent = components?.find((c: any) => c.type === 'body');
-        if (bodyComponent?.parameters) {
-          bodyComponent.parameters.forEach((param: any, idx: number) => {
-            const val = param.text || param.value || '';
-            const placeholder = `{{${idx + 1}}}`;
-            templateBody = templateBody.split(placeholder).join(val);
-          });
-        }
-      }
-    } catch (dbErr: any) {
-      logger.warn(`Route failed to retrieve/interpolate template from DB: ${dbErr.message}`);
-    }
-
-    logger.info(`Route sending fallback text message: "${templateBody.substring(0, 100)}..."`);
-    result = await gateway.sendText(channelId, cleanPhone, templateBody);
-  }
+  // Removed fallback to sendText because Meta silently drops text messages outside 24h window.
+  // We want the frontend to show the actual template rejection error.
 
   if (result.success) {
     // Find the template in the database to get its raw body text and interpolate variables
