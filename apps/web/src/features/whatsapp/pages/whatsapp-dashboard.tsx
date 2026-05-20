@@ -198,7 +198,10 @@ export const WhatsAppDashboardPage = () => {
           sub: 'Train and deploy AI agents for automated patient support.',
           icon: <MessageSquare size={22} strokeWidth={1.8} />,
           actions: (
-            <button className="btn-primary h-10 px-4" onClick={() => window.dispatchEvent(new CustomEvent('open-chatbot-modal'))}>
+            <button 
+              className="btn-primary h-10 px-4" 
+              onClick={() => toast({ title: 'AI Agent Provisioned', description: 'Your AI agent is already bound to this clinic channel. Please configure its knowledge base below.', duration: 5000 })}
+            >
               <MessageSquare size={15} />
               Create AI Agent
             </button>

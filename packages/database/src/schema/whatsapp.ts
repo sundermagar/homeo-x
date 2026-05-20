@@ -257,3 +257,69 @@ export const waMedia = pgTable('wa_media', {
   size: integer('size'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
+
+// ─── AI Settings (per-channel AI provider config) ────────────────────────────
+export const waAiSettings = pgTable('wa_ai_settings', {
+  id: serial('id').primaryKey(),
+  channelId: integer('channel_id').references(() => waChannels.id, { onDelete: 'cascade' }),
+  provider: text('provider').notNull().default('openai'), // openai, azure, custom
+  apiKey: text('api_key').notNull(),
+  model: text('model').notNull().default('gpt-4o-mini'),
+  endpoint: text('endpoint').default('https://api.openai.com/v1'),
+  temperature: text('temperature').default('0.7'),
+  maxTokens: text('max_tokens').default('500'),
+  isActive: boolean('is_active').default(false),
+  triggerWords: jsonb('trigger_words').default([]), // words that trigger auto-reply on first message
+  systemPrompt: text('system_prompt'), // custom system prompt override
+  escalationRules: jsonb('escalation_rules').default({}), // { enabled, maxAttempts, triggerPhrases }
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  aiSettingsChannelIdx: index('wa_ai_settings_channel_idx').on(table.channelId),
+}));
+
+// ─── Training Sources (knowledge base documents) ────────────────────────────
+export const waTrainingSources = pgTable('wa_training_sources', {
+  id: serial('id').primaryKey(),
+  channelId: integer('channel_id').references(() => waChannels.id, { onDelete: 'cascade' }),
+  type: text('type').notNull(), // text, url, pdf
+  name: text('name').notNull(),
+  url: text('url'), // for URL-type sources
+  content: text('content'), // raw scraped/uploaded content
+  status: text('status').notNull().default('pending'), // pending, processing, completed, error
+  errorMessage: text('error_message'),
+  chunkCount: integer('chunk_count').default(0),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  trainingSourceChannelIdx: index('wa_training_sources_channel_idx').on(table.channelId),
+}));
+
+// ─── Training Chunks (RAG vector chunks) ─────────────────────────────────────
+export const waTrainingChunks = pgTable('wa_training_chunks', {
+  id: serial('id').primaryKey(),
+  sourceId: integer('source_id').notNull().references(() => waTrainingSources.id, { onDelete: 'cascade' }),
+  channelId: integer('channel_id').references(() => waChannels.id, { onDelete: 'cascade' }),
+  content: text('content').notNull(),
+  embedding: jsonb('embedding'), // float[] stored as JSON for cosine similarity
+  metadata: jsonb('metadata').default({}),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  trainingChunkSourceIdx: index('wa_training_chunks_source_idx').on(table.sourceId),
+  trainingChunkChannelIdx: index('wa_training_chunks_channel_idx').on(table.channelId),
+}));
+
+// ─── Training Q&A Pairs (FAQ pairs with optional embeddings) ────────────────
+export const waTrainingQaPairs = pgTable('wa_training_qa_pairs', {
+  id: serial('id').primaryKey(),
+  channelId: integer('channel_id').references(() => waChannels.id, { onDelete: 'cascade' }),
+  question: text('question').notNull(),
+  answer: text('answer').notNull(),
+  category: text('category').default('general'),
+  embedding: jsonb('embedding'), // float[] for semantic search
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  trainingQaChannelIdx: index('wa_training_qa_channel_idx').on(table.channelId),
+}));

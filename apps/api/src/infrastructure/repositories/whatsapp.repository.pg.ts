@@ -983,4 +983,158 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
       categoryData
     };
   }
+
+  // ─── AI Settings ──────────────────────────────────────────────────────────
+
+  async findAiSettings(channelId: number): Promise<any> {
+    const [row] = await this.db
+      .select()
+      .from(schema.waAiSettings)
+      .where(eq(schema.waAiSettings.channelId, channelId))
+      .limit(1);
+    return row ?? null;
+  }
+
+  async saveAiSettings(data: any): Promise<any> {
+    const { id, createdAt, updatedAt, ...updateData } = data;
+    if (id) {
+      const [updated] = await this.db
+        .update(schema.waAiSettings)
+        .set({
+          ...updateData,
+          updatedAt: new Date()
+        })
+        .where(eq(schema.waAiSettings.id, id))
+        .returning();
+      return updated;
+    } else {
+      const [inserted] = await this.db
+        .insert(schema.waAiSettings)
+        .values({
+          ...updateData,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning();
+      return inserted;
+    }
+  }
+
+  // ─── Training Sources ──────────────────────────────────────────────────────
+
+  async listTrainingSources(channelId: number): Promise<any[]> {
+    return this.db
+      .select()
+      .from(schema.waTrainingSources)
+      .where(eq(schema.waTrainingSources.channelId, channelId))
+      .orderBy(desc(schema.waTrainingSources.createdAt));
+  }
+
+  async findTrainingSourceById(id: number): Promise<any> {
+    const [row] = await this.db
+      .select()
+      .from(schema.waTrainingSources)
+      .where(eq(schema.waTrainingSources.id, id))
+      .limit(1);
+    return row ?? null;
+  }
+
+  async saveTrainingSource(data: any): Promise<any> {
+    const { id, createdAt, updatedAt, ...updateData } = data;
+    if (id) {
+      const [updated] = await this.db
+        .update(schema.waTrainingSources)
+        .set({
+          ...updateData,
+          updatedAt: new Date()
+        })
+        .where(eq(schema.waTrainingSources.id, id))
+        .returning();
+      return updated;
+    } else {
+      const [inserted] = await this.db
+        .insert(schema.waTrainingSources)
+        .values({
+          ...updateData,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning();
+      return inserted;
+    }
+  }
+
+  async deleteTrainingSource(id: number): Promise<void> {
+    await this.db
+      .delete(schema.waTrainingSources)
+      .where(eq(schema.waTrainingSources.id, id));
+  }
+
+  // ─── Training Chunks ───────────────────────────────────────────────────────
+
+  async listTrainingChunks(sourceId: number): Promise<any[]> {
+    return this.db
+      .select()
+      .from(schema.waTrainingChunks)
+      .where(eq(schema.waTrainingChunks.sourceId, sourceId))
+      .orderBy(schema.waTrainingChunks.id);
+  }
+
+  async saveTrainingChunk(data: any): Promise<any> {
+    const [inserted] = await this.db
+      .insert(schema.waTrainingChunks)
+      .values({
+        ...data,
+        createdAt: new Date()
+      })
+      .returning();
+    return inserted;
+  }
+
+  async deleteChunksBySource(sourceId: number): Promise<void> {
+    await this.db
+      .delete(schema.waTrainingChunks)
+      .where(eq(schema.waTrainingChunks.sourceId, sourceId));
+  }
+
+  // ─── Training QA Pairs ────────────────────────────────────────────────────
+
+  async listTrainingQaPairs(channelId: number): Promise<any[]> {
+    return this.db
+      .select()
+      .from(schema.waTrainingQaPairs)
+      .where(eq(schema.waTrainingQaPairs.channelId, channelId))
+      .orderBy(desc(schema.waTrainingQaPairs.createdAt));
+  }
+
+  async saveTrainingQaPair(data: any): Promise<any> {
+    const { id, createdAt, updatedAt, ...updateData } = data;
+    if (id) {
+      const [updated] = await this.db
+        .update(schema.waTrainingQaPairs)
+        .set({
+          ...updateData,
+          updatedAt: new Date()
+        })
+        .where(eq(schema.waTrainingQaPairs.id, id))
+        .returning();
+      return updated;
+    } else {
+      const [inserted] = await this.db
+        .insert(schema.waTrainingQaPairs)
+        .values({
+          ...updateData,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning();
+      return inserted;
+    }
+  }
+
+  async deleteTrainingQaPair(id: number): Promise<void> {
+    await this.db
+      .delete(schema.waTrainingQaPairs)
+      .where(eq(schema.waTrainingQaPairs.id, id));
+  }
 }

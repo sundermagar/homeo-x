@@ -101,6 +101,7 @@ export class HandleWebhookUseCase {
     }
 
     // ─── Trigger Automations ──────────────────────────────────────────────────
+    let automationTriggered = false;
     if (message.type === 'text') {
       const incomingText = (message.text?.body || '').toLowerCase().trim();
       const result = await this.waRepo.listAutomations(channel.clinicId);
@@ -117,6 +118,18 @@ export class HandleWebhookUseCase {
         logger.info(`Triggering keyword automation ${matchedAutomation.id} for message: ${incomingText}`);
         const executeUseCase = new ExecuteAutomationUseCase(this.waRepo, this.gateway);
         await executeUseCase.execute(matchedAutomation.id, conversation.id, message);
+        automationTriggered = true;
+      }
+    }
+
+    // ─── AI Auto-Reply fallback (only if no keyword automation matched) ─────────
+    if (!automationTriggered && message.type === 'text' && content && this.gateway) {
+      try {
+        const { AiAutoReplyService } = await import('../services/ai-auto-reply.service.js');
+        const aiAutoReply = new AiAutoReplyService(this.waRepo, this.gateway);
+        await aiAutoReply.execute(channel, conversation, content, phone);
+      } catch (aiErr: any) {
+        logger.error(`[AI AutoReply] Non-blocking execution error: ${aiErr.message}`);
       }
     }
 

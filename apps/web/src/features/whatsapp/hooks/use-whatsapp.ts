@@ -419,6 +419,112 @@ export const useWhatsApp = () => {
       },
       staleTime: 10 * 60 * 1000, // default configured channel is static, cache for 10 minutes
     }),
+    
+    // --- AI Chatbot & Training Hooks ---
+    useAiSettings: (channelId: number | null) => useQuery({
+      queryKey: ['whatsapp', 'ai-settings', channelId],
+      queryFn: async () => {
+        if (!channelId) return null;
+        const { data } = await apiClient.get<{ data: any }>(`/whatsapp/ai-settings/${channelId}`);
+        return data.data;
+      },
+      enabled: !!channelId,
+    }),
+    
+    useSaveAiSettings: () => useMutation({
+      mutationFn: async (payload: { channelId: number; data: any }) => {
+        const { data } = await apiClient.put<{ data: any }>(`/whatsapp/ai-settings/${payload.channelId}`, payload.data);
+        return data.data;
+      },
+      onSuccess: (_, vars) => {
+        queryClient.invalidateQueries({ queryKey: ['whatsapp', 'ai-settings', vars.channelId] });
+      },
+    }),
+
+    useTrainingSources: (channelId: number | null) => useQuery({
+      queryKey: ['whatsapp', 'training-sources', channelId],
+      queryFn: async () => {
+        if (!channelId) return [];
+        const { data } = await apiClient.get<{ data: any[] }>(`/whatsapp/training/sources/${channelId}`);
+        return data.data;
+      },
+      enabled: !!channelId,
+    }),
+
+    useAddTrainingSource: () => useMutation({
+      mutationFn: async (payload: any) => {
+        const { data } = await apiClient.post<{ data: any }>('/whatsapp/training/sources', payload);
+        return data.data;
+      },
+      onSuccess: (_, vars) => {
+        queryClient.invalidateQueries({ queryKey: ['whatsapp', 'training-sources', vars.channelId] });
+      },
+    }),
+
+    useProcessTrainingSource: () => useMutation({
+      mutationFn: async (id: number) => {
+        const { data } = await apiClient.post<{ data: any }>(`/whatsapp/training/sources/${id}/process`);
+        return data.data;
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['whatsapp', 'training-sources'] });
+        queryClient.invalidateQueries({ queryKey: ['whatsapp', 'training-stats'] });
+      },
+    }),
+
+    useDeleteTrainingSource: () => useMutation({
+      mutationFn: async (id: number) => {
+        const { data } = await apiClient.delete<{ data: any }>(`/whatsapp/training/sources/${id}`);
+        return data.data;
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['whatsapp', 'training-sources'] });
+        queryClient.invalidateQueries({ queryKey: ['whatsapp', 'training-stats'] });
+      },
+    }),
+
+    useTrainingQaPairs: (channelId: number | null) => useQuery({
+      queryKey: ['whatsapp', 'training-qa', channelId],
+      queryFn: async () => {
+        if (!channelId) return [];
+        const { data } = await apiClient.get<{ data: any[] }>(`/whatsapp/training/qa/${channelId}`);
+        return data.data;
+      },
+      enabled: !!channelId,
+    }),
+
+    useSaveTrainingQaPair: () => useMutation({
+      mutationFn: async (payload: any) => {
+        const { data } = await apiClient.post<{ data: any }>('/whatsapp/training/qa', payload);
+        return data.data;
+      },
+      onSuccess: (_, vars) => {
+        queryClient.invalidateQueries({ queryKey: ['whatsapp', 'training-qa', vars.channelId] });
+        queryClient.invalidateQueries({ queryKey: ['whatsapp', 'training-stats'] });
+      },
+    }),
+
+    useDeleteTrainingQaPair: () => useMutation({
+      mutationFn: async (id: number) => {
+        const { data } = await apiClient.delete<{ data: any }>(`/whatsapp/training/qa/${id}`);
+        return data.data;
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['whatsapp', 'training-qa'] });
+        queryClient.invalidateQueries({ queryKey: ['whatsapp', 'training-stats'] });
+      },
+    }),
+
+    useTrainingStats: (channelId: number | null) => useQuery({
+      queryKey: ['whatsapp', 'training-stats', channelId],
+      queryFn: async () => {
+        if (!channelId) return null;
+        const { data } = await apiClient.get<{ data: any }>(`/whatsapp/training/stats/${channelId}`);
+        return data.data;
+      },
+      enabled: !!channelId,
+      refetchInterval: 10000, // Poll every 10s to update chunk counts when processing
+    }),
     // Campaigns Paginated
     useCampaignsPaginated: (params: { page: number, limit: number, search?: string }) => useQuery({
       queryKey: ['whatsapp', 'campaigns', params],

@@ -857,3 +857,183 @@ whatsappRouter.get('/default-channel', authMiddleware, asyncHandler(async (req, 
     channel: channel ? { id: channel.id, name: channel.name, phoneNumber: channel.phoneNumber } : null,
   });
 }));
+
+// ─── AI Chatbot & Training Routes ───────────────────────────────────────────
+
+// GET /api/whatsapp/ai-settings/:channelId - Get AI configuration for channel
+whatsappRouter.get('/ai-settings/:channelId', authMiddleware, asyncHandler(async (req, res) => {
+  const channelId = parseInt(String(req.params.channelId));
+  const repo = getRepo(req);
+  const settings = await repo.findAiSettings(channelId);
+  sendSuccess(res, settings || {
+    channelId,
+    provider: 'openai',
+    apiKey: '',
+    model: 'gpt-4o-mini',
+    endpoint: 'https://api.openai.com/v1',
+    temperature: '0.7',
+    maxTokens: '500',
+    isActive: false,
+    triggerWords: [],
+    systemPrompt: '',
+    escalationRules: { enabled: true, maxAttempts: 3 },
+  });
+}));
+
+// PUT /api/whatsapp/ai-settings/:channelId - Update AI configuration
+whatsappRouter.put('/ai-settings/:channelId', authMiddleware, asyncHandler(async (req, res) => {
+  const channelId = parseInt(String(req.params.channelId));
+  const repo = getRepo(req);
+  const body = req.body;
+
+  const existing = await repo.findAiSettings(channelId);
+  const toSave = {
+    ...existing,
+    ...body,
+    channelId,
+  };
+
+  const saved = await repo.saveAiSettings(toSave);
+  sendSuccess(res, saved, 'AI settings saved successfully');
+}));
+
+// GET /api/whatsapp/training/sources/:channelId - List training sources
+whatsappRouter.get('/training/sources/:channelId', authMiddleware, asyncHandler(async (req, res) => {
+  const channelId = parseInt(String(req.params.channelId));
+  const repo = getRepo(req);
+  const sources = await repo.listTrainingSources(channelId);
+  sendSuccess(res, sources);
+}));
+
+// POST /api/whatsapp/training/sources - Add new training source
+whatsappRouter.post('/training/sources', authMiddleware, asyncHandler(async (req, res) => {
+  const repo = getRepo(req);
+  const body = req.body;
+
+  if (!body.channelId || !body.type || !body.name) {
+    throw new BadRequestError('channelId, type, and name are required');
+  }
+
+  const saved = await repo.saveTrainingSource({
+    channelId: body.channelId,
+    type: body.type,
+    name: body.name,
+    url: body.url || null,
+    content: body.content || null,
+    status: 'pending',
+  });
+
+  sendSuccess(res, saved, 'Training source added successfully');
+}));
+
+// DELETE /api/whatsapp/training/sources/:id - Delete training source
+whatsappRouter.delete('/training/sources/:id', authMiddleware, asyncHandler(async (req, res) => {
+  const id = parseInt(String(req.params.id));
+  const repo = getRepo(req);
+
+  const existing = await repo.findTrainingSourceById(id);
+  if (!existing) {
+    throw new NotFoundError('Training source not found');
+  }
+
+  await repo.deleteTrainingSource(id);
+  sendSuccess(res, { success: true }, 'Training source deleted');
+}));
+
+// POST /api/whatsapp/training/sources/:id/process - Trigger processing (scraping, chunking, embeddings)
+whatsappRouter.post('/training/sources/:id/process', authMiddleware, asyncHandler(async (req, res) => {
+  const id = parseInt(String(req.params.id));
+  const repo = getRepo(req);
+
+  const source = await repo.findTrainingSourceById(id);
+  if (!source) {
+    throw new NotFoundError('Training source not found');
+  }
+
+  // Trigger processing asynchronously in background to avoid blocking HTTP connection
+  import('../../../domains/whatsapp/services/training.service.js')
+    .then(async ({ processTrainingSource }) => {
+      try {
+        await processTrainingSource(repo, id);
+      } catch (err: any) {
+        logger.error(`Background training source processing failed for source ${id}: ${err.message}`);
+      }
+    });
+
+  // Instantly return processing status
+  sendSuccess(res, { success: true, status: 'processing' }, 'Processing started in background');
+}));
+
+// GET /api/whatsapp/training/qa/:channelId - List Q&A pairs
+whatsappRouter.get('/training/qa/:channelId', authMiddleware, asyncHandler(async (req, res) => {
+  const channelId = parseInt(String(req.params.channelId));
+  const repo = getRepo(req);
+  const qaPairs = await repo.listTrainingQaPairs(channelId);
+  sendSuccess(res, qaPairs);
+}));
+
+// POST /api/whatsapp/training/qa - Create/update Q&A pair
+whatsappRouter.post('/training/qa', authMiddleware, asyncHandler(async (req, res) => {
+  const repo = getRepo(req);
+  const body = req.body;
+
+  if (!body.channelId || !body.question || !body.answer) {
+    throw new BadRequestError('channelId, question, and answer are required');
+  }
+
+  const saved = await repo.saveTrainingQaPair({
+    id: body.id ? parseInt(body.id) : undefined,
+    channelId: body.channelId,
+    question: body.question,
+    answer: body.answer,
+    category: body.category || 'general',
+    isActive: body.isActive !== false,
+  });
+
+  // Generate embeddings for the Q&A pair in background
+  if (saved.id) {
+    import('../../../domains/whatsapp/services/training.service.js')
+      .then(async ({ generateQaEmbedding }) => {
+        try {
+          await generateQaEmbedding(repo, saved.id, body.channelId);
+        } catch (err: any) {
+          logger.warn(`Background Q&A embedding generation failed: ${err.message}`);
+        }
+      });
+  }
+
+  sendSuccess(res, saved, 'Q&A pair saved successfully');
+}));
+
+// DELETE /api/whatsapp/training/qa/:id - Delete Q&A pair
+whatsappRouter.delete('/training/qa/:id', authMiddleware, asyncHandler(async (req, res) => {
+  const id = parseInt(String(req.params.id));
+  const repo = getRepo(req);
+  await repo.deleteTrainingQaPair(id);
+  sendSuccess(res, { success: true }, 'Q&A pair deleted successfully');
+}));
+
+// GET /api/whatsapp/training/stats/:channelId - Get training statistics
+whatsappRouter.get('/training/stats/:channelId', authMiddleware, asyncHandler(async (req, res) => {
+  const channelId = parseInt(String(req.params.channelId));
+  const repo = getRepo(req);
+
+  const sources = await repo.listTrainingSources(channelId);
+  const qaPairs = await repo.listTrainingQaPairs(channelId);
+
+  let totalChunks = 0;
+  for (const s of sources) {
+    if (s.status === 'completed') {
+      const chunks = await repo.listTrainingChunks(s.id);
+      totalChunks += chunks.length;
+    }
+  }
+
+  sendSuccess(res, {
+    sourcesCount: sources.length,
+    chunksCount: totalChunks,
+    qaCount: qaPairs.length,
+    activeQaCount: qaPairs.filter((q) => q.isActive).length,
+  });
+}));
+

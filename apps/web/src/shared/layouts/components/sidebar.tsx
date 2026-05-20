@@ -146,6 +146,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         { label: 'Campaigns', path: '/communications/whatsapp/campaigns', icon: <Send size={14} /> },
         { label: 'Templates', path: '/communications/whatsapp/templates', icon: <FileText size={14} /> },
         { label: 'Automations', path: '/communications/whatsapp/automations', icon: <Zap size={14} /> },
+        { label: 'AI Chatbot', path: '/communications/whatsapp/chatbots', icon: <Bot size={14} /> },
         { label: 'Analytics', path: '/communications/whatsapp/analytics', icon: <BarChart3 size={14} /> },
         { label: 'Widget Builder', path: '/communications/whatsapp/widget-builder', icon: <Bot size={14} /> },
       ]

@@ -64,6 +64,27 @@ export interface WhatsAppRepository {
   saveChatbot(data: any): Promise<any>;
   listTrainingData(chatbotId: number): Promise<any[]>;
   saveTrainingData(data: any): Promise<any>;
+
+  // AI Settings
+  findAiSettings(channelId: number): Promise<any>;
+  saveAiSettings(data: any): Promise<any>;
+
+  // Training Sources
+  listTrainingSources(channelId: number): Promise<any[]>;
+  findTrainingSourceById(id: number): Promise<any>;
+  saveTrainingSource(data: any): Promise<any>;
+  deleteTrainingSource(id: number): Promise<void>;
+
+  // Training Chunks
+  listTrainingChunks(sourceId: number): Promise<any[]>;
+  saveTrainingChunk(data: any): Promise<any>;
+  deleteChunksBySource(sourceId: number): Promise<void>;
+
+  // Training QA Pairs
+  listTrainingQaPairs(channelId: number): Promise<any[]>;
+  saveTrainingQaPair(data: any): Promise<any>;
+  deleteTrainingQaPair(id: number): Promise<void>;
+
   // Analytics
   getAnalytics(clinicId: number, days?: number): Promise<any>;
 }
