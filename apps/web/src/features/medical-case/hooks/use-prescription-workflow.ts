@@ -20,7 +20,12 @@ function getRowDeliveryMode(rx: any): string {
   return 'clinic';
 }
 
-export function usePrescriptionWorkflow(regid: number, visitId?: number, selectedDate?: string | null) {
+export function usePrescriptionWorkflow(
+  regid: number,
+  visitId?: number,
+  selectedDate?: string | null,
+  onSelectDate?: (date: string | null) => void
+) {
   const { data: history, isLoading } = usePatientPrescriptions(regid);
   const saveMutation = useSavePrescription();
   const deleteMutation = useDeletePrescription(regid);
@@ -53,7 +58,7 @@ export function usePrescriptionWorkflow(regid: number, visitId?: number, selecte
 
   const firstRxOfToday = useMemo(() => {
     const todayRxs = (history || []).filter(rx => {
-      const dateVal = rx.created_at || rx.dateval || rx.createdAt;
+      const dateVal = rx.created_at || rx.dateval;
       if (!dateVal) return false;
       return new Date(dateVal).toDateString() === new Date().toDateString();
     });
@@ -78,6 +83,10 @@ export function usePrescriptionWorkflow(regid: number, visitId?: number, selecte
     setForm(initialForm);
     setActiveTab('rx');
     
+    // Auto-select today's date immediately to update other tabs without delay
+    const todayIso = new Date().toISOString();
+    onSelectDate?.(todayIso);
+    
     try {
       const res = await saveMutation.mutateAsync({
         regid,
@@ -87,6 +96,10 @@ export function usePrescriptionWorkflow(regid: number, visitId?: number, selecte
       });
       if (res && typeof res === 'object' && 'id' in res) {
         setEditingId(Number(res.id));
+        
+        // Auto-select with exact timestamp from server response if available
+        const rxDate = res.created_at || res.dateval || res.createdAt || todayIso;
+        onSelectDate?.(rxDate);
       }
     } catch (err) {
       console.error('Failed to start new Rx:', err);
@@ -101,7 +114,7 @@ export function usePrescriptionWorkflow(regid: number, visitId?: number, selecte
       if (!isToday) return;
 
       const dateRxs = history.filter(rx => {
-        const dateVal = rx.created_at || rx.dateval || rx.createdAt;
+        const dateVal = rx.created_at || rx.dateval;
         return dateVal && new Date(dateVal).toDateString() === selectedDateStr;
       });
 
@@ -111,11 +124,11 @@ export function usePrescriptionWorkflow(regid: number, visitId?: number, selecte
         setEditingId(latestRx.id);
         setManualInstruction(true);
         setForm({
-          remedyName: latestRx.remedy_name || latestRx.remedyName || '',
-          potencyName: latestRx.potency_name || latestRx.potencyName || '',
-          frequencyName: latestRx.frequency_name || latestRx.frequencyName || '',
+          remedyName: latestRx.remedy_name || '',
+          potencyName: latestRx.potency_name || '',
+          frequencyName: latestRx.frequency_name || '',
           days: Number(latestRx.days) || 0,
-          instructions: latestRx.prescription || latestRx.notes || latestRx.instructions || '',
+          instructions: latestRx.prescription || latestRx.notes || '',
           notes: latestRx.notes || ''
         });
         setActiveTab('rx');
@@ -135,7 +148,7 @@ export function usePrescriptionWorkflow(regid: number, visitId?: number, selecte
     // If we have a selected date, find the delivery mode for that date
     if (selectedDate) {
       const selectedRxs = history.filter(rx => {
-        const dateVal = rx.created_at || rx.dateval || rx.createdAt;
+        const dateVal = rx.created_at || rx.dateval;
         return dateVal && new Date(dateVal).toDateString() === new Date(selectedDate).toDateString();
       });
       if (selectedRxs.length > 0) {
@@ -166,6 +179,10 @@ export function usePrescriptionWorkflow(regid: number, visitId?: number, selecte
     setForm(repeatData);
     setActiveTab('rx');
     setManualInstruction(true);
+    
+    // Auto-select today's date immediately
+    const todayIso = new Date().toISOString();
+    onSelectDate?.(todayIso);
 
     try {
       const res = await saveMutation.mutateAsync({
@@ -176,6 +193,10 @@ export function usePrescriptionWorkflow(regid: number, visitId?: number, selecte
       });
       if (res && typeof res === 'object' && 'id' in res) {
         setEditingId(Number(res.id));
+        
+        // Auto-select with exact timestamp from server response if available
+        const rxDate = res.created_at || res.dateval || res.createdAt || todayIso;
+        onSelectDate?.(rxDate);
       }
     } catch (err) {
       console.error('Failed to repeat Rx:', err);

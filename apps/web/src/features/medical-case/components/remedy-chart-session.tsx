@@ -270,7 +270,7 @@ export function RemedyChartSession({
                       setManualInstruction(false);
                       setForm({ ...form, remedyName: val });
                     }}
-                    options={lookups?.medicines?.map(m => m.name) || []}
+                    options={lookups?.medicines?.map((m: any) => m.name) || []}
                   />
                 </div>
 
@@ -282,7 +282,7 @@ export function RemedyChartSession({
                       setManualInstruction(false);
                       setForm({ ...form, potencyName: val });
                     }}
-                    options={lookups?.potencies?.map(p => p.name) || []}
+                    options={lookups?.potencies?.map((p: any) => p.name) || []}
                   />
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -293,7 +293,7 @@ export function RemedyChartSession({
                       setManualInstruction(false);
                       setForm({ ...form, frequencyName: val });
                     }}
-                    options={lookups?.frequencies?.map(f => f.name) || []}
+                    options={lookups?.frequencies?.map((f: any) => f.name) || []}
                   />
                 </div>
                 {(!isRxToday || (editingId && firstRxOfToday && editingId === firstRxOfToday.id)) && (

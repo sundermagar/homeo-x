@@ -143,7 +143,7 @@ export default function MedicalCaseDetailPage() {
   }, []);
 
   const { data: lookups } = useRemedyLookups();
-  const rxWorkflow = usePrescriptionWorkflow(Number(regid), visitId, selectedDate);
+  const rxWorkflow = usePrescriptionWorkflow(Number(regid), visitId, selectedDate, setSelectedDate);
 
   // Building day options from day-charges module
   const dayOptions = useMemo(() => {
