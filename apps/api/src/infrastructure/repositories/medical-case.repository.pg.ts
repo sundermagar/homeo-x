@@ -350,10 +350,10 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
           .orderBy(desc(schema.legacySoapNotes.id)),
 
         this.getHomeoDetails(regid),
-        this.db.select().from(schema.caseNotes).where(eq(schema.caseNotes.regid, regid)).orderBy(desc(schema.caseNotes.createdAt)),
-        this.db.select().from(schema.caseExamination).where(eq(schema.caseExamination.regid, regid)),
+        this.db.select().from(schema.caseNotes).where(and(eq(schema.caseNotes.regid, regid), isNull(schema.caseNotes.deletedAt))).orderBy(desc(schema.caseNotes.createdAt)),
+        this.db.select().from(schema.caseExamination).where(and(eq(schema.caseExamination.regid, regid), isNull(schema.caseExamination.deletedAt))),
         this.db.select().from(schema.caseImages).where(and(eq(schema.caseImages.regid, regid), isNull(schema.caseImages.deletedAt))),
-        this.db.select().from(schema.investigations).where(eq(schema.investigations.regid, regid)),
+        this.db.select().from(schema.investigations).where(and(eq(schema.investigations.regid, regid), isNull(schema.investigations.deletedAt))),
 
         // Legacy Prescriptions: Detailed fetch with joins
         this.db

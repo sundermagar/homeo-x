@@ -58,11 +58,20 @@ export class AiProviderChain {
       }
     }
 
+    const errors: string[] = [];
+
     // ── Failover chain ──
     for (const provider of this.providers) {
       const available = await provider.isAvailable();
       if (!available) {
         logger.warn(`Provider ${provider.name}/${provider.model} unavailable, skipping`);
+        errors.push(`${provider.name}/${provider.model}: Not available/Keys missing`);
+        continue;
+      }
+
+      if (request.documents && request.documents.length > 0 && provider.name === 'groq') {
+        logger.warn(`Provider ${provider.name}/${provider.model} does not support image documents, skipping`);
+        errors.push(`${provider.name}/${provider.model}: Skipped (does not support images)`);
         continue;
       }
 
@@ -83,11 +92,12 @@ export class AiProviderChain {
         return response;
       } catch (error: any) {
         logger.error({ err: error, errMsg: error.message }, `Provider ${provider.name}/${provider.model} failed`);
+        errors.push(`${provider.name}/${provider.model}: ${error.message}`);
         continue;
       }
     }
 
-    throw new Error('All AI providers exhausted or rate limited. Check server logs for exact API errors (401 invalid key, 429 quota, etc).');
+    throw new Error(`All AI providers exhausted. Details: ${errors.join(' | ')}`);
   }
 
   getProviders(): AiProviderPort[] {

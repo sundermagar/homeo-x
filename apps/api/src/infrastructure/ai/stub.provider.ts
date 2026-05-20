@@ -7,6 +7,21 @@ export class StubProvider implements AiProvider {
     const systemContent = messages.find(m => m.role === 'system')?.content;
     const contentStr = typeof systemContent === 'string' ? systemContent.toUpperCase() : '';
     
+    if (contentStr.includes('MEDICINE') || contentStr.includes('ALLOPATHIC')) {
+      const userMsg = messages.find(m => m.role === 'user')?.content;
+      const userStr = typeof userMsg === 'string' ? userMsg.toLowerCase() : '';
+      if (userStr.includes('glycomate') || userStr.includes('metformin') || userStr.includes('glucophage') || userStr.includes('glycomet')) {
+        return 'Diabetes';
+      }
+      if (userStr.includes('silicea')) {
+        return 'Weak Nails';
+      }
+      if (userStr.includes('aspirin') || userStr.includes('atorvastatin') || userStr.includes('amlodipine')) {
+        return 'Hypertension';
+      }
+      return 'General Health';
+    }
+
     if (contentStr.includes('GNM') || contentStr.includes('GERMAN NEW MEDICINE')) {
       return 'STUB: Territorial conflict pattern detected. Conflict-active phase. The symptoms suggest an ongoing biological conflict. Re-evaluate the patient\'s recent life events.';
     }
@@ -21,7 +36,7 @@ export class StubProvider implements AiProvider {
   }
 
   isAvailable(): boolean {
-    return process.env.AI_STUB_MODE === 'true';
+    return true;
   }
 
   async analyze(messages: ChatMessage[], temperature?: number): Promise<string> {

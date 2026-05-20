@@ -62,6 +62,71 @@ export function usePrescriptionWorkflow(regid: number, visitId?: number, selecte
     return todayRxs.reduce((prev, curr) => (prev.id < curr.id ? prev : curr));
   }, [history]);
 
+  // Auto-open rx tab for the current date if we revisit the page
+  const hasAutoOpenedRef = useRef(false);
+  const selectedDateStr = selectedDate ? new Date(selectedDate).toDateString() : new Date().toDateString();
+
+  useEffect(() => {
+    hasAutoOpenedRef.current = false;
+  }, [selectedDateStr]);
+
+  // We need to keep a stable reference to startNewRx for the useEffect below
+  const startNewRx = async () => {
+    if (!regid) return;
+    const initialDays = firstRxOfToday ? Number(firstRxOfToday.days) || 0 : 0;
+    const initialForm = { remedyName: '', potencyName: '', frequencyName: '', days: initialDays, instructions: '', notes: '' };
+    setForm(initialForm);
+    setActiveTab('rx');
+    
+    try {
+      const res = await saveMutation.mutateAsync({
+        regid,
+        visitId,
+        deliveryMode: deliveryRef.current,
+        ...initialForm
+      });
+      if (res && typeof res === 'object' && 'id' in res) {
+        setEditingId(Number(res.id));
+      }
+    } catch (err) {
+      console.error('Failed to start new Rx:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (!isLoading && history && !hasAutoOpenedRef.current) {
+      hasAutoOpenedRef.current = true;
+      
+      const isToday = selectedDateStr === new Date().toDateString();
+      if (!isToday) return;
+
+      const dateRxs = history.filter(rx => {
+        const dateVal = rx.created_at || rx.dateval || rx.createdAt;
+        return dateVal && new Date(dateVal).toDateString() === selectedDateStr;
+      });
+
+      if (dateRxs.length > 0) {
+        // Auto-edit the latest rx for this date
+        const latestRx = dateRxs.reduce((prev, curr) => (prev.id > curr.id ? prev : curr));
+        setEditingId(latestRx.id);
+        setManualInstruction(true);
+        setForm({
+          remedyName: latestRx.remedy_name || latestRx.remedyName || '',
+          potencyName: latestRx.potency_name || latestRx.potencyName || '',
+          frequencyName: latestRx.frequency_name || latestRx.frequencyName || '',
+          days: Number(latestRx.days) || 0,
+          instructions: latestRx.prescription || latestRx.notes || latestRx.instructions || '',
+          notes: latestRx.notes || ''
+        });
+        setActiveTab('rx');
+      } else {
+        // Auto-create draft so the form is visible and ready
+        startNewRx();
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [history, isLoading, selectedDateStr]);
+
   // Sync delivery mode from history when selectedDate or history changes.
   // Uses getRowDeliveryMode helper to handle all possible property name variants.
   useEffect(() => {
@@ -85,27 +150,7 @@ export function usePrescriptionWorkflow(regid: number, visitId?: number, selecte
     setDelivery(mode);
   }, [history, selectedDate]);
 
-  const startNewRx = async () => {
-    if (!regid) return;
-    const initialDays = firstRxOfToday ? Number(firstRxOfToday.days) || 0 : 0;
-    const initialForm = { remedyName: '', potencyName: '', frequencyName: '', days: initialDays, instructions: '', notes: '' };
-    setForm(initialForm);
-    setActiveTab('rx');
-    
-    try {
-      const res = await saveMutation.mutateAsync({
-        regid,
-        visitId,
-        deliveryMode: deliveryRef.current,
-        ...initialForm
-      });
-      if (res && typeof res === 'object' && 'id' in res) {
-        setEditingId(Number(res.id));
-      }
-    } catch (err) {
-      console.error('Failed to start new Rx:', err);
-    }
-  };
+  // startNewRx moved above for dependency use
 
   const repeatRx = async (rx: any) => {
     if (!regid || !rx) return;
