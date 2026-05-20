@@ -72,7 +72,7 @@ api_debug.log
 tmp/
 temp/
 managemyclicnicnew/
-apps/api/uploads/
+# apps/api/uploads/
 
 # Testing & Artifacts
 test_auth.js

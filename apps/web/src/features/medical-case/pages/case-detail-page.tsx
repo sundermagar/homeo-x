@@ -17,7 +17,8 @@ import {
   Copy,
   Mail,
   ShieldCheck,
-  Award
+  Award,
+  Download
 } from 'lucide-react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import { useAutoSave } from '@/shared/hooks/use-auto-save';
@@ -118,22 +119,6 @@ function EmptyState({ icon: Icon, title, description, actionLabel, onAction }: a
 }
 
 
-const PatientIssueSelectOptions = [
-  'Acne',
-  'Asthma',
-  'Cough',
-  'Cold',
-  'Headache',
-  'Fever',
-  'Skin Issue',
-  'Hair Fall',
-  'Gastric',
-  'Joint Pain',
-  'Allergy',
-  'Weakness',
-  'Anxiety',
-  'Insomnia'
-];
 
 export default function MedicalCaseDetailPage() {
   const { regid } = useParams();
@@ -146,7 +131,7 @@ export default function MedicalCaseDetailPage() {
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [showFinalizeModal, setShowFinalizeModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const { data: fullData, isLoading, error } = useFullMedicalCase(Number(regid));
+  const { data: fullData, isLoading, error, refetch: refetchFull } = useFullMedicalCase(Number(regid));
   const medicalCase = fullData?.medicalCase;
   const visitId = medicalCase?.id;
   const { data: dayCharges = [] } = useDayCharges();
@@ -267,6 +252,7 @@ export default function MedicalCaseDetailPage() {
     { medicine: '', frequency: 'Once', days: '', issue: '' }
   ]);
   const [activeMedicineFocusIdx, setActiveMedicineFocusIdx] = useState<number | null>(null);
+  const [aiDetectingIdx, setAiDetectingIdx] = useState<number | null>(null);
 
   // Consolidated with previous hook call above
 
@@ -345,6 +331,25 @@ export default function MedicalCaseDetailPage() {
       const updated = prev.filter((_, idx) => idx !== index);
       return updated.length > 0 ? updated : [{ medicine: '', frequency: 'Once', days: '', issue: '' }];
     });
+  };
+
+  const detectMedicineIssue = async (index: number, medicineName: string) => {
+    if (!medicineName.trim()) return;
+    setAiDetectingIdx(index);
+    try {
+      const res = await apiClient.post<{ success: boolean; data: { issue: string; provider?: string } }>(
+        '/medical-cases/ai-detect-medicine-issue',
+        { medicine: medicineName.trim() }
+      );
+      const detected = res.data?.data?.issue;
+      if (detected) {
+        updateMedicationRow(index, 'issue', detected);
+      }
+    } catch (err) {
+      console.warn('AI medicine detection failed:', err);
+    } finally {
+      setAiDetectingIdx(null);
+    }
   };
 
   const handleSaveDiagnosis = async () => {
@@ -511,7 +516,7 @@ export default function MedicalCaseDetailPage() {
     const savedRegularBillsSum = dayBills
       .filter(b => 
         b.billType !== 'Custom' && 
-        b.billType !== 'Additional' && 
+        (b.billType as string) !== 'Additional' && 
         !b.treatment?.startsWith('Package:')
       )
       .reduce((sum, b) => sum + (Number(b.charges) || 0), 0);
@@ -821,15 +826,16 @@ export default function MedicalCaseDetailPage() {
                     visit: {
                       visitNumber: String(regid),
                       date: medicalCase.createdAt || new Date().toISOString(),
-                      followUp: followUpEntry?.notes || undefined,
-                      diagnosis: diagnosisNote || undefined,
-                      complaints: medicalCase.condition || undefined,
+                      chiefComplaint: medicalCase.condition || undefined,
                     },
+                    diagnosis: diagnosisNote ? { assessment: diagnosisNote } : undefined,
+                    followUp: followUpEntry?.notes || undefined,
                     medications,
                     vitals: vitalsData,
                   };
 
-                  printPrescription(printData);
+                  const html = generatePrescriptionHtml(printData);
+                  printHtml(html, { title: `Prescription - ${printData.patient.name}` });
                 }}>
               <Printer size={16} /> Print Prescription
             </button>
@@ -1324,23 +1330,47 @@ export default function MedicalCaseDetailPage() {
                                 </div>
 
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                  <label style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Patient Issue</label>
-                                  <select
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <label style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Patient Issue</label>
+                                    <button
+                                      type="button"
+                                      disabled={!row.medicine.trim() || aiDetectingIdx === idx}
+                                      onClick={() => detectMedicineIssue(idx, row.medicine)}
+                                      title="AI auto-detect issue from medicine name"
+                                      style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        fontSize: '0.6rem',
+                                        fontWeight: 700,
+                                        color: aiDetectingIdx === idx ? '#94a3b8' : '#7c3aed',
+                                        background: aiDetectingIdx === idx ? '#f1f5f9' : 'linear-gradient(135deg, #f5f3ff, #ede9fe)',
+                                        border: '1px solid',
+                                        borderColor: aiDetectingIdx === idx ? '#e2e8f0' : '#c4b5fd',
+                                        borderRadius: '6px',
+                                        padding: '3px 8px',
+                                        cursor: !row.medicine.trim() || aiDetectingIdx === idx ? 'not-allowed' : 'pointer',
+                                        transition: 'all 0.2s ease',
+                                        opacity: !row.medicine.trim() ? 0.4 : 1,
+                                        letterSpacing: '0.02em',
+                                        textTransform: 'uppercase',
+                                      }}
+                                    >
+                                      {aiDetectingIdx === idx ? (
+                                        <><Loader2 size={10} className="animate-spin" /> Detecting...</>
+                                      ) : (
+                                        <><Sparkles size={10} /> AI Detect</>
+                                      )}
+                                    </button>
+                                  </div>
+                                  <input
+                                    type="text"
                                     className="pp-input"
+                                    placeholder="e.g. Fever"
                                     value={row.issue}
                                     onChange={e => updateMedicationRow(idx, 'issue', e.target.value)}
-                                    style={{ width: '100%', padding: '8px', fontSize: '0.85rem', height: '38px', background: 'white' }}
-                                  >
-                                    <option value="">Select Issue</option>
-                                    {diagForm.diagnosis && <option value={diagForm.diagnosis}>{diagForm.diagnosis}</option>}
-                                    {diagForm.complaint && <option value={diagForm.complaint}>{diagForm.complaint}</option>}
-                                    {PatientIssueSelectOptions.map(opt => (
-                                      <option key={opt} value={opt}>{opt}</option>
-                                    ))}
-                                    {row.issue && ![diagForm.diagnosis, diagForm.complaint, ...PatientIssueSelectOptions].includes(row.issue) && (
-                                      <option value={row.issue}>{row.issue}</option>
-                                    )}
-                                  </select>
+                                    style={{ width: '100%', padding: '8px 12px', fontSize: '0.85rem', height: '38px', background: 'white' }}
+                                  />
                                 </div>
                               </div>
                             </div>
@@ -2527,6 +2557,9 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
   const [pageSize, setPageSize] = useState(10);
   const [showDrawer, setShowDrawer] = useState(false);
   const [editingInv, setEditingInv] = useState<any>(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const [isScannedPreview, setIsScannedPreview] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { saveInvestigation, saveNote, deleteRecord } = useManageClinicalRecords();
 
@@ -2586,7 +2619,92 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
     setActiveType('CBC');
     setLabData({});
     setEditingInv(null);
+    setIsScannedPreview(false);
     setShowDrawer(true);
+  };
+
+  const handleDownload = () => {
+    const content = `Investigation Report: ${activeType}\nDate: ${new Date().toLocaleDateString()}\n\n` + 
+      Object.entries(labData).filter(([_, v]) => v).map(([k, v]) => `${k.toUpperCase()}: ${v}`).join('\n');
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `investigation-${activeType.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsScanning(true);
+      // Read file and compress via Canvas
+      const base64Str = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 1200;
+            const MAX_HEIGHT = 1200;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > height) {
+              if (width > MAX_WIDTH) {
+                height = Math.round((height * MAX_WIDTH) / width);
+                width = MAX_WIDTH;
+              }
+            } else {
+              if (height > MAX_HEIGHT) {
+                width = Math.round((width * MAX_HEIGHT) / height);
+                height = MAX_HEIGHT;
+              }
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx?.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', 0.7));
+          };
+          img.onerror = reject;
+          img.src = event.target?.result as string;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const base64Data = base64Str.split(',')[1];
+      const mimeType = 'image/jpeg';
+
+      const { data } = await apiClient.post('/medical-cases/ai-scan-investigation', { 
+        imageBase64: base64Data, 
+        mimeType 
+      });
+      
+      if (!data.success || !data.data?.parsed) {
+        throw new Error(data.error || 'Failed to parse report');
+      }
+
+      const { date, type, data: parsedData } = data.data.parsed;
+      
+      setActiveType(type || 'Specific');
+      setLabData(parsedData || {});
+      setEditingInv(null);
+      setIsScannedPreview(true);
+      setShowDrawer(true);
+      
+    } catch (err: any) {
+      alert(err.message || 'Error scanning report');
+    } finally {
+      setIsScanning(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
   const fields = LAB_CONFIG[activeType as keyof typeof LAB_CONFIG] || [
@@ -2599,6 +2717,16 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
       <div className="mc-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
         <div className="mc-section-header" style={{ margin: 0 }}>Clinical Investigations</div>
         <div style={{ display: 'flex', gap: '10px' }}>
+          <input type="file" accept="image/*" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileSelect} />
+          <button 
+            onClick={() => fileInputRef.current?.click()} 
+            className="btn-secondary" 
+            style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', background: '#f8fafc', border: '1px solid #e2e8f0', color: '#475569', borderRadius: '8px', fontWeight: 600, fontSize: '0.85rem' }} 
+            disabled={isScanning}
+          >
+            {isScanning ? <Loader2 size={16} className="animate-spin" style={{ marginRight: '6px' }} /> : <Sparkles size={16} style={{ marginRight: '6px', color: '#8b5cf6' }} />}
+            {isScanning ? 'Scanning...' : 'Scan Investigation'}
+          </button>
           <button onClick={handleAdd} className="btn-primary" style={{ padding: '8px 16px' }}>
             <Plus size={16} style={{ marginRight: '6px' }} /> Add Investigation
           </button>
@@ -2686,9 +2814,9 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
                                 onClick={() => handleEdit(inv)}
                                 className="btn-ghost"
                                 style={{ color: 'var(--pp-blue)', padding: '4px 8px' }}
-                                title="Edit"
+                                title="Preview (Beautify)"
                               >
-                                <Edit size={14} />
+                                <Eye size={14} />
                               </button>
                               <button
                                 onClick={() => {
@@ -2726,13 +2854,13 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
       {/* ─── Investigation Form Drawer (right-side popup) ─── */}
       {showDrawer && ReactDOM.createPortal(
         <>
-          <div className="mc-drawer-backdrop" onClick={() => { setShowDrawer(false); setEditingInv(null); }} />
+          <div className="mc-drawer-backdrop" onClick={() => { setShowDrawer(false); setEditingInv(null); setIsScannedPreview(false); }} />
           <div className="mc-drawer animate-slide-in-right" style={{ maxWidth: '520px' }}>
             <header className="mc-drawer-header" style={{ background: 'var(--pp-blue)', color: 'white' }}>
               <div className="mc-drawer-header-title">
-                <FlaskConical size={18} /> {editingInv ? 'Edit Investigation' : 'New Investigation'}
+                <FlaskConical size={18} /> {isScannedPreview ? 'Scan Preview' : (editingInv ? 'Edit Investigation' : 'New Investigation')}
               </div>
-              <button className="mc-drawer-close" onClick={() => { setShowDrawer(false); setEditingInv(null); }} style={{ color: 'white', opacity: 0.8 }}>
+              <button className="mc-drawer-close" onClick={() => { setShowDrawer(false); setEditingInv(null); setIsScannedPreview(false); }} style={{ color: 'white', opacity: 0.8 }}>
                 <X size={16} />
               </button>
             </header>
@@ -2785,10 +2913,21 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
             </div>
 
             <footer style={{ padding: '16px 24px', background: 'var(--pp-warm-1)', borderTop: '1px solid var(--pp-warm-3)', display: 'flex', gap: '10px' }}>
-              <button type="button" className="btn-secondary" style={{ flex: 1 }} onClick={() => { setShowDrawer(false); setEditingInv(null); }}>Cancel</button>
-              <button onClick={() => handleSave(false)} className="btn-primary" style={{ flex: 2, padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                <Save size={16} /> {saved ? 'Saved!' : (editingInv ? 'Update Report' : 'Save Report')}
-              </button>
+              <button type="button" className="btn-secondary" style={{ flex: 1 }} onClick={() => { setShowDrawer(false); setEditingInv(null); setIsScannedPreview(false); }}>Cancel</button>
+              {isScannedPreview ? (
+                <>
+                  <button type="button" onClick={() => handleDownload()} className="btn-secondary" style={{ flex: 1, padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                    <Download size={16} /> Download
+                  </button>
+                  <button onClick={() => handleSave(false)} className="btn-primary" style={{ flex: 1.5, padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                    <Save size={16} /> {saved ? 'Saved!' : 'Save Report'}
+                  </button>
+                </>
+              ) : (
+                <button onClick={() => handleSave(false)} className="btn-primary" style={{ flex: 2, padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                  <Save size={16} /> {saved ? 'Saved!' : (editingInv ? 'Update Report' : 'Save Report')}
+                </button>
+              )}
             </footer>
           </div>
         </>,

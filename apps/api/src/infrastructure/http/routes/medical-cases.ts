@@ -26,7 +26,6 @@ router.use(authMiddleware);
 
 import { streamToSSE } from '../../../shared/sse.js';
 
-/*
 // ─── AI Clinical Consultant ───
 router.post('/ai-analysis', asyncHandler(async (req, res) => {
   const params = req.body; // Validation schema skipped (Task A2 not executed)
@@ -39,7 +38,74 @@ router.post('/ai-analysis', asyncHandler(async (req, res) => {
     sendSuccess(res, result, 'AI Analysis complete');
   }
 }));
-*/
+
+router.post('/ai-detect-medicine-issue', asyncHandler(async (req, res) => {
+  const { medicine } = req.body;
+  if (!medicine) {
+    res.status(400).json({ success: false, error: 'Medicine name is required' });
+    return;
+  }
+
+  try {
+    const { getAiProviderChain } = await import('../../../infrastructure/ai/ai-provider-chain.js');
+    const chain = getAiProviderChain();
+    
+    const response = await chain.complete({
+      systemPrompt: `You are a helpful medical assistant. You are given the name of a medicine (typically an allopathic, homeopathic, or generic medicine).
+Determine the primary medical condition or patient issue that this medicine is prescribed for.
+Respond with ONLY the short name of the condition (e.g. 'Diabetes', 'Hypertension', 'Acid Reflux', 'Fever', 'Anxiety', etc.) in 1-4 words.
+Do not write a full sentence, do not add punctuation, do not explain. Just the exact short name of the condition.`,
+      userPrompt: medicine,
+      temperature: 0.1
+    });
+
+    let issue = response.content.trim();
+    issue = issue.replace(/^["']|["']$/g, '').replace(/\.$/, '');
+    
+    sendSuccess(res, { issue, provider: response.provider }, 'Medicine indication detected');
+  } catch (error: any) {
+    sendSuccess(res, { issue: '', error: error.message }, 'AI analysis failed');
+  }
+}));
+
+// ─── AI Scan Investigation ───
+router.post('/ai-scan-investigation', asyncHandler(async (req, res) => {
+  const { imageBase64, mimeType } = req.body;
+  if (!imageBase64 || !mimeType) {
+    res.status(400).json({ success: false, error: 'Image base64 and mimeType are required' });
+    return;
+  }
+
+  try {
+    const { getAiProviderChain } = await import('../../../infrastructure/ai/ai-provider-chain.js');
+    const chain = getAiProviderChain();
+    
+    const response = await chain.complete({
+      systemPrompt: `You are a medical data extraction assistant. You are given an image of a medical investigation report (like a lab test or radiology report).
+Your task is to accurately extract:
+1. The date of the investigation (in YYYY-MM-DD format). If not found, guess based on context or leave blank.
+2. The category/type of the investigation. You MUST choose exactly one of the following allowed categories: "CBC", "Diabetes Profile", "Liver Profile", "Renal Profile", "Urine", "Stool", "Arthritis", "Endocrine", "X-ray - CT - MRI", "USG Female", "USG Male", "Immunology", "Lipid Profile", "Cardiac Profile", "Serology", "Semen Analysis", or "Specific". If the report type doesn't perfectly match, choose "Specific".
+3. A structured JSON object containing the findings. For lab results, this should be key-value pairs of the test name and the result value (include units if possible). For radiology or textual reports, provide a "Summary" key with a beautified, concise summary of the findings.
+
+Respond ONLY with a valid JSON object matching this schema:
+{
+  "date": "YYYY-MM-DD",
+  "type": "Allowed Category String",
+  "data": { "Test Name": "Value", ... }
+}`,
+      userPrompt: "Extract the investigation details from this report image.",
+      documents: [{ base64: imageBase64, mimeType }],
+      temperature: 0.1,
+      responseFormat: 'json',
+      useCache: false
+    });
+
+    const parsed = JSON.parse(response.content.trim());
+    sendSuccess(res, { parsed, provider: response.provider }, 'Investigation scanned successfully');
+  } catch (error: any) {
+    sendSuccess(res, { parsed: null, error: error.message }, 'AI scan failed');
+  }
+}));
 
 const getRepo = (req: any) => new MedicalCaseRepositoryPg(req.tenantDb);
 const getInvRepo = (req: any) => new InventoryRepositoryPg(req.tenantDb);
@@ -200,6 +266,12 @@ router.post('/records/investigations', validate(saveInvestigationSchema), asyncH
   const useCase = new ManageClinicalRecordsUseCase(getRepo(req));
   await useCase.saveInvestigation(req.body);
   sendSuccess(res, null, 'Investigation recorded');
+}));
+
+router.delete('/records/investigations/:id', asyncHandler(async (req, res) => {
+  const useCase = new ManageClinicalRecordsUseCase(getRepo(req));
+  await useCase.deleteInvestigation(Number(req.params.id), '');
+  sendSuccess(res, null, 'Investigation deleted');
 }));
 
 router.delete('/records/soap/:id', asyncHandler(async (req, res) => {
