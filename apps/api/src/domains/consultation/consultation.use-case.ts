@@ -31,6 +31,10 @@ export interface HomeopathyConsultInput {
   consultationMode?: 'acute' | 'chronic' | 'followup';
   thermalReaction?: string;
   miasm?: string;
+  thirstPattern?: string;
+  sleepPosition?: string;
+  perspiration?: string;
+  doctorNotes?: string;
 }
 
 export interface HomeopathyConsultResult {
@@ -170,6 +174,10 @@ export class ConsultationUseCase {
       // Doctor input takes precedence over AI-detected values from extraction.
       thermalReaction: input.thermalReaction || extraction.thermalReaction,
       miasm: input.miasm || extraction.miasm,
+      thirstPattern: input.thirstPattern,
+      sleepPosition: input.sleepPosition,
+      perspiration: input.perspiration,
+      doctorNotes: input.doctorNotes,
     });
     phasesCompleted++;
     logger.info({ tenantId, elapsedMs: Date.now() - phaseStart }, 'Phase 5: Repertorization scoring — DONE');

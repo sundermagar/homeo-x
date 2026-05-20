@@ -155,6 +155,10 @@ export function HomeopathyConsultationLayout({
         patientGender: patient?.gender,
         thermalReaction: state.thermalReaction,
         miasm: state.miasm,
+        thirstPattern: state.thirstPattern,
+        sleepPosition: state.sleepPosition,
+        perspiration: state.perspiration,
+        doctorNotes: state.doctorNotes,
         consultationMode: 'followup',
       });
 
@@ -204,6 +208,10 @@ export function HomeopathyConsultationLayout({
           patientGender: patient?.gender,
           thermalReaction: state.thermalReaction,
           miasm: state.miasm,
+          thirstPattern: state.thirstPattern,
+          sleepPosition: state.sleepPosition,
+          perspiration: state.perspiration,
+          doctorNotes: state.doctorNotes,
           consultationMode: state.consultationMode,
         });
 
@@ -371,6 +379,14 @@ export function HomeopathyConsultationLayout({
             onThermalReactionChange={state.setThermalReaction}
             miasm={state.miasm}
             onMiasmChange={state.setMiasm}
+            thirstPattern={state.thirstPattern}
+            onThirstPatternChange={state.setThirstPattern}
+            sleepPosition={state.sleepPosition}
+            onSleepPositionChange={state.setSleepPosition}
+            perspiration={state.perspiration}
+            onPerspirationChange={state.setPerspiration}
+            doctorNotes={state.doctorNotes}
+            onDoctorNotesChange={state.setDoctorNotes}
           />
         );
 

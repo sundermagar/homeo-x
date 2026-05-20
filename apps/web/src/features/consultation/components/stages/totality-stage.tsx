@@ -17,6 +17,14 @@ interface TotalityStageProps {
   onThermalReactionChange?: (val: string) => void;
   miasm?: string;
   onMiasmChange?: (val: string) => void;
+  thirstPattern?: string;
+  onThirstPatternChange?: (val: string) => void;
+  sleepPosition?: string;
+  onSleepPositionChange?: (val: string) => void;
+  perspiration?: string;
+  onPerspirationChange?: (val: string) => void;
+  doctorNotes?: string;
+  onDoctorNotesChange?: (val: string) => void;
 }
 
 export function TotalityStage({
@@ -33,6 +41,14 @@ export function TotalityStage({
   onThermalReactionChange,
   miasm: parentMiasm,
   onMiasmChange,
+  thirstPattern: parentThirstPattern,
+  onThirstPatternChange,
+  sleepPosition: parentSleepPosition,
+  onSleepPositionChange,
+  perspiration: parentPerspiration,
+  onPerspirationChange,
+  doctorNotes: parentDoctorNotes,
+  onDoctorNotesChange,
 }: TotalityStageProps) {
   const conflict = gnmAnalysis?.coreConflict;
   const phases = gnmAnalysis?.phases;
@@ -48,10 +64,14 @@ export function TotalityStage({
   const setThermalReaction = (val: string) => onThermalReactionChange?.(val);
   const dominantMiasm = parentMiasm || '';
   const setDominantMiasm = (val: string) => onMiasmChange?.(val);
-  const [thirstPattern, setThirstPattern] = useState('');
-  const [sleepPosition, setSleepPosition] = useState('');
-  const [perspiration, setPerspiration] = useState('');
-  const [doctorNotes, setDoctorNotes] = useState('');
+  const thirstPattern = parentThirstPattern || '';
+  const setThirstPattern = (val: string) => onThirstPatternChange?.(val);
+  const sleepPosition = parentSleepPosition || '';
+  const setSleepPosition = (val: string) => onSleepPositionChange?.(val);
+  const perspiration = parentPerspiration || '';
+  const setPerspiration = (val: string) => onPerspirationChange?.(val);
+  const doctorNotes = parentDoctorNotes || '';
+  const setDoctorNotes = (val: string) => onDoctorNotesChange?.(val);
 
   // ─── Inline add state: which category is currently in "add" mode ───
   const [addingCategory, setAddingCategory] = useState<'mental' | 'physical' | 'particular' | null>(null);
