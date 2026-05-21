@@ -11,6 +11,7 @@ import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { Pagination } from '@/components/shared/pagination';
 import { EmptyState } from '@/components/shared/empty-state';
 import { useAuthStore } from '@/shared/stores/auth-store';
+import { NumericInput } from '@/shared/components/NumericInput';
 import './operations-dashboard.css';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -967,7 +968,7 @@ export default function OperationsDashboard() {
                 </div>
                 <div className="ops-form-group">
                   <label>Mobile Number</label>
-                  <NumericInput className="ops-input" name="mobile" placeholder="e.g. 98XXXXXXXX" value={formData.mobile} onValueChange={val => setFormData({ ...formData, mobile: val })} />
+                  <NumericInput className="ops-input" name="mobile" placeholder="e.g. 98XXXXXXXX" value={formData.mobile} onValueChange={(val: string) => setFormData({ ...formData, mobile: val })} />
                 </div>
                 <div className="ops-form-group">
                   <label>Lead Source</label>

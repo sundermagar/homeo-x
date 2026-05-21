@@ -123,7 +123,7 @@ export default function VitalsCheckPage() {
       try {
         const dateObj = new Date(p.dob);
         if (!isNaN(dateObj.getTime())) {
-          dob = dateObj.toISOString().split('T')[0];
+          dob = dateObj.toISOString().split('T')[0] ?? '';
         }
       } catch (e) {
         console.warn('Invalid DOB format', p.dob);

@@ -32,8 +32,8 @@ export default function AdditionalChargesPage() {
   const { data, isLoading } = useAdditionalCharges(query);
   
   // Fetch Predefined Charges Catalog
-  const { data: chargesCatalog } = useCharges({ limit: 100 });
-  const predefinedCharges: Charge[] = chargesCatalog?.data ?? [];
+  const { data: chargesCatalog } = useCharges();
+  const predefinedCharges: Charge[] = chargesCatalog ?? [];
   
   const createCharge = useCreateAdditionalCharge();
   const updateCharge = useUpdateAdditionalCharge();
@@ -249,7 +249,7 @@ export default function AdditionalChargesPage() {
                 setForm(f => ({ 
                   ...f, 
                   additionalName: selectedName,
-                  additionalPrice: charge ? charge.amount : f.additionalPrice,
+                  additionalPrice: charge ? (charge.amount ?? 0) : f.additionalPrice,
                   additionalQuantity: charge?.type === 'Product' ? 1 : 0
                 }));
               }} 
@@ -258,7 +258,7 @@ export default function AdditionalChargesPage() {
             >
               <option value="">Select Charge Type...</option>
               {predefinedCharges.map(charge => (
-                <option key={charge.id} value={charge.charges}>
+                <option key={charge.id} value={charge.charges ?? ''}>
                   {charge.charges}
                 </option>
               ))}

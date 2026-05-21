@@ -164,7 +164,7 @@ export function ChargesPage() {
                         {charge.amount}
                       </td>
                       <td className="plat-table-cell color-main">
-                        {isProduct && charge.quantity > 0 ? charge.quantity : 0}
+                        {isProduct && (charge.quantity ?? 0) > 0 ? charge.quantity : 0}
                       </td>
                       <td className="plat-table-cell color-muted">
                         {charge.type === 'Normal' ? 'Service' : 'Product'}

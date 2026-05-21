@@ -44,6 +44,7 @@ export const API = {
     TRANSLATE: '/api/ai/translate',
     CONSULT_HOMEOPATHY: '/api/ai/consult/homeopathy',
     PARSE_LAB_REPORT: '/api/ai/parse-lab-report',
+    PARSE_PRESCRIPTION: '/api/ai/parse-prescription',
     KENT_SEARCH: '/api/ai/rubrics/kent-search',
     SUGGEST_QUESTIONS: '/api/ai/suggest/questions',
     EXTRACT_SYMPTOMS: '/api/ai/extract/symptoms',

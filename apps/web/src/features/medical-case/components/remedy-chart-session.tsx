@@ -226,7 +226,7 @@ export function RemedyChartSession({
               className={`mc-tab-btn-premium ${activeTab === 'image' ? 'active' : ''}`}
               style={{ width: '100%' }}
             >
-              Add Image
+              Add Media
             </button>
 
             {/* Dispensing Mode Indicator - Now part of the equal-width grid */}
@@ -679,7 +679,6 @@ export function RemedyChartSession({
     </div>
   );
 }
-
 function ImageUploadTab({ regid }: { regid: number }) {
   const { saveImage } = useManageClinicalRecords();
   const [description, setDescription] = useState('');
@@ -700,7 +699,7 @@ function ImageUploadTab({ regid }: { regid: number }) {
     const selected = e.target.files?.[0];
     if (selected) {
       setFile(selected);
-      if (selected.type.startsWith('image/')) {
+      if (selected.type.startsWith('image/') || selected.type.startsWith('video/') || selected.type.startsWith('audio/')) {
         const url = URL.createObjectURL(selected);
         setPreviewUrl(url);
       } else {
@@ -740,7 +739,7 @@ function ImageUploadTab({ regid }: { regid: number }) {
           background: 'var(--pp-warm-1)', 
           border: '1.5px dashed var(--border-main)', 
           borderRadius: '16px', 
-          padding: previewUrl ? '24px' : '48px 24px', 
+          padding: file ? '24px' : '48px 24px', 
           textAlign: 'center',
           cursor: 'pointer',
           position: 'relative',
@@ -758,7 +757,7 @@ function ImageUploadTab({ regid }: { regid: number }) {
           ref={fileInputRef}
           hidden
           onChange={handleFileChange}
-          accept="image/*,.pdf"
+          accept="image/*,video/*,audio/*,application/pdf"
           disabled={uploading}
         />
         
@@ -769,25 +768,51 @@ function ImageUploadTab({ regid }: { regid: number }) {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', width: '100%' }}>
-            {previewUrl ? (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-                <img 
-                  src={previewUrl} 
-                  alt="Preview" 
-                  style={{ 
-                    maxHeight: '180px', 
-                    maxWidth: '100%', 
-                    borderRadius: '12px', 
-                    objectFit: 'contain', 
-                    boxShadow: '0 4px 16px rgba(0,0,0,0.08)' 
-                  }} 
-                />
+            {file ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', width: '100%' }}>
+                {file.type.startsWith('image/') && previewUrl && (
+                  <img 
+                    src={previewUrl} 
+                    alt="Preview" 
+                    style={{ 
+                      maxHeight: '180px', 
+                      maxWidth: '100%', 
+                      borderRadius: '12px', 
+                      objectFit: 'contain', 
+                      boxShadow: '0 4px 16px rgba(0,0,0,0.08)' 
+                    }} 
+                  />
+                )}
+                {file.type.startsWith('video/') && previewUrl && (
+                  <video 
+                    src={previewUrl} 
+                    controls 
+                    style={{ 
+                      maxHeight: '180px', 
+                      maxWidth: '100%', 
+                      borderRadius: '12px', 
+                      boxShadow: '0 4px 16px rgba(0,0,0,0.08)' 
+                    }} 
+                  />
+                )}
+                {file.type.startsWith('audio/') && previewUrl && (
+                  <div style={{ width: '100%', maxWidth: '320px', padding: '16px', background: 'white', borderRadius: '12px', boxShadow: '0 4px 16px rgba(0,0,0,0.08)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ color: 'var(--pp-blue)', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, fontSize: '0.85rem' }}>🎵 Audio Recording</div>
+                    <audio src={previewUrl} controls style={{ width: '100%' }} />
+                  </div>
+                )}
+                {(!previewUrl || (!file.type.startsWith('image/') && !file.type.startsWith('video/') && !file.type.startsWith('audio/'))) && (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', padding: '24px', background: 'white', borderRadius: '12px', boxShadow: '0 4px 16px rgba(0,0,0,0.08)' }}>
+                    <span style={{ fontSize: '2.5rem' }}>📄</span>
+                    <div style={{ color: 'var(--pp-ink)', fontWeight: 700 }}>{file.name}</div>
+                  </div>
+                )}
                 <div>
                   <div style={{ color: 'var(--pp-ink)', fontWeight: 700, fontSize: '0.95rem', marginBottom: '2px' }}>
-                    {file?.name}
+                    {file.name}
                   </div>
                   <div style={{ color: 'var(--pp-blue)', fontSize: '0.8rem', fontWeight: 700 }}>
-                    Click to select a different image
+                    Click to select a different file
                   </div>
                 </div>
               </div>
@@ -798,10 +823,10 @@ function ImageUploadTab({ regid }: { regid: number }) {
                 </div>
                 <div>
                   <div style={{ color: 'var(--pp-ink)', fontWeight: 700, fontSize: '1.1rem', marginBottom: '4px' }}>
-                    {file ? file.name : 'click to select image'}
+                    click to select media
                   </div>
                   <div style={{ color: 'var(--pp-text-3)', fontSize: '0.85rem', fontWeight: 500 }}>
-                    PNG, JPG or PDF (Max 10MB)
+                    Images, Audio, Video or PDF (Max 10MB)
                   </div>
                 </div>
               </>
@@ -831,7 +856,7 @@ function ImageUploadTab({ regid }: { regid: number }) {
 
       <div style={{ borderTop: '1px solid var(--pp-warm-2)', paddingTop: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--pp-text-3)', fontSize: '0.85rem' }}>
         <span style={{ fontSize: '1.1rem' }}>💡</span>
-        <span>These images will also appear in the <strong>Media</strong> tab of the patient record.</span>
+        <span>These files will also appear in the <strong>Media</strong> tab of the patient record.</span>
       </div>
     </div>
   );
