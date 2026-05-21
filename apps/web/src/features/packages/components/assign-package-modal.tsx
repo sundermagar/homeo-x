@@ -34,7 +34,7 @@ export function AssignPackageModal({
     if (!selectedPlanId && plans.length > 0) {
       const activePlans = plans.filter(p => p.isActive);
       if (activePlans.length > 0) {
-        setSelectedPlanId(activePlans[0].id);
+        setSelectedPlanId(activePlans[0]?.id ?? null);
       }
     }
   }, [plans, selectedPlanId]);

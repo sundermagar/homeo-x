@@ -818,3 +818,83 @@ aiRouter.post('/similar-cases', async (req: Request, res: Response) => {
   }
 });
 
+// POST /api/ai/parse-prescription — OCR & Parsing of handwritten prescriptions
+aiRouter.post('/parse-prescription', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { mimeType, base64 } = req.body ?? {};
+
+    if (!base64 || typeof base64 !== 'string' || base64.length < 50) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_INPUT', message: 'No prescription image data received (base64 missing or too short).' },
+      });
+      return;
+    }
+
+    const chain = getAiProviderChain();
+    const systemPrompt = `You are a medical OCR and clinical extraction engine specializing in decoding doctor's handwritten prescriptions and clinical case sheets.
+
+Your job is to read the attached image of a handwritten prescription and extract the clinical details into a structured JSON format.
+
+You MUST extract the following fields:
+1. "diagnosis" (Assessment / Clinical Impression): The primary medical condition or diagnosis written on the prescription. Keep it concise.
+2. "complaint" (Subjective / Patient symptoms): The complaints, symptoms, duration, and intensity that are mentioned.
+3. "investigation" (Plan / Advice): Any tests suggested (like blood test, ultrasound) or general doctor advice.
+4. "medications": An array of medications prescribed in the image. For each medication, extract:
+   - "medicine": The brand name or generic name of the medicine.
+   - "frequency": Must be mapped to one of these options: "Once", "Twice", "Thrice", "Bed Time", "Empty Stomach", "weekly" or left as "Once" if unspecified or different.
+   - "issue": The indication or reason for this medicine if mentioned (e.g., "Fever", "Cough", "Infection"). If not mentioned, try to infer the most common clinical reason based on the medicine name (e.g., if "amoxicillin" is prescribed, reason might be "Bacterial Infection", if "paracetamol", reason might be "Fever" or "Pain").
+
+## CRITICAL RULES:
+1. ONLY return a raw valid JSON object. Do not include any markdown block markers (like \`\`\`json) or other text.
+2. If a field cannot be found or is illegible, provide your best guess or keep it empty. Do not hallucinate entirely unrelated details.
+3. If no medications are present, return an empty array for "medications".
+
+OUTPUT FORMAT:
+{
+  "diagnosis": "string",
+  "complaint": "string",
+  "investigation": "string",
+  "medications": [
+    {
+      "medicine": "string",
+      "frequency": "Once" | "Twice" | "Thrice" | "Bed Time" | "Empty Stomach" | "weekly",
+      "issue": "string"
+    }
+  ]
+}`;
+
+    const response = await chain.complete({
+      systemPrompt,
+      userPrompt: 'Scan the attached prescription image and return the extracted clinical details as raw JSON matching the schema.',
+      documents: [{ base64, mimeType: mimeType || 'image/jpeg' }],
+      temperature: 0.1,
+      maxTokens: 1000,
+      responseFormat: 'json',
+      useCache: false
+    });
+
+    const parsed = extractJson<{
+      diagnosis?: string;
+      complaint?: string;
+      investigation?: string;
+      medications?: { medicine: string; frequency: string; issue?: string }[];
+    }>(response.content);
+
+    if (!parsed) {
+      throw new Error('AI response was empty or not in valid JSON format');
+    }
+
+    sendSuccess(res, parsed);
+  } catch (err: any) {
+    logger.error({ err: err?.message, stack: err?.stack }, '[parse-prescription] failed');
+    res.status(502).json({
+      success: false,
+      error: {
+        code: 'AI_PROVIDER_FAILED',
+        message: err?.message || 'AI providers unavailable or failed to process prescription image.',
+      },
+    });
+  }
+});
+

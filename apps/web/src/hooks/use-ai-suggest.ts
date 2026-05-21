@@ -75,3 +75,30 @@ export function useParseLabReport() {
   });
 }
 
+export function useParsePrescription() {
+  return useMutation({
+    mutationFn: async (file: File) => {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result.split(',')[1]);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const body = await api.post<{
+        diagnosis: string;
+        complaint: string;
+        investigation: string;
+        medications: { medicine: string; frequency: string; issue?: string }[];
+      }>(API.AI.PARSE_PRESCRIPTION, {
+        mimeType: file.type,
+        base64,
+      });
+      return body;
+    },
+  });
+}
+

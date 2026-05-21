@@ -24,9 +24,9 @@ const INIT_FORM = {
   pin: '', address: '', road: '', area: '', city: '', state: 'Punjab', country: 'India', altAddress: '',
   religion: '', occupation: '', maritalStatus: '', bloodGroup: '',
   referenceType: '', referredBy: '', assistantDoctor: '', consultationFee: undefined as number | undefined,
-  courierOutstation: false, dateOfBirth: '',
+  courierOutstation: false, dateOfBirth: '', referredById: undefined as string | number | undefined,
   // Appointment fields
-  bookingDate: new Date().toISOString().split('T')[0],
+  bookingDate: new Date().toISOString().split('T')[0] ?? '',
   bookingTime: '',
   visitType: VisitType.New,
   notes: '',
@@ -99,12 +99,14 @@ export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient,
           courierOutstation: patient.courierOutstation || false,
           dateOfBirth: patient.dateOfBirth ? (() => {
             const d = new Date(String(patient.dateOfBirth));
-            return isNaN(d.getTime()) ? '' : d.toISOString().split('T')[0];
+            return isNaN(d.getTime()) ? '' : (d.toISOString().split('T')[0] ?? '');
           })() : '',
           // Reset appointment fields on edit for safety
-          bookingDate: new Date().toISOString().split('T')[0],
+          bookingDate: new Date().toISOString().split('T')[0] ?? '',
           bookingTime: '',
           visitType: VisitType.New,
+          referredById: undefined,
+          notes: '',
         });
       } else if (unregisteredPatient) {
         const latestAppt = unregisteredPatient.latestAppointment;
@@ -113,12 +115,12 @@ export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient,
         const surname = nameParts.slice(1).join(' ') || '';
         
         // Ensure date is in YYYY-MM-DD format
-        let bDate = new Date().toISOString().split('T')[0];
+        let bDate = new Date().toISOString().split('T')[0] ?? '';
         if (latestAppt?.bookingDate) {
           try {
             const d = new Date(latestAppt.bookingDate);
             if (!isNaN(d.getTime())) {
-              bDate = d.toISOString().split('T')[0];
+              bDate = d.toISOString().split('T')[0] ?? '';
             }
           } catch (e) {
             console.warn('Invalid booking date from unregistered patient:', latestAppt.bookingDate);

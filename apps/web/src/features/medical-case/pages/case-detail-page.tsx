@@ -31,6 +31,7 @@ import {
 } from '../hooks/use-medical-cases';
 import { usePatientPrescriptions, useRemedyLookups } from '../hooks/use-remedy-chart';
 import { usePrescriptionWorkflow } from '../hooks/use-prescription-workflow';
+import { useParsePrescription } from '../../../hooks/use-ai-suggest';
 // QuickRxForm removed — not used in current render
 import { useDayCharges } from '../../billing/hooks/use-accounts';
 import { AssignPackageModal } from '../../packages/components/assign-package-modal';
@@ -254,7 +255,108 @@ export default function MedicalCaseDetailPage() {
   const [activeMedicineFocusIdx, setActiveMedicineFocusIdx] = useState<number | null>(null);
   const [aiDetectingIdx, setAiDetectingIdx] = useState<number | null>(null);
 
-  // Consolidated with previous hook call above
+  // AI Prescription Scanner State
+  const parsePrescriptionMutation = useParsePrescription();
+  const prescriptionFileInputRef = useRef<HTMLInputElement>(null);
+  const [showPrescriptionPreview, setShowPrescriptionPreview] = useState(false);
+  const [scannedPrescription, setScannedPrescription] = useState<{
+    diagnosis: string;
+    complaint: string;
+    investigation: string;
+  } | null>(null);
+  const [scannedMedicationRows, setScannedMedicationRows] = useState<MedicationRow[]>([
+    { medicine: '', frequency: 'Once', days: '', issue: '' }
+  ]);
+
+  const handlePrescriptionFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const result = await parsePrescriptionMutation.mutateAsync(file);
+      if (result) {
+        setScannedPrescription({
+          diagnosis: result.diagnosis || '',
+          complaint: result.complaint || '',
+          investigation: result.investigation || '',
+        });
+        setScannedMedicationRows(
+          result.medications && result.medications.length > 0
+            ? result.medications.map((m: any) => ({
+                medicine: m.medicine || '',
+                frequency: m.frequency || 'Once',
+                days: '',
+                issue: m.issue || ''
+              }))
+            : [{ medicine: '', frequency: 'Once', days: '', issue: '' }]
+        );
+        setShowPrescriptionPreview(true);
+      }
+    } catch (err) {
+      console.error('Prescription scanning failed:', err);
+      alert(err instanceof Error ? err.message : 'Failed to scan the prescription image. Please try again.');
+    } finally {
+      if (prescriptionFileInputRef.current) {
+        prescriptionFileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const triggerPrescriptionScan = () => {
+    prescriptionFileInputRef.current?.click();
+  };
+
+  const handleSaveScannedPrescription = async () => {
+    if (!scannedPrescription) return;
+    try {
+      if (scannedPrescription.diagnosis.trim()) {
+        await updateDiagnosis.mutateAsync({ regid: Number(regid), condition: scannedPrescription.diagnosis.trim() });
+      }
+      const serializedMeds = JSON.stringify(scannedMedicationRows.filter(r => r.medicine.trim() !== ''));
+      const soapDate = displayDate ? displayDate.toISOString() : new Date().toISOString();
+
+      await saveSoap.mutateAsync({
+        id: currentVisitSoap?.id,
+        regid: Number(regid),
+        visitId: currentVisitId || visitId,
+        subjective: scannedPrescription.complaint,
+        objective: serializedMeds,
+        assessment: scannedPrescription.diagnosis,
+        plan: scannedPrescription.investigation,
+        dateval: soapDate,
+        createdAt: soapDate
+      });
+
+      if (!currentVisitSoap) {
+        setSelectedDate(soapDate);
+      }
+
+      setShowPrescriptionPreview(false);
+      setScannedPrescription(null);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const updateScannedMedicationRow = (index: number, field: keyof MedicationRow, value: string) => {
+    setScannedMedicationRows(prev => prev.map((row, idx) => {
+      if (idx === index) {
+        return { ...row, [field]: value };
+      }
+      return row;
+    }));
+  };
+
+  const addScannedMedicationRow = () => {
+    setScannedMedicationRows(prev => [...prev, { medicine: '', frequency: 'Once', days: '', issue: '' }]);
+  };
+
+  const removeScannedMedicationRow = (index: number) => {
+    setScannedMedicationRows(prev => {
+      const updated = prev.filter((_, idx) => idx !== index);
+      return updated.length > 0 ? updated : [{ medicine: '', frequency: 'Once', days: '', issue: '' }];
+    });
+  };
 
   const handleOpenDiagnosis = (record?: any) => {
     // Priority: 1. Passed record (from table), 2. Current visit record (from sidebar context)
@@ -1095,21 +1197,58 @@ export default function MedicalCaseDetailPage() {
             <div className="mc-side-card" style={{ marginBottom: '16px' }}>
               <div className="mc-side-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#1e293b' }}>Homeo details</div>
-                <div 
-                  onClick={() => handleOpenDiagnosis(currentVisitSoap)}
-                  style={{ color: '#3b82f6', cursor: 'pointer', padding: '4px' }}
-                  title="Edit Assessment"
-                >
-                  <Edit size={14} />
-                </div>
-                {!isToday && currentVisitSoaps.length > 1 && (
-                  <div 
-                    onClick={() => setActiveTab('diagnosis')}
-                    style={{ color: '#3b82f6', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px' }}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input
+                    type="file"
+                    ref={prescriptionFileInputRef}
+                    onChange={handlePrescriptionFileChange}
+                    style={{ display: 'none' }}
+                    accept="image/*"
+                  />
+                  <button
+                    onClick={triggerPrescriptionScan}
+                    disabled={parsePrescriptionMutation.isPending}
+                    style={{
+                      background: 'linear-gradient(135deg, #f5f3ff, #ede9fe)',
+                      color: '#7c3aed',
+                      border: '1px solid #c4b5fd',
+                      borderRadius: '6px',
+                      padding: '4px 8px',
+                      cursor: parsePrescriptionMutation.isPending ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '0.7rem',
+                      fontWeight: 700,
+                      boxShadow: '0 1px 2px rgba(124, 58, 237, 0.05)',
+                      transition: 'all 0.2s ease',
+                      opacity: parsePrescriptionMutation.isPending ? 0.7 : 1
+                    }}
+                    title="AI Scan Handwritten Prescription"
                   >
-                    See all ({currentVisitSoaps.length}) <ChevronRight size={14} />
+                    {parsePrescriptionMutation.isPending ? (
+                      <Loader2 size={12} className="animate-spin text-purple-600" />
+                    ) : (
+                      <BrainCircuit size={12} className="text-purple-600" />
+                    )}
+                    <span>AI Scan</span>
+                  </button>
+                  <div 
+                    onClick={() => handleOpenDiagnosis(currentVisitSoap)}
+                    style={{ color: '#3b82f6', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
+                    title="Edit Assessment"
+                  >
+                    <Edit size={14} />
                   </div>
-                )}
+                  {!isToday && currentVisitSoaps.length > 1 && (
+                    <div 
+                      onClick={() => setActiveTab('diagnosis')}
+                      style={{ color: '#3b82f6', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px' }}
+                    >
+                      See all ({currentVisitSoaps.length}) <ChevronRight size={14} />
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="mc-side-card-body custom-scrollbar" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '18px', maxHeight: '400px', overflowY: 'auto' }}>
                 <div>
@@ -1382,6 +1521,223 @@ export default function MedicalCaseDetailPage() {
                       }}
                     >
                       <Save size={18} /> Save Assessment
+                    </button>
+                  </footer>
+                </div>
+              </>
+              , document.body)}
+
+            {/* ─── AI Prescription Scan Preview Drawer ─── */}
+            {showPrescriptionPreview && scannedPrescription && ReactDOM.createPortal(
+              <>
+                <div className="mc-drawer-backdrop" onClick={() => setShowPrescriptionPreview(false)} />
+                <div className="mc-drawer animate-slide-in-right" style={{ maxWidth: '540px' }}>
+                  <header className="mc-drawer-header" style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', color: 'white' }}>
+                    <div className="mc-drawer-header-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <BrainCircuit size={18} /> AI Scanned Details
+                    </div>
+                    <button className="mc-drawer-close" onClick={() => setShowPrescriptionPreview(false)} style={{ color: 'white', opacity: 0.8 }}>
+                      <X size={16} />
+                    </button>
+                  </header>
+
+                  <div style={{ padding: '24px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    <div style={{ padding: '10px 14px', background: '#f5f3ff', borderRadius: '8px', border: '1px solid #ddd6fe', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Sparkles size={14} style={{ color: '#7c3aed' }} />
+                      <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#5b21b6' }}>
+                        Handwritten prescription successfully scanned by AI
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Diagnosis</label>
+                      <textarea
+                        className="pp-textarea"
+                        value={scannedPrescription.diagnosis}
+                        onChange={e => setScannedPrescription({ ...scannedPrescription, diagnosis: e.target.value })}
+                        placeholder="Diagnosis parsed from image..."
+                        style={{ minHeight: '60px', fontSize: '1rem', fontWeight: 700 }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Complaint Intensity</label>
+                      <textarea
+                        className="pp-textarea"
+                        value={scannedPrescription.complaint}
+                        onChange={e => setScannedPrescription({ ...scannedPrescription, complaint: e.target.value })}
+                        placeholder="Complaints parsed from image..."
+                        style={{ minHeight: '100px' }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Medication Taking</label>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {scannedMedicationRows.map((row, idx) => (
+                          <div 
+                            key={idx} 
+                            style={{ 
+                              border: '1px solid #e2e8f0', 
+                              borderRadius: '8px', 
+                              padding: '12px', 
+                              background: '#f8fafc',
+                              display: 'flex', 
+                              flexDirection: 'column', 
+                              gap: '10px',
+                              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.02)'
+                            }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                Medication #{idx + 1}
+                              </span>
+                              <button
+                                type="button"
+                                className="btn-ghost"
+                                style={{
+                                  color: '#ef4444',
+                                  padding: '6px',
+                                  border: '1px solid transparent',
+                                  borderRadius: '6px',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  background: '#fef2f2',
+                                  transition: 'all 0.2s ease'
+                                }}
+                                onClick={() => removeScannedMedicationRow(idx)}
+                                title="Remove medication"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <label style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Medicine Name</label>
+                                <input
+                                  type="text"
+                                  className="pp-input"
+                                  placeholder="Enter medicine name"
+                                  value={row.medicine}
+                                  onChange={e => updateScannedMedicationRow(idx, 'medicine', e.target.value)}
+                                  style={{ width: '100%', padding: '8px 12px', fontSize: '0.85rem' }}
+                                  autoComplete="off"
+                                />
+                              </div>
+
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                  <label style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Frequency</label>
+                                  <select
+                                    className="pp-input"
+                                    value={row.frequency}
+                                    onChange={e => updateScannedMedicationRow(idx, 'frequency', e.target.value)}
+                                    style={{ width: '100%', padding: '8px', fontSize: '0.85rem', height: '38px', background: 'white' }}
+                                  >
+                                    <option value="Once">Once</option>
+                                    <option value="Twice">Twice</option>
+                                    <option value="Thrice">Thrice</option>
+                                    <option value="Bed Time">Bed Time</option>
+                                    <option value="Empty Stomach">Empty Stomach</option>
+                                    <option value="weekly">weekly</option>
+                                  </select>
+                                </div>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                  <label style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Patient Issue</label>
+                                  <input
+                                    type="text"
+                                    className="pp-input"
+                                    placeholder="e.g. Fever"
+                                    value={row.issue}
+                                    onChange={e => updateScannedMedicationRow(idx, 'issue', e.target.value)}
+                                    style={{ width: '100%', padding: '8px 12px', fontSize: '0.85rem', height: '38px', background: 'white' }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={addScannedMedicationRow}
+                        style={{
+                          alignSelf: 'flex-start',
+                          marginTop: '4px',
+                          padding: '6px 12px',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          color: '#7c3aed',
+                          background: '#f5f3ff',
+                          border: '1px dashed #c4b5fd',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        <Plus size={14} /> Add Medication
+                      </button>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Investigation</label>
+                      <textarea
+                        className="pp-textarea"
+                        value={scannedPrescription.investigation}
+                        onChange={e => setScannedPrescription({ ...scannedPrescription, investigation: e.target.value })}
+                        placeholder="Investigations parsed from image..."
+                        style={{ minHeight: '80px' }}
+                      />
+                    </div>
+                  </div>
+
+                  <footer style={{
+                    padding: '20px 24px',
+                    background: '#f8fafc',
+                    borderTop: '1px solid #e2e8f0',
+                    display: 'flex',
+                    gap: '12px',
+                    position: 'sticky',
+                    bottom: 0,
+                    zIndex: 10
+                  }}>
+                    <button
+                      onClick={() => setShowPrescriptionPreview(false)}
+                      style={{
+                        flex: 1, padding: '12px', borderRadius: '10px', border: '1px solid #cbd5e1',
+                        background: 'white', color: '#64748b', fontWeight: 600, cursor: 'pointer'
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={triggerPrescriptionScan}
+                      style={{
+                        flex: 1, padding: '12px', borderRadius: '10px', border: '1px solid #c4b5fd',
+                        background: '#f5f3ff', color: '#7c3aed', fontWeight: 600, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+                      }}
+                    >
+                      <RefreshCw size={14} /> Refetch
+                    </button>
+                    <button
+                      onClick={handleSaveScannedPrescription}
+                      style={{
+                        flex: 2, padding: '12px', borderRadius: '10px', border: 'none',
+                        background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', color: 'white', fontWeight: 700,
+                        cursor: 'pointer', display: 'flex', alignItems: 'center',
+                        justifyContent: 'center', gap: '8px',
+                        boxShadow: '0 4px 6px -1px rgba(124, 58, 237, 0.1)'
+                      }}
+                    >
+                      <Save size={18} /> Save Details
                     </button>
                   </footer>
                 </div>
