@@ -23,6 +23,11 @@ export class PdfkitServiceAdapter {
     clinicRegistration?: string;
     clinicTiming?: string;
   }) {
+    // User requested "print in letter head", so we skip drawing the header
+    // and just leave enough blank space at the top (e.g., 120 points).
+    doc.y = 120;
+    
+    /* ORIGINAL HEADER DRAWING CODE (COMMENTED OUT FOR LETTERHEAD MODE)
     const headerY = doc.y;
     const leftPadding = 40;
     const contentWidth = 515;
@@ -83,8 +88,8 @@ export class PdfkitServiceAdapter {
     }
 
     doc.y = Math.max(doc.y, headerY + 70);
-
     doc.moveDown(1.5);
+    */
   }
 
   async generatePrescription(res: Writable, data: {
@@ -198,14 +203,31 @@ export class PdfkitServiceAdapter {
 
         // ─── Follow-up & Advice Section ───
         if (data.followUpNote) {
-          doc.moveDown(2);
-          const currentY = doc.y;
-          if (currentY > 700) doc.addPage();
+          y += 20; // Add some spacing after the table
+          if (y > 700) {
+            doc.addPage();
+            y = 50;
+          }
 
-          doc.font('Helvetica-Bold').fontSize(11).fillColor('#1E1B4B').text('FOLLOW-UP NOTES / ADVICE:');
-          doc.moveTo(40, doc.y).lineTo(200, doc.y).strokeColor('#E2E8F0').lineWidth(1).stroke();
+          doc.x = 40;
+          doc.y = y;
+
+          // Draw a background box
+          const boxHeight = doc.heightOfString(data.followUpNote, { width: 495, lineGap: 2 }) + 40;
+          
+          if (doc.y + boxHeight > 780) {
+            doc.addPage();
+            doc.y = 50;
+          }
+
+          doc.roundedRect(40, doc.y, 515, boxHeight, 8).fill('#F8FAFC').stroke('#E2E8F0');
+          doc.y += 12; // Internal padding
+
+          doc.font('Helvetica-Bold').fontSize(11).fillColor('#1E293B').text('FOLLOW-UP NOTES / ADVICE:', 55, doc.y);
           doc.moveDown(0.5);
-          doc.font('Helvetica').fontSize(10).fillColor('#334155').text(data.followUpNote, { width: 515, align: 'left', lineGap: 2 });
+          doc.font('Helvetica').fontSize(10).fillColor('#475569').text(data.followUpNote, 55, doc.y, { width: 485, align: 'left', lineGap: 2 });
+          
+          doc.y += 20; // Margin after box
         }
 
         // ─── Footer ───

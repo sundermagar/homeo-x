@@ -47,6 +47,8 @@ export class UserRepositoryPG implements UserRepository {
       isActive: row.is_active !== false,
       createdAt: row.created_at || new Date(),
       updatedAt: row.updated_at || new Date(),
+      resetOtp: row.reset_otp ?? null,
+      resetOtpExpiry: row.reset_otp_expiry ? new Date(row.reset_otp_expiry) : null,
     };
   }
 
@@ -107,5 +109,11 @@ export class UserRepositoryPG implements UserRepository {
           FROM users WHERE type = 'Doctor' AND deleted_at IS NULL`
     );
     return (rows as any[]).map(row => this.rowToUser(row));
+  }
+
+  async updateResetOtp(userId: number, hashedToken: string, expiry: Date): Promise<void> {
+    await this.db.execute(
+      sql`UPDATE users SET reset_otp = ${hashedToken}, reset_otp_expiry = ${expiry}, updated_at = NOW() WHERE id = ${userId}`
+    );
   }
 }

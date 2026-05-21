@@ -917,94 +917,27 @@ export default function MedicalCaseDetailPage() {
               <h1 className="profile-name">{formatName(medicalCase.patientName)}</h1>
               <span className="profile-id">Patient #{regid}</span>
             </div>
-            <div className={`profile-status-chip ${activePackage?.status === 'Active' ? 'active' : ''}`}>
+            <button 
+              className={`profile-status-chip ${activePackage?.status === 'Active' ? 'active' : ''}`}
+              onClick={() => setShowAssignModal(true)}
+              style={{ cursor: 'pointer', border: 'none', outline: 'none', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '6px' }}
+              title="Assign or view package"
+            >
               {activePackage?.status === 'Active' ? <Award size={12} /> : <Clock size={12} />}
               {activePackage?.packageName ? `${activePackage.packageName} (${activePackage.status})` : 'No active plan'}
-            </div>
+            </button>
           </div>
 
           <div className="profile-actions">
-              <button
-                className="profile-btn"
-                onClick={() => {
-                  const myOrg: any = orgs.find(o => o.id === user?.contextId) || orgs[0];
-                  const defaultTemplate = pdfSettings.find((s: any) => s.isDefault) || pdfSettings[0];
-                  const baseClinic = getClinicLetterhead();
-                  const clinic = {
-                    ...baseClinic,
-                    name: myOrg?.name || baseClinic.name,
-                    tagline: myOrg?.tagLine || baseClinic.tagline,
-                    logoUrl: myOrg?.logo || baseClinic.logoUrl,
-                    address: myOrg?.address || baseClinic.address,
-                    address2: myOrg?.address2 || baseClinic.address2,
-                    phone: myOrg?.phone || baseClinic.phone,
-                    timing: myOrg?.timing || baseClinic.timing,
-                    email: myOrg?.email || baseClinic.email,
-                    website: myOrg?.website || baseClinic.website,
-                    registrationNo: myOrg?.registration || baseClinic.registrationNo,
-                    headerHtml: (defaultTemplate as any)?.headerHtml,
-                    footerHtml: (defaultTemplate as any)?.footerHtml,
-                  };
-
-                  const doctor = getDoctorLetterhead();
-
-                  const medications = (prescriptionsHistory?.length ? prescriptionsHistory : prescriptionsFromFull || [])
-                    .filter((p: any) => p.remedy_name || p.remedyName || p.medicineName || p.medicine)
-                    .map((p: any) => ({
-                      name: p.remedy_name || p.remedyName || p.medicineName || p.medicine || '—',
-                      genericName: undefined,
-                      dosage: p.potency_name || p.potencyName || p.potency || '—',
-                      frequency: p.frequency_name || p.frequencyName || p.frequencyTitle || p.frequency || '—',
-                      duration: (p.days || p.rx_days || p.rxdays) ? `${p.days || p.rx_days || p.rxdays} days` : '—',
-                      route: undefined,
-                      instructions: p.prescription || p.rx_prescription || p.instructions || p.notes || undefined,
-                      quantity: undefined,
-                      date: p.created_at || p.createdAt || p.dateval,
-                    }));
-
-                  const followUpEntry = notes?.find((n: any) => n.notesType === 'Followup');
-                  const diagnosisNote = medicalCase.condition || soap?.find((s: any) => s.notesType === 'assessment')?.notes || '';
-
-                  const latestVitals = vitals?.[0];
-                  const vitalsData = latestVitals ? {
-                    heightCm: latestVitals.heightCm ?? undefined,
-                    weightKg: latestVitals.weightKg ?? undefined,
-                    bmi: latestVitals.bmi ?? undefined,
-                    temperatureF: latestVitals.temperatureF ?? undefined,
-                    pulseRate: latestVitals.pulseRate ?? undefined,
-                    systolicBp: latestVitals.systolicBp ?? undefined,
-                    diastolicBp: latestVitals.diastolicBp ?? undefined,
-                    oxygenSaturation: latestVitals.oxygenSaturation ?? undefined,
-                  } : undefined;
-
-                  const printData: PrescriptionPrintData = {
-                    clinic: clinic as any,
-                    doctor,
-                    patient: {
-                      name: formatName(medicalCase.patientName) || `Patient ${regid}`,
-                      age: ageString.replace(' Years', ''),
-                      gender: medicalCase.gender || undefined,
-                      mrn: String(regid),
-                      phone: medicalCase.phone || medicalCase.mobile || undefined,
-                    },
-                    visit: {
-                      visitNumber: String(regid),
-                      date: medicalCase.createdAt || new Date().toISOString(),
-                      chiefComplaint: medicalCase.condition || undefined,
-                    },
-                    diagnosis: diagnosisNote ? { assessment: diagnosisNote } : undefined,
-                    followUp: followUpEntry?.notes || undefined,
-                    medications,
-                    vitals: vitalsData,
-                  };
-
-                  const html = generatePrescriptionHtml(printData);
-                  printHtml(html, { title: `Prescription - ${printData.patient.name}` });
-                }}>
-              <Printer size={16} /> Print Prescription
-            </button>
-            <button className="profile-btn" onClick={() => setMobileDrawer('contact')}>
-              <MessageSquare size={16} /> Message
+            <button className="profile-btn" onClick={() => {
+              const phone = medicalCase.phone || medicalCase.mobile || '';
+              if (phone) {
+                navigate(`/communications/whatsapp/inbox?phone=${encodeURIComponent(phone)}`);
+              } else {
+                alert('No phone number available for this patient.');
+              }
+            }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
             </button>
           </div>
         </div>
@@ -1012,7 +945,7 @@ export default function MedicalCaseDetailPage() {
         <div className="profile-bottom-grid">
           <div className="profile-info-cell">
             <label>GENDER</label>
-            <span>{medicalCase.gender || 'Other'}</span>
+            <span>{medicalCase.gender || 'Not Defined'}</span>
           </div>
           <div className="profile-info-cell">
             <label>AGE</label>
@@ -1110,7 +1043,7 @@ export default function MedicalCaseDetailPage() {
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '1.1rem', fontWeight: 800, color: '#1e293b' }}>
-                    <div style={{ padding: '8px', background: '#eff6ff', borderRadius: '10px', color: '#3b82f6' }}>
+                    <div style={{ padding: '8px', background: '#f5f3ff', borderRadius: '10px', color: '#7c3aed' }}>
                       <CreditCard size={20} />
                     </div>
                     Billing Overview
@@ -1137,7 +1070,7 @@ export default function MedicalCaseDetailPage() {
                     { label: 'Registration Charge', value: billingValues.regular, color: '#1e293b', tab: 'regular', isCovered: billingValues.hasActivePackage && billingValues.originalRegular > 0 && billingValues.regular === 0, originalValue: billingValues.originalRegular },
                     { label: 'Medicine Days Charge', value: billingValues.daysCharge, color: '#475569', tab: 'regular', isCovered: billingValues.hasActivePackage && billingValues.originalDaysCharge > 0 && billingValues.daysCharge === 0, originalValue: billingValues.originalDaysCharge },
                     { label: 'Additional Charge', value: billingValues.additional, color: '#64748b', tab: 'custom' },
-                    { label: 'Total Bill Amount', value: billingValues.total, color: '#2563eb', bold: true, tab: 'regular' },
+                    { label: 'Total Bill Amount', value: billingValues.total, color: '#7c3aed', bold: true, tab: 'regular' },
                     { label: 'Amount Received', value: billingValues.received, color: '#059669', tab: 'payment' },
                     { label: 'Pending Balance', value: billingValues.balance, color: '#dc2626', bold: true, noEdit: true },
                   ].map((row, idx) => (
@@ -1184,8 +1117,8 @@ export default function MedicalCaseDetailPage() {
                             transition: 'all 0.2s'
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.background = '#f1f5f9';
-                            e.currentTarget.style.color = '#3b82f6';
+                            e.currentTarget.style.background = '#f5f3ff';
+                            e.currentTarget.style.color = '#7c3aed';
                           }}
                           onMouseLeave={(e) => {
                             e.currentTarget.style.background = '#fff';
@@ -1203,7 +1136,7 @@ export default function MedicalCaseDetailPage() {
                     onClick={() => setShowReceiptModal(true)}
                     style={{ 
                       padding: '10px 24px', 
-                      background: '#3b82f6', 
+                      background: '#7c3aed', 
                       color: 'white', 
                       border: 'none', 
                       borderRadius: '10px', 
@@ -1212,7 +1145,7 @@ export default function MedicalCaseDetailPage() {
                       display: 'flex', 
                       alignItems: 'center', 
                       gap: '8px',
-                      boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.2)'
+                      boxShadow: '0 4px 6px -1px rgba(124, 58, 237, 0.2)'
                     }}
                   >
                     <Share2 size={16} /> Share Payment Receipt
@@ -1290,7 +1223,7 @@ export default function MedicalCaseDetailPage() {
                   </button>
                   <div 
                     onClick={() => handleOpenDiagnosis(currentVisitSoap)}
-                    style={{ color: '#3b82f6', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
+                    style={{ color: '#7c3aed', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
                     title="Edit Assessment"
                   >
                     <Edit size={14} />
@@ -1298,7 +1231,7 @@ export default function MedicalCaseDetailPage() {
                   {!isToday && currentVisitSoaps.length > 1 && (
                     <div 
                       onClick={() => setActiveTab('diagnosis')}
-                      style={{ color: '#3b82f6', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px' }}
+                      style={{ color: '#7c3aed', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px' }}
                     >
                       See all ({currentVisitSoaps.length}) <ChevronRight size={14} />
                     </div>
@@ -3481,7 +3414,7 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
 
     const envUrl = import.meta.env['VITE_API_URL'];
     if (envUrl) {
-      const baseUrl = (envUrl as string).replace('/api', '');
+      const baseUrl = (envUrl as string).replace(/\/api\/?$/, '');
       return `${baseUrl}${path.startsWith('/') ? path : '/' + path}`;
     }
 

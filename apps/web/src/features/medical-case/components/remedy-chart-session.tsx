@@ -3,7 +3,7 @@ import {
   Search, BookOpen, ChevronRight, Activity,
   FlaskConical, Save, Trash2, Calendar, FileText, Printer, Plus, X,
   History, Edit, MoreHorizontal, Truck, Home, Package, AlertTriangle, CheckCircle2,
-  Upload, Loader2, CircleDollarSign
+  Upload, Loader2, IndianRupee
 } from 'lucide-react';
 import { useManageClinicalRecords } from '../hooks/use-medical-cases';
 import {
@@ -215,7 +215,9 @@ export function RemedyChartSession({
 
   const handlePrintRow = (rx: PrescriptionRow) => {
     const token = useAuthStore.getState().token;
-    window.open(`/api/medical-cases/remedy-chart/pdf/${regid}?token=${token}`, '_blank');
+    const dateParam = rx.created_at || rx.createdAt || rx.dateval;
+    const queryStr = dateParam ? `&date=${encodeURIComponent(new Date(dateParam).toISOString())}` : '';
+    window.open(`/api/medical-cases/remedy-chart/pdf/${regid}?token=${token}${queryStr}`, '_blank');
   };
 
   return (
@@ -376,15 +378,15 @@ export function RemedyChartSession({
               <TableSkeleton rows={5} cols={8} />
             ) : (
               <table className="mc-data-table" style={{ marginBottom: 0 }}>
-                <thead style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--pp-warm-2)' }}>
+                <thead style={{ position: 'sticky', top: 0, zIndex: 10, background: '#f5f3ff', borderBottom: '1px solid #ede9fe' }}>
                   <tr>
-                    <th>DATE</th>
-                    <th>REMEDY</th>
-                    <th>POTENCY</th>
-                    <th>FREQUENCY</th>
-                    <th className="mc-col-days">DAYS</th>
-                    <th className="mc-col-instructions">INSTRUCTIONS</th>
-                    <th style={{ textAlign: 'right' }}>ACTION</th>
+                    <th style={{ color: '#7c3aed', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em', padding: '16px' }}>DATE</th>
+                    <th style={{ color: '#7c3aed', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em', padding: '16px' }}>REMEDY</th>
+                    <th style={{ color: '#7c3aed', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em', padding: '16px' }}>POTENCY</th>
+                    <th style={{ color: '#7c3aed', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em', padding: '16px' }}>FREQUENCY</th>
+                    <th className="mc-col-days" style={{ color: '#7c3aed', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em', padding: '16px' }}>DAYS</th>
+                    <th className="mc-col-instructions" style={{ color: '#7c3aed', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em', padding: '16px' }}>INSTRUCTIONS</th>
+                    <th style={{ color: '#7c3aed', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em', padding: '16px', textAlign: 'right' }}>ACTION</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -403,9 +405,10 @@ export function RemedyChartSession({
                             className={`hover-row ${editingId === rx.id ? 'editing' : ''} ${isRowSelected ? 'mc-row-selected' : ''}`}
                             style={{ 
                               cursor: onSelectDate ? 'pointer' : 'default',
-                              background: isRowSelected ? 'var(--pp-blue-faded)' : (idx > 0 ? '#f8fafc' : 'white'),
-                              borderLeft: isRowSelected ? '4px solid var(--pp-blue)' : (idx > 0 ? '3px solid #e2e8f0' : 'none'),
-                              transition: 'all 0.2s'
+                              background: isRowSelected ? '#f5f3ff' : (idx > 0 ? '#faf5ff' : 'white'),
+                              borderLeft: isRowSelected ? '4px solid #7c3aed' : (idx > 0 ? '3px solid #e9d5ff' : 'none'),
+                              borderBottom: '1px solid #f1f5f9',
+                              transition: 'all 0.2s ease-in-out'
                             }}
                             onClick={() => onSelectDate?.(rx.created_at || rx.createdAt || rx.dateval)}
                           >
@@ -449,7 +452,7 @@ export function RemedyChartSession({
                               </span>
                             </td>
                             <td data-label="Frequency">
-                              <span style={{ color: 'var(--pp-blue)', fontWeight: 700, fontSize: '0.9rem' }}>{rx.frequency_name}</span>
+                              <span style={{ color: '#7c3aed', fontWeight: 700, fontSize: '0.9rem' }}>{rx.frequency_name}</span>
                             </td>
                             <td data-label="Days" className="mc-col-days">
                               <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--pp-ink)' }}>{rx.days}</span>
@@ -476,19 +479,23 @@ export function RemedyChartSession({
                                     {(() => {
                                       const rxDate = new Date(rx.created_at || rx.createdAt || rx.dateval);
                                       const isToday = rxDate.toDateString() === new Date().toDateString();
-                                      if (!isToday) return null;
                                       return (
                                         <>
-                                          <button 
-                                            onClick={(e) => { e.stopPropagation(); onAddAdditionalCharge?.(); }} 
-                                            className="mc-action-btn" 
-                                            title="Add Additional Charge"
-                                          >
-                                            <CircleDollarSign size={14} />
-                                          </button>
-                                          <button onClick={(e) => { e.stopPropagation(); startNewRx(); }} className="mc-action-btn" title="Add Extra"><Plus size={14} /></button>
-                                          <button onClick={(e) => { e.stopPropagation(); handleEdit(rx); }} className="mc-action-btn" title="Edit"><Edit size={14} /></button>
-                                          <button onClick={(e) => { e.stopPropagation(); handleDelete(rx.id, rx.remedy_name); }} className="mc-action-btn danger" title="Remove"><Trash2 size={14} /></button>
+                                          <button onClick={(e) => { e.stopPropagation(); handlePrintRow(rx); }} className="mc-action-btn" title="Print"><Printer size={14} /></button>
+                                          {isToday && (
+                                            <>
+                                              <button 
+                                                onClick={(e) => { e.stopPropagation(); onAddAdditionalCharge?.(); }} 
+                                                className="mc-action-btn" 
+                                                title="Add Additional Charge"
+                                              >
+                                                <IndianRupee size={14} />
+                                              </button>
+                                              <button onClick={(e) => { e.stopPropagation(); startNewRx(); }} className="mc-action-btn" title="Add Extra"><Plus size={14} /></button>
+                                              <button onClick={(e) => { e.stopPropagation(); handleEdit(rx); }} className="mc-action-btn" title="Edit"><Edit size={14} /></button>
+                                              <button onClick={(e) => { e.stopPropagation(); handleDelete(rx.id, rx.remedy_name); }} className="mc-action-btn danger" title="Remove"><Trash2 size={14} /></button>
+                                            </>
+                                          )}
                                         </>
                                       );
                                     })()}
@@ -499,15 +506,21 @@ export function RemedyChartSession({
                                       {(() => {
                                         const rxDate = new Date(rx.created_at || rx.createdAt || rx.dateval);
                                         const isToday = rxDate.toDateString() === new Date().toDateString();
-                                        if (!isToday) return null;
                                         return (
                                           <>
-                                            <button onClick={(e) => { e.stopPropagation(); onAddAdditionalCharge?.(); }}>
-                                              <CircleDollarSign size={14} /> Add Charge
+                                            <button onClick={(e) => { e.stopPropagation(); handlePrintRow(rx); }}>
+                                              <Printer size={14} /> Print
                                             </button>
-                                            <button onClick={(e) => { e.stopPropagation(); startNewRx(); }}><Plus size={14} /> Add Extra</button>
-                                            <button onClick={(e) => { e.stopPropagation(); handleEdit(rx); }}><Edit size={14} /> Edit</button>
-                                            <button onClick={(e) => { e.stopPropagation(); handleDelete(rx.id, rx.remedy_name); }} style={{ color: '#dc2626' }}><Trash2 size={14} /> Remove</button>
+                                            {isToday && (
+                                              <>
+                                                <button onClick={(e) => { e.stopPropagation(); onAddAdditionalCharge?.(); }}>
+                                                  <IndianRupee size={14} /> Add Charge
+                                                </button>
+                                                <button onClick={(e) => { e.stopPropagation(); startNewRx(); }}><Plus size={14} /> Add Extra</button>
+                                                <button onClick={(e) => { e.stopPropagation(); handleEdit(rx); }}><Edit size={14} /> Edit</button>
+                                                <button onClick={(e) => { e.stopPropagation(); handleDelete(rx.id, rx.remedy_name); }} style={{ color: '#dc2626' }}><Trash2 size={14} /> Remove</button>
+                                              </>
+                                            )}
                                           </>
                                         );
                                       })()}

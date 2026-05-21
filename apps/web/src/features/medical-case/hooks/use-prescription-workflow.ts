@@ -191,7 +191,7 @@ export function usePrescriptionWorkflow(
     editingId,
     setEditingId,
     delivery,
-    setDelivery: handleDeliveryChange,
+    setDelivery,
     manualInstruction,
     setManualInstruction,
     startNewRx,

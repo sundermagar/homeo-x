@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { apiClient } from '@/infrastructure/api-client';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { LoginRequestSchema } from '@mmc/validation';
-import hospitalHero from '@/assets/clinic-reception-mmc.png';
+import hospitalHero from '@/assets/Gemini_Generated_Image_3dl6iv3dl6iv3dl6.png';
 import mmcIconOrange from '@/assets/mmc-icon-orange-transparent.png';
 import { prefetchDashboard } from '@/features/dashboard/hooks/use-dashboard';
 import { toast } from '@/hooks/use-toast';
@@ -118,21 +118,21 @@ export default function LoginPage() {
               <div className="login-form-logo" style={{ alignItems: 'center', justifyContent: 'center', marginTop: '-32px', marginBottom: '36px' }}>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '16px' }}>
                   <img src={mmcIconOrange} alt="MMC Icon" style={{ height: '48px', width: '48px', objectFit: 'contain', transform: 'scale(1.4)' }} />
-                  <span style={{ fontSize: '28px', fontWeight: '800', color: '#1e3a8a', letterSpacing: '-0.5px' }}>Manage My Clinic</span>
+                  <span style={{ fontSize: '36px', fontWeight: '800', color: '#1e3a8a', letterSpacing: '-0.5px' }}>MMC</span>
                 </div>
               </div>
 
               <div className="login-form-header-row">
                 <div className="login-form-header-badge">
                   <ShieldCheck size={14} />
-                  Secure Hospital Access
+                  Secure Clinic Access
                 </div>
                 <div className="system-status-badge">
                   <div className="status-dot pulse" />
                   <span>System Online</span>
                 </div>
               </div>
-              <h1 className="login-form-title">Hospital Portal</h1>
+              <h1 className="login-form-title">Clinic Portal</h1>
               <div className="login-subtitle-container">
                 <p className={`login-form-subtitle ${activeFeature ? 'is-insight' : ''}`}>
                   {activeFeature === 'ai' && (
@@ -153,7 +153,7 @@ export default function LoginPage() {
                       <strong>Security:</strong> Enterprise-grade HIPAA-compliant 256-bit encryption with dedicated clinical tenant isolation.
                     </>
                   )}
-                  {!activeFeature && "Access your clinical dashboard, patient records, and hospital management tools."}
+                  {!activeFeature && "Access your clinical dashboard, patient records, and clinic management tools."}
                 </p>
                 {activeFeature && (
                   <button className="insight-close-pill" onClick={() => setActiveFeature(null)}>

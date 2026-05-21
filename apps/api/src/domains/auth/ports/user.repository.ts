@@ -6,4 +6,5 @@ export interface UserRepository {
   getUserPassword(email: string): Promise<string | null>;
   updatePassword(userId: number, passwordHash: string): Promise<void>;
   getUserPermissions(roleId: number): Promise<string[]>;
+  updateResetOtp(userId: number, hashedToken: string, expiry: Date): Promise<void>;
 }

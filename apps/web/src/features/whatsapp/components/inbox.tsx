@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useWhatsApp } from '../hooks/use-whatsapp';
 import { useWhatsAppSocket } from '../hooks/use-whatsapp-socket';
 import { Search, Send, User, Check, CheckCheck, MessageSquare, Pin, MoreVertical, Plus, FileText, Paperclip, Smile, Loader2, ArrowLeft, CornerUpLeft, Forward, Trash2, X, Archive, Ban } from 'lucide-react';
@@ -90,6 +90,7 @@ export const Inbox = ({ channelId }: { channelId?: number }) => {
   } = useWhatsApp();
   
   const navigate = useNavigate();
+  const location = useLocation();
   const sendTemplateMutation = useSendTemplate();
   const createConversationMutation = useCreateConversation();
   const uploadMediaMutation = useUploadConversationMedia();
@@ -105,6 +106,34 @@ export const Inbox = ({ channelId }: { channelId?: number }) => {
 
   // ─── Real-time WebSocket updates ───────────────────────────────────────────
   useWhatsAppSocket({ channelId, selectedConversationId: selectedConvId });
+  
+  // Auto-open chat if phone is provided in URL
+  React.useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const phoneParam = searchParams.get('phone');
+    if (phoneParam && !loadingConv) {
+      const targetPhone = phoneParam.replace(/\D/g, '');
+      const existing = conversations?.find((c) => c.contactPhone === targetPhone || c.contactPhone === `91${targetPhone}`);
+      
+      if (existing) {
+        setSelectedConvId(existing.id);
+      } else if (!existing && channelId) {
+        // Create new conversation if it doesn't exist yet
+        toast({ title: 'New Conversation', description: `Initiating chat with ${targetPhone}...` });
+        createConversationMutation.mutate({
+          channelId: Number(channelId),
+          contactPhone: targetPhone,
+          contactName: 'Patient',
+        }, {
+          onSuccess: (newConv) => {
+            setSelectedConvId(newConv.id);
+          }
+        });
+      }
+      // Remove query param to prevent re-triggering
+      navigate('/communications/whatsapp/inbox', { replace: true });
+    }
+  }, [location.search, loadingConv, conversations, channelId, navigate]);
   
   const [replyingTo, setReplyingTo] = useState<any | null>(null);
   const [forwardingMsg, setForwardingMsg] = useState<any | null>(null);

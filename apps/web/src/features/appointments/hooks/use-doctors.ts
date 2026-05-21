@@ -24,7 +24,7 @@ export function useDoctors() {
   // Socket listener for real-time updates to doctor status
   useEffect(() => {
     if (!socket) {
-      const baseUrl = (import.meta.env['VITE_API_URL'] || '').replace('/api', '');
+      const baseUrl = (import.meta.env['VITE_API_URL'] || '').replace(/\/api\/?$/, '');
       socket = io(baseUrl || window.location.origin, {
         withCredentials: true,
       });

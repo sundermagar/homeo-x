@@ -9,7 +9,7 @@ import {
   useBirthdayList,
   useReferenceListing
 } from '../hooks/use-analytics';
-import { useSmsTemplates } from '@/features/communications/hooks/use-communications';
+import { useSmsTemplates, useSendWhatsApp } from '@/features/communications/hooks/use-communications';
 import { useWhatsApp } from '@/features/whatsapp/hooks/use-whatsapp';
 import { Pagination } from '@/components/shared/pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';

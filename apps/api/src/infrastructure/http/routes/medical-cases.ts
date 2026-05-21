@@ -502,33 +502,49 @@ router.get('/remedy-chart/pdf/:regid', asyncHandler(async (req, res) => {
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `inline; filename="prescription-${regid}.pdf"`);
 
-  await pdfService.generatePrescription(res, {
-    clinicName: organization?.name || defaultSetting?.templateName || (req as any).tenantDb?.schemaName || 'Homeo-X Clinic',
-    clinicAddress: organization?.address || (defaultSetting as any)?.clinicAddress || '',
-    clinicPhone: organization?.phone || (defaultSetting as any)?.clinicPhone || '',
-    clinicEmail: organization?.email || '',
-    clinicWebsite: organization?.website || '',
-    clinicLogo: organization?.logo || '',
-    clinicTagline: organization?.tagLine || '',
-    clinicRegistration: organization?.registration || '',
-    clinicTiming: organization?.timing || '',
-    patientName: patient?.patientName || `Patient ${regid}`,
-    patientAge: (patient as any)?.age,
-    patientGender: patient?.gender || '',
-    patientPhone: patient?.phone || patient?.mobile || '',
-    patientAddress: [patient?.address, patient?.city, patient?.state].filter(Boolean).join(', '),
-    diagnosis: patient?.condition || '',
-    followUpNote: caseData?.notes?.find((n: any) => n.notesType === 'Followup')?.notes || '',
-    regid,
-    potencies: prescriptions.map((p: any) => ({
-      medicine: p.remedy_name || p.remedyName || p.medicineName || p.medicine || '—',
-      potency: p.potency_name || p.potencyName || p.potency || '—',
-      frequency: p.frequency_name || p.frequencyTitle || p.frequency || '—',
-      days: p.days,
-      instructions: p.instructions || p.prescription || p.notes || '—',
-      createdAt: p.created_at || p.createdAt || p.dateval
-    })),
-    settings: defaultSetting
+    let filteredPrescriptions = prescriptions;
+    let filteredNotes = caseData?.notes || [];
+    
+    if (req.query.date) {
+      const targetDate = new Date(req.query.date as string).toDateString();
+      filteredPrescriptions = prescriptions.filter((p: any) => {
+        const d = new Date(p.created_at || p.createdAt || p.dateval);
+        return d.toDateString() === targetDate;
+      });
+      filteredNotes = filteredNotes.filter((n: any) => {
+        const d = new Date(n.created_at || n.createdAt || n.dateval || n.createdAt); // Try both standard casing and Drizzle casing
+        // Note: For CaseNote, Drizzle uses createdAt or dateval
+        return d.toDateString() === targetDate;
+      });
+    }
+
+    await pdfService.generatePrescription(res, {
+      clinicName: organization?.name || defaultSetting?.templateName || (req as any).tenantDb?.schemaName || 'Homeo-X Clinic',
+      clinicAddress: organization?.address || (defaultSetting as any)?.clinicAddress || '',
+      clinicPhone: organization?.phone || (defaultSetting as any)?.clinicPhone || '',
+      clinicEmail: organization?.email || '',
+      clinicWebsite: organization?.website || '',
+      clinicLogo: organization?.logo || '',
+      clinicTagline: organization?.tagLine || '',
+      clinicRegistration: organization?.registration || '',
+      clinicTiming: organization?.timing || '',
+      patientName: patient?.patientName || `Patient ${regid}`,
+      patientAge: (patient as any)?.age,
+      patientGender: patient?.gender || '',
+      patientPhone: patient?.phone || patient?.mobile || '',
+      patientAddress: [patient?.address, patient?.city, patient?.state].filter(Boolean).join(', '),
+      diagnosis: patient?.condition || '',
+      followUpNote: filteredNotes.find((n: any) => n.notesType === 'Followup')?.notes || '',
+      regid,
+      potencies: filteredPrescriptions.map((p: any) => ({
+        medicine: p.remedy_name || p.remedyName || p.medicineName || p.medicine || '—',
+        potency: p.potency_name || p.potencyName || p.potency || '—',
+        frequency: p.frequency_name || p.frequencyTitle || p.frequency || '—',
+        days: p.days,
+        instructions: p.instructions || p.prescription || p.notes || '—',
+        createdAt: p.created_at || p.createdAt || p.dateval
+      })),
+      settings: defaultSetting
   });
 }));
 
