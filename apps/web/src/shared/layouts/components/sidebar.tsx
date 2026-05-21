@@ -49,7 +49,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       const { data } = await apiClient.get('/courier/unread-count');
       return data.data as { count: number };
     },
-    refetchInterval: 60000, // Refresh every minute
+    refetchInterval: 5 * 60_000, // Refresh every 5 min (remote DB is slow)
     enabled: !!user
   });
   const unreadCount = unreadResponse?.count || 0;

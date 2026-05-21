@@ -79,3 +79,63 @@ authRouter.put('/password', authMiddleware, asyncHandler(async (req, res) => {
   await changePasswordUseCase.execute(req.user!.id, currentPassword, newPassword);
   sendSuccess(res, undefined, 'Password updated successfully');
 }));
+
+import { ForgotPasswordUseCase } from '../../../domains/auth/use-cases/forgot-password.use-case.js';
+import { ResetPasswordUseCase } from '../../../domains/auth/use-cases/reset-password.use-case.js';
+
+// POST /api/auth/forgot-password
+authRouter.post('/forgot-password', asyncHandler(async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    throw new UnauthorizedError('Email is required');
+  }
+
+  try {
+    const useCase = new ForgotPasswordUseCase(getRepo(req));
+    const result = await useCase.execute(email);
+    sendSuccess(res, result);
+    return;
+  } catch (err: any) {
+    if (err.name === 'NotFoundError' || err.message === 'User not found') {
+      try {
+        const publicUseCase = new ForgotPasswordUseCase(getPublicRepo(req));
+        const publicResult = await publicUseCase.execute(email);
+        sendSuccess(res, publicResult);
+        return;
+      } catch (publicErr) {
+        // Return success anyway to prevent email enumeration
+        sendSuccess(res, { success: true, message: 'If the email exists, a reset link has been sent.' });
+        return;
+      }
+    }
+    throw err;
+  }
+}));
+
+// POST /api/auth/reset-password
+authRouter.post('/reset-password', asyncHandler(async (req, res) => {
+  const { email, token, newPassword } = req.body;
+  if (!email || !token || !newPassword) {
+    throw new UnauthorizedError('Missing required fields');
+  }
+
+  try {
+    const useCase = new ResetPasswordUseCase(getRepo(req));
+    const result = await useCase.execute(email, token, newPassword);
+    sendSuccess(res, result);
+    return;
+  } catch (err: any) {
+    // If user not found or token invalid, check public repo
+    if (err.name === 'UnauthorizedError' || err.name === 'NotFoundError') {
+      try {
+        const publicUseCase = new ResetPasswordUseCase(getPublicRepo(req));
+        const publicResult = await publicUseCase.execute(email, token, newPassword);
+        sendSuccess(res, publicResult);
+        return;
+      } catch (publicErr) {
+        throw publicErr;
+      }
+    }
+    throw err;
+  }
+}));

@@ -12,7 +12,8 @@ import { toast } from './hooks/use-toast';
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 30_000,
+      staleTime: 2 * 60_000,    // 2 minutes — reduces refetch storms
+      gcTime: 10 * 60_000,      // 10 minutes — frees memory for unused queries
       retry: 1,
       refetchOnWindowFocus: false,
     },

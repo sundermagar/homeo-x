@@ -16,12 +16,16 @@ export const ChatbotManager = () => {
     useSaveAiSettings,
     useTrainingSources,
     useAddTrainingSource,
+    useUploadTrainingFile,
     useDeleteTrainingSource,
     useProcessTrainingSource,
     useTrainingQaPairs,
     useSaveTrainingQaPair,
     useDeleteTrainingQaPair,
-    useTrainingStats
+    useTrainingStats,
+    useSyncKnowledgeBase,
+    useTrainingPreview,
+    useTestChat
   } = useWhatsApp();
 
   const { data: channels } = useChannels();
@@ -131,12 +135,32 @@ export const ChatbotManager = () => {
   // Training Sources
   const { data: sources, isLoading: loadingSources } = useTrainingSources(activeChannel?.id || null);
   const addSource = useAddTrainingSource();
+  const uploadFile = useUploadTrainingFile();
   const deleteSource = useDeleteTrainingSource();
   const processSource = useProcessTrainingSource();
 
   const [urlInput, setUrlInput] = useState('');
   const [urlName, setUrlName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [previewSearch, setPreviewSearch] = useState('');
+
+  const syncKb = useSyncKnowledgeBase();
+  const { data: previewData, isLoading: loadingPreview } = useTrainingPreview(activeChannel?.id || null);
+
+  const handleSyncKb = () => {
+    if (!activeChannel) return;
+    syncKb.mutate(
+      { channelId: activeChannel.id },
+      {
+        onSuccess: (data) => {
+          toast({ title: 'Sync Started', description: `Successfully started syncing knowledge base articles. Added ${data?.addedCount || 0} sources.` });
+        },
+        onError: (err: any) => {
+          toast({ title: 'Sync Failed', description: err.message, variant: 'error' });
+        }
+      }
+    );
+  };
 
   const handleAddUrl = () => {
     if (!activeChannel || !urlInput.trim()) return;
@@ -147,10 +171,13 @@ export const ChatbotManager = () => {
       url: urlInput,
       content: null
     }, {
-      onSuccess: () => {
+      onSuccess: (newSource) => {
         toast({ title: 'URL added', description: 'Website content is being processed...' });
         setUrlInput('');
         setUrlName('');
+        if (newSource?.id) {
+          processSource.mutate(newSource.id);
+        }
       }
     });
   };
@@ -175,22 +202,45 @@ export const ChatbotManager = () => {
     });
   };
 
+  const testChatHook = useTestChat();
+
   const sendTestMessage = async () => {
     if (!testMessage.trim() || !activeChannel) return;
 
     const userMsg = testMessage;
+    const history = [...testMessages];
+    
     setTestMessages((prev) => [...prev, { role: "user", text: userMsg }]);
     setTestMessage("");
     setIsTesting(true);
 
-    // Mock API call visually since we are testing in UI
-    setTimeout(() => {
-      setTestMessages((prev) => [
-        ...prev,
-        { role: "bot", text: "This is a simulated AI response based on your training data.", context: { chunksFound: 2, qaPairsFound: 0 } }
-      ]);
-      setIsTesting(false);
-    }, 1500);
+    testChatHook.mutate({
+      channelId: activeChannel.id,
+      message: userMsg,
+      history: history
+    }, {
+      onSuccess: (data) => {
+        setTestMessages((prev) => [
+          ...prev,
+          { 
+            role: "bot", 
+            text: data?.response || "No response generated.", 
+            context: data?.context 
+          }
+        ]);
+        setIsTesting(false);
+      },
+      onError: (err: any) => {
+        setTestMessages((prev) => [
+          ...prev,
+          { 
+            role: "bot", 
+            text: `Error: ${err.message}` 
+          }
+        ]);
+        setIsTesting(false);
+      }
+    });
   };
 
   // Stats
@@ -313,8 +363,11 @@ export const ChatbotManager = () => {
               </label>
             </div>
             
-            <button className="w-full h-11 bg-[var(--bg-card)] hover:bg-[var(--bg-card)] border border-pp-border shadow-sm rounded-xl flex items-center justify-center text-sm font-bold text-main transition-all active:scale-[0.98]">
-              <RefreshCw className="h-4 w-4 mr-2 text-pp-blue" />
+            <button 
+              onClick={handleSyncKb}
+              disabled={syncKb.isPending}
+              className="w-full h-11 bg-[var(--bg-card)] hover:bg-[var(--bg-card)] border border-pp-border shadow-sm rounded-xl flex items-center justify-center text-sm font-bold text-main transition-all active:scale-[0.98]">
+              {syncKb.isPending ? <Loader2 className="h-4 w-4 mr-2 text-pp-blue animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2 text-pp-blue" />}
               Sync Knowledge Base Articles
             </button>
           </div>
@@ -373,16 +426,55 @@ export const ChatbotManager = () => {
               className="hidden"
               accept=".pdf,.txt,.csv,.md,.docx"
               onChange={(e) => {
-                // In full implementation, handle document upload via an endpoint
-                toast({ title: 'Feature incoming', description: 'Document parsing requires python processor backend.' });
+                const file = e.target.files?.[0];
+                if (!file) return;
+                
+                if (file.size > 10 * 1024 * 1024) {
+                  toast({
+                    title: 'File too large',
+                    description: 'Maximum file size allowed is 10MB.',
+                    variant: 'error'
+                  });
+                  return;
+                }
+
+                uploadFile.mutate({
+                  channelId: activeChannel.id,
+                  file
+                }, {
+                  onSuccess: (newSource) => {
+                    toast({
+                      title: 'Document Uploaded',
+                      description: `${file.name} uploaded successfully and is being processed...`
+                    });
+                    if (newSource?.id) {
+                      processSource.mutate(newSource.id);
+                    }
+                    if (fileInputRef.current) {
+                      fileInputRef.current.value = '';
+                    }
+                  },
+                  onError: (err: any) => {
+                    toast({
+                      title: 'Upload Failed',
+                      description: err.response?.data?.message || err.message || 'Failed to upload document',
+                      variant: 'error'
+                    });
+                  }
+                });
               }}
             />
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="w-full h-11 bg-slate-50/50 dark:bg-slate-500/5 hover:bg-slate-100 border border-dashed border-pp-border rounded-xl flex items-center justify-center text-sm font-bold text-main transition-all active:scale-[0.98]"
+              disabled={uploadFile.isPending}
+              className="w-full h-11 bg-slate-50/50 dark:bg-slate-500/5 hover:bg-slate-100 border border-dashed border-pp-border rounded-xl flex items-center justify-center text-sm font-bold text-main transition-all active:scale-[0.98] disabled:opacity-50"
             >
-              <FileUp className="h-4 w-4 mr-2 text-secondary" />
-              Click to Upload Document
+              {uploadFile.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin text-pp-blue" />
+              ) : (
+                <FileUp className="h-4 w-4 mr-2 text-secondary" />
+              )}
+              {uploadFile.isPending ? 'Uploading Document...' : 'Click to Upload Document'}
             </button>
             <p className="text-xs text-secondary mt-2">
               Max 10MB. Supported: PDF, TXT, CSV, DOCX, MD
@@ -980,18 +1072,107 @@ export const ChatbotManager = () => {
       {/* Data Preview Tab */}
       {activeTab === 'preview' && (
         <div className="appt-card p-4 sm:p-6 bg-[var(--bg-card)] shadow-sm border border-pp-border">
-          <div className="mb-4">
-            <h3 className="text-base font-bold text-main flex items-center gap-2">
-              <Eye className="h-4 w-4 text-pp-blue" />
-              Data Preview
-            </h3>
-            <p className="text-xs text-secondary mt-1">All indexed content the AI uses to answer questions</p>
+          <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-base font-bold text-main flex items-center gap-2">
+                <Eye className="h-4 w-4 text-pp-blue" />
+                Data Preview
+              </h3>
+              <p className="text-xs text-secondary mt-1">Explore all chunks and data the AI currently uses to answer questions</p>
+            </div>
+            
+            <div className="w-full sm:w-64">
+              <input 
+                type="text" 
+                className="pp-input text-sm" 
+                placeholder="Search training chunks..."
+                value={previewSearch}
+                onChange={(e) => setPreviewSearch(e.target.value)}
+              />
+            </div>
           </div>
-          <div className="text-center py-12 text-secondary bg-[var(--bg-main)] rounded-xl border border-dashed border-pp-border">
-            <Database className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm font-bold text-main">Data preview loading...</p>
-            <p className="text-xs mt-1">Check back later when sources are indexed.</p>
-          </div>
+          
+          {loadingPreview ? (
+            <div className="text-center py-12 text-secondary bg-[var(--bg-main)] rounded-xl border border-dashed border-pp-border">
+              <Loader2 className="h-8 w-8 mx-auto mb-2 text-pp-blue animate-spin" />
+              <p className="text-sm font-bold text-main">Loading Preview Data...</p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* QA Pairs Preview */}
+              {(previewData?.qaPairs?.length || 0) > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-sm font-bold text-main flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4 text-emerald-500" />
+                    Q&A Pairs ({previewData.qaPairs.length})
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {previewData.qaPairs
+                      .filter((qa: any) => 
+                        !previewSearch || 
+                        qa.question.toLowerCase().includes(previewSearch.toLowerCase()) || 
+                        qa.answer.toLowerCase().includes(previewSearch.toLowerCase())
+                      )
+                      .map((qa: any) => (
+                      <div key={qa.id} className="p-4 rounded-xl border border-pp-border bg-slate-50 dark:bg-slate-800/30">
+                        <div className="flex gap-2">
+                          <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">Q:</span>
+                          <p className="text-sm font-medium text-main mb-2">{qa.question}</p>
+                        </div>
+                        <div className="flex gap-2">
+                          <span className="text-xs font-bold text-blue-600 dark:text-blue-400 mt-0.5">A:</span>
+                          <p className="text-xs text-secondary leading-relaxed">{qa.answer}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Chunks Preview */}
+              {(previewData?.sourcesWithChunks?.length || 0) > 0 ? (
+                <div className="space-y-4">
+                  <h4 className="text-sm font-bold text-main flex items-center gap-2">
+                    <Database className="h-4 w-4 text-purple-500" />
+                    Indexed Document Chunks
+                  </h4>
+                  
+                  {previewData.sourcesWithChunks.map((sourceObj: any) => {
+                    const filteredChunks = sourceObj.chunks.filter((chunk: any) => 
+                      !previewSearch || chunk.content.toLowerCase().includes(previewSearch.toLowerCase())
+                    );
+                    
+                    if (filteredChunks.length === 0) return null;
+
+                    return (
+                      <div key={sourceObj.source.id} className="border border-pp-border rounded-xl overflow-hidden">
+                        <div className="bg-slate-50 dark:bg-slate-800/50 px-4 py-2 border-b border-pp-border flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            {sourceObj.source.type === 'url' ? <Globe className="h-4 w-4 text-blue-500" /> : <FileText className="h-4 w-4 text-orange-500" />}
+                            <span className="text-sm font-bold text-main">{sourceObj.source.name || sourceObj.source.url}</span>
+                          </div>
+                          <span className="text-xs font-medium text-secondary">{filteredChunks.length} Chunks</span>
+                        </div>
+                        <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[400px] overflow-y-auto">
+                          {filteredChunks.map((chunk: any) => (
+                            <div key={chunk.id} className="p-3 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                              <p className="text-xs text-main leading-relaxed line-clamp-6">{chunk.content}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-12 text-secondary bg-[var(--bg-main)] rounded-xl border border-dashed border-pp-border">
+                  <Database className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm font-bold text-main">No Preview Data</p>
+                  <p className="text-xs mt-1">There are no completed training sources or Q&A pairs yet.</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
