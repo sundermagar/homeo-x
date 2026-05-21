@@ -71,7 +71,7 @@ export class CourierRepositoryPg {
       WHERE cm.currentdate = ${targetDate}
         AND cm.post_type IN ('Courier', 'Pickup')
         AND (cm.deleted_at IS NULL OR cm.deleted_at = '')
-        ${clinicId ? sql`AND cd.clinic_id = ${clinicId}` : sql`AND (cd.clinic_id IS NULL)`}
+        ${clinicId ? sql`AND (cd.clinic_id = ${clinicId} OR cd.clinic_id IS NULL)` : sql`AND (cd.clinic_id IS NULL)`}
       ORDER BY cm.created_at DESC
     `);
     
@@ -115,7 +115,7 @@ export class CourierRepositoryPg {
       JOIN case_datas cd ON cd.regid = cm.case_id
       WHERE cm.post_type IN ('Courier', 'Pickup')
         AND (cm.deleted_at IS NULL OR cm.deleted_at = '')
-        ${clinicId ? sql`AND cd.clinic_id = ${clinicId}` : sql``}
+        ${clinicId ? sql`AND (cd.clinic_id = ${clinicId} OR cd.clinic_id IS NULL)` : sql``}
       ORDER BY cm.created_at DESC
       LIMIT 100
     `);

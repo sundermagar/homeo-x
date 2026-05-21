@@ -78,6 +78,7 @@ export function usePrescriptionWorkflow(
   // We need to keep a stable reference to startNewRx for the useEffect below
   const startNewRx = async () => {
     if (!regid) return;
+    setEditingId(null); // Clear editing ID first to prevent auto-saving form changes to the previous Rx!
     const initialDays = firstRxOfToday ? Number(firstRxOfToday.days) || 0 : 0;
     const initialForm = { remedyName: '', potencyName: '', frequencyName: '', days: initialDays, instructions: '', notes: '' };
     setForm(initialForm);
@@ -164,6 +165,7 @@ export function usePrescriptionWorkflow(
 
   const repeatRx = async (rx: any) => {
     if (!regid || !rx) return;
+    setEditingId(null); // Clear editing ID first to prevent auto-saving repeated data to the previous Rx!
     const repeatData = {
       remedyName: rx.remedy_name || rx.remedyName || '',
       potencyName: rx.potency_name || rx.potencyName || '',
@@ -200,6 +202,20 @@ export function usePrescriptionWorkflow(
     }
   };
 
+  const handleDeliveryChange = (newMode: string) => {
+    setDelivery(newMode);
+    deliveryRef.current = newMode;
+    if (editingId && regid) {
+      saveMutation.mutate({
+        regid,
+        visitId,
+        id: editingId,
+        deliveryMode: newMode,
+        ...form
+      });
+    }
+  };
+
   // Debounced auto-save — uses deliveryRef to avoid re-triggering when
   // delivery state changes (prevents the race condition where the sync
   // useEffect resets delivery and auto-save then overwrites the DB).
@@ -230,7 +246,7 @@ export function usePrescriptionWorkflow(
     editingId,
     setEditingId,
     delivery,
-    setDelivery,
+    setDelivery: handleDeliveryChange,
     manualInstruction,
     setManualInstruction,
     startNewRx,

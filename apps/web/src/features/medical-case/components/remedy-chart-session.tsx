@@ -296,6 +296,48 @@ export function RemedyChartSession({
                     options={lookups?.frequencies?.map((f: any) => f.name) || []}
                   />
                 </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-ink)' }}>Delivery:</label>
+                  <div style={{ position: 'relative', width: '100%' }}>
+                    <select
+                      value={delivery}
+                      onChange={(e) => setDelivery(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '8px 12px 8px 32px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border-main)',
+                        fontSize: '0.9rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        appearance: 'none',
+                        background: 'var(--bg-card)',
+                        color: 'var(--pp-ink)',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                        minHeight: '38px'
+                      }}
+                    >
+                      <option value="clinic">Clinic</option>
+                      <option value="courier">Courier</option>
+                      <option value="pickup">Pickup</option>
+                    </select>
+                    <div style={{
+                      position: 'absolute',
+                      left: '10px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      color: 'var(--pp-blue)',
+                      pointerEvents: 'none',
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}>
+                      {delivery === 'clinic' && <Home size={14} />}
+                      {delivery === 'courier' && <Truck size={14} />}
+                      {delivery === 'pickup' && <Package size={14} />}
+                    </div>
+                  </div>
+                </div>
                 {(!isRxToday || (editingId && firstRxOfToday && editingId === firstRxOfToday.id)) && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-ink)' }}>Days:</label>

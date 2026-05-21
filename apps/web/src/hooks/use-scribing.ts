@@ -107,6 +107,10 @@ export function useHomeopathyConsult() {
       patientGender?: string;
       thermalReaction?: string;
       miasm?: string;
+      thirstPattern?: string;
+      sleepPosition?: string;
+      perspiration?: string;
+      doctorNotes?: string;
       labReports?: Record<string, string>;
       consultationMode?: 'acute' | 'chronic' | 'followup';
     }) => api.post<HomeopathyConsultResult>(API.AI.CONSULT_HOMEOPATHY, data),
