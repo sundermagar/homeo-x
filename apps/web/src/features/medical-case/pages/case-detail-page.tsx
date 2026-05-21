@@ -96,9 +96,9 @@ export function DateGroupCell({ dateVal, isFirst, isExpanded, itemsCount, onTogg
           {new Date(dateVal).toLocaleString('default', { month: 'short' })} {new Date(dateVal).getFullYear()}
         </span>
         {itemsCount > 1 && (
-          <button 
+          <button
             onClick={(e) => { e.stopPropagation(); onToggle(); }}
-            style={{ 
+            style={{
               background: 'var(--pp-blue-faded)', color: 'var(--pp-blue)', border: '1px solid var(--pp-blue-border)',
               borderRadius: '12px', padding: '2px 8px', fontSize: '0.65rem', fontWeight: 700, cursor: 'pointer',
               marginTop: '6px', alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '2px', transition: 'all 0.2s'
@@ -338,11 +338,11 @@ export default function MedicalCaseDetailPage() {
         setScannedMedicationRows(
           result.medications && result.medications.length > 0
             ? result.medications.map((m: any) => ({
-                medicine: m.medicine || '',
-                frequency: m.frequency || 'Once',
-                days: '',
-                issue: m.issue || ''
-              }))
+              medicine: m.medicine || '',
+              frequency: m.frequency || 'Once',
+              days: '',
+              issue: m.issue || ''
+            }))
             : [{ medicine: '', frequency: 'Once', days: '', issue: '' }]
         );
         setShowPrescriptionPreview(true);
@@ -676,9 +676,9 @@ export default function MedicalCaseDetailPage() {
 
     // Sum of all regular bills currently saved in the database for today (excluding custom, additional, and package bills)
     const savedRegularBillsSum = dayBills
-      .filter(b => 
-        b.billType !== 'Custom' && 
-        (b.billType as string) !== 'Additional' && 
+      .filter(b =>
+        b.billType !== 'Custom' &&
+        (b.billType as string) !== 'Additional' &&
         !b.treatment?.startsWith('Package:')
       )
       .reduce((sum, b) => sum + (Number(b.charges) || 0), 0);
@@ -689,7 +689,7 @@ export default function MedicalCaseDetailPage() {
     const rawEffectiveDaysCharge = (() => {
       if (pendingCharge > 0) return pendingCharge;
       if (!displayDate) return 0;
-      
+
       const displayStr = toClinicDateString(displayDate);
       const allRx = [...(prescriptionsHistory || []), ...(prescriptionsFromFull || [])];
       const todayRx = allRx.filter((rx: any) => {
@@ -698,16 +698,16 @@ export default function MedicalCaseDetailPage() {
       });
 
       if (todayRx.length === 0) return 0;
-      
+
       const savedDays = Number(todayRx[0].days) || 0;
       if (savedDays <= 0) return 0;
 
       const match = dayCharges.find((dc: any) => Number(dc.days) === savedDays);
       return match ? Number(match.regularCharges) || 0 : 0;
     })();
-    
+
     const hasActivePackage = !!fullData?.activePackage;
-    
+
     // Waive medicine charges if covered by package and session isn't completed yet
     const effectiveDaysCharge = (hasActivePackage && fullData?.activePackage?.coversMedicine && !isCompleted)
       ? 0
@@ -799,11 +799,11 @@ export default function MedicalCaseDetailPage() {
     // Attempt to extract visit ID from any clinical record on the currently viewed date
     const rx = currentVisitPrescriptions?.[0];
     const soap = currentVisitSoaps?.[0];
-    
+
     // Check various common field names for visit IDs
     const idFromRx = rx ? (rx.visitId ?? rx.visit_id ?? rx.consultationId ?? rx.consultation_id) : null;
     const idFromSoap = soap ? (soap.visitId ?? soap.visit_id) : null;
-    
+
     // Priority: 1. ID from today's prescriptions, 2. ID from today's SOAP notes, 3. The global active case ID
     return idFromRx ?? idFromSoap ?? medicalCase?.id;
   }, [currentVisitPrescriptions, currentVisitSoaps, medicalCase?.id]);
@@ -892,16 +892,16 @@ export default function MedicalCaseDetailPage() {
       <div className="patient-profile-card">
         <div className="profile-top-row">
           <div className="profile-identity">
-            <button 
+            <button
               onClick={() => navigate('/patients')}
-              style={{ 
-                cursor: 'pointer', 
-                background: 'transparent', 
-                border: 'none', 
-                color: 'white', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
+              style={{
+                cursor: 'pointer',
+                background: 'transparent',
+                border: 'none',
+                color: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
                 padding: '8px',
                 borderRadius: '8px',
                 transition: 'background 0.2s',
@@ -917,7 +917,7 @@ export default function MedicalCaseDetailPage() {
               <h1 className="profile-name">{formatName(medicalCase.patientName)}</h1>
               <span className="profile-id">Patient #{regid}</span>
             </div>
-            <button 
+            <button
               className={`profile-status-chip ${activePackage?.status === 'Active' ? 'active' : ''}`}
               onClick={() => setShowAssignModal(true)}
               style={{ cursor: 'pointer', border: 'none', outline: 'none', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '6px' }}
@@ -937,7 +937,7 @@ export default function MedicalCaseDetailPage() {
                 alert('No phone number available for this patient.');
               }
             }}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" /></svg>
             </button>
           </div>
         </div>
@@ -1074,10 +1074,10 @@ export default function MedicalCaseDetailPage() {
                     { label: 'Amount Received', value: billingValues.received, color: '#059669', tab: 'payment' },
                     { label: 'Pending Balance', value: billingValues.balance, color: '#dc2626', bold: true, noEdit: true },
                   ].map((row, idx) => (
-                    <div key={idx} style={{ 
-                      display: 'grid', 
-                      gridTemplateColumns: '1fr 140px 40px', 
-                      padding: '10px 16px', 
+                    <div key={idx} style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 140px 40px',
+                      padding: '10px 16px',
                       borderBottom: idx === 5 ? 'none' : '1px solid #f1f5f9',
                       alignItems: 'center',
                       background: idx % 2 === 0 ? 'transparent' : '#f8fafc'
@@ -1096,19 +1096,19 @@ export default function MedicalCaseDetailPage() {
                       {row.noEdit || !isToday ? (
                         <div style={{ width: '28px', height: '28px' }} />
                       ) : (
-                        <button 
+                        <button
                           onClick={() => {
                             setActiveBillingTab(row.tab as any);
                             setShowBillingModal(true);
                           }}
-                          style={{ 
+                          style={{
                             width: '28px',
                             height: '28px',
-                            padding: '0', 
-                            background: '#fff', 
-                            border: '1px solid #e2e8f0', 
-                            borderRadius: '6px', 
-                            cursor: 'pointer', 
+                            padding: '0',
+                            background: '#fff',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
                             color: '#64748b',
                             display: 'flex',
                             alignItems: 'center',
@@ -1134,16 +1134,16 @@ export default function MedicalCaseDetailPage() {
                 <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
                   <button
                     onClick={() => setShowReceiptModal(true)}
-                    style={{ 
-                      padding: '10px 24px', 
-                      background: '#7c3aed', 
-                      color: 'white', 
-                      border: 'none', 
-                      borderRadius: '10px', 
-                      fontWeight: 700, 
-                      cursor: 'pointer', 
-                      display: 'flex', 
-                      alignItems: 'center', 
+                    style={{
+                      padding: '10px 24px',
+                      background: '#7c3aed',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '10px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
                       gap: '8px',
                       boxShadow: '0 4px 6px -1px rgba(124, 58, 237, 0.2)'
                     }}
@@ -1221,7 +1221,7 @@ export default function MedicalCaseDetailPage() {
                     )}
                     <span>AI Scan</span>
                   </button>
-                  <div 
+                  <div
                     onClick={() => handleOpenDiagnosis(currentVisitSoap)}
                     style={{ color: '#7c3aed', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
                     title="Edit Assessment"
@@ -1229,7 +1229,7 @@ export default function MedicalCaseDetailPage() {
                     <Edit size={14} />
                   </div>
                   {!isToday && currentVisitSoaps.length > 1 && (
-                    <div 
+                    <div
                       onClick={() => setActiveTab('diagnosis')}
                       style={{ color: '#7c3aed', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px' }}
                     >
@@ -1311,15 +1311,15 @@ export default function MedicalCaseDetailPage() {
                       <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Medication Taking</label>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         {medicationRows.map((row, idx) => (
-                          <div 
-                            key={idx} 
-                            style={{ 
-                              border: '1px solid #e2e8f0', 
-                              borderRadius: '8px', 
-                              padding: '12px', 
+                          <div
+                            key={idx}
+                            style={{
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '8px',
+                              padding: '12px',
                               background: '#f8fafc',
-                              display: 'flex', 
-                              flexDirection: 'column', 
+                              display: 'flex',
+                              flexDirection: 'column',
                               gap: '10px',
                               boxShadow: '0 1px 2px rgba(0, 0, 0, 0.02)'
                             }}
@@ -1563,15 +1563,15 @@ export default function MedicalCaseDetailPage() {
                       <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Medication Taking</label>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         {scannedMedicationRows.map((row, idx) => (
-                          <div 
-                            key={idx} 
-                            style={{ 
-                              border: '1px solid #e2e8f0', 
-                              borderRadius: '8px', 
-                              padding: '12px', 
+                          <div
+                            key={idx}
+                            style={{
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '8px',
+                              padding: '12px',
                               background: '#f8fafc',
-                              display: 'flex', 
-                              flexDirection: 'column', 
+                              display: 'flex',
+                              flexDirection: 'column',
                               gap: '10px',
                               boxShadow: '0 1px 2px rgba(0, 0, 0, 0.02)'
                             }}
@@ -1920,7 +1920,7 @@ export default function MedicalCaseDetailPage() {
           patientId={Number(regid)}
           patientName={medicalCase.patientName || ''}
           onClose={() => setShowAssignModal(false)}
-          onSuccess={() => { 
+          onSuccess={() => {
             refetchFull();
           }}
         />
@@ -1971,13 +1971,13 @@ function MedicalCasePageSkeleton() {
             <div className="skeleton-box" style={{ width: '100px', height: '40px', borderRadius: '10px' }} />
           </div>
         </div>
-        <div style={{ 
+        <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
           gap: '24px',
-          marginTop: '24px', 
-          borderTop: '1px solid rgba(255,255,255,0.1)', 
-          paddingTop: '20px' 
+          marginTop: '24px',
+          borderTop: '1px solid rgba(255,255,255,0.1)',
+          paddingTop: '20px'
         }}>
           {[1, 2, 3, 4, 5, 6].map(i => (
             <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -2295,9 +2295,9 @@ function AnalyticsView({ vitals, regid, visitId, name, phone, clinicName, onAppe
       const lbs = (latest.weightKg * 2.20462).toFixed(1);
       weightStr = `${latest.weightKg} kg (${lbs} lbs)`;
     }
-    
+
     const bmiStr = latest.bmi ? String(latest.bmi) : '-';
-    
+
     const cleaned = String(phone).replace(/\D/g, '');
     const finalPhone = cleaned.length === 10 ? `91${cleaned}` : cleaned;
 
@@ -2523,7 +2523,7 @@ function VitalsView({ vitals, onRecord, phone, name, regid, clinicName, onAppend
       const lbs = (latest.weightKg * 2.20462).toFixed(1);
       weightStr = `${latest.weightKg} kg (${lbs} lbs)`;
     }
-    
+
     const bmiStr = latest.bmi ? String(latest.bmi) : '-';
 
     const cleaned = String(phone).replace(/\D/g, '');
@@ -2794,7 +2794,16 @@ const LAB_CONFIG: Record<string, any[]> = {
     { key: 'iga', label: 'IgA', range: '80 to 350 mg/dl' },
     { key: 'itg', label: 'Itg' },
   ],
+  'USG Pelvis (TVS)': [
+    { key: 'uterus', label: 'Uterus', type: 'full' },
+    { key: 'endometrial_cavity', label: 'Endometrial Cavity', type: 'full' },
+    { key: 'vaginal_canal', label: 'Vaginal Canal', type: 'full' },
+    { key: 'cervix', label: 'Cervix', type: 'full' },
+    { key: 'ovaries_cul_de_sac', label: 'Ovaries & Cul-de-sac', type: 'full' },
+    { key: 'final_impression', label: 'Final Impression', type: 'full' },
+  ],
   'Specific': [
+    { key: 'Summary', label: 'Summary', type: 'full' },
     { key: 'other_findings', label: 'Other Findings', type: 'full' },
     { key: 'define_field1', label: 'Define Field 1' },
     { key: 'define_field2', label: 'Define Field 2' },
@@ -2860,9 +2869,33 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
   const [editingInv, setEditingInv] = useState<any>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [isScannedPreview, setIsScannedPreview] = useState(false);
+  const [previewingInv, setPreviewingInv] = useState<any>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'compare'>('list');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { saveInvestigation, saveNote, deleteRecord } = useManageClinicalRecords();
+
+  const getLabValue = (fieldKey: string) => {
+    if (!labData) return '';
+    if (labData[fieldKey] !== undefined && labData[fieldKey] !== null) {
+      return String(labData[fieldKey]);
+    }
+    const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const target = normalize(fieldKey);
+    const foundKey = Object.keys(labData).find(k => normalize(k) === target);
+    return foundKey ? String(labData[foundKey]) : '';
+  };
+
+  const handleLabValueChange = (fieldKey: string, val: string) => {
+    const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const target = normalize(fieldKey);
+    const foundKey = Object.keys(labData).find(k => normalize(k) === target);
+    const keyToUpdate = foundKey || fieldKey;
+    setLabData({
+      ...labData,
+      [keyToUpdate]: val
+    });
+  };
 
   const handleCopyToFollowup = (inv: any) => {
     if (!onAppendNote) return;
@@ -2925,7 +2958,7 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
   };
 
   const handleDownload = () => {
-    const content = `Investigation Report: ${activeType}\nDate: ${new Date().toLocaleDateString()}\n\n` + 
+    const content = `Investigation Report: ${activeType}\nDate: ${new Date().toLocaleDateString()}\n\n` +
       Object.entries(labData).filter(([_, v]) => v).map(([k, v]) => `${k.toUpperCase()}: ${v}`).join('\n');
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
@@ -2944,62 +2977,53 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
 
     try {
       setIsScanning(true);
-      // Read file and compress via Canvas
-      const base64Str = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          const img = new Image();
-          img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const MAX_WIDTH = 1200;
-            const MAX_HEIGHT = 1200;
-            let width = img.width;
-            let height = img.height;
 
-            if (width > height) {
-              if (width > MAX_WIDTH) {
-                height = Math.round((height * MAX_WIDTH) / width);
-                width = MAX_WIDTH;
-              }
-            } else {
-              if (height > MAX_HEIGHT) {
-                width = Math.round((width * MAX_HEIGHT) / height);
-                height = MAX_HEIGHT;
-              }
-            }
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            ctx?.drawImage(img, 0, 0, width, height);
-            resolve(canvas.toDataURL('image/jpeg', 0.7));
-          };
-          img.onerror = reject;
-          img.src = event.target?.result as string;
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const { data } = await apiClient.post('/medical-cases/records/investigations/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
       });
 
-      const base64Data = base64Str.split(',')[1];
-      const mimeType = 'image/jpeg';
-
-      const { data } = await apiClient.post('/medical-cases/ai-scan-investigation', { 
-        imageBase64: base64Data, 
-        mimeType 
-      });
-      
-      if (!data.success || !data.data?.parsed) {
-        throw new Error(data.error || 'Failed to parse report');
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to process report');
       }
 
-      const { date, type, data: parsedData } = data.data.parsed;
-      
-      setActiveType(type || 'Specific');
-      setLabData(parsedData || {});
+      if (!data.data?.parsed) {
+        // AI failed, but upload succeeded
+        if (data.data?.error) {
+          console.warn('AI Scan Error:', data.data.error);
+          const raw = String(data.data.error);
+          const isQuota = /quota|limit|429|exhausted|credit balance|too low/i.test(raw);
+          const reason = isQuota
+            ? 'AI providers are out of quota/credits right now.'
+            : `AI scan error: ${raw.slice(0, 200)}`;
+          alert(`${reason}\n\nThe file was uploaded successfully. You can enter the findings manually.`);
+        }
+        setActiveType('Specific');
+        setLabData({
+          investDate: new Date().toISOString().split('T')[0],
+          attachmentUrl: data.data?.attachmentUrl || '',
+          summary: ''
+        });
+      } else {
+        // AI succeeded
+        const { date, type, data: parsedData, summary } = data.data.parsed;
+
+        setActiveType(type || 'Specific');
+        setLabData({
+          ...(parsedData || {}),
+          investDate: date || new Date().toISOString().split('T')[0],
+          attachmentUrl: data.data.attachmentUrl,
+          summary: summary || ''
+        });
+      }
       setEditingInv(null);
       setIsScannedPreview(true);
       setShowDrawer(true);
-      
+
     } catch (err: any) {
       alert(err.message || 'Error scanning report');
     } finally {
@@ -3017,139 +3041,165 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
       {/* ─── Header (matching Vitals layout) ─── */}
       <div className="mc-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
         <div className="mc-section-header" style={{ margin: 0 }}>Clinical Investigations</div>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <input type="file" accept="image/*" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileSelect} />
-          <button 
-            onClick={() => fileInputRef.current?.click()} 
-            className="btn-secondary" 
-            style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', background: '#f8fafc', border: '1px solid #e2e8f0', color: '#475569', borderRadius: '8px', fontWeight: 600, fontSize: '0.85rem' }} 
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '8px' }}>
+            <button
+              onClick={() => setViewMode('list')}
+              style={{ padding: '6px 12px', borderRadius: '6px', background: viewMode === 'list' ? 'white' : 'transparent', boxShadow: viewMode === 'list' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none', color: viewMode === 'list' ? 'var(--pp-blue)' : '#64748b', border: 'none', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600 }}
+            >
+              List View
+            </button>
+            <button
+              onClick={() => setViewMode('compare')}
+              style={{ padding: '6px 12px', borderRadius: '6px', background: viewMode === 'compare' ? 'white' : 'transparent', boxShadow: viewMode === 'compare' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none', color: viewMode === 'compare' ? 'var(--pp-blue)' : '#64748b', border: 'none', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600 }}
+            >
+              Compare Reports
+            </button>
+          </div>
+          <input type="file" accept="image/*,application/pdf" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileSelect} />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="btn-secondary"
+            style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', background: '#f8fafc', border: '1px solid #e2e8f0', color: '#475569', borderRadius: '8px', fontWeight: 600, fontSize: '0.85rem' }}
             disabled={isScanning}
           >
             {isScanning ? <Loader2 size={16} className="animate-spin" style={{ marginRight: '6px' }} /> : <Sparkles size={16} style={{ marginRight: '6px', color: '#8b5cf6' }} />}
             {isScanning ? 'Scanning...' : 'Scan Investigation'}
           </button>
-          <button onClick={handleAdd} className="btn-primary" style={{ padding: '8px 16px' }}>
+          {/* <button onClick={handleAdd} className="btn-primary" style={{ padding: '8px 16px' }}>
             <Plus size={16} style={{ marginRight: '6px' }} /> Add Investigation
-          </button>
+          </button> */}
         </div>
       </div>
 
-      {/* ─── Investigation History Table (default view) ─── */}
-      {!investigations ? (
-        <TableSkeleton rows={5} cols={5} />
-      ) : investigations.length === 0 ? (
-        <EmptyState
-          icon={FlaskConical}
-          title="No investigations recorded yet"
-          description="Record lab results, radiological findings, and specialized tests to build a complete clinical picture."
-          actionLabel="Record the first investigation"
-          onAction={handleAdd}
-        />
+      {/* ─── Investigation History Table / Comparison View ─── */}
+      {viewMode === 'compare' ? (
+        <InvestigationComparisonView investigations={sortedInvs} />
       ) : (
         <>
-          <div className="pp-card pp-table-scroll" style={{ padding: 0, borderRadius: '12px', border: '1px solid #ddd6fe', marginBottom: '20px' }}>
-            <div style={{ padding: '12px 16px', background: '#f5f3ff', borderBottom: '1px solid #ddd6fe', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <FlaskConical size={15} style={{ color: '#8b5cf6' }} />
-              <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#5b21b6' }}>Investigation History</span>
-              <span style={{ fontSize: '0.72rem', color: '#a78bfa', fontWeight: 600, marginLeft: '4px' }}>({investigations.length})</span>
-            </div>
-            <table className="pp-table" style={{ marginBottom: 0 }}>
-              <thead style={{ position: 'sticky', top: 0, zIndex: 1, background: '#f4f3f1' }}>
-                <tr>
-                  <th style={{ width: '110px' }}>Date</th>
-                  <th style={{ width: '130px' }}>Category</th>
-                  <th>Results</th>
-                  <th style={{ width: '100px', textAlign: 'center' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {groupedInvs.map((group) => (
-                  <React.Fragment key={group.date}>
-                    {group.items.map((inv, idx) => {
-                      const isExpanded = isDateFiltered || expandedDates.has(group.date);
-                      if (idx > 0 && !isExpanded) return null;
+          {!investigations ? (
+            <TableSkeleton rows={5} cols={5} />
+          ) : investigations.length === 0 ? (
+            <EmptyState
+              icon={FlaskConical}
+              title="No investigations recorded yet"
+              description="Record lab results, radiological findings, and specialized tests to build a complete clinical picture."
+              actionLabel="Record the first investigation"
+              onAction={handleAdd}
+            />
+          ) : (
+            <>
+              <div className="pp-card pp-table-scroll" style={{ padding: 0, borderRadius: '12px', border: '1px solid #ddd6fe', marginBottom: '20px' }}>
+                <div style={{ padding: '12px 16px', background: '#f5f3ff', borderBottom: '1px solid #ddd6fe', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <FlaskConical size={15} style={{ color: '#8b5cf6' }} />
+                  <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#5b21b6' }}>Investigation History</span>
+                  <span style={{ fontSize: '0.72rem', color: '#a78bfa', fontWeight: 600, marginLeft: '4px' }}>({investigations.length})</span>
+                </div>
+                <table className="pp-table" style={{ marginBottom: 0 }}>
+                  <thead style={{ position: 'sticky', top: 0, zIndex: 1, background: '#f4f3f1' }}>
+                    <tr>
+                      <th style={{ width: '110px' }}>Date</th>
+                      <th style={{ width: '130px' }}>Category</th>
+                      <th>Results</th>
+                      <th style={{ width: '100px', textAlign: 'center' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {groupedInvs.map((group) => (
+                      <React.Fragment key={group.date}>
+                        {group.items.map((inv, idx) => {
+                          const isExpanded = isDateFiltered || expandedDates.has(group.date);
+                          if (idx > 0 && !isExpanded) return null;
 
-                      const dateVal = inv.investDate || 0;
+                          const dateVal = inv.investDate || 0;
 
-                      return (
-                        <tr
-                          key={inv.id}
-                          className="hover-row"
-                          style={{
-                            background: idx > 0 ? '#f8fafc' : 'white',
-                            borderLeft: idx > 0 ? '3px solid #e2e8f0' : 'none'
-                          }}
-                        >
-                          <td className="appt-cell-mono">
-                            <DateGroupCell
-                              dateVal={dateVal}
-                              isFirst={idx === 0}
-                              isExpanded={isExpanded}
-                              itemsCount={isDateFiltered ? 1 : group.items.length}
-                              onToggle={() => toggleDate(group.date)}
-                            />
-                          </td>
-                          <td><span className="badge-primary">{inv.type}</span></td>
-                          <td>
-                            <div style={{ fontSize: '0.82rem', color: '#475569', display: 'flex', flexWrap: 'wrap', gap: '6px 12px' }}>
-                              {Object.entries(inv.data || {}).filter(([_, v]) => v).map(([k, v]) => (
-                                <span key={k} style={{ display: 'inline-flex', gap: '4px' }}>
-                                  <strong style={{ color: 'var(--pp-ink)' }}>{k.toUpperCase()}:</strong> {String(v)}
-                                </span>
-                              ))}
-                            </div>
-                          </td>
-                          <td style={{ textAlign: 'center' }}>
-                            <div style={{ display: 'flex', justifyContent: 'center', gap: '4px' }}>
-                              {onAppendNote && (
-                                <button
-                                  onClick={() => handleCopyToFollowup(inv)}
-                                  className="btn-ghost"
-                                  style={{ color: '#16a34a', padding: '4px 8px' }}
-                                  title="Copy to Follow-up"
-                                >
-                                  <Copy size={14} />
-                                </button>
-                              )}
-                              <button
-                                onClick={() => handleEdit(inv)}
-                                className="btn-ghost"
-                                style={{ color: 'var(--pp-blue)', padding: '4px 8px' }}
-                                title="Preview (Beautify)"
-                              >
-                                <Eye size={14} />
-                              </button>
-                              <button
-                                onClick={() => {
-                                  if (confirm('Delete this investigation?')) {
-                                    deleteRecord.mutateAsync({ type: 'investigations', id: inv.id });
-                                  }
-                                }}
-                                className="btn-ghost"
-                                style={{ color: '#dc2626', padding: '4px 8px' }}
-                                title="Delete"
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </React.Fragment>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            pageSize={pageSize}
-            totalItems={sortedInvs.length}
-            onPageChange={setCurrentPage}
-            onPageSizeChange={setPageSize}
-          />
+                          return (
+                            <tr
+                              key={inv.id}
+                              className="hover-row"
+                              style={{
+                                background: idx > 0 ? '#f8fafc' : 'white',
+                                borderLeft: idx > 0 ? '3px solid #e2e8f0' : 'none'
+                              }}
+                            >
+                              <td className="appt-cell-mono">
+                                <DateGroupCell
+                                  dateVal={dateVal}
+                                  isFirst={idx === 0}
+                                  isExpanded={isExpanded}
+                                  itemsCount={group.items.length}
+                                  onToggle={() => toggleDate(group.date)}
+                                />
+                              </td>
+                              <td style={{ fontWeight: 700, color: 'var(--pp-ink)' }}>{inv.type}</td>
+                              <td>
+                                <div style={{ fontSize: '0.82rem', color: '#475569', lineHeight: '1.5' }}>
+                                  {inv.data?.summary || inv.summary || (
+                                    <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>No summary available</span>
+                                  )}
+                                </div>
+                              </td>
+                              <td style={{ textAlign: 'center' }}>
+                                <div style={{ display: 'flex', justifyContent: 'center', gap: '4px' }}>
+                                  {onAppendNote && (
+                                    <button
+                                      onClick={() => handleCopyToFollowup(inv)}
+                                      className="btn-ghost"
+                                      style={{ color: '#16a34a', padding: '4px 8px' }}
+                                      title="Copy to Follow-up"
+                                    >
+                                      <Copy size={14} />
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => setPreviewingInv(inv)}
+                                    className="btn-ghost"
+                                    style={{ color: 'var(--pp-blue)', padding: '4px 8px' }}
+                                    title="View Report Details"
+                                  >
+                                    <Eye size={14} />
+                                  </button>
+
+                                  <button
+                                    onClick={() => {
+                                      if (confirm('Delete this investigation?')) {
+                                        deleteRecord.mutateAsync({ type: 'investigations', id: inv.id });
+                                      }
+                                    }}
+                                    className="btn-ghost"
+                                    style={{ color: '#dc2626', padding: '4px 8px' }}
+                                    title="Delete"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </React.Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                pageSize={pageSize}
+                totalItems={sortedInvs.length}
+                onPageChange={setCurrentPage}
+                onPageSizeChange={setPageSize}
+              />
+            </>
+          )}
         </>
+      )}
+
+      {previewingInv && (
+        <InvestigationPreviewModal
+          inv={previewingInv}
+          onClose={() => setPreviewingInv(null)}
+        />
       )}
 
       {/* ─── Investigation Form Drawer (right-side popup) ─── */}
@@ -3191,8 +3241,8 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
                       <textarea
                         className="pp-textarea"
                         placeholder={`Enter ${field.label}...`}
-                        value={labData[field.key] || ''}
-                        onChange={e => setLabData({ ...labData, [field.key]: e.target.value })}
+                        value={getLabValue(field.key)}
+                        onChange={e => handleLabValueChange(field.key, e.target.value)}
                         style={{ minHeight: '100px' }}
                       />
                     ) : (
@@ -3201,8 +3251,8 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
                           type="text"
                           className="pp-input"
                           placeholder="0.00"
-                          value={labData[field.key] || ''}
-                          onChange={e => setLabData({ ...labData, [field.key]: e.target.value })}
+                          value={getLabValue(field.key)}
+                          onChange={e => handleLabValueChange(field.key, e.target.value)}
                           style={{ flex: 1 }}
                         />
                         {field.range && <span style={{ fontSize: '0.65rem', fontWeight: 600, color: 'var(--pp-text-3)', background: 'var(--pp-warm-2)', padding: '4px 8px', borderRadius: '6px', whiteSpace: 'nowrap' }}>{field.range}</span>}
@@ -3565,9 +3615,9 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
 
       {/* ─── Premium Inline Add Media Form ─── */}
       {showUploadForm && (
-        <div 
+        <div
           className="animate-fade-in"
-          style={{ 
+          style={{
             background: 'white',
             borderRadius: '16px',
             border: '1px solid var(--pp-warm-3)',
@@ -3581,12 +3631,12 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
             boxSizing: 'border-box'
           }}
         >
-          <div 
-            style={{ 
-              background: 'var(--pp-warm-1)', 
-              border: '1.5px dashed var(--border-main)', 
-              borderRadius: '16px', 
-              padding: file ? '24px' : '48px 24px', 
+          <div
+            style={{
+              background: 'var(--pp-warm-1)',
+              border: '1.5px dashed var(--border-main)',
+              borderRadius: '16px',
+              padding: file ? '24px' : '48px 24px',
               textAlign: 'center',
               cursor: 'pointer',
               position: 'relative',
@@ -3609,28 +3659,28 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
                 {file ? (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', width: '100%' }}>
                     {file.type.startsWith('image/') && previewUrl && (
-                      <img 
-                        src={previewUrl} 
-                        alt="Preview" 
-                        style={{ 
-                          maxHeight: '180px', 
-                          maxWidth: '100%', 
-                          borderRadius: '12px', 
-                          objectFit: 'contain', 
-                          boxShadow: '0 4px 16px rgba(0,0,0,0.08)' 
-                        }} 
+                      <img
+                        src={previewUrl}
+                        alt="Preview"
+                        style={{
+                          maxHeight: '180px',
+                          maxWidth: '100%',
+                          borderRadius: '12px',
+                          objectFit: 'contain',
+                          boxShadow: '0 4px 16px rgba(0,0,0,0.08)'
+                        }}
                       />
                     )}
                     {file.type.startsWith('video/') && previewUrl && (
-                      <video 
-                        src={previewUrl} 
-                        controls 
-                        style={{ 
-                          maxHeight: '180px', 
-                          maxWidth: '100%', 
-                          borderRadius: '12px', 
-                          boxShadow: '0 4px 16px rgba(0,0,0,0.08)' 
-                        }} 
+                      <video
+                        src={previewUrl}
+                        controls
+                        style={{
+                          maxHeight: '180px',
+                          maxWidth: '100%',
+                          borderRadius: '12px',
+                          boxShadow: '0 4px 16px rgba(0,0,0,0.08)'
+                        }}
                       />
                     )}
                     {file.type.startsWith('audio/') && previewUrl && (
@@ -3771,9 +3821,9 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
                             <FileAudio size={24} />
                           </div>
                           <audio
-                             src={resolvedUrl}
-                             controls
-                             style={{ width: '100%', maxWidth: '240px' }}
+                            src={resolvedUrl}
+                            controls
+                            style={{ width: '100%', maxWidth: '240px' }}
                           />
                         </div>
                       )}
@@ -4172,17 +4222,17 @@ const renderMedicationTakingSnapshot = (objectiveVal: string | null | undefined)
     if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
       const parsed = JSON.parse(trimmed);
       const arr = Array.isArray(parsed) ? parsed : [parsed];
-      
+
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
           {arr.map((item: any, idx: number) => {
             return (
-              <div 
-                key={idx} 
-                style={{ 
-                  background: '#f8fafc', 
-                  border: '1px solid #e2e8f0', 
-                  borderRadius: '8px', 
+              <div
+                key={idx}
+                style={{
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
                   padding: '8px 12px',
                   display: 'flex',
                   flexDirection: 'column',
@@ -4198,15 +4248,15 @@ const renderMedicationTakingSnapshot = (objectiveVal: string | null | undefined)
                     {item.medicine}
                   </span>
                 </div>
-                
+
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                   {item.frequency && (
-                    <span style={{ 
-                      background: '#eff6ff', 
-                      color: '#1e40af', 
-                      padding: '2px 8px', 
-                      borderRadius: '12px', 
-                      fontSize: '0.7rem', 
+                    <span style={{
+                      background: '#eff6ff',
+                      color: '#1e40af',
+                      padding: '2px 8px',
+                      borderRadius: '12px',
+                      fontSize: '0.7rem',
                       fontWeight: 600,
                       border: '1px solid #dbeafe'
                     }}>
@@ -4214,12 +4264,12 @@ const renderMedicationTakingSnapshot = (objectiveVal: string | null | undefined)
                     </span>
                   )}
                   {item.days && (
-                    <span style={{ 
-                      background: '#f1f5f9', 
-                      color: '#334155', 
-                      padding: '2px 8px', 
-                      borderRadius: '12px', 
-                      fontSize: '0.7rem', 
+                    <span style={{
+                      background: '#f1f5f9',
+                      color: '#334155',
+                      padding: '2px 8px',
+                      borderRadius: '12px',
+                      fontSize: '0.7rem',
                       fontWeight: 600,
                       border: '1px solid #e2e8f0'
                     }}>
@@ -4227,12 +4277,12 @@ const renderMedicationTakingSnapshot = (objectiveVal: string | null | undefined)
                     </span>
                   )}
                   {item.issue && (
-                    <span style={{ 
-                      background: '#f0fdf4', 
-                      color: '#166534', 
-                      padding: '2px 8px', 
-                      borderRadius: '12px', 
-                      fontSize: '0.7rem', 
+                    <span style={{
+                      background: '#f0fdf4',
+                      color: '#166534',
+                      padding: '2px 8px',
+                      borderRadius: '12px',
+                      fontSize: '0.7rem',
                       fontWeight: 600,
                       border: '1px solid #dcfce7'
                     }}>
@@ -4246,7 +4296,7 @@ const renderMedicationTakingSnapshot = (objectiveVal: string | null | undefined)
         </div>
       );
     }
-  } catch (e) {}
+  } catch (e) { }
   return objectiveVal;
 };
 
@@ -4274,7 +4324,7 @@ const renderMedicationTakingHistory = (objectiveVal: string) => {
         </div>
       );
     }
-  } catch (e) {}
+  } catch (e) { }
   return (
     <div>
       <span style={{ fontWeight: 800, color: 'var(--pp-text-2)', fontSize: '0.7rem', textTransform: 'uppercase' }}>Medication Taking:</span> {objectiveVal}

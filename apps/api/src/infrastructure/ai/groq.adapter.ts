@@ -46,13 +46,24 @@ export class GroqAdapter implements AiProviderPort {
       const client = this.clients[currentIdx];
 
       try {
+        let userContent: any = request.userPrompt;
+        if (request.documents && request.documents.length > 0) {
+          userContent = [{ type: 'text', text: request.userPrompt || 'Extract information from these documents:' }];
+          for (const doc of request.documents) {
+            userContent.push({
+              type: 'image_url',
+              image_url: { url: `data:${doc.mimeType};base64,${doc.base64}` }
+            });
+          }
+        }
+
         const start = Date.now();
-        
+
         let messages: any[] = [];
         if (request.systemPrompt) {
           messages.push({ role: 'system', content: request.systemPrompt });
         }
-        
+
         if (request.documents && request.documents.length > 0) {
           const userContent: any[] = [
             { type: 'text', text: request.userPrompt || 'Analyze this document/image.' }
@@ -72,7 +83,10 @@ export class GroqAdapter implements AiProviderPort {
 
         const response = await client.chat.completions.create({
           model: this.model,
-          messages,
+          messages: [
+            { role: 'system', content: request.systemPrompt },
+            { role: 'user', content: userContent },
+          ],
           temperature: request.temperature ?? 0.3,
           max_tokens: request.maxTokens ?? 2048,
           response_format: request.responseFormat === 'json' ? { type: 'json_object' } : undefined,

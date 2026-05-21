@@ -834,19 +834,27 @@ aiRouter.post('/parse-prescription', async (req: Request, res: Response, next: N
 
 Your job is to read the attached image of a handwritten prescription and extract the clinical details into a structured JSON format.
 
-You MUST extract the following fields:
-1. "diagnosis" (Assessment / Clinical Impression): The primary medical condition or diagnosis written on the prescription. Keep it concise.
-2. "complaint" (Subjective / Patient symptoms): The complaints, symptoms, duration, and intensity that are mentioned.
-3. "investigation" (Plan / Advice): Any tests suggested (like blood test, ultrasound) or general doctor advice.
-4. "medications": An array of medications prescribed in the image. For each medication, extract:
-   - "medicine": The brand name or generic name of the medicine.
-   - "frequency": Must be mapped to one of these options: "Once", "Twice", "Thrice", "Bed Time", "Empty Stomach", "weekly" or left as "Once" if unspecified or different.
-   - "issue": The indication or reason for this medicine if mentioned (e.g., "Fever", "Cough", "Infection"). If not mentioned, try to infer the most common clinical reason based on the medicine name (e.g., if "amoxicillin" is prescribed, reason might be "Bacterial Infection", if "paracetamol", reason might be "Fever" or "Pain").
+You MUST follow these clinical and OCR guidelines when parsing:
+1. "diagnosis" (Assessment / Clinical Impression):
+   - Pay special attention to dental drawings and charts. A cross-grid diagram with numbers (e.g. Palmer notation) like a vertical and horizontal line with a number in a quadrant (like "6" in the lower left quadrant) next to the words "For Ext" or "Ext" stands for "Tooth Extraction" (specifically, extraction of tooth 6/first molar in that quadrant).
+   - If you see such tooth extraction symbols or comments (e.g., "For Ext", "Ext"), extract the diagnosis as "Tooth Extraction" or "For Extraction of Tooth [Number]".
+   - Keep the diagnosis clear and concise. Do not hallucinate terms like "Acet".
+2. "medications":
+   - "medicine": Extract the full brand or generic name. ALWAYS include any strength values (e.g., "625", "500", "200C") and suffixes/suffixes (e.g., "Plus", "DS", "Forte", "Paste", "Mouthwash") directly as part of the medicine name. For example: "Augmentin 625" (not "Augmentin"), "Halcin Plus" (not "Halcin"), "Senastop Paste" (not "Senatop"), "Benidic Plus Mouthwash" (not "Pendis").
+   - "frequency": Must be mapped to "Once" | "Twice" | "Thrice" | "Bed Time" | "Empty Stomach" | "weekly" (or left as "Once" if unspecified).
+     * Recognize standard Latin abbreviations: "BD" / "BID" -> "Twice", "OD" -> "Once", "TDS" / "TID" -> "Thrice", "HS" -> "Bed Time".
+     * Grouped Brackets: If multiple medicines are grouped together with a bracket (e.g., "] - BD x 3 days"), apply that frequency ("Twice") to ALL medicines enclosed in the bracket.
+   - "issue": The indication or reason for the medicine. If not written, infer the most common clinical indication:
+     * "Augmentin 625" (Amoxicillin-Clavulanate) -> "Bacterial Infection" or "Dental Infection"
+     * "Halcin Plus" -> "Inflammation"
+     * Tooth sensitivity toothpaste (e.g., "Senastop Paste") -> "Tooth Sensitivity"
+     * Antiseptic mouthwash (e.g., "Benidic Plus Mouthwash") -> "Oral Hygiene" or "Antiseptic"
+3. "complaint": Patient symptoms (leave empty if not mentioned).
+4. "investigation": Tests or general advice (leave empty if not mentioned).
 
-## CRITICAL RULES:
-1. ONLY return a raw valid JSON object. Do not include any markdown block markers (like \`\`\`json) or other text.
-2. If a field cannot be found or is illegible, provide your best guess or keep it empty. Do not hallucinate entirely unrelated details.
-3. If no medications are present, return an empty array for "medications".
+## OCR ACCURACY & CURSIVE HANDWRITING CAUTION:
+- Doctors often write in rapid cursive. Do not confuse cursive capital 'B' with 'P'. For example, "Benidic" starts with a 'B' and should not be parsed as "Pendis".
+- Read all letters in brand names carefully: e.g. "Senastop" contains an 's' in the middle (S-e-n-a-s-t-o-p), do not skip it as "Senatop".
 
 OUTPUT FORMAT:
 {

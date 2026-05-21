@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { Receipt, Search, ChevronLeft, ChevronRight, FilePlus, Grid, List, Printer } from 'lucide-react';
+import { Receipt, Search, ChevronLeft, ChevronRight, FilePlus, Grid, List } from 'lucide-react';
 
 import { useBills, useDailyCollection } from '../hooks/use-billing';
 import { BillingTable } from '../components/BillingTable';
@@ -84,10 +84,6 @@ export default function BillingListPage() {
             className="pp-input"
             style={{ width: 'auto' }}
           />
-          <button className="btn-secondary" onClick={() => window.print()}>
-            <Printer size={14} />
-            Print Report
-          </button>
           <button className="btn-primary" onClick={() => setIsNewBillOpen(true)}>
             <FilePlus size={14} strokeWidth={1.6} />
             New Bill

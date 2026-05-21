@@ -3285,6 +3285,8 @@ END $$`,
   "type" varchar(50) NOT NULL,
   "data" jsonb NOT NULL,
   "invest_date" varchar(20),
+  "attachment_url" text,
+  "summary" text,
   "created_at" timestamp DEFAULT CURRENT_TIMESTAMP,
   "updated_at" timestamp DEFAULT CURRENT_TIMESTAMP,
   "deleted_at" timestamp

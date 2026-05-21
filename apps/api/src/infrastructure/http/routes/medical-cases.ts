@@ -332,8 +332,79 @@ router.delete('/additional-charges/:id', asyncHandler(async (req, res) => {
 }));
 
 import { upload } from '../middleware/upload.js';
+import fs from 'fs';
 
 // ─── Continued route wrappers ───
+router.post('/records/investigations/upload', upload.single('file'), asyncHandler(async (req, res) => {
+  if (!req.file) {
+    res.status(400).json({ success: false, error: 'No file uploaded' });
+    return;
+  }
+  
+  const fileBuffer = await fs.promises.readFile(req.file.path);
+  const base64Data = fileBuffer.toString('base64');
+  const mimeType = req.file.mimetype;
+  const attachmentUrl = `/uploads/${req.file.filename}`;
+
+  try {
+    const { getAiProviderChain } = await import('../../../infrastructure/ai/ai-provider-chain.js');
+    const chain = getAiProviderChain();
+    
+    let finalPrompt = "Extract the investigation details and summary from this report.";
+    let docs: any[] = [{ base64: base64Data, mimeType }];
+
+    if (mimeType === 'application/pdf') {
+      try {
+        // Import the inner lib directly. The package's index.js runs debug code
+        // on import (`!module.parent`) that reads a bundled test PDF and throws
+        // ENOENT under ESM, which would otherwise make every PDF fall back to
+        // sending the raw binary to vision models.
+        const pdfParse = (await import('pdf-parse/lib/pdf-parse.js')).default;
+        const pdfData = await pdfParse(fileBuffer);
+        const extractedText = (pdfData.text || '').trim();
+
+        // Only drop the binary when we actually got usable text. Scanned/image
+        // PDFs yield little or no text, so keep the binary for the vision models.
+        if (extractedText.length >= 20) {
+          finalPrompt += "\n\nREPORT TEXT CONTENT:\n" + extractedText;
+          // Text extracted — let fast text-only models (like Groq) handle it.
+          docs = [];
+        } else {
+          console.warn('PDF text extraction returned little/no text; falling back to vision models');
+        }
+      } catch (err) {
+        console.warn('Failed to parse PDF text locally, falling back to vision models:', err);
+      }
+    }
+
+    const response = await chain.complete({
+      systemPrompt: `You are a medical data extraction assistant. You are given a medical investigation report (like a lab test or radiology report).
+Your task is to accurately extract:
+1. The date of the investigation (in YYYY-MM-DD format). If not found, guess based on context or leave blank.
+2. The category/type of the investigation. You MUST choose exactly one of the following allowed categories: "CBC", "Diabetes Profile", "Liver Profile", "Renal Profile", "Urine", "Stool", "Arthritis", "Endocrine", "X-ray - CT - MRI", "USG Female", "USG Male", "Immunology", "Lipid Profile", "Cardiac Profile", "Serology", "Semen Analysis", "USG Pelvis (TVS)", or "Specific". If the report type doesn't perfectly match, choose "Specific".
+3. A structured JSON object containing the findings. For lab results, this should be key-value pairs of the test name and the result value (include units if possible).
+4. Provide a "Summary" key with a beautified, concise 1-2 sentence summary of the findings (overall conclusion).
+
+Respond ONLY with a valid JSON object matching this schema:
+{
+  "date": "YYYY-MM-DD",
+  "type": "Allowed Category String",
+  "data": { "Test Name": "Value" },
+  "summary": "Short 1-2 sentence summary of the report."
+}`,
+      userPrompt: finalPrompt,
+      documents: docs,
+      temperature: 0.1,
+      responseFormat: 'json',
+      useCache: false
+    });
+
+    const parsed = JSON.parse(response.content.trim());
+    sendSuccess(res, { parsed, provider: response.provider, attachmentUrl }, 'Investigation scanned successfully');
+  } catch (error: any) {
+    sendSuccess(res, { parsed: null, error: error.message, attachmentUrl }, 'AI scan failed, but file uploaded');
+  }
+}));
 router.post('/records/images', upload.array('files', 5), asyncHandler(async (req, res) => {
   const useCase = new ManageClinicalRecordsUseCase(getRepo(req));
 

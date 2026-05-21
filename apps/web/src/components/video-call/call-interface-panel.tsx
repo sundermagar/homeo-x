@@ -277,15 +277,33 @@ export function CallInterfacePanel({ callMode, ...props }: CallInterfacePanelPro
 
   // ─── AUDIO Layout ─────────────────────────────────────────────────────────
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', border: '1.5px solid #F59E0B', background: '#FFFBEB', borderRadius: '1rem' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '1rem', gap: '0.875rem' }}>
+    <div style={{ 
+      display: 'flex', 
+      flexDirection: 'column', 
+      overflow: 'hidden', 
+      border: '1px solid #E2E8F0', 
+      background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0.95) 100%)', 
+      backdropFilter: 'blur(12px)',
+      borderRadius: '1.25rem',
+      boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.05)'
+    }}>
+      <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '1.25rem', gap: '1rem' }}>
 
         {/* Visualization */}
-        <div style={{ background: 'white', borderRadius: '0.875rem', border: '1px solid #FDE68A', padding: '1.25rem 1rem', flexShrink: 0, position: 'relative', overflow: 'hidden' }}>
+        <div style={{ 
+          background: 'rgba(255, 255, 255, 0.8)', 
+          borderRadius: '1rem', 
+          border: '1px solid #E2E8F0', 
+          padding: '1.5rem 1.25rem', 
+          flexShrink: 0, 
+          position: 'relative', 
+          overflow: 'hidden',
+          boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)'
+        }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             {/* PT */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.625rem', opacity: (props.localSpeaker === 'DOCTOR' && (!props.video?.isConnected || props.video?.remoteUsers?.length === 0)) ? 0.4 : 1, transition: 'opacity 0.3s' }}>
-              <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'linear-gradient(135deg, #CCFBF1 0%, #99F6E4 100%)', border: '2.5px solid #14B8A6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0F766E', boxShadow: '0 8px 16px rgba(20,184,166,0.15)' }}>
+              <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'linear-gradient(135deg, #CCFBF1 0%, #99F6E4 100%)', border: '2.5px solid #14B8A6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0F766E', boxShadow: '0 8px 16px rgba(20,184,166,0.12)' }}>
                 <User style={{ width: 28, height: 28 }} />
               </div>
               <span style={{ fontSize: 10, fontWeight: 800, color: '#0F766E', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Patient</span>
@@ -295,20 +313,27 @@ export function CallInterfacePanel({ callMode, ...props }: CallInterfacePanelPro
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, height: 60, padding: '0 1rem' }}>
               {!props.video?.isConnected ? (
                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.375rem' }}>
-                   <div style={{ width: 18, height: 18, border: '2px solid #FDE68A', borderTopColor: '#F59E0B', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-                   <span style={{ fontSize: 10, fontWeight: 700, color: '#D97706', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Connecting</span>
+                   <div style={{ width: 18, height: 18, border: '2px solid #E2E8F0', borderTopColor: '#6366F1', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                   <span style={{ fontSize: 10, fontWeight: 700, color: '#6366F1', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Connecting</span>
                  </div>
               ) : props.video?.remoteUsers?.length === 0 ? (
-                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.375rem', background: '#FFFBEB', padding: '0.375rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #FDE68A' }}>
-                   <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#F59E0B', animation: 'pulse-opacity 1.5s ease-in-out infinite' }} />
-                   <span style={{ fontSize: 9, fontWeight: 800, color: '#D97706', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'center' }}>
+                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.375rem', background: '#F8FAFC', padding: '0.5rem 1rem', borderRadius: '0.75rem', border: '1px solid #E2E8F0' }}>
+                   <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#6366F1', animation: 'pulse-opacity 1.5s ease-in-out infinite' }} />
+                   <span style={{ fontSize: 9, fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'center' }}>
                      Waiting for {props.localSpeaker === 'DOCTOR' ? 'Patient' : 'Doctor'}
                    </span>
                  </div>
               ) : (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                   {[...Array(12)].map((_, i) => (
-                    <div key={i} style={{ width: 3.5, borderRadius: 2, background: '#F59E0B', height: `${Math.max(6, Math.abs(Math.sin(i * 0.7 + 0.5)) * 34 + 10)}px`, animation: !isPaused ? `wave ${1 + (i % 4) * 0.2}s ease-in-out infinite alternate` : 'none', opacity: 0.9 }} />
+                    <div key={i} style={{ 
+                      width: 4, 
+                      borderRadius: 2, 
+                      background: 'linear-gradient(to top, #6366F1, #818CF8)', 
+                      height: `${Math.max(6, Math.abs(Math.sin(i * 0.7 + 0.5)) * 34 + 10)}px`, 
+                      animation: !isPaused ? `wave ${1 + (i % 4) * 0.2}s ease-in-out infinite alternate` : 'none', 
+                      opacity: 0.95 
+                    }} />
                   ))}
                 </div>
               )}
@@ -316,7 +341,7 @@ export function CallInterfacePanel({ callMode, ...props }: CallInterfacePanelPro
 
             {/* DR */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.625rem', opacity: (props.localSpeaker === 'PATIENT' && (!props.video?.isConnected || props.video?.remoteUsers?.length === 0)) ? 0.4 : 1, transition: 'opacity 0.3s' }}>
-              <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'linear-gradient(135deg, #EEF2FF 0%, #C7D2FE 100%)', border: '2.5px solid #6366F1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4338CA', boxShadow: '0 8px 16px rgba(99,102,241,0.15)' }}>
+              <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'linear-gradient(135deg, #EEF2FF 0%, #C7D2FE 100%)', border: '2.5px solid #6366F1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4338CA', boxShadow: '0 8px 16px rgba(99,102,241,0.12)' }}>
                 <User style={{ width: 28, height: 28 }} />
               </div>
               <span style={{ fontSize: 10, fontWeight: 800, color: '#4338CA', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Doctor</span>
@@ -325,14 +350,44 @@ export function CallInterfacePanel({ callMode, ...props }: CallInterfacePanelPro
 
           {/* Pause overlay */}
           {(isPaused || props.isRemotePaused) && (
-            <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', background: 'rgba(255,251,235,0.96)', backdropFilter: 'blur(4px)', borderRadius: '0.875rem' }}>
-              <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#FEF3C7', border: '1.5px solid #FDE68A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Pause style={{ width: 18, height: 18, color: '#B45309' }} />
+            <div style={{ 
+              position: 'absolute', 
+              inset: 0, 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              gap: '0.5rem', 
+              background: 'rgba(255, 255, 255, 0.9)', 
+              backdropFilter: 'blur(8px)', 
+              borderRadius: '1rem',
+              zIndex: 10
+            }}>
+              <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#F1F5F9', border: '1.5px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+                <Pause style={{ width: 18, height: 18, color: '#475569' }} />
               </div>
-              <p style={{ fontSize: 11, fontWeight: 700, color: '#92400E', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>Call Paused</p>
+              <p style={{ fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>Call Paused</p>
               {isPaused && (
-                <button onClick={handlePauseToggle} style={{ fontSize: 11, color: '#B45309', background: 'transparent', border: '1px solid #FDE68A', borderRadius: '0.375rem', padding: '0.25rem 0.75rem', cursor: 'pointer', fontWeight: 600 }}>
-                  <Play style={{ width: 10, height: 10, display: 'inline', marginRight: 4 }} />Resume
+                <button 
+                  onClick={() => handlePauseToggle()} 
+                  style={{ 
+                    fontSize: 11, 
+                    color: '#6366F1', 
+                    backgroundColor: 'white', 
+                    border: '1px solid #E2E8F0', 
+                    borderRadius: '0.5rem', 
+                    padding: '0.375rem 0.875rem', 
+                    cursor: 'pointer', 
+                    fontWeight: 600,
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <Play style={{ width: 10, height: 10 }} />
+                  Resume
                 </button>
               )}
             </div>
@@ -345,44 +400,105 @@ export function CallInterfacePanel({ callMode, ...props }: CallInterfacePanelPro
         </div>
 
         {/* Controls row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0, flexWrap: 'wrap', marginTop: '0.25rem' }}>
           <button
             onClick={props.onLeave}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.4rem 0.625rem', background: 'transparent', border: 'none', color: '#EF4444', cursor: 'pointer', fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', borderRadius: '0.375rem' }}
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.5rem', 
+              padding: '0.5rem 0.875rem', 
+              background: 'rgba(239, 68, 68, 0.08)', 
+              border: '1px solid rgba(239, 68, 68, 0.15)', 
+              color: '#EF4444', 
+              cursor: 'pointer', 
+              fontWeight: 700, 
+              fontSize: 11, 
+              textTransform: 'uppercase', 
+              letterSpacing: '0.05em', 
+              borderRadius: '2rem',
+              transition: 'all 0.2s'
+            }}
           >
-            <div style={{ width: 11, height: 11, background: '#EF4444', borderRadius: 2, flexShrink: 0 }} />
+            <Square style={{ width: 12, height: 12, fill: '#EF4444' }} />
             Stop Call
           </button>
 
           <button
-            onClick={handlePauseToggle}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.4rem 0.625rem', background: 'transparent', border: 'none', color: '#374151', cursor: 'pointer', fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', borderRadius: '0.375rem' }}
+            onClick={() => handlePauseToggle()}
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.5rem', 
+              padding: '0.5rem 0.875rem', 
+              background: 'rgba(71, 85, 105, 0.08)', 
+              border: '1px solid rgba(71, 85, 105, 0.15)', 
+              color: '#475569', 
+              cursor: 'pointer', 
+              fontWeight: 700, 
+              fontSize: 11, 
+              textTransform: 'uppercase', 
+              letterSpacing: '0.05em', 
+              borderRadius: '2rem',
+              transition: 'all 0.2s'
+            }}
           >
-            <div style={{ width: 11, height: 11, background: '#374151', borderRadius: 2, flexShrink: 0 }} />
+            {isPaused ? <Play style={{ width: 12, height: 12 }} /> : <Pause style={{ width: 12, height: 12 }} />}
             {isPaused ? 'Resume' : 'Pause'}
           </button>
 
           <button
             onClick={props.video?.toggleMic}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.4rem 0.625rem', background: 'transparent', border: 'none', color: props.video?.isMicOn ? '#2563EB' : '#EF4444', cursor: 'pointer', fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', borderRadius: '0.375rem' }}
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.5rem', 
+              padding: '0.5rem 0.875rem', 
+              background: props.video?.isMicOn ? 'rgba(99, 102, 241, 0.08)' : 'rgba(239, 68, 68, 0.08)', 
+              border: props.video?.isMicOn ? '1px solid rgba(99, 102, 241, 0.15)' : '1px solid rgba(239, 68, 68, 0.15)', 
+              color: props.video?.isMicOn ? '#4F46E5' : '#EF4444', 
+              cursor: 'pointer', 
+              fontWeight: 700, 
+              fontSize: 11, 
+              textTransform: 'uppercase', 
+              letterSpacing: '0.05em', 
+              borderRadius: '2rem',
+              transition: 'all 0.2s'
+            }}
           >
-            {props.video?.isMicOn ? <Mic style={{ width: 13, height: 13, color: '#2563EB' }} /> : <MicOff style={{ width: 13, height: 13, color: '#EF4444' }} />}
+            {props.video?.isMicOn ? <Mic style={{ width: 12, height: 12 }} /> : <MicOff style={{ width: 12, height: 12 }} />}
             {props.video?.isMicOn ? 'Mute' : 'Unmute'}
           </button>
 
           {props.patientJoinLink && (
             <button
               onClick={handleCopyLink}
-              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.4rem 0.625rem', background: 'transparent', border: 'none', color: '#0D9488', cursor: 'pointer', fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', borderRadius: '0.375rem', marginLeft: 'auto' }}
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '0.5rem', 
+                padding: '0.5rem 0.875rem', 
+                background: 'rgba(13, 148, 136, 0.08)', 
+                border: '1px solid rgba(13, 148, 136, 0.15)', 
+                color: '#0D9488', 
+                cursor: 'pointer', 
+                fontWeight: 700, 
+                fontSize: 11, 
+                textTransform: 'uppercase', 
+                letterSpacing: '0.05em', 
+                borderRadius: '2rem', 
+                marginLeft: 'auto',
+                transition: 'all 0.2s'
+              }}
             >
-              {copied ? <Check style={{ width: 13, height: 13 }} /> : <Copy style={{ width: 13, height: 13 }} />}
+              {copied ? <Check style={{ width: 12, height: 12 }} /> : <Copy style={{ width: 12, height: 12 }} />}
               Invite
             </button>
           )}
         </div>
 
         {/* Transcript */}
-        {transcriptPanel}
+        {props.localSpeaker === 'DOCTOR' && transcriptPanel}
       </div>
 
       <style dangerouslySetInnerHTML={{ __html: `
@@ -393,3 +509,4 @@ export function CallInterfacePanel({ callMode, ...props }: CallInterfacePanelPro
     </div>
   );
 }
+

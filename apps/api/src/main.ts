@@ -62,6 +62,17 @@ async function bootstrap() {
 
   const { app, server, io, tenantDb } = await createApp();
 
+  if (tenantDb) {
+    try {
+      const { sql } = await import('drizzle-orm');
+      await tenantDb.execute(sql`ALTER TABLE "tenant_demo"."investigations" ADD COLUMN IF NOT EXISTS "attachment_url" text`);
+      await tenantDb.execute(sql`ALTER TABLE "tenant_demo"."investigations" ADD COLUMN IF NOT EXISTS "summary" text`);
+      logger.info('Migrated investigations table successfully on startup');
+    } catch (e) {
+      logger.error({ err: e }, 'Failed to migrate investigations table');
+    }
+  }
+
   // Disable internal Node server timeouts (set to 30 minutes) to allow
   // slow local CPU inference (Ollama) to finish without connection closing.
   server.timeout = 30 * 60 * 1000;

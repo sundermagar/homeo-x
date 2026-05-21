@@ -111,6 +111,8 @@ export const investigations = pgTable('investigations', {
   visitId: integer('visit_id'),
   type: varchar('type', { length: 50 }).notNull(),
   data: jsonb('data'), // Made nullable for legacy parity
+  attachmentUrl: text('attachment_url'),
+  summary: text('summary'),
   investDate: varchar('invest_date', { length: 20 }),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),

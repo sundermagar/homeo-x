@@ -36,9 +36,13 @@ export class AiProviderChain {
       new OllamaAdapter('qwen2.5:1.5b'),
 
       // Secondary: Anthropic Claude & Gemini (Scale/Quality)
+      // NOTE: gemini-1.5-* models were retired by Google (404). Use current
+      // multimodal models so the vision path (scanned PDFs / images) keeps working.
       new AnthropicAdapter(defaultModel, 1000),
+      new GeminiAdapter('gemini-2.5-flash', 1500),
+      new GeminiAdapter('gemini-2.5-flash-lite', 1500),
+      new GeminiAdapter('gemini-flash-latest', 1500),
       new GeminiAdapter('gemini-2.0-flash', 1500),
-      new GeminiAdapter('gemini-1.5-flash', 1500),
     ];
 
     const available = this.providers.filter(p => {
@@ -76,9 +80,8 @@ export class AiProviderChain {
         continue;
       }
 
-      if (request.documents && request.documents.length > 0 && provider.name === 'groq') {
-        const isVisionModel = provider.model.toLowerCase().includes('vision') || provider.model.toLowerCase().includes('scout');
-        if (!isVisionModel) {
+      if (request.documents && request.documents.length > 0) {
+        if (provider.name === 'ollama' || (provider.name === 'groq' && !provider.model.includes('vision'))) {
           logger.warn(`Provider ${provider.name}/${provider.model} does not support image documents, skipping`);
           errors.push(`${provider.name}/${provider.model}: Skipped (does not support images)`);
           continue;
