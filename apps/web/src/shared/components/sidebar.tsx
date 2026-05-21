@@ -61,6 +61,7 @@ import {
   Zap,
   Moon,
 } from 'lucide-react';
+import mmcIconOrange from '../../assets/mmc-icon-orange-transparent.png';
 import { useAuthStore } from '../stores/auth-store';
 import { useUiStore } from '../stores/ui-store';
 import { useQuery } from '@tanstack/react-query';
@@ -510,10 +511,22 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       <aside className={`sidebar ${isOpen ? 'is-open' : ''} ${effectiveCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-header">
           <div className="sidebar-logo-group">
-            <div className="sidebar-logo">
-              <Infinity size={20} strokeWidth={2.5} />
+            <div 
+              className="sidebar-logo" 
+              style={{ 
+                background: 'transparent', 
+                padding: '0',
+                width: '32px',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}
+            >
+              <img src={mmcIconOrange} alt="MMC Icon" style={{ width: '100%', height: '100%', objectFit: 'contain', transform: 'scale(1.6)' }} />
             </div>
-            {!effectiveCollapsed && <span className="sidebar-brand">{user?.clinicName || 'Kreed.health'}</span>}
+            {!effectiveCollapsed && <span className="sidebar-brand">{user?.clinicName || 'MMC'}</span>}
           </div>
           <div className="sidebar-header-actions">
             {!isMobile && (

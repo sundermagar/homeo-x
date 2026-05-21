@@ -1,14 +1,15 @@
 import React, { useState, useEffect, Component, ErrorInfo, ReactNode } from 'react';
-import { 
-  Gavel, Shield, Lock, Eye, FileText, ChevronLeft, Download, Database, Share2, 
-  Clock, UserCheck, Cookie, ExternalLink, UserMinus, RefreshCw, Mail, CheckCircle2, 
-  ShieldCheck, Globe, Zap, MessageSquare, Activity, FlaskConical, Stethoscope, 
-  Building2, AlertCircle, RefreshCcw, Scale, BookOpen, CheckCircle, ChevronRight, 
-  UserPlus, Ban, Terminal, Trash2, MessageCircle, AlertTriangle, CreditCard, 
+import {
+  Gavel, Shield, Lock, Eye, FileText, ChevronLeft, Download, Database, Share2,
+  Clock, UserCheck, Cookie, ExternalLink, UserMinus, RefreshCw, Mail, CheckCircle2,
+  ShieldCheck, Globe, Zap, MessageSquare, Activity, FlaskConical, Stethoscope,
+  Building2, AlertCircle, RefreshCcw, Scale, BookOpen, CheckCircle, ChevronRight,
+  UserPlus, Ban, Terminal, Trash2, MessageCircle, AlertTriangle, CreditCard,
   LayoutDashboard, HelpCircle
 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
+import mmcLogo from '@/assets/mmc-logo.png';
 
 // ─── SOFT ERROR BOUNDARY ──────────────────
 class LegalErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
@@ -41,7 +42,7 @@ class LegalErrorBoundary extends Component<{ children: ReactNode }, { hasError: 
           <p className="text-pp-text-2 mt-2 mb-8 max-w-sm mx-auto text-sm text-center px-6">
             We encountered a minor visual rendering issue while loading this document. Your access remains secure.
           </p>
-          <button 
+          <button
             onClick={() => { this.setState({ hasError: false }); window.location.reload(); }}
             className="bg-pp-blue hover:bg-pp-blue/90 text-white px-8 h-12 rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-pp-blue/20 transition-all active:scale-95"
           >
@@ -72,7 +73,7 @@ const TermsOfServicePage = () => {
       title: "Acceptance of Terms",
       icon: <CheckCircle size={20} />,
       color: "from-blue-500 to-indigo-600",
-      content: "By accessing or using Kreed.health (\"Service\"), you agree to be bound by these Terms of Service (\"Terms\"). If you disagree with any part of the terms, you may not access the Service. These terms constitute a legally binding agreement between you and Kreed.health."
+      content: "By accessing or using MMC (\"Service\"), you agree to be bound by these Terms of Service (\"Terms\"). If you disagree with any part of the terms, you may not access the Service. These terms constitute a legally binding agreement between you and MMC."
     },
     {
       id: 2,
@@ -81,7 +82,7 @@ const TermsOfServicePage = () => {
       color: "from-emerald-500 to-teal-600",
       content: (
         <div className="space-y-4">
-          <p>Kreed.health is a clinical management platform that provides tools for:</p>
+          <p>MMC is a clinical management platform that provides tools for:</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {[
               "Electronic Medical Records (EMR)",
@@ -142,7 +143,7 @@ const TermsOfServicePage = () => {
               Meta Cloud API Standards
             </h4>
             <p className="text-sm text-secondary leading-relaxed">
-              Kreed.health utilizes the official Meta WhatsApp Cloud API. Users must comply with WhatsApp's Business Policy. Automated clinical reminders must use approved templates.
+              MMC utilizes the official Meta WhatsApp Cloud API. Users must comply with WhatsApp's Business Policy. Automated clinical reminders must use approved templates.
             </p>
           </div>
           <p className="text-xs text-muted italic">
@@ -208,7 +209,7 @@ const TermsOfServicePage = () => {
             <div>
               <h4 className="font-bold text-amber-900 mb-1 tracking-tight">Clinical Software Warning</h4>
               <p className="text-sm text-amber-800 leading-relaxed">
-                Kreed.health is a clinical management tool, NOT a medical advice service. All AI recommendations and clinical charts must be verified by a licensed medical practitioner. The practitioner remains solely responsible for patient diagnosis and treatment.
+                MMC is a clinical management tool, NOT a medical advice service. All AI recommendations and clinical charts must be verified by a licensed medical practitioner. The practitioner remains solely responsible for patient diagnosis and treatment.
               </p>
             </div>
           </div>
@@ -220,7 +221,7 @@ const TermsOfServicePage = () => {
       title: "Intellectual Property",
       icon: <Globe size={20} />,
       color: "from-slate-600 to-slate-800",
-      content: "The Service and its original content, features, and functionality (including logo, design, and clinical logic) are and will remain the exclusive property of Kreed.health. Our trademarks and trade dress may not be used without prior written consent."
+      content: "The Service and its original content, features, and functionality (including logo, design, and clinical logic) are and will remain the exclusive property of MMC. Our trademarks and trade dress may not be used without prior written consent."
     },
     {
       id: 9,
@@ -248,7 +249,7 @@ const TermsOfServicePage = () => {
       title: "Limitation of Liability",
       icon: <AlertCircle size={20} />,
       color: "from-slate-700 to-black",
-      content: "In no event shall Kreed.health, its directors, or employees be liable for any indirect, incidental, special, or consequential damages resulting from your use or inability to use the Service."
+      content: "In no event shall MMC, its directors, or employees be liable for any indirect, incidental, special, or consequential damages resulting from your use or inability to use the Service."
     },
     {
       id: 13,
@@ -297,15 +298,9 @@ const TermsOfServicePage = () => {
       {/* ─── PREMIUM BRANDED HEADER ────────────────── */}
       <nav className="h-24 bg-white/90 backdrop-blur-md border-b border-gray-100 sticky top-0 z-[100] px-6 lg:px-12 flex items-center justify-between">
         <div className="flex items-center gap-12">
-          <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-[42px] h-[42px] bg-gradient-to-br from-[#2563eb] to-[#1d4ed8] rounded-[12px] flex items-center justify-center text-white shadow-[0_6px_16px_rgba(37,99,235,0.2)] group-hover:scale-105 transition-all duration-300">
-              <Building2 size={24} strokeWidth={2.5} />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-xl lg:text-2xl font-[800] tracking-[-0.03em] text-[#1e3a8a]">
-                Kreed<span className="text-[#2563eb]">.health</span>
-              </span>
-              <span className="text-[9px] font-bold text-[#2563eb] uppercase tracking-widest -mt-1 pl-0.5">ONE PLATFORM FOR CLINICAL SUCCESS</span>
+          <Link to="/" className="flex items-center group">
+            <div className="bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-100 group-hover:shadow-md transition-all duration-300">
+              <img src={mmcLogo} alt="Manage My Clinic" style={{ height: '36px', width: 'auto', objectFit: 'contain' }} />
             </div>
           </Link>
 
@@ -320,7 +315,7 @@ const TermsOfServicePage = () => {
         </div>
 
         <div className="flex items-center gap-6">
-          <button 
+          <button
             onClick={() => navigate('/login')}
             className="bg-[#2563eb] hover:bg-[#1d4ed8] text-white px-8 py-3 rounded-xl text-sm font-extrabold shadow-lg shadow-blue-500/25 transition-all active:scale-95"
           >
@@ -410,8 +405,8 @@ const TermsOfServicePage = () => {
                               <p className="text-[15px] text-pp-text-2 max-w-sm mb-8 leading-relaxed font-medium">
                                 For legal inquiries, dispute resolution, or compliance questions, our dedicated support desk is ready to assist.
                               </p>
-                              <a href="mailto:legal@kreed.health" className="text-2xl font-black text-pp-purple hover:text-pp-purple/80 transition-colors tracking-tight">
-                                legal@kreed.health
+                              <a href="mailto:legal@MMC" className="text-2xl font-black text-pp-purple hover:text-pp-purple/80 transition-colors tracking-tight">
+                                legal@MMC
                               </a>
                               <div className="mt-4 w-12 h-1 bg-pp-purple/20 rounded-full" />
                             </div>
@@ -425,12 +420,12 @@ const TermsOfServicePage = () => {
                           <div className="absolute -top-12 left-1/2 -translate-x-1/2 opacity-[0.03] pointer-events-none text-pp-ink">
                             <Gavel size={180} />
                           </div>
-                          
+
                           <div className="relative z-10">
                             <div className="w-16 h-1 bg-pp-purple/30 rounded-full mb-10 mx-auto" />
                             <h3 className="text-2xl font-black text-pp-ink mb-4 tracking-tight">Contractual Integrity</h3>
                             <p className="text-pp-text-2 max-w-2xl text-[15px] leading-relaxed font-medium">
-                              By proceeding with account creation, you acknowledge that you have read, understood, and agreed to be bound by these clinical operation standards. This agreement constitutes a legally binding contract between you and Kreed.health.
+                              By proceeding with account creation, you acknowledge that you have read, understood, and agreed to be bound by these clinical operation standards. This agreement constitutes a legally binding contract between you and MMC.
                             </p>
                             <div className="mt-12 flex items-center justify-center gap-10 opacity-60">
                               <div className="flex items-center gap-2.5 text-[11px] font-black text-pp-ink uppercase tracking-[0.2em]">

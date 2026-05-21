@@ -1,12 +1,13 @@
 import React, { useState, useEffect, Component, ErrorInfo, ReactNode } from 'react';
-import { 
-  Shield, Lock, Eye, FileText, ChevronLeft, Download, Database, Share2, Clock, 
-  UserCheck, Cookie, ExternalLink, UserMinus, RefreshCw, Mail, CheckCircle2, 
-  ShieldCheck, Globe, Zap, MessageSquare, Activity, FlaskConical, Stethoscope, 
-  Building2, AlertCircle, RefreshCcw 
+import {
+  Shield, Lock, Eye, FileText, ChevronLeft, Download, Database, Share2, Clock,
+  UserCheck, Cookie, ExternalLink, UserMinus, RefreshCw, Mail, CheckCircle2,
+  ShieldCheck, Globe, Zap, MessageSquare, Activity, FlaskConical, Stethoscope,
+  Building2, AlertCircle, RefreshCcw
 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
+import mmcLogo from '@/assets/mmc-logo.png';
 
 // ─── SOFT ERROR BOUNDARY ──────────────────
 class LegalErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
@@ -39,7 +40,7 @@ class LegalErrorBoundary extends Component<{ children: ReactNode }, { hasError: 
           <p className="text-pp-text-2 mt-2 mb-8 max-w-sm mx-auto text-sm text-center px-6">
             We encountered a minor visual rendering issue while loading this document. Your access remains secure.
           </p>
-          <button 
+          <button
             onClick={() => { this.setState({ hasError: false }); window.location.reload(); }}
             className="bg-pp-blue hover:bg-pp-blue/90 text-white px-8 h-12 rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-pp-blue/20 transition-all active:scale-95"
           >
@@ -70,7 +71,7 @@ const PrivacyPolicyPage = () => {
       title: "Introduction",
       icon: <Eye size={20} />,
       color: "from-blue-500 to-indigo-600",
-      content: "Kreed.health (\"we\", \"our\", or \"us\") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our clinical management platform."
+      content: "MMC (\"we\", \"our\", or \"us\") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our clinical management platform."
     },
     {
       id: 2,
@@ -271,15 +272,9 @@ const PrivacyPolicyPage = () => {
       {/* ─── PREMIUM BRANDED HEADER ────────────────── */}
       <nav className="h-24 bg-white/90 backdrop-blur-md border-b border-gray-100 sticky top-0 z-[100] px-6 lg:px-12 flex items-center justify-between">
         <div className="flex items-center gap-12">
-          <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-[42px] h-[42px] bg-gradient-to-br from-[#2563eb] to-[#1d4ed8] rounded-[12px] flex items-center justify-center text-white shadow-[0_6px_16px_rgba(37,99,235,0.2)] group-hover:scale-105 transition-all duration-300">
-              <Building2 size={24} strokeWidth={2.5} />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-xl lg:text-2xl font-[800] tracking-[-0.03em] text-[#1e3a8a]">
-                Kreed<span className="text-[#2563eb]">.health</span>
-              </span>
-              <span className="text-[9px] font-bold text-[#2563eb] uppercase tracking-widest -mt-1 pl-0.5">ONE PLATFORM FOR CLINICAL SUCCESS</span>
+          <Link to="/" className="flex items-center group">
+            <div className="bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-100 group-hover:shadow-md transition-all duration-300">
+              <img src={mmcLogo} alt="Manage My Clinic" style={{ height: '36px', width: 'auto', objectFit: 'contain' }} />
             </div>
           </Link>
 
@@ -294,7 +289,7 @@ const PrivacyPolicyPage = () => {
         </div>
 
         <div className="flex items-center gap-6">
-          <button 
+          <button
             onClick={() => navigate('/login')}
             className="bg-[#2563eb] hover:bg-[#1d4ed8] text-white px-8 py-3 rounded-xl text-sm font-extrabold shadow-lg shadow-blue-500/25 transition-all active:scale-95"
           >
@@ -384,8 +379,8 @@ const PrivacyPolicyPage = () => {
                               <p className="text-[15px] text-pp-text-2 max-w-sm mb-8 leading-relaxed font-medium">
                                 Our legal team is available to assist with inquiries regarding data compliance, clinical ethics, or GDPR/DPD requirements.
                               </p>
-                              <a href="mailto:privacy@kreed.health" className="text-2xl font-black text-pp-blue hover:text-pp-blue/80 transition-colors tracking-tight">
-                                privacy@kreed.health
+                              <a href="mailto:privacy@MMC" className="text-2xl font-black text-pp-blue hover:text-pp-blue/80 transition-colors tracking-tight">
+                                privacy@MMC
                               </a>
                               <div className="mt-4 w-12 h-1 bg-pp-blue/20 rounded-full" />
                             </div>
@@ -399,12 +394,12 @@ const PrivacyPolicyPage = () => {
                           <div className="absolute -top-12 left-1/2 -translate-x-1/2 opacity-[0.03] pointer-events-none text-pp-ink">
                             <ShieldCheck size={180} />
                           </div>
-                          
+
                           <div className="relative z-10">
                             <div className="w-16 h-1 bg-pp-blue/30 rounded-full mb-10 mx-auto" />
                             <h3 className="text-2xl font-black text-pp-ink mb-4 tracking-tight">Enterprise Governance</h3>
                             <p className="text-pp-text-2 max-w-2xl text-[15px] leading-relaxed font-medium">
-                              Kreed.health's governance framework ensures that every clinical interaction is logged, every byte is encrypted, and every patient's privacy is respected. By using this platform, you join a network committed to the highest standards of digital medicine.
+                              MMC's governance framework ensures that every clinical interaction is logged, every byte is encrypted, and every patient's privacy is respected. By using this platform, you join a network committed to the highest standards of digital medicine.
                             </p>
                             <div className="mt-12 flex items-center justify-center gap-10 opacity-60">
                               <div className="flex items-center gap-2.5 text-[11px] font-black text-pp-ink uppercase tracking-[0.2em]">

@@ -9,9 +9,10 @@ import { z } from 'zod';
 import { apiClient } from '@/infrastructure/api-client';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { LoginRequestSchema } from '@mmc/validation';
-import hospitalHero from '@/assets/hospital-hero.jpg';
-import mmcLogo from '@/assets/mmc-logo.png';
+import hospitalHero from '@/assets/clinic-reception-mmc.png';
+import mmcIconOrange from '@/assets/mmc-icon-orange-transparent.png';
 import { prefetchDashboard } from '@/features/dashboard/hooks/use-dashboard';
+import { toast } from '@/hooks/use-toast';
 import '../styles/login-page.css';
 
 type LoginFields = z.infer<typeof LoginRequestSchema>;
@@ -115,7 +116,10 @@ export default function LoginPage() {
             <div className="login-form-card">
               {/* ─── Integrated Logo ─── */}
               <div className="login-form-logo" style={{ alignItems: 'center', justifyContent: 'center', marginTop: '-32px', marginBottom: '36px' }}>
-                <img src={mmcLogo} alt="Manage My Clinic" style={{ height: '72px', width: 'auto', objectFit: 'contain' }} />
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '16px' }}>
+                  <img src={mmcIconOrange} alt="MMC Icon" style={{ height: '48px', width: '48px', objectFit: 'contain', transform: 'scale(1.4)' }} />
+                  <span style={{ fontSize: '28px', fontWeight: '800', color: '#1e3a8a', letterSpacing: '-0.5px' }}>Manage My Clinic</span>
+                </div>
               </div>
 
               <div className="login-form-header-row">
@@ -207,7 +211,19 @@ export default function LoginPage() {
                     />
                     <span>Keep me logged in</span>
                   </label>
-                  <a href="#" className="forgot-pass">Reset Password?</a>
+                  <a 
+                    href="#" 
+                    className="forgot-pass"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      toast({
+                        title: 'Password Reset',
+                        description: 'Please contact your Clinic Administrator to reset your password.',
+                      });
+                    }}
+                  >
+                    Reset Password?
+                  </a>
                 </div>
 
                 {error && (
@@ -225,7 +241,7 @@ export default function LoginPage() {
 
               {/* ─── Platform Features ─────────────────────────────────────── */}
               <div className="login-platform-features">
-                <div 
+                <div
                   className={`feature-item ${activeFeature === 'ai' ? 'is-active' : ''}`}
                   onClick={() => setActiveFeature('ai')}
                   role="button"
@@ -237,7 +253,7 @@ export default function LoginPage() {
                     <span>Smart clinical assistance</span>
                   </div>
                 </div>
-                <div 
+                <div
                   className={`feature-item ${activeFeature === 'tele' ? 'is-active' : ''}`}
                   onClick={() => setActiveFeature('tele')}
                   role="button"
@@ -249,7 +265,7 @@ export default function LoginPage() {
                     <span>Integrated video care</span>
                   </div>
                 </div>
-                <div 
+                <div
                   className={`feature-item ${activeFeature === 'data' ? 'is-active' : ''}`}
                   onClick={() => setActiveFeature('data')}
                   role="button"
