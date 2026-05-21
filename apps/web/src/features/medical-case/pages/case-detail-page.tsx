@@ -300,14 +300,7 @@ export default function MedicalCaseDetailPage() {
   const updateMedicationRow = (index: number, field: keyof MedicationRow, value: string) => {
     setMedicationRows(prev => prev.map((row, idx) => {
       if (idx === index) {
-        const updated = { ...row, [field]: value };
-        if (field === 'medicine' && value) {
-          const match = (medicines as any[]).find(m => m.name && m.name.toLowerCase() === value.toLowerCase());
-          if (match && match.disease) {
-            updated.issue = match.disease;
-          }
-        }
-        return updated;
+        return { ...row, [field]: value };
       }
       return row;
     }));
@@ -357,7 +350,7 @@ export default function MedicalCaseDetailPage() {
       await saveSoap.mutateAsync({
         id: finalRecordId,
         regid: Number(regid),
-        visitId: currentVisitId,
+        visitId: currentVisitId || visitId,
         subjective: diagForm.complaint,
         objective: serializedMeds,
         assessment: diagForm.diagnosis,
@@ -366,9 +359,9 @@ export default function MedicalCaseDetailPage() {
         createdAt: soapDate
       });
 
-      // If it's a new diagnosis, switch view to today so it shows up immediately
+      // If it's a new diagnosis, switch view to exactly the saved date so it shows up immediately
       if (!editingDiagnosisRecord) {
-        setSelectedDate(new Date().toISOString());
+        setSelectedDate(soapDate);
       }
 
       setShowDiagnosisDrawer(false);
@@ -385,14 +378,34 @@ export default function MedicalCaseDetailPage() {
     return isNaN(date.getTime()) ? null : date;
   }, []);
 
+  const toClinicDateString = useCallback((d: Date | string | null | undefined): string | null => {
+    if (!d) return null;
+    const date = typeof d === 'string' ? new Date(d) : d;
+    if (isNaN(date.getTime())) return null;
+    try {
+      return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Kolkata',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).format(date);
+    } catch (e) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+  }, []);
+
   const filterByDate = useCallback((items: any[], date: Date | null) => {
     if (!date || !items) return [];
-    const dateStr = date.toDateString();
+    const targetStr = toClinicDateString(date);
+    if (!targetStr) return [];
     return items.filter(item => {
-      const itemDate = parseSafeDate(item.createdAt || item.created_at || item.dateval || item.recordedAt || item.recorded_at || item.visitDate || item.visit_date || item.date_val);
-      return itemDate && itemDate.toDateString() === dateStr;
+      const itemDate = item.createdAt || item.created_at || item.dateval || item.recordedAt || item.recorded_at || item.visitDate || item.visit_date || item.date_val;
+      return toClinicDateString(itemDate) === targetStr;
     });
-  }, [parseSafeDate]);
+  }, [toClinicDateString]);
 
   // Derived data with safety checks for loading states
   const notes = fullData?.notes || [];
@@ -425,11 +438,12 @@ export default function MedicalCaseDetailPage() {
 
   const activeNote = React.useMemo(() => {
     if (!displayDate) return null;
+    const displayStr = toClinicDateString(displayDate);
     return followupNotes.find((n: any) => {
-      const d1 = parseSafeDate(n.createdAt || n.created_at || n.dateval);
-      return d1 && d1.toDateString() === displayDate.toDateString();
+      const d1 = n.createdAt || n.created_at || n.dateval;
+      return toClinicDateString(d1) === displayStr;
     }) || null;
-  }, [followupNotes, displayDate]);
+  }, [followupNotes, displayDate, toClinicDateString]);
 
   // Sync followUpNote with activeNote when activeNote changes
   React.useEffect(() => {
@@ -471,20 +485,21 @@ export default function MedicalCaseDetailPage() {
 
   const selectedBill = useMemo(() => {
     if (!displayDate || !summary?.bills) return null;
+    const displayStr = toClinicDateString(displayDate);
     return summary.bills.find(b => {
-      const d = parseSafeDate(b.billDate || b.createdAt);
-      return d && d.toDateString() === displayDate.toDateString();
+      const d = b.billDate || b.createdAt;
+      return toClinicDateString(d) === displayStr;
     });
-  }, [displayDate, summary?.bills]);
+  }, [displayDate, summary?.bills, toClinicDateString]);
 
   const billingValues = useMemo(() => {
     // 1. Calculate additional charges for the selected displayDate
     const additional = (() => {
       if (!displayDate || !fullData?.additionalCharges) return 0;
+      const displayStr = toClinicDateString(displayDate);
       return fullData.additionalCharges
         .filter((ac: any) => {
-          const d = ac.createdAt ? new Date(ac.createdAt) : null;
-          return d && d.toDateString() === displayDate.toDateString();
+          return toClinicDateString(ac.createdAt) === displayStr;
         })
         .reduce((sum: number, ac: any) => sum + (Number(ac.amount) || 0), 0);
     })();
@@ -492,9 +507,10 @@ export default function MedicalCaseDetailPage() {
     // 2. Fetch all bills for the selected displayDate to sum received amount
     const dayBills = (() => {
       if (!displayDate || !summary?.bills) return [];
+      const displayStr = toClinicDateString(displayDate);
       return summary.bills.filter(b => {
-        const d = parseSafeDate(b.billDate || b.createdAt);
-        return d && d.toDateString() === displayDate.toDateString();
+        const d = b.billDate || b.createdAt;
+        return toClinicDateString(d) === displayStr;
       });
     })();
 
@@ -517,10 +533,11 @@ export default function MedicalCaseDetailPage() {
       if (pendingCharge > 0) return pendingCharge;
       if (!displayDate) return 0;
       
+      const displayStr = toClinicDateString(displayDate);
       const allRx = [...(prescriptionsHistory || []), ...(prescriptionsFromFull || [])];
       const todayRx = allRx.filter((rx: any) => {
-        const d = parseSafeDate(rx.created_at || rx.dateval);
-        return d && d.toDateString() === displayDate.toDateString();
+        const d = rx.created_at || rx.dateval;
+        return toClinicDateString(d) === displayStr;
       });
 
       if (todayRx.length === 0) return 0;
@@ -578,7 +595,8 @@ export default function MedicalCaseDetailPage() {
     fullData?.additionalCharges,
     prescriptionsHistory,
     prescriptionsFromFull,
-    dayCharges
+    dayCharges,
+    toClinicDateString
   ]);
 
   // ─── Derived from fullData (safe after query completes) ───
@@ -1214,81 +1232,9 @@ export default function MedicalCaseDetailPage() {
                                   placeholder="Search or enter medicine name"
                                   value={row.medicine}
                                   onChange={e => updateMedicationRow(idx, 'medicine', e.target.value)}
-                                  onFocus={() => setActiveMedicineFocusIdx(idx)}
-                                  onBlur={() => {
-                                    setTimeout(() => setActiveMedicineFocusIdx(null), 200);
-                                  }}
                                   style={{ width: '100%', padding: '8px 12px', fontSize: '0.85rem' }}
                                   autoComplete="off"
                                 />
-
-                                {activeMedicineFocusIdx === idx && (() => {
-                                  const query = row.medicine.toLowerCase();
-                                  const filtered = (medicines as any[])
-                                    .filter(m => m.name && m.name.toLowerCase().includes(query))
-                                    .slice(0, 5);
-                                    
-                                  if (filtered.length === 0) return null;
-                                  
-                                  return (
-                                    <div style={{
-                                      position: 'absolute',
-                                      top: '100%',
-                                      left: 0,
-                                      right: 0,
-                                      zIndex: 1000,
-                                      background: 'white',
-                                      border: '1px solid #e2e8f0',
-                                      borderRadius: '8px',
-                                      boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-                                      marginTop: '4px',
-                                      maxHeight: '220px',
-                                      overflowY: 'auto'
-                                    }}>
-                                      {filtered.map((m: any) => (
-                                        <div
-                                          key={m.id}
-                                          onMouseDown={() => {
-                                            updateMedicationRow(idx, 'medicine', m.name);
-                                          }}
-                                          style={{
-                                            padding: '10px 14px',
-                                            cursor: 'pointer',
-                                            borderBottom: '1px solid #f1f5f9',
-                                            transition: 'background 0.2s ease',
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            gap: '2px'
-                                          }}
-                                          onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
-                                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                                        >
-                                          <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.85rem' }}>
-                                            {m.name}
-                                          </span>
-                                          
-                                          <div style={{ display: 'flex', gap: '8px', color: '#64748b', fontSize: '0.75rem', alignItems: 'center' }}>
-                                            {m.disease && (
-                                              <span>Disease: {m.disease}</span>
-                                            )}
-                                            {m.type && (
-                                              <>
-                                                <span style={{ color: '#cbd5e1' }}>•</span>
-                                                <span>Type: {m.type}</span>
-                                              </>
-                                            )}
-                                            {m.price > 0 && (
-                                              <>
-                                                <span style={{ color: '#cbd5e1' }}>•</span>
-                                                <span>Price: ₹{m.price}</span>
-                                              </>
-                                            )}
-                                          </div>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  );
-                                })()}
                               </div>
 
                               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>

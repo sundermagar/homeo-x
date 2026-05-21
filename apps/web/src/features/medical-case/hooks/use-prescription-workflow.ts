@@ -132,9 +132,6 @@ export function usePrescriptionWorkflow(
           notes: latestRx.notes || ''
         });
         setActiveTab('rx');
-      } else {
-        // Auto-create draft so the form is visible and ready
-        startNewRx();
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

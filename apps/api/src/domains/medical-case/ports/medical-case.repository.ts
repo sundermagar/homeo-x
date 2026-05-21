@@ -57,6 +57,8 @@ export interface SoapNotes {
   advice?: string | null;
   followUp?: string | null;
   icdCodes?: any;
+  createdAt?: Date | string | null;
+  updatedAt?: Date | string | null;
 }
 
 export interface HomeoDetails {
