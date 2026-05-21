@@ -40,6 +40,10 @@ export interface AiContext {
   patientGender?: string;
   thermalReaction?: string;
   miasm?: string;
+  thirstPattern?: string;
+  sleepPosition?: string;
+  perspiration?: string;
+  doctorNotes?: string;
   allergies?: string[];
   transcript?: string;
   consultationMode?: ConsultationMode;
@@ -705,9 +709,9 @@ export function useConsultationState({
         const daysMatch = followUpText.match(/(\d+)\s*day/i);
         const weeksMatch = followUpText.match(/(\d+)\s*week/i);
         const monthsMatch = followUpText.match(/(\d+)\s*month/i);
-        if (daysMatch) date.setDate(date.getDate() + parseInt(daysMatch[1]));
-        else if (weeksMatch) date.setDate(date.getDate() + parseInt(weeksMatch[1]) * 7);
-        else if (monthsMatch) date.setMonth(date.getMonth() + parseInt(monthsMatch[1]));
+        if (daysMatch) date.setDate(date.getDate() + parseInt(daysMatch[1] ?? '0'));
+        else if (weeksMatch) date.setDate(date.getDate() + parseInt(weeksMatch[1] ?? '0') * 7);
+        else if (monthsMatch) date.setMonth(date.getMonth() + parseInt(monthsMatch[1] ?? '0'));
         else date.setDate(date.getDate() + 15);
         
         const yyyy = date.getFullYear();

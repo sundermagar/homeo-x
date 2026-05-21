@@ -96,4 +96,70 @@ describe('usePrescriptionWorkflow', () => {
     expect(result.current.activeTab).toBe('rx');
     expect(result.current.editingId).toBe(123);
   });
+
+  it('should immediately clear editingId synchronously when startNewRx or repeatRx is called', async () => {
+    const todayIso = new Date().toISOString();
+    const existingRxs = [
+      {
+        id: 10,
+        remedy_name: 'Belladonna',
+        potency_name: '30C',
+        frequency_name: 'TDS',
+        days: 3,
+        notes: 'Take with water',
+        prescription: 'Take with water',
+        created_at: todayIso,
+      },
+    ];
+    mockUsePatientPrescriptions.mockReturnValue({ data: existingRxs, isLoading: false });
+
+    const { result } = renderHook(() => usePrescriptionWorkflow(1, 10, todayIso, vi.fn()));
+    
+    // Ensure editingId is 10 initially
+    expect(result.current.editingId).toBe(10);
+
+    // Call startNewRx and check that editingId is cleared synchronously BEFORE the promise resolves
+    let promise1: Promise<void>;
+    act(() => {
+      promise1 = result.current.startNewRx();
+    });
+    
+    // Check synchronously that editingId is cleared
+    expect(result.current.editingId).toBeNull();
+    
+    // Wait for the async flow to complete
+    await act(async () => {
+      await promise1;
+    });
+    
+    // Now it should be set to the newly resolved id (123)
+    expect(result.current.editingId).toBe(123);
+
+    // Setup for repeatRx: manually set editingId back to 10
+    act(() => {
+      result.current.setEditingId(10);
+    });
+    expect(result.current.editingId).toBe(10);
+
+    // Call repeatRx and check synchronous clear
+    let promise2: Promise<void>;
+    act(() => {
+      promise2 = result.current.repeatRx({
+        remedy_name: 'Aconite',
+        potency_name: '200C',
+        frequency_name: 'BD',
+        days: 5,
+        notes: 'Sip',
+      });
+    });
+
+    expect(result.current.editingId).toBeNull();
+
+    await act(async () => {
+      await promise2;
+    });
+
+    expect(result.current.editingId).toBe(123);
+  });
 });
+
