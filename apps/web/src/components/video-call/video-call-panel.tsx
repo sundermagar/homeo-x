@@ -317,75 +317,77 @@ export function VideoCallPanel(props: VideoCallPanelProps) {
         </div>
 
         {/* ── Transcript ── */}
-        <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'white', borderRadius: '0.875rem', border: '1px solid #E5E7EB', flexShrink: 0 }}>
-          {/* Header */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', borderBottom: '1px solid #F3F4F6', flexShrink: 0 }}>
-            <span style={{ fontSize: 11, fontWeight: 800, color: '#4338CA', textTransform: 'uppercase', letterSpacing: '0.1em', borderBottom: '2px solid #6366F1', paddingBottom: '0.2rem' }}>Transcript</span>
-            {transcriptHeaderActions && <div>{transcriptHeaderActions}</div>}
-          </div>
-
-          {/* Scroll area */}
-          <div ref={transcriptRef} style={{ maxHeight: '160px', minHeight: '100px', overflowY: 'auto', padding: '0.625rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {transcript.length === 0 && !props.drInterimText && !props.ptInterimText && (
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', paddingTop: '1.5rem', textAlign: 'center' }}>
-                <Waves style={{ width: 22, height: 22, color: '#D1D5DB' }} />
-                <p style={{ fontSize: 11, color: '#9CA3AF', fontStyle: 'italic', margin: 0 }}>Listening for conversation...</p>
-              </div>
-            )}
-            {transcript.filter(s => s.isFinal).map((seg, idx) => (
-              <div key={`${seg.speaker}-${seg.sequenceNumber}-${idx}`} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
-                <div style={{ 
-                  width: 24, 
-                  height: 24, 
-                  borderRadius: 6, 
-                  flexShrink: 0, 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  fontSize: 9, 
-                  fontWeight: 800, 
-                  background: seg.speaker === 'DOCTOR' ? '#F1F5F9' : '#EEF2FF',
-                  color: seg.speaker === 'DOCTOR' ? '#475569' : '#4F46E5',
-                  border: `1px solid ${seg.speaker === 'DOCTOR' ? '#E2E8F0' : '#C7D2FE'}`
-                }}>
-                  {seg.speaker === 'DOCTOR' ? 'DR' : 'PT'}
-                </div>
-                <p style={{ fontSize: 13, color: '#1E293B', fontWeight: 500, margin: 0, lineHeight: 1.6, paddingTop: 2 }}>
-                  {seg.translatedText || seg.text}
-                </p>
-              </div>
-            ))}
-            {props.drInterimText && (
-              <div style={{ display: 'flex', gap: '0.75rem', opacity: 0.8 }}>
-                <div style={{ 
-                  width: 24, height: 24, borderRadius: 6, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800,
-                  background: '#F8FAFC', color: '#94A3B8', border: '1px solid #F1F5F9'
-                }}>DR</div>
-                <p style={{ fontSize: 13, color: '#64748B', fontStyle: 'italic', margin: 0, paddingTop: 2 }}>
-                  {/[\u0900-\u097F]/.test(props.drInterimText) ? '...' : props.drInterimText}
-                </p>
-              </div>
-            )}
-            {props.ptInterimText && (
-              <div style={{ display: 'flex', gap: '0.75rem', opacity: 0.8 }}>
-                <div style={{ 
-                  width: 24, height: 24, borderRadius: 6, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800,
-                  background: '#F5F3FF', color: '#A78BFA', border: '1px solid #EDE9FE'
-                }}>PT</div>
-                <p style={{ fontSize: 13, color: '#8B5CF6', fontStyle: 'italic', margin: 0, paddingTop: 2 }}>
-                  {/[\u0900-\u097F]/.test(props.ptInterimText) ? '...' : props.ptInterimText}
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Bottom actions */}
-          {transcriptBottomActions && (
-            <div style={{ padding: '0.625rem 1rem', borderTop: '1px solid #F3F4F6', flexShrink: 0 }}>
-              {transcriptBottomActions}
+        {localSpeaker === 'DOCTOR' && (
+          <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'white', borderRadius: '0.875rem', border: '1px solid #E5E7EB', flexShrink: 0 }}>
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', borderBottom: '1px solid #F3F4F6', flexShrink: 0 }}>
+              <span style={{ fontSize: 11, fontWeight: 800, color: '#4338CA', textTransform: 'uppercase', letterSpacing: '0.1em', borderBottom: '2px solid #6366F1', paddingBottom: '0.2rem' }}>Transcript</span>
+              {transcriptHeaderActions && <div>{transcriptHeaderActions}</div>}
             </div>
-          )}
-        </div>
+
+            {/* Scroll area */}
+            <div ref={transcriptRef} style={{ maxHeight: '160px', minHeight: '100px', overflowY: 'auto', padding: '0.625rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {transcript.length === 0 && !props.drInterimText && !props.ptInterimText && (
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', paddingTop: '1.5rem', textAlign: 'center' }}>
+                  <Waves style={{ width: 22, height: 22, color: '#D1D5DB' }} />
+                  <p style={{ fontSize: 11, color: '#9CA3AF', fontStyle: 'italic', margin: 0 }}>Listening for conversation...</p>
+                </div>
+              )}
+              {transcript.filter(s => s.isFinal).map((seg, idx) => (
+                <div key={`${seg.speaker}-${seg.sequenceNumber}-${idx}`} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
+                  <div style={{ 
+                    width: 24, 
+                    height: 24, 
+                    borderRadius: 6, 
+                    flexShrink: 0, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    fontSize: 9, 
+                    fontWeight: 800, 
+                    background: seg.speaker === 'DOCTOR' ? '#F1F5F9' : '#EEF2FF',
+                    color: seg.speaker === 'DOCTOR' ? '#475569' : '#4F46E5',
+                    border: `1px solid ${seg.speaker === 'DOCTOR' ? '#E2E8F0' : '#C7D2FE'}`
+                  }}>
+                    {seg.speaker === 'DOCTOR' ? 'DR' : 'PT'}
+                  </div>
+                  <p style={{ fontSize: 13, color: '#1E293B', fontWeight: 500, margin: 0, lineHeight: 1.6, paddingTop: 2 }}>
+                    {seg.translatedText || seg.text}
+                  </p>
+                </div>
+              ))}
+              {props.drInterimText && (
+                <div style={{ display: 'flex', gap: '0.75rem', opacity: 0.8 }}>
+                  <div style={{ 
+                    width: 24, height: 24, borderRadius: 6, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800,
+                    background: '#F8FAFC', color: '#94A3B8', border: '1px solid #F1F5F9'
+                  }}>DR</div>
+                  <p style={{ fontSize: 13, color: '#64748B', fontStyle: 'italic', margin: 0, paddingTop: 2 }}>
+                    {/[\u0900-\u097F]/.test(props.drInterimText) ? '...' : props.drInterimText}
+                  </p>
+                </div>
+              )}
+              {props.ptInterimText && (
+                <div style={{ display: 'flex', gap: '0.75rem', opacity: 0.8 }}>
+                  <div style={{ 
+                    width: 24, height: 24, borderRadius: 6, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800,
+                    background: '#F5F3FF', color: '#A78BFA', border: '1px solid #EDE9FE'
+                  }}>PT</div>
+                  <p style={{ fontSize: 13, color: '#8B5CF6', fontStyle: 'italic', margin: 0, paddingTop: 2 }}>
+                    {/[\u0900-\u097F]/.test(props.ptInterimText) ? '...' : props.ptInterimText}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Bottom actions */}
+            {transcriptBottomActions && (
+              <div style={{ padding: '0.625rem 1rem', borderTop: '1px solid #F3F4F6', flexShrink: 0 }}>
+                {transcriptBottomActions}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Error */}
         {(video?.error || error) && (
