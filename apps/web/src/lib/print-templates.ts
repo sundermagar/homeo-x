@@ -633,22 +633,22 @@ function renderClinicHeader(clinic: ClinicInfo, docTitle?: string): string {
 
   const contactBits: string[] = [];
   if (clinic.address) contactBits.push(`<span>${safe(clinic.address)}</span>`);
-  if (clinic.phone)   contactBits.push(`<span>📞 ${safe(clinic.phone)}</span>`);
-  if (clinic.email)   contactBits.push(`<span>✉ ${safe(clinic.email)}</span>`);
+  if (clinic.phone) contactBits.push(`<span>📞 ${safe(clinic.phone)}</span>`);
+  if (clinic.email) contactBits.push(`<span>✉ ${safe(clinic.email)}</span>`);
   if (clinic.website) contactBits.push(`<span>🌐 ${safe(clinic.website)}</span>`);
 
   const idBits: string[] = [];
   if (clinic.registrationNo) idBits.push(`Reg: ${safe(clinic.registrationNo)}`);
-  if (clinic.gstin)          idBits.push(`GSTIN: ${safe(clinic.gstin)}`);
+  if (clinic.gstin) idBits.push(`GSTIN: ${safe(clinic.gstin)}`);
 
   return `
     <div class="letterhead" style="--lh-accent:${accent};">
       <div class="letterhead-band"></div>
       <div class="letterhead-row">
         ${clinic.logoUrl
-          ? `<img src="${escapeHtml(clinic.logoUrl)}" alt="" class="letterhead-logo" onerror="this.style.display='none'" />`
-          : `<div class="letterhead-logo-fallback">${safe((clinic.name || 'C').charAt(0).toUpperCase())}</div>`
-        }
+      ? `<img src="${escapeHtml(clinic.logoUrl)}" alt="" class="letterhead-logo" onerror="this.style.display='none'" />`
+      : `<div class="letterhead-logo-fallback">${safe((clinic.name || 'C').charAt(0).toUpperCase())}</div>`
+    }
         <div class="letterhead-title">
           <div class="clinic-name">${safe(clinic.name)}</div>
           ${clinic.tagline ? `<div class="clinic-tagline">${safe(clinic.tagline)}</div>` : ''}
@@ -752,8 +752,8 @@ export function generatePrescriptionHtml(data: PrescriptionPrintData): string {
 
   const contactBits: string[] = [];
   if (data.clinic.address) contactBits.push(safe(data.clinic.address));
-  if (data.clinic.phone)   contactBits.push(safe(data.clinic.phone));
-  if (data.clinic.email)   contactBits.push(safe(data.clinic.email));
+  if (data.clinic.phone) contactBits.push(safe(data.clinic.phone));
+  if (data.clinic.email) contactBits.push(safe(data.clinic.email));
   if (data.clinic.website) contactBits.push(safe(data.clinic.website));
 
   const ageGender = [
@@ -767,8 +767,8 @@ export function generatePrescriptionHtml(data: PrescriptionPrintData): string {
   const followUpDate = data.followUp
     ? null
     : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('en-GB', {
-        day: '2-digit', month: 'short', year: 'numeric',
-      });
+      day: '2-digit', month: 'short', year: 'numeric',
+    });
 
   const vitalsCells = renderVitalsCells(data.vitals);
   const medsHtml = renderMedicationsLetterhead(data.medications, data.prescriptionStrategy);
@@ -782,9 +782,9 @@ export function generatePrescriptionHtml(data: PrescriptionPrintData): string {
 
   // ─── Resolve Header ───
   let headerHtml = data.clinic.headerHtml;
-  
+
   // Ignore legacy seed HTML so the new premium default layout activates
-  if (headerHtml && headerHtml.includes('Kreed.health Clinical Prescription')) {
+  if (headerHtml && headerHtml.includes('MMC Clinical Prescription')) {
     headerHtml = undefined;
   }
 

@@ -13,7 +13,7 @@ const connectionString = process.env['DATABASE_URL'];
 const sql = postgres(connectionString!);
 
 async function run() {
-  const email = 'receptionist@kreed.health';
+  const email = 'receptionist@MMC';
   const password = 'password123';
   const salt = await bcrypt.genSalt(10);
   const hash = await bcrypt.hash(password, salt);
@@ -27,8 +27,8 @@ async function run() {
     } else {
       console.log('Creating new user...');
       // Insert with some default values. We'll copy from the reception user if it exists.
-      const baseUser = await sql`SELECT * FROM tenant_demo.users WHERE email = 'reception@kreed.health' LIMIT 1`;
-      
+      const baseUser = await sql`SELECT * FROM tenant_demo.users WHERE email = 'reception@MMC' LIMIT 1`;
+
       if (baseUser.length > 0) {
         const u = baseUser[0]!;
         await sql`INSERT INTO tenant_demo.users
@@ -43,7 +43,7 @@ async function run() {
           ('Receptionist', ${email}, ${hash}, 'Receptionist', 1, true, NOW(), NOW())`;
       }
     }
-    console.log('✅ User receptionist@kreed.health prepared successfully.');
+    console.log('✅ User receptionist@MMC prepared successfully.');
   } catch (e: any) {
     console.error('❌ Error:', e.message);
   }

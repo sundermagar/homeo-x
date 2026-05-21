@@ -50,7 +50,7 @@ export function AppLayout() {
               <div className="sidebar-logo" style={{ width: 28, height: 28 }}>
                 <Infinity size={18} strokeWidth={2.5} />
               </div>
-              <span className="sidebar-brand" style={{ fontSize: '1rem' }}>{user?.clinicName || 'Kreed.health'}</span>
+              <span className="sidebar-brand" style={{ fontSize: '1rem' }}>{user?.clinicName || 'MMC'}</span>
             </div>
           </div>
         </header>
@@ -63,8 +63,8 @@ export function AppLayout() {
       />
 
       <main className="app-main">
-        <DashboardHeader 
-          onOpenPalette={() => setPaletteOpen(true)} 
+        <DashboardHeader
+          onOpenPalette={() => setPaletteOpen(true)}
           onNewAppointment={() => setAppointmentDrawerOpen(true)}
         />
         <div className="page-content-area">
@@ -88,9 +88,9 @@ export function AppLayout() {
       </main>
 
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
-      
-      <AppointmentFormDrawer 
-        isOpen={appointmentDrawerOpen} 
+
+      <AppointmentFormDrawer
+        isOpen={appointmentDrawerOpen}
         onClose={() => setAppointmentDrawerOpen(false)}
         onSuccess={() => {
           // If we are on the appointments page, we might want to refresh the list

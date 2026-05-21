@@ -13,16 +13,16 @@ interface AccountModalProps {
 }
 export function AccountModal({ mode, account, organizations, onClose }: AccountModalProps) {
   const [form, setForm] = useState({
-    name:        account?.name        ?? '',
-    email:       account?.email       ?? '',
-    password:    '',
-    gender:      account?.gender      ?? 'Male',
-    mobile:      account?.mobile      ?? '',
-    city:        account?.city        ?? '',
-    address:     account?.address     ?? '',
-    about:       account?.about       ?? '',
+    name: account?.name ?? '',
+    email: account?.email ?? '',
+    password: '',
+    gender: account?.gender ?? 'Male',
+    mobile: account?.mobile ?? '',
+    city: account?.city ?? '',
+    address: account?.address ?? '',
+    about: account?.about ?? '',
     designation: account?.designation ?? '',
-    clinicId:    account?.clinicId as number | undefined ?? undefined,
+    clinicId: account?.clinicId as number | undefined ?? undefined,
     sendWelcomeEmail: false,
   });
   const createAccount = useCreateAccount();
@@ -116,7 +116,7 @@ export function AccountModal({ mode, account, organizations, onClose }: AccountM
                   type="email"
                   value={form.email}
                   onChange={(e) => set('email', e.target.value)}
-                  placeholder="manager@kreed.health"
+                  placeholder="manager@MMC"
                 />
               </div>
               <div className="plat-form-group">

@@ -18,7 +18,7 @@ export class BookAppointmentUseCase {
     private readonly patientRepo?: PatientRepository,
     private readonly notifRepo?: NotificationsRepository,
     private readonly whatsapp?: SendWhatsAppTemplateUseCase,
-  ) {}
+  ) { }
 
   async execute(dto: CreateAppointmentDto): Promise<Result<{ id: number }>> {
     if (!dto.bookingDate) return fail('Booking date is required', 'VALIDATION');
@@ -48,7 +48,7 @@ export class BookAppointmentUseCase {
         patientName: dto.patientName,
         date: dto.bookingDate,
         time: dto.bookingTime ?? '',
-        clinicName: 'Kreed.health Clinic'
+        clinicName: 'MMC Clinic'
       }).catch(() => {});
     }
     */
@@ -61,7 +61,7 @@ export class BookAppointmentUseCase {
         patientName: dto.patientName,
         date: dto.bookingDate,
         time: dto.bookingTime ?? '',
-        clinicName: 'Kreed.health Clinic'
+        clinicName: 'MMC Clinic'
       }).catch(err => logger.warn(`WhatsApp confirmation skipped: ${err.message}`));
     }
 

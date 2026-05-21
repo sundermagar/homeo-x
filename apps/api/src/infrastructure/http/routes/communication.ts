@@ -22,9 +22,9 @@ const getWaUseCase = (req: any) => {
   const waRepo = new WhatsAppRepositoryPG(req.tenantDb);
   const cloudGateway = new WhatsAppCloudGateway(waRepo);
   return new SendWhatsAppUseCase(
-    new CommunicationRepositoryPG(req.tenantDb), 
-    waRepo, 
-    cloudGateway, 
+    new CommunicationRepositoryPG(req.tenantDb),
+    waRepo,
+    cloudGateway,
     new PatientRepositoryPg(req.tenantDb)
   );
 };
@@ -84,15 +84,15 @@ communicationRouter.get('/reports', asyncHandler(async (req, res) => {
   const uc = new GetSmsReportsUseCase(getRepo(req));
   const { regid, sms_type, status, from_date, to_date, phone, search, page, limit } = req.query as Record<string, string>;
   const result = await uc.execute({
-    regid:    regid      ? Number(regid)      : undefined,
-    smsType:  sms_type  ? sms_type           : undefined,
-    status:   status    ? status             : undefined,
-    fromDate: from_date  ? from_date          : undefined,
-    toDate:   to_date  ? to_date            : undefined,
-    phone:    phone   ? phone              : undefined,
-    search:   search  ? search             : undefined,
-    page:     page     ? Number(page)       : 1,
-    limit:    limit    ? Number(limit)      : 50,
+    regid: regid ? Number(regid) : undefined,
+    smsType: sms_type ? sms_type : undefined,
+    status: status ? status : undefined,
+    fromDate: from_date ? from_date : undefined,
+    toDate: to_date ? to_date : undefined,
+    phone: phone ? phone : undefined,
+    search: search ? search : undefined,
+    page: page ? Number(page) : 1,
+    limit: limit ? Number(limit) : 50,
   });
   if (result.success) sendSuccess(res, result.data);
 }));
@@ -164,7 +164,7 @@ communicationRouter.post('/otp/send', asyncHandler(async (req, res) => {
   const sms = new SendSmsUseCase(getRepo(req), smsGateway);
   await sms.sendSingle({
     phone,
-    message: `Your Kreed.health OTP is: ${otp}. Valid for 10 minutes. Do not share.`,
+    message: `Your MMC OTP is: ${otp}. Valid for 10 minutes. Do not share.`,
     smsType: 'OTP',
   });
 

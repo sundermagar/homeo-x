@@ -1,10 +1,10 @@
-# 🚀 Railway Deployment Guide: Kreed.health Platform
+# 🚀 Railway Deployment Guide: MMC Platform
 
-This guide provides a comprehensive, step-by-step walkthrough for deploying the Kreed.health monorepo to [Railway](https://railway.app). The project follows a modern monorepo architecture using **pnpm**, **Turborepo**, and **TypeScript**.
+This guide provides a comprehensive, step-by-step walkthrough for deploying the MMC monorepo to [Railway](https://railway.app). The project follows a modern monorepo architecture using **pnpm**, **Turborepo**, and **TypeScript**.
 
 ## 🏗️ Architecture Overview
 
-The Kreed.health platform consists of:
+The MMC platform consists of:
 - **Backend API (`apps/api`)**: Node.js/Express server.
 - **Frontend Web (`apps/web`)**: React/Vite application.
 - **Shared Packages (`packages/*`)**: Database schema, Types, and Validation logic.

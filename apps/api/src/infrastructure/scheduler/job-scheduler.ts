@@ -49,11 +49,11 @@ export class JobScheduler {
       const now = new Date();
       const istString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
       const istDate = new Date(istString);
-      
+
       // Calculate tomorrow in IST
       const tomorrow = new Date(istDate);
       tomorrow.setDate(tomorrow.getDate() + 1);
-      
+
       const y = tomorrow.getFullYear();
       const mm = String(tomorrow.getMonth() + 1).padStart(2, '0');
       const dd = String(tomorrow.getDate()).padStart(2, '0');
@@ -78,7 +78,7 @@ export class JobScheduler {
             patientName: appt.patientName,
             date: dateStr || '',
             time: appt.bookingTime || '',
-            clinicName: 'Kreed.health Clinic'
+            clinicName: 'MMC Clinic'
           });
           */
           logger.info(`[Job] Reminder (SMS) skipped for ${appt.patientName} (${appt.phone}) — decommissioning in progress`);
@@ -94,11 +94,11 @@ export class JobScheduler {
       const now = new Date();
       const istString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
       const istDate = new Date(istString);
-      
+
       const y = istDate.getFullYear();
       const mm = String(istDate.getMonth() + 1).padStart(2, '0');
       const dd = String(istDate.getDate()).padStart(2, '0');
-      
+
       const todayStr = `${y}-${mm}-${dd}`;
       const mmdd = `${mm}-${dd}`; // "MM-DD"
       const currentHour = istDate.getHours();

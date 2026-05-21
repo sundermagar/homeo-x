@@ -303,7 +303,7 @@ export default function PdfSettingsPage() {
             {isLoading ? (
               <TableSkeleton rows={5} columns={5} />
             ) : filteredConfigs.length === 0 ? (
-              <EmptyState 
+              <EmptyState
                 icon={Layout}
                 title={search ? "No matches found" : "No configurations found"}
                 description={search ? `No PDF templates matching "${search}" were found.` : "Add a new PDF template to customize your clinical reports."}
@@ -814,7 +814,7 @@ export default function PdfSettingsPage() {
                   </div>
                   <div className="letterhead-footer-right" style={{ textAlign: 'right' }}>
                     <div style={{ fontSize: '0.65rem', color: '#475569', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Secure PDF Engine</div>
-                    <div style={{ fontSize: '0.55rem', color: '#94a3b8', fontWeight: 600, marginTop: 2 }}>Digitally Verified • Kreed.health v4.0</div>
+                    <div style={{ fontSize: '0.55rem', color: '#94a3b8', fontWeight: 600, marginTop: 2 }}>Digitally Verified • MMC v4.0</div>
                   </div>
                 </div>
               </div>
@@ -878,8 +878,8 @@ export default function PdfSettingsPage() {
               <div className="flex items-center gap-2 py-4 mt-2">
                 <input
                   type="checkbox"
-                  
-                  
+
+
                   checked={form.isDefault}
                   onChange={e => setForm(f => ({ ...f, isDefault: e.target.checked }))}
                 />

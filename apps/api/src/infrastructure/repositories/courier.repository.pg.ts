@@ -49,7 +49,7 @@ export interface AssignCourierInput {
 }
 
 export class CourierRepositoryPg {
-  constructor(private readonly db: DbClient) {}
+  constructor(private readonly db: DbClient) { }
 
   /**
    * Get today's courier queue — all entries for today with post_type = 'Courier' or 'Pickup',
@@ -57,7 +57,7 @@ export class CourierRepositoryPg {
    */
   async getQueue(clinicId: number | null, date?: string): Promise<CourierMedicineRow[]> {
     const targetDate = date || new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    
+
     const rows = await this.db.execute(sql`
       SELECT 
         cm.id, cm.case_id, cm.regid, cm.rand_id, cm.currentdate,
@@ -74,7 +74,7 @@ export class CourierRepositoryPg {
         ${clinicId ? sql`AND cd.clinic_id = ${clinicId}` : sql`AND (cd.clinic_id IS NULL)`}
       ORDER BY cm.created_at DESC
     `);
-    
+
     return (rows as any[]).map(r => this.toRow(r));
   }
 
@@ -119,7 +119,7 @@ export class CourierRepositoryPg {
       ORDER BY cm.created_at DESC
       LIMIT 100
     `);
-    
+
     return (rows as any[]).map(r => this.toRow(r));
   }
 
@@ -202,7 +202,7 @@ export class CourierRepositoryPg {
     if (!row) return null;
 
     const name = `${row.first_name || ''} ${row.surname || ''}`.trim();
-    const message = `Dear ${name}, your medicines have been dispatched via ${row.courier || 'courier'} and the POD number is ${row.pcd || 'N/A'}. For tracking, please contact the courier company. Regards, Kreed.health`;
+    const message = `Dear ${name}, your medicines have been dispatched via ${row.courier || 'courier'} and the POD number is ${row.pcd || 'N/A'}. For tracking, please contact the courier company. Regards, MMC`;
 
     return {
       phone: row.mobile1 || '',

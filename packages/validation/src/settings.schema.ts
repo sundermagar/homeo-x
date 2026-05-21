@@ -18,14 +18,14 @@ export const createDispensarySchema = z.object({
   gender: z.enum(['Male', 'Female', 'Other']).default('Male'),
   mobile: z.string().max(50).optional().nullable(),
   mobile2: z.string().max(50).optional().nullable(),
-  location: z.string().max(255).optional().nullable(), // current Kreed.health field
+  location: z.string().max(255).optional().nullable(), // current MMC field
   city: z.string().max(100).optional().nullable(),
   address: z.string().optional().nullable(),
   about: z.string().optional().nullable(),
   designation: z.string().max(100).optional().nullable(),
   dept: z.string().max(100).optional().nullable(),
   dateBirth: z.string().optional().nullable(),
-  contactNumber: z.string().max(50).optional().nullable(), // current Kreed.health stub field
+  contactNumber: z.string().max(50).optional().nullable(), // current MMC stub field
   isActive: z.boolean().default(true),
 });
 export const updateDispensarySchema = createDispensarySchema.partial();

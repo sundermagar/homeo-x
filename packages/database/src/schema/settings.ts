@@ -19,14 +19,14 @@ export const dispensaries = pgTable('dispensaries', {
   gender: varchar('gender', { length: 20 }).default('Male'),
   mobile: varchar('mobile', { length: 50 }),
   mobile2: varchar('mobile2', { length: 50 }),
-  location: varchar('location', { length: 255 }), // current Kreed.health field
+  location: varchar('location', { length: 255 }), // current MMC field
   city: varchar('city', { length: 100 }),
   address: text('address'),
   about: text('about'),
   designation: varchar('designation', { length: 100 }),
   dept: varchar('dept', { length: 100 }),
   dateBirth: date('date_birth'),
-  contactNumber: varchar('contact_number', { length: 50 }), // legacy Kreed.health stub field
+  contactNumber: varchar('contact_number', { length: 50 }), // legacy MMC stub field
   isActive: boolean('is_active').default(true),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
@@ -120,14 +120,14 @@ export const frequencies = pgTable('case_frequency', {
 });
 
 export const courierMasters = pgTable('courier_masters', {
-  id:            serial('id').primaryKey(),
-  name:          varchar('name',           { length: 255 }).notNull(),
+  id: serial('id').primaryKey(),
+  name: varchar('name', { length: 255 }).notNull(),
   contactPerson: varchar('contact_person', { length: 255 }),
-  phone:         varchar('phone',          { length: 50 }),
-  trackingUrl:   text('tracking_url'),
-  isActive:      boolean('is_active').default(true),
-  createdAt:     timestamp('created_at').defaultNow(),
-  updatedAt:     timestamp('updated_at').defaultNow(),
+  phone: varchar('phone', { length: 50 }),
+  trackingUrl: text('tracking_url'),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
 });
 
 export const remedyTreeNodes = pgTable('remedy_tree_nodes', {

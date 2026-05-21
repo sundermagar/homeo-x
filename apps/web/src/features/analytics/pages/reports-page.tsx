@@ -81,7 +81,7 @@ function CaseMonthWiseTab({ onExport }: { onExport: (filename: string, headers: 
   if (isLoading) return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
-        {[1,2,3].map(i => <div key={i} className="skeleton-box" style={{ height: 100, borderRadius: 16 }} />)}
+        {[1, 2, 3].map(i => <div key={i} className="skeleton-box" style={{ height: 100, borderRadius: 16 }} />)}
       </div>
       <TableSkeleton rows={10} columns={5} />
     </div>
@@ -115,11 +115,11 @@ function CaseMonthWiseTab({ onExport }: { onExport: (filename: string, headers: 
             </tr>
           </thead>
           <tbody>
-              {paginatedData.map((row, i) => {
-                const r = row as unknown as Record<string, unknown>;
-                const collection = Number(r['collection'] ?? 0);
-                const expenses = Number(r['expenses'] ?? 0);
-                return (
+            {paginatedData.map((row, i) => {
+              const r = row as unknown as Record<string, unknown>;
+              const collection = Number(r['collection'] ?? 0);
+              const expenses = Number(r['expenses'] ?? 0);
+              return (
                 <tr key={i} className="plat-table-row">
                   <td data-label="Month" style={{ fontWeight: 800, color: 'var(--pp-blue)' }}>
                     <div>{String(r['displaydate'] ?? '')}</div>
@@ -151,31 +151,31 @@ function CaseMonthWiseTab({ onExport }: { onExport: (filename: string, headers: 
                     </div>
                   </td>
                 </tr>
-                );
-              })}
-              {(!data || data.length === 0) && (
-                <tr>
-                  <td colSpan={5}>
-                    <EmptyState 
-                      icon={Activity}
-                      title="No financial records found"
-                      description={`There are no case or collection records recorded for the year ${year}.`}
-                      variant="card"
-                      className="my-8"
-                    />
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      <Pagination 
+              );
+            })}
+            {(!data || data.length === 0) && (
+              <tr>
+                <td colSpan={5}>
+                  <EmptyState
+                    icon={Activity}
+                    title="No financial records found"
+                    description={`There are no case or collection records recorded for the year ${year}.`}
+                    variant="card"
+                    className="my-8"
+                  />
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+      <Pagination
         currentPage={page}
         totalPages={Math.ceil((data ?? []).length / itemsPerPage)}
         pageSize={itemsPerPage}
-        totalItems={(data ?? []).length} 
-        onPageChange={setPage} 
-        onPageSizeChange={() => {}}
+        totalItems={(data ?? []).length}
+        onPageChange={setPage}
+        onPageSizeChange={() => { }}
       />
     </div>
   );
@@ -199,7 +199,7 @@ function MonthWiseDueTab({ onExport }: { onExport: (filename: string, headers: s
 
   const openDueWhatsApp = (patient: any) => {
     setDuePatient(patient);
-    setDueMessage(`Dear ${patient.first_name || ''} ${patient.surname || ''}, you have an outstanding balance of ₹${Number(patient.total_due || 0).toLocaleString()} against your treatment. Please visit us to clear the dues. - Kreed.health`);
+    setDueMessage(`Dear ${patient.first_name || ''} ${patient.surname || ''}, you have an outstanding balance of ₹${Number(patient.total_due || 0).toLocaleString()} against your treatment. Please visit us to clear the dues. - MMC`);
     setShowDuesModal(true);
   };
 
@@ -253,7 +253,7 @@ function MonthWiseDueTab({ onExport }: { onExport: (filename: string, headers: s
             </button>
           ))}
           {(!summary || summary.length === 0) && (
-            <EmptyState 
+            <EmptyState
               icon={CreditCard}
               title="No dues found"
               description={`The clinic accounts are clean for ${year}. No outstanding patient dues were found.`}
@@ -279,7 +279,7 @@ function MonthWiseDueTab({ onExport }: { onExport: (filename: string, headers: s
         <div style={{ minHeight: '400px', padding: '16px' }}>
           {isDetailsLoading && <TableSkeleton rows={10} columns={3} />}
           {!selectedMonth && !isDetailsLoading && (
-            <EmptyState 
+            <EmptyState
               icon={CreditCard}
               title="Select a month"
               description="Choose a month from the left panel to view detailed patient-wise outstanding dues."
@@ -288,7 +288,7 @@ function MonthWiseDueTab({ onExport }: { onExport: (filename: string, headers: s
             />
           )}
           {details && details.length === 0 && !isDetailsLoading && selectedMonth && (
-            <EmptyState 
+            <EmptyState
               icon={Activity}
               title="No dues for this month"
               description={`All patient accounts are cleared for ${new Date(year, selectedMonth - 1).toLocaleString('default', { month: 'long' })}.`}
@@ -346,13 +346,13 @@ function MonthWiseDueTab({ onExport }: { onExport: (filename: string, headers: s
           </div>
           {details && details.length > itemsPerPage && (
             <div style={{ marginTop: 24 }}>
-              <Pagination 
+              <Pagination
                 currentPage={page}
                 totalPages={Math.ceil((details ?? []).length / itemsPerPage)}
                 pageSize={itemsPerPage}
-                totalItems={(details ?? []).length} 
-                onPageChange={setPage} 
-                onPageSizeChange={() => {}}
+                totalItems={(details ?? []).length}
+                onPageChange={setPage}
+                onPageSizeChange={() => { }}
               />
             </div>
           )}
@@ -439,9 +439,9 @@ function BirthdaysTab({ onExport }: { onExport: (filename: string, headers: stri
     if (!singlePatient?.mobile1) return;
     const cleaned = String(singlePatient.mobile1).replace(/\D/g, '');
     const finalPhone = cleaned.length === 10 ? `91${cleaned}` : cleaned;
-    
+
     const textMessage = `Dear ${singlePatient.first_name || 'Patient'},\n\nWishing you health, love, wealth, happiness, and just everything your heart desires.\nHappy Birthday!!\n\nRegards,\nMMC HomeoTech`;
-    
+
     await sendText.mutateAsync({
       phone: finalPhone,
       message: textMessage
@@ -459,7 +459,7 @@ function BirthdaysTab({ onExport }: { onExport: (filename: string, headers: stri
         const finalPhone = cleaned.length === 10 ? `91${cleaned}` : cleaned;
         try {
           const textMessage = `Dear ${p.first_name || 'Patient'},\n\nWishing you health, love, wealth, happiness, and just everything your heart desires.\nHappy Birthday!!\n\nRegards,\nMMC HomeoTech`;
-          
+
           await sendText.mutateAsync({
             phone: finalPhone,
             message: textMessage
@@ -506,7 +506,7 @@ function BirthdaysTab({ onExport }: { onExport: (filename: string, headers: stri
       </div>
       <div style={{ padding: '20px' }}>
         {patients.length === 0 ? (
-          <EmptyState 
+          <EmptyState
             icon={Gift}
             title="No birthdays today"
             description="There are no patient birthdays recorded for today. Check back tomorrow to send clinical greetings."
@@ -520,18 +520,18 @@ function BirthdaysTab({ onExport }: { onExport: (filename: string, headers: stri
               const isSelected = selectedIds.has(Number(p.id));
               return (
                 <div key={String(p.id)} style={{
-                   padding: '20px',
-                   border: isSelected ? '2px solid var(--pp-blue)' : '1px solid var(--pp-warm-4)',
-                   borderRadius: '16px',
-                   background: isSelected ? 'var(--pp-blue-tint)' : 'var(--bg-card)',
-                   display: 'flex',
-                   justifyContent: 'space-between',
-                   alignItems: 'center',
-                   boxShadow: 'var(--pp-shadow-sm)',
-                   transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                   cursor: 'default',
-                   flexDirection: 'column',
-                   gap: 12,
+                  padding: '20px',
+                  border: isSelected ? '2px solid var(--pp-blue)' : '1px solid var(--pp-warm-4)',
+                  borderRadius: '16px',
+                  background: isSelected ? 'var(--pp-blue-tint)' : 'var(--bg-card)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  boxShadow: 'var(--pp-shadow-sm)',
+                  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                  cursor: 'default',
+                  flexDirection: 'column',
+                  gap: 12,
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '16px', width: '100%' }}>
                     <button onClick={() => toggleSelect(Number(p.id))}
@@ -596,9 +596,9 @@ function BirthdaysTab({ onExport }: { onExport: (filename: string, headers: stri
               currentPage={page}
               totalPages={Math.ceil((patients ?? []).length / itemsPerPage)}
               pageSize={itemsPerPage}
-              totalItems={(patients ?? []).length} 
-              onPageChange={setPage} 
-              onPageSizeChange={() => {}}
+              totalItems={(patients ?? []).length}
+              onPageChange={setPage}
+              onPageSizeChange={() => { }}
             />
           </div>
         )}
@@ -697,10 +697,10 @@ function ReferencesTab({ onExport }: { onExport: (filename: string, headers: str
                 </td>
                 <td data-label="PATIENTS" style={{ textAlign: 'center' }}>
                   <div className="plat-cell-val">
-                    <span style={{ 
-                      background: 'var(--pp-warm-1)', 
-                      padding: '4px 12px', 
-                      borderRadius: '100px', 
+                    <span style={{
+                      background: 'var(--pp-warm-1)',
+                      padding: '4px 12px',
+                      borderRadius: '100px',
                       fontWeight: 700,
                       fontSize: '0.85rem'
                     }}>
@@ -718,7 +718,7 @@ function ReferencesTab({ onExport }: { onExport: (filename: string, headers: str
             {(!data || data.length === 0) && (
               <tr>
                 <td colSpan={3}>
-                  <EmptyState 
+                  <EmptyState
                     icon={Users}
                     title="No references found"
                     description="No patient acquisitions or referral sources have been recorded in the current dataset."
@@ -732,13 +732,13 @@ function ReferencesTab({ onExport }: { onExport: (filename: string, headers: str
         </table>
       </div>
       {(data ?? []).length > itemsPerPage && (
-        <Pagination 
+        <Pagination
           currentPage={page}
           totalPages={Math.ceil((data ?? []).length / itemsPerPage)}
           pageSize={itemsPerPage}
-          totalItems={(data ?? []).length} 
-          onPageChange={setPage} 
-          onPageSizeChange={() => {}}
+          totalItems={(data ?? []).length}
+          onPageChange={setPage}
+          onPageSizeChange={() => { }}
         />
       )}
     </div>

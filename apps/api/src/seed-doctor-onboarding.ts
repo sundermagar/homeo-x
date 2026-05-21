@@ -31,7 +31,7 @@ async function seedDoctorOnboarding() {
       data: {
         kind: "user_reply",
         label: "Question",
-        question: "Welcome to Kreed.health! To begin your onboarding, please provide your Full Name.",
+        question: "Welcome to MMC! To begin your onboarding, please provide your Full Name.",
         saveAs: "doctor_name",
         buttons: []
       }
@@ -55,7 +55,7 @@ async function seedDoctorOnboarding() {
       data: {
         kind: "webhook",
         label: "Webhook",
-        webhookUrl: "https://api.kreed.health/v1/staff",
+        webhookUrl: "https://api.MMC/v1/staff",
         webhookMethod: "POST",
         webhookHeaders: { "Content-Type": "application/json" },
         webhookBody: '{"name": "{{doctor_name}}", "email": "{{doctor_email}}", "role": "Doctor", "phone": "{{contact.phone}}"}'

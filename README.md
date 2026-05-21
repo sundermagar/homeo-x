@@ -1,4 +1,4 @@
-# Kreed.health
+# MMC
 
 Enterprise-grade Homeopathic Clinic Management Platform with AI-powered consultation, real-time transcription, and multi-tenant architecture.
 
