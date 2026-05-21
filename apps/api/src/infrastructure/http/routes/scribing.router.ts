@@ -15,7 +15,7 @@ const logger = createLogger('scribing-router');
 export const scribingRouter: Router = Router();
 
 function getTenant(req: Request): string {
-  return (req as any).tenantId || 'default';
+  return (req as any).tenantSlug || (req as any).tenantId || 'default';
 }
 function getUserId(req: Request): string {
   return (req as any).user?.id || (req as any).userId || 'system';

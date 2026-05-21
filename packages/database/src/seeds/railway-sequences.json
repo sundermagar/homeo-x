@@ -1,0 +1,3682 @@
+[
+  {
+    "name": "ml_training_embeddings_id_seq",
+    "schema": "demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "ml_training_logs_id_seq",
+    "schema": "demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "snomed_concepts_id_seq",
+    "schema": "demo",
+    "lastValue": "7"
+  },
+  {
+    "name": "__drizzle_migrations_id_seq",
+    "schema": "drizzle",
+    "lastValue": "13"
+  },
+  {
+    "name": "accounts_id_seq",
+    "schema": "public",
+    "lastValue": "53"
+  },
+  {
+    "name": "add_reminders_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "additional_charges_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "ai_audit_logs_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "ai_prompts_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "appointment_case_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "appointments_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "ask_ques_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "audit_logs_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "backups_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "bank_deposit_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "basic_details_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "bill_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "bills_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "books_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_arthritis_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_cardiac_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_cbc_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_datas_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_diabetes_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_endocrine_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_examination_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_frequency_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_heights_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_images_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_immunology_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_investigation_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_lipid_profile_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_liver_profile_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_notes_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_potencies1_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_potencies_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_reminder_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_reminders_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_renal_profile_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_semenanalysis_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_serological_reports_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_specific_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_stool_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_urine_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_usgfemale_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_usgmale_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_vaccins_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_xray_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "cash_deposit_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "charges_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "chats_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "clinicadmins_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "code_mappings_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "communication_details_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "consultations_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "coupon_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "courier_masters_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "courier_medicine_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "courier_package_list_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "couriermedicines_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "couriers_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "daily_target_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "daycharges_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "departments_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "dictionary_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "diseases_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "dispensaries_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "doctor_availability_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "doctors_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "employees_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "expense_heads_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "expenses_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "expenseshead_id_seq",
+    "schema": "public",
+    "lastValue": "7"
+  },
+  {
+    "name": "familygroup_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "familygroups_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "faqs_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "growth_references_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "height_weights_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "homeo_details_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "icd_codes_id_seq",
+    "schema": "public",
+    "lastValue": "237"
+  },
+  {
+    "name": "investigation_results_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "investigations_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "invoices_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "knex_migrations_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "la_configs_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "la_menus_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "lab_order_items_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "lab_orders_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "lab_panel_loinc_links_id_seq",
+    "schema": "public",
+    "lastValue": "9"
+  },
+  {
+    "name": "lab_panels_id_seq",
+    "schema": "public",
+    "lastValue": "8"
+  },
+  {
+    "name": "lead_followups_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "lead_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "leads_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "library_resources_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "loinc_codes_id_seq",
+    "schema": "public",
+    "lastValue": "95"
+  },
+  {
+    "name": "managetreedatas_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "medical_case_diagnoses_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "medicalcases_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "medicines_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "mk_terms_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "ml_training_embeddings_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "ml_training_logs_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "mmc_medicines_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "module_field_types_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "module_fields_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "modules_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "notes_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "notifications_id_seq",
+    "schema": "public",
+    "lastValue": "20"
+  },
+  {
+    "name": "occupation_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "organizations_id_seq",
+    "schema": "public",
+    "lastValue": "62"
+  },
+  {
+    "name": "otps_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "package_plans_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "packagehistory_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "packages_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "patient_packages_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "patients_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "payments_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "pdf_content_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "pdf_settings_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "pending_appointments_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "permissions_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "potencies1_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "potencies_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "prescriptions_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "procedure_codes_id_seq",
+    "schema": "public",
+    "lastValue": "16"
+  },
+  {
+    "name": "receipt_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "receptionists_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "records_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "reference_types_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "referral_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "referral_sources_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "refrencetype_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "religion_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "remedy_alternatives_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "remedy_tree_nodes_id_seq",
+    "schema": "public",
+    "lastValue": "2317"
+  },
+  {
+    "name": "role_module_fields_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "role_module_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "role_user_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "roles_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "rubric_remedy_map_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "rubric_remid_mapping_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "rubrics_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "scribing_sessions_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "settargets_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "settings_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "sms_reports_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "sms_templates_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "smsreport_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "smstemplate_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "snomed_concepts_id_seq",
+    "schema": "public",
+    "lastValue": "22"
+  },
+  {
+    "name": "soap_notes_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "soap_notes_view_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "staff_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "static_pages_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "staticpages_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "status_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "stickers_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "stocks_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "subdomains_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "token_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "tokens_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "transcript_segments_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "trial_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "unregistered_patients_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "upload_picture_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "uploads_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "users_helloter_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "users_id_seq",
+    "schema": "public",
+    "lastValue": "237"
+  },
+  {
+    "name": "vaccinedatas_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "vitals_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_automations_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_campaign_recipients_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_campaigns_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_channels_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_chatbots_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_contact_groups_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_contacts_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_conversations_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_media_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_messages_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_templates_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_training_data_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "waitingstatus_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "waitlist_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "whatsapp_logs_id_seq",
+    "schema": "public",
+    "lastValue": "1"
+  },
+  {
+    "name": "__drizzle_migrations_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "13"
+  },
+  {
+    "name": "accounts_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "add_reminders_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "additional_charges_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "ai_audit_logs_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "ai_prompts_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "appointment_case_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "appointments_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "216"
+  },
+  {
+    "name": "ask_ques_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "audit_logs_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "backups_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "bank_deposit_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "basic_details_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "bill_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "bill_no_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "bills_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "348"
+  },
+  {
+    "name": "books_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_arthritis_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_cardiac_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_cbc_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_datas_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_diabetes_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_endocrine_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_examination_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_frequency_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "9"
+  },
+  {
+    "name": "case_heights_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_images_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_immunology_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_investigation_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_lipid_profile_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_liver_profile_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_notes_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_potencies1_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_potencies_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_reminder_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "72"
+  },
+  {
+    "name": "case_reminders_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_renal_profile_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_semenanalysis_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_serological_reports_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_specific_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_stool_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_urine_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_usgfemale_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_usgmale_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_vaccins_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_xray_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "cash_deposit_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "charges_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "chats_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "clinicadmins_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "code_mappings_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "communication_details_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "consultations_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "coupon_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "courier_masters_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "3"
+  },
+  {
+    "name": "courier_medicine_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "courier_package_list_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "couriermedicines_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "couriers_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "daily_target_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "daycharges_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "6"
+  },
+  {
+    "name": "departments_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "dictionary_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "diseases_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "dispensaries_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "4"
+  },
+  {
+    "name": "doctor_availability_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "doctors_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "employees_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "expense_heads_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "expenses_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "expenseshead_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "7"
+  },
+  {
+    "name": "familygroup_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "familygroups_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "faqs_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "27"
+  },
+  {
+    "name": "growth_references_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "648"
+  },
+  {
+    "name": "height_weights_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "homeo_details_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "icd_codes_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "investigation_results_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "investigations_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "invoices_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "knex_migrations_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "la_configs_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "la_menus_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "lab_order_items_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "lab_orders_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "lab_panel_loinc_links_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "lab_panels_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "lead_followups_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "lead_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "leads_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "library_resources_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "loinc_codes_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "managetreedatas_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "medical_case_diagnoses_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "medicalcases_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "medicines_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "25"
+  },
+  {
+    "name": "mk_terms_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "ml_training_embeddings_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "ml_training_logs_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "mmc_medicines_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "module_field_types_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "module_fields_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "modules_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "notes_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "notifications_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "occupation_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "organizations_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "otps_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "package_plans_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "3"
+  },
+  {
+    "name": "packagehistory_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "packages_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "patient_packages_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "patients_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "payments_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "pdf_content_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "pdf_settings_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "2"
+  },
+  {
+    "name": "pending_appointments_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "permissions_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "potencies1_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "potencies_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "prescriptions_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "procedure_codes_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "receipt_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "84"
+  },
+  {
+    "name": "receptionists_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "records_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "reference_types_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "referral_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "referral_sources_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "7"
+  },
+  {
+    "name": "refrencetype_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "religion_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "remedy_alternatives_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "36"
+  },
+  {
+    "name": "remedy_tree_nodes_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "187"
+  },
+  {
+    "name": "role_module_fields_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "role_module_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "role_user_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "roles_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "rubric_remedy_map_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "rubric_remid_mapping_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "rubrics_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "scribing_sessions_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "settargets_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "settings_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "sms_reports_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "sms_templates_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "smsreport_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "smstemplate_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "snomed_concepts_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "soap_notes_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "soap_notes_view_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "staff_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "static_pages_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "3"
+  },
+  {
+    "name": "staticpages_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "status_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "stickers_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "4"
+  },
+  {
+    "name": "stocks_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "subdomains_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "token_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "tokens_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "216"
+  },
+  {
+    "name": "transcript_segments_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "trial_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "unregistered_patients_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "upload_picture_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "uploads_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "users_helloter_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "users_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "16"
+  },
+  {
+    "name": "vaccinedatas_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "2215"
+  },
+  {
+    "name": "vitals_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "108"
+  },
+  {
+    "name": "wa_automations_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_campaign_recipients_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_campaigns_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_channels_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_chatbots_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_contact_groups_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_contacts_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_conversations_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_media_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_messages_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_templates_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_training_data_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "waitingstatus_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "waitlist_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "whatsapp_logs_id_seq",
+    "schema": "tenant_chd",
+    "lastValue": "1"
+  },
+  {
+    "name": "__drizzle_migrations_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "13"
+  },
+  {
+    "name": "accounts_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "add_reminders_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "additional_charges_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "9"
+  },
+  {
+    "name": "ai_audit_logs_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "ai_prompts_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "appointment_case_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "appointments_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "338"
+  },
+  {
+    "name": "ask_ques_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "audit_logs_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "backups_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "bank_deposit_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "2"
+  },
+  {
+    "name": "basic_details_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "bill_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "bill_no_seq",
+    "schema": "tenant_demo",
+    "lastValue": "39"
+  },
+  {
+    "name": "bills_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "387"
+  },
+  {
+    "name": "books_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_arthritis_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_cardiac_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_cbc_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_datas_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "6"
+  },
+  {
+    "name": "case_diabetes_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_endocrine_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_examination_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_frequency_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "23"
+  },
+  {
+    "name": "case_heights_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_images_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "19"
+  },
+  {
+    "name": "case_immunology_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_investigation_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_lipid_profile_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_liver_profile_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_notes_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "304"
+  },
+  {
+    "name": "case_potencies1_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_potencies_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "163"
+  },
+  {
+    "name": "case_reminder_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "71"
+  },
+  {
+    "name": "case_reminders_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "4"
+  },
+  {
+    "name": "case_renal_profile_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_semenanalysis_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_serological_reports_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_specific_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_stool_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_urine_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_usgfemale_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_usgmale_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_vaccins_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "23"
+  },
+  {
+    "name": "case_xray_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "cash_deposit_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "charges_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "3"
+  },
+  {
+    "name": "chats_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "clinicadmins_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "code_mappings_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "communication_details_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "consent_records_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "8"
+  },
+  {
+    "name": "consultations_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "coupon_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "courier_masters_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "3"
+  },
+  {
+    "name": "courier_medicine_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "30"
+  },
+  {
+    "name": "courier_package_list_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "couriermedicines_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "couriers_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "daily_target_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "daycharges_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "21"
+  },
+  {
+    "name": "departments_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "5"
+  },
+  {
+    "name": "dictionary_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "8"
+  },
+  {
+    "name": "diseases_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "dispensaries_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "4"
+  },
+  {
+    "name": "doctor_availability_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "doctors_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "4"
+  },
+  {
+    "name": "employees_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "expense_heads_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "expenses_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "2"
+  },
+  {
+    "name": "expenseshead_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "3"
+  },
+  {
+    "name": "familygroup_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "familygroups_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "faqs_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "31"
+  },
+  {
+    "name": "growth_references_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "648"
+  },
+  {
+    "name": "height_weights_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "homeo_details_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "2"
+  },
+  {
+    "name": "icd_codes_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "474"
+  },
+  {
+    "name": "investigation_results_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "investigations_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "12"
+  },
+  {
+    "name": "invoices_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "knex_migrations_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "la_configs_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "la_menus_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "lab_order_items_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "lab_orders_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "lab_panel_loinc_links_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "18"
+  },
+  {
+    "name": "lab_panels_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "16"
+  },
+  {
+    "name": "lead_followups_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "lead_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "leads_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "library_resources_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "loinc_codes_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "190"
+  },
+  {
+    "name": "managetreedatas_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "medical_case_diagnoses_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "medicalcases_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "26"
+  },
+  {
+    "name": "medicines_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "26"
+  },
+  {
+    "name": "mk_terms_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "ml_training_embeddings_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "ml_training_logs_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "mmc_medicines_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "module_field_types_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "module_fields_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "modules_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "notes_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "notifications_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "205"
+  },
+  {
+    "name": "occupation_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "organizations_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "otps_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "package_plans_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "9"
+  },
+  {
+    "name": "packagehistory_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "packages_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "patient_packages_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "15"
+  },
+  {
+    "name": "patients_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "2"
+  },
+  {
+    "name": "payments_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "10"
+  },
+  {
+    "name": "pdf_content_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "pdf_settings_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "11"
+  },
+  {
+    "name": "pending_appointments_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "permissions_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "potencies1_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "potencies_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "27"
+  },
+  {
+    "name": "prescriptions_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "78"
+  },
+  {
+    "name": "procedure_codes_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "32"
+  },
+  {
+    "name": "receipt_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "84"
+  },
+  {
+    "name": "receptionists_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "records_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "reference_types_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "referral_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "referral_sources_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "11"
+  },
+  {
+    "name": "refrencetype_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "religion_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "remedy_alternatives_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "87"
+  },
+  {
+    "name": "remedy_tree_nodes_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "2317"
+  },
+  {
+    "name": "role_module_fields_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "role_module_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "role_user_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "roles_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "rubric_remedy_map_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "rubric_remid_mapping_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "rubrics_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "scribing_sessions_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "settargets_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "settings_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "sms_reports_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "188"
+  },
+  {
+    "name": "sms_templates_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "smsreport_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "smstemplate_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "snomed_concepts_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "7"
+  },
+  {
+    "name": "soap_notes_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "70"
+  },
+  {
+    "name": "soap_notes_view_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "staff_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "static_pages_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "3"
+  },
+  {
+    "name": "staticpages_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "status_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "stickers_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "5"
+  },
+  {
+    "name": "stock_logs_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "4"
+  },
+  {
+    "name": "stocks_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "2239"
+  },
+  {
+    "name": "subdomains_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "token_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "tokens_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "317"
+  },
+  {
+    "name": "transcript_segments_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "trial_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "unregistered_patients_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "14"
+  },
+  {
+    "name": "upload_picture_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "uploads_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "users_helloter_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "users_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "57"
+  },
+  {
+    "name": "vaccinedatas_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "2216"
+  },
+  {
+    "name": "vitals_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "150"
+  },
+  {
+    "name": "wa_automations_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_campaign_recipients_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_campaigns_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "2"
+  },
+  {
+    "name": "wa_channels_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_chatbots_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_contact_groups_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_contacts_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_conversations_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_media_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_messages_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_templates_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_training_data_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "waitingstatus_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "1"
+  },
+  {
+    "name": "waitlist_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "123"
+  },
+  {
+    "name": "whatsapp_logs_id_seq",
+    "schema": "tenant_demo",
+    "lastValue": "23"
+  },
+  {
+    "name": "__drizzle_migrations_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "46"
+  },
+  {
+    "name": "accounts_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "add_reminders_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "additional_charges_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "ai_audit_logs_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "ai_prompts_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "appointment_case_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "appointments_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "216"
+  },
+  {
+    "name": "ask_ques_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "audit_logs_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "backups_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "bank_deposit_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "basic_details_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "bill_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "bill_no_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "bills_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "348"
+  },
+  {
+    "name": "books_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_arthritis_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_cardiac_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_cbc_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_datas_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_diabetes_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_endocrine_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_examination_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_frequency_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "9"
+  },
+  {
+    "name": "case_heights_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_images_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_immunology_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_investigation_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_lipid_profile_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_liver_profile_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_notes_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_potencies1_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_potencies_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_reminder_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "72"
+  },
+  {
+    "name": "case_reminders_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_renal_profile_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_semenanalysis_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_serological_reports_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_specific_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_stool_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_urine_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_usgfemale_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_usgmale_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_vaccins_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "case_xray_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "cash_deposit_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "charges_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "chats_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "clinicadmins_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "code_mappings_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "communication_details_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "consultations_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "coupon_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "courier_masters_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "3"
+  },
+  {
+    "name": "courier_medicine_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "courier_package_list_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "couriermedicines_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "couriers_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "daily_target_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "daycharges_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "6"
+  },
+  {
+    "name": "departments_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "dictionary_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "diseases_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "dispensaries_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "4"
+  },
+  {
+    "name": "doctor_availability_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "doctors_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "employees_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "expense_heads_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "expenses_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "expenseshead_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "7"
+  },
+  {
+    "name": "familygroup_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "familygroups_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "faqs_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "27"
+  },
+  {
+    "name": "growth_references_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "666"
+  },
+  {
+    "name": "height_weights_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "homeo_details_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "icd_codes_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "investigation_results_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "investigations_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "invoices_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "knex_migrations_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "la_configs_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "la_menus_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "lab_order_items_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "lab_orders_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "lab_panel_loinc_links_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "lab_panels_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "lead_followups_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "lead_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "leads_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "library_resources_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "loinc_codes_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "managetreedatas_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "medical_case_diagnoses_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "medicalcases_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "medicines_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "25"
+  },
+  {
+    "name": "mk_terms_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "ml_training_embeddings_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "ml_training_logs_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "mmc_medicines_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "module_field_types_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "module_fields_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "modules_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "notes_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "notifications_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "occupation_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "organizations_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "otps_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "package_plans_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "3"
+  },
+  {
+    "name": "packagehistory_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "packages_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "patient_packages_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "patients_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "payments_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "pdf_content_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "pdf_settings_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "2"
+  },
+  {
+    "name": "pending_appointments_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "permissions_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "potencies1_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "potencies_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "prescriptions_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "procedure_codes_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "receipt_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "84"
+  },
+  {
+    "name": "receptionists_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "records_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "reference_types_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "referral_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "referral_sources_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "7"
+  },
+  {
+    "name": "refrencetype_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "religion_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "remedy_alternatives_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "36"
+  },
+  {
+    "name": "remedy_tree_nodes_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "187"
+  },
+  {
+    "name": "role_module_fields_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "role_module_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "role_user_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "roles_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "rubric_remedy_map_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "rubric_remid_mapping_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "rubrics_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "scribing_sessions_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "settargets_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "settings_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "sms_reports_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "sms_templates_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "smsreport_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "smstemplate_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "snomed_concepts_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "soap_notes_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "soap_notes_view_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "staff_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "static_pages_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "3"
+  },
+  {
+    "name": "staticpages_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "status_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "stickers_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "4"
+  },
+  {
+    "name": "stocks_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "subdomains_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "token_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "tokens_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "216"
+  },
+  {
+    "name": "transcript_segments_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "trial_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "unregistered_patients_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "upload_picture_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "uploads_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "users_helloter_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "users_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "16"
+  },
+  {
+    "name": "vaccinedatas_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "2215"
+  },
+  {
+    "name": "vitals_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "108"
+  },
+  {
+    "name": "wa_automations_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_campaign_recipients_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_campaigns_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_channels_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_chatbots_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_contact_groups_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_contacts_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_conversations_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_media_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_messages_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_templates_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "wa_training_data_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "waitingstatus_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "waitlist_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  },
+  {
+    "name": "whatsapp_logs_id_seq",
+    "schema": "tenant_zirakpur",
+    "lastValue": "1"
+  }
+]

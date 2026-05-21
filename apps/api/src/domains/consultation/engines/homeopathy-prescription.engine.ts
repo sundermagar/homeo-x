@@ -1,4 +1,5 @@
 import { createLogger } from '../../../shared/logger.js';
+import { safeJsonParse } from '../../../shared/safe-json-parse.js';
 import type { AiProviderChain } from '../../../infrastructure/ai/ai-provider-chain.js';
 
 const logger = createLogger('homeopathy-prescription-engine');
@@ -160,27 +161,52 @@ Task:
         responseFormat: 'json',
       });
 
-      const jsonStr = response.content.substring(response.content.indexOf('{'), response.content.lastIndexOf('}') + 1);
-      let parsed = JSON.parse(jsonStr || response.content);
-      
-      if (!parsed.suggestedRemedies || !Array.isArray(parsed.suggestedRemedies)) {
-        parsed.suggestedRemedies = [{
-          remedyName: topRemedy?.remedyName || '',
-          potency: parsed.potency || '30C',
-          dosage: parsed.dosage || '2 pills/day'
-        }];
-        
-        otherCandidates.forEach((c: any) => {
-          parsed.suggestedRemedies.push({
-            remedyName: c.remedyName,
-            potency: '30C',
-            dosage: '2 pills/day'
-          });
-        });
+      let parsed: any = safeJsonParse(response.content);
+      if (!parsed) {
+        logger.error({ tenantId, contentPreview: response.content.slice(0, 300) }, 'Homeopathy prescription: JSON unrecoverable even after repair');
+        throw new Error('Prescription engine returned unparseable JSON');
       }
 
-      if (!parsed.suggestedRemedy && topRemedy?.remedyName) {
-        parsed.suggestedRemedy = topRemedy.remedyName;
+      // Strip any empty-name entries the LLM emitted (happens when it returned
+      // `suggestedRemedy` as a string but generated stub objects in the array).
+      if (Array.isArray(parsed.suggestedRemedies)) {
+        parsed.suggestedRemedies = parsed.suggestedRemedies.filter(
+          (r: any) => r && typeof r.remedyName === 'string' && r.remedyName.trim().length > 0
+        );
+      }
+
+      // Backfill `suggestedRemedies` when the LLM only returned `suggestedRemedy`
+      // as a string. Prefer the LLM's chosen remedy name first; fall back to the
+      // repertorization top match only if the LLM didn't pick anything. Without
+      // this, when Phase 4 fails (no rubrics → no scoredRemedies), the array gets
+      // built with an empty remedyName and the prescription UI renders blank.
+      if (!Array.isArray(parsed.suggestedRemedies) || parsed.suggestedRemedies.length === 0) {
+        const primaryName = (typeof parsed.suggestedRemedy === 'string' && parsed.suggestedRemedy.trim())
+          || topRemedy?.remedyName
+          || '';
+
+        parsed.suggestedRemedies = [];
+        if (primaryName) {
+          parsed.suggestedRemedies.push({
+            remedyName: primaryName,
+            potency: parsed.potency || '30C',
+            dosage: parsed.dosage || '2 pills/day',
+          });
+        }
+
+        for (const c of otherCandidates) {
+          if (c?.remedyName && c.remedyName !== primaryName) {
+            parsed.suggestedRemedies.push({
+              remedyName: c.remedyName,
+              potency: '30C',
+              dosage: '2 pills/day',
+            });
+          }
+        }
+      }
+
+      if (!parsed.suggestedRemedy) {
+        parsed.suggestedRemedy = parsed.suggestedRemedies[0]?.remedyName || topRemedy?.remedyName || '';
       }
 
       logger.info({ tenantId, primaryRemedy: parsed.suggestedRemedy, hasGnm: !!parsed.gnmAnalysis }, 'Homeopathy prescription drafted');

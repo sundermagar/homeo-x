@@ -222,6 +222,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
           )`,
           referedBy: schema.patients.referedBy,
           consultationFee: schema.patients.consultationFee,
+          registeredAt: schema.patients.createdAt,
         })
         .from(schema.medicalCases)
         .leftJoin(schema.patients, eq(schema.medicalCases.regid, schema.patients.regid))
@@ -281,6 +282,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
           doctorName: patient.doctorName || '—',
           referedBy: patient.referedBy,
           consultationFee: patient.consultationFee,
+          registeredAt: (patient as any).createdAt,
         } as any;
       }
 
@@ -350,10 +352,10 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
           .orderBy(desc(schema.legacySoapNotes.id)),
 
         this.getHomeoDetails(regid),
-        this.db.select().from(schema.caseNotes).where(eq(schema.caseNotes.regid, regid)).orderBy(desc(schema.caseNotes.createdAt)),
-        this.db.select().from(schema.caseExamination).where(eq(schema.caseExamination.regid, regid)),
+        this.db.select().from(schema.caseNotes).where(and(eq(schema.caseNotes.regid, regid), isNull(schema.caseNotes.deletedAt))).orderBy(desc(schema.caseNotes.createdAt)),
+        this.db.select().from(schema.caseExamination).where(and(eq(schema.caseExamination.regid, regid), isNull(schema.caseExamination.deletedAt))),
         this.db.select().from(schema.caseImages).where(and(eq(schema.caseImages.regid, regid), isNull(schema.caseImages.deletedAt))),
-        this.db.select().from(schema.investigations).where(eq(schema.investigations.regid, regid)),
+        this.db.select().from(schema.investigations).where(and(eq(schema.investigations.regid, regid), isNull(schema.investigations.deletedAt))),
 
         // Legacy Prescriptions: Detailed fetch with joins
         this.db
@@ -582,9 +584,34 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
   }
 
   async saveSoapNotes(data: Partial<SoapNotes>): Promise<void> {
+    const toClinicDateString = (date: Date | string | null | undefined): string | null => {
+      if (!date) return null;
+      const d = typeof date === 'string' ? new Date(date) : date;
+      if (isNaN(d.getTime())) return null;
+      try {
+        return new Intl.DateTimeFormat('en-CA', {
+          timeZone: 'Asia/Kolkata',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        }).format(d);
+      } catch (e) {
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      }
+    };
+
     try {
+      // Self-healing: Safely drop incorrect unique constraint soap_notes_visit_id_unique if it exists in the tenant's schema
+      await this.db.execute(sql`ALTER TABLE soap_notes DROP CONSTRAINT IF EXISTS soap_notes_visit_id_unique;`).catch((dropErr: any) => {
+        console.warn('[MedicalCaseRepositoryPg] Failed to drop soap_notes_visit_id_unique constraint:', dropErr.message);
+      });
+
       if (data.id) {
-        await this.db
+        // Explicit update by ID
+        const result = await this.db
           .update(schema.legacySoapNotes)
           .set({
             subjective: data.subjective,
@@ -596,22 +623,58 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
             icdCodes: data.icdCodes,
             updatedAt: new Date(),
           })
-          .where(eq(schema.legacySoapNotes.id, data.id));
+          .where(eq(schema.legacySoapNotes.id, Number(data.id)));
       } else {
-        await this.db
-          .insert(schema.legacySoapNotes)
-          .values({
-            regid: (data as any).regid,
-            visitId: data.visitId!,
-            subjective: data.subjective,
-            objective: data.objective,
-            assessment: data.assessment,
-            plan: data.plan,
-            advice: data.advice,
-            followUp: data.followUp,
-            icdCodes: data.icdCodes,
-            createdAt: new Date(),
-          });
+        // Find existing rows for this visitId
+        const existingRows = (data.visitId !== undefined && data.visitId !== null)
+          ? await this.db
+              .select({ 
+                id: schema.legacySoapNotes.id,
+                createdAt: schema.legacySoapNotes.createdAt
+              })
+              .from(schema.legacySoapNotes)
+              .where(eq(schema.legacySoapNotes.visitId, data.visitId!))
+          : [];
+
+        // Check if there is an existing SOAP note for this visit on the SAME day
+        const targetDate = data.createdAt ? new Date(data.createdAt) : new Date();
+        const targetStr = toClinicDateString(targetDate);
+        const existing = existingRows.find(row => {
+          const rowDate = row.createdAt ? new Date(row.createdAt) : null;
+          return rowDate && toClinicDateString(rowDate) === targetStr;
+        });
+
+        if (existing) {
+          // Update the existing row instead of inserting a duplicate
+          await this.db
+            .update(schema.legacySoapNotes)
+            .set({
+              subjective: data.subjective,
+              objective: data.objective,
+              assessment: data.assessment,
+              plan: data.plan,
+              advice: data.advice,
+              followUp: data.followUp,
+              icdCodes: data.icdCodes,
+              updatedAt: new Date(),
+            })
+            .where(eq(schema.legacySoapNotes.id, existing.id));
+        } else {
+          await this.db
+            .insert(schema.legacySoapNotes)
+            .values({
+              regid: (data as any).regid,
+              visitId: data.visitId!,
+              subjective: data.subjective,
+              objective: data.objective,
+              assessment: data.assessment,
+              plan: data.plan,
+              advice: data.advice,
+              followUp: data.followUp,
+              icdCodes: data.icdCodes,
+              createdAt: (data as any).createdAt ? new Date((data as any).createdAt) : new Date(),
+            });
+        }
       }
     } catch (err: any) {
       console.error('💥 [MedicalCaseRepositoryPg] Error in saveSoapNotes:', err);

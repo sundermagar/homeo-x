@@ -150,7 +150,7 @@ export function useSavePrescription() {
   });
 }
 
-/** Soft-delete a prescription row */
+/** Soft-delete a prescription row (cascades related data if last for that date) */
 export function useDeletePrescription(regid: number) {
   const qc = useQueryClient();
   return useMutation({
@@ -158,6 +158,8 @@ export function useDeletePrescription(regid: number) {
       apiClient.delete(`/medical-cases/remedy-chart/${id}`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['remedy-chart', 'prescriptions', regid] });
+      // Also refresh the full case data since cascade may have deleted SOAP, notes, images etc.
+      qc.invalidateQueries({ queryKey: ['medical-case', 'full', regid] });
     },
   });
 }

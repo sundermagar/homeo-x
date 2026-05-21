@@ -96,7 +96,7 @@ export class NodemailerServiceAdapter implements EmailService {
         <div style="background-color: #f8fafc; padding: 40px 20px; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
           <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
             <div style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); padding: 30px; text-align: center;">
-              <h1 style="color: white; margin: 0; font-size: 24px; letter-spacing: -0.02em; font-weight: 800;">Kreed<span style="color: rgba(255,255,255,0.7)">.health</span></h1>
+              <h1 style="color: white; margin: 0; font-size: 24px; letter-spacing: -0.02em; font-weight: 800;">MMC</h1>
             </div>
             <div style="padding: 40px; color: #1e293b; line-height: 1.6;">
               <h2 style="margin-top: 0; color: #0f172a; font-size: 20px; font-weight: 700;">${title}</h2>

@@ -18,6 +18,7 @@ import { sql, eq, and } from 'drizzle-orm';
 import * as schema from '@mmc/database/schema';
 import { sendSuccess } from '../../../shared/response-formatter.js';
 import { createLogger } from '../../../shared/logger.js';
+import { mlTrainingLogger } from '../../../domains/consultation/services/ml-training-logger.service.js';
 
 const logger = createLogger('consultations-router');
 
@@ -94,6 +95,45 @@ consultationsRouter.post('/start', async (req: Request, res: Response, next: Nex
       .update(schema.appointments)
       .set({ status: 'Consultation', updatedAt: new Date() })
       .where(eq(schema.appointments.id, visitId));
+
+    // Log patient context to ML training log
+    if (appt.patientId) {
+      try {
+        const [patient] = await db
+          .select()
+          .from(schema.patients)
+          .where(eq(schema.patients.id, appt.patientId))
+          .limit(1);
+
+        if (patient) {
+          // Compute age from DOB
+          const dob = (patient as any).dob;
+          let age: number | null = null;
+          if (dob) {
+            const birthDate = new Date(dob);
+            const today = new Date();
+            age = today.getFullYear() - birthDate.getFullYear();
+            const monthDiff = today.getMonth() - birthDate.getMonth();
+            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+              age--;
+            }
+          }
+
+          const tenantSlug = (req as any).tenantSlug || (req as any).tenantId || 'default';
+          mlTrainingLogger.logPhase(tenantSlug, String(visitId), {
+            consultationMode: (appt.visitType || 'acute').toLowerCase(),
+            patientContext: {
+              age,
+              gender: (patient as any).gender ?? null,
+              visitType: appt.visitType,
+              constitutionType: (patient as any).constitutionType ?? null,
+            },
+          });
+        }
+      } catch (ctxErr: any) {
+        logger.warn({ visitId, err: ctxErr?.message }, 'Could not log patient context — non-fatal');
+      }
+    }
 
     logger.info({ tenantSlug: req.tenantSlug, visitId }, 'Consultation started');
 
@@ -310,6 +350,43 @@ consultationsRouter.post('/complete', async (req: Request, res: Response, next: 
       }
     });
 
+    // Self-healing: backfill regid on any orphaned soap_notes rows from previous consultations.
+    // This is idempotent and non-fatal — ensures historical SOAP notes show in case history.
+    try {
+      await db.execute(sql`
+        UPDATE soap_notes sn
+           SET regid = a.patient_id
+          FROM appointments a
+         WHERE sn.visit_id = a.id
+           AND sn.regid IS NULL
+           AND a.patient_id IS NOT NULL
+      `);
+    } catch (backfillErr: any) {
+      logger.warn({ err: backfillErr?.message }, 'SOAP regid backfill — non-fatal');
+    }
+
+    // ML Training Log: Update with final ground-truth remedy when prescription is saved
+    const rxItems = savedPrescription?.items?.length
+      ? savedPrescription.items
+      : (req.body?.prescription?.items || []);
+
+    if (rxItems.length > 0) {
+      // Normalize remedy data for consistent storage
+      const normalizedRemedies = rxItems.map((item: any) => ({
+        remedyName: item.remedy || item.medicationName || item.name || '',
+        potency: item.potency || item.specialtyData?.potency || item.dosage || '',
+        frequency: item.frequency || '',
+        duration: item.duration || '',
+        instructions: item.instructions || '',
+      }));
+
+      logger.info({ visitId, remedyCount: normalizedRemedies.length, remedies: normalizedRemedies }, '💊 Logging doctor final remedy');
+
+      mlTrainingLogger.logPhase((req as any).tenantSlug || (req as any).tenantId || 'default', String(visitId), {
+        doctorFinalRemedy: normalizedRemedies,
+      });
+    }
+
     logger.info(
       { tenantSlug: req.tenantSlug, visitId, soapId: savedSoap?.id, rxItems: savedPrescription?.items?.length ?? 0 },
       'Consultation completed',
@@ -374,13 +451,13 @@ consultationsRouter.get('/:visitId/summary', async (req: Request, res: Response,
 
     const doctorOut = doctor
       ? {
-          id: String(doctor.id),
-          firstName: (doctor as any).firstname ?? (doctor.name ?? '').split(' ')[0] ?? '',
-          lastName: (doctor as any).surname ?? (doctor.name ?? '').split(' ').slice(1).join(' ') ?? '',
-          email: doctor.email,
-          qualifications: (doctor as any).qualification ?? null,
-          specialization: (doctor as any).designation ?? null,
-        }
+        id: String(doctor.id),
+        firstName: (doctor as any).firstname ?? (doctor.name ?? '').split(' ')[0] ?? '',
+        lastName: (doctor as any).surname ?? (doctor.name ?? '').split(' ').slice(1).join(' ') ?? '',
+        email: doctor.email,
+        qualifications: (doctor as any).qualification ?? null,
+        specialization: (doctor as any).designation ?? null,
+      }
       : null;
 
     sendSuccess(res, {

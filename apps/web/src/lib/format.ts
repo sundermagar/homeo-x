@@ -32,8 +32,10 @@ export function getInitials(firstName: string, lastName: string): string {
   return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
 }
 
-export function calculateAge(dateOfBirth: string | Date): number {
+export function calculateAge(dateOfBirth: string | Date | undefined | null): number | undefined {
+  if (!dateOfBirth) return undefined;
   const dob = new Date(dateOfBirth);
+  if (isNaN(dob.getTime())) return undefined;
   const today = new Date();
   let age = today.getFullYear() - dob.getFullYear();
   const monthDiff = today.getMonth() - dob.getMonth();

@@ -69,26 +69,13 @@ export class BillingRepositoryPg implements BillingRepository {
   }
 
   async findByRegid(regid: number): Promise<PatientBillSummary> {
-    const [modernRows, legacyRows] = await Promise.all([
-      this.db
-        .select()
-        .from(bills)
-        .where(and(eq(bills.regid, regid), isNull(bills.deletedAt)))
-        .orderBy(desc(bills.id)),
-      this.db
-        .select()
-        .from(schema.billLegacy)
-        .where(and(
-          eq(schema.billLegacy.regid, regid), 
-          sql`(${schema.billLegacy.deletedAt} IS NULL OR CAST(${schema.billLegacy.deletedAt} AS text) = '')`
-        ))
-        .orderBy(desc(schema.billLegacy.id))
-    ]);
+    const modernRows = await this.db
+      .select()
+      .from(bills)
+      .where(and(eq(bills.regid, regid), isNull(bills.deletedAt)))
+      .orderBy(desc(bills.id));
 
-    const allBills = [
-      ...modernRows.map(this.toDomain.bind(this)),
-      ...legacyRows.map(this.toLegacyDomain.bind(this))
-    ].sort((a, b) => (b.id || 0) - (a.id || 0));
+    const allBills = modernRows.map(this.toDomain.bind(this)).sort((a, b) => (b.id || 0) - (a.id || 0));
 
     const totalCharges = allBills.reduce((s, r) => s + (r.charges ?? 0), 0);
     const totalReceived = allBills.reduce((s, r) => s + (r.received ?? 0), 0);
@@ -183,24 +170,6 @@ export class BillingRepositoryPg implements BillingRepository {
       return row ? this.toDomain(row) : null;
     }
 
-    // Try legacy bill table
-    const [legacyExisting] = await this.db.select().from(schema.billLegacy).where(eq(schema.billLegacy.id, id)).limit(1);
-    if (legacyExisting) {
-      const newReceived = (legacyExisting.received ?? 0) + amount;
-      const newBalance = (legacyExisting.charges ?? 0) - newReceived;
-      const [row] = await this.db
-        .update(schema.billLegacy)
-        .set({ 
-          received: newReceived, 
-          Balance: newBalance, // Capital B in legacy
-          paymentMode: paymentMode,
-          updatedAt: new Date() 
-        })
-        .where(eq(schema.billLegacy.id, id))
-        .returning();
-      return row ? this.toLegacyDomain(row) : null;
-    }
-
     return null;
   }
 
@@ -215,22 +184,6 @@ export class BillingRepositoryPg implements BillingRepository {
         .where(eq(bills.id, id))
         .returning();
       return row ? this.toDomain(row) : null;
-    }
-
-    // Try legacy bill table
-    const [legacyExisting] = await this.db.select().from(schema.billLegacy).where(eq(schema.billLegacy.id, id)).limit(1);
-    if (legacyExisting) {
-      const newBalance = amount - (legacyExisting.received ?? 0);
-      const [row] = await this.db
-        .update(schema.billLegacy)
-        .set({ 
-          charges: amount, 
-          Balance: newBalance, // Capital B in legacy
-          updatedAt: new Date() 
-        })
-        .where(eq(schema.billLegacy.id, id))
-        .returning();
-      return row ? this.toLegacyDomain(row) : null;
     }
 
     return null;

@@ -44,6 +44,7 @@ interface PrintPrescriptionButtonProps {
       startedAt?: string;
       completedAt?: string;
       checkedInAt?: string;
+      createdAt?: string;
     };
     patient?: {
       firstName?: string;

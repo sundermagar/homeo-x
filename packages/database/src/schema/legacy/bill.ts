@@ -1,6 +1,6 @@
 import { pgTable, integer, text, timestamp } from "drizzle-orm/pg-core";
 
-export const billLegacy = pgTable("bill", {
+export const billLegacy = pgTable("bills", {
   id: integer("id").notNull(),
   regid: integer("regid"),
   randId: text("rand_id"),

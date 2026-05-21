@@ -4,6 +4,7 @@
 // This is the single dependency that all AI engines receive.
 
 import { createLogger } from '../../shared/logger.js';
+import { OllamaAdapter } from './ollama.adapter.js';
 import { GeminiAdapter } from './gemini.adapter.js';
 import { GroqAdapter } from './groq.adapter.js';
 import { AnthropicAdapter } from './anthropic.adapter.js';
@@ -24,24 +25,25 @@ export class AiProviderChain {
 
   constructor() {
     const defaultModel = process.env.AI_MODEL || 'claude-haiku-4-5';
-    
-    this.providers = [
-      // Primary: Anthropic Claude (Premium Quality)
-      new AnthropicAdapter(defaultModel, 1000),
 
-      // Secondary: Groq (Verified Working, Ultra Fast Fallback)
+    this.providers = [
+      // Primary: Groq (Ultra-Fast, Stable)
       new GroqAdapter('llama-3.3-70b-versatile', 1000),
       new GroqAdapter('llama-3.1-8b-instant', 14400),
+      new GroqAdapter('meta-llama/llama-4-scout-17b-16e-instruct', 1000),
 
-      // Tertiary: Gemini (Scalable Fallback)
-      new GeminiAdapter('gemini-1.5-flash', 1500),
+      // Fallback: Local Ollama
+      new OllamaAdapter('qwen2.5:1.5b'),
+
+      // Secondary: Anthropic Claude & Gemini (Scale/Quality)
+      new AnthropicAdapter(defaultModel, 1000),
       new GeminiAdapter('gemini-2.0-flash', 1500),
-      new GeminiAdapter('gemini-1.5-flash-8b', 2000),
+      new GeminiAdapter('gemini-1.5-flash', 1500),
     ];
 
     const available = this.providers.filter(p => {
       // Check synchronously by examining the adapter's internal state
-      return (p as any).hasKey === true || (p as any).genAIs?.length > 0 || (p as any).clients?.length > 0;
+      return (p as any).hasKey === true || (p as any).genAIs?.length > 0 || (p as any).clients?.length > 0 || p.name === 'ollama';
     });
     logger.info(`AI Provider Chain: ${available.length}/${this.providers.length} providers initialized`);
   }
@@ -57,12 +59,30 @@ export class AiProviderChain {
       }
     }
 
+    const errors: string[] = [];
+
+    // ── Filter providers if preferred provider is specified ──
+    let activeProviders = this.providers;
+    if (request.preferredProvider) {
+      activeProviders = this.providers.filter(p => p.name.toLowerCase() === request.preferredProvider?.toLowerCase());
+    }
+
     // ── Failover chain ──
-    for (const provider of this.providers) {
+    for (const provider of activeProviders) {
       const available = await provider.isAvailable();
       if (!available) {
         logger.warn(`Provider ${provider.name}/${provider.model} unavailable, skipping`);
+        errors.push(`${provider.name}/${provider.model}: Not available/Keys missing`);
         continue;
+      }
+
+      if (request.documents && request.documents.length > 0 && provider.name === 'groq') {
+        const isVisionModel = provider.model.toLowerCase().includes('vision') || provider.model.toLowerCase().includes('scout');
+        if (!isVisionModel) {
+          logger.warn(`Provider ${provider.name}/${provider.model} does not support image documents, skipping`);
+          errors.push(`${provider.name}/${provider.model}: Skipped (does not support images)`);
+          continue;
+        }
       }
 
       try {
@@ -82,11 +102,12 @@ export class AiProviderChain {
         return response;
       } catch (error: any) {
         logger.error({ err: error, errMsg: error.message }, `Provider ${provider.name}/${provider.model} failed`);
+        errors.push(`${provider.name}/${provider.model}: ${error.message}`);
         continue;
       }
     }
 
-    throw new Error('All AI providers exhausted or rate limited. Check server logs for exact API errors (401 invalid key, 429 quota, etc).');
+    throw new Error(`All AI providers exhausted. Details: ${errors.join(' | ')}`);
   }
 
   getProviders(): AiProviderPort[] {

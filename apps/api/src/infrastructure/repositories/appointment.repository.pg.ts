@@ -308,7 +308,7 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
         OR REPLACE(LOWER(TRIM((SELECT name FROM users WHERE id = ${doctorId}))), 'dr. ', '') IN (
           SELECT REPLACE(LOWER(TRIM(name)), 'dr. ', '') FROM doctors WHERE id = ${schema.appointments.doctorId}
           UNION SELECT REPLACE(LOWER(TRIM(name)), 'dr. ', '') FROM users WHERE id = ${schema.appointments.doctorId}
-          UNION SELECT REPLACE(LOWER(TRIM(assitant_doctor)), 'dr. ', '') FROM case_datas WHERE id = ${schema.appointments.patientId}
+          UNION SELECT REPLACE(LOWER(TRIM(assistant_doctor)), 'dr. ', '') FROM case_datas WHERE id = ${schema.appointments.patientId}
         )
       )`);
     }
@@ -319,9 +319,9 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
         doctorName: sql<string>`COALESCE(
           (SELECT name FROM doctors WHERE id = ${schema.appointments.doctorId}), 
           (SELECT name FROM users WHERE id = ${schema.appointments.doctorId}), 
-          (SELECT name FROM users WHERE id::text = (SELECT assitant_doctor FROM case_datas WHERE id = ${schema.appointments.patientId})),
-          (SELECT name FROM doctors WHERE id::text = (SELECT assitant_doctor FROM case_datas WHERE id = ${schema.appointments.patientId})),
-          (SELECT assitant_doctor FROM case_datas WHERE id = ${schema.appointments.patientId}),
+          (SELECT name FROM users WHERE id::text = (SELECT assistant_doctor FROM case_datas WHERE id = ${schema.appointments.patientId})),
+          (SELECT name FROM doctors WHERE id::text = (SELECT assistant_doctor FROM case_datas WHERE id = ${schema.appointments.patientId})),
+          (SELECT assistant_doctor FROM case_datas WHERE id = ${schema.appointments.patientId}),
           'Practitioner'
         )`,
         packageName: sql<string>`(

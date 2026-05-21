@@ -12,7 +12,7 @@
  * Safe to re-run. Does NOT delete any data.
  */
 
-import { createDbClient, TenantRegistry } from '@mmc/database';
+import { createDbClient, TenantRegistry } from '../index.js';
 import { sql } from 'drizzle-orm';
 import dotenv from 'dotenv';
 import path from 'path';

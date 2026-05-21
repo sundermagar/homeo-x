@@ -10,7 +10,7 @@ import type { GnmAnalysis } from '../../../../types/ai';
 import type { TranscriptSegmentLocal, SpeakerLabel } from '../../../../types/scribing';
 import { useModeQuestions } from '../../hooks/use-mode-questions';
 import { useSymptomExtraction } from '../../hooks/use-symptom-extraction';
-import { Zap, RefreshCw, ClipboardList, Brain, Heart, Search, Star, Volume2, Mic, X, Trash2 } from 'lucide-react';
+import { Zap, RefreshCw, ClipboardList, Brain, Heart, Search, Star, Volume2, Mic, X, Trash2, Check } from 'lucide-react';
 import { io, type Socket } from 'socket.io-client';
 import { toast } from '../../../../hooks/use-toast';
 import { ROUTES } from '../../../../lib/constants';
@@ -83,6 +83,7 @@ export function ConsultationStage({
   const [_ongoingTranscript, _setOngoingTranscript] = useState('');
   const [patientAnswer, setPatientAnswer] = useState('');
   const [isListeningForAnswer, setIsListeningForAnswer] = useState(false);
+  const [selectedOptionsMap, setSelectedOptionsMap] = useState<Record<string, string[]>>({});
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Lab report context — updated from AICaptureModule render prop
@@ -129,6 +130,8 @@ export function ConsultationStage({
 
   // --- Video-call socket for sending questions to patient screen ---
   const vcSocketRef = useRef<Socket | null>(null);
+  const injectAnswerRef = useRef<((answerText: string, forQuestion?: string) => void) | null>(null);
+
   useEffect(() => {
     if (callMode === 'IN_PERSON') return;
     const baseUrl = import.meta.env['VITE_API_URL'] || window.location.origin;
@@ -137,6 +140,12 @@ export function ConsultationStage({
     });
     socket.on('connect', () => {
       socket.emit('call:join', { visitId, speaker: 'DOCTOR' });
+    });
+    socket.on('call:answer', (data: { question: string; answer: string }) => {
+      console.log('[VIDEO-CALL] Received patient answer:', data);
+      if (injectAnswerRef.current) {
+        injectAnswerRef.current(data.answer, data.question);
+      }
     });
     vcSocketRef.current = socket;
     return () => {
@@ -393,6 +402,7 @@ export function ConsultationStage({
       const genAtDispatch = clearGenerationRef.current;
       symptomExtraction.mutate(
         {
+          visitId,
           consultationMode,
           question: questionText,
           answer: answerText,
@@ -471,32 +481,40 @@ export function ConsultationStage({
   });
 
   // Inject a question into the transcript
-  const injectQuestion = useCallback((questionText: string, questionId?: string) => {
+  const injectQuestion = useCallback((questionText: string, options?: string[], questionId?: string) => {
     setAnsweredQuestions(prev => [...prev, questionText]);
     lastQuestionRef.current = questionText;
-    const segment: TranscriptSegmentLocal = {
-      sequenceNumber: nextSeqRef.current++,
-      text: questionText,
-      translatedText: questionText,
-      speaker: 'DOCTOR',
-      confidence: 1.0,
-      startTimeMs: 0,
-      endTimeMs: 0,
-      isFinal: true,
-      timestamp: Date.now(),
-    };
-    setSegments(prev => {
-      const updated = [...prev, segment];
-      const fullText = updated
-        .map(s => `${s.speaker === 'DOCTOR' ? 'Doctor' : 'Patient'}: ${s.translatedText || s.text}`)
-        .join('\n');
-      setTimeout(() => onTranscriptUpdate?.(fullText), 0);
-      return updated;
-    });
+
+    const isRemote = callMode !== 'IN_PERSON';
+
+    // In remote mode (AUDIO/VIDEO), DON'T add the question to the transcript yet.
+    // It will be injected as a Q-A pair when the patient's answer arrives,
+    // keeping DR:Q1 → PT:A1 → DR:Q2 → PT:A2 ordering.
+    if (!isRemote) {
+      const segment: TranscriptSegmentLocal = {
+        sequenceNumber: nextSeqRef.current++,
+        text: questionText,
+        translatedText: questionText,
+        speaker: 'DOCTOR',
+        confidence: 1.0,
+        startTimeMs: 0,
+        endTimeMs: 0,
+        isFinal: true,
+        timestamp: Date.now(),
+      };
+      setSegments(prev => {
+        const updated = [...prev, segment];
+        const fullText = updated
+          .map(s => `${s.speaker === 'DOCTOR' ? 'Doctor' : 'Patient'}: ${s.translatedText || s.text}`)
+          .join('\n');
+        setTimeout(() => onTranscriptUpdate?.(fullText), 0);
+        return updated;
+      });
+    }
 
     // Send question to patient's screen via WebSocket (AUDIO/VIDEO only)
     if (vcSocketRef.current?.connected) {
-      vcSocketRef.current.emit('call:send-question', { visitId, question: questionText });
+      vcSocketRef.current.emit('call:send-question', { visitId, question: questionText, options });
     }
 
     // In IN_PERSON mode, auto-enable "Listen for answer" so the next audio the
@@ -511,12 +529,33 @@ export function ConsultationStage({
   }, [onTranscriptUpdate, visitId, callMode]);
 
   // Submit patient answer directly to transcript — then extract symptoms from this Q&A pair
-  const injectAnswer = useCallback((answerText: string) => {
+  // forQuestion: optional question text passed from remote call:answer events to pair Q-A together
+  const injectAnswer = useCallback((answerText: string, forQuestion?: string) => {
     if (!answerText.trim()) return;
-    const questionText = lastQuestionRef.current || 'General question';
 
-    // Add answer to transcript
-    const segment: TranscriptSegmentLocal = {
+    const newSegments: TranscriptSegmentLocal[] = [];
+
+    // If a specific question was provided (from remote patient answer), inject the
+    // question segment first so the transcript reads DR:Q → PT:A in order.
+    if (forQuestion) {
+      lastQuestionRef.current = forQuestion;
+      newSegments.push({
+        sequenceNumber: nextSeqRef.current++,
+        text: forQuestion,
+        translatedText: forQuestion,
+        speaker: 'DOCTOR',
+        confidence: 1.0,
+        startTimeMs: 0,
+        endTimeMs: 0,
+        isFinal: true,
+        timestamp: Date.now(),
+      });
+      setAnsweredQuestions(prev => prev.includes(forQuestion) ? prev : [...prev, forQuestion]);
+    }
+
+    const questionText = forQuestion || lastQuestionRef.current || 'General question';
+
+    const answerSegment: TranscriptSegmentLocal = {
       sequenceNumber: nextSeqRef.current++,
       text: answerText,
       translatedText: answerText,
@@ -527,8 +566,10 @@ export function ConsultationStage({
       isFinal: true,
       timestamp: Date.now(),
     };
+    newSegments.push(answerSegment);
+
     setSegments(prev => {
-      const updated = [...prev, segment];
+      const updated = [...prev, ...newSegments];
       const fullText = updated
         .map(s => `${s.speaker === 'DOCTOR' ? 'Doctor' : 'Patient'}: ${s.translatedText || s.text}`)
         .join('\n');
@@ -542,6 +583,7 @@ export function ConsultationStage({
     const genAtDispatch = clearGenerationRef.current;
     symptomExtraction.mutate(
       {
+        visitId,
         consultationMode,
         question: questionText,
         answer: finalAnswerText,
@@ -667,6 +709,7 @@ export function ConsultationStage({
               const genAtDispatch = clearGenerationRef.current;
               symptomExtraction.mutate(
                 {
+                  visitId,
                   consultationMode,
                   question: '__LAB_REPORT_ANALYSIS__',
                   answer: `Lab report "${filename}" attached — extract rubrics from abnormal findings only.`,
@@ -792,7 +835,7 @@ export function ConsultationStage({
                   <div key={q.id} className="flex flex-col gap-1">
                     <button
                       type="button"
-                      onClick={() => injectQuestion(q.question, q.id)}
+                      onClick={() => injectQuestion(q.question, q.options, q.id)}
                       className="group flex items-start gap-3 p-3 rounded-md bg-white border border-[#E3E2DF] hover:border-[#BFDBFE] hover:bg-[#EFF6FF] transition-colors text-left"
                     >
                       <Star className={cn("h-4 w-4 mt-0.5 shrink-0 transition-colors", q.isLive ? "text-amber-500" : "text-[#2563EB] opacity-70 group-hover:opacity-100")} />
@@ -811,23 +854,55 @@ export function ConsultationStage({
                       <ArrowRight className="h-4 w-4 text-[#888786] group-hover:text-[#2563EB] mt-0.5 shrink-0 ml-auto transition-transform group-hover:translate-x-1" />
                     </button>
                     
-                    {q.options && q.options.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 ml-6 mb-2">
-                        {q.options.map((opt: string, idx: number) => (
-                          <button
-                            key={idx}
-                            onClick={() => {
-                              injectQuestion(q.question, q.id);
-                              // Add a small delay so the answer appears after the question
-                              setTimeout(() => injectAnswer(opt), 300);
-                            }}
-                            className="px-2 py-1 text-[11px] font-bold bg-[#FAFAF8] border border-[#E3E2DF] rounded-[4px] text-[#4A4A47] hover:border-[#2563EB] hover:text-[#2563EB] transition-colors"
-                          >
-                            {opt}
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                    {q.options && q.options.length > 0 && (() => {
+                      const selectedOptions = selectedOptionsMap[q.question] || [];
+                      return (
+                        <div className="flex flex-wrap items-center gap-1.5 ml-6 mb-2">
+                          {q.options.map((opt: string, idx: number) => {
+                            const isSelected = selectedOptions.includes(opt);
+                            return (
+                              <button
+                                key={idx}
+                                onClick={() => {
+                                  setSelectedOptionsMap(prev => {
+                                    const current = prev[q.question] || [];
+                                    const next = current.includes(opt)
+                                      ? current.filter(o => o !== opt)
+                                      : [...current, opt];
+                                    return { ...prev, [q.question]: next };
+                                  });
+                                }}
+                                className={cn(
+                                  "px-2 py-1 text-[11px] font-bold border rounded-[4px] transition-all",
+                                  isSelected
+                                    ? "bg-[#2563EB] text-white border-[#2563EB] shadow-sm scale-95"
+                                    : "bg-[#FAFAF8] border-[#E3E2DF] text-[#4A4A47] hover:border-[#2563EB] hover:text-[#2563EB]"
+                                )}
+                              >
+                                {opt}
+                              </button>
+                            );
+                          })}
+                          {selectedOptions.length > 0 && (
+                            <button
+                              onClick={() => {
+                                injectQuestion(q.question, q.id);
+                                setTimeout(() => injectAnswer(selectedOptions.join(', ')), 300);
+                                // Clear selection for this question
+                                setSelectedOptionsMap(prev => {
+                                  const next = { ...prev };
+                                  delete next[q.question];
+                                  return next;
+                                });
+                              }}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold bg-[#2563EB] text-white border border-[#2563EB] rounded-[4px] hover:bg-[#1D4ED8] transition-colors uppercase tracking-wider shadow-sm ml-2"
+                            >
+                              <Check className="h-3 w-3" /> Submit
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 ))}
               </div>

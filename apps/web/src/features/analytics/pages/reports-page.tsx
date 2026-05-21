@@ -432,6 +432,7 @@ function BirthdaysTab({ onExport }: { onExport: (filename: string, headers: stri
 
   const openSingleModal = (patient: any) => {
     setSinglePatient(patient);
+
     setShowSingleModal(true);
   };
 

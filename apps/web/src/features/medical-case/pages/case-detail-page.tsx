@@ -9,7 +9,7 @@ import {
   MessageSquare, Send, BrainCircuit, ClipboardList, FlaskConical, Microscope,
   Printer, Paperclip, Upload, X, Eye, Loader2, Trash2, Thermometer,
   TrendingUp, Stethoscope, Scale, Syringe, BarChart3, Pill, Check, User,
-  ChevronLeft,
+  Video, FileAudio, ChevronLeft,
   MoveVertical,
   LayoutList,
   LayoutGrid,
@@ -17,7 +17,8 @@ import {
   Copy,
   Mail,
   ShieldCheck,
-  Award
+  Award,
+  Download
 } from 'lucide-react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import { useAutoSave } from '@/shared/hooks/use-auto-save';
@@ -30,6 +31,7 @@ import {
 import { useWhatsApp } from '@/features/whatsapp/hooks/use-whatsapp';
 import { usePatientPrescriptions, useRemedyLookups } from '../hooks/use-remedy-chart';
 import { usePrescriptionWorkflow } from '../hooks/use-prescription-workflow';
+import { useParsePrescription } from '../../../hooks/use-ai-suggest';
 // QuickRxForm removed — not used in current render
 import { useDayCharges } from '../../billing/hooks/use-accounts';
 import { AssignPackageModal } from '../../packages/components/assign-package-modal';
@@ -173,22 +175,6 @@ function EmptyState({ icon: Icon, title, description, actionLabel, onAction }: a
 }
 
 
-const PatientIssueSelectOptions = [
-  'Acne',
-  'Asthma',
-  'Cough',
-  'Cold',
-  'Headache',
-  'Fever',
-  'Skin Issue',
-  'Hair Fall',
-  'Gastric',
-  'Joint Pain',
-  'Allergy',
-  'Weakness',
-  'Anxiety',
-  'Insomnia'
-];
 
 export default function MedicalCaseDetailPage() {
   const { regid } = useParams();
@@ -201,7 +187,7 @@ export default function MedicalCaseDetailPage() {
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [showFinalizeModal, setShowFinalizeModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const { data: fullData, isLoading, error } = useFullMedicalCase(Number(regid));
+  const { data: fullData, isLoading, error, refetch: refetchFull } = useFullMedicalCase(Number(regid));
   const medicalCase = fullData?.medicalCase;
   const visitId = medicalCase?.id;
   const { data: dayCharges = [] } = useDayCharges();
@@ -213,7 +199,7 @@ export default function MedicalCaseDetailPage() {
   }, []);
 
   const { data: lookups } = useRemedyLookups();
-  const rxWorkflow = usePrescriptionWorkflow(Number(regid), visitId, selectedDate);
+  const rxWorkflow = usePrescriptionWorkflow(Number(regid), visitId, selectedDate, setSelectedDate);
 
   // Building day options from day-charges module
   const dayOptions = useMemo(() => {
@@ -322,16 +308,114 @@ export default function MedicalCaseDetailPage() {
     { medicine: '', frequency: 'Once', days: '', issue: '' }
   ]);
   const [activeMedicineFocusIdx, setActiveMedicineFocusIdx] = useState<number | null>(null);
+  const [aiDetectingIdx, setAiDetectingIdx] = useState<number | null>(null);
 
-  // Consolidated with previous hook call above
+  // AI Prescription Scanner State
+  const parsePrescriptionMutation = useParsePrescription();
+  const prescriptionFileInputRef = useRef<HTMLInputElement>(null);
+  const [showPrescriptionPreview, setShowPrescriptionPreview] = useState(false);
+  const [scannedPrescription, setScannedPrescription] = useState<{
+    diagnosis: string;
+    complaint: string;
+    investigation: string;
+  } | null>(null);
+  const [scannedMedicationRows, setScannedMedicationRows] = useState<MedicationRow[]>([
+    { medicine: '', frequency: 'Once', days: '', issue: '' }
+  ]);
+
+  const handlePrescriptionFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const result = await parsePrescriptionMutation.mutateAsync(file);
+      if (result) {
+        setScannedPrescription({
+          diagnosis: result.diagnosis || '',
+          complaint: result.complaint || '',
+          investigation: result.investigation || '',
+        });
+        setScannedMedicationRows(
+          result.medications && result.medications.length > 0
+            ? result.medications.map((m: any) => ({
+                medicine: m.medicine || '',
+                frequency: m.frequency || 'Once',
+                days: '',
+                issue: m.issue || ''
+              }))
+            : [{ medicine: '', frequency: 'Once', days: '', issue: '' }]
+        );
+        setShowPrescriptionPreview(true);
+      }
+    } catch (err) {
+      console.error('Prescription scanning failed:', err);
+      alert(err instanceof Error ? err.message : 'Failed to scan the prescription image. Please try again.');
+    } finally {
+      if (prescriptionFileInputRef.current) {
+        prescriptionFileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const triggerPrescriptionScan = () => {
+    prescriptionFileInputRef.current?.click();
+  };
+
+  const handleSaveScannedPrescription = async () => {
+    if (!scannedPrescription) return;
+    try {
+      if (scannedPrescription.diagnosis.trim()) {
+        await updateDiagnosis.mutateAsync({ regid: Number(regid), condition: scannedPrescription.diagnosis.trim() });
+      }
+      const serializedMeds = JSON.stringify(scannedMedicationRows.filter(r => r.medicine.trim() !== ''));
+      const soapDate = displayDate ? displayDate.toISOString() : new Date().toISOString();
+
+      await saveSoap.mutateAsync({
+        id: currentVisitSoap?.id,
+        regid: Number(regid),
+        visitId: currentVisitId || visitId,
+        subjective: scannedPrescription.complaint,
+        objective: serializedMeds,
+        assessment: scannedPrescription.diagnosis,
+        plan: scannedPrescription.investigation,
+        dateval: soapDate,
+        createdAt: soapDate
+      });
+
+      if (!currentVisitSoap) {
+        setSelectedDate(soapDate);
+      }
+
+      setShowPrescriptionPreview(false);
+      setScannedPrescription(null);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const updateScannedMedicationRow = (index: number, field: keyof MedicationRow, value: string) => {
+    setScannedMedicationRows(prev => prev.map((row, idx) => {
+      if (idx === index) {
+        return { ...row, [field]: value };
+      }
+      return row;
+    }));
+  };
+
+  const addScannedMedicationRow = () => {
+    setScannedMedicationRows(prev => [...prev, { medicine: '', frequency: 'Once', days: '', issue: '' }]);
+  };
+
+  const removeScannedMedicationRow = (index: number) => {
+    setScannedMedicationRows(prev => {
+      const updated = prev.filter((_, idx) => idx !== index);
+      return updated.length > 0 ? updated : [{ medicine: '', frequency: 'Once', days: '', issue: '' }];
+    });
+  };
 
   const handleOpenDiagnosis = (record?: any) => {
-    // Priority: 1. Passed record (from table), 2. Current visit record (from sidebar context), 3. Existing record for the visit ID
-    let activeRecord = record || currentVisitSoap;
-    
-    if (!activeRecord && currentVisitId) {
-      activeRecord = (soap || []).find((s: any) => (s.visitId === currentVisitId || s.visit_id === currentVisitId));
-    }
+    // Priority: 1. Passed record (from table), 2. Current visit record (from sidebar context)
+    const activeRecord = record || currentVisitSoap;
 
     let initialMeds: MedicationRow[] = [{ medicine: '', frequency: 'Once', days: '', issue: '' }];
     const objectiveStr = activeRecord?.objective;
@@ -345,11 +429,6 @@ export default function MedicalCaseDetailPage() {
         }
       } catch (e) {
         initialMeds = [{ medicine: objectiveStr, frequency: 'Once', days: '', issue: '' }];
-      }
-    } else if (isToday && medicationTakingStr && medicationTakingStr !== '—') {
-      const parts = medicationTakingStr.split(',').map(p => p.trim()).filter(Boolean);
-      if (parts.length > 0) {
-        initialMeds = parts.map(m => ({ medicine: m, frequency: 'Once', days: '', issue: '' }));
       }
     }
     setMedicationRows(initialMeds);
@@ -378,14 +457,7 @@ export default function MedicalCaseDetailPage() {
   const updateMedicationRow = (index: number, field: keyof MedicationRow, value: string) => {
     setMedicationRows(prev => prev.map((row, idx) => {
       if (idx === index) {
-        const updated = { ...row, [field]: value };
-        if (field === 'medicine' && value) {
-          const match = (medicines as any[]).find(m => m.name && m.name.toLowerCase() === value.toLowerCase());
-          if (match && match.disease) {
-            updated.issue = match.disease;
-          }
-        }
-        return updated;
+        return { ...row, [field]: value };
       }
       return row;
     }));
@@ -402,34 +474,51 @@ export default function MedicalCaseDetailPage() {
     });
   };
 
+  const detectMedicineIssue = async (index: number, medicineName: string) => {
+    if (!medicineName.trim()) return;
+    setAiDetectingIdx(index);
+    try {
+      const res = await apiClient.post<{ success: boolean; data: { issue: string; provider?: string } }>(
+        '/medical-cases/ai-detect-medicine-issue',
+        { medicine: medicineName.trim() }
+      );
+      const detected = res.data?.data?.issue;
+      if (detected) {
+        updateMedicationRow(index, 'issue', detected);
+      }
+    } catch (err) {
+      console.warn('AI medicine detection failed:', err);
+    } finally {
+      setAiDetectingIdx(null);
+    }
+  };
+
   const handleSaveDiagnosis = async () => {
     try {
-      // Last-mile check for existing records for this specific visit ID 
-      // (Avoids duplicate key violations if state is out of sync)
-      let finalRecordId = editingDiagnosisRecord?.id;
-      if (!finalRecordId && currentVisitId) {
-        const existing = (soap || []).find((s: any) => (s.visitId === currentVisitId || s.visit_id === currentVisitId));
-        if (existing) finalRecordId = existing.id;
-      }
+      const finalRecordId = editingDiagnosisRecord?.id;
 
       if (diagForm.diagnosis.trim()) {
         await updateDiagnosis.mutateAsync({ regid: Number(regid), condition: diagForm.diagnosis.trim() });
       }
       const serializedMeds = JSON.stringify(medicationRows.filter(r => r.medicine.trim() !== ''));
 
+      const soapDate = displayDate ? displayDate.toISOString() : new Date().toISOString();
+
       await saveSoap.mutateAsync({
         id: finalRecordId,
         regid: Number(regid),
-        visitId: currentVisitId,
+        visitId: currentVisitId || visitId,
         subjective: diagForm.complaint,
         objective: serializedMeds,
         assessment: diagForm.diagnosis,
-        plan: diagForm.medication
+        plan: diagForm.medication,
+        dateval: soapDate,
+        createdAt: soapDate
       });
 
-      // If it's a new diagnosis, switch view to today so it shows up immediately
+      // If it's a new diagnosis, switch view to exactly the saved date so it shows up immediately
       if (!editingDiagnosisRecord) {
-        setSelectedDate(new Date().toISOString());
+        setSelectedDate(soapDate);
       }
 
       setShowDiagnosisDrawer(false);
@@ -446,14 +535,34 @@ export default function MedicalCaseDetailPage() {
     return isNaN(date.getTime()) ? null : date;
   }, []);
 
+  const toClinicDateString = useCallback((d: Date | string | null | undefined): string | null => {
+    if (!d) return null;
+    const date = typeof d === 'string' ? new Date(d) : d;
+    if (isNaN(date.getTime())) return null;
+    try {
+      return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Kolkata',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).format(date);
+    } catch (e) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+  }, []);
+
   const filterByDate = useCallback((items: any[], date: Date | null) => {
     if (!date || !items) return [];
-    const dateStr = date.toDateString();
+    const targetStr = toClinicDateString(date);
+    if (!targetStr) return [];
     return items.filter(item => {
-      const itemDate = parseSafeDate(item.createdAt || item.created_at || item.dateval || item.recordedAt || item.recorded_at || item.visitDate || item.visit_date || item.date_val);
-      return itemDate && itemDate.toDateString() === dateStr;
+      const itemDate = item.createdAt || item.created_at || item.dateval || item.recordedAt || item.recorded_at || item.visitDate || item.visit_date || item.date_val;
+      return toClinicDateString(itemDate) === targetStr;
     });
-  }, [parseSafeDate]);
+  }, [toClinicDateString]);
 
   // Derived data with safety checks for loading states
   const notes = fullData?.notes || [];
@@ -486,11 +595,12 @@ export default function MedicalCaseDetailPage() {
 
   const activeNote = React.useMemo(() => {
     if (!displayDate) return null;
+    const displayStr = toClinicDateString(displayDate);
     return followupNotes.find((n: any) => {
-      const d1 = parseSafeDate(n.createdAt || n.created_at || n.dateval);
-      return d1 && d1.toDateString() === displayDate.toDateString();
+      const d1 = n.createdAt || n.created_at || n.dateval;
+      return toClinicDateString(d1) === displayStr;
     }) || null;
-  }, [followupNotes, displayDate]);
+  }, [followupNotes, displayDate, toClinicDateString]);
 
   // Sync followUpNote with activeNote when activeNote changes
   React.useEffect(() => {
@@ -532,20 +642,21 @@ export default function MedicalCaseDetailPage() {
 
   const selectedBill = useMemo(() => {
     if (!displayDate || !summary?.bills) return null;
+    const displayStr = toClinicDateString(displayDate);
     return summary.bills.find(b => {
-      const d = parseSafeDate(b.billDate || b.createdAt);
-      return d && d.toDateString() === displayDate.toDateString();
+      const d = b.billDate || b.createdAt;
+      return toClinicDateString(d) === displayStr;
     });
-  }, [displayDate, summary?.bills]);
+  }, [displayDate, summary?.bills, toClinicDateString]);
 
   const billingValues = useMemo(() => {
     // 1. Calculate additional charges for the selected displayDate
     const additional = (() => {
       if (!displayDate || !fullData?.additionalCharges) return 0;
+      const displayStr = toClinicDateString(displayDate);
       return fullData.additionalCharges
         .filter((ac: any) => {
-          const d = ac.createdAt ? new Date(ac.createdAt) : null;
-          return d && d.toDateString() === displayDate.toDateString();
+          return toClinicDateString(ac.createdAt) === displayStr;
         })
         .reduce((sum: number, ac: any) => sum + (Number(ac.amount) || 0), 0);
     })();
@@ -553,9 +664,10 @@ export default function MedicalCaseDetailPage() {
     // 2. Fetch all bills for the selected displayDate to sum received amount
     const dayBills = (() => {
       if (!displayDate || !summary?.bills) return [];
+      const displayStr = toClinicDateString(displayDate);
       return summary.bills.filter(b => {
-        const d = parseSafeDate(b.billDate || b.createdAt);
-        return d && d.toDateString() === displayDate.toDateString();
+        const d = b.billDate || b.createdAt;
+        return toClinicDateString(d) === displayStr;
       });
     })();
 
@@ -566,7 +678,7 @@ export default function MedicalCaseDetailPage() {
     const savedRegularBillsSum = dayBills
       .filter(b => 
         b.billType !== 'Custom' && 
-        b.billType !== 'Additional' && 
+        (b.billType as string) !== 'Additional' && 
         !b.treatment?.startsWith('Package:')
       )
       .reduce((sum, b) => sum + (Number(b.charges) || 0), 0);
@@ -578,10 +690,11 @@ export default function MedicalCaseDetailPage() {
       if (pendingCharge > 0) return pendingCharge;
       if (!displayDate) return 0;
       
+      const displayStr = toClinicDateString(displayDate);
       const allRx = [...(prescriptionsHistory || []), ...(prescriptionsFromFull || [])];
       const todayRx = allRx.filter((rx: any) => {
-        const d = parseSafeDate(rx.created_at || rx.dateval);
-        return d && d.toDateString() === displayDate.toDateString();
+        const d = rx.created_at || rx.dateval;
+        return toClinicDateString(d) === displayStr;
       });
 
       if (todayRx.length === 0) return 0;
@@ -639,7 +752,8 @@ export default function MedicalCaseDetailPage() {
     fullData?.additionalCharges,
     prescriptionsHistory,
     prescriptionsFromFull,
-    dayCharges
+    dayCharges,
+    toClinicDateString
   ]);
 
   // ─── Derived from fullData (safe after query completes) ───
@@ -649,7 +763,20 @@ export default function MedicalCaseDetailPage() {
   const fullInvestigations = fullData?.investigations;
   const fullVaccines = fullData?.vaccines;
 
-  const ageString = medicalCase?.dateOfBirth ? `${new Date().getFullYear() - new Date(medicalCase.dateOfBirth).getFullYear()} Years` : 'Unknown Age';
+  const ageString = useMemo(() => {
+    const dob = medicalCase?.dateOfBirth || medicalCase?.dob;
+    if (!dob) return 'Unknown Age';
+    const birthDate = new Date(dob);
+    const now = new Date();
+    let years = now.getFullYear() - birthDate.getFullYear();
+    let months = now.getMonth() - birthDate.getMonth();
+    let days = now.getDate() - birthDate.getDate();
+    if (days < 0) { months--; days += new Date(now.getFullYear(), now.getMonth(), 0).getDate(); }
+    if (months < 0) { years--; months += 12; }
+    if (years > 0) return `${years} Year${years > 1 ? 's' : ''}`;
+    if (months > 0) return `${months} Month${months > 1 ? 's' : ''}`;
+    return `${Math.max(days, 1)} Day${days > 1 ? 's' : ''}`;
+  }, [medicalCase?.dateOfBirth, medicalCase?.dob]);
   const isToday = displayDate && displayDate.toDateString() === new Date().toDateString();
 
   const currentVisitSoaps = useMemo(() => {
@@ -680,37 +807,6 @@ export default function MedicalCaseDetailPage() {
     // Priority: 1. ID from today's prescriptions, 2. ID from today's SOAP notes, 3. The global active case ID
     return idFromRx ?? idFromSoap ?? medicalCase?.id;
   }, [currentVisitPrescriptions, currentVisitSoaps, medicalCase?.id]);
-
-  const medicationTakingStr = useMemo(() => {
-    if (!displayDate || (!prescriptionsHistory && !fullData?.prescriptions)) return '—';
-    
-    const all = [...(prescriptionsHistory || []), ...(fullData?.prescriptions || [])];
-    
-    // Get unique dates sorted descending to find the previous encounter
-    const uniqueDates = Array.from(new Set(all.map(p => {
-      const d = parseSafeDate(p.created_at || p.createdAt || p.dateval);
-      return d ? d.toDateString() : null;
-    }))).filter(Boolean).map(d => new Date(d!)).sort((a, b) => b.getTime() - a.getTime());
-    
-    // Find index of current displayDate
-    const currentIdx = uniqueDates.findIndex(d => d.toDateString() === displayDate.toDateString());
-    
-    // The "Medication Taking" is what was prescribed in the PRIOR visit
-    const prevDate = currentIdx !== -1 && uniqueDates[currentIdx + 1] ? uniqueDates[currentIdx + 1] : null;
-    
-    if (!prevDate) return '—';
-
-    const prevPrescriptions = filterByDate(all, prevDate);
-    
-    // Deduplicate and format
-    const uniqueMeds = Array.from(new Set(prevPrescriptions.map(p => {
-      const name = p.remedy_name || p.remedyName || p.medicineName || p.medicine || '';
-      const potency = p.potency_name || p.potencyName || p.potency || '';
-      return `${name}${potency ? ` ${potency}` : ''}`.trim();
-    }))).filter(Boolean);
-    
-    return uniqueMeds.length > 0 ? uniqueMeds.join(', ') : '—';
-  }, [displayDate, prescriptionsHistory, fullData?.prescriptions, parseSafeDate, filterByDate]);
 
   // tabContent MUST be declared before any early returns (Rules of Hooks)
   const tabContent = useMemo(() => {
@@ -796,9 +892,27 @@ export default function MedicalCaseDetailPage() {
       <div className="patient-profile-card">
         <div className="profile-top-row">
           <div className="profile-identity">
-            <div className="profile-avatar">
-              {medicalCase.patientName?.substring(0, 2).toUpperCase()}
-            </div>
+            <button 
+              onClick={() => navigate('/patients')}
+              style={{ 
+                cursor: 'pointer', 
+                background: 'transparent', 
+                border: 'none', 
+                color: 'white', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                padding: '8px',
+                borderRadius: '8px',
+                transition: 'background 0.2s',
+                marginRight: '8px'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+              title="Back to Patient List"
+            >
+              <ArrowLeft size={24} />
+            </button>
             <div className="profile-name-id">
               <h1 className="profile-name">{formatName(medicalCase.patientName)}</h1>
               <span className="profile-id">Patient #{regid}</span>
@@ -876,15 +990,16 @@ export default function MedicalCaseDetailPage() {
                     visit: {
                       visitNumber: String(regid),
                       date: medicalCase.createdAt || new Date().toISOString(),
-                      followUp: followUpEntry?.notes || undefined,
-                      diagnosis: diagnosisNote || undefined,
-                      complaints: medicalCase.condition || undefined,
+                      chiefComplaint: medicalCase.condition || undefined,
                     },
+                    diagnosis: diagnosisNote ? { assessment: diagnosisNote } : undefined,
+                    followUp: followUpEntry?.notes || undefined,
                     medications,
                     vitals: vitalsData,
                   };
 
-                  printPrescription(printData);
+                  const html = generatePrescriptionHtml(printData);
+                  printHtml(html, { title: `Prescription - ${printData.patient.name}` });
                 }}>
               <Printer size={16} /> Print Prescription
             </button>
@@ -917,7 +1032,11 @@ export default function MedicalCaseDetailPage() {
           </div>
           <div className="profile-info-cell">
             <label>REGISTERED</label>
-            <span>{medicalCase.createdAt ? new Date(medicalCase.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '—'}</span>
+            <span>{(() => {
+              const regDate = medicalCase.registeredAt || medicalCase.createdAt;
+              if (!regDate) return '—';
+              return new Date(regDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+            })()}</span>
           </div>
           {activePackage?.expiryDate && (
             <div className="profile-info-cell">
@@ -1133,25 +1252,60 @@ export default function MedicalCaseDetailPage() {
             <div className="mc-side-card" style={{ marginBottom: '16px' }}>
               <div className="mc-side-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#1e293b' }}>Homeo details</div>
-                {isToday && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input
+                    type="file"
+                    ref={prescriptionFileInputRef}
+                    onChange={handlePrescriptionFileChange}
+                    style={{ display: 'none' }}
+                    accept="image/*"
+                  />
+                  <button
+                    onClick={triggerPrescriptionScan}
+                    disabled={parsePrescriptionMutation.isPending}
+                    style={{
+                      background: 'linear-gradient(135deg, #f5f3ff, #ede9fe)',
+                      color: '#7c3aed',
+                      border: '1px solid #c4b5fd',
+                      borderRadius: '6px',
+                      padding: '4px 8px',
+                      cursor: parsePrescriptionMutation.isPending ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '0.7rem',
+                      fontWeight: 700,
+                      boxShadow: '0 1px 2px rgba(124, 58, 237, 0.05)',
+                      transition: 'all 0.2s ease',
+                      opacity: parsePrescriptionMutation.isPending ? 0.7 : 1
+                    }}
+                    title="AI Scan Handwritten Prescription"
+                  >
+                    {parsePrescriptionMutation.isPending ? (
+                      <Loader2 size={12} className="animate-spin text-purple-600" />
+                    ) : (
+                      <BrainCircuit size={12} className="text-purple-600" />
+                    )}
+                    <span>AI Scan</span>
+                  </button>
                   <div 
                     onClick={() => handleOpenDiagnosis(currentVisitSoap)}
-                    style={{ color: '#3b82f6', cursor: 'pointer', padding: '4px' }}
-                    title="Edit Today's Assessment"
+                    style={{ color: '#3b82f6', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
+                    title="Edit Assessment"
                   >
                     <Edit size={14} />
                   </div>
-                )}
-                {!isToday && currentVisitSoaps.length > 1 && (
-                  <div 
-                    onClick={() => setActiveTab('diagnosis')}
-                    style={{ color: '#3b82f6', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px' }}
-                  >
-                    See all ({currentVisitSoaps.length}) <ChevronRight size={14} />
-                  </div>
-                )}
+                  {!isToday && currentVisitSoaps.length > 1 && (
+                    <div 
+                      onClick={() => setActiveTab('diagnosis')}
+                      style={{ color: '#3b82f6', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px' }}
+                    >
+                      See all ({currentVisitSoaps.length}) <ChevronRight size={14} />
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="mc-side-card-body" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+              <div className="mc-side-card-body custom-scrollbar" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '18px', maxHeight: '400px', overflowY: 'auto' }}>
                 <div>
                   <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#1e293b', marginBottom: '4px' }}>Diagnosis</div>
                   <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>{currentVisitSoap?.assessment || '—'}</div>
@@ -1163,7 +1317,7 @@ export default function MedicalCaseDetailPage() {
                 <div>
                   <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#1e293b', marginBottom: '4px' }}>Medication Taking</div>
                   <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>
-                    {renderMedicationTakingSnapshot(currentVisitSoap?.objective || medicationTakingStr)}
+                    {renderMedicationTakingSnapshot(currentVisitSoap?.objective)}
                   </div>
                 </div>
                 <div>
@@ -1194,12 +1348,12 @@ export default function MedicalCaseDetailPage() {
                     <div style={{ padding: '10px 14px', background: 'var(--pp-warm-1)', borderRadius: '8px', border: '1px solid var(--pp-warm-2)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <Calendar size={14} style={{ color: 'var(--pp-blue)' }} />
                       <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-ink)' }}>
-                        Record Date: {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        Record Date: {(displayDate || new Date()).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                       </span>
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Main Diagnosis</label>
+                      <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Diagnosis</label>
                       <textarea
                         className="pp-textarea"
                         value={diagForm.diagnosis}
@@ -1210,24 +1364,13 @@ export default function MedicalCaseDetailPage() {
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Subjective (Complaints)</label>
+                      <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Complaint Intensity</label>
                       <textarea
                         className="pp-textarea"
                         value={diagForm.complaint}
                         onChange={e => setDiagForm({ ...diagForm, complaint: e.target.value })}
                         placeholder="Patient symptoms & intensity..."
                         style={{ minHeight: '100px' }}
-                      />
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Treatment Plan</label>
-                      <textarea
-                        className="pp-textarea"
-                        value={diagForm.medication}
-                        onChange={e => setDiagForm({ ...diagForm, medication: e.target.value })}
-                        placeholder="Medications or next steps..."
-                        style={{ minHeight: '80px' }}
                       />
                     </div>
 
@@ -1283,81 +1426,9 @@ export default function MedicalCaseDetailPage() {
                                   placeholder="Search or enter medicine name"
                                   value={row.medicine}
                                   onChange={e => updateMedicationRow(idx, 'medicine', e.target.value)}
-                                  onFocus={() => setActiveMedicineFocusIdx(idx)}
-                                  onBlur={() => {
-                                    setTimeout(() => setActiveMedicineFocusIdx(null), 200);
-                                  }}
                                   style={{ width: '100%', padding: '8px 12px', fontSize: '0.85rem' }}
                                   autoComplete="off"
                                 />
-
-                                {activeMedicineFocusIdx === idx && (() => {
-                                  const query = row.medicine.toLowerCase();
-                                  const filtered = (medicines as any[])
-                                    .filter(m => m.name && m.name.toLowerCase().includes(query))
-                                    .slice(0, 5);
-                                    
-                                  if (filtered.length === 0) return null;
-                                  
-                                  return (
-                                    <div style={{
-                                      position: 'absolute',
-                                      top: '100%',
-                                      left: 0,
-                                      right: 0,
-                                      zIndex: 1000,
-                                      background: 'white',
-                                      border: '1px solid #e2e8f0',
-                                      borderRadius: '8px',
-                                      boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-                                      marginTop: '4px',
-                                      maxHeight: '220px',
-                                      overflowY: 'auto'
-                                    }}>
-                                      {filtered.map((m: any) => (
-                                        <div
-                                          key={m.id}
-                                          onMouseDown={() => {
-                                            updateMedicationRow(idx, 'medicine', m.name);
-                                          }}
-                                          style={{
-                                            padding: '10px 14px',
-                                            cursor: 'pointer',
-                                            borderBottom: '1px solid #f1f5f9',
-                                            transition: 'background 0.2s ease',
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            gap: '2px'
-                                          }}
-                                          onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
-                                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                                        >
-                                          <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.85rem' }}>
-                                            {m.name}
-                                          </span>
-                                          
-                                          <div style={{ display: 'flex', gap: '8px', color: '#64748b', fontSize: '0.75rem', alignItems: 'center' }}>
-                                            {m.disease && (
-                                              <span>Disease: {m.disease}</span>
-                                            )}
-                                            {m.type && (
-                                              <>
-                                                <span style={{ color: '#cbd5e1' }}>•</span>
-                                                <span>Type: {m.type}</span>
-                                              </>
-                                            )}
-                                            {m.price > 0 && (
-                                              <>
-                                                <span style={{ color: '#cbd5e1' }}>•</span>
-                                                <span>Price: ₹{m.price}</span>
-                                              </>
-                                            )}
-                                          </div>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  );
-                                })()}
                               </div>
 
                               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
@@ -1379,23 +1450,47 @@ export default function MedicalCaseDetailPage() {
                                 </div>
 
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                  <label style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Patient Issue</label>
-                                  <select
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <label style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Patient Issue</label>
+                                    <button
+                                      type="button"
+                                      disabled={!row.medicine.trim() || aiDetectingIdx === idx}
+                                      onClick={() => detectMedicineIssue(idx, row.medicine)}
+                                      title="AI auto-detect issue from medicine name"
+                                      style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        fontSize: '0.6rem',
+                                        fontWeight: 700,
+                                        color: aiDetectingIdx === idx ? '#94a3b8' : '#7c3aed',
+                                        background: aiDetectingIdx === idx ? '#f1f5f9' : 'linear-gradient(135deg, #f5f3ff, #ede9fe)',
+                                        border: '1px solid',
+                                        borderColor: aiDetectingIdx === idx ? '#e2e8f0' : '#c4b5fd',
+                                        borderRadius: '6px',
+                                        padding: '3px 8px',
+                                        cursor: !row.medicine.trim() || aiDetectingIdx === idx ? 'not-allowed' : 'pointer',
+                                        transition: 'all 0.2s ease',
+                                        opacity: !row.medicine.trim() ? 0.4 : 1,
+                                        letterSpacing: '0.02em',
+                                        textTransform: 'uppercase',
+                                      }}
+                                    >
+                                      {aiDetectingIdx === idx ? (
+                                        <><Loader2 size={10} className="animate-spin" /> Detecting...</>
+                                      ) : (
+                                        <><Sparkles size={10} /> AI Detect</>
+                                      )}
+                                    </button>
+                                  </div>
+                                  <input
+                                    type="text"
                                     className="pp-input"
+                                    placeholder="e.g. Fever"
                                     value={row.issue}
                                     onChange={e => updateMedicationRow(idx, 'issue', e.target.value)}
-                                    style={{ width: '100%', padding: '8px', fontSize: '0.85rem', height: '38px', background: 'white' }}
-                                  >
-                                    <option value="">Select Issue</option>
-                                    {diagForm.diagnosis && <option value={diagForm.diagnosis}>{diagForm.diagnosis}</option>}
-                                    {diagForm.complaint && <option value={diagForm.complaint}>{diagForm.complaint}</option>}
-                                    {PatientIssueSelectOptions.map(opt => (
-                                      <option key={opt} value={opt}>{opt}</option>
-                                    ))}
-                                    {row.issue && ![diagForm.diagnosis, diagForm.complaint, ...PatientIssueSelectOptions].includes(row.issue) && (
-                                      <option value={row.issue}>{row.issue}</option>
-                                    )}
-                                  </select>
+                                    style={{ width: '100%', padding: '8px 12px', fontSize: '0.85rem', height: '38px', background: 'white' }}
+                                  />
                                 </div>
                               </div>
                             </div>
@@ -1438,6 +1533,17 @@ export default function MedicalCaseDetailPage() {
                         ))}
                       </datalist>
                     </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Investigation</label>
+                      <textarea
+                        className="pp-textarea"
+                        value={diagForm.medication}
+                        onChange={e => setDiagForm({ ...diagForm, medication: e.target.value })}
+                        placeholder="Investigations or next steps..."
+                        style={{ minHeight: '80px' }}
+                      />
+                    </div>
                   </div>
 
                   <footer style={{
@@ -1476,17 +1582,228 @@ export default function MedicalCaseDetailPage() {
               </>
               , document.body)}
 
+            {/* ─── AI Prescription Scan Preview Drawer ─── */}
+            {showPrescriptionPreview && scannedPrescription && ReactDOM.createPortal(
+              <>
+                <div className="mc-drawer-backdrop" onClick={() => setShowPrescriptionPreview(false)} />
+                <div className="mc-drawer animate-slide-in-right" style={{ maxWidth: '540px' }}>
+                  <header className="mc-drawer-header" style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', color: 'white' }}>
+                    <div className="mc-drawer-header-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <BrainCircuit size={18} /> AI Scanned Details
+                    </div>
+                    <button className="mc-drawer-close" onClick={() => setShowPrescriptionPreview(false)} style={{ color: 'white', opacity: 0.8 }}>
+                      <X size={16} />
+                    </button>
+                  </header>
+
+                  <div style={{ padding: '24px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    <div style={{ padding: '10px 14px', background: '#f5f3ff', borderRadius: '8px', border: '1px solid #ddd6fe', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Sparkles size={14} style={{ color: '#7c3aed' }} />
+                      <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#5b21b6' }}>
+                        Handwritten prescription successfully scanned by AI
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Diagnosis</label>
+                      <textarea
+                        className="pp-textarea"
+                        value={scannedPrescription.diagnosis}
+                        onChange={e => setScannedPrescription({ ...scannedPrescription, diagnosis: e.target.value })}
+                        placeholder="Diagnosis parsed from image..."
+                        style={{ minHeight: '60px', fontSize: '1rem', fontWeight: 700 }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Complaint Intensity</label>
+                      <textarea
+                        className="pp-textarea"
+                        value={scannedPrescription.complaint}
+                        onChange={e => setScannedPrescription({ ...scannedPrescription, complaint: e.target.value })}
+                        placeholder="Complaints parsed from image..."
+                        style={{ minHeight: '100px' }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Medication Taking</label>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {scannedMedicationRows.map((row, idx) => (
+                          <div 
+                            key={idx} 
+                            style={{ 
+                              border: '1px solid #e2e8f0', 
+                              borderRadius: '8px', 
+                              padding: '12px', 
+                              background: '#f8fafc',
+                              display: 'flex', 
+                              flexDirection: 'column', 
+                              gap: '10px',
+                              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.02)'
+                            }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                Medication #{idx + 1}
+                              </span>
+                              <button
+                                type="button"
+                                className="btn-ghost"
+                                style={{
+                                  color: '#ef4444',
+                                  padding: '6px',
+                                  border: '1px solid transparent',
+                                  borderRadius: '6px',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  background: '#fef2f2',
+                                  transition: 'all 0.2s ease'
+                                }}
+                                onClick={() => removeScannedMedicationRow(idx)}
+                                title="Remove medication"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <label style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Medicine Name</label>
+                                <input
+                                  type="text"
+                                  className="pp-input"
+                                  placeholder="Enter medicine name"
+                                  value={row.medicine}
+                                  onChange={e => updateScannedMedicationRow(idx, 'medicine', e.target.value)}
+                                  style={{ width: '100%', padding: '8px 12px', fontSize: '0.85rem' }}
+                                  autoComplete="off"
+                                />
+                              </div>
+
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                  <label style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Frequency</label>
+                                  <select
+                                    className="pp-input"
+                                    value={row.frequency}
+                                    onChange={e => updateScannedMedicationRow(idx, 'frequency', e.target.value)}
+                                    style={{ width: '100%', padding: '8px', fontSize: '0.85rem', height: '38px', background: 'white' }}
+                                  >
+                                    <option value="Once">Once</option>
+                                    <option value="Twice">Twice</option>
+                                    <option value="Thrice">Thrice</option>
+                                    <option value="Bed Time">Bed Time</option>
+                                    <option value="Empty Stomach">Empty Stomach</option>
+                                    <option value="weekly">weekly</option>
+                                  </select>
+                                </div>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                  <label style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Patient Issue</label>
+                                  <input
+                                    type="text"
+                                    className="pp-input"
+                                    placeholder="e.g. Fever"
+                                    value={row.issue}
+                                    onChange={e => updateScannedMedicationRow(idx, 'issue', e.target.value)}
+                                    style={{ width: '100%', padding: '8px 12px', fontSize: '0.85rem', height: '38px', background: 'white' }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={addScannedMedicationRow}
+                        style={{
+                          alignSelf: 'flex-start',
+                          marginTop: '4px',
+                          padding: '6px 12px',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          color: '#7c3aed',
+                          background: '#f5f3ff',
+                          border: '1px dashed #c4b5fd',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        <Plus size={14} /> Add Medication
+                      </button>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Investigation</label>
+                      <textarea
+                        className="pp-textarea"
+                        value={scannedPrescription.investigation}
+                        onChange={e => setScannedPrescription({ ...scannedPrescription, investigation: e.target.value })}
+                        placeholder="Investigations parsed from image..."
+                        style={{ minHeight: '80px' }}
+                      />
+                    </div>
+                  </div>
+
+                  <footer style={{
+                    padding: '20px 24px',
+                    background: '#f8fafc',
+                    borderTop: '1px solid #e2e8f0',
+                    display: 'flex',
+                    gap: '12px',
+                    position: 'sticky',
+                    bottom: 0,
+                    zIndex: 10
+                  }}>
+                    <button
+                      onClick={() => setShowPrescriptionPreview(false)}
+                      style={{
+                        flex: 1, padding: '12px', borderRadius: '10px', border: '1px solid #cbd5e1',
+                        background: 'white', color: '#64748b', fontWeight: 600, cursor: 'pointer'
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={triggerPrescriptionScan}
+                      style={{
+                        flex: 1, padding: '12px', borderRadius: '10px', border: '1px solid #c4b5fd',
+                        background: '#f5f3ff', color: '#7c3aed', fontWeight: 600, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+                      }}
+                    >
+                      <RefreshCw size={14} /> Refetch
+                    </button>
+                    <button
+                      onClick={handleSaveScannedPrescription}
+                      style={{
+                        flex: 2, padding: '12px', borderRadius: '10px', border: 'none',
+                        background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', color: 'white', fontWeight: 700,
+                        cursor: 'pointer', display: 'flex', alignItems: 'center',
+                        justifyContent: 'center', gap: '8px',
+                        boxShadow: '0 4px 6px -1px rgba(124, 58, 237, 0.1)'
+                      }}
+                    >
+                      <Save size={18} /> Save Details
+                    </button>
+                  </footer>
+                </div>
+              </>
+              , document.body)}
+
             <PaymentReceiptModal
               isOpen={showReceiptModal}
               onClose={() => setShowReceiptModal(false)}
               patientData={medicalCase}
-              billingData={{
-                regularCharges: billingValues.regular,
-                additionalCharges: (fullData as any).additionalCharges || [],
-                totalBill: billingValues.total,
-                paidAmount: billingValues.received,
-                balance: billingValues.balance
-              }}
+              billingData={billingValues}
             />
           </aside>
 
@@ -2608,6 +2925,9 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
   const [pageSize, setPageSize] = useState(10);
   const [showDrawer, setShowDrawer] = useState(false);
   const [editingInv, setEditingInv] = useState<any>(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const [isScannedPreview, setIsScannedPreview] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { saveInvestigation, saveNote, deleteRecord } = useManageClinicalRecords();
 
@@ -2667,7 +2987,92 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
     setActiveType('CBC');
     setLabData({});
     setEditingInv(null);
+    setIsScannedPreview(false);
     setShowDrawer(true);
+  };
+
+  const handleDownload = () => {
+    const content = `Investigation Report: ${activeType}\nDate: ${new Date().toLocaleDateString()}\n\n` + 
+      Object.entries(labData).filter(([_, v]) => v).map(([k, v]) => `${k.toUpperCase()}: ${v}`).join('\n');
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `investigation-${activeType.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsScanning(true);
+      // Read file and compress via Canvas
+      const base64Str = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 1200;
+            const MAX_HEIGHT = 1200;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > height) {
+              if (width > MAX_WIDTH) {
+                height = Math.round((height * MAX_WIDTH) / width);
+                width = MAX_WIDTH;
+              }
+            } else {
+              if (height > MAX_HEIGHT) {
+                width = Math.round((width * MAX_HEIGHT) / height);
+                height = MAX_HEIGHT;
+              }
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx?.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', 0.7));
+          };
+          img.onerror = reject;
+          img.src = event.target?.result as string;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const base64Data = base64Str.split(',')[1];
+      const mimeType = 'image/jpeg';
+
+      const { data } = await apiClient.post('/medical-cases/ai-scan-investigation', { 
+        imageBase64: base64Data, 
+        mimeType 
+      });
+      
+      if (!data.success || !data.data?.parsed) {
+        throw new Error(data.error || 'Failed to parse report');
+      }
+
+      const { date, type, data: parsedData } = data.data.parsed;
+      
+      setActiveType(type || 'Specific');
+      setLabData(parsedData || {});
+      setEditingInv(null);
+      setIsScannedPreview(true);
+      setShowDrawer(true);
+      
+    } catch (err: any) {
+      alert(err.message || 'Error scanning report');
+    } finally {
+      setIsScanning(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
   const fields = LAB_CONFIG[activeType as keyof typeof LAB_CONFIG] || [
@@ -2680,6 +3085,16 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
       <div className="mc-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
         <div className="mc-section-header" style={{ margin: 0 }}>Clinical Investigations</div>
         <div style={{ display: 'flex', gap: '10px' }}>
+          <input type="file" accept="image/*" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileSelect} />
+          <button 
+            onClick={() => fileInputRef.current?.click()} 
+            className="btn-secondary" 
+            style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', background: '#f8fafc', border: '1px solid #e2e8f0', color: '#475569', borderRadius: '8px', fontWeight: 600, fontSize: '0.85rem' }} 
+            disabled={isScanning}
+          >
+            {isScanning ? <Loader2 size={16} className="animate-spin" style={{ marginRight: '6px' }} /> : <Sparkles size={16} style={{ marginRight: '6px', color: '#8b5cf6' }} />}
+            {isScanning ? 'Scanning...' : 'Scan Investigation'}
+          </button>
           <button onClick={handleAdd} className="btn-primary" style={{ padding: '8px 16px' }}>
             <Plus size={16} style={{ marginRight: '6px' }} /> Add Investigation
           </button>
@@ -2767,9 +3182,9 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
                                 onClick={() => handleEdit(inv)}
                                 className="btn-ghost"
                                 style={{ color: 'var(--pp-blue)', padding: '4px 8px' }}
-                                title="Edit"
+                                title="Preview (Beautify)"
                               >
-                                <Edit size={14} />
+                                <Eye size={14} />
                               </button>
                               <button
                                 onClick={() => {
@@ -2807,13 +3222,13 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
       {/* ─── Investigation Form Drawer (right-side popup) ─── */}
       {showDrawer && ReactDOM.createPortal(
         <>
-          <div className="mc-drawer-backdrop" onClick={() => { setShowDrawer(false); setEditingInv(null); }} />
+          <div className="mc-drawer-backdrop" onClick={() => { setShowDrawer(false); setEditingInv(null); setIsScannedPreview(false); }} />
           <div className="mc-drawer animate-slide-in-right" style={{ maxWidth: '520px' }}>
             <header className="mc-drawer-header" style={{ background: 'var(--pp-blue)', color: 'white' }}>
               <div className="mc-drawer-header-title">
-                <FlaskConical size={18} /> {editingInv ? 'Edit Investigation' : 'New Investigation'}
+                <FlaskConical size={18} /> {isScannedPreview ? 'Scan Preview' : (editingInv ? 'Edit Investigation' : 'New Investigation')}
               </div>
-              <button className="mc-drawer-close" onClick={() => { setShowDrawer(false); setEditingInv(null); }} style={{ color: 'white', opacity: 0.8 }}>
+              <button className="mc-drawer-close" onClick={() => { setShowDrawer(false); setEditingInv(null); setIsScannedPreview(false); }} style={{ color: 'white', opacity: 0.8 }}>
                 <X size={16} />
               </button>
             </header>
@@ -2866,10 +3281,21 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
             </div>
 
             <footer style={{ padding: '16px 24px', background: 'var(--pp-warm-1)', borderTop: '1px solid var(--pp-warm-3)', display: 'flex', gap: '10px' }}>
-              <button type="button" className="btn-secondary" style={{ flex: 1 }} onClick={() => { setShowDrawer(false); setEditingInv(null); }}>Cancel</button>
-              <button onClick={() => handleSave(false)} className="btn-primary" style={{ flex: 2, padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                <Save size={16} /> {saved ? 'Saved!' : (editingInv ? 'Update Report' : 'Save Report')}
-              </button>
+              <button type="button" className="btn-secondary" style={{ flex: 1 }} onClick={() => { setShowDrawer(false); setEditingInv(null); setIsScannedPreview(false); }}>Cancel</button>
+              {isScannedPreview ? (
+                <>
+                  <button type="button" onClick={() => handleDownload()} className="btn-secondary" style={{ flex: 1, padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                    <Download size={16} /> Download
+                  </button>
+                  <button onClick={() => handleSave(false)} className="btn-primary" style={{ flex: 1.5, padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                    <Save size={16} /> {saved ? 'Saved!' : 'Save Report'}
+                  </button>
+                </>
+              ) : (
+                <button onClick={() => handleSave(false)} className="btn-primary" style={{ flex: 2, padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                  <Save size={16} /> {saved ? 'Saved!' : (editingInv ? 'Update Report' : 'Save Report')}
+                </button>
+              )}
             </footer>
           </div>
         </>,
@@ -2957,14 +3383,81 @@ function CommunicationView({ regid, phone, name, onAppendNote }: { regid: number
   );
 }
 
+// ─── Utility to extract media type from path ───
+const getMediaType = (urlOrPath: string): 'image' | 'video' | 'audio' | 'pdf' | 'other' => {
+  if (!urlOrPath) return 'other';
+  const pathParts = urlOrPath.toLowerCase().split('?');
+  const firstPart = pathParts[0] || '';
+  const hashParts = firstPart.split('#');
+  const path = hashParts[0] || '';
+  if (/\.(jpeg|jpg|gif|png|webp|svg|bmp)$/i.test(path)) return 'image';
+  if (/\.(mp4|webm|ogg|mov|mkv|avi|flv|wmv)$/i.test(path)) return 'video';
+  if (/\.(mp3|wav|ogg|m4a|aac|flac|wma)$/i.test(path)) return 'audio';
+  if (/\.pdf$/i.test(path)) return 'pdf';
+  return 'image'; // fallback
+};
+
 function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; visitId: number; images: any[]; isDateFiltered?: boolean }) {
   const { updateImage, deleteImage, saveImage } = useManageClinicalRecords();
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  const [showUploadForm, setShowUploadForm] = useState(false);
+  const [activePreviewIndex, setActivePreviewIndex] = useState<number | null>(null);
 
-  const [isUploadOpen, setIsUploadOpen] = useState(false);
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [previews, setPreviews] = useState<string[]>([]);
-  const [uploadNotes, setUploadNotes] = useState('');
+  const [description, setDescription] = useState('');
+  const [file, setFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.files?.[0];
+    if (selected) {
+      setFile(selected);
+      if (selected.type.startsWith('image/') || selected.type.startsWith('video/') || selected.type.startsWith('audio/')) {
+        const url = URL.createObjectURL(selected);
+        setPreviewUrl(url);
+      } else {
+        setPreviewUrl(null);
+      }
+    }
+  };
+
+  const handleUploadSubmit = async () => {
+    if (!file) return;
+    setUploading(true);
+
+    const formData = new FormData();
+    formData.append('regid', String(regid));
+    if (visitId) {
+      formData.append('visitId', String(visitId));
+    }
+    formData.append('description', description || 'Clinical Evidence');
+    formData.append('files', file);
+
+    try {
+      await saveImage.mutateAsync(formData);
+      setFile(null);
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+        setPreviewUrl(null);
+      }
+      setDescription('');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      setShowUploadForm(false);
+    } catch (err) {
+      console.error('Upload failed:', err);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const sortedImages = images ? [...images].sort((a, b) =>
     new Date(b.createdAt || b.created_at || 0).getTime() -
@@ -2972,6 +3465,13 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
   ) : [];
 
   const currentImages = sortedImages;
+
+  const imageOnlyList = useMemo(() => {
+    return currentImages.filter(img => {
+      const imagePath = img.picture || img.picturePath || img.picture_path;
+      return getMediaType(imagePath || '') === 'image';
+    });
+  }, [currentImages]);
 
   const { expandedDates, toggleDate, groupedData: groupedImages } = useTableGrouping(currentImages, 'createdAt');
 
@@ -2989,56 +3489,6 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
     return path.startsWith('/') ? path : '/' + path;
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    previews.forEach(url => URL.revokeObjectURL(url));
-
-    const newFiles: File[] = [];
-    const newPreviews: string[] = [];
-
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      if (file) {
-        newFiles.push(file);
-        newPreviews.push(URL.createObjectURL(file));
-      }
-    }
-
-    setSelectedFiles(newFiles);
-    setPreviews(newPreviews);
-    setUploadNotes('');
-    setIsUploadOpen(true);
-  };
-
-  const handleCloseUpload = () => {
-    previews.forEach(url => URL.revokeObjectURL(url));
-    setPreviews([]);
-    setSelectedFiles([]);
-    setUploadNotes('');
-    setIsUploadOpen(false);
-  };
-
-  const handleUploadSubmit = async () => {
-    if (selectedFiles.length === 0) return;
-
-    const formData = new FormData();
-    formData.append('regid', String(regid));
-    formData.append('visitId', String(visitId));
-    formData.append('description', uploadNotes || 'Clinical Evidence');
-    selectedFiles.forEach(file => {
-      formData.append('files', file);
-    });
-
-    try {
-      await saveImage.mutateAsync(formData);
-      handleCloseUpload();
-    } catch (err) {
-      console.error('Upload failed:', err);
-    }
-  };
-
   const handleEditDescription = async (img: any) => {
     const newDesc = prompt('Edit Clinical Note/Description:', img.description || '');
     if (newDesc === null || newDesc === img.description) return;
@@ -3050,7 +3500,7 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this image?')) return;
+    if (!confirm('Are you sure you want to delete this media?')) return;
     try {
       await deleteImage.mutateAsync(id);
     } catch (err) {
@@ -3060,6 +3510,65 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
 
   return (
     <div className="animate-fade-in" style={{ maxWidth: '1000px', margin: '0 auto' }}>
+      <style>{`
+        .mc-image-clickable-container {
+          overflow: hidden;
+          cursor: pointer;
+          position: relative;
+          width: 100%;
+          height: 100%;
+        }
+        .mc-image-clickable-container img {
+          transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .mc-image-clickable-container:hover img {
+          transform: scale(1.05);
+        }
+        .mc-image-hover-overlay {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(15, 23, 42, 0.25);
+          opacity: 0;
+          transition: opacity 0.3s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          backdrop-filter: blur(1px);
+        }
+        .mc-image-clickable-container:hover .mc-image-hover-overlay {
+          opacity: 1;
+        }
+        
+        .lightbox-btn {
+          width: 48px;
+          height: 48px;
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.08);
+          backdrop-filter: blur(12px);
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          color: rgba(255, 255, 255, 0.9);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+          padding: 0;
+        }
+        .lightbox-btn:hover {
+          background: rgba(255, 255, 255, 0.2);
+          border-color: rgba(255, 255, 255, 0.35);
+          color: white;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+        }
+        .lightbox-btn:active {
+          transform: translateY(1px);
+        }
+      `}</style>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <div className="mc-section-header" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
           <Camera size={20} /> Clinical Evidence
@@ -3067,11 +3576,11 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <input
             type="file"
-            multiple
-            accept="image/*"
-            id="clinical-evidence-upload"
+            ref={fileInputRef}
             style={{ display: 'none' }}
             onChange={handleFileChange}
+            accept="image/*,video/*,audio/*,application/pdf"
+            disabled={uploading}
           />
           <button
             className="btn-primary"
@@ -3082,13 +3591,14 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              background: showUploadForm ? 'var(--pp-ink)' : 'var(--pp-blue)'
             }}
-            onClick={() => document.getElementById('clinical-evidence-upload')?.click()}
-            disabled={saveImage.isPending}
+            onClick={() => setShowUploadForm(prev => !prev)}
+            disabled={uploading}
           >
-            <Plus size={14} />
-            {saveImage.isPending ? 'Uploading...' : 'Add Image'}
+            {showUploadForm ? <X size={14} /> : <Plus size={14} />}
+            {uploading ? 'Processing...' : (showUploadForm ? 'Hide Form' : 'Add Media')}
           </button>
 
           <div style={{ display: 'flex', gap: '8px', background: 'var(--pp-warm-1)', padding: '4px', borderRadius: '8px', border: '1px solid var(--pp-warm-3)' }}>
@@ -3120,7 +3630,140 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
         </div>
       </div>
 
+      {/* ─── Premium Inline Add Media Form ─── */}
+      {showUploadForm && (
+        <div 
+          className="animate-fade-in"
+          style={{ 
+            background: 'white',
+            borderRadius: '16px',
+            border: '1px solid var(--pp-warm-3)',
+            padding: '24px',
+            boxShadow: 'var(--pp-shadow-sm)',
+            marginBottom: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '20px',
+            width: '100%',
+            boxSizing: 'border-box'
+          }}
+        >
+          <div 
+            style={{ 
+              background: 'var(--pp-warm-1)', 
+              border: '1.5px dashed var(--border-main)', 
+              borderRadius: '16px', 
+              padding: file ? '24px' : '48px 24px', 
+              textAlign: 'center',
+              cursor: 'pointer',
+              position: 'relative',
+              transition: 'all 0.2s',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center'
+            }}
+            onClick={() => fileInputRef.current?.click()}
+            onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--pp-blue)'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border-main)'}
+          >
+            {uploading ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                <Loader2 size={32} className="animate-spin" style={{ color: 'var(--pp-blue)' }} />
+                <div style={{ fontWeight: 700, color: 'var(--pp-blue)' }}>Processing...</div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', width: '100%' }}>
+                {file ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', width: '100%' }}>
+                    {file.type.startsWith('image/') && previewUrl && (
+                      <img 
+                        src={previewUrl} 
+                        alt="Preview" 
+                        style={{ 
+                          maxHeight: '180px', 
+                          maxWidth: '100%', 
+                          borderRadius: '12px', 
+                          objectFit: 'contain', 
+                          boxShadow: '0 4px 16px rgba(0,0,0,0.08)' 
+                        }} 
+                      />
+                    )}
+                    {file.type.startsWith('video/') && previewUrl && (
+                      <video 
+                        src={previewUrl} 
+                        controls 
+                        style={{ 
+                          maxHeight: '180px', 
+                          maxWidth: '100%', 
+                          borderRadius: '12px', 
+                          boxShadow: '0 4px 16px rgba(0,0,0,0.08)' 
+                        }} 
+                      />
+                    )}
+                    {file.type.startsWith('audio/') && previewUrl && (
+                      <div style={{ width: '100%', maxWidth: '320px', padding: '16px', background: 'white', borderRadius: '12px', boxShadow: '0 4px 16px rgba(0,0,0,0.08)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }} onClick={e => e.stopPropagation()}>
+                        <div style={{ color: 'var(--pp-blue)', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, fontSize: '0.85rem' }}>🎵 Audio Recording</div>
+                        <audio src={previewUrl} controls style={{ width: '100%' }} />
+                      </div>
+                    )}
+                    {(!previewUrl || (!file.type.startsWith('image/') && !file.type.startsWith('video/') && !file.type.startsWith('audio/'))) && (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', padding: '24px', background: 'white', borderRadius: '12px', boxShadow: '0 4px 16px rgba(0,0,0,0.08)' }}>
+                        <span style={{ fontSize: '2.5rem' }}>📄</span>
+                        <div style={{ color: 'var(--pp-ink)', fontWeight: 700 }}>{file.name}</div>
+                      </div>
+                    )}
+                    <div>
+                      <div style={{ color: 'var(--pp-ink)', fontWeight: 700, fontSize: '0.95rem', marginBottom: '2px' }}>
+                        {file.name}
+                      </div>
+                      <div style={{ color: 'var(--pp-blue)', fontSize: '0.8rem', fontWeight: 700 }}>
+                        Click to select a different file
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', color: 'var(--pp-blue)' }}>
+                      <Plus size={28} />
+                    </div>
+                    <div>
+                      <div style={{ color: 'var(--pp-ink)', fontWeight: 700, fontSize: '1.1rem', marginBottom: '4px' }}>
+                        click to select media
+                      </div>
+                      <div style={{ color: 'var(--pp-text-3)', fontSize: '0.85rem', fontWeight: 500 }}>
+                        Images, Audio, Video or PDF (Max 10MB)
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
 
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <input
+              className="pp-input"
+              placeholder="add notes"
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              style={{ flex: 1, padding: '12px 16px' }}
+            />
+            <button
+              className="btn-primary"
+              onClick={handleUploadSubmit}
+              disabled={!file || uploading}
+              style={{ padding: '0 32px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '8px', opacity: !file ? 0.6 : 1 }}
+            >
+              {uploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+              upload
+            </button>
+          </div>
+          <div style={{ borderTop: '1px solid var(--pp-warm-2)', paddingTop: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--pp-text-3)', fontSize: '0.85rem' }}>
+            <span style={{ fontSize: '1.1rem' }}>💡</span>
+            <span>These files will appear as clinical evidence for the patient's record.</span>
+          </div>
+        </div>
+      )}
 
       {viewMode === 'grid' ? (
         <div style={{
@@ -3132,6 +3775,7 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
             const imagePath = img.picture || img.picturePath || img.picture_path;
             const timestamp = img.createdAt || img.created_at || img.recordedAt || img.recorded_at;
             const resolvedUrl = imagePath ? getImageUrl(imagePath) : '';
+            const mediaType = getMediaType(imagePath || '');
 
             return (
               <div
@@ -3146,19 +3790,73 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
                 <div style={{
                   aspectRatio: currentImages.length === 1 ? 'auto' : '4/3',
                   maxHeight: currentImages.length === 1 ? '600px' : '300px',
-                  position: 'relative', overflow: 'hidden', background: 'var(--pp-warm-1)', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  minHeight: mediaType === 'audio' ? '180px' : 'auto',
+                  position: 'relative', overflow: 'hidden', background: 'var(--pp-warm-1)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: '100%'
                 }}>
                   {resolvedUrl ? (
-                    <img
-                      src={resolvedUrl}
-                      style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                      alt={img.description || 'Clinical Evidence'}
-                      onError={(e) => {
-                        const el = e.target as HTMLImageElement;
-                        el.style.display = 'none';
-                        el.parentElement!.innerHTML = '<div style="text-align:center;color:#999;padding:20px"><div style="font-size:2rem;margin-bottom:8px">🖼️</div><div style="font-size:0.8rem">Image missing</div></div>';
-                      }}
-                    />
+                    <>
+                      {mediaType === 'image' && (
+                        <div
+                          className="mc-image-clickable-container"
+                          onClick={() => {
+                            const index = imageOnlyList.findIndex(x => x.id === img.id);
+                            if (index !== -1) setActivePreviewIndex(index);
+                          }}
+                          style={{ width: '100%', height: '100%' }}
+                        >
+                          <img
+                            src={resolvedUrl}
+                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                            alt={img.description || 'Clinical Evidence'}
+                            onError={(e) => {
+                              const el = e.target as HTMLImageElement;
+                              el.style.display = 'none';
+                              el.parentElement!.innerHTML = '<div style="text-align:center;color:#999;padding:20px"><div style="font-size:2rem;margin-bottom:8px">🖼️</div><div style="font-size:0.8rem">Image missing</div></div>';
+                            }}
+                          />
+                          <div className="mc-image-hover-overlay">
+                            <Eye size={24} style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }} />
+                          </div>
+                        </div>
+                      )}
+                      {mediaType === 'video' && (
+                        <video
+                          src={resolvedUrl}
+                          controls
+                          style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#000' }}
+                          onError={(e) => {
+                            const el = e.target as HTMLVideoElement;
+                            el.style.display = 'none';
+                            el.parentElement!.innerHTML = '<div style="text-align:center;color:#999;padding:20px"><div style="font-size:2rem;margin-bottom:8px">🎥</div><div style="font-size:0.8rem">Video format unsupported</div></div>';
+                          }}
+                        />
+                      )}
+                      {mediaType === 'audio' && (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', padding: '24px', background: 'linear-gradient(135deg, #f5f3ff, #ede9fe)', minHeight: '180px' }}>
+                          <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', color: '#7c3aed', marginBottom: '12px' }}>
+                            <FileAudio size={24} />
+                          </div>
+                          <audio
+                             src={resolvedUrl}
+                             controls
+                             style={{ width: '100%', maxWidth: '240px' }}
+                          />
+                        </div>
+                      )}
+                      {mediaType === 'pdf' && (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', padding: '24px', background: 'linear-gradient(135deg, #f0fdf4, #ecfdf5)', minHeight: '180px' }}>
+                          <span style={{ fontSize: '3rem', marginBottom: '8px' }}>📄</span>
+                          <button
+                            onClick={() => window.open(resolvedUrl, '_blank')}
+                            className="btn-secondary"
+                            style={{ padding: '6px 12px', fontSize: '0.75rem', borderRadius: '6px', cursor: 'pointer' }}
+                          >
+                            View PDF Document
+                          </button>
+                        </div>
+                      )}
+                    </>
                   ) : (
                     <div style={{ textAlign: 'center', color: 'var(--pp-text-3)', padding: '20px' }}>
                       <Camera size={32} style={{ opacity: 0.3, marginBottom: '8px' }} />
@@ -3182,7 +3880,7 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
                         padding: '6px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.9)', color: 'white',
                         border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center'
                       }}
-                      title="Delete image"
+                      title="Delete media"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -3229,6 +3927,7 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
                     const dateVal = img.createdAt || img.created_at || img.recordedAt || img.recorded_at || 0;
                     const imagePath = img.picture || img.picturePath || img.picture_path;
                     const resolvedUrl = imagePath ? getImageUrl(imagePath) : '';
+                    const mediaType = getMediaType(imagePath || '');
 
                     return (
                       <tr
@@ -3240,9 +3939,25 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
                         }}
                       >
                         <td style={{ width: '80px' }}>
-                          <div style={{ width: '50px', height: '50px', borderRadius: '8px', overflow: 'hidden', background: 'var(--pp-warm-1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <div
+                            style={{ width: '50px', height: '50px', borderRadius: '8px', overflow: 'hidden', background: 'var(--pp-warm-1)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                            onClick={() => {
+                              if (mediaType === 'image') {
+                                const index = imageOnlyList.findIndex(x => x.id === img.id);
+                                if (index !== -1) setActivePreviewIndex(index);
+                              } else if (resolvedUrl) {
+                                window.open(resolvedUrl, '_blank');
+                              }
+                            }}
+                            title={mediaType === 'image' ? 'Click to preview image' : 'View original media'}
+                          >
                             {resolvedUrl ? (
-                              <img src={resolvedUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onClick={() => window.open(resolvedUrl, '_blank')} />
+                              <>
+                                {mediaType === 'image' && <img src={resolvedUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                                {mediaType === 'video' && <Video size={20} style={{ color: 'var(--pp-blue)' }} />}
+                                {mediaType === 'audio' && <FileAudio size={20} style={{ color: '#7c3aed' }} />}
+                                {mediaType === 'pdf' && <span style={{ fontSize: '1.5rem' }}>📄</span>}
+                              </>
                             ) : <Camera size={20} style={{ opacity: 0.3 }} />}
                           </div>
                         </td>
@@ -3261,10 +3976,22 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
                             <button className="btn-ghost" style={{ color: 'var(--pp-blue)' }} onClick={() => handleEditDescription(img)} title="Edit Notes">
                               <Edit size={16} />
                             </button>
-                            <button className="btn-ghost" style={{ color: 'var(--pp-blue)' }} onClick={() => resolvedUrl && window.open(resolvedUrl, '_blank')} title="View Full Image">
+                            <button
+                              className="btn-ghost"
+                              style={{ color: 'var(--pp-blue)' }}
+                              onClick={() => {
+                                if (mediaType === 'image') {
+                                  const index = imageOnlyList.findIndex(x => x.id === img.id);
+                                  if (index !== -1) setActivePreviewIndex(index);
+                                } else if (resolvedUrl) {
+                                  window.open(resolvedUrl, '_blank');
+                                }
+                              }}
+                              title="View Full Media"
+                            >
                               <Eye size={16} />
                             </button>
-                            <button className="btn-ghost" style={{ color: 'var(--pp-danger-fg)' }} onClick={() => handleDelete(img.id)} title="Delete Image">
+                            <button className="btn-ghost" style={{ color: 'var(--pp-danger-fg)' }} onClick={() => handleDelete(img.id)} title="Delete Media">
                               <Trash2 size={16} />
                             </button>
                           </div>
@@ -3282,73 +4009,219 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
       {(!images || images.length === 0) && (
         <EmptyState
           icon={Camera}
-          title="No clinical images have been uploaded yet"
-          description="Capture and store clinical photographs, laboratory reports, and other visual evidence for this patient's medical case."
+          title="No clinical media has been uploaded yet"
+          description="Capture and store clinical photographs, audio/video recordings, laboratory reports, and other media evidence for this patient's medical case."
         />
       )}
 
-      {/* ─── Media Upload Drawer with Previews & Notes ─── */}
-      {isUploadOpen && ReactDOM.createPortal(
-        <>
-          <div className="mc-drawer-backdrop" onClick={handleCloseUpload} />
-          <div className="mc-drawer animate-slide-in-right" style={{ maxWidth: '520px', display: 'flex', flexDirection: 'column' }}>
-            <header className="mc-drawer-header" style={{ background: 'var(--pp-blue)', color: 'white' }}>
-              <div className="mc-drawer-header-title">
-                <Camera size={18} /> Add Clinical Evidence
-              </div>
-              <button className="mc-drawer-close" onClick={handleCloseUpload} style={{ color: 'white', opacity: 0.8 }}>
-                <X size={16} />
-              </button>
-            </header>
-
-            <div style={{ padding: '24px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {/* Image Previews */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Selected Media ({selectedFiles.length})
-                </label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-                  {previews.map((url, idx) => (
-                    <div key={idx} style={{ position: 'relative', aspectRatio: '1', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--pp-warm-3)', background: 'var(--pp-warm-1)' }}>
-                      <img src={url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="preview" />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Notes Form Group */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Notes / Description
-                </label>
-                <textarea
-                  className="pp-textarea"
-                  placeholder="Enter a description or clinical notes for this evidence..."
-                  value={uploadNotes}
-                  onChange={e => setUploadNotes(e.target.value)}
-                  style={{ minHeight: '120px' }}
-                />
-              </div>
-            </div>
-
-            <footer style={{ padding: '16px 24px', background: 'var(--pp-warm-1)', borderTop: '1px solid var(--pp-warm-3)', display: 'flex', gap: '10px' }}>
-              <button type="button" className="btn-secondary" style={{ flex: 1 }} onClick={handleCloseUpload}>Cancel</button>
-              <button
-                onClick={handleUploadSubmit}
-                className="btn-primary"
-                disabled={saveImage.isPending}
-                style={{ flex: 2, padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-              >
-                <Upload size={16} /> {saveImage.isPending ? 'Uploading...' : 'Upload Media'}
-              </button>
-            </footer>
-          </div>
-        </>,
-        document.body
+      {/* Lightbox Modal */}
+      {activePreviewIndex !== null && imageOnlyList[activePreviewIndex] && (
+        <ImageLightbox
+          images={imageOnlyList}
+          activeIndex={activePreviewIndex}
+          onClose={() => setActivePreviewIndex(null)}
+          onNext={() => setActivePreviewIndex((activePreviewIndex + 1) % imageOnlyList.length)}
+          onPrev={() => setActivePreviewIndex((activePreviewIndex - 1 + imageOnlyList.length) % imageOnlyList.length)}
+          getImageUrl={getImageUrl}
+        />
       )}
-
-
     </div>
+  );
+}
+
+// ─── Elegant Lightbox Helper Component ───
+function ImageLightbox({
+  images,
+  activeIndex,
+  onClose,
+  onNext,
+  onPrev,
+  getImageUrl
+}: {
+  images: any[];
+  activeIndex: number;
+  onClose: () => void;
+  onNext: () => void;
+  onPrev: () => void;
+  getImageUrl: (path: string) => string;
+}) {
+  const activeImage = images[activeIndex];
+  const imagePath = activeImage.picture || activeImage.picturePath || activeImage.picture_path;
+  const resolvedUrl = imagePath ? getImageUrl(imagePath) : '';
+  const timestamp = activeImage.createdAt || activeImage.created_at || activeImage.recordedAt || activeImage.recorded_at;
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      } else if (e.key === 'ArrowRight') {
+        onNext();
+      } else if (e.key === 'ArrowLeft') {
+        onPrev();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose, onNext, onPrev]);
+
+  if (!activeImage) return null;
+
+  return ReactDOM.createPortal(
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 99999,
+        background: 'rgba(9, 11, 20, 0.94)',
+        backdropFilter: 'blur(20px)',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        color: 'white',
+        fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+      }}
+      onClick={onClose}
+    >
+      {/* Top Header Bar */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '24px 32px',
+          background: 'linear-gradient(to bottom, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0))',
+          width: '100%',
+          boxSizing: 'border-box'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <span style={{ fontSize: '1.1rem', fontWeight: 600, color: 'rgba(255, 255, 255, 0.95)' }}>
+            {activeImage.description || 'Clinical Evidence'}
+          </span>
+          <span style={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.5)' }}>
+            {timestamp ? new Date(timestamp).toLocaleString('en-GB', {
+              day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+            }) : '—'}
+            {' • '}
+            Image {activeIndex + 1} of {images.length}
+          </span>
+        </div>
+        <button
+          className="lightbox-btn"
+          style={{ width: '40px', height: '40px' }}
+          onClick={onClose}
+          title="Close (Esc)"
+        >
+          <X size={18} />
+        </button>
+      </div>
+
+      {/* Main Container */}
+      <div
+        style={{
+          flex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          position: 'relative',
+          padding: '0 32px',
+          boxSizing: 'border-box'
+        }}
+      >
+        {/* Prev Arrow */}
+        <div onClick={(e) => e.stopPropagation()} style={{ zIndex: 10 }}>
+          {images.length > 1 && (
+            <button
+              className="lightbox-btn"
+              onClick={onPrev}
+              title="Previous (Left Arrow)"
+            >
+              <ChevronLeft size={24} />
+            </button>
+          )}
+        </div>
+
+        {/* The Image */}
+        <div
+          style={{
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '100%',
+            position: 'relative',
+            padding: '20px 0'
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <img
+            src={resolvedUrl}
+            style={{
+              maxHeight: '75vh',
+              maxWidth: '75vw',
+              borderRadius: '8px',
+              objectFit: 'contain',
+              boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
+              border: '1px solid rgba(255, 255, 255, 0.1)'
+            }}
+            alt={activeImage.description || 'Clinical Evidence'}
+          />
+        </div>
+
+        {/* Next Arrow */}
+        <div onClick={(e) => e.stopPropagation()} style={{ zIndex: 10 }}>
+          {images.length > 1 && (
+            <button
+              className="lightbox-btn"
+              onClick={onNext}
+              title="Next (Right Arrow)"
+            >
+              <ChevronRight size={24} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Bottom Action Bar */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: '32px',
+          background: 'linear-gradient(to top, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0))',
+          width: '100%',
+          boxSizing: 'border-box',
+          gap: '16px'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          className="lightbox-btn"
+          style={{ width: 'auto', height: '40px', padding: '0 24px', borderRadius: '20px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '8px' }}
+          onClick={() => window.open(resolvedUrl, '_blank')}
+          title="Open original image in new tab"
+        >
+          <Eye size={16} /> Open Original
+        </button>
+        <a
+          href={resolvedUrl}
+          download={activeImage.description || 'clinical-evidence'}
+          className="lightbox-btn"
+          style={{ textDecoration: 'none', width: 'auto', height: '40px', padding: '0 24px', borderRadius: '20px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '8px' }}
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Download Image"
+        >
+          <Download size={16} /> Download
+        </a>
+      </div>
+    </div>,
+    document.body
   );
 }
 
