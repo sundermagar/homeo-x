@@ -9,7 +9,7 @@ import {
   MessageSquare, Send, BrainCircuit, ClipboardList, FlaskConical, Microscope,
   Printer, Paperclip, Upload, X, Eye, Loader2, Trash2, Thermometer,
   TrendingUp, Stethoscope, Scale, Syringe, BarChart3, Pill, Check, User,
-  ChevronLeft,
+  Video, FileAudio, ChevronLeft,
   MoveVertical,
   LayoutList,
   LayoutGrid,
@@ -3302,14 +3302,81 @@ function CommunicationView({ regid, phone, name, onAppendNote }: { regid: number
   );
 }
 
+// ─── Utility to extract media type from path ───
+const getMediaType = (urlOrPath: string): 'image' | 'video' | 'audio' | 'pdf' | 'other' => {
+  if (!urlOrPath) return 'other';
+  const pathParts = urlOrPath.toLowerCase().split('?');
+  const firstPart = pathParts[0] || '';
+  const hashParts = firstPart.split('#');
+  const path = hashParts[0] || '';
+  if (/\.(jpeg|jpg|gif|png|webp|svg|bmp)$/i.test(path)) return 'image';
+  if (/\.(mp4|webm|ogg|mov|mkv|avi|flv|wmv)$/i.test(path)) return 'video';
+  if (/\.(mp3|wav|ogg|m4a|aac|flac|wma)$/i.test(path)) return 'audio';
+  if (/\.pdf$/i.test(path)) return 'pdf';
+  return 'image'; // fallback
+};
+
 function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; visitId: number; images: any[]; isDateFiltered?: boolean }) {
   const { updateImage, deleteImage, saveImage } = useManageClinicalRecords();
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  const [showUploadForm, setShowUploadForm] = useState(false);
+  const [activePreviewIndex, setActivePreviewIndex] = useState<number | null>(null);
 
-  const [isUploadOpen, setIsUploadOpen] = useState(false);
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [previews, setPreviews] = useState<string[]>([]);
-  const [uploadNotes, setUploadNotes] = useState('');
+  const [description, setDescription] = useState('');
+  const [file, setFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.files?.[0];
+    if (selected) {
+      setFile(selected);
+      if (selected.type.startsWith('image/') || selected.type.startsWith('video/') || selected.type.startsWith('audio/')) {
+        const url = URL.createObjectURL(selected);
+        setPreviewUrl(url);
+      } else {
+        setPreviewUrl(null);
+      }
+    }
+  };
+
+  const handleUploadSubmit = async () => {
+    if (!file) return;
+    setUploading(true);
+
+    const formData = new FormData();
+    formData.append('regid', String(regid));
+    if (visitId) {
+      formData.append('visitId', String(visitId));
+    }
+    formData.append('description', description || 'Clinical Evidence');
+    formData.append('files', file);
+
+    try {
+      await saveImage.mutateAsync(formData);
+      setFile(null);
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+        setPreviewUrl(null);
+      }
+      setDescription('');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      setShowUploadForm(false);
+    } catch (err) {
+      console.error('Upload failed:', err);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const sortedImages = images ? [...images].sort((a, b) =>
     new Date(b.createdAt || b.created_at || 0).getTime() -
@@ -3317,6 +3384,13 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
   ) : [];
 
   const currentImages = sortedImages;
+
+  const imageOnlyList = useMemo(() => {
+    return currentImages.filter(img => {
+      const imagePath = img.picture || img.picturePath || img.picture_path;
+      return getMediaType(imagePath || '') === 'image';
+    });
+  }, [currentImages]);
 
   const { expandedDates, toggleDate, groupedData: groupedImages } = useTableGrouping(currentImages, 'createdAt');
 
@@ -3334,56 +3408,6 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
     return path.startsWith('/') ? path : '/' + path;
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    previews.forEach(url => URL.revokeObjectURL(url));
-
-    const newFiles: File[] = [];
-    const newPreviews: string[] = [];
-
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      if (file) {
-        newFiles.push(file);
-        newPreviews.push(URL.createObjectURL(file));
-      }
-    }
-
-    setSelectedFiles(newFiles);
-    setPreviews(newPreviews);
-    setUploadNotes('');
-    setIsUploadOpen(true);
-  };
-
-  const handleCloseUpload = () => {
-    previews.forEach(url => URL.revokeObjectURL(url));
-    setPreviews([]);
-    setSelectedFiles([]);
-    setUploadNotes('');
-    setIsUploadOpen(false);
-  };
-
-  const handleUploadSubmit = async () => {
-    if (selectedFiles.length === 0) return;
-
-    const formData = new FormData();
-    formData.append('regid', String(regid));
-    formData.append('visitId', String(visitId));
-    formData.append('description', uploadNotes || 'Clinical Evidence');
-    selectedFiles.forEach(file => {
-      formData.append('files', file);
-    });
-
-    try {
-      await saveImage.mutateAsync(formData);
-      handleCloseUpload();
-    } catch (err) {
-      console.error('Upload failed:', err);
-    }
-  };
-
   const handleEditDescription = async (img: any) => {
     const newDesc = prompt('Edit Clinical Note/Description:', img.description || '');
     if (newDesc === null || newDesc === img.description) return;
@@ -3395,7 +3419,7 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this image?')) return;
+    if (!confirm('Are you sure you want to delete this media?')) return;
     try {
       await deleteImage.mutateAsync(id);
     } catch (err) {
@@ -3405,6 +3429,65 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
 
   return (
     <div className="animate-fade-in" style={{ maxWidth: '1000px', margin: '0 auto' }}>
+      <style>{`
+        .mc-image-clickable-container {
+          overflow: hidden;
+          cursor: pointer;
+          position: relative;
+          width: 100%;
+          height: 100%;
+        }
+        .mc-image-clickable-container img {
+          transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .mc-image-clickable-container:hover img {
+          transform: scale(1.05);
+        }
+        .mc-image-hover-overlay {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(15, 23, 42, 0.25);
+          opacity: 0;
+          transition: opacity 0.3s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          backdrop-filter: blur(1px);
+        }
+        .mc-image-clickable-container:hover .mc-image-hover-overlay {
+          opacity: 1;
+        }
+        
+        .lightbox-btn {
+          width: 48px;
+          height: 48px;
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.08);
+          backdrop-filter: blur(12px);
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          color: rgba(255, 255, 255, 0.9);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+          padding: 0;
+        }
+        .lightbox-btn:hover {
+          background: rgba(255, 255, 255, 0.2);
+          border-color: rgba(255, 255, 255, 0.35);
+          color: white;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+        }
+        .lightbox-btn:active {
+          transform: translateY(1px);
+        }
+      `}</style>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <div className="mc-section-header" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
           <Camera size={20} /> Clinical Evidence
@@ -3412,11 +3495,11 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <input
             type="file"
-            multiple
-            accept="image/*"
-            id="clinical-evidence-upload"
+            ref={fileInputRef}
             style={{ display: 'none' }}
             onChange={handleFileChange}
+            accept="image/*,video/*,audio/*,application/pdf"
+            disabled={uploading}
           />
           <button
             className="btn-primary"
@@ -3427,13 +3510,14 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              background: showUploadForm ? 'var(--pp-ink)' : 'var(--pp-blue)'
             }}
-            onClick={() => document.getElementById('clinical-evidence-upload')?.click()}
-            disabled={saveImage.isPending}
+            onClick={() => setShowUploadForm(prev => !prev)}
+            disabled={uploading}
           >
-            <Plus size={14} />
-            {saveImage.isPending ? 'Uploading...' : 'Add Image'}
+            {showUploadForm ? <X size={14} /> : <Plus size={14} />}
+            {uploading ? 'Processing...' : (showUploadForm ? 'Hide Form' : 'Add Media')}
           </button>
 
           <div style={{ display: 'flex', gap: '8px', background: 'var(--pp-warm-1)', padding: '4px', borderRadius: '8px', border: '1px solid var(--pp-warm-3)' }}>
@@ -3465,7 +3549,140 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
         </div>
       </div>
 
+      {/* ─── Premium Inline Add Media Form ─── */}
+      {showUploadForm && (
+        <div 
+          className="animate-fade-in"
+          style={{ 
+            background: 'white',
+            borderRadius: '16px',
+            border: '1px solid var(--pp-warm-3)',
+            padding: '24px',
+            boxShadow: 'var(--pp-shadow-sm)',
+            marginBottom: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '20px',
+            width: '100%',
+            boxSizing: 'border-box'
+          }}
+        >
+          <div 
+            style={{ 
+              background: 'var(--pp-warm-1)', 
+              border: '1.5px dashed var(--border-main)', 
+              borderRadius: '16px', 
+              padding: file ? '24px' : '48px 24px', 
+              textAlign: 'center',
+              cursor: 'pointer',
+              position: 'relative',
+              transition: 'all 0.2s',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center'
+            }}
+            onClick={() => fileInputRef.current?.click()}
+            onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--pp-blue)'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border-main)'}
+          >
+            {uploading ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                <Loader2 size={32} className="animate-spin" style={{ color: 'var(--pp-blue)' }} />
+                <div style={{ fontWeight: 700, color: 'var(--pp-blue)' }}>Processing...</div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', width: '100%' }}>
+                {file ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', width: '100%' }}>
+                    {file.type.startsWith('image/') && previewUrl && (
+                      <img 
+                        src={previewUrl} 
+                        alt="Preview" 
+                        style={{ 
+                          maxHeight: '180px', 
+                          maxWidth: '100%', 
+                          borderRadius: '12px', 
+                          objectFit: 'contain', 
+                          boxShadow: '0 4px 16px rgba(0,0,0,0.08)' 
+                        }} 
+                      />
+                    )}
+                    {file.type.startsWith('video/') && previewUrl && (
+                      <video 
+                        src={previewUrl} 
+                        controls 
+                        style={{ 
+                          maxHeight: '180px', 
+                          maxWidth: '100%', 
+                          borderRadius: '12px', 
+                          boxShadow: '0 4px 16px rgba(0,0,0,0.08)' 
+                        }} 
+                      />
+                    )}
+                    {file.type.startsWith('audio/') && previewUrl && (
+                      <div style={{ width: '100%', maxWidth: '320px', padding: '16px', background: 'white', borderRadius: '12px', boxShadow: '0 4px 16px rgba(0,0,0,0.08)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }} onClick={e => e.stopPropagation()}>
+                        <div style={{ color: 'var(--pp-blue)', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, fontSize: '0.85rem' }}>🎵 Audio Recording</div>
+                        <audio src={previewUrl} controls style={{ width: '100%' }} />
+                      </div>
+                    )}
+                    {(!previewUrl || (!file.type.startsWith('image/') && !file.type.startsWith('video/') && !file.type.startsWith('audio/'))) && (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', padding: '24px', background: 'white', borderRadius: '12px', boxShadow: '0 4px 16px rgba(0,0,0,0.08)' }}>
+                        <span style={{ fontSize: '2.5rem' }}>📄</span>
+                        <div style={{ color: 'var(--pp-ink)', fontWeight: 700 }}>{file.name}</div>
+                      </div>
+                    )}
+                    <div>
+                      <div style={{ color: 'var(--pp-ink)', fontWeight: 700, fontSize: '0.95rem', marginBottom: '2px' }}>
+                        {file.name}
+                      </div>
+                      <div style={{ color: 'var(--pp-blue)', fontSize: '0.8rem', fontWeight: 700 }}>
+                        Click to select a different file
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', color: 'var(--pp-blue)' }}>
+                      <Plus size={28} />
+                    </div>
+                    <div>
+                      <div style={{ color: 'var(--pp-ink)', fontWeight: 700, fontSize: '1.1rem', marginBottom: '4px' }}>
+                        click to select media
+                      </div>
+                      <div style={{ color: 'var(--pp-text-3)', fontSize: '0.85rem', fontWeight: 500 }}>
+                        Images, Audio, Video or PDF (Max 10MB)
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
 
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <input
+              className="pp-input"
+              placeholder="add notes"
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              style={{ flex: 1, padding: '12px 16px' }}
+            />
+            <button
+              className="btn-primary"
+              onClick={handleUploadSubmit}
+              disabled={!file || uploading}
+              style={{ padding: '0 32px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '8px', opacity: !file ? 0.6 : 1 }}
+            >
+              {uploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+              upload
+            </button>
+          </div>
+          <div style={{ borderTop: '1px solid var(--pp-warm-2)', paddingTop: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--pp-text-3)', fontSize: '0.85rem' }}>
+            <span style={{ fontSize: '1.1rem' }}>💡</span>
+            <span>These files will appear as clinical evidence for the patient's record.</span>
+          </div>
+        </div>
+      )}
 
       {viewMode === 'grid' ? (
         <div style={{
@@ -3477,6 +3694,7 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
             const imagePath = img.picture || img.picturePath || img.picture_path;
             const timestamp = img.createdAt || img.created_at || img.recordedAt || img.recorded_at;
             const resolvedUrl = imagePath ? getImageUrl(imagePath) : '';
+            const mediaType = getMediaType(imagePath || '');
 
             return (
               <div
@@ -3491,19 +3709,73 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
                 <div style={{
                   aspectRatio: currentImages.length === 1 ? 'auto' : '4/3',
                   maxHeight: currentImages.length === 1 ? '600px' : '300px',
-                  position: 'relative', overflow: 'hidden', background: 'var(--pp-warm-1)', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  minHeight: mediaType === 'audio' ? '180px' : 'auto',
+                  position: 'relative', overflow: 'hidden', background: 'var(--pp-warm-1)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: '100%'
                 }}>
                   {resolvedUrl ? (
-                    <img
-                      src={resolvedUrl}
-                      style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                      alt={img.description || 'Clinical Evidence'}
-                      onError={(e) => {
-                        const el = e.target as HTMLImageElement;
-                        el.style.display = 'none';
-                        el.parentElement!.innerHTML = '<div style="text-align:center;color:#999;padding:20px"><div style="font-size:2rem;margin-bottom:8px">🖼️</div><div style="font-size:0.8rem">Image missing</div></div>';
-                      }}
-                    />
+                    <>
+                      {mediaType === 'image' && (
+                        <div
+                          className="mc-image-clickable-container"
+                          onClick={() => {
+                            const index = imageOnlyList.findIndex(x => x.id === img.id);
+                            if (index !== -1) setActivePreviewIndex(index);
+                          }}
+                          style={{ width: '100%', height: '100%' }}
+                        >
+                          <img
+                            src={resolvedUrl}
+                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                            alt={img.description || 'Clinical Evidence'}
+                            onError={(e) => {
+                              const el = e.target as HTMLImageElement;
+                              el.style.display = 'none';
+                              el.parentElement!.innerHTML = '<div style="text-align:center;color:#999;padding:20px"><div style="font-size:2rem;margin-bottom:8px">🖼️</div><div style="font-size:0.8rem">Image missing</div></div>';
+                            }}
+                          />
+                          <div className="mc-image-hover-overlay">
+                            <Eye size={24} style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }} />
+                          </div>
+                        </div>
+                      )}
+                      {mediaType === 'video' && (
+                        <video
+                          src={resolvedUrl}
+                          controls
+                          style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#000' }}
+                          onError={(e) => {
+                            const el = e.target as HTMLVideoElement;
+                            el.style.display = 'none';
+                            el.parentElement!.innerHTML = '<div style="text-align:center;color:#999;padding:20px"><div style="font-size:2rem;margin-bottom:8px">🎥</div><div style="font-size:0.8rem">Video format unsupported</div></div>';
+                          }}
+                        />
+                      )}
+                      {mediaType === 'audio' && (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', padding: '24px', background: 'linear-gradient(135deg, #f5f3ff, #ede9fe)', minHeight: '180px' }}>
+                          <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', color: '#7c3aed', marginBottom: '12px' }}>
+                            <FileAudio size={24} />
+                          </div>
+                          <audio
+                             src={resolvedUrl}
+                             controls
+                             style={{ width: '100%', maxWidth: '240px' }}
+                          />
+                        </div>
+                      )}
+                      {mediaType === 'pdf' && (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', padding: '24px', background: 'linear-gradient(135deg, #f0fdf4, #ecfdf5)', minHeight: '180px' }}>
+                          <span style={{ fontSize: '3rem', marginBottom: '8px' }}>📄</span>
+                          <button
+                            onClick={() => window.open(resolvedUrl, '_blank')}
+                            className="btn-secondary"
+                            style={{ padding: '6px 12px', fontSize: '0.75rem', borderRadius: '6px', cursor: 'pointer' }}
+                          >
+                            View PDF Document
+                          </button>
+                        </div>
+                      )}
+                    </>
                   ) : (
                     <div style={{ textAlign: 'center', color: 'var(--pp-text-3)', padding: '20px' }}>
                       <Camera size={32} style={{ opacity: 0.3, marginBottom: '8px' }} />
@@ -3527,7 +3799,7 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
                         padding: '6px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.9)', color: 'white',
                         border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center'
                       }}
-                      title="Delete image"
+                      title="Delete media"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -3574,6 +3846,7 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
                     const dateVal = img.createdAt || img.created_at || img.recordedAt || img.recorded_at || 0;
                     const imagePath = img.picture || img.picturePath || img.picture_path;
                     const resolvedUrl = imagePath ? getImageUrl(imagePath) : '';
+                    const mediaType = getMediaType(imagePath || '');
 
                     return (
                       <tr
@@ -3585,9 +3858,25 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
                         }}
                       >
                         <td style={{ width: '80px' }}>
-                          <div style={{ width: '50px', height: '50px', borderRadius: '8px', overflow: 'hidden', background: 'var(--pp-warm-1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <div
+                            style={{ width: '50px', height: '50px', borderRadius: '8px', overflow: 'hidden', background: 'var(--pp-warm-1)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                            onClick={() => {
+                              if (mediaType === 'image') {
+                                const index = imageOnlyList.findIndex(x => x.id === img.id);
+                                if (index !== -1) setActivePreviewIndex(index);
+                              } else if (resolvedUrl) {
+                                window.open(resolvedUrl, '_blank');
+                              }
+                            }}
+                            title={mediaType === 'image' ? 'Click to preview image' : 'View original media'}
+                          >
                             {resolvedUrl ? (
-                              <img src={resolvedUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onClick={() => window.open(resolvedUrl, '_blank')} />
+                              <>
+                                {mediaType === 'image' && <img src={resolvedUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                                {mediaType === 'video' && <Video size={20} style={{ color: 'var(--pp-blue)' }} />}
+                                {mediaType === 'audio' && <FileAudio size={20} style={{ color: '#7c3aed' }} />}
+                                {mediaType === 'pdf' && <span style={{ fontSize: '1.5rem' }}>📄</span>}
+                              </>
                             ) : <Camera size={20} style={{ opacity: 0.3 }} />}
                           </div>
                         </td>
@@ -3606,10 +3895,22 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
                             <button className="btn-ghost" style={{ color: 'var(--pp-blue)' }} onClick={() => handleEditDescription(img)} title="Edit Notes">
                               <Edit size={16} />
                             </button>
-                            <button className="btn-ghost" style={{ color: 'var(--pp-blue)' }} onClick={() => resolvedUrl && window.open(resolvedUrl, '_blank')} title="View Full Image">
+                            <button
+                              className="btn-ghost"
+                              style={{ color: 'var(--pp-blue)' }}
+                              onClick={() => {
+                                if (mediaType === 'image') {
+                                  const index = imageOnlyList.findIndex(x => x.id === img.id);
+                                  if (index !== -1) setActivePreviewIndex(index);
+                                } else if (resolvedUrl) {
+                                  window.open(resolvedUrl, '_blank');
+                                }
+                              }}
+                              title="View Full Media"
+                            >
                               <Eye size={16} />
                             </button>
-                            <button className="btn-ghost" style={{ color: 'var(--pp-danger-fg)' }} onClick={() => handleDelete(img.id)} title="Delete Image">
+                            <button className="btn-ghost" style={{ color: 'var(--pp-danger-fg)' }} onClick={() => handleDelete(img.id)} title="Delete Media">
                               <Trash2 size={16} />
                             </button>
                           </div>
@@ -3627,73 +3928,219 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
       {(!images || images.length === 0) && (
         <EmptyState
           icon={Camera}
-          title="No clinical images have been uploaded yet"
-          description="Capture and store clinical photographs, laboratory reports, and other visual evidence for this patient's medical case."
+          title="No clinical media has been uploaded yet"
+          description="Capture and store clinical photographs, audio/video recordings, laboratory reports, and other media evidence for this patient's medical case."
         />
       )}
 
-      {/* ─── Media Upload Drawer with Previews & Notes ─── */}
-      {isUploadOpen && ReactDOM.createPortal(
-        <>
-          <div className="mc-drawer-backdrop" onClick={handleCloseUpload} />
-          <div className="mc-drawer animate-slide-in-right" style={{ maxWidth: '520px', display: 'flex', flexDirection: 'column' }}>
-            <header className="mc-drawer-header" style={{ background: 'var(--pp-blue)', color: 'white' }}>
-              <div className="mc-drawer-header-title">
-                <Camera size={18} /> Add Clinical Evidence
-              </div>
-              <button className="mc-drawer-close" onClick={handleCloseUpload} style={{ color: 'white', opacity: 0.8 }}>
-                <X size={16} />
-              </button>
-            </header>
-
-            <div style={{ padding: '24px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {/* Image Previews */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Selected Media ({selectedFiles.length})
-                </label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-                  {previews.map((url, idx) => (
-                    <div key={idx} style={{ position: 'relative', aspectRatio: '1', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--pp-warm-3)', background: 'var(--pp-warm-1)' }}>
-                      <img src={url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="preview" />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Notes Form Group */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Notes / Description
-                </label>
-                <textarea
-                  className="pp-textarea"
-                  placeholder="Enter a description or clinical notes for this evidence..."
-                  value={uploadNotes}
-                  onChange={e => setUploadNotes(e.target.value)}
-                  style={{ minHeight: '120px' }}
-                />
-              </div>
-            </div>
-
-            <footer style={{ padding: '16px 24px', background: 'var(--pp-warm-1)', borderTop: '1px solid var(--pp-warm-3)', display: 'flex', gap: '10px' }}>
-              <button type="button" className="btn-secondary" style={{ flex: 1 }} onClick={handleCloseUpload}>Cancel</button>
-              <button
-                onClick={handleUploadSubmit}
-                className="btn-primary"
-                disabled={saveImage.isPending}
-                style={{ flex: 2, padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-              >
-                <Upload size={16} /> {saveImage.isPending ? 'Uploading...' : 'Upload Media'}
-              </button>
-            </footer>
-          </div>
-        </>,
-        document.body
+      {/* Lightbox Modal */}
+      {activePreviewIndex !== null && imageOnlyList[activePreviewIndex] && (
+        <ImageLightbox
+          images={imageOnlyList}
+          activeIndex={activePreviewIndex}
+          onClose={() => setActivePreviewIndex(null)}
+          onNext={() => setActivePreviewIndex((activePreviewIndex + 1) % imageOnlyList.length)}
+          onPrev={() => setActivePreviewIndex((activePreviewIndex - 1 + imageOnlyList.length) % imageOnlyList.length)}
+          getImageUrl={getImageUrl}
+        />
       )}
-
-
     </div>
+  );
+}
+
+// ─── Elegant Lightbox Helper Component ───
+function ImageLightbox({
+  images,
+  activeIndex,
+  onClose,
+  onNext,
+  onPrev,
+  getImageUrl
+}: {
+  images: any[];
+  activeIndex: number;
+  onClose: () => void;
+  onNext: () => void;
+  onPrev: () => void;
+  getImageUrl: (path: string) => string;
+}) {
+  const activeImage = images[activeIndex];
+  const imagePath = activeImage.picture || activeImage.picturePath || activeImage.picture_path;
+  const resolvedUrl = imagePath ? getImageUrl(imagePath) : '';
+  const timestamp = activeImage.createdAt || activeImage.created_at || activeImage.recordedAt || activeImage.recorded_at;
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      } else if (e.key === 'ArrowRight') {
+        onNext();
+      } else if (e.key === 'ArrowLeft') {
+        onPrev();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose, onNext, onPrev]);
+
+  if (!activeImage) return null;
+
+  return ReactDOM.createPortal(
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 99999,
+        background: 'rgba(9, 11, 20, 0.94)',
+        backdropFilter: 'blur(20px)',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        color: 'white',
+        fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+      }}
+      onClick={onClose}
+    >
+      {/* Top Header Bar */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '24px 32px',
+          background: 'linear-gradient(to bottom, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0))',
+          width: '100%',
+          boxSizing: 'border-box'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <span style={{ fontSize: '1.1rem', fontWeight: 600, color: 'rgba(255, 255, 255, 0.95)' }}>
+            {activeImage.description || 'Clinical Evidence'}
+          </span>
+          <span style={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.5)' }}>
+            {timestamp ? new Date(timestamp).toLocaleString('en-GB', {
+              day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+            }) : '—'}
+            {' • '}
+            Image {activeIndex + 1} of {images.length}
+          </span>
+        </div>
+        <button
+          className="lightbox-btn"
+          style={{ width: '40px', height: '40px' }}
+          onClick={onClose}
+          title="Close (Esc)"
+        >
+          <X size={18} />
+        </button>
+      </div>
+
+      {/* Main Container */}
+      <div
+        style={{
+          flex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          position: 'relative',
+          padding: '0 32px',
+          boxSizing: 'border-box'
+        }}
+      >
+        {/* Prev Arrow */}
+        <div onClick={(e) => e.stopPropagation()} style={{ zIndex: 10 }}>
+          {images.length > 1 && (
+            <button
+              className="lightbox-btn"
+              onClick={onPrev}
+              title="Previous (Left Arrow)"
+            >
+              <ChevronLeft size={24} />
+            </button>
+          )}
+        </div>
+
+        {/* The Image */}
+        <div
+          style={{
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '100%',
+            position: 'relative',
+            padding: '20px 0'
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <img
+            src={resolvedUrl}
+            style={{
+              maxHeight: '75vh',
+              maxWidth: '75vw',
+              borderRadius: '8px',
+              objectFit: 'contain',
+              boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
+              border: '1px solid rgba(255, 255, 255, 0.1)'
+            }}
+            alt={activeImage.description || 'Clinical Evidence'}
+          />
+        </div>
+
+        {/* Next Arrow */}
+        <div onClick={(e) => e.stopPropagation()} style={{ zIndex: 10 }}>
+          {images.length > 1 && (
+            <button
+              className="lightbox-btn"
+              onClick={onNext}
+              title="Next (Right Arrow)"
+            >
+              <ChevronRight size={24} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Bottom Action Bar */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: '32px',
+          background: 'linear-gradient(to top, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0))',
+          width: '100%',
+          boxSizing: 'border-box',
+          gap: '16px'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          className="lightbox-btn"
+          style={{ width: 'auto', height: '40px', padding: '0 24px', borderRadius: '20px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '8px' }}
+          onClick={() => window.open(resolvedUrl, '_blank')}
+          title="Open original image in new tab"
+        >
+          <Eye size={16} /> Open Original
+        </button>
+        <a
+          href={resolvedUrl}
+          download={activeImage.description || 'clinical-evidence'}
+          className="lightbox-btn"
+          style={{ textDecoration: 'none', width: 'auto', height: '40px', padding: '0 24px', borderRadius: '20px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '8px' }}
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Download Image"
+        >
+          <Download size={16} /> Download
+        </a>
+      </div>
+    </div>,
+    document.body
   );
 }
 
