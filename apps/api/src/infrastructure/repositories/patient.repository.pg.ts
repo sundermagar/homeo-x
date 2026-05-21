@@ -120,7 +120,7 @@ export class PatientRepositoryPg implements PatientRepository {
     };
   }
 
-  async create(input: CreatePatientInput): Promise<Patient> {
+  async create(input: CreatePatientInput & { clinicId?: number }): Promise<Patient> {
     // Generate next regid (legacy compatibility)
     const maxRows = await this.db
       .select({ maxRegid: sql<number>`coalesce(max(${patients.regid}), 1000)` })
@@ -216,7 +216,7 @@ export class PatientRepositoryPg implements PatientRepository {
     return !!row;
   }
 
-  async lookup(query: string, limit = 20): Promise<PatientSummary[]> {
+  async lookup(query: string, limit = 20, clinicId?: number): Promise<PatientSummary[]> {
     const s = `%${query}%`;
     const rows = await this.db
       .select()
@@ -237,7 +237,7 @@ export class PatientRepositoryPg implements PatientRepository {
     return rows.map(row => this.toSummary(row));
   }
 
-  async findBirthdays(mmdd: string): Promise<PatientSummary[]> {
+  async findBirthdays(mmdd: string, clinicId?: number): Promise<PatientSummary[]> {
     const rows = await this.db
       .select()
       .from(patients)
@@ -250,7 +250,7 @@ export class PatientRepositoryPg implements PatientRepository {
     return rows.map(row => this.toSummary(row));
   }
 
-  async getFormMeta(): Promise<PatientFormMeta> {
+  async getFormMeta(clinicId?: number): Promise<PatientFormMeta> {
     try {
       const [doctors, religions, occupations, references] = await Promise.all([
         this.db
@@ -337,8 +337,9 @@ export class PatientRepositoryPg implements PatientRepository {
     page: number;
     limit: number;
     search?: string;
+    clinicId?: number;
   }): Promise<{ data: FamilyGroupSummary[]; total: number }> {
-    const { page, limit, search } = params;
+    const { page, limit, search, clinicId } = params;
     const offset = (page - 1) * limit;
     const fg = familygroupsLegacy;
 
@@ -475,6 +476,7 @@ export class PatientRepositoryPg implements PatientRepository {
   private toDomain(row: any): Patient {
     return {
       id: row.id,
+      clinicId: row.clinicId ?? null,
       regid: row.regid || 0,
       tenantId: '',
       title: row.title || null,
@@ -515,6 +517,7 @@ export class PatientRepositoryPg implements PatientRepository {
 
   private toSummary(row: any): PatientSummary {
     return {
+      id: row.id,
       regid: row.regid || 0,
       fullName: `${row.firstName || ''} ${row.surname || ''}`.trim(),
       gender: row.gender || '',

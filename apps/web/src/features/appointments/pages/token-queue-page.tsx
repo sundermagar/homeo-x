@@ -648,7 +648,7 @@ export default function TokenQueuePage() {
                                     <CheckCircle2 size={14} /> {a.status === 'Completed' ? 'Done' : a.status}
                                   </div>
                                 ) : (
-                                  <button className="appt-kebab-item" style={{ color: 'var(--pp-success-fg)' }} onClick={() => { addToWaitlist.mutateAsync({ patientId: a.patientId!, appointmentId: a.id, doctorId: a.doctorId ?? undefined }); setOpenMenuId(null); setMenuPos(null); }} disabled={addToWaitlist.isPending}>
+                                  <button className="appt-kebab-item" style={{ color: 'var(--pp-success-fg)' }} onClick={() => { addToWaitlist.mutateAsync({ patientId: a.patientId || undefined, appointmentId: a.id, doctorId: a.doctorId ?? undefined }); setOpenMenuId(null); setMenuPos(null); }} disabled={addToWaitlist.isPending}>
                                     <Plus size={14} /> Check In
                                   </button>
                                 )}

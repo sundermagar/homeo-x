@@ -38,6 +38,15 @@ function fmt(n: number): string {
   return `₹${n}`;
 }
 
+function parseNotes(notes?: string | null) {
+  if (!notes) return null;
+  const match = notes.match(/Complaint:\s*(.*)/i);
+  if (match && match[1]) {
+    return match[1].trim();
+  }
+  return notes;
+}
+
 export function DoctorDashboard() {
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -303,7 +312,7 @@ export function DoctorDashboard() {
 
                   <div className="dd-clinical-notes">
                     <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--pp-blue)', textTransform: 'uppercase', marginBottom: 8, letterSpacing: '0.05em' }}>Chief Complaints</div>
-                    <p>{activeConsultation.notes || 'Routine checkup. Documented symptoms pending triage.'}</p>
+                    <p>{parseNotes(activeConsultation.notes) || 'Routine checkup. Documented symptoms pending triage.'}</p>
                   </div>
                 </>
               ) : (
@@ -371,7 +380,7 @@ export function DoctorDashboard() {
                               <div>
                                 <div className="text-label" style={{ fontSize: 9, textTransform: 'uppercase', marginBottom: 4 }}>Clinical Notes</div>
                                 <div style={{ fontSize: 12, color: '#475569', lineHeight: 1.5 }}>
-                                  {a.notes || 'Routine follow-up. No specific symptoms recorded at registration.'}
+                                  {parseNotes(a.notes) || 'Routine follow-up. No specific symptoms recorded at registration.'}
                                 </div>
                               </div>
                               <div className="dd-details-right">

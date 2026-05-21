@@ -13,7 +13,7 @@ export const FaqPage: React.FC = () => {
 
   const searchWords = searchTerm.toLowerCase().split(/\s+/).filter(w => w.trim().length > 0);
 
-  const filteredFaqs = faqs?.filter(f => {
+  const filteredFaqs = faqs?.filter((f: any) => {
     if (searchWords.length === 0) return true;
     const textToSearch = ((f.question || '') + ' ' + (f.ans || '') + ' ' + (f.answer || '')).toLowerCase();
     // Return true if AT LEAST ONE word from the search query is found in the question or answer

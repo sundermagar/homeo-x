@@ -53,7 +53,9 @@ export const DosageHelper: React.FC<DosageHelperProps> = ({ prescriptions, frequ
   prescriptions.forEach(p => {
     const slots = getSlots(p.frequency);
     slots.forEach(slot => {
-      groupedMedicines[slot].push(p);
+      if (groupedMedicines[slot]) {
+        groupedMedicines[slot].push(p);
+      }
     });
   });
 
@@ -78,7 +80,7 @@ export const DosageHelper: React.FC<DosageHelperProps> = ({ prescriptions, frequ
 
       <div style={{display: 'flex', flexDirection: 'column', gap: '1.5rem'}}>
         {slotsData.map((slot) => {
-          const meds = groupedMedicines[slot.title];
+          const meds = groupedMedicines[slot.title] || [];
           if (meds.length === 0) return null;
 
           return (

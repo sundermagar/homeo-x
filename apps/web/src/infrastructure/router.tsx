@@ -4,6 +4,7 @@ import { ProtectedRoute } from '@/shared/components/protected-route';
 import { PatientProtectedRoute } from '@/shared/components/patient-protected-route';
 import { RoleGuard } from '@/shared/components/role-guard';
 import { AppLayout } from '@/shared/layouts/app-layout';
+import { PatientLayout } from '@/shared/layouts/patient-layout';
 import { RouteErrorBoundary } from '@/components/shared/error-boundary';
 
 const Loading = () => (
@@ -122,7 +123,9 @@ const PatientBookWizardPage = lazy(() => import('@/features/public/pages/patient
 const PatientNotificationsPage = lazy(() => import('@/features/public/pages/patient-notifications'));
 const PatientPrescriptionsPage = lazy(() => import('@/features/public/pages/patient-prescriptions'));
 const PatientReportsPage = lazy(() => import('@/features/public/pages/patient-reports'));
+const PatientLabReportsPage = lazy(() => import('@/features/public/pages/patient-lab-reports'));
 const PatientProfilePage = lazy(() => import('@/features/public/pages/patient-profile'));
+const PatientAddressesPage = lazy(() => import('@/features/public/pages/patient-addresses'));
 const FaqPage = lazy(() => import('@/features/public/pages/faq-page').then(m => ({ default: m.FaqPage })));
 
 export function AppRouter() {
@@ -132,19 +135,23 @@ export function AppRouter() {
         <Routes>
         {/* Public */}
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/patient/login" element={<PatientLoginPage />} />
+        <Route path="/patient/login" element={<Navigate to="/login" replace />} />
         <Route path="/meet/:roomId" element={<PatientMeetPage />} />
         <Route path="/faqs" element={<FaqPage />} />
 
         {/* Patient Portal (protected by Patient Auth) */}
         <Route element={<PatientProtectedRoute />}>
-          <Route path="/patient/:phone" element={<PatientDashboardPage />} />
-          <Route path="/patient/:phone/appointments" element={<PatientAppointmentsPage />} />
-          <Route path="/patient/:phone/book" element={<PatientBookWizardPage />} />
-          <Route path="/patient/:phone/notifications" element={<PatientNotificationsPage />} />
-          <Route path="/patient/:phone/prescriptions" element={<PatientPrescriptionsPage />} />
-          <Route path="/patient/:phone/reports" element={<PatientReportsPage />} />
-          <Route path="/patient/:phone/profile" element={<PatientProfilePage />} />
+          <Route element={<PatientLayout />}>
+            <Route path="/patient/:phone" element={<PatientDashboardPage />} />
+            <Route path="/patient/:phone/appointments" element={<PatientAppointmentsPage />} />
+            <Route path="/patient/:phone/book" element={<PatientBookWizardPage />} />
+            <Route path="/patient/:phone/notifications" element={<PatientNotificationsPage />} />
+            <Route path="/patient/:phone/prescriptions" element={<PatientPrescriptionsPage />} />
+            <Route path="/patient/:phone/reports" element={<PatientReportsPage />} />
+            <Route path="/patient/:phone/lab-reports" element={<PatientLabReportsPage />} />
+            <Route path="/patient/:phone/addresses" element={<PatientAddressesPage />} />
+            <Route path="/patient/:phone/profile" element={<PatientProfilePage />} />
+          </Route>
         </Route>
 
         {/* Protected */}

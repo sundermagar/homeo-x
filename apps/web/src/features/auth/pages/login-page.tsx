@@ -8,6 +8,7 @@ import {
 import { z } from 'zod';
 import { apiClient } from '@/infrastructure/api-client';
 import { useAuthStore } from '@/shared/stores/auth-store';
+import { usePatientAuthStore } from '@/shared/stores/patient-auth-store';
 import { LoginRequestSchema } from '@mmc/validation';
 import hospitalHero from '@/assets/hospital-hero.jpg';
 import { prefetchDashboard } from '@/features/dashboard/hooks/use-dashboard';
@@ -28,10 +29,17 @@ export default function LoginPage() {
   const queryClient = useQueryClient();
   const setAuth = useAuthStore((s) => s.setAuth);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const setPatientAuth = usePatientAuthStore((s) => s.setAuth);
+  const isPatientAuthenticated = usePatientAuthStore((s) => s.isAuthenticated);
+  const patient = usePatientAuthStore((s) => s.patient);
 
   useEffect(() => {
-    if (isAuthenticated) navigate('/', { replace: true });
-  }, [isAuthenticated, navigate]);
+    if (isAuthenticated) {
+      navigate('/', { replace: true });
+    } else if (isPatientAuthenticated && patient) {
+      navigate(`/patient/${patient.phone}`, { replace: true });
+    }
+  }, [isAuthenticated, isPatientAuthenticated, patient, navigate]);
 
   // Warm up the dashboard chunk and the dashboard query while the user is reading
   // the login form. Hides ~500-1500ms of perceived wait on first navigation to "/".
@@ -62,25 +70,42 @@ export default function LoginPage() {
     }
 
     try {
+      // 1) Try logging in as Staff / Doctor
       const { data } = await apiClient.post('/auth/login', { email, password });
       if (data.success && data.data?.token) {
         setAuth(data.data.token, data.data.user);
         // Fire ONE dashboard request matching this user's role so it's in flight by
-        // the time React mounts the dashboard route. Firing both 'month' and 'day'
-        // at once doubles connection-pool pressure on the remote DB and makes the
-        // first load slower, not faster.
+        // the time React mounts the dashboard route.
         const role = String(data.data.user?.type || '').toLowerCase();
         const period = role === 'doctor' ? 'day' : 'month';
         prefetchDashboard(queryClient, period);
         navigate('/', { replace: true });
-      } else {
-        setError(data.error || 'Invalid credentials. Please try again.');
+        return;
       }
     } catch (err: any) {
+      // Check for rate limits first
       if (err.response?.status === 429) {
         setError('Too many login attempts. Please wait 15 minutes and try again.');
-      } else {
-        setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
+        setIsLoading(false);
+        return;
+      }
+
+      // 2) Fallback: Try logging in as a Patient
+      try {
+        const { data: patientData } = await apiClient.post('/public/auth/login', { email, password });
+        if (patientData.success && patientData.data?.token) {
+          setPatientAuth(patientData.data.token, patientData.data.patient);
+          navigate(`/patient/${patientData.data.patient.phone}`, { replace: true });
+          return;
+        }
+      } catch (patientErr: any) {
+        if (patientErr.response?.status === 429) {
+          setError('Too many login attempts. Please wait 15 minutes and try again.');
+        } else {
+          setError('Invalid credentials. Please check your email and password.');
+        }
+        setIsLoading(false);
+        return;
       }
     } finally {
       setIsLoading(false);

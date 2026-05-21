@@ -28,11 +28,9 @@ export function PatientAppointments() {
 
   if (clinicalLoading) {
     return (
-      <div className="patient-shell">
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ width: 48, height: 48, border: '4px solid #dcfce7', borderTopColor: '#22c55e', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-          <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-        </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '300px' }}>
+        <div style={{ width: 48, height: 48, border: '4px solid #dcfce7', borderTopColor: '#22c55e', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       </div>
     );
   }
@@ -49,6 +47,8 @@ export function PatientAppointments() {
         patientName: clinicalData.patientInfo.name,
         bookingDate: bookForm.date,
         bookingTime: bookForm.time,
+        doctorId: 1, // Fallback to doctorId 1
+        visitType: 'New',
         notes: bookForm.reason,
       });
       setBookSuccess(true);
@@ -90,11 +90,11 @@ export function PatientAppointments() {
   // Parse doctor/clinic from notes field
   const parseDoctor = (notes: string = '') => {
     const m = notes.match(/Doctor: ([^,]+)/);
-    return m ? m[1].trim() : 'Dr. neeraj verma';
+    return m && m[1] ? m[1].trim() : 'Dr. neeraj verma';
   };
   const parseClinic = (notes: string = '') => {
     const m = notes.match(/Clinic: ([^,]+)/);
-    return m ? m[1].trim() : 'homeo clinic';
+    return m && m[1] ? m[1].trim() : 'homeo clinic';
   };
 
   const handleCancelConfirm = async (id: number) => {
@@ -114,12 +114,12 @@ export function PatientAppointments() {
 
   const upcoming = (appointments || []).filter((a: any) => {
     const d = new Date(a.bookingDate);
-    return d >= today && a.status !== 'Cancelled';
+    return d >= today && a.status !== 'Cancelled' && a.status !== 'Completed';
   });
 
   const past = (appointments || []).filter((a: any) => {
     const d = new Date(a.bookingDate);
-    return d < today || a.status === 'Cancelled';
+    return d < today || a.status === 'Cancelled' || a.status === 'Completed';
   });
 
   // Apply Status Filter
@@ -141,12 +141,8 @@ export function PatientAppointments() {
   const minDateStr = minDate.toISOString().split('T')[0] || '';
 
   return (
-    <div className="patient-shell">
-      <PatientHeader patientName={clinicalData.patientInfo.name} />
-
-      <main className="patient-main" style={{ padding: 0, backgroundColor: '#f8fafc', paddingBottom: '80px' }}>
-        <div style={{ background: 'white', padding: '20px 20px 0 20px', position: 'sticky', top: 0, zIndex: 10, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-          <h1 className="patient-page-title" style={{ textAlign: 'center', marginBottom: '24px', fontSize: '1.2rem', fontWeight: 700 }}>My Appointments</h1>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <div style={{ background: 'var(--bg-card)', padding: '20px 20px 0 20px', position: 'sticky', top: 0, zIndex: 10, border: '1px solid var(--border-main)', borderRadius: '12px', boxShadow: 'var(--shadow-sm)' }}>
           <div style={{ display: 'flex', borderBottom: '2px solid #f1f5f9' }}>
             <button
               onClick={() => setActiveTab('upcoming')}
@@ -232,7 +228,7 @@ export function PatientAppointments() {
             ) : (
               (activeTab === 'upcoming' ? filteredUpcoming : filteredPast).map((appt: any) => {
                  const d = new Date(appt.bookingDate);
-                 const isUpcoming = d >= today && appt.status !== 'Cancelled';
+                 const isUpcoming = d >= today && appt.status !== 'Cancelled' && appt.status !== 'Completed';
                  const isConfirmed = appt.status === 'Confirmed' || appt.status === 'Pending';
                  const within6h = isWithin6Hours(appt);
                  const mode = parseMode(appt.notes);
@@ -303,11 +299,17 @@ export function PatientAppointments() {
                                <MapPin size={15} /> Check In
                              </button>
                            ) : mode === 'audio' ? (
-                             <button style={{ flex: 1, padding: '10px 0', borderRadius: '10px', background: 'var(--primary)', color: 'white', border: 'none', fontWeight: 700, fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer' }}>
+                             <button 
+                               onClick={() => window.open(`/meet/${appt.id}?mode=audio`, '_blank')}
+                               style={{ flex: 1, padding: '10px 0', borderRadius: '10px', background: 'var(--primary)', color: 'white', border: 'none', fontWeight: 700, fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer' }}
+                             >
                                <PhoneCall size={15} /> Join Audio Call
                              </button>
                            ) : (
-                             <button style={{ flex: 1, padding: '10px 0', borderRadius: '10px', background: 'var(--primary)', color: 'white', border: 'none', fontWeight: 700, fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer' }}>
+                             <button 
+                               onClick={() => window.open(`/meet/${appt.id}?mode=video`, '_blank')}
+                               style={{ flex: 1, padding: '10px 0', borderRadius: '10px', background: 'var(--primary)', color: 'white', border: 'none', fontWeight: 700, fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer' }}
+                             >
                                <Video size={15} /> Join Video Call
                              </button>
                            )}
@@ -330,24 +332,25 @@ export function PatientAppointments() {
                          </div>
 
                          {within6h && (
-                           <div style={{ fontSize: '0.7rem', color: '#f97316', textAlign: 'center', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                        <div style={{ fontSize: '0.7rem', color: '#f97316', textAlign: 'center', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                              <AlertTriangle size={12} /> Reschedule & cancellation unavailable within 6 hours of appointment
                            </div>
                          )}
                        </>
-                     ) : (
-                       <button style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1.5px solid #e2e8f0', background: 'transparent', color: '#84cc16', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: 'pointer' }}>
-                         <Activity size={16} /> View Details
-                       </button>
-                     )}
+                      ) : appt.status !== 'Cancelled' && (
+                        <button 
+                          onClick={() => navigate(`/patient/${phone}/reports`)}
+                          style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1.5px solid #e2e8f0', background: 'transparent', color: '#84cc16', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: 'pointer' }}
+                        >
+                          <Activity size={16} /> View Details
+                        </button>
+                      )}
                    </div>
                  );
                })
              )}
           </div>
         </div>
-
-      </main>
 
       {/* Booking Modal */}
       {showBooking && (
@@ -419,7 +422,6 @@ export function PatientAppointments() {
         </div>
       )}
 
-      <PatientBottomNav />
     </div>
   );
 }

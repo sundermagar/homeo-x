@@ -24,7 +24,7 @@ export default function PatientBookWizard() {
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [consultMode, setConsultMode] = useState<'in-person' | 'video' | 'audio'>('in-person');
   const [chiefComplaint, setChiefComplaint] = useState<string>('');
-  const [visitType, setVisitType] = useState<'New' | 'Follow-up'>('New');
+  const [visitType, setVisitType] = useState<'New' | 'FollowUp'>('New');
 
   const bookMutation = useBookAppointment();
   const cancelMutation = useCancelAppointment();
@@ -120,7 +120,7 @@ export default function PatientBookWizard() {
         bookingTime: selectedSlot,
         doctorId: selectedDoctor?.id || 1, // Fallback to 1 if missing for safety
         visitType,
-        notes: `Clinic: ${selectedClinic?.name || 'Homeo'}, Doctor: ${selectedDoctor?.name || 'N/A'}, Mode: ${consultMode}, Type: ${visitType}, Complaint: ${chiefComplaint}`
+        notes: `Clinic: ${selectedClinic?.name || 'Clinic'}, Doctor: ${selectedDoctor?.name || 'Doctor'}, Mode: ${consultMode}, Complaint: ${chiefComplaint}`
       });
       navigate(`/patient/${phone}/appointments`);
     } catch (err) {
@@ -129,28 +129,25 @@ export default function PatientBookWizard() {
   };
 
   return (
-    <div className="patient-shell" style={{ backgroundColor: '#f8fafc', paddingBottom: '90px' }}>
-      
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Dynamic Header */}
-      <div style={{ background: 'white', padding: '16px', display: 'flex', alignItems: 'center', position: 'sticky', top: 0, zIndex: 10, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-        <button onClick={handleBack} style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer', color: '#1e293b', display: 'flex' }}>
+      <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-card)', padding: '16px', border: '1px solid var(--border-main)', borderRadius: '12px', boxShadow: 'var(--shadow-sm)' }}>
+        <button onClick={handleBack} style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer', color: 'var(--text-main)', display: 'flex' }}>
           <ArrowLeft size={24} />
         </button>
         <div style={{ flex: 1, textAlign: 'center' }}>
-          {step === 1 && <h1 style={{ fontSize: '1.1rem', margin: 0, fontWeight: 700, color: '#1e293b' }}>My Clinics</h1>}
-          {step === 2 && <h1 style={{ fontSize: '1.1rem', margin: 0, fontWeight: 700, color: '#1e293b' }}>{selectedClinic?.name}</h1>}
+          {step === 1 && <h2 style={{ fontSize: '1.1rem', margin: 0, fontWeight: 700, color: 'var(--text-main)' }}>My Clinics</h2>}
+          {step === 2 && <h2 style={{ fontSize: '1.1rem', margin: 0, fontWeight: 700, color: 'var(--text-main)' }}>{selectedClinic?.name}</h2>}
           {step === 3 && (
             <div>
-              <h1 style={{ fontSize: '1.1rem', margin: 0, fontWeight: 700, color: '#1e293b' }}>Select a Slot</h1>
+              <h2 style={{ fontSize: '1.1rem', margin: 0, fontWeight: 700, color: 'var(--text-main)' }}>Select a Slot</h2>
               <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{selectedDoctor?.name}</div>
             </div>
           )}
-          {step === 4 && <h1 style={{ fontSize: '1.1rem', margin: 0, fontWeight: 700, color: '#1e293b' }}>Confirm Booking</h1>}
+          {step === 4 && <h2 style={{ fontSize: '1.1rem', margin: 0, fontWeight: 700, color: 'var(--text-main)' }}>Confirm Booking</h2>}
         </div>
         <div style={{ width: '24px' }} /> {/* Spacer */}
       </div>
-
-      <main style={{ padding: '0' }}>
         
         {/* STEP 1: Clinics List */}
         {step === 1 && (
@@ -388,7 +385,7 @@ export default function PatientBookWizard() {
                 { icon: <MapPin size={18} />, label: 'Clinic', value: selectedClinic?.name },
                 { icon: <CalendarDays size={18} />, label: 'Date', value: selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) },
                 { icon: <Clock size={18} />, label: 'Time', value: selectedSlot },
-                { icon: <CalendarDays size={18} />, label: 'Type', value: visitType },
+                { icon: <CalendarDays size={18} />, label: 'Type', value: visitType === 'FollowUp' ? 'Follow-up' : visitType },
               ].map((row, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: i < 4 ? '14px' : 0 }}>
                   <div style={{ color: 'var(--primary)', flexShrink: 0 }}>{row.icon}</div>
@@ -404,12 +401,12 @@ export default function PatientBookWizard() {
             <div>
               <div style={{ fontWeight: 700, color: '#1e293b', marginBottom: '12px', fontSize: '0.95rem' }}>Visit Type</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                {(['New', 'Follow-up'] as const).map(vt => (
+                {(['New', 'FollowUp'] as const).map(vt => (
                   <button
                     key={vt}
                     onClick={() => setVisitType(vt)}
                     style={{ padding: '12px', borderRadius: '12px', border: `2px solid ${visitType === vt ? 'var(--primary)' : '#e2e8f0'}`, background: visitType === vt ? 'rgba(99, 102, 241, 0.1)' : 'white', fontWeight: 700, fontSize: '0.9rem', color: visitType === vt ? 'var(--primary)' : '#64748b', cursor: 'pointer' }}
-                  >{vt}</button>
+                  >{vt === 'FollowUp' ? 'Follow-up' : vt}</button>
                 ))}
               </div>
             </div>
@@ -456,11 +453,11 @@ export default function PatientBookWizard() {
               <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
                 <div style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9' }}>
                   <span style={{ color: '#64748b', fontSize: '0.9rem' }}>Consultation Fee</span>
-                  <span style={{ fontWeight: 700, color: '#1e293b' }}>₹ 300</span>
+                  <span style={{ fontWeight: 700, color: '#1e293b' }}>₹ {selectedDoctor?.consultationFee || '300'}</span>
                 </div>
                 <div style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontWeight: 700, color: '#1e293b' }}>Total</span>
-                  <span style={{ fontWeight: 800, color: 'var(--primary)', fontSize: '1.1rem' }}>₹ 300</span>
+                  <span style={{ fontWeight: 800, color: 'var(--primary)', fontSize: '1.1rem' }}>₹ {selectedDoctor?.consultationFee || '300'}</span>
                 </div>
               </div>
               <div style={{ marginTop: '10px', fontSize: '0.8rem', color: '#94a3b8', textAlign: 'center' }}>
@@ -479,8 +476,6 @@ export default function PatientBookWizard() {
           </div>
         )}
 
-      </main>
-      <PatientBottomNav />
     </div>
   );
 }

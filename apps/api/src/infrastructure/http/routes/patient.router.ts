@@ -167,7 +167,7 @@ patientRouter.post('/', authMiddleware, async (req: Request, res: Response) => {
     const result = await uc.execute(parsed.data, clinicId);
     if (result.success) {
       // Hash and save portal password if provided
-      const portalPassword = req.body.portalPassword;
+      const portalPassword = req.body.password;
       if (portalPassword && portalPassword.trim()) {
         const hash = bcrypt.hashSync(portalPassword.trim(), 10);
         await req.tenantDb.execute(sql`UPDATE case_datas SET password_hash = ${hash} WHERE regid = ${result.data.patient.regid}`);
@@ -197,7 +197,7 @@ patientRouter.put('/:regid', async (req: Request, res: Response) => {
     const result = await uc.execute(regid, parsed.data);
     if (result.success) {
       // Hash and save portal password if provided (blank = keep existing)
-      const portalPassword = req.body.portalPassword;
+      const portalPassword = req.body.password;
       if (portalPassword && portalPassword.trim()) {
         const hash = bcrypt.hashSync(portalPassword.trim(), 10);
         await req.tenantDb.execute(sql`UPDATE case_datas SET password_hash = ${hash} WHERE regid = ${regid}`);

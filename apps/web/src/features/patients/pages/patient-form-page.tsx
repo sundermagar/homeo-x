@@ -16,7 +16,7 @@ const INDIAN_STATES = [
 
 const INIT_FORM = {
   title: 'Mr.', firstName: '', middleName: '', surname: '', gender: 'M' as 'M' | 'F' | 'Other',
-  phone: '', mobile1: '', mobile2: '', email: '', portalPassword: '',
+  phone: '', mobile1: '', mobile2: '', email: '', password: '',
   pin: '', address: '', road: '', area: '', city: '', state: 'Punjab', country: 'India', altAddress: '',
   religion: '', occupation: '', maritalStatus: '', bloodGroup: '',
   referenceType: '', referredBy: '', assistantDoctor: '', consultationFee: undefined as number | undefined,
@@ -51,6 +51,7 @@ export default function PatientFormPage() {
         mobile1: patient.mobile1 || '',
         mobile2: patient.mobile2 || '',
         email: patient.email || '',
+        password: '',
         pin: patient.pin || '',
         address: patient.address || '',
         road: patient.road || '',
@@ -213,9 +214,8 @@ export default function PatientFormPage() {
               <input className="pp-input" name="email" value={form.email} onChange={handleChange} placeholder="Email" type="email" />
             </div>
             <div>
-              <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Portal Password {!isEdit && <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 400 }}>(for patient login)</span>}</label>
-              <input className="pp-input" name="portalPassword" value={form.portalPassword} onChange={handleChange} placeholder={isEdit ? '••••• (leave blank to keep)' : 'Set portal password'} type="password" autoComplete="new-password" />
-            </div>
+              <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Password</label>
+              <input className="pp-input" name="password" value={form.password} onChange={handleChange} placeholder={isEdit ? '••••• (leave blank to keep)' : 'Set password'} type="password" autoComplete="new-password" />
             </div>
             <div>
               <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Date of Birth</label>

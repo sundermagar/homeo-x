@@ -3,7 +3,8 @@ export * from './patients';
 export { 
   medicalCases, vitals, homeoDetails, caseNotes, caseExamination, caseImages, 
   investigations, growthReferences, soapNotes, prescriptions,
-  soapNotes as legacySoapNotes, prescriptions as legacyPrescriptions 
+  soapNotes as legacySoapNotes, prescriptions as legacyPrescriptions,
+  remedyAlternatives, vaccineMaster, caseVaccines, caseReminders
 } from './medical-cases';
 export * from './appointments';
 export * from './users';

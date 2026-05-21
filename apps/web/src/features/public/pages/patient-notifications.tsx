@@ -22,11 +22,12 @@ export function PatientNotifications() {
     if (!prefs) return;
     
     // Optimistic update
+    const categoryPrefs = prefs[category] || {};
     const newPrefs = {
       ...prefs,
       [category]: {
-        ...prefs[category],
-        [channel]: !prefs[category][channel]
+        ...categoryPrefs,
+        [channel]: !categoryPrefs[channel]
       }
     };
     setPrefs(newPrefs);
@@ -37,7 +38,7 @@ export function PatientNotifications() {
 
   if (isLoading || !prefs) {
     return (
-      <div className="patient-shell" style={{ backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '300px' }}>
         <div style={{ width: 48, height: 48, border: '4px solid #dcfce7', borderTopColor: '#22c55e', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       </div>
@@ -90,46 +91,76 @@ export function PatientNotifications() {
   ];
 
   return (
-    <div className="patient-shell" style={{ backgroundColor: '#f8fafc' }}>
-      <div className="pn-header">
-        <button className="pn-back-btn" onClick={() => navigate(-1)}>
-          <ChevronLeft size={24} />
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      {/* Top App Bar */}
+      <div style={{ position: 'sticky', top: 0, zIndex: 10, display: 'flex', alignItems: 'center', padding: '16px', background: 'transparent', backdropFilter: 'blur(10px)' }}>
+        <button 
+          onClick={() => navigate(-1)} 
+          style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '50%', width: '40px', height: '40px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1e293b', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
+        >
+          <ChevronLeft size={20} />
         </button>
-        <h1 className="pn-title">Notification Preferences</h1>
+        <div style={{ flex: 1, textAlign: 'center', fontWeight: 700, color: '#1e293b', fontSize: '1.2rem', marginRight: '40px' }}>
+          Notification Preferences
+        </div>
       </div>
 
-      <div className="pn-content">
-        <p className="pn-subtitle">Choose which notifications you want to receive and how.</p>
+      <div className="pn-content" style={{ padding: '8px 16px' }}>
+        <p className="pn-subtitle" style={{ fontSize: '0.85rem', color: '#475569', marginBottom: '16px' }}>Choose which notifications you want to receive and how.</p>
 
-        <div className="pn-list">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {categories.map(cat => (
-            <div key={cat.id} className="pn-card">
-              <div className="pn-card-header">
-                <div className="pn-card-icon" style={{ color: cat.color }}>
+            <div key={cat.id} style={{ background: '#ffffff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+              {/* Card Header */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', borderBottom: '1px solid #f1f5f9' }}>
+                <div style={{ color: cat.color, display: 'flex', alignItems: 'center' }}>
                   {cat.icon}
                 </div>
                 <div>
-                  <h2 className="pn-card-title">{cat.title}</h2>
-                  <p className="pn-card-desc">{cat.desc}</p>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>{cat.title}</div>
+                  <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{cat.desc}</div>
                 </div>
               </div>
-              <div className="pn-card-body">
-                {channels.map(channel => (
-                  <div key={channel.id} className="pn-row">
-                    <div className="pn-row-left">
-                      <span className="pn-row-icon">{channel.icon}</span>
-                      <span className="pn-row-label">{channel.label}</span>
+              
+              {/* Card Body (Channels) */}
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {channels.map((channel, idx) => {
+                  const isChecked = prefs[cat.id]?.[channel.id] ?? false;
+                  return (
+                    <div key={channel.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: idx < channels.length - 1 ? '1px solid #f8fafc' : 'none' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <span style={{ fontSize: '1.1rem' }}>{channel.icon}</span>
+                        <span style={{ fontSize: '0.9rem', color: '#334155', fontWeight: 500 }}>{channel.label}</span>
+                      </div>
+                      
+                      {/* Toggle Switch */}
+                      <div 
+                        onClick={() => togglePref(cat.id, channel.id)}
+                        style={{
+                          width: '44px',
+                          height: '24px',
+                          background: isChecked ? '#22c55e' : '#cbd5e1',
+                          borderRadius: '12px',
+                          position: 'relative',
+                          cursor: 'pointer',
+                          transition: 'background 0.3s ease'
+                        }}
+                      >
+                        <div style={{
+                          width: '20px',
+                          height: '20px',
+                          background: '#ffffff',
+                          borderRadius: '50%',
+                          position: 'absolute',
+                          top: '2px',
+                          left: isChecked ? '22px' : '2px',
+                          transition: 'left 0.3s ease',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                        }} />
+                      </div>
                     </div>
-                    <label className="pn-toggle">
-                      <input 
-                        type="checkbox" 
-                        checked={prefs[cat.id][channel.id]} 
-                        onChange={() => togglePref(cat.id, channel.id)}
-                      />
-                      <span className="pn-slider"></span>
-                    </label>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           ))}

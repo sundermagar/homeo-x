@@ -133,6 +133,31 @@ consultationsRouter.post('/complete', async (req: Request, res: Response, next: 
       return;
     }
 
+    let patientId = appt.patientId;
+    if (!patientId && appt.phone) {
+      try {
+        const patientsRes = await db.execute(sql`
+          SELECT regid FROM case_datas 
+          WHERE mobile1 = ${appt.phone} OR phone = ${appt.phone}
+          ORDER BY regid DESC
+          LIMIT 1
+        `);
+        const patients = Array.isArray(patientsRes) ? patientsRes : ((patientsRes as any)?.rows || []);
+        const matched = patients[0];
+        if (matched?.regid) {
+          patientId = Number(matched.regid);
+          await db.execute(sql`
+            UPDATE appointments 
+            SET patient_id = ${patientId} 
+            WHERE id = ${visitId}
+          `);
+          appt.patientId = patientId;
+        }
+      } catch (err: any) {
+        logger.warn({ visitId, err: err?.message }, 'Failed to self-heal/link unlinked appointment — non-fatal');
+      }
+    }
+
     let savedSoap: any = null;
     let savedPrescription: any = null;
 

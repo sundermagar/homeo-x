@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
-import { Home, CalendarDays, FileText, Pill, User } from 'lucide-react';
+import { Home, CalendarDays, FileText, Pill, User, Infinity } from 'lucide-react';
 
 const navItems = [
   { key: 'home', label: 'Home', icon: Home, path: '' },
@@ -28,23 +28,34 @@ export const PatientBottomNav: React.FC = () => {
 
   return (
     <nav className="patient-bottom-nav" id="patient-bottom-nav">
-      {navItems.map(item => {
-        const isActive = item.key === activeKey;
-        const Icon = item.icon;
-        return (
-          <Link
-            key={item.key}
-            to={`${basePath}${item.path}`}
-            className={`patient-nav-item ${isActive ? 'active' : ''}`}
-            id={`patient-nav-${item.key}`}
-          >
-            <div className="patient-nav-icon-wrap">
-              <Icon size={20} />
-            </div>
-            <span className="patient-nav-label">{item.label}</span>
-          </Link>
-        );
-      })}
+      {/* Brand Header — Hidden on mobile, shown as sidebar header on desktop */}
+      <div className="patient-sidebar-brand">
+        <div className="patient-brand-logo">
+          <Infinity size={18} strokeWidth={2.5} />
+        </div>
+        <span className="patient-brand-text">Kreed.health</span>
+      </div>
+
+      <div className="patient-nav-items">
+        {navItems.map(item => {
+          const isActive = item.key === activeKey;
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.key}
+              to={`${basePath}${item.path}`}
+              className={`patient-nav-item ${isActive ? 'active' : ''}`}
+              id={`patient-nav-${item.key}`}
+            >
+              <div className="patient-nav-icon-wrap">
+                <Icon size={20} />
+              </div>
+              <span className="patient-nav-label">{item.label}</span>
+            </Link>
+          );
+        })}
+      </div>
     </nav>
   );
 };
+

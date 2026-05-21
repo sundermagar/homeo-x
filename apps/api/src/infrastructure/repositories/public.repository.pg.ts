@@ -110,67 +110,29 @@ export class PublicRepositoryPg implements PublicRepository {
   }
 
   async getLatestClinicalData(phone: string): Promise<any> {
-    // ─── Test Account (DEV only) ───
-    if (process.env.NODE_ENV === 'development' && phone === '9999999999') {
-      return {
-        patientInfo: {
-          name: 'Aryan Sharma (Test)',
-          regid: 9999,
-          firstName: 'Aryan',
-          lastName: 'Sharma',
-          gender: 'Male',
-          dob: '1997-01-01',
-           bloodGroup: 'O+',
-           height: '170',
-           weight: '72',
-           allergies: '',
-           chronicConditions: '',
-           currentMedications: '',
-          email: 'aryan.test@example.com',
-          phone: '9999999999',
-          address: '123, Test Colony',
-          city: 'Chandigarh',
-          state: 'Punjab',
-          pin: '160001',
-          emergencyName: 'Raj Sharma',
-          emergencyPhone: '9876543210',
-          emergencyRelation: 'Father',
-        },
-        history: [
-          { visitId: 101, date: new Date().toISOString(), condition: 'Acute Tonsillitis', notes: 'Patient reports high fever and sharp pain while swallowing. Prescribed remedy for acute relief.' },
-          { visitId: 98, date: new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString(), condition: 'Chronic Migraine', notes: 'Significant improvement in frequency of attacks. Digestion improving.' }
-        ],
-        prescriptions: [
-          { id: 501, date: new Date().toISOString(), remedy: 'Belladonna', potency: '200 CH', days: '3', frequency: 'Morning-Noon-Night', instructions: 'Take 2 drops directly on tongue. Avoid strong odors.' },
-          { id: 502, date: new Date().toISOString(), remedy: 'Bryonia Alba', potency: '30 CH', days: '7', frequency: 'Morning-Night', instructions: 'Dissolve in half cup of water and take sips.' },
-          { id: 503, date: new Date().toISOString(), remedy: 'Nux Vomica', potency: '1M', days: '1', frequency: 'Night Only', instructions: 'One dose only at bedtime.' }
-        ],
-        frequencies: []
-      };
-    }
-
-    // 1. Find the patient by mobile number (check both phone and mobile1 columns)
+    // 1. Find all patients by mobile number (to handle duplicates/walk-ins)
     const patients = await this.db.execute(sql`
       SELECT * FROM case_datas 
       WHERE mobile1 = ${phone} OR phone = ${phone}
-      LIMIT 1
+      ORDER BY regid DESC
     `);
     const patient = patients[0];
 
     if (!patient) return null;
 
-    const regid = patient.regid;
+    const regids = patients.map((p: any) => p.regid);
 
     // 2. Fetch medical cases history (visits) via raw SQL
+    // Join appointments with soap_notes since visit_id in soap_notes maps to appointments.id
     let history: any[] = [];
     try {
       history = await this.db.execute(sql`
-        SELECT mc.id, mc.condition, mc.status, mc.created_at,
+        SELECT a.id, COALESCE(sn.assessment, a.visit_type) as condition, a.status, a.booking_date as created_at,
                sn.advice, sn.plan
-        FROM medicalcases mc
-        LEFT JOIN soap_notes sn ON sn.visit_id = mc.id
-        WHERE mc.regid = ${regid}
-        ORDER BY mc.created_at DESC
+        FROM appointments a
+        LEFT JOIN soap_notes sn ON sn.visit_id = a.id
+        WHERE a.patient_id IN (${sql.raw(regids.join(','))}) AND a.status = 'Completed'
+        ORDER BY a.booking_date DESC, a.booking_time DESC
         LIMIT 10
       `);
     } catch (e) { console.error('[DB] History query failed:', e); }
@@ -180,7 +142,7 @@ export class PublicRepositoryPg implements PublicRepository {
     try {
       activePrescriptions = await this.db.execute(sql`
         SELECT * FROM case_potencies
-        WHERE regid = ${regid}
+        WHERE regid IN (${sql.raw(regids.join(','))})
         ORDER BY created_at DESC
         LIMIT 20
       `);

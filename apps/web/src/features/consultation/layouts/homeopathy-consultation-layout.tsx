@@ -68,10 +68,17 @@ export function HomeopathyConsultationLayout({
 
   // Track RepertoryStage's current data so the bottom bar "Complete" button can use it
   const repertoryDataRef = useRef<{ rows: import('../components/stages/repertory-stage').RemedyRxRow[]; advice: string; followUp: string }>({ rows: [], advice: '', followUp: '' });
-  // Reset local layout state when navigating to a new patient
+  // Auto-detect call mode from the appointment's notes field (patient selected during booking)
   useEffect(() => {
-    setCallMode('IN_PERSON');
-  }, [visitId]);
+    const notes = visit?.notes || '';
+    if (notes.includes('Mode: video')) {
+      setCallMode('VIDEO');
+    } else if (notes.includes('Mode: audio')) {
+      setCallMode('AUDIO');
+    } else {
+      setCallMode('IN_PERSON');
+    }
+  }, [visitId, visit?.notes]);
 
   const { data: scribingSession } = useScribingSession(visitId);
 
@@ -261,7 +268,10 @@ export function HomeopathyConsultationLayout({
       // is never blank.
       if (!soapPopulated) {
         const subjective = [
-          visit.chiefComplaint ? `Chief complaint: ${visit.chiefComplaint}` : null,
+          visit.chiefComplaint ? `Chief complaint: ${(() => {
+            const m = visit.chiefComplaint!.match(/Complaint:\s*(.*)/i);
+            return m && m[1] ? m[1].trim() : visit.chiefComplaint;
+          })()}` : null,
           symptoms.mental.length ? `Mental: ${symptoms.mental.join('; ')}` : null,
           symptoms.physical.length ? `Physical: ${symptoms.physical.join('; ')}` : null,
           symptoms.particular.length ? `Particular: ${symptoms.particular.join('; ')}` : null,
@@ -646,7 +656,12 @@ export function HomeopathyConsultationLayout({
         <div className="hidden lg:block px-4 py-3 border-t border-[#E3E2DF] bg-[#FAFAF8]">
           <div className="text-[10px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">Session</div>
           <div className="text-[11px] text-[#4A4A47]">
-            {visit.chiefComplaint ? visit.chiefComplaint.slice(0, 50) + (visit.chiefComplaint.length > 50 ? '...' : '') : 'No chief complaint'}
+            {(() => {
+              if (!visit.chiefComplaint) return 'No chief complaint';
+              const m = visit.chiefComplaint.match(/Complaint:\s*(.*)/i);
+              const clean = m && m[1] ? m[1].trim() : visit.chiefComplaint;
+              return clean.slice(0, 50) + (clean.length > 50 ? '...' : '');
+            })()}
           </div>
           <button
             onClick={handleNextPatient}

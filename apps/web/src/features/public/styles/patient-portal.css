@@ -662,7 +662,7 @@
   left: 0;
   right: 0;
   height: 80px;
-  background: linear-gradient(135deg, #0284c7, #0369a1);
+  background: linear-gradient(135deg, var(--primary), var(--primary));
   z-index: 0;
 }
 
@@ -671,7 +671,7 @@
   height: 80px;
   background: white;
   border: 4px solid white;
-  color: #0284c7;
+  color: var(--primary);
   font-size: 28px;
   font-weight: 700;
   border-radius: 50%;
@@ -1104,3 +1104,113 @@
   margin-top: 32px;
   margin-bottom: 24px;
 }
+
+/* ─── Sidebar Branding & Structure ─── */
+.patient-sidebar-brand {
+  display: none;
+}
+
+.patient-nav-items {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  width: 100%;
+}
+
+/* ─── Responsive Desktop Layout ─── */
+@media (min-width: 1024px) {
+  .patient-shell {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    padding-bottom: 0 !important;
+    overflow: hidden;
+  }
+  
+  .patient-header {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    height: 73px;
+  }
+  
+  .patient-main {
+    overflow-y: auto;
+    flex: 1;
+    padding: 40px !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+  
+  .patient-bottom-nav {
+    display: none !important;
+  }
+
+  .patient-sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid #f1f5f9;
+    padding-bottom: 24px;
+    margin-bottom: 8px;
+  }
+  
+  .patient-brand-logo {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #0284c7, #0369a1);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(2, 132, 199, 0.2);
+  }
+  
+  .patient-brand-text {
+    font-size: 18px;
+    font-weight: 700;
+    color: #0f172a;
+    letter-spacing: -0.5px;
+  }
+
+  .patient-nav-items {
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
+    gap: 8px;
+  }
+  
+  .patient-nav-item {
+    flex-direction: row !important;
+    align-items: center !important;
+    padding: 12px 16px !important;
+    border-radius: 12px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    gap: 12px !important;
+    color: #475569 !important;
+    transition: all 0.2s !important;
+  }
+  
+  .patient-nav-item:hover {
+    background: #f8fafc !important;
+    color: #0f172a !important;
+  }
+  
+  .patient-nav-item.active {
+    color: #0284c7 !important;
+    background: #e0f2fe !important;
+  }
+  
+  .patient-nav-item.active .patient-nav-icon-wrap {
+    background: transparent !important;
+  }
+  
+  .patient-nav-label {
+    font-size: 14px !important;
+    font-weight: 600 !important;
+  }
+}
+

@@ -28,6 +28,7 @@ function mapRow(row: typeof schema.appointments.$inferSelect): Appointment {
     id:                   row.id,
     patientId:            row.patientId,
     doctorId:             row.doctorId,
+    clinicId:             row.clinicId,
     bookingDate:          row.bookingDate,
     bookingTime:          row.bookingTime,
     status:               row.status as AppointmentStatus,
@@ -88,7 +89,9 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
     const rows = await this.db
       .select({
         appointment: schema.appointments,
-        doctorName: sql<string>`COALESCE((SELECT name FROM doctors WHERE id = ${schema.appointments.doctorId}), (SELECT name FROM users WHERE id = ${schema.appointments.doctorId}), 'Practitioner')`
+        doctorName: sql<string>`COALESCE((SELECT name FROM doctors WHERE id = ${schema.appointments.doctorId}), (SELECT name FROM users WHERE id = ${schema.appointments.doctorId}), 'Practitioner')`,
+        mobile: sql<string>`COALESCE((SELECT mobile1 FROM patients WHERE id = ${schema.appointments.patientId}), ${schema.appointments.phone})`,
+        regid: sql<number>`(SELECT regid FROM patients WHERE id = ${schema.appointments.patientId})`
       })
       .from(schema.appointments)
       .where(where)
@@ -102,7 +105,67 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
       .where(where);
 
     return { 
-      data: rows.map(r => ({ ...mapRow(r.appointment), doctorName: r.doctorName })),
+      data: rows.map(r => ({ ...mapRow(r.appointment), doctorName: r.doctorName, mobile: (r as any).mobile, regid: (r as any).regid })),
+      total: countResult?.count ?? 0 
+    };
+  }
+
+  async findFollowups(filters: AppointmentFilters) {
+    const { date, fromDate, toDate, doctorId, status, search, patientId, page = 1, limit = 50 } = filters;
+    const offset = (page - 1) * limit;
+
+    const conditions: any[] = [isNull(schema.appointments.deletedAt), eq(schema.appointments.visitType, 'Follow-up')];
+
+    if (date) {
+      conditions.push(sql`(
+        ${schema.appointments.bookingDate}::text LIKE '%' || ${date} || '%'
+        OR ${schema.appointments.bookingDate}::text LIKE '%' || TO_CHAR(${date}::date, 'YYYY-MM-DD') || '%'
+        OR ${schema.appointments.bookingDate}::text LIKE '%' || TO_CHAR(${date}::date, 'DD/MM/YYYY') || '%'
+      )`);
+    }
+    if (fromDate)  conditions.push(gte(schema.appointments.bookingDate, fromDate));
+    if (toDate)    conditions.push(lte(schema.appointments.bookingDate, toDate));
+    if (status)    conditions.push(eq(schema.appointments.status, status));
+    if (patientId) conditions.push(eq(schema.appointments.patientId, patientId));
+    if (search) {
+      conditions.push(or(
+        ilike(schema.appointments.patientName, `%${search}%`),
+        ilike(schema.appointments.phone, `%${search}%`)
+      ));
+    }
+
+    if (doctorId) {
+      conditions.push(sql`(
+        ${schema.appointments.doctorId} = ${doctorId} 
+        OR (SELECT name FROM users WHERE id = ${doctorId}) IN (
+          SELECT name FROM doctors WHERE id = ${schema.appointments.doctorId}
+          UNION SELECT name FROM users WHERE id = ${schema.appointments.doctorId}
+        )
+      )`);
+    }
+
+    const where = and(...conditions);
+
+    const rows = await this.db
+      .select({
+        appointment: schema.appointments,
+        doctorName: sql<string>`COALESCE((SELECT name FROM doctors WHERE id = ${schema.appointments.doctorId}), (SELECT name FROM users WHERE id = ${schema.appointments.doctorId}), 'Practitioner')`,
+        mobile: sql<string>`COALESCE((SELECT mobile1 FROM patients WHERE id = ${schema.appointments.patientId}), ${schema.appointments.phone})`,
+        regid: sql<number>`(SELECT regid FROM patients WHERE id = ${schema.appointments.patientId})`
+      })
+      .from(schema.appointments)
+      .where(where)
+      .orderBy(desc(schema.appointments.id))
+      .limit(limit)
+      .offset(offset);
+
+    const [countResult] = await this.db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(schema.appointments)
+      .where(where);
+
+    return { 
+      data: rows.map(r => ({ ...mapRow(r.appointment), doctorName: r.doctorName, mobile: (r as any).mobile, regid: (r as any).regid })),
       total: countResult?.count ?? 0 
     };
   }
@@ -132,7 +195,9 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
     const rows = await this.db
       .select({
         appointment: schema.appointments,
-        doctorName: sql<string>`COALESCE((SELECT name FROM doctors WHERE id = ${schema.appointments.doctorId}), (SELECT name FROM users WHERE id = ${schema.appointments.doctorId}), 'Practitioner')`
+        doctorName: sql<string>`COALESCE((SELECT name FROM doctors WHERE id = ${schema.appointments.doctorId}), (SELECT name FROM users WHERE id = ${schema.appointments.doctorId}), 'Practitioner')`,
+        mobile: sql<string>`COALESCE((SELECT mobile1 FROM patients WHERE id = ${schema.appointments.patientId}), ${schema.appointments.phone})`,
+        regid: sql<number>`(SELECT regid FROM patients WHERE id = ${schema.appointments.patientId})`
       })
       .from(schema.appointments)
       .where(and(...conditions))
@@ -140,7 +205,9 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
 
     return rows.map(r => ({
       ...mapRow(r.appointment),
-      doctorName: r.doctorName
+      doctorName: r.doctorName,
+      mobile: (r as any).mobile,
+      regid: (r as any).regid
     }));
   }
 
@@ -323,7 +390,9 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
       .select({
         waitlist: schema.waitlist,
         patientName: sql<string>`COALESCE((SELECT first_name || ' ' || surname FROM patients WHERE id = ${schema.waitlist.patientId}), (SELECT patient_name FROM appointments WHERE id = ${schema.waitlist.appointmentId}))`,
-        doctorName: sql<string>`COALESCE((SELECT name FROM doctors WHERE id = ${schema.waitlist.doctorId}), (SELECT name FROM users WHERE id = ${schema.waitlist.doctorId}), 'Practitioner')`
+        doctorName: sql<string>`COALESCE((SELECT name FROM doctors WHERE id = ${schema.waitlist.doctorId}), (SELECT name FROM users WHERE id = ${schema.waitlist.doctorId}), 'Practitioner')`,
+        mobile: sql<string>`COALESCE((SELECT mobile1 FROM patients WHERE id = ${schema.waitlist.patientId}), (SELECT phone FROM appointments WHERE id = ${schema.waitlist.appointmentId}))`,
+        regid: sql<number>`(SELECT regid FROM patients WHERE id = ${schema.waitlist.patientId})`
       })
       .from(schema.waitlist)
       .where(and(...conditions))
@@ -333,7 +402,10 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
       ...r.waitlist,
       patientName: r.patientName,
       doctorName: r.doctorName,
+      mobile: (r as any).mobile,
+      regid: (r as any).regid,
       consultationFee: r.waitlist.consultationFee?.toString() || null,
+      rowcolor: undefined,
     }));
   }
 

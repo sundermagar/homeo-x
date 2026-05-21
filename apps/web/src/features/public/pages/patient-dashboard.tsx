@@ -124,12 +124,10 @@ export function PatientDashboard() {
 
   if (isLoading) {
     return (
-      <div className="patient-shell">
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
-          <div style={{ width: 48, height: 48, border: '4px solid var(--primary-light)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-          <p style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Loading your dashboard...</p>
-          <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-        </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, minHeight: '300px' }}>
+        <div style={{ width: 48, height: 48, border: '4px solid var(--primary-light)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        <p style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Loading your dashboard...</p>
+        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       </div>
     );
   }
@@ -149,61 +147,43 @@ export function PatientDashboard() {
   });
 
   return (
-    <div className="patient-shell">
-      <PatientHeader 
-        patientName={patientInfo.name} 
-        notifications={notifications}
-        onMarkAllRead={() => setAllRead(true)}
-      />
-
-      <main className="patient-main">
-        {/* Upcoming Appointment — clickable, goes to appointments page */}
-        <Link to={`/patient/${phone}/appointments`} style={{ textDecoration: 'none', color: 'inherit' }}>
-          {upcomingAppt ? (
-            <div className="patient-appt-filled" id="patient-upcoming-appt">
-              <div className="patient-appt-filled-icon">
-                <CalendarDays size={24} />
-              </div>
-              <div className="patient-appt-filled-info">
-                <div className="patient-appt-filled-date">
-                  {new Date(upcomingAppt.bookingDate).toLocaleDateString('en-GB', {
-                    weekday: 'short', day: 'numeric', month: 'short'
-                  })}
-                </div>
-                <div className="patient-appt-filled-time">
-                  {upcomingAppt.bookingTime || 'Time not set'}
-                </div>
-              </div>
-              <span className={`patient-appt-filled-status ${upcomingAppt.status === 'Confirmed' ? 'confirmed' : 'pending'}`}>
-                {upcomingAppt.status}
-              </span>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      {/* Upcoming Appointment — clickable, goes to appointments page */}
+      <Link to={`/patient/${phone}/appointments`} style={{ textDecoration: 'none', color: 'inherit' }}>
+        {upcomingAppt ? (
+          <div className="patient-appt-filled" id="patient-upcoming-appt">
+            <div className="patient-appt-filled-icon">
+              <CalendarDays size={24} />
             </div>
-          ) : (
-            <div className="patient-appt-card" id="patient-no-appt-card">
-              <div className="patient-appt-icon">
-                <CalendarDays size={28} />
+            <div className="patient-appt-filled-info">
+              <div className="patient-appt-filled-date">
+                {new Date(upcomingAppt.bookingDate).toLocaleDateString('en-GB', {
+                  weekday: 'short', day: 'numeric', month: 'short'
+                })}
               </div>
-              <div className="patient-appt-title">No upcoming appointments</div>
-              <div className="patient-appt-subtitle">Book a consultation with your doctor</div>
+              <div className="patient-appt-filled-time">
+                {upcomingAppt.bookingTime || 'Time not set'}
+              </div>
             </div>
-          )}
-        </Link>
+            <span className={`patient-appt-filled-status ${upcomingAppt.status === 'Confirmed' ? 'confirmed' : 'pending'}`}>
+              {upcomingAppt.status}
+            </span>
+          </div>
+        ) : (
+          <div className="patient-appt-card" id="patient-no-appt-card">
+            <div className="patient-appt-icon">
+              <CalendarDays size={28} />
+            </div>
+            <div className="patient-appt-title">No upcoming appointments</div>
+            <div className="patient-appt-subtitle">Book a consultation with your doctor</div>
+          </div>
+        )}
+      </Link>
 
-        {/* Quick Actions */}
-        <div className="patient-section-title">Quick Actions</div>
+      {/* Quick Actions */}
+      <div>
+        <div className="patient-section-title" style={{ marginTop: 0 }}>Quick Actions</div>
         <div className="patient-quick-actions">
-          <Link 
-            to={`/public/clinical/${phone}`} 
-            className="patient-action-card"
-            id="patient-action-consultation"
-          >
-            <div className="patient-action-icon green">
-              <Stethoscope size={22} />
-            </div>
-            <div className="patient-action-title">AI Consultation</div>
-            <div className="patient-action-desc">View history or start new</div>
-          </Link>
-
           <Link 
             to={`/patient/${phone}/book`} 
             className="patient-action-card"
@@ -216,21 +196,18 @@ export function PatientDashboard() {
             <div className="patient-action-desc">Schedule new visit</div>
           </Link>
         </div>
+      </div>
 
-        {/* Health Tip */}
-        <div className="patient-health-tip" id="patient-health-tip">
-          <div className="patient-health-tip-icon">
-            <Info size={18} />
-          </div>
-          <div className="patient-health-tip-content">
-            <div className="patient-health-tip-label">Health Tip of the Day</div>
-            <div className="patient-health-tip-text">{getTodaysTip()}</div>
-          </div>
+      {/* Health Tip */}
+      <div className="patient-health-tip" id="patient-health-tip">
+        <div className="patient-health-tip-icon">
+          <Info size={18} />
         </div>
-      </main>
-
-
-      <PatientBottomNav />
+        <div className="patient-health-tip-content">
+          <div className="patient-health-tip-label">Health Tip of the Day</div>
+          <div className="patient-health-tip-text">{getTodaysTip()}</div>
+        </div>
+      </div>
     </div>
   );
 }

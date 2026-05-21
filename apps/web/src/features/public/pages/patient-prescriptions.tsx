@@ -11,11 +11,9 @@ export function PatientPrescriptions() {
 
   if (isLoading) {
     return (
-      <div className="patient-shell">
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ width: 48, height: 48, border: '4px solid #dcfce7', borderTopColor: '#22c55e', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-          <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-        </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '300px' }}>
+        <div style={{ width: 48, height: 48, border: '4px solid #dcfce7', borderTopColor: '#22c55e', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       </div>
     );
   }
@@ -27,13 +25,7 @@ export function PatientPrescriptions() {
   const { patientInfo, prescriptions } = data;
 
   return (
-    <div className="patient-shell">
-      <PatientHeader patientName={patientInfo.name} />
-
-      <main className="patient-main">
-        <div className="patient-page-header">
-          <h1 className="patient-page-title">Prescriptions</h1>
-        </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
         {prescriptions.length > 0 ? (
           <div className="patient-rx-list">
@@ -67,9 +59,6 @@ export function PatientPrescriptions() {
             <div className="patient-empty-state-text">Your prescribed medicines will appear here</div>
           </div>
         )}
-      </main>
-
-      <PatientBottomNav />
     </div>
   );
 }

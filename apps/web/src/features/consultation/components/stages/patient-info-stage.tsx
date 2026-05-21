@@ -145,7 +145,11 @@ export function PatientInfoStage({
         </div>
         <textarea
           className="w-full h-[88px] border border-[#E3E2DF] rounded-md px-3 py-2 text-[13px] font-medium text-[#0F0F0E] outline-none bg-[#FAFAF8] cursor-not-allowed resize-none"
-          value={visit.chiefComplaint || ''}
+          value={(() => {
+            if (!visit.chiefComplaint) return '';
+            const match = visit.chiefComplaint.match(/Complaint:\s*(.*)/i);
+            return match && match[1] ? match[1].trim() : visit.chiefComplaint;
+          })()}
           readOnly
           placeholder="Describe main complaint in detail..."
         />

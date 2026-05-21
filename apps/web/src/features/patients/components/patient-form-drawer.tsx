@@ -17,7 +17,7 @@ const INDIAN_STATES = [
 
 const INIT_FORM = {
   title: 'Mr.', firstName: '', middleName: '', surname: '', gender: 'M' as 'M' | 'F' | 'Other',
-  phone: '', mobile1: '', mobile2: '', email: '',
+  phone: '', mobile1: '', mobile2: '', email: '', password: '',
   pin: '', address: '', road: '', area: '', city: '', state: 'Punjab', country: 'India', altAddress: '',
   religion: '', occupation: '', maritalStatus: '', bloodGroup: '',
   referenceType: '', referredBy: '', assistantDoctor: '', consultationFee: undefined as number | undefined,
@@ -61,6 +61,7 @@ export function PatientFormDrawer({ isOpen, onClose, regid, onSuccess }: Patient
           mobile1: patient.mobile1 || '',
           mobile2: patient.mobile2 || '',
           email: patient.email || '',
+          password: '',
           pin: patient.pin || '',
           address: patient.address || '',
           road: patient.road || '',
@@ -209,6 +210,13 @@ export function PatientFormDrawer({ isOpen, onClose, regid, onSuccess }: Patient
                <div className="form-group">
                   <label className="drawer-label">Email Address</label>
                   <input className="drawer-input" name="email" value={form.email} onChange={handleChange} placeholder="Email" type="email" />
+               </div>
+            </div>
+
+            <div className="drawer-grid-2">
+               <div className="form-group">
+                  <label className="drawer-label">Password</label>
+                  <input className="drawer-input" name="password" value={form.password} onChange={handleChange} placeholder={isEdit ? '••••• (leave blank to keep)' : 'Set password'} type="password" autoComplete="new-password" />
                </div>
             </div>
 

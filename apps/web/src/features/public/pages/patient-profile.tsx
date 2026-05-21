@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { usePublicClinicalData, useUpdatePatientProfile } from '../hooks/use-public-api';
 import { PatientBottomNav } from '../components/patient-bottom-nav';
+import { usePatientAuthStore } from '@/shared/stores/patient-auth-store';
 import { 
   ChevronRight,
   LogOut, 
@@ -17,6 +18,7 @@ import {
   Check,
   Save,
   X,
+  FlaskConical,
   Droplet,
   ChevronsUpDown,
   Scale,
@@ -35,6 +37,7 @@ export function PatientProfile() {
   const navigate = useNavigate();
   const { data, isLoading, error, refetch } = usePublicClinicalData(phone || '');
   const updateMutation = useUpdatePatientProfile();
+  const logout = usePatientAuthStore((s) => s.logout);
 
   const [editing, setEditing] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -91,11 +94,9 @@ export function PatientProfile() {
 
   if (isLoading) {
     return (
-      <div className="patient-shell">
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ width: 48, height: 48, border: '4px solid var(--primary-light)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-          <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-        </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '300px' }}>
+        <div style={{ width: 48, height: 48, border: '4px solid var(--primary-light)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       </div>
     );
   }
@@ -129,7 +130,8 @@ export function PatientProfile() {
   };
 
   const handleLogout = () => {
-    navigate('/verify-otp');
+    logout();
+    navigate('/patient/login');
   };
 
   const consultModes: { key: ConsultMode; label: string; desc: string; icon: React.ReactNode }[] = [
@@ -139,40 +141,36 @@ export function PatientProfile() {
   ];
 
   return (
-    <div className="patient-shell">
-      {/* Page Header */}
-      <header className="patient-header" id="patient-profile-header">
-        <div className="patient-header-left">
-          <div>
-            <div className="patient-header-greeting" style={{ fontSize: '1.2rem' }}>
-              {editing ? 'Edit Profile' : 'My Profile'}
-            </div>
-          </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-card)', padding: '16px 20px', borderRadius: '12px', border: '1px solid var(--border-main)' }}>
+        <div>
+          <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)' }}>
+            {editing ? 'Edit Profile' : 'My Profile'}
+          </h2>
         </div>
-        <div className="patient-header-right">
+        <div style={{ display: 'flex', gap: 8 }}>
           {!editing ? (
-            <button className="pp-edit-top-btn" onClick={() => setEditing(true)} id="pp-edit-btn">
+            <button className="pp-edit-top-btn" onClick={() => setEditing(true)} id="pp-edit-btn" style={{ padding: '8px 16px', background: 'var(--primary-tint)', border: 'none', borderRadius: '8px', color: 'var(--primary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
               <Pencil size={14} />
-              Edit Profile
+              Edit
             </button>
           ) : (
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button className="pp-cancel-btn" onClick={() => setEditing(false)}>
+            <>
+              <button className="pp-cancel-btn" onClick={() => setEditing(false)} style={{ padding: '8px 16px', background: '#f1f5f9', border: 'none', borderRadius: '8px', color: '#64748b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
                 <X size={14} /> Cancel
               </button>
               <button 
                 className="pp-save-btn" 
                 onClick={handleSave}
                 disabled={updateMutation.isPending}
+                style={{ padding: '8px 16px', background: 'var(--primary)', border: 'none', borderRadius: '8px', color: 'white', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
               >
                 <Save size={14} /> {updateMutation.isPending ? 'Saving...' : 'Save'}
               </button>
-            </div>
+            </>
           )}
         </div>
-      </header>
-
-      <main className="patient-main">
+      </div>
         {saveSuccess && (
           <div className="pp-toast-success">
             <Check size={16} /> Profile updated successfully!
@@ -253,28 +251,29 @@ export function PatientProfile() {
           </div>
         </div>
 
-        {/* AI Preferences */}
-        <div className="pp-section">
-          <div className="pp-section-title" style={{ color: 'var(--primary)' }}>AI Preferences</div>
-          <div style={{ padding: '16px', background: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#334155' }}>Opt out of AI-assisted prescriptions</div>
-              <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Doctor may use AI to assist with prescription suggestions</div>
-            </div>
-            <label className="pn-toggle" style={{ transform: 'scale(0.8)' }}>
-              <input type="checkbox" />
-              <span className="pn-slider"></span>
-            </label>
-          </div>
-        </div>
 
         {!editing && (
           <>
+            {/* Lab Reports */}
+            <div className="pp-section">
+              <div className="pp-section-title">Lab Reports</div>
+              <div className="pp-menu-list">
+                <div className="pp-menu-item" onClick={() => navigate(`/patient/${phone}/lab-reports`)} style={{ cursor: 'pointer' }}>
+                  <div className="pp-menu-item-icon"><FlaskConical size={18} /></div>
+                  <div className="pp-menu-item-text">
+                    <div className="pp-menu-item-title">My Lab Reports</div>
+                    <div className="pp-menu-item-desc">View, upload & share with doctors</div>
+                  </div>
+                  <ChevronRight size={16} className="patient-profile-menu-arrow" />
+                </div>
+              </div>
+            </div>
+
             {/* Addresses */}
             <div className="pp-section">
               <div className="pp-section-title">Addresses</div>
               <div className="pp-menu-list">
-                <div className="pp-menu-item">
+                <div className="pp-menu-item" onClick={() => navigate(`/patient/${phone}/addresses`)} style={{ cursor: 'pointer' }}>
                   <div className="pp-menu-item-icon"><MapPin size={18} /></div>
                   <div className="pp-menu-item-text">
                     <div className="pp-menu-item-title">My Address</div>
@@ -370,9 +369,6 @@ export function PatientProfile() {
         <div className="pp-footer">
           Powered by <strong>ManageMyClinic</strong>
         </div>
-      </main>
-
-      <PatientBottomNav />
     </div>
   );
 }

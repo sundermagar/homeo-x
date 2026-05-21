@@ -33,7 +33,8 @@ publicRouter.post('/auth/login', asyncHandler(async (req, res) => {
     LIMIT 1
   `);
 
-  const patient = (rows as any).rows?.[0] || (rows as any)[0];
+  let patient = (rows as any).rows?.[0] || (rows as any)[0];
+  
   if (!patient) {
     res.status(401).json({ success: false, message: 'No patient account found with this email' });
     return;
