@@ -33,6 +33,9 @@ export const patients = pgTable('case_datas', {
   pin: text('pin'),
   altAddress: text('alt_address'),
 
+  // ABHA (Ayushman Bharat Health Account)
+  abhaId: text('abha_id'),
+
   // Medical / Social
   religion: text('religion'),
   occupation: text('occupation'),

@@ -211,6 +211,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
           gender: schema.patients.gender,
           address: schema.patients.address,
           dateOfBirth: schema.patients.dateOfBirth,
+          abhaId: schema.patients.abhaId,
           city: schema.patients.city,
           state: schema.patients.state,
           doctorName: sql<string>`COALESCE(
@@ -247,6 +248,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
             gender: schema.patients.gender,
             address: schema.patients.address,
             dateOfBirth: schema.patients.dateOfBirth,
+            abhaId: schema.patients.abhaId,
             city: schema.patients.city,
             state: schema.patients.state,
             referedBy: schema.patients.referedBy,
@@ -277,6 +279,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
           gender: patient.gender,
           address: patient.address,
           dateOfBirth: patient.dateOfBirth,
+          abhaId: patient.abhaId,
           city: patient.city,
           state: patient.state,
           doctorName: patient.doctorName || '—',

@@ -18,7 +18,9 @@ import {
   Mail,
   ShieldCheck,
   Award,
-  Download
+  Download,
+  Unlink,
+  Link2
 } from 'lucide-react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import { useAutoSave } from '@/shared/hooks/use-auto-save';
@@ -47,6 +49,9 @@ import { usePatientBills } from '../../billing/hooks/use-billing';
 import { useActivePackage } from '../../packages/hooks/use-packages';
 import { BillingUpdateModal } from '../components/billing-update-modal';
 import { PaymentReceiptModal } from '../../billing/components/payment-receipt-modal';
+import { useAbhaStatus, useAbhaUnlink } from '../../patients/hooks/use-abha';
+import { AbhaLinkingModal } from '../../patients/components/abha-linking-modal';
+import { toast } from '@/hooks/use-toast';
 
 import { useAppointments } from '../../appointments/hooks/use-appointments';
 import { useAuthStore } from '@/shared/stores/auth-store';
@@ -135,6 +140,9 @@ export default function MedicalCaseDetailPage() {
   const [showFinalizeModal, setShowFinalizeModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const { data: fullData, isLoading, error, refetch: refetchFull } = useFullMedicalCase(Number(regid));
+  const [showAbhaModal, setShowAbhaModal] = useState(false);
+  const { data: abhaStatus } = useAbhaStatus(Number(regid));
+  const abhaUnlinkMutation = useAbhaUnlink(Number(regid));
   const medicalCase = fullData?.medicalCase;
   const visitId = medicalCase?.id;
   const { data: dayCharges = [] } = useDayCharges();
@@ -868,6 +876,78 @@ export default function MedicalCaseDetailPage() {
               {activePackage?.status === 'Active' ? <Award size={12} /> : <Clock size={12} />}
               {activePackage?.packageName ? `${activePackage.packageName} (${activePackage.status})` : 'No active plan'}
             </div>
+
+            {/* ABHA Health ID Chip */}
+            {abhaStatus?.isLinked ? (
+              <div 
+                className="profile-status-chip active" 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '6px',
+                  background: 'rgba(34, 197, 94, 0.15)',
+                  borderColor: 'rgba(34, 197, 94, 0.3)',
+                  color: '#4ade80',
+                  paddingRight: '6px'
+                }}
+              >
+                <ShieldCheck size={12} />
+                <span>ABHA: {abhaStatus.abhaId}</span>
+                <button
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    if (!confirm('Remove ABHA link from this patient?')) return;
+                    try {
+                      await abhaUnlinkMutation.mutateAsync();
+                      toast({ title: 'ABHA Unlinked', description: 'ABHA ID removed from patient profile', variant: 'success' });
+                    } catch (err: any) {
+                      toast({ title: 'Failed', description: err.message, variant: 'error' });
+                    }
+                  }}
+                  disabled={abhaUnlinkMutation.isPending}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#f87171',
+                    cursor: 'pointer',
+                    padding: '2px',
+                    borderRadius: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.2s',
+                  }}
+                  title="Unlink ABHA ID"
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(248, 113, 113, 0.2)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                >
+                  <Unlink size={12} />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowAbhaModal(true)}
+                className="profile-status-chip"
+                style={{
+                  background: 'rgba(59, 130, 246, 0.15)',
+                  borderColor: 'rgba(59, 130, 246, 0.3)',
+                  color: '#60a5fa',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(59, 130, 246, 0.25)';
+                  e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.5)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(59, 130, 246, 0.15)';
+                  e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.3)';
+                }}
+              >
+                <Link2 size={12} />
+                <span>Link ABHA</span>
+              </button>
+            )}
           </div>
 
           <div className="profile-actions">
@@ -971,6 +1051,7 @@ export default function MedicalCaseDetailPage() {
               <Phone size={14} /> {medicalCase.mobile || medicalCase.phone || '—'}
             </div>
           </div>
+
           <div className="profile-info-cell">
             <label>DOCTOR</label>
             <div className="info-with-icon">
@@ -1961,6 +2042,14 @@ export default function MedicalCaseDetailPage() {
           rxWorkflow={rxWorkflow}
           visitId={medicalCase.id}
           onClose={() => setShowBillingModal(false)}
+        />
+      )}
+      {showAbhaModal && (
+        <AbhaLinkingModal
+          isOpen={showAbhaModal}
+          onClose={() => setShowAbhaModal(false)}
+          regid={Number(regid)}
+          patientName={medicalCase.patientName || ''}
         />
       )}
     </div>

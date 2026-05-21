@@ -781,6 +781,7 @@ export class PatientRepositoryPg implements PatientRepository {
       assistantDoctor: row.assistantDoctor || null,
       consultationFee: row.consultationFee ? Number(row.consultationFee) : null,
       courierOutstation: row.courierOutstation === '1',
+      abhaId: row.abhaId || null,
       createdAt: row.createdAt || new Date(),
       updatedAt: row.updatedAt || new Date(),
       deletedAt: row.deletedAt || null,
@@ -801,6 +802,7 @@ export class PatientRepositoryPg implements PatientRepository {
       lastVisit: row.lastVisit || null,
       totalVisits: 0,
       doctorName: row.doctorName || row.assistantDoctor || null,
+      abhaId: row.abhaId || null,
       createdAt: row.createdAt || new Date(),
     };
   }
