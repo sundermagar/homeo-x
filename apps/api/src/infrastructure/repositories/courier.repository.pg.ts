@@ -202,7 +202,7 @@ export class CourierRepositoryPg {
     if (!row) return null;
 
     const name = `${row.first_name || ''} ${row.surname || ''}`.trim();
-    const message = `Dear ${name}, your medicines have been dispatched via ${row.courier || 'courier'} and the POD number is ${row.pcd || 'N/A'}. For tracking, please contact the courier company. Regards, Kreed.health`;
+    const message = `Dear ${name}, your medicines have been dispatched via ${row.courier || 'courier'} and the POD number is ${row.pcd || 'N/A'}. For tracking, please contact the courier company. Regards, MMC`;
 
     return {
       phone: row.mobile1 || '',

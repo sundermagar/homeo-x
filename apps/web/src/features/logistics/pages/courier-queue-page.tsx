@@ -98,7 +98,7 @@ export function CourierQueuePage() {
       setMessageModal({
         phone: entry.phone || '',
         regid: entry.caseId,
-        message: `Dear ${entry.patientName || 'Patient'}, your medicines have been dispatched via ${entry.courier || 'courier'} and the POD number is ${entry.pcd || 'N/A'}. Regards, Kreed.health`
+        message: `Dear ${entry.patientName || 'Patient'}, your medicines have been dispatched via ${entry.courier || 'courier'} and the POD number is ${entry.pcd || 'N/A'}. Regards, MMC`
       });
     }
   };

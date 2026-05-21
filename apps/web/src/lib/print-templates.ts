@@ -791,7 +791,7 @@ export function generatePrescriptionHtml(data: PrescriptionPrintData): string {
   let headerHtml = data.clinic.headerHtml;
   
   // Ignore legacy seed HTML so the new premium default layout activates
-  if (headerHtml && (headerHtml.includes('Kreed.health Clinical Prescription') || headerHtml.includes('HomeoX Clinical Prescription') || headerHtml.includes('Clinical Prescription'))) {
+  if (headerHtml && (headerHtml.includes('MMC Clinical Prescription') || headerHtml.includes('HomeoX Clinical Prescription') || headerHtml.includes('Clinical Prescription'))) {
     headerHtml = undefined;
   }
 
@@ -860,7 +860,7 @@ export function generatePrescriptionHtml(data: PrescriptionPrintData): string {
 
   // ─── Resolve Footer ───
   let footerHtml = data.clinic.footerHtml;
-  if (footerHtml && (footerHtml.includes('Kreed.health') || footerHtml.includes('HomeoX'))) {
+  if (footerHtml && (footerHtml.includes('MMC') || footerHtml.includes('HomeoX'))) {
     footerHtml = undefined;
   }
   if (!footerHtml) {
