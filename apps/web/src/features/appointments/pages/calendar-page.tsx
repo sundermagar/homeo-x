@@ -17,6 +17,11 @@ function fmtDate(y: number, m: number, d: number) {
   return `${y}-${String(m + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
 }
 
+const formatName = (name?: string | null) => {
+  if (!name) return '';
+  return name.trim().replace(/\b\w/g, c => c.toUpperCase());
+};
+
 export default function CalendarPage() {
   const now = new Date();
   const [year,  setYear]  = useState(now.getFullYear());
@@ -211,7 +216,7 @@ export default function CalendarPage() {
                       <div key={a.id} className="appt-slot-item">
                         <div className="appt-slot-time">{a.bookingTime ?? '—'}</div>
                         <div className="appt-slot-name">
-                          <div className="appt-slot-patient">{a.patientNameFromCase ?? a.patientName ?? '—'}</div>
+                          <div className="appt-slot-patient">{formatName(a.patientNameFromCase || a.patientName) || '—'}</div>
                           {a.doctorName && <div className="appt-slot-doctor">{a.doctorName}</div>}
                         </div>
                         <StatusBadge status={a.status} size="sm" />

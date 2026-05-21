@@ -60,11 +60,12 @@ async function bootstrap() {
   logger.info(`CORS origins: ${appConfig.cors.origins.join(', ')}`);
   logger.info(`AI health: ${JSON.stringify(aiConfig.getHealthStatus())}`);
 
-  const { app, server, tenantDb } = await createApp();
+  const { app, server, io, tenantDb } = await createApp();
   const boundPort = await listenWithFallback(server, appConfig.port);
   logger.info(`API server running on port ${boundPort}`);
 
   // ─── Initialize Background Jobs ───
+  let scheduler: JobScheduler | null = null;
   if (tenantDb) {
     const apptRepo = new AppointmentRepositoryPG(tenantDb);
     const patientRepo = new PatientRepositoryPg(tenantDb);
@@ -76,7 +77,7 @@ async function bootstrap() {
     const waRepo = new WhatsAppRepositoryPG(tenantDb);
     const waGateway = new WhatsAppCloudGateway(waRepo);
 
-    const scheduler = new JobScheduler(apptRepo, patientRepo, smsUseCase, waRepo, waGateway);
+    scheduler = new JobScheduler(apptRepo, patientRepo, smsUseCase, waRepo, waGateway);
     scheduler.start();
     logger.info('Background job scheduler initialized');
   }
@@ -95,15 +96,47 @@ async function bootstrap() {
   // ─── Graceful Shutdown ───
   const shutdown = async (signal: string) => {
     logger.info(`Received ${signal}. Shutting down gracefully...`);
+    
+    // Stop background job scheduler intervals
+    if (scheduler) {
+      try {
+        scheduler.stop();
+        logger.info('Background job scheduler stopped');
+      } catch (err: any) {
+        logger.error({ err: err.message }, 'Failed to stop background job scheduler');
+      }
+    }
+
+    // Close Socket.io server to release active websocket connections
+    if (io) {
+      try {
+        logger.info('Closing Socket.io server...');
+        io.close();
+        logger.info('Socket.io server closed');
+      } catch (err: any) {
+        logger.error({ err: err.message }, 'Failed to close Socket.io server');
+      }
+    }
+
+    // Close all database connection pools immediately
+    try {
+      const { closeAllDbClients } = await import('@mmc/database');
+      logger.info('Closing database connection pools...');
+      await closeAllDbClients();
+      logger.info('Database connection pools closed successfully');
+    } catch (err: any) {
+      logger.error({ err: err.message }, 'Failed to close database connections during shutdown');
+    }
+
     server.close(() => {
       logger.info('HTTP server closed');
       process.exit(0);
     });
-    // Force exit after 10s
+    // Force exit after 2s (quick recycle for tsx watch)
     setTimeout(() => {
-      logger.error('Forced shutdown after 10s timeout');
-      process.exit(1);
-    }, 10_000);
+      logger.warn('Forced shutdown after 2s timeout');
+      process.exit(0);
+    }, 2_000);
   };
 
   process.on('SIGTERM', () => shutdown('SIGTERM'));

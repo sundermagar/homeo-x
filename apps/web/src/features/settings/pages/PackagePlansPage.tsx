@@ -9,6 +9,7 @@ import '../styles/settings.css';
 import { Pagination } from '@/shared/components/Pagination';
 import { usePagination } from '@/shared/hooks/use-pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { usePackagePeriods } from '../hooks/use-settings';
 
 const EMPTY_FORM = { name: '', description: '', price: 0, durationDays: 30, colorCode: '#2563EB', isActive: true };
 
@@ -22,6 +23,8 @@ export default function PackagePlansPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const { data: periods = [] } = usePackagePeriods();
 
   const filteredItems = plans.filter((p: any) =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -215,6 +218,30 @@ export default function PackagePlansPage() {
                     placeholder="e.g. 1 Month Treatment, Annual Gold Plan"
                   />
                 </div>
+              </div>
+
+              <div className="plat-form-group mt-4">
+                <label className="plat-form-label">Select Period</label>
+                <select 
+                  className="plat-form-input" 
+                  value={
+                    periods.some(p => p.days === form.durationDays && p.isActive !== false)
+                      ? form.durationDays
+                      : 'custom'
+                  }
+                  onChange={e => {
+                    const val = e.target.value;
+                    if (val !== 'custom') {
+                      setForm(f => ({ ...f, durationDays: Number(val) }));
+                    }
+                  }}
+                  style={{ cursor: 'pointer', appearance: 'auto' }}
+                >
+                  <option value="custom">Custom (Specify days manually)</option>
+                  {periods.filter(p => p.isActive !== false).map(p => (
+                    <option key={p.id} value={p.days}>{p.name} ({p.days} days)</option>
+                  ))}
+                </select>
               </div>
 
               <div className="plat-form-grid-multi mt-4" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>

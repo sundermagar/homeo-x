@@ -80,6 +80,7 @@ const MessageTemplatesPage = lazy(() => import('@/features/settings/pages/Messag
 const StocksLogPage = lazy(() => import('@/features/settings/pages/StocksLogPage'));
 const ExportDataPage = lazy(() => import('@/features/settings/pages/ExportDataPage'));
 const PackagePlansSettingsPage = lazy(() => import('@/features/settings/pages/PackagePlansPage'));
+const PackagePeriodsPage = lazy(() => import('@/features/settings/pages/PackagePeriodsPage'));
 const PotenciesPage = lazy(() => import('@/features/settings/pages/PotenciesPage'));
 const FrequenciesPage = lazy(() => import('@/features/settings/pages/FrequenciesPage'));
 const CouriersPage = lazy(() => import('@/features/settings/pages/CouriersPage'));
@@ -241,6 +242,7 @@ export function AppRouter() {
             <Route path="/settings/stocks" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><StocksPage /></RoleGuard>} />
             <Route path="/settings/stock-logs" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><StocksLogPage /></RoleGuard>} />
             <Route path="/settings/packages" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><PackagePlansSettingsPage /></RoleGuard>} />
+            <Route path="/settings/periods" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><PackagePeriodsPage /></RoleGuard>} />
             <Route path="/settings/potencies" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><PotenciesPage /></RoleGuard>} />
             <Route path="/settings/frequencies" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><FrequenciesPage /></RoleGuard>} />
             <Route path="/settings/couriers" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><CouriersPage /></RoleGuard>} />

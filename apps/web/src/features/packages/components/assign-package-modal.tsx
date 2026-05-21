@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CheckCircle2, Calendar, Info, Clock } from 'lucide-react';
 import { Drawer } from '@/shared/components/drawer';
 import { usePackagePlans, useAssignPackage } from '../hooks/use-packages';
@@ -28,6 +28,16 @@ export function AssignPackageModal({
   const [startDate, setStartDate] = useState((new Date().toLocaleString("en-CA", { timeZone: "Asia/Kolkata" }).split(',')[0] ?? ''));
   const [startFrom, setStartFrom] = useState<'today' | 'expiry'>('today');
   const [notes, setNotes] = useState('');
+
+  // Auto-select the first active plan if none is preselected or selected
+  useEffect(() => {
+    if (!selectedPlanId && plans.length > 0) {
+      const activePlans = plans.filter(p => p.isActive);
+      if (activePlans.length > 0) {
+        setSelectedPlanId(activePlans[0].id);
+      }
+    }
+  }, [plans, selectedPlanId]);
 
   const selectedPlan = plans.find(p => p.id === selectedPlanId);
 
@@ -137,7 +147,11 @@ export function AssignPackageModal({
               {selectedPlan ? (startFrom === 'expiry' ? 'Auto-extended' : (() => {
                 const start = new Date(startDate);
                 const expiry = new Date(start);
-                expiry.setDate(expiry.getDate() + selectedPlan.durationDays);
+                const months = Math.max(1, Math.round(selectedPlan.durationDays / 30));
+                expiry.setMonth(expiry.getMonth() + months);
+                if (expiry.getDate() !== start.getDate()) {
+                  expiry.setDate(0);
+                }
                 return expiry.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
               })()) : '—'}
             </div>

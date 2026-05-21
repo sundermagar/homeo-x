@@ -590,7 +590,7 @@ export default function ClinicAdminsPage() {
                     </td>
                     <td data-label="Profile">
                       <div className="plat-cell-val">
-                        <div className="font-semibold">{s.name}</div>
+                        <div className="font-semibold plat-capitalize">{s.name}</div>
                         <div className="text-[11px] color-muted font-medium">{s.email || 'No contact email'}</div>
                       </div>
                     </td>

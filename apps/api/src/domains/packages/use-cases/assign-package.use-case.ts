@@ -36,7 +36,11 @@ export class AssignPackageUseCase {
     }
 
     const expiry = new Date(start);
-    expiry.setDate(expiry.getDate() + plan.durationDays - 1); // Subtract 1 to include start day
+    const months = Math.max(1, Math.round(plan.durationDays / 30));
+    expiry.setMonth(expiry.getMonth() + months);
+    if (expiry.getDate() !== start.getDate()) {
+      expiry.setDate(0);
+    }
 
     const fmt = (d: Date) => d.toISOString().split('T')[0]!;
     const startDateStr  = fmt(start);

@@ -136,9 +136,9 @@ export class PatientRepositoryPg implements PatientRepository {
         .select({
           patient: patients,
           doctorName: sql<string>`COALESCE(
-            (SELECT name FROM users WHERE id::text = TRIM(${patients.assistantDoctor}) LIMIT 1),
-            (SELECT name FROM doctors WHERE id::text = TRIM(${patients.assistantDoctor}) LIMIT 1),
-            ${patients.assistantDoctor}
+            (SELECT name FROM doctors WHERE id::text = TRIM(case_datas.assitant_doctor) LIMIT 1),
+            (SELECT name FROM users WHERE id::text = TRIM(case_datas.assitant_doctor) LIMIT 1),
+            case_datas.assitant_doctor
           )`,
           lastVisit: sql<Date>`(
             SELECT MAX(d) FROM (
@@ -382,9 +382,9 @@ export class PatientRepositoryPg implements PatientRepository {
       .select({
         patient: patients,
         doctorName: sql<string>`COALESCE(
-          (SELECT name FROM users WHERE id::text = TRIM(${patients.assistantDoctor}) LIMIT 1),
-          (SELECT name FROM doctors WHERE id::text = TRIM(${patients.assistantDoctor}) LIMIT 1),
-          ${patients.assistantDoctor}
+          (SELECT name FROM doctors WHERE id::text = TRIM(case_datas.assitant_doctor) LIMIT 1),
+          (SELECT name FROM users WHERE id::text = TRIM(case_datas.assitant_doctor) LIMIT 1),
+          case_datas.assitant_doctor
         )`
       })
       .from(patients)
@@ -407,9 +407,9 @@ export class PatientRepositoryPg implements PatientRepository {
       .select({
         patient: patients,
         doctorName: sql<string>`COALESCE(
-          (SELECT name FROM users WHERE id::text = TRIM(${patients.assistantDoctor}) LIMIT 1),
-          (SELECT name FROM doctors WHERE id::text = TRIM(${patients.assistantDoctor}) LIMIT 1),
-          ${patients.assistantDoctor}
+          (SELECT name FROM doctors WHERE id::text = TRIM(case_datas.assitant_doctor) LIMIT 1),
+          (SELECT name FROM users WHERE id::text = TRIM(case_datas.assitant_doctor) LIMIT 1),
+          case_datas.assitant_doctor
         )`
       })
       .from(patients)

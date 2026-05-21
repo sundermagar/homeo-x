@@ -209,7 +209,7 @@ patientRouter.post('/', authMiddleware, async (req: Request, res: Response) => {
               const clinicName = org?.name || 'Clinic';
               
               const [dbTemplate] = await req.tenantDb.execute(sql`
-                SELECT language FROM wa_templates WHERE name = 'thank_you_for_reference' LIMIT 1
+                SELECT language FROM wa_templates WHERE name = 'thank_you_for_reference_v3' LIMIT 1
               `);
               const lang = (dbTemplate as any)?.language || 'en_US';
 
@@ -222,7 +222,7 @@ patientRouter.post('/', authMiddleware, async (req: Request, res: Response) => {
               await waUc.execute({
                 clinicId,
                 phone: finalPhone,
-                templateName: 'thank_you_for_reference',
+                templateName: 'thank_you_for_reference_v3',
                 language: lang,
                 components: [
                   {

@@ -29,6 +29,11 @@ function formatWaitTime(checkedInAt: Date | string | null) {
   return `${Math.floor(diff / 60)}h ${diff % 60}m wait`;
 }
 
+const formatName = (name?: string | null) => {
+  if (!name) return '';
+  return name.trim().replace(/\b\w/g, c => c.toUpperCase());
+};
+
 import { useNavigate } from 'react-router-dom';
 
 export default function TokenQueuePage() {
@@ -61,7 +66,7 @@ export default function TokenQueuePage() {
     }
     const cleanPhone = phone.replace(/\D/g, '');
     const finalPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
-    
+
     const textMessage = `Dear ${name || 'Patient'},\n\nYour appointment has been scheduled for *${time || 'N/A'}* on *${date || today}*.\n\nPlease arrive 10 minutes early.\n\nRegards,\nMMC HomeoTech`;
 
     sendText.mutate(
@@ -199,7 +204,7 @@ export default function TokenQueuePage() {
       // Sort inProgress by waitingNumber (descending), then waiting by waitingNumber (descending)
       const sortedInProgress = [...inProgress].sort((a, b) => (Number(b.waitingNumber) || 0) - (Number(a.waitingNumber) || 0));
       const sortedWaiting = [...waiting].sort((a, b) => (Number(b.waitingNumber) || 0) - (Number(a.waitingNumber) || 0));
-      
+
       base = [...sortedInProgress, ...sortedWaiting, ...expected];
     }
     else if (tab === 'tokens') {
@@ -242,7 +247,7 @@ export default function TokenQueuePage() {
 
   const handlePrint = (token: any) => {
     setPrintData({
-      patientName: token.patientName || 'N/A',
+      patientName: formatName(token.patientName) || 'N/A',
       regId: token.regid,
       date: new Date().toLocaleDateString(),
       age: token.age,
@@ -344,7 +349,7 @@ export default function TokenQueuePage() {
           </div>
 
           <div className="appt-token-patient-box">
-            <div className="appt-token-patient-name">{w.patientName ?? `Patient #${w.patientId}`}</div>
+            <div className="appt-token-patient-name">{formatName(w.patientName) || `Patient #${w.patientId}`}</div>
             {w.doctorName && <div className="appt-token-doctor-name">{w.doctorName}</div>}
           </div>
 
@@ -366,13 +371,13 @@ export default function TokenQueuePage() {
             ) : w.status === -1 ? (
               <>
                 {!w.tokenNo && (
-                   <button className="appt-btn appt-btn-xs appt-btn-primary" onClick={() => handleIssueToken(w.id)} disabled={issueToken.isPending}>
-                     <Ticket size={13} /> Token
-                   </button>
+                  <button className="appt-btn appt-btn-xs appt-btn-primary" onClick={() => handleIssueToken(w.id)} disabled={issueToken.isPending}>
+                    <Ticket size={13} /> Token
+                  </button>
                 )}
                 <button className="appt-btn appt-btn-xs appt-btn-success" onClick={() => {
-                   if (!w.patientId) return toast({ description: "Not registered", variant: "error" });
-                   addToWaitlist.mutateAsync({ patientId: w.patientId, appointmentId: w.id, doctorId: w.doctorId ?? undefined });
+                  if (!w.patientId) return toast({ description: "Not registered", variant: "error" });
+                  addToWaitlist.mutateAsync({ patientId: w.patientId, appointmentId: w.id, doctorId: w.doctorId ?? undefined });
                 }} disabled={addToWaitlist.isPending}>
                   <Plus size={13} /> Check In
                 </button>
@@ -413,7 +418,7 @@ export default function TokenQueuePage() {
                   <span className="appt-token-pill" style={{ color: WAIT_COLOR[w.status] }}>W{w.waitingNumber}</span>
                 </td>
                 <td data-label="PATIENT">
-                  <div style={{ fontWeight: 600, color: 'var(--pp-ink)' }}>{w.patientName || 'Unknown'}</div>
+                  <div style={{ fontWeight: 600, color: 'var(--pp-ink)' }}>{formatName(w.patientName) || 'Unknown'}</div>
                   <div style={{ fontSize: '11px', color: 'var(--pp-text-3)', fontWeight: 500 }}>
                     {w.regid ? `ID: ${w.regid}` : '—'} • {w.mobile || 'No Mobile'}
                   </div>
@@ -462,25 +467,25 @@ export default function TokenQueuePage() {
                         </>
                       ) : w.status === -1 ? (
                         <>
-                           {!w.tokenNo && (
-                             <button className="appt-kebab-item" style={{ color: 'var(--pp-blue)' }} onClick={() => { handleIssueToken(w.id); setOpenMenuId(null); setMenuPos(null); }} disabled={issueToken.isPending}>
-                               <Ticket size={14} /> Issue Token
-                             </button>
-                           )}
-                           <button className="appt-kebab-item" style={{ color: 'var(--pp-success-fg)' }} onClick={() => { 
-                             if (!w.patientId) {
-                               toast({ description: "Patient not registered", variant: "error" });
-                               return;
-                             }
-                             addToWaitlist.mutateAsync({ 
-                               patientId: w.patientId, 
-                               appointmentId: w.id, 
-                               doctorId: w.doctorId ?? undefined 
-                             }); 
-                             setOpenMenuId(null); setMenuPos(null); 
-                           }} disabled={addToWaitlist.isPending}>
-                             <Plus size={14} /> Check In
-                           </button>
+                          {!w.tokenNo && (
+                            <button className="appt-kebab-item" style={{ color: 'var(--pp-blue)' }} onClick={() => { handleIssueToken(w.id); setOpenMenuId(null); setMenuPos(null); }} disabled={issueToken.isPending}>
+                              <Ticket size={14} /> Issue Token
+                            </button>
+                          )}
+                          <button className="appt-kebab-item" style={{ color: 'var(--pp-success-fg)' }} onClick={() => {
+                            if (!w.patientId) {
+                              toast({ description: "Patient not registered", variant: "error" });
+                              return;
+                            }
+                            addToWaitlist.mutateAsync({
+                              patientId: w.patientId,
+                              appointmentId: w.id,
+                              doctorId: w.doctorId ?? undefined
+                            });
+                            setOpenMenuId(null); setMenuPos(null);
+                          }} disabled={addToWaitlist.isPending}>
+                            <Plus size={14} /> Check In
+                          </button>
                         </>
                       ) : (
                         <button className="appt-kebab-item" style={{ color: 'var(--pp-blue)' }} onClick={() => { handleCall(w.id); setOpenMenuId(null); setMenuPos(null); }} disabled={callNext.isPending}>
@@ -624,7 +629,7 @@ export default function TokenQueuePage() {
           {wLoading ? (
             viewMode === 'grid' ? renderSkeletonGrid() : renderSkeletonList()
           ) : (inProgress.length + waiting.length) === 0 ? (
-            <EmptyState 
+            <EmptyState
               icon={Users}
               title="Waiting room is empty"
               description="No patients are currently in the active waiting queue for this practitioner."
@@ -646,7 +651,7 @@ export default function TokenQueuePage() {
           {aLoading ? (
             renderSkeletonList()
           ) : todayAppts.length === 0 ? (
-            <EmptyState 
+            <EmptyState
               icon={Ticket}
               title="No tokens issued"
               description="There are no appointments scheduled for today that require token management."
@@ -680,7 +685,7 @@ export default function TokenQueuePage() {
                             )}
                           </td>
                           <td data-label="PATIENT">
-                            <div style={{ fontWeight: 600, color: 'var(--pp-ink)' }}>{a.patientName || 'Unknown'}</div>
+                            <div style={{ fontWeight: 600, color: 'var(--pp-ink)' }}>{formatName(a.patientName) || 'Unknown'}</div>
                             <div style={{ fontSize: '11px', color: 'var(--pp-text-3)', fontWeight: 500 }}>
                               {a.regid ? `ID: ${a.regid}` : '—'} • {a.mobile || 'No Mobile'}
                             </div>
@@ -689,15 +694,15 @@ export default function TokenQueuePage() {
                             <div style={{ fontWeight: 500 }}>{a.doctorName || 'General Staff'}</div>
                           </td>
                           <td data-label="TIME" className="appt-cell-muted">{a.bookingTime ?? '—'}</td>
-                           <td data-label="PACKAGE" style={{ textAlign: 'center' }}>
-                             {a.packageName ? (
-                               <span className="appt-metadata-badge appt-metadata-package" style={{ display: 'inline-flex', justifyContent: 'center' }}>
-                                 {a.packageName}
-                               </span>
-                             ) : (
-                               <span className="appt-cell-slash">—</span>
-                             )}
-                           </td>
+                          <td data-label="PACKAGE" style={{ textAlign: 'center' }}>
+                            {a.packageName ? (
+                              <span className="appt-metadata-badge appt-metadata-package" style={{ display: 'inline-flex', justifyContent: 'center' }}>
+                                {a.packageName}
+                              </span>
+                            ) : (
+                              <span className="appt-cell-slash">—</span>
+                            )}
+                          </td>
                           <td data-label="STATUS" style={{ textAlign: 'center' }}>
                             <span className={`appt-status-pill-minimal ${a.status.toLowerCase().replace(/\s+/g, '')}`}>
                               {a.status}
@@ -727,20 +732,20 @@ export default function TokenQueuePage() {
                                     <CheckCircle2 size={14} /> {a.status === 'Completed' ? 'Done' : a.status}
                                   </div>
                                 ) : (
-                                  <button className="appt-kebab-item" style={{ color: 'var(--pp-success-fg)' }} onClick={() => { 
+                                  <button className="appt-kebab-item" style={{ color: 'var(--pp-success-fg)' }} onClick={() => {
                                     if (!a.patientId) {
-                                      toast({ 
-                                        description: "यह पेशेंट रजिस्टर नहीं है, सबसे पहले इसको ऐड करो (This patient is not registered, please add them first)", 
-                                        variant: "error" 
+                                      toast({
+                                        description: "यह पेशेंट रजिस्टर नहीं है, सबसे पहले इसको ऐड करो (This patient is not registered, please add them first)",
+                                        variant: "error"
                                       });
                                       return;
                                     }
-                                    addToWaitlist.mutateAsync({ 
-                                      patientId: a.patientId || undefined, 
-                                      appointmentId: a.id, 
-                                      doctorId: a.doctorId ?? undefined 
-                                    }); 
-                                    setOpenMenuId(null); setMenuPos(null); 
+                                    addToWaitlist.mutateAsync({
+                                      patientId: a.patientId || undefined,
+                                      appointmentId: a.id,
+                                      doctorId: a.doctorId ?? undefined
+                                    });
+                                    setOpenMenuId(null); setMenuPos(null);
                                   }} disabled={addToWaitlist.isPending}>
                                     <Plus size={14} /> Check In
                                   </button>
@@ -796,7 +801,7 @@ export default function TokenQueuePage() {
                   ) : !collection || collection.records.length === 0 ? (
                     <tr>
                       <td colSpan={4}>
-                        <EmptyState 
+                        <EmptyState
                           icon={IndianRupee}
                           title="No transactions yet"
                           description="The collection ledger is currently empty for today. Receipts will appear here as payments are processed."
@@ -814,7 +819,7 @@ export default function TokenQueuePage() {
                             <div style={{ fontSize: 10, color: 'var(--pp-text-3)', fontWeight: 600 }}>{r.billDate || 'Live Sync'}</div>
                           </td>
                           <td data-label="PATIENT">
-                            <div className="appt-cell-name">{r.patientName}</div>
+                            <div className="appt-cell-name">{formatName(r.patientName)}</div>
                             <div className="appt-cell-phone">{r.phone || 'No Contact Linked'}</div>
                           </td>
                           <td data-label="CHANNEL" style={{ textAlign: 'center' }}>
@@ -864,7 +869,7 @@ function WaitlistCard({ entry, onStartConsult, onComplete, onVitals, isPending }
       <div className="appt-token-num">W{entry.waitingNumber}</div>
       <div className="appt-token-label">In Consultation</div>
 
-      <div className="appt-token-patient">{entry.patientName ?? `Patient #${entry.patientId}`}</div>
+      <div className="appt-token-patient">{formatName(entry.patientName) || `Patient #${entry.patientId}`}</div>
       <div className="appt-token-doctor">{entry.doctorName ?? 'Practitioner'}</div>
 
       <div className="appt-token-actions">

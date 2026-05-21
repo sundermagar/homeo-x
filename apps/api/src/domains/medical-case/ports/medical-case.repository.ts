@@ -152,6 +152,7 @@ export interface FullCaseData {
   vaccines?: CaseVaccine[];
   reminders?: CaseReminder[];
   additionalCharges?: any[];
+  activePackage?: any;
 }
 
 export interface MedicalCaseRepository {
