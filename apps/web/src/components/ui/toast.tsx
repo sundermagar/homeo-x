@@ -23,6 +23,7 @@ const toastVariantClass: Record<string, string> = {
   success: 'toast--success',
   error:   'toast--error',
   warning: 'toast--warning',
+  whatsapp: 'toast--whatsapp',
 };
 
 export interface ToastProps extends React.ComponentPropsWithoutRef<typeof ToastPrimitive.Root> {

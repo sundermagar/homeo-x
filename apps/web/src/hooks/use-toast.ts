@@ -1,7 +1,7 @@
 // @ts-nocheck
 import * as React from 'react';
 
-type ToastVariant = 'default' | 'success' | 'error';
+type ToastVariant = 'default' | 'success' | 'error' | 'whatsapp';
 
 interface ToastData {
   id: string;

@@ -16,7 +16,7 @@ export const Templates = () => {
   
   // Edit States
   const updateMutation = useUpdateTemplate();
-  const deleteMutation = useDeleteTemplate();
+  const deleteMutation = useDeleteTemplate(selectedChannelId);
   const [isEditingTemplate, setIsEditingTemplate] = useState(false);
   const [editedTemplate, setEditedTemplate] = useState({
     header: '',
@@ -50,7 +50,8 @@ export const Templates = () => {
         body: selectedTemplate.body || '',
         footer: selectedTemplate.footer || '',
         mediaType: selectedTemplate.mediaType || 'text',
-        mediaUrl: selectedTemplate.mediaUrl || ''
+        mediaUrl: selectedTemplate.mediaUrl || '',
+        mediaFile: null
       });
       setIsEditingTemplate(false);
     } else {

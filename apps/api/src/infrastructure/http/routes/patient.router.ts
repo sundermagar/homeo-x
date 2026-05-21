@@ -13,6 +13,10 @@ import {
 } from '../../../domains/patient/index.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { Role } from '@mmc/types';
+import { sql } from 'drizzle-orm';
+import { WhatsAppRepositoryPG } from '../../repositories/whatsapp.repository.pg.js';
+import { WhatsAppCloudGateway } from '../../communication/whatsapp-cloud-gateway.js';
+import { SendWhatsAppTemplateUseCase } from '../../../domains/communication/use-cases/send-whatsapp-template.use-case.js';
 
 export const patientRouter: IRouter = Router();
 
@@ -183,6 +187,60 @@ patientRouter.post('/', authMiddleware, async (req: Request, res: Response) => {
     const result = await uc.execute(parsed.data, clinicId);
     if (result.success) {
       res.status(201).json({ success: true, data: result.data.patient, regid: result.data.patient.regid, registrationBillId: (result.data as any).registrationBillId });
+      
+      // Auto WhatsApp to referring patient (Non-blocking background execution)
+      let referrerId: number | null = null;
+      if (req.body.referredById && !isNaN(Number(req.body.referredById))) {
+        referrerId = Number(req.body.referredById);
+      } else if (req.body.referredBy && !isNaN(Number(req.body.referredBy))) {
+        referrerId = Number(req.body.referredBy);
+      }
+      
+      if (referrerId) {
+        (async () => {
+          try {
+            const referrer = await repo.findByRegid(referrerId);
+            if (referrer && (referrer.phone || referrer.mobile1)) {
+              const rawPhone = referrer.phone || referrer.mobile1 || '';
+              const cleaned = rawPhone.replace(/\D/g, '');
+              const finalPhone = cleaned.length === 10 ? `91${cleaned}` : cleaned;
+              
+              const org = clinicId ? await orgRepo.findById(clinicId) : null;
+              const clinicName = org?.name || 'Clinic';
+              
+              const [dbTemplate] = await req.tenantDb.execute(sql`
+                SELECT language FROM wa_templates WHERE name = 'thank_you_for_reference' LIMIT 1
+              `);
+              const lang = (dbTemplate as any)?.language || 'en_US';
+
+              const waRepo = new WhatsAppRepositoryPG(req.tenantDb);
+              const waGateway = new WhatsAppCloudGateway(waRepo);
+              const waUc = new SendWhatsAppTemplateUseCase(waGateway as any, waRepo);
+
+              const referrerName = `${referrer.firstName} ${referrer.surname}`.trim();
+
+              await waUc.execute({
+                clinicId,
+                phone: finalPhone,
+                templateName: 'thank_you_for_reference',
+                language: lang,
+                components: [
+                  {
+                    type: 'body',
+                    parameters: [
+                      { type: 'text', text: referrerName },
+                      { type: 'text', text: clinicName }
+                    ]
+                  }
+                ]
+              });
+              console.log(`[CreatePatient] Reference thank you message sent to ${referrerName} (${finalPhone})`);
+            }
+          } catch (waErr: any) {
+            console.warn('[CreatePatient] Failed sending WhatsApp template to referring patient:', waErr.message);
+          }
+        })();
+      }
     } else {
       res.status(400).json({ success: false, message: result.error });
     }

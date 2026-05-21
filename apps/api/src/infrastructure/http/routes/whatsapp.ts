@@ -8,15 +8,46 @@ import { HandleWebhookUseCase } from '../../../domains/whatsapp/use-cases/handle
 import { BroadcastCampaignUseCase } from '../../../domains/whatsapp/use-cases/broadcast-campaign.use-case.js';
 import { SyncTemplatesUseCase } from '../../../domains/whatsapp/use-cases/sync-templates.use-case.js';
 import { CommunicationRepositoryPG } from '../../repositories/communication.repository.pg.js';
+import { NotificationsRepositoryPg } from '../../repositories/notifications.repository.pg.js';
 import { asyncHandler } from '../middleware/async-handler.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { sendSuccess } from '../../../shared/response-formatter.js';
 import { BadRequestError, NotFoundError } from '../../../shared/errors.js';
 import { createLogger } from '../../../shared/logger.js';
 import multer from 'multer';
+import crypto from 'node:crypto';
 
 const logger = createLogger('whatsapp-router');
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 16 * 1024 * 1024 } }); // 16MB max (Meta limit)
+
+// ─── DB Client Cache (prevents connection pool exhaustion on webhook lookups) ─
+const dbClientCache = new Map<string, ReturnType<typeof createDbClient>>();
+function getCachedDbClient(schemaName: string): ReturnType<typeof createDbClient> {
+  let client = dbClientCache.get(schemaName);
+  if (!client) {
+    client = createDbClient(process.env.DATABASE_URL!, schemaName);
+    dbClientCache.set(schemaName, client);
+  }
+  return client;
+}
+
+// ─── Webhook Signature Verification ──────────────────────────────────────────
+function verifyWebhookSignature(req: any): boolean {
+  const appSecret = process.env.WHATSAPP_APP_SECRET || process.env.META_APP_SECRET;
+  if (!appSecret) {
+    // If no app secret configured, skip verification (dev mode) but warn
+    logger.warn('WHATSAPP_APP_SECRET not set — webhook signature verification skipped. Set it for production!');
+    return true;
+  }
+  const signature = req.headers['x-hub-signature-256'];
+  if (!signature) {
+    logger.warn('Webhook request missing X-Hub-Signature-256 header');
+    return false;
+  }
+  const rawBody = typeof req.rawBody === 'string' ? req.rawBody : JSON.stringify(req.body);
+  const expectedSig = 'sha256=' + crypto.createHmac('sha256', appSecret).update(rawBody).digest('hex');
+  return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSig));
+}
 
 export const whatsappRouter: Router = Router();
 
@@ -44,7 +75,17 @@ whatsappRouter.get('/webhook', (req, res) => {
 
 // POST /api/whatsapp/webhook - Incoming events
 whatsappRouter.post('/webhook', asyncHandler(async (req, res) => {
-  logger.info(`Received WhatsApp webhook event: ${JSON.stringify(req.body)}`);
+  // Verify webhook signature from Meta (prevents spoofed events)
+  if (!verifyWebhookSignature(req)) {
+    logger.warn('Webhook signature verification FAILED — rejecting request');
+    res.sendStatus(403);
+    return;
+  }
+
+  // Log metadata only (no PII — phone numbers, message content)
+  const msgType = req.body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0]?.type || 'status_update';
+  const phoneId = req.body?.entry?.[0]?.changes?.[0]?.value?.metadata?.phone_number_id || 'unknown';
+  logger.info(`Webhook event received: type=${msgType}, phoneNumberId=${phoneId}`);
 
   let targetDb = req.tenantDb; // Fallback to resolved schema (typically demo)
 
@@ -76,7 +117,7 @@ whatsappRouter.post('/webhook', asyncHandler(async (req, res) => {
         logger.info(`Webhook lookup: Scanning ${activeSchemas.length} active schemas for wa_channels matching phone_number_id: ${phoneNumberId}`);
         for (const schemaName of activeSchemas) {
           try {
-            const client = createDbClient(process.env.DATABASE_URL!, schemaName);
+            const client = getCachedDbClient(schemaName);
             const [channel] = await client.execute(sql`
               SELECT id FROM wa_channels WHERE phone_number_id = ${phoneNumberId} LIMIT 1
             `);
@@ -97,7 +138,7 @@ whatsappRouter.post('/webhook', asyncHandler(async (req, res) => {
         logger.info(`Webhook lookup: Scanning ${activeSchemas.length} active schemas for wa_messages matching message id: ${queryId}`);
         for (const schemaName of activeSchemas) {
           try {
-            const client = createDbClient(process.env.DATABASE_URL!, schemaName);
+            const client = getCachedDbClient(schemaName);
             const [msg] = await client.execute(sql`
               SELECT id FROM wa_messages WHERE whatsapp_message_id = ${queryId} LIMIT 1
             `);
@@ -113,7 +154,7 @@ whatsappRouter.post('/webhook', asyncHandler(async (req, res) => {
       }
 
       if (matchedSchemaName) {
-        targetDb = createDbClient(process.env.DATABASE_URL!, matchedSchemaName);
+        targetDb = getCachedDbClient(matchedSchemaName);
       } else {
         logger.warn(`Webhook lookup: No matching channel or message found in any tenant schema for event. Falling back to default.`);
       }
@@ -124,7 +165,8 @@ whatsappRouter.post('/webhook', asyncHandler(async (req, res) => {
 
   const repo = new WhatsAppRepositoryPG(targetDb);
   const gateway = new WhatsAppCloudGateway(repo);
-  const useCase = new HandleWebhookUseCase(repo, gateway);
+  const notificationsRepo = new NotificationsRepositoryPg(targetDb);
+  const useCase = new HandleWebhookUseCase(repo, gateway, notificationsRepo);
   await useCase.execute(req.body);
   res.sendStatus(200);
 }));
@@ -804,6 +846,12 @@ whatsappRouter.post('/send-template', authMiddleware, asyncHandler(async (req, r
 
     if (templateRows.length > 0) {
       const tpl = templateRows[0];
+      
+      // If this template was only created locally, prevent sending and explain clearly
+      if (tpl.whatsappTemplateId && String(tpl.whatsappTemplateId).startsWith('local_')) {
+        throw new BadRequestError(`This template ('${templateName}') exists only locally in your database. To send template messages via WhatsApp, you must first register and get this template approved in your Meta WhatsApp Business Account (WABA) Manager under the name '${templateName}' with '${language || 'en_US'}' language, and then click 'Sync Templates' to import it.`);
+      }
+
       templateBody = tpl.body || templateBody;
 
       // Automatically inject media header if configured
@@ -829,6 +877,7 @@ whatsappRouter.post('/send-template', authMiddleware, asyncHandler(async (req, r
       }
     }
   } catch (e: any) {
+    if (e instanceof BadRequestError) throw e;
     logger.warn({ err: e.message }, 'Failed to pre-fetch WABA template from DB for header injection');
   }
 
@@ -925,7 +974,11 @@ whatsappRouter.post('/send-template', authMiddleware, asyncHandler(async (req, r
       conversationId: conversation.id,
     }, 'Template message sent');
   } else {
-    throw new BadRequestError(result.error || 'Failed to send template message');
+    let errMsg = result.error || 'Failed to send template message';
+    if (errMsg.includes('132001') || errMsg.toLowerCase().includes('not exist') || errMsg.toLowerCase().includes('translation')) {
+      errMsg = `Template '${templateName}' does not exist in the translation database or is not approved in your Meta WhatsApp Business Account (WABA) Manager. Please ensure it is registered and approved in your Meta dashboard under the name '${templateName}' with '${language || 'en_US'}' language, and click 'Sync Templates'.`;
+    }
+    throw new BadRequestError(errMsg);
   }
 }));
 
@@ -977,6 +1030,38 @@ whatsappRouter.put('/ai-settings/:channelId', authMiddleware, asyncHandler(async
 
   const saved = await repo.saveAiSettings(toSave);
   sendSuccess(res, saved, 'AI settings saved successfully');
+}));
+
+// GET /api/whatsapp/widget-settings/:channelId - Get widget configuration for channel
+whatsappRouter.get('/widget-settings/:channelId', authMiddleware, asyncHandler(async (req, res) => {
+  const channelId = parseInt(String(req.params.channelId));
+  const repo = getRepo(req);
+  const settings = await (repo as any).findWidgetSettings(channelId);
+  sendSuccess(res, settings || {
+    channelId,
+    widgetEnabled: true,
+    widgetConfig: {},
+    aiTrainingConfig: {},
+  });
+}));
+
+// PUT /api/whatsapp/widget-settings/:channelId - Update widget configuration
+whatsappRouter.put('/widget-settings/:channelId', authMiddleware, asyncHandler(async (req, res) => {
+  const channelId = parseInt(String(req.params.channelId));
+  const repo = getRepo(req);
+  const body = req.body;
+  const clinicId = (req as any).user?.clinicId || null;
+
+  const existing = await (repo as any).findWidgetSettings(channelId);
+  const toSave = {
+    ...existing,
+    ...body,
+    channelId,
+    clinicId,
+  };
+
+  const saved = await (repo as any).saveWidgetSettings(toSave);
+  sendSuccess(res, saved, 'Widget settings saved successfully');
 }));
 
 // GET /api/whatsapp/training/sources/:channelId - List training sources

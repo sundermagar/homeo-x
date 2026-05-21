@@ -62,6 +62,7 @@ import { getAiProviderChain } from '../ai/ai-provider-chain.js';
 import { createTerminologyRouter } from './routes/terminology.router.js';
 import { createNotificationsRouter } from './routes/notifications.router.js';
 import { whatsappRouter } from './routes/whatsapp.js';
+import { whatsappWidgetRouter } from './routes/whatsapp-widget.js';
 import { setupNotificationsGateway, setNotificationEmitters } from './gateways/notifications.gateway.js';
 import { setupWhatsAppGateway, setWhatsAppGateway } from './gateways/whatsapp.gateway.js';
 
@@ -168,6 +169,7 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   app.use('/api/staff', authMiddleware, staffRouter);
   app.use('/api/notifications', authMiddleware, createNotificationsRouter());
   app.use('/api/whatsapp', whatsappRouter);
+  app.use('/api/widget', whatsappWidgetRouter);
 
   // Roles & Permissions
   app.use('/api/roles', authMiddleware, rolesRouter);

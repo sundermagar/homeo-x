@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWhatsApp } from '../hooks/use-whatsapp';
+import { useWhatsAppSocket } from '../hooks/use-whatsapp-socket';
 import { Search, Send, User, Check, CheckCheck, MessageSquare, Pin, MoreVertical, Plus, FileText, Paperclip, Smile, Loader2, ArrowLeft, CornerUpLeft, Forward, Trash2, X, Archive, Ban } from 'lucide-react';
 import { format } from 'date-fns';
 import { NewChatModal } from './new-chat-modal';
@@ -101,6 +102,9 @@ export const Inbox = ({ channelId }: { channelId?: number }) => {
   const { data: conversations, isLoading: loadingConv } = useConversations(channelId);
   const [selectedConvId, setSelectedConvId] = useState<number | null>(null);
   const { data: messages, isLoading: loadingMsg, error: msgError } = useMessages(selectedConvId || undefined);
+
+  // ─── Real-time WebSocket updates ───────────────────────────────────────────
+  useWhatsAppSocket({ channelId, selectedConversationId: selectedConvId });
   
   const [replyingTo, setReplyingTo] = useState<any | null>(null);
   const [forwardingMsg, setForwardingMsg] = useState<any | null>(null);
@@ -165,7 +169,7 @@ export const Inbox = ({ channelId }: { channelId?: number }) => {
         toast({
           title: "No Patient Profile Found",
           description: `No active patient record matches +${selectedConv.contactPhone}.`,
-          variant: "warning"
+          variant: "default"
         });
       }
     } catch (err: any) {

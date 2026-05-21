@@ -200,7 +200,7 @@ export const WhatsAppDashboardPage = () => {
           actions: (
             <button 
               className="btn-primary h-10 px-4" 
-              onClick={() => toast({ title: 'AI Agent Provisioned', description: 'Your AI agent is already bound to this clinic channel. Please configure its knowledge base below.', duration: 5000 })}
+              onClick={() => toast({ title: 'AI Agent Provisioned', description: 'Your AI agent is already bound to this clinic channel. Please configure its knowledge base below.' })}
             >
               <MessageSquare size={15} />
               Create AI Agent

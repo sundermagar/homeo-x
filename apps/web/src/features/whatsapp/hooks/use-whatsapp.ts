@@ -106,13 +106,16 @@ export const useWhatsApp = () => {
         queryClient.invalidateQueries({ queryKey: ['whatsapp', 'templates', variables.channelId] });
       },
     }),
-    useDeleteTemplate: () => useMutation({
+    useDeleteTemplate: (channelId?: number) => useMutation({
       mutationFn: async (id: number) => {
         const { data } = await apiClient.delete<{ data: any }>(`/whatsapp/templates/${id}`);
         return data.data;
       },
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ['whatsapp', 'templates'] });
+        if (channelId) {
+          queryClient.invalidateQueries({ queryKey: ['whatsapp', 'templates', channelId] });
+        }
       },
     }),
     // Conversations & Messages
@@ -151,7 +154,7 @@ export const useWhatsApp = () => {
         return data.data;
       },
       enabled: !!channelId,
-      refetchInterval: 5000, // Poll conversations every 5 seconds to show new chats/unread badges
+      refetchInterval: 30000, // Poll conversations every 30 seconds as a fallback (WebSockets are primary)
     }),
     useCreateConversation: () => useMutation({
       mutationFn: async (payload: { channelId: number; contactPhone: string; contactName: string }) => {
@@ -170,7 +173,7 @@ export const useWhatsApp = () => {
         return data.data;
       },
       enabled: !!conversationId,
-      refetchInterval: 3000, // Poll messages of active conversation every 3 seconds for real-time delivery from phone
+      refetchInterval: 30000, // Poll messages every 30 seconds as a fallback (WebSockets are primary)
     }),
     useSendMessage: () => useMutation({
       mutationFn: async ({ 
@@ -471,6 +474,26 @@ export const useWhatsApp = () => {
       },
       onSuccess: (_, vars) => {
         queryClient.invalidateQueries({ queryKey: ['whatsapp', 'ai-settings', vars.channelId] });
+      },
+    }),
+
+    useWidgetSettings: (channelId: number | null) => useQuery({
+      queryKey: ['whatsapp', 'widget-settings', channelId],
+      queryFn: async () => {
+        if (!channelId) return null;
+        const { data } = await apiClient.get<{ data: any }>(`/whatsapp/widget-settings/${channelId}`);
+        return data.data;
+      },
+      enabled: !!channelId,
+    }),
+
+    useSaveWidgetSettings: () => useMutation({
+      mutationFn: async (payload: { channelId: number; data: any }) => {
+        const { data } = await apiClient.put<{ data: any }>(`/whatsapp/widget-settings/${payload.channelId}`, payload.data);
+        return data.data;
+      },
+      onSuccess: (_, vars) => {
+        queryClient.invalidateQueries({ queryKey: ['whatsapp', 'widget-settings', vars.channelId] });
       },
     }),
 

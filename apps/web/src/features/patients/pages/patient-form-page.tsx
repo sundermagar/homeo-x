@@ -167,7 +167,7 @@ export default function PatientFormPage() {
             </div>
             <div>
               <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Consultation Fee (₹)</label>
-              <NumericInput className="pp-input" name="consultationFee" value={form.consultationFee} onChange={handleChange} />
+              <NumericInput className="pp-input" name="consultationFee" value={form.consultationFee ?? ''} onChange={handleChange} />
             </div>
           </div>
 

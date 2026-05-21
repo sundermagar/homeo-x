@@ -469,6 +469,18 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
     };
   }
 
+  async findContactByPhone(clinicId: number, phone: string): Promise<any> {
+    const [row] = await this.db
+      .select()
+      .from(schema.waContacts)
+      .where(and(
+        eq(schema.waContacts.clinicId, clinicId),
+        eq(schema.waContacts.phone, phone)
+      ))
+      .limit(1);
+    return row ?? null;
+  }
+
   async saveContact(data: any): Promise<any> {
     if (data.id) {
       const [row] = await this.db
@@ -1002,11 +1014,47 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
       { name: 'Auth', value: catTotal > 0 ? Math.round((auth / catTotal) * 100) : 10, color: '#f59e0b' },
     ];
 
+    // Calculate actual growth rate comparing current period vs previous period
+    let growthRate = 0;
+    try {
+      const currentPeriodStart = new Date();
+      currentPeriodStart.setDate(currentPeriodStart.getDate() - days);
+      const previousPeriodStart = new Date();
+      previousPeriodStart.setDate(previousPeriodStart.getDate() - (days * 2));
+      
+      const [currentPeriod] = await this.db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(schema.waMessages)
+        .innerJoin(schema.waConversations, eq(schema.waConversations.id, schema.waMessages.conversationId))
+        .where(and(
+          eq(schema.waConversations.clinicId, clinicId),
+          eq(schema.waMessages.direction, 'outbound'),
+          gte(schema.waMessages.createdAt, currentPeriodStart)
+        ));
+      
+      const [previousPeriod] = await this.db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(schema.waMessages)
+        .innerJoin(schema.waConversations, eq(schema.waConversations.id, schema.waMessages.conversationId))
+        .where(and(
+          eq(schema.waConversations.clinicId, clinicId),
+          eq(schema.waMessages.direction, 'outbound'),
+          gte(schema.waMessages.createdAt, previousPeriodStart),
+          lte(schema.waMessages.createdAt, currentPeriodStart)
+        ));
+      
+      const cur = currentPeriod?.count || 0;
+      const prev = previousPeriod?.count || 0;
+      growthRate = prev > 0 ? Number((((cur - prev) / prev) * 100).toFixed(1)) : 0;
+    } catch {
+      growthRate = 0;
+    }
+
     return {
       totalDeliveries,
       activeConversations,
       campaignReach,
-      growthRate: 14.8,
+      growthRate,
       deliverySuccessRate,
       messageReadRate,
       responseTime,
@@ -1042,6 +1090,40 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
     } else {
       const [inserted] = await this.db
         .insert(schema.waAiSettings)
+        .values({
+          ...updateData,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning();
+      return inserted;
+    }
+  }
+
+  async findWidgetSettings(channelId: number): Promise<any> {
+    const [row] = await this.db
+      .select()
+      .from(schema.waWidgets)
+      .where(eq(schema.waWidgets.channelId, channelId))
+      .limit(1);
+    return row ?? null;
+  }
+
+  async saveWidgetSettings(data: any): Promise<any> {
+    const { id, createdAt, updatedAt, ...updateData } = data;
+    if (id) {
+      const [updated] = await this.db
+        .update(schema.waWidgets)
+        .set({
+          ...updateData,
+          updatedAt: new Date()
+        })
+        .where(eq(schema.waWidgets.id, id))
+        .returning();
+      return updated;
+    } else {
+      const [inserted] = await this.db
+        .insert(schema.waWidgets)
         .values({
           ...updateData,
           createdAt: new Date(),

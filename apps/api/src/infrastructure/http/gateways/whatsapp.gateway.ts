@@ -16,6 +16,16 @@ export function setupWhatsAppGateway(io: Server) {
       logger.info(`Socket ${client.id} joined room channel:${channelId}`);
     }
 
+    client.on('join_channel', (channelId: number) => {
+      client.join(`channel:${channelId}`);
+      logger.info(`Socket ${client.id} joined room channel:${channelId}`);
+    });
+
+    client.on('leave_channel', (channelId: number) => {
+      client.leave(`channel:${channelId}`);
+      logger.info(`Socket ${client.id} left room channel:${channelId}`);
+    });
+
     client.on('join_conversation', (conversationId: number) => {
       client.join(`conversation:${conversationId}`);
       logger.info(`Socket ${client.id} joined room conversation:${conversationId}`);

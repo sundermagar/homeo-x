@@ -1,273 +1,292 @@
-import React, { useState } from 'react';
-import { Copy, Bot, Check, ArrowRight, Sparkles, MessageCircle } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
+import React, { useState, useEffect } from "react";
+import { useWhatsApp } from "../hooks/use-whatsapp";
+import { useQuery } from "@tanstack/react-query";
+import { apiClient } from "@/infrastructure/api-client";
+import { toast } from "@/hooks/use-toast";
+import { Loader2, MessageSquare, Code, Settings } from "lucide-react";
+import { WidgetConfig, ChatMessage, PreviewScreen } from "./widget-builder/types";
+import { createDefaultConfig } from "./widget-builder/utils";
+import WidgetConfigPanel from "./widget-builder/WidgetConfigPanel";
+import WidgetPreview from "./widget-builder/WidgetPreview";
+import WidgetCodeSnippet from "./widget-builder/WidgetCodeSnippet";
 
 export const WidgetBuilder = () => {
-  const [config, setConfig] = useState({
-    title: 'Homeo-X Support',
-    greeting: 'Welcome! How can we help you today?',
-    phone: '+917082158240',
-    position: 'right',
-    color: '#075e54',
-    buttonText: 'Chat on WhatsApp',
+  const { useChannels, useWidgetSettings, useSaveWidgetSettings } = useWhatsApp();
+
+  const { data: channels, isLoading: channelsLoading } = useChannels();
+  const activeChannel = channels?.[0];
+
+  // Fetch doctors list for the team dropdown selection
+  const { data: doctors, isLoading: doctorsLoading } = useQuery({
+    queryKey: ["doctors-list"],
+    queryFn: async () => {
+      const { data } = await apiClient.get<any>("/doctors");
+      return data.data || [];
+    },
   });
 
-  const [copied, setCopied] = useState(false);
-  const [isOpen, setIsOpen] = useState(false);
+  const { data: settings, isLoading: settingsLoading } = useWidgetSettings(
+    activeChannel?.id || null
+  );
+  const saveWidgetSettings = useSaveWidgetSettings();
 
-  const colors = [
-    { name: 'WhatsApp Green', hex: '#075e54' },
-    { name: 'Clinical Blue', hex: '#0066cc' },
-    { name: 'Premium Purple', hex: '#7c3aed' },
-    { name: 'Sleek Dark', hex: '#1e293b' },
-  ];
+  const [config, setConfig] = useState<WidgetConfig | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(true);
+  const [previewScreen, setPreviewScreen] = useState<PreviewScreen>("home");
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeSubTab, setActiveSubTab] = useState<"builder" | "code">("builder");
+
+  useEffect(() => {
+    if (activeChannel) {
+      const defaultConf = createDefaultConfig(activeChannel.name);
+      if (settings && settings.widgetConfig) {
+        setConfig({
+          ...defaultConf,
+          ...settings.widgetConfig,
+        });
+      } else {
+        setConfig(defaultConf);
+      }
+    }
+  }, [settings, activeChannel]);
+
+  useEffect(() => {
+    if (config) {
+      setChatMessages([
+        {
+          role: "bot",
+          text: config.greeting,
+          time: new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        },
+      ]);
+    }
+  }, [config?.greeting]);
+
+  const updateConfig = (key: string, value: any) => {
+    if (!config) return;
+    setConfig((prev) => (prev ? { ...prev, [key]: value } : null));
+  };
+
+  const handleSave = () => {
+    if (!activeChannel || !config) return;
+    saveWidgetSettings.mutate(
+      {
+        channelId: activeChannel.id,
+        data: {
+          ...settings,
+          widgetConfig: config,
+        },
+      },
+      {
+        onSuccess: () => {
+          toast({
+            title: "Success",
+            description: "Widget configuration saved successfully.",
+            variant: "success",
+          });
+        },
+        onError: (err: any) => {
+          toast({
+            title: "Error",
+            description: err.message || "Failed to save configuration.",
+            variant: "error",
+          });
+        },
+      }
+    );
+  };
+
+  const sendChatMessage = () => {
+    if (!chatInput.trim() || !config) return;
+
+    const time = new Date().toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    const newMsgs = [...chatMessages, { role: "user", text: chatInput, time }];
+    setChatMessages(newMsgs);
+    setChatInput("");
+
+    // Simulate AI response if enabled
+    if (config.enableAiAutoReply) {
+      setTimeout(() => {
+        setChatMessages((prev) => [
+          ...prev,
+          {
+            role: "bot",
+            text: "Thank you for message! This is a preview simulation. Once installed on your website, our clinical assistant will answer dynamically based on clinical records.",
+            time: new Date().toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+          },
+        ]);
+      }, 1000);
+    }
+  };
+
+  if (channelsLoading || settingsLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[500px] gap-3">
+        <Loader2 className="h-8 w-8 animate-spin text-pp-blue" />
+        <p className="text-sm text-secondary font-medium">Loading widget settings...</p>
+      </div>
+    );
+  }
+
+  if (!activeChannel) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[400px] text-center max-w-md mx-auto space-y-4">
+        <div className="p-4 bg-yellow-50 rounded-full text-yellow-600">
+          <MessageSquare className="h-8 w-8" />
+        </div>
+        <h3 className="text-lg font-bold text-main">No WhatsApp Channel Configured</h3>
+        <p className="text-sm text-secondary leading-relaxed">
+          Please connect your WhatsApp Business Account (WABA) first under WhatsApp Settings or Channels.
+        </p>
+      </div>
+    );
+  }
+
+  if (!config) return null;
 
   const embedCode = `<!-- Homeo-X WhatsApp Floating Support Widget -->
 <script>
-  window.HomeoxChatConfig = {
-    title: "${config.title}",
-    greeting: "${config.greeting}",
-    phone: "${config.phone}",
-    position: "${config.position}",
-    color: "${config.color}",
-    buttonText: "${config.buttonText}"
-  };
+  window.HomeoxWidgetId = "${activeChannel.id}";
 </script>
 <script src="${window.location.origin}/widgets/whatsapp-chat-widget.js" async></script>`;
 
-  const handleCopy = () => {
+  const copyCode = () => {
     navigator.clipboard.writeText(embedCode);
-    setCopied(true);
     toast({
-      title: 'Code Copied!',
-      description: 'The embed code snippet has been copied to your clipboard.',
-      variant: 'success',
+      title: "Copied!",
+      description: "Installation script copied to clipboard.",
+      variant: "success",
     });
-    setTimeout(() => setCopied(false), 2000);
   };
 
+  // Mock FAQs for live mockup
+  const sampleFaqs = [
+    {
+      id: "1",
+      question: "What are your consultation hours?",
+      answer: "We are open Monday to Friday 9:00 AM to 6:00 PM, and Saturday 9:00 AM to 1:00 PM.",
+      category: "General",
+      isActive: true,
+    },
+    {
+      id: "2",
+      question: "How can I book an appointment?",
+      answer: "You can book an appointment directly through this widget by clicking 'Chat on WhatsApp', or by calling our clinic number.",
+      category: "Appointments",
+      isActive: true,
+    },
+    {
+      id: "3",
+      question: "Do you offer online consultations?",
+      answer: "Yes, we offer fully remote video/audio consultations for patients worldwide.",
+      category: "Services",
+      isActive: true,
+    },
+  ];
+
   return (
-    <div className="space-y-8 animate-fade-in">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        
-        {/* Customizer settings panel */}
-        <div className="bg-white p-8 rounded-3xl border border-pp-border shadow-sm space-y-6">
-          <div>
-            <h3 className="text-xl font-bold text-main">Widget Customization</h3>
-            <p className="text-sm text-secondary">Style and customize your floating clinical support widget.</p>
-          </div>
+    <div className="space-y-6 animate-fade-in">
+      <div className="flex items-center justify-between border-b border-pp-border pb-4">
+        <div>
+          <h2 className="text-xl font-bold text-main">Widget Customizer</h2>
+          <p className="text-sm text-secondary">
+            Configure how your floating clinical support widget looks and behaves.
+          </p>
+        </div>
 
-          <div className="space-y-4">
-            
-            {/* Title */}
-            <div>
-              <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">Widget Header Title</label>
-              <input
-                type="text"
-                value={config.title}
-                onChange={(e) => setConfig({ ...config, title: e.target.value })}
-                className="pp-input w-full h-11"
+        <div className="flex items-center gap-1 p-1.5 bg-[#F4F3F1] dark:bg-[#16161a] rounded-[14px] border border-pp-border/30 shadow-inner">
+          <button
+            onClick={() => setActiveSubTab("builder")}
+            className={`px-5 py-2 text-[13px] font-semibold rounded-xl flex items-center gap-2 transition-all select-none ${
+              activeSubTab === "builder"
+                ? "bg-white dark:bg-[#222226] text-main shadow-sm border border-black/5 dark:border-white/5"
+                : "text-secondary hover:text-main"
+            }`}
+          >
+            <Settings className="h-4 w-4" />
+            Designer
+          </button>
+          <button
+            onClick={() => setActiveSubTab("code")}
+            className={`px-5 py-2 text-[13px] font-semibold rounded-xl flex items-center gap-2 transition-all select-none ${
+              activeSubTab === "code"
+                ? "bg-white dark:bg-[#222226] text-main shadow-sm border border-black/5 dark:border-white/5"
+                : "text-secondary hover:text-main"
+            }`}
+          >
+            <Code className="h-4 w-4" />
+            Integrate Code
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Left Side: Builder Config or Embed Code */}
+        <div className="lg:col-span-6 xl:col-span-5 space-y-6">
+          {activeSubTab === "builder" ? (
+            <div className="space-y-6">
+              <WidgetConfigPanel
+                config={config}
+                updateConfig={updateConfig}
+                userList={doctors}
+                usersLoading={doctorsLoading}
               />
-            </div>
-
-            {/* Greeting */}
-            <div>
-              <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">Welcome Greeting Message</label>
-              <textarea
-                rows={3}
-                value={config.greeting}
-                onChange={(e) => setConfig({ ...config, greeting: e.target.value })}
-                className="pp-input w-full p-3 font-sans text-sm"
-              />
-            </div>
-
-            {/* Support Phone */}
-            <div>
-              <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">Destination WhatsApp Number</label>
-              <input
-                type="text"
-                value={config.phone}
-                onChange={(e) => setConfig({ ...config, phone: e.target.value })}
-                className="pp-input w-full h-11"
-                placeholder="+91..."
-              />
-            </div>
-
-            {/* Button text */}
-            <div>
-              <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">Button CTA Text</label>
-              <input
-                type="text"
-                value={config.buttonText}
-                onChange={(e) => setConfig({ ...config, buttonText: e.target.value })}
-                className="pp-input w-full h-11"
-              />
-            </div>
-
-            {/* Color selection */}
-            <div>
-              <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">Brand Color Theme</label>
-              <div className="flex gap-4">
-                {colors.map((c) => (
-                  <button
-                    key={c.hex}
-                    onClick={() => setConfig({ ...config, color: c.hex })}
-                    className="w-10 h-10 rounded-full border-2 transition-all relative flex items-center justify-center shrink-0"
-                    style={{ 
-                      backgroundColor: c.hex,
-                      borderColor: config.color === c.hex ? 'var(--pp-blue)' : 'transparent',
-                      transform: config.color === c.hex ? 'scale(1.1)' : 'scale(1)'
-                    }}
-                    title={c.name}
-                  >
-                    {config.color === c.hex && (
-                      <span className="text-white text-[10px]">✓</span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Position */}
-            <div>
-              <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">Floating Placement</label>
-              <div className="flex gap-4">
+              <div className="pt-2">
                 <button
-                  onClick={() => setConfig({ ...config, position: 'right' })}
-                  className={`flex-1 h-11 rounded-xl text-sm font-semibold border transition-all ${
-                    config.position === 'right'
-                      ? 'border-pp-blue bg-blue-50 text-pp-blue'
-                      : 'border-pp-border bg-white text-secondary hover:bg-pp-bg-subtle'
-                  }`}
+                  onClick={handleSave}
+                  disabled={saveWidgetSettings.isPending}
+                  className="w-full bg-pp-blue hover:bg-pp-blue/90 text-white rounded-xl h-11 text-sm font-semibold shadow-sm transition-colors flex items-center justify-center gap-2"
                 >
-                  Bottom Right
-                </button>
-                <button
-                  onClick={() => setConfig({ ...config, position: 'left' })}
-                  className={`flex-1 h-11 rounded-xl text-sm font-semibold border transition-all ${
-                    config.position === 'left'
-                      ? 'border-pp-blue bg-blue-50 text-pp-blue'
-                      : 'border-pp-border bg-white text-secondary hover:bg-pp-bg-subtle'
-                  }`}
-                >
-                  Bottom Left
+                  {saveWidgetSettings.isPending && (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  )}
+                  Save Configuration
                 </button>
               </div>
             </div>
-
-          </div>
+          ) : (
+            <WidgetCodeSnippet
+              config={config}
+              widgetCode={embedCode}
+              copyCode={copyCode}
+              onSave={handleSave}
+              isSaving={saveWidgetSettings.isPending}
+              channelId={activeChannel.id}
+            />
+          )}
         </div>
 
-        {/* Live Mockup and Code Generator Panel */}
-        <div className="space-y-6">
-          
-          {/* Visual Embed code block card */}
-          <div className="bg-white p-8 rounded-3xl border border-pp-border shadow-sm space-y-4">
-            <div className="flex justify-between items-center">
-              <div>
-                <h4 className="font-bold text-main">Integrate on Website</h4>
-                <p className="text-xs text-secondary">Copy and paste this snippet right before the closing &lt;/body&gt; tag.</p>
-              </div>
-              <button
-                onClick={handleCopy}
-                className="p-2 hover:bg-pp-bg-subtle rounded-xl text-secondary hover:text-main transition-all flex items-center gap-1.5 font-semibold text-xs border border-pp-border"
-              >
-                {copied ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
-                {copied ? 'Copied' : 'Copy'}
-              </button>
-            </div>
-
-            <div className="bg-slate-900 text-slate-100 p-5 rounded-2xl font-mono text-[11px] leading-relaxed select-all overflow-x-auto shadow-inner border border-slate-950">
-              <pre>{embedCode}</pre>
-            </div>
+        {/* Right Side: Interactive Mockup Live Preview */}
+        <div className="lg:col-span-6 xl:col-span-7">
+          <div className="sticky top-6">
+            <WidgetPreview
+              config={config}
+              isPreviewOpen={isPreviewOpen}
+              setIsPreviewOpen={setIsPreviewOpen}
+              previewScreen={previewScreen}
+              setPreviewScreen={setPreviewScreen}
+              chatMessages={chatMessages}
+              chatInput={chatInput}
+              setChatInput={setChatInput}
+              sendChatMessage={sendChatMessage}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              qaPairs={sampleFaqs}
+            />
           </div>
-
-          {/* simulated visual site preview container */}
-          <div className="bg-[#f8fafc] border border-pp-border rounded-3xl h-[360px] relative overflow-hidden flex flex-col justify-between shadow-inner">
-            
-            {/* Header simulation */}
-            <div className="bg-white border-b border-pp-border p-4 flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 bg-pp-blue rounded-lg" />
-                <span className="font-bold text-xs text-main">Your Clinic Website</span>
-              </div>
-              <div className="flex gap-3">
-                <span className="w-12 h-2 bg-pp-border rounded-full" />
-                <span className="w-12 h-2 bg-pp-border rounded-full" />
-              </div>
-            </div>
-
-            {/* site body mock text */}
-            <div className="p-8 space-y-4 flex-1">
-              <div className="w-[140px] h-4 bg-pp-border rounded-full" />
-              <div className="space-y-2">
-                <div className="w-full h-3 bg-pp-border/50 rounded-full" />
-                <div className="w-[85%] h-3 bg-pp-border/50 rounded-full" />
-              </div>
-              
-              <div className="p-6 bg-white border border-pp-border rounded-2xl inline-flex items-center gap-3 mt-6 shadow-sm">
-                <Sparkles size={16} className="text-pp-blue" />
-                <span className="text-xs font-semibold text-secondary">Click the floating WhatsApp chat widget below to test interaction!</span>
-              </div>
-            </div>
-
-            {/* Interactive Float Widget placement inside simulated site */}
-            <div className={`absolute bottom-6 ${config.position === 'right' ? 'right-6' : 'left-6'} z-10`}>
-              
-              {/* Opened Widget Container */}
-              {isOpen && (
-                <div className="bg-white w-[230px] rounded-2xl shadow-2xl border border-pp-border overflow-hidden mb-3 animate-fade-in flex flex-col">
-                  
-                  {/* Header bar */}
-                  <div className="p-4 text-white flex items-center justify-between shrink-0" style={{ backgroundColor: config.color }}>
-                    <div className="flex items-center gap-2">
-                      <div className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center text-[9px] font-bold">W</div>
-                      <div className="truncate">
-                        <h5 className="font-bold text-[10px] truncate leading-tight">{config.title}</h5>
-                        <span className="text-[7px] text-white/70 block uppercase tracking-wide">Online</span>
-                      </div>
-                    </div>
-                    <button onClick={() => setIsOpen(false)} className="text-white/80 hover:text-white text-[10px]">✕</button>
-                  </div>
-
-                  {/* Bubble content */}
-                  <div className="p-3 bg-[#efeae2] text-[9px] leading-relaxed text-main space-y-3 min-h-[92px] max-h-[160px] overflow-y-auto">
-                    <div className="bg-white p-2.5 rounded-xl shadow-sm border border-black/5 self-start max-w-[95%]">
-                      {config.greeting}
-                    </div>
-                  </div>
-
-                  {/* CTA Click button to open actual WhatsApp chat window */}
-                  <a 
-                    href={`https://wa.me/${config.phone}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="m-3 p-2 text-white font-bold text-[9px] text-center rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition-all hover:brightness-95"
-                    style={{ backgroundColor: config.color }}
-                  >
-                    <MessageCircle size={10} />
-                    {config.buttonText}
-                    <ArrowRight size={8} />
-                  </a>
-
-                </div>
-              )}
-
-              {/* Floating trigger button */}
-              <button
-                onClick={() => setIsOpen(!isOpen)}
-                className="w-12 h-12 rounded-full text-white shadow-2xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all"
-                style={{ backgroundColor: config.color }}
-              >
-                {isOpen ? '✕' : '💬'}
-              </button>
-
-            </div>
-
-          </div>
-
         </div>
-
       </div>
     </div>
   );

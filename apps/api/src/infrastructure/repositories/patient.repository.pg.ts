@@ -257,7 +257,19 @@ export class PatientRepositoryPg implements PatientRepository {
     if ((patients as any).assistantDoctor) patientData.assistantDoctor = (input as any).assistantDoctor || '';
     if ((patients as any).consultationFee) patientData.consultationFee = (input as any).consultationFee || 0;
     if ((patients as any).courierOutstation) patientData.courierOutstation = input.courierOutstation ? '1' : '0';
-    if ((patients as any).referedBy) patientData.referedBy = (input as any).referredBy || '';
+    if ((patients as any).referedBy) {
+      if ((input as any).referredById) {
+        patientData.referedBy = String((input as any).referredById);
+        if ((patients as any).referedName) {
+          patientData.referedName = input.referredBy || '';
+        }
+      } else {
+        patientData.referedBy = input.referredBy || '';
+        if ((patients as any).referedName) {
+          patientData.referedName = null;
+        }
+      }
+    }
     if ((patients as any).status) patientData.status = (input as any).maritalStatus || '';
 
     // Try inserting WITH clinic_id first; if the column doesn't exist in the actual
@@ -320,7 +332,15 @@ export class PatientRepositoryPg implements PatientRepository {
     }
     if (input.referenceType !== undefined) updateData.reference = input.referenceType;
     if ((input as any).maritalStatus !== undefined) updateData.status = (input as any).maritalStatus;
-    if ((input as any).referredBy !== undefined) updateData.referedBy = (input as any).referredBy;
+    if ((input as any).referredById !== undefined || (input as any).referredBy !== undefined) {
+      if ((input as any).referredById) {
+        updateData.referedBy = String((input as any).referredById);
+        updateData.referedName = (input as any).referredBy || '';
+      } else {
+        updateData.referedBy = (input as any).referredBy || '';
+        updateData.referedName = null;
+      }
+    }
     if ((input as any).assistantDoctor !== undefined) updateData.assistantDoctor = (input as any).assistantDoctor;
     if ((input as any).consultationFee !== undefined) updateData.consultationFee = (input as any).consultationFee;
 
@@ -778,6 +798,7 @@ export class PatientRepositoryPg implements PatientRepository {
       // 'reference' is the actual DB column; domain calls it 'referenceType'
       referenceType: row.reference || null,
       referredBy: row.referedBy || null,
+      referredByName: row.referedName || null,
       assistantDoctor: row.assistantDoctor || null,
       consultationFee: row.consultationFee ? Number(row.consultationFee) : null,
       courierOutstation: row.courierOutstation === '1',

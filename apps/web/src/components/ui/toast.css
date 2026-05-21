@@ -78,6 +78,19 @@
   color: #166534;
 }
 
+.toast--whatsapp {
+  border: 2px solid #22c55e !important;
+  background: linear-gradient(180deg, #f0fdf4 0%, #ffffff 60%) !important;
+  box-shadow: 0 4px 18px rgba(34, 197, 94, 0.18), 0 1px 3px rgba(34, 197, 94, 0.08) !important;
+}
+.toast--whatsapp .toast__icon {
+  background: rgba(34, 197, 94, 0.18) !important;
+  color: #22c55e !important;
+}
+.toast--whatsapp .toast__title {
+  color: #15803d !important;
+}
+
 .toast--error {
   border-color: #fecaca;
   background: linear-gradient(180deg, #fef2f2 0%, #ffffff 60%);

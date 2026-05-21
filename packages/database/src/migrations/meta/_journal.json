@@ -190,6 +190,20 @@
       "when": 1747340000000,
       "tag": "0026_add_ai_behavior_customization",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1747350000000,
+      "tag": "0027_fix_template_delete_fk",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1747360000000,
+      "tag": "0028_add_whatsapp_widgets",
+      "breakpoints": true
     }
   ]
 }

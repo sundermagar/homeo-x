@@ -1,5 +1,7 @@
 import { createLogger } from '../../../shared/logger.js';
 import type { WhatsAppRepository } from '../ports/whatsapp.repository.js';
+import type { NotificationsRepository } from '../../../domains/communication/ports/notifications.repository.js';
+import { triggerNotificationToRoles } from '../../../infrastructure/http/notification-trigger.js';
 import { ExecuteAutomationUseCase } from './execute-automation.use-case.js';
 import { getWhatsAppGateway } from '../../../infrastructure/http/gateways/whatsapp.gateway.js';
 
@@ -9,7 +11,8 @@ export class HandleWebhookUseCase {
   private readonly socketGateway = getWhatsAppGateway();
   constructor(
     private readonly waRepo: WhatsAppRepository,
-    private readonly gateway?: any // WhatsAppCloudGateway
+    private readonly gateway?: any, // WhatsAppCloudGateway
+    private readonly notificationsRepo?: NotificationsRepository
   ) {}
 
   async execute(body: any): Promise<void> {
@@ -84,6 +87,14 @@ export class HandleWebhookUseCase {
       });
     }
 
+    // Deduplicate: Meta delivers webhooks with at-least-once guarantee.
+    // Check if we already processed this message to avoid duplicate entries.
+    const existingMsg = await this.waRepo.findMessageByWhatsappId(message.id);
+    if (existingMsg) {
+      logger.info(`Skipping duplicate webhook for message ${message.id} (already in DB as id=${existingMsg.id})`);
+      return;
+    }
+
     const savedMessage = await this.waRepo.saveMessage({
       conversationId: conversation.id,
       whatsappMessageId: message.id,
@@ -98,6 +109,22 @@ export class HandleWebhookUseCase {
     // ─── Real-time Emission ──────────────────────────────────────────────────
     if (this.socketGateway) {
       this.socketGateway.emitMessage(channel.id, conversation.id, savedMessage);
+    }
+
+    // ─── In-App Notification ─────────────────────────────────────────────────
+    if (this.notificationsRepo) {
+      const notifTitle = `New WhatsApp from +${phone}`;
+      const notifMessage = content.length > 100 ? content.substring(0, 100) + '…' : content;
+      triggerNotificationToRoles({
+        roles: ['doctor', 'medical practitioner', 'admin', 'superadmin', 'clinicadmin', 'receptionist', 'account', 'employee', 'staff'],
+        clinicId: channel.clinicId,
+        type: 'WHATSAPP',
+        title: notifTitle,
+        message: notifMessage,
+        repo: this.notificationsRepo,
+      }).catch((err: any) => {
+        logger.error(`[Notification] Failed to broadcast WhatsApp notification: ${err.message}`);
+      });
     }
 
     // ─── Trigger Automations ──────────────────────────────────────────────────
@@ -124,13 +151,16 @@ export class HandleWebhookUseCase {
 
     // ─── AI Auto-Reply fallback (only if no keyword automation matched) ─────────
     if (!automationTriggered && message.type === 'text' && content && this.gateway) {
-      try {
-        const { AiAutoReplyService } = await import('../services/ai-auto-reply.service.js');
-        const aiAutoReply = new AiAutoReplyService(this.waRepo, this.gateway);
-        await aiAutoReply.execute(channel, conversation, content, phone);
-      } catch (aiErr: any) {
-        logger.error(`[AI AutoReply] Non-blocking execution error: ${aiErr.message}`);
-      }
+      import('../services/ai-auto-reply.service.js')
+        .then(({ AiAutoReplyService }) => {
+          const aiAutoReply = new AiAutoReplyService(this.waRepo!, this.gateway!);
+          aiAutoReply.execute(channel, conversation!, content, phone).catch((aiErr: any) => {
+            logger.error(`[AI AutoReply] Background execution error: ${aiErr.message}`);
+          });
+        })
+        .catch((importErr) => {
+          logger.error(`[AI AutoReply] Failed to import service: ${importErr.message}`);
+        });
     }
 
     logger.info(`Processed incoming message from ${phone} in channel ${channel.id}`);

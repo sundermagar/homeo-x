@@ -134,3 +134,6 @@ drop_schemas.sql
 fix-migration.js
 check-db.mjs
 
+packages/database/local.db
+
+

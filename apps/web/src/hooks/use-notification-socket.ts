@@ -22,32 +22,48 @@ const playNotificationSound = () => {
     const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
     if (!AudioContext) return;
     const ctx = new AudioContext();
-    const osc = ctx.createOscillator();
-    const gainNode = ctx.createGain();
 
-    // A pleasant "ding" sound
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(880, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.1);
+    // Resume AudioContext if suspended (browser audio policy workaround)
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
 
-    gainNode.gain.setValueAtTime(0.15, ctx.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+    const now = ctx.currentTime;
 
-    osc.connect(gainNode);
-    gainNode.connect(ctx.destination);
+    // Note 1: Warm triangle chime (C5)
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = 'triangle';
+    osc1.frequency.setValueAtTime(523.25, now); // C5
+    gain1.gain.setValueAtTime(0.12, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
 
-    osc.start();
-    osc.stop(ctx.currentTime + 0.3);
+    // Note 2: Clean sine chime, slightly delayed (G5)
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(783.99, now + 0.08); // G5
+    gain2.gain.setValueAtTime(0.0, now);
+    gain2.gain.setValueAtTime(0.15, now + 0.08);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
 
-    // Close the audio context after playback to prevent memory leaks 
-    // and hitting the browser's hardware limit (~6 contexts max)
+    osc1.start(now);
+    osc1.stop(now + 0.3);
+
+    osc2.start(now + 0.08);
+    osc2.stop(now + 0.5);
+
+    // Clean up to prevent hardware context limits
     setTimeout(() => {
       if (ctx.state !== 'closed') {
         ctx.close().catch(() => {});
       }
-    }, 500);
+    }, 600);
   } catch (e) {
-    // Browsers block audio until user interacts, fail silently if so
     console.warn('[Audio] Failed to play notification sound', e);
   }
 };
@@ -59,17 +75,19 @@ export function useNotificationSocket() {
     const socket = getSocket();
 
     const handleNew = (notification: SocketNotification) => {
-      // Play sound immediately
+      // Play premium sound immediately
       playNotificationSound();
 
       // Show visual toast
       toast({
         title: notification.title,
         description: notification.message,
-        variant: (notification.type === 'error' || notification.type === 'warning') ? 'error' : 'default',
+        variant: notification.type === 'WHATSAPP'
+          ? 'whatsapp'
+          : (notification.type === 'error' || notification.type === 'warning') ? 'error' : 'default',
       });
 
-      // Prepend new notification to the list, update unread count
+      // Optimistically prepend notification & increment unread badge count
       queryClient.setQueryData(['notifications', { limit: 20, offset: 0 }], (old: any) => {
         if (!old) return old;
         return {
@@ -82,6 +100,9 @@ export function useNotificationSocket() {
         if (!old) return { unreadCount: 1 };
         return { unreadCount: (old.unreadCount ?? 0) + 1 };
       });
+
+      // Refetch notifications in background for perfect server-client sync
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
     };
 
     socket.on('notification:new', handleNew);

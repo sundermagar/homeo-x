@@ -103,24 +103,10 @@ export class WhatsAppCloudGateway implements WhatsAppGateway {
       const phoneNumberId = await this.getPhoneNumberId(channelId || undefined);
       const cleanTo = to.replace(/\D/g, '');
 
-      // Intercept MMC video templates and inject a placeholder video header
-      // because the frontend currently only sends body text parameters.
+      // NOTE: Template media headers (video/image/document) are now injected
+      // automatically by the route handler's pre-fetch logic from the database.
+      // Do NOT hardcode template-specific media here.
       let finalComponents = components;
-      if (templateName === 'mmchomeotech' || templateName === 'mmc') {
-        finalComponents = [
-          {
-            type: 'header',
-            parameters: [
-              {
-                type: 'video',
-                video: {
-                  link: 'https://www.w3schools.com/html/mov_bbb.mp4' // Placeholder promo video
-                }
-              }
-            ]
-          }
-        ];
-      }
 
       const body = {
         messaging_product: 'whatsapp',

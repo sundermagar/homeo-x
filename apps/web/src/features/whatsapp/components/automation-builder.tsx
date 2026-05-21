@@ -131,81 +131,101 @@ export const AutomationBuilder = () => {
             </p>
           </div>
         ) : filteredAutomations.map((flow: any) => (
-          <div key={flow.id} className="appt-card group hover:border-pp-blue/30 transition-all p-0 overflow-hidden bg-white shadow-sm border border-pp-border rounded-2xl">
-            <div className="flex flex-col md:flex-row md:items-stretch">
-              <div className="p-6 flex-1 border-b md:border-b-0 md:border-r border-pp-border">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-pp-bg-subtle rounded-xl text-primary font-bold text-xs">
-                      #{flow.id}
-                    </div>
-                    <h3 className="text-lg font-bold text-main">{flow.name}</h3>
+          <div key={flow.id} className="group p-5 md:p-6 bg-white dark:bg-[#16161a] rounded-[24px] border border-pp-border shadow-sm hover:shadow-md transition-all flex flex-col gap-5 md:gap-6">
+            
+            {/* Top Row: Title, Description, and Actions */}
+            <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-5">
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-3">
+                  <div className="flex justify-center items-center w-8 h-8 bg-[#F4F3F1] dark:bg-[#222226] text-main rounded-[10px] font-bold text-xs shadow-inner">
+                    #{flow.id}
                   </div>
-                  <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                    flow.status === 'active' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-pp-bg-subtle text-muted border border-pp-border'
+                  <h3 className="text-[17px] font-bold text-main">{flow.name}</h3>
+                  <div className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                    flow.status === 'active' ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-500/20' : 'bg-slate-100 dark:bg-slate-800 text-secondary border border-slate-200 dark:border-slate-700'
                   }`}>
                     {flow.status}
                   </div>
                 </div>
-                <p className="text-sm text-secondary mb-6 leading-relaxed">{flow.description || 'Keyword based quick messaging automation.'}</p>
-                
-                <div className="flex flex-wrap gap-6">
-                  <div className="flex items-center gap-2">
-                    <Target size={14} className="text-muted" />
-                    <div>
-                      <p className="text-[10px] text-muted font-bold uppercase tracking-wider">Trigger</p>
-                      <p className="text-[12px] font-bold text-main">{flow.trigger?.replace(/_/g, ' ')}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <MessageSquare size={14} className="text-muted" />
-                    <div>
-                      <p className="text-[10px] text-muted font-bold uppercase tracking-wider">Executions</p>
-                      <p className="text-[12px] font-bold text-main">{flow.executionCount || 0} Patients</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Clock size={14} className="text-muted" />
-                    <div>
-                      <p className="text-[10px] text-muted font-bold uppercase tracking-wider">Last Run</p>
-                      <p className="text-[12px] font-bold text-main">{flow.lastExecutedAt ? format(new Date(flow.lastExecutedAt), 'MMM dd, HH:mm') : 'Never'}</p>
-                    </div>
-                  </div>
-                </div>
+                <p className="text-[13px] text-secondary leading-relaxed pl-11 max-w-2xl">
+                  {flow.description || 'Keyword based quick messaging automation.'}
+                </p>
               </div>
               
-              <div className="bg-pp-bg-subtle/30 p-6 w-full md:w-64 flex flex-col justify-between">
-                <div className="space-y-3">
-                  <button 
-                    onClick={() => setEditingAutomation(flow)}
-                    className="w-full btn-secondary h-10 justify-between group/btn"
-                  >
-                    <span>Edit Logic</span>
-                    <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
-                  </button>
-                  <button className="w-full btn-secondary h-10 justify-between">
-                    <span>View Analytics</span>
-                    <ChevronRight size={14} />
-                  </button>
+              {/* Primary Actions */}
+              <div className="flex items-center gap-2 pl-11 lg:pl-0">
+                <button 
+                  onClick={() => handleToggleStatus(flow)}
+                  disabled={updateMutation.isPending || deleteMutation.isPending}
+                  className={`h-[38px] px-3.5 rounded-xl font-semibold text-[13px] transition-all flex items-center gap-2 border ${
+                    flow.status === 'active' 
+                      ? 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200/50 hover:bg-amber-100 dark:hover:bg-amber-500/20' 
+                      : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200/50 hover:bg-emerald-100 dark:hover:bg-emerald-500/20'
+                  }`}
+                >
+                  {flow.status === 'active' ? <Pause size={14} /> : <Play size={14} />}
+                  {flow.status === 'active' ? 'Pause' : 'Start'}
+                </button>
+                <button 
+                  onClick={() => setEditingAutomation(flow)}
+                  className="h-[38px] px-4 bg-[#09090b] dark:bg-white text-white dark:text-[#09090b] rounded-xl font-semibold text-[13px] shadow-sm hover:bg-[#27272a] dark:hover:bg-slate-100 transition-all flex items-center gap-2"
+                >
+                  Edit Logic <ArrowRight size={14} />
+                </button>
+              </div>
+            </div>
+
+            {/* Bottom Row: Stats & Secondary Actions */}
+            <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-5 pt-2 pl-11 lg:pl-0">
+              
+              {/* Stats Cards */}
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-3 px-3.5 py-2.5 bg-[#FAFAF9] dark:bg-[#1c1c21] rounded-[14px] border border-pp-border/60">
+                  <div className="p-1.5 bg-white dark:bg-[#222226] rounded-[8px] shadow-sm text-secondary">
+                    <Target size={14} />
+                  </div>
+                  <div>
+                    <p className="text-[9px] text-muted font-bold uppercase tracking-wider mb-0.5 leading-none">Trigger</p>
+                    <p className="text-[12px] font-bold text-main leading-none">{flow.trigger?.replace(/_/g, ' ') || 'Keyword'}</p>
+                  </div>
                 </div>
-                
-                <div className="flex gap-2 mt-6">
-                  <button 
-                    onClick={() => handleToggleStatus(flow)}
-                    disabled={updateMutation.isPending || deleteMutation.isPending}
-                    className="flex-1 p-2 bg-white border border-pp-border rounded-xl text-success hover:bg-success/5 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
-                  >
-                    {flow.status === 'active' ? <Pause size={16} /> : <Play size={16} />}
-                  </button>
-                  <button 
-                    onClick={() => handleDelete(flow)}
-                    disabled={updateMutation.isPending || deleteMutation.isPending}
-                    className="p-2 bg-white border border-pp-border rounded-xl text-muted hover:text-error hover:bg-error/5 disabled:opacity-50 transition-all"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+
+                <div className="flex items-center gap-3 px-3.5 py-2.5 bg-[#FAFAF9] dark:bg-[#1c1c21] rounded-[14px] border border-pp-border/60">
+                  <div className="p-1.5 bg-white dark:bg-[#222226] rounded-[8px] shadow-sm text-secondary">
+                    <MessageSquare size={14} />
+                  </div>
+                  <div>
+                    <p className="text-[9px] text-muted font-bold uppercase tracking-wider mb-0.5 leading-none">Executions</p>
+                    <p className="text-[12px] font-bold text-main leading-none">{flow.executionCount || 0} Patients</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 px-3.5 py-2.5 bg-[#FAFAF9] dark:bg-[#1c1c21] rounded-[14px] border border-pp-border/60">
+                  <div className="p-1.5 bg-white dark:bg-[#222226] rounded-[8px] shadow-sm text-secondary">
+                    <Clock size={14} />
+                  </div>
+                  <div>
+                    <p className="text-[9px] text-muted font-bold uppercase tracking-wider mb-0.5 leading-none">Last Run</p>
+                    <p className="text-[12px] font-bold text-main leading-none">{flow.lastExecutedAt ? format(new Date(flow.lastExecutedAt), 'MMM dd, HH:mm') : 'Never'}</p>
+                  </div>
                 </div>
               </div>
+
+              {/* Secondary Actions */}
+              <div className="flex items-center gap-2">
+                <button className="h-[38px] px-3.5 bg-white dark:bg-[#1c1c21] border border-pp-border rounded-xl text-[13px] font-semibold text-secondary hover:text-main hover:bg-slate-50 dark:hover:bg-[#222226] transition-all flex items-center gap-2">
+                  Analytics <ChevronRight size={14} />
+                </button>
+                <button 
+                  onClick={() => handleDelete(flow)}
+                  disabled={updateMutation.isPending || deleteMutation.isPending}
+                  className="w-[38px] h-[38px] flex justify-center items-center bg-white dark:bg-[#1c1c21] border border-pp-border rounded-xl text-muted hover:text-error hover:bg-error/5 hover:border-error/30 transition-all"
+                  title="Delete Automation"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+
             </div>
           </div>
         ))}

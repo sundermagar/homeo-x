@@ -76,7 +76,7 @@ const TABLES: Array<{ name: string; ddl: string }> = [
   "campaign_type" text NOT NULL,
   "type" text NOT NULL,
   "api_type" text NOT NULL,
-  "template_id" integer REFERENCES "{{SCHEMA}}"."wa_templates"("id"),
+  "template_id" integer REFERENCES "{{SCHEMA}}"."wa_templates"("id") ON DELETE SET NULL,
   "template_name" text,
   "template_language" text,
   "variable_mapping" jsonb DEFAULT '{}',
@@ -318,6 +318,19 @@ const TABLES: Array<{ name: string; ddl: string }> = [
   "category" text DEFAULT 'general',
   "embedding" jsonb,
   "is_active" boolean DEFAULT true,
+  "created_at" timestamp DEFAULT NOW() NOT NULL,
+  "updated_at" timestamp DEFAULT NOW() NOT NULL
+)`,
+  },
+  {
+    name: 'wa_widgets',
+    ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."wa_widgets" (
+  "id" serial PRIMARY KEY,
+  "clinic_id" integer,
+  "channel_id" integer REFERENCES "{{SCHEMA}}"."wa_channels"("id") ON DELETE CASCADE,
+  "widget_enabled" boolean DEFAULT true,
+  "widget_config" jsonb DEFAULT '{}'::jsonb,
+  "ai_training_config" jsonb DEFAULT '{}'::jsonb,
   "created_at" timestamp DEFAULT NOW() NOT NULL,
   "updated_at" timestamp DEFAULT NOW() NOT NULL
 )`,

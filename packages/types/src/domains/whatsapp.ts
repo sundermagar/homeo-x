@@ -55,6 +55,7 @@ export interface WhatsAppAnalytics {
   totalDeliveries: number;
   activeConversations: number;
   campaignReach: number;
+  trendData?: any[];
 }
 
 export interface WhatsAppCampaign {

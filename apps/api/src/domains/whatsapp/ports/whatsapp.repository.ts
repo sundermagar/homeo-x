@@ -50,6 +50,7 @@ export interface WhatsAppRepository {
 
   // Contacts & Groups
   listContacts(clinicId: number, params?: { page?: number; limit?: number; search?: string }): Promise<{ data: any[]; total: number }>;
+  findContactByPhone(clinicId: number, phone: string): Promise<any>;
   saveContact(data: any): Promise<any>;
   deleteContact(id: number): Promise<boolean>;
   listGroups(clinicId: number): Promise<any[]>;

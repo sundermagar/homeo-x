@@ -23,8 +23,17 @@ export class BroadcastCampaignUseCase {
       // Mark as active
       await this.waRepo.saveCampaign({ id: campaignId, status: 'active' });
 
+      const templateName = campaign.templateName;
+      const templateLanguage = campaign.templateLanguage || 'en_US';
+
+      // Fetch the template from DB for body interpolation (for conversation logging)
       const templates = await this.waRepo.listTemplates(campaign.channelId);
-      const template = templates.find(t => t.name === campaign.templateName);
+      const template = templates.find((t: any) => t.name === templateName);
+
+      // Validate: template must exist on Meta (not local-only)
+      if (template && template.whatsappTemplateId && String(template.whatsappTemplateId).startsWith('local_')) {
+        return fail(`Template '${templateName}' is only saved locally. It must be registered and approved in your Meta WhatsApp Business Account before broadcasting. Please create it on Meta and click 'Sync Templates'.`);
+      }
 
       const recipients = await this.waRepo.listRecipients(campaignId);
       let sentCount = 0;
@@ -36,26 +45,25 @@ export class BroadcastCampaignUseCase {
           continue;
         }
 
-        // Construct standard text from template body
-        let textToSend = 'Hello from MMC HomeoTech!'; // Fallback
-        
-        if (template && template.body) {
-          textToSend = template.body;
-          if (recipient.templateParams && Array.isArray(recipient.templateParams)) {
-            recipient.templateParams.forEach((param: string, idx: number) => {
-              textToSend = textToSend.replace(new RegExp(`\\{\\{${idx + 1}\\}\\}`, 'g'), param || '');
-            });
-          }
-          if (template.header) textToSend = `*${template.header}*\n\n${textToSend}`;
-          if (template.footer) textToSend = `${textToSend}\n\n_${template.footer}_`;
-        } else if (campaign.name) {
-          textToSend = `Automated Broadcast: ${campaign.name}`;
+        // Build template components with recipient-specific parameters
+        const components: any[] = [];
+        if (recipient.templateParams && Array.isArray(recipient.templateParams) && recipient.templateParams.length > 0) {
+          components.push({
+            type: 'body',
+            parameters: recipient.templateParams.map((param: string) => ({
+              type: 'text',
+              text: param || ''
+            }))
+          });
         }
 
-        const result = await this.waGateway.sendText(
+        // Send via Meta Template API (compliant with WhatsApp Business Policy)
+        const result = await this.waGateway.sendTemplate(
           campaign.channelId,
           recipient.phone,
-          textToSend
+          templateName,
+          templateLanguage,
+          components
         );
 
         if (result.success) {
@@ -75,10 +83,10 @@ export class BroadcastCampaignUseCase {
           failedCount++;
         }
 
-        // Update campaign stats periodically or after each message
+        // Update campaign stats with absolute counts (not stale-additive)
         await this.waRepo.updateCampaignStats(campaignId, {
-          sentCount: (campaign.sentCount || 0) + sentCount,
-          failedCount: (campaign.failedCount || 0) + failedCount,
+          sentCount,
+          failedCount,
         });
       }
 
@@ -86,6 +94,8 @@ export class BroadcastCampaignUseCase {
         id: campaignId,
         status: 'completed',
         completedAt: new Date(),
+        sentCount,
+        failedCount,
       });
 
       logger.info(`Campaign ${campaignId} broadcast finished. Sent: ${sentCount}, Failed: ${failedCount}`);

@@ -71,7 +71,7 @@ export const waCampaigns = pgTable('wa_campaigns', {
   campaignType: text('campaign_type').notNull(), // contacts, csv, api
   type: text('type').notNull(), // marketing, transactional
   apiType: text('api_type').notNull(), // cloud_api, mm_lite
-  templateId: integer('template_id').references(() => waTemplates.id),
+  templateId: integer('template_id').references(() => waTemplates.id, { onDelete: 'set null' }),
   templateName: text('template_name'),
   templateLanguage: text('template_language'),
   variableMapping: jsonb('variable_mapping').default({}),
@@ -325,3 +325,15 @@ export const waTrainingQaPairs = pgTable('wa_training_qa_pairs', {
 }, (table) => ({
   trainingQaChannelIdx: index('wa_training_qa_channel_idx').on(table.channelId),
 }));
+
+// ─── Widgets ───────────────────────────────────────────────────────────────
+export const waWidgets = pgTable('wa_widgets', {
+  id: serial('id').primaryKey(),
+  clinicId: integer('clinic_id'),
+  channelId: integer('channel_id').references(() => waChannels.id, { onDelete: 'cascade' }),
+  widgetEnabled: boolean('widget_enabled').default(true),
+  widgetConfig: jsonb('widget_config').default({}),
+  aiTrainingConfig: jsonb('ai_training_config').default({}),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});

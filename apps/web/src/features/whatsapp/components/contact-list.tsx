@@ -149,7 +149,7 @@ export const ContactList = () => {
         return;
       }
       
-      const headers = lines[0].split(',').map(h => h.trim().replace(/^["']|["']$/g, '').toLowerCase());
+      const headers = (lines[0] || '').split(',').map(h => h.trim().replace(/^["']|["']$/g, '').toLowerCase());
       
       const nameIdx = headers.indexOf('name');
       const phoneIdx = headers.indexOf('phone');
@@ -169,6 +169,7 @@ export const ContactList = () => {
       
       for (let i = 1; i < lines.length; i++) {
         const line = lines[i];
+        if (!line) continue;
         const matches = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || line.split(',');
         const columns = matches.map(c => c.trim().replace(/^["']|["']$/g, ''));
         
