@@ -18,6 +18,9 @@ const ClinicAdminDashboard = lazy(() =>
 const ReceptionistDashboard = lazy(() =>
   import('./receptionist-dashboard').then((m) => ({ default: m.ReceptionistDashboard }))
 );
+const PatientDashboard = lazy(() =>
+  import('./patient-dashboard').then((m) => ({ default: m.PatientDashboard }))
+);
 
 /** Minimal loading skeleton shown while dashboard chunk downloads. */
 function DashboardSkeleton() {
@@ -54,6 +57,10 @@ export default function DashboardPage() {
       break;
     case Role.Receptionist:
       DashboardComponent = ReceptionistDashboard;
+      break;
+    case 'Patient' as Role:
+    case Role.Patient:
+      DashboardComponent = PatientDashboard;
       break;
     default:
       // Fallback to Admin Dashboard for other roles (Account, etc.)

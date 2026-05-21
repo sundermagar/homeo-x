@@ -1,9 +1,11 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { LoginUseCase } from '../../../domains/auth/use-cases/login.use-case.js';
+import { PatientLoginUseCase } from '../../../domains/auth/use-cases/patient-login.use-case.js';
 import { LogoutUseCase } from '../../../domains/auth/use-cases/logout.use-case.js';
 import { ChangePasswordUseCase } from '../../../domains/auth/use-cases/change-password.use-case.js';
 import { UserRepositoryPG } from '../../repositories/user.repository.pg.js';
+import { PatientRepositoryPg } from '../../repositories/patient.repository.pg.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { asyncHandler } from '../middleware/async-handler.js';
 import { UnauthorizedError } from '../../../shared/errors.js';
@@ -46,6 +48,18 @@ authRouter.post('/login', asyncHandler(async (req, res) => {
   if (publicResult.success) {
     console.log(`[Auth] ✅ Public schema fallback login succeeded for ${email}`);
     sendSuccess(res, publicResult.data);
+    return;
+  }
+
+  // Fallback 3: search in patients table (for patient portal login)
+  console.log(`[Auth] Public schema fallback login failed for ${email}, trying patient login fallback...`);
+  const patientRepo = new PatientRepositoryPg(req.tenantDb);
+  const patientLoginUseCase = new PatientLoginUseCase(patientRepo);
+  const patientResult = await patientLoginUseCase.execute(email, password);
+
+  if (patientResult.success) {
+    console.log(`[Auth] ✅ Patient fallback login succeeded for ${email}`);
+    sendSuccess(res, patientResult.data);
     return;
   }
 

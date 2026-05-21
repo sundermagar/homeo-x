@@ -38,6 +38,7 @@ export interface Patient {
   assistantDoctor: string | null;
   consultationFee: number | null;
   courierOutstation: boolean;
+  password?: string | null;
   // Meta
   createdAt: Date;
   updatedAt: Date;
@@ -57,6 +58,7 @@ export interface PatientSummary {
   lastVisit: Date | null;
   totalVisits: number;
   doctorName?: string | null;
+  password?: string | null;
   createdAt: Date;
 }
 

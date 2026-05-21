@@ -1,4 +1,5 @@
 import { and, eq, isNull, like, or, sql } from 'drizzle-orm';
+import bcrypt from 'bcryptjs';
 import {
   patients,
   familygroupsLegacy,
@@ -43,6 +44,34 @@ export class PatientRepositoryPg implements PatientRepository {
       .where(
         and(
           eq(patients.id, id),
+          sql`(deleted_at IS NULL OR deleted_at::text = '')`
+        )
+      )
+      .limit(1);
+    return row ? this.toDomain(row) : null;
+  }
+
+  async getPatientPassword(email: string): Promise<string | null> {
+    const [row] = await this.db
+      .select({ password: patients.password })
+      .from(patients)
+      .where(
+        and(
+          eq(patients.email, email),
+          sql`(deleted_at IS NULL OR deleted_at::text = '')`
+        )
+      )
+      .limit(1);
+    return row?.password || null;
+  }
+
+  async findByEmail(email: string): Promise<Patient | null> {
+    const [row] = await this.db
+      .select()
+      .from(patients)
+      .where(
+        and(
+          eq(patients.email, email),
           sql`(deleted_at IS NULL OR deleted_at::text = '')`
         )
       )
@@ -235,6 +264,7 @@ export class PatientRepositoryPg implements PatientRepository {
       dob: input.dateOfBirth || null,
       createdAt: new Date(),
       updatedAt: new Date(),
+      password: input.password ? bcrypt.hashSync(input.password, 10) : null,
     };
 
     // Only add columns if they exist in the schema to avoid "column does not exist" errors
@@ -343,6 +373,9 @@ export class PatientRepositoryPg implements PatientRepository {
     }
     if ((input as any).assistantDoctor !== undefined) updateData.assistantDoctor = (input as any).assistantDoctor;
     if ((input as any).consultationFee !== undefined) updateData.consultationFee = (input as any).consultationFee;
+    if (input.password) {
+      updateData.password = bcrypt.hashSync(input.password, 10);
+    }
 
     const [row] = await this.db
       .update(patients)
@@ -795,8 +828,8 @@ export class PatientRepositoryPg implements PatientRepository {
       occupation: row.occupation || null,
       maritalStatus: row.status || null,
       bloodGroup: row.bloodGroup || null,
-      // 'reference' is the actual DB column; domain calls it 'referenceType'
       referenceType: row.reference || null,
+      referenceTypeId: row.referenceTypeId ? Number(row.referenceTypeId) : null,
       referredBy: row.referedBy || null,
       referredByName: row.referedName || null,
       assistantDoctor: row.assistantDoctor || null,
@@ -805,6 +838,7 @@ export class PatientRepositoryPg implements PatientRepository {
       createdAt: row.createdAt || new Date(),
       updatedAt: row.updatedAt || new Date(),
       deletedAt: row.deletedAt || null,
+      password: row.password || null,
     };
   }
 
@@ -822,6 +856,7 @@ export class PatientRepositoryPg implements PatientRepository {
       lastVisit: row.lastVisit || null,
       totalVisits: 0,
       doctorName: row.doctorName || row.assistantDoctor || null,
+      password: row.password || null,
       createdAt: row.createdAt || new Date(),
     };
   }

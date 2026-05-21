@@ -31,6 +31,7 @@ const INIT_FORM = {
   bookingTime: '',
   visitType: VisitType.New,
   notes: '',
+  password: '',
 };
 
 interface PatientFormDrawerProps {
@@ -122,6 +123,7 @@ export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient,
           visitType: VisitType.New,
           referredById: undefined,
           notes: '',
+          password: '',
         });
       } else if (unregisteredPatient) {
         setRefSearch('');
@@ -342,6 +344,13 @@ export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient,
                <div className="form-group">
                   <label className="drawer-label">Email Address</label>
                   <input className="drawer-input" name="email" value={form.email} onChange={handleChange} placeholder="Email" type="email" />
+               </div>
+            </div>
+
+            <div className="drawer-grid-2" style={{ marginTop: '8px' }}>
+               <div className="form-group">
+                  <label className="drawer-label"> Password</label>
+                  <input className="drawer-input" name="password" value={form.password} onChange={handleChange} placeholder="password" type="text" />
                </div>
             </div>
 

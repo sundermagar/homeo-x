@@ -37,6 +37,7 @@ export const createPatientSchema = z.object({
   consultationFee: z.coerce.number().optional(),
   courierOutstation: z.boolean().optional().default(false),
   unregisteredId: z.coerce.number().optional(),
+  password: z.string().min(6, 'Password must be at least 6 characters').optional(),
 });
 
 export const updatePatientSchema = createPatientSchema.partial();

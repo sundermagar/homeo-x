@@ -49,6 +49,7 @@ export const patients = pgTable('case_datas', {
   courierOutstation: text('courier_outstation'),
 
   notes: text('notes'),
+  password: varchar('password_hash', { length: 255 }),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
   deletedAt: timestamp('deleted_at'),
