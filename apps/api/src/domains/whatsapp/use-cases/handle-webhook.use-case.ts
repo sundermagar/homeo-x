@@ -54,6 +54,14 @@ export class HandleWebhookUseCase {
   }
 
   private async handleIncomingMessage(phoneNumberId: string, message: any) {
+    // Deduplicate: Meta delivers webhooks with at-least-once guarantee.
+    // Check if we already processed this message to avoid duplicate entries and incorrect conversation count increments.
+    const existingMsg = await this.waRepo.findMessageByWhatsappId(message.id);
+    if (existingMsg) {
+      logger.info(`Skipping duplicate webhook for message ${message.id} (already in DB as id=${existingMsg.id})`);
+      return;
+    }
+
     const channel = await this.waRepo.findChannelByPhoneNumberId(phoneNumberId);
     if (!channel) {
       logger.warn(`No channel found for phone number ID: ${phoneNumberId}`);
@@ -85,14 +93,6 @@ export class HandleWebhookUseCase {
         lastMessageText: preview,
         unreadCount: (conversation.unreadCount || 0) + 1,
       });
-    }
-
-    // Deduplicate: Meta delivers webhooks with at-least-once guarantee.
-    // Check if we already processed this message to avoid duplicate entries.
-    const existingMsg = await this.waRepo.findMessageByWhatsappId(message.id);
-    if (existingMsg) {
-      logger.info(`Skipping duplicate webhook for message ${message.id} (already in DB as id=${existingMsg.id})`);
-      return;
     }
 
     const savedMessage = await this.waRepo.saveMessage({

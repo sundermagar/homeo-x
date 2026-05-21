@@ -409,7 +409,7 @@ export default function AutomationFlowBuilder({
   }), [setEdges]);
 
   return (
-    <div className="flex h-screen w-full bg-slate-50/50 overflow-hidden font-sans relative">
+    <div className="flex h-screen w-full bg-slate-50/50 dark:bg-slate-500/5 overflow-hidden font-sans relative">
       {/* Mobile Responsive Overlay Backdrops */}
       {(activeTab === 'nodes' || activeTab === 'config') && (
         <div 
@@ -456,7 +456,7 @@ export default function AutomationFlowBuilder({
             maxZoom={2}
           >
 
-            <Controls className="!bg-white/90 !backdrop-blur-md !border !border-gray-100 !rounded-xl !shadow-md !left-4 !bottom-16 md:!bottom-4 overflow-hidden !m-0 !flex !flex-row" />
+            <Controls className="!bg-[var(--bg-card)]/90 !backdrop-blur-md !border !border-gray-100 !rounded-xl !shadow-md !left-4 !bottom-16 md:!bottom-4 overflow-hidden !m-0 !flex !flex-row" />
             <Background color="#cbd5e1" gap={16} size={1} variant={BackgroundVariant.Dots} />
           </ReactFlow>
         </div>
@@ -466,7 +466,7 @@ export default function AutomationFlowBuilder({
       <div className={`fixed md:relative inset-y-0 right-0 z-30 h-full transition-transform duration-300 md:translate-x-0 shrink-0 md:flex ${
         activeTab === 'config' ? 'translate-x-0' : 'translate-x-full md:translate-x-0'
       }`}>
-        <div className="w-[320px] shrink-0 h-full overflow-hidden bg-white flex flex-col border-l border-gray-100">
+        <div className="w-[320px] shrink-0 h-full overflow-hidden bg-[var(--bg-card)] flex flex-col border-l border-gray-100">
           <ConfigPanel
             selected={selectedNode}
             onChange={patchSelected}
@@ -479,7 +479,7 @@ export default function AutomationFlowBuilder({
       </div>
 
       {/* Mobile Responsive Floating Tab Controls */}
-      <div className="md:hidden fixed bottom-5 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-md border border-slate-200/80 px-2 py-1.5 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.12)] flex items-center gap-1 z-40">
+      <div className="md:hidden fixed bottom-5 left-1/2 -translate-x-1/2 bg-[var(--bg-card)]/95 backdrop-blur-md border border-slate-200/80 px-2 py-1.5 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.12)] flex items-center gap-1 z-40">
         <button
           onClick={() => setActiveTab('nodes')}
           className={`px-3.5 py-2 rounded-full text-[11px] font-bold transition-all flex items-center gap-1.5 ${

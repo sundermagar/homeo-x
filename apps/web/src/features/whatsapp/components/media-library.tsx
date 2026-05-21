@@ -34,7 +34,7 @@ export const MediaLibrary = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-pp-border shadow-sm">
+      <div className="flex justify-between items-center bg-[var(--bg-card)] p-4 rounded-2xl border border-pp-border shadow-sm">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted/60" size={16} />
           <input 
@@ -70,7 +70,7 @@ export const MediaLibrary = () => {
                 </div>
               )}
               <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all">
-                <button className="p-1.5 bg-white shadow-lg rounded-lg text-muted hover:text-main">
+                <button className="p-1.5 bg-[var(--bg-card)] shadow-lg rounded-lg text-muted hover:text-main">
                   <MoreVertical size={14} />
                 </button>
               </div>

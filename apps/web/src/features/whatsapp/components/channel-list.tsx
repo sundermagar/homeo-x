@@ -33,7 +33,7 @@ export const ChannelList = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {channels?.length === 0 ? (
-          <div className="col-span-full p-20 bg-white border border-pp-border border-dashed rounded-3xl text-center">
+          <div className="col-span-full p-20 bg-[var(--bg-card)] border border-pp-border border-dashed rounded-3xl text-center">
             <Globe className="w-12 h-12 mx-auto mb-4 opacity-10" />
             <h4 className="text-lg font-bold text-main">No Nodes Connected</h4>
             <p className="text-muted text-sm mt-1 mb-8">Establish a bridge with Meta Cloud API to start messaging.</p>
@@ -95,7 +95,7 @@ export const ChannelList = () => {
                   <RefreshCw size={14} className={`mr-1.5 ${(syncTemplatesMutation.isPending && syncTemplatesMutation.variables === channel.id) ? 'animate-spin' : ''}`} />
                   { (syncTemplatesMutation.isPending && syncTemplatesMutation.variables === channel.id) ? 'Syncing...' : 'Sync Templates' }
                 </button>
-                <button className="btn-ghost h-9 w-9 bg-white border border-pp-border flex items-center justify-center rounded-lg hover:bg-pp-bg-subtle transition-colors">
+                <button className="btn-ghost h-9 w-9 bg-[var(--bg-card)] border border-pp-border flex items-center justify-center rounded-lg hover:bg-pp-bg-subtle transition-colors">
                   <ShieldCheck size={16} className="text-pp-blue" />
                 </button>
               </div>

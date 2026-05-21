@@ -10,6 +10,7 @@ import { apiClient } from '@/infrastructure/api-client';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { LoginRequestSchema } from '@mmc/validation';
 import hospitalHero from '@/assets/hospital-hero.jpg';
+import mmcLogo from '@/assets/mmc-logo.png';
 import { prefetchDashboard } from '@/features/dashboard/hooks/use-dashboard';
 import '../styles/login-page.css';
 
@@ -113,11 +114,8 @@ export default function LoginPage() {
           <div className="login-form-side">
             <div className="login-form-card">
               {/* ─── Integrated Logo ─── */}
-              <div className="login-form-logo">
-                <div className="login-logo-icon">
-                  <Building2 size={32} color="white" strokeWidth={2.5} />
-                </div>
-                <span className="login-logo-text">Kreed<span>.health</span></span>
+              <div className="login-form-logo" style={{ alignItems: 'center', justifyContent: 'center', marginTop: '-32px', marginBottom: '36px' }}>
+                <img src={mmcLogo} alt="Manage My Clinic" style={{ height: '72px', width: 'auto', objectFit: 'contain' }} />
               </div>
 
               <div className="login-form-header-row">
@@ -268,7 +266,7 @@ export default function LoginPage() {
 
             {/* ─── Minimal Footer ────────────────────────────────────────── */}
             <div className="login-mini-footer">
-              <span>© 2026 Kreed.health Clinical Systems</span>
+              <span>© 2026 MMC Clinical Systems</span>
               <div className="footer-dot" />
               <Link to="/privacy-policy" className="footer-highlight">Privacy Policy</Link>
               <div className="footer-dot" />

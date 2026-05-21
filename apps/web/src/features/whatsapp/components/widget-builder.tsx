@@ -206,12 +206,12 @@ export const WidgetBuilder = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-1 p-1.5 bg-[#F4F3F1] dark:bg-[#16161a] rounded-[14px] border border-pp-border/30 shadow-inner">
+        <div className="flex items-center gap-1 p-1.5 bg-[var(--bg-main)] rounded-[14px] border border-pp-border/30 shadow-inner">
           <button
             onClick={() => setActiveSubTab("builder")}
             className={`px-5 py-2 text-[13px] font-semibold rounded-xl flex items-center gap-2 transition-all select-none ${
               activeSubTab === "builder"
-                ? "bg-white dark:bg-[#222226] text-main shadow-sm border border-black/5 dark:border-white/5"
+                ? "bg-[var(--bg-card)] text-main shadow-sm border border-pp-border"
                 : "text-secondary hover:text-main"
             }`}
           >
@@ -222,7 +222,7 @@ export const WidgetBuilder = () => {
             onClick={() => setActiveSubTab("code")}
             className={`px-5 py-2 text-[13px] font-semibold rounded-xl flex items-center gap-2 transition-all select-none ${
               activeSubTab === "code"
-                ? "bg-white dark:bg-[#222226] text-main shadow-sm border border-black/5 dark:border-white/5"
+                ? "bg-[var(--bg-card)] text-main shadow-sm border border-pp-border"
                 : "text-secondary hover:text-main"
             }`}
           >

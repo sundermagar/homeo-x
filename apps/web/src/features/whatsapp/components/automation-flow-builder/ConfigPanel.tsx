@@ -147,8 +147,8 @@ export function ConfigPanel({
             Workspace Quick Start
           </div>
           
-          <div className="flex gap-3 p-3 rounded-xl border border-gray-100 bg-white shadow-sm hover:shadow transition-all duration-300">
-            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0 border border-blue-100/30">
+          <div className="flex gap-3 p-3 rounded-xl border border-gray-100 bg-[var(--bg-card)] shadow-sm hover:shadow transition-all duration-300">
+            <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center text-blue-600 shrink-0 border border-blue-100/30">
               <MessageCircle className="w-4 h-4" />
             </div>
             <div>
@@ -157,8 +157,8 @@ export function ConfigPanel({
             </div>
           </div>
 
-          <div className="flex gap-3 p-3 rounded-xl border border-gray-100 bg-white shadow-sm hover:shadow transition-all duration-300">
-            <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center text-purple-600 shrink-0 border border-purple-100/30">
+          <div className="flex gap-3 p-3 rounded-xl border border-gray-100 bg-[var(--bg-card)] shadow-sm hover:shadow transition-all duration-300">
+            <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center text-purple-600 shrink-0 border border-purple-100/30">
               <GitBranch className="w-4 h-4" />
             </div>
             <div>
@@ -167,8 +167,8 @@ export function ConfigPanel({
             </div>
           </div>
 
-          <div className="flex gap-3 p-3 rounded-xl border border-gray-100 bg-white shadow-sm hover:shadow transition-all duration-300">
-            <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-600 shrink-0 border border-slate-200/30">
+          <div className="flex gap-3 p-3 rounded-xl border border-gray-100 bg-[var(--bg-card)] shadow-sm hover:shadow transition-all duration-300">
+            <div className="w-8 h-8 rounded-lg bg-[var(--bg-main)] flex items-center justify-center text-slate-600 shrink-0 border border-slate-200/30">
               <Clock className="w-4 h-4" />
             </div>
             <div>
@@ -177,7 +177,7 @@ export function ConfigPanel({
             </div>
           </div>
 
-          <div className="flex gap-3 p-3 rounded-xl border border-gray-100 bg-white shadow-sm hover:shadow transition-all duration-300">
+          <div className="flex gap-3 p-3 rounded-xl border border-gray-100 bg-[var(--bg-card)] shadow-sm hover:shadow transition-all duration-300">
             <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center text-orange-600 shrink-0 border border-orange-100/30">
               <Globe className="w-4 h-4" />
             </div>
@@ -315,7 +315,7 @@ export function ConfigPanel({
           {d.kind === "conditions" && (
             <>
               <SectionHeader>Condition Settings</SectionHeader>
-              <div className="space-y-3 bg-purple-50/50 rounded-xl p-4 border border-purple-100">
+              <div className="space-y-3 bg-purple-50/50 dark:bg-purple-500/5 rounded-xl p-4 border border-purple-100">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold text-gray-700">Condition Type</Label>
                   <Select value={d.conditionType || "keyword"} onValueChange={(v) => onChange({ conditionType: v as any })}>
@@ -365,7 +365,7 @@ export function ConfigPanel({
           {d.kind === "custom_reply" && (
             <>
               <SectionHeader>Message Content</SectionHeader>
-              <div className="space-y-3 bg-blue-50/50 rounded-xl p-4 border border-blue-100">
+              <div className="space-y-3 bg-blue-50/50 dark:bg-blue-500/5 rounded-xl p-4 border border-blue-100">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold text-gray-700">Message Text</Label>
                   <Textarea rows={4} value={d.message || ""} onChange={(e) => onChange({ message: e.target.value })} placeholder="Type your message..." className="text-sm resize-none rounded-lg bg-white" />
@@ -396,14 +396,14 @@ export function ConfigPanel({
                 </div>
               )}
               {d.videoPreview && (
-                <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-xl p-3">
+                <div className="flex items-center gap-2 bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 rounded-xl p-3">
                   <Video className="w-4 h-4 text-blue-500" />
                   <span className="text-xs flex-1 font-medium text-blue-700">Video attached</span>
                   <button onClick={removeFile("video")} className="text-red-400 hover:text-red-600"><X className="w-4 h-4" /></button>
                 </div>
               )}
               {d.audioPreview && (
-                <div className="flex items-center gap-2 bg-purple-50 border border-purple-100 rounded-xl p-3">
+                <div className="flex items-center gap-2 bg-purple-50 dark:bg-purple-500/10 border border-purple-100 dark:border-purple-500/20 rounded-xl p-3">
                   <FileAudio className="w-4 h-4 text-purple-500" />
                   <span className="text-xs flex-1 font-medium text-purple-700">Audio attached</span>
                   <button onClick={removeFile("audio")} className="text-red-400 hover:text-red-600"><X className="w-4 h-4" /></button>
@@ -439,7 +439,7 @@ export function ConfigPanel({
           {d.kind === "user_reply" && (
             <>
               <SectionHeader>Question Settings</SectionHeader>
-              <div className="space-y-3 bg-amber-50/50 rounded-xl p-4 border border-amber-100">
+              <div className="space-y-3 bg-amber-50/50 dark:bg-amber-500/5 rounded-xl p-4 border border-amber-100">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold text-gray-700">Question Text</Label>
                   <Textarea rows={3} value={d.question || ""} onChange={(e) => onChange({ question: e.target.value })} placeholder="Enter question to ask..." className="text-sm resize-none rounded-lg bg-white" />
@@ -506,7 +506,7 @@ export function ConfigPanel({
                       }
                     }}
                   >
-                    <SelectTrigger className="h-9 text-sm bg-white rounded-lg"><SelectValue placeholder="Select template" /></SelectTrigger>
+                    <SelectTrigger className="h-9 text-sm bg-[var(--bg-card)] rounded-lg"><SelectValue placeholder="Select template" /></SelectTrigger>
                     <SelectContent>
                       {templates.map((t) => (
                         <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
@@ -517,7 +517,7 @@ export function ConfigPanel({
               </div>
 
               {templateMeta?.headerType === "IMAGE" && (
-                <div className="space-y-2 bg-red-50/50 rounded-xl p-4 border border-red-100">
+                <div className="space-y-2 bg-red-50/50 dark:bg-red-500/5 rounded-xl p-4 border border-red-100">
                   <Label className="text-xs font-semibold text-red-600">Header Image (Required)</Label>
                   <Input
                     type="file"
@@ -551,7 +551,7 @@ export function ConfigPanel({
                           value={(d['variableMapping'] as any)?.[index]?.type || ""}
                           onValueChange={(type) => onChange({ variableMapping: { ...(d['variableMapping'] as any || {}), [index]: { type, value: "" } } })}
                         >
-                          <SelectTrigger className="h-8 text-xs bg-white rounded-lg"><SelectValue placeholder="Select source" /></SelectTrigger>
+                          <SelectTrigger className="h-8 text-xs bg-[var(--bg-card)] rounded-lg"><SelectValue placeholder="Select source" /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="fullName">Full Name</SelectItem>
                             <SelectItem value="phone">Phone</SelectItem>
@@ -584,7 +584,7 @@ export function ConfigPanel({
                     <Users className="w-3.5 h-3.5 text-indigo-500" /> Select Agent
                   </Label>
                   <Select value={d.assigneeId || ""} onValueChange={(v) => onChange({ assigneeId: v })}>
-                    <SelectTrigger className="h-9 text-sm bg-white rounded-lg"><SelectValue placeholder="Select agent" /></SelectTrigger>
+                    <SelectTrigger className="h-9 text-sm bg-[var(--bg-card)] rounded-lg"><SelectValue placeholder="Select agent" /></SelectTrigger>
                     <SelectContent>
                       {members.map((m) => (
                         <SelectItem key={m.id} value={m.id}>
@@ -605,7 +605,7 @@ export function ConfigPanel({
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold text-gray-700">HTTP Method</Label>
                   <Select value={d.webhookMethod || "POST"} onValueChange={(v) => onChange({ webhookMethod: v as any })}>
-                    <SelectTrigger className="h-9 text-sm bg-white rounded-lg"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-9 text-sm bg-[var(--bg-card)] rounded-lg"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="GET">GET</SelectItem>
                       <SelectItem value="POST">POST</SelectItem>
@@ -684,7 +684,7 @@ export function ConfigPanel({
           {d.kind === "end" && (
             <>
               <SectionHeader>End Settings</SectionHeader>
-              <div className="space-y-3 bg-red-50/50 rounded-xl p-4 border border-red-100">
+              <div className="space-y-3 bg-red-50/50 dark:bg-red-500/5 rounded-xl p-4 border border-red-100">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold text-gray-700">End Label (Optional)</Label>
                   <Input value={d.endMessage || ""} onChange={(e) => onChange({ endMessage: e.target.value })} placeholder="e.g., Conversation ended" className="h-9 text-sm rounded-lg bg-white" />
@@ -709,7 +709,7 @@ export function ConfigPanel({
                       onChange({ groupId: v, groupName: group?.name || "" });
                     }}
                   >
-                    <SelectTrigger className="h-9 text-sm bg-white rounded-lg"><SelectValue placeholder="Select a group" /></SelectTrigger>
+                    <SelectTrigger className="h-9 text-sm bg-[var(--bg-card)] rounded-lg"><SelectValue placeholder="Select a group" /></SelectTrigger>
                     <SelectContent>
                       {(contactGroups as any[]).map((g: any) => (
                         <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
@@ -731,7 +731,7 @@ export function ConfigPanel({
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold text-gray-700">Field to Update</Label>
                   <Select value={d.contactField || "name"} onValueChange={(v) => onChange({ contactField: v })}>
-                    <SelectTrigger className="h-9 text-sm bg-white rounded-lg"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-9 text-sm bg-[var(--bg-card)] rounded-lg"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="name">Name</SelectItem>
                       <SelectItem value="email">Email</SelectItem>
@@ -770,7 +770,7 @@ export function ConfigPanel({
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold text-gray-700">Value Source</Label>
                   <Select value={d.variableSource || "static"} onValueChange={(v) => onChange({ variableSource: v as any })}>
-                    <SelectTrigger className="h-9 text-sm bg-white rounded-lg"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-9 text-sm bg-[var(--bg-card)] rounded-lg"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="static">Static Value</SelectItem>
                       <SelectItem value="from_message">From Last Message</SelectItem>
@@ -940,7 +940,7 @@ export function ConfigPanel({
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold text-gray-700">Media Type</Label>
                   <Select value={d.mediaType || "image"} onValueChange={(v) => onChange({ mediaType: v as any, mediaUrl: "", mediaId: "", mediaFileName: "", mediaSourceType: d.mediaSourceType || "url" })}>
-                    <SelectTrigger className="h-9 text-sm bg-white rounded-lg"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-9 text-sm bg-[var(--bg-card)] rounded-lg"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="image">Image</SelectItem>
                       <SelectItem value="video">Video</SelectItem>
@@ -985,7 +985,7 @@ export function ConfigPanel({
                   <div className="space-y-1.5">
                     <Label className="text-xs font-semibold text-gray-700">Upload File</Label>
                     {d.mediaId ? (
-                      <div className="flex items-center gap-2 p-2 bg-white rounded-lg border border-pink-200">
+                      <div className="flex items-center gap-2 p-2 bg-[var(--bg-card)] rounded-lg border border-pink-200">
                         <Paperclip className="w-3.5 h-3.5 text-pink-500 shrink-0" />
                         <span className="text-xs text-gray-700 truncate flex-1">{d.mediaFileName || "Uploaded file"}</span>
                         <Button

@@ -101,7 +101,7 @@ export const MediaModal = ({ isOpen, onClose }: MediaModalProps) => {
                     className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 cursor-pointer transition-all ${
                       selectedType === cat.id 
                         ? 'border-[#2563eb] bg-[#eff6ff] text-[#2563eb]' 
-                        : 'border-[#e3e2df] bg-white text-[#888786] hover:border-[#2563eb]/30'
+                        : 'border-[#e3e2df] bg-[var(--bg-card)] text-[#888786] hover:border-[#2563eb]/30'
                     }`}
                   >
                     <input 

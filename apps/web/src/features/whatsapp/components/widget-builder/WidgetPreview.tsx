@@ -108,7 +108,7 @@ export default function WidgetPreview({
           font-family: ${fontFamilyValue} !important;
         }
       `}</style>
-      <div className="relative h-[720px] flex flex-col bg-white rounded-3xl border border-pp-border shadow-lg overflow-hidden">
+      <div className="relative h-[720px] flex flex-col bg-[var(--bg-card)] rounded-3xl border border-pp-border shadow-lg overflow-hidden">
         {/* Browser Top Bar Mockup */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-pp-border bg-slate-50/70">
           <div className="flex items-center gap-1.5">
@@ -116,19 +116,19 @@ export default function WidgetPreview({
             <span className="w-3 h-3 rounded-full bg-[#FFBD2E] inline-block" />
             <span className="w-3 h-3 rounded-full bg-[#27C93F] inline-block" />
           </div>
-          <div className="flex-1 max-w-sm mx-4 bg-white border border-pp-border rounded-lg px-3 py-1 text-xs text-secondary font-sans text-center truncate select-none shadow-sm flex items-center justify-center gap-1">
+          <div className="flex-1 max-w-sm mx-4 bg-[var(--bg-card)] border border-pp-border rounded-lg px-3 py-1 text-xs text-secondary font-sans text-center truncate select-none shadow-sm flex items-center justify-center gap-1">
             <span className="text-slate-400">https://</span>{config.domain || "yourclinic.com"}
           </div>
           <div className="w-12" /> {/* spacer */}
         </div>
 
         {/* Browser Content Area Canvas */}
-        <div className="flex-1 relative bg-slate-50 flex items-center justify-center p-6 overflow-hidden bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]">
+        <div className="flex-1 relative bg-[var(--bg-main)] flex items-center justify-center p-6 overflow-hidden bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]">
           {/* Widget Container */}
         {isPreviewOpen && (
           <div
             id="widget-preview-container"
-            className="relative w-[380px] h-[600px] flex flex-col bg-white border overflow-hidden shadow-[0_20px_60px_-15px_rgba(0,0,0,0.15)] z-10"
+            className="relative w-[380px] h-[600px] flex flex-col bg-[var(--bg-card)] border overflow-hidden shadow-[0_20px_60px_-15px_rgba(0,0,0,0.15)] z-10"
             style={{
               fontFamily: fontFamilyValue,
               boxShadow: containerShadow,
@@ -165,17 +165,17 @@ export default function WidgetPreview({
                         />
                       ) : null}
                       <div>
-                        <h3 className="text-md font-semibold leading-tight">
+                        <h3 className="text-md font-semibold leading-tight text-white">
                           {config.title}
                         </h3>
-                        <p className="text-xs opacity-90">
+                        <p className="text-xs opacity-90 text-white">
                           {config.subtitle}
                         </p>
                       </div>
                     </div>
                     <button
                       onClick={() => setIsPreviewOpen(false)}
-                      className="p-1 hover:bg-white/20 rounded-full transition-colors"
+                      className="p-1 hover:bg-[var(--bg-card)]/20 rounded-full transition-colors"
                     >
                       <X className="h-5 w-5" />
                     </button>
@@ -184,11 +184,11 @@ export default function WidgetPreview({
                   <>
                     <button
                       onClick={() => setPreviewScreen("home")}
-                      className="p-1 hover:bg-white/20 rounded-full transition-colors"
+                      className="p-1 hover:bg-[var(--bg-card)]/20 rounded-full transition-colors"
                     >
                       <ArrowLeft className="h-5 w-5" />
                     </button>
-                    <span className="font-semibold text-sm">
+                    <span className="font-semibold text-sm text-white">
                       {previewScreen === "chat"
                         ? "Conversation"
                         : previewScreen === "search"
@@ -197,7 +197,7 @@ export default function WidgetPreview({
                     </span>
                     <button
                       onClick={() => setIsPreviewOpen(false)}
-                      className="p-1 hover:bg-white/20 rounded-full transition-colors"
+                      className="p-1 hover:bg-[var(--bg-card)]/20 rounded-full transition-colors"
                     >
                       <X className="h-5 w-5" />
                     </button>
@@ -211,36 +211,8 @@ export default function WidgetPreview({
               {previewScreen === "home" && (
                 <div className="p-4 space-y-4">
                   {/* Start Conversation Card */}
-                  <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 space-y-3">
-                    <div className="flex items-center gap-3">
-                      {config.showTeamAvatars && config.teamMembers.length > 0 ? (
-                        <div className="flex -space-x-2">
-                          {config.teamMembers.slice(0, 3).map((member) => (
-                            <Avatar key={member.id} className="h-8 w-8 border-2 border-white shadow-sm">
-                              {member.avatar ? (
-                                <AvatarImage src={member.avatar} alt={member.name} />
-                              ) : null}
-                              <AvatarFallback
-                                style={{
-                                  backgroundColor: config.primaryColor,
-                                  color: "white",
-                                }}
-                                className="text-[10px] font-bold"
-                              >
-                                {member.name?.[0] ?? "S"}
-                              </AvatarFallback>
-                            </Avatar>
-                          ))}
-                        </div>
-                      ) : null}
-                      <div className="flex-1">
-                        <p className="text-xs text-slate-400">Our usual reply time</p>
-                        <p className="text-xs font-semibold text-slate-700 flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {config.responseTime}
-                        </p>
-                      </div>
-                    </div>
+                  <div className="bg-[var(--bg-main)] border border-pp-border rounded-xl p-4 space-y-3">
+
                     <Button
                       className="w-full text-xs font-semibold h-9 rounded-lg"
                       style={getButtonStyle()}
@@ -254,14 +226,15 @@ export default function WidgetPreview({
                   {/* Search Help */}
                   {config.showRecentArticles && (
                     <div className="space-y-2">
-                      <p className="font-semibold text-xs text-slate-500 uppercase tracking-wider">
+                      <p className="font-semibold text-[10px] text-secondary uppercase tracking-widest">
                         Find an answer quickly
                       </p>
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                         <Input
                           placeholder={config.messengerSearchPlaceholder}
-                          className="pl-9 pr-8 h-9 text-xs rounded-lg border-slate-200"
+                          className="h-9 text-xs rounded-lg border-pp-border transition-all"
+                          style={{ paddingLeft: '2.5rem', paddingRight: '2rem' }}
                           onClick={() => setPreviewScreen("search")}
                         />
                         <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -274,7 +247,7 @@ export default function WidgetPreview({
                     const displayFaqs = qaPairs.slice(0, config.articlesCount);
                     return displayFaqs.length > 0 ? (
                       <div className="space-y-2">
-                        <p className="font-semibold text-xs text-slate-500 uppercase tracking-wider">
+                        <p className="font-semibold text-[10px] text-secondary uppercase tracking-widest">
                           Popular FAQs
                         </p>
                         <div className="space-y-2">
@@ -283,17 +256,17 @@ export default function WidgetPreview({
                             return (
                               <div
                                 key={qa.id}
-                                className="border border-slate-200 rounded-lg overflow-hidden transition-all bg-white"
+                                className="border border-pp-border rounded-lg overflow-hidden transition-all bg-[var(--bg-card)]"
                               >
                                 <button
-                                  className="w-full text-left p-3 hover:bg-slate-50 transition-colors flex items-center justify-between gap-2"
+                                  className="w-full text-left p-3 hover:bg-[var(--bg-main)] transition-colors flex items-center justify-between gap-2"
                                   onClick={() => setExpandedFaqId(isExpanded ? null : qa.id)}
                                 >
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-xs font-semibold text-slate-800">
+                                  <div className="flex-1 min-w-0 text-left">
+                                    <p className="text-[13px] font-semibold text-main leading-snug">
                                       {qa.question}
                                     </p>
-                                    <p className="text-[10px] text-slate-400 mt-0.5">
+                                    <p className="text-[11px] text-secondary mt-1">
                                       {qa.category}
                                     </p>
                                   </div>
@@ -306,7 +279,7 @@ export default function WidgetPreview({
                                 {isExpanded && (
                                   <div className="px-3 pb-3 pt-0">
                                     <div
-                                      className="text-xs text-slate-600 leading-relaxed bg-slate-50 rounded-lg p-2.5 border-l-2"
+                                      className="text-xs text-slate-600 leading-relaxed bg-[var(--bg-main)] rounded-lg p-2.5 border-l-2"
                                       style={{ borderLeftColor: config.primaryColor }}
                                     >
                                       {qa.answer || "No answer provided yet."}
@@ -349,7 +322,7 @@ export default function WidgetPreview({
                         )}
                         <div
                           className={`rounded-2xl px-3 py-2 max-w-[80%] text-xs ${
-                            msg.role === "user" ? "text-white" : "bg-slate-100 text-slate-800"
+                            msg.role === "user" ? "text-white" : "bg-[var(--bg-main)] text-main border border-pp-border/50"
                           }`}
                           style={
                             msg.role === "user"
@@ -365,7 +338,7 @@ export default function WidgetPreview({
                       </div>
                     ))}
                   </div>
-                  <div className="p-3 border-t bg-white">
+                  <div className="p-3 border-t border-pp-border bg-[var(--bg-card)]">
                     <div className="flex gap-2">
                       <Input
                         placeholder="Type your message..."
@@ -393,14 +366,15 @@ export default function WidgetPreview({
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                     <Input
                       placeholder="Search FAQs..."
-                      className="pl-9 h-9 text-xs rounded-lg"
+                      className="h-9 text-xs rounded-lg border-pp-border"
+                      style={{ paddingLeft: '2.5rem' }}
                       autoFocus
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                     />
                   </div>
                   <div className="space-y-2">
-                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                    <p className="font-semibold text-[10px] text-secondary uppercase tracking-widest">
                       {searchQuery ? "Search results" : "Popular FAQs"}
                     </p>
                     {(() => {
@@ -418,21 +392,21 @@ export default function WidgetPreview({
                             return (
                               <div
                                 key={qa.id}
-                                className="border border-slate-200 rounded-lg overflow-hidden bg-white"
+                                className="border border-pp-border rounded-lg overflow-hidden bg-[var(--bg-card)]"
                               >
                                 <button
-                                  className="w-full text-left p-3 hover:bg-slate-50 transition-colors flex items-start gap-2.5"
+                                  className="w-full text-left p-3 hover:bg-[var(--bg-main)] transition-colors flex items-start gap-2.5"
                                   onClick={() => setExpandedFaqId(isExpanded ? null : qa.id)}
                                 >
                                   <HelpCircle
                                     className="h-4 w-4 mt-0.5 flex-shrink-0"
                                     style={{ color: config.primaryColor }}
                                   />
-                                  <div className="flex-1 min-w-0">
-                                    <p className="font-semibold text-xs text-slate-800">
+                                  <div className="flex-1 min-w-0 text-left">
+                                    <p className="font-semibold text-[13px] text-main leading-snug">
                                       {qa.question}
                                     </p>
-                                    <p className="text-[10px] text-slate-400 mt-0.5">
+                                    <p className="text-[11px] text-secondary mt-1">
                                       {qa.category}
                                     </p>
                                   </div>
@@ -445,7 +419,7 @@ export default function WidgetPreview({
                                 {isExpanded && (
                                   <div className="px-3 pb-3 pt-0 pl-9">
                                     <div
-                                      className="text-xs text-slate-600 leading-relaxed bg-slate-50 rounded-lg p-2.5 border-l-2"
+                                      className="text-xs text-slate-600 leading-relaxed bg-[var(--bg-main)] rounded-lg p-2.5 border-l-2"
                                       style={{ borderLeftColor: config.primaryColor }}
                                     >
                                       {qa.answer || "No answer provided yet."}
@@ -469,7 +443,7 @@ export default function WidgetPreview({
 
             {/* Powered By Footer */}
             {config.showPoweredBy && (
-              <div className="p-2 border-t text-center bg-slate-50 pointer-events-none select-none">
+              <div className="p-2 border-t text-center bg-[var(--bg-main)] pointer-events-none select-none">
                 <p className="text-[9px] text-slate-400">
                   Powered by {config.appName}
                 </p>

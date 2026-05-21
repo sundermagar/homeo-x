@@ -294,6 +294,7 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
       if (!envToken) return;
 
       const { sql } = await import('drizzle-orm');
+      const { encrypt, decrypt } = await import('../../shared/crypto.js');
 
       // Optimization: Only align schemas that actually have the 'wa_channels' table.
       // This avoids creating 50+ database connection pools for empty schemas.
@@ -329,10 +330,12 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
           `);
           const rows = Array.isArray(channelRows) ? channelRows : (channelRows as any).rows || [];
           for (const row of rows) {
-            if (row.access_token !== envToken) {
+            const dbTokenDecrypted = decrypt(row.access_token);
+            if (dbTokenDecrypted !== envToken) {
               logger.info(`[SyncToken] Updating access token in schema ${schemaName} for WABA channel ${row.id}`);
+              const encryptedToken = encrypt(envToken);
               await tenantDb.execute(sql`
-                UPDATE wa_channels SET access_token = ${envToken}, updated_at = NOW() WHERE id = ${row.id}
+                UPDATE wa_channels SET access_token = ${encryptedToken}, updated_at = NOW() WHERE id = ${row.id}
               `);
             }
           }

@@ -2,6 +2,7 @@ import { eq, and, or, sql, desc, isNull, ilike, gte, lte } from 'drizzle-orm';
 import type { DbClient } from '@mmc/database';
 import * as schema from '@mmc/database';
 import type { WhatsAppRepository } from '../../domains/whatsapp/ports/whatsapp.repository.js';
+import { encrypt, decrypt } from '../../shared/crypto.js';
 
 export class WhatsAppRepositoryPG implements WhatsAppRepository {
   constructor(private readonly db: DbClient) { }
@@ -14,6 +15,9 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
       .from(schema.waChannels)
       .where(eq(schema.waChannels.id, id))
       .limit(1);
+    if (row && row.accessToken) {
+      row.accessToken = decrypt(row.accessToken);
+    }
     return row ?? null;
   }
 
@@ -23,6 +27,9 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
       .from(schema.waChannels)
       .where(eq(schema.waChannels.phoneNumberId, phoneNumberId))
       .limit(1);
+    if (row && row.accessToken) {
+      row.accessToken = decrypt(row.accessToken);
+    }
     return row ?? null;
   }
 
@@ -37,7 +44,13 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
         )
       );
     }
-    return query.orderBy(desc(schema.waChannels.createdAt));
+    const rows = await query.orderBy(desc(schema.waChannels.createdAt));
+    for (const row of rows) {
+      if (row.accessToken) {
+        row.accessToken = decrypt(row.accessToken);
+      }
+    }
+    return rows;
   }
 
   async findDefaultChannel(clinicId: number): Promise<any | null> {
@@ -54,22 +67,35 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
       ))
       .orderBy(desc(schema.waChannels.createdAt))
       .limit(1);
+    if (row && row.accessToken) {
+      row.accessToken = decrypt(row.accessToken);
+    }
     return row ?? null;
   }
 
   async saveChannel(data: any): Promise<any> {
-    if (data.id) {
+    const dataToSave = { ...data };
+    if (dataToSave.accessToken) {
+      dataToSave.accessToken = encrypt(dataToSave.accessToken);
+    }
+    if (dataToSave.id) {
       const [row] = await this.db
         .update(schema.waChannels)
-        .set({ ...data, updatedAt: new Date() })
-        .where(eq(schema.waChannels.id, data.id))
+        .set({ ...dataToSave, updatedAt: new Date() })
+        .where(eq(schema.waChannels.id, dataToSave.id))
         .returning();
+      if (row && row.accessToken) {
+        row.accessToken = decrypt(row.accessToken);
+      }
       return row;
     }
     const [row] = await this.db
       .insert(schema.waChannels)
-      .values(data)
+      .values(dataToSave)
       .returning();
+    if (row && row.accessToken) {
+      row.accessToken = decrypt(row.accessToken);
+    }
     return row;
   }
 
@@ -1072,30 +1098,43 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
       .from(schema.waAiSettings)
       .where(eq(schema.waAiSettings.channelId, channelId))
       .limit(1);
+    if (row && row.apiKey) {
+      row.apiKey = decrypt(row.apiKey);
+    }
     return row ?? null;
   }
 
   async saveAiSettings(data: any): Promise<any> {
     const { id, createdAt, updatedAt, ...updateData } = data;
+    const dataToSave = { ...updateData };
+    if (dataToSave.apiKey) {
+      dataToSave.apiKey = encrypt(dataToSave.apiKey);
+    }
     if (id) {
       const [updated] = await this.db
         .update(schema.waAiSettings)
         .set({
-          ...updateData,
+          ...dataToSave,
           updatedAt: new Date()
         })
         .where(eq(schema.waAiSettings.id, id))
         .returning();
+      if (updated && updated.apiKey) {
+        updated.apiKey = decrypt(updated.apiKey);
+      }
       return updated;
     } else {
       const [inserted] = await this.db
         .insert(schema.waAiSettings)
         .values({
-          ...updateData,
+          ...dataToSave,
           createdAt: new Date(),
           updatedAt: new Date()
         })
         .returning();
+      if (inserted && inserted.apiKey) {
+        inserted.apiKey = decrypt(inserted.apiKey);
+      }
       return inserted;
     }
   }

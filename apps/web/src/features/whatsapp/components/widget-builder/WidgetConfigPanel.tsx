@@ -39,7 +39,7 @@ const ToggleSwitch = ({ checked, onCheckedChange }: { checked: boolean; onChecke
     }`}
   >
     <span
-      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-[var(--bg-card)] shadow ring-0 transition duration-200 ease-in-out ${
         checked ? 'translate-x-4' : 'translate-x-0'
       }`}
     />
@@ -55,7 +55,7 @@ export default function WidgetConfigPanel({
 
   return (
     <Tabs defaultValue="content" className="space-y-6 flex flex-col">
-      <TabsList className="w-full flex items-center justify-start gap-1 p-1.5 bg-[#F4F3F1] dark:bg-[#16161a] rounded-2xl border border-pp-border/30 h-auto self-start shadow-sm">
+      <TabsList className="w-full flex items-center justify-start gap-1 p-1.5 bg-[#F4F3F1] rounded-2xl border border-pp-border/30 h-auto self-start shadow-sm">
         <TabsTrigger 
           value="content" 
           className="rounded-xl px-4.5 py-2 text-xs font-bold text-secondary transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-[#222226] data-[state=active]:text-pp-blue data-[state=active]:shadow-sm hover:text-main"
@@ -353,7 +353,7 @@ export default function WidgetConfigPanel({
             <Separator className="my-4" />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="flex items-center justify-between p-4 border border-pp-border rounded-2xl bg-slate-50/50 dark:bg-[#16161a] transition-all hover:bg-slate-50 dark:hover:bg-[#1c1c21]">
+              <div className="flex items-center justify-between p-4 border border-pp-border rounded-2xl bg-slate-50/50 dark:bg-slate-500/5 transition-all hover:bg-slate-50">
                 <div className="space-y-1">
                   <Label className="text-sm font-bold text-main block cursor-pointer">Show Avatars</Label>
                   <p className="text-[10px] text-secondary leading-snug max-w-[140px]">Display team member photos in widget header</p>
@@ -364,7 +364,7 @@ export default function WidgetConfigPanel({
                 />
               </div>
 
-              <div className="flex items-center justify-between p-4 border border-pp-border rounded-2xl bg-slate-50/50 dark:bg-[#16161a] transition-all hover:bg-slate-50 dark:hover:bg-[#1c1c21]">
+              <div className="flex items-center justify-between p-4 border border-pp-border rounded-2xl bg-slate-50/50 dark:bg-slate-500/5 transition-all hover:bg-slate-50">
                 <div className="space-y-1">
                   <Label className="text-sm font-bold text-main block cursor-pointer">Recent FAQs</Label>
                   <p className="text-[10px] text-secondary leading-snug max-w-[140px]">Display popular FAQ pairs to visitors</p>
@@ -423,7 +423,7 @@ export default function WidgetConfigPanel({
                       updateConfig("teamMembers", newMembers);
                     }}
                   >
-                    <SelectTrigger className="w-full h-11 rounded-xl bg-slate-50/50 dark:bg-[#16161a]">
+                    <SelectTrigger className="w-full h-11 rounded-xl bg-slate-50/50">
                       <SelectValue placeholder="— Select a user —" />
                     </SelectTrigger>
                     <SelectContent>
@@ -512,7 +512,7 @@ export default function WidgetConfigPanel({
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="flex items-center justify-between p-4 border border-pp-border rounded-2xl bg-slate-50/50 dark:bg-[#16161a] transition-all hover:bg-slate-50 dark:hover:bg-[#1c1c21]">
+              <div className="flex items-center justify-between p-4 border border-pp-border rounded-2xl bg-slate-50/50 dark:bg-slate-500/5 transition-all hover:bg-slate-50">
                 <div className="space-y-1">
                   <Label className="text-sm font-bold text-main block cursor-pointer">Live Chat</Label>
                   <p className="text-[10px] text-secondary leading-snug max-w-[140px]">Enable real-time messaging with visitors</p>
@@ -526,7 +526,7 @@ export default function WidgetConfigPanel({
                 />
               </div>
 
-              <div className="flex items-center justify-between p-4 border border-pp-border rounded-2xl bg-slate-50/50 dark:bg-[#16161a] transition-all hover:bg-slate-50 dark:hover:bg-[#1c1c21]">
+              <div className="flex items-center justify-between p-4 border border-pp-border rounded-2xl bg-slate-50/50 dark:bg-slate-500/5 transition-all hover:bg-slate-50">
                 <div className="space-y-1">
                   <Label className="text-sm font-bold text-main block cursor-pointer">AI Auto-Reply</Label>
                   <p className="text-[10px] text-secondary leading-snug max-w-[140px]">Automatically reply using AI training data</p>

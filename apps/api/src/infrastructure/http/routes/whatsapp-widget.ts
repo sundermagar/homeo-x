@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { sql, and, eq, desc } from 'drizzle-orm';
 import { createDbClient } from '@mmc/database';
+import rateLimit from 'express-rate-limit';
 import { WhatsAppRepositoryPG } from '../../repositories/whatsapp.repository.pg.js';
 import { WhatsAppCloudGateway } from '../../communication/whatsapp-cloud-gateway.js';
 import { asyncHandler } from '../middleware/async-handler.js';
@@ -11,6 +12,26 @@ import { autoReplyPipeline } from '../../../domains/whatsapp/services/ai-auto-re
 
 const logger = createLogger('whatsapp-widget');
 export const whatsappWidgetRouter: Router = Router();
+
+// ─── Rate Limiting for Public Widget Endpoints ──────────────────────────────
+const widgetGeneralLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per 15 minutes
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many requests. Please try again in 15 minutes.', code: 'RATE_LIMITED' },
+});
+
+const widgetChatLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 30, // Limit each IP to 30 requests per 15 minutes (protects RAG API cost)
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many chat requests. Please try again in 15 minutes.', code: 'RATE_LIMITED' },
+});
+
+// Apply general limiter to all widget routes
+whatsappWidgetRouter.use(widgetGeneralLimiter);
 
 // ─── DB Client Cache (prevents connection pool exhaustion) ─
 const widgetDbCache = new Map<string, ReturnType<typeof createDbClient>>();
@@ -115,8 +136,8 @@ whatsappWidgetRouter.get('/conversation/:conversationId', asyncHandler(async (re
   sendSuccess(res, messages);
 }));
 
-// POST /api/widget/chat - Chat handler and RAG integration
-whatsappWidgetRouter.post('/chat', asyncHandler(async (req, res) => {
+// POST /api/widget/chat - Chat handler and RAG integration (with stricter rate limit)
+whatsappWidgetRouter.post('/chat', widgetChatLimiter, asyncHandler(async (req, res) => {
   const { channelId, phone, content, conversationId } = req.body;
   if (!channelId || !phone || !content) throw new BadRequestError('channelId, phone, and content required');
   

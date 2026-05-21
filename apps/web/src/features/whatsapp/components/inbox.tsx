@@ -605,7 +605,7 @@ export const Inbox = ({ channelId }: { channelId?: number }) => {
 
 
   return (
-    <div className="flex w-full max-w-full h-[calc(100vh-220px)] border border-[var(--pp-warm-4)] rounded-2xl overflow-hidden bg-white shadow-[0_4px_24px_rgba(0,0,0,0.03)] animate-fade-in">
+    <div className="flex w-full max-w-full h-[calc(100vh-220px)] border border-[var(--pp-warm-4)] rounded-2xl overflow-hidden bg-[var(--bg-card)] shadow-[0_4px_24px_rgba(0,0,0,0.03)] animate-fade-in">
       <div className={`w-full md:w-80 lg:w-96 min-w-0 border-r border-[var(--pp-warm-3)] flex flex-col bg-[var(--pp-warm-1)]/40 backdrop-blur-md ${selectedConvId ? 'hidden md:flex' : 'flex'}`}>
         <div className="p-5 border-b border-[var(--pp-warm-3)] space-y-4 bg-white">
           <div className="flex justify-between items-center">
@@ -685,7 +685,7 @@ export const Inbox = ({ channelId }: { channelId?: number }) => {
                 className={`p-4 cursor-pointer transition-all relative ${
                   selectedConvId === conv.id 
                     ? 'bg-white shadow-[0_4px_16px_rgba(0,0,0,0.015)]' 
-                    : 'hover:bg-white/40'
+                    : 'hover:bg-[var(--bg-card)]/40'
                 }`}
               >
                 {selectedConvId === conv.id && (
@@ -724,10 +724,10 @@ export const Inbox = ({ channelId }: { channelId?: number }) => {
       </div>
 
       {/* Main Content - Chat */}
-      <div className={`flex-1 min-w-0 flex flex-col bg-white ${selectedConvId ? 'flex' : 'hidden md:flex'}`}>
+      <div className={`flex-1 min-w-0 flex flex-col bg-[var(--bg-card)] ${selectedConvId ? 'flex' : 'hidden md:flex'}`}>
         {selectedConvId ? (
           <>
-            <div className="px-6 py-4 border-b border-[var(--pp-warm-3)] flex justify-between items-center bg-white shadow-sm z-10">
+            <div className="px-6 py-4 border-b border-[var(--pp-warm-3)] flex justify-between items-center bg-[var(--bg-card)] shadow-sm z-10">
               <div className="flex items-center gap-3">
                 <button 
                   onClick={() => setSelectedConvId(null)}
@@ -777,7 +777,7 @@ export const Inbox = ({ channelId }: { channelId?: number }) => {
                       {/* Overlay to close menu */}
                       <div className="fixed inset-0 z-30" onClick={() => setShowMenu(false)} />
                       
-                      <div className="absolute right-0 mt-2 w-56 bg-white border border-[var(--pp-warm-3)]/80 rounded-2xl shadow-2xl py-2 z-50 animate-scale-in text-left origin-top-right">
+                      <div className="absolute right-0 mt-2 w-56 bg-[var(--bg-card)] border border-[var(--pp-warm-3)]/80 rounded-2xl shadow-2xl py-2 z-50 animate-scale-in text-left origin-top-right">
                         <div className="px-4 py-1.5 text-[10px] font-extrabold text-[var(--pp-text-3)] uppercase tracking-[0.12em]">Status</div>
                         
                         <button
@@ -878,7 +878,7 @@ export const Inbox = ({ channelId }: { channelId?: number }) => {
                         {msg.metadata?.replyTo && (
                           <div className={`mb-2 p-2 rounded-lg text-xs border-l-4 leading-normal flex flex-col gap-0.5 ${
                             msg.direction === 'outbound'
-                              ? 'bg-white/10 border-white/40 text-white/90'
+                              ? 'bg-[var(--bg-card)]/10 border-white/40 text-white/90'
                               : 'bg-[var(--pp-warm-2)] border-[var(--pp-blue)] text-[var(--pp-text-2)]'
                           }`}>
                             <span className="font-extrabold text-[9px] uppercase tracking-wider opacity-75">
@@ -900,7 +900,7 @@ export const Inbox = ({ channelId }: { channelId?: number }) => {
                         </div>
                       </div>
 
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center bg-white border border-[var(--pp-warm-3)] shadow-md rounded-xl p-1 gap-0.5 z-10 shrink-0 relative">
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center bg-[var(--bg-card)] border border-[var(--pp-warm-3)] shadow-md rounded-xl p-1 gap-0.5 z-10 shrink-0 relative">
                         <button 
                           onClick={() => setReactingTo(reactingTo?.id === msg.id ? null : msg)}
                           title="React"
@@ -932,7 +932,7 @@ export const Inbox = ({ channelId }: { channelId?: number }) => {
                         
                         {/* Mini Reaction Picker */}
                         {reactingTo?.id === msg.id && (
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-white rounded-full shadow-lg border border-[var(--pp-warm-3)] p-1.5 flex gap-1 z-50 animate-slide-up">
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-[var(--bg-card)] rounded-full shadow-lg border border-[var(--pp-warm-3)] p-1.5 flex gap-1 z-50 animate-slide-up">
                             {['👍', '❤️', '😂', '😮', '😢', '🙏'].map(emoji => (
                               <button
                                 key={emoji}
@@ -994,7 +994,7 @@ export const Inbox = ({ channelId }: { channelId?: number }) => {
             )}
 
             {!isWindowActive && (
-              <div className="px-6 py-3 bg-amber-50 border-t border-b border-amber-200/60 flex items-center justify-between text-amber-800 text-xs font-semibold animate-fade-in z-20 gap-4">
+              <div className="px-6 py-3 bg-amber-50 dark:bg-amber-500/10 border-t border-b border-amber-200/60 flex items-center justify-between text-amber-800 text-xs font-semibold animate-fade-in z-20 gap-4">
                 <div className="flex items-center gap-2">
                   <span className="text-amber-500 text-sm">💡</span>
                   <span>Meta Rule: The 24-hour message window is currently closed. You must send an approved template first.</span>
@@ -1009,7 +1009,7 @@ export const Inbox = ({ channelId }: { channelId?: number }) => {
               </div>
             )}
 
-            <div className="p-4 border-t border-[var(--pp-warm-3)] bg-white flex items-center gap-3">
+            <div className="p-4 border-t border-[var(--pp-warm-3)] bg-[var(--bg-card)] flex items-center gap-3">
               {/* Hidden file input */}
               <input
                 type="file"
@@ -1088,7 +1088,7 @@ export const Inbox = ({ channelId }: { channelId?: number }) => {
           </>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center bg-[var(--pp-warm-1)]/30 p-12 text-center">
-            <div className="w-20 h-20 bg-white rounded-3xl shadow-[0_4px_16px_rgba(0,0,0,0.02)] border border-[var(--pp-warm-3)] flex items-center justify-center mb-6 text-[var(--pp-blue)]/20">
+            <div className="w-20 h-20 bg-[var(--bg-card)] rounded-3xl shadow-[0_4px_16px_rgba(0,0,0,0.02)] border border-[var(--pp-warm-3)] flex items-center justify-center mb-6 text-[var(--pp-blue)]/20">
               <MessageSquare size={32} />
             </div>
             <h3 className="text-sm font-extrabold text-[var(--pp-ink)] uppercase tracking-[0.15em]">No Dialogue Selected</h3>

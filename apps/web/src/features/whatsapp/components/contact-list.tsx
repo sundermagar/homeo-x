@@ -211,7 +211,7 @@ export const ContactList = () => {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted/60" size={16} />
           <input 
             placeholder="Search contacts..." 
-            className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13px] font-medium text-main focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-muted/60" 
+            className="w-full pl-11 pr-4 py-2.5 bg-[var(--bg-main)] border border-slate-200 dark:border-slate-500/30 rounded-xl text-[13px] font-medium text-main focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-muted/60" 
             value={searchTerm}
             onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
           />
@@ -226,7 +226,7 @@ export const ContactList = () => {
                 setIsGroupDropdownOpen(!isGroupDropdownOpen);
                 setIsStatusDropdownOpen(false);
               }}
-              className="flex items-center gap-2 px-3 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-secondary transition-all"
+              className="flex items-center gap-2 px-3 py-1.5 bg-[var(--bg-card)] hover:bg-[var(--bg-card)] border border-slate-200 dark:border-slate-500/30 rounded-lg text-xs font-semibold text-secondary transition-all"
             >
               <Filter size={14} className="text-muted" />
               <span>{selectedGroup ? `Group: ${selectedGroup}` : 'All Groups'}</span>
@@ -234,10 +234,10 @@ export const ContactList = () => {
             </button>
             
             {isGroupDropdownOpen && (
-              <div className="absolute left-0 mt-1.5 w-48 bg-white border border-slate-200 rounded-xl shadow-lg z-50 py-1.5 animate-in fade-in slide-in-from-top-2 duration-150">
+              <div className="absolute left-0 mt-1.5 w-48 bg-[var(--bg-card)] border border-slate-200 dark:border-slate-500/30 rounded-xl shadow-lg z-50 py-1.5 animate-in fade-in slide-in-from-top-2 duration-150">
                 <button 
                   onClick={() => { setSelectedGroup(null); setIsGroupDropdownOpen(false); }}
-                  className="w-full text-left px-4 py-2 text-xs font-medium text-main hover:bg-slate-50 transition-colors flex items-center justify-between"
+                  className="w-full text-left px-4 py-2 text-xs font-medium text-main hover:bg-[var(--bg-card)] transition-colors flex items-center justify-between"
                 >
                   <span>All Groups</span>
                   {!selectedGroup && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
@@ -246,7 +246,7 @@ export const ContactList = () => {
                   <button 
                     key={group}
                     onClick={() => { setSelectedGroup(group); setIsGroupDropdownOpen(false); }}
-                    className="w-full text-left px-4 py-2 text-xs font-medium text-main hover:bg-slate-50 transition-colors flex items-center justify-between"
+                    className="w-full text-left px-4 py-2 text-xs font-medium text-main hover:bg-[var(--bg-card)] transition-colors flex items-center justify-between"
                   >
                     <span>{group}</span>
                     {selectedGroup === group && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
@@ -263,7 +263,7 @@ export const ContactList = () => {
                 setIsStatusDropdownOpen(!isStatusDropdownOpen);
                 setIsGroupDropdownOpen(false);
               }}
-              className="flex items-center gap-2 px-3 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-secondary transition-all"
+              className="flex items-center gap-2 px-3 py-1.5 bg-[var(--bg-card)] hover:bg-[var(--bg-card)] border border-slate-200 dark:border-slate-500/30 rounded-lg text-xs font-semibold text-secondary transition-all"
             >
               <Filter size={14} className="text-muted" />
               <span>{selectedStatus && selectedStatus !== 'All Statuses' ? `Status: ${selectedStatus}` : 'All Statuses'}</span>
@@ -271,12 +271,12 @@ export const ContactList = () => {
             </button>
             
             {isStatusDropdownOpen && (
-              <div className="absolute left-0 mt-1.5 w-48 bg-white border border-slate-200 rounded-xl shadow-lg z-50 py-1.5 animate-in fade-in slide-in-from-top-2 duration-150">
+              <div className="absolute left-0 mt-1.5 w-48 bg-[var(--bg-card)] border border-slate-200 dark:border-slate-500/30 rounded-xl shadow-lg z-50 py-1.5 animate-in fade-in slide-in-from-top-2 duration-150">
                 {['All Statuses', 'Active', 'Inactive'].map((status) => (
                   <button 
                     key={status}
                     onClick={() => { setSelectedStatus(status === 'All Statuses' ? null : status); setIsStatusDropdownOpen(false); }}
-                    className="w-full text-left px-4 py-2 text-xs font-medium text-main hover:bg-slate-50 transition-colors flex items-center justify-between"
+                    className="w-full text-left px-4 py-2 text-xs font-medium text-main hover:bg-[var(--bg-card)] transition-colors flex items-center justify-between"
                   >
                     <span>{status}</span>
                     {((!selectedStatus && status === 'All Statuses') || selectedStatus === status) && (
@@ -292,7 +292,7 @@ export const ContactList = () => {
 
           <button 
             onClick={handleExport}
-            className="flex items-center gap-2 px-3 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-secondary transition-all"
+            className="flex items-center gap-2 px-3 py-1.5 bg-[var(--bg-card)] hover:bg-[var(--bg-card)] border border-slate-200 dark:border-slate-500/30 rounded-lg text-xs font-semibold text-secondary transition-all"
           >
             <Download size={14} className="text-muted" />
             <span>Export All Contacts</span>
@@ -308,7 +308,7 @@ export const ContactList = () => {
 
           <button 
             onClick={() => document.getElementById('csv-import-input')?.click()}
-            className="flex items-center gap-2 px-3 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-secondary transition-all"
+            className="flex items-center gap-2 px-3 py-1.5 bg-[var(--bg-card)] hover:bg-[var(--bg-card)] border border-slate-200 dark:border-slate-500/30 rounded-lg text-xs font-semibold text-secondary transition-all"
           >
             <Upload size={14} className="text-muted" />
             <span>Import Contacts</span>
@@ -316,7 +316,7 @@ export const ContactList = () => {
 
           <button 
             onClick={handleDownloadSample}
-            className="flex items-center gap-2 px-3 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-secondary transition-all"
+            className="flex items-center gap-2 px-3 py-1.5 bg-[var(--bg-card)] hover:bg-[var(--bg-card)] border border-slate-200 dark:border-slate-500/30 rounded-lg text-xs font-semibold text-secondary transition-all"
           >
             <Download size={14} className="text-muted" />
             <span>Download Sample Excel</span>
@@ -370,7 +370,7 @@ export const ContactList = () => {
                           </td>
                           <td>
                             <div className="flex items-center gap-2">
-                              <div className="p-1.5 bg-green-50 rounded-lg text-success">
+                              <div className="p-1.5 bg-green-50 dark:bg-green-500/10 rounded-lg text-success">
                                 <Phone size={12} />
                               </div>
                               <span className="text-[12px] font-bold text-secondary">+{contact.phone}</span>
@@ -410,7 +410,7 @@ export const ContactList = () => {
                                   </button>
                                 </>
                               ) : (
-                                <span className="text-[10px] text-slate-400 font-semibold px-2 py-0.5 bg-slate-100 rounded-full border border-slate-200 cursor-not-allowed select-none" title="EHR Patients cannot be modified or deleted from WhatsApp marketing context">
+                                <span className="text-[10px] text-slate-400 font-semibold px-2 py-0.5 bg-slate-100 rounded-full border border-slate-200 dark:border-slate-500/30 cursor-not-allowed select-none" title="EHR Patients cannot be modified or deleted from WhatsApp marketing context">
                                   EHR
                                 </span>
                               )}
@@ -428,7 +428,7 @@ export const ContactList = () => {
           {/* Mobile Card View */}
           <div className="md:hidden space-y-4">
             {filteredContacts.length === 0 ? (
-              <div className="p-8 text-center bg-white border border-pp-border rounded-2xl text-muted italic text-sm">
+              <div className="p-8 text-center bg-[var(--bg-card)] border border-pp-border rounded-2xl text-muted italic text-sm">
                 No patient records found matching filters
               </div>
             ) : (
@@ -451,7 +451,7 @@ export const ContactList = () => {
                           <>
                             <button 
                               onClick={() => handleDelete(contact.id)}
-                              className="p-2 bg-red-50 hover:bg-red-100 rounded-lg text-red-500 transition-all"
+                              className="p-2 bg-red-50 dark:bg-red-500/10 hover:bg-red-100 rounded-lg text-red-500 transition-all"
                               title="Delete Contact"
                             >
                               <Trash2 size={15} />

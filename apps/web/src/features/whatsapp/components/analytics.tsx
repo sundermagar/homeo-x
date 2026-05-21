@@ -50,13 +50,13 @@ export const Analytics = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         
         {/* Total Deliveries */}
-        <div className="appt-card p-6 flex flex-col justify-between bg-white border border-pp-border rounded-2xl shadow-sm hover:border-pp-blue transition-all duration-300">
+        <div className="appt-card p-6 flex flex-col justify-between bg-[var(--bg-card)] border border-pp-border rounded-2xl shadow-sm hover:border-pp-blue transition-all duration-300">
           <div className="flex justify-between items-start">
             <div>
               <p className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1">Total Broadcasts</p>
               <h3 className="text-3xl font-extrabold text-main">{total.toLocaleString()}</h3>
             </div>
-            <div className="p-3 bg-blue-50 text-pp-blue rounded-xl">
+            <div className="p-3 bg-blue-50 dark:bg-blue-500/10 text-pp-blue rounded-xl">
               <Send size={18} />
             </div>
           </div>
@@ -67,13 +67,13 @@ export const Analytics = () => {
         </div>
 
         {/* Deliveries success rate */}
-        <div className="appt-card p-6 flex flex-col justify-between bg-white border border-pp-border rounded-2xl shadow-sm hover:border-green-500 transition-all duration-300">
+        <div className="appt-card p-6 flex flex-col justify-between bg-[var(--bg-card)] border border-pp-border rounded-2xl shadow-sm hover:border-green-500 transition-all duration-300">
           <div className="flex justify-between items-start">
             <div>
               <p className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1">Delivery Success</p>
               <h3 className="text-3xl font-extrabold text-main">{deliveredPercent}%</h3>
             </div>
-            <div className="p-3 bg-green-50 text-green-600 rounded-xl">
+            <div className="p-3 bg-green-50 dark:bg-green-500/10 text-green-600 rounded-xl">
               <CheckCircle size={18} />
             </div>
           </div>
@@ -84,13 +84,13 @@ export const Analytics = () => {
         </div>
 
         {/* Read receipts percentage */}
-        <div className="appt-card p-6 flex flex-col justify-between bg-white border border-pp-border rounded-2xl shadow-sm hover:border-amber-500 transition-all duration-300">
+        <div className="appt-card p-6 flex flex-col justify-between bg-[var(--bg-card)] border border-pp-border rounded-2xl shadow-sm hover:border-amber-500 transition-all duration-300">
           <div className="flex justify-between items-start">
             <div>
               <p className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1">Message Read Rate</p>
               <h3 className="text-3xl font-extrabold text-main">{readPercent}%</h3>
             </div>
-            <div className="p-3 bg-amber-50 text-amber-600 rounded-xl">
+            <div className="p-3 bg-amber-50 dark:bg-amber-500/10 text-amber-600 rounded-xl">
               <Eye size={18} />
             </div>
           </div>
@@ -101,13 +101,13 @@ export const Analytics = () => {
         </div>
 
         {/* Patient Reach */}
-        <div className="appt-card p-6 flex flex-col justify-between bg-white border border-pp-border rounded-2xl shadow-sm hover:border-purple-500 transition-all duration-300">
+        <div className="appt-card p-6 flex flex-col justify-between bg-[var(--bg-card)] border border-pp-border rounded-2xl shadow-sm hover:border-purple-500 transition-all duration-300">
           <div className="flex justify-between items-start">
             <div>
               <p className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1">Total Reach</p>
               <h3 className="text-3xl font-extrabold text-main">{reach.toLocaleString()}</h3>
             </div>
-            <div className="p-3 bg-purple-50 text-purple-600 rounded-xl">
+            <div className="p-3 bg-purple-50 dark:bg-purple-500/10 text-purple-600 rounded-xl">
               <Award size={18} />
             </div>
           </div>
@@ -123,7 +123,7 @@ export const Analytics = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Weekly trend line graph */}
-        <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-pp-border shadow-sm space-y-6">
+        <div className="lg:col-span-2 bg-[var(--bg-card)] p-6 rounded-2xl border border-pp-border shadow-sm space-y-6">
           <div className="flex justify-between items-center">
             <div>
               <h4 className="font-bold text-main">Broadcast Performance Trends</h4>
@@ -152,7 +152,7 @@ export const Analytics = () => {
         </div>
 
         {/* Message categories split */}
-        <div className="bg-white p-6 rounded-2xl border border-pp-border shadow-sm flex flex-col justify-between space-y-6">
+        <div className="bg-[var(--bg-card)] p-6 rounded-2xl border border-pp-border shadow-sm flex flex-col justify-between space-y-6">
           <div>
             <h4 className="font-bold text-main">WABA Message Allocation</h4>
             <p className="text-xs text-secondary">Categorized based on standard Meta schema models.</p>
@@ -201,9 +201,9 @@ export const Analytics = () => {
       </div>
 
       {/* Engagement performance panel */}
-      <div className="bg-white p-6 rounded-2xl border border-pp-border shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+      <div className="bg-[var(--bg-card)] p-6 rounded-2xl border border-pp-border shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="flex items-center gap-4">
-          <div className="p-4 bg-blue-50 text-pp-blue rounded-full">
+          <div className="p-4 bg-blue-50 dark:bg-blue-500/10 text-pp-blue rounded-full">
             <Activity size={24} />
           </div>
           <div>

@@ -82,7 +82,7 @@ export const CampaignList = () => {
         <>
           {/* Desktop view (hidden on mobile) */}
           <div className="hidden md:block">
-            <div className="pp-table-container-enhanced bg-white rounded-[12px] shadow-sm border border-pp-border">
+            <div className="pp-table-container-enhanced bg-[var(--bg-card)] rounded-[12px] shadow-sm border border-pp-border">
               <div className="pp-table-scroll">
                 <table className="pp-table">
                   <thead>
@@ -206,7 +206,7 @@ export const CampaignList = () => {
           {/* Mobile view (cards, hidden on desktop) */}
           <div className="md:hidden space-y-4">
             {campaigns.length === 0 ? (
-              <div className="p-8 text-center bg-white border border-pp-border rounded-2xl text-muted italic text-sm">
+              <div className="p-8 text-center bg-[var(--bg-card)] border border-pp-border rounded-2xl text-muted italic text-sm">
                 No campaigns found. Start by creating a new outreach campaign.
               </div>
             ) : (

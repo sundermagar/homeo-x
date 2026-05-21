@@ -208,7 +208,7 @@ export const ChatbotManager = () => {
 
   if (!activeChannel) {
     return (
-      <div className="py-20 text-center animate-fade-in bg-white rounded-3xl border border-pp-border">
+      <div className="py-20 text-center animate-fade-in bg-[var(--bg-card)] rounded-3xl border border-pp-border">
         <Bot className="w-12 h-12 text-muted/30 mx-auto mb-4" />
         <h3 className="text-xl font-bold text-main">Connect WhatsApp First</h3>
         <p className="text-secondary mt-2">You need an active WhatsApp channel to configure AI training.</p>
@@ -227,16 +227,7 @@ export const ChatbotManager = () => {
 
   return (
     <div className="space-y-6 animate-fade-in pb-12">
-      {/* Header matching screenshot */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-main flex items-center gap-2">
-          <Bot className="h-7 w-7 text-pp-blue" />
-          AI Training & Knowledge Base
-        </h1>
-        <p className="text-sm text-secondary mt-2 max-w-2xl">
-          Train your AI assistant with custom data, Q&A pairs, and configure behavior. This training data is shared across the chat widget and team inbox.
-        </p>
-      </div>
+
 
       {/* Tab Navigation */}
       <div className="border-b border-pp-border mb-6">
@@ -297,7 +288,7 @@ export const ChatbotManager = () => {
       {/* Training Data Tab Content */}
       {activeTab === 'training' && (
         <div className="space-y-4 sm:space-y-6">
-          <div className="appt-card p-4 sm:p-6 bg-white shadow-sm border border-pp-border">
+          <div className="appt-card p-4 sm:p-6 bg-[var(--bg-card)] shadow-sm border border-pp-border">
             <div className="mb-4">
               <h3 className="text-base font-bold text-main flex items-center gap-2">
                 <BookOpen className="h-4 w-4" />
@@ -306,7 +297,7 @@ export const ChatbotManager = () => {
               <p className="text-xs text-secondary mt-1">Sync your knowledge base articles as AI training data</p>
             </div>
             
-            <div className="flex items-center justify-between p-4 bg-slate-50/50 rounded-xl border border-pp-border/50 mb-4">
+            <div className="flex items-center justify-between p-4 bg-slate-50/50 dark:bg-slate-500/5 rounded-xl border border-pp-border/50 mb-4">
               <div>
                 <p className="text-sm font-bold text-main">Train from Knowledge Base</p>
                 <p className="text-xs text-secondary mt-0.5">Use KB articles to answer customer questions</p>
@@ -322,13 +313,13 @@ export const ChatbotManager = () => {
               </label>
             </div>
             
-            <button className="w-full h-11 bg-white hover:bg-slate-50 border border-pp-border shadow-sm rounded-xl flex items-center justify-center text-sm font-bold text-main transition-all active:scale-[0.98]">
+            <button className="w-full h-11 bg-[var(--bg-card)] hover:bg-[var(--bg-card)] border border-pp-border shadow-sm rounded-xl flex items-center justify-center text-sm font-bold text-main transition-all active:scale-[0.98]">
               <RefreshCw className="h-4 w-4 mr-2 text-pp-blue" />
               Sync Knowledge Base Articles
             </button>
           </div>
 
-          <div className="appt-card p-4 sm:p-6 bg-white shadow-sm border border-pp-border">
+          <div className="appt-card p-4 sm:p-6 bg-[var(--bg-card)] shadow-sm border border-pp-border">
             <div className="mb-4">
               <h3 className="text-base font-bold text-main flex items-center gap-2">
                 <Globe className="h-4 w-4" />
@@ -367,7 +358,7 @@ export const ChatbotManager = () => {
             </div>
           </div>
 
-          <div className="appt-card p-4 sm:p-6 bg-white shadow-sm border border-pp-border">
+          <div className="appt-card p-4 sm:p-6 bg-[var(--bg-card)] shadow-sm border border-pp-border">
             <div className="mb-4">
               <h3 className="text-base font-bold text-main flex items-center gap-2">
                 <FileUp className="h-4 w-4" />
@@ -388,7 +379,7 @@ export const ChatbotManager = () => {
             />
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="w-full h-11 bg-slate-50/50 hover:bg-slate-100 border border-dashed border-pp-border rounded-xl flex items-center justify-center text-sm font-bold text-main transition-all active:scale-[0.98]"
+              className="w-full h-11 bg-slate-50/50 dark:bg-slate-500/5 hover:bg-slate-100 border border-dashed border-pp-border rounded-xl flex items-center justify-center text-sm font-bold text-main transition-all active:scale-[0.98]"
             >
               <FileUp className="h-4 w-4 mr-2 text-secondary" />
               Click to Upload Document
@@ -399,7 +390,7 @@ export const ChatbotManager = () => {
           </div>
 
           {sources && sources.length > 0 && (
-            <div className="appt-card p-4 sm:p-6 bg-white shadow-sm border border-pp-border">
+            <div className="appt-card p-4 sm:p-6 bg-[var(--bg-card)] shadow-sm border border-pp-border">
               <div className="mb-4">
                 <h3 className="text-base font-bold text-main flex items-center gap-2">
                   <Database className="h-4 w-4" />
@@ -415,7 +406,7 @@ export const ChatbotManager = () => {
                       <div className="min-w-0">
                         <p className="text-sm font-bold text-main truncate">{source.name}</p>
                         <div className="flex items-center gap-2 mt-0.5">
-                          <span className="px-2 py-0.5 border border-pp-border rounded bg-slate-50 text-[10px] font-bold text-secondary uppercase">
+                          <span className="px-2 py-0.5 border border-pp-border rounded bg-[var(--bg-main)] text-[10px] font-bold text-secondary uppercase">
                             {source.type}
                           </span>
                           {source.chunkCount > 0 && (
@@ -452,7 +443,7 @@ export const ChatbotManager = () => {
       {activeTab === 'behavior' && (
         <div className="space-y-6">
           {/* Card 1: AI Provider Configuration */}
-          <div className="appt-card p-4 sm:p-6 bg-white shadow-sm border border-pp-border">
+          <div className="appt-card p-4 sm:p-6 bg-[var(--bg-card)] shadow-sm border border-pp-border">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-bold text-main flex items-center gap-2">
                 <Settings className="h-4 w-4 text-secondary" />
@@ -630,7 +621,7 @@ export const ChatbotManager = () => {
           </div>
 
           {/* Card 2: System Prompt */}
-          <div className="appt-card p-4 sm:p-6 bg-white shadow-sm border border-pp-border">
+          <div className="appt-card p-4 sm:p-6 bg-[var(--bg-card)] shadow-sm border border-pp-border">
             <h3 className="text-base font-bold text-main mb-1 flex items-center gap-2">
               <Bot className="h-4 w-4 text-secondary" />
               System Prompt
@@ -652,7 +643,7 @@ export const ChatbotManager = () => {
           </div>
 
           {/* Card 3: Response Settings */}
-          <div className="appt-card p-4 sm:p-6 bg-white shadow-sm border border-pp-border">
+          <div className="appt-card p-4 sm:p-6 bg-[var(--bg-card)] shadow-sm border border-pp-border">
             <h3 className="text-base font-bold text-main mb-4 flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-secondary" />
               Response Settings
@@ -716,7 +707,7 @@ export const ChatbotManager = () => {
       {/* QA Tab */}
       {activeTab === 'qa' && (
         <div className="space-y-4 sm:space-y-6">
-          <div className="appt-card p-4 sm:p-6 bg-white shadow-sm border border-pp-border">
+          <div className="appt-card p-4 sm:p-6 bg-[var(--bg-card)] shadow-sm border border-pp-border">
             <h3 className="text-base font-bold text-main mb-1">Add Q&A Pair</h3>
             <p className="text-xs text-secondary mb-4">Add custom question-answer pairs for the AI to learn from</p>
             
@@ -767,14 +758,14 @@ export const ChatbotManager = () => {
           </div>
           
           {qaPairs && qaPairs.length > 0 && (
-            <div className="appt-card p-4 sm:p-6 bg-white shadow-sm border border-pp-border">
+            <div className="appt-card p-4 sm:p-6 bg-[var(--bg-card)] shadow-sm border border-pp-border">
               <h3 className="text-base font-bold text-main mb-4">Existing Q&A Pairs ({qaPairs.length})</h3>
               <div className="space-y-3">
                 {qaPairs.map((qa: any) => (
                   <div key={qa.id} className="p-4 border border-pp-border rounded-xl">
                     <div className="flex justify-between items-start">
                       <div>
-                        <span className="px-2 py-0.5 border border-pp-border rounded bg-slate-50 text-[10px] font-bold text-secondary uppercase mb-2 inline-block">
+                        <span className="px-2 py-0.5 border border-pp-border rounded bg-[var(--bg-main)] text-[10px] font-bold text-secondary uppercase mb-2 inline-block">
                           {qa.category}
                         </span>
                         <p className="text-sm font-bold text-main">Q: {qa.question}</p>
@@ -797,7 +788,7 @@ export const ChatbotManager = () => {
 
       {/* Escalation Tab */}
       {activeTab === 'escalation' && (
-        <div className="appt-card p-4 sm:p-6 bg-white shadow-sm border border-pp-border">
+        <div className="appt-card p-4 sm:p-6 bg-[var(--bg-card)] shadow-sm border border-pp-border">
           <div className="mb-4">
             <h3 className="text-base font-bold text-main flex items-center gap-2">
               <AlertTriangle className="h-4 w-4" />
@@ -918,7 +909,7 @@ export const ChatbotManager = () => {
 
       {/* Test Chat Tab */}
       {activeTab === 'test' && (
-        <div className="appt-card p-4 sm:p-6 bg-white shadow-sm border border-pp-border">
+        <div className="appt-card p-4 sm:p-6 bg-[var(--bg-card)] shadow-sm border border-pp-border">
           <div className="mb-4">
             <h3 className="text-base font-bold text-main flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-pp-blue" />
@@ -927,7 +918,7 @@ export const ChatbotManager = () => {
             <p className="text-xs text-secondary mt-1">Test how your AI responds using current training data and settings</p>
           </div>
 
-          <div className="border border-pp-border rounded-xl overflow-hidden bg-slate-50 flex flex-col h-[400px]">
+          <div className="border border-pp-border rounded-xl overflow-hidden bg-[var(--bg-main)] flex flex-col h-[400px]">
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {testMessages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-secondary">
@@ -943,7 +934,7 @@ export const ChatbotManager = () => {
                     }`}>
                       <p className="text-sm">{msg.text}</p>
                       {msg.context && (
-                        <div className="mt-2 pt-2 border-t border-slate-100 text-[10px] text-secondary font-medium">
+                        <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-500/20 text-[10px] text-secondary font-medium">
                           Context: {msg.context.chunksFound} chunks, {msg.context.qaPairsFound} Q&A pairs used
                         </div>
                       )}
@@ -959,7 +950,7 @@ export const ChatbotManager = () => {
                 </div>
               )}
             </div>
-            <div className="p-3 bg-white border-t border-pp-border flex gap-2">
+            <div className="p-3 bg-[var(--bg-card)] border-t border-pp-border flex gap-2">
               <div style={{ flex: '1 1 auto' }}>
                 <input 
                   type="text" 
@@ -988,7 +979,7 @@ export const ChatbotManager = () => {
 
       {/* Data Preview Tab */}
       {activeTab === 'preview' && (
-        <div className="appt-card p-4 sm:p-6 bg-white shadow-sm border border-pp-border">
+        <div className="appt-card p-4 sm:p-6 bg-[var(--bg-card)] shadow-sm border border-pp-border">
           <div className="mb-4">
             <h3 className="text-base font-bold text-main flex items-center gap-2">
               <Eye className="h-4 w-4 text-pp-blue" />
@@ -996,7 +987,7 @@ export const ChatbotManager = () => {
             </h3>
             <p className="text-xs text-secondary mt-1">All indexed content the AI uses to answer questions</p>
           </div>
-          <div className="text-center py-12 text-secondary bg-slate-50 rounded-xl border border-dashed border-pp-border">
+          <div className="text-center py-12 text-secondary bg-[var(--bg-main)] rounded-xl border border-dashed border-pp-border">
             <Database className="h-8 w-8 mx-auto mb-2 opacity-50" />
             <p className="text-sm font-bold text-main">Data preview loading...</p>
             <p className="text-xs mt-1">Check back later when sources are indexed.</p>

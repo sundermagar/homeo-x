@@ -58,8 +58,8 @@ class WhatsAppErrorBoundary extends Component<{ children: ReactNode }, { hasErro
   override render() {
     if (this.state.hasError) {
       return (
-        <div className="flex flex-col items-center justify-center py-24 bg-white rounded-3xl border border-pp-border shadow-sm animate-fade-in">
-          <div className="w-16 h-16 bg-red-50 text-error rounded-full flex items-center justify-center mb-6">
+        <div className="flex flex-col items-center justify-center py-24 bg-[var(--bg-card)] rounded-3xl border border-pp-border shadow-sm animate-fade-in">
+          <div className="w-16 h-16 bg-red-50 dark:bg-red-500/10 text-error rounded-full flex items-center justify-center mb-6">
             <AlertCircle size={32} />
           </div>
           <h3 className="text-xl font-bold text-main">Display Sync Interrupted</h3>
@@ -241,7 +241,7 @@ export const WhatsAppDashboardPage = () => {
                       {loadingAnalytics ? '...' : ((analytics as WhatsAppAnalytics)?.totalDeliveries || 0).toLocaleString()}
                     </h3>
                   </div>
-                  <div className="p-3 bg-blue-50 rounded-xl text-primary group-hover:bg-pp-blue group-hover:text-white transition-all duration-300">
+                  <div className="p-3 bg-blue-50 dark:bg-blue-500/10 rounded-xl text-primary group-hover:bg-pp-blue group-hover:text-white transition-all duration-300">
                     <Send size={18} />
                   </div>
                 </div>
@@ -259,7 +259,7 @@ export const WhatsAppDashboardPage = () => {
                       98.6%
                     </h3>
                   </div>
-                  <div className="p-3 bg-green-50 rounded-xl text-success group-hover:bg-success group-hover:text-white transition-all duration-300">
+                  <div className="p-3 bg-green-50 dark:bg-green-500/10 rounded-xl text-success group-hover:bg-success group-hover:text-white transition-all duration-300">
                     <CheckCircle2 size={18} />
                   </div>
                 </div>
@@ -278,7 +278,7 @@ export const WhatsAppDashboardPage = () => {
                       84.2%
                     </h3>
                   </div>
-                  <div className="p-3 bg-purple-50 rounded-xl text-purple-600 group-hover:bg-purple-500 group-hover:text-white transition-all duration-300">
+                  <div className="p-3 bg-purple-50 dark:bg-purple-500/10 rounded-xl text-purple-600 group-hover:bg-purple-500 group-hover:text-white transition-all duration-300">
                     <MessageSquare size={18} />
                   </div>
                 </div>
@@ -297,7 +297,7 @@ export const WhatsAppDashboardPage = () => {
                       {loadingAnalytics ? '...' : ((analytics as WhatsAppAnalytics)?.campaignReach || 0).toLocaleString()}
                     </h3>
                   </div>
-                  <div className="p-3 bg-amber-50 rounded-xl text-amber-600 group-hover:bg-amber-500 group-hover:text-white transition-all duration-300">
+                  <div className="p-3 bg-amber-50 dark:bg-amber-500/10 rounded-xl text-amber-600 group-hover:bg-amber-500 group-hover:text-white transition-all duration-300">
                     <Users size={18} />
                   </div>
                 </div>
@@ -322,7 +322,7 @@ export const WhatsAppDashboardPage = () => {
                       onClick={() => setDays(7)}
                       className={`text-[10px] px-3 py-1.5 rounded-lg transition-all ${
                         days === 7 
-                          ? 'font-bold bg-white shadow-sm text-main' 
+                          ? 'font-bold bg-[var(--bg-card)] shadow-sm text-main' 
                           : 'font-semibold text-secondary opacity-60 hover:opacity-100'
                       }`}
                     >
@@ -332,7 +332,7 @@ export const WhatsAppDashboardPage = () => {
                       onClick={() => setDays(30)}
                       className={`text-[10px] px-3 py-1.5 rounded-lg transition-all ${
                         days === 30 
-                          ? 'font-bold bg-white shadow-sm text-main' 
+                          ? 'font-bold bg-[var(--bg-card)] shadow-sm text-main' 
                           : 'font-semibold text-secondary opacity-60 hover:opacity-100'
                       }`}
                     >
@@ -380,7 +380,7 @@ export const WhatsAppDashboardPage = () => {
                   {activeChannel ? (
                     <div className="space-y-4">
                       {/* Connection Details */}
-                      <div className="flex items-center justify-between p-3.5 bg-green-50/50 border border-green-100 rounded-2xl">
+                      <div className="flex items-center justify-between p-3.5 bg-green-50/50 dark:bg-green-500/5 border border-green-100 dark:border-green-500/20 rounded-2xl">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 bg-success rounded-xl flex items-center justify-center text-white">
                             <Smartphone size={20} />
@@ -396,7 +396,7 @@ export const WhatsAppDashboardPage = () => {
                       </div>
 
                       {/* Health telemetry */}
-                      <div className="p-4 bg-slate-50 border border-pp-border rounded-2xl space-y-3">
+                      <div className="p-4 bg-[var(--bg-main)] border border-pp-border rounded-2xl space-y-3">
                         <div className="flex justify-between items-center text-xs font-medium text-secondary">
                           <span className="flex items-center gap-1.5">
                             <ShieldCheck className="w-4 h-4 text-pp-blue" />
@@ -421,7 +421,7 @@ export const WhatsAppDashboardPage = () => {
                       </div>
 
                       {/* Daily message capacity meter */}
-                      <div className="p-4 bg-amber-50/30 border border-amber-100 rounded-2xl">
+                      <div className="p-4 bg-amber-50/30 dark:bg-amber-500/5 border border-amber-100 dark:border-amber-500/20 rounded-2xl">
                         <div className="flex justify-between text-xs font-bold text-main mb-1.5">
                           <span>Daily Free Limit Capacity</span>
                           <span>{(analytics as WhatsAppAnalytics)?.activeConversations || 0} / 1,000</span>
@@ -432,7 +432,7 @@ export const WhatsAppDashboardPage = () => {
                       </div>
                     </div>
                   ) : (
-                    <div className="text-center py-12 bg-slate-50 border border-dashed rounded-2xl">
+                    <div className="text-center py-12 bg-[var(--bg-main)] border border-dashed rounded-2xl">
                       <Globe className="w-10 h-10 mx-auto mb-3 opacity-20" />
                       <h5 className="text-sm font-bold text-main">No Nodes Registered</h5>
                       <p className="text-xs text-secondary max-w-[200px] mx-auto mt-1 mb-4">Integrate WABA credentials to unlock telemetry.</p>
@@ -475,13 +475,13 @@ export const WhatsAppDashboardPage = () => {
               <h4 className="text-base font-bold text-main mb-6">Quick Communications Suite</h4>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <button 
-                  className="p-4 bg-white border border-pp-border rounded-2xl text-left hover:border-pp-blue hover:shadow-sm transition-all duration-300 group"
+                  className="p-4 bg-[var(--bg-card)] border border-pp-border rounded-2xl text-left hover:border-pp-blue hover:shadow-sm transition-all duration-300 group"
                   onClick={() => {
                     navigate('/communications/whatsapp/campaigns');
                     setTimeout(() => window.dispatchEvent(new CustomEvent('open-campaign-modal')), 150);
                   }}
                 >
-                  <div className="w-9 h-9 bg-blue-50 text-pp-blue rounded-xl flex items-center justify-center mb-3 group-hover:bg-pp-blue group-hover:text-white transition-colors duration-300">
+                  <div className="w-9 h-9 bg-blue-50 dark:bg-blue-500/10 text-pp-blue rounded-xl flex items-center justify-center mb-3 group-hover:bg-pp-blue group-hover:text-white transition-colors duration-300">
                     <Send size={16} />
                   </div>
                   <h5 className="text-xs font-bold text-main">Launch Broadcast</h5>
@@ -489,13 +489,13 @@ export const WhatsAppDashboardPage = () => {
                 </button>
 
                 <button 
-                  className="p-4 bg-white border border-pp-border rounded-2xl text-left hover:border-success hover:shadow-sm transition-all duration-300 group"
+                  className="p-4 bg-[var(--bg-card)] border border-pp-border rounded-2xl text-left hover:border-success hover:shadow-sm transition-all duration-300 group"
                   onClick={() => {
                     navigate('/communications/whatsapp/contacts');
                     setTimeout(() => window.dispatchEvent(new CustomEvent('open-contact-modal')), 150);
                   }}
                 >
-                  <div className="w-9 h-9 bg-green-50 text-success rounded-xl flex items-center justify-center mb-3 group-hover:bg-success group-hover:text-white transition-colors duration-300">
+                  <div className="w-9 h-9 bg-green-50 dark:bg-green-500/10 text-success rounded-xl flex items-center justify-center mb-3 group-hover:bg-success group-hover:text-white transition-colors duration-300">
                     <Users size={16} />
                   </div>
                   <h5 className="text-xs font-bold text-main">Add Contact</h5>
@@ -503,10 +503,10 @@ export const WhatsAppDashboardPage = () => {
                 </button>
 
                 <button 
-                  className="p-4 bg-white border border-pp-border rounded-2xl text-left hover:border-purple-500 hover:shadow-sm transition-all duration-300 group"
+                  className="p-4 bg-[var(--bg-card)] border border-pp-border rounded-2xl text-left hover:border-purple-500 hover:shadow-sm transition-all duration-300 group"
                   onClick={() => navigate('/communications/whatsapp/automations')}
                 >
-                  <div className="w-9 h-9 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center mb-3 group-hover:bg-purple-500 group-hover:text-white transition-colors duration-300">
+                  <div className="w-9 h-9 bg-purple-50 dark:bg-purple-500/10 text-purple-600 rounded-xl flex items-center justify-center mb-3 group-hover:bg-purple-500 group-hover:text-white transition-colors duration-300">
                     <Zap size={16} />
                   </div>
                   <h5 className="text-xs font-bold text-main">Setup Automations</h5>
@@ -514,10 +514,10 @@ export const WhatsAppDashboardPage = () => {
                 </button>
 
                 <button 
-                  className="p-4 bg-white border border-pp-border rounded-2xl text-left hover:border-amber-500 hover:shadow-sm transition-all duration-300 group"
+                  className="p-4 bg-[var(--bg-card)] border border-pp-border rounded-2xl text-left hover:border-amber-500 hover:shadow-sm transition-all duration-300 group"
                   onClick={() => navigate('/communications/whatsapp/widget-builder')}
                 >
-                  <div className="w-9 h-9 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center mb-3 group-hover:bg-amber-500 group-hover:text-white transition-colors duration-300">
+                  <div className="w-9 h-9 bg-amber-50 dark:bg-amber-500/10 text-amber-600 rounded-xl flex items-center justify-center mb-3 group-hover:bg-amber-500 group-hover:text-white transition-colors duration-300">
                     <Bot size={16} />
                   </div>
                   <h5 className="text-xs font-bold text-main">Widget Builder</h5>

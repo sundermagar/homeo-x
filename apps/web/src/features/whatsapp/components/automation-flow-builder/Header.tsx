@@ -55,7 +55,7 @@ export function Header({
   isDemo,
 }: HeaderProps) {
   return (
-    <div className="bg-white/80 backdrop-blur-md border-b border-gray-100 px-5 py-3 flex items-center justify-between gap-4 shrink-0 shadow-sm z-10">
+    <div className="bg-[var(--bg-card)]/80 backdrop-blur-md border-b border-gray-100 px-5 py-3 flex items-center justify-between gap-4 shrink-0 shadow-sm z-10">
       <div className="flex items-center gap-4">
         <button
           onClick={onClose}

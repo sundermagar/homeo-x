@@ -434,7 +434,7 @@ export const CampaignModal = ({ isOpen, onClose }: CampaignModalProps) => {
                   Template Media Header ({selectedTemplate.mediaType})
                 </label>
                 <div 
-                  className="relative border border-pp-border rounded-xl p-4 flex items-center justify-between bg-white hover:bg-pp-bg-subtle transition-all cursor-pointer"
+                  className="relative border border-pp-border rounded-xl p-4 flex items-center justify-between bg-[var(--bg-card)] hover:bg-pp-bg-subtle transition-all cursor-pointer"
                   onClick={() => document.getElementById('media-upload')?.click()}
                 >
                   <input 

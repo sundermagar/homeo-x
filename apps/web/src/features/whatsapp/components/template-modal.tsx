@@ -154,7 +154,7 @@ export const TemplateModal = ({ isOpen, onClose, onSelect }: TemplateModalProps)
                   <div 
                     key={t.id}
                     onClick={() => handleTemplateSelect(t)}
-                    className="p-4 bg-white border border-pp-border rounded-2xl hover:border-pp-blue/50 cursor-pointer transition-all group shadow-sm"
+                    className="p-4 bg-[var(--bg-card)] border border-pp-border rounded-2xl hover:border-pp-blue/50 cursor-pointer transition-all group shadow-sm"
                   >
                     <div className="flex justify-between items-start mb-2">
                       <h4 className="text-[13px] font-bold text-main group-hover:text-pp-blue transition-colors">{t.name}</h4>
@@ -197,7 +197,7 @@ export const TemplateModal = ({ isOpen, onClose, onSelect }: TemplateModalProps)
                     <Info size={14} className="text-pp-blue" />
                     Inject Clinical Variables
                   </h3>
-                  <div className="space-y-4 bg-white p-5 rounded-2xl border border-pp-border">
+                  <div className="space-y-4 bg-[var(--bg-card)] p-5 rounded-2xl border border-pp-border">
                     {variables.map((v, idx) => (
                       <div key={idx} className="appt-form-group mb-0">
                         <label className="appt-form-label flex justify-between">
@@ -251,7 +251,7 @@ export const TemplateModal = ({ isOpen, onClose, onSelect }: TemplateModalProps)
 
         <div className="appt-drawer-actions flex items-center justify-end gap-3 p-6 border-t border-[var(--pp-warm-3)] bg-white">
           <button 
-            className="px-5 py-2.5 rounded-xl border border-[var(--pp-warm-4)] bg-white text-[var(--pp-text-2)] hover:bg-[var(--pp-warm-2)] active:scale-95 transition-all text-xs font-bold uppercase tracking-wider" 
+            className="px-5 py-2.5 rounded-xl border border-[var(--pp-warm-4)] bg-[var(--bg-card)] text-[var(--pp-text-2)] hover:bg-[var(--pp-warm-2)] active:scale-95 transition-all text-xs font-bold uppercase tracking-wider" 
             onClick={onClose}
           >
             Cancel

@@ -205,7 +205,7 @@ export const Templates = () => {
     const s = status.toUpperCase();
     if (s === 'APPROVED') {
       return (
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-green-50 text-green-700 border border-green-200">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-green-50 dark:bg-green-500/10 text-green-700 border border-green-200">
           <CheckCircle size={12} />
           Approved
         </span>
@@ -213,7 +213,7 @@ export const Templates = () => {
     }
     if (s === 'REJECTED') {
       return (
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-50 text-red-700 border border-red-200">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-50 dark:bg-red-500/10 text-red-700 border border-red-200">
           <ShieldAlert size={12} />
           Rejected
         </span>
@@ -230,7 +230,7 @@ export const Templates = () => {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Filters bar */}
-      <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between bg-white p-6 rounded-2xl border border-pp-border shadow-sm">
+      <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between bg-[var(--bg-card)] p-6 rounded-2xl border border-pp-border shadow-sm">
         <div className="flex flex-col md:flex-row gap-4 flex-1 items-stretch md:items-center">
           <div className="w-full md:w-64">
             <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">Select Channel</label>
@@ -290,7 +290,7 @@ export const Templates = () => {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pp-blue" />
         </div>
       ) : filteredTemplates.length === 0 ? (
-        <div className="pp-table-container-enhanced p-16 flex flex-col items-center justify-center text-center bg-white/50 border border-pp-border rounded-3xl">
+        <div className="pp-table-container-enhanced p-16 flex flex-col items-center justify-center text-center bg-[var(--bg-card)]/50 border border-pp-border rounded-3xl">
           <FileText className="w-16 h-16 text-muted/30 mb-4" />
           <h3 className="text-lg font-bold text-main">No Templates Found</h3>
           <p className="text-secondary max-w-sm mx-auto text-sm mt-1">
@@ -303,7 +303,7 @@ export const Templates = () => {
             <div
               key={template.id || template.whatsappTemplateId || template.name}
               onClick={() => setSelectedTemplate(template)}
-              className="appt-card p-6 bg-white border border-pp-border rounded-2xl flex flex-col justify-between hover:border-pp-blue transition-all duration-300 cursor-pointer shadow-sm group hover:-translate-y-1"
+              className="appt-card p-6 bg-[var(--bg-card)] border border-pp-border rounded-2xl flex flex-col justify-between hover:border-pp-blue transition-all duration-300 cursor-pointer shadow-sm group hover:-translate-y-1"
             >
               <div>
                 <div className="flex justify-between items-start gap-4">
@@ -571,7 +571,7 @@ export const Templates = () => {
                 
                 {/* Whatsapp Header */}
                 <div className="bg-[#075e54] text-white p-2.5 text-[10px] font-bold absolute top-0 left-0 right-0 flex items-center gap-1.5 pl-6 pt-5">
-                  <div className="w-4 h-4 bg-white/20 rounded-full flex items-center justify-center text-[7px]">W</div>
+                  <div className="w-4 h-4 bg-[var(--bg-card)]/20 rounded-full flex items-center justify-center text-[7px]">W</div>
                   <span className="truncate">{newTemplate.name || 'new_template_preview'}</span>
                 </div>
 
@@ -881,7 +881,7 @@ export const Templates = () => {
                   
                   {/* Whatsapp Header */}
                   <div className="bg-[#075e54] text-white p-2 text-[10px] font-bold absolute top-0 left-0 right-0 flex items-center gap-1.5 pl-6 pt-5">
-                    <div className="w-4 h-4 bg-white/20 rounded-full flex items-center justify-center text-[7px]">W</div>
+                    <div className="w-4 h-4 bg-[var(--bg-card)]/20 rounded-full flex items-center justify-center text-[7px]">W</div>
                     <span className="truncate">Clinical Verification</span>
                   </div>
 

@@ -79,14 +79,14 @@ function NodeShell({
 
   return (
     <div
-      className={`rounded-xl bg-white shadow-sm min-w-[240px] max-w-[280px] overflow-hidden transition-all duration-200 border-2 ${
+      className={`rounded-xl bg-[var(--bg-card)] shadow-sm min-w-[240px] max-w-[280px] overflow-hidden transition-all duration-200 border-2 ${
         selected
           ? `${activeBorderColor} shadow-md scale-[1.02]`
           : "border-gray-200/90 hover:shadow-md hover:border-gray-300 hover:scale-[1.01]"
       }`}
     >
       <div className={`flex items-center gap-2.5 px-3.5 py-2.5 ${bgColor} border-b ${borderColor}`}>
-        <div className={`w-7 h-7 rounded-lg bg-white flex items-center justify-center ${color} shrink-0 shadow-sm border border-black/5`}>
+        <div className={`w-7 h-7 rounded-lg bg-[var(--bg-card)] flex items-center justify-center ${color} shrink-0 shadow-sm border border-black/5`}>
           {icon}
         </div>
         <span className={`font-bold text-xs tracking-wide ${color}`}>{title}</span>
@@ -108,7 +108,7 @@ export function StartNode({ selected }: { selected?: boolean }) {
       }`}>
         <Zap className="w-6 h-6 animate-pulse" />
       </div>
-      <div className="mt-2 px-3 py-0.5 bg-white rounded-full shadow-sm border border-gray-200/80 transition-all duration-300 group-hover:border-gray-300">
+      <div className="mt-2 px-3 py-0.5 bg-[var(--bg-card)] rounded-full shadow-sm border border-gray-200/80 transition-all duration-300 group-hover:border-gray-300">
         <span className="text-[9px] font-black text-green-700 uppercase tracking-widest">Start</span>
       </div>
       <Handle type="source" position={Position.Bottom} className="!bg-green-500 !w-3.5 !h-3.5 !border-2 !border-white !shadow-sm !-bottom-1.5 transition-transform hover:scale-125" />
@@ -175,22 +175,22 @@ export function CustomReplyNode({ data, selected }: { data: BuilderNodeData; sel
 
         <div className="flex flex-wrap gap-1">
           {data.imagePreview && (
-            <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-600 text-[9px] px-1.5 py-0.5 rounded font-bold border border-blue-100/30">
+            <span className="inline-flex items-center gap-1 bg-blue-50 dark:bg-blue-500/10 text-blue-600 text-[9px] px-1.5 py-0.5 rounded font-bold border border-blue-100/30">
               <Image className="w-2.5 h-2.5" /> Image
             </span>
           )}
           {data.videoPreview && (
-            <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-600 text-[9px] px-1.5 py-0.5 rounded font-bold border border-blue-100/30">
+            <span className="inline-flex items-center gap-1 bg-blue-50 dark:bg-blue-500/10 text-blue-600 text-[9px] px-1.5 py-0.5 rounded font-bold border border-blue-100/30">
               <Video className="w-2.5 h-2.5" /> Video
             </span>
           )}
           {data.audioPreview && (
-            <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-600 text-[9px] px-1.5 py-0.5 rounded font-bold border border-blue-100/30">
+            <span className="inline-flex items-center gap-1 bg-blue-50 dark:bg-blue-500/10 text-blue-600 text-[9px] px-1.5 py-0.5 rounded font-bold border border-blue-100/30">
               <FileAudio className="w-2.5 h-2.5" /> Audio
             </span>
           )}
           {data.documentPreview && (
-            <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-600 text-[9px] px-1.5 py-0.5 rounded font-bold border border-blue-100/30">
+            <span className="inline-flex items-center gap-1 bg-blue-50 dark:bg-blue-500/10 text-blue-600 text-[9px] px-1.5 py-0.5 rounded font-bold border border-blue-100/30">
               <FileIcon className="w-2.5 h-2.5" /> Doc
             </span>
           )}
@@ -377,7 +377,7 @@ export function EndNode({ data, selected }: { data: BuilderNodeData; selected?: 
       }`}>
         <CircleStop className="w-6 h-6" />
       </div>
-      <div className="mt-2 px-3 py-0.5 bg-white rounded-full shadow-sm border border-gray-200/80 transition-all duration-300 group-hover:border-gray-300">
+      <div className="mt-2 px-3 py-0.5 bg-[var(--bg-card)] rounded-full shadow-sm border border-gray-200/80 transition-all duration-300 group-hover:border-gray-300">
         <span className="text-[9px] font-black text-red-700 uppercase tracking-widest">{data.endMessage || "End"}</span>
       </div>
     </div>

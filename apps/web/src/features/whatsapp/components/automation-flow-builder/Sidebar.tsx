@@ -257,13 +257,13 @@ export function Sidebar({ onAddNode }: SidebarProps) {
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <button
-                            className="absolute top-1 right-1 p-0.5 rounded-full hover:bg-white/80 transition-colors"
+                            className="absolute top-1 right-1 p-0.5 rounded-full hover:bg-[var(--bg-card)]/80 transition-colors"
                             onClick={(e) => e.stopPropagation()}
                           >
                             <Info className="w-3 h-3 text-gray-300 hover:text-gray-500" />
                           </button>
                         </TooltipTrigger>
-                        <TooltipContent side="right" className="max-w-[220px] text-xs leading-relaxed p-3 shadow-md border border-gray-100 bg-white text-gray-700">
+                        <TooltipContent side="right" className="max-w-[220px] text-xs leading-relaxed p-3 shadow-md border border-gray-100 bg-[var(--bg-card)] text-gray-700">
                           <p className="font-bold text-gray-900 mb-1 flex items-center gap-1">
                             <span className={`w-1.5 h-1.5 rounded-full ${item.bg}`} style={{ border: `1px solid ${item.color.replace('text-', 'var(--')}` }} />
                             {item.name}
