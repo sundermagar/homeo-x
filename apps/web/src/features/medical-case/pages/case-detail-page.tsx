@@ -61,6 +61,8 @@ import { usePdfSettings, useMedicines } from '../../settings/hooks/use-settings'
 import '../styles/medical-case.css';
 import { useTableGrouping } from '../hooks/use-table-grouping';
 import { DateGroupCell } from '../components/date-group-cell';
+import { InvestigationPreviewModal } from '../components/investigation-preview-modal';
+import { InvestigationComparisonView } from '../components/investigation-comparison-view';
 
 // ─── Static tab config ─ defined outside component to avoid recreation on every render ───
 const TABS = [
@@ -2478,7 +2480,16 @@ const LAB_CONFIG: Record<string, any[]> = {
     { key: 'iga', label: 'IgA', range: '80 to 350 mg/dl' },
     { key: 'itg', label: 'Itg' },
   ],
+  'USG Pelvis (TVS)': [
+    { key: 'uterus', label: 'Uterus', type: 'full' },
+    { key: 'endometrial_cavity', label: 'Endometrial Cavity', type: 'full' },
+    { key: 'vaginal_canal', label: 'Vaginal Canal', type: 'full' },
+    { key: 'cervix', label: 'Cervix', type: 'full' },
+    { key: 'ovaries_cul_de_sac', label: 'Ovaries & Cul-de-sac', type: 'full' },
+    { key: 'final_impression', label: 'Final Impression', type: 'full' },
+  ],
   'Specific': [
+    { key: 'Summary', label: 'Summary', type: 'full' },
     { key: 'other_findings', label: 'Other Findings', type: 'full' },
     { key: 'define_field1', label: 'Define Field 1' },
     { key: 'define_field2', label: 'Define Field 2' },
@@ -2544,9 +2555,33 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
   const [editingInv, setEditingInv] = useState<any>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [isScannedPreview, setIsScannedPreview] = useState(false);
+  const [previewingInv, setPreviewingInv] = useState<any>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'compare'>('list');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { saveInvestigation, saveNote, deleteRecord } = useManageClinicalRecords();
+
+  const getLabValue = (fieldKey: string) => {
+    if (!labData) return '';
+    if (labData[fieldKey] !== undefined && labData[fieldKey] !== null) {
+      return String(labData[fieldKey]);
+    }
+    const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const target = normalize(fieldKey);
+    const foundKey = Object.keys(labData).find(k => normalize(k) === target);
+    return foundKey ? String(labData[foundKey]) : '';
+  };
+
+  const handleLabValueChange = (fieldKey: string, val: string) => {
+    const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const target = normalize(fieldKey);
+    const foundKey = Object.keys(labData).find(k => normalize(k) === target);
+    const keyToUpdate = foundKey || fieldKey;
+    setLabData({
+      ...labData,
+      [keyToUpdate]: val
+    });
+  };
 
   const handleCopyToFollowup = (inv: any) => {
     if (!onAppendNote) return;
@@ -2628,58 +2663,49 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
 
     try {
       setIsScanning(true);
-      // Read file and compress via Canvas
-      const base64Str = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          const img = new Image();
-          img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const MAX_WIDTH = 1200;
-            const MAX_HEIGHT = 1200;
-            let width = img.width;
-            let height = img.height;
+      
+      const formData = new FormData();
+      formData.append('file', file);
 
-            if (width > height) {
-              if (width > MAX_WIDTH) {
-                height = Math.round((height * MAX_WIDTH) / width);
-                width = MAX_WIDTH;
-              }
-            } else {
-              if (height > MAX_HEIGHT) {
-                width = Math.round((width * MAX_HEIGHT) / height);
-                height = MAX_HEIGHT;
-              }
-            }
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            ctx?.drawImage(img, 0, 0, width, height);
-            resolve(canvas.toDataURL('image/jpeg', 0.7));
-          };
-          img.onerror = reject;
-          img.src = event.target?.result as string;
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-
-      const base64Data = base64Str.split(',')[1];
-      const mimeType = 'image/jpeg';
-
-      const { data } = await apiClient.post('/medical-cases/ai-scan-investigation', { 
-        imageBase64: base64Data, 
-        mimeType 
+      const { data } = await apiClient.post('/medical-cases/records/investigations/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
       });
       
-      if (!data.success || !data.data?.parsed) {
-        throw new Error(data.error || 'Failed to parse report');
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to process report');
       }
 
-      const { date, type, data: parsedData } = data.data.parsed;
-      
-      setActiveType(type || 'Specific');
-      setLabData(parsedData || {});
+      if (!data.data?.parsed) {
+        // AI failed, but upload succeeded
+        if (data.data?.error) {
+          console.warn('AI Scan Error:', data.data.error);
+          const raw = String(data.data.error);
+          const isQuota = /quota|limit|429|exhausted|credit balance|too low/i.test(raw);
+          const reason = isQuota
+            ? 'AI providers are out of quota/credits right now.'
+            : `AI scan error: ${raw.slice(0, 200)}`;
+          alert(`${reason}\n\nThe file was uploaded successfully. You can enter the findings manually.`);
+        }
+        setActiveType('Specific');
+        setLabData({
+          investDate: new Date().toISOString().split('T')[0],
+          attachmentUrl: data.data?.attachmentUrl || '',
+          summary: ''
+        });
+      } else {
+        // AI succeeded
+        const { date, type, data: parsedData, summary } = data.data.parsed;
+        
+        setActiveType(type || 'Specific');
+        setLabData({
+          ...(parsedData || {}),
+          investDate: date || new Date().toISOString().split('T')[0],
+          attachmentUrl: data.data.attachmentUrl,
+          summary: summary || ''
+        });
+      }
       setEditingInv(null);
       setIsScannedPreview(true);
       setShowDrawer(true);
@@ -2701,8 +2727,22 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
       {/* ─── Header (matching Vitals layout) ─── */}
       <div className="mc-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
         <div className="mc-section-header" style={{ margin: 0 }}>Clinical Investigations</div>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <input type="file" accept="image/*" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileSelect} />
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '8px' }}>
+            <button
+              onClick={() => setViewMode('list')}
+              style={{ padding: '6px 12px', borderRadius: '6px', background: viewMode === 'list' ? 'white' : 'transparent', boxShadow: viewMode === 'list' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none', color: viewMode === 'list' ? 'var(--pp-blue)' : '#64748b', border: 'none', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600 }}
+            >
+              List View
+            </button>
+            <button
+              onClick={() => setViewMode('compare')}
+              style={{ padding: '6px 12px', borderRadius: '6px', background: viewMode === 'compare' ? 'white' : 'transparent', boxShadow: viewMode === 'compare' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none', color: viewMode === 'compare' ? 'var(--pp-blue)' : '#64748b', border: 'none', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600 }}
+            >
+              Compare Reports
+            </button>
+          </div>
+          <input type="file" accept="image/*,application/pdf" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileSelect} />
           <button 
             onClick={() => fileInputRef.current?.click()} 
             className="btn-secondary" 
@@ -2712,29 +2752,33 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
             {isScanning ? <Loader2 size={16} className="animate-spin" style={{ marginRight: '6px' }} /> : <Sparkles size={16} style={{ marginRight: '6px', color: '#8b5cf6' }} />}
             {isScanning ? 'Scanning...' : 'Scan Investigation'}
           </button>
-          <button onClick={handleAdd} className="btn-primary" style={{ padding: '8px 16px' }}>
+          {/* <button onClick={handleAdd} className="btn-primary" style={{ padding: '8px 16px' }}>
             <Plus size={16} style={{ marginRight: '6px' }} /> Add Investigation
-          </button>
+          </button> */}
         </div>
       </div>
 
-      {/* ─── Investigation History Table (default view) ─── */}
-      {!investigations ? (
-        <TableSkeleton rows={5} cols={5} />
-      ) : investigations.length === 0 ? (
-        <EmptyState
-          icon={FlaskConical}
-          title="No investigations recorded yet"
-          description="Record lab results, radiological findings, and specialized tests to build a complete clinical picture."
-          actionLabel="Record the first investigation"
-          onAction={handleAdd}
-        />
+      {/* ─── Investigation History Table / Comparison View ─── */}
+      {viewMode === 'compare' ? (
+        <InvestigationComparisonView investigations={sortedInvs} />
       ) : (
         <>
-          <div className="pp-card pp-table-scroll" style={{ padding: 0, borderRadius: '12px', border: '1px solid #ddd6fe', marginBottom: '20px' }}>
-            <div style={{ padding: '12px 16px', background: '#f5f3ff', borderBottom: '1px solid #ddd6fe', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <FlaskConical size={15} style={{ color: '#8b5cf6' }} />
-              <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#5b21b6' }}>Investigation History</span>
+          {!investigations ? (
+            <TableSkeleton rows={5} cols={5} />
+          ) : investigations.length === 0 ? (
+            <EmptyState
+              icon={FlaskConical}
+              title="No investigations recorded yet"
+              description="Record lab results, radiological findings, and specialized tests to build a complete clinical picture."
+              actionLabel="Record the first investigation"
+              onAction={handleAdd}
+            />
+          ) : (
+            <>
+              <div className="pp-card pp-table-scroll" style={{ padding: 0, borderRadius: '12px', border: '1px solid #ddd6fe', marginBottom: '20px' }}>
+                <div style={{ padding: '12px 16px', background: '#f5f3ff', borderBottom: '1px solid #ddd6fe', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <FlaskConical size={15} style={{ color: '#8b5cf6' }} />
+                  <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#5b21b6' }}>Investigation History</span>
               <span style={{ fontSize: '0.72rem', color: '#a78bfa', fontWeight: 600, marginLeft: '4px' }}>({investigations.length})</span>
             </div>
             <table className="pp-table" style={{ marginBottom: 0 }}>
@@ -2769,18 +2813,16 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
                               dateVal={dateVal}
                               isFirst={idx === 0}
                               isExpanded={isExpanded}
-                              itemsCount={isDateFiltered ? 1 : group.items.length}
+                              itemsCount={group.items.length}
                               onToggle={() => toggleDate(group.date)}
                             />
                           </td>
-                          <td><span className="badge-primary">{inv.type}</span></td>
+                          <td style={{ fontWeight: 700, color: 'var(--pp-ink)' }}>{inv.type}</td>
                           <td>
-                            <div style={{ fontSize: '0.82rem', color: '#475569', display: 'flex', flexWrap: 'wrap', gap: '6px 12px' }}>
-                              {Object.entries(inv.data || {}).filter(([_, v]) => v).map(([k, v]) => (
-                                <span key={k} style={{ display: 'inline-flex', gap: '4px' }}>
-                                  <strong style={{ color: 'var(--pp-ink)' }}>{k.toUpperCase()}:</strong> {String(v)}
-                                </span>
-                              ))}
+                            <div style={{ fontSize: '0.82rem', color: '#475569', lineHeight: '1.5' }}>
+                              {inv.data?.summary || inv.summary || (
+                                <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>No summary available</span>
+                              )}
                             </div>
                           </td>
                           <td style={{ textAlign: 'center' }}>
@@ -2796,13 +2838,14 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
                                 </button>
                               )}
                               <button
-                                onClick={() => handleEdit(inv)}
+                                onClick={() => setPreviewingInv(inv)}
                                 className="btn-ghost"
                                 style={{ color: 'var(--pp-blue)', padding: '4px 8px' }}
-                                title="Preview (Beautify)"
+                                title="View Report Details"
                               >
                                 <Eye size={14} />
                               </button>
+
                               <button
                                 onClick={() => {
                                   if (confirm('Delete this investigation?')) {
@@ -2834,6 +2877,15 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
             onPageSizeChange={setPageSize}
           />
         </>
+      )}
+    </>
+  )}
+
+      {previewingInv && (
+        <InvestigationPreviewModal 
+          inv={previewingInv} 
+          onClose={() => setPreviewingInv(null)} 
+        />
       )}
 
       {/* ─── Investigation Form Drawer (right-side popup) ─── */}
@@ -2875,8 +2927,8 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
                       <textarea
                         className="pp-textarea"
                         placeholder={`Enter ${field.label}...`}
-                        value={labData[field.key] || ''}
-                        onChange={e => setLabData({ ...labData, [field.key]: e.target.value })}
+                        value={getLabValue(field.key)}
+                        onChange={e => handleLabValueChange(field.key, e.target.value)}
                         style={{ minHeight: '100px' }}
                       />
                     ) : (
@@ -2885,8 +2937,8 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
                           type="text"
                           className="pp-input"
                           placeholder="0.00"
-                          value={labData[field.key] || ''}
-                          onChange={e => setLabData({ ...labData, [field.key]: e.target.value })}
+                          value={getLabValue(field.key)}
+                          onChange={e => handleLabValueChange(field.key, e.target.value)}
                           style={{ flex: 1 }}
                         />
                         {field.range && <span style={{ fontSize: '0.65rem', fontWeight: 600, color: 'var(--pp-text-3)', background: 'var(--pp-warm-2)', padding: '4px 8px', borderRadius: '6px', whiteSpace: 'nowrap' }}>{field.range}</span>}

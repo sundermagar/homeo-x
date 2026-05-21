@@ -142,7 +142,15 @@ class ApiClient {
     };
 
     if (body !== undefined) {
-      requestOptions.body = JSON.stringify(body);
+      if (body instanceof FormData) {
+        requestOptions.body = body;
+        // Let the browser set the boundary for multipart/form-data
+        if (requestOptions.headers) {
+          delete (requestOptions.headers as any)['Content-Type'];
+        }
+      } else {
+        requestOptions.body = JSON.stringify(body);
+      }
     }
 
     const response = await fetch(`${this.baseUrl}${url}`, requestOptions);

@@ -777,6 +777,8 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
         type: data.type!,
         data: data.data,
         investDate: data.investDate,
+        attachmentUrl: (data as any).attachmentUrl,
+        summary: (data as any).summary,
       });
     }
   }
