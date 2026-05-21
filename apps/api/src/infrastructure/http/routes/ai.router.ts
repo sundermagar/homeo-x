@@ -871,7 +871,8 @@ OUTPUT FORMAT:
       temperature: 0.1,
       maxTokens: 1000,
       responseFormat: 'json',
-      useCache: false
+      useCache: false,
+      preferredProvider: 'groq'
     });
 
     const parsed = extractJson<{

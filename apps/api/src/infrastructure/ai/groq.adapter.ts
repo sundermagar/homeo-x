@@ -47,12 +47,32 @@ export class GroqAdapter implements AiProviderPort {
 
       try {
         const start = Date.now();
+        
+        let messages: any[] = [];
+        if (request.systemPrompt) {
+          messages.push({ role: 'system', content: request.systemPrompt });
+        }
+        
+        if (request.documents && request.documents.length > 0) {
+          const userContent: any[] = [
+            { type: 'text', text: request.userPrompt || 'Analyze this document/image.' }
+          ];
+          for (const doc of request.documents) {
+            userContent.push({
+              type: 'image_url',
+              image_url: {
+                url: `data:${doc.mimeType || 'image/jpeg'};base64,${doc.base64}`
+              }
+            });
+          }
+          messages.push({ role: 'user', content: userContent });
+        } else {
+          messages.push({ role: 'user', content: request.userPrompt });
+        }
+
         const response = await client.chat.completions.create({
           model: this.model,
-          messages: [
-            { role: 'system', content: request.systemPrompt },
-            { role: 'user', content: request.userPrompt },
-          ],
+          messages,
           temperature: request.temperature ?? 0.3,
           max_tokens: request.maxTokens ?? 2048,
           response_format: request.responseFormat === 'json' ? { type: 'json_object' } : undefined,
