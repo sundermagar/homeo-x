@@ -1,6 +1,6 @@
-import type { AccountRepository } from '../ports/account.repository';
+import type { AccountRepository } from '../ports/account.repository.js';
 import type { Account, UpdateAccountInput } from '@mmc/types';
-import { NotFoundError } from '../../../shared/errors';
+import { NotFoundError } from '../../../shared/errors.js';
 
 export class UpdateAccountUseCase {
   constructor(private readonly repo: AccountRepository) {}

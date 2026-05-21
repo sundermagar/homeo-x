@@ -1,18 +1,20 @@
-import './shared/config/load-env';
+import './shared/config/load-env.js'; // trigger reload 3
 import type { Server } from 'node:http';
-import { createApp } from './infrastructure/http/app';
-import { createLogger } from './shared/logger';
-import { appConfig } from './shared/config/app-config';
-import { aiConfig } from './shared/config/ai-config';
-import { AppointmentRepositoryPG } from './infrastructure/repositories/appointment.repository.pg';
-import { PatientRepositoryPg } from './infrastructure/repositories/patient.repository.pg';
-import { CommunicationRepositoryPG } from './infrastructure/repositories/communication.repository.pg';
-import { SendSmsUseCase } from './domains/communication/use-cases/send-sms.use-case';
-import { createSmsGateway } from './infrastructure/communication/msg91-sms-gateway';
-import { JobScheduler } from './infrastructure/scheduler/job-scheduler';
+import { createApp } from './infrastructure/http/app.js';
+import { createLogger } from './shared/logger.js';
+import { appConfig } from './shared/config/app-config.js';
+import { aiConfig } from './shared/config/ai-config.js';
+import { AppointmentRepositoryPG } from './infrastructure/repositories/appointment.repository.pg.js';
+import { PatientRepositoryPg } from './infrastructure/repositories/patient.repository.pg.js';
+import { CommunicationRepositoryPG } from './infrastructure/repositories/communication.repository.pg.js';
+import { SendSmsUseCase } from './domains/communication/use-cases/send-sms.use-case.js';
+import { createSmsGateway } from './infrastructure/communication/msg91-sms-gateway.js';
+import { JobScheduler } from './infrastructure/scheduler/job-scheduler.js';
+import { WhatsAppRepositoryPG } from './infrastructure/repositories/whatsapp.repository.pg.js';
+import { WhatsAppCloudGateway } from './infrastructure/communication/whatsapp-cloud-gateway.js';
 
 const logger = createLogger('main');
-logger.info('Reloading API server...');
+logger.info('Reloading API server... (port sync)');
 
 async function listenWithFallback(
   server: Server,
@@ -58,11 +60,30 @@ async function bootstrap() {
   logger.info(`CORS origins: ${appConfig.cors.origins.join(', ')}`);
   logger.info(`AI health: ${JSON.stringify(aiConfig.getHealthStatus())}`);
 
-  const { app, server, tenantDb } = await createApp();
+  const { app, server, io, tenantDb } = await createApp();
+
+  if (tenantDb) {
+    try {
+      const { sql } = await import('drizzle-orm');
+      await tenantDb.execute(sql`ALTER TABLE "tenant_demo"."investigations" ADD COLUMN IF NOT EXISTS "attachment_url" text`);
+      await tenantDb.execute(sql`ALTER TABLE "tenant_demo"."investigations" ADD COLUMN IF NOT EXISTS "summary" text`);
+      logger.info('Migrated investigations table successfully on startup');
+    } catch (e) {
+      logger.error({ err: e }, 'Failed to migrate investigations table');
+    }
+  }
+
+  // Disable internal Node server timeouts (set to 30 minutes) to allow
+  // slow local CPU inference (Ollama) to finish without connection closing.
+  server.timeout = 30 * 60 * 1000;
+  server.headersTimeout = 30 * 60 * 1000;
+  server.keepAliveTimeout = 30 * 60 * 1000;
+
   const boundPort = await listenWithFallback(server, appConfig.port);
-  logger.info(`API server running on port ${boundPort}`);
+  logger.info(`API server running on port ${boundPort} (Socket timeout increased to 30 mins)`);
 
   // ─── Initialize Background Jobs ───
+  let scheduler: JobScheduler | null = null;
   if (tenantDb) {
     const apptRepo = new AppointmentRepositoryPG(tenantDb);
     const patientRepo = new PatientRepositoryPg(tenantDb);
@@ -70,7 +91,11 @@ async function bootstrap() {
     const smsGateway = createSmsGateway();
     const smsUseCase = new SendSmsUseCase(commRepo, smsGateway);
 
-    const scheduler = new JobScheduler(apptRepo, patientRepo, smsUseCase);
+    // WhatsApp deps for scheduled template sync
+    const waRepo = new WhatsAppRepositoryPG(tenantDb);
+    const waGateway = new WhatsAppCloudGateway(waRepo);
+
+    scheduler = new JobScheduler(apptRepo, patientRepo, smsUseCase, waRepo, waGateway);
     scheduler.start();
     logger.info('Background job scheduler initialized');
   }
@@ -89,15 +114,47 @@ async function bootstrap() {
   // ─── Graceful Shutdown ───
   const shutdown = async (signal: string) => {
     logger.info(`Received ${signal}. Shutting down gracefully...`);
+
+    // Stop background job scheduler intervals
+    if (scheduler) {
+      try {
+        scheduler.stop();
+        logger.info('Background job scheduler stopped');
+      } catch (err: any) {
+        logger.error({ err: err.message }, 'Failed to stop background job scheduler');
+      }
+    }
+
+    // Close Socket.io server to release active websocket connections
+    if (io) {
+      try {
+        logger.info('Closing Socket.io server...');
+        io.close();
+        logger.info('Socket.io server closed');
+      } catch (err: any) {
+        logger.error({ err: err.message }, 'Failed to close Socket.io server');
+      }
+    }
+
+    // Close all database connection pools immediately
+    try {
+      const { closeAllDbClients } = await import('@mmc/database');
+      logger.info('Closing database connection pools...');
+      await closeAllDbClients();
+      logger.info('Database connection pools closed successfully');
+    } catch (err: any) {
+      logger.error({ err: err.message }, 'Failed to close database connections during shutdown');
+    }
+
     server.close(() => {
       logger.info('HTTP server closed');
       process.exit(0);
     });
-    // Force exit after 10s
+    // Force exit after 2s (quick recycle for tsx watch)
     setTimeout(() => {
-      logger.error('Forced shutdown after 10s timeout');
-      process.exit(1);
-    }, 10_000);
+      logger.warn('Forced shutdown after 2s timeout');
+      process.exit(0);
+    }, 2_000);
   };
 
   process.on('SIGTERM', () => shutdown('SIGTERM'));
@@ -108,11 +165,11 @@ bootstrap().catch((err) => {
   logger.fatal({ err }, 'Failed to start server');
   process.exit(1);
 });
- 
- 
- 
- 
- 
- 
- 
- 
+
+
+
+
+
+
+
+

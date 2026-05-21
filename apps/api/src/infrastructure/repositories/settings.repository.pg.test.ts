@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { SettingsRepositoryPg } from './settings.repository.pg';
+import { SettingsRepositoryPg } from './settings.repository.pg.js';
 
 describe('SettingsRepositoryPg', () => {
   let repo: SettingsRepositoryPg;

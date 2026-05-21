@@ -1,8 +1,9 @@
 // ─── Case Summary Engine ─────────────────────────────────────────────────────
 // Module 7: Generate editable clinical summary from all consultation data.
 
-import { createLogger } from '../../../shared/logger';
-import type { AiProviderChain } from '../../../infrastructure/ai/ai-provider-chain';
+import { createLogger } from '../../../shared/logger.js';
+import { safeJsonParse } from '../../../shared/safe-json-parse.js';
+import type { AiProviderChain } from '../../../infrastructure/ai/ai-provider-chain.js';
 
 const logger = createLogger('case-summary-engine');
 
@@ -59,7 +60,12 @@ Generate a clinical case summary:`;
         responseFormat: 'json',
       });
 
-      return JSON.parse(response.content);
+      const parsed = safeJsonParse<CaseSummary>(response.content);
+      if (!parsed) {
+        logger.error({ contentPreview: response.content.slice(0, 300) }, 'Case summary: JSON unrecoverable even after repair');
+        throw new Error('Case summary engine returned unparseable JSON');
+      }
+      return parsed;
     } catch (error: any) {
       logger.error({ error: error.message }, 'Case summary generation failed');
       return {

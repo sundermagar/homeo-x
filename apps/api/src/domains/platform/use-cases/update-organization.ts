@@ -1,6 +1,6 @@
-import type { OrganizationRepository } from '../ports/organization.repository';
+import type { OrganizationRepository } from '../ports/organization.repository.js';
 import type { Organization, UpdateOrganizationInput } from '@mmc/types';
-import { NotFoundError } from '../../../shared/errors';
+import { NotFoundError } from '../../../shared/errors.js';
 
 export class UpdateOrganizationUseCase {
   constructor(private readonly repo: OrganizationRepository) {}

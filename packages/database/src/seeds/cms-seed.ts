@@ -1,13 +1,13 @@
 import { eq } from 'drizzle-orm';
-import { staticPages, faqs } from '../schema/settings';
-import type { DbClient } from '../client';
+import { staticPages, faqs } from '../schema/settings.js';
+import type { DbClient } from '../client.js';
 
 export async function seedCms(db: DbClient) {
   console.log('[Seed] Seeding CMS (Static Pages)...');
 
   // 1. Static Pages
   const pages = [
-    { slug: 'about-us', title: 'About Kreed.health', content: 'Kreed.health is a comprehensive clinical management platform specialized for homeopathy.' },
+    { slug: 'about-us', title: 'About MMC', content: 'MMC is a comprehensive clinical management platform specialized for homeopathy.' },
     { slug: 'privacy-policy', title: 'Privacy Policy', content: 'We value your privacy and data security.' },
     { slug: 'terms-of-service', title: 'Terms of Service', content: 'Standard terms of service for clinical management.' }
   ];

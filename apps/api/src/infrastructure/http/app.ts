@@ -9,59 +9,68 @@ import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
-import { correlationIdMiddleware } from './middleware/correlation-id';
-import { requestLogger } from './middleware/request-logger';
-import { errorHandler } from './middleware/error-handler';
-import { tenantMiddleware } from './middleware/tenant';
-import { authMiddleware } from './middleware/auth';
-import { auditMiddleware } from './middleware/audit';
-import { appConfig } from '../../shared/config/app-config';
-import { aiConfig } from '../../shared/config/ai-config';
-import { createLogger } from '../../shared/logger';
-import { healthRouter } from './routes/health';
+import { correlationIdMiddleware } from './middleware/correlation-id.js';
+import { requestLogger } from './middleware/request-logger.js';
+import { errorHandler } from './middleware/error-handler.js';
+import { tenantMiddleware } from './middleware/tenant.js';
+import { authMiddleware } from './middleware/auth.js';
+import { auditMiddleware } from './middleware/audit.js';
+import { appConfig } from '../../shared/config/app-config.js';
+import { aiConfig } from '../../shared/config/ai-config.js';
+import { createLogger } from '../../shared/logger.js';
+import { healthRouter } from './routes/health.js';
 // ─── Friend's modules ───
-import { authRouter } from './routes/auth';
-import { appointmentsRouter } from './routes/appointments';
-import { medicalCasesRouter } from './routes/medical-cases';
-import { doctorsRouter } from './routes/doctors';
-import { packagesRouter } from './routes/packages';
-import { communicationRouter } from './routes/communication';
-import { analyticsRouter } from './routes/analytics';
-import { dashboardRouter } from './routes/dashboard.router';
-import { patientRouter } from './routes/patient.router'; // From shiva
-import { createBillingRouter } from './routes/billing.router';
-import { createPaymentRouter } from './routes/payment.router';
-import { createAccountsRouter } from './routes/accounts.router';
-import { createDayChargesRouter } from './routes/day-charges.router';
-import { createDepositsRouter } from './routes/deposits.router';
-import { createExpensesRouter } from './routes/expenses.router';
-import { createOrganizationRouter } from './routes/organization.router';
-import { createAccountRouter } from './routes/account.router';
-import { createClinicAdminsRouter } from './routes/clinicadmins.router';
-import { rolesRouter } from './routes/roles.router';
-import { permissionsRouter } from './routes/permissions.router';
-import { crmRouter } from './routes/crm.router';
-import { logisticsRouter } from './routes/logistics.router';
-import { knowledgeRouter } from './routes/knowledge.router';
-import { recordsRouter } from './routes/records.router';
-import { staffRouter } from './routes/staff.router';
-import { createSettingsRouter } from './routes/settings.router';
-import { exportRouter } from './routes/export.router';
-import { consultationsRouter } from './routes/consultations.router';
-import { aiRouter } from './routes/ai.router';
-import { scribingRouter } from './routes/scribing.router';
-import { visitsRouter } from './routes/visits.router';
-import { videoCallRouter } from './routes/video-call.router';
-import { specialtiesRouter } from './routes/specialties.router';
-import { setupTranscriptionGateway } from './gateways/transcription.gateway';
-import { TranslatorEngine } from '../../domains/consultation/engines/translator.engine';
-import { getAiProviderChain } from '../ai/ai-provider-chain';
+import { authRouter } from './routes/auth.js';
+import { appointmentsRouter } from './routes/appointments.js';
+import { medicalCasesRouter } from './routes/medical-cases.js';
+import { doctorsRouter } from './routes/doctors.js';
+import { packagesRouter } from './routes/packages.js';
+import { communicationRouter } from './routes/communication.js';
+import { analyticsRouter } from './routes/analytics.js';
+import { dashboardRouter } from './routes/dashboard.router.js';
+import { patientRouter } from './routes/patient.router.js'; // From shiva
+import { createBillingRouter } from './routes/billing.router.js';
+import { createPaymentRouter } from './routes/payment.router.js';
+import { createAccountsRouter } from './routes/accounts.router.js';
+import { createDayChargesRouter } from './routes/day-charges.router.js';
+import { createDepositsRouter } from './routes/deposits.router.js';
+import { createExpensesRouter } from './routes/expenses.router.js';
+import { createChargesRouter } from './routes/charges.router.js';
+import { createOrganizationRouter } from './routes/organization.router.js';
+import { createAccountRouter } from './routes/account.router.js';
+import { createClinicAdminsRouter } from './routes/clinicadmins.router.js';
+import { rolesRouter } from './routes/roles.router.js';
+import { permissionsRouter } from './routes/permissions.router.js';
+import { crmRouter } from './routes/crm.router.js';
+import { createLogisticsRouter } from './routes/logistics.router.js';
+import { createCourierRouter } from './routes/courier.router.js';
+import { knowledgeRouter } from './routes/knowledge.router.js';
+import { recordsRouter } from './routes/records.router.js';
+import { staffRouter } from './routes/staff.router.js';
+import { createSettingsRouter } from './routes/settings.router.js';
+import { exportRouter } from './routes/export.router.js';
+import { consultationsRouter } from './routes/consultations.router.js';
+import { aiRouter } from './routes/ai.router.js';
+import { scribingRouter } from './routes/scribing.router.js';
+import { visitsRouter } from './routes/visits.router.js';
+import { videoCallRouter } from './routes/video-call.router.js';
+import { specialtiesRouter } from './routes/specialties.router.js';
+import { setupTranscriptionGateway } from './gateways/transcription.gateway.js';
+import { setupVideoCallGateway } from './gateways/video-call.gateway.js';
+import { TranslatorEngine } from '../../domains/consultation/engines/translator.engine.js';
+import { getAiProviderChain } from '../ai/ai-provider-chain.js';
+import { createTerminologyRouter } from './routes/terminology.router.js';
+import { createNotificationsRouter } from './routes/notifications.router.js';
+import { whatsappRouter } from './routes/whatsapp.js';
+import { whatsappWidgetRouter } from './routes/whatsapp-widget.js';
+import { setupNotificationsGateway, setNotificationEmitters } from './gateways/notifications.gateway.js';
+import { setupWhatsAppGateway, setWhatsAppGateway } from './gateways/whatsapp.gateway.js';
 
 const logger = createLogger('http');
 
-import { createDbClient, TenantRegistry } from '@mmc/database';
+import { createDbClient, warmDbPools, TenantRegistry } from '@mmc/database';
 
-export async function createApp(): Promise<{ app: Express; server: HttpServer; io: SocketIOServer; tenantDb: any }> {
+export async function createApp(): Promise<{ app: Express; server: HttpServer; io: SocketIOServer; tenantDb: any; publicDb: any }> {
   const app: Express = express();
   const server: HttpServer = createServer(app);
 
@@ -136,6 +145,7 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   app.use('/api/day-charges', createDayChargesRouter());
   app.use('/api/deposits', createDepositsRouter());
   app.use('/api/expenses', createExpensesRouter());
+  app.use('/api/charges', createChargesRouter());
 
   // Our modules — Platform (JWT required)
   app.use('/api/organizations', authMiddleware, createOrganizationRouter());
@@ -143,16 +153,23 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   // Temporary unauthenticated route for backfilling
   app.use('/api/public-clinicadmins', createClinicAdminsRouter());
   app.use('/api/clinicadmins', authMiddleware, createClinicAdminsRouter());
-
+  
   // Our modules — Settings & Configuration
   app.use('/api/settings', authMiddleware, createSettingsRouter());
+  
+  // Clinical Terminology
+  app.use('/api/terminology', createTerminologyRouter());
 
   // ─── Operations & Logistics (JWT required) ───
   app.use('/api/crm', authMiddleware, crmRouter);
-  app.use('/api/logistics', authMiddleware, logisticsRouter);
+  app.use('/api/logistics', authMiddleware, createLogisticsRouter());
+  app.use('/api/courier', authMiddleware, createCourierRouter());
   app.use('/api/knowledge', authMiddleware, knowledgeRouter);
   app.use('/api/records', authMiddleware, recordsRouter);
   app.use('/api/staff', authMiddleware, staffRouter);
+  app.use('/api/notifications', authMiddleware, createNotificationsRouter());
+  app.use('/api/whatsapp', whatsappRouter);
+  app.use('/api/widget', whatsappWidgetRouter);
 
   // Roles & Permissions
   app.use('/api/roles', authMiddleware, rolesRouter);
@@ -184,6 +201,31 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
     logger.error({ err: err?.message }, 'Failed to initialize transcription gateway');
   }
 
+  // ─── Video Call signalling gateway (Socket.IO /video-call namespace) ───
+  // Relays doctor questions and call-leave events to the patient's browser tab.
+  try {
+    setupVideoCallGateway(io);
+  } catch (err: any) {
+    logger.error({ err: err?.message }, 'Failed to initialize video-call gateway');
+  }
+
+  try {
+    const { emitToUser, emitToClinic } = setupNotificationsGateway(io);
+    setNotificationEmitters(emitToUser, emitToClinic);
+    logger.info('Notifications gateway initialized on /notifications namespace');
+  } catch (err: any) {
+    logger.error({ err: err?.message }, 'Failed to initialize notifications gateway');
+  }
+
+  // ─── WhatsApp gateway (Socket.IO /whatsapp namespace) ───
+  try {
+    const gateway = setupWhatsAppGateway(io);
+    setWhatsAppGateway(gateway);
+    logger.info('WhatsApp gateway initialized on /whatsapp namespace');
+  } catch (err: any) {
+    logger.error({ err: err?.message }, 'Failed to initialize whatsapp gateway');
+  }
+
   // ─── Error Handling (must be last) ───
   app.use(errorHandler);
 
@@ -197,16 +239,241 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
 
 
 
+  // --- AUTO-MIGRATE ALL TENANTS ON STARTUP ---
+  // This ensures every tenant schema is always up-to-date with the latest migrations.
+  // Runs in the background (fire-and-forget) so it doesn't block server startup.
+  (async () => {
+    try {
+      const { migrateTenant } = await import('@mmc/database');
+      const allTenants = TenantRegistry.getAll();
+      const dbUrl = process.env.DATABASE_URL!;
+      
+      let successCount = 0;
+      let failCount = 0;
+
+      for (const tenant of allTenants) {
+        try {
+          await migrateTenant(dbUrl, tenant.schemaName);
+          successCount++;
+        } catch (migErr: any) {
+          failCount++;
+          logger.warn({ schema: tenant.schemaName, err: migErr.message }, 'Tenant migration failed (non-fatal)');
+        }
+      }
+
+      if (failCount > 0) {
+        logger.warn(`Auto-migration finished with ${failCount}/${allTenants.length} failures (${successCount} succeeded)`);
+      }
+    } catch (err: any) {
+      logger.error({ err: err.message }, 'Auto-migration system error (non-fatal)');
+    }
+  })();
+
   // For background jobs and system tasks, we provide a default tenant DB (demo)
   const defaultTenant = TenantRegistry.resolve('demo') || { schemaName: 'public' };
   const tenantDb = createDbClient(process.env.DATABASE_URL!, (defaultTenant as any).schemaName);
 
   // --- ONE-TIME AUTO BACKFILL OF MISSING CLINIC ADMINS ---
+  logger.info('Express app configured with enterprise middleware stack');
+
+  // Ensure performance indexes on first startup (fire-and-forget, non-blocking)
+  ensureIndexes(publicDb).catch(err => logger.warn({ err }, 'Index creation skipped'));
+  if (tenantDb) ensureIndexes(tenantDb).catch(err => logger.warn({ err }, 'Tenant index creation skipped'));
+
+  // Pre-spawn DB connections so the first user request doesn't wait on a ~3 s
+  // TCP+TLS handshake. Also kicks off a 4-min keep-alive ping so connections
+  // don't go cold when the app is idle.
+  warmDbPools()
+    .then(() => logger.info('DB pools warmed (idle keep-alive ping running)'))
+    .catch(err => logger.warn({ err: err?.message }, 'DB pool warmup skipped'));
+
+  // --- AUTO-ALIGN WABA ACCESS TOKENS WITH ENV ---
+  // If the developer updates process.env.WHATSAPP_TOKEN, propagate it to the DB channels
+  (async () => {
+    try {
+      const envToken = process.env.WHATSAPP_TOKEN;
+      if (!envToken) return;
+
+      const { sql } = await import('drizzle-orm');
+      const { encrypt, decrypt } = await import('../../shared/crypto.js');
+
+      // Optimization: Only align schemas that actually have the 'wa_channels' table.
+      // This avoids creating 50+ database connection pools for empty schemas.
+      const schemaRows = await publicDb.execute(sql`
+        SELECT table_schema 
+        FROM information_schema.tables 
+        WHERE table_name = 'wa_channels' 
+          AND table_schema LIKE 'tenant_%'
+      `);
+      const rawActiveSchemas = (schemaRows as any[]).map(r => r.table_schema);
+      const activeSchemas: string[] = [];
+
+      for (const schemaName of rawActiveSchemas) {
+        try {
+          const channelCheck = await publicDb.execute(sql`
+            SELECT id FROM ${sql.raw(`"${schemaName}"."wa_channels"`)} LIMIT 1
+          `);
+          const hasChannels = Array.isArray(channelCheck) ? channelCheck.length > 0 : (channelCheck as any).rows?.length > 0;
+          if (hasChannels) {
+            activeSchemas.push(schemaName);
+          }
+        } catch (e) {
+          // Ignore
+        }
+      }
+
+      logger.info(`Aligning WABA access tokens with .env for ${activeSchemas.length} active tenant schema(s)...`);
+      for (const schemaName of activeSchemas) {
+        try {
+          const tenantDb = createDbClient(process.env.DATABASE_URL!, schemaName);
+          const channelRows = await tenantDb.execute(sql`
+            SELECT id, access_token FROM wa_channels LIMIT 10
+          `);
+          const rows = Array.isArray(channelRows) ? channelRows : (channelRows as any).rows || [];
+          for (const row of rows) {
+            const dbTokenDecrypted = decrypt(row.access_token);
+            if (dbTokenDecrypted !== envToken) {
+              logger.info(`[SyncToken] Updating access token in schema ${schemaName} for WABA channel ${row.id}`);
+              const encryptedToken = encrypt(envToken);
+              await tenantDb.execute(sql`
+                UPDATE wa_channels SET access_token = ${encryptedToken}, updated_at = NOW() WHERE id = ${row.id}
+              `);
+            }
+          }
+        } catch (e: any) {
+          // Ignore if table or schema does not exist
+        }
+      }
+      logger.info('WABA access token alignment complete');
+    } catch (err: any) {
+      logger.error({ err: err.message }, 'Failed to align WABA access tokens');
+    }
+  })();
+
+  return { app, server, io, tenantDb, publicDb };
+}
+
+/**
+ * Creates performance indexes on all core tables.
+ * Safe to re-run — indexes will be created only if they don't exist.
+ * This improves dashboard, patient, and doctor query performance.
+ */
+async function ensureIndexes(db: any): Promise<void> {
+  const { sql } = await import('drizzle-orm');
+
+  // Ensure case_reminders table exists (Added for Clinical Activity feature)
+  try {
+    await db.execute(sql.raw(`
+      CREATE TABLE IF NOT EXISTS "case_reminders" (
+        "id" serial PRIMARY KEY NOT NULL,
+        "regid" integer NOT NULL,
+        "reminder_date" timestamp,
+        "message" text,
+        "status" varchar(20) DEFAULT 'Pending',
+        "created_at" timestamp DEFAULT now()
+      );
+    `));
+    
+    // Ensure regid column exists in vitals (from Migration 0014)
+    await db.execute(sql.raw(`
+      DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'vitals' AND column_name = 'regid') THEN
+          ALTER TABLE vitals ADD COLUMN regid INTEGER;
+        END IF;
+      END $$;
+    `));
+
+    // Ensure regid column exists in soap_notes (from Migration 0014)
+    await db.execute(sql.raw(`
+      DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'soap_notes' AND column_name = 'regid') THEN
+          ALTER TABLE soap_notes ADD COLUMN regid INTEGER;
+        END IF;
+      END $$;
+    `));
+
+    // Ensure notifications table exists
+    await db.execute(sql.raw(`
+      CREATE TABLE IF NOT EXISTS "notifications" (
+        "id" serial PRIMARY KEY NOT NULL,
+        "user_id" integer NOT NULL,
+        "clinic_id" integer,
+        "type" varchar(50) NOT NULL,
+        "title" text NOT NULL,
+        "message" text NOT NULL,
+        "is_read" boolean DEFAULT false NOT NULL,
+        "deleted_at" timestamp,
+        "created_at" timestamp DEFAULT now(),
+        "updated_at" timestamp DEFAULT now()
+      );
+    `));
+  } catch (err: any) {
+    logger.debug({ err: err.message }, 'Failed to ensure case_reminders table');
+  }
+
+  const indexes: string[] = [
+    `CREATE INDEX IF NOT EXISTS idx_patients_clinic_deleted ON patients (clinic_id) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    `CREATE INDEX IF NOT EXISTS idx_patients_deleted ON patients (id) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    // ── Dashboard-critical composite indexes ──────────────────────────────────
+    // appointments: used in KPI counts + revenue series (clinic_id + booking_date filter)
+    `CREATE INDEX IF NOT EXISTS idx_appts_clinic_date ON appointments (clinic_id, booking_date) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    `CREATE INDEX IF NOT EXISTS idx_appts_clinic_date_type ON appointments (clinic_id, booking_date) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    // patients: used in KPI (clinic_id + created_at range)
+    `CREATE INDEX IF NOT EXISTS idx_patients_clinic_created ON patients (clinic_id, created_at) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    // bills: used in KPI + revenue breakdown + top billing (clinic_id + bill_date)
+    `CREATE INDEX IF NOT EXISTS idx_bills_clinic_date ON bills (clinic_id, bill_date) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    `CREATE INDEX IF NOT EXISTS idx_bills_clinic_date_amt ON bills (clinic_id, bill_date, charges DESC) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    // waitlist: used in queue + KPI wait time (clinic_id + date)
+    `CREATE INDEX IF NOT EXISTS idx_waitlist_clinic_date ON waitlist (clinic_id, date) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    `CREATE INDEX IF NOT EXISTS idx_waitlist_clinic_date_called ON waitlist (clinic_id, date) WHERE called_at IS NOT NULL AND checked_in_at IS NOT NULL AND (deleted_at IS NULL OR deleted_at::text = '')`,
+    // receipt: used in KPI financials + revenue series (clinic_id join via patients)
+    `CREATE INDEX IF NOT EXISTS idx_receipt_regid ON receipt (regid) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    // doctors + users: used in staff-on-duty (clinic_id filter)
+    `CREATE INDEX IF NOT EXISTS idx_doctors_clinic ON doctors (clinic_id) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    `CREATE INDEX IF NOT EXISTS idx_users_context_active ON users (context_id) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    // ── Legacy / admin ────────────────────────────────────────────────────────
+    `CREATE INDEX IF NOT EXISTS idx_appts_clinic ON appointments (clinic_id) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    `CREATE INDEX IF NOT EXISTS idx_appts_date ON appointments (booking_date) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    `CREATE INDEX IF NOT EXISTS idx_appts_doctor_clinic ON appointments (doctor_id, clinic_id) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    `CREATE INDEX IF NOT EXISTS idx_receipt_created ON receipt (created_at) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    `CREATE INDEX IF NOT EXISTS idx_users_email_active ON users (email) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    `CREATE INDEX IF NOT EXISTS idx_users_type ON users (type) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    `CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses (exp_date) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    `CREATE INDEX IF NOT EXISTS idx_case_reminders_clinic_status ON case_reminder (clinic_id, status) WHERE status = 'pending'`,
+    // ── Dashboard fan-out indexes ──
+    // deleted_at type drift across legacy tables: TEXT in some (use raw equality), TIMESTAMP in others (just IS NULL).
+    // Partial-index predicates must be IMMUTABLE — that's why ::text casts are avoided here.
+    `CREATE INDEX IF NOT EXISTS idx_appts_followup_date ON appointments (booking_date) WHERE visit_type = 'FollowUp' AND (deleted_at IS NULL OR deleted_at = '')`,
+    `CREATE INDEX IF NOT EXISTS idx_case_datas_dob_mmdd ON case_datas (EXTRACT(MONTH FROM dob), EXTRACT(DAY FROM dob)) WHERE dob IS NOT NULL AND deleted_at IS NULL`,
+    `CREATE INDEX IF NOT EXISTS idx_bills_regid ON bills (regid) WHERE deleted_at IS NULL`,
+    `CREATE INDEX IF NOT EXISTS idx_expenses_clinic_date ON expenses (clinic_id, exp_date) WHERE deleted_at IS NULL OR deleted_at = ''`,
+    `CREATE INDEX IF NOT EXISTS idx_waitlist_status_date ON waitlist (status, date) WHERE deleted_at IS NULL`,
+    `CREATE INDEX IF NOT EXISTS idx_doctors_email_lower ON doctors (LOWER(email)) WHERE deleted_at IS NULL`,
+    `CREATE INDEX IF NOT EXISTS idx_users_email_lower ON users (LOWER(email)) WHERE deleted_at IS NULL`,
+  ];
+
+  for (const idxSql of indexes) {
+    try {
+      await db.execute(sql.raw(idxSql));
+    } catch (err: any) {
+      if (!err.message?.includes('already exists')) {
+        logger.debug({ err: err.message }, `Index: ${idxSql.substring(0, 50)}`);
+      }
+    }
+  }
+  logger.info(`Indexes ensured (${indexes.length} checked)`);
+}
+
+/**
+ * Background task to ensure all clinics have their default administrator account
+ * mirrored in the public schema for authentication.
+ */
+export async function runAdminBackfill(publicDb: any) {
   try {
     const { sql } = await import('drizzle-orm');
     const bcrypt = await import('bcryptjs');
     logger.info('Running auto-backfill for clinic admins...');
-    
+
     const orgs = await publicDb.execute(sql`
       SELECT id, name, admin_email, admin_password
       FROM organizations
@@ -250,8 +517,4 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   } catch (err: any) {
     logger.error({ err: err.message }, 'Failed auto-backfill');
   }
-  // --- END AUTO BACKFILL ---
-
-  logger.info('Express app configured with enterprise middleware stack');
-  return { app, server, io, tenantDb };
 }

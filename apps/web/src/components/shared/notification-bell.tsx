@@ -14,224 +14,189 @@ import {
   Info,
   MessageSquare,
   Trash2,
+  X,
 } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from '../ui/dropdown-menu';
-import { Button } from '../ui/button';
 import {
   useNotifications,
   useUnreadCount,
   useMarkAsRead,
   useMarkAllAsRead,
   useDeleteNotification,
+  useDeleteAllNotifications,
 } from '../../hooks/use-notifications';
+import { useNotificationSocket } from '@/hooks/use-notification-socket';
 import { timeAgo } from '../../lib/format';
 import type { NotificationType } from '../../types/notification';
+
+import './notification-bell.css';
+
+const WhatsAppIcon = ({ size = 14, ...props }: { size?: number; [key: string]: any }) => (
+  <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor" {...props}>
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.746.953 3.71 1.458 5.704 1.459h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+  </svg>
+);
 
 /** Map notification types to icons and colors */
 function getTypeIcon(type: NotificationType) {
   switch (type) {
-    case 'APPOINTMENT_REMINDER':
-      return { Icon: Calendar, color: 'text-blue-500' };
-    case 'APPOINTMENT_CANCELLED':
-      return { Icon: CalendarX, color: 'text-red-500' };
-    case 'QUEUE_CALLED':
-      return { Icon: Users, color: 'text-green-500' };
-    case 'VISIT_COMPLETED':
-      return { Icon: ClipboardCheck, color: 'text-emerald-500' };
-    case 'PRESCRIPTION_READY':
-      return { Icon: Pill, color: 'text-purple-500' };
-    case 'INVOICE_GENERATED':
-      return { Icon: FileText, color: 'text-orange-500' };
-    case 'PAYMENT_RECEIVED':
-      return { Icon: CreditCard, color: 'text-green-600' };
-    case 'LAB_RESULT_READY':
-      return { Icon: FlaskConical, color: 'text-cyan-500' };
-    case 'WAITLIST_OFFER':
-      return { Icon: Clock, color: 'text-yellow-500' };
-    case 'SYSTEM':
-      return { Icon: Info, color: 'text-gray-500' };
+    case 'APPOINTMENT_REMINDER': return { Icon: Calendar, color: 'notif-icon-blue' };
+    case 'APPOINTMENT_CANCELLED': return { Icon: CalendarX, color: 'notif-icon-red' };
+    case 'QUEUE_CALLED': return { Icon: Users, color: 'notif-icon-green' };
+    case 'VISIT_COMPLETED': return { Icon: ClipboardCheck, color: 'notif-icon-emerald' };
+    case 'PRESCRIPTION_READY': return { Icon: Pill, color: 'notif-icon-purple' };
+    case 'INVOICE_GENERATED': return { Icon: FileText, color: 'notif-icon-orange' };
+    case 'PAYMENT_RECEIVED': return { Icon: CreditCard, color: 'notif-icon-green' };
+    case 'LAB_RESULT_READY': return { Icon: FlaskConical, color: 'notif-icon-cyan' };
+    case 'WAITLIST_OFFER': return { Icon: Clock, color: 'notif-icon-yellow' };
+    case 'SYSTEM': return { Icon: Info, color: 'notif-icon-gray' };
+    case 'WHATSAPP': return { Icon: WhatsAppIcon, color: 'notif-icon-whatsapp' };
     case 'GENERAL':
-    default:
-      return { Icon: MessageSquare, color: 'text-gray-400' };
+    default: return { Icon: MessageSquare, color: 'notif-icon-gray' };
   }
 }
 
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
+  useNotificationSocket(); // Subscribes to real-time socket events
   const { data: unreadData } = useUnreadCount();
   const { data: notificationsData, isLoading } = useNotifications();
   const markAsRead = useMarkAsRead();
   const markAllAsRead = useMarkAllAsRead();
   const deleteNotification = useDeleteNotification();
+  const deleteAllNotifications = useDeleteAllNotifications();
 
   const unreadCount = unreadData?.unreadCount ?? 0;
   const notifications = notificationsData?.notifications ?? [];
+  console.log('[NotificationBell] data:', notificationsData, 'count:', notifications.length);
 
-  const handleNotificationClick = async (id: string, isRead: boolean) => {
+  const handleNotificationClick = async (id: string | number, isRead: boolean) => {
     if (!isRead) {
-      try {
-        await markAsRead.mutateAsync(id);
-      } catch {
-        // Silently handle mark-as-read errors
-      }
+      try { await markAsRead.mutateAsync(id); } catch { /* silent */ }
     }
   };
 
   const handleMarkAllAsRead = async () => {
-    try {
-      await markAllAsRead.mutateAsync();
-    } catch {
-      // Silently handle mark-all-as-read errors
-    }
+    try { await markAllAsRead.mutateAsync(); } catch { /* silent */ }
   };
 
-  const handleDelete = async (e: React.MouseEvent, id: string) => {
+  const handleDeleteAll = async () => {
+    if (!window.confirm('Are you sure you want to delete all notifications?')) return;
+    try { await deleteAllNotifications.mutateAsync(); } catch { /* silent */ }
+  };
+
+  const handleDelete = async (e: React.MouseEvent, id: string | number) => {
     e.stopPropagation();
-    try {
-      await deleteNotification.mutateAsync(id);
-    } catch {
-      // Silently handle delete errors
-    }
+    try { await deleteNotification.mutateAsync(id); } catch { /* silent */ }
   };
 
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="relative">
-          <Bell className="h-5 w-5 text-gray-600 dark:text-gray-300" />
-          {unreadCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
-              {unreadCount > 99 ? '99+' : unreadCount}
-            </span>
-          )}
-        </Button>
-      </DropdownMenuTrigger>
+    <div className="notif-bell-wrapper">
+      {/* Bell Trigger Button */}
+      <button
+        className="notif-bell-btn"
+        onClick={() => setOpen((o) => !o)}
+        aria-label="Notifications"
+      >
+        <Bell size={18} />
+        {unreadCount > 0 && (
+          <span className="notif-badge">
+            {unreadCount > 99 ? '99+' : unreadCount}
+          </span>
+        )}
+      </button>
 
-      <DropdownMenuContent align="end" className="w-96 p-0">
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-700">
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-            Notifications
-          </h3>
-          {unreadCount > 0 && (
-            <button
-              onClick={handleMarkAllAsRead}
-              className="flex items-center gap-1 text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 font-medium"
-            >
-              <CheckCheck className="h-3.5 w-3.5" />
-              Mark all read
-            </button>
-          )}
-        </div>
+      {/* Dropdown Panel */}
+      {open && (
+        <>
+          {/* Backdrop to close on outside click */}
+          <div className="notif-backdrop" onClick={() => setOpen(false)} />
 
-        {/* Notification list */}
-        <div className="max-h-96 overflow-y-auto">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="flex flex-col items-center gap-2">
-                <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-primary-600" />
-                <p className="text-sm text-gray-400 dark:text-gray-500">
-                  Loading...
-                </p>
+          <div className="notif-panel">
+            {/* Header */}
+            <div className="notif-panel-header">
+              <span className="notif-panel-title">Notifications</span>
+              <div className="notif-header-actions">
+                {unreadCount > 0 && (
+                  <button className="notif-mark-all-btn" onClick={handleMarkAllAsRead}>
+                    <CheckCheck size={13} />
+                    Mark all read
+                  </button>
+                )}
+                {notifications.length > 0 && (
+                  <button className="notif-mark-all-btn notif-delete-all-btn" onClick={handleDeleteAll} style={{ color: 'var(--pp-danger-fg)' }}>
+                    <Trash2 size={13} />
+                    Delete all
+                  </button>
+                )}
+                <button className="notif-close-btn" onClick={() => setOpen(false)} title="Close">
+                  <X size={18} />
+                </button>
               </div>
             </div>
-          ) : notifications.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-10">
-              <Bell className="h-10 w-10 text-gray-200 dark:text-gray-700 mb-3" />
-              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                No notifications
-              </p>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                You're all caught up!
-              </p>
-            </div>
-          ) : (
-            <div>
-              {notifications.slice(0, 15).map((notification, index) => {
-                const { Icon, color } = getTypeIcon(notification.type);
-                return (
-                  <div key={notification.id}>
+
+            {/* List */}
+            <div className="notif-list">
+              {isLoading ? (
+                <div className="notif-empty">
+                  <div className="notif-spinner" />
+                  <p>Loading...</p>
+                </div>
+              ) : notifications.length === 0 ? (
+                <div className="notif-empty">
+                  <Bell size={32} className="notif-empty-icon" />
+                  <p className="notif-empty-title">No notifications</p>
+                  <p className="notif-empty-sub">You're all caught up!</p>
+                </div>
+              ) : (
+                notifications.slice(0, 15).map((notification) => {
+                  const { Icon, color } = getTypeIcon(notification.type);
+                  return (
                     <button
-                      className={`w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex gap-3 group ${
-                        !notification.isRead
-                          ? 'bg-blue-50/50 dark:bg-blue-950/20'
-                          : ''
-                      }`}
-                      onClick={() =>
-                        handleNotificationClick(
-                          notification.id,
-                          notification.isRead,
-                        )
-                      }
+                      key={notification.id}
+                      className={`notif-item${!notification.isRead ? ' notif-item--unread' : ''}`}
+                      onClick={() => handleNotificationClick(notification.id, notification.isRead)}
                     >
-                      {/* Type icon */}
-                      <div className="flex-shrink-0 mt-0.5">
-                        <div
-                          className={`flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 ${color}`}
-                        >
-                          <Icon className="h-4 w-4" />
-                        </div>
+                      {/* Icon */}
+                      <div className={`notif-item-icon ${color}`}>
+                        <Icon size={14} />
                       </div>
 
                       {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2">
-                          <p
-                            className={`text-sm leading-tight ${
-                              notification.isRead
-                                ? 'text-gray-600 dark:text-gray-400'
-                                : 'font-semibold text-gray-900 dark:text-gray-100'
-                            }`}
-                          >
+                      <div className="notif-item-body">
+                        <div className="notif-item-top">
+                          <p className={`notif-item-title${!notification.isRead ? ' notif-item-title--bold' : ''}`}>
                             {notification.title}
                           </p>
-                          {!notification.isRead && (
-                            <span className="mt-1.5 flex-shrink-0 h-2 w-2 rounded-full bg-blue-500" />
-                          )}
+                          {!notification.isRead && <span className="notif-unread-dot" />}
                         </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">
-                          {notification.message}
-                        </p>
-                        <div className="flex items-center justify-between mt-1.5">
-                          <p className="text-xs text-gray-400 dark:text-gray-500">
-                            {timeAgo(notification.createdAt)}
-                          </p>
+                        <p className="notif-item-msg">{notification.message}</p>
+                        <div className="notif-item-footer">
+                          <span className="notif-item-time">{timeAgo(notification.createdAt)}</span>
                           <button
+                            className="notif-delete-btn"
                             onClick={(e) => handleDelete(e, notification.id)}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
-                            title="Delete notification"
+                            title="Delete"
                           >
-                            <Trash2 className="h-3 w-3 text-gray-400 dark:text-gray-500" />
+                            <Trash2 size={12} />
                           </button>
                         </div>
                       </div>
                     </button>
-                    {index < notifications.slice(0, 15).length - 1 && (
-                      <DropdownMenuSeparator className="my-0" />
-                    )}
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
-          )}
-        </div>
 
-        {/* Footer */}
-        {notifications.length > 0 && (
-          <div className="border-t border-gray-100 dark:border-gray-700 px-4 py-2">
-            <p className="text-xs text-center text-gray-400 dark:text-gray-500">
-              Showing latest {Math.min(notifications.length, 15)} of{' '}
-              {notificationsData?.pagination?.total ?? notifications.length}{' '}
-              notifications
-            </p>
+            {/* Footer */}
+            {notifications.length > 0 && (
+              <div className="notif-panel-footer">
+                Showing {Math.min(notifications.length, 15)} of{' '}
+                {notificationsData?.pagination?.total ?? notifications.length}
+              </div>
+            )}
           </div>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+        </>
+      )}
+    </div>
   );
 }

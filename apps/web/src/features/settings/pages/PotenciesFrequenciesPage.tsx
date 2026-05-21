@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings2, Plus, ArrowLeft, Trash2, Hash, Activity, RefreshCw } from 'lucide-react';
+import { Settings2, Plus, Trash2, Hash, Activity, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
   usePotencies, useCreatePotency, useDeletePotency,
@@ -7,6 +7,7 @@ import {
 } from '../hooks/use-settings';
 import '../../platform/styles/platform.css';
 import '../styles/settings.css';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
 
 export default function PotenciesFrequenciesPage() {
   const { data: potencies = [], isLoading: loadingP } = usePotencies();
@@ -94,9 +95,9 @@ export default function PotenciesFrequenciesPage() {
             </form>
           </div>
 
-          <div className="max-h-[500px] overflow-y-auto">
+          <div>
             {loadingP ? (
-              <div className="p-12 flex justify-center"><RefreshCw size={24} className="animate-spin opacity-20" /></div>
+              <TableSkeleton rows={8} columns={1} />
             ) : potencies.length === 0 ? (
               <div className="p-12 text-center text-sm color-muted">No potencies defined yet</div>
             ) : (
@@ -139,9 +140,9 @@ export default function PotenciesFrequenciesPage() {
             </form>
           </div>
 
-          <div className="max-h-[500px] overflow-y-auto">
+          <div>
             {loadingF ? (
-              <div className="p-12 flex justify-center"><RefreshCw size={24} className="animate-spin opacity-20" /></div>
+              <TableSkeleton rows={8} columns={1} />
             ) : frequencies.length === 0 ? (
               <div className="p-12 text-center text-sm color-muted">No frequencies defined yet</div>
             ) : (
@@ -160,6 +161,7 @@ export default function PotenciesFrequenciesPage() {
         </div>
 
       </div>
+
     </div>
   );
 }

@@ -1,6 +1,6 @@
-import type { AppointmentRepository } from '../ports/appointment.repository';
+import type { AppointmentRepository } from '../ports/appointment.repository.js';
 import type { Appointment, AvailabilitySlot } from '@mmc/types';
-import { type Result, ok, fail } from '../../../shared/result';
+import { type Result, ok, fail } from '../../../shared/result.js';
 
 export class GetAppointmentUseCase {
   constructor(private readonly repo: AppointmentRepository) {}
@@ -11,8 +11,8 @@ export class GetAppointmentUseCase {
     return ok(appt);
   }
 
-  async getToday(doctorId?: number): Promise<Result<Appointment[]>> {
-    const result = await this.repo.findToday(doctorId);
+  async getToday(doctorId?: number, clinicId?: number): Promise<Result<Appointment[]>> {
+    const result = await this.repo.findToday(doctorId, clinicId);
     return ok(result);
   }
 

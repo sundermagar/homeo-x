@@ -1,13 +1,11 @@
 import { useState, useEffect } from 'react';
-import {
-  Calendar, ChevronLeft, ChevronRight, Plus, List,
-  Stethoscope, CalendarDays, Users, RefreshCw,
-} from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Calendar, ChevronLeft, ChevronRight, Plus, List, Stethoscope, CalendarDays, Users, RefreshCw, CalendarPlus } from 'lucide-react';
 import { useAppointments } from '../hooks/use-appointments';
-import { AppointmentForm } from '../components/appointment-form';
 import { StatusBadge, STATUS_COLOR } from '../components/status-badge';
+import { AppointmentForm } from '../components/appointment-form';
+import { Drawer } from '@/shared/components/drawer';
 import { apiClient } from '@/infrastructure/api-client';
+import { EmptyState } from '@/components/shared/empty-state';
 import '../styles/appointments.css';
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -19,6 +17,11 @@ function fmtDate(y: number, m: number, d: number) {
   return `${y}-${String(m + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
 }
 
+const formatName = (name?: string | null) => {
+  if (!name) return '';
+  return name.trim().replace(/\b\w/g, c => c.toUpperCase());
+};
+
 export default function CalendarPage() {
   const now = new Date();
   const [year,  setYear]  = useState(now.getFullYear());
@@ -26,8 +29,8 @@ export default function CalendarPage() {
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [doctorFilter, setDoctorFilter] = useState('');
   const [doctors, setDoctors]  = useState<Doctor[]>([]);
-  const [showForm, setShowForm] = useState(false);
-  const [formDate, setFormDate] = useState<string | undefined>();
+  const [isBookingOpen, setIsBookingOpen] = useState(false);
+  const [bookingDate, setBookingDate] = useState<string | undefined>();
 
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const startDow    = new Date(year, month, 1).getDay();
@@ -39,7 +42,7 @@ export default function CalendarPage() {
     from_date: fromDate,
     to_date:   toDate,
     doctor_id: doctorFilter ? Number(doctorFilter) : undefined,
-    limit:     500,
+    limit: 100,
   });
 
   // Build date→appointments map
@@ -78,27 +81,12 @@ export default function CalendarPage() {
           <p className="appt-header-sub">Manage practitioner schedules and availability</p>
         </div>
         <div className="appt-header-actions">
-          <select
-            className="appt-filter-input"
-            style={{ width: 180 }}
-            value={doctorFilter}
-            onChange={e => { setDoctorFilter(e.target.value); setSelectedDay(null); }}
-          >
-            <option value="">All Practitioners</option>
-            {doctors.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-          </select>
-          <button className="appt-btn appt-btn-sm" onClick={() => refetch()} title="Refresh">
-            <RefreshCw size={14} strokeWidth={1.6} />
-          </button>
           <button
+            onClick={() => { setBookingDate(selectedDay ?? todayISO); setIsBookingOpen(true); }}
             className="appt-btn appt-btn-primary"
-            onClick={() => { setFormDate(selectedDay ?? todayISO); setShowForm(true); }}
           >
             <Plus size={15} strokeWidth={1.6} /> New Booking
           </button>
-          <Link to="/appointments" className="appt-btn" title="List View">
-            <List size={15} strokeWidth={1.6} />
-          </Link>
         </div>
       </div>
 
@@ -129,7 +117,11 @@ export default function CalendarPage() {
 
             {/* Cells */}
             {isLoading ? (
-              <div className="appt-empty"><RefreshCw size={22} className="appt-empty-icon" style={{ animation: 'spin 1s linear infinite' }} /></div>
+              <div className="appt-cal-shimmer-cells">
+                {[...Array(35)].map((_, i) => (
+                  <div key={i} className="appt-cal-shimmer-cell" />
+                ))}
+              </div>
             ) : (
               <div className="appt-cal-cells">
                 {cells.map((iso, idx) => {
@@ -193,35 +185,53 @@ export default function CalendarPage() {
               </h3>
             </div>
             <div className="appt-card-body">
-              {!selectedDay ? (
-                <div className="appt-empty">
-                  <CalendarDays size={22} className="appt-empty-icon" />
-                  <p className="appt-empty-text">Select a date to view</p>
-                </div>
-              ) : selectedAppts.length === 0 ? (
-                <div className="appt-empty">
-                  <p className="appt-empty-text">No appointments</p>
-                  <button className="appt-btn appt-btn-sm appt-btn-primary" style={{ marginTop: 10 }}
-                    onClick={() => { setFormDate(selectedDay); setShowForm(true); }}>
-                    + Add Slot
-                  </button>
-                </div>
-              ) : (
+              {isLoading ? (
                 <div className="appt-slot-list">
-                  {selectedAppts.map(a => (
-                    <div key={a.id} className="appt-slot-item">
-                      <div className="appt-slot-time">{a.bookingTime ?? '—'}</div>
-                      <div className="appt-slot-name">
-                        <div className="appt-slot-patient">{a.patientNameFromCase ?? a.patientName ?? '—'}</div>
-                        {a.doctorName && <div className="appt-slot-doctor">{a.doctorName}</div>}
-                      </div>
-                      <StatusBadge status={a.status} size="sm" />
-                    </div>
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="appt-slot-item appt-shimmer" style={{ height: 62, border: 'none' }} />
                   ))}
-                  <button className="appt-btn appt-btn-sm appt-btn-primary" style={{ width: '100%', marginTop: 4 }}
-                    onClick={() => { setFormDate(selectedDay); setShowForm(true); }}>
-                    + Add Slot
-                  </button>
+                </div>
+              ) : !selectedDay ? (
+                <EmptyState 
+                  icon={CalendarDays}
+                  title="Select a date"
+                  description="Choose a day from the calendar to view practitioner schedules and manage patient bookings."
+                  variant="card"
+                  className="my-8"
+                />
+              ) : selectedAppts.length === 0 ? (
+                <EmptyState 
+                  icon={CalendarPlus}
+                  title="No appointments scheduled"
+                  description={`The schedule for ${new Date(selectedDay + 'T12:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })} is currently clear.`}
+                  actionLabel="Add First Slot"
+                  onAction={() => { setBookingDate(selectedDay!); setIsBookingOpen(true); }}
+                  variant="card"
+                  className="my-4"
+                />
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <div className="appt-slot-list" style={{ maxHeight: 280, overflowY: 'auto', paddingRight: 4 }}>
+                    {selectedAppts.map(a => (
+                      <div key={a.id} className="appt-slot-item">
+                        <div className="appt-slot-time">{a.bookingTime ?? '—'}</div>
+                        <div className="appt-slot-name">
+                          <div className="appt-slot-patient">{formatName(a.patientNameFromCase || a.patientName) || '—'}</div>
+                          {a.doctorName && <div className="appt-slot-doctor">{a.doctorName}</div>}
+                        </div>
+                        <StatusBadge status={a.status} size="sm" />
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ position: 'sticky', bottom: 0, paddingTop: 12, background: 'linear-gradient(to top, #fff 80%, rgba(255,255,255,0))', marginTop: -4 }}>
+                    <button 
+                      onClick={() => { setBookingDate(selectedDay!); setIsBookingOpen(true); }}
+                      className="appt-btn appt-btn-primary" 
+                      style={{ width: '100%', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.15)' }}
+                    >
+                      <Plus size={16} /> Add Slot
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -235,34 +245,72 @@ export default function CalendarPage() {
               </h3>
             </div>
             <div className="appt-card-body">
-              <div className="appt-insights-grid">
-                {([
-                  { label: 'Total This Month', value: totalAppts, icon: <CalendarDays size={15} strokeWidth={1.6} />, bg: 'var(--pp-blue-tint)', ic: 'var(--pp-blue)' },
-                  { label: 'Avg Daily Load', value: `${daysInMonth > 0 ? Math.round((totalAppts / daysInMonth) * 10) / 10 : 0} / day`, icon: <Users size={15} strokeWidth={1.6} />, bg: 'var(--pp-success-bg)', ic: 'var(--pp-success-fg)' },
-                ] as const).map(item => (
-                  <div key={item.label} className="appt-insight-item">
-                    <div className="appt-insight-icon-wrap" style={{ background: item.bg, color: item.ic }}>
-                      {item.icon}
+              {isLoading ? (
+                <div className="appt-insights-grid">
+                  {[...Array(2)].map((_, i) => (
+                    <div key={i} className="appt-insight-item appt-shimmer" style={{ height: 48, borderRadius: 8 }} />
+                  ))}
+                </div>
+              ) : (
+                <div className="appt-insights-grid">
+                  {([
+                    { label: 'Total This Month', value: totalAppts, icon: <CalendarDays size={15} strokeWidth={1.6} />, bg: 'var(--pp-blue-tint)', ic: 'var(--pp-blue)' },
+                    { label: 'Avg Daily Load', value: `${daysInMonth > 0 ? Math.round((totalAppts / daysInMonth) * 10) / 10 : 0} / day`, icon: <Users size={15} strokeWidth={1.6} />, bg: 'var(--pp-success-bg)', ic: 'var(--pp-success-fg)' },
+                  ] as const).map(item => (
+                    <div key={item.label} className="appt-insight-item">
+                      <div className="appt-insight-icon-wrap" style={{ background: item.bg, color: item.ic }}>
+                        {item.icon}
+                      </div>
+                      <div>
+                        <div className="appt-insight-label">{item.label}</div>
+                        <div className="appt-insight-value">{item.value}</div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="appt-insight-label">{item.label}</div>
-                      <div className="appt-insight-value">{item.value}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      {showForm && (
-        <AppointmentForm
-          initialDate={formDate}
-          onClose={() => setShowForm(false)}
-          onSuccess={() => refetch()}
-        />
-      )}
+      <Drawer
+        isOpen={isBookingOpen}
+        onClose={() => setIsBookingOpen(false)}
+        title="New Appointment"
+        maxWidth="500px"
+      >
+        <div style={{ padding: '20px' }}>
+          <AppointmentForm
+            initialDate={bookingDate}
+            onClose={() => setIsBookingOpen(false)}
+            onCancel={() => setIsBookingOpen(false)}
+            onSuccess={() => {
+              setIsBookingOpen(false);
+              refetch();
+            }}
+          />
+        </div>
+      </Drawer>
+
+      <style>{`
+        .appt-shimmer {
+          background: linear-gradient(90deg, var(--pp-warm-2) 25%, var(--pp-warm-3) 50%, var(--pp-warm-2) 75%);
+          background-size: 200% 100%;
+          animation: shimmer 1.5s infinite;
+        }
+        @keyframes shimmer {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+        .appt-cal-shimmer-cell {
+          height: 76px;
+          border-radius: 6px;
+          border: 1.5px solid var(--pp-warm-4);
+          background: var(--pp-warm-1);
+          opacity: 0.6;
+        }
+      `}</style>
     </div>
   );
 }

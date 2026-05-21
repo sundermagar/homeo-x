@@ -11,3 +11,4 @@ export * from './crm.schema.js';
 export * from './logistics.schema.js';
 export * from './knowledge.schema.js';
 export * from './medicine.schema.js';
+export * from './investigation.schema.js';

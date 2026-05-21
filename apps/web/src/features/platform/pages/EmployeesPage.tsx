@@ -2,12 +2,16 @@ import { useState, useEffect, useMemo } from 'react';
 import { Plus, Search, Edit2, Trash2, X, Users, UserCheck, Upload, FileText, MapPin } from 'lucide-react';
 import { NumericInput } from '@/shared/components/NumericInput';
 import { useStaffList, useDeleteStaff, useCreateStaff, useUpdateStaff, useStaffMember } from '@/features/staff/hooks/use-staff';
+import { useAuthStore } from '@/shared/stores/auth-store';
 import type { StaffSummary, StaffMember } from '@mmc/types';
 import type { CreateStaffInput, UpdateStaffInput } from '@mmc/validation';
 import { createStaffSchema, updateStaffSchema } from '@mmc/validation';
 import { apiClient } from '@/infrastructure/api-client';
 import '../styles/platform.css';
-
+import { Pagination } from '@/shared/components/Pagination';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
+import { Drawer } from '@/shared/components/drawer';
 function FileInputRow({
   label,
   field,
@@ -54,7 +58,6 @@ function FileInputRow({
     </div>
   );
 }
-
 type StaffFormErrors = {
   general?: string;
   name?: string;
@@ -63,11 +66,9 @@ type StaffFormErrors = {
   password?: string;
   [key: string]: string | undefined;
 };
-
 const CATEGORY = 'employee' as const;
 const META = { label: 'Employees', description: 'Manage your support staff and office employees.' };
-const PAGE_SIZE = 30;
-
+const PAGE_SIZE = 10;
 function getDefaultStaffForm(): CreateStaffInput {
   return {
     category: CATEGORY,
@@ -108,9 +109,9 @@ function getDefaultStaffForm(): CreateStaffInput {
     col12Document: '',
     bhmsDocument: '',
     mdDocument: '',
+    sendWelcomeEmail: false,
   };
 }
-
 function staffMemberToForm(staff: StaffMember): CreateStaffInput {
   const gender = staff.gender === 'Female' || staff.gender === 'Other' ? (staff.gender as "Female" | "Other") : 'Male';
   return {
@@ -139,7 +140,7 @@ function staffMemberToForm(staff: StaffMember): CreateStaffInput {
     consultationFee: Number(staff.consultationFee) || 0,
     permanentAddress: staff.permanentAddress || '',
     password: '',
-    clinicId: staff.clinicId,
+    clinicId: (staff.clinicId && staff.clinicId !== 1) ? staff.clinicId : null,
     aadharnumber: staff.aadharnumber || '',
     pannumber: staff.pannumber || '',
     joiningdate: staff.joiningdate || '',
@@ -152,9 +153,9 @@ function staffMemberToForm(staff: StaffMember): CreateStaffInput {
     col12Document: staff.col12Document || '',
     bhmsDocument: staff.bhmsDocument || '',
     mdDocument: staff.mdDocument || '',
+    sendWelcomeEmail: false,
   };
 }
-
 function StaffModal({
   mode,
   staff,
@@ -170,33 +171,35 @@ function StaffModal({
 }) {
   const [form, setForm] = useState<CreateStaffInput | UpdateStaffInput>(getDefaultStaffForm());
   const [errors, setErrors] = useState<StaffFormErrors>({});
-
   const createMutation = useCreateStaff();
   const updateMutation = useUpdateStaff();
-
+  const { user } = useAuthStore();
   useEffect(() => {
     if (mode === 'edit' && staff) {
-      setForm(staffMemberToForm(staff));
+      const editForm = staffMemberToForm(staff);
+      if (!editForm.clinicId && user?.contextId) {
+        editForm.clinicId = user.contextId;
+      }
+      setForm(editForm);
     } else if (mode === 'create') {
-      setForm(getDefaultStaffForm());
+      const defaultForm = getDefaultStaffForm();
+      if (user?.contextId) {
+        defaultForm.clinicId = user.contextId;
+      }
+      setForm(defaultForm);
     }
-  }, [mode, staff]);
-
+  }, [mode, staff, user]);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
-
     if (!form.name?.trim()) {
       setErrors({ name: 'Full name is required' });
       return;
     }
-
     const nameParts = form.name.trim().split(/\s+/);
     const derivedFirstname = nameParts[0] || 'Member';
     const derivedSurname = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'Staff';
-
     const payload = {
-
       ...getDefaultStaffForm(),
       ...form,
       firstname: (form as any).firstname || derivedFirstname,
@@ -209,16 +212,12 @@ function StaffModal({
       qualification: (form as any).qualification || 'Member',
       registrationId: (form as any).registrationId || 'N/A'
     };
-
     console.log("[EmployeesPage] Submitting Payload:", payload);
-
     const schema = mode === 'create' ? createStaffSchema : updateStaffSchema;
     const result = schema.safeParse(payload);
-
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
       console.error("[EmployeesPage] Validation Errors:", result.error.flatten().fieldErrors);
-
       result.error.errors.forEach((err) => {
         const path = err.path[0] as string;
         // Map split name errors back to the Full Name field for visibility
@@ -231,7 +230,6 @@ function StaffModal({
       setErrors(fieldErrors);
       return;
     }
-
     try {
       if (mode === 'create') {
         await createMutation.mutateAsync(payload as CreateStaffInput);
@@ -249,20 +247,16 @@ function StaffModal({
       setErrors({ general: apiMsg });
     }
   };
-
   const handleFileUpload = async (field: string, event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
     try {
       setErrors((prev) => ({ ...prev, [field]: undefined }));
       const formData = new FormData();
       formData.append('file', file);
-
       const res = await apiClient.post('/staff/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-
       const resData = (res as any)._original ?? res.data;
       if (resData?.success && resData?.path) {
         updateForm(field, resData.path);
@@ -273,37 +267,29 @@ function StaffModal({
       setErrors((prev) => ({ ...prev, [field]: err.message || 'Upload failed' }));
     }
   };
-
   const updateForm = (field: string, value: any) => {
     let castValue = value;
-
     if (field === 'dept' || field === 'salaryCur' || field === 'consultationFee') {
       castValue = value === '' ? 0 : Number(value);
     }
-
     setForm((prev) => ({ ...prev, [field]: castValue }));
   };
-
   const isPending = createMutation.isPending || updateMutation.isPending;
   const isEdit = mode === 'edit';
-
   return (
-    <div className="plat-modal-backdrop" onClick={onClose}>
-      <div className="plat-modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="plat-modal-header">
-          <h3 className="plat-modal-title">{isEdit ? 'Update Employee Record' : 'Register New Employee'}</h3>
-          <button className="plat-btn plat-btn-icon plat-btn-ghost" onClick={onClose}>
-            <X size={14} />
-          </button>
-        </div>
-
+    <Drawer
+      isOpen={true}
+      onClose={onClose}
+      title={isEdit ? 'Update Employee Record' : 'Register New Employee'}
+      maxWidth="600px"
+    >
+      <div className="plat-modal-content" style={{ border: 'none', boxShadow: 'none', margin: 0, padding: 0 }}>
         <form onSubmit={handleSubmit} className="plat-modal-body">
           {errors['general'] && (
             <div className="plat-error-banner mb-4">
               {errors['general']}
             </div>
           )}
-
           {/* Section 1: Personal & Contact */}
           <div className="plat-form-section">
             <h4 className="plat-form-section-title">Personal & Contact</h4>
@@ -320,7 +306,6 @@ function StaffModal({
                 />
                 {errors['name'] && <span className="plat-form-error">{errors['name']}</span>}
               </div>
-
               <div className="plat-form-group">
                 <label className="plat-form-label">Email Address</label>
                 <input
@@ -333,11 +318,11 @@ function StaffModal({
                 />
                 {errors['email'] && <span className="plat-form-error">{errors['email']}</span>}
               </div>
-
               <div className="plat-form-group">
                 <label className="plat-form-label">Mobile Number *</label>
                 <NumericInput
                   className="plat-form-input"
+                  name="mobile"
                   value={form.mobile || ''}
                   onChange={(e: any) => updateForm('mobile', e.target.value)}
                   disabled={isLoading}
@@ -345,18 +330,17 @@ function StaffModal({
                 />
                 {errors['mobile'] && <span className="plat-form-error">{errors['mobile']}</span>}
               </div>
-
               <div className="plat-form-group">
                 <label className="plat-form-label">Emergency Mobile</label>
                 <NumericInput
                   className="plat-form-input"
+                  name="mobile2"
                   value={form.mobile2 || ''}
                   onChange={(e: any) => updateForm('mobile2', e.target.value)}
                   disabled={isLoading}
                   placeholder="Alternative number"
                 />
               </div>
-
               <div className="plat-form-group">
                 <label className="plat-form-label">Gender</label>
                 <select
@@ -370,7 +354,6 @@ function StaffModal({
                   <option value="Other">Other</option>
                 </select>
               </div>
-
               <div className="plat-form-group">
                 <label className="plat-form-label">Date of Birth</label>
                 <input
@@ -381,10 +364,8 @@ function StaffModal({
                   disabled={isLoading}
                 />
               </div>
-
             </div>
           </div>
-
           {/* Section 2: Professional & Location */}
           <div className="plat-form-section">
             <h4 className="plat-form-section-title">Professional & Location</h4>
@@ -399,7 +380,6 @@ function StaffModal({
                   disabled={isLoading}
                 />
               </div>
-
               <div className="plat-form-group">
                 <label className="plat-form-label">Department</label>
                 <select
@@ -414,7 +394,6 @@ function StaffModal({
                   <option value={4}>Homeopathy</option>
                 </select>
               </div>
-
               <div className="plat-form-group">
                 <label className="plat-form-label">Monthly Salary (₹)</label>
                 <NumericInput
@@ -424,7 +403,6 @@ function StaffModal({
                   disabled={isLoading}
                 />
               </div>
-
               <div className="plat-form-group">
                 <label className="plat-form-label">City Station</label>
                 <input
@@ -435,7 +413,6 @@ function StaffModal({
                   disabled={isLoading}
                 />
               </div>
-
               <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
                 <label className="plat-form-label">Residential Address</label>
                 <textarea
@@ -446,7 +423,6 @@ function StaffModal({
                   rows={2}
                 />
               </div>
-
               <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
                 <label className="plat-form-label">Employee Bio</label>
                 <textarea
@@ -457,7 +433,6 @@ function StaffModal({
                   rows={2}
                 />
               </div>
-
               <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
                 <label className="plat-form-label">Initial Password {isEdit && '(leave blank to keep current)'}</label>
                 <input
@@ -470,9 +445,22 @@ function StaffModal({
                 />
                 {errors['password'] && <span className="plat-form-error">{errors['password']}</span>}
               </div>
+              {mode === 'create' && (
+                <div className="plat-form-group" style={{ gridColumn: 'span 2', marginTop: '8px' }}>
+                  <label className="plat-checkbox-group">
+                    <input
+                      type="checkbox"
+                      checked={!!form.sendWelcomeEmail}
+                      onChange={(e) => updateForm('sendWelcomeEmail', e.target.checked)}
+                    />
+                    <span className="plat-checkbox-label">
+                      Send welcome email with credentials
+                    </span>
+                  </label>
+                </div>
+              )}
             </div>
           </div>
-
           <div className="plat-modal-footer">
             <button type="button" className="plat-btn plat-btn-ghost" onClick={onClose}>
               Discard
@@ -483,116 +471,138 @@ function StaffModal({
           </div>
         </form>
       </div>
-    </div>
+    </Drawer>
   );
 }
-
 export default function EmployeesPage() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [sortBy, setSortBy] = useState('id');
+  const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('DESC');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
-
-  const { data, isLoading } = useStaffList(CATEGORY, { page, limit: PAGE_SIZE, search: debouncedSearch });
+  const [itemsPerPage, setItemsPerPage] = useState(PAGE_SIZE);
+  const { data, isLoading } = useStaffList(CATEGORY, {
+    page,
+    limit: itemsPerPage,
+    search: debouncedSearch,
+    sortBy,
+    sortOrder
+  });
   const deleteMutation = useDeleteStaff();
   const { data: editingStaff, isLoading: isLoadingStaff } = useStaffMember(CATEGORY, editingId ?? 0);
-
   const staff = data?.data || [];
   const totalPages = Math.ceil((data?.total || 0) / PAGE_SIZE);
-  const activeCount = useMemo(() => (staff as StaffSummary[]).filter((s: StaffSummary) => s.isActive).length, [staff]);
-
+  const activeCount = data?.activeCount ?? 0;
   const openCreate = () => {
     setModalMode('create');
     setEditingId(null);
     setModalOpen(true);
   };
-
   const openEdit = (s: StaffSummary) => {
     setModalMode('edit');
     setEditingId(s.id);
     setModalOpen(true);
   };
-
   const handleSearchChange = (val: string) => {
     setSearch(val);
     setPage(1);
     clearTimeout((window as any).__staffSearchTimer);
     (window as any).__staffSearchTimer = setTimeout(() => setDebouncedSearch(val), 300);
   };
-
   const handleDelete = async (id: number) => {
     if (!confirm('Are you sure you want to remove this employee record?')) return;
     await deleteMutation.mutateAsync({ category: CATEGORY, id });
   };
-
   // return (
   return (
     <div className="plat-page">
-      <div className="plat-header">
+      <div className="pp-page-hero">
         <div>
-          <h1 className="plat-header-title">
-            <Users size={16} className="color-primary" />
+          <h1 className="pp-page-hero-title">
+            <Users size={22} style={{ color: 'var(--pp-blue)' }} />
             {META.label}
           </h1>
-          <p className="plat-header-sub">{META.description}</p>
+          <p className="pp-page-hero-sub">{META.description}</p>
         </div>
-        <div className="plat-header-actions">
-          <button className="plat-btn plat-btn-primary" onClick={openCreate}>
-            <Plus size={14} /> Add Employee
+        <div className="pp-page-hero-actions">
+          <button className="btn-primary" onClick={openCreate}>
+            <Plus size={16} strokeWidth={1.8} /> Add Employee
           </button>
         </div>
       </div>
-
-      <div className="plat-stats-bar">
-        <div className="plat-stat-card">
-          <p className="plat-stat-label">Total Roster</p>
-          <p className="plat-stat-value plat-stat-value-primary">{data?.total ?? 0}</p>
+      <div className="pp-stat-grid">
+        <div className="pp-stat-card-enhanced">
+          <div className="pp-stat-label">Total Roster</div>
+          <div className="pp-stat-value is-primary">{data?.total ?? 0}</div>
         </div>
-        <div className="plat-stat-card">
-          <p className="plat-stat-label">Active Staff</p>
-          <p className="plat-stat-value plat-stat-value-success">{activeCount}</p>
+        <div className="pp-stat-card-enhanced">
+          <div className="pp-stat-label">Active Staff</div>
+          <div className="pp-stat-value is-success">{activeCount}</div>
         </div>
       </div>
-
       <div className="plat-filters">
         <div className="plat-search-wrap">
-          <Search className="plat-search-icon" size={14} />
+          <Search size={14} className="plat-search-icon" />
           <input
             type="text"
-            className="plat-form-input plat-search-input"
             placeholder={`Search ${META.label.toLowerCase()} names...`}
+            className="plat-form-input plat-search-input"
             value={search}
             onChange={(e) => handleSearchChange(e.target.value)}
           />
         </div>
-        <button className="plat-btn plat-btn-ghost plat-btn-sm" onClick={() => { setSearch(''); setDebouncedSearch(''); setPage(1); }}>
-          Reset
-        </button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-bold color-muted uppercase tracking-wider">Sort:</span>
+            <select
+              className="plat-form-select"
+              style={{ minWidth: '140px' }}
+              value={`${sortBy}-${sortOrder}`}
+              onChange={(e) => {
+                const [col, order] = e.target.value.split('-');
+                setSortBy(col ?? 'id');
+                setSortOrder((order ?? 'DESC') as 'ASC' | 'DESC');
+                setPage(1);
+              }}
+            >
+              <option value="id-DESC">Newest First</option>
+              <option value="id-ASC">Oldest First</option>
+              <option value="name-ASC">A-Z</option>
+              <option value="name-DESC">Z-A</option>
+            </select>
+          </div>
+          <button
+            className="plat-btn plat-btn-ghost"
+            onClick={() => {
+              setSearch('');
+              setDebouncedSearch('');
+              setPage(1);
+              setSortBy('id');
+              setSortOrder('DESC');
+            }}
+          >
+            Reset
+          </button>
+        </div>
       </div>
-
-      <div className="plat-card">
+      <div className="plat-table-container">
         {isLoading ? (
-          <div className="plat-empty" style={{ minHeight: 400 }}>
-            <div className="animate-spin opacity-30 text-2xl mb-4">⟳</div>
-            <p className="plat-empty-text">Loading employees...</p>
-          </div>
+          <TableSkeleton rows={itemsPerPage} columns={6} />
         ) : staff.length === 0 ? (
-          <div className="plat-empty" style={{ minHeight: 400 }}>
-            <div className="plat-empty-icon-wrap mb-6">
-              <Users size={48} className="text-blue-500 opacity-20" />
-            </div>
-            <h3 className="text-lg font-semibold text-slate-800 mb-2">No Employees Registered</h3>
-            <p className="text-sm text-slate-500 max-w-xs text-center mb-8">
-              Start building your clinical support force by registering your first employee record.
-            </p>
-            <button className="plat-btn plat-btn-primary" onClick={openCreate}>
-              <Plus size={14} /> Register First Employee
-            </button>
-          </div>
+          <EmptyState
+            icon={Users}
+            title="No Employees Registered"
+            description="Start building your clinical support force by registering your first employee record."
+            actionLabel="Register First Employee"
+            onAction={openCreate}
+            variant="card"
+            className="my-8"
+          />
         ) : (
-          <div className="plat-table-container">
+          <>
             <table className="plat-table">
               <thead>
                 <tr>
@@ -606,54 +616,66 @@ export default function EmployeesPage() {
               </thead>
               <tbody>
                 {staff.map((s: StaffSummary, index: number) => (
-                  <tr key={s.id} className="plat-table-row">
-                    <td className="plat-mono-data text-xs" style={{ width: 40 }}>{(page - 1) * PAGE_SIZE + index + 1}</td>
-                    <td>
-                      <div className="font-semibold plat-capitalize">{s.name || 'Unknown'}</div>
-                      <div className="text-[11px] color-muted font-medium">{s.email || '—'}</div>
+                  <tr key={s.id} className="pp-hover-row" onClick={() => openEdit(s)} style={{ cursor: 'pointer' }}>
+                    <td data-label="#" className="plat-mono-data text-xs" style={{ width: 40 }}>
+                      <div>{(page - 1) * PAGE_SIZE + index + 1}</div>
                     </td>
-                    <td>
-                      <div className="plat-mono-data">{s.mobile || '—'}</div>
-                      <div className="text-[10px] color-muted plat-capitalize font-medium">{s.city || 'Station N/A'}</div>
-                    </td>
-                    <td>
-                      <div className="font-medium plat-capitalize">
-                        {s.designation || 'General Staff'}
+                    <td data-label="Profile">
+                      <div className="plat-cell-val">
+                        <div className="font-semibold plat-capitalize">{s.name || 'Unknown'}</div>
+                        <div className="text-[11px] color-muted font-medium">{s.email || '—'}</div>
                       </div>
                     </td>
-                    <td>
-                      <span className={s.isActive ? 'plat-badge plat-badge-info' : 'plat-badge plat-badge-default'}>
-                        {s.isActive ? (
-                          <span className="flex items-center gap-1"><UserCheck size={10} /> Active</span>
-                        ) : 'Inactive'}
-                      </span>
+                    <td data-label="Contact">
+                      <div className="plat-cell-val">
+                        <div className="plat-mono-data">{s.mobile || '—'}</div>
+                        <div className="text-[10px] color-muted plat-capitalize font-medium">{s.city || 'Station N/A'}</div>
+                      </div>
                     </td>
-                    <td>
-                      <div className="flex justify-end gap-2">
-                        <button className="plat-btn plat-btn-icon plat-btn-ghost" title="Edit" onClick={() => openEdit(s)}>
-
-                          <Edit2 size={13} />
-                        </button>
-                        <button className="plat-btn plat-btn-icon plat-btn-danger" title="Delete" onClick={() => handleDelete(s.id)} disabled={deleteMutation.isPending}>
-                          <Trash2 size={13} />
-                        </button>
+                    <td data-label="Role">
+                      <div className="plat-cell-val">
+                        <div className="font-medium plat-capitalize">
+                          {s.designation || 'General Staff'}
+                        </div>
+                      </div>
+                    </td>
+                    <td data-label="Status">
+                      <div className="plat-cell-val">
+                        <span className={s.isActive ? 'pp-status-pill is-success' : 'pp-status-pill is-default'}>
+                          {s.isActive ? (
+                            <span className="flex items-center gap-1"><UserCheck size={10} /> Active</span>
+                          ) : 'Inactive'}
+                        </span>
+                      </div>
+                    </td>
+                    <td data-label="Actions">
+                      <div className="plat-cell-val">
+                        <div className="flex justify-end gap-2" style={{ width: '100%' }}>
+                          <button className="plat-btn plat-btn-icon plat-btn-ghost" style={{ width: 36, height: 36, borderRadius: 10 }} title="Edit" onClick={(e) => { e.stopPropagation(); openEdit(s); }}>
+                            <Edit2 size={13} />
+                          </button>
+                          <button className="plat-btn plat-btn-icon plat-btn-danger" style={{ width: 36, height: 36, borderRadius: 10 }} title="Delete" onClick={(e) => { e.stopPropagation(); handleDelete(s.id); }} disabled={deleteMutation.isPending}>
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
                       </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
+          </>
         )}
       </div>
-
-      {totalPages > 1 && (
-        <div className="flex justify-center gap-4 mt-8">
-          <button className="plat-btn" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>← Previous</button>
-          <button className="plat-btn" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>Next →</button>
-        </div>
-      )}
-
+      <div style={{ marginTop: '20px' }}>
+        <Pagination
+          totalItems={data?.total || 0}
+          itemsPerPage={itemsPerPage}
+          currentPage={page}
+          onPageChange={setPage}
+          onLimitChange={setItemsPerPage}
+        />
+      </div>
       {modalOpen && (
         <StaffModal
           mode={modalMode}

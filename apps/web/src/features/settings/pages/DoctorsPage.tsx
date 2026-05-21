@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
-import { Stethoscope, Plus, Edit2, Trash2, RefreshCw, ArrowLeft, Mail, Phone, MapPin, Search } from 'lucide-react';
+import { Stethoscope, Plus, Edit2, Trash2, RefreshCw, Mail, Phone, MapPin, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAccounts, useDeleteAccount } from '../../platform/hooks/use-accounts';
 import { useOrganizations } from '../../platform/hooks/use-organizations';
 import { AccountModal } from '../../platform/components/AccountModal';
 import '../../platform/styles/platform.css';
 import '../styles/settings.css';
+
+import { Pagination } from '@/shared/components/Pagination';
+import { usePagination } from '@/shared/hooks/use-pagination';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
 
 export default function DoctorsPage() {
   const [modalOpen, setModalOpen] = useState(false);
@@ -24,6 +28,15 @@ export default function DoctorsPage() {
     doc.mobile?.toLowerCase().includes(search.toLowerCase()) ||
     doc.designation?.toLowerCase().includes(search.toLowerCase())
   );
+
+  const {
+    currentPage,
+    setCurrentPage,
+    itemsPerPage,
+    setItemsPerPage,
+    paginatedData,
+    totalItems
+  } = usePagination(filteredDoctors);
 
   const openCreate = () => { setEditing(undefined); setModalOpen(true); };
   const openEdit = (d: any) => { setEditing(d); setModalOpen(true); };
@@ -80,15 +93,14 @@ export default function DoctorsPage() {
 
       <div className="plat-card">
         {isLoading ? (
-          <div className="plat-empty">
-            <RefreshCw size={22} className="animate-spin opacity-30" />
-          </div>
+          <TableSkeleton rows={5} columns={5} />
         ) : filteredDoctors.length === 0 ? (
           <div className="plat-empty">
             <Stethoscope size={40} className="plat-empty-icon" />
             <p className="plat-empty-text">No doctors found in the directory.</p>
           </div>
         ) : (
+          <>
           <div className="plat-table-container">
             <table className="plat-table">
               <thead>
@@ -101,9 +113,9 @@ export default function DoctorsPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredDoctors.map((doc: any, idx: number) => (
+                {paginatedData.map((doc: any, idx: number) => (
                   <tr key={doc.id} className="plat-table-row">
-                    <td data-label="#" className="plat-table-cell font-mono text-xs color-muted">{idx + 1}</td>
+                    <td data-label="#" className="plat-table-cell font-mono text-xs color-muted">{(currentPage - 1) * itemsPerPage + idx + 1}</td>
                     <td data-label="Doctor" className="plat-table-cell">
                       <div className="font-semibold">{doc.name}</div>
                       <div className="text-xs color-muted">{doc.designation || 'General Physician'}</div>
@@ -136,6 +148,16 @@ export default function DoctorsPage() {
               </tbody>
             </table>
           </div>
+          <div style={{ marginTop: '20px' }}>
+            <Pagination
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+            currentPage={currentPage}
+            onPageChange={setCurrentPage}
+            onLimitChange={setItemsPerPage}
+          />
+          </div>
+          </>
         )}
       </div>
 

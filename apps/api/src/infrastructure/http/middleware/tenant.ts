@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import { TenantRegistry, createDbClient } from '@mmc/database';
-import { createLogger } from '../../../shared/logger';
+import { createLogger } from '../../../shared/logger.js';
 
 const logger = createLogger('tenant');
 
@@ -18,11 +18,12 @@ declare global {
 
 
 export function tenantMiddleware(req: Request, res: Response, next: NextFunction) {
+  console.time('Middleware_Tenant');
   const host = (req.headers['x-forwarded-host'] as string) || req.hostname || '';
   const tenant = TenantRegistry.resolve(host);
   
   if (req.url.includes('/login')) {
-    console.log(`[TenantMiddleware] Host: ${host} -> Resolved: ${tenant?.slug || 'NONE (demo fallback)'}`);
+    console.log(`[TenantMiddleware] Host: ${host} -> Resolved: ${tenant?.slug || 'NONE (demo fallback)'} -> Schema: ${tenant?.schemaName || 'tenant_demo'}`);
   }
 
   // Always attach a public schema client (for organizations, accounts, etc.)
@@ -33,6 +34,7 @@ export function tenantMiddleware(req: Request, res: Response, next: NextFunction
     // Fallback to demo for development
     const fallback = TenantRegistry.resolve('demo');
     if (!fallback) {
+      console.timeEnd('Middleware_Tenant');
       res.status(400).json({ success: false, error: 'Unknown tenant' });
       return;
     }
@@ -44,5 +46,6 @@ export function tenantMiddleware(req: Request, res: Response, next: NextFunction
   }
 
   req.db = req.tenantDb;
+  console.timeEnd('Middleware_Tenant');
   next();
 }

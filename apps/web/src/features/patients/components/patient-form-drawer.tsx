@@ -1,0 +1,573 @@
+import { useState, useEffect, useRef } from 'react';
+import ReactDOM from 'react-dom';
+import { usePatient, useCreatePatient, useUpdatePatient, usePatientFormMeta, usePatientLookup } from '../hooks/use-patients';
+import { useReferrals } from '../../settings/hooks/use-settings';
+import { useAvailableSlots, useCreateAppointment } from '../../appointments/hooks/use-appointments';
+import { useDoctors } from '../../appointments/hooks/use-doctors';
+import { VisitType } from '@mmc/types';
+import { NumericInput } from '@/shared/components/NumericInput';
+import { useAuthStore } from '@/shared/stores/auth-store';
+import { X, Calendar as CalendarIcon, Clock, CheckCircle } from 'lucide-react';
+import { useWhatsApp } from '@/features/whatsapp/hooks/use-whatsapp';
+import '../styles/patients.css';
+
+const INDIAN_STATES = [
+  'Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhattisgarh','Goa','Gujarat',
+  'Haryana','Himachal Pradesh','Jammu & Kashmir','Jharkhand','Karnataka','Kerala',
+  'Madhya Pradesh','Maharashtra','Manipur','Meghalaya','Mizoram','Nagaland','Odisha',
+  'Punjab','Rajasthan','Sikkim','Tamil Nadu','Tripura','Uttarakhand','Uttar Pradesh',
+  'West Bengal','Andaman & Nicobar','Chandigarh','Delhi','Puducherry',
+];
+
+const INIT_FORM = {
+  title: 'Mr.', firstName: '', middleName: '', surname: '', gender: 'M' as 'M' | 'F' | 'Other',
+  phone: '', mobile1: '', mobile2: '', email: '',
+  pin: '', address: '', road: '', area: '', city: '', state: 'Punjab', country: 'India', altAddress: '',
+  religion: '', occupation: '', maritalStatus: '', bloodGroup: '',
+  referenceType: '', referredBy: '', assistantDoctor: '', consultationFee: undefined as number | undefined,
+  courierOutstation: false, dateOfBirth: '', referredById: undefined as string | number | undefined,
+  // Appointment fields
+  bookingDate: new Date().toISOString().split('T')[0] ?? '',
+  bookingTime: '',
+  visitType: VisitType.New,
+  notes: '',
+};
+
+interface PatientFormDrawerProps {
+  isOpen: boolean;
+  onClose: () => void;
+  regid?: number | null; // null for create, number for edit
+  unregisteredPatient?: any | null; // Data from shadow patient to convert
+  onSuccess?: () => void;
+}
+
+export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient, onSuccess }: PatientFormDrawerProps) {
+  const isEdit = Boolean(regid);
+  const { user } = useAuthStore();
+  const clinicId = user?.contextId;
+
+  const [form, setForm] = useState(INIT_FORM);
+  const [errors, setErrors] = useState<string[]>([]);
+  const [refSearch, setRefSearch] = useState('');
+  const [showRefDropdown, setShowRefDropdown] = useState(false);
+  const refDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (refDropdownRef.current && !refDropdownRef.current.contains(event.target as Node)) {
+        setShowRefDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const { data: meta } = usePatientFormMeta(clinicId);
+  const { data: patient } = usePatient(isEdit && regid ? Number(regid) : 0);
+  const { data: refResults = [] } = usePatientLookup(refSearch);
+  const { data: referrals = [] } = useReferrals();
+  const { data: doctors = [] } = useDoctors();
+  const createMutation = useCreatePatient();
+  const updateMutation = useUpdatePatient();
+  const createApptMutation = useCreateAppointment();
+  const { useSendText } = useWhatsApp();
+  const sendText = useSendText();
+
+  const { data: slots = [] } = useAvailableSlots(
+    form.assistantDoctor ? Number(form.assistantDoctor) : undefined,
+    form.bookingDate || undefined,
+  );
+
+  const selectedDoctor = doctors.find(d => String(d.id) === form.assistantDoctor);
+  const isDoctorInactive = selectedDoctor && selectedDoctor.isActive === false;
+
+  useEffect(() => {
+    if (isOpen) {
+      if (isEdit && patient) {
+        setRefSearch(patient.referredBy || '');
+        setForm({
+          title: patient.title || '',
+          firstName: patient.firstName || '',
+          middleName: patient.middleName || '',
+          surname: patient.surname || '',
+          gender: (patient.gender || 'M') as 'M' | 'F' | 'Other',
+          phone: patient.phone || '',
+          mobile1: patient.mobile1 || '',
+          mobile2: patient.mobile2 || '',
+          email: patient.email || '',
+          pin: patient.pin || '',
+          address: patient.address || '',
+          road: patient.road || '',
+          area: patient.area || '',
+          city: patient.city || '',
+          state: patient.state || 'Punjab',
+          country: patient.country || 'India',
+          altAddress: patient.altAddress || '',
+          religion: patient.religion || '',
+          occupation: patient.occupation || '',
+          maritalStatus: patient.maritalStatus || '',
+          bloodGroup: patient.bloodGroup || '',
+          referenceType: patient.referenceType || '',
+          referredBy: patient.referredByName || patient.referredBy || '',
+          assistantDoctor: patient.assistantDoctor || '',
+          consultationFee: patient.consultationFee || 500,
+          courierOutstation: patient.courierOutstation || false,
+          dateOfBirth: patient.dateOfBirth ? (() => {
+            const d = new Date(String(patient.dateOfBirth));
+            return isNaN(d.getTime()) ? '' : (d.toISOString().split('T')[0] ?? '');
+          })() : '',
+          // Reset appointment fields on edit for safety
+          bookingDate: new Date().toISOString().split('T')[0] ?? '',
+          bookingTime: '',
+          visitType: VisitType.New,
+          referredById: undefined,
+          notes: '',
+        });
+      } else if (unregisteredPatient) {
+        setRefSearch('');
+        const latestAppt = unregisteredPatient.latestAppointment;
+        const nameParts = (unregisteredPatient.name || '').trim().split(' ');
+        const firstName = nameParts[0] || '';
+        const surname = nameParts.slice(1).join(' ') || '';
+        
+        // Ensure date is in YYYY-MM-DD format
+        let bDate = new Date().toISOString().split('T')[0] ?? '';
+        if (latestAppt?.bookingDate) {
+          try {
+            const d = new Date(latestAppt.bookingDate);
+            if (!isNaN(d.getTime())) {
+              bDate = d.toISOString().split('T')[0] ?? '';
+            }
+          } catch (e) {
+            console.warn('Invalid booking date from unregistered patient:', latestAppt.bookingDate);
+          }
+        }
+
+        setForm({
+          ...INIT_FORM,
+          firstName,
+          surname,
+          phone: unregisteredPatient.phone || '',
+          gender: (unregisteredPatient.gender || 'M') as any,
+          email: unregisteredPatient.email || '',
+          // Pre-fill appointment info if available
+          assistantDoctor: latestAppt?.doctorId ? String(latestAppt.doctorId) : '',
+          bookingDate: bDate,
+          bookingTime: latestAppt?.bookingTime || '',
+          visitType: (latestAppt?.visitType || VisitType.New) as any,
+          consultationFee: latestAppt?.consultationFee ? Number(latestAppt.consultationFee) : (latestAppt?.doctorId ? (meta?.doctors?.find(d => String(d.id) === String(latestAppt.doctorId))?.consultationFee || 500) : 500),
+          notes: latestAppt?.notes || '',
+        });
+      } else if (!isEdit) {
+        setForm(INIT_FORM);
+        setRefSearch('');
+      }
+      setErrors([]);
+    }
+  }, [isOpen, isEdit, patient, unregisteredPatient, meta]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value, type } = e.target;
+    // @ts-ignore Checkbox is handled slightly differently
+    const val = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
+
+    setForm(prev => {
+      const next = { ...prev, [name]: val };
+      
+      // Auto-update consultation fee when doctor is selected
+      if (name === 'assistantDoctor') {
+        if (!value) {
+          next.consultationFee = undefined;
+        } else {
+          const doc = meta?.doctors?.find(d => String(d.id) === value);
+          if (doc) {
+            next.consultationFee = Number(doc.consultationFee) || 0;
+          }
+        }
+      }
+
+      // Clear referral fields if reference type changes
+      if (name === 'referenceType') {
+        const isReferral = value?.toLowerCase().includes('patient') || value?.toLowerCase().includes('recommendation');
+        if (!isReferral) {
+          next.referredBy = '';
+          next.referredById = undefined;
+          setRefSearch('');
+        }
+      }
+      
+      return next;
+    });
+  };
+
+  const validate = () => {
+    const errs: string[] = [];
+    if (!form.firstName.trim()) errs.push('First Name is required');
+    if (!form.surname.trim()) errs.push('Surname is required');
+    if (!form.phone.trim() && !form.mobile1.trim()) errs.push('At least one phone number is required');
+    if (!form.dateOfBirth) errs.push('Date of Birth is required');
+    
+    // Phone length validation
+    if (form.phone && form.phone.length !== 10) errs.push('Primary Mobile must be 10 digits');
+    if (form.mobile1 && form.mobile1.length !== 10) errs.push('Alternate Mobile must be 10 digits');
+    if (form.mobile2 && form.mobile2.length !== 10) errs.push('Landline must be 10 digits');
+    
+    return errs;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const errs = validate();
+    if (errs.length) { setErrors(errs); return; }
+    setErrors([]);
+    try {
+      if (isEdit) {
+        await updateMutation.mutateAsync({ regid: Number(regid), ...form });
+        onSuccess?.();
+        onClose();
+      } else {
+        const patientResult = await createMutation.mutateAsync({
+           ...form,
+           referredById: refSearch || undefined,
+           unregisteredId: unregisteredPatient?.id
+        });
+        
+        // If a time slot is selected, book the appointment (Skip if we already have an unregistered patient as the backend links existing ones)
+        if (!unregisteredPatient && form.bookingTime && form.assistantDoctor && patientResult.regid) {
+          await createApptMutation.mutateAsync({
+            patientId: patientResult.regid,
+            patientName: `${form.firstName} ${form.surname}`.trim(),
+            phone: form.phone || form.mobile1,
+            doctorId: Number(form.assistantDoctor),
+            bookingDate: form.bookingDate!, // Guaranteed to have a default in INIT_FORM
+            bookingTime: form.bookingTime!, // Checked in condition above
+            visitType: form.visitType,
+            consultationFee: form.consultationFee || 0,
+            notes: 'Initial consultation booked during registration.',
+          });
+        }
+        
+        // Auto-send WhatsApp registration text
+        if (patientResult?.regid && (form.phone || form.mobile1)) {
+          const rawPhone = form.phone || form.mobile1;
+          const cleaned = rawPhone.replace(/\D/g, '');
+          const finalPhone = cleaned.length === 10 ? `91${cleaned}` : cleaned;
+          try {
+            await sendText.mutateAsync({
+              phone: finalPhone,
+              message: `Dear ${form.firstName} ${form.surname},\n\nThank you for registering with MMC HomeoTech. Your Registration ID is *${patientResult.regid}*.\n\nPlease use this ID for all future communications.\n\nBest regards,\nYour Clinic`
+            });
+          } catch (err) {
+            console.error('Auto WhatsApp failed', err);
+          }
+        }
+        
+        onSuccess?.();
+        onClose();
+      }
+    } catch (err: any) {
+      setErrors([err.response?.data?.message || err.message]);
+    }
+  };
+
+  const isSubmitting = createMutation.isPending || updateMutation.isPending;
+
+  if (!isOpen) return null;
+
+  return ReactDOM.createPortal(
+    <>
+      <div className="drawer-overlay" onClick={onClose} />
+      <div className="drawer-panel">
+        <div className="drawer-header">
+          <h2 className="drawer-title">
+            {isEdit ? 'Edit Patient' : unregisteredPatient ? 'Complete Registration' : 'Register New Patient'}
+          </h2>
+          <button className="drawer-close" onClick={onClose}><X size={20} /></button>
+        </div>
+
+        <div className="drawer-body">
+          {errors.length > 0 && (
+            <div className="pat-error-banner" style={{ marginBottom: '20px' }}>
+              <ul className="pat-error-list">
+                {errors.map((e, i) => <li key={i} className="pat-error-item">{e}</li>)}
+              </ul>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="drawer-form">
+            {/* Name Details */}
+            <div className="form-group">
+              <label className="drawer-label">Full Name <span style={{ color: 'var(--pp-danger-fg)' }}>*</span></label>
+              <div className="drawer-name-row">
+                <select className="drawer-input" name="title" value={form.title} onChange={handleChange}>
+                  {(meta?.titles || ['Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Prof.', 'Master', 'Baby']).map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+                <input className="drawer-input" style={{ flex: 1 }} name="firstName" value={form.firstName} onChange={handleChange} placeholder="First Name" required />
+                <input className="drawer-input" style={{ flex: 1 }} name="middleName" value={form.middleName} onChange={handleChange} placeholder="Middle Name" />
+                <input className="drawer-input" style={{ flex: 1 }} name="surname" value={form.surname} onChange={handleChange} placeholder="Surname" required />
+              </div>
+            </div>
+
+            <div className="drawer-grid-2">
+              <div className="form-group">
+                <label className="drawer-label">Gender</label>
+                <select className="drawer-input" name="gender" value={form.gender} onChange={handleChange}>
+                  <option value="M">Male</option>
+                  <option value="F">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="drawer-label">Date of Birth <span style={{ color: 'var(--pp-danger-fg)' }}>*</span></label>
+                <input className="drawer-input" name="dateOfBirth" type="date" value={form.dateOfBirth} onChange={handleChange} required />
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+               <div className="form-group">
+                  <label className="drawer-label">Mobile <span style={{ color: 'var(--pp-danger-fg)' }}>*</span></label>
+                  <NumericInput className="drawer-input" name="phone" value={form.phone} onChange={handleChange} placeholder="Primary Mobile" maxLength={10} />
+               </div>
+               <div className="form-group">
+                  <label className="drawer-label">Mobile 2</label>
+                  <NumericInput className="drawer-input" name="mobile1" value={form.mobile1} onChange={handleChange} placeholder="Alternate Mobile" maxLength={10} />
+               </div>
+            </div>
+
+            <div className="drawer-grid-2">
+               <div className="form-group">
+                  <label className="drawer-label">Landline</label>
+                  <NumericInput className="drawer-input" name="mobile2" value={form.mobile2} onChange={handleChange} placeholder="Landline" maxLength={10} />
+               </div>
+               <div className="form-group">
+                  <label className="drawer-label">Email Address</label>
+                  <input className="drawer-input" name="email" value={form.email} onChange={handleChange} placeholder="Email" type="email" />
+               </div>
+            </div>
+
+            {/* Doctor & Fee */}
+            <div className="drawer-grid-2" style={{ marginTop: '8px' }}>
+               <div className="form-group">
+                  <label className="drawer-label">Assign Doctor</label>
+                  <select className="drawer-input" name="assistantDoctor" value={form.assistantDoctor} onChange={handleChange}>
+                    <option value="">Select Doctor</option>
+                    {(meta?.doctors || []).map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  </select>
+               </div>
+               <div className="form-group">
+                  <label className="drawer-label">Consultation Fee (₹)</label>
+                  <NumericInput className="drawer-input" name="consultationFee" value={form.consultationFee ?? ''} onChange={handleChange} />
+               </div>
+            </div>
+
+            {/* Appointment Booking Logic */}
+            {!isEdit && form.assistantDoctor && (
+              <div className="pat-appt-section animate-fade-in" style={{ marginTop: '12px', padding: '12px', background: 'var(--bg-surface-2)', borderRadius: '8px', border: '1px solid var(--border-main)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                  <CalendarIcon size={14} style={{ color: 'var(--pp-blue)' }} />
+                  <span style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text-main)' }}>Book Appointment</span>
+                </div>
+
+                <div className="form-group">
+                  <label className="drawer-label">Booking Date</label>
+                  <input 
+                    className="drawer-input" 
+                    type="date" 
+                    name="bookingDate" 
+                    value={form.bookingDate} 
+                    onChange={handleChange}
+                    min={new Date().toISOString().split('T')[0]}
+                  />
+                </div>
+
+                <div className="form-group" style={{ marginTop: '12px' }}>
+                  <label className="drawer-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Clock size={13} /> Time Slot
+                  </label>
+                  
+                  {isDoctorInactive ? (
+                    <div className="pat-slots-unavailable" style={{ padding: '12px', textAlign: 'center', color: 'var(--pp-danger-fg)', background: 'var(--pp-danger-bg)', borderRadius: '6px', fontSize: '13px' }}>
+                      <span style={{ marginRight: '8px' }}>🔴</span>
+                      Doctor is currently inactive. You can still register the patient, but cannot book a slot.
+                    </div>
+                  ) : slots.length === 0 ? (
+                    <div className="pat-slots-hint" style={{ padding: '8px', textAlign: 'center', opacity: 0.6, fontSize: '12px', color: 'var(--text-muted)' }}>
+                      Select a date to see available slots
+                    </div>
+                  ) : (
+                    <div className="pat-slots-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '8px', marginTop: '8px' }}>
+                      {slots.filter(s => !s.isPast || s.booked || s.time === form.bookingTime).map(slot => (
+                        <button
+                          key={slot.time}
+                          type="button"
+                          className={`pat-slot-btn ${form.bookingTime === slot.time ? 'selected' : slot.booked ? 'booked' : slot.isPast ? 'past' : 'available'}`}
+                          disabled={slot.booked || slot.isPast}
+                          onClick={() => setForm(f => ({ ...f, bookingTime: slot.time }))}
+                          style={{
+                            padding: '6px 4px',
+                            fontSize: '11px',
+                            borderRadius: '4px',
+                            border: '1px solid var(--border-main)',
+                            background: form.bookingTime === slot.time ? 'var(--pp-blue)' : slot.booked ? 'var(--bg-surface-2)' : 'var(--bg-card)',
+                            color: form.bookingTime === slot.time ? 'white' : slot.booked ? 'var(--text-muted)' : 'var(--text-main)',
+                            cursor: slot.booked || slot.isPast ? 'not-allowed' : 'pointer',
+                            opacity: slot.isPast ? 0.4 : 1
+                          }}
+                        >
+                          {slot.time}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Address */}
+            <div className="form-group" style={{ marginTop: '8px' }}>
+              <label className="drawer-label">Address</label>
+              <input className="drawer-input" name="address" value={form.address} onChange={handleChange} placeholder="Flat / Building / Road / Area" />
+            </div>
+
+            <div className="drawer-grid-3">
+              <div className="form-group">
+                <label className="drawer-label">City</label>
+                <input className="drawer-input" name="city" value={form.city} onChange={handleChange} placeholder="City" />
+              </div>
+              <div className="form-group">
+                <label className="drawer-label">State</label>
+                <select className="drawer-input" name="state" value={form.state} onChange={handleChange}>
+                  <option value="">Select State</option>
+                  {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="drawer-label">PIN Code</label>
+                <NumericInput className="drawer-input" name="pin" value={form.pin} onChange={handleChange} placeholder="PIN Code" />
+              </div>
+            </div>
+
+            {/* Other Details */}
+            <div className="drawer-grid-2" style={{ marginTop: '8px' }}>
+              <div className="form-group">
+                <label className="drawer-label">Religion</label>
+                <select className="drawer-input" name="religion" value={form.religion} onChange={handleChange}>
+                  <option value="">Select</option>
+                  {(meta?.religions?.length ? meta.religions : ['Hindu', 'Muslim', 'Christian', 'Sikh', 'Buddhist', 'Jain', 'Other']).map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="drawer-label">Blood Group</label>
+                <select className="drawer-input" name="bloodGroup" value={form.bloodGroup} onChange={handleChange}>
+                  <option value="">Select</option>
+                  {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(b => <option key={b} value={b}>{b}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div className="drawer-grid-2">
+               <div className="form-group">
+                <label className="drawer-label">Marital Status</label>
+                <select className="drawer-input" name="maritalStatus" value={form.maritalStatus} onChange={handleChange}>
+                  <option value="">Select</option>
+                  {(meta?.statuses || ['Single', 'Married', 'Divorced', 'Widowed']).map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="drawer-label">Occupation</label>
+                <select className="drawer-input" name="occupation" value={form.occupation} onChange={handleChange}>
+                  <option value="">Select</option>
+                  {(meta?.occupations?.length ? meta.occupations : ['Business', 'Service', 'Student', 'Housewife', 'Retired', 'Self-Employed', 'Other']).map(o => <option key={o} value={o}>{o}</option>)}
+                </select>
+              </div>
+            </div>
+
+            {/* Reference Details */}
+            <div className="drawer-grid-2" style={{ marginTop: '8px' }}>
+              <div className="form-group">
+                <label className="drawer-label">Reference</label>
+                <select className="drawer-input" name="referenceType" value={form.referenceType} onChange={handleChange}>
+                  <option value="">Select Reference</option>
+                  {referrals.filter((r: any) => r.isActive).length > 0 
+                    ? referrals.filter((r: any) => r.isActive).map((r: any) => <option key={r.id} value={r.name}>{r.name}</option>)
+                    : ['Self', 'Existing Patient', 'Doctor', 'Social Media', 'Advertisement', 'Walk-in', 'Other'].map(r => <option key={r} value={r}>{r}</option>)
+                  }
+                </select>
+              </div>
+
+              {(form.referenceType?.toLowerCase().includes('patient') || form.referenceType?.toLowerCase().includes('recommendation')) && (
+                <div className="form-group animate-fade-in" ref={refDropdownRef}>
+                  <label className="drawer-label">Referred By Patient</label>
+                  {form.referredBy ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px', background: 'var(--bg-surface-3)', borderRadius: '6px', border: '1px solid var(--border-main)' }}>
+                      <span className="pp-mono text-small font-bold" style={{ color: 'var(--pp-blue)', background: 'var(--pp-blue-bg)', padding: '2px 6px', borderRadius: '4px' }}>
+                        {refSearch}
+                      </span>
+                      <span style={{ fontSize: '13px', fontWeight: 500 }}>{form.referredBy}</span>
+                      <button 
+                        type="button" 
+                        style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
+                        onClick={() => {
+                          setForm(f => ({ ...f, referredBy: '' }));
+                          setRefSearch('');
+                        }}
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ position: 'relative' }}>
+                      <input 
+                        className="drawer-input" 
+                        placeholder="Search ID, Name or Mobile..." 
+                        value={refSearch}
+                        onChange={e => {
+                           setRefSearch(e.target.value);
+                           setShowRefDropdown(true);
+                        }}
+                        onFocus={() => setShowRefDropdown(true)}
+                      />
+                      
+                      {showRefDropdown && refSearch.length >= 2 && (
+                        <div className="appt-kebab-menu" style={{ position: 'absolute', top: '100%', left: 0, width: '100%', zIndex: 10, maxHeight: '200px', overflowY: 'auto', background: 'white', border: '1px solid #cbd5e1', borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
+                          {refResults.length === 0 ? (
+                            <div style={{ padding: '8px 12px', fontSize: '12px', color: '#64748b' }}>No patients found</div>
+                          ) : (
+                            refResults.map(p => (
+                              <button 
+                                key={p.regid} 
+                                type="button"
+                                className="appt-kebab-item" 
+                                style={{ width: '100%', textAlign: 'left', padding: '8px 12px', border: 'none', background: 'none', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+                                onClick={() => {
+                                  setForm(f => ({ ...f, referredBy: p.fullName }));
+                                  setRefSearch(String(p.regid));
+                                  setShowRefDropdown(false);
+                                }}
+                              >
+                                <span className="pp-mono text-small font-bold" style={{ color: '#2563eb', background: '#eff6ff', padding: '2px 6px', borderRadius: '4px' }}>{p.regid}</span>
+                                <span style={{ fontSize: '13px', color: '#1e293b' }}>{p.fullName}</span>
+                                {p.phone && <span style={{ fontSize: '11px', color: '#64748b', marginLeft: 'auto' }}>{p.phone}</span>}
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="form-group" style={{ marginTop: '24px' }}>
+              <button className="drawer-submit-btn" type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Saving...' : (isEdit ? 'Update Patient' : unregisteredPatient ? 'Complete Registration' : 'Register Patient')}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </>,
+    document.body
+  );
+}

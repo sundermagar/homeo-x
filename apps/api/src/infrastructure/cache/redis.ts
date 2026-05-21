@@ -1,6 +1,6 @@
 import Redis from 'ioredis';
-import { appConfig } from '../../shared/config/app-config';
-import { createLogger } from '../../shared/logger';
+import { appConfig } from '../../shared/config/app-config.js';
+import { createLogger } from '../../shared/logger.js';
 
 const logger = createLogger('redis');
 

@@ -1,4 +1,4 @@
-import { type Result, ok, fail } from '../../../shared/result';
+import { type Result, ok, fail } from '../../../shared/result.js';
 import type { CreatePaymentOrderInput } from '@mmc/validation';
 
 export interface RazorpayOrder {

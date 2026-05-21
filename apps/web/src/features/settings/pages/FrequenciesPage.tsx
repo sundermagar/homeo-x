@@ -1,9 +1,15 @@
 import React, { useState } from 'react';
-import { Clock, Plus, X, RefreshCw, ArrowLeft, Trash2, Edit2, Search } from 'lucide-react';
+import { Clock, Plus, X, RefreshCw, Trash2, Edit2, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useFrequencies, useCreateFrequency, useUpdateFrequency, useDeleteFrequency } from '../hooks/use-settings';
+import { Drawer } from '@/shared/components/drawer';
 import '../../platform/styles/platform.css';
 import '../styles/settings.css';
+
+import { Pagination } from '@/shared/components/Pagination';
+import { usePagination } from '@/shared/hooks/use-pagination';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
 
 interface Frequency {
   id: number;
@@ -31,6 +37,15 @@ export default function FrequenciesPage() {
     f.frequency?.toLowerCase().includes(search.toLowerCase()) ||
     f.duration?.toLowerCase().includes(search.toLowerCase())
   );
+
+  const {
+    currentPage,
+    setCurrentPage,
+    itemsPerPage,
+    setItemsPerPage,
+    paginatedData,
+    totalItems
+  } = usePagination(filtered);
 
   const handleOpenCreate = () => {
     setEditingId(null);
@@ -112,15 +127,19 @@ export default function FrequenciesPage() {
 
       <div className="plat-card">
         {isLoading ? (
-          <div className="plat-empty">
-            <RefreshCw size={22} className="animate-spin opacity-30" />
-          </div>
+          <TableSkeleton rows={5} columns={6} />
         ) : filtered.length === 0 ? (
-          <div className="plat-empty">
-            <Clock size={40} className="plat-empty-icon" />
-            <p className="plat-empty-text">No frequencies found matching search.</p>
-          </div>
+          <EmptyState 
+            icon={Clock}
+            title={search ? "No matches found" : "No frequencies defined"}
+            description={search ? `No dosage frequencies matching "${search}" were found.` : "Define clinical dosage frequencies (e.g. TDS, BD, OD) to streamline prescriptions."}
+            actionLabel={search ? "Clear Search" : "Add Frequency"}
+            onAction={search ? () => setSearch('') : handleOpenCreate}
+            variant="card"
+            className="my-8"
+          />
         ) : (
+          <>
           <div className="plat-table-container">
             <table className="plat-table">
               <thead>
@@ -134,9 +153,9 @@ export default function FrequenciesPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((freq: Frequency, idx: number) => (
+                {paginatedData.map((freq: Frequency, idx: number) => (
                   <tr key={freq.id} className="plat-table-row">
-                    <td data-label="ID" className="plat-table-cell font-mono text-xs color-muted">{idx + 1}</td>
+                    <td data-label="ID" className="plat-table-cell font-mono text-xs color-muted">{(currentPage - 1) * itemsPerPage + idx + 1}</td>
                     <td data-label="Title" className="plat-table-cell font-semibold">{freq.title || '—'}</td>
                     <td data-label="Description" className="plat-table-cell">{freq.frequency || '—'}</td>
                     <td data-label="Duration" className="plat-table-cell">{freq.duration || '—'}</td>
@@ -156,72 +175,78 @@ export default function FrequenciesPage() {
               </tbody>
             </table>
           </div>
+          <div style={{ marginTop: '20px' }}>
+            <Pagination
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+            currentPage={currentPage}
+            onPageChange={setCurrentPage}
+            onLimitChange={setItemsPerPage}
+          />
+          </div>
+          </>
         )}
       </div>
 
-      {isModalOpen && (
-        <div className="plat-modal-backdrop" onClick={() => setIsModalOpen(false)}>
-          <div className="plat-modal-content max-w-lg" onClick={e => e.stopPropagation()}>
-            <div className="plat-modal-header">
-              <h2 className="plat-modal-title">{editingId ? 'Edit Frequency' : 'Add Frequency'}</h2>
-              <button className="plat-btn plat-btn-icon" onClick={() => setIsModalOpen(false)}>
-                <X size={16} />
-              </button>
-            </div>
-            <form onSubmit={handleSubmit}>
-              <div className="plat-modal-body">
-                <div className="plat-form-section">
-                  <div className="plat-form-grid-multi" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
-                    <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
-                      <label className="plat-form-label">Title * (e.g. TDS)</label>
-                      <input
-                        className="plat-form-input"
-                        required
-                        value={form.title}
-                        onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                        placeholder="e.g. TDS"
-                      />
-                    </div>
-                    <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
-                      <label className="plat-form-label">Full Description (e.g. Three times a day)</label>
-                      <input
-                        className="plat-form-input"
-                        value={form.frequency}
-                        onChange={e => setForm(f => ({ ...f, frequency: e.target.value }))}
-                        placeholder="e.g. Three times a day"
-                      />
-                    </div>
-                    <div className="plat-form-group">
-                      <label className="plat-form-label">Duration</label>
-                      <input
-                        className="plat-form-input"
-                        value={form.duration}
-                        onChange={e => setForm(f => ({ ...f, duration: e.target.value }))}
-                        placeholder="e.g. 5 Days"
-                      />
-                    </div>
-                    <div className="plat-form-group">
-                      <label className="plat-form-label">Days (Numeric)</label>
-                      <input
-                        className="plat-form-input"
-                        type="number"
-                        value={form.days}
-                        onChange={e => setForm(f => ({ ...f, days: Number(e.target.value) }))}
-                      />
-                    </div>
-                  </div>
+      <Drawer
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={editingId ? 'Edit Frequency' : 'Add Frequency'}
+        maxWidth="480px"
+      >
+        <form onSubmit={handleSubmit}>
+          <div className="plat-modal-body" style={{ padding: 0 }}>
+            <div className="plat-form-section" style={{ border: 'none', boxShadow: 'none', padding: 0 }}>
+              <div className="plat-form-grid-multi frequency-form-grid">
+                <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
+                  <label className="plat-form-label">Title * (e.g. TDS)</label>
+                  <input
+                    className="plat-form-input"
+                    required
+                    value={form.title}
+                    onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+                    placeholder="e.g. TDS"
+                  />
+                </div>
+                <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
+                  <label className="plat-form-label">Full Description (e.g. Three times a day)</label>
+                  <input
+                    className="plat-form-input"
+                    value={form.frequency}
+                    onChange={e => setForm(f => ({ ...f, frequency: e.target.value }))}
+                    placeholder="e.g. Three times a day"
+                  />
+                </div>
+                <div className="plat-form-group">
+                  <label className="plat-form-label">Duration</label>
+                  <input
+                    className="plat-form-input"
+                    value={form.duration}
+                    onChange={e => setForm(f => ({ ...f, duration: e.target.value }))}
+                    placeholder="e.g. 5 Days"
+                  />
+                </div>
+                <div className="plat-form-group">
+                  <label className="plat-form-label">Days (Numeric)</label>
+                  <input
+                    className="plat-form-input"
+                    type="number"
+                    value={form.days}
+                    onChange={e => setForm(f => ({ ...f, days: Number(e.target.value) }))}
+                  />
                 </div>
               </div>
-              <div className="plat-modal-footer">
-                <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                <button type="submit" className="plat-btn plat-btn-primary" disabled={createFreq.isPending || updateFreq.isPending}>
-                  {editingId ? 'Save Changes' : 'Add Frequency'}
-                </button>
-              </div>
-            </form>
+            </div>
           </div>
-        </div>
-      )}
+          <div className="plat-modal-footer" style={{ padding: '24px 0 0 0', marginTop: '24px' }}>
+            <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
+            <button type="submit" className="plat-btn plat-btn-primary" disabled={createFreq.isPending || updateFreq.isPending}>
+              {editingId ? 'Save Changes' : 'Add Frequency'}
+            </button>
+          </div>
+        </form>
+      </Drawer>
+
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { eq, sql } from 'drizzle-orm';
 import type { DbClient } from '@mmc/database';
 import * as schema from '@mmc/database';
-import type { InventoryRepository, Medicine } from '../../domains/inventory/ports/inventory.repository';
+import type { InventoryRepository, Medicine } from '../../domains/inventory/ports/inventory.repository.js';
 
 export class InventoryRepositoryPg implements InventoryRepository {
   constructor(private readonly db: DbClient) {}

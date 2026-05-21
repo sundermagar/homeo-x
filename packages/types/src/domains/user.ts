@@ -1,4 +1,4 @@
-import type { Role } from '../enums';
+import type { Role } from '../enums.js';
 
 export interface User {
   id: number;
@@ -13,6 +13,8 @@ export interface User {
   createdAt: Date;
   updatedAt: Date;
   clinicName?: string;
+  resetOtp?: string | null;
+  resetOtpExpiry?: Date | null;
 }
 
 export interface AuthTokenPayload {

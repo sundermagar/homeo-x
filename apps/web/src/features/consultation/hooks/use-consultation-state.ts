@@ -40,6 +40,10 @@ export interface AiContext {
   patientGender?: string;
   thermalReaction?: string;
   miasm?: string;
+  thirstPattern?: string;
+  sleepPosition?: string;
+  perspiration?: string;
+  doctorNotes?: string;
   allergies?: string[];
   transcript?: string;
   consultationMode?: ConsultationMode;
@@ -131,6 +135,14 @@ export interface UseConsultationStateReturn {
   setThermalReaction: (val: string) => void;
   miasm: string;
   setMiasm: (val: string) => void;
+  thirstPattern: string;
+  setThirstPattern: (val: string) => void;
+  sleepPosition: string;
+  setSleepPosition: (val: string) => void;
+  perspiration: string;
+  setPerspiration: (val: string) => void;
+  doctorNotes: string;
+  setDoctorNotes: (val: string) => void;
 
   // Google Meet
   sessionId: string | null;
@@ -232,6 +244,10 @@ export function useConsultationState({
   const [advice, setAdvice] = useState('');
   const [thermalReaction, setThermalReaction] = useState('');
   const [miasm, setMiasm] = useState('');
+  const [thirstPattern, setThirstPattern] = useState('');
+  const [sleepPosition, setSleepPosition] = useState('');
+  const [perspiration, setPerspiration] = useState('');
+  const [doctorNotes, setDoctorNotes] = useState('');
   const [sessionId, setSessionId] = useState<string | null>(null);
 
   // ─── Stage Navigation ───
@@ -295,6 +311,10 @@ export function useConsultationState({
     setIcdCodes('');
     setThermalReaction('');
     setMiasm('');
+    setThirstPattern('');
+    setSleepPosition('');
+    setPerspiration('');
+    setDoctorNotes('');
     setSessionId(null);
     setSuggestedRubrics([]);
     setGnmAnalysis(null);
@@ -305,7 +325,7 @@ export function useConsultationState({
   // ─── Computed ───
   const patientAge = patient?.dateOfBirth
     ? calculateAge(patient.dateOfBirth)
-    : undefined;
+    : (patient as any)?.age;
 
   const aiContext: AiContext | undefined =
     visitId && visit.chiefComplaint
@@ -328,6 +348,10 @@ export function useConsultationState({
         patientGender: patient?.gender,
         thermalReaction,
         miasm,
+        thirstPattern,
+        sleepPosition,
+        perspiration,
+        doctorNotes,
         allergies: patient?.allergies,
         transcript: ongoingTranscript,
         consultationMode,
@@ -411,8 +435,12 @@ export function useConsultationState({
   // ─── Handlers ───
 
   const handleSoapGenerated = useCallback((suggestion: SoapSuggestion) => {
+    console.log('[useConsultationState] SOAP generated (DISABLED):', suggestion);
+    return;
+    /*
     setScribeSuggestion(suggestion);
     metricsRef.current.voiceSegmentCount++;
+    */
   }, []);
 
   const handleDiagnosisSelected = useCallback((diagnoses: string[]) => {
@@ -628,22 +656,101 @@ export function useConsultationState({
   const handleHomeopathyConsultGenerated = useCallback((result: HomeopathyConsultResult) => {
     console.log('[useConsultationState] Homeopathy consult generated:', result);
 
-    const hasDirections = result.diagnosisData?.primaryDiagnosis || (result.diagnosisData?.differentials?.length || 0) > 0;
+    if (result.followUpAssessment) {
+      const assessment = result.followUpAssessment;
 
-    if (!hasDirections) {
-      console.warn('[useConsultationState] No clinical directions found in AI response. Skipping selection step.');
-      // Auto-select a fallback or General Consultation
+      // 1. Update SOAP
+      const heringLaw = assessment.heringLawObservations?.length
+        ? assessment.heringLawObservations.join(', ')
+        : 'None observed';
+      const newSymptoms = assessment.newSymptoms?.length
+        ? assessment.newSymptoms.join(', ')
+        : 'None reported';
+
+      const objectiveText = [
+        `Improvement: ${assessment.improvementPercent}%`,
+        `Status of Chief Complaint: ${assessment.chiefComplaintStatus}`,
+        `General Wellbeing: ${assessment.generalWellbeing}`,
+        `Hering's Law: ${heringLaw}`,
+        `New Symptoms: ${newSymptoms}`
+      ].join('\n');
+
+      setSoapData({
+        subjective: assessment.clinicalNotes || result.caseSummary || '',
+        objective: objectiveText,
+        assessment: assessment.decision,
+        plan: assessment.suggestedAction || assessment.currentRemedyReview || '',
+        clinicalSummary: result.caseSummary || assessment.clinicalNotes || '',
+      });
+
+      // 2. Update Advice & Follow-up
+      const dietary = assessment.dietaryAdvice || [];
+      const lifestyle = assessment.lifestyleAdvice || [];
+      const combinedAdvice = [...dietary, ...lifestyle].join('\n');
+      setAdvice(combinedAdvice);
+
+      const followUpText = assessment.followUpTimeline || '';
+      if (followUpText) {
+        const date = new Date();
+        const daysMatch = followUpText.match(/(\d+)\s*day/i);
+        const weeksMatch = followUpText.match(/(\d+)\s*week/i);
+        const monthsMatch = followUpText.match(/(\d+)\s*month/i);
+        if (daysMatch) date.setDate(date.getDate() + parseInt(daysMatch[1] ?? '0'));
+        else if (weeksMatch) date.setDate(date.getDate() + parseInt(weeksMatch[1] ?? '0') * 7);
+        else if (monthsMatch) date.setMonth(date.getMonth() + parseInt(monthsMatch[1] ?? '0'));
+        else date.setDate(date.getDate() + 15);
+        
+        const yyyy = date.getFullYear();
+        const mm = String(date.getMonth() + 1).padStart(2, '0');
+        const dd = String(date.getDate()).padStart(2, '0');
+        setFollowUp(`${yyyy}-${mm}-${dd}`);
+      }
+
+      // 3. Update Remedy/Prescription
+      if (assessment.decision === 'CHANGE' && assessment.alternativeRemedy) {
+        setRxItems([
+          {
+            medicationName: assessment.alternativeRemedy.name,
+            genericName: '',
+            dosage: assessment.alternativeRemedy.potency || '30C',
+            frequency: 'Stat',
+            duration: '1 day',
+            route: 'Globules',
+            instructions: assessment.alternativeRemedy.dosage || '',
+          }
+        ]);
+      } else if (result.prescriptionDraft?.suggestedRemedies?.length) {
+        setRxItems(result.prescriptionDraft.suggestedRemedies.map(r => ({
+          medicationName: r.remedyName,
+          genericName: '',
+          dosage: r.potency || '30C',
+          frequency: r.dosage || 'Stat',
+          duration: '1 day',
+          route: 'Globules',
+          instructions: '',
+        })));
+      } else if (result.prescriptionDraft?.suggestedRemedy) {
+        setRxItems([
+          {
+            medicationName: result.prescriptionDraft.suggestedRemedy,
+            genericName: '',
+            dosage: result.prescriptionDraft.potency || '30C',
+            frequency: result.prescriptionDraft.dosage || 'Stat',
+            duration: '1 day',
+            route: 'Globules',
+            instructions: '',
+          }
+        ]);
+      } else {
+        setRxItems([]);
+      }
+    } else {
       setPendingConsultResult(result);
-      handleSelectDirection(result.diagnosisData?.primaryDiagnosis?.name || 'General Consultation', result.diagnosisData?.primaryDiagnosis?.icdCode || '');
-      return;
+      if (result.diagnosisData?.differentials?.length || result.diagnosisData?.primaryDiagnosis) {
+        setIsSelectingDirection(true);
+      }
     }
-
-    // Instead of applying everything, we show the clinical direction selector first
-    setPendingConsultResult(result);
-    setIsSelectingDirection(true);
-    metricsRef.current.voiceSegmentCount++;
-    toast({ title: 'AI Analysis complete. Please select a clinical direction.', variant: 'default' });
-  }, []);
+  }, [setSoapData, setAdvice, setFollowUp, setRxItems, setPendingConsultResult, setIsSelectingDirection]);
 
   const handleSelectDirection = useCallback((name: string, icdCode: string) => {
     if (!pendingConsultResult) return;
@@ -767,6 +874,14 @@ export function useConsultationState({
     setThermalReaction,
     miasm,
     setMiasm,
+    thirstPattern,
+    setThirstPattern,
+    sleepPosition,
+    setSleepPosition,
+    perspiration,
+    setPerspiration,
+    doctorNotes,
+    setDoctorNotes,
     scribeSuggestion,
     setScribeSuggestion,
     sttLanguage,

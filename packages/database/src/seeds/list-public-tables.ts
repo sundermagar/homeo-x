@@ -1,4 +1,4 @@
-import { createDbClient } from '../client';
+import { createDbClient } from '../client.js';
 import { sql } from 'drizzle-orm';
 import fs from 'fs';
 import path from 'path';

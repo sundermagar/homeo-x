@@ -26,76 +26,86 @@ import {
   useStockLogs,
 } from './use-settings';
 
+const mockedUseQuery = vi.mocked(useQuery);
+const mockedUseMutation = vi.mocked(useMutation);
+const mockedUseQueryClient = vi.mocked(useQueryClient);
+const mockedApi = {
+  get: vi.mocked(apiClient.get),
+  post: vi.mocked(apiClient.post),
+  put: vi.mocked(apiClient.put),
+  delete: vi.mocked(apiClient.delete),
+};
+
 describe('settings hooks', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    apiClient.get.mockResolvedValue({ data: [] });
-    apiClient.post.mockResolvedValue({ data: [] });
-    apiClient.put.mockResolvedValue({ data: [] });
-    apiClient.delete.mockResolvedValue({ data: [] });
-    useQueryClient.mockReturnValue({ invalidateQueries: vi.fn() });
+    mockedApi.get.mockResolvedValue({ data: [] } as any);
+    mockedApi.post.mockResolvedValue({ data: [] } as any);
+    mockedApi.put.mockResolvedValue({ data: [] } as any);
+    mockedApi.delete.mockResolvedValue({ data: [] } as any);
+    mockedUseQueryClient.mockReturnValue({ invalidateQueries: vi.fn() } as any);
   });
 
   it('registers departments list query and fetches from correct endpoint', async () => {
     useDepartments();
 
-    expect(useQuery).toHaveBeenCalled();
-    const queryOptions = useQuery.mock.calls[0][0];
+    expect(mockedUseQuery).toHaveBeenCalled();
+    const queryOptions = mockedUseQuery.mock.calls[0]![0] as any;
     expect(queryOptions.queryKey).toEqual(['settings', 'departments']);
 
     await queryOptions.queryFn();
-    expect(apiClient.get).toHaveBeenCalledWith('/settings/departments');
+    expect(mockedApi.get).toHaveBeenCalledWith('/settings/departments');
   });
 
   it('creates a department and invalidates the departments query key', async () => {
     const invalidateQueries = vi.fn();
-    useQueryClient.mockReturnValue({ invalidateQueries });
+    mockedUseQueryClient.mockReturnValue({ invalidateQueries } as any);
 
     useCreateDepartment();
-    expect(useMutation).toHaveBeenCalled();
+    expect(mockedUseMutation).toHaveBeenCalled();
 
-    const mutationOptions = useMutation.mock.calls[0][0];
+    const mutationOptions = mockedUseMutation.mock.calls[0]![0] as any;
     await mutationOptions.mutationFn({ name: 'Homeopathy' });
     mutationOptions.onSuccess?.();
 
-    expect(apiClient.post).toHaveBeenCalledWith('/settings/departments', { name: 'Homeopathy' });
+    expect(mockedApi.post).toHaveBeenCalledWith('/settings/departments', { name: 'Homeopathy' });
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['settings', 'departments'] });
   });
 
   it('updates a department using PUT on the correct URL', async () => {
     const invalidateQueries = vi.fn();
-    useQueryClient.mockReturnValue({ invalidateQueries });
+    mockedUseQueryClient.mockReturnValue({ invalidateQueries } as any);
 
     useUpdateDepartment();
-    const mutationOptions = useMutation.mock.calls[0][0];
+    const mutationOptions = mockedUseMutation.mock.calls[0]![0] as any;
     await mutationOptions.mutationFn({ id: 22, name: 'Updated Dept' });
     mutationOptions.onSuccess?.();
 
-    expect(apiClient.put).toHaveBeenCalledWith('/settings/departments/22', { name: 'Updated Dept' });
+    expect(mockedApi.put).toHaveBeenCalledWith('/settings/departments/22', { name: 'Updated Dept' });
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['settings', 'departments'] });
   });
 
   it('deletes a department using DELETE on the correct URL', async () => {
     const invalidateQueries = vi.fn();
-    useQueryClient.mockReturnValue({ invalidateQueries });
+    mockedUseQueryClient.mockReturnValue({ invalidateQueries } as any);
 
     useDeleteDepartment();
-    const mutationOptions = useMutation.mock.calls[0][0];
+    const mutationOptions = mockedUseMutation.mock.calls[0]![0] as any;
     await mutationOptions.mutationFn(44);
     mutationOptions.onSuccess?.();
 
-    expect(apiClient.delete).toHaveBeenCalledWith('/settings/departments/44');
+    expect(mockedApi.delete).toHaveBeenCalledWith('/settings/departments/44');
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['settings', 'departments'] });
   });
 
   it('loads stock logs with medicineId query parameter when provided', async () => {
     useStockLogs(17);
 
-    expect(useQuery).toHaveBeenCalled();
-    const queryOptions = useQuery.mock.calls[0][0];
+    expect(mockedUseQuery).toHaveBeenCalled();
+    const queryOptions = mockedUseQuery.mock.calls[0]![0] as any;
     expect(queryOptions.queryKey).toEqual(['settings', 'stock-logs', 17]);
 
     await queryOptions.queryFn();
-    expect(apiClient.get).toHaveBeenCalledWith('/settings/stock-logs?medicineId=17');
+    expect(mockedApi.get).toHaveBeenCalledWith('/settings/stock-logs?medicineId=17');
   });
 });

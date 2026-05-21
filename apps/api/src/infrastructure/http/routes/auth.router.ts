@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import type { Request, Response, Router as IRouter } from 'express';
-import { UserRepositoryPG } from '../../repositories/user.repository.pg';
-import { LoginUseCase } from '../../../domains/auth/use-cases/login.use-case';
-import { sendSuccess, sendError } from '../../../shared/response-formatter';
+import { UserRepositoryPG } from '../../repositories/user.repository.pg.js';
+import { LoginUseCase } from '../../../domains/auth/use-cases/login.use-case.js';
+import { sendSuccess, sendError } from '../../../shared/response-formatter.js';
 
 export const authRouter: IRouter = Router();
 

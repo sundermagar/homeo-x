@@ -1,11 +1,12 @@
-import { pgTable, integer, text, date, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, integer, text, date, timestamp, index } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 export const caseDatasLegacy = pgTable("case_datas", {
   id: integer("id").notNull(),
   clinicId: integer("clinic_id"),
   regid: integer("regid"),
   patientid: integer("patientid"),
-  assitantDoctor: text("assitant_doctor"),
+  assistantDoctor: text("assistant_doctor"),
   consultationFee: integer("consultation_fee"),
   dob: date("dob"),
   title: text("title"),
@@ -43,4 +44,10 @@ export const caseDatasLegacy = pgTable("case_datas", {
   referedSms: text("refered_sms"),
   sdate: date("sdate"),
   notes: text("notes"),
+}, (table) => {
+  return {
+    patientsKpiIdx: index('idx_patients_kpi')
+      .on(table.clinicId, table.createdAt)
+      .where(sql`deleted_at IS NULL`),
+  };
 });

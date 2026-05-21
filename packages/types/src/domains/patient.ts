@@ -2,6 +2,7 @@ export interface Patient {
   id: number;
   regid: number;
   tenantId: string;
+  clinicId: number | null;
   // Name
   title: string | null;
   firstName: string;
@@ -33,6 +34,7 @@ export interface Patient {
   referenceType: string | null;
   referenceTypeId: number | null;
   referredBy: string | null;
+  referredByName: string | null;
   assistantDoctor: string | null;
   consultationFee: number | null;
   courierOutstation: boolean;
@@ -43,6 +45,7 @@ export interface Patient {
 }
 
 export interface PatientSummary {
+  id: number;
   regid: number;
   fullName: string;
   gender: string;
@@ -53,6 +56,7 @@ export interface PatientSummary {
   city: string | null;
   lastVisit: Date | null;
   totalVisits: number;
+  doctorName?: string | null;
   createdAt: Date;
 }
 
@@ -82,4 +86,17 @@ export interface FamilyGroupSummary {
   name: string;
   surname: string;
   totalMembers: number;
+}
+
+export interface UnregisteredPatient {
+  id: number;
+  clinicId: number | null;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  gender: string | null;
+  registeredPatientId: number | null;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
 }

@@ -2,7 +2,7 @@ import { eq, and, sql, desc, isNull } from 'drizzle-orm';
 import { payments, patients } from '@mmc/database/schema';
 import type { DbClient } from '@mmc/database';
 import type { Payment, PaymentWithPatient } from '@mmc/types';
-import type { PaymentRepository } from '../../domains/billing/ports/payment.repository';
+import type { PaymentRepository } from '../../domains/billing/ports/payment.repository.js';
 import type { ListPaymentsQuery } from '@mmc/validation';
 
 export class PaymentRepositoryPg implements PaymentRepository {

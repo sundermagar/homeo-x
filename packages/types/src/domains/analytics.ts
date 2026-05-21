@@ -78,6 +78,8 @@ export interface DashboardKpis {
   collectionRateTrend: number | string;
   avgWaitTime: number;
   avgWaitTimeTrend: number | string;
+  casesCount: number;
+  casesTrend: number | string;
 }
 
 export interface QueueItem {
@@ -129,6 +131,9 @@ export interface RevenueSeries {
 export interface PlatformStats {
   totalClinics: number;
   totalStaff: number;
+  totalClinicAdmins?: number;
+  revenueDensity?: number;
+  pendingDues?: number;
 }
 
 export interface IntelligenceInsight {
@@ -179,16 +184,17 @@ export interface MonthlyTarget {
 
 export interface TopBillingItem {
   id: number;
+  regid: number;
   patientName: string;
   total: number;
-  status: 'Paid' | 'Pending' | 'Partial';
+  status: 'Paid' | 'Pending' | 'Partial' | string;
 }
 
 export interface ClinicAdminDashboardData {
   // KPI strip
   totalRevenue: number;
   revenueTrend: number;
-  patientsApril: number;
+  patientsCount: number;
   patientsTrend: number;
   collectionRate: number;
   collectionRateTrend: number;

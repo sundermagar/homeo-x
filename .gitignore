@@ -63,6 +63,7 @@ drizzle/
 MMC-javascript/
 MMC-javascript 2/
 mmc-javascript/
+whatsway-main 2/
 scratch/
 memory/
 !memory/
@@ -71,6 +72,7 @@ api_debug.log
 tmp/
 temp/
 managemyclicnicnew/
+whatsway-main 2/
 apps/api/uploads/
 
 # Testing & Artifacts
@@ -100,3 +102,45 @@ service-account*.json
 ts_errors.txt
 **/ts_errors.txt
 .turbo/
+# Build Artifacts
+*.cjs
+!*.config.cjs
+!*.config.js
+!*rc.js
+!*rc.cjs
+
+# AI Assistant & Tooling
+.gemini/
+.antigravity/
+antigravity.log
+
+# ML training pipeline (local artifacts only — code is tracked)
+ml-pipeline/output/
+ml-pipeline/state/
+ml-pipeline/.venv/
+ml-pipeline/__pycache__/
+ml-pipeline/**/__pycache__/
+
+# One-off Scripts & Recovery Files
+check-*.ts
+verify-*.ts
+debug-*.ts
+main_*.ts
+main_*.tsx
+temp_*.ts
+temp_*.tsx
+scratch*.ts
+test-*.js
+test-*.ts
+test_*.js
+test_*.ts
+tsc_output*.txt
+vars.txt
+.token
+drop_schemas.sql
+fix-migration.js
+check-db.mjs
+
+packages/database/local.db
+
+

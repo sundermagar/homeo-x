@@ -44,7 +44,7 @@ export const referrals = pgTable('referral', {
 });
 
 // ─── Case Reminders (legacy `case_reminder` singular) ─────────────────────────
-export const caseReminders = pgTable('case_reminder', {
+export const crmCaseReminders = pgTable('case_reminder', {
   id: serial('id').primaryKey(),
   clinicId: integer('clinic_id'),
   patientId: integer('patient_id'),

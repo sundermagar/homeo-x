@@ -7,11 +7,12 @@ import type { CreateBillInput, ListBillsQuery } from '@mmc/validation';
  */
 export interface BillingRepository {
   findById(id: number): Promise<Bill | null>;
-  findAll(params: ListBillsQuery): Promise<{ data: BillWithPatient[]; total: number }>;
+  findAll(params: ListBillsQuery, clinicId?: number): Promise<{ data: BillWithPatient[]; total: number }>;
   findByRegid(regid: number): Promise<PatientBillSummary>;
-  findDailyCollection(date: string): Promise<DailyCollectionSummary>;
+  findDailyCollection(date: string, clinicId?: number): Promise<DailyCollectionSummary>;
   create(data: CreateBillInput & { billNo: number }): Promise<Bill>;
   updateReceived(id: number, amount: number, paymentMode: string): Promise<Bill | null>;
+  updateCharges(id: number, amount: number): Promise<Bill | null>;
   nextBillNo(): Promise<number>;
   softDelete(id: number): Promise<boolean>;
 }

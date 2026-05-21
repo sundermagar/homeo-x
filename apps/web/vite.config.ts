@@ -11,24 +11,65 @@ export default defineConfig({
       '@mmc/validation': path.resolve(__dirname, '../../packages/validation/src/index.ts'),
     },
   },
+  // ── Optimization for Dev Speed ──
+  optimizeDeps: {
+    include: [
+      'react',
+      'react-dom',
+      'react-router-dom',
+      'lucide-react',
+      '@tanstack/react-query',
+      'recharts',
+      'date-fns',
+      'axios',
+      'clsx'
+    ],
+  },
   build: {
+    target: 'esnext',
+    minify: 'esbuild', // Faster than terser
+    cssCodeSplit: true,
     sourcemap: false,
+    chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
+        // Grouping related dependencies into larger chunks to reduce HTTP request overhead
         manualChunks(id) {
-          if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/') || id.includes('node_modules/react-router-dom')) return 'react-vendor';
-          if (id.includes('node_modules/@tanstack')) return 'query';
-          if (id.includes('node_modules/lucide-react')) return 'icons';
-          if (id.includes('node_modules/recharts')) return 'charts';
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('router')) return 'vendor-core';
+            if (id.includes('lucide-react')) return 'vendor-icons';
+            if (id.includes('recharts') || id.includes('d3')) return 'vendor-charts';
+            if (id.includes('@fullcalendar')) return 'vendor-calendar';
+            if (id.includes('livekit')) return 'vendor-video';
+            return 'vendor-utils'; // Group smaller utils together
+          }
         },
       },
     },
   },
   server: {
+    allowedHosts: [
+      'frying-deviancy-rocklike.ngrok-free.dev',
+      'triumphantly-coloristic-lan.ngrok-free.dev'
+    ],
     proxy: {
-      '/api': { target: 'http://127.0.0.1:3000', changeOrigin: false },
-      '/uploads': { target: 'http://127.0.0.1:3000', changeOrigin: false },
-      '/socket.io': { target: 'http://127.0.0.1:3000', ws: true, changeOrigin: false },
+      '/api': { 
+        target: 'http://127.0.0.1:3000', 
+        changeOrigin: false,
+        timeout: 1800000, // 30 minutes timeout
+        proxyTimeout: 1800000
+      },
+      '/uploads': { 
+        target: 'http://127.0.0.1:3000', 
+        changeOrigin: false 
+      },
+      '/socket.io': { 
+        target: 'http://127.0.0.1:3000', 
+        ws: true, 
+        changeOrigin: false,
+        timeout: 1800000,
+        proxyTimeout: 1800000
+      },
     },
   },
 });

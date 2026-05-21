@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
   /* ─── Paperplane official color system ─── */
   --primary: #2563EB;

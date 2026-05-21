@@ -1,5 +1,5 @@
-import type { AccountRepository } from '../ports/account.repository';
-import { NotFoundError } from '../../../shared/errors';
+import type { AccountRepository } from '../ports/account.repository.js';
+import { NotFoundError } from '../../../shared/errors.js';
 
 export class DeleteAccountUseCase {
   constructor(private readonly repo: AccountRepository) {}

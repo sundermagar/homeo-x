@@ -3,9 +3,12 @@ import { useState } from 'react';
 import {
   LayoutDashboard, Users, UsersRound, Calendar, FileText,
   LogOut, X, Briefcase, ChevronDown, ChevronRight, Circle,
-  BarChart3, Stethoscope, Receipt, Settings
+  BarChart3, Stethoscope, Receipt, Settings, MessageCircle, Truck,
+  Bot, MessageSquare, Send, Zap, Globe
 } from 'lucide-react';
 import { useAuthStore } from '@/shared/stores/auth-store';
+import { useQuery } from '@tanstack/react-query';
+import { apiClient } from '@/infrastructure/api-client';
 
 interface SidebarProps {
   isOpen?: boolean;
@@ -17,6 +20,8 @@ type UserRole = 'SuperAdmin' | 'Admin' | 'Clinicadmin' | 'Doctor' | 'Receptionis
 interface NavSubItem {
   label: string;
   path: string;
+  icon?: React.ReactNode;
+  badge?: number;
 }
 
 interface NavItem {
@@ -26,6 +31,7 @@ interface NavItem {
   subItems?: NavSubItem[];
   /** Roles allowed to see this item. If undefined, visible to all. */
   roles?: UserRole[];
+  badge?: number;
 }
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
@@ -33,8 +39,20 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const user = useAuthStore((s) => s.user);
   const location = useLocation();
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({
-    'Operations Hub': location.pathname.includes('/operations')
+    'Operations Hub': location.pathname.includes('/operations'),
+    'WhatsApp Pro': location.pathname.includes('/communications/whatsapp')
   });
+
+  const { data: unreadResponse } = useQuery({
+    queryKey: ['courier-unread-count'],
+    queryFn: async () => {
+      const { data } = await apiClient.get('/courier/unread-count');
+      return data.data as { count: number };
+    },
+    refetchInterval: 60000, // Refresh every minute
+    enabled: !!user
+  });
+  const unreadCount = unreadResponse?.count || 0;
 
   const toggleFolder = (label: string) => {
     setExpandedFolders(prev => ({ ...prev, [label]: !prev[label] }));
@@ -58,6 +76,13 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const menuItems: NavItem[] = [
     {
+      label: 'Courier Queue',
+      icon: <Truck size={20} />,
+      path: '/courier-queue',
+      roles: ALL_ROLES,
+      badge: unreadCount > 0 ? unreadCount : undefined,
+    },
+    {
       label: 'Dashboard',
       icon: <LayoutDashboard size={20} />,
       path: '/',
@@ -75,6 +100,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       roles: CLINICAL_ROLES,
       subItems: [
         { label: 'Case History', path: '/consultation-history' },
+        { label: 'Remedy Matrix', path: '/clinical/remedy-chart' },
         { label: 'Height & Weight Check', path: '/vitals-check' },
         { label: 'Medical Case List', path: '/medical-cases' },
       ]
@@ -89,13 +115,13 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       label: 'Billing',
       icon: <Receipt size={20} />,
       path: '/billing',
-      roles: [...ADMIN_ROLES, 'Doctor'],
+      roles: [...ADMIN_ROLES, 'Doctor', 'Receptionist'],
     },
     {
       label: 'Family Groups',
       icon: <UsersRound size={20} />,
       path: '/family-groups',
-      roles: CLINICAL_ROLES,
+      roles: ALL_ROLES,
     },
     {
       label: 'Staff & Admin',
@@ -110,6 +136,31 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       roles: [...ADMIN_ROLES, 'Doctor'],
     },
     {
+      label: 'WhatsApp Pro',
+      icon: <MessageCircle size={20} className="text-pp-blue" />,
+      roles: ADMIN_ROLES,
+      subItems: [
+        { label: 'Dashboard', path: '/communications/whatsapp/overview', icon: <LayoutDashboard size={14} /> },
+        { label: 'Team Inbox', path: '/communications/whatsapp/inbox', icon: <MessageSquare size={14} /> },
+        { label: 'Contacts', path: '/communications/whatsapp/contacts', icon: <Users size={14} /> },
+        { label: 'Campaigns', path: '/communications/whatsapp/campaigns', icon: <Send size={14} /> },
+        { label: 'Templates', path: '/communications/whatsapp/templates', icon: <FileText size={14} /> },
+        { label: 'Automations', path: '/communications/whatsapp/automations', icon: <Zap size={14} /> },
+        { label: 'AI Chatbot', path: '/communications/whatsapp/chatbots', icon: <Bot size={14} /> },
+        { label: 'Analytics', path: '/communications/whatsapp/analytics', icon: <BarChart3 size={14} /> },
+        { label: 'Widget Builder', path: '/communications/whatsapp/widget-builder', icon: <Bot size={14} /> },
+      ]
+    },
+    {
+      label: 'Communications',
+      icon: <Globe size={20} />,
+      roles: ADMIN_ROLES,
+      subItems: [
+        { label: 'Birthday Greetings', path: '/communications/birthdays' },
+        { label: 'SMS Reports', path: '/communications/reports' },
+      ]
+    },
+    {
       label: 'Operations Hub',
       icon: <Settings size={20} />,
       roles: ['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor'],
@@ -117,7 +168,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         { label: 'Logistics & Couriers', path: '/operations?tab=logistics' },
         { label: 'Lead CRM & Promos', path: '/operations?tab=crm' },
         { label: 'Medical Knowledge base', path: '/operations?tab=knowledge' },
-        { label: 'Global Data Tools', path: '/operations?tab=tools' },
+        // { label: 'Global Data Tools', path: '/operations?tab=tools' },
       ]
     },
   ];
@@ -138,7 +189,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         {/* Brand & Close Button (Mobile) */}
         <div className="sb-brand">
           <div className="sb-logo">KH</div>
-          <span className="sb-brand-name">Kreed.health</span>
+          <span className="sb-brand-name">MMC</span>
           <button onClick={onClose} className="sb-close-btn mobile-only" aria-label="Close menu">
             <X size={20} />
           </button>
@@ -178,14 +229,17 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                             // For paths with query params (like /operations?tab=), 
                             // we need a strict match of path + search.
                             const currentFull = location.pathname + location.search;
-                            const isMatch = subItem.path.includes('?') 
+                            const isMatch = subItem.path.includes('?')
                               ? currentFull === subItem.path
                               : isActive;
                             return `sb-sub-item${isMatch ? ' active' : ''}`;
                           }}
                         >
-                          <Circle size={6} fill="currentColor" />
-                          {subItem.label}
+                          {subItem.icon || <Circle size={6} fill="currentColor" />}
+                          <span style={{ flex: 1 }}>{subItem.label}</span>
+                          {subItem.badge !== undefined && subItem.badge > 0 && (
+                            <span className="nav-badge">{subItem.badge}</span>
+                          )}
                         </NavLink>
                       ))}
                     </div>
@@ -201,7 +255,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                   }
                 >
                   {item.icon}
-                  {item.label}
+                  <span style={{ flex: 1 }}>{item.label}</span>
+                  {item.badge !== undefined && item.badge > 0 && (
+                    <span className="nav-badge">{item.badge}</span>
+                  )}
                 </NavLink>
               )}
             </div>

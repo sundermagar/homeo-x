@@ -8,10 +8,10 @@ import { Router } from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import { eq } from 'drizzle-orm';
 import * as schema from '@mmc/database/schema';
-import { asyncHandler } from '../middleware/async-handler';
-import { sendSuccess } from '../../../shared/response-formatter';
-import { MedicalCaseRepositoryPg } from '../../repositories/medical-case.repository.pg';
-import { ManageVitalsUseCase } from '../../../domains/medical-case/use-cases/manage-vitals.use-case';
+import { asyncHandler } from '../middleware/async-handler.js';
+import { sendSuccess } from '../../../shared/response-formatter.js';
+import { MedicalCaseRepositoryPg } from '../../repositories/medical-case.repository.pg.js';
+import { ManageVitalsUseCase } from '../../../domains/medical-case/use-cases/manage-vitals.use-case.js';
 
 export const visitsRouter: Router = Router();
 

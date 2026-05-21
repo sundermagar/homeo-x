@@ -1,14 +1,22 @@
 import { Router } from 'express';
 import type { Request, Response, Router as IRouter } from 'express';
 import { createPatientSchema, updatePatientSchema, familyMemberSchema } from '@mmc/validation';
-import { PatientRepositoryPg } from '../../repositories/patient.repository.pg';
+import { PatientRepositoryPg } from '../../repositories/patient.repository.pg.js';
+import { OrganizationRepositoryPg } from '../../repositories/organization.repository.pg.js';
+import { BillingRepositoryPg } from '../../repositories/billing.repository.pg.js';
 import {
   ListPatientsUseCase,
   GetPatientUseCase,
   CreatePatientUseCase,
   UpdatePatientUseCase,
   DeletePatientUseCase,
-} from '../../../domains/patient';
+} from '../../../domains/patient/index.js';
+import { authMiddleware } from '../middleware/auth.js';
+import { Role } from '@mmc/types';
+import { sql } from 'drizzle-orm';
+import { WhatsAppRepositoryPG } from '../../repositories/whatsapp.repository.pg.js';
+import { WhatsAppCloudGateway } from '../../communication/whatsapp-cloud-gateway.js';
+import { SendWhatsAppTemplateUseCase } from '../../../domains/communication/use-cases/send-whatsapp-template.use-case.js';
 
 export const patientRouter: IRouter = Router();
 
@@ -17,9 +25,18 @@ function getRepo(req: Request) {
 }
 
 // GET /api/patients?search=&page=&limit=&sortBy=&sortOrder=
-patientRouter.get('/', async (req: Request, res: Response) => {
+patientRouter.get('/', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { search, page = '1', limit = '30', sortBy, sortOrder, doctor_id } = req.query;
+    const { search, page = '1', limit = '30', sortBy, sortOrder, doctor_id, clinicId } = req.query;
+    
+    // Determine clinic filter:
+    // 1. If provided in query and user is Admin, use it.
+    // 2. Otherwise, use user's contextId (clinicId).
+    let effectiveClinicId = req.user?.contextId;
+    if (clinicId && (req.user?.type === Role.Admin || req.user?.type === Role.SuperAdmin)) {
+      effectiveClinicId = Number(clinicId);
+    }
+
     const repo = getRepo(req);
     const uc = new ListPatientsUseCase(repo);
     const result = await uc.execute({
@@ -29,6 +46,7 @@ patientRouter.get('/', async (req: Request, res: Response) => {
       sortBy: sortBy as string,
       sortOrder: sortOrder as 'asc' | 'desc',
       doctorId: doctor_id ? Number(doctor_id) : undefined,
+      clinicId: effectiveClinicId,
     });
     if (result.success) {
       res.json({ success: true, data: result.data.data, total: result.data.total });
@@ -41,7 +59,7 @@ patientRouter.get('/', async (req: Request, res: Response) => {
 });
 
 // GET /api/patients/lookup?query=
-patientRouter.get('/lookup', async (req: Request, res: Response) => {
+patientRouter.get('/lookup', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { query } = req.query;
     if (!query || (query as string).length < 2) {
@@ -49,7 +67,14 @@ patientRouter.get('/lookup', async (req: Request, res: Response) => {
       return;
     }
     const repo = getRepo(req);
-    const data = await repo.lookup(query as string, 20);
+    
+    // Determine clinic filter for lookup
+    let clinicId = req.user?.contextId;
+    if (req.query.clinicId && (req.user?.type === Role.Admin || req.user?.type === Role.SuperAdmin)) {
+      clinicId = Number(req.query.clinicId);
+    }
+
+    const data = await repo.lookup(query as string, 20, clinicId);
     res.json({ success: true, data });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
@@ -57,10 +82,17 @@ patientRouter.get('/lookup', async (req: Request, res: Response) => {
 });
 
 // GET /api/patients/meta/form
-patientRouter.get('/meta/form', async (req: Request, res: Response) => {
+patientRouter.get('/meta/form', authMiddleware, async (req: Request, res: Response) => {
   try {
     const repo = getRepo(req);
-    const meta = await repo.getFormMeta();
+    
+    // Determine clinic filter
+    let clinicId = req.user?.contextId;
+    if (req.query.clinicId && (req.user?.type === Role.Admin || req.user?.type === Role.SuperAdmin)) {
+      clinicId = Number(req.query.clinicId);
+    }
+
+    const meta = await repo.getFormMeta(clinicId);
     res.json({ success: true, data: meta });
   } catch (err: any) {
     console.error('CRITICAL PatientRouter Error:', err);
@@ -68,17 +100,52 @@ patientRouter.get('/meta/form', async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/patients/meta/birthdays
+patientRouter.get('/meta/birthdays', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { date } = req.query; // Expects MM-DD format, defaults to today
+    const mmdd = (date as string) || new Date().toISOString().slice(5, 10);
+    
+    const repo = getRepo(req);
+    const clinicId = req.user?.contextId;
+    const data = await repo.findBirthdays(mmdd, clinicId);
+    res.json({ success: true, data });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// GET /api/patients/unregistered
+patientRouter.get('/unregistered', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { search, clinicId } = req.query;
+    const repo = getRepo(req);
+    
+    let effectiveClinicId = req.user?.contextId;
+    if (clinicId && (req.user?.type === Role.Admin || req.user?.type === Role.SuperAdmin)) {
+      effectiveClinicId = Number(clinicId);
+    }
+
+    const data = await repo.findUnregistered({ clinicId: effectiveClinicId, search: search as string });
+    res.json({ success: true, data });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // ─── Family Group Endpoints ───
 
 // GET /api/family-groups
-patientRouter.get('/family-groups', async (req: Request, res: Response) => {
+patientRouter.get('/family-groups', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { search, page = '1', limit = '30' } = req.query;
     const repo = getRepo(req);
+    const clinicId = (req as any).user?.contextId;
     const result = await repo.getFamilyGroups({
       page: Number(page),
       limit: Number(limit),
       search: search as string,
+      clinicId,
     });
     res.json({ success: true, data: result.data, total: result.total });
   } catch (err: any) {
@@ -105,7 +172,7 @@ patientRouter.get('/:regid', async (req: Request, res: Response) => {
 });
 
 // POST /api/patients
-patientRouter.post('/', async (req: Request, res: Response) => {
+patientRouter.post('/', authMiddleware, async (req: Request, res: Response) => {
   try {
     const parsed = createPatientSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -113,10 +180,67 @@ patientRouter.post('/', async (req: Request, res: Response) => {
       return;
     }
     const repo = getRepo(req);
-    const uc = new CreatePatientUseCase(repo);
-    const result = await uc.execute(parsed.data);
+    const billingRepo = new BillingRepositoryPg(req.tenantDb);
+    const orgRepo = new OrganizationRepositoryPg(req.publicDb);
+    const uc = new CreatePatientUseCase(repo, billingRepo, orgRepo);
+    const clinicId = req.user?.contextId;
+    const result = await uc.execute(parsed.data, clinicId);
     if (result.success) {
-      res.status(201).json({ success: true, data: result.data, regid: result.data.regid });
+      res.status(201).json({ success: true, data: result.data.patient, regid: result.data.patient.regid, registrationBillId: (result.data as any).registrationBillId });
+      
+      // Auto WhatsApp to referring patient (Non-blocking background execution)
+      let referrerId: number | null = null;
+      if (req.body.referredById && !isNaN(Number(req.body.referredById))) {
+        referrerId = Number(req.body.referredById);
+      } else if (req.body.referredBy && !isNaN(Number(req.body.referredBy))) {
+        referrerId = Number(req.body.referredBy);
+      }
+      
+      if (referrerId) {
+        (async () => {
+          try {
+            const referrer = await repo.findByRegid(referrerId);
+            if (referrer && (referrer.phone || referrer.mobile1)) {
+              const rawPhone = referrer.phone || referrer.mobile1 || '';
+              const cleaned = rawPhone.replace(/\D/g, '');
+              const finalPhone = cleaned.length === 10 ? `91${cleaned}` : cleaned;
+              
+              const org = clinicId ? await orgRepo.findById(clinicId) : null;
+              const clinicName = org?.name || 'Clinic';
+              
+              const [dbTemplate] = await req.tenantDb.execute(sql`
+                SELECT language FROM wa_templates WHERE name = 'thank_you_for_reference_v3' LIMIT 1
+              `);
+              const lang = (dbTemplate as any)?.language || 'en_US';
+
+              const waRepo = new WhatsAppRepositoryPG(req.tenantDb);
+              const waGateway = new WhatsAppCloudGateway(waRepo);
+              const waUc = new SendWhatsAppTemplateUseCase(waGateway as any, waRepo);
+
+              const referrerName = `${referrer.firstName} ${referrer.surname}`.trim();
+
+              await waUc.execute({
+                clinicId,
+                phone: finalPhone,
+                templateName: 'thank_you_for_reference_v3',
+                language: lang,
+                components: [
+                  {
+                    type: 'body',
+                    parameters: [
+                      { type: 'text', text: referrerName },
+                      { type: 'text', text: clinicName }
+                    ]
+                  }
+                ]
+              });
+              console.log(`[CreatePatient] Reference thank you message sent to ${referrerName} (${finalPhone})`);
+            }
+          } catch (waErr: any) {
+            console.warn('[CreatePatient] Failed sending WhatsApp template to referring patient:', waErr.message);
+          }
+        })();
+      }
     } else {
       res.status(400).json({ success: false, message: result.error });
     }
@@ -136,7 +260,8 @@ patientRouter.put('/:regid', async (req: Request, res: Response) => {
       return;
     }
     const repo = getRepo(req);
-    const uc = new UpdatePatientUseCase(repo);
+    const billingRepo = new BillingRepositoryPg(req.tenantDb);
+    const uc = new UpdatePatientUseCase(repo, billingRepo);
     const result = await uc.execute(regid, parsed.data);
     if (result.success) {
       res.json({ success: true, data: result.data });

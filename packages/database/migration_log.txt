@@ -1,0 +1,18 @@
+
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+Error [TransformError]: Transform failed with 1 error:
+/Users/apple/Documents/worksarea/homeo-x/packages/database/src/provision-tenant.ts:3049:2: ERROR: Unexpected "}"
+    at failureErrorWithLog (/Users/apple/Documents/worksarea/homeo-x/node_modules/.pnpm/esbuild@0.27.7/node_modules/esbuild/lib/main.js:1748:15)
+    at /Users/apple/Documents/worksarea/homeo-x/node_modules/.pnpm/esbuild@0.27.7/node_modules/esbuild/lib/main.js:1017:50
+    at responseCallbacks.<computed> (/Users/apple/Documents/worksarea/homeo-x/node_modules/.pnpm/esbuild@0.27.7/node_modules/esbuild/lib/main.js:884:9)
+    at handleIncomingPacket (/Users/apple/Documents/worksarea/homeo-x/node_modules/.pnpm/esbuild@0.27.7/node_modules/esbuild/lib/main.js:939:12)
+    at Socket.readFromStdout (/Users/apple/Documents/worksarea/homeo-x/node_modules/.pnpm/esbuild@0.27.7/node_modules/esbuild/lib/main.js:862:7)
+    at Socket.emit (node:events:509:20)
+    at addChunk (node:internal/streams/readable:564:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:515:3)
+    at Readable.push (node:internal/streams/readable:395:5)
+    at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)
+
+Node.js v25.9.0

@@ -1,6 +1,6 @@
-import { AiProvider, ChatMessage } from './ai-provider.interface';
-import { GeminiProvider } from './gemini.provider';
-import { StubProvider } from './stub.provider';
+import { AiProvider, ChatMessage } from './ai-provider.interface.js';
+import { GeminiProvider } from './gemini.provider.js';
+import { StubProvider } from './stub.provider.js';
 
 export interface AIAnalysisRequestParams {
   messages: ChatMessage[];

@@ -21,15 +21,16 @@ export class SendSmsUseCase {
 
   private replacePlaceholders(
     message: string,
-    vars: { name?: string; date?: string; clinic?: string; time?: string; doctor?: string; fee?: string }
+    vars: { name?: string; date?: string; clinic?: string; time?: string; doctor?: string; fee?: string; package?: string }
   ): string {
     return message
-      .replace(/{#name#}/gi,    vars.name    ?? 'Patient')
-      .replace(/{#date#}/gi,     vars.date     ?? new Date().toLocaleDateString('en-IN'))
-      .replace(/{#clinic#}/gi,   vars.clinic   ?? 'Kreed.health Clinic')
-      .replace(/{#time#}/gi,     vars.time     ?? '')
-      .replace(/{#doctor#}/gi,   vars.doctor   ?? '')
-      .replace(/{#fee#}/gi,      vars.fee      ?? '');
+      .replace(/{#name#}/gi, vars.name ?? 'Patient')
+      .replace(/{#date#}/gi, vars.date ?? new Date().toLocaleDateString('en-IN'))
+      .replace(/{#clinic#}/gi, vars.clinic ?? 'MMC Clinic')
+      .replace(/{#time#}/gi, vars.time ?? '')
+      .replace(/{#doctor#}/gi, vars.doctor ?? '')
+      .replace(/{#fee#}/gi, vars.fee ?? '')
+      .replace(/{#package#}/gi, vars.package ?? '');
   }
 
   // ── Core send ─────────────────────────────────────────────────────────────
@@ -135,11 +136,11 @@ export class SendSmsUseCase {
     doctorName?: string;
     clinicName?: string;
   }): Promise<Result<SendSmsResult>> {
-    const template = `Dear {#name#}, your appointment at {#clinic#} is confirmed for {#date#} at {#time#}. Kindly arrive 10 minutes early. Regards, Kreed.health Clinic.`;
+    const template = `Dear {#name#}, your appointment at {#clinic#} is confirmed for {#date#} at {#time#}. Kindly arrive 10 minutes early. Regards, MMC Clinic.`;
     const message = this.replacePlaceholders(template, {
-      name:   params.patientName,
-      date:   params.date,
-      time:   params.time,
+      name: params.patientName,
+      date: params.date,
+      time: params.time,
       clinic: params.clinicName,
       doctor: params.doctorName,
     });
@@ -158,11 +159,11 @@ export class SendSmsUseCase {
     doctorName?: string;
     clinicName?: string;
   }): Promise<Result<SendSmsResult>> {
-    const template = `Dear {#name#}, a friendly reminder: your appointment at {#clinic#} is tomorrow ({#date#}) at {#time#}. Wishing you good health! - Kreed.health Clinic`;
+    const template = `Dear {#name#}, a friendly reminder: your appointment at {#clinic#} is tomorrow ({#date#}) at {#time#}. Wishing you good health! - MMC Clinic`;
     const message = this.replacePlaceholders(template, {
-      name:   params.patientName,
-      date:   params.date,
-      time:   params.time,
+      name: params.patientName,
+      date: params.date,
+      time: params.time,
       clinic: params.clinicName,
       doctor: params.doctorName,
     });
@@ -176,7 +177,7 @@ export class SendSmsUseCase {
     phone: string;
     patientName: string;
   }): Promise<Result<SendSmsResult>> {
-    const template = `Happy Birthday, {#name#}! Wishing you a year filled with health, happiness, and peace. - Kreed.health Clinic`;
+    const template = `Happy Birthday, {#name#}! Wishing you a year filled with health, happiness, and peace. - MMC Clinic`;
     const message = this.replacePlaceholders(template, { name: params.patientName });
     return this.sendSingle({ phone: params.phone, message, smsType: 'Birthday' });
   }
@@ -189,11 +190,30 @@ export class SendSmsUseCase {
     patientName: string;
     lastVisitDate: string;
   }): Promise<Result<SendSmsResult>> {
-    const template = `Dear {#name#}, it's been a while since your last visit on {#date#}. We'd love to see you again for a follow-up. Please book an appointment at your convenience. - Kreed.health Clinic`;
+    const template = `Dear {#name#}, it's been a while since your last visit on {#date#}. We'd love to see you again for a follow-up. Please book an appointment at your convenience. - MMC Clinic`;
     const message = this.replacePlaceholders(template, {
       name: params.patientName,
       date: params.lastVisitDate,
     });
     return this.sendSingle({ phone: params.phone, message, smsType: 'Reminder' });
+  }
+
+  /**
+   * Package Assignment SMS.
+   */
+  async sendPackageAssignment(params: {
+    regid: number;
+    phone: string;
+    patientName: string;
+    date: string;
+    packageName: string;
+  }): Promise<Result<SendSmsResult>> {
+    const template = `Dear {#name#}, your {#package#} package starting on {#date#} has been successfully assigned. Thank you for choosing MMC Clinic!`;
+    const message = this.replacePlaceholders(template, {
+      name: params.patientName,
+      date: params.date,
+      package: params.packageName,
+    });
+    return this.sendSingle({ phone: params.phone, message, smsType: 'Package Purchase', regid: params.regid });
   }
 }

@@ -1,12 +1,12 @@
 import { Router } from 'express';
-import { CrmRepositoryPg } from '../../repositories/crm.repository.pg';
-import { ManageLeadsUseCase } from '../../../domains/crm/use-cases/manage-leads.use-case';
-import { ManageRemindersUseCase } from '../../../domains/crm/use-cases/manage-reminders.use-case';
-import { ManageReferralsUseCase } from '../../../domains/crm/use-cases/manage-referrals.use-case';
-import { ConvertLeadToPatientUseCase } from '../../../domains/crm/use-cases/convert-lead-to-patient.use-case';
-import { PatientRepositoryPg } from '../../repositories/patient.repository.pg';
-import { asyncHandler } from '../middleware/async-handler';
-import { sendSuccess, sendError } from '../../../shared/response-formatter';
+import { CrmRepositoryPg } from '../../repositories/crm.repository.pg.js';
+import { ManageLeadsUseCase } from '../../../domains/crm/use-cases/manage-leads.use-case.js';
+import { ManageRemindersUseCase } from '../../../domains/crm/use-cases/manage-reminders.use-case.js';
+import { ManageReferralsUseCase } from '../../../domains/crm/use-cases/manage-referrals.use-case.js';
+import { ConvertLeadToPatientUseCase } from '../../../domains/crm/use-cases/convert-lead-to-patient.use-case.js';
+import { PatientRepositoryPg } from '../../repositories/patient.repository.pg.js';
+import { asyncHandler } from '../middleware/async-handler.js';
+import { sendSuccess, sendError } from '../../../shared/response-formatter.js';
 
 export const crmRouter: Router = Router();
 

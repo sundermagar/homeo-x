@@ -1,5 +1,5 @@
 import type { ExpenseWithHead, ExpenseHead } from '@mmc/types';
-import type { ExpenseRepository } from '../ports/accounts.repository';
+import type { ExpenseRepository } from '../ports/accounts.repository.js';
 import type {
   CreateExpenseInput,
   UpdateExpenseInput,

@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
-import { courierMasters } from '../schema/settings';
-import type { DbClient } from '../client';
+import { courierMasters } from '../schema/settings.js';
+import type { DbClient } from '../client.js';
 
 export async function seedCouriers(db: DbClient) {
   console.log('[Seed] Seeding Courier Masters...');

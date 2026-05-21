@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, memo } from 'react';
 import {
   Activity,
   Zap,
@@ -12,20 +12,30 @@ import {
   X,
   ChevronRight,
   ChevronDown,
+  BrainCircuit,
+  MessageSquare
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { useDashboard } from '../hooks/use-dashboard';
+import { useDashboard, dashboardKeys } from '../hooks/use-dashboard';
 import { useQueueMgmt } from '../hooks/use-queue-mgmt';
 import { useUpdateStatus, apptKeys } from '../../appointments/hooks/use-appointments';
 import { apiClient } from '@/infrastructure/api-client';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { VitalsFormModal } from '../../medical-case/components/vitals-form-modal';
 import type { QueueItem, IntelligenceInsight, RecentTransaction } from '@mmc/types';
+import { DashboardSkeleton } from '@/components/shared/dashboard-skeleton';
 import './role-dashboards.css';
 
 function getWlId(item: QueueItem): number | undefined {
   return (item as any).wlId ?? (item as any).id;
+}
+
+function fmt(n: number): string {
+  if (!n && n !== 0) return '₹0';
+  if (n >= 100000) return `₹${(n / 100000).toFixed(1)}L`;
+  if (n >= 1000) return `₹${(n / 1000).toFixed(1)}k`;
+  return `₹${n}`;
 }
 
 export function DoctorDashboard() {
@@ -70,81 +80,90 @@ export function DoctorDashboard() {
   // Skip: sends current patient back to Waitlist, then calls the next waiting patient
   const handleSkip = async (item: QueueItem) => {
     setIsMoreMenuOpen(false);
-    setConsultationStartedAt(null);
+
+    // Optimistic: find next patient and immediately set them in HUD
+    const nextPatient = todayAppts
+      .filter((a) => a.id !== item.id && a.status === 'Waitlist')
+      .sort((a, b) => (Number(a.tokenNo) || 999) - (Number(b.tokenNo) || 999))[0];
+
+    setActivePatientId(nextPatient?.id || null);
+    setConsultationStartedAt(nextPatient ? Date.now() : null);
     setConsultDuration('00:00');
-    try {
-      const today = new Date().toISOString().split('T')[0]!;
 
-      // 1. Fetch the live waitlist to get REAL waitlist entry IDs
-      const res = await apiClient.get<{ success: boolean; data: any[] }>(
-        `/appointments/waiting?date=${today}`
-      );
-      const liveWaitlist: any[] = res.data.data ?? [];
+    // Optimistically update React Query cache to reflect the UI instantly
+    qc.setQueryData(dashboardKeys.detail('day'), (old: any) => {
+      if (!old?.queue) return old;
+      const newQueue = old.queue.map((q: QueueItem) => {
+        if (q.id === item.id) return { ...q, status: 'Waitlist' };
+        if (nextPatient && q.id === nextPatient.id) return { ...q, status: 'Consultation' };
+        return q;
+      });
+      // Sort to match backend logic (Consultation first)
+      newQueue.sort((a: any, b: any) => {
+        const order: Record<string, number> = { Consultation: 1, Confirmed: 2, Waitlist: 2, Pending: 3, Completed: 4 };
+        const aOrd = order[a.status] ?? 5;
+        const bOrd = order[b.status] ?? 5;
+        if (aOrd !== bOrd) return aOrd - bOrd;
+        return (Number(a.tokenNo) || 999) - (Number(b.tokenNo) || 999);
+      });
+      return { ...old, queue: newQueue };
+    });
 
-      // 2. Find THIS patient's waitlist entry (match by appointmentId or patientId)
-      const currentEntry = liveWaitlist.find(
-        (w) => w.appointmentId === item.id || w.patientId === (item as any).patientId
-      );
+    const realWlId = (item as any).wlId;
 
-      if (currentEntry) {
-        // 3. Skip using the CORRECT waitlist entry ID
-        await queueMgmt.skip.mutateAsync(currentEntry.id);
+    // Fire-and-forget: don't await the backend call
+    const skipPromise = realWlId
+      ? queueMgmt.skip.mutateAsync(realWlId)
+      : updateStatus.mutateAsync({ id: item.id, status: 'Waitlist' }).catch(() => { });
 
-        // 4. Also reset the appointment status so Token Queue shows it as Waiting
-        try {
-          await updateStatus.mutateAsync({ id: item.id, status: 'Waitlist' });
-        } catch { /* best-effort */ }
-      }
+    // Invalidate cache immediately so React Query refetches in background
+    qc.invalidateQueries({ queryKey: dashboardKeys.all });
+    qc.invalidateQueries({ queryKey: apptKeys.all });
 
-      // 5. Fetch fresh waitlist again after the skip
-      const res2 = await apiClient.get<{ success: boolean; data: any[] }>(
-        `/appointments/waiting?date=${today}`
-      );
-      const freshWaitlist: any[] = res2.data.data ?? [];
-
-      // 6. Find next waiting patient — exclude the one we just skipped
-      const skippedId = currentEntry?.id;
-      const nextEntry = freshWaitlist.find((w) => w.status === 0 && w.id !== skippedId);
-      if (nextEntry) {
-        await queueMgmt.callNext.mutateAsync(nextEntry.id);
-        setActivePatientId(nextEntry.appointmentId ?? nextEntry.id);
-      } else {
-        setActivePatientId(null);
-      }
-
-      // 7. Refresh dashboard
-      await qc.refetchQueries({ queryKey: ['dashboard'] });
-      qc.invalidateQueries({ queryKey: apptKeys.all });
-    } catch (err) {
-      console.error('Skip failed', err);
-    }
+    // Log errors silently
+    skipPromise.catch((err) => console.error('Skip failed', err));
   };
 
   const handleMarkAbsent = (item: QueueItem) => {
-    updateStatus.mutate(
-      { id: item.id, status: 'Absent' },
-      { onSuccess: () => {
-        qc.invalidateQueries({ queryKey: ['dashboard'] });
-        qc.invalidateQueries({ queryKey: apptKeys.all });
-      }}
-    );
     setIsMoreMenuOpen(false);
+    // Optimistic: clear HUD immediately
+    setActivePatientId(null);
+    setConsultationStartedAt(null);
+    setConsultDuration('00:00');
+
+    const apptId = (item as any).visitId || item.id;
+    updateStatus.mutate(
+      { id: apptId, status: 'Absent' },
+      {
+        onSuccess: () => {
+          qc.invalidateQueries({ queryKey: ['dashboard'] });
+          qc.invalidateQueries({ queryKey: apptKeys.all });
+        }
+      }
+    );
   };
 
   const handleCancel = (item: QueueItem) => {
-    updateStatus.mutate(
-      { id: item.id, status: 'Cancelled' },
-      { onSuccess: () => {
-        qc.invalidateQueries({ queryKey: ['dashboard'] });
-        qc.invalidateQueries({ queryKey: apptKeys.all });
-      }}
-    );
     setIsMoreMenuOpen(false);
+    // Optimistic: clear HUD immediately
+    setActivePatientId(null);
+    setConsultationStartedAt(null);
+    setConsultDuration('00:00');
+
+    const apptId = (item as any).visitId || item.id;
+    updateStatus.mutate(
+      { id: apptId, status: 'Cancelled' },
+      {
+        onSuccess: () => {
+          qc.invalidateQueries({ queryKey: ['dashboard'] });
+          qc.invalidateQueries({ queryKey: apptKeys.all });
+        }
+      }
+    );
   };
 
   const handleReschedule = (item: QueueItem) => {
     setIsMoreMenuOpen(false);
-    // Navigate to appointments with pre-filled patient info
     navigate(`/appointments/calendar?patient=${item.regid || item.patientId}`);
   };
 
@@ -187,6 +206,11 @@ export function DoctorDashboard() {
         await queueMgmt.callNext.mutateAsync(wlId);
         qc.invalidateQueries({ queryKey: ['dashboard'] });
         qc.invalidateQueries({ queryKey: apptKeys.all });
+      } else if (item.status === 'Pending' || item.status === 'Confirmed') {
+        // If they bypass the waitlist and start directly
+        await updateStatus.mutateAsync({ id: item.id, status: 'Consultation' });
+        qc.invalidateQueries({ queryKey: ['dashboard'] });
+        qc.invalidateQueries({ queryKey: apptKeys.all });
       }
 
       // Enter the full-screen consultation workspace.
@@ -199,22 +223,53 @@ export function DoctorDashboard() {
   };
 
   if (isLoading) {
-    return (
-      <div className="dash-root" style={{ padding: '64px', textAlign: 'center', color: '#94a3b8' }}>
-        <Activity className="animate-pulse" style={{ margin: '0 auto 16px', color: 'var(--primary)' }} />
-        <p className="text-small">Preparing Clinical Workspace...</p>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (
-    <div className="dash-root">
+    <div className="dash-root doctor-dashboard-panel">
       {/* 1. KPI Strip */}
       <div className="dash-kpi-strip">
-        <KPIItem label="Daily Visits" value={todayAppts.length} trend={`${kpis?.patientTrend || 0}% vs yesterday`} color={Number(kpis?.patientTrend || 0) > 0 ? '#16a34a' : '#dc2626'} />
-        <KPIItem label="Collection" value={`₹${(kpis?.todaysCollection || 0).toLocaleString()}`} trend={`${kpis?.revenueTrend || 0}% vs yesterday`} color={Number(kpis?.revenueTrend || 0) > 0 ? '#16a34a' : '#dc2626'} />
-        <KPIItem label="Wait Rate" value={`${kpis?.collectionRate || 0}%`} trend="Target 95%" color="#16a34a" />
-        <KPIItem label="Avg Wait" value={`${kpis?.avgWaitTime || 0}m`} trend="In queue" color="#2563eb" />
+        {(() => {
+          const visitsCount = todayAppts.length;
+          const waitingCount = todayAppts.filter(a => a.status === 'Waitlist').length;
+          const completedCount = todayAppts.filter(a => a.status === 'Completed').length;
+          const fmtTrend = (v: number | string | undefined) => {
+            const n = Number(v ?? 0);
+            const sign = n > 0 ? '+' : '';
+            return `${sign}${n}% vs prev`;
+          };
+          const trendColor = (v: number | string | undefined) =>
+            Number(v ?? 0) > 0 ? 'var(--pp-success-fg)' : Number(v ?? 0) < 0 ? 'var(--pp-danger-fg)' : 'var(--pp-muted-fg)';
+          return (
+            <>
+              <KPIItem
+                label="Daily Visits"
+                value={visitsCount}
+                trend={fmtTrend(kpis?.casesTrend)}
+                color={trendColor(kpis?.casesTrend)}
+              />
+              <KPIItem
+                label="Collection"
+                value={fmt(kpis?.todaysCollection || 0)}
+                trend={fmtTrend(kpis?.revenueTrend)}
+                color={trendColor(kpis?.revenueTrend)}
+              />
+              <KPIItem
+                label="Waiting"
+                value={`${waitingCount}/${visitsCount || 0}`}
+                trend={completedCount > 0 ? `${completedCount} completed` : 'No visits done'}
+                color={waitingCount > 0 ? 'var(--pp-warn-fg, #f59e0b)' : 'var(--pp-success-fg)'}
+              />
+              <KPIItem
+                label="Avg Wait"
+                value={`${kpis?.avgWaitTime || 0}m`}
+                trend={fmtTrend(kpis?.avgWaitTimeTrend)}
+                color={trendColor(kpis?.avgWaitTimeTrend)}
+              />
+            </>
+          );
+        })()}
       </div>
 
       <div className="dash-grid">
@@ -242,8 +297,8 @@ export function DoctorDashboard() {
                     </p>
 
                     <div className="dd-vitals-strip" onClick={() => setShowVitalsModal(true)} style={{ cursor: 'pointer' }}>
-                      <VitalItem icon={<Heart size={12} />} label="BP" value={activeConsultation.vitals?.bp || '--'} color="#ef4444" />
-                      <VitalItem icon={<Scale size={12} />} label="Weight" value={activeConsultation.vitals?.weight ? `${activeConsultation.vitals.weight} kg` : '--'} color="#3b82f6" />
+                      <VitalItem icon={<Heart size={12} />} label="BP" value={activeConsultation.vitals?.bp || '--'} color="var(--pp-danger-fg)" />
+                      <VitalItem icon={<Scale size={12} />} label="Weight" value={activeConsultation.vitals?.weight ? `${activeConsultation.vitals.weight} kg` : '--'} color="var(--pp-blue)" />
                       <VitalItem icon={<Thermometer size={12} />} label="Temp" value={activeConsultation.vitals?.temp ? `${activeConsultation.vitals.temp}°F` : '--'} color="#f59e0b" />
                     </div>
 
@@ -275,6 +330,7 @@ export function DoctorDashboard() {
                   </div>
 
                   <div className="dd-clinical-notes">
+                    <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--pp-blue)', textTransform: 'uppercase', marginBottom: 8, letterSpacing: '0.05em' }}>Chief Complaints</div>
                     <p>{activeConsultation.notes || 'Routine checkup. Documented symptoms pending triage.'}</p>
                   </div>
                 </>
@@ -301,51 +357,52 @@ export function DoctorDashboard() {
               </div>
             </div>
             <div className="dash-card-body" style={{ padding: '0 8px' }}>
-              {filteredAppts.length > 0 ? (
-                filteredAppts.map((a, idx) => {
-                  const isExpanded = expandedId === a.id;
-                  return (
-                    <div key={`${a.id}-${idx}`}>
-                      <div 
-                        className={`dash-row ${isExpanded ? 'active' : ''}`} 
-                        onClick={() => setExpandedId(isExpanded ? null : a.id)} 
-                        style={{ cursor: 'pointer' }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
-                          <div className="dash-avatar">
-                            {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+              <div className="dash-queue-scroll">
+                {filteredAppts.length > 0 ? (
+                  filteredAppts.map((a, idx) => {
+                    const isExpanded = expandedId === a.id;
+                    return (
+                      <div key={`${a.id}-${idx}`}>
+                        <div
+                          className={`dash-row ${isExpanded ? 'active' : ''}`}
+                          onClick={() => setExpandedId(isExpanded ? null : a.id)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
+                            <div className="dash-avatar">
+                              {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                            </div>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{a.patientName}</div>
+                              <div className="text-label" style={{ fontSize: 10 }}>{a.bookingTime || 'Scheduled'} · {a.wlId ? 'Waitlist' : 'Token'} {a.wlId ? `W${a.tokenNo}` : (a.tokenNo || '—')}</div>
+                            </div>
                           </div>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{a.patientName}</div>
-                            <div className="text-label" style={{ fontSize: 10 }}>{a.bookingTime || 'Scheduled'} · Token {a.tokenNo || '—'}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            {a.status === 'Waitlist' && (
+                              <button
+                                className="dash-view-btn"
+                                title="Start Consultation"
+                                onClick={(e) => { e.stopPropagation(); handleStartConsultation(a); }}
+                              >
+                                Call
+                              </button>
+                            )}
+                            <span className={`dash-badge badge-${a.status === 'Consultation' ? 'success' : a.status === 'Completed' ? 'primary' : 'warning'}`}>
+                              {a.status || 'Waitlist'}
+                            </span>
                           </div>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                          {a.status === 'Waitlist' && (
-                            <button
-                              className="dash-view-btn"
-                              title="Start Consultation"
-                              onClick={(e) => { e.stopPropagation(); handleStartConsultation(a); }}
-                            >
-                              Call
-                            </button>
-                          )}
-                          <span className={`dash-badge badge-${a.status === 'Consultation' ? 'success' : a.status === 'Completed' ? 'primary' : 'warning'}`}>
-                            {a.status || 'Waitlist'}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      <div className={`dash-row-details ${isExpanded ? 'expanded' : ''}`}>
-                        <div className="details-inner">
-                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+
+                        <div className={`dash-row-details ${isExpanded ? 'expanded' : ''}`}>
+                          <div className="details-inner">
+                            <div className="dd-details-grid">
                               <div>
                                 <div className="text-label" style={{ fontSize: 9, textTransform: 'uppercase', marginBottom: 4 }}>Clinical Notes</div>
                                 <div style={{ fontSize: 12, color: '#475569', lineHeight: 1.5 }}>
                                   {a.notes || 'Routine follow-up. No specific symptoms recorded at registration.'}
                                 </div>
                               </div>
-                              <div style={{ paddingLeft: 16, borderLeft: '1px solid var(--pp-warm-2)' }}>
+                              <div className="dd-details-right">
                                 <div className="text-label" style={{ fontSize: 9, textTransform: 'uppercase', marginBottom: 4 }}>Patient Info</div>
                                 <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>PT-{a.regid}</div>
                                 <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
@@ -364,18 +421,20 @@ export function DoctorDashboard() {
                                   )}
                                 </div>
                               </div>
-                           </div>
+                            </div>
+                          </div>
                         </div>
+
                       </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <div style={{ padding: '48px 0', textAlign: 'center', color: '#94a3b8' }}>
-                  <Users size={24} style={{ marginBottom: 8, opacity: 0.5 }} />
-                  <p className="text-small">{queueFilter === 'ALL' ? 'Queue view is empty today.' : `No patients in '${queueFilter.toLowerCase()}' status.`}</p>
-                </div>
-              )}
+                    );
+                  })
+                ) : (
+                  <div style={{ padding: '48px 0', textAlign: 'center', color: '#94a3b8' }}>
+                    <Users size={24} style={{ marginBottom: 8, opacity: 0.5 }} />
+                    <p className="text-small">{queueFilter === 'ALL' ? 'Queue view is empty today.' : `No patients in '${queueFilter.toLowerCase()}' status.`}</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -432,7 +491,7 @@ export function DoctorDashboard() {
 
       {showVitalsModal && activeConsultation && (
         <VitalsFormModal
-          visitId={activeConsultation.id}
+          visitId={(activeConsultation as any).visitId || activeConsultation.id}
           regid={activeConsultation.regid || activeConsultation.patientId}
           initialData={activeConsultation.vitals}
           onClose={() => setShowVitalsModal(false)}
@@ -446,7 +505,7 @@ export function DoctorDashboard() {
   );
 }
 
-function KPIItem({ label, value, trend, color }: any) {
+const KPIItem = memo(function KPIItem({ label, value, trend, color }: any) {
   return (
     <div className="dash-kpi-item">
       <span className="dash-kpi-label">{label}</span>
@@ -458,9 +517,9 @@ function KPIItem({ label, value, trend, color }: any) {
       </div>
     </div>
   );
-}
+});
 
-function VitalItem({ icon, label, value, color }: any) {
+const VitalItem = memo(function VitalItem({ icon, label, value, color }: any) {
   return (
     <div className="dd-vital-item">
       <span style={{ color, display: 'flex', alignItems: 'center' }}>{icon}</span>
@@ -468,18 +527,18 @@ function VitalItem({ icon, label, value, color }: any) {
       <span style={{ fontWeight: 800 }}>{value}</span>
     </div>
   );
-}
+});
 
-function IntelligenceItem({ color, text }: any) {
+const IntelligenceItem = memo(function IntelligenceItem({ color, text }: any) {
   return (
     <div className="dash-intel-item">
       <div className="dash-status-dot" style={{ background: color }} />
       <div className="dash-intel-content">{text}</div>
     </div>
   );
-}
+});
 
-function BillingItem({ patient, id, amount, status }: any) {
+const BillingItem = memo(function BillingItem({ patient, id, amount, status }: any) {
   return (
     <div className="dash-list-item">
       <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -492,4 +551,4 @@ function BillingItem({ patient, id, amount, status }: any) {
       </div>
     </div>
   );
-}
+});

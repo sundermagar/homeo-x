@@ -1,4 +1,4 @@
-import { type Result, ok } from '../../../shared/result';
+import { type Result, ok } from '../../../shared/result.js';
 import type { 
   MedicalCaseRepository, 
   CaseNote, 
@@ -6,7 +6,7 @@ import type {
   CaseImage, 
   Investigation, 
   Prescription 
-} from '../ports/medical-case.repository';
+} from '../ports/medical-case.repository.js';
 
 export class ManageClinicalRecordsUseCase {
   constructor(private readonly repository: MedicalCaseRepository) {}
@@ -51,6 +51,12 @@ export class ManageClinicalRecordsUseCase {
     return ok(undefined);
   }
 
+  // ─── SOAP / Diagnosis ───
+  async deleteSoapNote(id: number): Promise<Result<void>> {
+    await this.repository.deleteSoapNote(id);
+    return ok(undefined);
+  }
+
   // ─── Prescriptions ───
   async savePrescription(dto: Partial<Prescription>): Promise<Result<void>> {
     await this.repository.savePrescription(dto);
@@ -58,6 +64,41 @@ export class ManageClinicalRecordsUseCase {
   }
   async deletePrescription(id: number): Promise<Result<void>> {
     await this.repository.deletePrescription(id);
+    return ok(undefined);
+  }
+
+
+  // ─── Homeo Details ───
+  async saveHomeoDetails(dto: Partial<any>): Promise<Result<void>> {
+    await this.repository.saveHomeoDetails(dto);
+    return ok(undefined);
+  }
+
+  // ─── Vaccines ───
+  async getVaccines(regid: number): Promise<Result<any[]>> {
+    const data = await this.repository.getVaccines(regid);
+    return ok(data);
+  }
+  async getMasterVaccines(): Promise<Result<any[]>> {
+    const data = await this.repository.getMasterVaccines();
+    return ok(data);
+  }
+  async saveVaccine(dto: Partial<any>): Promise<Result<void>> {
+    await this.repository.saveVaccine(dto);
+    return ok(undefined);
+  }
+
+  // ─── Reminders ───
+  async getReminders(regid: number): Promise<Result<any[]>> {
+    const data = await this.repository.getReminders(regid);
+    return ok(data);
+  }
+  async saveReminder(dto: Partial<any>): Promise<Result<void>> {
+    await this.repository.saveReminder(dto);
+    return ok(undefined);
+  }
+  async deleteReminder(id: number): Promise<Result<void>> {
+    await this.repository.deleteReminder(id);
     return ok(undefined);
   }
 }

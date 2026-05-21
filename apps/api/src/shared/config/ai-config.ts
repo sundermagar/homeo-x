@@ -1,4 +1,4 @@
-import { createLogger } from '../logger';
+import { createLogger } from '../logger.js';
 
 const logger = createLogger('ai-config');
 
@@ -48,7 +48,7 @@ class AiConfigService {
     const groqKeys = this.parseKeys(process.env.GROQ_API_KEY);
     const azureKey = process.env.AI_API_KEY ? [process.env.AI_API_KEY] : [];
 
-    const anthropicModel = process.env.AIMODEL || 'claude-haiku-4-5-20251001';
+    const anthropicModel = process.env.AI_MODEL || 'claude-3-5-haiku-20241022';
 
     return {
       providers: [
@@ -109,7 +109,7 @@ class AiConfigService {
     }
 
     if (!this.config.transcription.isAvailable) {
-      logger.warn('Deepgram not configured — cloud transcription unavailable (Web Speech API still works)');
+      // logger.warn('Deepgram not configured — cloud transcription unavailable (Web Speech API still works)');
     }
 
     if (!this.config.videoCall.isAvailable) {

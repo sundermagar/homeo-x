@@ -78,25 +78,33 @@ export function useBinaryTranscriber({
     setIsConnecting(false);
   }, []);
 
-  const startRecording = useCallback(async () => {
+  const startRecording = useCallback(async (options?: { audioTrack?: MediaStreamTrack }) => {
     try {
       setIsConnecting(true);
       lastChunkTimeRef.current = Date.now();
       recordingStartRef.current = Date.now();
 
-      // 1. Get microphone access
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          sampleRate: 16000,
-          channelCount: 1,
-          echoCancellation: true,
-          noiseSuppression: true,
-        },
-      });
+      // 1. Get microphone access or use provided track
+      let stream: MediaStream;
+      if (options?.audioTrack) {
+        console.log('[BinaryTranscriber] Using provided audio track');
+        stream = new MediaStream([options.audioTrack]);
+      } else {
+        console.log('[BinaryTranscriber] Requesting new microphone stream');
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            sampleRate: 16000,
+            channelCount: 1,
+            echoCancellation: true,
+            noiseSuppression: true,
+          },
+        });
+      }
       streamRef.current = stream;
 
       // 2. Connect to Transcription Gateway
-      const socket = io('/transcription', {
+      const baseUrl = import.meta.env['VITE_API_URL'] || window.location.origin;
+      const socket = io(`${baseUrl}/transcription`, {
         withCredentials: true,
         extraHeaders: {
           'ngrok-skip-browser-warning': 'true'
@@ -105,6 +113,7 @@ export function useBinaryTranscriber({
       socketRef.current = socket;
 
       socket.on('connect', () => {
+        console.log('[BinaryTranscriber] Socket connected to /transcription');
         lastChunkTimeRef.current = Date.now();
         socket.emit('stream:start', { visitId, engine, languageCode, role });
       });
@@ -137,6 +146,7 @@ export function useBinaryTranscriber({
       const audioContext = new AudioContext({ sampleRate: 16000 });
       audioContextRef.current = audioContext;
 
+      // Use absolute path for public asset
       await audioContext.audioWorklet.addModule('/pcm-processor.js');
 
       const source = audioContext.createMediaStreamSource(stream);

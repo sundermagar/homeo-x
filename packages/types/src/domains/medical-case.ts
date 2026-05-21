@@ -1,4 +1,4 @@
-import type { CaseStatus } from '../enums';
+import type { CaseStatus } from '../enums.js';
 
 export interface MedicalCase {
   id: number;

@@ -61,5 +61,7 @@ export interface AssignPackageDto {
   regid:      number;
   packageId:  number;
   startDate?: string; // defaults to today
+  startFrom?: 'today' | 'expiry';
   notes?:     string;
+
 }

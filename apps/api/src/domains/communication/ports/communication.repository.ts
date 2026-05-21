@@ -29,7 +29,7 @@ export interface ICommunicationRepository {
     regid?: number;
     phone: string;
     message: string;
-    deepLink: string;
+    deepLink?: string;
     status?: string;
   }): Promise<WhatsAppLog>;
   listWhatsAppLogs(limit?: number): Promise<WhatsAppLog[]>;

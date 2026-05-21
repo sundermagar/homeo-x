@@ -4,16 +4,19 @@ import { Link } from 'react-router-dom';
 import { Plus, Search, Edit2, Trash2, X, GraduationCap, Building2, Stethoscope, Mail, Phone, MapPin, Users, UserCheck, LayoutGrid, Award, Landmark, Upload, Image as ImageIcon, FileText } from 'lucide-react';
 import { NumericInput } from '@/shared/components/NumericInput';
 import { useStaffList, useDeleteStaff, useCreateStaff, useUpdateStaff, useStaffMember } from '@/features/staff/hooks/use-staff';
+import { useAuthStore } from '@/shared/stores/auth-store';
 import type { StaffSummary, StaffMember } from '@mmc/types';
 import type { CreateStaffInput, UpdateStaffInput } from '@mmc/validation';
 import { createStaffSchema, updateStaffSchema } from '@mmc/validation';
 import { apiClient } from '@/infrastructure/api-client';
 import '../styles/platform.css';
-
+import { Pagination } from '@/components/shared/pagination';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
+import { Drawer } from '@/shared/components/drawer';
 const CATEGORY = 'doctor' as const;
 const META = { label: 'Doctors', description: 'Manage clinical practitioners and specialized doctor profiles.' };
-const PAGE_SIZE = 30;
-
+const PAGE_SIZE = 10;
 function getDefaultStaffForm(): CreateStaffInput {
   return {
     category: CATEGORY,
@@ -54,9 +57,9 @@ function getDefaultStaffForm(): CreateStaffInput {
     col12Document: '',
     bhmsDocument: '',
     mdDocument: '',
+    sendWelcomeEmail: false,
   };
 }
-
 function staffMemberToForm(staff: StaffMember): CreateStaffInput {
   const gender = staff.gender === 'Female' || staff.gender === 'Other' ? (staff.gender as "Female" | "Other") : 'Male';
   return {
@@ -85,7 +88,7 @@ function staffMemberToForm(staff: StaffMember): CreateStaffInput {
     consultationFee: Number(staff.consultationFee) || 0,
     permanentAddress: staff.permanentAddress || '',
     password: '',
-    clinicId: staff.clinicId,
+    clinicId: (staff.clinicId && staff.clinicId !== 1) ? staff.clinicId : null,
     registrationCertificate: staff.registrationCertificate || '',
     aadharCard: staff.aadharCard || '',
     panCard: staff.panCard || '',
@@ -98,24 +101,26 @@ function staffMemberToForm(staff: StaffMember): CreateStaffInput {
     col12Document: staff.col12Document || '',
     bhmsDocument: staff.bhmsDocument || '',
     mdDocument: staff.mdDocument || '',
+    sendWelcomeEmail: false,
   };
 }
-
-function FileInputRow({ 
-  label, 
-  field, 
-  value, 
-  onChange, 
-  error, 
+function FileInputRow({
+  label,
+  field,
+  value,
+  onChange,
+  onRemove,
+  error,
   accept = "image/*,application/pdf",
   className = "",
   style = {}
-}: { 
-  label: string; 
-  field: string; 
-  value?: string; 
-  onChange: (f: string, e: React.ChangeEvent<HTMLInputElement>) => void; 
-  error?: string; 
+}: {
+  label: string;
+  field: string;
+  value?: string | null;
+  onChange: (f: string, e: React.ChangeEvent<HTMLInputElement>) => void;
+  onRemove?: (f: string) => void;
+  error?: string;
   accept?: string;
   className?: string;
   style?: React.CSSProperties;
@@ -127,19 +132,31 @@ function FileInputRow({
         <div className="plat-file-trigger">
           <Upload size={14} /> Upload {label}
         </div>
-        <input 
-          type="file" 
+        <input
+          type="file"
           accept={accept}
-          onChange={(e) => onChange(field, e)} 
+          onChange={(e) => onChange(field, e)}
         />
       </div>
       {value && (
-        <div className="plat-file-preview">
-          <span className="plat-file-preview-name" title={value}>{value.split('/').pop() || 'Uploaded File'}</span>
-          {value.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
-            <img src={value} alt="Preview" className="plat-file-preview-image" />
-          ) : (
-            <FileText size={16} className="color-muted" />
+        <div className="plat-file-preview" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+            <span className="plat-file-preview-name" title={value}>{value.split('/').pop() || 'Uploaded File'}</span>
+            {value.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
+              <img src={value} alt="Preview" className="plat-file-preview-image" />
+            ) : (
+              <FileText size={16} className="color-muted" />
+            )}
+          </div>
+          {onRemove && (
+            <button
+              type="button"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: 'var(--pp-danger-fg)' }}
+              onClick={() => onRemove(field)}
+              title="Remove file"
+            >
+              <Trash2 size={14} />
+            </button>
           )}
         </div>
       )}
@@ -147,7 +164,6 @@ function FileInputRow({
     </div>
   );
 }
-
 function StaffModal({
   mode,
   staff,
@@ -163,29 +179,33 @@ function StaffModal({
 }) {
   const [form, setForm] = useState<CreateStaffInput | UpdateStaffInput>(getDefaultStaffForm());
   const [errors, setErrors] = useState<Record<string, string | undefined>>({});
-
   const createMutation = useCreateStaff();
   const updateMutation = useUpdateStaff();
   const qc = useQueryClient();
-
+  const { user } = useAuthStore();
   useEffect(() => {
     if (mode === 'edit' && staff) {
-      setForm(staffMemberToForm(staff));
+      const editForm = staffMemberToForm(staff);
+      // If clinicId is missing or was default (1), use current admin's context
+      if (!editForm.clinicId && user?.contextId) {
+        editForm.clinicId = user.contextId;
+      }
+      setForm(editForm);
     } else if (mode === 'create') {
-      setForm(getDefaultStaffForm());
+      const defaultForm = getDefaultStaffForm();
+      if (user?.contextId) {
+        defaultForm.clinicId = user.contextId;
+      }
+      setForm(defaultForm);
     }
-  }, [mode, staff]);
-
+  }, [mode, staff, user]);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
-
     const fullName = `${form.firstname} ${form.middlename || ''} ${form.surname}`.replace(/\s+/g, ' ').trim();
     const finalForm = { ...form, name: fullName };
-
     const schema = mode === 'create' ? createStaffSchema : updateStaffSchema;
     const result = schema.safeParse(finalForm);
-
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
       result.error.errors.forEach((err) => {
@@ -196,7 +216,6 @@ function StaffModal({
       setErrors(fieldErrors);
       return;
     }
-
     try {
       if (mode === 'create') {
         await createMutation.mutateAsync(finalForm as CreateStaffInput);
@@ -215,7 +234,6 @@ function StaffModal({
       setErrors({ general: typeof serverMsg === 'object' ? JSON.stringify(serverMsg) : (serverMsg || 'An error occurred during submission') });
     }
   };
-
   const updateForm = (field: string, value: any) => {
     let castValue = value;
     if (field === 'dept' || field === 'salaryCur' || field === 'consultationFee') {
@@ -223,51 +241,43 @@ function StaffModal({
     }
     setForm((prev) => ({ ...prev, [field]: castValue }));
   };
-
   const handleFileUpload = async (field: string, event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
     try {
       setErrors((prev) => ({ ...prev, [field]: undefined }));
       const formData = new FormData();
       formData.append('file', file);
-
       const res = await apiClient.post('/staff/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      
       const resData = (res as any)._original ?? res.data;
       if (resData?.success && resData?.path) {
-         updateForm(field, resData.path);
+        updateForm(field, resData.path);
       } else {
-         setErrors((prev) => ({ ...prev, [field]: 'Upload failed' }));
+        setErrors((prev) => ({ ...prev, [field]: 'Upload failed' }));
       }
     } catch (err: any) {
       setErrors((prev) => ({ ...prev, [field]: err.message || 'Upload failed' }));
     }
   };
-
+  const handleFileRemove = (field: string) => {
+    updateForm(field, '');
+  };
   const isPending = createMutation.isPending || updateMutation.isPending;
   const isEdit = mode === 'edit';
-
   return (
-    <div className="plat-modal-backdrop" onClick={onClose}>
-      <div className="plat-modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="plat-modal-header">
-          <h3 className="plat-modal-title">
-            {isEdit ? 'Update Practitioner Record' : 'Register New Practitioner'}
-          </h3>
-          <button type="button" className="plat-btn plat-btn-icon plat-btn-ghost" onClick={onClose}>
-            <X size={14} />
-          </button>
-        </div>
-
+    <Drawer
+      isOpen={true}
+      onClose={onClose}
+      title={isEdit ? 'Update Practitioner Record' : 'Register New Practitioner'}
+      maxWidth="600px"
+    >
+      <div className="plat-modal-content" style={{ border: 'none', boxShadow: 'none', margin: 0, padding: 0 }}>
         <form onSubmit={handleSubmit} className="plat-modal-body">
           {errors['general'] && (
             <div className="plat-error-banner mb-4">{errors['general']}</div>
           )}
-
           {/* Section 1: Personal Details */}
           <div className="plat-form-section">
             <h4 className="plat-form-section-title">Personal Details</h4>
@@ -283,7 +293,6 @@ function StaffModal({
                 />
                 {errors['title'] && <span className="plat-form-error">{errors['title']}</span>}
               </div>
-
               <div className="plat-form-group" style={{ gridColumn: 'span 1' }}>
                 <label className="plat-form-label">First Name *</label>
                 <input
@@ -295,7 +304,6 @@ function StaffModal({
                 />
                 {errors['firstname'] && <span className="plat-form-error">{errors['firstname']}</span>}
               </div>
-
               <div className="plat-form-group" style={{ gridColumn: 'span 1' }}>
                 <label className="plat-form-label">Middle Name</label>
                 <input
@@ -306,7 +314,6 @@ function StaffModal({
                   disabled={isLoading}
                 />
               </div>
-
               <div className="plat-form-group" style={{ gridColumn: 'span 1' }}>
                 <label className="plat-form-label">Surname *</label>
                 <input
@@ -318,7 +325,6 @@ function StaffModal({
                 />
                 {errors['surname'] && <span className="plat-form-error">{errors['surname']}</span>}
               </div>
-
               <div className="plat-form-group" style={{ gridColumn: 'span 1' }}>
                 <label className="plat-form-label">Gender</label>
                 <select
@@ -332,7 +338,6 @@ function StaffModal({
                   <option value="Other">Other</option>
                 </select>
               </div>
-
               <div className="plat-form-group" style={{ gridColumn: 'span 1' }}>
                 <label className="plat-form-label">Date of Birth</label>
                 <input
@@ -343,19 +348,18 @@ function StaffModal({
                   disabled={isLoading}
                 />
               </div>
-
-              <FileInputRow 
-                label="Profile Picture" 
-                field="profilepic" 
-                value={form.profilepic} 
-                onChange={handleFileUpload} 
-                error={errors['profilepic']} 
+              <FileInputRow
+                label="Profile Picture"
+                field="profilepic"
+                value={form.profilepic}
+                onChange={handleFileUpload}
+                onRemove={handleFileRemove}
+                error={errors['profilepic']}
                 accept="image/*"
                 style={{ gridColumn: 'span 2' }}
               />
             </div>
           </div>
-
           {/* Section 2: Contact & Address */}
           <div className="plat-form-section">
             <h4 className="plat-form-section-title">Contact & Address</h4>
@@ -364,23 +368,23 @@ function StaffModal({
                 <label className="plat-form-label">Primary Mobile *</label>
                 <NumericInput
                   className="plat-form-input"
+                  name="mobile"
                   value={form.mobile || ''}
                   onChange={(e: any) => updateForm('mobile', e.target.value)}
                   disabled={isLoading}
                 />
                 {errors['mobile'] && <span className="plat-form-error">{errors['mobile']}</span>}
               </div>
-
               <div className="plat-form-group">
                 <label className="plat-form-label">Alt Mobile</label>
                 <NumericInput
                   className="plat-form-input"
+                  name="mobile2"
                   value={form.mobile2 || ''}
                   onChange={(e: any) => updateForm('mobile2', e.target.value)}
                   disabled={isLoading}
                 />
               </div>
-
               <div className="plat-form-group">
                 <label className="plat-form-label">Email Address</label>
                 <input
@@ -392,7 +396,6 @@ function StaffModal({
                 />
                 {errors['email'] && <span className="plat-form-error">{errors['email']}</span>}
               </div>
-
               <div className="plat-form-group">
                 <label className="plat-form-label">Login Password {isEdit && '(leave blank to keep current)'}</label>
                 <input
@@ -405,7 +408,20 @@ function StaffModal({
                 />
                 {errors['password'] && <span className="plat-form-error">{errors['password']}</span>}
               </div>
-
+              {mode === 'create' && (
+                <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
+                  <label className="plat-checkbox-group">
+                    <input
+                      type="checkbox"
+                      checked={!!form.sendWelcomeEmail}
+                      onChange={(e) => updateForm('sendWelcomeEmail', e.target.checked)}
+                    />
+                    <span className="plat-checkbox-label">
+                      Send welcome email with credentials
+                    </span>
+                  </label>
+                </div>
+              )}
               <div className="plat-form-group">
                 <label className="plat-form-label">City</label>
                 <input
@@ -416,7 +432,6 @@ function StaffModal({
                   disabled={isLoading}
                 />
               </div>
-
               <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
                 <label className="plat-form-label">Address</label>
                 <input
@@ -427,7 +442,6 @@ function StaffModal({
                   disabled={isLoading}
                 />
               </div>
-
               <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
                 <label className="plat-form-label">Permanent Address</label>
                 <input
@@ -440,7 +454,6 @@ function StaffModal({
               </div>
             </div>
           </div>
-
           {/* Section 3: Professional Credentials */}
           <div className="plat-form-section">
             <h4 className="plat-form-section-title">Professional Credentials</h4>
@@ -458,7 +471,6 @@ function StaffModal({
                   <option value={2}>Cardiology</option>
                 </select>
               </div>
-
               <div className="plat-form-group">
                 <label className="plat-form-label">Designation</label>
                 <input
@@ -469,7 +481,6 @@ function StaffModal({
                   disabled={isLoading}
                 />
               </div>
-
               <div className="plat-form-group">
                 <label className="plat-form-label">Qualification</label>
                 <input
@@ -480,7 +491,6 @@ function StaffModal({
                   disabled={isLoading}
                 />
               </div>
-
               <div className="plat-form-group">
                 <label className="plat-form-label">Institute / University</label>
                 <input
@@ -491,7 +501,6 @@ function StaffModal({
                   disabled={isLoading}
                 />
               </div>
-
               <div className="plat-form-group">
                 <label className="plat-form-label">Passed Out Year</label>
                 <input
@@ -503,7 +512,6 @@ function StaffModal({
                   disabled={isLoading}
                 />
               </div>
-
               <div className="plat-form-group">
                 <label className="plat-form-label">Consultation Fee (₹)</label>
                 <NumericInput
@@ -513,7 +521,6 @@ function StaffModal({
                   disabled={isLoading}
                 />
               </div>
-
               <div className="plat-form-group">
                 <label className="plat-form-label">Registration ID</label>
                 <input
@@ -524,7 +531,6 @@ function StaffModal({
                   disabled={isLoading}
                 />
               </div>
-
               <div className="plat-form-group">
                 <label className="plat-form-label">Joining Date</label>
                 <input
@@ -537,7 +543,6 @@ function StaffModal({
               </div>
             </div>
           </div>
-
           {/* Section 4: Statutory & Documents */}
           <div className="plat-form-section">
             <h4 className="plat-form-section-title">Statutory & Documents</h4>
@@ -552,15 +557,14 @@ function StaffModal({
                   disabled={isLoading}
                 />
               </div>
-              
-              <FileInputRow 
-                label="Aadhar Card" 
-                field="aadharCard" 
-                value={form.aadharCard} 
-                onChange={handleFileUpload} 
-                error={errors['aadharCard']} 
+              <FileInputRow
+                label="Aadhar Card"
+                field="aadharCard"
+                value={form.aadharCard}
+                onChange={handleFileUpload}
+                onRemove={handleFileRemove}
+                error={errors['aadharCard']}
               />
-
               <div className="plat-form-group">
                 <label className="plat-form-label">PAN Number</label>
                 <input
@@ -571,38 +575,36 @@ function StaffModal({
                   disabled={isLoading}
                 />
               </div>
-              
-              <FileInputRow 
-                label="PAN Card" 
-                field="panCard" 
-                value={form.panCard} 
-                onChange={handleFileUpload} 
-                error={errors['panCard']} 
+              <FileInputRow
+                label="PAN Card"
+                field="panCard"
+                value={form.panCard}
+                onChange={handleFileUpload}
+                onRemove={handleFileRemove}
+                error={errors['panCard']}
               />
-
-              <FileInputRow 
-                label="Registration Certificate" 
-                field="registrationCertificate" 
-                value={form.registrationCertificate} 
-                onChange={handleFileUpload} 
-                error={errors['registrationCertificate']} 
+              <FileInputRow
+                label="Registration Certificate"
+                field="registrationCertificate"
+                value={form.registrationCertificate}
+                onChange={handleFileUpload}
+                onRemove={handleFileRemove}
+                error={errors['registrationCertificate']}
               />
-
-              <FileInputRow 
-                label="Appointment Letter" 
-                field="appointmentLetter" 
-                value={form.appointmentLetter} 
-                onChange={handleFileUpload} 
-                error={errors['appointmentLetter']} 
+              <FileInputRow
+                label="Appointment Letter"
+                field="appointmentLetter"
+                value={form.appointmentLetter}
+                onChange={handleFileUpload}
+                onRemove={handleFileRemove}
+                error={errors['appointmentLetter']}
               />
-
-              <FileInputRow label="10th Marksheet" field="col10Document" value={form.col10Document} onChange={handleFileUpload} error={errors['col10Document']} />
-              <FileInputRow label="12th Marksheet" field="col12Document" value={form.col12Document} onChange={handleFileUpload} error={errors['col12Document']} />
-              <FileInputRow label="BHMS Document" field="bhmsDocument" value={form.bhmsDocument} onChange={handleFileUpload} error={errors['bhmsDocument']} style={{ gridColumn: 'span 2' }} />
-              <FileInputRow label="MD Document" field="mdDocument" value={form.mdDocument} onChange={handleFileUpload} error={errors['mdDocument']} style={{ gridColumn: 'span 2' }} />
+              <FileInputRow label="10th Marksheet" field="col10Document" value={form.col10Document} onChange={handleFileUpload} onRemove={handleFileRemove} error={errors['col10Document']} />
+              <FileInputRow label="12th Marksheet" field="col12Document" value={form.col12Document} onChange={handleFileUpload} onRemove={handleFileRemove} error={errors['col12Document']} />
+              <FileInputRow label="BHMS Document" field="bhmsDocument" value={form.bhmsDocument} onChange={handleFileUpload} onRemove={handleFileRemove} error={errors['bhmsDocument']} style={{ gridColumn: 'span 2' }} />
+              <FileInputRow label="MD Document" field="mdDocument" value={form.mdDocument} onChange={handleFileUpload} onRemove={handleFileRemove} error={errors['mdDocument']} style={{ gridColumn: 'span 2' }} />
             </div>
           </div>
-
           <div className="plat-modal-footer">
             <button type="button" className="plat-btn plat-btn-ghost" onClick={onClose}>
               Discard
@@ -613,110 +615,141 @@ function StaffModal({
           </div>
         </form>
       </div>
-    </div>
+    </Drawer>
   );
 }
-
 export default function DoctorsPage() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [sortBy, setSortBy] = useState('id');
+  const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('DESC');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
-
-  const { data, isLoading } = useStaffList(CATEGORY, { page, limit: PAGE_SIZE, search: debouncedSearch });
+  const [itemsPerPage, setItemsPerPage] = useState(PAGE_SIZE);
+  const { data, isLoading } = useStaffList(CATEGORY, {
+    page,
+    limit: itemsPerPage,
+    search: debouncedSearch,
+    sortBy,
+    sortOrder
+  });
   const deleteMutation = useDeleteStaff();
   const { data: editingStaff, isLoading: isLoadingStaff } = useStaffMember(CATEGORY, editingId ?? 0);
-
   const staffArray = Array.isArray(data?.data) ? data.data : [];
   const staff = staffArray;
   const totalPages = Math.ceil((data?.total || 0) / PAGE_SIZE);
-  const activeCount = useMemo(() => staffArray.filter((s: StaffSummary) => s.isActive).length, [staffArray]);
-
+  const activeCount = data?.activeCount ?? 0;
   const openCreate = () => {
     setModalMode('create');
     setEditingId(null);
     setModalOpen(true);
   };
-
   const openEdit = (s: StaffSummary) => {
     setModalMode('edit');
     setEditingId(s.id);
     setModalOpen(true);
   };
-
   const handleSearchChange = (val: string) => {
     setSearch(val);
     setPage(1);
     clearTimeout((window as any).__staffSearchTimer);
     (window as any).__staffSearchTimer = setTimeout(() => setDebouncedSearch(val), 300);
   };
-
   const handleDelete = async (id: number) => {
     if (!confirm('Are you sure you want to remove this practitioner?')) return;
     await deleteMutation.mutateAsync({ category: CATEGORY, id });
   };
-
   // return (
   return (
     <div className="plat-page">
-      <div className="plat-header">
+      <div className="pp-page-hero">
         <div>
-          <h1 className="plat-header-title">
-            <Stethoscope size={16} className="color-primary" />
+          <h1 className="pp-page-hero-title">
+            <Stethoscope size={22} style={{ color: 'var(--pp-blue)' }} />
             {META.label}
           </h1>
-          <p className="plat-header-sub">{META.description}</p>
+          <p className="pp-page-hero-sub">{META.description}</p>
         </div>
-        <div className="plat-header-actions">
-          <button className="plat-btn plat-btn-primary" onClick={openCreate}>
-            <Plus size={14} /> Register Doctor
+        <div className="pp-page-hero-actions">
+          <button className="btn-primary" onClick={openCreate}>
+            <Plus size={16} strokeWidth={1.8} /> Register Doctor
           </button>
         </div>
       </div>
-
-      <div className="plat-stats-bar">
-        <div className="plat-stat-card">
-          <p className="plat-stat-label">Total Practitioners</p>
-          <p className="plat-stat-value plat-stat-value-primary">{data?.total ?? 0}</p>
+      <div className="pp-stat-grid">
+        <div className="pp-stat-card-enhanced">
+          <div className="pp-stat-label">Total Practitioners</div>
+          <div className="pp-stat-value is-primary">{data?.total ?? 0}</div>
         </div>
-        <div className="plat-stat-card">
-          <p className="plat-stat-label">Active Registry</p>
-          <p className="plat-stat-value plat-stat-value-success">{activeCount}</p>
+        <div className="pp-stat-card-enhanced">
+          <div className="pp-stat-label">Active Registry</div>
+          <div className="pp-stat-value is-success">{activeCount}</div>
         </div>
       </div>
-
-      <div className="plat-filters">
-        <div className="plat-search-wrap">
-          <Search className="plat-search-icon" size={14} />
+      <div className="pp-filter-card">
+        <div className="pp-filter-search-wrap">
+          <Search size={14} />
           <input
             type="text"
-            className="plat-form-input plat-search-input"
             placeholder="Search practitioners by name or ID..."
+            className="pp-filter-search-input"
             value={search}
             onChange={(e) => handleSearchChange(e.target.value)}
           />
         </div>
-        <button className="plat-btn plat-btn-ghost plat-btn-sm" onClick={() => { setSearch(''); setDebouncedSearch(''); setPage(1); }}>
-          Reset
-        </button>
+        <div className="pp-filter-controls">
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-bold color-muted uppercase tracking-wider">Sort:</span>
+            <select
+              className="pp-filter-select"
+              style={{ minWidth: '140px' }}
+              value={`${sortBy}-${sortOrder}`}
+              onChange={(e) => {
+                const [col, order] = e.target.value.split('-');
+                setSortBy(col ?? 'id');
+                setSortOrder((order ?? 'DESC') as 'ASC' | 'DESC');
+                setPage(1);
+              }}
+            >
+              <option value="id-DESC">Newest First</option>
+              <option value="id-ASC">Oldest First</option>
+              <option value="name-ASC">A-Z</option>
+              <option value="name-DESC">Z-A</option>
+            </select>
+          </div>
+          <button
+            className="btn-ghost"
+            onClick={() => {
+              setSearch('');
+              setDebouncedSearch('');
+              setPage(1);
+              setSortBy('id');
+              setSortOrder('DESC');
+            }}
+          >
+            Reset
+          </button>
+        </div>
       </div>
-
-      <div className="plat-card">
+      <div>
         {isLoading ? (
-          <div className="plat-empty" style={{ minHeight: 240 }}>
-            <div className="animate-spin opacity-30 text-2xl mb-4">⟳</div>
-            <p className="plat-empty-text">Loading doctors...</p>
-          </div>
+          <TableSkeleton rows={itemsPerPage} columns={6} />
         ) : staff.length === 0 ? (
-          <div className="plat-empty" style={{ minHeight: 240 }}>
-            <Stethoscope size={40} className="plat-empty-icon" />
-            <p className="plat-empty-text">No doctors found.</p>
-          </div>
+          <EmptyState
+            icon={Stethoscope}
+            title="No doctors found"
+            description="Adjust your filters or add a new clinical practitioner to the registry."
+            actionLabel="Register New Doctor"
+            onAction={openCreate}
+            variant="card"
+            className="my-8"
+          />
         ) : (
-          <div className="plat-table-container">
-            <table className="plat-table">
+          <>
+            <div className="pp-table-container-enhanced">
+            <table className="pp-table">
               <thead>
                 <tr>
                   <th style={{ width: '50px' }}>#</th>
@@ -729,46 +762,56 @@ export default function DoctorsPage() {
               </thead>
               <tbody>
                 {staff.map((s: StaffSummary, index: number) => (
-                  <tr key={s.id} className="plat-table-row">
-                    <td className="plat-mono-data text-xs" style={{ width: 40 }}>{(page - 1) * PAGE_SIZE + index + 1}</td>
-                    <td>
-                      <div className="font-semibold flex items-center gap-1.5">
-                        <Link to={`/platform/doctors/${s.id}`} className="hover:text-[var(--pp-blue)] transition-colors plat-capitalize">
-                          {s.name || 'Unknown'}
+                  <tr key={s.id} className="pp-hover-row" onClick={() => openEdit(s)} style={{ cursor: 'pointer' }}>
+                    <td data-label="#" className="plat-mono-data text-xs" style={{ width: 40 }}>
+                      <div>{(page - 1) * PAGE_SIZE + index + 1}</div>
+                    </td>
+                    <td data-label="Profile">
+                      <div className="plat-cell-val" onClick={(e) => e.stopPropagation()}>
+                        <Link to={`/platform/doctors/${s.id}`} className="font-semibold pp-clickable-name plat-capitalize">
+                          {s.name}
                         </Link>
-                      </div>
-                      <div className="text-[11px] color-muted font-medium">{s.email || '—'}</div>
-                    </td>
-                    <td>
-                      <div className="plat-mono-data">{s.mobile || '—'}</div>
-                      <div className="text-[10px] color-muted plat-capitalize flex items-center gap-1 font-medium">
-                        <MapPin size={10} /> {s.city || 'Location N/A'}
+                        <div className="text-[11px] color-muted font-medium">{s.email || '—'}</div>
                       </div>
                     </td>
-                    <td>
-                      <div className="text-xs font-semibold flex items-center gap-1 plat-capitalize">
-                        <GraduationCap size={12} className="color-muted" />
-                        {s.qualification || 'General'}
-                      </div>
-                      <div className="text-[10px] color-muted font-medium italic plat-capitalize">
-                        {s.designation || 'Practitioner'}
+                    <td data-label="Contact">
+                      <div className="plat-cell-val">
+                        <div className="plat-mono-data">{s.mobile || '—'}</div>
+                        <div className="text-[10px] color-muted plat-capitalize flex items-center gap-1 font-medium">
+                          <MapPin size={10} /> {s.city || 'Location N/A'}
+                        </div>
                       </div>
                     </td>
-                    <td>
-                      <span className={s.isActive ? 'plat-badge plat-badge-info' : 'plat-badge plat-badge-default'}>
-                        {s.isActive ? (
-                          <span className="flex items-center gap-1"><UserCheck size={10} /> Active</span>
-                        ) : 'Deactivated'}
-                      </span>
+                    <td data-label="Credentials">
+                      <div className="plat-cell-val">
+                        <div className="text-xs font-semibold flex items-center gap-1 plat-capitalize">
+                          <GraduationCap size={12} className="color-muted" />
+                          {s.qualification || 'General'}
+                        </div>
+                        <div className="text-[10px] color-muted font-medium italic plat-capitalize">
+                          {s.designation || 'Practitioner'}
+                        </div>
+                      </div>
                     </td>
-                    <td>
-                      <div className="flex justify-end gap-2">
-                        <button className="plat-btn plat-btn-icon plat-btn-ghost" title="Edit" onClick={() => openEdit(s)}>
-                          <Edit2 size={13} />
-                        </button>
-                        <button className="plat-btn plat-btn-icon plat-btn-danger" title="Delete" onClick={() => handleDelete(s.id)} disabled={deleteMutation.isPending}>
-                          <Trash2 size={13} />
-                        </button>
+                    <td data-label="Status">
+                      <div className="plat-cell-val">
+                        <span className={s.isActive ? 'pp-status-pill is-success' : 'pp-status-pill is-default'}>
+                          {s.isActive ? (
+                            <span className="flex items-center gap-1"><UserCheck size={10} /> Active</span>
+                          ) : 'Inactive'}
+                        </span>
+                      </div>
+                    </td>
+                    <td data-label="Actions">
+                      <div className="plat-cell-val">
+                        <div className="flex justify-end gap-2" style={{ width: '100%' }}>
+                          <button className="plat-btn plat-btn-icon plat-btn-ghost" style={{ width: 36, height: 36, borderRadius: 10 }} title="Edit" onClick={(e) => { e.stopPropagation(); openEdit(s); }}>
+                            <Edit2 size={13} />
+                          </button>
+                          <button className="plat-btn plat-btn-icon plat-btn-danger" style={{ width: 36, height: 36, borderRadius: 10 }} title="Delete" onClick={(e) => { e.stopPropagation(); handleDelete(s.id); }} disabled={deleteMutation.isPending}>
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
                       </div>
                     </td>
                   </tr>
@@ -776,16 +819,17 @@ export default function DoctorsPage() {
               </tbody>
             </table>
           </div>
+          <Pagination
+            currentPage={page}
+            totalPages={Math.ceil((data?.total || 0) / itemsPerPage)}
+            pageSize={itemsPerPage}
+            totalItems={data?.total || 0}
+            onPageChange={setPage}
+            onPageSizeChange={setItemsPerPage}
+          />
+        </>
         )}
       </div>
-
-      {totalPages > 1 && (
-        <div className="flex justify-center gap-4 mt-8">
-          <button className="plat-btn" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>← Previous</button>
-          <button className="plat-btn" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>Next →</button>
-        </div>
-      )}
-
       {modalOpen && (
         <StaffModal
           mode={modalMode}

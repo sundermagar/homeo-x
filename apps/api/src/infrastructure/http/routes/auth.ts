@@ -1,13 +1,13 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
-import { LoginUseCase } from '../../../domains/auth/use-cases/login.use-case';
-import { LogoutUseCase } from '../../../domains/auth/use-cases/logout.use-case';
-import { ChangePasswordUseCase } from '../../../domains/auth/use-cases/change-password.use-case';
-import { UserRepositoryPG } from '../../repositories/user.repository.pg';
-import { authMiddleware } from '../middleware/auth';
-import { asyncHandler } from '../middleware/async-handler';
-import { UnauthorizedError } from '../../../shared/errors';
-import { sendSuccess } from '../../../shared/response-formatter';
+import { LoginUseCase } from '../../../domains/auth/use-cases/login.use-case.js';
+import { LogoutUseCase } from '../../../domains/auth/use-cases/logout.use-case.js';
+import { ChangePasswordUseCase } from '../../../domains/auth/use-cases/change-password.use-case.js';
+import { UserRepositoryPG } from '../../repositories/user.repository.pg.js';
+import { authMiddleware } from '../middleware/auth.js';
+import { asyncHandler } from '../middleware/async-handler.js';
+import { UnauthorizedError } from '../../../shared/errors.js';
+import { sendSuccess } from '../../../shared/response-formatter.js';
 
 export const authRouter: Router = Router();
 

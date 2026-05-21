@@ -1,4 +1,4 @@
-import type { ConsultationStage, ScribingStatus, Speaker, ThermalReaction, Miasm } from '../enums';
+import type { ConsultationStage, ScribingStatus, Speaker, ThermalReaction, Miasm } from '../enums.js';
 
 export interface ScribingSession {
   id: number;

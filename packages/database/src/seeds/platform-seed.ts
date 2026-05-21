@@ -1,6 +1,6 @@
-import { organizations, accounts } from '../schema/platform';
+import { organizations, accounts } from '../schema/platform.js';
 import { eq } from 'drizzle-orm';
-import type { DbClient } from '../client';
+import type { DbClient } from '../client.js';
 
 export async function seedPlatform(db: DbClient) {
   console.log('[Seed] Seeding platform data (public schema)...');

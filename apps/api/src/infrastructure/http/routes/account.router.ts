@@ -1,15 +1,16 @@
 import { Router, type Request, type Response } from 'express';
-import { asyncHandler } from '../middleware/async-handler';
-import { validate } from '../middleware/validate';
+import { asyncHandler } from '../middleware/async-handler.js';
+import { validate } from '../middleware/validate.js';
 import { createAccountSchema, updateAccountSchema } from '@mmc/validation';
-import { AccountRepositoryPg } from '../../repositories/account.repository.pg';
-import { createLogger } from '../../../shared/logger';
+import { AccountRepositoryPg } from '../../repositories/account.repository.pg.js';
+import { createLogger } from '../../../shared/logger.js';
 const logger = createLogger('account-router');
 import {  ListAccountsUseCase,
   CreateAccountUseCase,
   UpdateAccountUseCase,
   DeleteAccountUseCase,
-} from '../../../domains/platform';
+} from '../../../domains/platform/index.js';
+import { emailService } from '../../communication/nodemailer.service.js';
 
 export function createAccountRouter(): Router {
   const router = Router();
@@ -66,6 +67,21 @@ export function createAccountRouter(): Router {
         }
       } catch (err: any) {
         logger.error({ err, accountName: result.name }, 'Failed to provision tenant DB');
+      }
+    }
+
+    if (req.body.sendWelcomeEmail && req.body.email && req.body.password) {
+      try {
+        await emailService.sendWelcomeCredentials(
+          req.body.email,
+          result.name,
+          'Account Manager',
+          req.body.password,
+          false
+        );
+        logger.info({ email: req.body.email }, 'Account welcome email sent successfully');
+      } catch (emailErr: any) {
+        logger.error({ err: emailErr.message, email: req.body.email }, 'Failed to send account welcome email');
       }
     }
 

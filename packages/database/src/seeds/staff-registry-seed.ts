@@ -1,9 +1,9 @@
 import { eq } from 'drizzle-orm';
-import type { DbClient } from '../client';
-import { receptionistsLegacy } from '../schema/legacy/receptionists';
-import { employeesLegacy } from '../schema/legacy/employees';
-import { clinicadminsLegacy } from '../schema/legacy/clinicadmins';
-import { accountsLegacy } from '../schema/legacy/accounts';
+import type { DbClient } from '../client.js';
+import { receptionistsLegacy } from '../schema/legacy/receptionists.js';
+import { employeesLegacy } from '../schema/legacy/employees.js';
+import { clinicadminsLegacy } from '../schema/legacy/clinicadmins.js';
+import { accountsLegacy } from '../schema/legacy/accounts.js';
 
 /**
  * Universal Hashed Password: password123

@@ -4,7 +4,7 @@
 // so we return a hardcoded Homeopathy config; can be DB-backed later.
 
 import { Router } from 'express';
-import { sendSuccess } from '../../../shared/response-formatter';
+import { sendSuccess } from '../../../shared/response-formatter.js';
 
 export const specialtiesRouter: Router = Router();
 

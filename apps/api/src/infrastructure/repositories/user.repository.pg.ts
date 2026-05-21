@@ -3,7 +3,7 @@ import type { User } from '@mmc/types';
 import { Role } from '@mmc/types';
 import type { DbClient } from '@mmc/database';
 import * as schema from '@mmc/database';
-import type { UserRepository } from '../../domains/auth/ports/user.repository';
+import type { UserRepository } from '../../domains/auth/ports/user.repository.js';
 
 export class UserRepositoryPG implements UserRepository {
   constructor(private readonly db: DbClient) {}
@@ -47,13 +47,17 @@ export class UserRepositoryPG implements UserRepository {
       isActive: row.is_active !== false,
       createdAt: row.created_at || new Date(),
       updatedAt: row.updated_at || new Date(),
+      resetOtp: row.reset_otp ?? null,
+      resetOtpExpiry: row.reset_otp_expiry ? new Date(row.reset_otp_expiry) : null,
     };
   }
 
   async findById(id: number): Promise<User | null> {
     const rows = await this.db.execute(
-      sql`SELECT id, email, name, type, context_id, mobile, created_at, updated_at
-          FROM users WHERE id = ${id} AND deleted_at IS NULL LIMIT 1`
+      sql`SELECT u.id, u.email, u.name, u.type, u.context_id, u.mobile, u.created_at, u.updated_at, o.name as clinic_name
+          FROM users u 
+          LEFT JOIN public.organizations o ON o.id = u.context_id 
+          WHERE u.id = ${id} AND u.deleted_at IS NULL LIMIT 1`
     );
     const row = (rows as any[])[0];
     return row ? this.rowToUser(row) : null;
@@ -105,5 +109,11 @@ export class UserRepositoryPG implements UserRepository {
           FROM users WHERE type = 'Doctor' AND deleted_at IS NULL`
     );
     return (rows as any[]).map(row => this.rowToUser(row));
+  }
+
+  async updateResetOtp(userId: number, hashedToken: string, expiry: Date): Promise<void> {
+    await this.db.execute(
+      sql`UPDATE users SET reset_otp = ${hashedToken}, reset_otp_expiry = ${expiry}, updated_at = NOW() WHERE id = ${userId}`
+    );
   }
 }

@@ -3,36 +3,33 @@ import { X } from 'lucide-react';
 import { NumericInput } from '@/shared/components/NumericInput';
 import type { Account, Organization } from '@mmc/types';
 import { useCreateAccount, useUpdateAccount } from '../hooks/use-accounts';
+import { Drawer } from '@/shared/components/drawer';
 import '../styles/platform.css';
-
 interface AccountModalProps {
   mode: 'create' | 'edit';
   account?: Account;
   organizations: Organization[];
   onClose: () => void;
 }
-
 export function AccountModal({ mode, account, organizations, onClose }: AccountModalProps) {
   const [form, setForm] = useState({
-    name:        account?.name        ?? '',
-    email:       account?.email       ?? '',
-    password:    '',
-    gender:      account?.gender      ?? 'Male',
-    mobile:      account?.mobile      ?? '',
-    city:        account?.city        ?? '',
-    address:     account?.address     ?? '',
-    about:       account?.about       ?? '',
+    name: account?.name ?? '',
+    email: account?.email ?? '',
+    password: '',
+    gender: account?.gender ?? 'Male',
+    mobile: account?.mobile ?? '',
+    city: account?.city ?? '',
+    address: account?.address ?? '',
+    about: account?.about ?? '',
     designation: account?.designation ?? '',
-    clinicId:    account?.clinicId as number | undefined ?? undefined,
+    clinicId: account?.clinicId as number | undefined ?? undefined,
+    sendWelcomeEmail: false,
   });
-
   const createAccount = useCreateAccount();
   const updateAccount = useUpdateAccount();
   const isPending = createAccount.isPending || updateAccount.isPending;
-
-  const set = (key: string, val: string | number | undefined) =>
+  const set = (key: string, val: string | number | boolean | undefined) =>
     setForm(f => ({ ...f, [key]: val }));
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -47,24 +44,19 @@ export function AccountModal({ mode, account, organizations, onClose }: AccountM
       alert(err?.response?.data?.error ?? 'An error occurred. Please try again.');
     }
   };
-
   return (
-    <div className="plat-modal-backdrop" onClick={onClose}>
-      <div className="plat-modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="plat-modal-header">
-          <h3 className="plat-modal-title">
-            {mode === 'create' ? 'Register New Account Manager' : 'Update Manager Account'}
-          </h3>
-          <button className="plat-btn plat-btn-icon plat-btn-ghost" onClick={onClose}>
-            <X size={14} />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="plat-modal-body">
+    <Drawer
+      isOpen={true}
+      onClose={onClose}
+      title={mode === 'create' ? 'Register New Account Manager' : 'Update Manager Account'}
+      maxWidth="600px"
+    >
+      <form onSubmit={handleSubmit}>
+        <div className="plat-modal-body" style={{ padding: 0 }}>
           {/* Section 1: Professional Identity */}
-          <div className="plat-form-section">
+          <div className="plat-form-section" style={{ border: 'none', boxShadow: 'none', padding: 0 }}>
             <h4 className="plat-form-section-title">Manager Identity</h4>
-            <div className="plat-form-grid-multi">
+            <div className="plat-form-grid-multi" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
               <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
                 <label className="plat-form-label">Full Name *</label>
                 <input
@@ -75,7 +67,6 @@ export function AccountModal({ mode, account, organizations, onClose }: AccountM
                   placeholder="e.g. John Doe"
                 />
               </div>
-
               <div className="plat-form-group">
                 <label className="plat-form-label">Designation</label>
                 <input
@@ -85,7 +76,6 @@ export function AccountModal({ mode, account, organizations, onClose }: AccountM
                   placeholder="e.g. Senior Manager"
                 />
               </div>
-
               <div className="plat-form-group">
                 <label className="plat-form-label">Gender</label>
                 <select
@@ -98,7 +88,6 @@ export function AccountModal({ mode, account, organizations, onClose }: AccountM
                   <option>Other</option>
                 </select>
               </div>
-
               <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
                 <label className="plat-form-label">Linked Clinic Station</label>
                 <select
@@ -116,11 +105,10 @@ export function AccountModal({ mode, account, organizations, onClose }: AccountM
               </div>
             </div>
           </div>
-
           {/* Section 2: Contact & Access */}
-          <div className="plat-form-section">
+          <div className="plat-form-section" style={{ border: 'none', boxShadow: 'none', padding: 0, marginTop: '24px' }}>
             <h4 className="plat-form-section-title">Contact & Access</h4>
-            <div className="plat-form-grid-multi">
+            <div className="plat-form-grid-multi" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
               <div className="plat-form-group">
                 <label className="plat-form-label">Email Address</label>
                 <input
@@ -128,20 +116,19 @@ export function AccountModal({ mode, account, organizations, onClose }: AccountM
                   type="email"
                   value={form.email}
                   onChange={(e) => set('email', e.target.value)}
-                  placeholder="manager@homeox.com"
+                  placeholder="manager@MMC"
                 />
               </div>
-
               <div className="plat-form-group">
                 <label className="plat-form-label">Mobile Number</label>
                 <NumericInput
                   className="plat-form-input"
+                  name="mobile"
                   value={form.mobile}
                   onChange={(e) => set('mobile', e.target.value)}
                   placeholder="9876543210"
                 />
               </div>
-
               {mode === 'create' && (
                 <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
                   <label className="plat-form-label">Initial Password *</label>
@@ -155,7 +142,20 @@ export function AccountModal({ mode, account, organizations, onClose }: AccountM
                   />
                 </div>
               )}
-
+              {mode === 'create' && (
+                <div className="plat-form-group" style={{ gridColumn: 'span 2', marginTop: '8px' }}>
+                  <label className="plat-checkbox-group">
+                    <input
+                      type="checkbox"
+                      checked={form.sendWelcomeEmail}
+                      onChange={(e) => set('sendWelcomeEmail', e.target.checked)}
+                    />
+                    <span className="plat-checkbox-label">
+                      Send welcome email with credentials
+                    </span>
+                  </label>
+                </div>
+              )}
               <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
                 <label className="plat-form-label">Residential Address</label>
                 <input
@@ -165,30 +165,28 @@ export function AccountModal({ mode, account, organizations, onClose }: AccountM
                   placeholder="Home address"
                 />
               </div>
-
               <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
                 <label className="plat-form-label">Internal Notes / About</label>
                 <textarea
                   className="plat-form-input"
                   value={form.about}
                   onChange={(e) => set('about', e.target.value)}
-                  rows={2}
+                  rows={3}
                   placeholder="Additional profile notes..."
                 />
               </div>
             </div>
           </div>
-
-          <div className="plat-modal-footer">
-            <button type="button" className="plat-btn plat-btn-ghost" onClick={onClose}>
-              Discard
-            </button>
-            <button type="submit" className="plat-btn plat-btn-primary" disabled={isPending}>
-              {isPending ? 'Syncing...' : mode === 'create' ? 'Register Manager' : 'Update Manager'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        </div>
+        <div className="plat-modal-footer" style={{ padding: '24px 0 0 0', marginTop: '24px' }}>
+          <button type="button" className="plat-btn plat-btn-ghost" onClick={onClose}>
+            Discard
+          </button>
+          <button type="submit" className="plat-btn plat-btn-primary" disabled={isPending}>
+            {isPending ? 'Syncing...' : mode === 'create' ? 'Register Manager' : 'Update Manager'}
+          </button>
+        </div>
+      </form>
+    </Drawer>
   );
 }

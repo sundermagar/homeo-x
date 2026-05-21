@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { phoneSchema, numericStringSchema } from './common.schema';
+import { phoneSchema, numericStringSchema } from './common.schema.js';
 
 export const createPatientSchema = z.object({
   // Name
@@ -8,7 +8,7 @@ export const createPatientSchema = z.object({
   middleName: z.string().max(100).optional(),
   surname: z.string().min(1, 'Surname is required').max(100),
   gender: z.enum(['M', 'F', 'Other']).default('M'),
-  dateOfBirth: z.string().optional(),
+  dateOfBirth: z.string().min(1, 'Date of Birth is required'),
   // Contact
   phone: phoneSchema,
   mobile1: phoneSchema,
@@ -32,9 +32,11 @@ export const createPatientSchema = z.object({
   // Clinical
   referenceType: z.string().max(100).optional(),
   referredBy: z.string().optional(),
+  referredById: z.string().optional(),
   assistantDoctor: z.string().optional(),
   consultationFee: z.coerce.number().optional(),
   courierOutstation: z.boolean().optional().default(false),
+  unregisteredId: z.coerce.number().optional(),
 });
 
 export const updatePatientSchema = createPatientSchema.partial();

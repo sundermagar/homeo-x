@@ -1,7 +1,7 @@
 import postgres from 'postgres';
 import dotenv from 'dotenv';
 import path from 'path';
-import { TenantRegistry } from './tenant-registry';
+import { TenantRegistry } from './tenant-registry.js';
 
 dotenv.config({ path: path.join(process.cwd(), '../../.env') });
 

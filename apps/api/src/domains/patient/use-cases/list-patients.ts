@@ -1,6 +1,6 @@
 import type { PatientSummary } from '@mmc/types';
-import type { PatientRepository } from '../ports/patient.repository';
-import { type Result, ok } from '../../../shared/result';
+import type { PatientRepository } from '../ports/patient.repository.js';
+import { type Result, ok } from '../../../shared/result.js';
 
 interface ListPatientsInput {
   page: number;
@@ -9,6 +9,7 @@ interface ListPatientsInput {
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
   doctorId?: number;
+  clinicId?: number;
 }
 
 export class ListPatientsUseCase {

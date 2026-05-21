@@ -2,8 +2,8 @@ import { Router } from 'express';
 import type { Router as IRouter } from 'express';
 import type { Request, Response } from 'express';
 import { sql } from 'drizzle-orm';
-import { sendSuccess, sendError } from '../../../shared/response-formatter';
-import { authMiddleware } from '../middleware/auth';
+import { sendSuccess, sendError } from '../../../shared/response-formatter.js';
+import { authMiddleware } from '../middleware/auth.js';
 
 export const rolesRouter: IRouter = Router();
 

@@ -3,7 +3,7 @@ import type { DbClient } from '@mmc/database';
 import * as schema from '@mmc/database';
 import type {
   IAnalyticsRepository
-} from '../../domains/analytics/ports/analytics.repository';
+} from '../../domains/analytics/ports/analytics.repository.js';
 import type {
   AnalyticsSummary, PatientTrendResult, MonthWiseResult,
   MonthWiseDueSummary, MonthWiseDueDetail, BirthdayPatient,
@@ -13,27 +13,41 @@ import type {
 export class AnalyticsRepositoryPg implements IAnalyticsRepository {
   constructor(private readonly db: DbClient) { }
 
-  async getSummary(): Promise<AnalyticsSummary> {
-    // Run each query independently so a missing legacy table doesn't break the whole summary
+  async getSummary(clinicId?: number): Promise<AnalyticsSummary> {
     const countPatients = async () => {
       try {
-        const [r] = await this.db.select({ total: sql<number>`count(*)::int` }).from(schema.patients).where(sql`(deleted_at IS NULL OR deleted_at::text = '')`);
+        const conditions = [sql`(deleted_at IS NULL OR deleted_at::text = '')` as any];
+        if (clinicId) conditions.push(eq(schema.patients.clinicId, clinicId));
+        const [r] = await this.db.select({ total: sql<number>`count(*)::int` }).from(schema.patients).where(and(...conditions));
         return r?.total ?? 0;
       } catch { return 0; }
     };
 
     const countAppointments = async () => {
       try {
-        const [r] = await this.db.select({ total: sql<number>`count(*)::int` }).from(schema.appointments).where(sql`(deleted_at IS NULL OR deleted_at::text = '')`);
+        const conditions = [sql`(deleted_at IS NULL OR deleted_at::text = '')` as any];
+        if (clinicId) conditions.push(eq(schema.appointments.clinicId, clinicId));
+        const [r] = await this.db.select({ total: sql<number>`count(*)::int` }).from(schema.appointments).where(and(...conditions));
         return r?.total ?? 0;
       } catch { return 0; }
     };
 
     const sumRevenue = async () => {
       try {
-        const [r] = await this.db.select({ total: sql<number>`COALESCE(sum(CAST(NULLIF(amount, '') AS numeric)), 0)::int` }).from(schema.receiptLegacy).where(sql`(deleted_at IS NULL OR deleted_at::text = '')`);
+        const conditions = [sql`(${schema.receiptLegacy.deletedAt} IS NULL OR ${schema.receiptLegacy.deletedAt}::text = '')` as any];
+        if (clinicId) conditions.push(eq(schema.patients.clinicId, clinicId));
+        
+        const [r] = await this.db.select({ 
+          total: sql<number>`COALESCE(sum(CAST(NULLIF(${schema.receiptLegacy.amount}, '') AS numeric)), 0)::int` 
+        })
+          .from(schema.receiptLegacy)
+          .innerJoin(schema.patients, eq(schema.patients.regid, schema.receiptLegacy.regid))
+          .where(and(...conditions));
         return r?.total ?? 0;
-      } catch { return 0; }
+      } catch (err) { 
+        console.error("[sumRevenue] Error:", err);
+        return 0; 
+      }
     };
 
     const [totalPatients, totalAppointments, totalRevenue] = await Promise.all([
@@ -43,7 +57,7 @@ export class AnalyticsRepositoryPg implements IAnalyticsRepository {
     return { totalPatients, totalAppointments, totalRevenue };
   }
 
-  async getPatientTrends(from?: Date, to?: Date): Promise<PatientTrendResult> {
+  async getPatientTrends(clinicId?: number, from?: Date, to?: Date): Promise<PatientTrendResult> {
     const fromStr = from ? from.toISOString().split('T')[0] : sql`NOW() - INTERVAL '6 months'`;
     const toStr = to ? to.toISOString().split('T')[0] : sql`NOW()`;
 
@@ -53,41 +67,59 @@ export class AnalyticsRepositoryPg implements IAnalyticsRepository {
       newPatients = await this.db.execute(sql`
         SELECT to_char(created_at, 'Mon YYYY') as month, count(*)::int as count
         FROM case_datas
-        WHERE created_at::date BETWEEN ${fromStr} AND ${toStr} AND (deleted_at IS NULL OR deleted_at::text = '')
+        WHERE (deleted_at IS NULL OR deleted_at::text = '')
+          ${clinicId ? sql`AND clinic_id = ${clinicId}` : sql``}
+          AND created_at::date BETWEEN ${fromStr} AND ${toStr}
         GROUP BY to_char(created_at, 'YYYY-MM'), to_char(created_at, 'Mon YYYY')
         ORDER BY to_char(created_at, 'YYYY-MM') ASC
       `) as any[];
-    } catch { newPatients = []; }
+    } catch (err) { 
+      console.error("[getPatientTrends] NewPatients Error:", err);
+      newPatients = []; 
+    }
 
     // Revenue
     let revenueByMonth: any[] = [];
     try {
       revenueByMonth = await this.db.execute(sql`
-        SELECT to_char(created_at, 'Mon YYYY') as month, sum(CAST(NULLIF(amount, '') AS numeric))::int as total
-        FROM receipt
-        WHERE created_at::date BETWEEN ${fromStr} AND ${toStr} AND (deleted_at IS NULL OR deleted_at::text = '')
-        GROUP BY to_char(created_at, 'YYYY-MM'), to_char(created_at, 'Mon YYYY')
-        ORDER BY to_char(created_at, 'YYYY-MM') ASC
+        SELECT to_char(r.created_at, 'Mon YYYY') as month, sum(CAST(NULLIF(r.amount, '') AS numeric))::int as total
+        FROM receipt r
+        JOIN case_datas p ON p.regid = r.regid
+        WHERE (r.deleted_at IS NULL OR r.deleted_at::text = '')
+          AND r.mode != 'RB'
+          ${clinicId ? sql`AND p.clinic_id = ${clinicId}` : sql``}
+          AND r.created_at::date BETWEEN ${fromStr} AND ${toStr}
+        GROUP BY to_char(r.created_at, 'YYYY-MM'), to_char(r.created_at, 'Mon YYYY')
+        ORDER BY to_char(r.created_at, 'YYYY-MM') ASC
       `) as any[];
-    } catch { revenueByMonth = []; }
+    } catch (err) { 
+      console.error("[getPatientTrends] Revenue Error:", err);
+      revenueByMonth = []; 
+    }
 
     // Top Diagnoses
     let topDiagnoses: any[] = [];
     try {
       topDiagnoses = await this.db.execute(sql`
-        SELECT condition as diagnosis, count(*)::int as count
-        FROM medicalcases
-        WHERE condition IS NOT NULL AND condition != '' AND (deleted_at IS NULL OR deleted_at::text = '')
-        GROUP BY condition
+        SELECT m.condition as diagnosis, count(*)::int as count
+        FROM medicalcases m
+        JOIN case_datas p ON p.regid = m.regid
+        WHERE (m.deleted_at IS NULL OR m.deleted_at::text = '')
+          ${clinicId ? sql`AND p.clinic_id = ${clinicId}` : sql``}
+          AND m.condition IS NOT NULL AND m.condition != ''
+        GROUP BY m.condition
         ORDER BY count DESC
         LIMIT 10
       `) as any[];
-    } catch { topDiagnoses = []; }
+    } catch (err) { 
+      console.error("[getPatientTrends] TopDiagnoses Error:", err);
+      topDiagnoses = []; 
+    }
 
     return { newPatients, revenueByMonth, topDiagnoses };
   }
 
-  async getMonthWiseBreakdown(fromYearMth: string, toYearMth: string): Promise<MonthWiseResult[]> {
+  async getMonthWiseBreakdown(clinicId?: number, fromYearMth?: string, toYearMth?: string): Promise<MonthWiseResult[]> {
     const firstDay = `${fromYearMth}-01`;
     const lastDayDate = new Date(`${toYearMth}-01`);
     lastDayDate.setMonth(lastDayDate.getMonth() + 1);
@@ -107,49 +139,56 @@ export class AnalyticsRepositoryPg implements IAnalyticsRepository {
         ) m
       ),
       new_cases AS (
-        SELECT to_char(created_at, 'YYYY-MM') as month_key, count(*)::int as cnt
-        FROM medicalcases
-        WHERE (deleted_at IS NULL OR deleted_at::text = '')
-          AND created_at::date BETWEEN ${firstDay} AND ${lastDay}
+        SELECT to_char(m.created_at, 'YYYY-MM') as month_key, count(*)::int as cnt
+        FROM medicalcases m
+        JOIN case_datas p ON p.regid = m.regid
+        WHERE (m.deleted_at IS NULL OR m.deleted_at::text = '')
+          ${clinicId ? sql`AND p.clinic_id = ${clinicId}` : sql``}
+          AND m.created_at::date BETWEEN ${firstDay} AND ${lastDay}
         GROUP BY 1
       ),
       followups AS (
-        SELECT to_char(dateval::date, 'YYYY-MM') as month_key, count(*)::int as cnt
-        FROM case_potencies
-        WHERE (deleted_at IS NULL OR deleted_at::text = '')
-          AND dateval::date BETWEEN ${firstDay} AND ${lastDay}
+        SELECT to_char(cp.dateval::date, 'YYYY-MM') as month_key, count(*)::int as cnt
+        FROM case_potencies cp
+        JOIN case_datas p ON p.regid = cp.regid
+        WHERE (cp.deleted_at IS NULL OR cp.deleted_at::text = '')
+          ${clinicId ? sql`AND p.clinic_id = ${clinicId}` : sql``}
+          AND cp.dateval::date BETWEEN ${firstDay} AND ${lastDay}
         GROUP BY 1
       ),
       receipts AS (
         SELECT 
-          to_char(created_at, 'YYYY-MM') as month_key,
+          to_char(r.created_at, 'YYYY-MM') as month_key,
           sum(CASE 
-            WHEN upper(mode) IN ('C', 'CASH') THEN CAST(NULLIF(amount, '') AS numeric) 
+            WHEN upper(r.mode) IN ('C', 'CASH') THEN CAST(NULLIF(r.amount, '') AS numeric) 
             ELSE 0 
           END)::int as cash,
           sum(CASE 
-            WHEN upper(mode) IN ('B', 'CH', 'CHEQUE') THEN CAST(NULLIF(amount, '') AS numeric) 
+            WHEN upper(r.mode) IN ('B', 'CH', 'CHEQUE') THEN CAST(NULLIF(r.amount, '') AS numeric) 
             ELSE 0 
           END)::int as cheque,
           sum(CASE 
-            WHEN upper(mode) IN ('O', 'ONLINE', 'NEFT', 'UPI') THEN CAST(NULLIF(amount, '') AS numeric) 
+            WHEN upper(r.mode) IN ('O', 'ONLINE', 'NEFT', 'UPI') THEN CAST(NULLIF(r.amount, '') AS numeric) 
             ELSE 0 
           END)::int as online,
           sum(CASE 
-            WHEN upper(mode) IN ('S', 'CR', 'CARD') THEN CAST(NULLIF(amount, '') AS numeric) 
+            WHEN upper(r.mode) IN ('S', 'CR', 'CARD') THEN CAST(NULLIF(r.amount, '') AS numeric) 
             ELSE 0 
           END)::int as card,
-          sum(CAST(NULLIF(amount, '') AS numeric))::int as total
-        FROM receipt
-        WHERE (deleted_at IS NULL OR deleted_at::text = '')
-          AND mode != 'RB'
-          AND created_at::date BETWEEN ${firstDay} AND ${lastDay}
+          sum(CAST(NULLIF(r.amount, '') AS numeric))::int as total
+        FROM receipt r
+        JOIN case_datas p ON p.regid = r.regid
+        WHERE (r.deleted_at IS NULL OR r.deleted_at::text = '')
+          AND r.mode != 'RB'
+          ${clinicId ? sql`AND p.clinic_id = ${clinicId}` : sql``}
+          AND r.created_at::date BETWEEN ${firstDay} AND ${lastDay}
         GROUP BY 1
       ),
       exp AS (
         SELECT to_char(exp_date::date, 'YYYY-MM') as month_key, sum(amount)::int as total
         FROM expenses
         WHERE (deleted_at IS NULL OR deleted_at::text = '')
+          ${clinicId ? sql`AND clinic_id = ${clinicId}` : sql``}
           AND exp_date::date BETWEEN ${firstDay} AND ${lastDay}
         GROUP BY 1
       )
@@ -196,21 +235,23 @@ export class AnalyticsRepositoryPg implements IAnalyticsRepository {
     }
   }
 
-  async getMonthWiseDues(year: number): Promise<MonthWiseDueSummary[]> {
+  async getMonthWiseDues(clinicId?: number, year?: number): Promise<MonthWiseDueSummary[]> {
     try {
       const dues = await this.db.execute(sql`
-        SELECT extract(month from created_at)::int as month, count(DISTINCT regid)::int as count, sum("Balance")::int as total_due
-        FROM bill
-        WHERE "Balance" > 0 
-          AND (deleted_at IS NULL OR deleted_at::text = '') 
-          AND extract(year from created_at) = ${year}
-        GROUP BY extract(month from created_at)
+        SELECT extract(month from b.created_at)::int as month, count(DISTINCT b.regid)::int as count, sum(b."Balance")::int as total_due
+        FROM bill b
+        JOIN case_datas p ON p.regid = b.regid
+        WHERE b."Balance" > 0 
+          AND (b.deleted_at IS NULL OR b.deleted_at::text = '') 
+          ${clinicId ? sql`AND p.clinic_id = ${clinicId}` : sql``}
+          AND extract(year from b.created_at) = ${year}
+        GROUP BY extract(month from b.created_at)
       `);
       return dues as any as MonthWiseDueSummary[];
     } catch { return []; }
   }
 
-  async getDueDetails(year: number, month: number): Promise<MonthWiseDueDetail[]> {
+  async getDueDetails(clinicId?: number, year?: number, month?: number): Promise<MonthWiseDueDetail[]> {
     try {
       const details = await this.db.execute(sql`
         SELECT
@@ -222,6 +263,7 @@ export class AnalyticsRepositoryPg implements IAnalyticsRepository {
         WHERE b."Balance" > 0 
           AND (b.deleted_at IS NULL OR b.deleted_at::text = '') 
           AND (p.deleted_at IS NULL OR p.deleted_at::text = '')
+          ${clinicId ? sql`AND p.clinic_id = ${clinicId}` : sql``}
           AND extract(year from b.created_at) = ${year} AND extract(month from b.created_at) = ${month}
         GROUP BY p.regid, p.first_name, p.surname, p.mobile1, p.city
         ORDER BY total_due DESC
@@ -230,14 +272,13 @@ export class AnalyticsRepositoryPg implements IAnalyticsRepository {
     } catch { return []; }
   }
 
-  async getBirthdays(fromMonthDay: string, toMonthDay: string): Promise<BirthdayPatient[]> {
+  async getBirthdays(clinicId?: number, fromMonthDay?: string, toMonthDay?: string): Promise<BirthdayPatient[]> {
     try {
-      // Input format MM-DD
-      // MM-DD format check for birthday
       const res = await this.db.execute(sql`
         SELECT id, regid, first_name, surname, phone, mobile1, dob as date_birth, dob
         FROM case_datas
         WHERE (deleted_at IS NULL OR deleted_at::text = '')
+          ${clinicId ? sql`AND clinic_id = ${clinicId}` : sql``}
           AND (
             (dob IS NOT NULL AND to_char(dob::date, 'MM-DD') = ${fromMonthDay})
             OR
@@ -255,11 +296,16 @@ export class AnalyticsRepositoryPg implements IAnalyticsRepository {
     }
   }
 
-  async getSmsSentIds(date: Date, smsType: string): Promise<number[]> {
+  async getSmsSentIds(clinicId?: number, date?: Date, smsType?: string): Promise<number[]> {
     try {
-      const dateStr = date.toISOString().split('T')[0];
+      const d = date || new Date();
+      const dateStr = d.toISOString().split('T')[0];
       const res = await this.db.execute(sql`
-        SELECT regid FROM sms_reports WHERE sms_type = ${smsType} AND status = 'sent' AND created_at::date = ${dateStr}
+        SELECT s.regid 
+        FROM sms_reports s
+        JOIN case_datas p ON p.regid = s.regid
+        WHERE s.sms_type = ${smsType} AND s.status = 'sent' AND s.created_at::date = ${dateStr}
+        ${clinicId ? sql`AND p.clinic_id = ${clinicId}` : sql``}
       `);
       return (res as any[]).map(r => r.regid);
     } catch {
@@ -267,15 +313,18 @@ export class AnalyticsRepositoryPg implements IAnalyticsRepository {
     }
   }
 
-  async getReferenceListing(from: Date, to: Date): Promise<ReferenceListResult[]> {
-    const fromStr = from.toISOString().split('T')[0];
-    const toStr = to.toISOString().split('T')[0];
+  async getReferenceListing(clinicId?: number, from?: Date, to?: Date): Promise<ReferenceListResult[]> {
+    const f = from || new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    const t = to || new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
+    const fromStr = f.toISOString().split('T')[0];
+    const toStr = t.toISOString().split('T')[0];
     try {
       const res = await this.db.execute(sql`
         SELECT COALESCE(p.reference, 'Direct') as reference, count(*)::int as count, sum(CAST(NULLIF(r.amount, '') AS numeric))::int as totalcollection
         FROM case_datas p
         LEFT JOIN receipt r ON r.regid = p.regid AND (r.deleted_at IS NULL OR r.deleted_at::text = '') AND r.created_at::date BETWEEN ${fromStr} AND ${toStr}
         WHERE p.created_at::date BETWEEN ${fromStr} AND ${toStr} AND (p.deleted_at IS NULL OR p.deleted_at::text = '')
+        ${clinicId ? sql`AND p.clinic_id = ${clinicId}` : sql``}
         GROUP BY p.reference
         ORDER BY count DESC
       `);

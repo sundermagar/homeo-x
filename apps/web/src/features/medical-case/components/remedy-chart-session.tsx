@@ -1,11 +1,14 @@
-import React, { useState, useMemo } from 'react';
-import { 
-  Search, BookOpen, ChevronRight, Activity, 
-  FlaskConical, Save, Trash2, Calendar, FileText
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import {
+  Search, BookOpen, ChevronRight, Activity,
+  FlaskConical, Save, Trash2, Calendar, FileText, Printer, Plus, X,
+  History, Edit, MoreHorizontal, Truck, Home, Package, AlertTriangle, CheckCircle2,
+  Upload, Loader2, IndianRupee
 } from 'lucide-react';
-import { 
-  useAlphabetIndex, 
-  useRemedyLookups, 
+import { useManageClinicalRecords } from '../hooks/use-medical-cases';
+import {
+  useAlphabetIndex,
+  useRemedyLookups,
   useRemedyAlternatives,
   usePatientPrescriptions,
   useSavePrescription,
@@ -14,299 +17,868 @@ import {
   RemedyTreeNode,
   PrescriptionRow
 } from '../hooks/use-remedy-chart';
+import { useDayCharges } from '../../billing/hooks/use-accounts';
+import { useAuthStore } from '@/shared/stores/auth-store';
+import { Pagination } from '@/components/shared/pagination';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogDescription
+} from '@/components/ui/dialog';
+import { SearchableSelect } from './searchable-select';
+import { usePrescriptionWorkflow } from '../hooks/use-prescription-workflow';
+import '../styles/premium-buttons.css';
 
-import '../styles/medical-case.css';
+// Removed local SearchableSelect in favor of shared component
 
-export function RemedyChartSession({ regid }: { regid?: number }) {
-  // Queries
-  const { data: alphabetData, isLoading: loadingTree } = useAlphabetIndex();
-  const { data: lookups } = useRemedyLookups();
-  const { data: history } = usePatientPrescriptions(regid || 0);
-  
-  // State
-  const [activeLetter, setActiveLetter] = useState('A');
-  const [selectedNode, setSelectedNode] = useState<RemedyTreeNode | null>(null);
-  
-  // Form State
-  const [form, setForm] = useState({
-    remedyName: '',
-    potencyName: '',
-    frequencyName: '',
-    days: 3,
-    instructions: '',
-    notes: ''
-  });
- 
-  // Derived Queries
-  const { data: filteredTree } = useTreeByLetter(activeLetter);
-  const { data: alternatives } = useRemedyAlternatives(selectedNode?.id || null);
-  
-  // Mutations
-  const saveMutation = useSavePrescription();
-  const deleteMutation = useDeletePrescription(regid ?? 0);
+/** Safely extract delivery mode from a prescription row (handles all property name variants). */
+function getRowDeliveryMode(rx: any): string {
+  const mode = rx?.deliveryMode || rx?.deliverymode || rx?.delivery_mode;
+  if (mode && ['clinic', 'courier', 'pickup'].includes(mode)) return mode;
+  return 'clinic';
+}
 
-  // Handlers
-  const handleNodeClick = (node: RemedyTreeNode) => {
-    setSelectedNode(node);
-    if (node.nodeType === 'REMEDY' || node.nodeType === 'RUBRIC') {
-      const cleanName = node.label.replace(/\(.*?\)/, '').trim();
-      if (cleanName.length < 25) {
-        setForm(prev => ({ ...prev, remedyName: cleanName }));
+export function RemedyChartSession({ 
+  regid, 
+  visitId,
+  onDayChargeChange, 
+  onSelectDate,
+  onStartRx,
+  workflow,
+  lookups,
+  dayCharges = [],
+  selectedDate,
+  onAddAdditionalCharge
+}: { 
+  regid?: number, 
+  visitId?: number,
+  onDayChargeChange?: (amount: number) => void,
+  onSelectDate?: (date: string) => void,
+  onStartRx?: () => void,
+  workflow: ReturnType<typeof usePrescriptionWorkflow>,
+  lookups: any,
+  dayCharges: any[],
+  selectedDate?: string | null,
+  onAddAdditionalCharge?: () => void
+}) {
+  const {
+    history, isLoading, isRxToday, firstRxOfToday,
+    form, setForm, editingId, setEditingId,
+    delivery, setDelivery, manualInstruction, setManualInstruction,
+    startNewRx, saveMutation, deleteMutation,
+    activeTab, setActiveTab
+  } = workflow;
+
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [showRepeatWarning, setShowRepeatWarning] = useState(false);
+
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const isMobile = windowWidth < 640;
+
+  const isSelectedDateToday = useMemo(() => {
+    if (!selectedDate) return true;
+    return new Date(selectedDate).toDateString() === new Date().toDateString();
+  }, [selectedDate]);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
+  const toggleDate = (date: string) => {
+    const next = new Set(expandedDates);
+    if (next.has(date)) next.delete(date);
+    else next.add(date);
+    setExpandedDates(next);
+  };
+
+  const totalPages = Math.ceil((history?.length || 0) / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const currentHistory = history?.slice(startIndex, startIndex + pageSize) || [];
+
+  const groupedHistory = useMemo(() => {
+    const groups: { date: string; items: any[] }[] = [];
+    currentHistory.forEach(rx => {
+      const dateVal = rx.created_at || rx.dateval;
+      if (!dateVal) return;
+      const date = new Date(dateVal).toDateString();
+      const lastGroup = groups[groups.length - 1];
+      if (lastGroup && lastGroup.date === date) {
+        lastGroup.items.push(rx);
+      } else {
+        groups.push({ date, items: [rx] });
+      }
+    });
+
+    // Sort items within each group by id ASC so the oldest (first) is idx 0
+    groups.forEach(g => {
+      g.items.sort((a, b) => a.id - b.id);
+    });
+
+    return groups;
+  }, [currentHistory]);
+
+  const dayOptions = useMemo(() => {
+    return dayCharges.map((dc: any) => String(dc.days)).filter(Boolean);
+  }, [dayCharges]);
+
+  const selectedDayCharge = useMemo(() => {
+    if (!form.days) return null;
+    return dayCharges.find((dc: any) => String(dc.days) === String(form.days));
+  }, [form.days, dayCharges]);
+
+  useEffect(() => {
+    if (onDayChargeChange && selectedDayCharge) {
+      onDayChargeChange(selectedDayCharge.regularCharges || 0);
+    }
+  }, [selectedDayCharge, onDayChargeChange]);
+
+  const handleEdit = (rx: PrescriptionRow) => {
+    setActiveTab('rx');
+    setEditingId(rx.id);
+    setManualInstruction(true);
+    setForm({
+      remedyName: rx.remedy_name,
+      potencyName: rx.potency_name,
+      frequencyName: rx.frequency_name,
+      days: Number(rx.days) || 0,
+      instructions: rx.prescription || rx.notes || '',
+      notes: rx.notes || ''
+    });
+    // Scroll form into view
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleRepeat = () => {
+    if (!history || history.length === 0) return alert('No previous prescription to repeat.');
+    if (isRxToday) {
+      setShowRepeatWarning(true);
+      return;
+    }
+    const lastRx = history[0];
+    if (!lastRx) return;
+    setManualInstruction(true);
+    setEditingId(null);
+    setForm({
+      remedyName: lastRx.remedy_name,
+      potencyName: lastRx.potency_name,
+      frequencyName: lastRx.frequency_name,
+      days: Number(lastRx.days) || 0,
+      instructions: lastRx.prescription || lastRx.notes || '',
+      notes: lastRx.notes || ''
+    });
+    setActiveTab('rx');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Removed duplicate startNewRx and auto-save useEffect as they are now provided by the workflow hook
+
+  const handleRepeatRow = (rx: PrescriptionRow) => {
+    if (isRxToday) {
+      setShowRepeatWarning(true);
+      return;
+    }
+    setActiveTab('rx');
+    setManualInstruction(true);
+    setEditingId(null);
+    setForm({
+      remedyName: rx.remedy_name,
+      potencyName: rx.potency_name,
+      frequencyName: rx.frequency_name,
+      days: Number(rx.days) || 0,
+      instructions: rx.prescription || rx.notes || '',
+      notes: rx.notes || ''
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDelete = async (id: number, name?: string) => {
+    if (!regid) return;
+    if (!window.confirm(`Remove prescription for "${name || 'this remedy'}"?`)) return;
+    try {
+      await deleteMutation.mutateAsync(id);
+    } catch (err: any) {
+      console.error('Delete prescription failed:', err);
+      alert(`Failed to remove prescription: ${err?.response?.data?.message || err?.message || 'Unknown error'}`);
+    }
+  };
+
+  const handlePrintRow = (rx: PrescriptionRow) => {
+    const token = useAuthStore.getState().token;
+    const dateParam = rx.created_at || rx.createdAt || rx.dateval;
+    const queryStr = dateParam ? `&date=${encodeURIComponent(new Date(dateParam).toISOString())}` : '';
+    window.open(`/api/medical-cases/remedy-chart/pdf/${regid}?token=${token}${queryStr}`, '_blank');
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '16px' }}>
+
+      {/* Top Header Row */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px',  width: '100%', boxSizing: 'border-box' }}>
+        <div className="mc-action-bar">
+          {/* Action Tabs & Dispensing Indicator - Adaptive grid for better mobile fit */}
+          <div className="mc-action-group" style={{ 
+            display: 'grid', 
+            gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(0, 1fr))', 
+            gap: '8px', 
+            width: '100%' 
+          }}>
+            <button
+              onClick={() => setShowConfirm(true)}
+              className={`mc-tab-btn-premium ${activeTab === 'rx' && !isRxToday ? 'active' : ''}`}
+              style={{ width: '100%' }}
+            >
+              Rx
+            </button>
+            <button
+              onClick={() => handleRepeat()}
+              className="mc-tab-btn-premium"
+              style={{ width: '100%' }}
+            >
+              Repeat
+            </button>
+            <button
+              onClick={() => setActiveTab('image')}
+              className={`mc-tab-btn-premium ${activeTab === 'image' ? 'active' : ''}`}
+              style={{ width: '100%' }}
+            >
+              Add Media
+            </button>
+
+            {/* Dispensing Mode Indicator - Now part of the equal-width grid */}
+            <div className="mc-service-indicator" style={{ width: '100%', minWidth: 0, justifyContent: 'center', padding: isMobile ? '8px' : '12px' }}>
+              <span style={{ fontSize: isMobile ? '0.65rem' : '0.72rem', fontWeight: 700, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Service:</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--pp-blue)', fontWeight: 800, fontSize: isMobile ? '0.75rem' : '0.85rem' }}>
+                {delivery === 'clinic' && <><Home size={14} /> <span>clinic</span></>}
+                {delivery === 'courier' && <><Truck size={14} /> <span>courier</span></>}
+                {delivery === 'pickup' && <><Package size={14} /> <span>pickup</span></>}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {(activeTab === 'rx' || activeTab === null) && (
+        <div>
+          {/* Inline Form - Only visible when Rx tab is active */}
+          {activeTab === 'rx' && (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: '16px', alignItems: 'flex-start', marginBottom: '24px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-ink)' }}>Remedy:</label>
+                  <SearchableSelect
+                    value={form.remedyName}
+                    onChange={val => {
+                      setManualInstruction(false);
+                      setForm({ ...form, remedyName: val });
+                    }}
+                    options={lookups?.medicines?.map((m: any) => m.name) || []}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-ink)' }}>Potency:</label>
+                  <SearchableSelect
+                    value={form.potencyName}
+                    onChange={val => {
+                      setManualInstruction(false);
+                      setForm({ ...form, potencyName: val });
+                    }}
+                    options={lookups?.potencies?.map((p: any) => p.name) || []}
+                  />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-ink)' }}>Frequency:</label>
+                  <SearchableSelect
+                    value={form.frequencyName}
+                    onChange={val => {
+                      setManualInstruction(false);
+                      setForm({ ...form, frequencyName: val });
+                    }}
+                    options={lookups?.frequencies?.map((f: any) => f.name) || []}
+                  />
+                </div>
+                 {(!isRxToday || (editingId && firstRxOfToday && editingId === firstRxOfToday.id)) && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-ink)' }}>Days:</label>
+                    {dayOptions.length > 0 ? (
+                      <SearchableSelect
+                        value={form.days ? String(form.days) : ''}
+                        onChange={val => {
+                          setManualInstruction(false);
+                          setForm({ ...form, days: parseInt(val) || 0 });
+                        }}
+                        options={dayOptions}
+                        placeholder="Select"
+                      />
+                    ) : (
+                      <input
+                        type="number"
+                        style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border-main)', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box', background: 'var(--bg-card)', color: 'var(--pp-ink)' }}
+                        value={form.days}
+                        onChange={e => {
+                          setManualInstruction(false);
+                          setForm({ ...form, days: parseInt(e.target.value) || 0 });
+                        }}
+                      />
+                    )}
+                    {selectedDayCharge && selectedDayCharge.regularCharges != null && (
+                      <span style={{ fontSize: '0.7rem', color: '#059669', fontWeight: 700, marginTop: '2px' }}>
+                        ₹{selectedDayCharge.regularCharges}
+                      </span>
+                    )}
+                  </div>
+                )}
+                <div style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-ink)' }}>Instructions:</label>
+                  <textarea
+                    placeholder="Enter manual instructions for this remedy..."
+                    style={{ 
+                      width: '100%', 
+                      padding: '10px 14px', 
+                      border: '1px solid var(--border-main)', 
+                      borderRadius: '10px', 
+                      fontSize: '0.85rem', 
+                      minHeight: '60px', 
+                      resize: 'vertical', 
+                      fontFamily: 'inherit', 
+                      boxSizing: 'border-box', 
+                      background: 'white', 
+                      color: 'var(--pp-ink)',
+                      boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)'
+                    }}
+                    value={form.instructions}
+                    onChange={e => {
+                      setManualInstruction(true);
+                      setForm({ ...form, instructions: e.target.value });
+                    }}
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
+          <div className="pp-card pp-table-scroll" style={{ padding: 0, borderRadius: '12px', border: '1px solid #bfdbfe' }}>
+            <div style={{ padding: '12px 16px', background: 'var(--pp-blue-faded)', borderBottom: '1px solid var(--pp-blue-border)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <BookOpen size={15} style={{ color: 'var(--pp-blue)' }} />
+              <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--pp-blue)' }}>Prescription History</span>
+              <span style={{ fontSize: '0.72rem', color: 'var(--pp-text-3)', fontWeight: 600, marginLeft: '4px' }}>({history?.length || 0})</span>
+            </div>
+            {isLoading ? (
+              <TableSkeleton rows={5} cols={8} />
+            ) : (
+              <table className="mc-data-table" style={{ marginBottom: 0 }}>
+                <thead style={{ position: 'sticky', top: 0, zIndex: 10, background: '#f5f3ff', borderBottom: '1px solid #ede9fe' }}>
+                  <tr>
+                    <th style={{ color: '#7c3aed', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em', padding: '16px' }}>DATE</th>
+                    <th style={{ color: '#7c3aed', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em', padding: '16px' }}>REMEDY</th>
+                    <th style={{ color: '#7c3aed', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em', padding: '16px' }}>POTENCY</th>
+                    <th style={{ color: '#7c3aed', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em', padding: '16px' }}>FREQUENCY</th>
+                    <th className="mc-col-days" style={{ color: '#7c3aed', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em', padding: '16px' }}>DAYS</th>
+                    <th className="mc-col-instructions" style={{ color: '#7c3aed', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em', padding: '16px' }}>INSTRUCTIONS</th>
+                    <th style={{ color: '#7c3aed', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em', padding: '16px', textAlign: 'right' }}>ACTION</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(() => null)()}
+                  {groupedHistory.map((group) => (
+                    <React.Fragment key={group.date}>
+                      {group.items.map((rx, idx) => {
+                        const isExpanded = expandedDates.has(group.date);
+                        if (idx > 0 && !isExpanded) return null;
+
+                        const isRowSelected = selectedDate && new Date(rx.created_at || rx.createdAt || rx.dateval).toDateString() === new Date(selectedDate).toDateString();
+
+                        return (
+                          <tr 
+                            key={rx.id} 
+                            className={`hover-row ${editingId === rx.id ? 'editing' : ''} ${isRowSelected ? 'mc-row-selected' : ''}`}
+                            style={{ 
+                              cursor: onSelectDate ? 'pointer' : 'default',
+                              background: isRowSelected ? '#f5f3ff' : (idx > 0 ? '#faf5ff' : 'white'),
+                              borderLeft: isRowSelected ? '4px solid #7c3aed' : (idx > 0 ? '3px solid #e9d5ff' : 'none'),
+                              borderBottom: '1px solid #f1f5f9',
+                              transition: 'all 0.2s ease-in-out'
+                            }}
+                            onClick={() => onSelectDate?.(rx.created_at || rx.createdAt || rx.dateval)}
+                          >
+                            <td data-label="Date">
+                              {idx === 0 ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                  <span style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--pp-text-2)' }}>
+                                    {new Date(rx.created_at || rx.createdAt || rx.dateval).getDate()}
+                                  </span>
+                                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--pp-text-3)', textTransform: 'uppercase' }}>
+                                    {new Date(rx.created_at || rx.createdAt || rx.dateval).toLocaleString('default', { month: 'short' })} {new Date(rx.created_at || rx.createdAt || rx.dateval).getFullYear()}
+                                  </span>
+                                  {group.items.length > 1 && (
+                                    <button 
+                                      onClick={(e) => { e.stopPropagation(); toggleDate(group.date); }}
+                                      style={{ 
+                                        marginTop: '6px', padding: '3px 10px', borderRadius: '12px', border: '1px solid #e2e8f0', 
+                                        background: isExpanded ? 'var(--pp-blue)' : '#f1f5f9', 
+                                        color: isExpanded ? 'white' : '#64748b', 
+                                        fontSize: '0.65rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px',
+                                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                                      }}
+                                    >
+                                      {isExpanded ? <X size={10} /> : <Plus size={10} />}
+                                      {isExpanded ? 'Hide' : `+${group.items.length - 1} more`}
+                                    </button>
+                                  )}
+                                </div>
+                              ) : (
+                                <div style={{ marginLeft: '12px', borderLeft: '2px dashed #cbd5e1', height: '20px' }} />
+                              )}
+                            </td>
+                            <td data-label="Remedy">
+                              <div className="remedy-name">
+                                {rx.remedy_name}
+                              </div>
+                            </td>
+                            <td data-label="Potency">
+                              <span style={{ padding: '4px 12px', background: 'var(--pp-warm-1)', border: '1px solid var(--border-main)', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700, color: 'var(--pp-text-2)' }}>
+                                {rx.potency_name}
+                              </span>
+                            </td>
+                            <td data-label="Frequency">
+                              <span style={{ color: '#7c3aed', fontWeight: 700, fontSize: '0.9rem' }}>{rx.frequency_name}</span>
+                            </td>
+                            <td data-label="Days" className="mc-col-days">
+                              <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--pp-ink)' }}>{rx.days}</span>
+                            </td>
+                            <td data-label="Instructions" className="mc-col-instructions">
+                              <div style={{ 
+                                maxHeight: '60px', 
+                                overflowY: 'auto', 
+                                fontSize: '0.82rem', 
+                                color: 'var(--pp-text-3)', 
+                                lineHeight: 1.4,
+                                width: '220px',
+                                paddingRight: '8px',
+                                background: (rx.prescription || rx.notes) ? '#f8fafc' : 'transparent',
+                                borderRadius: '6px',
+                                padding: (rx.prescription || rx.notes) ? '4px 8px' : '0'
+                              }} className="custom-scrollbar">
+                                {rx.prescription || rx.notes || <span style={{ opacity: 0.4, fontStyle: 'italic' }}>No instructions</span>}
+                              </div>
+                            </td>
+                            <td data-label="Actions" style={{ textAlign: 'right' }}>
+                              <div className="mc-table-actions">
+                                  <div className="mc-desktop-actions">
+                                    {(() => {
+                                      const rxDate = new Date(rx.created_at || rx.createdAt || rx.dateval);
+                                      const isToday = rxDate.toDateString() === new Date().toDateString();
+                                      return (
+                                        <>
+                                          <button onClick={(e) => { e.stopPropagation(); handlePrintRow(rx); }} className="mc-action-btn" title="Print"><Printer size={14} /></button>
+                                          {isToday && (
+                                            <>
+                                              <button 
+                                                onClick={(e) => { e.stopPropagation(); onAddAdditionalCharge?.(); }} 
+                                                className="mc-action-btn" 
+                                                title="Add Additional Charge"
+                                              >
+                                                <IndianRupee size={14} />
+                                              </button>
+                                              <button onClick={(e) => { e.stopPropagation(); startNewRx(); }} className="mc-action-btn" title="Add Extra"><Plus size={14} /></button>
+                                              <button onClick={(e) => { e.stopPropagation(); handleEdit(rx); }} className="mc-action-btn" title="Edit"><Edit size={14} /></button>
+                                              <button onClick={(e) => { e.stopPropagation(); handleDelete(rx.id, rx.remedy_name); }} className="mc-action-btn danger" title="Remove"><Trash2 size={14} /></button>
+                                            </>
+                                          )}
+                                        </>
+                                      );
+                                    })()}
+                                  </div>
+                                  <div className="mc-mobile-actions">
+                                    <button className="mc-dots-btn"><MoreHorizontal size={18} /></button>
+                                    <div className="mc-dots-dropdown">
+                                      {(() => {
+                                        const rxDate = new Date(rx.created_at || rx.createdAt || rx.dateval);
+                                        const isToday = rxDate.toDateString() === new Date().toDateString();
+                                        return (
+                                          <>
+                                            <button onClick={(e) => { e.stopPropagation(); handlePrintRow(rx); }}>
+                                              <Printer size={14} /> Print
+                                            </button>
+                                            {isToday && (
+                                              <>
+                                                <button onClick={(e) => { e.stopPropagation(); onAddAdditionalCharge?.(); }}>
+                                                  <IndianRupee size={14} /> Add Charge
+                                                </button>
+                                                <button onClick={(e) => { e.stopPropagation(); startNewRx(); }}><Plus size={14} /> Add Extra</button>
+                                                <button onClick={(e) => { e.stopPropagation(); handleEdit(rx); }}><Edit size={14} /> Edit</button>
+                                                <button onClick={(e) => { e.stopPropagation(); handleDelete(rx.id, rx.remedy_name); }} style={{ color: '#dc2626' }}><Trash2 size={14} /> Remove</button>
+                                              </>
+                                            )}
+                                          </>
+                                        );
+                                      })()}
+                                    </div>
+                                  </div>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </React.Fragment>
+                  ))}
+                  {history?.length === 0 && (
+                    <tr>
+                      <td colSpan={7} style={{ padding: '24px', color: 'var(--pp-text-3)', textAlign: 'center' }}>
+                        No previous prescriptions found for this patient. Add a new prescription above.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            pageSize={pageSize}
+            totalItems={history?.length || 0}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={setPageSize}
+          />
+        </div>
+      )}
+
+      {activeTab === 'image' && (
+        <ImageUploadTab regid={Number(regid)} />
+      )}
+
+      {/* Premium Confirmation Dialog */}
+      <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
+        <DialogContent className="premium-alert-content" style={{ maxWidth: '440px', borderRadius: '24px', padding: '32px' }}>
+          <DialogHeader className="premium-alert-header" style={{ alignItems: 'center', textAlign: 'center' }}>
+            <div style={{ 
+              background: isRxToday ? 'rgba(245, 158, 11, 0.1)' : 'rgba(37, 99, 235, 0.1)', 
+              color: isRxToday ? '#f59e0b' : '#2563eb', 
+              width: '64px', height: '64px', borderRadius: '20px', 
+              display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' 
+            }}>
+              {isRxToday ? <AlertTriangle size={32} /> : <CheckCircle2 size={32} />}
+            </div>
+            <DialogTitle className="premium-alert-title" style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '8px', color: 'var(--pp-ink)' }}>
+              {isRxToday ? 'Already Added' : 'Confirm Prescription'}
+            </DialogTitle>
+            <DialogDescription className="premium-alert-description" style={{ fontSize: '1rem', lineHeight: 1.6, color: 'var(--pp-text-3)' }}>
+              {isRxToday ? (
+                <>
+                  A follow-up for <strong style={{ color: '#f59e0b' }}>today</strong> has already been recorded. 
+                  <br />
+                  To add additional remedies to this session, please use the <strong style={{ color: 'var(--pp-blue)' }}>Add Extra</strong> button.
+                </>
+              ) : (
+                <>
+                  <div style={{ marginBottom: '20px', textAlign: 'left' }}>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--pp-ink)', marginBottom: '8px' }}>Dispensing Mode (Service):</div>
+                    <div style={{ position: 'relative' }}>
+                      <select
+                        value={delivery}
+                        onChange={(e) => setDelivery(e.target.value)}
+                        disabled={isRxToday}
+                        style={{
+                          width: '100%',
+                          padding: '12px 16px 12px 44px',
+                          borderRadius: '12px',
+                          fontSize: '0.95rem',
+                          fontWeight: 600,
+                          cursor: isRxToday ? 'not-allowed' : 'pointer',
+                          appearance: 'none',
+                          background: isRxToday ? 'var(--pp-warm-1)' : 'white',
+                          border: '1px solid var(--pp-blue-border)',
+                          color: 'var(--pp-ink)',
+                          outline: 'none',
+                          opacity: isRxToday ? 0.7 : 1
+                        }}
+                      >
+                        <option value="clinic">clinic</option>
+                        <option value="courier">courier</option>
+                        <option value="pickup">pickup</option>
+                      </select>
+                      <div style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--pp-blue)', pointerEvents: 'none', display: 'flex' }}>
+                        {delivery === 'clinic' && <Home size={20} />}
+                        {delivery === 'courier' && <Truck size={20} />}
+                        {delivery === 'pickup' && <Package size={20} />}
+                      </div>
+                      <div style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--pp-text-3)', pointerEvents: 'none', display: 'flex' }}>
+                        <ChevronRight size={14} style={{ transform: 'rotate(90deg)' }} />
+                      </div>
+                    </div>
+                  </div>
+                  Are you sure you want to proceed with this Rx session?
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="premium-alert-footer" style={{ marginTop: '32px', gap: '12px', justifyContent: 'center' }}>
+            {isRxToday ? (
+              <button 
+                className="btn-premium-confirm" 
+                onClick={() => setShowConfirm(false)}
+                style={{ padding: '12px 32px', borderRadius: '14px', fontWeight: 700, border: 'none', background: 'var(--pp-ink)', color: 'white' }}
+              >
+                Got it, Thanks
+              </button>
+            ) : (
+              <>
+                <button 
+                  className="btn-premium-cancel" 
+                  onClick={() => setShowConfirm(false)}
+                  style={{ padding: '12px 24px', borderRadius: '14px', fontWeight: 700, border: '1px solid var(--border-main)', background: 'transparent' }}
+                >
+                  No, Go Back
+                </button>
+                <button 
+                  className="btn-premium-confirm" 
+                  onClick={() => { setShowConfirm(false); startNewRx(); onStartRx?.(); }}
+                  style={{ 
+                    padding: '12px 32px', borderRadius: '14px', fontWeight: 700, border: 'none', 
+                    background: '#2563eb', color: 'white',
+                    boxShadow: '0 8px 16px rgba(37, 99, 235, 0.25)'
+                  }}
+                >
+                  Yes, Proceed
+                </button>
+              </>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Premium Repeat Warning Dialog */}
+      <Dialog open={showRepeatWarning} onOpenChange={setShowRepeatWarning}>
+        <DialogContent className="premium-alert-content" style={{ maxWidth: '440px', borderRadius: '24px', padding: '32px' }}>
+          <DialogHeader className="premium-alert-header" style={{ alignItems: 'center', textAlign: 'center' }}>
+            <div style={{ 
+              background: 'rgba(245, 158, 11, 0.1)', 
+              color: '#f59e0b', 
+              width: '64px', height: '64px', borderRadius: '20px', 
+              display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' 
+            }}>
+              <AlertTriangle size={32} />
+            </div>
+            <DialogTitle className="premium-alert-title" style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '8px', color: 'var(--pp-ink)' }}>
+              Cannot Repeat
+            </DialogTitle>
+            <DialogDescription className="premium-alert-description" style={{ fontSize: '1rem', lineHeight: 1.6, color: 'var(--pp-text-3)' }}>
+              A prescription for <strong style={{ color: '#f59e0b' }}>today</strong> already exists. 
+              <br /><br />
+              Starting a "Repeat" session creates a fresh follow-up. Since today's follow-up is already recorded, please use the <strong style={{ color: 'var(--pp-blue)' }}>Add Extra</strong> button to add more remedies to the current session.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="premium-alert-footer" style={{ marginTop: '32px', justifyContent: 'center' }}>
+            <button 
+              className="btn-premium-confirm" 
+              onClick={() => setShowRepeatWarning(false)}
+              style={{ 
+                padding: '12px 48px', borderRadius: '14px', fontWeight: 700, border: 'none', 
+                background: 'var(--pp-ink)', color: 'white',
+                boxShadow: '0 8px 16px rgba(15, 23, 42, 0.15)'
+              }}
+            >
+              Understood
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+    </div>
+  );
+}
+function ImageUploadTab({ regid }: { regid: number }) {
+  const { saveImage } = useManageClinicalRecords();
+  const [description, setDescription] = useState('');
+  const [file, setFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.files?.[0];
+    if (selected) {
+      setFile(selected);
+      if (selected.type.startsWith('image/') || selected.type.startsWith('video/') || selected.type.startsWith('audio/')) {
+        const url = URL.createObjectURL(selected);
+        setPreviewUrl(url);
+      } else {
+        setPreviewUrl(null);
       }
     }
   };
 
-  const handleAltClick = (alt: { remedy: string, potency: string | null }) => {
-    setForm(prev => ({ 
-      ...prev, 
-      remedyName: alt.remedy,
-      potencyName: alt.potency || prev.potencyName 
-    }));
-  };
+  const handleUpload = async () => {
+    if (!file) return;
+    setUploading(true);
+    const formData = new FormData();
+    formData.append('regid', String(regid));
+    formData.append('description', description || 'Clinical Evidence');
+    formData.append('files', file);
 
-  const handleSave = async () => {
-    if (!regid) return alert('Cannot save: No active patient session.');
-    if (!form.remedyName) return alert('Please enter a remedy name');
-    
-    await saveMutation.mutateAsync({
-      regid,
-      ...form
-    });
-    
-    setForm({
-      remedyName: '',
-      potencyName: '',
-      frequencyName: '',
-      days: 3,
-      instructions: '',
-      notes: ''
-    });
-  };
-
-  const handleDelete = async (id: number) => {
-    if (!regid) return;
-    if (window.confirm('Delete this prescription?')) {
-      await deleteMutation.mutateAsync(id);
+    try {
+      await saveImage.mutateAsync(formData);
+      setFile(null);
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+        setPreviewUrl(null);
+      }
+      setDescription('');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    } catch (err) {
+      console.error('Upload failed:', err);
+    } finally {
+      setUploading(false);
     }
   };
 
   return (
-    <div className="mc-remedy-session-grid">
-      
-      {/* ─── Panel 1: Materia Medica Browser ─── */}
-      <div className="mc-remedy-panel-left">
-        <div className="mc-count" style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <BookOpen strokeWidth={2} size={14} />
-          Materia Medica Browser
-        </div>
+    <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '800px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
+      <div 
+        style={{ 
+          background: 'var(--pp-warm-1)', 
+          border: '1.5px dashed var(--border-main)', 
+          borderRadius: '16px', 
+          padding: file ? '24px' : '48px 24px', 
+          textAlign: 'center',
+          cursor: 'pointer',
+          position: 'relative',
+          transition: 'all 0.2s',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}
+        onClick={() => fileInputRef.current?.click()}
+        onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--pp-blue)'}
+        onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border-main)'}
+      >
+        <input
+          type="file"
+          ref={fileInputRef}
+          hidden
+          onChange={handleFileChange}
+          accept="image/*,video/*,audio/*,application/pdf"
+          disabled={uploading}
+        />
         
-        {/* A-Z Strip */}
-        <div className="mc-alphabet-index">
-          {alphabetData?.map(group => (
-            <button 
-              key={group.letter}
-              onClick={() => setActiveLetter(group.letter)}
-              className={`mc-alphabet-btn ${activeLetter === group.letter ? 'active' : ''}`}
-            >
-              {group.letter}
-            </button>
-          ))}
-        </div>
-
-        {/* Tree List */}
-        <div style={{ flex: 1, overflowY: 'auto', marginTop: '12px', paddingRight: '4px' }}>
-          {loadingTree ? (
-            <div className="mc-loading">Loading list...</div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              {filteredTree?.[0]?.nodes.map(node => (
-                <div 
-                  key={node.id}
-                  onClick={() => handleNodeClick(node)}
-                  style={{
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    background: selectedNode?.id === node.id ? 'var(--primary-tint)' : 'transparent',
-                    color: selectedNode?.id === node.id ? 'var(--primary)' : 'var(--text-main)',
-                    fontWeight: selectedNode?.id === node.id ? 700 : 500,
-                    fontSize: '0.85rem',
-                    transition: 'all 150ms',
-                    border: selectedNode?.id === node.id ? '1px solid var(--primary-border)' : '1px solid transparent'
-                  }}
-                >
-                  {node.label}
+        {uploading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+            <Loader2 size={32} className="animate-spin" style={{ color: 'var(--pp-blue)' }} />
+            <div style={{ fontWeight: 700, color: 'var(--pp-blue)' }}>Processing...</div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', width: '100%' }}>
+            {file ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', width: '100%' }}>
+                {file.type.startsWith('image/') && previewUrl && (
+                  <img 
+                    src={previewUrl} 
+                    alt="Preview" 
+                    style={{ 
+                      maxHeight: '180px', 
+                      maxWidth: '100%', 
+                      borderRadius: '12px', 
+                      objectFit: 'contain', 
+                      boxShadow: '0 4px 16px rgba(0,0,0,0.08)' 
+                    }} 
+                  />
+                )}
+                {file.type.startsWith('video/') && previewUrl && (
+                  <video 
+                    src={previewUrl} 
+                    controls 
+                    style={{ 
+                      maxHeight: '180px', 
+                      maxWidth: '100%', 
+                      borderRadius: '12px', 
+                      boxShadow: '0 4px 16px rgba(0,0,0,0.08)' 
+                    }} 
+                  />
+                )}
+                {file.type.startsWith('audio/') && previewUrl && (
+                  <div style={{ width: '100%', maxWidth: '320px', padding: '16px', background: 'white', borderRadius: '12px', boxShadow: '0 4px 16px rgba(0,0,0,0.08)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ color: 'var(--pp-blue)', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, fontSize: '0.85rem' }}>🎵 Audio Recording</div>
+                    <audio src={previewUrl} controls style={{ width: '100%' }} />
+                  </div>
+                )}
+                {(!previewUrl || (!file.type.startsWith('image/') && !file.type.startsWith('video/') && !file.type.startsWith('audio/'))) && (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', padding: '24px', background: 'white', borderRadius: '12px', boxShadow: '0 4px 16px rgba(0,0,0,0.08)' }}>
+                    <span style={{ fontSize: '2.5rem' }}>📄</span>
+                    <div style={{ color: 'var(--pp-ink)', fontWeight: 700 }}>{file.name}</div>
+                  </div>
+                )}
+                <div>
+                  <div style={{ color: 'var(--pp-ink)', fontWeight: 700, fontSize: '0.95rem', marginBottom: '2px' }}>
+                    {file.name}
+                  </div>
+                  <div style={{ color: 'var(--pp-blue)', fontSize: '0.8rem', fontWeight: 700 }}>
+                    Click to select a different file
+                  </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ─── Panel 2: Clinical Prescription Form ─── */}
-      <div className="mc-remedy-panel-center">
-        
-        {/* Context Header: Rubric Details */}
-        {selectedNode && (
-          <div style={{ padding: '16px', background: 'var(--bg-main)', borderRadius: '12px', border: '1px solid var(--border-main)', marginBottom: '20px' }}>
-            <div style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Selected Rubric: {selectedNode.label}
-            </div>
-            
-            {alternatives && alternatives.length > 0 ? (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                {alternatives.map(alt => (
-                  <button
-                    key={alt.id}
-                    onClick={() => handleAltClick(alt)}
-                    className="mc-alphabet-btn"
-                    style={{ width: 'auto', height: 'auto', padding: '5px 12px', fontSize: '0.75rem', borderRadius: '100px' }}
-                  >
-                    {alt.remedy} {alt.potency && <span style={{ opacity: 0.6 }}>({alt.potency})</span>}
-                  </button>
-                ))}
               </div>
             ) : (
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>No AI alternatives mapped for this rubric.</div>
+              <>
+                <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', color: 'var(--pp-blue)' }}>
+                  <Plus size={28} />
+                </div>
+                <div>
+                  <div style={{ color: 'var(--pp-ink)', fontWeight: 700, fontSize: '1.1rem', marginBottom: '4px' }}>
+                    click to select media
+                  </div>
+                  <div style={{ color: 'var(--pp-text-3)', fontSize: '0.85rem', fontWeight: 500 }}>
+                    Images, Audio, Video or PDF (Max 10MB)
+                  </div>
+                </div>
+              </>
             )}
           </div>
         )}
-
-        {/* Prescription Input Area */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '24px', background: 'var(--bg-card)', border: '1px solid var(--border-main)', borderRadius: '16px', boxShadow: '0 2px 12px rgba(0,0,0,0.03)' }}>
-          <div className="mc-page-title" style={{ fontSize: '1rem' }}>
-            <FileText size={18} style={{ color: 'var(--primary)' }} />
-            New Prescription Row
-          </div>
-          
-          <div className="mc-input-group">
-            <label>Remedy Name</label>
-            <div className="mc-input-wrap">
-              <input 
-                type="text" 
-                placeholder="Start typing medicine name..." 
-                className="mc-search-input"
-                style={{ paddingLeft: '12px' }}
-                value={form.remedyName} 
-                onChange={e => setForm({...form, remedyName: e.target.value})}
-                list="medicines-list"
-              />
-              <datalist id="medicines-list">
-                {lookups?.medicines.map(m => <option key={m.id} value={m.name} />)}
-              </datalist>
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            <div className="mc-input-group">
-              <label>Potency</label>
-              <input 
-                type="text" 
-                placeholder="30C" 
-                className="mc-search-input"
-                style={{ paddingLeft: '12px' }}
-                value={form.potencyName} 
-                onChange={e => setForm({...form, potencyName: e.target.value})}
-                list="potencies-list"
-              />
-              <datalist id="potencies-list">
-                {lookups?.potencies.map(p => <option key={p.id} value={p.name} />)}
-              </datalist>
-            </div>
-            
-            <div className="mc-input-group">
-              <label>Frequency</label>
-              <input 
-                type="text" 
-                placeholder="TDS" 
-                className="mc-search-input"
-                style={{ paddingLeft: '12px' }}
-                value={form.frequencyName} 
-                onChange={e => setForm({...form, frequencyName: e.target.value})}
-                list="freqs-list"
-              />
-              <datalist id="freqs-list">
-                {lookups?.frequencies.map(f => <option key={f.id} value={f.name} />)}
-              </datalist>
-            </div>
-          </div>
-
-          <div className="mc-input-group">
-            <label>Duration & Instructions</label>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <input 
-                type="number" 
-                className="mc-search-input" 
-                style={{ width: '80px', paddingLeft: '12px' }}
-                value={form.days} 
-                onChange={e => setForm({...form, days: parseInt(e.target.value) || 0})}
-              />
-              <input 
-                 type="text"
-                 placeholder="Special instructions..."
-                 className="mc-search-input"
-                 style={{ flex: 1, paddingLeft: '12px' }}
-                 value={form.instructions}
-                 onChange={e => setForm({...form, instructions: e.target.value})}
-              />
-            </div>
-          </div>
-
-          <button 
-            className="mc-btn-primary" 
-            style={{ width: '100%', padding: '12px', borderRadius: '12px' }}
-            onClick={handleSave}
-            disabled={!regid || saveMutation.isPending}
-          >
-            {saveMutation.isPending ? 'Saving...' : <><FlaskConical size={18} /> Add to History</>}
-          </button>
-        </div>
       </div>
 
-      {/* ─── Panel 3: Session Records ─── */}
-      <div className="mc-remedy-panel-right">
-        <div className="mc-count" style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Activity strokeWidth={2} size={14} />
-          Current Session Context
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto' }}>
-          {!regid ? (
-            <div className="mc-wip">
-              <Activity size={32} style={{ color: 'var(--text-placeholder)' }} className="pulse-icon" />
-              <div className="mc-wip-title" style={{ fontSize: '0.85rem' }}>No Active Session</div>
-            </div>
-          ) : (
-            <>
-              {history?.map((rx: PrescriptionRow) => (
-                <div key={rx.id} className="mc-rx-item" style={{ padding: '12px', background: 'var(--bg-surface-2)', borderRadius: '12px' }}>
-                  <div style={{ flex: 1 }}>
-                    <div className="mc-rx-name" style={{ fontSize: '0.85rem' }}>
-                      {rx.remedy_name} {rx.potency_name && `(${rx.potency_name})`}
-                    </div>
-                    <div className="mc-rx-detail" style={{ fontSize: '0.72rem' }}>
-                      {rx.frequency_name} • {rx.days} days
-                    </div>
-                  </div>
-                  <button 
-                    onClick={() => handleDelete(rx.id)}
-                    className="mc-row-arrow"
-                    style={{ color: 'var(--danger)', padding: '6px' }}
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              ))}
-              {history?.length === 0 && (
-                <div className="mc-wip-text" style={{ textAlign: 'center', padding: '20px', opacity: 0.6 }}>
-                  Start adding remedies to build the clinical record.
-                </div>
-              )}
-            </>
-          )}
-        </div>
+      <div style={{ display: 'flex', gap: '12px' }}>
+        <input
+          className="pp-input"
+          placeholder="add notes"
+          value={description}
+          onChange={e => setDescription(e.target.value)}
+          style={{ flex: 1, padding: '12px 16px' }}
+        />
+        <button
+          className="btn-primary"
+          onClick={handleUpload}
+          disabled={!file || uploading}
+          style={{ padding: '0 32px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '8px', opacity: !file ? 0.6 : 1 }}
+        >
+          {uploading ? <Loader2 size={16} className="spin" /> : <Upload size={16} />}
+          upload
+        </button>
       </div>
 
+      <div style={{ borderTop: '1px solid var(--pp-warm-2)', paddingTop: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--pp-text-3)', fontSize: '0.85rem' }}>
+        <span style={{ fontSize: '1.1rem' }}>💡</span>
+        <span>These files will also appear in the <strong>Media</strong> tab of the patient record.</span>
+      </div>
     </div>
   );
 }

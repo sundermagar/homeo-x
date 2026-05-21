@@ -1,6 +1,6 @@
-import type { AccountRepository } from '../ports/account.repository';
+import type { AccountRepository } from '../ports/account.repository.js';
 import type { Account, CreateAccountInput } from '@mmc/types';
-import { ConflictError } from '../../../shared/errors';
+import { ConflictError } from '../../../shared/errors.js';
 
 /**
  * CreateAccountUseCase

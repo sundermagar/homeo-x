@@ -1,5 +1,5 @@
-import type { OrganizationRepository } from '../ports/organization.repository';
-import { NotFoundError } from '../../../shared/errors';
+import type { OrganizationRepository } from '../ports/organization.repository.js';
+import { NotFoundError } from '../../../shared/errors.js';
 
 export class DeleteOrganizationUseCase {
   constructor(private readonly repo: OrganizationRepository) {}

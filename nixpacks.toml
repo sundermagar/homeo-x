@@ -1,0 +1,8 @@
+[phases.install]
+cmds = ["pnpm install --frozen-lockfile --prod=false"]
+
+[phases.build]
+cmds = ["pnpm exec turbo run build --filter=@mmc/api"]
+
+[start]
+cmd = "node apps/api/dist/main.js"

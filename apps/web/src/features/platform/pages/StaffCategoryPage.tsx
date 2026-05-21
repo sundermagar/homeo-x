@@ -1,10 +1,17 @@
-import { Plus, Search, Edit2, Trash2, X, Users, UserCheck, Stethoscope, ClipboardList, ShieldCheck, UserCog } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Plus, Search, Edit2, Trash2, X, Users, UserCheck, Stethoscope, ClipboardList, ShieldCheck, UserCog, MapPin } from 'lucide-react';
 import { NumericInput } from '@/shared/components/NumericInput';
 import { useStaffList, useDeleteStaff, useCreateStaff, useUpdateStaff, useStaffMember } from '@/features/staff/hooks/use-staff';
 import type { StaffCategory, StaffSummary, StaffMember } from '@mmc/types';
 import type { CreateStaffInput, UpdateStaffInput } from '@mmc/validation';
 import { createStaffSchema, updateStaffSchema } from '@mmc/validation';
 import '../styles/platform.css';
+
+import { Drawer } from '@/shared/components/drawer';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
+
+
 
 const CATEGORY_META: Record<StaffCategory, { label: string; description: string; icon: any }> = {
   doctor: { label: 'Doctors', description: 'Clinical practitioners and specialized doctor profiles.', icon: Stethoscope },
@@ -56,6 +63,7 @@ function getDefaultStaffForm(category: StaffCategory): CreateStaffInput {
     col12Document: '',
     bhmsDocument: '',
     mdDocument: '',
+    sendWelcomeEmail: false,
   };
 }
 
@@ -100,6 +108,7 @@ function staffMemberToForm(staff: StaffMember): CreateStaffInput {
     col12Document: staff.col12Document || '',
     bhmsDocument: staff.bhmsDocument || '',
     mdDocument: staff.mdDocument || '',
+    sendWelcomeEmail: false,
   };
 }
 
@@ -185,22 +194,18 @@ function StaffModal({
   const isEdit = mode === 'edit';
 
   return (
-    <div className="plat-modal-overlay" onClick={onClose}>
-      <div className="plat-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="plat-modal-header">
-          <h3 className="plat-modal-title">
-            {isEdit ? `Update ${CATEGORY_META[category].label.replace(/s$/, '')}` : `Register New ${CATEGORY_META[category].label.replace(/s$/, '')}`}
-          </h3>
-          <button className="plat-btn plat-btn-icon" onClick={onClose}>
-            <X size={18} />
-          </button>
-        </div>
-
+    <Drawer
+      isOpen={true}
+      onClose={onClose}
+      title={isEdit ? `Update ${CATEGORY_META[category].label.replace(/s$/, '')}` : `Register New ${CATEGORY_META[category].label.replace(/s$/, '')}`}
+      maxWidth="600px"
+    >
+      <div className="plat-modal-content" style={{ border: 'none', boxShadow: 'none', margin: 0, padding: 0 }}>
         <form onSubmit={handleSubmit} className="plat-modal-body">
           {errors['general'] && <div className="plat-error-banner mb-4">{errors['general']}</div>}
 
-          <div className="plat-form-grid">
-            <div className="plat-form-group">
+          <div className="plat-form-grid-multi">
+            <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
               <label className="plat-form-label">Full Name *</label>
               <input
                 type="text"
@@ -272,15 +277,15 @@ function StaffModal({
             )}
           </div>
 
-          <div style={{ display: 'flex', gap: 12, marginTop: 32 }}>
-            <button type="button" className="plat-btn plat-btn-secondary" onClick={onClose} style={{ flex: 1 }}>Discard</button>
-            <button type="submit" className="plat-btn plat-btn-primary" style={{ flex: 1 }} disabled={isPending || isLoading}>
+          <div className="plat-modal-footer">
+            <button type="button" className="plat-btn plat-btn-ghost" onClick={onClose}>Discard</button>
+            <button type="submit" className="plat-btn plat-btn-primary" disabled={isPending || isLoading}>
               {isPending ? 'Processing…' : isEdit ? 'Update Details' : 'Register Entry'}
             </button>
           </div>
         </form>
       </div>
-    </div>
+    </Drawer>
   );
 }
 
@@ -351,22 +356,70 @@ export default function StaffCategoryPage({ category }: { category: StaffCategor
 
       <div className="plat-card">
         {isLoading ? (
-          <div className="plat-empty"><p className="plat-empty-text">Loading...</p></div>
+          <TableSkeleton rows={10} columns={6} />
         ) : staff.length === 0 ? (
-          <div className="plat-empty"><Icon size={40} className="plat-empty-icon" /><p className="plat-empty-text">No records found.</p></div>
+          <EmptyState 
+            icon={Icon}
+            title={debouncedSearch ? "No matches found" : `No ${meta.label.toLowerCase()} found`}
+            description={debouncedSearch ? `No staff records matching "${debouncedSearch}" were found in this category.` : `Start building your clinic's ${meta.label.toLowerCase()} registry.`}
+            actionLabel={debouncedSearch ? "Clear Search" : `Add ${meta.label.replace(/s$/, '')}`}
+            onAction={debouncedSearch ? () => handleSearchChange('') : () => { setEditingId(null); setModalOpen(true); }}
+            variant="card"
+            className="my-8"
+          />
         ) : (
           <div className="plat-table-container">
             <table className="plat-table">
-              <thead><tr><th>#</th><th>Identity Profile</th><th>Contact</th><th>Designation</th><th>Status</th><th>Actions</th></tr></thead>
+              <thead><tr><th>#</th><th>Identity Profile</th><th>Contact Details</th><th>Professional Role</th><th>Status</th><th>Actions</th></tr></thead>
               <tbody>
                 {staff.map((s: StaffSummary, i: number) => (
                   <tr key={s.id} className="plat-table-row">
-                    <td className="plat-table-cell color-muted font-mono text-xs">{(page - 1) * PAGE_SIZE + i + 1}</td>
-                    <td className="plat-table-cell"><div className="font-bold plat-capitalize">{s.name}</div><div className="text-[11px] color-muted">{s.email}</div></td>
-                    <td className="plat-table-cell"><div className="font-mono text-sm">{s.mobile}</div><div className="text-[10px] color-muted plat-capitalize">{s.city || 'Station N/A'}</div></td>
-                    <td className="plat-table-cell text-sm color-secondary">{s.designation || 'General Staff'}</td>
-                    <td className="plat-table-cell"><span className={s.isActive ? 'plat-badge plat-badge-primary' : 'plat-badge plat-badge-default'}>{s.isActive ? 'Active' : 'Inactive'}</span></td>
-                    <td className="plat-table-cell"><div className="flex justify-end gap-2"><button className="plat-btn plat-btn-sm plat-btn-icon" onClick={() => handleEdit(s)}><Edit2 size={13} /></button><button className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" onClick={() => handleDelete(s.id)}><Trash2 size={13} /></button></div></td>
+                    <td data-label="#" className="plat-mono-data text-xs" style={{ width: 40 }}>
+                      <div>{(page - 1) * PAGE_SIZE + i + 1}</div>
+                    </td>
+                    <td data-label="Profile">
+                      <div className="plat-cell-val">
+                        <div className="font-bold plat-capitalize" style={{ fontSize: '13.5px', color: 'var(--pp-ink)' }}>{s.name}</div>
+                        <div className="text-[10px] uppercase tracking-wider font-bold opacity-60" style={{ color: s.gender === 'Female' ? '#db2777' : 'var(--pp-blue)' }}>{s.gender || 'Unknown'}</div>
+                      </div>
+                    </td>
+                    <td data-label="Contact">
+                      <div className="plat-cell-val">
+                        <div className="font-mono text-sm" style={{ fontWeight: 600 }}>{s.mobile}</div>
+                        <div className="text-[11px] color-muted font-medium plat-capitalize">{s.email || 'No email registered'}</div>
+                      </div>
+                    </td>
+                    <td data-label="Role">
+                      <div className="plat-cell-val">
+                        <div className="font-semibold text-xs plat-capitalize">{s.designation || 'General Staff'}</div>
+                        <div className="text-[10px] color-muted font-medium flex items-center gap-1">
+                          <MapPin size={10} /> {s.city || 'Station N/A'}
+                        </div>
+                      </div>
+                    </td>
+                    <td data-label="Status">
+                      <div className="plat-cell-val">
+                        <span className={s.isActive ? 'plat-badge plat-badge-info' : 'plat-badge plat-badge-default'}>
+                          {s.isActive ? (
+                            <span className="flex items-center gap-1">
+                              <UserCheck size={10} /> Active
+                            </span>
+                          ) : 'Inactive'}
+                        </span>
+                      </div>
+                    </td>
+                    <td data-label="Actions">
+                      <div className="plat-cell-val">
+                        <div className="flex justify-end gap-2" style={{ width: '100%' }}>
+                          <button className="plat-btn plat-btn-icon plat-btn-ghost" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={() => handleEdit(s)}>
+                            <Edit2 size={13} />
+                          </button>
+                          <button className="plat-btn plat-btn-icon plat-btn-danger" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={() => handleDelete(s.id)}>
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>

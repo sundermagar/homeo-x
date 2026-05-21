@@ -1,15 +1,14 @@
-import { eq, and, isNull, gte, lte, ilike, or, sql, desc, asc, max } from 'drizzle-orm';
+import { eq, and, isNull, gte, lte, ilike, or, sql, desc, asc, max, ne } from 'drizzle-orm';
 import type { DbClient } from '@mmc/database';
 import * as schema from '@mmc/database';
 import type { Appointment, WaitlistEntry, AvailabilitySlot, CreateAppointmentDto, UpdateAppointmentDto } from '@mmc/types';
 import { AppointmentStatus } from '@mmc/types';
-import type { AppointmentRepository, AppointmentFilters } from '../../domains/appointment/ports/appointment.repository';
+import type { AppointmentRepository, AppointmentFilters } from '../../domains/appointment/ports/appointment.repository.js';
 
 const ALL_TIME_SLOTS = [
-  '08:00 AM','08:30 AM','09:00 AM','09:30 AM','10:00 AM','10:30 AM',
-  '11:00 AM','11:30 AM','12:00 PM','12:30 PM','01:00 PM','01:30 PM',
-  '02:00 PM','02:30 PM','03:00 PM','03:30 PM','04:00 PM','04:30 PM',
-  '05:00 PM','05:30 PM','06:00 PM','06:30 PM','07:00 PM','07:30 PM','08:00 PM',
+  '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM', '12:00 PM', '12:30 PM', '01:00 PM', '01:30 PM',
+  '02:00 PM', '02:30 PM', '03:00 PM', '03:30 PM', '04:00 PM', '04:30 PM',
+  '05:00 PM', '05:30 PM', '06:00 PM', '06:30 PM', '07:00 PM', '07:30 PM', '08:00 PM',
 ];
 
 function toMins(t: string): number {
@@ -23,37 +22,59 @@ function toMins(t: string): number {
   return h * 60 + m;
 }
 
+// Returns "YYYY-MM-DD" in the process's local timezone (not UTC).
+// `toISOString().split('T')[0]` returns the UTC date and rolls over wrong
+// between midnight and 05:30 IST.
+function todayLocalYMD(): string {
+  return new Date().toLocaleDateString('en-CA');
+}
+
+// Returns "hh:mm AM/PM" in the process's local timezone.
+function nowLocal12h(): string {
+  return new Date().toLocaleTimeString('en-US', {
+    hour12: true,
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 function mapRow(row: typeof schema.appointments.$inferSelect): Appointment {
   return {
-    id:                   row.id,
-    patientId:            row.patientId,
-    doctorId:             row.doctorId,
-    bookingDate:          row.bookingDate,
-    bookingTime:          row.bookingTime,
-    status:               row.status as AppointmentStatus,
-    visitType:            row.visitType as any,
-    consultationFee:      row.consultationFee,
-    tokenNo:              row.tokenNo,
-    notes:                row.notes,
-    phone:                row.phone,
-    patientName:          row.patientName,
-    cancellationReason:   row.cancellationReason,
-    createdAt:            row.createdAt,
-    updatedAt:            row.updatedAt,
-    deletedAt:            row.deletedAt,
+    id: row.id,
+    patientId: row.patientId,
+    doctorId: row.doctorId,
+    bookingDate: row.bookingDate,
+    bookingTime: row.bookingTime,
+    status: row.status as AppointmentStatus,
+    visitType: row.visitType as any,
+    consultationFee: row.consultationFee,
+    tokenNo: row.tokenNo,
+    notes: row.notes,
+    phone: row.phone,
+    patientName: row.patientName,
+    cancellationReason: row.cancellationReason,
+    clinicId: row.clinicId,
+    unregisteredPatientId: row.unregisteredPatientId,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    deletedAt: row.deletedAt,
   };
 }
 
 export class AppointmentRepositoryPG implements AppointmentRepository {
-  constructor(private readonly db: DbClient) {}
+  constructor(private readonly db: DbClient) { }
 
   // ─── Queries ──────────────────────────────────────────────────────────────
 
   async findMany(filters: AppointmentFilters) {
-    const { date, fromDate, toDate, doctorId, status, search, patientId, page = 1, limit = 50 } = filters;
+    const { date, fromDate, toDate, doctorId, clinicId, status, search, patientId, page = 1, limit = 50 } = filters;
     const offset = (page - 1) * limit;
 
     const conditions: any[] = [isNull(schema.appointments.deletedAt)];
+
+    if (clinicId) {
+      conditions.push(eq(schema.appointments.clinicId, clinicId));
+    }
 
     if (date) {
       conditions.push(sql`(
@@ -62,9 +83,9 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
         OR ${schema.appointments.bookingDate}::text LIKE '%' || TO_CHAR(${date}::date, 'DD/MM/YYYY') || '%'
       )`);
     }
-    if (fromDate)  conditions.push(gte(schema.appointments.bookingDate, fromDate));
-    if (toDate)    conditions.push(lte(schema.appointments.bookingDate, toDate));
-    if (status)    conditions.push(eq(schema.appointments.status, status));
+    if (fromDate) conditions.push(gte(schema.appointments.bookingDate, fromDate));
+    if (toDate) conditions.push(lte(schema.appointments.bookingDate, toDate));
+    if (status) conditions.push(eq(schema.appointments.status, status));
     if (patientId) conditions.push(eq(schema.appointments.patientId, patientId));
     if (search) {
       conditions.push(or(
@@ -101,15 +122,173 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
       .from(schema.appointments)
       .where(where);
 
-    return { 
+    return {
       data: rows.map(r => ({ ...mapRow(r.appointment), doctorName: r.doctorName })),
-      total: countResult?.count ?? 0 
+      total: countResult?.count ?? 0
     };
   }
 
-  async findToday(doctorId?: number) {
-    const today = new Date().toISOString().split('T')[0];
-    
+  async findFollowups(filters: AppointmentFilters) {
+    const { fromDate, toDate, doctorId, clinicId, search, page = 1, limit = 50 } = filters;
+    const offset = (page - 1) * limit;
+    const todayStr = todayLocalYMD();
+
+    // For appointments table: handle booking_date as text (may be YYYY-MM-DD or DD/MM/YYYY)
+    // Helper to safely compare dates regardless of input format (YYYY-MM-DD or DD/MM/YYYY)
+    const safeDateCondition = (col: string, val: string, op: string) => {
+      if (!val) return sql``;
+      const isIso = val.includes('-');
+      const dateVal = isIso ? val : val;
+      const format = isIso ? 'YYYY-MM-DD' : 'DD/MM/YYYY';
+
+      return sql`AND (
+        CASE 
+          WHEN ${sql.raw(col)}::text ~ '^\\d{4}-\\d{2}-\\d{2}' THEN ${sql.raw(col)}::date
+          WHEN ${sql.raw(col)}::text ~ '^\\d{2}/\\d{2}/\\d{4}' THEN TO_DATE(${sql.raw(col)}::text, 'DD/MM/YYYY')
+          ELSE ${sql.raw(col)}::date
+        END ${sql.raw(op)} TO_DATE(${dateVal}, ${format})
+      )`;
+    };
+
+    const getBaseDateCompare = (col: string, op: string) => {
+      return sql`(
+        CASE 
+          WHEN ${sql.raw(col)}::text ~ '^\\d{4}-\\d{2}-\\d{2}' THEN ${sql.raw(col)}::date
+          WHEN ${sql.raw(col)}::text ~ '^\\d{2}/\\d{2}/\\d{4}' THEN TO_DATE(${sql.raw(col)}::text, 'DD/MM/YYYY')
+          ELSE ${sql.raw(col)}::date
+        END ${sql.raw(op)} ${todayStr}::date
+      )`;
+    };
+
+    const fromDateCondition = fromDate ? safeDateCondition('a.booking_date', fromDate, '>=') : sql``;
+    const toDateCondition = toDate ? safeDateCondition('a.booking_date', toDate, '<=') : sql``;
+    const pendingFromDateCondition = fromDate ? safeDateCondition('p.next_date', fromDate, '>=') : sql``;
+    const pendingToDateCondition = toDate ? safeDateCondition('p.next_date', toDate, '<=') : sql``;
+
+    const apptsQuery = sql`
+      SELECT
+        a.id as id,
+        a.patient_id as patient_id,
+        a.doctor_id as doctor_id,
+        (
+          CASE 
+            WHEN a.booking_date::text ~ '^\\d{2}/\\d{2}/\\d{4}' THEN TO_DATE(a.booking_date::text, 'DD/MM/YYYY')
+            ELSE a.booking_date::date
+          END
+        )::date as booking_date,
+        a.booking_time::text as booking_time,
+        a.status::text as status,
+        'Missed'::text as visit_type,
+        a.consultation_fee::numeric as consultation_fee,
+        a.token_no::integer as token_no,
+        a.notes::text as notes,
+        a.phone::text as phone,
+        a.patient_name::text as patient_name,
+        a.cancellation_reason::text as cancellation_reason,
+        a.created_at::timestamp as created_at,
+        a.updated_at::timestamp as updated_at,
+        a.deleted_at::timestamp as deleted_at,
+        a.clinic_id as clinic_id,
+        a.unregistered_patient_id as unregistered_patient_id,
+        COALESCE(
+          d.name, 
+          d.firstname || ' ' || d.surname, 
+          u.name, 
+          'Practitioner'
+        )::text as doctor_name
+      FROM appointments a
+      LEFT JOIN doctors d ON d.id = a.doctor_id
+      LEFT JOIN users u ON u.id = a.doctor_id
+      WHERE a.deleted_at IS NULL
+        AND a.status NOT IN ('Done', 'Visited', 'Completed', 'Cancelled')
+        AND ${getBaseDateCompare('a.booking_date', '<')}
+        ${clinicId ? sql`AND a.clinic_id = ${clinicId}` : sql``}
+        ${doctorId ? sql`AND a.doctor_id = ${doctorId}` : sql``}
+        ${search ? sql`AND (a.patient_name ILIKE ${'%' + search + '%'} OR a.phone ILIKE ${'%' + search + '%'})` : sql``}
+        ${fromDateCondition}
+        ${toDateCondition}
+    `;
+
+    const pendingQuery = sql`
+      SELECT
+        p.id as id,
+        p.regid as patient_id,
+        NULL::integer as doctor_id,
+        (
+          CASE 
+            WHEN p.next_date::text ~ '^\\d{2}/\\d{2}/\\d{4}' THEN TO_DATE(p.next_date::text, 'DD/MM/YYYY')
+            ELSE p.next_date::date
+          END
+        )::date as booking_date,
+        NULL::text as booking_time,
+        p.call_status::text as status,
+        'Next Visit'::text as visit_type,
+        NULL::numeric as consultation_fee,
+        NULL::integer as token_no,
+        NULL::text as notes,
+        cd.mobile1::text as phone,
+        (COALESCE(cd.first_name, '') || ' ' || COALESCE(cd.surname, ''))::text as patient_name,
+        NULL::text as cancellation_reason,
+        p.created_at::timestamp as created_at,
+        p.updated_at::timestamp as updated_at,
+        NULL::timestamp as deleted_at,
+        cd.clinic_id as clinic_id,
+        NULL::integer as unregistered_patient_id,
+        'General'::text as doctor_name
+      FROM pending_appointments p
+      LEFT JOIN case_datas cd ON cd.regid = p.regid
+      WHERE (p.deleted_at IS NULL OR p.deleted_at = '')
+        AND ${getBaseDateCompare('p.next_date', '<=')}
+        ${clinicId ? sql`AND cd.clinic_id = ${clinicId}` : sql``}
+        ${search ? sql`AND ((COALESCE(cd.first_name, '') || ' ' || COALESCE(cd.surname, '')) ILIKE ${'%' + search + '%'} OR cd.mobile1 ILIKE ${'%' + search + '%'})` : sql``}
+        ${pendingFromDateCondition}
+        ${pendingToDateCondition}
+    `;
+
+    const unionQuery = sql`
+      SELECT * FROM (${apptsQuery} UNION ALL ${pendingQuery}) as combined
+      ORDER BY booking_date DESC, id DESC
+      LIMIT ${limit} OFFSET ${offset}
+    `;
+
+    const countQuery = sql`
+      SELECT count(*)::int as total FROM (${apptsQuery} UNION ALL ${pendingQuery}) as combined
+    `;
+
+    const [rows, countRows] = await Promise.all([
+      this.db.execute(unionQuery),
+      this.db.execute(countQuery)
+    ]);
+
+    return {
+      data: (rows as any[]).map(r => ({
+        id: r.id,
+        patientId: r.patient_id,
+        doctorId: r.doctor_id,
+        bookingDate: r.booking_date,
+        bookingTime: r.booking_time,
+        status: r.status,
+        visitType: r.visit_type,
+        consultationFee: r.consultation_fee,
+        tokenNo: r.token_no,
+        notes: r.notes,
+        phone: r.phone,
+        patientName: r.patient_name,
+        cancellationReason: r.cancellation_reason,
+        createdAt: r.created_at,
+        updatedAt: r.updated_at,
+        deletedAt: r.deleted_at,
+        clinicId: r.clinic_id,
+        unregisteredPatientId: r.unregistered_patient_id,
+        doctorName: r.doctor_name
+      })),
+      total: (countRows[0] as any)?.total ?? 0
+    };
+  }
+
+  async findToday(doctorId?: number, clinicId?: number) {
+    const today = todayLocalYMD();
+
     // Using Drizzle select for automatic mapping
     const conditions: any[] = [
       isNull(schema.appointments.deletedAt),
@@ -119,12 +298,17 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
       )`
     ];
 
+    if (clinicId) {
+      conditions.push(sql`(${schema.appointments.clinicId} = ${clinicId} OR ${schema.appointments.clinicId} IS NULL OR ${schema.appointments.clinicId} = 0 OR ${schema.appointments.clinicId} = 1)`);
+    }
+
     if (doctorId) {
       conditions.push(sql`(
         ${schema.appointments.doctorId} = ${doctorId} 
-        OR (SELECT name FROM users WHERE id = ${doctorId}) IN (
-          SELECT name FROM doctors WHERE id = ${schema.appointments.doctorId}
-          UNION SELECT name FROM users WHERE id = ${schema.appointments.doctorId}
+        OR REPLACE(LOWER(TRIM((SELECT name FROM users WHERE id = ${doctorId}))), 'dr. ', '') IN (
+          SELECT REPLACE(LOWER(TRIM(name)), 'dr. ', '') FROM doctors WHERE id = ${schema.appointments.doctorId}
+          UNION SELECT REPLACE(LOWER(TRIM(name)), 'dr. ', '') FROM users WHERE id = ${schema.appointments.doctorId}
+          UNION SELECT REPLACE(LOWER(TRIM(assistant_doctor)), 'dr. ', '') FROM case_datas WHERE id = ${schema.appointments.patientId}
         )
       )`);
     }
@@ -132,7 +316,24 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
     const rows = await this.db
       .select({
         appointment: schema.appointments,
-        doctorName: sql<string>`COALESCE((SELECT name FROM doctors WHERE id = ${schema.appointments.doctorId}), (SELECT name FROM users WHERE id = ${schema.appointments.doctorId}), 'Practitioner')`
+        doctorName: sql<string>`COALESCE(
+          (SELECT name FROM doctors WHERE id = ${schema.appointments.doctorId}), 
+          (SELECT name FROM users WHERE id = ${schema.appointments.doctorId}), 
+          (SELECT name FROM users WHERE id::text = (SELECT assistant_doctor FROM case_datas WHERE id = ${schema.appointments.patientId})),
+          (SELECT name FROM doctors WHERE id::text = (SELECT assistant_doctor FROM case_datas WHERE id = ${schema.appointments.patientId})),
+          (SELECT assistant_doctor FROM case_datas WHERE id = ${schema.appointments.patientId}),
+          'Practitioner'
+        )`,
+        packageName: sql<string>`(
+          SELECT pp.name 
+          FROM patient_packages pk 
+          JOIN package_plans pp ON pp.id = pk.package_id 
+          WHERE pk.patient_id = appointments.patient_id 
+            AND pk.status = 'Active' 
+            AND (pk.deleted_at IS NULL OR pk.deleted_at::text = '')
+          ORDER BY pk.created_at DESC 
+          LIMIT 1
+        )`
       })
       .from(schema.appointments)
       .where(and(...conditions))
@@ -140,7 +341,8 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
 
     return rows.map(r => ({
       ...mapRow(r.appointment),
-      doctorName: r.doctorName
+      doctorName: r.doctorName,
+      packageName: r.packageName
     }));
   }
 
@@ -167,8 +369,7 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
       );
     const bookedTimes = new Set(booked.map(b => b.time).filter(Boolean));
 
-    const kolkataNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
-    const today = kolkataNow.toISOString().split('T')[0] as string;
+    const today = todayLocalYMD();
     const isToday = date === today;
     const currentMins = kolkataNow.getHours() * 60 + kolkataNow.getMinutes();
 
@@ -204,16 +405,20 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
     const [row] = await this.db
       .insert(schema.appointments)
       .values({
-        patientId:       dto.patientId ?? null,
-        doctorId:        dto.doctorId ?? null,
-        bookingDate:     normalizedDate,
-        bookingTime:     dto.bookingTime ?? null,
-        status:          AppointmentStatus.Pending,
-        visitType:       dto.visitType ?? null,
+        clinicId: dto.clinicId ?? null,
+        patientId: dto.patientId ?? null,
+        doctorId: dto.doctorId ?? null,
+        bookingDate: normalizedDate,
+        bookingTime: dto.bookingTime ?? null,
+        status: AppointmentStatus.Pending,
+        visitType: dto.visitType ?? null,
         consultationFee: dto.consultationFee?.toString() ?? null,
-        notes:           dto.notes ?? null,
-        phone:           dto.phone ?? null,
-        patientName:     dto.patientName ?? null,
+        notes: dto.notes ?? null,
+        phone: dto.phone ?? null,
+        patientName: dto.patientName ?? null,
+        unregisteredPatientId: dto.unregisteredPatientId ?? null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       })
       .returning({ id: schema.appointments.id });
     return row?.id ?? 0;
@@ -222,14 +427,15 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
 
   async update(id: number, dto: UpdateAppointmentDto): Promise<void> {
     const fields: Partial<typeof schema.appointments.$inferInsert> = {};
-    if (dto.status           !== undefined) fields.status = dto.status;
-    if (dto.bookingDate      !== undefined) fields.bookingDate = dto.bookingDate;
-    if (dto.bookingTime      !== undefined) fields.bookingTime = dto.bookingTime;
-    if (dto.doctorId         !== undefined) fields.doctorId = dto.doctorId;
-    if (dto.notes            !== undefined) fields.notes = dto.notes;
-    if (dto.visitType        !== undefined) fields.visitType = dto.visitType;
-    if (dto.consultationFee  !== undefined) fields.consultationFee = dto.consultationFee?.toString();
+    if (dto.status !== undefined) fields.status = dto.status;
+    if (dto.bookingDate !== undefined) fields.bookingDate = dto.bookingDate;
+    if (dto.bookingTime !== undefined) fields.bookingTime = dto.bookingTime;
+    if (dto.doctorId !== undefined) fields.doctorId = dto.doctorId;
+    if (dto.notes !== undefined) fields.notes = dto.notes;
+    if (dto.visitType !== undefined) fields.visitType = dto.visitType;
+    if (dto.consultationFee !== undefined) fields.consultationFee = dto.consultationFee?.toString();
     if (dto.cancellationReason !== undefined) fields.cancellationReason = dto.cancellationReason;
+    if (dto.clinicId !== undefined) fields.clinicId = dto.clinicId;
     fields.updatedAt = new Date();
 
     await this.db.update(schema.appointments).set(fields).where(eq(schema.appointments.id, id));
@@ -257,7 +463,7 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
   }
 
   async issueToken(appointmentId: number): Promise<number> {
-    const today = new Date().toISOString().split('T')[0] as string;
+    const today = todayLocalYMD();
 
     // Daily max token across both tokens and appointments table to ensure uniqueness
     const [tokenResult] = await this.db
@@ -281,11 +487,12 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
 
     // Insert into tokens table
     await this.db.insert(schema.tokens).values({
+      clinicId: appt?.clinicId ?? null,
       patientId: appt?.patientId ?? null,
-      doctorId:  appt?.doctorId  ?? null,
-      tokenNo:   nextToken,
-      date:      today,
-      status:    'queued',
+      doctorId: appt?.doctorId ?? null,
+      tokenNo: nextToken,
+      date: today,
+      status: 'queued',
     });
 
     // Stamp token_no on appointment + confirm it
@@ -299,7 +506,7 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
 
   // ─── Waitlist ─────────────────────────────────────────────────────────────
 
-  async getWaitlist(date: string, doctorId?: number): Promise<WaitlistEntry[]> {
+  async getWaitlist(date: string, doctorId?: number, clinicId?: number): Promise<WaitlistEntry[]> {
     const conditions: any[] = [
       isNull(schema.waitlist.deletedAt),
       sql`(
@@ -308,6 +515,10 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
         OR ${schema.waitlist.date}::text LIKE '%' || TO_CHAR(${date}::date, 'DD/MM/YYYY') || '%'
       )`
     ];
+
+    if (clinicId) {
+      conditions.push(eq(schema.waitlist.clinicId, clinicId));
+    }
 
     if (doctorId) {
       conditions.push(sql`(
@@ -319,26 +530,88 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
       )`);
     }
 
-    const rows = await this.db
-      .select({
-        waitlist: schema.waitlist,
-        patientName: sql<string>`COALESCE((SELECT first_name || ' ' || surname FROM patients WHERE id = ${schema.waitlist.patientId}), (SELECT patient_name FROM appointments WHERE id = ${schema.waitlist.appointmentId}))`,
-        doctorName: sql<string>`COALESCE((SELECT name FROM doctors WHERE id = ${schema.waitlist.doctorId}), (SELECT name FROM users WHERE id = ${schema.waitlist.doctorId}), 'Practitioner')`
-      })
-      .from(schema.waitlist)
-      .where(and(...conditions))
-      .orderBy(asc(schema.waitlist.waitingNumber));
+    // Optimized Waitlist with single-trip joins
+    const rows = await this.db.execute(sql`
+      WITH patient_finances AS (
+        SELECT 
+          regid, 
+          sum(balance)::text as total_balance,
+          max(id) as last_bill_id
+        FROM bills 
+        WHERE deleted_at IS NULL
+        GROUP BY regid
+      ),
+      active_packages AS (
+        SELECT DISTINCT ON (patient_id)
+          patient_id,
+          pp.name as pkg_name,
+          pk.expiry_date
+        FROM patient_packages pk
+        JOIN package_plans pp ON pp.id = pk.package_id
+        WHERE pk.status = 'Active' AND pk.deleted_at IS NULL
+        ORDER BY patient_id, pk.created_at DESC
+      )
+      SELECT
+        w.*,
+        COALESCE(p.first_name || ' ' || p.surname, up.name, a.patient_name) as patient_name,
+        COALESCE(
+          d.firstname || ' ' || d.surname, 
+          u.name, 
+          (SELECT name FROM users WHERE id::text = a.assistant_doctor LIMIT 1),
+          (SELECT name FROM doctors WHERE id::text = a.assistant_doctor LIMIT 1),
+          a.assistant_doctor,
+          'Practitioner'
+        )::text as doctor_name,
+        COALESCE(p.mobile1, up.phone, a.phone) as phone
+      FROM waitlist w
+      LEFT JOIN patients p ON p.id = w.patient_id
+      LEFT JOIN unregistered_patients up ON up.id = w.unregistered_patient_id
+      LEFT JOIN appointments a ON a.id = w.appointment_id
+      LEFT JOIN doctors d ON d.id = w.doctor_id
+      LEFT JOIN users u ON u.id = w.doctor_id
+      LEFT JOIN patient_finances pf ON pf.regid = p.regid
+      LEFT JOIN active_packages ap ON ap.patient_id = w.patient_id
+      WHERE (w.deleted_at IS NULL OR w.deleted_at::text = '')
+        AND (
+          w.date::text = ${date} 
+          OR w.date::text = TO_CHAR(${date}::date, 'DD/MM/YYYY')
+          OR w.date::text LIKE '%' || TO_CHAR(${date}::date, 'DD/MM/YYYY') || '%'
+        )
+        ${clinicId ? sql`AND (w.clinic_id = ${clinicId} OR w.clinic_id IS NULL OR w.clinic_id = 0 OR w.clinic_id = 1)` : sql``}
+        ${doctorId ? sql`AND (
+          w.doctor_id = ${doctorId} 
+          OR REPLACE(LOWER(TRIM(u.name)), 'dr. ', '') = REPLACE(LOWER(TRIM((SELECT name FROM users WHERE id = ${doctorId}))), 'dr. ', '')
+          OR REPLACE(LOWER(TRIM(d.name)), 'dr. ', '') = REPLACE(LOWER(TRIM((SELECT name FROM users WHERE id = ${doctorId}))), 'dr. ', '')
+          OR REPLACE(LOWER(TRIM(a.assistant_doctor)), 'dr. ', '') = REPLACE(LOWER(TRIM((SELECT name FROM users WHERE id = ${doctorId}))), 'dr. ', '')
+        )` : sql``}
+      ORDER BY w.waiting_number ASC
+    `);
 
-    return rows.map(r => ({
-      ...r.waitlist,
-      patientName: r.patientName,
-      doctorName: r.doctorName,
-      consultationFee: r.waitlist.consultationFee?.toString() || null,
+    return (rows as any[]).map(r => ({
+      ...r,
+      id: r.id,
+      patientId: r.patient_id,
+      unregisteredPatientId: r.unregistered_patient_id,
+      appointmentId: r.appointment_id,
+      doctorId: r.doctor_id,
+      waitingNumber: r.waiting_number,
+      patientName: r.patient_name,
+      doctorName: r.doctor_name,
+      clinicId: r.clinic_id,
+      balance: r.balance,
+      billId: r.latest_bill_id,
+      packageName: r.package_name,
+      packageExpiry: r.package_expiry,
+      consultationFee: r.consultation_fee?.toString() || null,
+      rowcolor: r.rowcolor || 0,
+      status: r.status,
+      date: r.date
     }));
   }
 
-  async addToWaitlist(dto: { patientId?: number; appointmentId?: number; doctorId?: number; consultationFee?: number }): Promise<number> {
-    const today = new Date().toISOString().split('T')[0] as string;
+  async addToWaitlist(dto: { patientId?: number; appointmentId?: number; doctorId?: number; consultationFee?: number; clinicId?: number }): Promise<number> {
+    const today = todayLocalYMD();
+    const cid = dto.clinicId;
 
     // Preventive check: Is this patient already in the waitlist for today?
     if (dto.patientId) {
@@ -359,8 +632,9 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
         throw new Error('Patient is already in the queue for today.');
       }
     }
-    
+
     let pid = dto.patientId;
+    let upid: number | undefined = undefined;
     let did = dto.doctorId;
     let fee = dto.consultationFee;
 
@@ -369,55 +643,50 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
       const appt = await this.findById(dto.appointmentId);
       if (appt) {
         pid = appt.patientId || undefined;
+        upid = appt.unregisteredPatientId || undefined;
         if (!did) did = appt.doctorId || undefined;
         if (fee === undefined && appt.consultationFee) fee = Number(appt.consultationFee);
 
         // 2. If pid is still null, try finding patient by name/phone from the appointment record
-        if (!pid && appt.patientName) {
-           const [found] = await this.db.execute(sql`
-             SELECT id FROM patients 
-             WHERE (first_name || ' ' || surname ILIKE ${appt.patientName} OR mobile1 = ${appt.phone || ''})
-               AND (deleted_at IS NULL OR deleted_at::text = '' OR deleted_at::text = '0')
-             ORDER BY id DESC LIMIT 1
-           `) as any[];
-           if (found) pid = found.id;
+        if (!pid && !upid && appt.patientName) {
+          const [found] = await this.db.execute(sql`
+              SELECT id FROM patients 
+              WHERE (first_name || ' ' || surname ILIKE ${appt.patientName} OR mobile1 = ${appt.phone || ''})
+                AND (deleted_at IS NULL OR deleted_at::text = '' OR deleted_at::text = '0')
+              ORDER BY id DESC LIMIT 1
+            `) as any[];
+          if (found) pid = found.id;
         }
 
-        // 3. Last Reseach: If still no patient record found, create a new one on-the-fly to satisfy NOT NULL constraint
-        if (!pid) {
-           const names = (appt.patientName || 'Unknown Patient').split(' ');
-           const firstName = names[0] || 'Unknown';
-           const surname = names.slice(1).join(' ') || 'Patient';
-           
-           // Standardize ID generation to match PatientRepositoryPg.create (legacy compatibility)
-           const maxRows = await this.db.execute(sql`SELECT coalesce(max(regid), 1000) as max_regid FROM patients`) as any[];
-           const nextRegid = Number(maxRows[0]?.max_regid || 1000) + 1;
-
-           const [newPat] = await this.db.execute(sql`
-             INSERT INTO patients (id, first_name, surname, mobile1, regid, created_at, updated_at)
-             VALUES (${nextRegid}, ${firstName}, ${surname}, ${appt.phone || ''}, ${nextRegid}, NOW(), NOW())
-             RETURNING id
-           `) as any[];
-           pid = newPat?.id;
+        // 3. Fallback: Check if we have an unregistered patient ID on the appointment
+        if (!pid && !upid && appt.patientName) {
+          // This shouldn't happen with the new logic, but for legacy/safety:
+          // No PID and no UPID on appt? Let's not auto-create a formal patient yet.
+          // Instead, the BookAppointmentUseCase should have created an unregistered patient.
         }
       }
     }
 
-    // Ensure we have a valid PID (Final fallback to a generic patient or error if absolutely needed, 
-    // but the aboveProvision logic should handle 99% of cases)
-    if (!pid) {
-       throw new Error("Could not resolve patient for waitlist. Please ensure patient record exists.");
+    // Ensure we have at least a PID or UPID
+    if (!pid && !upid) {
+      // Last resort: If we are adding to waitlist without an appointment and without PID,
+      // we might need to error or create an unregistered patient.
+      // For now, let's assume BookAppointmentUseCase handled it.
+      if (!dto.appointmentId) {
+        throw new Error("Could not resolve patient for waitlist. Please ensure patient record exists.");
+      }
     }
 
     let finalAppointmentId = dto.appointmentId;
 
     // 4. Create an automatic appointment if this is a direct Token Queue addition (Walk-In)
     if (!finalAppointmentId) {
-      const now = new Date();
-      const timeStr = `${String(now.getHours() % 12 || 12).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} ${now.getHours() >= 12 ? 'PM' : 'AM'}`;
-      
+      const timeStr = nowLocal12h();
+
       const [newAppt] = await this.db.insert(schema.appointments).values({
-        patientId: pid,
+        clinicId: cid ?? null,
+        patientId: pid || null,
+        unregisteredPatientId: upid || null,
         doctorId: did ?? null,
         bookingDate: today,
         bookingTime: timeStr,
@@ -440,35 +709,69 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
 
     const nextNum = (result?.maxNum ?? 0) + 1;
     await this.db.insert(schema.waitlist).values({
-      patientId:       pid,
-      appointmentId:   finalAppointmentId ?? null,
-      doctorId:        did ?? null,
-      waitingNumber:   nextNum,
-      date:            today,
-      status:          0,
+      clinicId: cid ?? null,
+      patientId: pid || null,
+      unregisteredPatientId: upid || null,
+      appointmentId: finalAppointmentId ?? null,
+      doctorId: did ?? null,
+      waitingNumber: nextNum,
+      date: today,
+      status: 0,
       consultationFee: fee?.toString() ?? null,
-      checkedInAt:     new Date(),
+      checkedInAt: new Date(),
     });
     return nextNum;
   }
 
   async callNextInWaitlist(waitlistId: number): Promise<void> {
+    const [target] = await this.db
+      .select()
+      .from(schema.waitlist)
+      .where(eq(schema.waitlist.id, waitlistId));
+
+    if (target && target.doctorId && target.date) {
+      const activeEntries = await this.db
+        .select()
+        .from(schema.waitlist)
+        .where(and(
+          eq(schema.waitlist.doctorId, target.doctorId),
+          eq(schema.waitlist.date, target.date),
+          eq(schema.waitlist.status, 1),
+          ne(schema.waitlist.id, waitlistId)
+        ));
+
+      if (activeEntries.length > 0) {
+        await this.db
+          .update(schema.waitlist)
+          .set({ status: 0, calledAt: null, updatedAt: new Date() })
+          .where(and(
+            eq(schema.waitlist.doctorId, target.doctorId),
+            eq(schema.waitlist.date, target.date),
+            eq(schema.waitlist.status, 1),
+            ne(schema.waitlist.id, waitlistId)
+          ));
+
+        for (const entry of activeEntries) {
+          if (entry.appointmentId) {
+            await this.db
+              .update(schema.appointments)
+              .set({ status: AppointmentStatus.Waitlist, updatedAt: new Date() })
+              .where(eq(schema.appointments.id, entry.appointmentId));
+          }
+        }
+      }
+    }
+
     await this.db
       .update(schema.waitlist)
       .set({ status: 1, calledAt: new Date(), updatedAt: new Date() })
       .where(eq(schema.waitlist.id, waitlistId));
 
-    // SYNC: Ensure linked appointment is also in Consultation status
-    const [row] = await this.db
-      .select({ appointmentId: schema.waitlist.appointmentId })
-      .from(schema.waitlist)
-      .where(eq(schema.waitlist.id, waitlistId));
-
-    if (row?.appointmentId) {
+    if (target?.appointmentId) {
       await this.db
         .update(schema.appointments)
         .set({ status: AppointmentStatus.Consultation, updatedAt: new Date() })
-        .where(eq(schema.appointments.id, row.appointmentId));
+        .where(eq(schema.appointments.id, target.appointmentId));
     }
   }
 
@@ -492,63 +795,46 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
   }
 
   async skipWaitlistEntry(waitlistId: number): Promise<void> {
-    const [entry] = await this.db
-      .select()
-      .from(schema.waitlist)
-      .where(and(
-        eq(schema.waitlist.id, waitlistId),
-        sql`(${schema.waitlist.deletedAt} IS NULL OR ${schema.waitlist.deletedAt}::text = '')`
-      ));
+    // Single-shot atomic skip: resets current patient to waiting, promotes next patient to consultation.
+    // Collapsed from 6 sequential queries into 1 raw SQL block for instant response.
+    const doctorCond = sql`TRUE`; // Will be refined below after fetching entry context
 
-    if (!entry) return;
-
-    // 1. Reset current patient back to waiting in waitlist
-    await this.db
-      .update(schema.waitlist)
-      .set({ status: 0, calledAt: null, updatedAt: new Date() })
-      .where(eq(schema.waitlist.id, waitlistId));
-
-    // SYNC: Also reset current patient's appointment status
-    if (entry.appointmentId) {
-      await this.db
-        .update(schema.appointments)
-        .set({ status: AppointmentStatus.Waitlist, updatedAt: new Date() })
-        .where(eq(schema.appointments.id, entry.appointmentId));
-    }
-
-    // 2. Find the next waiting patient (status=0) for same doctor and date
-    const today = new Date().toISOString().split('T')[0] as string;
-    const conditions: any[] = [
-      sql`(${schema.waitlist.deletedAt} IS NULL OR ${schema.waitlist.deletedAt}::text = '')`,
-      eq(schema.waitlist.status, 0),
-      sql`${schema.waitlist.date}::text LIKE '%' || ${today} || '%'`
-    ];
-    if (entry.doctorId) {
-      conditions.push(eq(schema.waitlist.doctorId, entry.doctorId));
-    }
-
-    const [next] = await this.db
-      .select()
-      .from(schema.waitlist)
-      .where(and(...conditions))
-      .orderBy(asc(schema.waitlist.waitingNumber))
-      .limit(1);
-
-    // 3. Promote next patient to consultation
-    if (next) {
-      await this.db
-        .update(schema.waitlist)
-        .set({ status: 1, calledAt: new Date(), updatedAt: new Date() })
-        .where(eq(schema.waitlist.id, next.id));
-
-      // SYNC: Also set next patient's appointment status to Consultation
-      if (next.appointmentId) {
-        await this.db
-          .update(schema.appointments)
-          .set({ status: AppointmentStatus.Consultation, updatedAt: new Date() })
-          .where(eq(schema.appointments.id, next.appointmentId));
-      }
-    }
+    await this.db.execute(sql`
+      WITH skipped AS (
+        UPDATE waitlist
+        SET status = 0, called_at = NULL, updated_at = NOW()
+        WHERE id = ${waitlistId}
+          AND (deleted_at IS NULL OR deleted_at::text = '')
+        RETURNING id, appointment_id, doctor_id, date
+      ),
+      reset_appt AS (
+        UPDATE appointments
+        SET status = 'Waitlist', updated_at = NOW()
+        FROM skipped s
+        WHERE appointments.id = s.appointment_id
+      ),
+      next_patient AS (
+        SELECT w.id as wl_id, w.appointment_id
+        FROM waitlist w, skipped s
+        WHERE w.status = 0
+          AND w.date = s.date
+          AND w.id != ${waitlistId}
+          AND (w.deleted_at IS NULL OR w.deleted_at::text = '')
+          AND (s.doctor_id IS NULL OR w.doctor_id = s.doctor_id)
+        ORDER BY w.waiting_number ASC
+        LIMIT 1
+      ),
+      promote_wl AS (
+        UPDATE waitlist
+        SET status = 1, called_at = NOW(), updated_at = NOW()
+        FROM next_patient np
+        WHERE waitlist.id = np.wl_id
+      )
+      UPDATE appointments
+      SET status = 'Consultation', updated_at = NOW()
+      FROM next_patient np
+      WHERE appointments.id = np.appointment_id
+    `);
   }
 
   async promoteWaitlist(doctorId: number | null, date: string, time: string | null): Promise<void> {

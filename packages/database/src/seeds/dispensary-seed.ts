@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
-import type { DbClient } from '../client';
-import { dispensaries } from '../schema/settings';
+import type { DbClient } from '../client.js';
+import { dispensaries } from '../schema/settings.js';
 
 export async function seedDispensaries(db: DbClient) {
   console.log('[Seed] Seeding Dispensaries...');

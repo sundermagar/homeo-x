@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
-import { pdfSettings } from '../schema/settings';
-import type { DbClient } from '../client';
+import { pdfSettings } from '../schema/settings.js';
+import type { DbClient } from '../client.js';
 
 export async function seedPdfSettings(db: DbClient) {
   console.log('[Seed] Seeding PDF Settings...');
@@ -8,7 +8,7 @@ export async function seedPdfSettings(db: DbClient) {
   const templates = [
     {
       templateName: 'Standard Prescription',
-      headerHtml: '<h1>Kreed.health Clinical Prescription</h1>',
+      headerHtml: '<h1>MMC Clinical Prescription</h1>',
       footerHtml: '<p>Contact: +91 99999 88888 | www.kreedhealth.com</p>',
       margin: '20mm',
       isDefault: true
@@ -16,7 +16,7 @@ export async function seedPdfSettings(db: DbClient) {
     {
       templateName: 'Medical Certificate',
       headerHtml: '<h1>Medical Fitness Certificate</h1>',
-      footerHtml: '<p>Verified by Authorized Kreed.health Practitioner</p>',
+      footerHtml: '<p>Verified by Authorized MMC Practitioner</p>',
       margin: '25mm',
       isDefault: false
     }

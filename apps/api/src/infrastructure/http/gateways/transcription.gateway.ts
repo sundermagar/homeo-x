@@ -4,8 +4,8 @@
 // Ported from: Ai-Counsultaion/apps/api/src/modules/video-call/transcription.gateway.ts
 
 import type { Server, Socket } from 'socket.io';
-import { createLogger } from '../../../shared/logger';
-import { TranslatorEngine } from '../../../domains/consultation/engines/translator.engine';
+import { createLogger } from '../../../shared/logger.js';
+import { TranslatorEngine } from '../../../domains/consultation/engines/translator.engine.js';
 
 const logger = createLogger('transcription-gateway');
 
@@ -34,7 +34,8 @@ interface ActiveSession {
 }
 
 import speech from '@google-cloud/speech';
-const GoogleSttAdapter = speech;
+// Use the v2 API for Chirp model support and automatic language detection
+const SpeechClientV2 = speech.v2.SpeechClient;
 
 export function setupTranscriptionGateway(io: Server, translator: TranslatorEngine) {
   const transcriptionNs = io.of('/transcription');
@@ -57,8 +58,8 @@ export function setupTranscriptionGateway(io: Server, translator: TranslatorEngi
 
       const { visitId, engine, languageCode, role = 'DOCTOR' } = payload;
 
-      if (engine === 'GOOGLE' && !GoogleSttAdapter) {
-        client.emit('transcription:error', { message: 'Google STT not available. Use Web Speech API.' });
+      if (engine === 'GOOGLE' && !SpeechClientV2) {
+        client.emit('transcription:error', { message: 'Google STT v2 not available. Use Web Speech API.' });
         return;
       }
 
@@ -70,19 +71,70 @@ export function setupTranscriptionGateway(io: Server, translator: TranslatorEngi
 
         let session: any;
 
-        if (engine === 'GOOGLE' && GoogleSttAdapter) {
-          const speechClient = new GoogleSttAdapter.SpeechClient();
-          const recognizeStream = speechClient.streamingRecognize({
-            config: {
-              encoding: 'LINEAR16',
-              sampleRateHertz: 16000,
-              languageCode: languageCode || 'hi-IN',
-              enableAutomaticPunctuation: false, // Disabling this removes the severe 'pausing' delay Google adds to analyze sentences
-              enableWordTimeOffsets: true, 
-              useEnhanced: true, // Forces the premium model to suppress background hallucinations ("apne aap se aana")
+        if (engine === 'GOOGLE' && SpeechClientV2) {
+          const credentialsStr = process.env.GOOGLE_CREDENTIALS_BASE64 
+            ? Buffer.from(process.env.GOOGLE_CREDENTIALS_BASE64, 'base64').toString('utf-8') 
+            : null;
+          const credentials = credentialsStr ? JSON.parse(credentialsStr) : undefined;
+          const projectId = credentials?.project_id;
+          
+          if (!credentialsStr || !projectId) {
+            logger.warn('[STT] No GOOGLE_CREDENTIALS_BASE64 environment variable found or missing project_id');
+          } else {
+            logger.info(`[STT v2] Loaded credentials for project: ${projectId}`);
+          }
+
+          // Location for Chirp model — configurable via env, defaults to us-central1
+          const location = process.env.GOOGLE_STT_LOCATION || 'us-central1';
+          
+          let speechClient: any;
+          try {
+            speechClient = new SpeechClientV2(
+              credentials
+                ? { credentials, projectId, apiEndpoint: `${location}-speech.googleapis.com` }
+                : {}
+            );
+            logger.info(`[STT v2] SpeechClient initialized (location=${location})`);
+          } catch (err: any) {
+            logger.error({ err: err?.message }, '[STT v2] Failed to initialize SpeechClient');
+            client.emit('transcription:error', { 
+              message: 'Failed to initialize speech client. Check GOOGLE_CREDENTIALS_BASE64.',
+              details: err?.message 
+            });
+            return;
+          }
+
+          // ── v2 Streaming: open bidirectional stream ──────────────────────────
+          const recognizeStream = speechClient._streamingRecognize();
+
+          // v2 requires the config as the FIRST write to the stream
+          const recognizer = `projects/${projectId}/locations/${location}/recognizers/_`;
+          recognizeStream.write({
+            recognizer,
+            streamingConfig: {
+              config: {
+                // Auto-detect language using Chirp 2's native auto mode
+                languageCodes: ['auto'],
+                // Only chirp_2 supports streaming. The base 'chirp' model returns CANCELLED.
+                model: 'chirp_2',
+                // Raw PCM from browser has no WAV header, so autoDecodingConfig hangs forever.
+                // We must explicitly specify the encoding.
+                explicitDecodingConfig: {
+                  encoding: 'LINEAR16',
+                  sampleRateHertz: 16000,
+                  audioChannelCount: 1,
+                },
+                features: {
+                  enableAutomaticPunctuation: false,
+                  enableWordTimeOffsets: false,
+                },
+              },
+              streamingFeatures: {
+                interimResults: true,
+              },
             },
-            interimResults: true,
           });
+          logger.info(`[STT v2] Config sent to stream (recognizer=${recognizer}, model=chirp)`);
 
           recognizeStream.on('data', (data: any) => {
             const s = activeSessions.get(client.id);
@@ -99,12 +151,18 @@ export function setupTranscriptionGateway(io: Server, translator: TranslatorEngi
           recognizeStream.on('error', (err: any) => {
             const s = activeSessions.get(client.id);
             if (!s || s.dead || s.generation !== myGeneration) return;
-            logger.warn(`[STT ERROR] socket=${client.id} gen=${myGeneration}: ${err.message || err}`);
+            
+            logger.warn(`[STT v2 ERROR] socket=${client.id} gen=${myGeneration} error=${err?.message || err?.code || err}`);
+            if (err?.details) logger.debug(`[STT v2 ERROR DETAILS] ${JSON.stringify(err.details)}`);
 
             s.errorCount = (s.errorCount || 0) + 1;
             if (s.errorCount > 5 && (Date.now() - s.createdAt) < 10000) {
-              logger.error(`[STT FATAL] socket=${client.id} — rapid failures, killing session`);
-              client.emit('transcription:error', { message: 'Transcription service failed. Check credentials.' });
+              logger.error(`[STT v2 FATAL] socket=${client.id} — rapid failures (${s.errorCount} errors), killing session`);
+              logger.error(`[STT v2 FATAL] Last error: ${err?.message || err?.code || 'unknown'}`);
+              client.emit('transcription:error', { 
+                message: 'Transcription service failed. Verify Google credentials, API permissions, and STT v2 enablement.',
+                details: err?.message || err?.code 
+              });
               killSession(client.id);
               return;
             }
@@ -118,9 +176,11 @@ export function setupTranscriptionGateway(io: Server, translator: TranslatorEngi
           });
 
           session = {
-            send: (chunk: Buffer) => recognizeStream.write(chunk),
+            // v2 requires audio wrapped in { audio: chunk }
+            send: (chunk: Buffer) => recognizeStream.write({ audio: chunk }),
             stop: () => { try { recognizeStream.end(); } catch {} },
           };
+
         } else {
           // Fallback: no-op engine (client uses Web Speech API)
           session = {
@@ -271,9 +331,58 @@ export function setupTranscriptionGateway(io: Server, translator: TranslatorEngi
   function handleTranscriptionResult(client: Socket, visitId: string, data: any, engine: string, session: ActiveSession, translator: TranslatorEngine) {
     const result = data.results?.[0];
     if (!result) return;
-    const text = result.alternatives?.[0]?.transcript;
+    const alternative = result.alternatives?.[0];
+    const text = alternative?.transcript;
     const isFinal = result.isFinal;
     if (!text?.trim()) return;
+
+    // ── Confidence & Hallucination Filter ──────────────────────────────────────
+    // Google STT (especially chirp_2) returns a confidence score only for final results.
+    // It also frequently hallucinates during silence (e.g., counting, "thank you").
+    const confidence: number = alternative?.confidence ?? 1.0;
+    
+    function isHallucination(tStr: string): boolean {
+      const t = tStr.trim().toLowerCase();
+      if (!t || t.length < 2) return true;
+
+      // ── Fixed known phantom phrases ──
+      const fixed = /^(thank you|bye bye|bye-bye|please subscribe|subscribe|hey guys|goodbye|thank you for watching|thanks for watching|amen|amend|testing 1 2 3|1 to 10|1 to 100|1 to 100 counting|counting|i'm going to|i'm gonna|i'm going to go to the bathroom|i'm going to go ahead|i'm going to go ahead and put this|let's go|okay so|so yeah|yeah so|yeah|so|you|hmm|hm|um|uh|oh|okay|ok|right|alright|well|anyway|hello|hi|hey)\\.?$/i;
+      if (fixed.test(t)) return true;
+
+      // ── Counting sequences ──
+      const cleanStr = t.replace(/[,\.]/g, '');
+      if (/1 to 100/i.test(cleanStr) || /1 2 3 4/i.test(cleanStr) || /one two three/i.test(cleanStr)) return true;
+      const isOnlyNumbers = /^[\d\s]+$/.test(cleanStr);
+      if (isOnlyNumbers && cleanStr.split(/\s+/).length >= 2) return true;
+
+      // ── Very short non-medical filler ──
+      // Single words under 4 chars that aren't Hindi/medical terms
+      const words = t.split(/\s+/);
+      if (words.length === 1 && t.length <= 4 && /^[a-z]+$/.test(t)) return true;
+
+      // ── Repetition detector ──
+      // "so so so" or "yeah yeah" — repeated single words
+      if (words.length >= 2 && words.every(w => w === words[0])) return true;
+
+      // ── Common chirp_2 hallucination patterns ──
+      // These are English filler sentences the model generates during silence
+      if (/^i'?m going to (go|put|do|make|get|take|try)/i.test(t) && words.length <= 12) return true;
+      if (/^(let me|let's) (go|do|see|try|put|check)/i.test(t) && words.length <= 8) return true;
+      if (/^(so|and|but|or|well) (i'?m|we|let|the|this|that)$/i.test(t)) return true;
+
+      return false;
+    }
+
+    if (isHallucination(text)) {
+      if (isFinal) session.latestInterimText = undefined;
+      return;
+    }
+
+    if (isFinal && confidence < 0.70) {
+      logger.warn({ confidence, text: text.slice(0, 60) }, '[STT] Dropped low-confidence result');
+      session.latestInterimText = undefined;
+      return;
+    }
 
     const resultTimestamp = Date.now();
     session.lastResultAt = resultTimestamp;

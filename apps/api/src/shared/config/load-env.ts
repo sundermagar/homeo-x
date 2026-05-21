@@ -4,6 +4,15 @@ import dotenv from 'dotenv';
 
 import fs from 'node:fs';
 
+// Pin Node's local timezone to Asia/Kolkata BEFORE any Date object is created
+// elsewhere in the app. Production hosts default to UTC, which made
+// `new Date().getHours()` return UTC hours (5h30m behind IST) — appointments
+// booked at 5:30 PM IST showed up as 12:00 PM. Honour any explicit override
+// from .env / deployment env first.
+if (!process.env.TZ) {
+  process.env.TZ = 'Asia/Kolkata';
+}
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -38,4 +47,5 @@ if (!process.env.JWT_SECRET) {
 }
 
 console.log(`[Env] Current NODE_ENV: ${process.env.NODE_ENV}`);
+console.log(`[Env] Process TZ: ${process.env.TZ} (now=${new Date().toString()})`);
 

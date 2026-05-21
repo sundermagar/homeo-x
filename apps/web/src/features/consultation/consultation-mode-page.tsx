@@ -6,6 +6,7 @@ import { useStartConsultation, useConsultationSummary } from '../../hooks/use-co
 import { useSpecialtyConfig } from '../../hooks/use-specialties';
 import { usePatient } from '../../features/patients/hooks/use-patients';
 import { useConsultationState } from './hooks/use-consultation-state';
+import { ConsultationSkeleton } from './components/consultation-skeleton';
 import { useVideoService } from '../../hooks/use-video-service';
 import { HomeopathyConsultationLayout } from './layouts/homeopathy-consultation-layout';
 import { useAppointment } from '../../features/appointments/hooks/use-appointments';
@@ -29,8 +30,13 @@ export default function ConsultationModePage() {
 
   if (!visitId) return null;
 
-  if (isVisitLoading || isApptLoading || (patientIdToFetch && isPatientLoading)) {
-    return <LoadingState message="Loading consultation details..." />;
+  // We can proceed if we have either the visit OR the appointment data.
+  // We only wait if NEITHER is ready and they are still loading.
+  const isCoreDataReady = !!visit || !!appointment;
+  const isCoreLoading = !isCoreDataReady && (isVisitLoading || isApptLoading);
+  
+  if (isCoreLoading || (patientIdToFetch && isPatientLoading)) {
+    return <ConsultationSkeleton />;
   }
 
   const effectiveVisit: Visit = (visit as Visit) ?? ({

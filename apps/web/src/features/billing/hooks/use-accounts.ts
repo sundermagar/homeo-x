@@ -24,7 +24,10 @@ import type {
   ListExpensesQuery,
   CreateExpenseHeadInput,
   UpdateExpenseHeadInput,
+  CreateChargeInput,
+  UpdateChargeInput,
 } from '@mmc/validation';
+import type { Charge } from '@mmc/types';
 
 
 // ─── Additional Charges Hooks ──────────────────────────────────────────────────
@@ -65,7 +68,18 @@ export function useCreateAdditionalCharge() {
       );
       return data.data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['additional-charges'] }),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['additional-charges'] });
+      qc.invalidateQueries({ queryKey: ['charges'] });
+      qc.invalidateQueries({ queryKey: ['bills'] });
+      qc.invalidateQueries({ queryKey: ['billing', 'daily'] });
+      if (data?.regid) {
+        qc.refetchQueries({ queryKey: ['medical-case', 'full', data.regid] });
+        qc.refetchQueries({ queryKey: ['medical-case', 'full', String(data.regid)] });
+      } else {
+        qc.invalidateQueries({ queryKey: ['medical-case', 'full'] });
+      }
+    },
   });
 }
 
@@ -79,7 +93,17 @@ export function useUpdateAdditionalCharge() {
       );
       return data.data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['additional-charges'] }),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['additional-charges'] });
+      qc.invalidateQueries({ queryKey: ['charges'] });
+      qc.invalidateQueries({ queryKey: ['bills'] });
+      if (data?.regid) {
+        qc.refetchQueries({ queryKey: ['medical-case', 'full', data.regid] });
+        qc.refetchQueries({ queryKey: ['medical-case', 'full', String(data.regid)] });
+      } else {
+        qc.invalidateQueries({ queryKey: ['medical-case', 'full'] });
+      }
+    },
   });
 }
 
@@ -89,7 +113,12 @@ export function useDeleteAdditionalCharge() {
     mutationFn: async (id: number) => {
       await apiClient.delete(`/accounts/additional-charges/${id}`);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['additional-charges'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['additional-charges'] });
+      qc.invalidateQueries({ queryKey: ['charges'] });
+      qc.invalidateQueries({ queryKey: ['bills'] });
+      qc.invalidateQueries({ queryKey: ['medical-case', 'full'] });
+    },
   });
 }
 
@@ -351,5 +380,60 @@ export function useDeleteExpenseHead() {
       await apiClient.delete(`/accounts/expense-heads/${id}`);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['expense-heads'] }),
+  });
+}
+
+// ─── Predefined Charges Hooks ──────────────────────────────────────────────────
+
+export function useCharges() {
+  return useQuery({
+    queryKey: ['charges'],
+    queryFn: async () => {
+      const { data } = await apiClient.get<{ success: boolean; data: Charge[] }>('/charges');
+      return data.data ?? [];
+    },
+  });
+}
+
+export function useCharge(id: number) {
+  return useQuery({
+    queryKey: ['charges', id],
+    queryFn: async () => {
+      const { data } = await apiClient.get<{ success: boolean; data: Charge }>(`/charges/${id}`);
+      return data.data;
+    },
+    enabled: !!id && id > 0,
+  });
+}
+
+export function useCreateCharge() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: CreateChargeInput) => {
+      const { data } = await apiClient.post<{ success: boolean; data: Charge }>('/charges', input);
+      return data.data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['charges'] }),
+  });
+}
+
+export function useUpdateCharge() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...input }: UpdateChargeInput & { id: number }) => {
+      const { data } = await apiClient.put<{ success: boolean; data: Charge }>(`/charges/${id}`, input);
+      return data.data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['charges'] }),
+  });
+}
+
+export function useDeleteCharge() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      await apiClient.delete(`/charges/${id}`);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['charges'] }),
   });
 }

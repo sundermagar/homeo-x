@@ -2,9 +2,8 @@
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "NIXPACKS",
-    "nixpacksPkgs": "# Added nodejs for railway",
-    "installCommand": "pnpm install --frozen-lockfile",
-    "buildCommand": "pnpm build"
+    "installCommand": "pnpm install --frozen-lockfile --prod=false",
+    "buildCommand": "pnpm exec turbo run build --filter=@mmc/api"
   },
   "deploy": {
     "numReplicas": 1,

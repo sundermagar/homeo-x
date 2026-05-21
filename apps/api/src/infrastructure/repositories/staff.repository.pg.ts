@@ -2,9 +2,12 @@ import { sql } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 import type { DbClient } from '@mmc/database';
 import type { StaffMember, StaffSummary, StaffCategory } from '@mmc/types';
-import type { StaffRepository } from '../../domains/staff/ports/staff.repository';
+import type { StaffRepository } from '../../domains/staff/ports/staff.repository.js';
 import type { CreateStaffInput, UpdateStaffInput } from '@mmc/validation';
 import { Role } from '@mmc/types';
+import { createLogger } from '../../shared/logger.js';
+
+const logger = createLogger('StaffRepository');
 
 /**
  * PostgreSQL adapter for StaffRepository port.
@@ -58,8 +61,10 @@ export class StaffRepositoryPg implements StaffRepository {
     page: number;
     limit: number;
     search?: string;
+    sortBy?: string;
+    sortOrder?: 'ASC' | 'DESC';
   }): Promise<{ data: StaffSummary[]; total: number }> {
-    const { category, page, limit, search } = params;
+    const { category, page, limit, search, sortBy, sortOrder } = params;
     const offset = (page - 1) * limit;
     const table = this.getTableName(category);
 
@@ -71,13 +76,18 @@ export class StaffRepositoryPg implements StaffRepository {
 
     const colFragment = sql.join(selectCols.map(c => sql.identifier(c)), sql`, `);
 
+    // Determine sort column and direction with whitelist/validation for safety
+    const allowedSortCols = ['id', 'name', 'email', 'mobile', 'city', 'created_at', 'consultation_fee'];
+    const sortCol = allowedSortCols.includes(sortBy || '') ? (sortBy as string) : 'id';
+    const sortDir = (sortOrder === 'ASC' || sortOrder === 'DESC') ? sortOrder : (sortBy === 'name' ? 'ASC' : 'DESC');
+
     // We only select columns confirmed to exist in the legacy schema
     const rows = await this.db.execute(sql`
       SELECT ${colFragment}
       FROM ${sql.identifier(table)}
       WHERE (deleted_at IS NULL OR deleted_at::text = '')
       ${searchSafe ? sql`AND (name ILIKE ${searchSafe} OR email ILIKE ${searchSafe} OR mobile ILIKE ${searchSafe})` : sql``}
-      ORDER BY name ASC
+      ORDER BY ${sql.identifier(sortCol)} ${sql.raw(sortDir)}
       LIMIT ${limit} OFFSET ${offset}
     `);
 
@@ -120,9 +130,10 @@ export class StaffRepositoryPg implements StaffRepository {
 
     try {
       const rows = await this.db.execute(sql`
-          SELECT ${colFragment}
-          FROM ${sql.identifier(table)}
-          WHERE id = ${id} AND (deleted_at IS NULL OR deleted_at::text = '')
+          SELECT s.*, u.context_id as user_context_id
+          FROM ${sql.identifier(table)} s
+          LEFT JOIN users u ON u.id = s.id
+          WHERE s.id = ${id} AND (s.deleted_at IS NULL OR s.deleted_at::text = '')
           LIMIT 1
         `);
 
@@ -174,6 +185,7 @@ export class StaffRepositoryPg implements StaffRepository {
     // This ensures consistency across the platform.
     // context_id is set to clinicId so login can resolve the correct tenant
     const contextId = (data as any).clinicId || 1;
+    logger.info(`StaffRepository: Mirroring to users table with contextId=${contextId} for ${data.email}`);
     const userMirrorResult = await this.db.execute(sql`
       INSERT INTO users (
         name, email, password, type, context_id,
@@ -188,7 +200,7 @@ export class StaffRepositoryPg implements StaffRepository {
     nextId = userId; // Force staff ID to match user ID
     roleAssignId = userId;
 
-    // ─── 1. Insert into specific Staff table ───
+    // ─── 1. Insert into specific Staff table + 2. Assign Role (PARALLEL) ───
     const staffCols = [
       'id', 'name', 'email', 'mobile', 'mobile2', 'gender', 'designation', 'dept', 'city', 'address', 'about',
       'date_birth', 'date_left', 'salary_cur', 'password'
@@ -199,13 +211,11 @@ export class StaffRepositoryPg implements StaffRepository {
       data.dateBirth || null, data.dateLeft || null, data.salaryCur || 0, hashedPassword
     ];
 
-    // Add clinic_id for clinic admins — ties the admin to their organization
     if (category === 'clinicadmin' && (data as any).clinicId) {
       staffCols.push('clinic_id');
       staffVals.push((data as any).clinicId);
     }
 
-    // Add doctor-specific columns if applicable
     if (category === 'doctor') {
       staffCols.push(
         'title', 'firstname', 'middlename', 'surname', 'qualification', 'instutitue', 'passedout',
@@ -224,17 +234,17 @@ export class StaffRepositoryPg implements StaffRepository {
       );
     }
 
-    await this.db.execute(sql`
-      INSERT INTO ${sql.identifier(table)} (${sql.join(staffCols.map(c => sql.raw(c)), sql`, `)}, created_at, updated_at)
-      VALUES (${sql.join(staffVals.map(v => sql`${v}`), sql`, `)}, NOW(), NOW())
-    `);
-
-    // ─── 2. Assign Role ───
-    await this.db.execute(sql`
-      INSERT INTO role_user (id, user_id, role_id, created_at)
-      VALUES ((SELECT COALESCE(MAX(id), 0) + 1 FROM role_user), ${roleAssignId}, ${roleId}, NOW())
-      ON CONFLICT (id) DO NOTHING
-    `);
+    await Promise.all([
+      this.db.execute(sql`
+        INSERT INTO ${sql.identifier(table)} (${sql.join(staffCols.map(c => sql.raw(c)), sql`, `)}, created_at, updated_at)
+        VALUES (${sql.join(staffVals.map(v => sql`${v}`), sql`, `)}, NOW(), NOW())
+      `),
+      this.db.execute(sql`
+        INSERT INTO role_user (id, user_id, role_id, created_at)
+        VALUES ((SELECT COALESCE(MAX(id), 0) + 1 FROM role_user), ${roleAssignId}, ${roleId}, NOW())
+        ON CONFLICT (id) DO NOTHING
+      `)
+    ]);
 
     const created = await this.findById(category, nextId);
     if (!created) throw new Error('Failed to retrieve created staff member');
@@ -320,6 +330,10 @@ export class StaffRepositoryPg implements StaffRepository {
       sql`email = ${data.email ?? existing.email}`,
       sql`updated_at = NOW()`
     ];
+
+    if ((data as any).clinicId) {
+      userUpdates.push(sql`context_id = ${(data as any).clinicId}`);
+    }
     if (data.password) {
       const hashed = await bcrypt.hash(data.password, 10);
       userUpdates.push(sql`password = ${hashed}`);
@@ -403,7 +417,7 @@ export class StaffRepositoryPg implements StaffRepository {
       registrationId: row.registrationId ?? row.registrationid ?? null,
       consultationFee: row.consultation_fee ?? null,
       permanentAddress: row.permanentaddress ?? null,
-      clinicId: row.clinic_id ?? null,
+      clinicId: row.clinic_id ?? row.user_context_id ?? null,
       aadharnumber: row.aadharnumber ?? null,
       pannumber: row.pannumber ?? null,
       aadharCard: row.aadhar_card ?? null,

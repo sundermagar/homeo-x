@@ -1,5 +1,5 @@
-import type { PackageRepository } from '../ports/package.repository';
-import { ok } from '../../../shared/result';
+import type { PackageRepository } from '../ports/package.repository.js';
+import { ok } from '../../../shared/result.js';
 
 export class GetPackageAnalyticsUseCase {
   constructor(private readonly repo: PackageRepository) {}

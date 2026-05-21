@@ -1,3 +1,5 @@
+export type BillType = 'Consultation' | 'Package' | 'Registration' | 'Custom';
+
 // ─── Bill Domain Entity ───────────────────────────────────────────────────────
 
 export interface Bill {
@@ -19,6 +21,8 @@ export interface Bill {
   chargeId: number | null;
   doctorId: number | null;
   notes: string | null;
+  billType?: BillType;
+  customTitle?: string | null;
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;

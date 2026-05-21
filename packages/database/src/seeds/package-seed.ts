@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
-import { packagePlans } from '../schema/packages';
-import type { DbClient } from '../client';
+import { packagePlans } from '../schema/packages.js';
+import type { DbClient } from '../client.js';
 
 export async function seedPackages(db: DbClient) {
   console.log('[Seed] Seeding Membership Packages...');

@@ -1,7 +1,7 @@
-# Legacy MMC → Kreed.health Mapping (Memory)
+# Legacy MMC → MMC Mapping (Memory)
 
 ## Key Entity Mapping
-| Domain | Legacy (MySQL) | Kreed.health (PostgreSQL) |
+| Domain | Legacy (MySQL) | MMC (PostgreSQL) |
 |---|---|---|
 | Users | `users`, `roles`, `permissions` | `users`, `roles`, `permissions`, `permission_role` |
 | Patients | `case_datas`, `basic_details` | `case_datas` |

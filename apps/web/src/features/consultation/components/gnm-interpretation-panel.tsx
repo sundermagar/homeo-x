@@ -115,7 +115,7 @@ function MatchBadge({ strength }: { strength: string }) {
     moderate: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
   };
   return (
-    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${colors[strength] || colors.moderate}`}>
+    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${colors[strength] || colors['moderate']}`}>
       {strength.charAt(0).toUpperCase() + strength.slice(1)} Match
     </span>
   );
@@ -140,7 +140,7 @@ export function GnmInterpretationPanel({
   const subjectiveRef = useRef<HTMLTextAreaElement>(null);
   const notesRef = useRef<HTMLTextAreaElement>(null);
 
-  const autoResize = (ref: React.RefObject<HTMLTextAreaElement>) => {
+  const autoResize = (ref: React.RefObject<HTMLTextAreaElement | null>) => {
     if (ref.current) {
       ref.current.style.height = 'auto';
       ref.current.style.height = `${ref.current.scrollHeight}px`;

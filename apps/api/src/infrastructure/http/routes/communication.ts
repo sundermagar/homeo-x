@@ -8,13 +8,26 @@ import { GetSmsReportsUseCase } from '../../../domains/communication/use-cases/g
 import { SendSmsUseCase } from '../../../domains/communication/use-cases/send-sms.use-case.js';
 import { SendWhatsAppUseCase } from '../../../domains/communication/use-cases/send-whatsapp.use-case.js';
 import { CommunicationRepositoryPG } from '../../repositories/communication.repository.pg.js';
+import { WhatsAppRepositoryPG } from '../../repositories/whatsapp.repository.pg.js';
+import { WhatsAppCloudGateway } from '../../communication/whatsapp-cloud-gateway.js';
 import { NodemailerServiceAdapter } from '../../communication/nodemailer.service.js';
 import { createSmsGateway } from '../../communication/msg91-sms-gateway.js';
-import { createWhatsAppGateway } from '../../communication/bulk-shooters-whatsapp-gateway.js';
+import { PatientRepositoryPg } from '../../repositories/patient.repository.pg.js';
 
-// ─── Gateway singletons (one per process) ─────────────────────────────────────
+// ─── Gateway singletons ────────────────────────────────────────────────────────
 const smsGateway = createSmsGateway();
-const whatsappGateway = createWhatsAppGateway();
+
+// WhatsApp uses Meta Cloud API — gateway is instantiated per request (needs tenant DB)
+const getWaUseCase = (req: any) => {
+  const waRepo = new WhatsAppRepositoryPG(req.tenantDb);
+  const cloudGateway = new WhatsAppCloudGateway(waRepo);
+  return new SendWhatsAppUseCase(
+    new CommunicationRepositoryPG(req.tenantDb),
+    waRepo,
+    cloudGateway,
+    new PatientRepositoryPg(req.tenantDb)
+  );
+};
 
 export const communicationRouter: Router = Router();
 
@@ -71,15 +84,15 @@ communicationRouter.get('/reports', asyncHandler(async (req, res) => {
   const uc = new GetSmsReportsUseCase(getRepo(req));
   const { regid, sms_type, status, from_date, to_date, phone, search, page, limit } = req.query as Record<string, string>;
   const result = await uc.execute({
-    regid:    regid      ? Number(regid)      : undefined,
-    smsType:  sms_type  ? sms_type           : undefined,
-    status:   status    ? status             : undefined,
-    fromDate: from_date  ? from_date          : undefined,
-    toDate:   to_date  ? to_date            : undefined,
-    phone:    phone   ? phone              : undefined,
-    search:   search  ? search             : undefined,
-    page:     page     ? Number(page)       : 1,
-    limit:    limit    ? Number(limit)      : 50,
+    regid: regid ? Number(regid) : undefined,
+    smsType: sms_type ? sms_type : undefined,
+    status: status ? status : undefined,
+    fromDate: from_date ? from_date : undefined,
+    toDate: to_date ? to_date : undefined,
+    phone: phone ? phone : undefined,
+    search: search ? search : undefined,
+    page: page ? Number(page) : 1,
+    limit: limit ? Number(limit) : 50,
   });
   if (result.success) sendSuccess(res, result.data);
 }));
@@ -107,22 +120,26 @@ communicationRouter.post('/sms/broadcast', asyncHandler(async (req, res) => {
   }
 }));
 
-// ─── WhatsApp ──────────────────────────────────────────────────────────────────
+// ─── WhatsApp (Meta Cloud API) ─────────────────────────────────────────────────
+// All WhatsApp messaging now goes through the Meta WhatsApp Cloud API.
+// Channel credentials are stored per-tenant in the wa_channels table.
 
 // POST /api/communications/whatsapp/send — single
 communicationRouter.post('/whatsapp/send', asyncHandler(async (req, res) => {
-  const uc = new SendWhatsAppUseCase(getRepo(req), whatsappGateway);
+  const uc: SendWhatsAppUseCase = getWaUseCase(req);
+  const clinicId = (req as any).user?.contextId;
   const { phone, message, regid } = req.body;
-  const result = await uc.sendSingle({ phone, message, regid });
-  if (result.success) sendSuccess(res, result.data, 'WhatsApp link generated');
+  const result = await uc.sendSingle({ phone, message, regid, clinicId });
+  if (result.success) sendSuccess(res, result.data, 'WhatsApp sent via Meta Cloud API');
   else throw new BadRequestError(String(result.error));
 }));
 
 // POST /api/communications/whatsapp/broadcast
 communicationRouter.post('/whatsapp/broadcast', asyncHandler(async (req, res) => {
-  const uc = new SendWhatsAppUseCase(getRepo(req), whatsappGateway);
+  const uc: SendWhatsAppUseCase = getWaUseCase(req);
+  const clinicId = (req as any).user?.contextId;
   const { patientIds, phone, message } = req.body;
-  const result = await uc.broadcast({ patientIds, phone, message });
+  const result = await uc.broadcast({ patientIds, phone, message, clinicId });
   if (result.success) sendSuccess(res, result.data, `WhatsApp: ${result.data?.sent ?? 0} sent`);
   else throw new BadRequestError(String(result.error));
 }));
@@ -147,7 +164,7 @@ communicationRouter.post('/otp/send', asyncHandler(async (req, res) => {
   const sms = new SendSmsUseCase(getRepo(req), smsGateway);
   await sms.sendSingle({
     phone,
-    message: `Your Kreed.health OTP is: ${otp}. Valid for 10 minutes. Do not share.`,
+    message: `Your MMC OTP is: ${otp}. Valid for 10 minutes. Do not share.`,
     smsType: 'OTP',
   });
 

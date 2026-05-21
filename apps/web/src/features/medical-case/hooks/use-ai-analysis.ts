@@ -84,7 +84,12 @@ export function useAiAnalysisStream(): UseAiAnalysisStreamReturn {
     abortControllerRef.current = controller;
 
     const token = useAuthStore.getState().token;
-    const baseURL = import.meta.env['VITE_API_URL'] || '/api';
+    let baseURL = import.meta.env['VITE_API_URL'];
+    if (baseURL) {
+      baseURL = baseURL.endsWith('/api') ? baseURL : `${baseURL}/api`;
+    } else {
+      baseURL = '/api';
+    }
 
     // Set a hard timeout — if no first data chunk arrives within 15s, abort
     timeoutRef.current = setTimeout(() => {

@@ -4,8 +4,6 @@ import type {
   SmsTemplate, SmsReport,
   CreateSmsTemplateDto, UpdateSmsTemplateDto,
   SendSmsDto, BroadcastSmsDto,
-  SendWhatsAppDto, BroadcastWhatsAppDto,
-  WhatsAppLog,
 } from '@mmc/types';
 
 // ─── Query Keys ──────────────────────────────────────────────────────────────
@@ -91,27 +89,44 @@ export function useBroadcastSms() {
   });
 }
 
-// ─── WhatsApp ──────────────────────────────────────────────────────────────────
+// ─── WhatsApp (Meta Cloud API) ──────────────────────────────────────────────────────────
+// All hooks now route through /api/whatsapp/* (Meta Cloud API, channel from wa_channels)
+
+/** Send a single WhatsApp text message via Meta Cloud API */
 export function useSendWhatsApp() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (dto: SendWhatsAppDto) => apiClient.post('/communications/whatsapp/send', dto),
+    mutationFn: ({ phone, message }: { phone: string; message: string }) =>
+      apiClient.post('/whatsapp/send-text', { phone, message }).then(r => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: commKeys.whatsappLogs }),
   });
 }
 
+/** Broadcast a WhatsApp text message to multiple phones via Meta Cloud API (unified WABA) */
 export function useBroadcastWhatsApp() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (dto: BroadcastWhatsAppDto) => apiClient.post('/communications/whatsapp/broadcast', dto),
+    mutationFn: async ({ phones, message }: { phones: string[]; message: string }) => {
+      // Send each phone through the unified WABA endpoint
+      const results = await Promise.allSettled(
+        phones.map(phone =>
+          apiClient.post('/whatsapp/send-text', { phone, message }).then(r => r.data)
+        )
+      );
+      const sent = results.filter(r => r.status === 'fulfilled').length;
+      const failed = results.filter(r => r.status === 'rejected').length;
+      return { success: true, sent, failed };
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: commKeys.whatsappLogs }),
   });
 }
 
+
+/** Fetch legacy WhatsApp send logs */
 export function useWhatsAppLogs() {
   return useQuery({
     queryKey: commKeys.whatsappLogs,
-    queryFn: () => apiClient.get<{ success: boolean; data: WhatsAppLog[] }>('/communications/whatsapp/logs').then(r => r.data.data ?? []),
+    queryFn: () => apiClient.get('/communications/whatsapp/logs').then(r => (r.data as any).data ?? []),
     staleTime: 60_000,
   });
 }

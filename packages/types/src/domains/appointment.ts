@@ -1,8 +1,9 @@
-import type { AppointmentStatus, VisitType, TokenStatus } from '../enums';
+import type { AppointmentStatus, VisitType, TokenStatus } from '../enums.js';
 
 export interface Appointment {
   id: number;
   patientId: number | null;
+  unregisteredPatientId: number | null;
   doctorId: number | null;
   bookingDate: string | null;          // YYYY-MM-DD
   bookingTime: string | null;          // "09:00 AM"
@@ -14,10 +15,13 @@ export interface Appointment {
   phone: string | null;
   patientName: string | null;
   cancellationReason: string | null;
+  clinicId: number | null;
   // Joined fields (from API)
   doctorName?: string;
   patientNameFromCase?: string;
   patientMobile?: string;
+  packageName?: string;
+  packageExpiry?: string;
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
@@ -30,6 +34,7 @@ export interface Token {
   tokenNo: number;
   date: string;                        // YYYY-MM-DD
   status: TokenStatus;
+  clinicId: number | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -37,6 +42,7 @@ export interface Token {
 export interface WaitlistEntry {
   id: number;
   patientId: number | null;
+  unregisteredPatientId: number | null;
   appointmentId: number | null;
   doctorId: number | null;
   waitingNumber: number;
@@ -46,10 +52,17 @@ export interface WaitlistEntry {
   checkedInAt: Date | null;
   calledAt: Date | null;
   completedAt: Date | null;
+  clinicId: number | null;
   // Joined fields
   patientName?: string;
   patientMobile?: string;
   doctorName?: string;
+  balance?: string;
+  billId?: number;
+  packageName?: string;
+  packageExpiry?: string;
+
+  rowcolor?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -63,6 +76,7 @@ export interface AvailabilitySlot {
 
 export interface CreateAppointmentDto {
   patientId?: number;
+  unregisteredPatientId?: number;
   patientName?: string;
   phone?: string;
   doctorId?: number;
@@ -72,6 +86,7 @@ export interface CreateAppointmentDto {
   consultationFee?: number;
   notes?: string;
   allowWaitlist?: boolean;
+  clinicId?: number;
 }
 
 export interface UpdateAppointmentDto {
@@ -83,4 +98,5 @@ export interface UpdateAppointmentDto {
   visitType?: VisitType;
   consultationFee?: number;
   cancellationReason?: string;
+  clinicId?: number;
 }

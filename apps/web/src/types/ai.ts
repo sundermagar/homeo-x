@@ -126,6 +126,7 @@ export interface CategorizedSymptoms {
 }
 
 export interface SuggestQuestionsInput {
+  visitId?: string;
   consultationMode: ConsultationMode;
   transcript?: string;
   answeredQuestions?: string[];
@@ -135,6 +136,7 @@ export interface SuggestQuestionsInput {
 }
 
 export interface ExtractSymptomsInput {
+  visitId?: string;
   consultationMode: ConsultationMode;
   question: string;
   answer: string;
@@ -312,6 +314,33 @@ export interface GnmAnalysis {
   confidence: number;
 }
 
+// ─── Follow-Up Assessment Types ───
+
+export type FollowUpDecision = 'REPEAT' | 'CHANGE' | 'ADVICE_ONLY';
+
+export interface FollowUpAssessment {
+  decision: FollowUpDecision;
+  improvementPercent: number;
+  heringLawObservations: string[];
+  chiefComplaintStatus: string;
+  generalWellbeing: string;
+  newSymptoms: string[];
+  currentRemedyReview: string;
+  suggestedAction: string;
+  potencyAdjustment?: string;
+  alternativeRemedy?: {
+    name: string;
+    potency: string;
+    dosage: string;
+    reasoning: string;
+  };
+  dietaryAdvice: string[];
+  lifestyleAdvice: string[];
+  followUpTimeline: string;
+  clinicalNotes: string;
+  confidence: number;
+}
+
 export interface HomeopathyConsultResult {
   clinicalData: ClinicalExtractionResult;
   diagnosisData: DiagnosisSuggestion;
@@ -337,4 +366,5 @@ export interface HomeopathyConsultResult {
   };
   caseSummary?: string;
   gnmAnalysis?: GnmAnalysis | null;
+  followUpAssessment?: FollowUpAssessment;
 }

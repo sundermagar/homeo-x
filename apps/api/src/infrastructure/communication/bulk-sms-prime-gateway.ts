@@ -1,8 +1,8 @@
 import https from 'node:https';
 import http from 'node:http';
 import { URL } from 'node:url';
-import type { SmsGateway, SmsPayload, SmsGatewayResult } from '../../domains/communication/ports/sms-gateway';
-import { createLogger } from '../../shared/logger';
+import type { SmsGateway, SmsPayload, SmsGatewayResult } from '../../domains/communication/ports/sms-gateway.js';
+import { createLogger } from '../../shared/logger.js';
 
 const logger = createLogger('bulksmsprime-gateway');
 
@@ -57,7 +57,7 @@ export class BulkSmsPrimeGateway implements SmsGateway {
           timeout: 15000,
           family: 4, // 🔌 Force IPv4 to resolve legacy DNS issues
           headers: {
-            'User-Agent': 'HomeoX-API/1.0',
+            'User-Agent': 'KreedHealth-API/1.0',
           }
         };
 

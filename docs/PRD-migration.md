@@ -1,8 +1,8 @@
-# PRD: MMC → Kreed.health Migration
+# PRD: MMC → MMC Migration
 
 ## Overview
 
-Migrate ManageMyClinic (MMC-javascript) to Kreed.health — an enterprise-grade, modular clinical management platform built on TypeScript, PostgreSQL, and DDD with adapter pattern.
+Migrate ManageMyClinic (MMC-javascript) to MMC — an enterprise-grade, modular clinical management platform built on TypeScript, PostgreSQL, and DDD with adapter pattern.
 
 **Source**: [MMC-javascript](https://github.com/insteptech/MMC-javascript) (Express + MySQL + React JS)
 **Target**: [kreed-health](https://github.com/sundermagar/kreed-health) (Turborepo + Drizzle + PostgreSQL + React TS)

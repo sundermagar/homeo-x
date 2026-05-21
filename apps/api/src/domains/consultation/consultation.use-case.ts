@@ -2,19 +2,21 @@
 // Orchestrates the complete AI consultation pipeline.
 // Hexagonal Architecture: Domain use case that depends on ports, not adapters.
 
-import { createLogger } from '../../shared/logger';
-import { AiProviderChain, getAiProviderChain } from '../../infrastructure/ai/ai-provider-chain';
-import { TranslatorEngine } from './engines/translator.engine';
-import { SoapStructuringEngine } from './engines/soap-structuring.engine';
-import { ClinicalExtractionEngine } from './engines/clinical-extraction.engine';
-import { RepertorizationEngine } from './engines/repertorization.engine';
-import { HomeopathyPrescriptionEngine } from './engines/homeopathy-prescription.engine';
-import { CaseSummaryEngine } from './engines/case-summary.engine';
-import type { SoapSuggestion } from './engines/soap-structuring.engine';
-import type { ClinicalExtractionResult } from './engines/clinical-extraction.engine';
-import type { RubricExtractionResult, RepertorizationResult } from './engines/repertorization.engine';
-import type { HomeopathyPrescriptionDraft } from './engines/homeopathy-prescription.engine';
-import type { CaseSummary } from './engines/case-summary.engine';
+import { createLogger } from '../../shared/logger.js';
+import { AiProviderChain, getAiProviderChain } from '../../infrastructure/ai/ai-provider-chain.js';
+import { TranslatorEngine } from './engines/translator.engine.js';
+import { SoapStructuringEngine } from './engines/soap-structuring.engine.js';
+import { ClinicalExtractionEngine } from './engines/clinical-extraction.engine.js';
+import { RepertorizationEngine } from './engines/repertorization.engine.js';
+import { HomeopathyPrescriptionEngine } from './engines/homeopathy-prescription.engine.js';
+import { CaseSummaryEngine } from './engines/case-summary.engine.js';
+import { FollowUpAssessmentEngine } from './engines/followup-assessment.engine.js';
+import type { FollowUpAssessment } from './engines/followup-assessment.engine.js';
+import type { SoapSuggestion } from './engines/soap-structuring.engine.js';
+import type { ClinicalExtractionResult } from './engines/clinical-extraction.engine.js';
+import type { RubricExtractionResult, RepertorizationResult } from './engines/repertorization.engine.js';
+import type { HomeopathyPrescriptionDraft } from './engines/homeopathy-prescription.engine.js';
+import type { CaseSummary } from './engines/case-summary.engine.js';
 
 const logger = createLogger('consultation-use-case');
 
@@ -29,6 +31,10 @@ export interface HomeopathyConsultInput {
   consultationMode?: 'acute' | 'chronic' | 'followup';
   thermalReaction?: string;
   miasm?: string;
+  thirstPattern?: string;
+  sleepPosition?: string;
+  perspiration?: string;
+  doctorNotes?: string;
 }
 
 export interface HomeopathyConsultResult {
@@ -40,6 +46,7 @@ export interface HomeopathyConsultResult {
   prescriptionDraft: HomeopathyPrescriptionDraft;
   gnmAnalysis?: any;
   caseSummary: string;
+  followUpAssessment?: FollowUpAssessment;
   pipeline: {
     phasesCompleted: number;
     totalPhases: number;
@@ -54,6 +61,7 @@ export class ConsultationUseCase {
   private repertorizationEngine: RepertorizationEngine;
   private prescriptionEngine: HomeopathyPrescriptionEngine;
   private summaryEngine: CaseSummaryEngine;
+  private followUpEngine: FollowUpAssessmentEngine;
 
   constructor(private providerChain?: AiProviderChain) {
     const chain = providerChain || getAiProviderChain();
@@ -63,6 +71,7 @@ export class ConsultationUseCase {
     this.repertorizationEngine = new RepertorizationEngine(chain);
     this.prescriptionEngine = new HomeopathyPrescriptionEngine(chain);
     this.summaryEngine = new CaseSummaryEngine(chain);
+    this.followUpEngine = new FollowUpAssessmentEngine(chain);
   }
 
   /**
@@ -84,9 +93,11 @@ export class ConsultationUseCase {
     let phasesCompleted = 0;
 
     // Phase 1: Translate transcript
-    logger.info({ tenantId }, 'Phase 1: Translation');
+    let phaseStart = Date.now();
+    logger.info({ tenantId }, 'Phase 1: Translation — STARTED');
     const englishTranscript = await this.translator.translateToEnglish(tenantId, userId, input.transcript);
     phasesCompleted++;
+    logger.info({ tenantId, elapsedMs: Date.now() - phaseStart }, 'Phase 1: Translation — DONE');
 
     // Phase 1.5: Medical-intent gate — short-circuit if the transcript is clearly
     // non-medical (greetings only, mic test, silence). Saves ~5 expensive AI calls
@@ -97,8 +108,16 @@ export class ConsultationUseCase {
       return this.buildEmptyConsultResult(start, phasesCompleted);
     }
 
+    // ── Follow-up fork ──
+    // If the consultation mode is 'followup', run a specialized shorter pipeline
+    // that evaluates remedy response instead of doing full repertorization.
+    if (input.consultationMode === 'followup') {
+      return this.consultFollowUp(tenantId, userId, input, englishTranscript, start, phasesCompleted);
+    }
+
     // Phase 2: Clinical extraction
-    logger.info({ tenantId }, 'Phase 2: Clinical extraction');
+    phaseStart = Date.now();
+    logger.info({ tenantId }, 'Phase 2: Clinical extraction — STARTED');
     const extraction = await this.extractionEngine.extract(tenantId, userId, {
       transcript: englishTranscript,
       labReports: input.labReports,
@@ -108,9 +127,11 @@ export class ConsultationUseCase {
       specialty: input.specialty || 'HOMEOPATHY',
     });
     phasesCompleted++;
+    logger.info({ tenantId, elapsedMs: Date.now() - phaseStart }, 'Phase 2: Clinical extraction — DONE');
 
     // Phase 3: SOAP generation
-    logger.info({ tenantId }, 'Phase 3: SOAP structuring');
+    phaseStart = Date.now();
+    logger.info({ tenantId }, 'Phase 3: SOAP structuring — STARTED');
     const soap = await this.soapEngine.generateSoap(tenantId, userId, {
       transcript: englishTranscript,
       chiefComplaint: input.chiefComplaint,
@@ -119,9 +140,11 @@ export class ConsultationUseCase {
       patientGender: input.patientGender,
     });
     phasesCompleted++;
+    logger.info({ tenantId, elapsedMs: Date.now() - phaseStart }, 'Phase 3: SOAP structuring — DONE');
 
     // Phase 4: Rubric extraction
-    logger.info({ tenantId, consultationMode: input.consultationMode }, 'Phase 4: Rubric extraction');
+    phaseStart = Date.now();
+    logger.info({ tenantId, consultationMode: input.consultationMode }, 'Phase 4: Rubric extraction — STARTED');
     const rubrics = await this.repertorizationEngine.extractRubrics(tenantId, userId, {
       chiefComplaint: input.chiefComplaint,
       subjective: soap.subjective,
@@ -136,9 +159,11 @@ export class ConsultationUseCase {
       consultationMode: input.consultationMode,
     });
     phasesCompleted++;
+    logger.info({ tenantId, elapsedMs: Date.now() - phaseStart }, 'Phase 4: Rubric extraction — DONE');
 
     // Phase 5: Remedy scoring
-    logger.info({ tenantId }, 'Phase 5: Repertorization scoring');
+    phaseStart = Date.now();
+    logger.info({ tenantId }, 'Phase 5: Repertorization scoring — STARTED');
     const repertorization = await this.repertorizationEngine.scoreRemedies(tenantId, userId, {
       selectedRubrics: rubrics.suggestedRubrics.map(r => ({
         rubricId: r.rubricId,
@@ -149,11 +174,17 @@ export class ConsultationUseCase {
       // Doctor input takes precedence over AI-detected values from extraction.
       thermalReaction: input.thermalReaction || extraction.thermalReaction,
       miasm: input.miasm || extraction.miasm,
+      thirstPattern: input.thirstPattern,
+      sleepPosition: input.sleepPosition,
+      perspiration: input.perspiration,
+      doctorNotes: input.doctorNotes,
     });
     phasesCompleted++;
+    logger.info({ tenantId, elapsedMs: Date.now() - phaseStart }, 'Phase 5: Repertorization scoring — DONE');
 
     // Phase 6: Prescription
-    logger.info({ tenantId }, 'Phase 6: Prescription generation');
+    phaseStart = Date.now();
+    logger.info({ tenantId }, 'Phase 6: Prescription generation — STARTED');
     const prescription = await this.prescriptionEngine.generatePrescription(
       tenantId,
       userId,
@@ -171,19 +202,22 @@ export class ConsultationUseCase {
       }
     );
     phasesCompleted++;
+    logger.info({ tenantId, elapsedMs: Date.now() - phaseStart }, 'Phase 6: Prescription generation — DONE');
 
     // Phase 7: Summary
-    logger.info({ tenantId }, 'Phase 7: Case summary');
+    phaseStart = Date.now();
+    logger.info({ tenantId }, 'Phase 7: Case summary — STARTED');
     const summary = await this.summaryEngine.generateSummary(tenantId, userId, {
       observations: extraction.observations,
       clinicalFindings: extraction.clinicalFindings,
-      selectedRemedies: repertorization.scoredRemedies.slice(0, 3).map(r => ({
+      selectedRemedies: repertorization.scoredRemedies.slice(0, 3).map((r: any) => ({
         name: r.remedyName,
         score: r.normalizedScore,
       })),
       soapData: { subjective: soap.subjective, objective: soap.objective, assessment: soap.assessment, plan: soap.plan },
     });
     phasesCompleted++;
+    logger.info({ tenantId, elapsedMs: Date.now() - phaseStart }, 'Phase 7: Case summary — DONE');
 
     const totalLatencyMs = Date.now() - start;
     logger.info({ tenantId, totalLatencyMs, phasesCompleted }, 'Consultation pipeline complete');
@@ -255,7 +289,11 @@ Focus on:
 - Duration/onset
 - Physical generals
 
-Respond ONLY with a JSON array of objects with keys "q" (the question text) and "c" (category: one of symptom, modality, mental, general, history). Do not output any other text.`,
+Respond ONLY with a JSON array in this exact format, no other text:
+[
+  {"q": "When does the pain worsen?", "c": "modality"},
+  {"q": "How is your sleep?", "c": "general"}
+]`,
         userPrompt: input.transcript.slice(-2000), // only last part of transcript
         temperature: 0.3,
         maxTokens: 500,
@@ -277,6 +315,141 @@ Respond ONLY with a JSON array of objects with keys "q" (the question text) and 
     }
   }
 
+  /**
+   * Follow-up consultation pipeline (shorter, remedy-evaluation focused):
+   * 1. (Translation already done)
+   * 2. SOAP Structuring
+   * 3. Follow-Up Assessment (REPEAT / CHANGE / ADVICE_ONLY)
+   * 4. Case Summary
+   */
+  private async consultFollowUp(
+    tenantId: string,
+    userId: string,
+    input: HomeopathyConsultInput,
+    englishTranscript: string,
+    start: number,
+    phasesCompleted: number,
+  ): Promise<HomeopathyConsultResult> {
+    // Phase 2: SOAP generation
+    logger.info({ tenantId }, 'Follow-up Phase 2: SOAP structuring');
+    const soap = await this.soapEngine.generateSoap(tenantId, userId, {
+      transcript: englishTranscript,
+      chiefComplaint: input.chiefComplaint,
+      specialty: input.specialty || 'HOMEOPATHY',
+      patientAge: input.patientAge,
+      patientGender: input.patientGender,
+    });
+    phasesCompleted++;
+
+    // Phase 3: Follow-Up Assessment (replaces phases 4-6 of new-case pipeline)
+    logger.info({ tenantId }, 'Follow-up Phase 3: Follow-up assessment');
+    const assessment = await this.followUpEngine.assess(tenantId, userId, {
+      transcript: englishTranscript,
+      chiefComplaint: input.chiefComplaint,
+      patientAge: input.patientAge,
+      patientGender: input.patientGender,
+      soapData: {
+        subjective: soap.subjective,
+        objective: soap.objective,
+        assessment: soap.assessment,
+      },
+    });
+    phasesCompleted++;
+
+    // Phase 4: Case Summary
+    logger.info({ tenantId }, 'Follow-up Phase 4: Case summary');
+    const summary = await this.summaryEngine.generateSummary(tenantId, userId, {
+      observations: [],
+      clinicalFindings: [],
+      selectedRemedies: assessment.decision === 'CHANGE' && assessment.alternativeRemedy
+        ? [{ name: assessment.alternativeRemedy.name, score: assessment.confidence }]
+        : [],
+      soapData: {
+        subjective: soap.subjective,
+        objective: soap.objective,
+        assessment: soap.assessment,
+        plan: assessment.suggestedAction,
+      },
+    });
+    phasesCompleted++;
+
+    const totalLatencyMs = Date.now() - start;
+    logger.info(
+      { tenantId, totalLatencyMs, phasesCompleted, decision: assessment.decision },
+      'Follow-up pipeline complete'
+    );
+
+    // Build a prescription draft from the follow-up assessment
+    const prescriptionDraft: HomeopathyPrescriptionDraft = {
+      consultationSummary: assessment.clinicalNotes,
+      diagnosis: assessment.chiefComplaintStatus,
+      materiaMedicaValidation: assessment.currentRemedyReview,
+      suggestedRemedy: assessment.decision === 'CHANGE' && assessment.alternativeRemedy
+        ? assessment.alternativeRemedy.name
+        : '',
+      suggestedRemedies: assessment.decision === 'CHANGE' && assessment.alternativeRemedy
+        ? [{
+            remedyName: assessment.alternativeRemedy.name,
+            potency: assessment.alternativeRemedy.potency,
+            dosage: assessment.alternativeRemedy.dosage,
+          }]
+        : [],
+      potency: assessment.decision === 'CHANGE' && assessment.alternativeRemedy
+        ? assessment.alternativeRemedy.potency
+        : assessment.potencyAdjustment || '',
+      dosage: assessment.decision === 'CHANGE' && assessment.alternativeRemedy
+        ? assessment.alternativeRemedy.dosage
+        : '',
+      safetyWarnings: [],
+      missingInformation: [],
+      advice: [
+        ...assessment.dietaryAdvice,
+        ...assessment.lifestyleAdvice,
+      ],
+      followUp: assessment.followUpTimeline,
+      confidence: assessment.confidence,
+      gnmAnalysis: null,
+    };
+
+    return {
+      soap,
+      clinicalData: {
+        observations: [],
+        clinicalFindings: [],
+        mentalState: [],
+        emotionProfile: [],
+        physicalSymptoms: [],
+        generalSymptoms: [],
+        modalities: { aggravation: [], amelioration: [] },
+        confidence: assessment.confidence,
+      } as any,
+      diagnosisData: {
+        primaryDiagnosis: { name: assessment.chiefComplaintStatus, icdCode: '' },
+        differentials: [],
+        redFlags: [],
+        suggestedInvestigations: [],
+        confidence: assessment.confidence,
+        auditLogId: 'followup-assessment',
+      },
+      rubricsResult: {
+        suggestedRubrics: [],
+        provisionalDiagnosis: null,
+        differentials: [],
+        overallConfidence: assessment.confidence,
+      } as any,
+      remedyScores: { scoredRemedies: [] } as any,
+      prescriptionDraft,
+      gnmAnalysis: null,
+      caseSummary: summary.summary,
+      followUpAssessment: assessment,
+      pipeline: {
+        phasesCompleted,
+        totalPhases: 4,
+        totalLatencyMs,
+      },
+    };
+  }
+
   async parseLabReport(tenantId: string, userId: string, input: { filename: string; mimeType: string; base64: string }) {
     if (!input.base64) throw new Error('No document data provided');
 
@@ -289,35 +462,53 @@ Respond ONLY with a JSON array of objects with keys "q" (the question text) and 
       || input.filename?.toLowerCase().endsWith('.pdf');
 
     let extractedText = '';
+    let pdfParseError: string | null = null;
     if (isPdf) {
       try {
         const buffer = Buffer.from(input.base64, 'base64');
+        logger.info({ filename: input.filename, bufferLength: buffer.length }, '[parseLabReport] Attempting PDF extraction');
+        
+        if (!buffer || buffer.length === 0) {
+          throw new Error('PDF buffer is empty');
+        }
         // pdf-parse v1's package index.js eagerly tries to read a test PDF
         // (a known bug). Importing the inner module path bypasses that.
         // @ts-ignore — no types for the inner module path
         const pdfParseModule: any = await import('pdf-parse/lib/pdf-parse.js');
         const pdfParse = pdfParseModule.default || pdfParseModule;
+        
+        if (typeof pdfParse !== 'function') {
+          throw new Error('pdf-parse module imported but did not export a function');
+        }
+
         const result = await pdfParse(buffer);
         extractedText = (result?.text || '').trim();
+        logger.info({ filename: input.filename, textLength: extractedText.length, numPages: result?.numpages }, '[parseLabReport] PDF extraction successful');
       } catch (err: any) {
-        logger.error({ err: err?.message, filename: input.filename }, 'PDF text extraction failed');
+        pdfParseError = err?.message || String(err);
+        logger.error({ err: pdfParseError, filename: input.filename, stack: err?.stack }, 'PDF text extraction failed');
         extractedText = '';
       }
     }
 
     if (!extractedText) {
-      logger.warn({ filename: input.filename }, 'No text extractable from PDF — returning empty');
-      return { parsedText: '' };
+      logger.warn({ filename: input.filename, pdfParseError }, 'No text extractable from PDF — returning empty');
+      // Return success with empty parsedText (the UI handles this gracefully)
+      // rather than a 500. Include the parse error in metadata so a doctor
+      // can see why the file didn't yield text.
+      return { parsedText: '', parseError: pdfParseError ?? 'No text found in PDF (likely scanned/image-only)' } as any;
     }
 
-    // Step 2 — normalize the raw PDF text into clean markdown so the
-    // downstream symptom-extraction prompt sees structured, easy-to-read
-    // values + reference ranges. We give the AI the REAL text (not the PDF)
-    // so it can't hallucinate.
-    const chain = this.providerChain || getAiProviderChain();
-
-    const response = await chain.complete({
-      systemPrompt: `You are a lab-report normalizer. You will be given the RAW TEXT extracted from a lab PDF (possibly with broken layout, OCR artifacts, repeated headers).
+    // Step 2 — normalize the raw PDF text into clean markdown.
+    // If the AI provider chain fails (rate limit, no key, network), fall back
+    // to the raw extracted text so the upload doesn't 500 and the doctor still
+    // gets *something* useful.
+    let cleaned = '';
+    try {
+      const chain = this.providerChain || getAiProviderChain();
+      logger.info({ filename: input.filename, textPreview: extractedText.slice(0, 100) }, '[parseLabReport] Attempting AI normalization');
+      const response = await chain.complete({
+        systemPrompt: `You are a lab-report normalizer. You will be given the RAW TEXT extracted from a lab PDF (possibly with broken layout, OCR artifacts, repeated headers).
 
 Your job: produce a clean markdown summary that preserves EVERY numerical value, unit, and reference range exactly as written. Group values by panel (CBC, LFT, RFT, Lipid, Thyroid, etc.) when possible.
 
@@ -337,22 +528,33 @@ Output format example:
 - Total Cholesterol: 245 mg/dL (Ref: <200) (HIGH)
 
 DO NOT invent values. DO NOT add interpretive prose. DO NOT skip values.`,
-      userPrompt: `Raw PDF text from "${input.filename || 'lab.pdf'}":
+        userPrompt: `Raw PDF text from "${input.filename || 'lab.pdf'}":
 """
 ${extractedText.slice(0, 20000)}
 """
 
 Output the cleaned markdown summary now. If the text contains no actual lab data (e.g. only headers or random PDF artifacts), return the literal string "NO_LAB_DATA".`,
-      maxTokens: 2000,
-      temperature: 0.1,
-    });
-
-    const cleaned = (response.content || '').trim();
-    if (!cleaned || cleaned === 'NO_LAB_DATA') {
-      return { parsedText: '' };
+        maxTokens: 2000,
+        temperature: 0.1,
+      });
+      cleaned = (response.content || '').trim();
+      logger.info({ filename: input.filename, responseLength: cleaned.length }, '[parseLabReport] AI normalization successful');
+    } catch (aiErr: any) {
+      logger.warn(
+        { err: aiErr?.message, filename: input.filename, stack: aiErr?.stack },
+        'AI normalization failed — falling back to raw extracted text',
+      );
+      cleaned = '';
     }
 
-    return { parsedText: cleaned };
+    if (!cleaned || cleaned === 'NO_LAB_DATA') {
+      // Fall back: return the raw text so the doctor still sees lab values
+      // even when the AI normalizer is unavailable.
+      const rawTrimmed = extractedText.slice(0, 20000).trim();
+      return { parsedText: rawTrimmed, normalizer: 'raw-fallback' } as any;
+    }
+
+    return { parsedText: cleaned, normalizer: 'ai' } as any;
   }
 
   // ─── Medical-intent gate ─────────────────────────────────────────────────

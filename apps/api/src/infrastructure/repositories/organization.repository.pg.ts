@@ -2,7 +2,7 @@ import { eq, isNull, and, desc } from 'drizzle-orm';
 import { organizations } from '@mmc/database/schema';
 import type { DbClient } from '@mmc/database';
 import type { Organization, CreateOrganizationInput, UpdateOrganizationInput } from '@mmc/types';
-import type { OrganizationRepository } from '../../domains/platform/ports/organization.repository';
+import type { OrganizationRepository } from '../../domains/platform/ports/organization.repository.js';
 
 export class OrganizationRepositoryPg implements OrganizationRepository {
   constructor(private readonly db: DbClient) { }
@@ -83,6 +83,11 @@ export class OrganizationRepositoryPg implements OrganizationRepository {
       description: row.description ?? '',
       adminEmail: row.adminEmail ?? '',
       adminPassword: row.adminPassword ?? '',
+      registrationFee: (row as any).registrationFee ?? 0,
+      tagLine: row.tagLine ?? '',
+      registration: row.registration ?? '',
+      logo: row.logo ?? '',
+      timing: row.timing ?? '',
       deletedAt: row.deletedAt?.toISOString() ?? null,
       createdAt: row.createdAt?.toISOString() ?? new Date().toISOString(),
       updatedAt: row.updatedAt?.toISOString() ?? new Date().toISOString(),

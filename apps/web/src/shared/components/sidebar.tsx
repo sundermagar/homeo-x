@@ -38,6 +38,7 @@ import {
   FileJson,
   UserCheck,
   ChevronDown,
+  ChevronRight,
   Sparkles,
   Clock,
   Send,
@@ -51,14 +52,20 @@ import {
   DollarSign,
   PlusCircle,
   BrainCircuit,
+  BellDot,
   type LucideIcon,
   Truck,
   CreditCard,
   Sun,
+  Bot,
+  Zap,
   Moon,
 } from 'lucide-react';
+import mmcIconOrange from '../../assets/mmc-icon-orange-transparent.png';
 import { useAuthStore } from '../stores/auth-store';
 import { useUiStore } from '../stores/ui-store';
+import { useQuery } from '@tanstack/react-query';
+import { apiClient } from '../../infrastructure/api-client';
 import '../styles/sidebar.css';
 
 // ─── Role Definitions ────────────────────────────────────────────────────────
@@ -84,202 +91,15 @@ interface NavGroup {
   label: string;
   icon: LucideIcon;
   children: NavChild[];
-  /** Roles allowed to see this group. Undefined = visible to all. */
   roles?: UserRole[];
-  /** If set, clicking the group header also navigates to this path */
   defaultPath?: string;
 }
 
 type NavItem =
-  | { type: 'link'; path: string; label: string; icon: LucideIcon; roles?: UserRole[] }
+  | { type: 'link'; path: string; label: string; icon: LucideIcon; roles?: UserRole[]; badge?: number }
   | { type: 'group'; group: NavGroup };
 
-const NAV_STRUCTURE: NavItem[] = [
-  {
-    type: 'link',
-    path: '/',
-    label: 'Dashboard',
-    icon: LayoutDashboard,
-    roles: ALL,
-  },
-  {
-    type: 'group',
-    group: {
-      id: 'patients-group',
-      label: 'Patients',
-      icon: Users,
-      roles: ALL,
-      children: [
-        { path: '/patients', label: 'Patient List', icon: Users },
-        { path: '/family-groups', label: 'Family Groups', icon: Layers },
-      ],
-    },
-  },
-  {
-    type: 'group',
-    group: {
-      id: 'appointments',
-      label: 'Appointments',
-      icon: CalendarClock,
-      roles: ALL,
-      children: [
-        { path: '/appointments', label: 'List View', icon: CalendarClock },
-        { path: '/appointments/calendar', label: 'Calendar', icon: Calendar },
-        { path: '/appointments/queue', label: 'Token Queue', icon: Ticket },
-      ],
-    },
-  },
-  {
-    type: 'group',
-    group: {
-      id: 'clinical',
-      label: 'Clinical Hub',
-      icon: Stethoscope,
-      roles: CLINICAL,
-      children: [
-        // { path: '/consultation-history', label: 'Case History', icon: BarChart2 },
-        { path: '/vitals-check', label: 'Height & Weight Check', icon: Scale },
-        // { path: '/medical-cases', label: 'Medical Cases', icon: Stethoscope },
-        { path: '/ai-remedy-chart', label: 'Materia Medica', icon: BookOpen },
-        { path: '/ai-analysis', label: 'AI Analysis', icon: BrainCircuit },
-      ],
-    },
-  },
-  {
-    type: 'group',
-    group: {
-      id: 'memberships',
-      label: 'Memberships',
-      icon: Package,
-      roles: ADMIN,
-      children: [
-        { path: '/packages', label: 'Package Plans', icon: Layers },
-        { path: '/packages/tracking', label: 'Tracking', icon: CalendarCheck },
-      ],
-    },
-  },
-  {
-    type: 'group',
-    group: {
-      id: 'communications',
-      label: 'Communications',
-      icon: MessageSquare,
-      roles: ADMIN,
-      children: [
-        { path: '/communications/sms', label: 'Send SMS', icon: Send },
-        { path: '/communications/templates', label: 'Templates', icon: MessageCircle },
-        { path: '/communications/reports', label: 'SMS Reports', icon: BarChart2 },
-        { path: '/communications/whatsapp', label: 'WhatsApp', icon: MessageSquare },
-      ],
-    },
-  },
-  {
-    type: 'group',
-    group: {
-      id: 'analytics',
-      label: 'Analytics',
-      icon: PieChart,
-      roles: ADMIN,
-      defaultPath: '/analytics',
-      children: [
-        { path: '/analytics', label: 'Dashboard', icon: BarChart2 },
-        {
-          path: '/analytics/reports',
-          label: 'Reports',
-          icon: PieChart,
-          children: [
-            { path: '/analytics/reports/financial', label: 'Financial Grid', icon: Activity },
-            { path: '/analytics/reports/dues', label: 'Outstanding Dues', icon: CreditCard },
-            { path: '/analytics/reports/birthdays', label: 'Birthday List', icon: Gift },
-            { path: '/analytics/reports/references', label: 'Referrals & Sources', icon: Users },
-          ]
-        },
-        { path: '/analytics/export', label: 'Export Data', icon: FileJson },
-        { path: '/analytics/stocks', label: 'Inventory Logs', icon: Database },
-      ],
-    },
-  },
-  {
-    type: 'group',
-    group: {
-      id: 'finance',
-      label: 'Finance',
-      icon: Receipt,
-      roles: ['SuperAdmin', 'Admin', 'Clinicadmin', 'Receptionist'],
-      children: [
-        {
-          path: '/billing', label: 'Billing', icon: Receipt,
-          children: [
-            { path: '/billing', label: 'Bill List', icon: Receipt },
-            { path: '/billing/additional-charges', label: 'Additional Charges', icon: PlusCircle },
-            { path: '/billing/day-charges', label: 'Day Charges', icon: Calendar },
-            { path: '/billing/deposits', label: 'Deposits', icon: Building },
-            { path: '/billing/expenses', label: 'Expenses', icon: DollarSign },
-          ]
-        },
-        { path: '/payments', label: 'Payment Ledger', icon: Banknote },
-        { path: '/settings/expenses', label: 'Expense Categories', icon: Wallet },
-      ],
-    },
-  },
-  {
-    type: 'group',
-    group: {
-      id: 'platform',
-      label: 'Staff & Platform',
-      icon: Building2,
-      roles: ['SuperAdmin', 'Admin', 'Clinicadmin'],
-      children: [
-        { path: '/platform/doctors', label: 'Doctors', icon: Stethoscope },
-        { path: '/platform/employees', label: 'Employees', icon: User },
-        { path: '/platform/receptionists', label: 'Receptionists', icon: Phone },
-        { path: '/platform/clinicadmins', label: 'Clinic Admins', icon: Shield },
-        { path: '/platform/account-managers', label: 'Account Mgrs', icon: Briefcase },
-        { path: '/platform/clinics', label: 'Clinics', icon: Building2, roles: ['SuperAdmin', 'Admin'] },
-        { path: '/platform/accounts', label: 'Accounts', icon: UserCog },
-        { path: '/settings/roles', label: 'Roles & Access', icon: UserCheck, roles: ['SuperAdmin', 'Admin'] },
-      ],
-    },
-  },
-  {
-    type: 'group',
-    group: {
-      id: 'operations-hub',
-      label: 'Operations Hub',
-      icon: Settings,
-      roles: ['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor'],
-      children: [
-        { path: '/operations?tab=logistics', label: 'Logistics & Couriers', icon: Layers },
-        { path: '/operations?tab=crm', label: 'Lead CRM & Promos', icon: Users },
-        { path: '/operations?tab=knowledge', label: 'Medical Knowledge base', icon: BookOpen },
-        { path: '/operations?tab=tools', label: 'Global Data Tools', icon: Settings },
-      ],
-    },
-  },
-  {
-    type: 'group',
-    group: {
-      id: 'settings',
-      label: 'System Settings',
-      icon: Settings,
-      roles: ADMIN,
-      children: [
-        { path: '/settings/departments', label: 'Departments', icon: Layers },
-        { path: '/settings/medicines', label: 'Medicine Catalog', icon: Pill },
-        { path: '/settings/potencies', label: 'Potencies', icon: Sparkles },
-        { path: '/settings/frequencies', label: 'Dosage Frequencies', icon: Clock },
-        { path: '/settings/dispensaries', label: 'Dispensaries', icon: Hospital },
-        { path: '/settings/referrals', label: 'Referral Sources', icon: UserPlus },
-        { path: '/settings/stickers', label: 'Medicine Stickers', icon: StickyNote },
-        { path: '/settings/cms', label: 'Content (CMS)', icon: Globe },
-        { path: '/settings/pdf', label: 'PDF & Reports', icon: FileText },
-        { path: '/settings/faqs', label: 'Help & FAQs', icon: HelpCircle },
-      ],
-    },
-  },
-];
-
-// ─── Role Normalizer ─────────────────────────────────────────────────────────
+// ... existing helper functions ...
 
 function normalizeRole(raw: string | undefined | null): UserRole | null {
   if (!raw) return null;
@@ -304,8 +124,6 @@ function getRoleLabel(role: UserRole | null): string {
   return labels[role];
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
@@ -324,17 +142,260 @@ function isGroupActive(group: NavGroup, currentLocation: string): boolean {
   });
 }
 
-// ─── Component ───────────────────────────────────────────────────────────────
-
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { user, logout } = useAuthStore();
-  const { darkMode, toggleDarkMode } = useUiStore();
+  const { darkMode, toggleDarkMode, sidebarCollapsed, toggleSidebarCollapse } = useUiStore();
   const navigate = useNavigate();
   const location = useLocation();
 
+  const { data: unreadResponse } = useQuery({
+    queryKey: ['courier-unread-count'],
+    queryFn: async () => {
+      const { data } = await apiClient.get('/courier/unread-count');
+      return data.data as { count: number };
+    },
+    refetchInterval: 60000,
+    enabled: !!user
+  });
+  const unreadCount = unreadResponse?.count || 0;
+
+  const NAV_STRUCTURE: NavItem[] = [
+    {
+      type: 'link',
+      path: '/',
+      label: 'Dashboard',
+      icon: LayoutDashboard,
+      roles: ALL,
+    },
+
+    {
+      type: 'group',
+      group: {
+        id: 'patients-group',
+        label: 'Patients',
+        icon: Users,
+        roles: ALL,
+        children: [
+          { path: '/patients', label: 'Patient List', icon: Users },
+          { path: '/patients/queue', label: 'Patient Queue', icon: Clock },
+          { path: '/family-groups', label: 'Family Groups', icon: Layers },
+        ],
+      },
+    },
+    {
+      type: 'group',
+      group: {
+        id: 'appointments',
+        label: 'Appointments',
+        icon: CalendarClock,
+        roles: ALL,
+        children: [
+          { path: '/appointments', label: 'List View', icon: CalendarClock },
+          { path: '/appointments/calendar', label: 'Calendar', icon: Calendar },
+          { path: '/appointments/queue', label: 'Token Queue', icon: Ticket },
+        ],
+      },
+    },
+    {
+      type: 'group',
+      group: {
+        id: 'clinical',
+        label: 'Clinical Hub',
+        icon: Stethoscope,
+        roles: CLINICAL,
+        children: [
+          { path: '/vitals-check', label: 'Height & Weight Check', icon: Scale },
+          // { path: '/medical-cases', label: 'Medical Cases', icon: Stethoscope },
+          // { path: '/ai-remedy-chart', label: 'Materia Medica', icon: BookOpen },
+          // { path: '/ai-analysis', label: 'AI Analysis', icon: BrainCircuit },
+          { path: '/clinical/remedy-chart', label: 'Remedy Chart', icon: Activity },
+          { path: '/medical-cases/followups', label: 'Follow-up Dues', icon: BellDot },
+        ],
+      },
+    },
+    {
+      type: 'group',
+      group: {
+        id: 'memberships',
+        label: 'Memberships',
+        icon: Package,
+        roles: ADMIN,
+        children: [
+          { path: '/packages', label: 'Package Plans', icon: Layers },
+          { path: '/packages/tracking', label: 'Tracking', icon: CalendarCheck },
+        ],
+      },
+    },
+    /*
+    {
+      type: 'group',
+      group: {
+        id: 'communications',
+        label: 'Communications',
+        icon: MessageSquare,
+        roles: ADMIN,
+        children: [
+          { path: '/communications/sms', label: 'Send SMS', icon: Send },
+          { path: '/communications/templates', label: 'Templates', icon: MessageCircle },
+          { path: '/communications/reports', label: 'SMS Reports', icon: BarChart2 },
+          { path: '/communications/birthdays', label: 'Birthday Broadcast', icon: Gift },
+        ],
+      },
+    },
+    */
+    {
+      type: 'group',
+      group: {
+        id: 'whatsapp-module',
+        label: 'WhatsApp Pro',
+        icon: MessageCircle,
+        roles: ALL,
+        children: [
+          { path: '/communications/whatsapp/overview', label: 'Dashboard', icon: LayoutDashboard },
+          { path: '/communications/whatsapp/inbox', label: 'Team Inbox', icon: MessageSquare },
+          { path: '/communications/whatsapp/contacts', label: 'Contacts', icon: Users },
+          { path: '/communications/whatsapp/campaigns', label: 'Campaigns', icon: Send },
+          { path: '/communications/whatsapp/templates', label: 'Templates', icon: FileText },
+          { path: '/communications/whatsapp/automations', label: 'Automations', icon: Zap },
+          { path: '/communications/whatsapp/chatbots', label: 'AI Chatbot', icon: Bot },
+          { path: '/communications/whatsapp/analytics', label: 'Analytics', icon: BarChart2 },
+          { path: '/communications/whatsapp/widget-builder', label: 'Widget Builder', icon: Bot },
+          { path: '/communications/whatsapp/channels', label: 'WABA Channels', icon: Globe },
+        ],
+      },
+    },
+    {
+      type: 'group',
+      group: {
+        id: 'analytics',
+        label: 'Analytics',
+        icon: PieChart,
+        roles: ADMIN,
+        defaultPath: '/analytics',
+        children: [
+          { path: '/analytics', label: 'Dashboard', icon: BarChart2 },
+          {
+            path: '/analytics/reports',
+            label: 'Reports',
+            icon: PieChart,
+            children: [
+              { path: '/analytics/reports/financial', label: 'Financial Grid', icon: Activity },
+              { path: '/analytics/reports/dues', label: 'Outstanding Dues', icon: CreditCard },
+              { path: '/analytics/reports/birthdays', label: 'Birthday List', icon: Gift },
+              { path: '/analytics/reports/references', label: 'Referrals & Sources', icon: Users },
+            ]
+          },
+          { path: '/analytics/export', label: 'Export Data', icon: FileJson },
+          { path: '/analytics/stocks', label: 'Inventory Logs', icon: Database },
+        ],
+      },
+    },
+    {
+      type: 'group',
+      group: {
+        id: 'finance',
+        label: 'Finance',
+        icon: Receipt,
+        roles: ['SuperAdmin', 'Admin', 'Clinicadmin', 'Receptionist'],
+        children: [
+          {
+            path: '/billing', label: 'Billing', icon: Receipt,
+            children: [
+              { path: '/billing', label: 'Bill List', icon: Receipt },
+              { path: '/billing/additional-charges', label: 'Additional Charges', icon: Receipt },
+              { path: '/billing/day-charges', label: 'Day Charges', icon: Calendar },
+              { path: '/billing/deposits', label: 'Deposits', icon: Building },
+              { path: '/billing/expenses', label: 'Expenses', icon: DollarSign },
+            ]
+          },
+          { path: '/payments', label: 'Payment Ledger', icon: Banknote },
+          { path: '/settings/expenses', label: 'Expense Categories', icon: Wallet },
+        ],
+      },
+    },
+    {
+      type: 'group',
+      group: {
+        id: 'staff-management',
+        label: 'Staff Management',
+        icon: Users,
+        roles: ['SuperAdmin', 'Admin', 'Clinicadmin'],
+        children: [
+          { path: '/platform/doctors', label: 'Doctors', icon: Stethoscope },
+          { path: '/platform/employees', label: 'Employees', icon: User },
+          { path: '/platform/receptionists', label: 'Receptionists', icon: Phone },
+          { path: '/platform/clinicadmins', label: 'Clinic Admins', icon: Shield },
+          { path: '/settings/roles', label: 'Roles & Access', icon: UserCheck },
+        ],
+      },
+    },
+    {
+      type: 'group',
+      group: {
+        id: 'platform-admin',
+        label: 'Platform Admin',
+        icon: Globe,
+        roles: ['SuperAdmin', 'Admin'],
+        children: [
+          { path: '/platform/clinics', label: 'Clinics', icon: Building2 },
+          { path: '/platform/accounts', label: 'Clinic Accounts', icon: UserCog },
+        ],
+      },
+    },
+    {
+      type: 'group',
+      group: {
+        id: 'operations-hub',
+        label: 'Operations Hub',
+        icon: Briefcase,
+        roles: ['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist'],
+        children: [
+          { path: '/courier-queue', label: 'Dispatch Queue', icon: Truck },
+          { path: '/operations?tab=logistics', label: 'Logistics Tracking', icon: Layers },
+          { path: '/operations?tab=crm', label: 'Lead CRM & Promos', icon: Users },
+          { path: '/operations?tab=knowledge', label: 'Knowledge Base', icon: BookOpen },
+        ],
+      },
+    },
+    {
+      type: 'group',
+      group: {
+        id: 'settings',
+        label: 'System Settings',
+        icon: Settings,
+        roles: ADMIN,
+        children: [
+          { path: '/settings/departments', label: 'Departments', icon: Layers },
+          { path: '/settings/medicines', label: 'Medicine Catalog', icon: Pill },
+          { path: '/settings/stocks', label: 'Stock Management', icon: Package },
+          { path: '/settings/stock-logs', label: 'Stock Logs', icon: Database },
+          { path: '/settings/potencies', label: 'Potencies', icon: Sparkles },
+          { path: '/settings/frequencies', label: 'Dosage Frequencies', icon: Clock },
+          { path: '/settings/periods', label: 'Package Periods', icon: Clock },
+          { path: '/settings/dispensaries', label: 'Dispensaries', icon: Hospital },
+          { path: '/settings/referrals', label: 'Referral Sources', icon: UserPlus },
+          { path: '/settings/stickers', label: 'Medicine Stickers', icon: StickyNote },
+          { path: '/settings/cms', label: 'Content (CMS)', icon: Globe },
+          { path: '/settings/pdf', label: 'PDF & Reports', icon: FileText },
+          { path: '/settings/faqs', label: 'Help & FAQs', icon: HelpCircle },
+          { path: '/settings/staff', label: 'Staff Management', icon: UserCircle },
+          { path: '/settings/vaccines', label: 'Vaccines', icon: Shield },
+        ],
+      },
+    },
+  ];
+
+  const [isMobile, setIsMobile] = React.useState(window.innerWidth < 1024);
+  React.useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const effectiveCollapsed = sidebarCollapsed && !isMobile;
+
   const userRole = normalizeRole((user as any)?.type || (user as any)?.role);
 
-  // Filter nav items by role
   const visibleNav = NAV_STRUCTURE.filter(item => {
     if (item.type === 'link') {
       return !item.roles || (userRole && item.roles.includes(userRole));
@@ -342,14 +403,12 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     return !item.group.roles || (userRole && item.group.roles.includes(userRole));
   });
 
-  // Auto-expand the active group by default
   const currentLocation = location.pathname + location.search;
   const defaultOpen = visibleNav
     .filter((item): item is { type: 'group'; group: NavGroup } => item.type === 'group')
     .filter(item => isGroupActive(item.group, currentLocation))
     .map(item => item.group.id);
 
-  // Auto-expand any sub-group whose children match the current path
   const defaultOpenSub = visibleNav
     .filter((item): item is { type: 'group'; group: NavGroup } => item.type === 'group')
     .flatMap(item => item.group.children)
@@ -398,14 +457,17 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
               <span className="sidebar-child-dot" />
               <ChildIcon className="sidebar-child-icon" strokeWidth={1.8} />
-              <span>{child.label}</span>
+              {!effectiveCollapsed && <span>{child.label}</span>}
+              {effectiveCollapsed && <span className="sidebar-hover-label">{child.label}</span>}
             </div>
-            <ChevronDown 
-              size={14} 
-              strokeWidth={2.5} 
-              className={`sidebar-chevron ${isSubOpen ? 'open' : ''}`} 
-              style={{ opacity: 0.5 }}
-            />
+            {!effectiveCollapsed && (
+              <ChevronDown
+                size={14}
+                strokeWidth={2.5}
+                className={`sidebar-chevron ${isSubOpen ? 'open' : ''}`}
+                style={{ opacity: 0.5 }}
+              />
+            )}
           </button>
 
           {isSubOpen && (
@@ -433,7 +495,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       >
         <span className="sidebar-child-dot" />
         <ChildIcon className="sidebar-child-icon" strokeWidth={1.8} />
-        <span>{child.label}</span>
+        {!effectiveCollapsed && <span>{child.label}</span>}
+        {effectiveCollapsed && <span className="sidebar-hover-label">{child.label}</span>}
       </NavLink>
     );
   };
@@ -445,21 +508,38 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         onClick={onClose}
       />
 
-      <aside className={`sidebar ${isOpen ? 'is-open' : ''}`}>
-        {/* ── Logo ── */}
+      <aside className={`sidebar ${isOpen ? 'is-open' : ''} ${effectiveCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-header">
           <div className="sidebar-logo-group">
-            <div className="sidebar-logo">
-              <Infinity size={20} strokeWidth={2.5} />
+            <div 
+              className="sidebar-logo" 
+              style={{ 
+                background: 'transparent', 
+                padding: '0',
+                width: '32px',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}
+            >
+              <img src={mmcIconOrange} alt="MMC Icon" style={{ width: '100%', height: '100%', objectFit: 'contain', transform: 'scale(1.6)' }} />
             </div>
-            <span className="sidebar-brand">Kreed.health</span>
+            {!effectiveCollapsed && <span className="sidebar-brand">{user?.clinicName || 'MMC'}</span>}
           </div>
-          <button className="mh-menu-btn sidebar-header-close" onClick={onClose}>
-            <X size={20} strokeWidth={1.6} />
-          </button>
+          <div className="sidebar-header-actions">
+            {!isMobile && (
+              <button className="collapse-toggle-btn" onClick={toggleSidebarCollapse}>
+                {effectiveCollapsed ? <ChevronRight size={18} strokeWidth={2} /> : <ChevronRight size={18} strokeWidth={2} className="rotate-180" />}
+              </button>
+            )}
+            <button className="mh-menu-btn sidebar-header-close" onClick={onClose}>
+              <X size={20} strokeWidth={1.6} />
+            </button>
+          </div>
         </div>
 
-        {/* ── Navigation ── */}
         <nav className="sidebar-nav">
           {visibleNav.map((item) => {
             if (item.type === 'link') {
@@ -473,12 +553,15 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                   onClick={handleNavClick}
                 >
                   <Icon className="sidebar-item-icon" strokeWidth={1.8} />
-                  <span>{item.label}</span>
+                  {!effectiveCollapsed && <span>{item.label}</span>}
+                  {effectiveCollapsed && <span className="sidebar-hover-label">{item.label}</span>}
+                  {item.badge !== undefined && item.badge > 0 && !effectiveCollapsed && (
+                    <span className="nav-badge" style={{ marginLeft: 'auto' }}>{item.badge}</span>
+                  )}
                 </NavLink>
               );
             }
 
-            // Grouped section
             const { group } = item;
             const isOpen_ = openGroups.includes(group.id);
             const groupActive = isGroupActive(group, location.pathname);
@@ -495,11 +578,14 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 >
                   <div className="sidebar-group-trigger-left">
                     <GroupIcon className="sidebar-item-icon" strokeWidth={1.8} />
-                    <span>{group.label}</span>
+                    {!effectiveCollapsed && <span>{group.label}</span>}
+                    {effectiveCollapsed && <span className="sidebar-hover-label">{group.label}</span>}
                   </div>
-                  <span className={`sidebar-chevron ${isOpen_ ? 'open' : ''}`}>
-                    <ChevronDown size={14} strokeWidth={2} />
-                  </span>
+                  {!effectiveCollapsed && (
+                    <span className={`sidebar-chevron ${isOpen_ ? 'open' : ''}`}>
+                      <ChevronDown size={14} strokeWidth={2} />
+                    </span>
+                  )}
                 </button>
 
                 <div className={`sidebar-group-children ${isOpen_ ? 'expanded' : ''}`}>
@@ -512,29 +598,29 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           })}
         </nav>
 
-        {/* ── Footer ── */}
         <div className="sidebar-footer">
           <div className="user-profile">
             <div className="user-avatar">
               <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>
                 {user?.name?.substring(0, 2).toUpperCase() || 'UX'}
               </span>
+              {effectiveCollapsed && <span className="sidebar-hover-label">{user?.name || 'Practitioner'}</span>}
             </div>
-            <div className="user-info">
-              <div className="user-name">{user?.name || 'Practitioner'}</div>
-              <div className="user-role">{getRoleLabel(userRole) || (user as any)?.type || 'Doctor'}</div>
-            </div>
-            
-            <button 
-              className="theme-toggle-btn" 
-              onClick={toggleDarkMode} 
-              title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
-            >
+            {!effectiveCollapsed && (
+              <div className="user-info">
+                <div className="user-name">{user?.name || 'Practitioner'}</div>
+                <div className="user-role">{getRoleLabel(userRole) || (user as any)?.type || 'Doctor'}</div>
+              </div>
+            )}
+
+            <button className="theme-toggle-btn" onClick={toggleDarkMode}>
               {darkMode ? <Sun size={16} strokeWidth={2} /> : <Moon size={16} strokeWidth={2} />}
+              {effectiveCollapsed && <span className="sidebar-hover-label">{darkMode ? 'Light Mode' : 'Dark Mode'}</span>}
             </button>
 
-            <button className="logout-btn" onClick={logout} title="Logout">
+            <button className="logout-btn" onClick={logout}>
               <LogOut size={16} strokeWidth={2} />
+              {effectiveCollapsed && <span className="sidebar-hover-label">Logout</span>}
             </button>
           </div>
         </div>

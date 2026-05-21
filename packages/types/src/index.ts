@@ -20,6 +20,7 @@ export * from './domains/prescription.js';
 export * from './domains/billing.js';
 export * from './domains/billing-accounts.js';
 export * from './domains/user.js';
+export * from './domains/whatsapp.js';
 export * from './domains/package.js';
 export * from './domains/communication.js';
 export * from './domains/analytics.js';
@@ -28,6 +29,7 @@ export * from './domains/staff.js';
 export * from './domains/crm.js';
 export * from './domains/logistics.js';
 export * from './domains/knowledge.js';
+export * from './domains/notification.js';
 
 // ─── API Contracts ───
 export * from './api/requests.js';

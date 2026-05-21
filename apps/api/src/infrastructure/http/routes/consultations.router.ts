@@ -14,10 +14,11 @@
 
 import { Router } from 'express';
 import type { Request, Response, NextFunction } from 'express';
-import { sql, eq } from 'drizzle-orm';
+import { sql, eq, and } from 'drizzle-orm';
 import * as schema from '@mmc/database/schema';
-import { sendSuccess } from '../../../shared/response-formatter';
-import { createLogger } from '../../../shared/logger';
+import { sendSuccess } from '../../../shared/response-formatter.js';
+import { createLogger } from '../../../shared/logger.js';
+import { mlTrainingLogger } from '../../../domains/consultation/services/ml-training-logger.service.js';
 
 const logger = createLogger('consultations-router');
 
@@ -95,6 +96,45 @@ consultationsRouter.post('/start', async (req: Request, res: Response, next: Nex
       .set({ status: 'Consultation', updatedAt: new Date() })
       .where(eq(schema.appointments.id, visitId));
 
+    // Log patient context to ML training log
+    if (appt.patientId) {
+      try {
+        const [patient] = await db
+          .select()
+          .from(schema.patients)
+          .where(eq(schema.patients.id, appt.patientId))
+          .limit(1);
+
+        if (patient) {
+          // Compute age from DOB
+          const dob = (patient as any).dob;
+          let age: number | null = null;
+          if (dob) {
+            const birthDate = new Date(dob);
+            const today = new Date();
+            age = today.getFullYear() - birthDate.getFullYear();
+            const monthDiff = today.getMonth() - birthDate.getMonth();
+            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+              age--;
+            }
+          }
+
+          const tenantSlug = (req as any).tenantSlug || (req as any).tenantId || 'default';
+          mlTrainingLogger.logPhase(tenantSlug, String(visitId), {
+            consultationMode: (appt.visitType || 'acute').toLowerCase(),
+            patientContext: {
+              age,
+              gender: (patient as any).gender ?? null,
+              visitType: appt.visitType,
+              constitutionType: (patient as any).constitutionType ?? null,
+            },
+          });
+        }
+      } catch (ctxErr: any) {
+        logger.warn({ visitId, err: ctxErr?.message }, 'Could not log patient context — non-fatal');
+      }
+    }
+
     logger.info({ tenantSlug: req.tenantSlug, visitId }, 'Consultation started');
 
     sendSuccess(res, {
@@ -154,6 +194,7 @@ consultationsRouter.post('/complete', async (req: Request, res: Response, next: 
           doctorApproved: !!autoApprove,
           approvedAt: autoApprove ? new Date() : null,
           updatedAt: new Date(),
+          createdAt: new Date(),
         };
 
         const [existing] = await tx
@@ -201,6 +242,26 @@ consultationsRouter.post('/complete', async (req: Request, res: Response, next: 
             RETURNING *
           `)) as any[];
           if (Array.isArray(result) && result[0]) insertedItems.push(result[0]);
+
+          // Also insert into legacy case_potencies for the Patient Detail page (Remedy Chart)
+          const dateNow = new Date().toISOString().split('T')[0]!;
+          const randId = `${dateNow.replace(/-/g, '')}${regid}`;
+          const daysMatch = String(duration || '0').match(/(\d+)/);
+          const days = daysMatch ? daysMatch[1] : '0';
+
+          await tx.execute(sql`
+            INSERT INTO "case_potencies" (
+              "rand_id", "regid", 
+              "rxremedy", "rxpotency", "rxfrequency", "rxdays",
+              "rxprescription",
+              "dateval", "todate", "sdate", "created_at", "updated_at"
+            ) VALUES (
+              ${randId}, ${regid},
+              ${remedyName}, ${potency}, ${frequency}, ${days},
+              ${instructions},
+              ${dateNow}, ${dateNow}, ${dateNow}, NOW(), NOW()
+            )
+          `);
         }
 
         savedPrescription = {
@@ -213,7 +274,27 @@ consultationsRouter.post('/complete', async (req: Request, res: Response, next: 
         };
       }
 
-      // 3. Transition the appointment to Completed
+      // 3. Auto-save advice & follow-up to Clinical History (case_notes table)
+      // This ensures it appears in the "Clinical History" timeline on the Patient Detail page.
+      if (appt.patientId && (soap?.advice || soap?.followUp)) {
+        let noteContent = soap.advice || '';
+        if (soap.followUp) {
+          if (noteContent) noteContent += '\n\n';
+          noteContent += `Next Follow-up: ${soap.followUp}`;
+        }
+
+        if (noteContent.trim()) {
+          await tx.insert(schema.caseNotes).values({
+            regid: appt.patientId,
+            notes: noteContent,
+            notesType: 'Followup',
+            dateval: new Date().toISOString().split('T')[0],
+            createdAt: new Date(),
+          });
+        }
+      }
+
+      // 4. Transition the appointment to Completed
       await tx
         .update(schema.appointments)
         .set({ status: 'Completed', updatedAt: new Date() })
@@ -236,7 +317,75 @@ consultationsRouter.post('/complete', async (req: Request, res: Response, next: 
         // Non-fatal: some tenants may not have a waitlist row for every visit.
         logger.warn({ visitId, err: e?.message }, 'Could not update waitlist row to Done — non-fatal');
       }
+
+      // 5. Ensure a Medical Case exists and link this consultation's diagnosis as the case condition.
+      //    This makes the consultation data "stick" to a case in the UI.
+      if (appt.patientId) {
+        try {
+          const [existingCase] = await tx
+            .select()
+            .from(schema.medicalCases)
+            .where(and(eq(schema.medicalCases.regid, appt.patientId), eq(schema.medicalCases.status, 'Active')))
+            .limit(1);
+
+          const condition = soap?.assessment || appt.visitType || 'General Consultation';
+
+          if (existingCase) {
+            await tx
+              .update(schema.medicalCases)
+              .set({ condition, updatedAt: new Date() })
+              .where(eq(schema.medicalCases.id, existingCase.id));
+          } else {
+            await tx.insert(schema.medicalCases).values({
+              regid: appt.patientId,
+              clinicId: appt.clinicId,
+              doctorId: appt.doctorId,
+              status: 'Active',
+              condition,
+            });
+          }
+        } catch (caseErr: any) {
+          logger.warn({ visitId, err: caseErr?.message }, 'Could not ensure medical case record — non-fatal');
+        }
+      }
     });
+
+    // Self-healing: backfill regid on any orphaned soap_notes rows from previous consultations.
+    // This is idempotent and non-fatal — ensures historical SOAP notes show in case history.
+    try {
+      await db.execute(sql`
+        UPDATE soap_notes sn
+           SET regid = a.patient_id
+          FROM appointments a
+         WHERE sn.visit_id = a.id
+           AND sn.regid IS NULL
+           AND a.patient_id IS NOT NULL
+      `);
+    } catch (backfillErr: any) {
+      logger.warn({ err: backfillErr?.message }, 'SOAP regid backfill — non-fatal');
+    }
+
+    // ML Training Log: Update with final ground-truth remedy when prescription is saved
+    const rxItems = savedPrescription?.items?.length
+      ? savedPrescription.items
+      : (req.body?.prescription?.items || []);
+
+    if (rxItems.length > 0) {
+      // Normalize remedy data for consistent storage
+      const normalizedRemedies = rxItems.map((item: any) => ({
+        remedyName: item.remedy || item.medicationName || item.name || '',
+        potency: item.potency || item.specialtyData?.potency || item.dosage || '',
+        frequency: item.frequency || '',
+        duration: item.duration || '',
+        instructions: item.instructions || '',
+      }));
+
+      logger.info({ visitId, remedyCount: normalizedRemedies.length, remedies: normalizedRemedies }, '💊 Logging doctor final remedy');
+
+      mlTrainingLogger.logPhase((req as any).tenantSlug || (req as any).tenantId || 'default', String(visitId), {
+        doctorFinalRemedy: normalizedRemedies,
+      });
+    }
 
     logger.info(
       { tenantSlug: req.tenantSlug, visitId, soapId: savedSoap?.id, rxItems: savedPrescription?.items?.length ?? 0 },
@@ -302,13 +451,13 @@ consultationsRouter.get('/:visitId/summary', async (req: Request, res: Response,
 
     const doctorOut = doctor
       ? {
-          id: String(doctor.id),
-          firstName: (doctor as any).firstname ?? (doctor.name ?? '').split(' ')[0] ?? '',
-          lastName: (doctor as any).surname ?? (doctor.name ?? '').split(' ').slice(1).join(' ') ?? '',
-          email: doctor.email,
-          qualifications: (doctor as any).qualification ?? null,
-          specialization: (doctor as any).designation ?? null,
-        }
+        id: String(doctor.id),
+        firstName: (doctor as any).firstname ?? (doctor.name ?? '').split(' ')[0] ?? '',
+        lastName: (doctor as any).surname ?? (doctor.name ?? '').split(' ').slice(1).join(' ') ?? '',
+        email: doctor.email,
+        qualifications: (doctor as any).qualification ?? null,
+        specialization: (doctor as any).designation ?? null,
+      }
       : null;
 
     sendSuccess(res, {

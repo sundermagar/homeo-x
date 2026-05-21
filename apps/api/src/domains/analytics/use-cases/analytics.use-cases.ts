@@ -13,65 +13,65 @@ function errMsg(e: unknown) {
 export class AnalyticsUseCases {
   constructor(private readonly repo: IAnalyticsRepository) {}
 
-  async getSummary(): Promise<Result<AnalyticsSummary>> {
+  async getSummary(clinicId?: number): Promise<Result<AnalyticsSummary>> {
     try {
-      const data = await this.repo.getSummary();
+      const data = await this.repo.getSummary(clinicId);
       return ok(data);
     } catch (err) {
       return fail(errMsg(err));
     }
   }
 
-  async getPatientTrends(from?: Date, to?: Date): Promise<Result<PatientTrendResult>> {
+  async getPatientTrends(clinicId?: number, from?: Date, to?: Date): Promise<Result<PatientTrendResult>> {
     try {
-      const data = await this.repo.getPatientTrends(from, to);
+      const data = await this.repo.getPatientTrends(clinicId, from, to);
       return ok(data);
     } catch (err) {
       return fail(errMsg(err));
     }
   }
 
-  async getMonthWiseBreakdown(fromYearMth: string, toYearMth: string): Promise<Result<MonthWiseResult[]>> {
+  async getMonthWiseBreakdown(clinicId?: number, fromYearMth?: string, toYearMth?: string): Promise<Result<MonthWiseResult[]>> {
     try {
       if (!fromYearMth || !toYearMth) return fail('Date range is required', 'VALIDATION');
-      const data = await this.repo.getMonthWiseBreakdown(fromYearMth, toYearMth);
+      const data = await this.repo.getMonthWiseBreakdown(clinicId, fromYearMth, toYearMth);
       return ok(data);
     } catch (err) {
       return fail(errMsg(err));
     }
   }
 
-  async getMonthWiseDues(year: number): Promise<Result<MonthWiseDueSummary[]>> {
+  async getMonthWiseDues(clinicId?: number, year?: number): Promise<Result<MonthWiseDueSummary[]>> {
     try {
-      const data = await this.repo.getMonthWiseDues(year);
+      const data = await this.repo.getMonthWiseDues(clinicId, year);
       return ok(data);
     } catch (err) {
       return fail(errMsg(err));
     }
   }
 
-  async getDueDetails(year: number, month: number): Promise<Result<MonthWiseDueDetail[]>> {
+  async getDueDetails(clinicId?: number, year?: number, month?: number): Promise<Result<MonthWiseDueDetail[]>> {
     try {
-      const data = await this.repo.getDueDetails(year, month);
+      const data = await this.repo.getDueDetails(clinicId, year, month);
       return ok(data);
     } catch (err) {
       return fail(errMsg(err));
     }
   }
 
-  async getBirthdays(fromMonthDay: string, toMonthDay: string): Promise<Result<{ patients: BirthdayPatient[]; smsSentIds: number[] }>> {
+  async getBirthdays(clinicId?: number, fromMonthDay?: string, toMonthDay?: string): Promise<Result<{ patients: BirthdayPatient[]; smsSentIds: number[] }>> {
     try {
-      const patients = await this.repo.getBirthdays(fromMonthDay, toMonthDay);
-      const smsSentIds = await this.repo.getSmsSentIds(new Date(), 'birthday');
+      const patients = await this.repo.getBirthdays(clinicId, fromMonthDay, toMonthDay);
+      const smsSentIds = await this.repo.getSmsSentIds(clinicId, new Date(), 'birthday');
       return ok({ patients, smsSentIds });
     } catch (err) {
       return fail(errMsg(err));
     }
   }
 
-  async getReferenceListing(from: Date, to: Date): Promise<Result<ReferenceListResult[]>> {
+  async getReferenceListing(clinicId?: number, from?: Date, to?: Date): Promise<Result<ReferenceListResult[]>> {
     try {
-      const data = await this.repo.getReferenceListing(from, to);
+      const data = await this.repo.getReferenceListing(clinicId, from, to);
       return ok(data);
     } catch (err) {
       return fail(errMsg(err));

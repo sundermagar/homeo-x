@@ -96,8 +96,147 @@
     {
       "idx": 13,
       "version": "7",
-      "when": 1745366400000,
+      "when": 1777000000013,
       "tag": "0013_add_knowledge_base_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1777000000014,
+      "tag": "0014_add_clinic_id_to_case_datas",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1777000000015,
+      "tag": "0015_add_vitals_regid_fix_images",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1777000000016,
+      "tag": "0016_add_case_reminders",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1777000000017,
+      "tag": "0017_query_performance_indexes",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1777000000018,
+      "tag": "0018_dashboard_query_indexes",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1777000000019,
+      "tag": "0019_fix_schema_drift",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1777000000020,
+      "tag": "0020_add_unreg_patient_id",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1777000000021,
+      "tag": "0021_add_clinic_id_to_finance_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1777000000022,
+      "tag": "0022_add_clinical_codes_and_billing_cols",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1777000000023,
+      "tag": "0023_fix_medicines_schema_drift",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1747320000000,
+      "tag": "0024_add_automation_flow_data",
+      "idx": 17,
+      "version": "7",
+      "when": 1778675525621,
+      "tag": "0017_ml_training_logs",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1778676946785,
+      "tag": "0018_ml_training_embeddings",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1778680000000,
+      "tag": "0019_add_fingerprint_hash",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1778690000000,
+      "tag": "0020_split_ml_training_embeddings",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1778700000000,
+      "tag": "0024_fix_legacy_id_sequences",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1747330000000,
+      "tag": "0025_add_ai_chatbot_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1747340000000,
+      "tag": "0026_add_ai_behavior_customization",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1747350000000,
+      "tag": "0027_fix_template_delete_fk",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1747360000000,
+      "tag": "0028_add_whatsapp_widgets",
+      "when": 1778710000000,
+      "tag": "0025_fix_public_id_sequences",
       "breakpoints": true
     }
   ]

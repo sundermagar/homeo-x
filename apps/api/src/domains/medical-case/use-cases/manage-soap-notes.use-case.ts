@@ -1,5 +1,5 @@
-import { type Result, ok } from '../../../shared/result';
-import type { MedicalCaseRepository, SoapNotes } from '../ports/medical-case.repository';
+import { type Result, ok } from '../../../shared/result.js';
+import type { MedicalCaseRepository, SoapNotes } from '../ports/medical-case.repository.js';
 
 export class ManageSoapNotesUseCase {
   constructor(private readonly repository: MedicalCaseRepository) {}
@@ -9,8 +9,8 @@ export class ManageSoapNotesUseCase {
     return ok(undefined);
   }
 
-  async get(visitId: number): Promise<Result<SoapNotes | null>> {
-    const notes = await this.repository.getSoapNotes(visitId);
+  async get(regid: number, visitId: number): Promise<Result<SoapNotes | null>> {
+    const notes = await this.repository.getSoapNotes(regid, visitId);
     return ok(notes);
   }
 }

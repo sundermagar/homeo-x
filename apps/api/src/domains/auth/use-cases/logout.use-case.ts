@@ -1,6 +1,6 @@
 import type { AuthTokenPayload } from '@mmc/types';
-import { redisService } from '../../../infrastructure/cache/redis';
-import { type Result, ok } from '../../../shared/result';
+import { redisService } from '../../../infrastructure/cache/redis.js';
+import { type Result, ok } from '../../../shared/result.js';
 
 export class LogoutUseCase {
   async execute(token: string, payload: AuthTokenPayload & { exp?: number }): Promise<Result<void>> {
