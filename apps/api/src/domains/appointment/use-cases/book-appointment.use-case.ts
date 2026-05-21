@@ -40,7 +40,7 @@ export class BookAppointmentUseCase {
         patientName: dto.patientName,
         date: dto.bookingDate,
         time: dto.bookingTime ?? '',
-        clinicName: 'Kreed.health Clinic'
+        clinicName: 'MMC Clinic'
       }).catch(() => {});
     }
 

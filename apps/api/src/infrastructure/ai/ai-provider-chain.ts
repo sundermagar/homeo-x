@@ -30,6 +30,7 @@ export class AiProviderChain {
       // Primary: Groq (Ultra-Fast, Stable)
       new GroqAdapter('llama-3.3-70b-versatile', 1000),
       new GroqAdapter('llama-3.1-8b-instant', 14400),
+      new GroqAdapter('meta-llama/llama-4-scout-17b-16e-instruct', 1000),
 
       // Fallback: Local Ollama
       new OllamaAdapter('qwen2.5:1.5b'),
@@ -64,8 +65,14 @@ export class AiProviderChain {
 
     const errors: string[] = [];
 
+    // ── Filter providers if preferred provider is specified ──
+    let activeProviders = this.providers;
+    if (request.preferredProvider) {
+      activeProviders = this.providers.filter(p => p.name.toLowerCase() === request.preferredProvider?.toLowerCase());
+    }
+
     // ── Failover chain ──
-    for (const provider of this.providers) {
+    for (const provider of activeProviders) {
       const available = await provider.isAvailable();
       if (!available) {
         logger.warn(`Provider ${provider.name}/${provider.model} unavailable, skipping`);

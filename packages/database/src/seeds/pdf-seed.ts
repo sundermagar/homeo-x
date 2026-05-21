@@ -8,15 +8,15 @@ export async function seedPdfSettings(db: DbClient) {
   const templates = [
     {
       templateName: 'Standard Prescription',
-      headerHtml: '<h1>Kreed.health Clinical Prescription</h1>',
-      footerHtml: '<p>Contact: +91 99999 88888 | www.kreedhealth.com</p>',
+      headerHtml: '<h1>MMC Clinical Prescription</h1>',
+      footerHtml: '<p>Contact: +91 99999 88888 | www.mmc.in</p>',
       margin: '20mm',
       isDefault: true
     },
     {
       templateName: 'Medical Certificate',
       headerHtml: '<h1>Medical Fitness Certificate</h1>',
-      footerHtml: '<p>Verified by Authorized Kreed.health Practitioner</p>',
+      footerHtml: '<p>Verified by Authorized MMC Practitioner</p>',
       margin: '25mm',
       isDefault: false
     }

@@ -39,7 +39,7 @@ export default function PackageTrackingPage() {
   const [selectedRecord, setSelectedRecord] = useState<any>(null);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [showSmsModal, setShowSmsModal] = useState(false);
-  const [smsMessage, setSmsMessage] = useState('Dear {#name#}, your subscription is ending soon. Please visit us to renew. - Kreed.health');
+  const [smsMessage, setSmsMessage] = useState('Dear {#name#}, your subscription is ending soon. Please visit us to renew. - MMC');
   const [statusValue, setStatusValue] = useState('informed');
   const [statusDate, setStatusDate] = useState(new Date().toISOString().split('T')[0]!);
   const [statusNotes, setStatusNotes] = useState('');
@@ -105,7 +105,7 @@ export default function PackageTrackingPage() {
 
   const sendSingleWhatsApp = (rec: any) => {
     if (!rec.phone) { alert('No phone number available'); return; }
-    const msg = `Dear ${rec.firstName} ${rec.surname || ''}, your ${rec.packageName} subscription expires on ${rec.expiryDate}. Please visit us to renew. - Kreed.health`;
+    const msg = `Dear ${rec.firstName} ${rec.surname || ''}, your ${rec.packageName} subscription expires on ${rec.expiryDate}. Please visit us to renew. - MMC`;
     sendWa.mutate({ phone: String(rec.phone), message: msg });
     alert('WhatsApp message sent!');
   };

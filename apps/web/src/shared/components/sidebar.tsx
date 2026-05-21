@@ -488,7 +488,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             <div className="sidebar-logo">
               <Infinity size={20} strokeWidth={2.5} />
             </div>
-            {!effectiveCollapsed && <span className="sidebar-brand">{user?.clinicName || 'Kreed.health'}</span>}
+            {!effectiveCollapsed && <span className="sidebar-brand">{user?.clinicName || 'MMC'}</span>}
           </div>
           <div className="sidebar-header-actions">
             {!isMobile && (

@@ -71,7 +71,7 @@ export class CourierRepositoryPg {
       WHERE cm.currentdate = ${targetDate}
         AND cm.post_type IN ('Courier', 'Pickup')
         AND (cm.deleted_at IS NULL OR cm.deleted_at = '')
-        ${clinicId ? sql`AND cd.clinic_id = ${clinicId}` : sql`AND (cd.clinic_id IS NULL)`}
+        ${clinicId ? sql`AND (cd.clinic_id = ${clinicId} OR cd.clinic_id IS NULL)` : sql`AND (cd.clinic_id IS NULL)`}
       ORDER BY cm.created_at DESC
     `);
     
@@ -115,7 +115,7 @@ export class CourierRepositoryPg {
       JOIN case_datas cd ON cd.regid = cm.case_id
       WHERE cm.post_type IN ('Courier', 'Pickup')
         AND (cm.deleted_at IS NULL OR cm.deleted_at = '')
-        ${clinicId ? sql`AND cd.clinic_id = ${clinicId}` : sql``}
+        ${clinicId ? sql`AND (cd.clinic_id = ${clinicId} OR cd.clinic_id IS NULL)` : sql``}
       ORDER BY cm.created_at DESC
       LIMIT 100
     `);
@@ -202,7 +202,7 @@ export class CourierRepositoryPg {
     if (!row) return null;
 
     const name = `${row.first_name || ''} ${row.surname || ''}`.trim();
-    const message = `Dear ${name}, your medicines have been dispatched via ${row.courier || 'courier'} and the POD number is ${row.pcd || 'N/A'}. For tracking, please contact the courier company. Regards, Kreed.health`;
+    const message = `Dear ${name}, your medicines have been dispatched via ${row.courier || 'courier'} and the POD number is ${row.pcd || 'N/A'}. For tracking, please contact the courier company. Regards, MMC`;
 
     return {
       phone: row.mobile1 || '',

@@ -98,7 +98,7 @@ export function CourierQueuePage() {
       setMessageModal({
         phone: entry.phone || '',
         regid: entry.caseId,
-        message: `Dear ${entry.patientName || 'Patient'}, your medicines have been dispatched via ${entry.courier || 'courier'} and the POD number is ${entry.pcd || 'N/A'}. Regards, Kreed.health`
+        message: `Dear ${entry.patientName || 'Patient'}, your medicines have been dispatched via ${entry.courier || 'courier'} and the POD number is ${entry.pcd || 'N/A'}. Regards, MMC`
       });
     }
   };
@@ -186,7 +186,7 @@ export function CourierQueuePage() {
           <div className="courier-empty">
             <Package size={48} />
             <h3>No entries for this date</h3>
-            <p>No dispatch entries found for {new Date(selectedDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+            <p>No dispatch entries found for {new Date(selectedDate as string).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
           </div>
         ) : (
           <>
@@ -252,7 +252,7 @@ export function CourierQueuePage() {
                         </td>
                         <td>
                           <span className="date-cell">
-                            {entry.createdAt ? new Date(entry.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : entry.currentdate}
+                            {entry.createdAt ? new Date(entry.createdAt as string).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : entry.currentdate}
                           </span>
                         </td>
                         <td>
@@ -458,7 +458,7 @@ export function CourierQueuePage() {
                     <tbody>
                       {historyModal.entries.map((e) => (
                         <tr key={e.id}>
-                          <td>{e.createdAt ? new Date(e.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : e.currentdate}</td>
+                          <td>{e.createdAt ? new Date(e.createdAt as string).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : e.currentdate}</td>
                           <td><span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{e.pcd || '—'}</span></td>
                           <td>{e.courier || '—'}</td>
                           <td>

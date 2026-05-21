@@ -818,3 +818,92 @@ aiRouter.post('/similar-cases', async (req: Request, res: Response) => {
   }
 });
 
+// POST /api/ai/parse-prescription — OCR & Parsing of handwritten prescriptions
+aiRouter.post('/parse-prescription', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { mimeType, base64 } = req.body ?? {};
+
+    if (!base64 || typeof base64 !== 'string' || base64.length < 50) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_INPUT', message: 'No prescription image data received (base64 missing or too short).' },
+      });
+      return;
+    }
+
+    const chain = getAiProviderChain();
+    const systemPrompt = `You are a medical OCR and clinical extraction engine specializing in decoding doctor's handwritten prescriptions and clinical case sheets.
+
+Your job is to read the attached image of a handwritten prescription and extract the clinical details into a structured JSON format.
+
+You MUST follow these clinical and OCR guidelines when parsing:
+1. "diagnosis" (Assessment / Clinical Impression):
+   - Pay special attention to dental drawings and charts. A cross-grid diagram with numbers (e.g. Palmer notation) like a vertical and horizontal line with a number in a quadrant (like "6" in the lower left quadrant) next to the words "For Ext" or "Ext" stands for "Tooth Extraction" (specifically, extraction of tooth 6/first molar in that quadrant).
+   - If you see such tooth extraction symbols or comments (e.g., "For Ext", "Ext"), extract the diagnosis as "Tooth Extraction" or "For Extraction of Tooth [Number]".
+   - Keep the diagnosis clear and concise. Do not hallucinate terms like "Acet".
+2. "medications":
+   - "medicine": Extract the full brand or generic name. ALWAYS include any strength values (e.g., "625", "500", "200C") and suffixes/suffixes (e.g., "Plus", "DS", "Forte", "Paste", "Mouthwash") directly as part of the medicine name. For example: "Augmentin 625" (not "Augmentin"), "Halcin Plus" (not "Halcin"), "Senastop Paste" (not "Senatop"), "Benidic Plus Mouthwash" (not "Pendis").
+   - "frequency": Must be mapped to "Once" | "Twice" | "Thrice" | "Bed Time" | "Empty Stomach" | "weekly" (or left as "Once" if unspecified).
+     * Recognize standard Latin abbreviations: "BD" / "BID" -> "Twice", "OD" -> "Once", "TDS" / "TID" -> "Thrice", "HS" -> "Bed Time".
+     * Grouped Brackets: If multiple medicines are grouped together with a bracket (e.g., "] - BD x 3 days"), apply that frequency ("Twice") to ALL medicines enclosed in the bracket.
+   - "issue": The indication or reason for the medicine. If not written, infer the most common clinical indication:
+     * "Augmentin 625" (Amoxicillin-Clavulanate) -> "Bacterial Infection" or "Dental Infection"
+     * "Halcin Plus" -> "Inflammation"
+     * Tooth sensitivity toothpaste (e.g., "Senastop Paste") -> "Tooth Sensitivity"
+     * Antiseptic mouthwash (e.g., "Benidic Plus Mouthwash") -> "Oral Hygiene" or "Antiseptic"
+3. "complaint": Patient symptoms (leave empty if not mentioned).
+4. "investigation": Tests or general advice (leave empty if not mentioned).
+
+## OCR ACCURACY & CURSIVE HANDWRITING CAUTION:
+- Doctors often write in rapid cursive. Do not confuse cursive capital 'B' with 'P'. For example, "Benidic" starts with a 'B' and should not be parsed as "Pendis".
+- Read all letters in brand names carefully: e.g. "Senastop" contains an 's' in the middle (S-e-n-a-s-t-o-p), do not skip it as "Senatop".
+
+OUTPUT FORMAT:
+{
+  "diagnosis": "string",
+  "complaint": "string",
+  "investigation": "string",
+  "medications": [
+    {
+      "medicine": "string",
+      "frequency": "Once" | "Twice" | "Thrice" | "Bed Time" | "Empty Stomach" | "weekly",
+      "issue": "string"
+    }
+  ]
+}`;
+
+    const response = await chain.complete({
+      systemPrompt,
+      userPrompt: 'Scan the attached prescription image and return the extracted clinical details as raw JSON matching the schema.',
+      documents: [{ base64, mimeType: mimeType || 'image/jpeg' }],
+      temperature: 0.1,
+      maxTokens: 1000,
+      responseFormat: 'json',
+      useCache: false,
+      preferredProvider: 'groq'
+    });
+
+    const parsed = extractJson<{
+      diagnosis?: string;
+      complaint?: string;
+      investigation?: string;
+      medications?: { medicine: string; frequency: string; issue?: string }[];
+    }>(response.content);
+
+    if (!parsed) {
+      throw new Error('AI response was empty or not in valid JSON format');
+    }
+
+    sendSuccess(res, parsed);
+  } catch (err: any) {
+    logger.error({ err: err?.message, stack: err?.stack }, '[parse-prescription] failed');
+    res.status(502).json({
+      success: false,
+      error: {
+        code: 'AI_PROVIDER_FAILED',
+        message: err?.message || 'AI providers unavailable or failed to process prescription image.',
+      },
+    });
+  }
+});
+

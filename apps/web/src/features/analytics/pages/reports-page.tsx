@@ -198,7 +198,7 @@ function MonthWiseDueTab({ onExport }: { onExport: (filename: string, headers: s
 
   const openDueWhatsApp = (patient: any) => {
     setDuePatient(patient);
-    setDueMessage(`Dear ${patient.first_name || ''} ${patient.surname || ''}, you have an outstanding balance of ₹${Number(patient.total_due || 0).toLocaleString()} against your treatment. Please visit us to clear the dues. - Kreed.health`);
+    setDueMessage(`Dear ${patient.first_name || ''} ${patient.surname || ''}, you have an outstanding balance of ₹${Number(patient.total_due || 0).toLocaleString()} against your treatment. Please visit us to clear the dues. - MMC`);
     setShowDuesModal(true);
   };
 
@@ -432,7 +432,7 @@ function BirthdaysTab({ onExport }: { onExport: (filename: string, headers: stri
     setSinglePatient(patient);
     const tpl = templates.find((t: any) => t.smsType === 'Birthday');
     const name = `${patient.first_name} ${patient.surname || ''}`;
-    setSingleMessage(tpl?.message?.replace(/\{#name#\}/gi, name) || `Happy Birthday, ${name}! Wishing you good health and happiness. - Kreed.health`);
+    setSingleMessage(tpl?.message?.replace(/\{#name#\}/gi, name) || `Happy Birthday, ${name}! Wishing you good health and happiness. - MMC`);
     setShowSingleModal(true);
   };
 
@@ -630,7 +630,7 @@ function BirthdaysTab({ onExport }: { onExport: (filename: string, headers: stri
             </h3>
             <div style={{ marginBottom: 16 }}>
               <label style={{ fontSize: '0.8rem', fontWeight: 700, display: 'block', marginBottom: 6 }}>Message (use {"{#name#}"} for patient name)</label>
-              <textarea className="comm-form-textarea" placeholder="Happy Birthday, {#name#}! Wishing you good health. - Kreed.health"
+              <textarea className="comm-form-textarea" placeholder="Happy Birthday, {#name#}! Wishing you good health. - MMC"
                 value={bulkMessage} onChange={e => setBulkMessage(e.target.value)} rows={4}
                 style={{ width: '100%', padding: '10px 12px', border: '1.5px solid var(--pp-warm-4)', borderRadius: 10, fontSize: '0.85rem', resize: 'vertical' }} />
             </div>

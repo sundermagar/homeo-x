@@ -10,6 +10,7 @@ export interface AiCompletionRequest {
   maxTokens?: number;
   responseFormat?: 'json' | 'text';
   useCache?: boolean;
+  preferredProvider?: string;
 }
 
 export interface AiCompletionResponse {
