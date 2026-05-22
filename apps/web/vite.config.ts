@@ -34,24 +34,25 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (!id.includes('node_modules')) return;
+          const normalizedId = id.replace(/\\/g, '/');
+          if (!normalizedId.includes('node_modules')) return;
 
           // ── Critical path (smallest possible) ──
-          if (id.includes('react-dom')) return 'vendor-react';
-          if (id.includes('/react/') || id.includes('react-is') || id.includes('scheduler')) return 'vendor-react';
-          if (id.includes('react-router') || id.includes('@remix-run')) return 'vendor-router';
+          if (normalizedId.includes('react-dom')) return 'vendor-react';
+          if (normalizedId.includes('/react/') || normalizedId.includes('react-is') || normalizedId.includes('scheduler')) return 'vendor-react';
+          if (normalizedId.includes('react-router') || normalizedId.includes('@remix-run')) return 'vendor-router';
 
           // ── Data layer (loaded after shell renders) ──
-          if (id.includes('@tanstack')) return 'vendor-query';
-          if (id.includes('axios') || id.includes('zod') || id.includes('zustand')) return 'vendor-forms';
+          if (normalizedId.includes('@tanstack')) return 'vendor-query';
+          if (normalizedId.includes('axios') || normalizedId.includes('zod') || normalizedId.includes('zustand')) return 'vendor-forms';
 
           // ── Heavy feature libs (lazy loaded with pages) ──
-          if (id.includes('date-fns')) return 'vendor-datefns';
-          if (id.includes('lucide-react')) return 'vendor-icons';
-          if (id.includes('recharts') || id.includes('d3-') || id.includes('victory')) return 'vendor-charts';
-          if (id.includes('@fullcalendar')) return 'vendor-calendar';
-          if (id.includes('livekit')) return 'vendor-video';
-          if (id.includes('openai')) return 'vendor-ai';
+          if (normalizedId.includes('date-fns')) return 'vendor-datefns';
+          if (normalizedId.includes('lucide-react')) return 'vendor-icons';
+          if (normalizedId.includes('recharts') || normalizedId.includes('d3-') || normalizedId.includes('victory')) return 'vendor-charts';
+          if (normalizedId.includes('@fullcalendar')) return 'vendor-calendar';
+          if (normalizedId.includes('livekit')) return 'vendor-video';
+          if (normalizedId.includes('openai')) return 'vendor-ai';
 
           // ── Everything else ──
           return 'vendor-utils';
