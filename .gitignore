@@ -73,7 +73,7 @@ tmp/
 temp/
 managemyclicnicnew/
 whatsway-main 2/
-apps/api/uploads/
+# apps/api/uploads/
 
 # Testing & Artifacts
 test_auth.js
