@@ -30,35 +30,7 @@ export default defineConfig({
     minify: 'esbuild',
     cssCodeSplit: true,
     sourcemap: false,
-    chunkSizeWarningLimit: 500,
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          const normalizedId = id.replace(/\\/g, '/');
-          if (!normalizedId.includes('node_modules')) return;
-
-          // ── Critical path (smallest possible) ──
-          if (normalizedId.includes('react-dom')) return 'vendor-react';
-          if (normalizedId.includes('/react/') || normalizedId.includes('react-is') || normalizedId.includes('scheduler')) return 'vendor-react';
-          if (normalizedId.includes('react-router') || normalizedId.includes('@remix-run')) return 'vendor-router';
-
-          // ── Data layer (loaded after shell renders) ──
-          if (normalizedId.includes('@tanstack')) return 'vendor-query';
-          if (normalizedId.includes('axios') || normalizedId.includes('zod') || normalizedId.includes('zustand')) return 'vendor-forms';
-
-          // ── Heavy feature libs (lazy loaded with pages) ──
-          if (normalizedId.includes('date-fns')) return 'vendor-datefns';
-          if (normalizedId.includes('lucide-react')) return 'vendor-icons';
-          if (normalizedId.includes('recharts') || normalizedId.includes('d3-') || normalizedId.includes('victory')) return 'vendor-charts';
-          if (normalizedId.includes('@fullcalendar')) return 'vendor-calendar';
-          if (normalizedId.includes('livekit')) return 'vendor-video';
-          if (normalizedId.includes('openai')) return 'vendor-ai';
-
-          // ── Everything else ──
-          return 'vendor-utils';
-        },
-      },
-    },
+    chunkSizeWarningLimit: 1000,
   },
   server: {
     allowedHosts: [
