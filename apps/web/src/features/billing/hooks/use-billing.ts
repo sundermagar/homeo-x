@@ -179,3 +179,119 @@ export function useRecordPayment() {
     },
   });
 }
+
+// ─── ViewCollection Legacy Parity Hooks ───────────────────────────────────────
+
+export interface ExtendedDailySummaryData {
+  date: string;
+  collection: number;
+  cash: number;
+  card: number;
+  cheque: number;
+  online: number;
+  productCharges: number;
+  expenses: number;
+  cashDeposited: number;
+  deficit: number;
+  bankDeposit: number;
+  cashInHand: number;
+  recordCount: number;
+}
+
+export interface PaymentDrilldownRecordData {
+  regid: number;
+  patientName: string;
+  amount: number;
+  chargeName?: string;
+  quantity?: number;
+}
+
+export interface MonthListRowData extends ExtendedDailySummaryData {}
+
+export interface CollectionTargetRowData {
+  date: string;
+  collection: number;
+  dailyTarget: number;
+  difference: number;
+  cumulativeCollection: number;
+  cumulativeTarget: number;
+  cumulativeDifference: number;
+  isSunday: boolean;
+}
+
+export interface CollectionTargetResponseData {
+  monthlyTarget: number;
+  workingDays: number;
+  dailyTarget: number;
+  rows: CollectionTargetRowData[];
+}
+
+export function useExtendedDailySummary(date?: string) {
+  return useQuery({
+    queryKey: ['billing', 'extended-summary', date],
+    queryFn: async () => {
+      const { data } = await apiClient.get<{ success: boolean; data: ExtendedDailySummaryData }>(
+        '/billing/extended-summary',
+        { params: { date } }
+      );
+      return data.data;
+    },
+  });
+}
+
+export function usePaymentDrilldown(date: string, mode: string, enabled = false) {
+  return useQuery({
+    queryKey: ['billing', 'payment-drilldown', date, mode],
+    queryFn: async () => {
+      const { data } = await apiClient.get<{ success: boolean; data: PaymentDrilldownRecordData[] }>(
+        '/billing/payment-drilldown',
+        { params: { date, mode } }
+      );
+      return data.data || [];
+    },
+    enabled,
+  });
+}
+
+export function useMonthList(endDate?: string, days = 32) {
+  return useQuery({
+    queryKey: ['billing', 'month-list', endDate, days],
+    queryFn: async () => {
+      const { data } = await apiClient.get<{ success: boolean; data: MonthListRowData[] }>(
+        '/billing/month-list',
+        { params: { endDate, days } }
+      );
+      return data.data || [];
+    },
+  });
+}
+
+export function useCollectionTarget(month?: string) {
+  return useQuery({
+    queryKey: ['billing', 'collection-target', month],
+    queryFn: async () => {
+      const { data } = await apiClient.get<{ success: boolean; data: CollectionTargetResponseData }>(
+        '/billing/collection-target',
+        { params: { month } }
+      );
+      return data.data;
+    },
+  });
+}
+
+export function useSetTarget() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (amount: number) => {
+      const { data } = await apiClient.post<{ success: boolean; data: { amount: number } }>(
+        '/billing/set-target',
+        { amount }
+      );
+      return data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['billing', 'collection-target'] });
+    },
+  });
+}
+
