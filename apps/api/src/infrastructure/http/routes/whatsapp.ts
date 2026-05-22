@@ -1093,6 +1093,76 @@ whatsappRouter.post('/training/sources', authMiddleware, asyncHandler(async (req
   sendSuccess(res, saved, 'Training source added successfully');
 }));
 
+// POST /api/whatsapp/training/sources/upload - Upload training document (PDF/TXT/MD/etc)
+whatsappRouter.post('/training/sources/upload', authMiddleware, upload.single('file'), asyncHandler(async (req, res) => {
+  const repo = getRepo(req);
+  const body = req.body;
+
+  if (!req.file) {
+    throw new BadRequestError('No file uploaded');
+  }
+
+  if (!body.channelId) {
+    throw new BadRequestError('channelId is required');
+  }
+
+  const mimeType = req.file.mimetype;
+  const originalName = req.file.originalname;
+  let text = '';
+  let type = 'text';
+
+  if (mimeType === 'application/pdf') {
+    try {
+      const pdfParse = (await import('pdf-parse/lib/pdf-parse.js')).default;
+      const pdfData = await pdfParse(req.file.buffer);
+      text = (pdfData.text || '').trim();
+      type = 'pdf';
+    } catch (err: any) {
+      logger.error(`PDF parse failed for ${originalName}: ${err.message}`);
+      throw new BadRequestError(`Failed to parse PDF document: ${err.message}`);
+    }
+  } else if (
+    mimeType === 'text/plain' ||
+    mimeType === 'text/markdown' ||
+    mimeType === 'text/csv' ||
+    originalName.endsWith('.txt') ||
+    originalName.endsWith('.md') ||
+    originalName.endsWith('.csv')
+  ) {
+    text = req.file.buffer.toString('utf-8').trim();
+    type = 'text';
+  } else {
+    throw new BadRequestError('Unsupported file type. Supported formats are PDF, TXT, CSV, and MD.');
+  }
+
+  if (!text) {
+    throw new BadRequestError('The uploaded file does not contain any readable text content.');
+  }
+
+  const saved = await repo.saveTrainingSource({
+    channelId: parseInt(body.channelId),
+    type,
+    name: originalName,
+    url: null,
+    content: text,
+    status: 'pending',
+  });
+
+  // Trigger processing asynchronously in background to avoid blocking HTTP connection
+  const id = saved.id;
+  import('../../../domains/whatsapp/services/training.service.js')
+    .then(async ({ processTrainingSource }) => {
+      try {
+        await processTrainingSource(repo, id);
+      } catch (err: any) {
+        logger.error(`Background training source processing failed for source ${id}: ${err.message}`);
+      }
+    });
+
+  sendSuccess(res, saved, 'File uploaded and parsed successfully');
+}));
+
+
 // DELETE /api/whatsapp/training/sources/:id - Delete training source
 whatsappRouter.delete('/training/sources/:id', authMiddleware, asyncHandler(async (req, res) => {
   const id = parseInt(String(req.params.id));
@@ -1204,3 +1274,186 @@ whatsappRouter.get('/training/stats/:channelId', authMiddleware, asyncHandler(as
   });
 }));
 
+// GET /api/whatsapp/training/preview/:channelId - Data Preview (returns sources, chunks, and QA pairs)
+whatsappRouter.get('/training/preview/:channelId', authMiddleware, asyncHandler(async (req, res) => {
+  const channelId = parseInt(String(req.params.channelId));
+  const repo = getRepo(req);
+
+  const sources = await repo.listTrainingSources(channelId);
+  const qaPairs = await repo.listTrainingQaPairs(channelId);
+
+  const chunksPromises = sources
+    .filter(s => s.status === 'completed')
+    .map(async (s) => {
+      const chunks = await repo.listTrainingChunks(s.id);
+      return {
+        source: s,
+        chunks,
+      };
+    });
+
+  const previewData = await Promise.all(chunksPromises);
+
+  sendSuccess(res, {
+    qaPairs,
+    sourcesWithChunks: previewData
+  });
+}));
+
+// POST /api/whatsapp/training/sync-kb - Sync Knowledge Base Articles to Training Sources
+whatsappRouter.post('/training/sync-kb', authMiddleware, asyncHandler(async (req, res) => {
+  const { channelId } = req.body;
+  if (!channelId) {
+    throw new BadRequestError('Channel ID is required');
+  }
+
+  const db = (req as any).db;
+  const repo = getRepo(req);
+
+  // Fetch dictionary articles
+  const dictionaryQuery = await db.execute(sql`SELECT * FROM dictionary WHERE deleted_at IS NULL`);
+  const dictionaryRows = dictionaryQuery.rows || dictionaryQuery;
+
+  // Fetch library resources
+  const libraryQuery = await db.execute(sql`SELECT * FROM library_resources`);
+  const libraryRows = libraryQuery.rows || libraryQuery;
+
+  let addedCount = 0;
+
+  for (const row of dictionaryRows as any[]) {
+    // Format text
+    const textContent = `Title: ${row.title || ''}\n\nDescription: ${row.text || ''}\n\nComments: ${row.comments || ''}\n\nCross Ref: ${row.cross_ref || row.crossRef || ''}`.trim();
+    
+    if (textContent.length > 20) { // Only save meaningful content
+      const saved = await repo.saveTrainingSource({
+        channelId: Number(channelId),
+        type: 'kb_article',
+        name: `[Dictionary] ${row.title || 'Untitled'}`,
+        content: textContent,
+        status: 'pending'
+      });
+
+      if (saved.id) {
+        import('../../../domains/whatsapp/services/training.service.js')
+          .then(async ({ processTrainingSource }) => {
+            try {
+              await processTrainingSource(repo, saved.id);
+            } catch (err: any) {
+              logger.warn(`Background KB processing failed: ${err.message}`);
+            }
+          });
+        addedCount++;
+      }
+    }
+  }
+
+  for (const row of libraryRows as any[]) {
+    const textContent = `Title: ${row.title || ''}\n\nAuthor: ${row.author || ''}\n\nDescription: ${row.description || ''}\n\nResource Type: ${row.resource_type || row.resourceType || ''}`.trim();
+    
+    if (textContent.length > 20) {
+      const saved = await repo.saveTrainingSource({
+        channelId: Number(channelId),
+        type: 'kb_article',
+        name: `[Library] ${row.title || 'Untitled'}`,
+        content: textContent,
+        status: 'pending'
+      });
+
+      if (saved.id) {
+        import('../../../domains/whatsapp/services/training.service.js')
+          .then(async ({ processTrainingSource }) => {
+            try {
+              await processTrainingSource(repo, saved.id);
+            } catch (err: any) {
+              logger.warn(`Background KB processing failed: ${err.message}`);
+            }
+          });
+        addedCount++;
+      }
+    }
+  }
+
+  sendSuccess(res, { addedCount }, 'Knowledge Base synced successfully');
+}));
+
+// POST /api/whatsapp/training/test-chat - Test AI Chatbot
+whatsappRouter.post('/training/test-chat', authMiddleware, asyncHandler(async (req, res) => {
+  const { channelId, message, history = [] } = req.body;
+  if (!channelId || !message) {
+    throw new BadRequestError('Channel ID and message are required');
+  }
+
+  const repo = getRepo(req);
+  const aiSetting = await repo.findAiSettings(Number(channelId));
+  
+  if (!aiSetting || !aiSetting.apiKey) {
+    sendSuccess(res, {
+      response: "AI Agent is not configured. Please enter your OpenAI/Provider API key in the AI Settings.",
+      context: { chunksFound: 0, qaPairsFound: 0 }
+    });
+    return;
+  }
+
+  // Search RAG
+  let trainingContext = '';
+  let chunksFound = 0;
+  let qaPairsFound = 0;
+
+  try {
+    const { searchTrainingData } = await import('../../../domains/whatsapp/services/training.service.js');
+    const searchResults = await searchTrainingData(repo, Number(channelId), message);
+    chunksFound = searchResults.chunks.length;
+    qaPairsFound = searchResults.qaPairs.length;
+
+    if (chunksFound > 0) {
+      trainingContext += '\n\n--- CLINIC KNOWLEDGE BASE & SCIENTIFIC TRAINING DATA ---\n';
+      trainingContext += searchResults.chunks.join('\n\n');
+    }
+    if (qaPairsFound > 0) {
+      trainingContext += '\n\n--- CLINIC FREQUENTLY ASKED QUESTIONS (FAQ) ---\n';
+      for (const qa of searchResults.qaPairs) {
+        trainingContext += `Q: ${qa.question}\nA: ${qa.answer}\n\n`;
+      }
+    }
+  } catch (err: any) {
+    logger.warn(`Test Chat RAG failed: ${err.message}`);
+  }
+
+  const basePrompt = aiSetting.systemPrompt ||
+    `You are a professional, caring, and helpful clinical chatbot assistant. 
+Your goal is to answer patient inquiries, share details about doctor availabilities, educational FAQs, and general clinic operations.
+You MUST ONLY answer questions based on the provided clinic knowledge base and FAQ. If the answer is not in the knowledge base, be honest and initiate escalation.
+Keep responses highly concise (under 200 words), clean, polite, and friendly. Do not prescribe medicines or provide complex medical diagnosis.`;
+
+  const systemPrompt = `${basePrompt}${trainingContext}`;
+
+  let aiResponse = "";
+  try {
+    const { default: OpenAI } = await import('openai');
+    const aiClient = new OpenAI({
+      apiKey: aiSetting.apiKey,
+      baseURL: aiSetting.endpoint || 'https://api.openai.com/v1',
+    });
+
+    const completion = await aiClient.chat.completions.create({
+      model: aiSetting.model || 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        ...history.slice(-5).map((h: any) => ({ role: h.role, content: h.text })),
+        { role: 'user', content: message },
+      ],
+      temperature: parseFloat(aiSetting.temperature || '0.7'),
+      max_tokens: parseInt(aiSetting.maxTokens || '500'),
+    });
+
+    aiResponse = completion.choices?.[0]?.message?.content || 'Error: Empty response from AI.';
+  } catch (err: any) {
+    logger.error(`Test Chat OpenAI failed: ${err.message}`);
+    aiResponse = `Error generating response: ${err.message}`;
+  }
+
+  sendSuccess(res, {
+    response: aiResponse,
+    context: { chunksFound, qaPairsFound }
+  });
+}));

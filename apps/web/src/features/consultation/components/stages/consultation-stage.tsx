@@ -151,7 +151,7 @@ export function ConsultationStage({
     return () => {
       // Explicitly notify the patient before disconnecting so they get the leave event
       // even if the disconnect handler is delayed by network latency.
-      try { socket.emit('call:leave'); } catch {}
+      try { socket.emit('call:leave'); } catch { }
       socket.disconnect();
       vcSocketRef.current = null;
     };
@@ -193,9 +193,9 @@ export function ConsultationStage({
       return;
     }
 
-    const speaker: SpeakerLabel = 
-      (callMode === 'IN_PERSON' && isListeningForAnswer) 
-        ? 'PATIENT' 
+    const speaker: SpeakerLabel =
+      (callMode === 'IN_PERSON' && isListeningForAnswer)
+        ? 'PATIENT'
         : (result.role === 'PATIENT' ? 'PATIENT' : 'DOCTOR');
 
     if (result.isFinal) {
@@ -297,7 +297,7 @@ export function ConsultationStage({
         // Find the first remote user with an audio track
         const remoteUser = video?.remoteUsers?.find((u: any) => u.audioTrack);
         const ptTrack = remoteUser?.audioTrack?.mediaStreamTrack || remoteUser?.audioTrack;
-        
+
         if (ptTrack && ptTrack instanceof MediaStreamTrack) {
           hasAutoStartedPt.current = true;
           console.log('[ConsultationStage] Auto-starting PT transcription via remote track');
@@ -467,7 +467,7 @@ export function ConsultationStage({
 
   // Combine AI and mode questions with deduplication
   const modeQList = (modeQuestions.data as any)?.questions || [];
-  
+
   const allQuestions = modeQList.map((q: any, i: number) => {
     const qText = typeof q === 'string' ? q : q.question;
     const isAnswered = answeredQuestions.includes(qText);
@@ -604,7 +604,7 @@ export function ConsultationStage({
     setTimeout(() => {
       modeQuestions.mutate({
         consultationMode,
-        transcript: [...segments, segment].map(s => `${s.speaker}: ${s.translatedText || s.text}`).join('\n'),
+        transcript: [...segments, ...newSegments].map(s => `${s.speaker}: ${s.translatedText || s.text}`).join('\n'),
         answeredQuestions: [...answeredQuestions, questionText],
         chiefComplaint: (visit.chiefComplaint || (visit as any).notes || '').trim(),
         patientAge,
@@ -639,7 +639,7 @@ export function ConsultationStage({
 
   return (
     <div className="space-y-6 pp-fade-in relative">
-      
+
       {/* 1. Progress bar at top */}
       <div className="w-full h-1.5 bg-[#E3E2DF] rounded-full overflow-hidden">
         <div
@@ -742,317 +742,314 @@ export function ConsultationStage({
           >
             {({ AttachLabButton, uploadStatus, uploadedLabs: _uploadedLabs }) => {
               return (
-              <CallInterfacePanel
-                callMode={callMode}
-                video={video}
-                localSpeaker="DOCTOR"
-                patientJoinLink={ROUTES.PATIENT_MEET(visitId)}
-                transcript={segments}
-                drInterimText={drInterimText}
-                ptInterimText={ptInterimText}
-                isTranscribing={binaryTranscriber.isRecording || patientTranscriber.isRecording}
-                isRemotePaused={false}
-                error={null}
-                onLeave={() => {
-                  if (vcSocketRef.current?.connected) {
-                    vcSocketRef.current.emit('call:leave');
+                <CallInterfacePanel
+                  callMode={callMode}
+                  video={video}
+                  localSpeaker="DOCTOR"
+                  patientJoinLink={ROUTES.PATIENT_MEET(visitId)}
+                  transcript={segments}
+                  drInterimText={drInterimText}
+                  ptInterimText={ptInterimText}
+                  isTranscribing={binaryTranscriber.isRecording || patientTranscriber.isRecording}
+                  isRemotePaused={false}
+                  error={null}
+                  onLeave={() => {
+                    if (vcSocketRef.current?.connected) {
+                      vcSocketRef.current.emit('call:leave');
+                    }
+                    // Stop all transcription
+                    binaryTranscriber.stopRecording();
+                    patientTranscriber.stopRecording();
+                    // Disconnect video
+                    video?.leave?.();
+                    onStartVideoCall?.(null as any);
+                  }}
+                  onPauseToggle={onPauseToggle}
+                  isPaused={isVideoPaused}
+                  onStartRecording={handleStartRecording}
+                  onStopRecording={handleStopRecording}
+                  aiQuestions={allQuestions}
+                  isGeneratingQuestions={modeQuestions.isPending}
+                  onQuestionAnswered={() => { }}
+                  transcriptHeaderActions={
+                    <div className="flex items-center gap-2">
+                      {callMode === 'IN_PERSON' && (
+                        <button
+                          onClick={() => setIsListeningForAnswer(prev => !prev)}
+                          className={cn(
+                            "inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-bold uppercase tracking-wider transition-colors",
+                            isListeningForAnswer
+                              ? "bg-[#FEF2F2] text-[#DC2626] border border-[#FECACA] animate-pulse"
+                              : "bg-[#FAFAF8] text-[#4A4A47] border border-[#E3E2DF] hover:bg-[#EFF6FF] hover:text-[#2563EB] hover:border-[#BFDBFE]"
+                          )}
+                          title="Toggle who is speaking to correctly label the transcript"
+                        >
+                          <Mic className="h-3 w-3" />
+                          {isListeningForAnswer ? "Patient Speaking" : "Doctor Speaking"}
+                        </button>
+                      )}
+                      {AttachLabButton}
+                    </div>
                   }
-                  // Stop all transcription
-                  binaryTranscriber.stopRecording();
-                  patientTranscriber.stopRecording();
-                  // Disconnect video
-                  video?.leave?.();
-                  onStartVideoCall?.(null as any);
-                }}
-                onPauseToggle={onPauseToggle}
-                isPaused={isVideoPaused}
-                onStartRecording={handleStartRecording}
-                onStopRecording={handleStopRecording}
-                aiQuestions={allQuestions}
-                isGeneratingQuestions={modeQuestions.isPending}
-                onQuestionAnswered={() => {}}
-                transcriptHeaderActions={
-                  <div className="flex items-center gap-2">
-                    {callMode === 'IN_PERSON' && (
-                      <button
-                        onClick={() => setIsListeningForAnswer(prev => !prev)}
-                        className={cn(
-                          "inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-bold uppercase tracking-wider transition-colors",
-                          isListeningForAnswer
-                            ? "bg-[#FEF2F2] text-[#DC2626] border border-[#FECACA] animate-pulse"
-                            : "bg-[#FAFAF8] text-[#4A4A47] border border-[#E3E2DF] hover:bg-[#EFF6FF] hover:text-[#2563EB] hover:border-[#BFDBFE]"
-                        )}
-                        title="Toggle who is speaking to correctly label the transcript"
-                      >
-                        <Mic className="h-3 w-3" />
-                        {isListeningForAnswer ? "Patient Speaking" : "Doctor Speaking"}
-                      </button>
-                    )}
-                    {AttachLabButton}
-                  </div>
-                }
-                transcriptBottomActions={uploadStatus}
-              />
-            ); }}
+                  transcriptBottomActions={uploadStatus}
+                />
+              );
+            }}
           </AICaptureModule>
 
 
           {/* AI Suggested Inquiries panel */}
-          {/* 
-          <div className="pp-card overflow-hidden">
-            <div className="px-5 py-3 bg-[#FAFAF8] border-b border-[#E3E2DF] flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-[#2563EB]" />
-                <span className="text-[14px] font-bold text-[#0F0F0E] tracking-tight">AI Suggested Inquiries</span>
-                {modeQuestions.isPending && (
-                  <span className="flex items-center gap-1 ml-2 text-[10px] text-[#2563EB] font-bold animate-pulse uppercase tracking-widest">
-                    <div className="flex gap-0.5">
-                      <div className="w-1 h-1 bg-[#2563EB] rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                      <div className="w-1 h-1 bg-[#2563EB] rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                      <div className="w-1 h-1 bg-[#2563EB] rounded-full animate-bounce"></div>
-                    </div>
-                    Thinking...
-                  </span>
-                )}
-              </div>
-              <button
-                onClick={handleLoadModeQuestions}
-                className="inline-flex items-center gap-1 text-[11px] font-bold text-[#4A4A47] hover:text-[#2563EB] px-2 py-1 rounded-md hover:bg-[#EFF6FF] transition-colors uppercase"
-              >
-                <RefreshCw className={cn('h-3 w-3', modeQuestions.isPending && 'animate-spin')} />
-                Regenerate
-              </button>
-            </div>
-
-            <div className="p-4 space-y-2 bg-white">
-              {allQuestions.filter((q: any) => !q.answered).length === 0 && !modeQuestions.isPending && (
-                <p className="text-[13px] text-[#888786] italic text-center py-4">
-                  No questions available. Click Regenerate or start recording.
-                </p>
-              )}
-              <div className="grid grid-cols-1 gap-2">
-                {allQuestions.filter((q: any) => !q.answered).map((q: any) => (
-                  <div key={q.id} className="flex flex-col gap-1">
-                    <button
-                      type="button"
-                      onClick={() => injectQuestion(q.question, q.options, q.id)}
-                      className="group flex items-start gap-3 p-3 rounded-md bg-white border border-[#E3E2DF] hover:border-[#BFDBFE] hover:bg-[#EFF6FF] transition-colors text-left"
-                    >
-                      <Star className={cn("h-4 w-4 mt-0.5 shrink-0 transition-colors", q.isLive ? "text-amber-500" : "text-[#2563EB] opacity-70 group-hover:opacity-100")} />
-                      <div className="flex flex-col gap-0.5">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[13px] text-[#0F0F0E] font-medium leading-snug">
-                            {q.question}
-                          </span>
-                          {q.isLive && (
-                            <span className="px-1.5 py-0.5 rounded-[4px] bg-amber-50 text-amber-700 text-[9px] font-black uppercase tracking-tighter border border-amber-200">
-                              New
-                            </span>
-                          )}
-                        </div>
+            <div className="pp-card overflow-hidden">
+              <div className="px-5 py-3 bg-[#FAFAF8] border-b border-[#E3E2DF] flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-[#2563EB]" />
+                  <span className="text-[14px] font-bold text-[#0F0F0E] tracking-tight">AI Suggested Inquiries</span>
+                  {modeQuestions.isPending && (
+                    <span className="flex items-center gap-1 ml-2 text-[10px] text-[#2563EB] font-bold animate-pulse uppercase tracking-widest">
+                      <div className="flex gap-0.5">
+                        <div className="w-1 h-1 bg-[#2563EB] rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                        <div className="w-1 h-1 bg-[#2563EB] rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                        <div className="w-1 h-1 bg-[#2563EB] rounded-full animate-bounce"></div>
                       </div>
-                      <ArrowRight className="h-4 w-4 text-[#888786] group-hover:text-[#2563EB] mt-0.5 shrink-0 ml-auto transition-transform group-hover:translate-x-1" />
-                    </button>
-                    
-                    {q.options && q.options.length > 0 && (() => {
-                      const selectedOptions = selectedOptionsMap[q.question] || [];
-                      return (
-                        <div className="flex flex-wrap items-center gap-1.5 ml-6 mb-2">
-                          {q.options.map((opt: string, idx: number) => {
-                            const isSelected = selectedOptions.includes(opt);
-                            return (
-                              <button
-                                key={idx}
-                                onClick={() => {
-                                  setSelectedOptionsMap(prev => {
-                                    const current = prev[q.question] || [];
-                                    const next = current.includes(opt)
-                                      ? current.filter(o => o !== opt)
-                                      : [...current, opt];
-                                    return { ...prev, [q.question]: next };
-                                  });
-                                }}
-                                className={cn(
-                                  "px-2 py-1 text-[11px] font-bold border rounded-[4px] transition-all",
-                                  isSelected
-                                    ? "bg-[#2563EB] text-white border-[#2563EB] shadow-sm scale-95"
-                                    : "bg-[#FAFAF8] border-[#E3E2DF] text-[#4A4A47] hover:border-[#2563EB] hover:text-[#2563EB]"
-                                )}
-                              >
-                                {opt}
-                              </button>
-                            );
-                          })}
-                          {selectedOptions.length > 0 && (
-                            <button
-                              onClick={() => {
-                                injectQuestion(q.question, q.id);
-                                setTimeout(() => injectAnswer(selectedOptions.join(', ')), 300);
-                                // Clear selection for this question
-                                setSelectedOptionsMap(prev => {
-                                  const next = { ...prev };
-                                  delete next[q.question];
-                                  return next;
-                                });
-                              }}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold bg-[#2563EB] text-white border border-[#2563EB] rounded-[4px] hover:bg-[#1D4ED8] transition-colors uppercase tracking-wider shadow-sm ml-2"
-                            >
-                              <Check className="h-3 w-3" /> Submit
-                            </button>
-                          )}
-                        </div>
-                      );
-                    })()}
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex items-center gap-2 pt-3 mt-3 border-t border-[#E3E2DF]">
-                <input
-                  type="text"
-                  value={customQuestion}
-                  onChange={(e) => setCustomQuestion(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && customQuestion.trim()) {
-                      injectQuestion(customQuestion.trim());
-                      setCustomQuestion('');
-                    }
-                  }}
-                  placeholder="Type a custom question..."
-                  className="flex-1 text-[13px] font-medium px-3 py-1.5 rounded-md border border-[#E3E2DF] bg-[#FAFAF8] focus:outline-none focus:bg-white focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] text-[#0F0F0E]"
-                />
+                      Thinking...
+                    </span>
+                  )}
+                </div>
                 <button
-                  onClick={() => {
-                    if (customQuestion.trim()) {
-                      injectQuestion(customQuestion.trim());
-                      setCustomQuestion('');
-                    }
-                  }}
-                  className="pp-btn-secondary h-8 px-3 text-[11px] uppercase tracking-wider"
+                  onClick={handleLoadModeQuestions}
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-[#4A4A47] hover:text-[#2563EB] px-2 py-1 rounded-md hover:bg-[#EFF6FF] transition-colors uppercase"
                 >
-                  Add
+                  <RefreshCw className={cn('h-3 w-3', modeQuestions.isPending && 'animate-spin')} />
+                  Regenerate
                 </button>
               </div>
 
+              <div className="p-4 space-y-2 bg-white">
+                {allQuestions.filter((q: any) => !q.answered).length === 0 && !modeQuestions.isPending && (
+                  <p className="text-[13px] text-[#888786] italic text-center py-4">
+                    No questions available. Click Regenerate or start recording.
+                  </p>
+                )}
+                <div className="grid grid-cols-1 gap-2">
+                  {allQuestions.filter((q: any) => !q.answered).map((q: any) => (
+                    <div key={q.id} className="flex flex-col gap-1">
+                      <button
+                        type="button"
+                        onClick={() => injectQuestion(q.question, q.options, q.id)}
+                        className="group flex items-start gap-3 p-3 rounded-md bg-white border border-[#E3E2DF] hover:border-[#BFDBFE] hover:bg-[#EFF6FF] transition-colors text-left"
+                      >
+                        <Star className={cn("h-4 w-4 mt-0.5 shrink-0 transition-colors", q.isLive ? "text-amber-500" : "text-[#2563EB] opacity-70 group-hover:opacity-100")} />
+                        <div className="flex flex-col gap-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[13px] text-[#0F0F0E] font-medium leading-snug">
+                              {q.question}
+                            </span>
+                            {q.isLive && (
+                              <span className="px-1.5 py-0.5 rounded-[4px] bg-amber-50 text-amber-700 text-[9px] font-black uppercase tracking-tighter border border-amber-200">
+                                New
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <ArrowRight className="h-4 w-4 text-[#888786] group-hover:text-[#2563EB] mt-0.5 shrink-0 ml-auto transition-transform group-hover:translate-x-1" />
+                      </button>
+
+                      {q.options && q.options.length > 0 && (() => {
+                        const selectedOptions = selectedOptionsMap[q.question] || [];
+                        return (
+                          <div className="flex flex-wrap items-center gap-1.5 ml-6 mb-2">
+                            {q.options.map((opt: string, idx: number) => {
+                              const isSelected = selectedOptions.includes(opt);
+                              return (
+                                <button
+                                  key={idx}
+                                  onClick={() => {
+                                    setSelectedOptionsMap(prev => {
+                                      const current = prev[q.question] || [];
+                                      const next = current.includes(opt)
+                                        ? current.filter(o => o !== opt)
+                                        : [...current, opt];
+                                      return { ...prev, [q.question]: next };
+                                    });
+                                  }}
+                                  className={cn(
+                                    "px-2 py-1 text-[11px] font-bold border rounded-[4px] transition-all",
+                                    isSelected
+                                      ? "bg-[#2563EB] text-white border-[#2563EB] shadow-sm scale-95"
+                                      : "bg-[#FAFAF8] border-[#E3E2DF] text-[#4A4A47] hover:border-[#2563EB] hover:text-[#2563EB]"
+                                  )}
+                                >
+                                  {opt}
+                                </button>
+                              );
+                            })}
+                            {selectedOptions.length > 0 && (
+                              <button
+                                onClick={() => {
+                                  injectQuestion(q.question, q.id);
+                                  setTimeout(() => injectAnswer(selectedOptions.join(', ')), 300);
+                                  // Clear selection for this question
+                                  setSelectedOptionsMap(prev => {
+                                    const next = { ...prev };
+                                    delete next[q.question];
+                                    return next;
+                                  });
+                                }}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold bg-[#2563EB] text-white border border-[#2563EB] rounded-[4px] hover:bg-[#1D4ED8] transition-colors uppercase tracking-wider shadow-sm ml-2"
+                              >
+                                <Check className="h-3 w-3" /> Submit
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-2 pt-3 mt-3 border-t border-[#E3E2DF]">
+                  <input
+                    type="text"
+                    value={customQuestion}
+                    onChange={(e) => setCustomQuestion(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && customQuestion.trim()) {
+                        injectQuestion(customQuestion.trim());
+                        setCustomQuestion('');
+                      }
+                    }}
+                    placeholder="Type a custom question..."
+                    className="flex-1 text-[13px] font-medium px-3 py-1.5 rounded-md border border-[#E3E2DF] bg-[#FAFAF8] focus:outline-none focus:bg-white focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] text-[#0F0F0E]"
+                  />
+                  <button
+                    onClick={() => {
+                      if (customQuestion.trim()) {
+                        injectQuestion(customQuestion.trim());
+                        setCustomQuestion('');
+                      }
+                    }}
+                    className="pp-btn-secondary h-8 px-3 text-[11px] uppercase tracking-wider"
+                  >
+                    Add
+                  </button>
+                </div>
+
+              </div>
             </div>
-          </div>
-          */}
 
         </div>
 
         {/* RIGHT COLUMN: Live Symptom Extraction panel */}
-        {/* 
-        <div className="space-y-0">
-          <div className="pp-card sticky top-8">
-            <div className="px-5 py-4 border-b border-[#E3E2DF] bg-[#FAFAF8] flex items-center justify-between">
-              <span className="text-[14px] font-bold text-[#0F0F0E] tracking-tight flex items-center gap-2">
-                <Search className="h-4 w-4 text-[#2563EB]" />
-                Live Extraction
-              </span>
-              <button
-                onClick={handleClearAllSymptoms}
-                className="inline-flex items-center gap-1 text-[10px] font-bold text-[#DC2626] hover:bg-[#FEF2F2] border border-transparent hover:border-[#FECACA] px-2 py-1 rounded-[4px] transition-colors uppercase tracking-wider"
-              >
-                <Trash2 className="h-3 w-3" />
-                Clear All
-              </button>
-            </div>
-
-            <div className="divide-y divide-[#E3E2DF] bg-white">
-              <div className="p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <Brain className="h-4 w-4 text-[#2563EB]" />
-                  <span className="text-[10px] font-bold text-[#4A4A47] uppercase tracking-widest">Mental Generals</span>
-                  <span className="ml-auto text-[10px] font-bold text-[#2563EB] bg-[#EFF6FF] px-2 py-0.5 rounded-[4px]">
-                    {categorizedSymptoms.mental.length}
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {categorizedSymptoms.mental.length === 0 && (
-                    <p className="text-[12px] text-[#888786] italic">None extracted yet</p>
-                  )}
-                  {categorizedSymptoms.mental.map((s, i) => (
-                    <span
-                      key={i}
-                      className="group flex flex-1 w-full items-center gap-2 text-[12px] font-medium text-[#0F0F0E] bg-white border border-[#E3E2DF] px-3 py-2 rounded-md hover:border-[#BFDBFE] transition-colors cursor-default"
-                    >
-                      {s}
-                      <button
-                        onClick={() => handleRemoveSymptom('mental', i)}
-                        className="ml-auto text-[#888786] hover:text-[#DC2626] p-1 rounded-sm shrink-0 transition-colors"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div className="p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <Heart className="h-4 w-4 text-[#2563EB]" />
-                  <span className="text-[10px] font-bold text-[#4A4A47] uppercase tracking-widest">Physical Generals</span>
-                  <span className="ml-auto text-[10px] font-bold text-[#2563EB] bg-[#EFF6FF] px-2 py-0.5 rounded-[4px]">
-                    {categorizedSymptoms.physical.length}
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {categorizedSymptoms.physical.length === 0 && (
-                    <p className="text-[12px] text-[#888786] italic">None extracted yet</p>
-                  )}
-                  {categorizedSymptoms.physical.map((s, i) => (
-                    <span
-                      key={i}
-                      className="group flex flex-1 w-full items-center gap-2 text-[12px] font-medium text-[#0F0F0E] bg-white border border-[#E3E2DF] px-3 py-2 rounded-md hover:border-[#BFDBFE] transition-colors cursor-default"
-                    >
-                      {s}
-                      <button
-                        onClick={() => handleRemoveSymptom('physical', i)}
-                        className="ml-auto text-[#888786] hover:text-[#DC2626] p-1 rounded-sm shrink-0 transition-colors"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div className="p-4">
-                <div className="flex items-center gap-2 mb-3">
+          <div className="space-y-0">
+            <div className="pp-card sticky top-8">
+              <div className="px-5 py-4 border-b border-[#E3E2DF] bg-[#FAFAF8] flex items-center justify-between">
+                <span className="text-[14px] font-bold text-[#0F0F0E] tracking-tight flex items-center gap-2">
                   <Search className="h-4 w-4 text-[#2563EB]" />
-                  <span className="text-[10px] font-bold text-[#4A4A47] uppercase tracking-widest">Particulars</span>
-                  <span className="ml-auto text-[10px] font-bold text-[#2563EB] bg-[#EFF6FF] px-2 py-0.5 rounded-[4px]">
-                    {categorizedSymptoms.particular.length}
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {categorizedSymptoms.particular.length === 0 && (
-                    <p className="text-[12px] text-[#888786] italic">None extracted yet</p>
-                  )}
-                  {categorizedSymptoms.particular.map((s, i) => (
-                    <span
-                      key={i}
-                      className="group flex flex-1 w-full items-center gap-2 text-[12px] font-medium text-[#0F0F0E] bg-white border border-[#E3E2DF] px-3 py-2 rounded-md hover:border-[#BFDBFE] transition-colors cursor-default"
-                    >
-                      {s}
-                      <button
-                        onClick={() => handleRemoveSymptom('particular', i)}
-                        className="ml-auto text-[#888786] hover:text-[#DC2626] p-1 rounded-sm shrink-0 transition-colors"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
+                  Live Extraction
+                </span>
+                <button
+                  onClick={handleClearAllSymptoms}
+                  className="inline-flex items-center gap-1 text-[10px] font-bold text-[#DC2626] hover:bg-[#FEF2F2] border border-transparent hover:border-[#FECACA] px-2 py-1 rounded-[4px] transition-colors uppercase tracking-wider"
+                >
+                  <Trash2 className="h-3 w-3" />
+                  Clear All
+                </button>
+              </div>
+
+              <div className="divide-y divide-[#E3E2DF] bg-white">
+                <div className="p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Brain className="h-4 w-4 text-[#2563EB]" />
+                    <span className="text-[10px] font-bold text-[#4A4A47] uppercase tracking-widest">Mental Generals</span>
+                    <span className="ml-auto text-[10px] font-bold text-[#2563EB] bg-[#EFF6FF] px-2 py-0.5 rounded-[4px]">
+                      {categorizedSymptoms.mental.length}
                     </span>
-                  ))}
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {categorizedSymptoms.mental.length === 0 && (
+                      <p className="text-[12px] text-[#888786] italic">None extracted yet</p>
+                    )}
+                    {categorizedSymptoms.mental.map((s, i) => (
+                      <span
+                        key={i}
+                        className="group flex flex-1 w-full items-center gap-2 text-[12px] font-medium text-[#0F0F0E] bg-white border border-[#E3E2DF] px-3 py-2 rounded-md hover:border-[#BFDBFE] transition-colors cursor-default"
+                      >
+                        {s}
+                        <button
+                          onClick={() => handleRemoveSymptom('mental', i)}
+                          className="ml-auto text-[#888786] hover:text-[#DC2626] p-1 rounded-sm shrink-0 transition-colors"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Heart className="h-4 w-4 text-[#2563EB]" />
+                    <span className="text-[10px] font-bold text-[#4A4A47] uppercase tracking-widest">Physical Generals</span>
+                    <span className="ml-auto text-[10px] font-bold text-[#2563EB] bg-[#EFF6FF] px-2 py-0.5 rounded-[4px]">
+                      {categorizedSymptoms.physical.length}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {categorizedSymptoms.physical.length === 0 && (
+                      <p className="text-[12px] text-[#888786] italic">None extracted yet</p>
+                    )}
+                    {categorizedSymptoms.physical.map((s, i) => (
+                      <span
+                        key={i}
+                        className="group flex flex-1 w-full items-center gap-2 text-[12px] font-medium text-[#0F0F0E] bg-white border border-[#E3E2DF] px-3 py-2 rounded-md hover:border-[#BFDBFE] transition-colors cursor-default"
+                      >
+                        {s}
+                        <button
+                          onClick={() => handleRemoveSymptom('physical', i)}
+                          className="ml-auto text-[#888786] hover:text-[#DC2626] p-1 rounded-sm shrink-0 transition-colors"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Search className="h-4 w-4 text-[#2563EB]" />
+                    <span className="text-[10px] font-bold text-[#4A4A47] uppercase tracking-widest">Particulars</span>
+                    <span className="ml-auto text-[10px] font-bold text-[#2563EB] bg-[#EFF6FF] px-2 py-0.5 rounded-[4px]">
+                      {categorizedSymptoms.particular.length}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {categorizedSymptoms.particular.length === 0 && (
+                      <p className="text-[12px] text-[#888786] italic">None extracted yet</p>
+                    )}
+                    {categorizedSymptoms.particular.map((s, i) => (
+                      <span
+                        key={i}
+                        className="group flex flex-1 w-full items-center gap-2 text-[12px] font-medium text-[#0F0F0E] bg-white border border-[#E3E2DF] px-3 py-2 rounded-md hover:border-[#BFDBFE] transition-colors cursor-default"
+                      >
+                        {s}
+                        <button
+                          onClick={() => handleRemoveSymptom('particular', i)}
+                          className="ml-auto text-[#888786] hover:text-[#DC2626] p-1 rounded-sm shrink-0 transition-colors"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="px-4 py-2 bg-[#FAFAF8] border-t border-[#E3E2DF] text-center">
-              <span className="text-[11px] font-bold text-[#888786] uppercase tracking-widest">{totalSymptoms} symptom{totalSymptoms !== 1 ? 's' : ''} extracted</span>
+              <div className="px-4 py-2 bg-[#FAFAF8] border-t border-[#E3E2DF] text-center">
+                <span className="text-[11px] font-bold text-[#888786] uppercase tracking-widest">{totalSymptoms} symptom{totalSymptoms !== 1 ? 's' : ''} extracted</span>
+              </div>
             </div>
           </div>
-        </div>
-        */}
       </div>
 
       {/* Navigation buttons are in the bottom bar — no duplicate here */}

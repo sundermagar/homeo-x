@@ -11,7 +11,7 @@ export function useNotifications(limit = 20, offset = 0) {
       });
       return response.data.data;
     },
-    refetchInterval: 30000, // Poll every 30s
+    refetchInterval: 5 * 60_000, // Poll every 5 min (remote DB has high latency)
   });
 }
 
@@ -22,7 +22,7 @@ export function useUnreadCount() {
       const response = await apiClient.get<UnreadCountResponse>('/notifications/unread-count');
       return response.data.data;
     },
-    refetchInterval: 15000, // Poll every 15s for the badge
+    refetchInterval: 2 * 60_000, // Poll every 2 min (remote DB has high latency)
   });
 }
 

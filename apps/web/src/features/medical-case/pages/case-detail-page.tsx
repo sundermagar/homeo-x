@@ -47,7 +47,7 @@ import { usePatientBills } from '../../billing/hooks/use-billing';
 import { useActivePackage } from '../../packages/hooks/use-packages';
 import { BillingUpdateModal } from '../components/billing-update-modal';
 import { PaymentReceiptModal } from '../../billing/components/payment-receipt-modal';
-
+import { InvestigationComparisonView } from '../components/investigation-comparison-view';
 import { useAppointments } from '../../appointments/hooks/use-appointments';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { Pagination } from '@/components/shared/pagination';

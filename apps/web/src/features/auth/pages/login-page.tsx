@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   Mail, Lock, Eye, EyeOff, Loader2, AlertCircle,
@@ -26,15 +26,94 @@ export default function LoginPage() {
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof LoginFields, string>>>({});
   const [rememberMe, setRememberMe] = useState(false);
   const [activeFeature, setActiveFeature] = useState<string | null>(null);
+  const [isForgotPasswordLoading, setIsForgotPasswordLoading] = useState(false);
+  const [showForgotForm, setShowForgotForm] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotError, setForgotError] = useState<string | null>(null);
+  const [forgotSuccess, setForgotSuccess] = useState<string | null>(null);
 
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const resetToken = searchParams.get('token');
+  const resetEmail = searchParams.get('email');
+
   const queryClient = useQueryClient();
   const setAuth = useAuthStore((s) => s.setAuth);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
+  // If in reset mode, pre-fill email
+  useEffect(() => {
+    if (resetEmail && !email) {
+      setEmail(resetEmail);
+    }
+  }, [resetEmail]);
+
   useEffect(() => {
     if (isAuthenticated) navigate('/', { replace: true });
   }, [isAuthenticated, navigate]);
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotError(null);
+    setForgotSuccess(null);
+
+    if (!forgotEmail) {
+      setForgotError('Please enter your email address.');
+      return;
+    }
+
+    setIsForgotPasswordLoading(true);
+    try {
+      const { data } = await apiClient.post('/auth/forgot-password', { email: forgotEmail });
+      if (data.success && data.data?.success) {
+        setForgotSuccess('Reset link sent! Check your email inbox.');
+        setForgotError(null);
+      } else {
+        setForgotError(data.data?.message || 'Could not send reset link. Please try again.');
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.message || err.response?.data?.error || '';
+      if (msg.toLowerCase().includes('not found') || err.response?.status === 404) {
+        setForgotError('No account found with this email address.');
+      } else {
+        setForgotError(msg || 'Failed to send reset link. Please try again.');
+      }
+    } finally {
+      setIsForgotPasswordLoading(false);
+    }
+  };
+
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isResetting, setIsResetting] = useState(false);
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+    setIsResetting(true);
+    setError(null);
+    try {
+      const { data } = await apiClient.post('/auth/reset-password', {
+        email: resetEmail || email,
+        token: resetToken,
+        newPassword
+      });
+      if (data.success) {
+        toast({ title: 'Success', description: 'Password reset successfully. Please login.' });
+        navigate('/login', { replace: true });
+        setPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to reset password.');
+    } finally {
+      setIsResetting(false);
+    }
+  };
 
   // Warm up the dashboard chunk and the dashboard query while the user is reading
   // the login form. Hides ~500-1500ms of perceived wait on first navigation to "/".
@@ -67,7 +146,7 @@ export default function LoginPage() {
     try {
       const { data } = await apiClient.post('/auth/login', { email, password });
       if (data.success && data.data?.token) {
-        setAuth(data.data.token, data.data.user);
+        setAuth(data.data.token, data.data.user, rememberMe);
         // Fire ONE dashboard request matching this user's role so it's in flight by
         // the time React mounts the dashboard route. Firing both 'month' and 'day'
         // at once doubles connection-pool pressure on the remote DB and makes the
@@ -132,7 +211,9 @@ export default function LoginPage() {
                   <span>System Online</span>
                 </div>
               </div>
-              <h1 className="login-form-title">Clinic Portal</h1>
+              <h1 className="login-form-title">
+                {resetToken ? 'Reset Password' : showForgotForm ? 'Forgot Password' : 'Clinic Portal'}
+              </h1>
               <div className="login-subtitle-container">
                 <p className={`login-form-subtitle ${activeFeature ? 'is-insight' : ''}`}>
                   {activeFeature === 'ai' && (
@@ -163,81 +244,187 @@ export default function LoginPage() {
                 )}
               </div>
 
-              <form className="login-form" onSubmit={handleSubmit} noValidate>
-                <div className="form-group input-wrapper has-input-icon">
-                  <div className="input-icon-bg">
-                    <Mail size={18} className="input-icon" />
-                  </div>
-                  <input
-                    id="login-email"
-                    type="email"
-                    className={`login-input${fieldErrors.email ? ' error' : ''}`}
-                    placeholder="Staff Email / ID"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    autoComplete="email"
-                  />
-                </div>
-
-                <div className="form-group input-wrapper has-input-icon">
-                  <div className="input-icon-bg">
-                    <Lock size={18} className="input-icon" />
-                  </div>
-                  <input
-                    id="login-password"
-                    type={showPassword ? 'text' : 'password'}
-                    className={`login-input${fieldErrors.password ? ' error' : ''}`}
-                    placeholder="Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    autoComplete="current-password"
-                  />
-                  <button
-                    type="button"
-                    className="password-toggle"
-                    onClick={() => setShowPassword(!showPassword)}
-                    tabIndex={-1}
-                  >
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
-
-                <div className="login-form-options">
-                  <label className="remember-me">
+              {resetToken ? (
+                <form className="login-form" onSubmit={handleResetPassword} noValidate>
+                  <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '16px', textAlign: 'center' }}>
+                    Set a new password for <br /><strong style={{ color: '#1e3a8a' }}>{resetEmail}</strong>
+                  </p>
+                  
+                  <div className="form-group input-wrapper has-input-icon">
+                    <div className="input-icon-bg">
+                      <Lock size={18} className="input-icon" />
+                    </div>
                     <input
-                      type="checkbox"
-                      checked={rememberMe}
-                      onChange={(e) => setRememberMe(e.target.checked)}
+                      id="reset-password"
+                      type={showPassword ? 'text' : 'password'}
+                      className="login-input"
+                      placeholder="New Password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      autoComplete="new-password"
                     />
-                    <span>Keep me logged in</span>
-                  </label>
-                  <a 
-                    href="#" 
-                    className="forgot-pass"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      toast({
-                        title: 'Password Reset',
-                        description: 'Please contact your Clinic Administrator to reset your password.',
-                      });
-                    }}
-                  >
-                    Reset Password?
-                  </a>
-                </div>
-
-                {error && (
-                  <div className="login-error-alert">
-                    <AlertCircle size={16} />
-                    <span>{error}</span>
+                    <button
+                      type="button"
+                      className="password-toggle"
+                      onClick={() => setShowPassword(!showPassword)}
+                      tabIndex={-1}
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
                   </div>
-                )}
 
-                <button type="submit" className="login-btn-primary" disabled={isLoading}>
-                  {isLoading ? <Loader2 size={20} className="animate-spin" /> : 'Enter Portal'}
-                </button>
+                  <div className="form-group input-wrapper has-input-icon">
+                    <div className="input-icon-bg">
+                      <ShieldCheck size={18} className="input-icon" />
+                    </div>
+                    <input
+                      id="confirm-password"
+                      type={showPassword ? 'text' : 'password'}
+                      className="login-input"
+                      placeholder="Confirm New Password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      autoComplete="new-password"
+                    />
+                  </div>
 
-              </form>
+                  {error && (
+                    <div className="login-error-alert">
+                      <AlertCircle size={16} />
+                      <span>{error}</span>
+                    </div>
+                  )}
+
+                  <button type="submit" className="login-btn-primary" disabled={isResetting}>
+                    {isResetting ? <Loader2 size={20} className="animate-spin" /> : 'Set New Password'}
+                  </button>
+
+                  <div className="login-form-options" style={{ justifyContent: 'center', marginTop: '16px' }}>
+                    <Link to="/login" className="forgot-pass">
+                      Back to Login
+                    </Link>
+                  </div>
+                </form>
+              ) : showForgotForm ? (
+                <form className="login-form" onSubmit={handleForgotPassword} noValidate>
+                  <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '16px', textAlign: 'center' }}>
+                    Enter your registered email address. We'll search your account and send a reset link.
+                  </p>
+
+                  <div className="form-group input-wrapper has-input-icon">
+                    <div className="input-icon-bg">
+                      <Mail size={18} className="input-icon" />
+                    </div>
+                    <input
+                      id="forgot-email"
+                      type="email"
+                      className={`login-input${forgotError ? ' error' : ''}`}
+                      placeholder="Enter your email address"
+                      value={forgotEmail}
+                      onChange={(e) => { setForgotEmail(e.target.value); setForgotError(null); setForgotSuccess(null); }}
+                      autoComplete="email"
+                      autoFocus
+                    />
+                  </div>
+
+                  {forgotError && (
+                    <div className="login-error-alert">
+                      <AlertCircle size={16} />
+                      <span>{forgotError}</span>
+                    </div>
+                  )}
+
+                  {forgotSuccess && (
+                    <div className="login-error-alert" style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534' }}>
+                      <ShieldCheck size={16} />
+                      <span>{forgotSuccess}</span>
+                    </div>
+                  )}
+
+                  <button type="submit" className="login-btn-primary" disabled={isForgotPasswordLoading}>
+                    {isForgotPasswordLoading ? <Loader2 size={20} className="animate-spin" /> : 'Search & Send Reset Link'}
+                  </button>
+
+                  <div className="login-form-options" style={{ justifyContent: 'center', marginTop: '16px' }}>
+                    <a
+                      href="#"
+                      className="forgot-pass"
+                      onClick={(e) => { e.preventDefault(); setShowForgotForm(false); setForgotError(null); setForgotSuccess(null); }}
+                    >
+                      Back to Login
+                    </a>
+                  </div>
+                </form>
+              ) : (
+                <form className="login-form" onSubmit={handleSubmit} noValidate>
+                  <div className="form-group input-wrapper has-input-icon">
+                    <div className="input-icon-bg">
+                      <Mail size={18} className="input-icon" />
+                    </div>
+                    <input
+                      id="login-email"
+                      type="email"
+                      className={`login-input${fieldErrors.email ? ' error' : ''}`}
+                      placeholder="Staff Email / ID"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      autoComplete="email"
+                    />
+                  </div>
+
+                  <div className="form-group input-wrapper has-input-icon">
+                    <div className="input-icon-bg">
+                      <Lock size={18} className="input-icon" />
+                    </div>
+                    <input
+                      id="login-password"
+                      type={showPassword ? 'text' : 'password'}
+                      className={`login-input${fieldErrors.password ? ' error' : ''}`}
+                      placeholder="Password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      autoComplete="current-password"
+                    />
+                    <button
+                      type="button"
+                      className="password-toggle"
+                      onClick={() => setShowPassword(!showPassword)}
+                      tabIndex={-1}
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+
+                  <div className="login-form-options">
+                    <label className="remember-me">
+                      <input
+                        type="checkbox"
+                        checked={rememberMe}
+                        onChange={(e) => setRememberMe(e.target.checked)}
+                      />
+                      <span>Keep me logged in</span>
+                    </label>
+                    <a
+                      href="#"
+                      className="forgot-pass"
+                      onClick={(e) => { e.preventDefault(); setShowForgotForm(true); setForgotEmail(''); setForgotError(null); setForgotSuccess(null); }}
+                    >
+                      Reset Password?
+                    </a>
+                  </div>
+
+                  {error && (
+                    <div className="login-error-alert">
+                      <AlertCircle size={16} />
+                      <span>{error}</span>
+                    </div>
+                  )}
+
+                  <button type="submit" className="login-btn-primary" disabled={isLoading}>
+                    {isLoading ? <Loader2 size={20} className="animate-spin" /> : 'Enter Portal'}
+                  </button>
+                </form>
+              )}
 
               {/* ─── Platform Features ─────────────────────────────────────── */}
               <div className="login-platform-features">

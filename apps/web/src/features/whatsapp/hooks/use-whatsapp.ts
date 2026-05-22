@@ -517,6 +517,58 @@ export const useWhatsApp = () => {
       },
     }),
 
+    useUploadTrainingFile: () => useMutation({
+      mutationFn: async (payload: { channelId: number; file: File }) => {
+        const formData = new FormData();
+        formData.append('channelId', payload.channelId.toString());
+        formData.append('file', payload.file);
+
+        const { data } = await apiClient.post<{ data: any }>(
+          '/whatsapp/training/sources/upload',
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          }
+        );
+        return data.data;
+      },
+      onSuccess: (_, vars) => {
+        queryClient.invalidateQueries({ queryKey: ['whatsapp', 'training-sources', vars.channelId] });
+        queryClient.invalidateQueries({ queryKey: ['whatsapp', 'training-stats', vars.channelId] });
+      },
+    }),
+
+
+    useTrainingPreview: (channelId: number | null) => useQuery({
+      queryKey: ['whatsapp', 'training-preview', channelId],
+      queryFn: async () => {
+        if (!channelId) return { qaPairs: [], sourcesWithChunks: [] };
+        const { data } = await apiClient.get<{ data: any }>(`/whatsapp/training/preview/${channelId}`);
+        return data.data;
+      },
+      enabled: !!channelId,
+    }),
+
+    useSyncKnowledgeBase: () => useMutation({
+      mutationFn: async (payload: { channelId: number }) => {
+        const { data } = await apiClient.post<{ data: any }>('/whatsapp/training/sync-kb', payload);
+        return data.data;
+      },
+      onSuccess: (_, vars) => {
+        queryClient.invalidateQueries({ queryKey: ['whatsapp', 'training-sources', vars.channelId] });
+        queryClient.invalidateQueries({ queryKey: ['whatsapp', 'training-stats', vars.channelId] });
+      },
+    }),
+
+    useTestChat: () => useMutation({
+      mutationFn: async (payload: { channelId: number; message: string; history: any[] }) => {
+        const { data } = await apiClient.post<{ data: any }>('/whatsapp/training/test-chat', payload);
+        return data.data;
+      },
+    }),
+
     useProcessTrainingSource: () => useMutation({
       mutationFn: async (id: number) => {
         const { data } = await apiClient.post<{ data: any }>(`/whatsapp/training/sources/${id}/process`);

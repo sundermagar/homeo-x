@@ -112,8 +112,15 @@ export class UserRepositoryPG implements UserRepository {
   }
 
   async updateResetOtp(userId: number, hashedToken: string, expiry: Date): Promise<void> {
+    const expiryStr = expiry.toISOString();
     await this.db.execute(
-      sql`UPDATE users SET reset_otp = ${hashedToken}, reset_otp_expiry = ${expiry}, updated_at = NOW() WHERE id = ${userId}`
+      sql`UPDATE users SET reset_otp = ${hashedToken}, reset_otp_expiry = ${expiryStr}, updated_at = NOW() WHERE id = ${userId}`
+    );
+  }
+
+  async updatePasswordAndClearOtp(userId: number, newPasswordHash: string): Promise<void> {
+    await this.db.execute(
+      sql`UPDATE users SET password_hash = ${newPasswordHash}, reset_otp = NULL, reset_otp_expiry = NULL, updated_at = NOW() WHERE id = ${userId}`
     );
   }
 }

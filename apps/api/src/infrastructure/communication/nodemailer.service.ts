@@ -11,13 +11,13 @@ export class NodemailerServiceAdapter implements EmailService {
   private isConnected: boolean = false;
 
   constructor() {
-    const smtpUser = process.env.SMTP_USER;
-    const smtpPass = process.env.SMTP_PASS;
+    const smtpUser = process.env.SMTP_USER || process.env.MAIL_USER;
+    const smtpPass = process.env.SMTP_PASS || process.env.MAIL_PASS;
 
     const transportConfig: any = {
-      host: process.env.SMTP_HOST || 'smtp.gmail.com',
-      port: Number(process.env.SMTP_PORT) || 587,
-      secure: process.env.SMTP_SECURE === 'true', // true for 465, false for 587
+      host: process.env.SMTP_HOST || process.env.MAIL_HOST || 'smtp.gmail.com',
+      port: Number(process.env.SMTP_PORT || process.env.MAIL_PORT) || 587,
+      secure: (process.env.SMTP_SECURE || process.env.MAIL_ENCRYPTION) === 'true', // true for 465, false for 587
     };
 
     if (smtpUser && smtpPass) {
@@ -55,15 +55,24 @@ export class NodemailerServiceAdapter implements EmailService {
   }
 
   async sendEmail(data: SendEmailDto): Promise<boolean> {
+    // If not connected yet, try to verify again before giving up
     if (!this.isConnected) {
-      logger.warn(`Email to ${data.to} skipped: SMTP is not connected.`);
-      return false;
+      logger.info('SMTP not connected, attempting reconnection before sending...');
+      try {
+        await this.transporter.verify();
+        this.isConnected = true;
+        logger.info('SMTP reconnection successful!');
+      } catch (retryErr: any) {
+        logger.error({ message: retryErr.message, code: retryErr.code }, 'SMTP reconnection failed:');
+        logger.warn(`Email to ${data.to} skipped: SMTP is not connected.`);
+        return false;
+      }
     }
 
     try {
       logger.info(`Attempting to send email to ${data.to}...`);
       const info = await this.transporter.sendMail({
-        from: process.env.SMTP_FROM || '"MMC System" <noreply@managemyclinic.in>',
+        from: process.env.SMTP_FROM || process.env.MAIL_FROM || `"MMC System" <${process.env.SMTP_USER || process.env.MAIL_USER || 'noreply@managemyclinic.in'}>`,
         to: data.to,
         subject: data.subject,
         text: data.text,
@@ -79,6 +88,8 @@ export class NodemailerServiceAdapter implements EmailService {
         code: err.code,
         stack: err.stack
       }, `Failed to send email to ${data.to}:`);
+      // Mark as disconnected so next attempt retries connection
+      this.isConnected = false;
       return false;
     }
   }

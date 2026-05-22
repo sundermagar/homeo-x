@@ -191,7 +191,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
   }
 
   async getKpis(period: string, contextId: number, doctorId?: number): Promise<DashboardKpis> {
-    return this.getCached(`kpis:${contextId}:${period}:${doctorId ?? ''}`, 60_000, async () => {
+    return this.getCached(`kpis:${contextId}:${period}:${doctorId ?? ''}`, 5 * 60_000, async () => {
       const sp = await this.getSearchPath();
       const isPlatformView = (sp.includes('public') && !sp.includes('tenant_')) || !contextId || contextId === 0;
 
@@ -529,7 +529,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
 
 
   async getRecentActivity(contextId: number, limit: number): Promise<ActivityItem[]> {
-    return this.getCached(`activity:${contextId}:${limit}`, 60_000, async () => {
+    return this.getCached(`activity:${contextId}:${limit}`, 5 * 60_000, async () => {
       const revInfo = await this.getRevenueTableInfo();
 
 
