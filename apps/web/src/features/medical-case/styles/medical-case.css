@@ -230,6 +230,34 @@
   }
 }
 
+/* Glassmorphic Premium Skeleton for patient-profile-card */
+@keyframes profile-skeleton-pulse {
+  0% {
+    opacity: 0.55;
+    background: rgba(255, 255, 255, 0.08);
+  }
+  50% {
+    opacity: 0.95;
+    background: rgba(255, 255, 255, 0.18);
+  }
+  100% {
+    opacity: 0.55;
+    background: rgba(255, 255, 255, 0.08);
+  }
+}
+
+.patient-profile-card .skeleton-box {
+  background: rgba(255, 255, 255, 0.08) !important;
+  background-image: none !important;
+  animation: profile-skeleton-pulse 1.8s infinite ease-in-out !important;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.patient-profile-card .skeleton-box.skeleton-circle {
+  border-radius: 50%;
+}
+
 @media (max-width: 768px) {
   .patient-banner {
     padding: 20px 16px;

@@ -1569,7 +1569,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   ABHA Health ID — Modal, Card, and Patient Detail Widget
+   ABHA Health ID — Modal, Card, and Patient Detail Widget (Mobile-First Style)
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 /* ─── Modal Overlay ───────────────────────────────────────────────────────── */
@@ -1577,36 +1577,39 @@
 .abha-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(17, 24, 39, 0.6); /* Matching standard drawer grey-out */
   z-index: 9999;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  justify-content: flex-end; /* Align drawer to the right edge */
+  align-items: stretch; /* Stretches the height vertically */
+  padding: 0;
+  overflow: hidden;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   animation: fadeIn 0.2s ease-out;
 }
 
 .abha-modal-container {
   width: 100%;
-  max-width: 540px;
+  max-width: 500px; /* Standard drawer width */
+  height: 100%;
+  display: flex;
+  flex-direction: column;
   background: var(--bg-card);
-  border-radius: 24px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  border: 1px solid var(--border-main);
+  border-radius: 0; /* Align with standard drawer style (no rounded corners) */
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
+  border-left: 1px solid var(--border-main);
+  border-top: none;
+  border-bottom: none;
+  border-right: none;
   overflow: hidden;
-  animation: abha-modal-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .dark .abha-modal-container {
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-@keyframes abha-modal-in {
-  from { opacity: 0; transform: scale(0.95) translateY(20px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
+  background: var(--pp-warm-2); /* Dark mode drawer background */
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.4);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* ─── Modal Header ────────────────────────────────────────────────────────── */
@@ -1615,26 +1618,27 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  padding: 32px 32px 24px;
+  padding: 24px 24px 16px;
   background: transparent;
 }
 
 .abha-modal-header-left {
   display: flex;
   align-items: flex-start;
-  gap: 16px;
+  gap: 12px;
 }
 
 .abha-modal-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
   background: rgba(124, 58, 237, 0.08);
   color: var(--pp-purple);
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.1);
+  flex-shrink: 0;
 }
 
 .dark .abha-modal-icon {
@@ -1644,7 +1648,7 @@
 }
 
 .abha-modal-title {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--text-main);
   margin: 0;
@@ -1652,9 +1656,9 @@
 }
 
 .abha-modal-subtitle {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-secondary);
-  margin: 4px 0 0;
+  margin: 2px 0 0;
   font-weight: 500;
 }
 
@@ -1663,7 +1667,7 @@
   border: 1px solid transparent;
   color: var(--text-muted);
   cursor: pointer;
-  padding: 8px;
+  padding: 6px;
   border-radius: 50%;
   display: flex;
   transition: all 0.2s ease;
@@ -1679,8 +1683,9 @@
 .abha-progress {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 0 32px 24px;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 0 24px 16px;
   border-bottom: 1px solid var(--border-main);
   background: transparent;
 }
@@ -1688,29 +1693,31 @@
 .abha-progress-step {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 14px 6px 6px;
+  gap: 4px;
+  padding: 4px 6px;
   border-radius: 999px;
   transition: all 0.2s ease;
 }
 
 .abha-progress-dot {
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: var(--bg-surface-2);
   color: var(--text-muted);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   border: 1px solid var(--border-main);
   transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
 .abha-progress-label {
-  font-size: 13px;
+  display: block; /* Shown everywhere for standard drawer consistency */
+  font-size: 11px;
   font-weight: 600;
   color: var(--text-muted);
   transition: all 0.2s ease;
@@ -1743,20 +1750,22 @@
 /* ─── Modal Body ──────────────────────────────────────────────────────────── */
 
 .abha-modal-body {
-  padding: 32px;
+  padding: 24px;
+  overflow-y: auto; /* Only the body is scrollable when container limit is reached */
+  flex: 1;
   min-height: 200px;
 }
 
 .abha-step-content {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
 }
 
 .abha-step-desc {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-secondary);
-  line-height: 1.6;
+  line-height: 1.5;
   margin: 0;
 }
 
@@ -1764,10 +1773,10 @@
 
 .abha-type-selector {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   background: var(--bg-surface-2);
-  padding: 6px;
-  border-radius: 12px;
+  padding: 4px;
+  border-radius: 10px;
   border: 1px solid var(--border-main);
 }
 
@@ -1776,13 +1785,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 10px 16px;
+  gap: 6px;
+  padding: 8px 12px;
   border: 1px solid transparent;
   border-radius: 8px;
   background: transparent;
   color: var(--text-muted);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -1808,7 +1817,7 @@
 }
 
 .abha-input-label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
@@ -1831,10 +1840,10 @@
 
 .abha-input {
   width: 100%;
-  padding: 14px 16px;
+  padding: 12px 14px;
   border: 1px solid var(--border-main);
-  border-radius: 12px;
-  font-size: 16px;
+  border-radius: 10px;
+  font-size: 15px;
   font-weight: 500;
   color: var(--text-main);
   background: var(--bg-card);
@@ -1850,19 +1859,19 @@
   box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.1);
 }
 
-/* ─── Primary Button ──────────────────────────────────────────────────────── */
+/* ─── Buttons ──────────────────────────────────────────────────────────────── */
 
 .abha-btn-primary {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 14px 24px;
+  padding: 12px 20px;
   background: linear-gradient(135deg, #1E1B4B 0%, #312E81 40%, #3730A3 70%, #4338CA 100%);
   color: white;
   border: none;
-  border-radius: 12px;
-  font-size: 15px;
+  border-radius: 10px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -1889,12 +1898,12 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 14px 24px;
+  padding: 12px 20px;
   background: var(--bg-card);
   color: var(--text-main);
   border: 1px solid var(--border-main);
-  border-radius: 12px;
-  font-size: 15px;
+  border-radius: 10px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -1907,9 +1916,9 @@
 
 .abha-step-actions {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   justify-content: flex-end;
-  margin-top: 8px;
+  margin-top: 4px;
 }
 
 .abha-step-actions > * {
@@ -1920,21 +1929,21 @@
 
 .abha-otp-container {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   justify-content: space-between;
-  padding: 8px 0;
+  padding: 6px 0;
 }
 
 .abha-otp-input {
   width: 100%;
-  aspect-ratio: 1;
-  max-width: 64px;
+  aspect-ratio: 1; /* Retains a perfect square aspect ratio */
+  max-width: 44px;
   text-align: center;
-  font-size: 28px;
+  font-size: 20px;
   font-weight: 600;
   font-family: var(--font-mono);
   border: 1px solid var(--border-main);
-  border-radius: 16px;
+  border-radius: 12px;
   background: var(--bg-card);
   color: var(--text-main);
   transition: all 0.2s ease;
@@ -1973,8 +1982,8 @@
 .abha-card {
   background: var(--bg-surface-2);
   border: 1px solid var(--border-main);
-  border-radius: 16px;
-  padding: 24px;
+  border-radius: 14px;
+  padding: 16px;
   position: relative;
   overflow: hidden;
 }
@@ -1993,7 +2002,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .abha-card-logo {
@@ -2007,11 +2016,11 @@
 }
 
 .abha-card-badge {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: #5B21B6;
   background: rgba(124, 58, 237, 0.12);
-  padding: 4px 12px;
+  padding: 3px 10px;
   border-radius: 20px;
 }
 
@@ -2023,11 +2032,11 @@
 .abha-card-body {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .abha-card-name {
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--text-main);
   letter-spacing: -0.01em;
@@ -2041,7 +2050,7 @@
 
 .abha-card-row-group {
   display: flex;
-  gap: 24px;
+  gap: 16px;
 }
 
 .abha-card-row-group .abha-card-row {
@@ -2049,23 +2058,24 @@
 }
 
 .abha-card-label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   color: var(--text-muted);
 }
 
 .abha-card-value {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text-main);
   font-family: var(--font-mono);
+  word-break: break-all;
 }
 
 .abha-card-footer {
-  margin-top: 24px;
-  padding-top: 16px;
+  margin-top: 16px;
+  padding-top: 12px;
   border-top: 1px solid var(--border-main);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   color: var(--text-muted);
 }
@@ -2075,19 +2085,19 @@
 .abha-success {
   align-items: center;
   text-align: center;
-  padding: 32px 0;
+  padding: 20px 0;
 }
 
 .abha-success-icon {
-  width: 80px;
-  height: 80px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
   background: rgba(124, 58, 237, 0.12);
   color: var(--pp-purple);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 20px;
+  margin: 0 auto 16px;
   animation: abha-success-pop 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -2101,17 +2111,17 @@
 }
 
 .abha-success-title {
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--text-main);
-  margin: 0 0 8px;
+  margin: 0 0 6px;
   letter-spacing: -0.01em;
 }
 
 .abha-success-desc {
-  font-size: 15px;
+  font-size: 14px;
   color: var(--text-secondary);
-  margin: 0 0 32px;
+  margin: 0 0 24px;
 }
 
 /* ─── Spinner ─────────────────────────────────────────────────────────────── */
@@ -2124,11 +2134,11 @@
   to { transform: rotate(360deg); }
 }
 
-/* ─── ABHA Widget (Patient Detail Page) ───────────────────────────────────── */
+/* ─── ABHA Widget (Patient Detail Page Sidebar) ──────────────────────────── */
 
 .abha-widget {
-  padding: 20px;
-  border-radius: 16px;
+  padding: 14px;
+  border-radius: 12px;
   border: 1px solid var(--border-main);
   background: var(--bg-card);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
@@ -2138,13 +2148,13 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .abha-widget-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   background: rgba(124, 58, 237, 0.08);
   color: var(--pp-purple);
   display: flex;
@@ -2158,7 +2168,7 @@
 }
 
 .abha-widget-title {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--text-main);
   margin: 0;
@@ -2167,17 +2177,18 @@
 .abha-widget-linked {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .abha-widget-number {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
+  gap: 8px;
+  padding: 10px 12px;
   background: var(--bg-surface-2);
   border: 1px solid var(--border-main);
-  border-radius: 12px;
+  border-radius: 10px;
+  overflow: hidden;
 }
 
 .abha-widget-number-icon {
@@ -2186,23 +2197,24 @@
 }
 
 .abha-widget-number-text {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   font-family: var(--font-mono);
   color: var(--text-main);
-  letter-spacing: 0.05em;
+  letter-spacing: 0.02em;
+  word-break: break-all;
 }
 
 .abha-widget-status {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: #5B21B6;
   background: rgba(124, 58, 237, 0.12);
-  padding: 4px 10px;
-  border-radius: 12px;
+  padding: 3px 8px;
+  border-radius: 10px;
   margin-left: auto;
 }
 
@@ -2213,22 +2225,25 @@
 
 .abha-widget-actions {
   display: flex;
+  flex-direction: column;
   gap: 8px;
 }
 
 .abha-widget-unlink {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  padding: 10px 16px;
+  padding: 8px 12px;
   border: 1px solid var(--border-main);
   background: var(--bg-card);
   color: var(--danger);
-  border-radius: 10px;
-  font-size: 14px;
+  border-radius: 8px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+  width: 100%;
 }
 
 .abha-widget-unlink:hover {
@@ -2242,25 +2257,27 @@
 }
 
 .abha-widget-empty p {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-muted);
-  margin: 0 0 16px;
+  margin: 0 0 12px;
 }
 
 .abha-widget-link-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  padding: 12px 24px;
+  padding: 10px 16px;
   background: linear-gradient(135deg, #1E1B4B 0%, #312E81 40%, #3730A3 70%, #4338CA 100%);
   color: white;
   border: none;
-  border-radius: 10px;
-  font-size: 14px;
+  border-radius: 8px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  width: 100%;
 }
 
 .abha-widget-link-btn:hover {
@@ -2268,24 +2285,243 @@
   transform: translateY(-1px);
 }
 
-@media (max-width: 480px) {
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   Tablets & Desktops Layout Enhancements
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+@media (min-width: 640px) {
+  .abha-modal-overlay {
+    padding: 0;
+  }
+
+  .abha-modal-container {
+    border-radius: 0;
+    max-height: 100%;
+  }
+
   .abha-modal-header {
-    padding: 24px 24px 16px;
+    padding: 32px 32px 24px;
   }
+
+  .abha-modal-header-left {
+    gap: 16px;
+  }
+
+  .abha-modal-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+  }
+
+  .abha-modal-title {
+    font-size: 20px;
+  }
+
+  .abha-modal-subtitle {
+    font-size: 14px;
+    margin-top: 4px;
+  }
+
+  .abha-modal-close {
+    padding: 8px;
+  }
+
   .abha-progress {
-    padding: 0 24px 16px;
+    gap: 12px;
+    padding: 0 32px 24px;
   }
+
+  .abha-progress-step {
+    gap: 8px;
+    padding: 6px 14px 6px 6px;
+  }
+
+  .abha-progress-dot {
+    width: 26px;
+    height: 26px;
+    font-size: 12px;
+  }
+
+  .abha-progress-label {
+    display: block;
+    font-size: 13px;
+  }
+
   .abha-modal-body {
+    padding: 32px;
+  }
+
+  .abha-step-content {
+    gap: 24px;
+  }
+
+  .abha-step-desc {
+    font-size: 14px;
+  }
+
+  .abha-type-selector {
+    gap: 6px;
+    padding: 6px;
+    border-radius: 12px;
+  }
+
+  .abha-type-btn {
+    gap: 8px;
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+
+  .abha-input-label {
+    font-size: 12px;
+  }
+
+  .abha-input {
+    padding: 14px 16px;
+    font-size: 16px;
+    border-radius: 12px;
+  }
+
+  .abha-btn-primary {
+    padding: 14px 24px;
+    font-size: 15px;
+    border-radius: 12px;
+  }
+
+  .abha-btn-secondary {
+    padding: 14px 24px;
+    font-size: 15px;
+    border-radius: 12px;
+  }
+
+  .abha-step-actions {
+    margin-top: 8px;
+  }
+
+  .abha-otp-container {
+    gap: 12px;
+    padding: 8px 0;
+  }
+
+  .abha-otp-input {
+    max-width: 64px;
+    font-size: 28px;
+    border-radius: 16px;
+  }
+
+  .abha-card {
+    border-radius: 16px;
     padding: 24px;
   }
-  .abha-otp-input {
-    height: 56px;
+
+  .abha-card-header {
+    margin-bottom: 20px;
+  }
+
+  .abha-card-badge {
+    font-size: 12px;
+    padding: 4px 12px;
+  }
+
+  .abha-card-name {
     font-size: 24px;
   }
-  .abha-progress-label {
-    display: none;
+
+  .abha-card-body {
+    gap: 16px;
   }
-  .abha-modal-container {
-    border-radius: 20px;
+
+  .abha-card-row-group {
+    gap: 24px;
+  }
+
+  .abha-card-value {
+    font-size: 15px;
+  }
+
+  .abha-card-footer {
+    margin-top: 24px;
+    padding-top: 16px;
+  }
+
+  .abha-success {
+    padding: 32px 0;
+  }
+
+  .abha-success-icon {
+    width: 80px;
+    height: 80px;
+    margin-bottom: 20px;
+  }
+
+  .abha-success-title {
+    font-size: 24px;
+    margin-bottom: 8px;
+  }
+
+  .abha-success-desc {
+    margin-bottom: 32px;
+  }
+
+  /* Sidebar Widget overrides */
+  .abha-widget {
+    padding: 20px;
+    border-radius: 16px;
+  }
+
+  .abha-widget-header {
+    margin-bottom: 16px;
+  }
+
+  .abha-widget-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+  }
+
+  .abha-widget-title {
+    font-size: 16px;
+  }
+
+  .abha-widget-linked {
+    gap: 16px;
+  }
+
+  .abha-widget-number {
+    padding: 12px 16px;
+    gap: 12px;
+    border-radius: 12px;
+  }
+
+  .abha-widget-number-text {
+    font-size: 16px;
+    letter-spacing: 0.05em;
+  }
+
+  .abha-widget-status {
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 12px;
+  }
+
+  .abha-widget-actions {
+    flex-direction: row;
+    gap: 8px;
+  }
+
+  .abha-widget-unlink {
+    width: auto;
+    padding: 10px 16px;
+    font-size: 14px;
+    border-radius: 10px;
+  }
+
+  .abha-widget-link-btn {
+    width: auto;
+    padding: 12px 24px;
+    font-size: 14px;
+    border-radius: 10px;
   }
 }
+
+

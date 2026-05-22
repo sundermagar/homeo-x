@@ -10,7 +10,7 @@ This document outlines the complete roadmap and execution steps required to make
 ### What We Have Implemented (Sandbox Environment)
 - **Database Architecture:** Expanded the `patients` schema to store `abha_id` and the encrypted `abha_profile` securely.
 - **Integration with ABDM Sandbox API:** Integrated the Gateway and Health ID APIs for searching by Aadhaar/Mobile, generating OTPs, and verifying OTPs to fetch ABHA details.
-- **User Interface:** Developed a premium, medical-grade modal UI (glassmorphism design) to seamlessly guide receptionists and doctors through the ABHA linking process.
+- **User Interface:** Developed a premium, medical-grade right-sided sliding drawer UI (glassmorphism details, Indigo headers, dark-theme adaptive) to seamlessly guide receptionists and doctors through the ABHA linking process, perfectly consistent with other Homeo-X form drawers.
 - **Tenant Isolation:** Ensured all API requests pass through the multi-tenant architecture securely.
 
 ### What Is Left for M1 (Next Steps)

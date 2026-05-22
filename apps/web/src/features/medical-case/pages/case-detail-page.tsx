@@ -2058,36 +2058,82 @@ export default function MedicalCaseDetailPage() {
 
 function MedicalCasePageSkeleton() {
   return (
-    <div className="mc-detail-container animate-fade-in" style={{ padding: '24px' }}>
+    <div className="mc-detail-container animate-fade-in" style={{ padding: '12px' }}>
       {/* ─── Redesigned Header Card Skeleton ─── */}
-      <div className="patient-profile-card" style={{ minHeight: '160px', opacity: 0.7 }}>
+      <div className="patient-profile-card">
         <div className="profile-top-row">
           <div className="profile-identity">
-            <div className="skeleton-box skeleton-circle" style={{ width: '56px', height: '56px' }} />
+            <button 
+              disabled
+              style={{ 
+                background: 'transparent', 
+                border: 'none', 
+                color: 'white', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                padding: '8px',
+                borderRadius: '8px',
+                marginRight: '8px',
+                opacity: 0.5
+              }}
+            >
+              <ArrowLeft size={24} />
+            </button>
             <div className="profile-name-id">
-              <div className="skeleton-box skeleton-text" style={{ width: '200px', height: '24px', marginBottom: '8px' }} />
-              <div className="skeleton-box skeleton-text" style={{ width: '100px', height: '14px' }} />
+              <div className="skeleton-box" style={{ width: '180px', height: '24px', marginBottom: '6px' }} />
+              <div className="skeleton-box" style={{ width: '90px', height: '14px' }} />
             </div>
+            <div className="skeleton-box" style={{ width: '130px', height: '24px', borderRadius: '100px' }} />
+            <div className="skeleton-box" style={{ width: '100px', height: '24px', borderRadius: '100px' }} />
           </div>
           <div className="profile-actions">
-            <div className="skeleton-box" style={{ width: '120px', height: '40px', borderRadius: '10px' }} />
-            <div className="skeleton-box" style={{ width: '100px', height: '40px', borderRadius: '10px' }} />
+            <div className="skeleton-box" style={{ width: '150px', height: '36px', borderRadius: '8px' }} />
+            <div className="skeleton-box" style={{ width: '100px', height: '36px', borderRadius: '8px' }} />
           </div>
         </div>
-        <div style={{ 
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-          gap: '24px',
-          marginTop: '24px', 
-          borderTop: '1px solid rgba(255,255,255,0.1)', 
-          paddingTop: '20px' 
-        }}>
-          {[1, 2, 3, 4, 5, 6].map(i => (
-            <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div className="skeleton-box" style={{ width: '60px', height: '10px', opacity: 0.2, borderRadius: '4px' }} />
-              <div className="skeleton-box" style={{ width: '100px', height: '14px', opacity: 0.4, borderRadius: '4px' }} />
+        <div className="profile-bottom-grid">
+          <div className="profile-info-cell">
+            <label>GENDER</label>
+            <div className="skeleton-box" style={{ width: '60px', height: '15px', marginTop: '4px' }} />
+          </div>
+          <div className="profile-info-cell">
+            <label>AGE</label>
+            <div className="skeleton-box" style={{ width: '80px', height: '15px', marginTop: '4px' }} />
+          </div>
+          <div className="profile-info-cell">
+            <label>PHONE</label>
+            <div className="info-with-icon">
+              <Phone size={14} style={{ opacity: 0.3 }} />
+              <div className="skeleton-box" style={{ width: '100px', height: '15px' }} />
             </div>
-          ))}
+          </div>
+          <div className="profile-info-cell">
+            <label>DOCTOR</label>
+            <div className="info-with-icon">
+              <Stethoscope size={14} style={{ opacity: 0.3 }} />
+              <div className="skeleton-box" style={{ width: '120px', height: '15px' }} />
+            </div>
+          </div>
+          <div className="profile-info-cell">
+            <label>REGISTERED</label>
+            <div className="skeleton-box" style={{ width: '90px', height: '15px', marginTop: '4px' }} />
+          </div>
+          <div className="profile-info-cell">
+            <label>EXPIRES</label>
+            <div className="info-with-icon">
+              <Clock size={14} style={{ opacity: 0.3 }} />
+              <div className="skeleton-box" style={{ width: '85px', height: '15px' }} />
+            </div>
+          </div>
+          <div className="profile-info-cell">
+            <label>ADDRESS</label>
+            <div className="skeleton-box" style={{ width: '140px', height: '15px', marginTop: '4px' }} />
+          </div>
+          <div className="profile-info-cell">
+            <label>CONDITION</label>
+            <div className="skeleton-box" style={{ width: '100px', height: '15px', marginTop: '4px' }} />
+          </div>
         </div>
       </div>
 
