@@ -28,6 +28,8 @@ interface BillingUpdateModalProps {
   displayDate?: Date;
   rxWorkflow?: any;
   visitId?: number;
+  pendingBalance?: number;
+  receivedAmount?: number;
 }
 
 type TabType = 'regular' | 'custom' | 'payment';
@@ -41,10 +43,17 @@ export function BillingUpdateModal({
   additionalCharges = [],
   displayDate,
   rxWorkflow,
-  visitId
+  visitId,
+  pendingBalance,
+  receivedAmount
 }: BillingUpdateModalProps) {
   const [activeTab, setActiveTab] = useState<TabType>(defaultTab || 'regular');
-  const [amount, setAmount] = useState<string>(currentConsultationFee?.toString() || '');
+  const [amount, setAmount] = useState<string>(() => {
+    if (defaultTab === 'payment') {
+      return (pendingBalance !== undefined && pendingBalance > 0 ? pendingBalance : 0).toString();
+    }
+    return currentConsultationFee?.toString() || '';
+  });
   const [customTitle, setCustomTitle] = useState('');
   const [notes, setNotes] = useState('');
   const [isProduct, setIsProduct] = useState(false);
@@ -270,7 +279,7 @@ export function BillingUpdateModal({
                   tab === 'regular' 
                     ? (currentConsultationFee || 0).toString() 
                     : tab === 'payment' 
-                      ? (bills?.totals.totalBalance || 0).toString()
+                      ? (pendingBalance !== undefined && pendingBalance > 0 ? pendingBalance : (bills?.totals.totalBalance || 0)).toString()
                       : ''
                 );
                 if (tab !== 'custom') {
@@ -460,7 +469,17 @@ export function BillingUpdateModal({
                 </select>
               </div>
               
-              {bills?.totals.totalBalance === 0 ? (
+              {pendingBalance !== undefined ? (
+                pendingBalance <= 0 ? (
+                  <div style={{ padding: '12px', background: '#f0fdf4', color: '#16a34a', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 600, display: 'flex', gap: '8px', alignItems: 'center', border: '1px solid #dcfce7' }}>
+                    <CheckCircle2 size={16} /> All balances are clear.
+                  </div>
+                ) : (
+                  <div style={{ padding: '12px', background: '#fff7ed', color: '#c2410c', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 600, display: 'flex', gap: '8px', alignItems: 'center', border: '1px solid #ffedd5' }}>
+                    <AlertCircle size={16} /> Outstanding Balance: ₹{pendingBalance}
+                  </div>
+                )
+              ) : bills?.totals.totalBalance === 0 ? (
                 <div style={{ padding: '12px', background: '#f0fdf4', color: '#16a34a', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 600, display: 'flex', gap: '8px', alignItems: 'center', border: '1px solid #dcfce7' }}>
                   <CheckCircle2 size={16} /> All balances are clear.
                 </div>

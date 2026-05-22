@@ -204,10 +204,20 @@ export default function PatientListPage() {
       <button className="appt-kebab-item" onClick={() => { openWhatsApp(p.phone, p.fullName, p.regid); closeMenu(); }}>
         <MessageCircle size={14} /> WhatsApp
       </button>
-      <button className="appt-kebab-item" onClick={() => { window.open(`/api/medical-cases/remedy-chart/pdf/${p.regid}?token=${token}`, '_blank'); closeMenu(); }}>
+      <button className="appt-kebab-item" onClick={() => {
+        const envUrl = import.meta.env.VITE_API_URL;
+        const apiBase = envUrl ? (envUrl.endsWith('/api') ? envUrl : `${envUrl}/api`) : '/api';
+        window.open(`${apiBase}/medical-cases/remedy-chart/pdf/${p.regid}?token=${token}`, '_blank');
+        closeMenu();
+      }}>
         <Printer size={14} /> Print Prescription
       </button>
-      <button className="appt-kebab-item" onClick={() => { window.open(`/api/medical-cases/pdf/summary/${p.regid}?token=${token}`, '_blank'); closeMenu(); }}>
+      <button className="appt-kebab-item" onClick={() => {
+        const envUrl = import.meta.env.VITE_API_URL;
+        const apiBase = envUrl ? (envUrl.endsWith('/api') ? envUrl : `${envUrl}/api`) : '/api';
+        window.open(`${apiBase}/medical-cases/pdf/summary/${p.regid}?token=${token}`, '_blank');
+        closeMenu();
+      }}>
         <Download size={14} /> Download Report
       </button>
       <div className="appt-kebab-divider" />

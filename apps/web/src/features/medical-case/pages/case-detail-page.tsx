@@ -749,10 +749,10 @@ export default function MedicalCaseDetailPage() {
       return match ? Number(match.regularCharges) || 0 : 0;
     })();
 
-    const hasActivePackage = !!fullData?.activePackage;
+    const hasActivePackage = !!fullData?.activePackage || !!activePackage;
 
     // Waive medicine charges if covered by package and session isn't completed yet
-    const effectiveDaysCharge = (hasActivePackage && fullData?.activePackage?.coversMedicine && !isCompleted)
+    const effectiveDaysCharge = (hasActivePackage && (fullData?.activePackage?.coversMedicine ?? activePackage?.coversMedicine ?? true) && !isCompleted)
       ? 0
       : rawEffectiveDaysCharge;
 
@@ -770,8 +770,41 @@ export default function MedicalCaseDetailPage() {
       return savedRegularBillsSum + baseFee;
     })();
 
-    // 5. Total Bill Amount = Registration Charge (regular) + Medicine Days Charge + Additional Charges
-    const currentTotal = regular + effectiveDaysCharge + additional;
+    // Sum of all package bills currently saved in the database for today
+    const savedPackageBill = dayBills.find(b => b.treatment?.startsWith('Package:'));
+    const savedPackageBillsSum = savedPackageBill ? (Number(savedPackageBill.charges) || 0) : 0;
+    const savedPackageName = savedPackageBill ? savedPackageBill.treatment.replace('Package: ', '') : '';
+
+    const isPurchaseDate = (() => {
+      if (!displayDate) return false;
+      const displayStr = toClinicDateString(displayDate);
+      if (!!savedPackageBill) return true;
+
+      const activePkg = fullData?.activePackage || activePackage;
+      if (activePkg?.startDate) {
+        return activePkg.startDate === displayStr;
+      }
+      return false;
+    })();
+
+    const originalPackagePrice = (() => {
+      if (isCompleted) {
+        return savedPackageBillsSum;
+      }
+      return hasActivePackage ? (Number(fullData?.activePackage?.packagePrice ?? activePackage?.packagePrice) || 0) : 0;
+    })();
+
+    const packagePrice = isPurchaseDate ? originalPackagePrice : 0;
+
+    const activePackageName = (() => {
+      if (isCompleted) {
+        return savedPackageName;
+      }
+      return fullData?.activePackage?.packageName ?? activePackage?.packageName;
+    })();
+
+    // 5. Total Bill Amount = Registration Charge (regular) + Medicine Days Charge + Additional Charges + Package Price
+    const currentTotal = regular + effectiveDaysCharge + additional + packagePrice;
     const currentBalance = currentTotal - currentPaid;
 
     return {
@@ -783,9 +816,12 @@ export default function MedicalCaseDetailPage() {
       balance: currentBalance,
       daysCharge: effectiveDaysCharge,
       originalDaysCharge: rawEffectiveDaysCharge,
-      hasActivePackage,
-      activePackageName: fullData?.activePackage?.packageName,
-      activePackageColor: fullData?.activePackage?.colorCode
+      hasActivePackage: hasActivePackage || !!savedPackageBill,
+      packagePrice,
+      originalPackagePrice,
+      isPurchaseDate,
+      activePackageName,
+      activePackageColor: fullData?.activePackage?.colorCode ?? activePackage?.colorCode ?? '#3b82f6'
     };
   }, [
     summary?.bills,
@@ -793,6 +829,8 @@ export default function MedicalCaseDetailPage() {
     pendingCharge,
     displayDate,
     fullData?.additionalCharges,
+    fullData?.activePackage,
+    activePackage,
     prescriptionsHistory,
     prescriptionsFromFull,
     dayCharges,
@@ -1075,91 +1113,177 @@ export default function MedicalCaseDetailPage() {
                 )}
 
                 <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', border: '1px solid #f1f5f9', borderRadius: '12px', overflow: 'hidden' }}>
-                  {[
-                    { label: 'Registration Charge', value: billingValues.regular, color: '#1e293b', tab: 'regular', isCovered: billingValues.hasActivePackage && billingValues.originalRegular > 0 && billingValues.regular === 0, originalValue: billingValues.originalRegular },
-                    { label: 'Medicine Days Charge', value: billingValues.daysCharge, color: '#475569', tab: 'regular', isCovered: billingValues.hasActivePackage && billingValues.originalDaysCharge > 0 && billingValues.daysCharge === 0, originalValue: billingValues.originalDaysCharge },
-                    { label: 'Additional Charge', value: billingValues.additional, color: '#64748b', tab: 'custom' },
-                    { label: 'Total Bill Amount', value: billingValues.total, color: '#7c3aed', bold: true, tab: 'regular' },
-                    { label: 'Amount Received', value: billingValues.received, color: '#059669', tab: 'payment' },
-                    { label: 'Pending Balance', value: billingValues.balance, color: '#dc2626', bold: true, noEdit: true },
-                  ].map((row, idx) => (
-                    <div key={idx} style={{
-                      display: 'grid',
-                      gridTemplateColumns: '1fr 140px 40px',
-                      padding: '10px 16px',
-                      borderBottom: idx === 5 ? 'none' : '1px solid #f1f5f9',
-                      alignItems: 'center',
-                      background: idx % 2 === 0 ? 'transparent' : '#f8fafc'
-                    }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569' }}>{row.label}</span>
-                      <span style={{ fontSize: '0.95rem', fontWeight: row.bold ? 800 : 700, color: row.color, textAlign: 'right', paddingRight: '20px' }}>
-                        {row.isCovered ? (
-                          <>
-                            <del style={{ color: '#94a3b8', fontSize: '0.75rem', marginRight: '6px' }}>₹{row.originalValue}</del>
-                            <span style={{ color: '#059669', fontWeight: 800 }}>₹0</span>
-                          </>
-                        ) : (
-                          `₹${row.value}`
-                        )}
-                      </span>
-                      {row.noEdit || !isToday ? (
-                        <div style={{ width: '28px', height: '28px' }} />
-                      ) : (
-                        <button
-                          onClick={() => {
-                            setActiveBillingTab(row.tab as any);
-                            setShowBillingModal(true);
-                          }}
+                  {(() => {
+                    const rows = [
+                      { label: 'Registration Charge', value: billingValues.regular, color: '#1e293b', tab: 'regular', isCovered: billingValues.hasActivePackage && billingValues.originalRegular > 0 && billingValues.regular === 0, originalValue: billingValues.originalRegular },
+                      { label: 'Medicine Days Charge', value: billingValues.daysCharge, color: '#475569', tab: 'regular', isCovered: billingValues.hasActivePackage && billingValues.originalDaysCharge > 0 && billingValues.daysCharge === 0, originalValue: billingValues.originalDaysCharge },
+                      ...(billingValues.hasActivePackage ? [{
+                        label: 'Package Plan',
+                        value: billingValues.packagePrice,
+                        color: '#1e3a8a',
+                        tab: 'regular',
+                        noEdit: true,
+                        isActivePlanRow: true,
+                        isPurchase: billingValues.isPurchaseDate,
+                        originalValue: billingValues.originalPackagePrice
+                      }] : []),
+                      { label: 'Additional Charge', value: billingValues.additional, color: '#64748b', tab: 'custom' },
+                      { label: 'Total Bill Amount', value: billingValues.total, color: '#7c3aed', bold: true, tab: 'regular' },
+                      { label: 'Amount Received', value: billingValues.received, color: '#059669', tab: 'payment' },
+                      { label: 'Pending Balance', value: billingValues.balance, color: '#dc2626', bold: true, noEdit: true },
+                    ];
+                    return rows.map((row: any, idx) => {
+                      const isActivePlanRow = !!row.isActivePlanRow;
+                      return (
+                        <div
+                          key={idx}
+                          // className={isActivePlanRow ? 'mc-billing-row-active-plan' : ''}
                           style={{
-                            width: '28px',
-                            height: '28px',
-                            padding: '0',
-                            background: '#fff',
-                            border: '1px solid #e2e8f0',
-                            borderRadius: '6px',
-                            cursor: 'pointer',
-                            color: '#64748b',
-                            display: 'flex',
+                            display: 'grid',
+                            gridTemplateColumns: '1fr 140px 40px',
+                            padding: isActivePlanRow ? '10px 16px 10px 12px' : '10px 16px',
+                            borderBottom: idx === rows.length - 1 ? 'none' : '1px solid #f1f5f9',
                             alignItems: 'center',
-                            justifyContent: 'center',
-                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                            transition: 'all 0.2s'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = '#f5f3ff';
-                            e.currentTarget.style.color = '#7c3aed';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = '#fff';
-                            e.currentTarget.style.color = '#64748b';
+                            background: idx % 2 === 0 ? 'transparent' : '#f8fafc',
+                            color: isActivePlanRow ? row.color : undefined
                           }}
                         >
-                          <Edit size={12} />
-                        </button>
-                      )}
-                    </div>
-                  ))}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                            <span style={{
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              color: isActivePlanRow ? row.color : '#475569',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px'
+                            }}>
+                              {/* {isActivePlanRow && <span style={{ fontSize: '0.9rem' }}>💎</span>} */}
+                              {row.label}
+                            </span>
+                            {/* {isActivePlanRow && (
+                              <span style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 500 }}>
+                                {row.isPurchase
+                                  ? 'Package purchased on this visit date'
+                                  : 'Active package covering eligible charges for this session'
+                                }
+                              </span>
+                            )} */}
+                          </div>
+
+                          <span style={{ fontSize: '0.95rem', fontWeight: row.bold ? 800 : 700, color: row.color, textAlign: 'right', paddingRight: '20px' }}>
+                            {isActivePlanRow ? (
+                              row.isPurchase ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                                  <span style={{ color: '#059669', fontWeight: 800 }}>₹{row.value}</span>
+                                  <span style={{
+                                    fontSize: '0.62rem',
+                                    background: '#ecfdf5',
+                                    color: '#047857',
+                                    padding: '1px 6px',
+                                    borderRadius: '4px',
+                                    fontWeight: 700,
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.01em'
+                                  }}>
+                                    Billed Today
+                                  </span>
+                                </div>
+                              ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <span style={{ fontSize: '0.7rem', fontWeight: 500, color: '#64748b' }}>Value:</span>
+                                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569' }}>₹{row.originalValue}</span>
+                                  </div>
+                                  <span style={{
+                                    fontSize: '0.62rem',
+                                    background: `${row.color}15`,
+                                    color: row.color,
+                                    padding: '2px 8px',
+                                    borderRadius: '6px',
+                                    fontWeight: 700,
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.02em',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                  }}>
+                                    <span className="mc-pulse-dot"></span>
+                                    Running (₹0)
+                                  </span>
+                                </div>
+                              )
+                            ) : row.isCovered ? (
+                              <>
+                                <del style={{ color: '#94a3b8', fontSize: '0.75rem', marginRight: '6px' }}>₹{row.originalValue}</del>
+                                <span style={{ color: '#059669', fontWeight: 800 }}>₹0</span>
+                              </>
+                            ) : (
+                              `₹${row.value}`
+                            )}
+                          </span>
+
+                          {row.noEdit || !isToday ? (
+                            <div style={{ width: '28px', height: '28px' }} />
+                          ) : (
+                            <button
+                              onClick={() => {
+                                setActiveBillingTab(row.tab as any);
+                                setShowBillingModal(true);
+                              }}
+                              style={{
+                                width: '28px',
+                                height: '28px',
+                                padding: '0',
+                                background: '#fff',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                color: '#64748b',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                                transition: 'all 0.2s'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background = '#f5f3ff';
+                                e.currentTarget.style.color = '#7c3aed';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = '#fff';
+                                e.currentTarget.style.color = '#64748b';
+                              }}
+                            >
+                              <Edit size={12} />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    });
+                  })()}
                 </div>
-                <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
-                  <button
-                    onClick={() => setShowReceiptModal(true)}
-                    style={{
-                      padding: '10px 24px',
-                      background: '#7c3aed',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '10px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      boxShadow: '0 4px 6px -1px rgba(124, 58, 237, 0.2)'
-                    }}
-                  >
-                    <Share2 size={16} /> Share Payment Receipt
-                  </button>
-                </div>
+                {billingValues.received > 0 && (
+                  <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+                    <button
+                      onClick={() => setShowReceiptModal(true)}
+                      style={{
+                        padding: '10px 24px',
+                        background: '#2563EB',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '10px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        boxShadow: '0 4px 6px -1px rgba(124, 58, 237, 0.2)'
+                      }}
+                    >
+                      <Share2 size={16} /> Share Payment Receipt
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1517,7 +1641,7 @@ export default function MedicalCaseDetailPage() {
                         boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.1)'
                       }}
                     >
-                      <Save size={18} /> Save Assessment
+                      <Save size={18} /> Save 
                     </button>
                   </footer>
                 </div>
@@ -1831,7 +1955,11 @@ export default function MedicalCaseDetailPage() {
                   </div>
                   {isToday && (
                     <button
-                      onClick={() => { setMobileDrawer(null); setShowBillingModal(true); }}
+                      onClick={() => {
+                        setMobileDrawer(null);
+                        setActiveBillingTab('payment');
+                        setShowBillingModal(true);
+                      }}
                       style={{
                         width: '100%', padding: '14px', background: 'var(--pp-success-bg)', color: 'var(--pp-success-fg)',
                         border: '1px solid #BBF7D0', borderRadius: '10px', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer'
@@ -1955,6 +2083,8 @@ export default function MedicalCaseDetailPage() {
           displayDate={displayDate || undefined}
           rxWorkflow={rxWorkflow}
           visitId={medicalCase.id}
+          pendingBalance={billingValues.balance}
+          receivedAmount={billingValues.received}
           onClose={() => setShowBillingModal(false)}
         />
       )}

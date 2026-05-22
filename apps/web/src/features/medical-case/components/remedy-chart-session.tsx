@@ -240,7 +240,12 @@ export function RemedyChartSession({
     const token = useAuthStore.getState().token;
     const dateParam = rx.created_at || rx.createdAt || rx.dateval;
     const queryStr = dateParam ? `&date=${encodeURIComponent(new Date(dateParam).toISOString())}` : '';
-    window.open(`/api/medical-cases/remedy-chart/pdf/${regid}?token=${token}${queryStr}`, '_blank');
+    
+    const envUrl = import.meta.env.VITE_API_URL;
+    const apiBase = envUrl ? (envUrl.endsWith('/api') ? envUrl : `${envUrl}/api`) : '/api';
+    const url = `${apiBase}/medical-cases/remedy-chart/pdf/${regid}?token=${token}${queryStr}`;
+    
+    window.open(url, '_blank');
   };
 
   return (
@@ -298,18 +303,20 @@ export function RemedyChartSession({
             <>
               <div style={{ 
                 display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', 
+                gridTemplateColumns: isMobile ? '1fr 1fr' : '2.5fr 1.2fr 1.5fr 1.2fr', 
                 gap: '16px', 
                 alignItems: 'flex-start', 
                 marginBottom: '24px',
-                background: 'transparent',
-                border: 'none',
-                padding: 0,
-                boxShadow: 'none',
-                borderRadius: 0
+                background: 'linear-gradient(135deg, #ffffff 0%, #fbfbfc 100%)',
+                border: '1.5px solid var(--pp-warm-2)',
+                padding: '20px',
+                borderRadius: '16px',
+                boxShadow: '0 4px 20px -2px rgba(15, 23, 42, 0.05)'
               }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-ink)' }}>Remedy:</label>
+                <div style={{ gridColumn: isMobile ? 'span 2' : 'span 1', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--pp-ink)', display: 'flex', alignItems: 'center', gap: '4px', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                    <Activity size={13} style={{ color: 'var(--pp-blue)' }} /> Remedy:
+                  </label>
                   <SearchableSelect
                     value={form.remedyName}
                     onChange={val => {
@@ -320,8 +327,10 @@ export function RemedyChartSession({
                   />
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-ink)' }}>Potency:</label>
+                <div style={{ gridColumn: 'span 1', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--pp-ink)', display: 'flex', alignItems: 'center', gap: '4px', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                    <FlaskConical size={13} style={{ color: 'var(--pp-blue)' }} /> Potency:
+                  </label>
                   <SearchableSelect
                     value={form.potencyName}
                     onChange={val => {
@@ -331,8 +340,10 @@ export function RemedyChartSession({
                     options={lookups?.potencies?.map((p: any) => p.name) || []}
                   />
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-ink)' }}>Frequency:</label>
+                <div style={{ gridColumn: 'span 1', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--pp-ink)', display: 'flex', alignItems: 'center', gap: '4px', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                    <History size={13} style={{ color: 'var(--pp-blue)' }} /> Frequency:
+                  </label>
                   <SearchableSelect
                     value={form.frequencyName}
                     onChange={val => {
@@ -342,9 +353,31 @@ export function RemedyChartSession({
                     options={lookups?.frequencies?.map((f: any) => f.name) || []}
                   />
                 </div>
-                 {(!isRxToday || (editingId && firstRxOfToday && editingId === firstRxOfToday.id)) && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-ink)' }}>Days:</label>
+                 {(!isRxToday || (editingId && firstRxOfToday && editingId === firstRxOfToday.id)) ? (
+                  <div style={{ gridColumn: 'span 1', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                      <label style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--pp-ink)', display: 'flex', alignItems: 'center', gap: '4px', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                        <Calendar size={13} style={{ color: 'var(--pp-blue)' }} /> Days:
+                      </label>
+                      {selectedDayCharge && selectedDayCharge.regularCharges != null && (
+                        <div style={{ 
+                          display: 'inline-flex', 
+                          alignItems: 'center', 
+                          gap: '2px', 
+                          background: '#ecfdf5', 
+                          border: '1px solid #a7f3d0', 
+                          color: '#065f46', 
+                          padding: '2px 6px', 
+                          borderRadius: '6px', 
+                          fontSize: '0.68rem', 
+                          fontWeight: 800,
+                          lineHeight: 1,
+                          boxShadow: '0 1px 2px rgba(6, 95, 70, 0.03)'
+                        }}>
+                          <span>₹{selectedDayCharge.regularCharges}</span>
+                        </div>
+                      )}
+                    </div>
                     {dayOptions.length > 0 ? (
                       <SearchableSelect
                         value={form.days ? String(form.days) : ''}
@@ -358,7 +391,23 @@ export function RemedyChartSession({
                     ) : (
                       <input
                         type="number"
-                        style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border-main)', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box', background: 'var(--bg-card)', color: 'var(--pp-ink)' }}
+                        style={{ 
+                          width: '100%', 
+                          padding: '8px 12px', 
+                          border: '1.5px solid var(--border-main)', 
+                          borderRadius: '10px', 
+                          fontSize: '0.85rem', 
+                          fontWeight: 600,
+                          boxSizing: 'border-box', 
+                          background: 'white', 
+                          color: 'var(--pp-ink)',
+                          minHeight: '38px',
+                          outline: 'none',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                          transition: 'border-color 0.2s ease'
+                        }}
+                        onFocus={e => e.currentTarget.style.borderColor = 'var(--pp-blue)'}
+                        onBlur={e => e.currentTarget.style.borderColor = 'var(--border-main)'}
                         value={form.days}
                         onChange={e => {
                           setManualInstruction(false);
@@ -366,30 +415,39 @@ export function RemedyChartSession({
                         }}
                       />
                     )}
-                    {selectedDayCharge && selectedDayCharge.regularCharges != null && (
-                      <span style={{ fontSize: '0.7rem', color: '#059669', fontWeight: 700, marginTop: '2px' }}>
-                        ₹{selectedDayCharge.regularCharges}
-                      </span>
-                    )}
                   </div>
+                ) : (
+                  <div style={{ gridColumn: 'span 1' }} />
                 )}
                 <div style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-ink)' }}>Instructions:</label>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--pp-ink)', display: 'flex', alignItems: 'center', gap: '4px', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                    <FileText size={13} style={{ color: 'var(--pp-blue)' }} /> Instructions:
+                  </label>
                   <textarea
                     placeholder="Enter manual instructions for this remedy..."
                     style={{ 
                       width: '100%', 
-                      padding: '10px 14px', 
-                      border: '1px solid var(--border-main)', 
-                      borderRadius: '10px', 
+                      padding: '12px 14px', 
+                      border: '1.5px solid var(--border-main)', 
+                      borderRadius: '12px', 
                       fontSize: '0.85rem', 
-                      minHeight: '60px', 
+                      minHeight: '80px', 
                       resize: 'vertical', 
                       fontFamily: 'inherit', 
                       boxSizing: 'border-box', 
                       background: 'white', 
                       color: 'var(--pp-ink)',
-                      boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)'
+                      boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.02)',
+                      outline: 'none',
+                      transition: 'all 0.2s ease-in-out'
+                    }}
+                    onFocus={e => {
+                      e.currentTarget.style.borderColor = 'var(--pp-blue)';
+                      e.currentTarget.style.boxShadow = 'inset 0 1px 2px rgba(0,0,0,0.02), 0 0 0 3px rgba(37, 99, 235, 0.05)';
+                    }}
+                    onBlur={e => {
+                      e.currentTarget.style.borderColor = 'var(--border-main)';
+                      e.currentTarget.style.boxShadow = 'inset 0 1px 2px rgba(0,0,0,0.02)';
                     }}
                     value={form.instructions}
                     onChange={e => {
@@ -414,13 +472,13 @@ export function RemedyChartSession({
               <table className="mc-data-table" style={{ marginBottom: 0 }}>
                 <thead style={{ position: 'sticky', top: 0, zIndex: 10, background: '#f5f3ff', borderBottom: '1px solid #ede9fe' }}>
                   <tr>
-                    <th style={{ color: '#7c3aed', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em', padding: '16px' }}>DATE</th>
-                    <th style={{ color: '#7c3aed', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em', padding: '16px' }}>REMEDY</th>
-                    <th style={{ color: '#7c3aed', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em', padding: '16px' }}>POTENCY</th>
-                    <th style={{ color: '#7c3aed', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em', padding: '16px' }}>FREQUENCY</th>
-                    <th className="mc-col-days" style={{ color: '#7c3aed', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em', padding: '16px' }}>DAYS</th>
-                    <th className="mc-col-instructions" style={{ color: '#7c3aed', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em', padding: '16px' }}>INSTRUCTIONS</th>
-                    <th style={{ color: '#7c3aed', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em', padding: '16px', textAlign: 'right' }}>ACTION</th>
+                    <th style={{ color: '#7c3aed', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em', padding: '10px 6px' }}>DATE</th>
+                    <th style={{ color: '#7c3aed', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em', padding: '10px 6px' }}>REMEDY</th>
+                    <th style={{ color: '#7c3aed', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em', padding: '10px 6px' }}>POTENCY</th>
+                    <th style={{ color: '#7c3aed', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em', padding: '10px 6px' }}>FREQUENCY</th>
+                    <th className="mc-col-days" style={{ color: '#7c3aed', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em', padding: '10px 6px' }}>DAYS</th>
+                    <th className="mc-col-instructions" style={{ color: '#7c3aed', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em', padding: '10px 6px' }}>INSTRUCTIONS</th>
+                    <th style={{ color: '#7c3aed', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em', padding: '10px 6px', textAlign: 'right' }}>ACTION</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -446,7 +504,7 @@ export function RemedyChartSession({
                             }}
                             onClick={() => onSelectDate?.(rx.created_at || rx.createdAt || rx.dateval)}
                           >
-                            <td data-label="Date">
+                            <td data-label="Date" style={{ padding: '8px 6px' }}>
                               {idx === 0 ? (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                                   <span style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--pp-text-2)' }}>
@@ -475,30 +533,30 @@ export function RemedyChartSession({
                                 <div style={{ marginLeft: '12px', borderLeft: '2px dashed #cbd5e1', height: '20px' }} />
                               )}
                             </td>
-                            <td data-label="Remedy">
+                            <td data-label="Remedy" style={{ padding: '8px 6px' }}>
                               <div className="remedy-name">
                                 {rx.remedy_name}
                               </div>
                             </td>
-                            <td data-label="Potency">
-                              <span style={{ padding: '4px 12px', background: 'var(--pp-warm-1)', border: '1px solid var(--border-main)', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700, color: 'var(--pp-text-2)' }}>
+                            <td data-label="Potency" style={{ padding: '8px 6px' }}>
+                              <span style={{ padding: '4px 10px', background: 'var(--pp-warm-1)', border: '1px solid var(--border-main)', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700, color: 'var(--pp-text-2)' }}>
                                 {rx.potency_name}
                               </span>
                             </td>
-                            <td data-label="Frequency">
+                            <td data-label="Frequency" style={{ padding: '8px 6px' }}>
                               <span style={{ color: '#7c3aed', fontWeight: 700, fontSize: '0.9rem' }}>{rx.frequency_name}</span>
                             </td>
-                            <td data-label="Days" className="mc-col-days">
+                            <td data-label="Days" className="mc-col-days" style={{ padding: '8px 6px' }}>
                               <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--pp-ink)' }}>{rx.days}</span>
                             </td>
-                            <td data-label="Instructions" className="mc-col-instructions">
+                            <td data-label="Instructions" className="mc-col-instructions" style={{ padding: '8px 6px' }}>
                               <div style={{ 
                                 maxHeight: '60px', 
                                 overflowY: 'auto', 
                                 fontSize: '0.82rem', 
                                 color: 'var(--pp-text-3)', 
                                 lineHeight: 1.4,
-                                width: '220px',
+                                width: '130px',
                                 paddingRight: '8px',
                                 background: (rx.prescription || rx.notes) ? '#f8fafc' : 'transparent',
                                 borderRadius: '6px',
@@ -507,9 +565,9 @@ export function RemedyChartSession({
                                 {rx.prescription || rx.notes || <span style={{ opacity: 0.4, fontStyle: 'italic' }}>No instructions</span>}
                               </div>
                             </td>
-                            <td data-label="Actions" style={{ textAlign: 'right' }}>
+                            <td data-label="Actions" style={{ textAlign: 'right', padding: '8px 6px' }}>
                               <div className="mc-table-actions">
-                                  <div className="mc-desktop-actions">
+                                  <div className="mc-desktop-actions" style={{ gap: '4px' }}>
                                     {(() => {
                                       const rxDate = new Date(rx.created_at || rx.createdAt || rx.dateval);
                                       const isToday = rxDate.toDateString() === new Date().toDateString();

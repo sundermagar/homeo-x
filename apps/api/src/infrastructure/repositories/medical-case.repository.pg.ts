@@ -422,6 +422,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
             expiryDate: schema.patientPackages.expiryDate,
             status: schema.patientPackages.status,
             packageName: schema.packagePlans.name,
+            packagePrice: schema.packagePlans.price,
             colorCode: schema.packagePlans.colorCode,
             // Hardcode covers for now as these flags aren't in schema yet, but logic is uniform
             coversConsultation: sql<boolean>`true`, 
