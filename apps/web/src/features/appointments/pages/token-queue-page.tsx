@@ -241,9 +241,19 @@ export default function TokenQueuePage() {
   const fromEntry = totalItems === 0 ? 0 : (page - 1) * limit + 1;
   const toEntry = Math.min(page * limit, totalItems);
 
-  const handleCall = async (id: number) => { await callNext.mutateAsync(id); wRefetch(); };
+  const handleCall = async (w: any) => { 
+    await callNext.mutateAsync(w.id); 
+    wRefetch(); 
+    navigate(`/consultation/${w.appointmentId || w.id}`);
+  };
   const handleComplete = async (id: number) => { await completeVisit.mutateAsync(id); wRefetch(); aRefetch(); };
-  const handleIssueToken = async (appointmentId: number) => { await issueToken.mutateAsync(appointmentId); aRefetch(); };
+  const handleIssueToken = async (w: any) => { 
+    await issueToken.mutateAsync(w.id); 
+    if (w.patientId) {
+      await addToWaitlist.mutateAsync({ patientId: w.patientId, appointmentId: w.id, doctorId: w.doctorId ?? undefined });
+    }
+    aRefetch(); 
+  };
 
   const handlePrint = (token: any) => {
     setPrintData({
@@ -371,19 +381,13 @@ export default function TokenQueuePage() {
             ) : w.status === -1 ? (
               <>
                 {!w.tokenNo && (
-                  <button className="appt-btn appt-btn-xs appt-btn-primary" onClick={() => handleIssueToken(w.id)} disabled={issueToken.isPending}>
+                  <button className="appt-btn appt-btn-xs appt-btn-primary" onClick={() => handleIssueToken(w)} disabled={issueToken.isPending}>
                     <Ticket size={13} /> Token
                   </button>
                 )}
-                <button className="appt-btn appt-btn-xs appt-btn-success" onClick={() => {
-                  if (!w.patientId) return toast({ description: "Not registered", variant: "error" });
-                  addToWaitlist.mutateAsync({ patientId: w.patientId, appointmentId: w.id, doctorId: w.doctorId ?? undefined });
-                }} disabled={addToWaitlist.isPending}>
-                  <Plus size={13} /> Check In
-                </button>
               </>
             ) : (
-              <button className="appt-btn appt-btn-xs appt-btn-primary" onClick={() => handleCall(w.id)} disabled={callNext.isPending}>
+              <button className="appt-btn appt-btn-xs appt-btn-primary" onClick={() => handleCall(w)} disabled={callNext.isPending}>
                 <ChevronRight size={13} strokeWidth={1.6} /> Call Next
               </button>
             )}
@@ -468,27 +472,13 @@ export default function TokenQueuePage() {
                       ) : w.status === -1 ? (
                         <>
                           {!w.tokenNo && (
-                            <button className="appt-kebab-item" style={{ color: 'var(--pp-blue)' }} onClick={() => { handleIssueToken(w.id); setOpenMenuId(null); setMenuPos(null); }} disabled={issueToken.isPending}>
+                            <button className="appt-kebab-item" style={{ color: 'var(--pp-blue)' }} onClick={() => { handleIssueToken(w); setOpenMenuId(null); setMenuPos(null); }} disabled={issueToken.isPending}>
                               <Ticket size={14} /> Issue Token
                             </button>
                           )}
-                          <button className="appt-kebab-item" style={{ color: 'var(--pp-success-fg)' }} onClick={() => {
-                            if (!w.patientId) {
-                              toast({ description: "Patient not registered", variant: "error" });
-                              return;
-                            }
-                            addToWaitlist.mutateAsync({
-                              patientId: w.patientId,
-                              appointmentId: w.id,
-                              doctorId: w.doctorId ?? undefined
-                            });
-                            setOpenMenuId(null); setMenuPos(null);
-                          }} disabled={addToWaitlist.isPending}>
-                            <Plus size={14} /> Check In
-                          </button>
                         </>
                       ) : (
-                        <button className="appt-kebab-item" style={{ color: 'var(--pp-blue)' }} onClick={() => { handleCall(w.id); setOpenMenuId(null); setMenuPos(null); }} disabled={callNext.isPending}>
+                        <button className="appt-kebab-item" style={{ color: 'var(--pp-blue)' }} onClick={() => { handleCall(w); setOpenMenuId(null); setMenuPos(null); }} disabled={callNext.isPending}>
                           <ChevronRight size={14} /> Call
                         </button>
                       )}
@@ -724,32 +714,14 @@ export default function TokenQueuePage() {
                                 style={{ position: 'fixed', top: menuPos.top, left: menuPos.left, zIndex: 9999 }}
                               >
                                 {!a.tokenNo ? (
-                                  <button className="appt-kebab-item" style={{ color: 'var(--pp-blue)' }} onClick={() => { handleIssueToken(a.id); setOpenMenuId(null); setMenuPos(null); }} disabled={issueToken.isPending}>
+                                  <button className="appt-kebab-item" style={{ color: 'var(--pp-blue)' }} onClick={() => { handleIssueToken(a); setOpenMenuId(null); setMenuPos(null); }} disabled={issueToken.isPending}>
                                     <Ticket size={14} /> Issue Token
                                   </button>
                                 ) : ['Completed', 'Consultation', 'Waitlist', 'Absent', 'Cancelled'].includes(a.status) ? (
                                   <div className="appt-kebab-item" style={{ color: 'var(--pp-text-3)', cursor: 'default', opacity: 0.6 }}>
                                     <CheckCircle2 size={14} /> {a.status === 'Completed' ? 'Done' : a.status}
                                   </div>
-                                ) : (
-                                  <button className="appt-kebab-item" style={{ color: 'var(--pp-success-fg)' }} onClick={() => {
-                                    if (!a.patientId) {
-                                      toast({
-                                        description: "यह पेशेंट रजिस्टर नहीं है, सबसे पहले इसको ऐड करो (This patient is not registered, please add them first)",
-                                        variant: "error"
-                                      });
-                                      return;
-                                    }
-                                    addToWaitlist.mutateAsync({
-                                      patientId: a.patientId || undefined,
-                                      appointmentId: a.id,
-                                      doctorId: a.doctorId ?? undefined
-                                    });
-                                    setOpenMenuId(null); setMenuPos(null);
-                                  }} disabled={addToWaitlist.isPending}>
-                                    <Plus size={14} /> Check In
-                                  </button>
-                                )}
+                                ) : null}
                                 <div className="appt-kebab-divider" />
                                 <button className="appt-kebab-item" style={{ color: 'var(--pp-purple)' }} onClick={() => { setActiveVitals({ visitId: a.id, regid: a.patientId ?? 0 }); setOpenMenuId(null); setMenuPos(null); }}>
                                   <Activity size={14} /> Vitals
