@@ -12,7 +12,7 @@ import {
   users,
   medicalCases,
   unregisteredPatients,
-  waitlist
+  waitlist,
 } from '@mmc/database/schema';
 import type { DbClient } from '@mmc/database';
 import type {
@@ -20,14 +20,10 @@ import type {
   PatientSummary,
   FamilyMember,
   PatientFormMeta,
-  FamilyGroupSummary
+  FamilyGroupSummary,
 } from '@mmc/types';
 import type { PatientRepository } from '../../domains/patient/ports/patient.repository.js';
-import type {
-  CreatePatientInput,
-  UpdatePatientInput,
-  FamilyMemberInput
-} from '@mmc/validation';
+import type { CreatePatientInput, UpdatePatientInput, FamilyMemberInput } from '@mmc/validation';
 
 /**
  * PostgreSQL adapter for PatientRepository port.
@@ -35,18 +31,13 @@ import type {
  * Uses Drizzle ORM with schema-per-tenant (search_path set at connection level).
  */
 export class PatientRepositoryPg implements PatientRepository {
-  constructor(private readonly db: DbClient) { }
+  constructor(private readonly db: DbClient) {}
 
   async findById(id: number): Promise<Patient | null> {
     const [row] = await this.db
       .select()
       .from(patients)
-      .where(
-        and(
-          eq(patients.id, id),
-          sql`(deleted_at IS NULL OR deleted_at::text = '')`
-        )
-      )
+      .where(and(eq(patients.id, id), sql`(deleted_at IS NULL OR deleted_at::text = '')`))
       .limit(1);
     return row ? this.toDomain(row) : null;
   }
@@ -55,12 +46,7 @@ export class PatientRepositoryPg implements PatientRepository {
     const [row] = await this.db
       .select({ password: patients.password })
       .from(patients)
-      .where(
-        and(
-          eq(patients.email, email),
-          sql`(deleted_at IS NULL OR deleted_at::text = '')`
-        )
-      )
+      .where(and(eq(patients.email, email), sql`(deleted_at IS NULL OR deleted_at::text = '')`))
       .limit(1);
     return row?.password || null;
   }
@@ -69,12 +55,7 @@ export class PatientRepositoryPg implements PatientRepository {
     const [row] = await this.db
       .select()
       .from(patients)
-      .where(
-        and(
-          eq(patients.email, email),
-          sql`(deleted_at IS NULL OR deleted_at::text = '')`
-        )
-      )
+      .where(and(eq(patients.email, email), sql`(deleted_at IS NULL OR deleted_at::text = '')`))
       .limit(1);
     return row ? this.toDomain(row) : null;
   }
@@ -83,12 +64,7 @@ export class PatientRepositoryPg implements PatientRepository {
     const [row] = await this.db
       .select()
       .from(patients)
-      .where(
-        and(
-          eq(patients.regid, regid),
-          sql`(deleted_at IS NULL OR deleted_at::text = '')`
-        )
-      )
+      .where(and(eq(patients.regid, regid), sql`(deleted_at IS NULL OR deleted_at::text = '')`))
       .limit(1);
     return row ? this.toDomain(row) : null;
   }
@@ -105,7 +81,9 @@ export class PatientRepositoryPg implements PatientRepository {
     const { page, limit, search, doctorId, clinicId, sortBy, sortOrder } = params;
     const offset = (page - 1) * limit;
 
-    const conditions = [sql`(${patients.deletedAt} IS NULL OR ${patients.deletedAt}::text = '')` as any];
+    const conditions = [
+      sql`(${patients.deletedAt} IS NULL OR ${patients.deletedAt}::text = '')` as any,
+    ];
 
     if (search) {
       const s = `%${search}%`;
@@ -116,7 +94,7 @@ export class PatientRepositoryPg implements PatientRepository {
           sql`${patients.phone} ILIKE ${s}`,
           sql`${patients.mobile1} ILIKE ${s}`,
           sql`CAST(${patients.regid} AS TEXT) LIKE ${s}`,
-        )!
+        )!,
       );
     }
 
@@ -127,7 +105,7 @@ export class PatientRepositoryPg implements PatientRepository {
           WHERE ${appointments.patientId} = ${patients.id} 
             AND ${appointments.doctorId} = ${doctorId}
             AND (${appointments.deletedAt} IS NULL OR ${appointments.deletedAt}::text = '')
-        )`
+        )`,
       );
     }
 
@@ -138,7 +116,7 @@ export class PatientRepositoryPg implements PatientRepository {
           isNull(patients.clinicId),
           eq(patients.clinicId, 0),
           eq(patients.clinicId, 1),
-        )!
+        )!,
       );
     }
 
@@ -147,7 +125,8 @@ export class PatientRepositoryPg implements PatientRepository {
     // Sorting logic
     let orderBy: any = sql`${patients.id} DESC`; // default
     if (sortBy === 'name') {
-      orderBy = sortOrder === 'desc' ? sql`${patients.firstName} DESC` : sql`${patients.firstName} ASC`;
+      orderBy =
+        sortOrder === 'desc' ? sql`${patients.firstName} DESC` : sql`${patients.firstName} ASC`;
     } else if (sortBy === 'newest') {
       orderBy = sql`${patients.id} DESC`;
     } else if (sortBy === 'oldest') {
@@ -211,7 +190,7 @@ export class PatientRepositoryPg implements PatientRepository {
               FROM temp_followup AS tf_inner
               WHERE tf_inner."PersonalID" ~ '^\\d+$' AND tf_inner."PersonalID"::integer = case_datas.regid
             ) t
-          )`
+          )`,
         })
         .from(patients)
         .where(whereClause)
@@ -221,16 +200,16 @@ export class PatientRepositoryPg implements PatientRepository {
       this.db
         .select({ count: sql<number>`count(*)` })
         .from(patients)
-        .where(whereClause)
+        .where(whereClause),
     ]);
 
     return {
-      data: data.map(row => {
+      data: data.map((row) => {
         // Handle the joined structure
-        return this.toSummary({ 
-          ...row.patient, 
-          doctorName: row.doctorName, 
-          lastVisit: row.lastVisit 
+        return this.toSummary({
+          ...row.patient,
+          doctorName: row.doctorName,
+          lastVisit: row.lastVisit,
         });
       }),
       total: Number(countRows[0]?.count ?? 0),
@@ -284,9 +263,12 @@ export class PatientRepositoryPg implements PatientRepository {
     }
     patientData.reference = input.referenceType || '';
 
-    if ((patients as any).assistantDoctor) patientData.assistantDoctor = (input as any).assistantDoctor || '';
-    if ((patients as any).consultationFee) patientData.consultationFee = (input as any).consultationFee || 0;
-    if ((patients as any).courierOutstation) patientData.courierOutstation = input.courierOutstation ? '1' : '0';
+    if ((patients as any).assistantDoctor)
+      patientData.assistantDoctor = (input as any).assistantDoctor || '';
+    if ((patients as any).consultationFee)
+      patientData.consultationFee = (input as any).consultationFee || 0;
+    if ((patients as any).courierOutstation)
+      patientData.courierOutstation = input.courierOutstation ? '1' : '0';
     if ((patients as any).referedBy) {
       if ((input as any).referredById) {
         patientData.referedBy = String((input as any).referredById);
@@ -314,17 +296,15 @@ export class PatientRepositoryPg implements PatientRepository {
       // If the error is specifically about clinic_id column not existing,
       // fall back to inserting without it so patient creation still works.
       if (err?.message?.includes('clinic_id') && err?.message?.includes('does not exist')) {
-        console.warn('[PatientRepo] clinic_id column missing in case_datas — inserting without it. Run migration to add the column.');
-        const [row] = await this.db
-          .insert(patients)
-          .values(patientData)
-          .returning();
+        console.warn(
+          '[PatientRepo] clinic_id column missing in case_datas — inserting without it. Run migration to add the column.',
+        );
+        const [row] = await this.db.insert(patients).values(patientData).returning();
         return this.toDomain(row!);
       }
       throw err;
     }
   }
-
 
   async update(regid: number, input: UpdatePatientInput): Promise<Patient | null> {
     const updateData: Record<string, unknown> = {
@@ -361,7 +341,8 @@ export class PatientRepositoryPg implements PatientRepository {
       }
     }
     if (input.referenceType !== undefined) updateData.reference = input.referenceType;
-    if ((input as any).maritalStatus !== undefined) updateData.status = (input as any).maritalStatus;
+    if ((input as any).maritalStatus !== undefined)
+      updateData.status = (input as any).maritalStatus;
     if ((input as any).referredById !== undefined || (input as any).referredBy !== undefined) {
       if ((input as any).referredById) {
         updateData.referedBy = String((input as any).referredById);
@@ -371,8 +352,10 @@ export class PatientRepositoryPg implements PatientRepository {
         updateData.referedName = null;
       }
     }
-    if ((input as any).assistantDoctor !== undefined) updateData.assistantDoctor = (input as any).assistantDoctor;
-    if ((input as any).consultationFee !== undefined) updateData.consultationFee = (input as any).consultationFee;
+    if ((input as any).assistantDoctor !== undefined)
+      updateData.assistantDoctor = (input as any).assistantDoctor;
+    if ((input as any).consultationFee !== undefined)
+      updateData.consultationFee = (input as any).consultationFee;
     if (input.password) {
       updateData.password = bcrypt.hashSync(input.password, 10);
     }
@@ -404,7 +387,7 @@ export class PatientRepositoryPg implements PatientRepository {
         sql`${patients.phone} ILIKE ${s}`,
         sql`${patients.mobile1} ILIKE ${s}`,
         sql`CAST(${patients.regid} AS TEXT) LIKE ${s}`,
-      )
+      ),
     ];
 
     if (clinicId) {
@@ -418,18 +401,18 @@ export class PatientRepositoryPg implements PatientRepository {
           (SELECT name FROM doctors WHERE id::text = TRIM(case_datas.assitant_doctor) LIMIT 1),
           (SELECT name FROM users WHERE id::text = TRIM(case_datas.assitant_doctor) LIMIT 1),
           case_datas.assitant_doctor
-        )`
+        )`,
       })
       .from(patients)
       .where(and(...conditions))
       .limit(limit);
-    return rows.map(row => this.toSummary({ ...row.patient, doctorName: row.doctorName }));
+    return rows.map((row) => this.toSummary({ ...row.patient, doctorName: row.doctorName }));
   }
 
   async findBirthdays(mmdd: string, clinicId?: number): Promise<PatientSummary[]> {
     const conditions = [
       sql`(deleted_at IS NULL OR deleted_at::text = '')`,
-      sql`to_char(${patients.dob}::date, 'MM-DD') = ${mmdd}`
+      sql`to_char(${patients.dob}::date, 'MM-DD') = ${mmdd}`,
     ];
 
     if (clinicId) {
@@ -443,20 +426,18 @@ export class PatientRepositoryPg implements PatientRepository {
           (SELECT name FROM doctors WHERE id::text = TRIM(case_datas.assitant_doctor) LIMIT 1),
           (SELECT name FROM users WHERE id::text = TRIM(case_datas.assitant_doctor) LIMIT 1),
           case_datas.assitant_doctor
-        )`
+        )`,
       })
       .from(patients)
       .where(and(...conditions));
-    return rows.map(row => this.toSummary({ ...row.patient, doctorName: row.doctorName }));
+    return rows.map((row) => this.toSummary({ ...row.patient, doctorName: row.doctorName }));
   }
 
   async getFormMeta(clinicId?: number): Promise<PatientFormMeta> {
     try {
       // 1. Fetch Doctors — Primary source is doctorsLegacy (tenant's doctors table)
       // but we join with users to get the most up-to-date name/status if available.
-      const doctorConditions = [
-        isNull(doctorsLegacy.deletedAt),
-      ];
+      const doctorConditions = [isNull(doctorsLegacy.deletedAt)];
 
       if (clinicId) {
         doctorConditions.push(eq(doctorsLegacy.clinicId, clinicId));
@@ -470,7 +451,7 @@ export class PatientRepositoryPg implements PatientRepository {
             userName: users.name,
             legacyFee: doctorsLegacy.consultationFee,
             userFee: users.consultationFee,
-            isActive: users.isActive
+            isActive: users.isActive,
           })
           .from(doctorsLegacy)
           .leftJoin(users, eq(doctorsLegacy.id, users.id))
@@ -479,27 +460,40 @@ export class PatientRepositoryPg implements PatientRepository {
             console.error('[PatientRepo] Failed to fetch doctors:', err.message);
             return [];
           }),
-        this.db.select().from(religionLegacy).catch((err) => {
-          console.error('[PatientRepo] Failed to fetch religions:', err.message);
-          return [];
-        }),
-        this.db.select().from(occupationLegacy).catch((err) => {
-          console.error('[PatientRepo] Failed to fetch occupations:', err.message);
-          return [];
-        }),
-        this.db.select().from(refrencetypeLegacy).catch((err) => {
-          console.error('[PatientRepo] Failed to fetch references:', err.message);
-          return [];
-        }),
-        this.db.select().from(referralSources).where(eq(referralSources.isActive, true)).catch((err) => {
-          console.error('[PatientRepo] Failed to fetch referral sources:', err.message);
-          return [];
-        }),
+        this.db
+          .select()
+          .from(religionLegacy)
+          .catch((err) => {
+            console.error('[PatientRepo] Failed to fetch religions:', err.message);
+            return [];
+          }),
+        this.db
+          .select()
+          .from(occupationLegacy)
+          .catch((err) => {
+            console.error('[PatientRepo] Failed to fetch occupations:', err.message);
+            return [];
+          }),
+        this.db
+          .select()
+          .from(refrencetypeLegacy)
+          .catch((err) => {
+            console.error('[PatientRepo] Failed to fetch references:', err.message);
+            return [];
+          }),
+        this.db
+          .select()
+          .from(referralSources)
+          .where(eq(referralSources.isActive, true))
+          .catch((err) => {
+            console.error('[PatientRepo] Failed to fetch referral sources:', err.message);
+            return [];
+          }),
       ]);
 
       // Deduplicate doctors by ID (caused by left join if multiple legacy records match)
       const uniqueDoctorsMap = new Map<number, any>();
-      doctors.forEach(d => {
+      doctors.forEach((d) => {
         if (!uniqueDoctorsMap.has(d.id)) {
           uniqueDoctorsMap.set(d.id, d);
         }
@@ -507,9 +501,9 @@ export class PatientRepositoryPg implements PatientRepository {
       const uniqueDoctors = Array.from(uniqueDoctorsMap.values());
 
       return {
-        doctors: uniqueDoctors.map(d => {
+        doctors: uniqueDoctors.map((d) => {
           // If userFee is 0 or null, try legacyFee
-          let fee = (d.userFee && Number(d.userFee) > 0) ? d.userFee : d.legacyFee;
+          let fee = d.userFee && Number(d.userFee) > 0 ? d.userFee : d.legacyFee;
           let numFee: number | null = null;
 
           if (fee !== null && fee !== undefined) {
@@ -521,12 +515,20 @@ export class PatientRepositoryPg implements PatientRepository {
           return {
             id: d.id,
             name: d.name,
-            consultationFee: numFee
+            consultationFee: numFee,
           };
         }),
         religions: Array.from(new Set(religions.map((r: any) => r.religion).filter(Boolean))),
         occupations: Array.from(new Set(occupations.map((o: any) => o.occupation).filter(Boolean))),
-        references: Array.from(new Set(references.map((r: any) => r.referencetype).filter(Boolean))),
+        references: Array.from(
+          new Set(references.map((r: any) => r.referencetype).filter(Boolean)),
+        ),
+        referenceTypes: references
+          .filter((r: any) => r.id && r.referencetype)
+          .map((r: any) => ({
+            id: r.id,
+            name: r.referencetype,
+          })),
         statuses: ['Single', 'Married', 'Divorced', 'Widowed'],
         titles: ['Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Prof.', 'Master', 'Baby'],
       };
@@ -538,6 +540,7 @@ export class PatientRepositoryPg implements PatientRepository {
         religions: [],
         occupations: [],
         references: [],
+        referenceTypes: [],
         statuses: ['Single', 'Married', 'Divorced', 'Widowed'],
         titles: ['Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Prof.', 'Master', 'Baby'],
       };
@@ -561,7 +564,9 @@ export class PatientRepositoryPg implements PatientRepository {
     }
     if (search) {
       const s = `%${search}%`;
-      whereConditions.push(sql`(p.first_name ILIKE ${s} OR p.surname ILIKE ${s} OR CAST(fg.regid AS TEXT) LIKE ${s})`);
+      whereConditions.push(
+        sql`(p.first_name ILIKE ${s} OR p.surname ILIKE ${s} OR CAST(fg.regid AS TEXT) LIKE ${s})`,
+      );
     }
 
     const whereClause = sql.join(whereConditions, sql` AND `);
@@ -585,11 +590,11 @@ export class PatientRepositoryPg implements PatientRepository {
         FROM familygroups fg
         JOIN case_datas p ON p.regid = fg.regid
         WHERE ${whereClause}
-      `)
+      `),
     ]);
 
     return {
-      data: (data as any[]).map(r => ({
+      data: (data as any[]).map((r) => ({
         id: r.regid,
         regid: r.regid,
         familyRegid: r.regid,
@@ -615,7 +620,7 @@ export class PatientRepositoryPg implements PatientRepository {
       ORDER BY p.first_name ASC
     `);
 
-    return (rows as any[]).map(r => ({
+    return (rows as any[]).map((r) => ({
       id: r.id,
       regid: r.regid,
       memberRegid: r.member_regid,
@@ -644,7 +649,12 @@ export class PatientRepositoryPg implements PatientRepository {
 
     // Resolve member name and mobile for the returned object
     const [p] = await this.db
-      .select({ firstName: patients.firstName, surname: patients.surname, phone: patients.phone, mobile1: patients.mobile1 })
+      .select({
+        firstName: patients.firstName,
+        surname: patients.surname,
+        phone: patients.phone,
+        mobile1: patients.mobile1,
+      })
       .from(patients)
       .where(eq(patients.regid, data.memberRegid))
       .limit(1);
@@ -655,7 +665,7 @@ export class PatientRepositoryPg implements PatientRepository {
       memberRegid: row!.memberRegid!,
       relation: row!.relation || '',
       memberName: p ? `${p.firstName} ${p.surname}`.trim() : null,
-      memberMobile: (p?.mobile1 || p?.phone) || null,
+      memberMobile: p?.mobile1 || p?.phone || null,
     };
   }
 
@@ -668,7 +678,13 @@ export class PatientRepositoryPg implements PatientRepository {
     return !!row;
   }
 
-  async createUnregistered(data: { name: string; phone?: string; email?: string; gender?: string; clinicId?: number }): Promise<{ id: number; name: string }> {
+  async createUnregistered(data: {
+    name: string;
+    phone?: string;
+    email?: string;
+    gender?: string;
+    clinicId?: number;
+  }): Promise<{ id: number; name: string }> {
     const [row] = await this.db
       .insert(unregisteredPatients)
       .values({
@@ -684,10 +700,15 @@ export class PatientRepositoryPg implements PatientRepository {
     return { id: row!.id, name: row!.name };
   }
 
-  async findUnregistered(params: { clinicId?: number; search?: string; limit?: number; offset?: number }): Promise<any[]> {
+  async findUnregistered(params: {
+    clinicId?: number;
+    search?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<any[]> {
     const conditions = [
       isNull(unregisteredPatients.deletedAt),
-      isNull(unregisteredPatients.registeredPatientId) // Only show those not yet converted
+      isNull(unregisteredPatients.registeredPatientId), // Only show those not yet converted
     ];
     if (params.clinicId) {
       conditions.push(
@@ -696,7 +717,7 @@ export class PatientRepositoryPg implements PatientRepository {
           isNull(unregisteredPatients.clinicId),
           eq(unregisteredPatients.clinicId, 0),
           eq(unregisteredPatients.clinicId, 1),
-        )!
+        )!,
       );
     }
     if (params.search) {
@@ -718,7 +739,7 @@ export class PatientRepositoryPg implements PatientRepository {
           visitType: appointments.visitType,
           consultationFee: appointments.consultationFee,
           notes: appointments.notes,
-        }
+        },
       })
       .from(unregisteredPatients)
       .leftJoin(appointments, eq(unregisteredPatients.id, appointments.unregisteredPatientId))
@@ -736,11 +757,11 @@ export class PatientRepositoryPg implements PatientRepository {
 
     // Deduplicate in memory
     const uniqueMap = new Map();
-    results.forEach(r => {
+    results.forEach((r) => {
       if (!uniqueMap.has(r.unregistered.id)) {
         uniqueMap.set(r.unregistered.id, {
           ...r.unregistered,
-          latestAppointment: (r.appointment && r.appointment.doctorId) ? r.appointment : null
+          latestAppointment: r.appointment && r.appointment.doctorId ? r.appointment : null,
         });
       }
     });
@@ -752,12 +773,12 @@ export class PatientRepositoryPg implements PatientRepository {
     await this.db.transaction(async (tx) => {
       // Get formal patient details to update linked records
       const [formal] = await tx
-        .select({ 
-          firstName: patients.firstName, 
-          surname: patients.surname, 
+        .select({
+          firstName: patients.firstName,
+          surname: patients.surname,
           phone: patients.phone,
           mobile1: patients.mobile1,
-          assistantDoctor: patients.assistantDoctor
+          assistantDoctor: patients.assistantDoctor,
         })
         .from(patients)
         .where(eq(patients.id, formalId))
@@ -776,24 +797,24 @@ export class PatientRepositoryPg implements PatientRepository {
       // 2. Update appointments
       await tx
         .update(appointments)
-        .set({ 
-          patientId: formalId, 
+        .set({
+          patientId: formalId,
           unregisteredPatientId: null,
           patientName: fullName,
           phone: contactPhone,
           doctorId: doctorId || undefined,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(appointments.unregisteredPatientId, unregisteredId));
 
       // 3. Update waitlist
       await tx
         .update(waitlist)
-        .set({ 
-          patientId: formalId, 
+        .set({
+          patientId: formalId,
           unregisteredPatientId: null,
           doctorId: doctorId || undefined,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(waitlist.unregisteredPatientId, unregisteredId));
     });
@@ -810,7 +831,7 @@ export class PatientRepositoryPg implements PatientRepository {
       middleName: row.middleName || null,
       surname: row.surname || '',
       gender: (row.gender as Patient['gender']) || 'Other',
-      dateOfBirth: row.dob ? new Date(row.dob) : (row.dateOfBirth ? new Date(row.dateOfBirth) : null),
+      dateOfBirth: row.dob ? new Date(row.dob) : row.dateOfBirth ? new Date(row.dateOfBirth) : null,
       age: row.age || null,
       phone: row.phone || null,
       mobile1: row.mobile1 || null,

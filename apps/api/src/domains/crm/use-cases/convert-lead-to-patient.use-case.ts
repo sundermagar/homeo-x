@@ -5,8 +5,8 @@ import type { PatientRepository } from '../../patient/ports/patient.repository.j
 export class ConvertLeadToPatientUseCase {
   constructor(
     private readonly leadRepo: ILeadRepository,
-    private readonly patientRepo: PatientRepository
-  ) { }
+    private readonly patientRepo: PatientRepository,
+  ) {}
 
   async execute(leadId: number): Promise<Result<{ regid: number }>> {
     const lead = await this.leadRepo.findLeadById(leadId);
@@ -29,19 +29,20 @@ export class ConvertLeadToPatientUseCase {
       gender: 'M',
       dateOfBirth: '01/01/1900', // Added placeholder for mandatory field
       courierOutstation: false,
+      sendWelcomeEmail: false,
     });
 
     // Update lead status
-    await this.leadRepo.updateLead(leadId, { 
+    await this.leadRepo.updateLead(leadId, {
       status: 'converted',
-      notes: (lead.notes || '') + `\nConverted to patient: regid ${patient.regid}`
+      notes: (lead.notes || '') + `\nConverted to patient: regid ${patient.regid}`,
     });
 
     // Add conversion followup
     await this.leadRepo.createFollowup(leadId, {
       name: `Lead converted to patient with regid ${patient.regid}`,
       task: 'Lead Conversion',
-      taskstatus: 'done'
+      taskstatus: 'done',
     });
 
     return ok({ regid: patient.regid });

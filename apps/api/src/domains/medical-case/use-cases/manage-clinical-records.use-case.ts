@@ -1,11 +1,11 @@
 import { type Result, ok } from '../../../shared/result.js';
-import type { 
-  MedicalCaseRepository, 
-  CaseNote, 
-  CaseExamination, 
-  CaseImage, 
-  Investigation, 
-  Prescription 
+import type {
+  MedicalCaseRepository,
+  CaseNote,
+  CaseExamination,
+  CaseImage,
+  Investigation,
+  Prescription,
 } from '../ports/medical-case.repository.js';
 
 export class ManageClinicalRecordsUseCase {
@@ -42,8 +42,18 @@ export class ManageClinicalRecordsUseCase {
   }
 
   // ─── Investigations (Labs) ───
-  async saveInvestigation(dto: Partial<Investigation>): Promise<Result<void>> {
+  async saveInvestigation(dto: Partial<Investigation> & { attachmentUrl?: string; summary?: string }): Promise<Result<void>> {
     await this.repository.saveInvestigation(dto);
+    
+    // Also add to "Media" (case_images) so the doctor sees it in the Media tab
+    if (dto.attachmentUrl && dto.regid) {
+      await this.repository.saveImage({
+        regid: dto.regid,
+        description: dto.summary || dto.type || 'Uploaded Report',
+        picture: dto.attachmentUrl,
+      });
+    }
+
     return ok(undefined);
   }
   async deleteInvestigation(id: number, type: string): Promise<Result<void>> {
@@ -66,7 +76,6 @@ export class ManageClinicalRecordsUseCase {
     await this.repository.deletePrescription(id);
     return ok(undefined);
   }
-
 
   // ─── Homeo Details ───
   async saveHomeoDetails(dto: Partial<any>): Promise<Result<void>> {
